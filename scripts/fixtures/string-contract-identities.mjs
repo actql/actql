@@ -188,8 +188,23 @@ const selections = [
     ]
   ]
 ];
-export function valuesContractCids() {
+export function valuesContractCids(old = false) {
   return selections.map(([path, keys]) => {
+    // Freeze predecessor preimages at the pre-String source, 02a60baf0^.
+    // Current Graph grammar/profile changes must not mutate historical vectors.
+    if (old && path === 'spec/contracts/actql-check-environment.json') {
+      return 'sha256:50a14e0c2454d439df53fc4be570d6e008299ba1005cc442838a985337cb3dd8';
+    }
+    if (old && path === 'spec/contracts/actql-bound-transfer-laws.json') {
+      return 'sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911';
+    }
+    if (old && keys.join('/') ===
+        'artifact_schemas/executable_plan/properties/execution_material/properties/program') {
+      return 'sha256:a6bfc4b6c00d89f521ccee9e99e1dbbd7385675fd55478f1536f36f860b1ef0a';
+    }
+    if (!old && path === 'spec/dependencies/aoa-sga-identity-laws.json') {
+      path = 'spec/dependencies/actql-property-graph-laws.json';
+    }
     const root = JSON.parse(readFileSync(new URL('../../' + path, import.meta.url), 'utf8'));
     return independentCid(keys.reduce((v, key) => v[key], root));
   }).sort();
@@ -215,7 +230,7 @@ export function valuesUnitIdentity(program, old = false) {
   const body = {version: 'actql-stage-semantics/0.1',
     expression_contract_cid: independentCid(expressions), parameters: {}, bindings: {},
     parameter_references: [], binding_references: [], local_body: localBody};
-  let contracts = valuesContractCids();
+  let contracts = valuesContractCids(old);
   if (old) {
     const reverse = new Map([...stringPinReplacements()].map(([a,b]) => [b,a]));
     contracts = contracts.map(c => reverse.get(c) ?? c).sort();
@@ -276,7 +291,7 @@ export function valuesResultPlan(unit) {
 export function acquiredUnitIdentities(program, environment, old = false) {
   const read = path => JSON.parse(readFileSync(new URL('../../' + path, import.meta.url)));
   const changed = stringPinReplacements();
-  let common = valuesContractCids().filter(c => ![
+  let common = valuesContractCids(old).filter(c => ![
     independentCid(read('spec/contracts/actql-bound-values-law.json')),
     independentCid(read('spec/contracts/actql-bound-values-wire-law.json')),
     changed.get(oldStringPins[2]),

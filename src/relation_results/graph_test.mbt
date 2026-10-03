@@ -1,113 +1,86 @@
 ///|
-test "graph computations publish only their explicit typed relation outputs" {
-  let graph = @carrier.graph(
-    @contract.primitive(NumberType, nullable=false),
-    @carrier.unknown_rows(),
-    @carrier.unknown_rows(),
-    labels=None,
-    max_labels=0,
-    max_label_bytes=0,
-  ).unwrap()
-  let p = @pipeline.check_carriers(
-    cursor(
-      "[{\"normalize_graph\":true,\"as\":\"normalized\"},{\"components\":{\"kind\":\"weak\"},\"as\":\"members\"}]",
-    ),
-    [("g", graph)],
-    None,
-    None,
-    {
-      max_steps: 100,
-      max_work: 10000,
-      max_nodes: 10000,
-      max_text_bytes: 10000,
-      max_tokens: 10000,
-      max_depth: 100,
-    },
-  ).unwrap()
-  let accepted = @relation_results.check(
-    p,
-    cursor(
-      "{\"result\":{\"from\":\"members\",\"fields\":[\"node_id\",\"component_size\"]}}",
-    ),
-    limits(),
-  ).unwrap()
-  assert_eq(@relation_results.count(accepted), 1)
-  let rejected = @relation_results.check(
-    p,
-    cursor("{\"result\":{\"from\":\"normalized\",\"fields\":[\"node_id\"]}}"),
-    limits(),
-  ).unwrap_err()
-  assert_eq(rejected.kind, WrongCarrier(GraphKind))
+test "unconnected structural Graph operations refuse before Result publication" {
+  for
+    (operation, expected) in [
+      (
+        "\"normalize_graph\":true",
+        @pipeline.Graph(@graph.UnsupportedGraphOperation),
+      ),
+      (
+        "\"components\":{\"kind\":\"weak\"}",
+        @pipeline.Graph(@graph.UnsupportedGraphOperation),
+      ),
+      (
+        "\"reach\":{\"start\":1,\"direction\":\"both\",\"max_depth\":2}",
+        @pipeline.Graph(@graph.UnsupportedGraphOperation),
+      ),
+    ] {
+    assert_eq(
+      @pipeline.check_carriers(
+        cursor("[{" + operation + ",\"as\":\"out\"}]"),
+        [("g", property_query_graph())],
+        None,
+        None,
+        ranking_limits(),
+      ).unwrap_err().kind,
+      expected,
+    )
+  }
 }
 
 ///|
-test "graph bridges feed ordinary relation steps and Result publication" {
-  let empty = @carrier.rows(
-    [],
-    field_set=Closed,
-    max_fields=0,
-    max_name_bytes=0,
-  ).unwrap()
-  let names = @carrier.graph_row_names(
-    Unqualified("customer"),
-    Unqualified("source"),
-    Unqualified("target"),
-    None,
-    max_name_bytes=100,
-  ).unwrap()
-  let graph = @carrier.graph(
-    @contract.primitive(NumberType, nullable=false),
-    empty,
-    empty,
-    labels=None,
-    max_labels=0,
-    max_label_bytes=0,
-    row_names=Some(names),
-  ).unwrap()
-  let caps : @pipeline.Limits = {
-    max_steps: 100,
-    max_work: 10000,
-    max_nodes: 10000,
-    max_text_bytes: 10000,
-    max_tokens: 10000,
-    max_depth: 100,
-  }
-  for
-    (body, field) in [
-      (
-        "[{\"node_rows\":true},{\"select\":[\"customer\"],\"as\":\"rows\"}]", "customer",
-      ),
-      (
-        "[{\"edge_rows\":true},{\"select\":[\"source\"],\"as\":\"rows\"}]", "source",
-      ),
-    ] {
+test "definition scoped MATCH feeds ordinary Relation steps and Result publication without tuple bridges" {
+  for edges in [false, true] {
     let p = @pipeline.check_carriers(
-      cursor(body),
-      [("g", graph)],
+      cursor(
+        "[" +
+        property_query_body(edges, "[\"element\",\"score\"]") +
+        ",{\"select\":[{\"id\":\"element\"},\"score\"],\"as\":\"rows\"}]",
+      ),
+      [("g", property_query_graph())],
       None,
       None,
-      caps,
+      ranking_limits(),
     ).unwrap()
     let result = @relation_results.check(
       p,
-      cursor("{\"main\":{\"from\":\"rows\",\"fields\":[\"" + field + "\"]}}"),
+      cursor("{\"main\":{\"from\":\"rows\",\"fields\":[\"id\",\"score\"]}}"),
       limits(),
     ).unwrap()
     assert_eq(@relation_results.count(result), 1)
-  }
-  let unknown_graph = @pipeline.check_carriers(
-    cursor("[{\"node_rows\":true,\"as\":\"rows\"}]"),
-    [("g", @carrier.unknown_carrier(GraphKind))],
-    None,
-    None,
-    caps,
-  ).unwrap()
-  assert_true(
-    @relation_results.check(
-      unknown_graph,
-      cursor("{\"main\":{\"from\":\"rows\",\"fields\":[\"id\"]}}"),
-      limits(),
+    assert_eq(
+      @relation_results.publication_strategy(resolve(result)),
+      Inherited,
     )
-    is Err(_),
-  )
+    assert_true(
+      @relation_results.check(
+        p,
+        cursor("{\"main\":{\"from\":\"g\",\"fields\":[\"id\"]}}"),
+        limits(),
+      )
+      is Err({ kind: WrongCarrier(GraphKind), .. }),
+    )
+  }
+  for operation in ["\"node_rows\":true", "\"edge_rows\":true"] {
+    assert_true(
+      @pipeline.check_carriers(
+        cursor("[{" + operation + "}]"),
+        [("g", property_query_graph())],
+        None,
+        None,
+        ranking_limits(),
+      )
+      is Err({ kind: Projection(UnsupportedGraphOperation), .. }),
+    )
+    assert_true(
+      @pipeline.check_carriers(
+        cursor("[{" + operation + "}]"),
+        [("g", @carrier.unknown_carrier(GraphKind))],
+        None,
+        None,
+        ranking_limits(),
+      )
+      is Err({ kind: Projection(IncompleteGraph), .. }),
+    )
+  }
 }

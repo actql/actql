@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {setImmediate as yieldToHost} from 'node:timers/promises';
 import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -7,6 +8,7 @@ import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
 import { runBroadQuery } from '../broad-query.mjs';
 import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
+import {acquisitionOutcome} from '../../../../host-common/acquisition-outcome.mjs';
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 100, maxTransportBytes: 10000,
@@ -97,6 +99,39 @@ test('real broad transport gates synchronous capture and keeps failed consumers 
     captured.close(); captured.close();
     assert.throws(() => captured.bindInput(false), error => error.code === 'IssuerClosed');
     assert.equal(events.filter(event => event === 'close').length, 1);
+    const bounded = [];
+    const boundedCapture = await runBroadQuery(grant, verify => {
+      const bridge = bridgeFactory(bounded)(verify);
+      return {...bridge, async completeBounded() {
+        bounded.push('yield');
+        await yieldToHost();
+        assert.equal(verify(bridge.attempt), true);
+        return bridge.complete();
+      }};
+    }, limits);
+    assert.deepEqual(bounded, ['begin', 'chunk', 'receipt', 'yield', 'complete']);
+    boundedCapture.close();
+
+    const held = [];
+    let stopped = false;
+    let failure;
+    await assert.rejects(runBroadQuery(grant, verify => {
+      const bridge = bridgeFactory(held)(verify);
+      return {...bridge, stopped: () => stopped, async completeBounded() {
+        await yieldToHost();
+        throw new Error('residual stop pending');
+      }};
+    }, limits), error => { failure = error; return true; });
+    const recovery = acquisitionOutcome(failure);
+    assert.equal(recovery.outcome, 'unknown');
+    assert.equal(recovery.recovery.cleanupPending(), true);
+    assert.equal(held.includes('close'), false);
+    assert.equal(held.includes('complete'), false);
+    stopped = true;
+    assert.equal(await recovery.recovery.cleanup(), true);
+    assert.equal(recovery.recovery.cleanupPending(), false);
+    assert.equal(held.filter(event => event === 'close').length, 1);
+    assert.equal(held.filter(event => event === 'begin').length, 1);
     for (const mode of ['foreign', 'guard-failure']) {
       const failed = [];
       await assert.rejects(runBroadQuery(grant, bridgeFactory(failed, mode), limits),

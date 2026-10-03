@@ -170,6 +170,17 @@ pub fn join_nullability(
   b : Contract,
   max_pairs : Int,
 ) -> Contract? raise RelationError {
+  join_nullability_usage(a, b, max_pairs).0
+}
+
+///|
+/// Joined contract and exact visited-pair charge, including an incompatible
+/// pair. Callers can keep one budget across a set of definition schemas.
+pub fn join_nullability_usage(
+  a : Contract,
+  b : Contract,
+  max_pairs : Int,
+) -> (Contract?, Int) raise RelationError {
   if max_pairs < 0 {
     raise InvalidRelationLimit
   }
@@ -186,7 +197,7 @@ pub fn join_nullability(
         }
         remaining -= 1
         if !compatible(a, b, Join) {
-          return None
+          return (None, max_pairs - remaining)
         }
         if child_count(a) > remaining - scheduled {
           raise RelationLimit
@@ -198,7 +209,7 @@ pub fn join_nullability(
           (Object(x), Object(y)) =>
             for i = x.values.length() - 1; i >= 0; i = i - 1 {
               if x.values[i].name != y.values[i].name {
-                return None
+                return (None, max_pairs - remaining)
               }
               pending.push(Visit(x.values[i].contract, y.values[i].contract))
             }
@@ -237,7 +248,7 @@ pub fn join_nullability(
       }
     }
   }
-  Some(values.pop().unwrap())
+  (Some(values.pop().unwrap()), max_pairs - remaining)
 }
 
 ///|

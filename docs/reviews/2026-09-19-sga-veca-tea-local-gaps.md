@@ -1,5 +1,28 @@
 # SGA, VecA, and TEA Local execution gaps
 
+## Current Property Graph migration (2026-10-02)
+
+The new definition-keyed Property Graph is the sole executable Graph contract.
+The previous tuple-profile coverage inventory is retained as inert historical
+text in `portability/historical/local-family-coverage-pre-property-graph.json.txt`.
+Its completed SGA/Graph-bridge claims do not apply to the new representation.
+The current manifest records four partial operations (constructor, two MATCH
+forms and explicit TRAIL) and seventeen blocked old/unconnected routes. These
+are implementation gaps, not permanent language exclusions. Existing non-Graph
+coverage is unchanged. Current-source snapshot, fresh packed and aggregate
+acceptance remain open; three-target focused tests do not certify full coverage.
+
+The existing strict resource gate now distinguishes executable routes from
+typed pre-execution refusals using this same inventory. Initial constructor,
+definition-selected MATCH and explicit TRAIL retain exact/one-short work and
+workspace, private-stop custody and installed Host cancellation evidence.
+The shared public refusal test exercises both source-free and external-input
+Programs and requires refusal before Run admission, input I/O and dispatch.
+Refused routes cannot claim execution/resource assurance, and no tuple fallback
+may satisfy an obsolete dispatch marker. Nonempty-hop predicate/resource variants
+and the other SGA consumers remain open; gate success is not all-SGA completion.
+See `docs/reviews/2026-10-02-property-graph-vertical.md` for checkpoint evidence.
+
 ## Status interpretation (2026-09-28)
 
 This document contains chronological investigation notes as well as later
@@ -476,11 +499,13 @@ and checked by `check:local-resource-accounting`.
 <!-- local-resource-accounting-summary:start -->
 | Resource boundary evidence | Count |
 |---|---:|
-| Production routes | 68 |
-| Operation-specific boundary records | 68 |
-| Four-role lifecycle assurance | 68 |
-| Full route work/workspace assurance | 68 |
-| Path-scoped work/workspace assurance | 121 |
+| Registered operations | 69 |
+| Executable production routes | 52 |
+| Typed pre-execution refusals (not execution success) | 17 |
+| Operation-specific boundary records | 52 |
+| Four-role lifecycle assurance | 52 |
+| Full route work/workspace assurance | 52 |
+| Path-scoped work/workspace assurance | 98 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -2604,19 +2629,19 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 <!-- local-family-coverage-summary:start -->
 | Coverage state | Count |
 |---|---:|
-| `contract` | 39/39 |
-| `checker` | 39/39 |
-| `lowering` | 39/39 |
-| `kernel` | 39/39 |
-| `managed` | 39/39 |
-| `standard_host` | 39/39 |
-| `consumer_lifetime` | 39/39 |
-| `resources` | 39/39 |
-| `cancellation` | 39/39 |
-| `publication` | 39/39 |
-| `three_targets` | 39/39 |
-| complete operations | 39/39 |
-| open operations | 0/39 |
+| `contract` | 40/40 |
+| `checker` | 19/40 |
+| `lowering` | 19/40 |
+| `kernel` | 19/40 |
+| `managed` | 19/40 |
+| `standard_host` | 19/40 |
+| `consumer_lifetime` | 19/40 |
+| `resources` | 23/40 |
+| `cancellation` | 23/40 |
+| `publication` | 19/40 |
+| `three_targets` | 19/40 |
+| complete operations | 19/40 |
+| open operations | 21/40 |
 <!-- local-family-coverage-summary:end -->
 
 ## Closed normative contract mismatches
@@ -4520,6 +4545,39 @@ The Node standard Host retains and publishes the filtered Relation in a real
 Store, reads three Named Results against independent expected rows, and reclaims
 the Store and Run. This proves the RRF-to-filter delivery shape, not every
 ranking policy or every subsequent Relation operation in a retained Stage.
+
+The retained scored-policy path now accepts exact, ordered supplied Relation
+ports for `VEC.merge_rankings` maximum and weighted sum without representing
+them as completed producer outputs. The fixed request, selected candidate,
+bounded Local materializing attempt, and completed output bind the same input
+occurrences. The legacy synchronous Local executor and connectors without
+supplied-input support reject the request rather than silently treating it as
+source-free. A focused portable fixture checks the two policies, reversed and
+rebound ports, input row capacity, and the synchronous rejection on JS, Wasm,
+and native. The real Node standard Host retains each scored result in a Store,
+publishes the producer and two downstream consumer Named Results, compares all
+three with independently specified rows, and reclaims held and reserved bytes.
+This covers the scored-policy-to-filter shape, not every later Relation
+operation. The supplied-input provider fixture also requests cancellation
+after positive work, verifies that cleanup cannot precede stop, and retains
+both supplied reads through final cleanup. The bounded materializing attempt
+also advances the supplied inputs with quantum one and observes cancellation
+before releasing them on JS, Wasm, and native. The ordinary Node Host now
+delivers a timer cancellation after positive ranking work, verifies physical
+stop before release, and rejects publication. A separate downstream filter
+failure preserves its authored arithmetic cause, rejects publication, keeps
+cleanup responsibility through one injected close failure, and retries
+cleanup without another Compute dispatch. The complete standard Host test
+passed locally on this source. These checks do not establish every later
+Relation operation or other retained ranking input shape.
+
+The fixed Compute request's public low-level input readers now return
+`FixedRelationRead` for every port. The former `ProducerRead` snapshot could
+return an empty array for a nonempty supplied or mixed request, so it was
+removed along with the redundant relation-specific reader names. Completed-only
+connectors explicitly reject a supplied variant before execution. Existing
+callers were migrated with the generated interface; zero, completed, supplied,
+and mixed requests retain their exact input counts, order, and bindings.
 
 The retained Relation path also splits a direct `VEC.knn_join` occurrence
 from a later `filter` in the same Stage. The nearest obligation is admitted

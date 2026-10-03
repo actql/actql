@@ -252,21 +252,12 @@ async function effectFixture({splitSource = false,
       connectors: [JSON.parse(generated.declared.manifest_entry)]};
   }
   environmentDocument.mapping_contracts = [mapping];
-  if (splitSource) {
-    environmentDocument.host_policy_profile.capacity = JSON.parse(
-      canonicalJson({
-        ...environmentDocument.host_policy_profile.capacity,
-        max_graph_construction_edges: 1000,
-        max_graph_construction_input_rows: 1000,
-        max_graph_construction_nodes: 1000,
-      }));
-  }
   environmentDocument.evidence_bundle_cid = canonicalHashWithoutSelf(
     environmentDocument, 'evidence_bundle_cid');
   const environment = moon.clientProgramCheckEnvironment(
     canonicalJson(environmentDocument),
     environmentDocument.evidence_bundle_cid,
-    false, false, true, splitSource, false, false, false,
+    false, false, true, false, false, false, false,
   );
   assert.ok(environment);
   const document = JSON.parse(documentBody);
@@ -299,12 +290,9 @@ async function effectFixture({splitSource = false,
       id: 'middle',
       inputs: {rows: {result: {stage: 'source', result: 'rows'}}},
       steps: [
-        {graph: {
-          nodes: {from: 'rows', id: 'id', fields: []},
-          edges: {from: 'rows', source: 'id', target: 'id', fields: []},
-        }, as: 'g'},
-        {from: 'g', normalize_graph: true, as: 'normalized'},
-        {from: 'normalized', node_rows: true, as: 'projected'},
+        // Preserve the checked three-Stage Effect refusal without depending
+        // on a retired Graph constructor or an unsupported Graph consumer.
+        {select: ['id'], as: 'projected'},
         {from: 'projected', take: 2, as: 'selected'},
       ],
       results: {

@@ -54,6 +54,39 @@ pub fn client_program_check_environment_with_numeric_profile(
 }
 
 ///|
+/// Explicit installed capability for the separately identified Property Graph
+/// subset. Existing bridge entries and their legacy SGA flag remain unchanged.
+/// A law pin selects semantics, not execution authorization.
+#export_name("clientProgramCheckEnvironmentWithPropertyGraphProfile")
+pub fn client_program_check_environment_with_property_graph_profile(
+  body : String,
+  evidence_bundle_cid : String,
+  text_time : Bool,
+  veca : Bool,
+  rela : Bool,
+  sga : Bool,
+  tea : Bool,
+  calendar : Bool,
+  text_rank : Bool,
+  numeric_profile_cid : String,
+  property_graph_law_cid : String,
+) -> @program_check.CheckEnvironment? {
+  if !selected_property_graph_supported() ||
+    property_graph_law_cid != @graph_contract.property_law_cid() ||
+    (sga && !selected_sga_supported()) {
+    return None
+  }
+  @publication_host.admit_client_check_environment(
+    body,
+    evidence_bundle_cid,
+    { text_time, veca, },
+    { rela, sga, tea, calendar, text_rank, },
+    numeric_profile_cid=Some(numeric_profile_cid),
+    property_graph=true,
+  )
+}
+
+///|
 /// Preserve the shared checker's typed failure across the in-process Host bridge.
 /// A wire adapter may project it to a public error, but must not recheck the
 /// Program or infer missing inputs from an absent prepared handle.
@@ -1669,6 +1702,74 @@ pub fn client_program_prepare_duckdb_broad_acquisition(
 }
 
 ///|
+#export_name("clientProgramDuckDBAcquisitionEstimate")
+pub fn client_program_duckdb_acquisition_estimate(
+  work_slots : Array[Array[Int]],
+  milliseconds : Array[Int64?],
+  quantities : Array[Int64?],
+) -> Result[
+  @client_local_host.ClientDuckDBAcquisitionEstimate,
+  @client_local_host.ClientDuckDBAcquisitionIssue,
+] {
+  @client_local_host.client_duckdb_acquisition_estimate(
+    work_slots, milliseconds, quantities,
+  )
+}
+
+///|
+#export_name("clientProgramSelectDuckDBAcquisition")
+pub fn client_program_select_duckdb_acquisition(
+  requirement : @planning.QueryRequirement,
+  database_schema : String,
+  table : String,
+  query_contract_body : String,
+  evidence_contract_body : String,
+  two_receipt_contract_body : String,
+  native_estimate : @client_local_host.ClientDuckDBAcquisitionEstimate,
+  broad_estimate : @client_local_host.ClientDuckDBAcquisitionEstimate,
+  priority : Array[String],
+) -> Result[
+  @client_local_host.ClientDuckDBAcquisitionSelection,
+  @client_local_host.ClientDuckDBAcquisitionIssue,
+] {
+  @client_local_host.select_client_duckdb_acquisition(
+    requirement,
+    database_schema,
+    table,
+    query_contract_body,
+    evidence_contract_body,
+    two_receipt_contract_body,
+    native_estimate,
+    broad_estimate,
+    host_priority=if priority.is_empty() { None } else { Some(priority) },
+  )
+}
+
+///|
+#export_name("clientProgramDuckDBSelectionNative")
+pub fn client_program_duckdb_selection_native(
+  selected : @client_local_host.ClientDuckDBAcquisitionSelection,
+) -> @duckdb_host.NativeHostConfiguration? {
+  @client_local_host.client_duckdb_selection_native(selected)
+}
+
+///|
+#export_name("clientProgramDuckDBSelectionBroad")
+pub fn client_program_duckdb_selection_broad(
+  selected : @client_local_host.ClientDuckDBAcquisitionSelection,
+) -> @duckdb_host.BroadHostConfiguration? {
+  @client_local_host.client_duckdb_selection_broad(selected)
+}
+
+///|
+#export_name("clientProgramDuckDBSelectionDocument")
+pub fn client_program_duckdb_selection_document(
+  selected : @client_local_host.ClientDuckDBAcquisitionSelection,
+) -> String {
+  @client_local_host.client_duckdb_selection_document(selected)
+}
+
+///|
 #export_name("clientProgramDuckDBNativeCandidateUnavailable")
 pub fn client_program_duckdb_native_candidate_unavailable(
   outcome : Result[
@@ -1709,8 +1810,12 @@ pub fn client_program_effect_captured_source_matches(
 fn captured_source_matches_graph(
   graph : @strategy.CheckedDAG,
   source : @query.CapturedInputSource,
+  task? : Int = 0,
 ) -> Bool {
-  guard @strategy.graph_task_owner(graph, 0) is Some(owner) else {
+  if task < 0 || task >= @strategy.graph_captured_prefix(graph) {
+    return false
+  }
+  guard @strategy.graph_task_owner(graph, task) is Some(owner) else {
     return false
   }
   @query.captured_source_matches(
@@ -1949,65 +2054,24 @@ fn issue_captured_source_logical_graph(
   source : @query.CapturedInputSource,
   identity : @query.CapturedSourceRelationIdentity,
   requirement : @planning.QueryRequirement,
+  task? : Int = 0,
 ) -> Result[@publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue] {
-  let program = @program_check.source_identity(@strategy.graph_program(graph))
-  if !captured_source_matches_graph(graph, source) {
-    return Err(ForeignPrepared)
-  }
-  if !@query.captured_source_relation_identity_matches_source(identity, source) {
-    return Err(ForeignIdentity)
-  }
-  if !physical_equal(@planning.query_requirement_program(requirement), program) {
-    return Err(ForeignRequirement)
-  }
-  let rows = @query.captured_source_relation_logical_cid(identity)
-  let schema = @query.captured_source_relation_schema_cid(identity)
-  let source_contract = @planning.query_requirement_source(requirement).1
-  let order = "{\"stable\":false,\"keys\":[]}"
-  let writer = @encode.writer(4096, 128, 16) catch {
-    issue => return Err(Encoding(issue))
-  }
-  try {
-    @encode.begin_object(writer)
-    @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-source-input-logical/0.1")
-    @encode.key(writer, "logical_relation_cid")
-    @encode.string_value(writer, rows)
-    @encode.key(writer, "relation_schema_cid")
-    @encode.string_value(writer, schema)
-    @encode.key(writer, "source_contract_cid")
-    @encode.string_value(writer, source_contract)
-    @encode.key(writer, "completeness")
-    @encode.string_value(writer, "complete")
-    @encode.key(writer, "ordering_evidence")
-    @encode.begin_object(writer)
-    @encode.key(writer, "stable")
-    @encode.bool_value(writer, false)
-    @encode.key(writer, "keys")
-    @encode.begin_array(writer)
-    @encode.end_array(writer)
-    @encode.end_object(writer)
-    @encode.end_object(writer)
-  } catch {
-    issue => return Err(Encoding(issue))
-  }
-  let body = @encode.finish(writer) catch {
-    issue => return Err(Encoding(issue))
-  }
-  let evidence = match
-    @publication.seal_run_evidence_value(
-      "source_input_logical", body, 4096, 128, 16,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Evidence(issue))
-  }
-  match
-    @publication.admit_completed_source_input_logical(
-      evidence, rows, schema, source_contract, order, 4096, 128, 16,
-    ) {
-    Ok(_) => Ok(evidence)
-    Err(issue) => Err(Admission(issue))
-  }
+  @publication_host.issue_captured_source_input_logical(
+    graph,
+    source,
+    identity,
+    requirement,
+    task~,
+  ).map_err(issue => {
+    match issue {
+      @publication_host.ForeignPrepared => ForeignPrepared
+      @publication_host.ForeignIdentity => ForeignIdentity
+      @publication_host.ForeignRequirement => ForeignRequirement
+      @publication_host.Encoding(value) => Encoding(value)
+      @publication_host.Evidence(value) => Evidence(value)
+      @publication_host.Admission(value) => Admission(value)
+    }
+  })
 }
 
 ///|

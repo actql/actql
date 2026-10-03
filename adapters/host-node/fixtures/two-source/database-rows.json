@@ -1,0 +1,56 @@
+{
+  "left": [
+    {
+      "id": 3,
+      "amount": 30
+    },
+    {
+      "id": 1,
+      "amount": null
+    },
+    {
+      "id": 2,
+      "amount": 20
+    },
+    {
+      "id": 3,
+      "amount": 30
+    }
+  ],
+  "right": [
+    {
+      "id": 3,
+      "amount": 300
+    },
+    {
+      "id": 4,
+      "amount": 400
+    },
+    {
+      "id": 1,
+      "amount": 100
+    },
+    {
+      "id": 3,
+      "amount": 301
+    }
+  ],
+  "equal_content": [
+    {
+      "id": 3,
+      "amount": 30
+    },
+    {
+      "id": 1,
+      "amount": null
+    },
+    {
+      "id": 2,
+      "amount": 20
+    },
+    {
+      "id": 3,
+      "amount": 30
+    }
+  ]
+}

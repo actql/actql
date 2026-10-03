@@ -8,28 +8,20 @@ priv struct TraversalPath {
 priv enum TraversePathStarts {
   LiteralPathStarts
   RelationPathStarts(@execution.ProducerRead, Int)
-  PredicatePathStarts(@lower.Expression)
 }
 
 ///|
 priv enum TraversePathsPhase {
   InitializeStartSelection
   ResolveStarts
-  PrepareStartPredicate
-  EvaluateStartPredicate
   CollectStarts
   SortStarts
   BeginStart
-  InitializeNodeDepths
   SeedStart
   BeginDepth
   ScanEdge
   CheckCandidateNode
   ScanHopEdgeTypes
-  PrepareHopEdgePredicate
-  EvaluateHopEdgePredicate
-  PrepareHopNodePredicate
-  EvaluateHopNodePredicate
   AddPath
   CopyPathNodes
   CopyPathEdges
@@ -38,11 +30,6 @@ priv enum TraversePathsPhase {
   ComparePathNodes
   ComparePathEdges
   EmitPath
-  SortNodeBegin
-  SortNodeRun
-  SortNodeChoose
-  SortNodeWrite
-  EmitNode
   ReadField
   BuildNodeIds
   BuildEdgeIds
@@ -57,7 +44,6 @@ priv struct TraversePathsState {
   graph : @carrier.Graph
   schema : @schema.Schema
   prepared : @lower.PreparedGraphTraverse
-  emit_nodes : Bool
   starts : TraversePathStarts
   direction : @graph_type.Direction
   minimum_depth : Int
@@ -74,17 +60,10 @@ priv struct TraversePathsState {
   mut start_scan : Int
   mut start_selected : Array[Bool]
   start_nodes : Array[Int]
-  start_predicate_fields : Int
-  edge_predicate_fields : Int
-  node_predicate_fields : Int
-  predicate_workspace : Int
-  mut predicate_work_remaining : Int
-  predicate_input : Map[String, @execution.Value]
-  mut predicate_execution : @execution.PredicateExpressionExecution?
-  mut predicate_field : Int
   mut sort_index : Int
   mut sort_cursor : Int
   mut compare_index : Int
+  mut comparison_unit : Int
   mut member_index : Int
   mut copy_index : Int
   mut frontier : Array[TraversalPath]
@@ -109,17 +88,6 @@ priv struct TraversePathsState {
   mut row_value_slots : Int
   value_item_attempts : Ref[Int]
   mut emitted : Int
-  mut node_depths : Array[Int]
-  mut node_order : Array[Int]
-  mut node_scratch : Array[Int]
-  mut node_sort_width : Int
-  mut node_sort_run : Int
-  mut node_sort_middle : Int
-  mut node_sort_end : Int
-  mut node_sort_left : Int
-  mut node_sort_right : Int
-  mut node_sort_write : Int
-  mut node_sort_choose_left : Bool
   mut workspace_slots : Int
   mut workspace_peak : Int
   mut control_work_remaining : Int
@@ -159,7 +127,6 @@ pub(all) enum TraversePathsIssue {
   TraversePathsOutputLimit
   TraversePathsWorkspaceLimit
   TraversePathsWorkLimit
-  TraversePathsPredicate(@execution.EvalIssueKind)
   TraversePathsKeyOrder(@value.KeyOrderIssue)
   TraversePathsOutput(@execution.CaptureIssue)
   TraversePathsCompletion(@execution.TrustedOutputIssue)
@@ -171,7 +138,6 @@ fn traverse_path_start_count(state : TraversePathsState) -> Int {
   match state.starts {
     LiteralPathStarts => @lower.graph_traverse_start_id_count(state.prepared)
     RelationPathStarts(input, _) => @execution.producer_read_row_count(input)
-    PredicatePathStarts(_) => graph_read_node_count(state.source).unwrap_or(-1)
   }
 }
 
@@ -190,7 +156,6 @@ fn traverse_path_start_at(
         column,
         state.value_limits,
       )
-    PredicatePathStarts(_) => None
   }
 }
 
@@ -199,7 +164,6 @@ fn traverse_path_starts_available(state : TraversePathsState) -> Bool {
   match state.starts {
     LiteralPathStarts => true
     RelationPathStarts(input, _) => @execution.producer_read_available(input)
-    PredicatePathStarts(_) => true
   }
 }
 
@@ -219,25 +183,7 @@ fn path_edge_identity_value(
   source : GraphReadSource,
   edge : Int,
 ) -> @value.Value? {
-  guard graph_read_edge_endpoints(source, edge) is Some((from, to)) &&
-    graph_read_node_identity(source, from) is Some(from_id) &&
-    graph_read_node_identity(source, to) is Some(to_id) &&
-    graph_read_edge_label(source, edge) is Some(label) &&
-    @value.object_value([
-      ("src", from_id.value),
-      ("dst", to_id.value),
-      (
-        "rel",
-        match label {
-          Some(value) => value.value
-          None => @value.null_value()
-        },
-      ),
-    ])
-    is Some(identity) else {
-    return None
-  }
-  Some(identity)
+  graph_read_edge_identity(source, edge).map(identity => identity.value)
 }
 
 ///|
@@ -245,43 +191,40 @@ fn compare_traversal_edges(
   state : TraversePathsState,
   left : Int,
   right : Int,
-) -> Result[Int, TraversePathsIssue] {
-  guard graph_read_edge_endpoints(state.source, left)
-    is Some((left_source, left_target)) &&
-    graph_read_edge_endpoints(state.source, right)
-    is Some((right_source, right_target)) &&
-    graph_read_node_identity(state.source, left_source) is Some(left_source_id) &&
-    graph_read_node_identity(state.source, right_source)
-    is Some(right_source_id) &&
-    graph_read_node_identity(state.source, left_target) is Some(left_target_id) &&
-    graph_read_node_identity(state.source, right_target)
-    is Some(right_target_id) &&
-    graph_read_edge_label(state.source, left) is Some(left_label) &&
-    graph_read_edge_label(state.source, right) is Some(right_label) else {
+) -> Result[Int?, TraversePathsIssue] {
+  guard graph_read_edge_identity_order_key(state.source, left) is Some(left) &&
+    graph_read_edge_identity_order_key(state.source, right) is Some(right) else {
     return Err(TraversePathsInputUnavailable)
   }
-  for
-    (left_value, right_value) in [
-      (left_source_id, right_source_id),
-      (left_target_id, right_target_id),
-    ] {
-    let order = match @value.compare_key_values(left_value, right_value) {
-      Ok(value) => value
-      Err(issue) => return Err(TraversePathsKeyOrder(issue))
-    }
-    if order != 0 {
-      return Ok(order)
-    }
+  let (order, next) = graph_identity_compare_unit(
+    left,
+    right,
+    state.comparison_unit,
+  )
+  state.comparison_unit = next
+  Ok(order)
+}
+
+///|
+fn compare_traversal_node_ids(
+  state : TraversePathsState,
+  _left : @value.CheckedValue,
+  _right : @value.CheckedValue,
+  left_index : Int,
+  right_index : Int,
+) -> Result[Int?, @value.KeyOrderIssue] {
+  guard graph_read_node_identity_order_key(state.source, left_index)
+    is Some(left) &&
+    graph_read_node_identity_order_key(state.source, right_index) is Some(right) else {
+    return Err(@value.InvalidKey)
   }
-  match (left_label, right_label) {
-    (None, None) => Ok(0)
-    (None, Some(_)) => Ok(-1)
-    (Some(_), None) => Ok(1)
-    (Some(left), Some(right)) =>
-      @value.compare_present_key_values(left, right).map_err(issue => {
-        TraversePathsKeyOrder(issue)
-      })
-  }
+  let (order, next) = graph_identity_compare_unit(
+    left,
+    right,
+    state.comparison_unit,
+  )
+  state.comparison_unit = next
+  Ok(order)
 }
 
 ///|
@@ -431,54 +374,21 @@ fn traverse_path_edge_type_matches(
   edge : Int,
   index : Int,
 ) -> Bool {
+  let definition = @carrier.graph_property_definition(state.graph)
   guard @lower.graph_traverse_hop_type_at(
       state.prepared,
       traverse_path_hop(state),
       index,
     )
     is Some(expected) &&
-    graph_read_edge_label(state.source, edge)
-    is Some(Some({ value: @value.Text(actual), .. })) else {
+    graph_read_edge_definition(state.source, edge) is Some(element) &&
+    @carrier.property_graph_edge_at(definition, element) is Some(element) else {
     return false
   }
-  actual == expected
-}
-
-///|
-fn traverse_path_edge_predicate(
-  state : TraversePathsState,
-) -> @lower.Expression? {
-  @lower.graph_traverse_hop_edge_predicate(
-    state.prepared,
-    traverse_path_hop(state),
+  @carrier.property_definition_has_label(
+    @carrier.property_edge_element(element),
+    expected,
   )
-}
-
-///|
-fn traverse_path_node_predicate(
-  state : TraversePathsState,
-) -> @lower.Expression? {
-  @lower.graph_traverse_hop_node_predicate(
-    state.prepared,
-    traverse_path_hop(state),
-  )
-}
-
-///|
-fn prepare_traverse_path_predicates(
-  state : TraversePathsState,
-  edge : Int,
-  node : Int,
-) -> Unit {
-  state.candidate_edge = edge
-  state.candidate_node = node
-  state.predicate_field = 0
-  state.predicate_input.clear()
-  state.phase = if traverse_path_edge_predicate(state) is Some(_) {
-    PrepareHopEdgePredicate
-  } else {
-    PrepareHopNodePredicate
-  }
 }
 
 ///|
@@ -495,7 +405,7 @@ fn prepare_traverse_path_candidate(
       state.edge_type_index = 0
       state.phase = ScanHopEdgeTypes
     }
-    None => prepare_traverse_path_predicates(state, edge, node)
+    None => state.phase = AddPath
   }
 }
 
@@ -536,41 +446,6 @@ fn traverse_path_value(
 }
 
 ///|
-fn traverse_node_value(
-  state : TraversePathsState,
-  node : Int,
-  field : @schema.Field,
-) -> @value.CheckedValue? {
-  match field.name {
-    @schema.Unqualified("start_id") =>
-      graph_read_node_identity(
-        state.source,
-        state.start_nodes[state.start_scan],
-      ).bind(identity => {
-        @value.recheck_runtime_value(
-          identity.value,
-          field.contract,
-          state.value_limits,
-        )
-      })
-    @schema.Unqualified("node_id") =>
-      graph_read_node_identity(state.source, node).bind(identity => {
-        @value.recheck_runtime_value(
-          identity.value,
-          field.contract,
-          state.value_limits,
-        )
-      })
-    @schema.Unqualified("depth") =>
-      @value.checked_number_value(
-        state.node_depths[node].to_double(),
-        field.contract,
-      )
-    _ => None
-  }
-}
-
-///|
 fn traverse_paths_step(
   state : TraversePathsState,
   quantum : Int,
@@ -596,10 +471,7 @@ fn traverse_paths_step(
           state.start_selected.push(false)
           used += 1
         } else {
-          state.phase = match state.starts {
-            PredicatePathStarts(_) => PrepareStartPredicate
-            _ => ResolveStarts
-          }
+          state.phase = ResolveStarts
         }
       ResolveStarts =>
         if state.start_scan < traverse_path_start_count(state) {
@@ -640,82 +512,6 @@ fn traverse_paths_step(
           state.start_scan = 0
           state.phase = CollectStarts
         }
-      PrepareStartPredicate =>
-        if state.start_scan >= graph_read_node_count(state.source).unwrap_or(-1) {
-          state.start_scan = 0
-          state.phase = CollectStarts
-        } else if state.predicate_field < state.start_predicate_fields {
-          used += 1
-          guard graph_node_predicate_binding_read(
-              state.graph,
-              state.source,
-              state.start_scan,
-              state.predicate_field,
-            )
-            is Some((name, value)) else {
-            return @bounded.Failed(
-              TraversePathsInputUnavailable,
-              progress,
-              used,
-            )
-          }
-          state.predicate_input[name] = value
-          state.predicate_field += 1
-        } else {
-          guard state.starts is PredicatePathStarts(predicate) else {
-            return @bounded.Failed(InvalidTraversePathsKernel, progress, used)
-          }
-          match
-            @execution.start_predicate_expression(
-              predicate,
-              state.predicate_input,
-              state.predicate_work_remaining,
-              state.value_limits.max_nodes,
-              state.predicate_workspace,
-            ) {
-            Err(issue) =>
-              return @bounded.Failed(
-                TraversePathsPredicate(issue.kind),
-                progress,
-                used,
-              )
-            Ok(execution) => {
-              state.predicate_execution = Some(execution)
-              state.phase = EvaluateStartPredicate
-            }
-          }
-        }
-      EvaluateStartPredicate => {
-        used += 1
-        guard state.predicate_execution is Some(execution) else {
-          return @bounded.Failed(InvalidTraversePathsKernel, progress, used)
-        }
-        match @execution.advance_predicate_expression(execution) {
-          Err(issue) => {
-            state.predicate_work_remaining = @execution.predicate_expression_remaining(
-              execution,
-            )
-            state.predicate_execution = None
-            return @bounded.Failed(
-              TraversePathsPredicate(issue.kind),
-              progress,
-              used,
-            )
-          }
-          Ok(@execution.PredicateExpressionContinue) => ()
-          Ok(@execution.PredicateExpressionComplete(selected)) => {
-            state.predicate_work_remaining = @execution.predicate_expression_remaining(
-              execution,
-            )
-            state.predicate_execution = None
-            state.predicate_input.clear()
-            state.start_selected[state.start_scan] = selected
-            state.start_scan += 1
-            state.predicate_field = 0
-            state.phase = PrepareStartPredicate
-          }
-        }
-      }
       CollectStarts =>
         if state.start_scan < state.start_selected.length() {
           used += 1
@@ -768,7 +564,14 @@ fn traverse_paths_step(
               used,
             )
           }
-          let order = match @value.compare_key_values(left, right) {
+          let order = match
+            compare_traversal_node_ids(
+              state,
+              left,
+              right,
+              state.start_nodes[state.sort_cursor - 1],
+              state.start_nodes[state.sort_cursor],
+            ) {
             Ok(value) => value
             Err(issue) =>
               return @bounded.Failed(
@@ -777,14 +580,16 @@ fn traverse_paths_step(
                 used,
               )
           }
-          if order > 0 {
-            let swap = state.start_nodes[state.sort_cursor - 1]
-            state.start_nodes[state.sort_cursor - 1] = state.start_nodes[state.sort_cursor]
-            state.start_nodes[state.sort_cursor] = swap
-            state.sort_cursor -= 1
-          } else {
-            state.sort_index += 1
-            state.sort_cursor = state.sort_index
+          if order is Some(order) {
+            if order > 0 {
+              let swap = state.start_nodes[state.sort_cursor - 1]
+              state.start_nodes[state.sort_cursor - 1] = state.start_nodes[state.sort_cursor]
+              state.start_nodes[state.sort_cursor] = swap
+              state.sort_cursor -= 1
+            } else {
+              state.sort_index += 1
+              state.sort_cursor = state.sort_index
+            }
           }
         } else {
           state.sort_index += 1
@@ -793,28 +598,6 @@ fn traverse_paths_step(
       BeginStart =>
         if state.start_scan >= state.start_nodes.length() {
           state.phase = Finish
-        } else if state.emit_nodes {
-          let nodes = graph_read_node_count(state.source).unwrap_or(-1)
-          if nodes > state.max_workspace_slots - state.workspace_slots {
-            return @bounded.Failed(TraversePathsWorkspaceLimit, progress, used)
-          }
-          state.workspace_slots += nodes
-          state.workspace_peak = Int::max(
-            state.workspace_peak,
-            state.workspace_slots,
-          )
-          state.node_depths = []
-          state.node_order = []
-          state.node_scratch = []
-          state.phase = InitializeNodeDepths
-        } else {
-          state.phase = SeedStart
-        }
-      InitializeNodeDepths =>
-        if state.node_depths.length() <
-          graph_read_node_count(state.source).unwrap_or(-1) {
-          state.node_depths.push(-1)
-          used += 1
         } else {
           state.phase = SeedStart
         }
@@ -827,16 +610,6 @@ fn traverse_paths_step(
         if state.minimum_depth == 0 && state.emitted >= state.max_rows {
           return @bounded.Failed(TraversePathsOutputLimit, progress, used)
         }
-        if state.emit_nodes && state.minimum_depth == 0 {
-          if state.max_workspace_slots - state.workspace_slots < slots + 2 {
-            return @bounded.Failed(TraversePathsWorkspaceLimit, progress, used)
-          }
-          let start = state.start_nodes[state.start_scan]
-          state.node_depths[start] = 0
-          state.node_order.push(start)
-          state.node_scratch.push(-1)
-          state.workspace_slots += 2
-        }
         state.workspace_slots += slots
         state.workspace_peak = Int::max(
           state.workspace_peak,
@@ -844,14 +617,12 @@ fn traverse_paths_step(
         )
         state.frontier_slots = slots
         state.frontier.push(path)
-        if !state.emit_nodes {
-          state.start_scan += 1
-        }
+        state.start_scan += 1
         state.depth = 0
         state.path_index = 0
         state.edge_occurrence = 0
         state.emit_index = 0
-        state.phase = if state.minimum_depth == 0 && !state.emit_nodes {
+        state.phase = if state.minimum_depth == 0 {
           EmitPath
         } else {
           BeginDepth
@@ -862,12 +633,7 @@ fn traverse_paths_step(
           state.workspace_slots -= state.frontier_slots
           state.frontier = []
           state.frontier_slots = 0
-          if state.emit_nodes {
-            state.node_sort_width = 1
-            state.phase = SortNodeBegin
-          } else {
-            state.phase = BeginStart
-          }
+          state.phase = BeginStart
         } else {
           state.path_index = 0
           state.edge_occurrence = 0
@@ -907,9 +673,27 @@ fn traverse_paths_step(
         guard state.frontier.get(state.path_index) is Some(path) else {
           return @bounded.Failed(TraversePathsInputUnavailable, progress, used)
         }
-        if state.member_index < path.nodes.length() {
+        let mode = @lower.graph_traverse_property_path_mode(state.prepared)
+        let members = if mode == @graph_type.Trail {
+          path.edges.length()
+        } else {
+          path.nodes.length()
+        }
+        if mode == @graph_type.Walk {
           used += 1
-          if path.nodes[state.member_index] == state.candidate_node {
+          prepare_traverse_path_candidate(
+            state,
+            state.candidate_edge,
+            state.candidate_node,
+          )
+        } else if state.member_index < members {
+          used += 1
+          let repeated = if mode == @graph_type.Trail {
+            path.edges[state.member_index] == state.candidate_edge
+          } else {
+            path.nodes[state.member_index] == state.candidate_node
+          }
+          if repeated {
             state.phase = ScanEdge
           } else {
             state.member_index += 1
@@ -934,161 +718,9 @@ fn traverse_paths_step(
         state.edge_type_index += 1
         used += 1
         if matches {
-          prepare_traverse_path_predicates(
-            state,
-            state.candidate_edge,
-            state.candidate_node,
-          )
+          state.phase = AddPath
         } else if state.edge_type_index >= type_count {
           state.phase = ScanEdge
-        }
-      }
-      PrepareHopEdgePredicate =>
-        if state.predicate_field < state.edge_predicate_fields {
-          used += 1
-          guard graph_edge_predicate_binding_read(
-              state.graph,
-              state.source,
-              state.candidate_edge,
-              state.predicate_field,
-            )
-            is Some((name, value)) else {
-            return @bounded.Failed(
-              TraversePathsInputUnavailable,
-              progress,
-              used,
-            )
-          }
-          state.predicate_input[name] = value
-          state.predicate_field += 1
-        } else {
-          guard traverse_path_edge_predicate(state) is Some(predicate) else {
-            return @bounded.Failed(InvalidTraversePathsKernel, progress, used)
-          }
-          match
-            @execution.start_predicate_expression(
-              predicate,
-              state.predicate_input,
-              state.predicate_work_remaining,
-              state.value_limits.max_nodes,
-              state.predicate_workspace,
-            ) {
-            Err(issue) =>
-              return @bounded.Failed(
-                TraversePathsPredicate(issue.kind),
-                progress,
-                used,
-              )
-            Ok(execution) => {
-              state.predicate_execution = Some(execution)
-              state.phase = EvaluateHopEdgePredicate
-            }
-          }
-        }
-      EvaluateHopEdgePredicate => {
-        used += 1
-        guard state.predicate_execution is Some(execution) else {
-          return @bounded.Failed(InvalidTraversePathsKernel, progress, used)
-        }
-        match @execution.advance_predicate_expression(execution) {
-          Err(issue) => {
-            state.predicate_work_remaining = @execution.predicate_expression_remaining(
-              execution,
-            )
-            state.predicate_execution = None
-            return @bounded.Failed(
-              TraversePathsPredicate(issue.kind),
-              progress,
-              used,
-            )
-          }
-          Ok(@execution.PredicateExpressionContinue) => ()
-          Ok(@execution.PredicateExpressionComplete(selected)) => {
-            state.predicate_work_remaining = @execution.predicate_expression_remaining(
-              execution,
-            )
-            state.predicate_execution = None
-            state.predicate_input.clear()
-            state.predicate_field = 0
-            state.phase = if !selected {
-              ScanEdge
-            } else {
-              PrepareHopNodePredicate
-            }
-          }
-        }
-      }
-      PrepareHopNodePredicate =>
-        if traverse_path_node_predicate(state) is None {
-          state.phase = AddPath
-        } else if state.predicate_field < state.node_predicate_fields {
-          used += 1
-          guard graph_node_predicate_binding_read(
-              state.graph,
-              state.source,
-              state.candidate_node,
-              state.predicate_field,
-            )
-            is Some((name, value)) else {
-            return @bounded.Failed(
-              TraversePathsInputUnavailable,
-              progress,
-              used,
-            )
-          }
-          state.predicate_input[name] = value
-          state.predicate_field += 1
-        } else {
-          guard traverse_path_node_predicate(state) is Some(predicate) else {
-            return @bounded.Failed(InvalidTraversePathsKernel, progress, used)
-          }
-          match
-            @execution.start_predicate_expression(
-              predicate,
-              state.predicate_input,
-              state.predicate_work_remaining,
-              state.value_limits.max_nodes,
-              state.predicate_workspace,
-            ) {
-            Err(issue) =>
-              return @bounded.Failed(
-                TraversePathsPredicate(issue.kind),
-                progress,
-                used,
-              )
-            Ok(execution) => {
-              state.predicate_execution = Some(execution)
-              state.phase = EvaluateHopNodePredicate
-            }
-          }
-        }
-      EvaluateHopNodePredicate => {
-        used += 1
-        guard state.predicate_execution is Some(execution) else {
-          return @bounded.Failed(InvalidTraversePathsKernel, progress, used)
-        }
-        match @execution.advance_predicate_expression(execution) {
-          Err(issue) => {
-            state.predicate_work_remaining = @execution.predicate_expression_remaining(
-              execution,
-            )
-            state.predicate_execution = None
-            return @bounded.Failed(
-              TraversePathsPredicate(issue.kind),
-              progress,
-              used,
-            )
-          }
-          Ok(@execution.PredicateExpressionContinue) => ()
-          Ok(@execution.PredicateExpressionComplete(selected)) => {
-            state.predicate_work_remaining = @execution.predicate_expression_remaining(
-              execution,
-            )
-            state.predicate_execution = None
-            state.predicate_input.clear()
-            state.predicate_field = 0
-            state.phase = if selected { AddPath } else { ScanEdge }
-          }
         }
       }
       AddPath => {
@@ -1100,8 +732,7 @@ fn traverse_paths_step(
         if next_slots > state.max_workspace_slots - state.workspace_slots {
           return @bounded.Failed(TraversePathsWorkspaceLimit, progress, used)
         }
-        if !state.emit_nodes &&
-          state.depth + 1 >= state.minimum_depth &&
+        if state.depth + 1 >= state.minimum_depth &&
           state.emitted + state.next_frontier.length() >= state.max_rows {
           return @bounded.Failed(TraversePathsOutputLimit, progress, used)
         }
@@ -1145,24 +776,6 @@ fn traverse_paths_step(
       }
       CommitPath => {
         used += 1
-        if state.emit_nodes &&
-          state.depth + 1 >= state.minimum_depth &&
-          state.node_depths[state.candidate_node] < 0 {
-          if state.emitted + state.node_order.length() >= state.max_rows {
-            return @bounded.Failed(TraversePathsOutputLimit, progress, used)
-          }
-          if state.max_workspace_slots - state.workspace_slots < 2 {
-            return @bounded.Failed(TraversePathsWorkspaceLimit, progress, used)
-          }
-          state.node_depths[state.candidate_node] = state.depth + 1
-          state.node_order.push(state.candidate_node)
-          state.node_scratch.push(-1)
-          state.workspace_slots += 2
-          state.workspace_peak = Int::max(
-            state.workspace_peak,
-            state.workspace_slots,
-          )
-        }
         let nodes = state.pending_nodes
         let edges = state.pending_edges
         state.pending_nodes = []
@@ -1181,8 +794,7 @@ fn traverse_paths_step(
           state.next_frontier_slots = 0
           state.depth += 1
           state.emit_index = 0
-          state.phase = if state.depth >= state.minimum_depth &&
-            !state.emit_nodes {
+          state.phase = if state.depth >= state.minimum_depth {
             EmitPath
           } else {
             BeginDepth
@@ -1216,7 +828,14 @@ fn traverse_paths_step(
               used,
             )
           }
-          let order = match @value.compare_key_values(left_id, right_id) {
+          let order = match
+            compare_traversal_node_ids(
+              state,
+              left_id,
+              right_id,
+              left.nodes[state.compare_index],
+              right.nodes[state.compare_index],
+            ) {
             Ok(value) => value
             Err(issue) =>
               return @bounded.Failed(
@@ -1225,10 +844,12 @@ fn traverse_paths_step(
                 used,
               )
           }
-          if order != 0 {
-            finish_traverse_path_comparison(state, order)
-          } else {
-            state.compare_index += 1
+          if order is Some(order) {
+            if order != 0 {
+              finish_traverse_path_comparison(state, order)
+            } else {
+              state.compare_index += 1
+            }
           }
         } else if left.nodes.length() != right.nodes.length() {
           finish_traverse_path_comparison(
@@ -1255,10 +876,12 @@ fn traverse_paths_step(
             Ok(value) => value
             Err(issue) => return @bounded.Failed(issue, progress, used)
           }
-          if order != 0 {
-            finish_traverse_path_comparison(state, order)
-          } else {
-            state.compare_index += 1
+          if order is Some(order) {
+            if order != 0 {
+              finish_traverse_path_comparison(state, order)
+            } else {
+              state.compare_index += 1
+            }
           }
         } else {
           finish_traverse_path_comparison(
@@ -1276,110 +899,6 @@ fn traverse_paths_step(
             nodes <= state.value_limits.max_nodes else {
             return @bounded.Failed(TraversePathsOutputLimit, progress, used)
           }
-          state.column = 0
-          state.values = []
-          state.phase = ReadField
-        }
-      SortNodeBegin =>
-        if state.node_sort_width >= state.node_order.length() {
-          state.emit_index = 0
-          state.phase = EmitNode
-        } else {
-          state.node_sort_run = 0
-          state.phase = SortNodeRun
-        }
-      SortNodeRun =>
-        if state.node_sort_run >= state.node_order.length() {
-          let prior = state.node_order
-          state.node_order = state.node_scratch
-          state.node_scratch = prior
-          state.node_sort_width = if state.node_sort_width >
-            state.node_order.length() / 2 {
-            state.node_order.length()
-          } else {
-            state.node_sort_width * 2
-          }
-          state.phase = SortNodeBegin
-        } else {
-          state.node_sort_middle = state.node_sort_run +
-            Int::min(
-              state.node_sort_width,
-              state.node_order.length() - state.node_sort_run,
-            )
-          state.node_sort_end = state.node_sort_middle +
-            Int::min(
-              state.node_sort_width,
-              state.node_order.length() - state.node_sort_middle,
-            )
-          state.node_sort_left = state.node_sort_run
-          state.node_sort_right = state.node_sort_middle
-          state.node_sort_write = state.node_sort_run
-          state.phase = SortNodeChoose
-        }
-      SortNodeChoose =>
-        if state.node_sort_write >= state.node_sort_end {
-          state.node_sort_run = state.node_sort_end
-          state.phase = SortNodeRun
-        } else if state.node_sort_left >= state.node_sort_middle {
-          state.node_sort_choose_left = false
-          state.phase = SortNodeWrite
-        } else if state.node_sort_right >= state.node_sort_end {
-          state.node_sort_choose_left = true
-          state.phase = SortNodeWrite
-        } else {
-          used += 1
-          guard graph_read_node_identity(
-              state.source,
-              state.node_order[state.node_sort_left],
-            )
-            is Some(left) &&
-            graph_read_node_identity(
-              state.source,
-              state.node_order[state.node_sort_right],
-            )
-            is Some(right) else {
-            return @bounded.Failed(
-              TraversePathsInputUnavailable,
-              progress,
-              used,
-            )
-          }
-          let order = match @value.compare_key_values(left, right) {
-            Ok(value) => value
-            Err(issue) =>
-              return @bounded.Failed(
-                TraversePathsKeyOrder(issue),
-                progress,
-                used,
-              )
-          }
-          state.node_sort_choose_left = order <= 0
-          state.phase = SortNodeWrite
-        }
-      SortNodeWrite => {
-        used += 1
-        state.node_scratch[state.node_sort_write] = if state.node_sort_choose_left {
-          let selected = state.node_order[state.node_sort_left]
-          state.node_sort_left += 1
-          selected
-        } else {
-          let selected = state.node_order[state.node_sort_right]
-          state.node_sort_right += 1
-          selected
-        }
-        state.node_sort_write += 1
-        state.phase = SortNodeChoose
-      }
-      EmitNode =>
-        if state.emit_index >= state.node_order.length() {
-          state.workspace_slots -= state.node_depths.length() +
-            state.node_order.length() * 2
-          state.node_depths = []
-          state.node_order = []
-          state.node_scratch = []
-          state.start_scan += 1
-          state.phase = BeginStart
-        } else {
           state.column = 0
           state.values = []
           state.phase = ReadField
@@ -1472,17 +991,9 @@ fn traverse_paths_step(
             }
             _ => {
               used += 1
-              let value = if state.emit_nodes {
-                traverse_node_value(
-                  state,
-                  state.node_order[state.emit_index],
-                  field,
-                )
-              } else {
-                state.frontier
+              let value = state.frontier
                 .get(state.emit_index)
                 .bind(path => traverse_path_value(state, path, field))
-              }
               guard value is Some(value) else {
                 return @bounded.Failed(
                   TraversePathsInputUnavailable,
@@ -1568,7 +1079,7 @@ fn traverse_paths_step(
             state.emitted += 1
             state.emit_index += 1
             progress += 1
-            state.phase = if state.emit_nodes { EmitNode } else { EmitPath }
+            state.phase = EmitPath
           }
           Err(issue) =>
             return @bounded.Failed(TraversePathsOutput(issue), progress, used)
@@ -1600,10 +1111,6 @@ fn traverse_paths_step(
 
 ///|
 fn cleanup_traverse_paths_state(state : TraversePathsState) -> Bool {
-  if state.predicate_execution is Some(execution) {
-    @execution.cancel_predicate_expression(execution) |> ignore
-    state.predicate_execution = None
-  }
   if state.output is Some(output) {
     @execution.cancel_admitted_output(output) |> ignore
     state.output = None
@@ -1614,16 +1121,13 @@ fn cleanup_traverse_paths_state(state : TraversePathsState) -> Bool {
   }
   state.start_selected.clear()
   state.start_nodes.clear()
-  state.node_depths.clear()
-  state.node_order.clear()
-  state.node_scratch.clear()
   state.frontier.clear()
   state.next_frontier.clear()
   state.pending_nodes.clear()
   state.pending_edges.clear()
   state.values.clear()
   state.value_items = None
-  state.predicate_input.clear()
+  state.comparison_unit = 0
   state.workspace_slots = 0
   true
 }
@@ -1632,9 +1136,6 @@ fn cleanup_traverse_paths_state(state : TraversePathsState) -> Bool {
 fn traverse_paths_private_entries(state : TraversePathsState) -> Int {
   let mut count = state.start_selected.length() +
     state.start_nodes.length() +
-    state.node_depths.length() +
-    state.node_order.length() +
-    state.node_scratch.length() +
     state.pending_nodes.length() +
     state.pending_edges.length() +
     state.values.length()
@@ -1643,12 +1144,6 @@ fn traverse_paths_private_entries(state : TraversePathsState) -> Int {
   }
   for path in state.next_frontier {
     count += path.nodes.length() + path.edges.length() + 1
-  }
-  for _, _ in state.predicate_input {
-    count += 1
-  }
-  if state.predicate_execution is Some(_) {
-    count += 1
   }
   if state.value_items is Some(_) {
     count += 1
@@ -1722,21 +1217,18 @@ fn start_traverse_paths_read(
   guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
     @lower.node_input_target(node, 0) is Some(target) &&
     @lower.preparation_carrier_at(@lower.bound_preparation(owner), target)
-    is Some(@carrier.GraphValue(graph)) else {
+    is Some(@carrier.GraphValue(graph)) &&
+    @lower.graph_traverse_emits_paths(prepared) else {
     return Err(InvalidTraversePathsKernel)
   }
-  let starts = match
-    (
-      @lower.graph_traverse_start_relation_field(prepared),
-      @lower.graph_traverse_start_predicate(prepared),
-    ) {
-    (None, None) => {
+  let starts = match @lower.graph_traverse_start_relation_field(prepared) {
+    None => {
       guard @lower.graph_traverse_start_id_count(prepared) > 0 else {
         return Err(InvalidTraversePathsKernel)
       }
       LiteralPathStarts
     }
-    (Some(field), None) => {
+    Some(field) => {
       let mut selector = None
       for candidate in inputs {
         if @execution.producer_read_matches_operation_input(
@@ -1761,8 +1253,6 @@ fn start_traverse_paths_read(
       guard column >= 0 else { return Err(InvalidTraversePathsKernel) }
       RelationPathStarts(selector, column)
     }
-    (None, Some(predicate)) => PredicatePathStarts(predicate)
-    _ => return Err(InvalidTraversePathsKernel)
   }
   let max_rows = match @lower.graph_traverse_output_guard(prepared) {
     Some(limit) if limit < max_rows.to_int64() => limit.to_int()
@@ -1783,6 +1273,28 @@ fn start_traverse_paths_read(
   let accepted = Ref(false)
   let value_item_attempts = Ref(0)
   let port_result = match source {
+    Stored(read) if @lifecycle.producer_read_reference_matches_input(
+        @graph.producer_read_carrier_reference(read),
+        owner,
+        0,
+      ) => {
+      let retained_inputs = [
+        @execution.trusted_output_carrier_input(
+          @graph.producer_read_carrier_reference(read),
+        ),
+      ]
+      for input in inputs {
+        retained_inputs.push(@execution.trusted_output_relation_input(input))
+      }
+      @execution.prepare_trusted_output_port_with_inputs(
+        preparation,
+        @pipeline.Step(step),
+        max_entries,
+        max_name_bytes,
+        fn(_) { if live.val { rows.val } else { None } },
+        inputs=retained_inputs,
+      )
+    }
     Stored(_) =>
       @execution.prepare_trusted_output_port(
         preparation,
@@ -1793,9 +1305,30 @@ fn start_traverse_paths_read(
         inputs~,
       )
     Viewed(view) => {
-      guard inputs.length() == 1 else {
+      guard inputs.length() + 1 == @lower.node_input_count(node) else {
         @execution.cancel_admitted_output(output) |> ignore
         return Err(InvalidTraversePathsKernel)
+      }
+      let retained_inputs = [
+        @execution.trusted_output_carrier_input(
+          @lifecycle.producer_view_read_reference(view),
+        ),
+      ]
+      for port in 1..<@lower.node_input_count(node) {
+        let mut found = None
+        for input in inputs {
+          if @execution.producer_read_matches_operation_input(
+              input, owner, step, port,
+            ) {
+            found = Some(input)
+            break
+          }
+        }
+        guard found is Some(input) else {
+          @execution.cancel_admitted_output(output) |> ignore
+          return Err(InvalidTraversePathsKernel)
+        }
+        retained_inputs.push(@execution.trusted_output_relation_input(input))
       }
       @execution.prepare_trusted_output_port_with_inputs(
         preparation,
@@ -1803,12 +1336,7 @@ fn start_traverse_paths_read(
         max_entries,
         max_name_bytes,
         fn(_) { if live.val { rows.val } else { None } },
-        inputs=[
-          @execution.trusted_output_carrier_input(
-            @lifecycle.producer_view_read_reference(view),
-          ),
-          @execution.trusted_output_relation_input(inputs[0]),
-        ],
+        inputs=retained_inputs,
       )
     }
   }
@@ -1820,36 +1348,7 @@ fn start_traverse_paths_read(
     }
   }
   let node_count = graph_read_node_count(source).unwrap_or(-1)
-  let start_predicate_fields = match starts {
-    PredicatePathStarts(_) => graph_node_predicate_binding_count(graph)
-    _ => 0
-  }
-  let mut has_edge_predicate = false
-  let mut has_node_predicate = false
-  for hop in 0..<hop_count {
-    if @lower.graph_traverse_hop_edge_predicate(prepared, hop) is Some(_) {
-      has_edge_predicate = true
-    }
-    if @lower.graph_traverse_hop_node_predicate(prepared, hop) is Some(_) {
-      has_node_predicate = true
-    }
-  }
-  let edge_predicate_fields = if has_edge_predicate {
-    graph_edge_predicate_binding_count(graph)
-  } else {
-    0
-  }
-  let node_predicate_fields = if has_node_predicate {
-    graph_node_predicate_binding_count(graph)
-  } else {
-    0
-  }
-  let predicate_workspace_width = Int::max(
-    start_predicate_fields,
-    Int::max(edge_predicate_fields, node_predicate_fields),
-  )
-  if node_count > max_workspace_slots ||
-    predicate_workspace_width > max_workspace_slots - node_count {
+  if node_count > max_workspace_slots {
     @execution.cancel_admitted_output(output) |> ignore
     return Err(TraversePathsWorkspaceLimit)
   }
@@ -1858,7 +1357,6 @@ fn start_traverse_paths_read(
     graph,
     schema: @lower.graph_traverse_output_schema(prepared),
     prepared,
-    emit_nodes: !@lower.graph_traverse_emits_paths(prepared),
     starts,
     direction,
     minimum_depth: minimum.to_int(),
@@ -1879,19 +1377,10 @@ fn start_traverse_paths_read(
     start_scan: 0,
     start_selected: [],
     start_nodes: [],
-    start_predicate_fields,
-    edge_predicate_fields,
-    node_predicate_fields,
-    predicate_workspace: max_workspace_slots -
-    node_count -
-    predicate_workspace_width,
-    predicate_work_remaining: limits.max_work,
-    predicate_input: Map([]),
-    predicate_execution: None,
-    predicate_field: 0,
     sort_index: 0,
     sort_cursor: 0,
     compare_index: 0,
+    comparison_unit: 0,
     member_index: 0,
     copy_index: 0,
     frontier: [],
@@ -1916,19 +1405,8 @@ fn start_traverse_paths_read(
     row_value_slots: 0,
     value_item_attempts,
     emitted: 0,
-    node_depths: [],
-    node_order: [],
-    node_scratch: [],
-    node_sort_width: 1,
-    node_sort_run: 0,
-    node_sort_middle: 0,
-    node_sort_end: 0,
-    node_sort_left: 0,
-    node_sort_right: 0,
-    node_sort_write: 0,
-    node_sort_choose_left: false,
-    workspace_slots: node_count + predicate_workspace_width,
-    workspace_peak: node_count + predicate_workspace_width,
+    workspace_slots: node_count,
+    workspace_peak: node_count,
     control_work_remaining: limits.max_work,
   }
   let (session, token) = @bounded.start(

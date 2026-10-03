@@ -147,18 +147,25 @@ function familyProgram(family, filter = 'id >= 1') {
     ? {from: 'seed', to_events: {id: 'id', time: 'id'}, as: 'carrier'}
     : family === 'vectors'
       ? {from: 'seed', to_vectors: {id: 'id', vector: 'embedding'}, as: 'carrier'}
-      : {graph: {nodes: {from: 'seed', id: 'id', fields: []},
-        edges: {from: 'seed', source: 'src', target: 'dst', fields: []}}, as: 'carrier'};
+      : {property_graph: {version:'actql-property-graph-constructor/0.1',
+        nodes:[{name:'N',from:'seed',key:['id'],labels:[{name:'Node',
+          properties:{mode:'columns',columns:[{from:'id',to:'id'}]}}]}],
+        edges:[{name:'E',from:'seed',key:['id'],
+          source:{definition:'N',key:['src']},target:{definition:'N',key:['dst']},
+          labels:[{name:'Link',properties:{mode:'no_properties'}}]}]},as:'carrier'};
   const compute = family === 'events'
     ? {watermark_events: {watermark_ms: 2, policy: 'mark'}}
-    : family === 'vectors' ? {normalize_vectors: true} : {normalize_graph: true};
+    : {normalize_vectors: true};
   const projection = family === 'events' ? {events: true}
-    : family === 'vectors' ? {vectors: true} : {node_rows: true};
+    : {vectors: true};
   const fields = family === 'events' ? ['id', 'late']
     : family === 'vectors' ? ['id', 'embedding'] : ['id'];
   document.stages[0].steps = [{values, as: 'seed'}, bridge,
-    {from: 'carrier', ...compute, as: 'computed'},
-    {from: 'computed', ...projection, as: 'rows'},
+    ...(family === 'graph' ? [{from:'carrier',match_nodes:{definition:'N',
+      where:'true',fields:['id']},as:'rows'}] : [
+      {from: 'carrier', ...compute, as: 'computed'},
+      {from: 'computed', ...projection, as: 'rows'},
+    ]),
     {from: 'rows', filter, as: 'kept'},
     {from: 'kept', sort: [{id: 'desc'}], as: 'ordered'},
     {from: 'ordered', select: fields, as: 'selected'}];
@@ -272,9 +279,21 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
       body.evidence_bundle_cid = 'sha256:' + createHash('sha256')
         .update(canonicalText(body)).digest('hex');
     }
-    const environment = moon.clientProgramCheckEnvironment(canonicalText(body),
-      body.evidence_bundle_cid, false, route.family === 'vectors', true,
-      route.family === 'graph', route.family === 'events', false, false);
+    const checkArguments = [canonicalText(body), body.evidence_bundle_cid,
+      false, route.family === 'vectors', true, route.family === 'graph',
+      route.family === 'events', false, false];
+    const environment = route.family === 'graph'
+      ? moon.clientProgramCheckEnvironmentWithPropertyGraphProfile(
+        ...checkArguments,
+        'sha256:' + createHash('sha256').update(canonicalText(JSON.parse(
+          await readFile(join(root,'spec/contracts/actql-numeric-reduction.json'),'utf8'),
+        ))).digest('hex'),
+        'sha256:' + createHash('sha256').update(canonicalText(JSON.parse(
+          await readFile(join(root,
+            'spec/dependencies/actql-property-graph-laws.json'),'utf8'),
+        ))).digest('hex'),
+      )
+      : moon.clientProgramCheckEnvironment(...checkArguments);
     assert.ok(environment);
     const prepare = installNodeClientProgramPreparation({moon, environment});
     let prepared;
@@ -533,7 +552,7 @@ for (const {family, name} of [
       async ({run, plan, publication, observations}) => {
         const owner = await run();
         assert.equal(owner.status, 'published');
-        assert.equal(observations().dispatches, 9);
+        assert.equal(observations().dispatches, family === 'graph' ? 8 : 9);
         await assertPublishedRows(publication, plan, owner.execution,
           family === 'events' ? [{id: 3, late: false}, {id: 2, late: false},
             {id: 1, late: true}]
@@ -541,7 +560,7 @@ for (const {family, name} of [
               {id: 2, embedding: [0, 1]}, {id: 1, embedding: [0, 1]}]
               : [{id: 3}, {id: 2}, {id: 1}]);
       }, 'success', undefined, undefined, false,
-      {family, taskSteps: Array(9).fill(1)}));
+      {family, taskSteps: Array(family === 'graph' ? 8 : 9).fill(1)}));
 }
 
 for (const {name, family, mode, cancelDispatch} of [

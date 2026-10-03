@@ -9,7 +9,7 @@ test('operation count checker law literals have semantic bodies, not only regist
   const bodies = [
     'actql-bound-values-law', 'actql-bound-relation-laws', 'actql-bound-join-laws',
     'actql-bound-window-laws', 'actql-bound-graph-laws', 'actql-bound-ranking-laws',
-    'actql-bound-series-laws',
+    'actql-bound-series-laws', 'actql-bound-property-graph-laws',
   ];
   const covered = new Set();
   function visit(value) {
@@ -24,11 +24,26 @@ test('operation count checker law literals have semantic bodies, not only regist
     }
     for (const child of Object.values(value)) visit(child);
   }
-  for (const name of bodies) visit(JSON.parse(readFileSync(new URL(`../spec/contracts/${name}.json`, import.meta.url),'utf8')));
+  for (const name of bodies.filter(name => name !== 'actql-bound-graph-laws')) {
+    visit(JSON.parse(readFileSync(new URL(`../spec/contracts/${name}.json`, import.meta.url),'utf8')));
+  }
+  const graph = JSON.parse(readFileSync(new URL('../spec/contracts/actql-bound-graph-laws.json', import.meta.url),'utf8'));
+  const classification = JSON.parse(readFileSync(new URL(
+    '../docs/reviews/2026-09-19-sga-veca-tea-local-coverage.json', import.meta.url),'utf8')).current_graph_profile.classification;
+  // The historical quantity body remains pinned and independently tested
+  // below. Only definition-selected MATCH retains an applicable rule here.
+  // Current TRAIL emits paths, so the old minimum-depth node-emission bound
+  // is not an applicable law. Construction has its separate keyed body.
+  for (const [operation, status] of Object.entries(classification)) {
+    if (status !== 'partial') continue;
+    const law = `actql.bound.${operation.replaceAll('_', '-')}`;
+    if (graph.law_ids.includes(law)) visit({law_id:law});
+  }
   const source = readFileSync(new URL('../src/capacity_program_step/check.mbt',import.meta.url),'utf8');
   const emitted = new Set([...source.matchAll(/"(actql\.bound\.[a-z.-]+)"/g)].map(m => m[1]));
   assert.ok(emitted.size > 0);
-  assert.deepEqual([...covered].sort(), [...emitted].sort(), 'Update semantic bodies when adding or removing operation count laws');
+  assert.deepEqual([...covered].sort(), [...emitted].sort(),
+    'Current count laws must have semantic bodies; retired Graph rules must not be emitted');
 });
 
 test('ranking and series semantic bodies and independent counts are pinned', () => {
@@ -97,6 +112,23 @@ test('Graph count body fixes quantity transfers and independent selector arithme
     if (n > 9007199254740991n) assert.equal(v.error,'Overflow');
     else { assert.equal(v.error,undefined); assert.equal(n,BigInt(v.expected)); }
   }
+});
+
+test('Property Graph construction has separately pinned definition-occurrence sums without changing legacy Graph laws', () => {
+  const path = 'spec/contracts/actql-bound-property-graph-laws.json';
+  const body = JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
+  const cid = 'sha256:5302fcd9ffaddc5d0bc61bb64a5769ed435fd4cc7cb95765947b2c1ed27d9c08';
+  assert.equal(machineCid(body), cid);
+  assert.equal(body.version, 'actql-bound-property-graph-laws/0.1');
+  assert.deepEqual(body.law_ids, ['actql.bound.property-graph-nodes', 'actql.bound.property-graph-edges']);
+  for (const law of body.law_ids) assert.ok(loadRegistry().body.law_ids.includes(law));
+  const family = JSON.parse(readFileSync(new URL('../spec/spec-family.json', import.meta.url), 'utf8'));
+  assert.ok(family.documents.flatMap(d => d.machine_contracts ?? []).some(r =>
+    r.path === path && r.pointer === '' && r.cid === cid && r.version === body.version));
+  const generated = readFileSync(new URL('../src/pipeline_check_context/property_count.generated.mbt', import.meta.url), 'utf8');
+  assert.ok(generated.includes(JSON.stringify(cid)));
+  const legacy = JSON.parse(readFileSync(new URL('../spec/contracts/actql-bound-graph-laws.json', import.meta.url), 'utf8'));
+  assert.equal(machineCid(legacy), 'sha256:ef1923fe948bed0d07a08bf339e75f0ca9749bde9f1590b31ff3e9317a1e7c48');
 });
 
 test('window count semantics and independent membership bounds are pinned', () => {
@@ -255,8 +287,12 @@ test('independent common Relation count vectors preserve multiplicity and reject
 test('compiler selects the registered bound transfer classification body', () => {
   const path = 'spec/contracts/actql-bound-transfer-laws.json';
   const body = JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
-  const cid = 'sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911';
+  const cid = 'sha256:7c14b2a994a8d2ff84e5bf42ee59f0ccfff728982d693426f210b4779d7dac23';
   assert.equal(machineCid(body), cid);
+  const prior = structuredClone(body);
+  assert.equal(prior.operations.property_graph, 'carrier_specific');
+  delete prior.operations.property_graph;
+  assert.equal(machineCid(prior), 'sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911');
   assert.deepEqual(Object.keys(body).sort(), ['operations', 'version']);
   const family = JSON.parse(readFileSync(new URL('../spec/spec-family.json', import.meta.url), 'utf8'));
   const references = family.documents.flatMap(document => document.machine_contracts ?? []).filter(ref => ref.path === path);
@@ -365,7 +401,7 @@ test('independent values count vectors count row occurrences, not cell contents'
 
 test('registry fixes its identity, rejects missing Host entries and malformed names', () => {
   const { body, policy } = loadRegistry();
-  assert.equal(validateRegistry(body, policy), 'sha256:d072cef2a9a5db8d52a7eaa4de4dc9240690ca03ab6900e8bdd949d138a799b4');
+  assert.equal(validateRegistry(body, policy), 'sha256:fb1014c7dfd2302c966dd45a7eaf347a11ed5db493b038f6049f0f5a571b688c');
   assert.ok(body.law_ids.includes('actql.bound.text-rank'));
   for (const name of ['values', 'time-series', 'calendar-series']) {
     assert.ok(body.law_ids.includes(`actql.bound.${name}`));

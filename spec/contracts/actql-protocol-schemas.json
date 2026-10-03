@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:c5205fed9ce8001b5e29b50c5c450369b0261a86322018ab1581ac38fb0117c3",
+  "artifact_registry_cid": "sha256:c5f1b72ebb1f1e182be66627abaadd2d8fdedf14cb1af85d9e9928a5919c489f",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10668,7 +10668,7 @@
     "observation_set": "sha256:627f88eeb134771cfa81e24419845fbe76bc4a61b4f9c81da3cff48aa3fc5719",
     "model_invocation_evidence": "sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27",
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
-    "executable_plan": "sha256:16c6535a631ceba7edda8cc842d78009df47930ee545da2a63f9a4b99a3ebb6e",
+    "executable_plan": "sha256:78499db59ddb3170ff739bfdb09b5bea88f390956976606c2205b4478628f35b",
     "result_plan": "sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5",
     "plan_fact_manifest": "sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
@@ -10692,7 +10692,7 @@
     "verified_checkpoint_resolution": "sha256:c8304cef7cad5b5e0a8afd8a3f1a4e5b346147218bd2a46ac7994baeaa21a625",
     "result_manifest": "sha256:8f308beba1e134bb0bbf013f961015a39301ab05dc24d54c0fbfbcddde6eeafa",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
-    "plan_document": "sha256:6d77f736215cbf1379db11e4d793e66e19715bb28b8a6e737fae3bdd62590bbc",
+    "plan_document": "sha256:e2e8bf2de478d45ffb2ea1cf259b796c96e401809eed7b34081d9dc0b3fd76c1",
     "plan_result": "sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7",
     "run_state": "sha256:e61cdac45a5af98ca5362ee945511d705c373613cd4e9dc42009e036eb9fcb84",
     "captured_run": "sha256:d10eba96fc9983ffe709fee16faab30c9912af109d4310acad64fc675360b0c7",
@@ -34111,98 +34111,246 @@
                         }
                       },
                       "match_nodes": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "fields"
-                        ],
-                        "properties": {
-                          "fields": {
-                            "type": "array",
-                            "items": {
-                              "type": "string",
-                              "minLength": 1
-                            },
-                            "uniqueItems": true,
-                            "minItems": 1
-                          },
-                          "ids": {
-                            "type": "array",
-                            "minItems": 1,
-                            "items": {}
-                          },
-                          "where": {
-                            "oneOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "object",
-                                "minProperties": 1,
-                                "maxProperties": 1
-                              }
-                            ]
-                          }
-                        },
                         "oneOf": [
                           {
+                            "type": "object",
+                            "additionalProperties": false,
                             "required": [
-                              "ids"
+                              "fields"
                             ],
-                            "not": {
-                              "required": [
-                                "where"
-                              ]
-                            }
+                            "properties": {
+                              "fields": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "uniqueItems": true,
+                                "minItems": 1
+                              },
+                              "ids": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {}
+                              },
+                              "where": {
+                                "oneOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "object",
+                                    "minProperties": 1,
+                                    "maxProperties": 1
+                                  }
+                                ]
+                              }
+                            },
+                            "oneOf": [
+                              {
+                                "required": [
+                                  "ids"
+                                ],
+                                "not": {
+                                  "required": [
+                                    "where"
+                                  ]
+                                }
+                              },
+                              {
+                                "required": [
+                                  "where"
+                                ],
+                                "not": {
+                                  "required": [
+                                    "ids"
+                                  ]
+                                }
+                              }
+                            ]
                           },
                           {
+                            "type": "object",
+                            "additionalProperties": false,
                             "required": [
-                              "where"
+                              "fields",
+                              "definition"
                             ],
-                            "not": {
-                              "required": [
-                                "ids"
-                              ]
-                            }
+                            "properties": {
+                              "fields": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "uniqueItems": true,
+                                "minItems": 1
+                              },
+                              "ids": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {}
+                              },
+                              "where": {
+                                "oneOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "object",
+                                    "minProperties": 1,
+                                    "maxProperties": 1
+                                  }
+                                ]
+                              },
+                              "definition": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "label": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "bindings": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                  "identity": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  }
+                                }
+                              }
+                            },
+                            "oneOf": [
+                              {
+                                "required": [
+                                  "ids"
+                                ],
+                                "not": {
+                                  "required": [
+                                    "where"
+                                  ]
+                                }
+                              },
+                              {
+                                "required": [
+                                  "where"
+                                ],
+                                "not": {
+                                  "required": [
+                                    "ids"
+                                  ]
+                                }
+                              }
+                            ]
                           }
                         ]
                       },
                       "match_edges": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "fields"
-                        ],
-                        "properties": {
-                          "fields": {
-                            "type": "array",
-                            "items": {
-                              "type": "string",
-                              "minLength": 1
-                            },
-                            "uniqueItems": true,
-                            "minItems": 1
-                          },
-                          "types": {
-                            "type": "array",
-                            "items": {
-                              "type": "string",
-                              "minLength": 1
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "fields"
+                            ],
+                            "properties": {
+                              "fields": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "uniqueItems": true,
+                                "minItems": 1
+                              },
+                              "types": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1
+                                }
+                              },
+                              "where": {
+                                "oneOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "object",
+                                    "minProperties": 1,
+                                    "maxProperties": 1
+                                  }
+                                ]
+                              }
                             }
                           },
-                          "where": {
-                            "oneOf": [
-                              {
-                                "type": "string"
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "fields",
+                              "definition"
+                            ],
+                            "properties": {
+                              "fields": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "uniqueItems": true,
+                                "minItems": 1
                               },
-                              {
+                              "types": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1
+                                }
+                              },
+                              "where": {
+                                "oneOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "object",
+                                    "minProperties": 1,
+                                    "maxProperties": 1
+                                  }
+                                ]
+                              },
+                              "definition": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "label": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "bindings": {
                                 "type": "object",
-                                "minProperties": 1,
-                                "maxProperties": 1
+                                "additionalProperties": false,
+                                "properties": {
+                                  "identity": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "source": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "target": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  }
+                                }
                               }
-                            ]
+                            }
                           }
-                        }
+                        ]
                       },
                       "subgraph": {
                         "type": "object",
@@ -34306,213 +34454,433 @@
                         }
                       },
                       "traverse": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "start",
-                          "emit"
-                        ],
-                        "properties": {
-                          "start": {
-                            "oneOf": [
-                              {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "required": [
-                                  "ids"
-                                ],
-                                "properties": {
-                                  "ids": {
-                                    "type": "array",
-                                    "minItems": 1,
-                                    "items": {}
-                                  }
-                                }
-                              },
-                              {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "required": [
-                                  "from",
-                                  "id"
-                                ],
-                                "properties": {
-                                  "from": {
-                                    "type": "string",
-                                    "minLength": 1
-                                  },
-                                  "id": {
-                                    "type": "string",
-                                    "minLength": 1
-                                  }
-                                }
-                              },
-                              {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "required": [
-                                  "where"
-                                ],
-                                "properties": {
-                                  "where": {
-                                    "oneOf": [
-                                      {
-                                        "type": "string"
-                                      },
-                                      {
-                                        "type": "object",
-                                        "minProperties": 1,
-                                        "maxProperties": 1
-                                      }
-                                    ]
-                                  }
-                                }
-                              }
-                            ]
-                          },
-                          "emit": {
-                            "enum": [
-                              "nodes",
-                              "paths"
-                            ]
-                          },
-                          "max_output_rows": {
-                            "oneOf": [
-                              {
-                                "type": "integer",
-                                "minimum": 1,
-                                "maximum": 9007199254740991
-                              },
-                              {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "required": [
-                                  "$param"
-                                ],
-                                "properties": {
-                                  "$param": {
-                                    "type": "string",
-                                    "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
-                                  }
-                                }
-                              }
-                            ]
-                          },
-                          "direction": {
-                            "enum": [
-                              "in",
-                              "out",
-                              "both"
-                            ]
-                          },
-                          "edge_types": {
-                            "type": "array",
-                            "items": {
-                              "type": "string",
-                              "minLength": 1
-                            }
-                          },
-                          "min_hops": {
-                            "type": "integer",
-                            "minimum": 0
-                          },
-                          "max_hops": {
-                            "type": "integer",
-                            "minimum": 1
-                          },
-                          "hops": {
-                            "type": "array",
-                            "minItems": 1,
-                            "items": {
-                              "type": "object",
-                              "additionalProperties": false,
-                              "required": [
-                                "direction"
-                              ],
-                              "properties": {
-                                "direction": {
-                                  "enum": [
-                                    "in",
-                                    "out",
-                                    "both"
-                                  ]
-                                },
-                                "edge_types": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "string",
-                                    "minLength": 1
-                                  }
-                                },
-                                "edge_where": {
-                                  "oneOf": [
-                                    {
-                                      "type": "string"
-                                    },
-                                    {
-                                      "type": "object",
-                                      "minProperties": 1,
-                                      "maxProperties": 1
-                                    }
-                                  ]
-                                },
-                                "node_where": {
-                                  "oneOf": [
-                                    {
-                                      "type": "string"
-                                    },
-                                    {
-                                      "type": "object",
-                                      "minProperties": 1,
-                                      "maxProperties": 1
-                                    }
-                                  ]
-                                }
-                              }
-                            }
-                          }
-                        },
                         "oneOf": [
                           {
+                            "type": "object",
+                            "additionalProperties": false,
                             "required": [
-                              "hops"
+                              "start",
+                              "emit"
                             ],
-                            "not": {
-                              "anyOf": [
-                                {
+                            "properties": {
+                              "start": {
+                                "oneOf": [
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "ids"
+                                    ],
+                                    "properties": {
+                                      "ids": {
+                                        "type": "array",
+                                        "minItems": 1,
+                                        "items": {}
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "from",
+                                      "id"
+                                    ],
+                                    "properties": {
+                                      "from": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      },
+                                      "id": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "where"
+                                    ],
+                                    "properties": {
+                                      "where": {
+                                        "oneOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "object",
+                                            "minProperties": 1,
+                                            "maxProperties": 1
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  }
+                                ]
+                              },
+                              "emit": {
+                                "enum": [
+                                  "nodes",
+                                  "paths"
+                                ]
+                              },
+                              "max_output_rows": {
+                                "oneOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 9007199254740991
+                                  },
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "$param"
+                                    ],
+                                    "properties": {
+                                      "$param": {
+                                        "type": "string",
+                                        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                                      }
+                                    }
+                                  }
+                                ]
+                              },
+                              "direction": {
+                                "enum": [
+                                  "in",
+                                  "out",
+                                  "both"
+                                ]
+                              },
+                              "edge_types": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1
+                                }
+                              },
+                              "min_hops": {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              "max_hops": {
+                                "type": "integer",
+                                "minimum": 1
+                              },
+                              "hops": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
                                   "required": [
                                     "direction"
-                                  ]
-                                },
-                                {
-                                  "required": [
-                                    "edge_types"
-                                  ]
-                                },
-                                {
-                                  "required": [
-                                    "min_hops"
-                                  ]
-                                },
-                                {
-                                  "required": [
-                                    "max_hops"
+                                  ],
+                                  "properties": {
+                                    "direction": {
+                                      "enum": [
+                                        "in",
+                                        "out",
+                                        "both"
+                                      ]
+                                    },
+                                    "edge_types": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    },
+                                    "edge_where": {
+                                      "oneOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "object",
+                                          "minProperties": 1,
+                                          "maxProperties": 1
+                                        }
+                                      ]
+                                    },
+                                    "node_where": {
+                                      "oneOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "object",
+                                          "minProperties": 1,
+                                          "maxProperties": 1
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "oneOf": [
+                              {
+                                "required": [
+                                  "hops"
+                                ],
+                                "not": {
+                                  "anyOf": [
+                                    {
+                                      "required": [
+                                        "direction"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "edge_types"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "min_hops"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "max_hops"
+                                      ]
+                                    }
                                   ]
                                 }
-                              ]
-                            }
+                              },
+                              {
+                                "required": [
+                                  "direction",
+                                  "min_hops",
+                                  "max_hops"
+                                ],
+                                "not": {
+                                  "required": [
+                                    "hops"
+                                  ]
+                                }
+                              }
+                            ]
                           },
                           {
+                            "type": "object",
+                            "additionalProperties": false,
                             "required": [
-                              "direction",
-                              "min_hops",
-                              "max_hops"
+                              "start",
+                              "emit",
+                              "path_mode"
                             ],
-                            "not": {
-                              "required": [
-                                "hops"
-                              ]
-                            }
+                            "properties": {
+                              "start": {
+                                "oneOf": [
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "ids"
+                                    ],
+                                    "properties": {
+                                      "ids": {
+                                        "type": "array",
+                                        "minItems": 1,
+                                        "items": {}
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "from",
+                                      "id"
+                                    ],
+                                    "properties": {
+                                      "from": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      },
+                                      "id": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "where"
+                                    ],
+                                    "properties": {
+                                      "where": {
+                                        "oneOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "object",
+                                            "minProperties": 1,
+                                            "maxProperties": 1
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  }
+                                ]
+                              },
+                              "emit": {
+                                "const": "paths"
+                              },
+                              "max_output_rows": {
+                                "oneOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 9007199254740991
+                                  },
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "$param"
+                                    ],
+                                    "properties": {
+                                      "$param": {
+                                        "type": "string",
+                                        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                                      }
+                                    }
+                                  }
+                                ]
+                              },
+                              "direction": {
+                                "enum": [
+                                  "in",
+                                  "out",
+                                  "both"
+                                ]
+                              },
+                              "edge_types": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1
+                                }
+                              },
+                              "min_hops": {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              "max_hops": {
+                                "type": "integer",
+                                "minimum": 1
+                              },
+                              "hops": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "direction"
+                                  ],
+                                  "properties": {
+                                    "direction": {
+                                      "enum": [
+                                        "in",
+                                        "out",
+                                        "both"
+                                      ]
+                                    },
+                                    "edge_types": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    },
+                                    "edge_where": {
+                                      "oneOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "object",
+                                          "minProperties": 1,
+                                          "maxProperties": 1
+                                        }
+                                      ]
+                                    },
+                                    "node_where": {
+                                      "oneOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "object",
+                                          "minProperties": 1,
+                                          "maxProperties": 1
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              },
+                              "path_mode": {
+                                "enum": [
+                                  "walk",
+                                  "trail",
+                                  "acyclic"
+                                ]
+                              }
+                            },
+                            "oneOf": [
+                              {
+                                "required": [
+                                  "hops"
+                                ],
+                                "not": {
+                                  "anyOf": [
+                                    {
+                                      "required": [
+                                        "direction"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "edge_types"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "min_hops"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "max_hops"
+                                      ]
+                                    }
+                                  ]
+                                }
+                              },
+                              {
+                                "required": [
+                                  "direction",
+                                  "min_hops",
+                                  "max_hops"
+                                ],
+                                "not": {
+                                  "required": [
+                                    "hops"
+                                  ]
+                                }
+                              }
+                            ]
                           }
                         ]
                       },
@@ -35338,6 +35706,346 @@
                                     "type": "number",
                                     "minimum": 0,
                                     "maximum": 1
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "property_graph": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "version",
+                          "nodes",
+                          "edges"
+                        ],
+                        "properties": {
+                          "version": {
+                            "const": "actql-property-graph-constructor/0.1"
+                          },
+                          "nodes": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "name",
+                                "from",
+                                "key"
+                              ],
+                              "properties": {
+                                "name": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "from": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "key": {
+                                  "type": "array",
+                                  "minItems": 1,
+                                  "uniqueItems": true,
+                                  "items": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  }
+                                },
+                                "labels": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "name"
+                                    ],
+                                    "properties": {
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      },
+                                      "properties": {
+                                        "oneOf": [
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "mode"
+                                            ],
+                                            "properties": {
+                                              "mode": {
+                                                "const": "all_columns"
+                                              }
+                                            }
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "mode"
+                                            ],
+                                            "properties": {
+                                              "mode": {
+                                                "const": "no_properties"
+                                              }
+                                            }
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "mode",
+                                              "except"
+                                            ],
+                                            "properties": {
+                                              "mode": {
+                                                "const": "all_columns_except"
+                                              },
+                                              "except": {
+                                                "type": "array",
+                                                "uniqueItems": true,
+                                                "items": {
+                                                  "type": "string",
+                                                  "minLength": 1
+                                                }
+                                              }
+                                            }
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "mode",
+                                              "columns"
+                                            ],
+                                            "properties": {
+                                              "mode": {
+                                                "const": "columns"
+                                              },
+                                              "columns": {
+                                                "type": "array",
+                                                "items": {
+                                                  "type": "object",
+                                                  "additionalProperties": false,
+                                                  "required": [
+                                                    "from",
+                                                    "to"
+                                                  ],
+                                                  "properties": {
+                                                    "from": {
+                                                      "type": "string",
+                                                      "minLength": 1
+                                                    },
+                                                    "to": {
+                                                      "type": "string",
+                                                      "minLength": 1
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "edges": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "name",
+                                "from",
+                                "key",
+                                "source",
+                                "target"
+                              ],
+                              "properties": {
+                                "name": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "from": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "key": {
+                                  "type": "array",
+                                  "minItems": 1,
+                                  "uniqueItems": true,
+                                  "items": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  }
+                                },
+                                "labels": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "name"
+                                    ],
+                                    "properties": {
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      },
+                                      "properties": {
+                                        "oneOf": [
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "mode"
+                                            ],
+                                            "properties": {
+                                              "mode": {
+                                                "const": "all_columns"
+                                              }
+                                            }
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "mode"
+                                            ],
+                                            "properties": {
+                                              "mode": {
+                                                "const": "no_properties"
+                                              }
+                                            }
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "mode",
+                                              "except"
+                                            ],
+                                            "properties": {
+                                              "mode": {
+                                                "const": "all_columns_except"
+                                              },
+                                              "except": {
+                                                "type": "array",
+                                                "uniqueItems": true,
+                                                "items": {
+                                                  "type": "string",
+                                                  "minLength": 1
+                                                }
+                                              }
+                                            }
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "mode",
+                                              "columns"
+                                            ],
+                                            "properties": {
+                                              "mode": {
+                                                "const": "columns"
+                                              },
+                                              "columns": {
+                                                "type": "array",
+                                                "items": {
+                                                  "type": "object",
+                                                  "additionalProperties": false,
+                                                  "required": [
+                                                    "from",
+                                                    "to"
+                                                  ],
+                                                  "properties": {
+                                                    "from": {
+                                                      "type": "string",
+                                                      "minLength": 1
+                                                    },
+                                                    "to": {
+                                                      "type": "string",
+                                                      "minLength": 1
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  }
+                                },
+                                "source": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "definition",
+                                    "key"
+                                  ],
+                                  "properties": {
+                                    "definition": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "key": {
+                                      "type": "array",
+                                      "minItems": 1,
+                                      "uniqueItems": true,
+                                      "items": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    },
+                                    "references_key": {
+                                      "type": "array",
+                                      "minItems": 1,
+                                      "uniqueItems": true,
+                                      "items": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    }
+                                  }
+                                },
+                                "target": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "definition",
+                                    "key"
+                                  ],
+                                  "properties": {
+                                    "definition": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "key": {
+                                      "type": "array",
+                                      "minItems": 1,
+                                      "uniqueItems": true,
+                                      "items": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    },
+                                    "references_key": {
+                                      "type": "array",
+                                      "minItems": 1,
+                                      "uniqueItems": true,
+                                      "items": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    }
                                   }
                                 }
                               }
@@ -62900,98 +63608,246 @@
                             }
                           },
                           "match_nodes": {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "fields"
-                            ],
-                            "properties": {
-                              "fields": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1
-                                },
-                                "uniqueItems": true,
-                                "minItems": 1
-                              },
-                              "ids": {
-                                "type": "array",
-                                "minItems": 1,
-                                "items": {}
-                              },
-                              "where": {
-                                "oneOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "object",
-                                    "minProperties": 1,
-                                    "maxProperties": 1
-                                  }
-                                ]
-                              }
-                            },
                             "oneOf": [
                               {
+                                "type": "object",
+                                "additionalProperties": false,
                                 "required": [
-                                  "ids"
+                                  "fields"
                                 ],
-                                "not": {
-                                  "required": [
-                                    "where"
-                                  ]
-                                }
+                                "properties": {
+                                  "fields": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "uniqueItems": true,
+                                    "minItems": 1
+                                  },
+                                  "ids": {
+                                    "type": "array",
+                                    "minItems": 1,
+                                    "items": {}
+                                  },
+                                  "where": {
+                                    "oneOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "object",
+                                        "minProperties": 1,
+                                        "maxProperties": 1
+                                      }
+                                    ]
+                                  }
+                                },
+                                "oneOf": [
+                                  {
+                                    "required": [
+                                      "ids"
+                                    ],
+                                    "not": {
+                                      "required": [
+                                        "where"
+                                      ]
+                                    }
+                                  },
+                                  {
+                                    "required": [
+                                      "where"
+                                    ],
+                                    "not": {
+                                      "required": [
+                                        "ids"
+                                      ]
+                                    }
+                                  }
+                                ]
                               },
                               {
+                                "type": "object",
+                                "additionalProperties": false,
                                 "required": [
-                                  "where"
+                                  "fields",
+                                  "definition"
                                 ],
-                                "not": {
-                                  "required": [
-                                    "ids"
-                                  ]
-                                }
+                                "properties": {
+                                  "fields": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "uniqueItems": true,
+                                    "minItems": 1
+                                  },
+                                  "ids": {
+                                    "type": "array",
+                                    "minItems": 1,
+                                    "items": {}
+                                  },
+                                  "where": {
+                                    "oneOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "object",
+                                        "minProperties": 1,
+                                        "maxProperties": 1
+                                      }
+                                    ]
+                                  },
+                                  "definition": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "label": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "bindings": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "properties": {
+                                      "identity": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    }
+                                  }
+                                },
+                                "oneOf": [
+                                  {
+                                    "required": [
+                                      "ids"
+                                    ],
+                                    "not": {
+                                      "required": [
+                                        "where"
+                                      ]
+                                    }
+                                  },
+                                  {
+                                    "required": [
+                                      "where"
+                                    ],
+                                    "not": {
+                                      "required": [
+                                        "ids"
+                                      ]
+                                    }
+                                  }
+                                ]
                               }
                             ]
                           },
                           "match_edges": {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "fields"
-                            ],
-                            "properties": {
-                              "fields": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1
-                                },
-                                "uniqueItems": true,
-                                "minItems": 1
-                              },
-                              "types": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "fields"
+                                ],
+                                "properties": {
+                                  "fields": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "uniqueItems": true,
+                                    "minItems": 1
+                                  },
+                                  "types": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    }
+                                  },
+                                  "where": {
+                                    "oneOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "object",
+                                        "minProperties": 1,
+                                        "maxProperties": 1
+                                      }
+                                    ]
+                                  }
                                 }
                               },
-                              "where": {
-                                "oneOf": [
-                                  {
-                                    "type": "string"
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "fields",
+                                  "definition"
+                                ],
+                                "properties": {
+                                  "fields": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "uniqueItems": true,
+                                    "minItems": 1
                                   },
-                                  {
+                                  "types": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    }
+                                  },
+                                  "where": {
+                                    "oneOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "object",
+                                        "minProperties": 1,
+                                        "maxProperties": 1
+                                      }
+                                    ]
+                                  },
+                                  "definition": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "label": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "bindings": {
                                     "type": "object",
-                                    "minProperties": 1,
-                                    "maxProperties": 1
+                                    "additionalProperties": false,
+                                    "properties": {
+                                      "identity": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      },
+                                      "source": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      },
+                                      "target": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    }
                                   }
-                                ]
+                                }
                               }
-                            }
+                            ]
                           },
                           "subgraph": {
                             "type": "object",
@@ -63095,213 +63951,433 @@
                             }
                           },
                           "traverse": {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "start",
-                              "emit"
-                            ],
-                            "properties": {
-                              "start": {
-                                "oneOf": [
-                                  {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                      "ids"
-                                    ],
-                                    "properties": {
-                                      "ids": {
-                                        "type": "array",
-                                        "minItems": 1,
-                                        "items": {}
-                                      }
-                                    }
-                                  },
-                                  {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                      "from",
-                                      "id"
-                                    ],
-                                    "properties": {
-                                      "from": {
-                                        "type": "string",
-                                        "minLength": 1
-                                      },
-                                      "id": {
-                                        "type": "string",
-                                        "minLength": 1
-                                      }
-                                    }
-                                  },
-                                  {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                      "where"
-                                    ],
-                                    "properties": {
-                                      "where": {
-                                        "oneOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "object",
-                                            "minProperties": 1,
-                                            "maxProperties": 1
-                                          }
-                                        ]
-                                      }
-                                    }
-                                  }
-                                ]
-                              },
-                              "emit": {
-                                "enum": [
-                                  "nodes",
-                                  "paths"
-                                ]
-                              },
-                              "max_output_rows": {
-                                "oneOf": [
-                                  {
-                                    "type": "integer",
-                                    "minimum": 1,
-                                    "maximum": 9007199254740991
-                                  },
-                                  {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                      "$param"
-                                    ],
-                                    "properties": {
-                                      "$param": {
-                                        "type": "string",
-                                        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
-                                      }
-                                    }
-                                  }
-                                ]
-                              },
-                              "direction": {
-                                "enum": [
-                                  "in",
-                                  "out",
-                                  "both"
-                                ]
-                              },
-                              "edge_types": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1
-                                }
-                              },
-                              "min_hops": {
-                                "type": "integer",
-                                "minimum": 0
-                              },
-                              "max_hops": {
-                                "type": "integer",
-                                "minimum": 1
-                              },
-                              "hops": {
-                                "type": "array",
-                                "minItems": 1,
-                                "items": {
-                                  "type": "object",
-                                  "additionalProperties": false,
-                                  "required": [
-                                    "direction"
-                                  ],
-                                  "properties": {
-                                    "direction": {
-                                      "enum": [
-                                        "in",
-                                        "out",
-                                        "both"
-                                      ]
-                                    },
-                                    "edge_types": {
-                                      "type": "array",
-                                      "items": {
-                                        "type": "string",
-                                        "minLength": 1
-                                      }
-                                    },
-                                    "edge_where": {
-                                      "oneOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "object",
-                                          "minProperties": 1,
-                                          "maxProperties": 1
-                                        }
-                                      ]
-                                    },
-                                    "node_where": {
-                                      "oneOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "object",
-                                          "minProperties": 1,
-                                          "maxProperties": 1
-                                        }
-                                      ]
-                                    }
-                                  }
-                                }
-                              }
-                            },
                             "oneOf": [
                               {
+                                "type": "object",
+                                "additionalProperties": false,
                                 "required": [
-                                  "hops"
+                                  "start",
+                                  "emit"
                                 ],
-                                "not": {
-                                  "anyOf": [
-                                    {
+                                "properties": {
+                                  "start": {
+                                    "oneOf": [
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "ids"
+                                        ],
+                                        "properties": {
+                                          "ids": {
+                                            "type": "array",
+                                            "minItems": 1,
+                                            "items": {}
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "from",
+                                          "id"
+                                        ],
+                                        "properties": {
+                                          "from": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "id": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "where"
+                                        ],
+                                        "properties": {
+                                          "where": {
+                                            "oneOf": [
+                                              {
+                                                "type": "string"
+                                              },
+                                              {
+                                                "type": "object",
+                                                "minProperties": 1,
+                                                "maxProperties": 1
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  },
+                                  "emit": {
+                                    "enum": [
+                                      "nodes",
+                                      "paths"
+                                    ]
+                                  },
+                                  "max_output_rows": {
+                                    "oneOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 9007199254740991
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "$param"
+                                        ],
+                                        "properties": {
+                                          "$param": {
+                                            "type": "string",
+                                            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  },
+                                  "direction": {
+                                    "enum": [
+                                      "in",
+                                      "out",
+                                      "both"
+                                    ]
+                                  },
+                                  "edge_types": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    }
+                                  },
+                                  "min_hops": {
+                                    "type": "integer",
+                                    "minimum": 0
+                                  },
+                                  "max_hops": {
+                                    "type": "integer",
+                                    "minimum": 1
+                                  },
+                                  "hops": {
+                                    "type": "array",
+                                    "minItems": 1,
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
                                       "required": [
                                         "direction"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "edge_types"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "min_hops"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "max_hops"
+                                      ],
+                                      "properties": {
+                                        "direction": {
+                                          "enum": [
+                                            "in",
+                                            "out",
+                                            "both"
+                                          ]
+                                        },
+                                        "edge_types": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          }
+                                        },
+                                        "edge_where": {
+                                          "oneOf": [
+                                            {
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "object",
+                                              "minProperties": 1,
+                                              "maxProperties": 1
+                                            }
+                                          ]
+                                        },
+                                        "node_where": {
+                                          "oneOf": [
+                                            {
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "object",
+                                              "minProperties": 1,
+                                              "maxProperties": 1
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                "oneOf": [
+                                  {
+                                    "required": [
+                                      "hops"
+                                    ],
+                                    "not": {
+                                      "anyOf": [
+                                        {
+                                          "required": [
+                                            "direction"
+                                          ]
+                                        },
+                                        {
+                                          "required": [
+                                            "edge_types"
+                                          ]
+                                        },
+                                        {
+                                          "required": [
+                                            "min_hops"
+                                          ]
+                                        },
+                                        {
+                                          "required": [
+                                            "max_hops"
+                                          ]
+                                        }
                                       ]
                                     }
-                                  ]
-                                }
+                                  },
+                                  {
+                                    "required": [
+                                      "direction",
+                                      "min_hops",
+                                      "max_hops"
+                                    ],
+                                    "not": {
+                                      "required": [
+                                        "hops"
+                                      ]
+                                    }
+                                  }
+                                ]
                               },
                               {
+                                "type": "object",
+                                "additionalProperties": false,
                                 "required": [
-                                  "direction",
-                                  "min_hops",
-                                  "max_hops"
+                                  "start",
+                                  "emit",
+                                  "path_mode"
                                 ],
-                                "not": {
-                                  "required": [
-                                    "hops"
-                                  ]
-                                }
+                                "properties": {
+                                  "start": {
+                                    "oneOf": [
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "ids"
+                                        ],
+                                        "properties": {
+                                          "ids": {
+                                            "type": "array",
+                                            "minItems": 1,
+                                            "items": {}
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "from",
+                                          "id"
+                                        ],
+                                        "properties": {
+                                          "from": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "id": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "where"
+                                        ],
+                                        "properties": {
+                                          "where": {
+                                            "oneOf": [
+                                              {
+                                                "type": "string"
+                                              },
+                                              {
+                                                "type": "object",
+                                                "minProperties": 1,
+                                                "maxProperties": 1
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  },
+                                  "emit": {
+                                    "const": "paths"
+                                  },
+                                  "max_output_rows": {
+                                    "oneOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 9007199254740991
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "$param"
+                                        ],
+                                        "properties": {
+                                          "$param": {
+                                            "type": "string",
+                                            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  },
+                                  "direction": {
+                                    "enum": [
+                                      "in",
+                                      "out",
+                                      "both"
+                                    ]
+                                  },
+                                  "edge_types": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    }
+                                  },
+                                  "min_hops": {
+                                    "type": "integer",
+                                    "minimum": 0
+                                  },
+                                  "max_hops": {
+                                    "type": "integer",
+                                    "minimum": 1
+                                  },
+                                  "hops": {
+                                    "type": "array",
+                                    "minItems": 1,
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "direction"
+                                      ],
+                                      "properties": {
+                                        "direction": {
+                                          "enum": [
+                                            "in",
+                                            "out",
+                                            "both"
+                                          ]
+                                        },
+                                        "edge_types": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          }
+                                        },
+                                        "edge_where": {
+                                          "oneOf": [
+                                            {
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "object",
+                                              "minProperties": 1,
+                                              "maxProperties": 1
+                                            }
+                                          ]
+                                        },
+                                        "node_where": {
+                                          "oneOf": [
+                                            {
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "object",
+                                              "minProperties": 1,
+                                              "maxProperties": 1
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "path_mode": {
+                                    "enum": [
+                                      "walk",
+                                      "trail",
+                                      "acyclic"
+                                    ]
+                                  }
+                                },
+                                "oneOf": [
+                                  {
+                                    "required": [
+                                      "hops"
+                                    ],
+                                    "not": {
+                                      "anyOf": [
+                                        {
+                                          "required": [
+                                            "direction"
+                                          ]
+                                        },
+                                        {
+                                          "required": [
+                                            "edge_types"
+                                          ]
+                                        },
+                                        {
+                                          "required": [
+                                            "min_hops"
+                                          ]
+                                        },
+                                        {
+                                          "required": [
+                                            "max_hops"
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  {
+                                    "required": [
+                                      "direction",
+                                      "min_hops",
+                                      "max_hops"
+                                    ],
+                                    "not": {
+                                      "required": [
+                                        "hops"
+                                      ]
+                                    }
+                                  }
+                                ]
                               }
                             ]
                           },
@@ -64127,6 +65203,346 @@
                                         "type": "number",
                                         "minimum": 0,
                                         "maximum": 1
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "property_graph": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "version",
+                              "nodes",
+                              "edges"
+                            ],
+                            "properties": {
+                              "version": {
+                                "const": "actql-property-graph-constructor/0.1"
+                              },
+                              "nodes": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "name",
+                                    "from",
+                                    "key"
+                                  ],
+                                  "properties": {
+                                    "name": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "from": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "key": {
+                                      "type": "array",
+                                      "minItems": 1,
+                                      "uniqueItems": true,
+                                      "items": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    },
+                                    "labels": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "name"
+                                        ],
+                                        "properties": {
+                                          "name": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "properties": {
+                                            "oneOf": [
+                                              {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "mode"
+                                                ],
+                                                "properties": {
+                                                  "mode": {
+                                                    "const": "all_columns"
+                                                  }
+                                                }
+                                              },
+                                              {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "mode"
+                                                ],
+                                                "properties": {
+                                                  "mode": {
+                                                    "const": "no_properties"
+                                                  }
+                                                }
+                                              },
+                                              {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "mode",
+                                                  "except"
+                                                ],
+                                                "properties": {
+                                                  "mode": {
+                                                    "const": "all_columns_except"
+                                                  },
+                                                  "except": {
+                                                    "type": "array",
+                                                    "uniqueItems": true,
+                                                    "items": {
+                                                      "type": "string",
+                                                      "minLength": 1
+                                                    }
+                                                  }
+                                                }
+                                              },
+                                              {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "mode",
+                                                  "columns"
+                                                ],
+                                                "properties": {
+                                                  "mode": {
+                                                    "const": "columns"
+                                                  },
+                                                  "columns": {
+                                                    "type": "array",
+                                                    "items": {
+                                                      "type": "object",
+                                                      "additionalProperties": false,
+                                                      "required": [
+                                                        "from",
+                                                        "to"
+                                                      ],
+                                                      "properties": {
+                                                        "from": {
+                                                          "type": "string",
+                                                          "minLength": 1
+                                                        },
+                                                        "to": {
+                                                          "type": "string",
+                                                          "minLength": 1
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "edges": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "name",
+                                    "from",
+                                    "key",
+                                    "source",
+                                    "target"
+                                  ],
+                                  "properties": {
+                                    "name": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "from": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "key": {
+                                      "type": "array",
+                                      "minItems": 1,
+                                      "uniqueItems": true,
+                                      "items": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    },
+                                    "labels": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "name"
+                                        ],
+                                        "properties": {
+                                          "name": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "properties": {
+                                            "oneOf": [
+                                              {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "mode"
+                                                ],
+                                                "properties": {
+                                                  "mode": {
+                                                    "const": "all_columns"
+                                                  }
+                                                }
+                                              },
+                                              {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "mode"
+                                                ],
+                                                "properties": {
+                                                  "mode": {
+                                                    "const": "no_properties"
+                                                  }
+                                                }
+                                              },
+                                              {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "mode",
+                                                  "except"
+                                                ],
+                                                "properties": {
+                                                  "mode": {
+                                                    "const": "all_columns_except"
+                                                  },
+                                                  "except": {
+                                                    "type": "array",
+                                                    "uniqueItems": true,
+                                                    "items": {
+                                                      "type": "string",
+                                                      "minLength": 1
+                                                    }
+                                                  }
+                                                }
+                                              },
+                                              {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "mode",
+                                                  "columns"
+                                                ],
+                                                "properties": {
+                                                  "mode": {
+                                                    "const": "columns"
+                                                  },
+                                                  "columns": {
+                                                    "type": "array",
+                                                    "items": {
+                                                      "type": "object",
+                                                      "additionalProperties": false,
+                                                      "required": [
+                                                        "from",
+                                                        "to"
+                                                      ],
+                                                      "properties": {
+                                                        "from": {
+                                                          "type": "string",
+                                                          "minLength": 1
+                                                        },
+                                                        "to": {
+                                                          "type": "string",
+                                                          "minLength": 1
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "source": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "definition",
+                                        "key"
+                                      ],
+                                      "properties": {
+                                        "definition": {
+                                          "type": "string",
+                                          "minLength": 1
+                                        },
+                                        "key": {
+                                          "type": "array",
+                                          "minItems": 1,
+                                          "uniqueItems": true,
+                                          "items": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          }
+                                        },
+                                        "references_key": {
+                                          "type": "array",
+                                          "minItems": 1,
+                                          "uniqueItems": true,
+                                          "items": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "target": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "definition",
+                                        "key"
+                                      ],
+                                      "properties": {
+                                        "definition": {
+                                          "type": "string",
+                                          "minLength": 1
+                                        },
+                                        "key": {
+                                          "type": "array",
+                                          "minItems": 1,
+                                          "uniqueItems": true,
+                                          "items": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          }
+                                        },
+                                        "references_key": {
+                                          "type": "array",
+                                          "minItems": 1,
+                                          "uniqueItems": true,
+                                          "items": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          }
+                                        }
                                       }
                                     }
                                   }

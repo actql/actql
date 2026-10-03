@@ -307,7 +307,8 @@ pub fn complete_carrier_managed_task_execution_with_inputs(
       // producer edge exists. Acquisition and supplied inputs retain their
       // separate capture evidence and cannot be fabricated here.
       let has_internal = run.graph.data.any(edge => {
-        edge.consumer == task && edge.producer > 0
+        edge.consumer == task &&
+        edge.producer >= captured_compute_first_task(run)
       })
       !has_internal &&
       @execution.carrier_managed_completed_output_matches_inputs(output, [])

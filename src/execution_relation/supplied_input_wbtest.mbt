@@ -252,6 +252,44 @@ test "bounded selected rows retain supplied input provenance" {
         assert_eq(completed_row_count(output), 1)
         assert_true(completed_cell(output, 0, 0) is Some(Number(3.0)))
         assert_true(completed_cell(output, 0, 1) is Some(Text("ok")))
+        let anchored = anchor_completed_output_supplied_inputs(output, [read]).unwrap()
+        assert_true(completed_output_matches_supplied_inputs(anchored, [read]))
+        let fixed = fixed_supplied_relation_read(read)
+        let fixed_output = anchor_completed_output_fixed_inputs(
+          output,
+          Some(0),
+          [fixed],
+        ).unwrap()
+        assert_true(
+          completed_output_matches_fixed_inputs(fixed_output, Some(0), [fixed]),
+        )
+        let rebound = prepare_supplied_relation_read(owner, 0, captured, fn() {
+          true
+        }).unwrap()
+        assert_false(
+          completed_output_matches_supplied_inputs(anchored, [rebound]),
+        )
+        assert_false(completed_output_matches_supplied_inputs(anchored, []))
+        assert_true(anchor_completed_output_supplied_inputs(output, []) is None)
+        assert_false(
+          completed_output_matches_supplied_inputs(
+            restrict_completed_output(anchored, fn() { false }),
+            [read],
+          ),
+        )
+        live.val = false
+        assert_true(
+          anchor_completed_output_supplied_inputs(output, [read]) is None,
+        )
+        // Matching requires only the output's own liveness after sealing.
+        assert_eq(
+          completed_output_matches_supplied_inputs(anchored, [read]),
+          completed_output_available(anchored),
+        )
+        assert_eq(
+          completed_output_matches_fixed_inputs(fixed_output, Some(0), [fixed]),
+          completed_output_available(fixed_output),
+        )
         complete = true
       }
       _ => fail("supplied bounded selection failed")
@@ -259,8 +297,6 @@ test "bounded selected rows retain supplied input provenance" {
   }
   assert_true(complete)
   assert_true(cleanup_bounded_binding_rows(active).unwrap())
-  assert_true(supplied_relation_read_available(read))
-  live.val = false
   assert_false(supplied_relation_read_available(read))
 }
 

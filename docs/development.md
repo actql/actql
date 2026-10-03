@@ -67,7 +67,7 @@ node --test scripts/moonbit-environment.test.mjs
 ```
 
 Native core verification uses `scripts/test-native-core.mjs`, including
-`node scripts/local-checks.mjs run core --target native`. Each invocation
+`node scripts/local-checks.mjs run core --target native --allow-heavy`. Each invocation
 creates a fresh `native-*` SQLite namespace with the existing owned-scratch
 helper, then runs `moon test --target native` with the remaining arguments.
 For the narrow trusted-clock regression, use:
@@ -157,6 +157,112 @@ belongs in separate reports tied to case IDs and the implementation revision.
 YAML parsing does not establish ActQL semantic validity. The MoonBit checker and
 runtime must verify these same fixtures as implementation becomes available.
 
+## Bounded local execution
+
+`local-checks.mjs` remains the local entry point for the workflow's actual
+commands and the existing nonzero-test guard. It now applies cooperative
+exclusion and a wall-clock budget to routed executions on macOS and Linux.
+`list`, `changed` and `run <job> --dry-run` only report; they acquire no locks
+and launch no checks. Incremental `_build` artifacts are never removed.
+
+```sh
+node scripts/local-checks.mjs test node -- scripts/local-checks.test.mjs
+node scripts/local-checks.mjs test moon -- --target js -p query_integration
+node scripts/local-checks.mjs build moon -- --target js src/query_integration
+node scripts/local-checks.mjs run lint
+node scripts/local-checks.mjs run core --target native --allow-heavy
+```
+
+The small shared [classification](local-checks-hooks.md#what-the-policy-recognizes)
+requires `--allow-heavy` only for known full suites/builds. This is a deliberate
+choice by the caller, not human approval or an authorization grant. Unknown
+Moon options/jobs are refused until explicitly classified. A package/file
+selection is a narrower scope, not a promise about its runtime or dependencies.
+The first unit does not intercept npm aliases, direct proof campaigns, arbitrary
+shell commands, raw Node suites, or processes started outside this wrapper.
+Hosted CI commands, coverage, gates and results remain authoritative.
+
+The split `pipeline-mutations`, `pipeline-capacity` and final `pipeline-evidence`
+job wrappers are explicitly CI-only. Producer begin/stage/seal requires real
+GitHub source SHA, run, attempt and output metadata; the final join requires
+sealed exact-artifact producer inputs from the same run and attempt. These
+wrappers refuse local execution before creating locks or evidence, even with
+`--allow-heavy` and supplied GitHub environment variables. `list` and `changed`
+label them CI-only; `run <job> --dry-run` prints their literal workflow commands
+without constructing fake CI context. Raw underlying proof campaigns remain
+ordinary heavy work outside this wrapper's guard. They are not an alternate
+local acceptance route for the hosted producer/join boundary.
+
+### Budgets and output
+
+`run <job>` defaults to that job's `timeout-minutes` in
+`.github/workflows/ci.yml`, covering the whole sequence, not each step anew.
+Focused `test node` uses the lint job's budget; focused Moon test/build uses
+core's budget. `--timeout-seconds N` replaces that default for this invocation.
+An unscoped Moon test/build has no default: supply both `--allow-heavy` and an
+explicit `--timeout-seconds N`. If the workflow has no numeric timeout, the
+wrapper requires an explicit budget rather than inventing one.
+
+Every execution reports its budget before starting. On expiration or caller
+cancellation it sends TERM to only the invocation's process group, waits
+5 seconds, then escalates to KILL if needed. `--kill-grace-seconds N` changes
+that termination grace; it is not an extra test budget. Durations must be
+positive and fit Node's timer range. A timeout exits 124; caller cancellation
+exits 130; child failures preserve their nonzero status. There is no automatic
+retry, timeout increase, dependency installation, build-cache deletion or repair.
+
+Each invocation retains `_build/local-checks/attempts/run-*`, including failures
+and timeouts, and reports its exact directory. `summary.json` separates process
+exit observations from overall completeness; `output.log` retains the bounded
+combined diagnostic output. The existing evidence redactor and 8 MiB output
+limit are reused. Overflow stops the invocation, fails it, and marks output
+incomplete. Output is buffered and printed at completion rather than streamed;
+steps and their evidence directory are announced immediately. The supervisor
+waits for caller stdout and stderr writes with a separate, shared five-second
+forwarding budget after command cleanup. A stalled or closed receiver marks
+`callerOutputComplete: false` and fails an otherwise successful invocation;
+an existing command failure or cancellation keeps its original status. This
+does not change the saved command log or its `outputComplete` capture flag.
+Focused tests also retain their existing per-test evidence. Abrupt supervisor death can
+leave only the last written, incomplete snapshot. Redaction is diagnostic
+best-effort, not proof that arbitrary application output has no secrets.
+
+### Lock ownership and stopped processes
+
+The canonical worktree path gets one exclusive lock for every routed
+execution. Classified-heavy work additionally gets one lock across this
+user's worktrees on this host. State is beneath the canonical home directory
+at `.cache/actql/local-checks/<host-hash>/`, independent of `TMPDIR` and
+`RUNNER_TEMP`. Other users or containers with separate homes/state are outside
+this cooperative lock scope. Existing state-directory symlinks or foreign
+ownership are refused; the wrapper does not change permissions or user config.
+
+A lock records a random owner token, supervisor PID, user/host, worktree and
+evidence path. Acquisition is exclusive; release checks file identity and the
+same token. A failed second acquisition releases only locks it acquired before
+starting any command. A busy or incomplete lock fails immediately, without
+waiting or retrying. PID liveness is diagnostic only: PID reuse, missing PIDs,
+reboots, incomplete metadata and surviving descendants never authorize removal.
+There is no automatic stale-lock recovery or generic cleanup command. Inspect
+the exact reported owner/evidence and confirm its processes have stopped
+before manually recovering that lock. Never remove another active worker's
+lock or use a broad process-kill command.
+
+The per-invocation Node supervisor stays alive as its own process-group leader.
+Commands inherit that group; signals never target a PID read from an old lock.
+Parent IPC disconnect cancels the group even after the calling agent/wrapper
+is killed. macOS/Linux `ps` verifies group liveness before normal release.
+An inspection/ownership failure retains locks. KILL escalation also kills the
+supervisor and deliberately retains locks for inspection. If the supervisor
+itself is killed, no new watchdog is started and locks stay in place.
+
+This is not a security sandbox or OS resource quota. Detached/daemonized children
+that intentionally escape the group, raw commands, edits or branch switches
+outside the wrapper, and manual lock removal are not prevented. Continue to
+follow the same-worktree/one-heavy-gate rules in [AGENTS.md](../AGENTS.md).
+The optional [Claude Code and Codex hooks](local-checks-hooks.md) add pre-launch
+reminders for a small literal-command grammar; they do not broaden these limits.
+
 ## Focused test execution
 
 Use the existing local verification tool when a selected test must actually run:
@@ -203,6 +309,66 @@ is introduced. Run the guard regressions with
 `node --test scripts/test-execution.test.mjs` (the pinned MoonBit toolchain must
 be on PATH).
 
+### Retained command attempts
+
+The focused wrapper retains each invocation under
+`_build/focused-evidence/focused-test-*` and prints its exact directory. The
+programmatic `evidenceScratch` option selects another parent directory. An
+explicit rerun creates a new directory: a passing attempt cannot overwrite a
+failure. No automatic retry or timeout increase is introduced.
+
+Focused and packed verification share the existing `packed-query-evidence.mjs`
+recorder and `actql-command-evidence/0.1` diagnostic format. `summary.json` is the
+latest observation; numbered `*.summary.json` snapshots and per-command
+`*.started.json` / `*.result.json` records retain earlier observations. Each
+command records redacted arguments, canonical working-directory/device/inode
+identity, actual Git HEAD and dirty indication, UTC start/end timestamps,
+elapsed time, raw exit code or signal, and verification status separately.
+Git source identity is read from the recorder's repository cwd; the child cwd
+is recorded separately because packed consumers execute outside the source
+checkout. Unavailable Git identity/dirty state remains `null`. The supplied packed
+`revision` and GitHub event SHA do not replace the observed checkout SHA.
+
+Streams are bounded by the existing limits: 8 MiB for packed commands and
+64 MiB for focused commands. Buffer overflow remains a failed attempt with
+`outputComplete: false`; persisted streams are bounded too. No environment is
+serialized. Secret-labelled environment values and recognizable authorization,
+credential URL/query and private-key forms are masked in diagnostics. These
+helpers are for repository-owned test diagnostics, not arbitrary private buffers;
+masking cannot prove arbitrary application output is free of secrets.
+
+A failed, timed-out or interrupted invocation has `complete: false`; cleanup
+errors also retain a failed/incomplete summary without changing the raw child exit. A command's
+raw exit observation, its test-count verification, and invocation completeness
+are independent fields. Evidence-write errors are reported and cannot turn a
+failure green; a passing test with failed evidence persistence also exits
+nonzero. The original nonzero status remains authoritative. Files/directories
+replaced by links or different filesystem objects are not overwritten or cleaned.
+
+The existing CI uploader retains only summaries, command receipts and bounded
+stdout/stderr, for seven days. Names include GitHub run ID and attempt, while
+summaries carry both event and observed checkout identities. Callers retain their
+`always()` collection condition. Upload failure fails the collection step and
+is reported separately; upload success establishes neither test success nor
+completeness. Tarballs, installed dependencies and other scratch payloads are
+never uploaded. Missing command result receipts remain missing.
+
+A start record is persisted before each child. If the parent process is killed,
+its last persisted snapshots remain partial, but `spawnSync`'s in-memory output
+and unobserved child exit cannot be reconstructed. If the runner disappears,
+the job is cancelled before collection, or GitHub terminates the entire job,
+`always()` cannot guarantee an upload. A child timeout handled by the recorder
+retains its observed output and failure normally. No fabricated receipt or
+successful completion is substituted for any of these gaps.
+
+The existing `packed_query_evidence_probe` CI dispatch option runs only tiny
+nonzero, timeout, interrupted-parent and upload-failure probes (the last uses
+a deliberately invalid artifact name). Every probe job
+is intentionally failed; later assertions check that collection does not alter
+that result. The regular `packed-query-evidence.test.mjs` gate exercises local
+capture, partial selection, ownership guards and the action's exact upload-status
+shell without rerunning packed product acceptance or a mutation campaign.
+
 ## CI evidence by source revision
 
 Use the read-only GitHub CLI helper to inspect this repository or another
@@ -213,6 +379,7 @@ if that policy is unavailable, required checks remain **unknown**.
 
 ```sh
 node scripts/ci-evidence.mjs actql/actql --pr PR_NUMBER
+node scripts/ci-evidence.mjs actql/actql --pr PR_NUMBER --integration main --dependencies 189,191
 node scripts/ci-evidence.mjs actql/actql-cloud --sha FULL_40_CHARACTER_SHA --json
 node scripts/ci-evidence.mjs actql/actql-cloud --sha FULL_40_CHARACTER_SHA --branch main
 node --test scripts/ci-evidence.test.mjs
@@ -236,6 +403,39 @@ the run API does not prove it. Closed PRs have no current test-ref claim.
 Commit check runs and status history are also shown by SHA, separately from
 Actions evidence because those endpoints do not attribute a workflow event or
 attempt. Absence of checks is reported as absence, not success.
+
+PR reports also record draft/mergeability (including unknown), the current
+merge-test tree and its ordered base/head parents, and reviews with their
+original commit binding. Stale approvals remain stale observations; review
+and code-owner policy is not inferred. The last API read re-reads the selected
+PR after rechecking dependency PRs, the integration branch and merge/test ref.
+Changed HEAD/base/state or an unavailable boundary makes the report incomplete;
+`stable-observed` means only that those sequential reads agreed, not an atomic
+snapshot or a guarantee that nothing can change afterward.
+
+The intended integration branch defaults to the repository's reported default
+branch; `--integration` overrides it explicitly. Dependencies are same-repository
+PRs whose head branch matches the selected PR's current base, plus any explicit
+`--dependencies` numbers. This is one-hop discovery, not a transitive stack
+solver. Every subject reports full HEAD/base SHAs and a merged PR's destination.
+Ancestry comparisons use the pinned integration SHA. Exact source ancestry,
+whole-tree equality, and reachability of a recorded merge result are separate
+facts. A squash can preserve a whole tree without preserving original commits;
+different trees leave content correspondence unverified. A merge into a feature
+branch whose result is absent from the integration branch identifies that
+missing integration step. The tool never retargets, rebases, pushes or merges.
+
+Each named requirement has separate HEAD and merge-test observations, including
+missing/pending, cancelled, skipped and duplicate observations. A check is linked
+to an Actions attempt only through its exact check-run URL, check-suite identity
+and source SHA, never a matching job name. Older attempts stay visible and are
+marked superseded; same-named jobs from other workflows, events or stale SHAs
+remain separate. External checks or incomplete attribution keep the attempt
+unknown. These are observations, not a GitHub requirement-satisfaction verdict:
+status/check collisions, event eligibility and merge-ref precedence are not
+collapsed into a green result. A conditional skip or neutral result can satisfy
+GitHub policy but does not prove successful execution. See GitHub's
+[required-check troubleshooting](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks).
 
 Named required status checks come only from classic branch protection and
 active repository/organization branch rules, retaining the expected app IDs.

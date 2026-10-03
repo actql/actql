@@ -64,18 +64,20 @@ test "producer Graph counts keep node edge and row quantities separate" {
     let producer = @pipeline_typing.check_carriers(
       cursor(
         "[" +
+        count_values(n, "nodes") +
+        "," +
         graph_count_seed(n) +
-        ",{\"graph\":{\"source\":\"src\",\"target\":\"dst\"}}]",
+        ",{\"property_graph\":{\"version\":\"actql-property-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"nodes\",\"key\":[\"id\"]}],\"edges\":[{\"name\":\"E\",\"from\":\"edges\",\"key\":[\"src\"],\"source\":{\"definition\":\"N\",\"key\":[\"src\"]},\"target\":{\"definition\":\"N\",\"key\":[\"dst\"]}}]},\"as\":\"g\"}]",
       ),
       [],
       None,
       None,
       limits(),
     ).unwrap()
-    let input = @pipeline_typing.produced_input(producer, Step(1)).unwrap()
+    let input = @pipeline_typing.produced_input(producer, Step(2)).unwrap()
     let p = @pipeline_typing.check_with_evidence(
       cursor(
-        "[{\"union_graphs\":{\"with\":\"g\"},\"as\":\"combined\"},{\"node_rows\":true},{\"edge_rows\":true,\"from\":\"combined\"}]",
+        "[{\"match_nodes\":{\"definition\":\"N\",\"bindings\":{\"identity\":\"element\"},\"where\":\"true\",\"fields\":[\"element\"]}},{\"from\":\"g\",\"match_edges\":{\"definition\":\"E\",\"bindings\":{\"identity\":\"element\"},\"fields\":[\"element\"]}}]",
       ),
       [("g", @pipeline_typing.ProducedInput(input))],
       None,
@@ -83,11 +85,18 @@ test "producer Graph counts keep node edge and row quantities separate" {
       limits(),
     ).unwrap()
     assert_true(@pipeline_typing.row_count(p, Input(0)) is None)
+    assert_true(
+      physical_equal(@pipeline_typing.input_producer(p, 0).unwrap(), input),
+    )
+    assert_true(
+      physical_equal(@pipeline_typing.producer_pipeline(input), producer),
+    )
+    assert_eq(@pipeline_typing.producer_target(input), Step(2))
     let bound = @pipeline_typing.graph_count(p, Input(0)).unwrap()
-    assert_eq(bound.nodes.unwrap().upper, (2 * n).to_int64())
+    assert_eq(bound.nodes.unwrap().upper, n.to_int64())
     assert_eq(bound.edges.unwrap().upper, n.to_int64())
-    assert_count(p, 1, (4 * n).to_int64(), n == 0)
-    assert_count(p, 2, (2 * n).to_int64(), n == 0)
+    assert_count(p, 0, n.to_int64(), n == 0)
+    assert_count(p, 1, n.to_int64(), n == 0)
   }
 }
 

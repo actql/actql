@@ -1742,16 +1742,19 @@ async function exerciseStrategyGraph(
       id: 'graph',
       inputs: {rows: {result: {stage: 'values', result: 'r'}}},
       steps: [{
-        graph: {
-          nodes: {from: 'rows', id: 'id', fields: ['node_name']},
-          edges: {
-            from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
-          },
+        property_graph: {
+          version:'actql-property-graph-constructor/0.1',
+          nodes:[{name:'N',from:'rows',key:['id'],
+            labels:[{name:'Node',properties:{mode:'all_columns'}}]}],
+          edges:[{name:'E',from:'rows',key:['id'],
+            source:{definition:'N',key:['src']},
+            target:{definition:'N',key:['dst']},
+            labels:[{name:'Link',properties:{mode:'all_columns'}}]}],
         },
         as: 'g',
       }, {
         from: 'g',
-        match_nodes: {ids: [2, 1, 2], fields: ['id', 'node_name']},
+        match_nodes: {definition:'N',where:'true',fields:['id','node_name']},
         as: 'out',
       }],
       results: {r: {from: 'out', fields: ['id', 'node_name']}},
@@ -1773,611 +1776,71 @@ async function exerciseStrategyGraph(
     }],
     results: {published: {from: {stage: 'graph', result: 'r'}}},
   };
-  const distinctRightRows = [
-    {id: 3, src: 3, dst: 4, node_name: 'third', weight: 30},
-    {id: 4, src: 4, dst: 3, node_name: 'fourth', weight: 40},
-  ];
-  const weightedRightRows = [
-    {id: 1, src: 1, dst: 2, node_name: 'first', weight: 40},
-    {id: 2, src: 2, dst: 1, node_name: 'second', weight: 50},
-  ];
+  // Current Graph execution positives use the sole typed-key constructor.
+  // Unsupported algorithm acceptance belongs to the shared public refusal
+  // test, not to historical tuple fixtures in this execution/custody matrix.
   const graphPublicationCases = [{
-    name: 'node-rows',
-    step: {from: 'g', node_rows: true, as: 'out'},
-    fields: ['id', 'node_name'],
-    secondFields: ['node_name'],
-    expected: [
-      {id: 1, node_name: 'first'},
-      {id: 2, node_name: 'second'},
+    name: 'node-match',
+    step: {from:'g', match_nodes:{definition:'N', where:'true',
+      fields:['id','node_name']}, as:'out'},
+    fields:['id','node_name'], secondFields:['node_name'],
+    expected:[{id:1,node_name:'first'},{id:2,node_name:'second'}],
+    // VALUES, fused constructor/MATCH, two consumers, and the tail.
+    completedTasks:5,
+  }, {
+    name:'retained-node-match', retainedOutput:true, selectedStructural:true,
+    step:{from:'g', match_nodes:{definition:'N', where:'true',
+      fields:['id','node_name']}, as:'out'},
+    fields:['id','node_name'], secondFields:['node_name'],
+    expected:[{id:1,node_name:'first'},{id:2,node_name:'second'}],
+  }, {
+    name:'node-match-filter-sort-take',
+    steps:[
+      {from:'g',match_nodes:{definition:'N',where:'true',
+        fields:['id','node_name']},as:'matched'},
+      {from:'matched',filter:'id > 1',as:'filtered'},
+      {from:'filtered',sort:[{id:'desc'}],as:'ordered'},
+      {from:'ordered',take:{count:1,offset:0},as:'out'},
     ],
+    fields:['id','node_name'],secondFields:['node_name'],
+    expected:[{id:2,node_name:'second'}],completedTasks:9,
   }, {
-    name: 'retained-node-rows',
-    retainedOutput: true,
-    steps: [{
-      from: 'g', node_rows: true, as: 'projected',
-    }, {
-      from: 'projected', filter: 'id > 1', as: 'filtered',
-    }, {
-      from: 'filtered', sort: [{id: 'desc'}], as: 'ordered',
-    }, {
-      from: 'ordered', take: {count: 1, offset: 0}, as: 'out',
-    }],
-    fields: ['id', 'node_name'],
-    secondFields: ['node_name'],
-    expected: [{id: 2, node_name: 'second'}],
-  }, {
-    name: 'node-rows-filter-sort-take',
-    completedTasks: 9,
-    steps: [{
-      from: 'g', node_rows: true, as: 'projected',
-    }, {
-      from: 'projected', filter: 'id > 1', as: 'filtered',
-    }, {
-      from: 'filtered', sort: [{id: 'desc'}], as: 'ordered',
-    }, {
-      from: 'ordered', take: {count: 1, offset: 0}, as: 'out',
-    }],
-    fields: ['id', 'node_name'],
-    secondFields: ['node_name'],
-    expected: [{id: 2, node_name: 'second'}],
-  }, {
-    name: 'concise-edge-rows',
-    concise: true,
-    step: {from: 'g', edge_rows: true, as: 'out'},
-    fields: ['src', 'dst', 'id', 'weight'],
-    secondFields: ['id', 'weight'],
-    expected: [
-      {src: 1, dst: 2, id: 1, weight: 10},
-      {src: 2, dst: 1, id: 2, weight: 20},
+    name:'retained-trail-relation-filter', retainedOutput:true,
+    steps:[
+      {from:'g',traverse:{start:{from:'seeds',id:'element'},
+        direction:'out',min_hops:1,max_hops:1,path_mode:'trail',
+        emit:'paths'},as:'paths'},
+      {from:'paths',filter:'hop_count > 0',as:'out'},
     ],
+    fields:['hop_count'],secondFields:['hop_count'],
+    expected:[{hop_count:1},{hop_count:1}],
   }, {
-    name: 'edge-rows',
-    step: {from: 'g', edge_rows: true, as: 'out'},
-    fields: ['src', 'dst', 'weight'],
-    secondFields: ['weight', 'src'],
-    expected: [
-      {src: 1, dst: 2, weight: 10},
-      {src: 2, dst: 1, weight: 20},
-    ],
-  }, {
-    name: 'normalize',
-    steps: [{
-      from: 'g', normalize_graph: true, as: 'normalized',
-    }, {
-      from: 'normalized', node_rows: true, as: 'out',
-    }],
-    fields: ['id', 'node_name'],
-    secondFields: ['node_name'],
-    expected: [
-      {id: 1, node_name: 'first'},
-      {id: 2, node_name: 'second'},
-    ],
-  }, {
-    name: 'graft',
-    retainedOutput: true,
-    selectedStructural: true,
-    rightRows: distinctRightRows,
-    steps: [{
-      graph: {
-        nodes: {from: 'right_rows', id: 'id', fields: ['node_name']},
-        edges: {
-          from: 'right_rows', source: 'src', target: 'dst', fields: ['weight'],
-        },
-      },
-      as: 'right_graph',
-    }, {
-      from: 'g', graft_graph: {with: 'right_graph'}, as: 'grafted',
-    }, {
-      from: 'grafted', node_rows: true, as: 'out',
-    }],
-    fields: ['id', 'node_name'],
-    secondFields: ['node_name'],
-    expected: [
-      {id: 1, node_name: 'first'},
-      {id: 2, node_name: 'second'},
-      {id: 3, node_name: 'third'},
-      {id: 4, node_name: 'fourth'},
-    ],
-  }, {
-    name: 'union',
-    retainedOutput: true,
-    selectedStructural: true,
-    rightRows: distinctRightRows,
-    steps: [{
-      graph: {
-        nodes: {from: 'right_rows', id: 'id', fields: ['node_name']},
-        edges: {
-          from: 'right_rows', source: 'src', target: 'dst', fields: ['weight'],
-        },
-      },
-      as: 'right_graph',
-    }, {
-      from: 'g',
-      union_graphs: {with: ['right_graph', 'g', 'right_graph']},
-      as: 'united',
-    }, {
-      from: 'united', node_rows: true, as: 'out',
-    }],
-    fields: ['id', 'node_name'],
-    secondFields: ['node_name'],
-    expected: [
-      {id: 1, node_name: 'first'},
-      {id: 2, node_name: 'second'},
-      {id: 3, node_name: 'third'},
-      {id: 4, node_name: 'fourth'},
-    ],
-  }, {
-    name: 'mean',
-    retainedOutput: true,
-    selectedStructural: true,
-    rightRows: weightedRightRows,
-    steps: [{
-      graph: {
-        nodes: {from: 'right_rows', id: 'id', fields: ['node_name']},
-        edges: {
-          from: 'right_rows', source: 'src', target: 'dst', fields: ['weight'],
-        },
-      },
-      as: 'right_graph',
-    }, {
-      mean_graphs: {
-        with: ['right_graph', 'g', 'right_graph'],
-        weights: [1, 2, 3],
-        support: {nodes: 1, edges: 1},
-        properties: {
-          nodes: {node_name: 'exact_equal'},
-          edges: {
-            weight: {mean: {missing: 'exclude', nulls: 'fail'}},
-          },
-        },
-      },
-      as: 'averaged',
-    }, {
-      from: 'averaged', edge_rows: true, as: 'out',
-    }],
-    fields: ['src', 'dst', 'weight'],
-    secondFields: ['weight', 'src'],
-    expected: [
-      {src: 1, dst: 2, weight: 30},
-      {src: 2, dst: 1, weight: 40},
-    ],
-  }, {
-    name: 'subtract',
-    retainedOutput: true,
-    selectedStructural: true,
-    steps: [{
-      graph: {
-        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
-        edges: {
-          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
-        },
-      },
-      as: 'right_graph',
-    }, {
-      from: 'g',
-      subtract_graphs: {with: 'right_graph'},
-      as: 'subtracted',
-    }, {
-      from: 'subtracted', node_rows: true, as: 'out',
-    }],
-    fields: ['id', 'node_name'],
-    secondFields: ['node_name'],
-    expected: [],
-  }, {
-    name: 'subtract-nonempty',
-    retainedOutput: true,
-    selectedStructural: true,
-    rightRows: distinctRightRows,
-    steps: [{
-      graph: {
-        nodes: {from: 'right_rows', id: 'id', fields: ['node_name']},
-        edges: {
-          from: 'right_rows', source: 'src', target: 'dst', fields: ['weight'],
-        },
-      },
-      as: 'right_graph',
-    }, {
-      from: 'g', subtract_graphs: {with: 'right_graph'},
-      as: 'subtracted',
-    }, {
-      from: 'subtracted', node_rows: true, as: 'out',
-    }],
-    fields: ['id', 'node_name'],
-    secondFields: ['node_name'],
-    expected: [
-      {id: 1, node_name: 'first'},
-      {id: 2, node_name: 'second'},
-    ],
-  }, {
-    name: 'graphs-equal',
-    steps: [{
-      graph: {
-        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
-        edges: {
-          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
-        },
-      },
-      as: 'right_graph',
-    }, {
-      from: 'g', graphs_equal: {with: 'right_graph'}, as: 'out',
-    }],
-    fields: ['equal'],
-    secondFields: ['equal'],
-    expected: [{equal: true}],
-  }, {
-    name: 'retained-graphs-equal-filter',
-    retainedOutput: true,
-    selectedStructural: true,
-    steps: [{
-      graph: {
-        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
-        edges: {
-          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
-        },
-      },
-      as: 'right_graph',
-    }, {
-      from: 'g', graphs_equal: {with: 'right_graph'}, as: 'out',
-    }],
-    fields: ['equal'],
-    secondFields: ['equal'],
-    expected: [{equal: true}],
-  }, {
-    name: 'retained-graphs-unequal-filter',
-    retainedOutput: true,
-    selectedStructural: true,
-    rightRows: distinctRightRows,
-    steps: [{
-      graph: {
-        nodes: {from: 'right_rows', id: 'id', fields: ['node_name']},
-        edges: {
-          from: 'right_rows', source: 'src', target: 'dst', fields: ['weight'],
-        },
-      },
-      as: 'right_graph',
-    }, {
-      from: 'g', graphs_equal: {with: 'right_graph'}, as: 'out',
-    }],
-    fields: ['equal'],
-    secondFields: ['equal'],
-    expected: [{equal: false}],
-  }, {
-    name: 'match-nodes',
-    step: {
-      from: 'g',
-      match_nodes: {ids: [2, 1, 2], fields: ['id', 'node_name']},
-      as: 'out',
-    },
-    fields: ['id', 'node_name'],
-    secondFields: ['node_name'],
-    expected: [
-      {id: 1, node_name: 'first'},
-      {id: 2, node_name: 'second'},
-    ],
-  }, {
-    name: 'retained-match-nodes-filter',
-    retainedOutput: true,
-    steps: [{
-      from: 'g', normalize_graph: true, as: 'normalized',
-    }, {
-      from: 'normalized',
-      match_nodes: {ids: [2, 1, 2], fields: ['id', 'node_name']},
-      as: 'matched',
-    }, {
-      from: 'matched', filter: 'id > 1', as: 'out',
-    }],
-    fields: ['id', 'node_name'],
-    secondFields: ['node_name'],
-    expected: [{id: 2, node_name: 'second'}],
-  }, {
-    name: 'match-nodes-predicate',
-    step: {
-      from: 'g',
-      match_nodes: {
-        where: "node_name = 'second'",
-        fields: ['id', 'node_name'],
-      },
-      as: 'out',
-    },
-    fields: ['id', 'node_name'],
-    secondFields: ['node_name'],
-    expected: [{id: 2, node_name: 'second'}],
-  }, {
-    name: 'match-edges',
-    step: {
-      from: 'g',
-      match_edges: {fields: ['src', 'dst', 'weight']},
-      as: 'out',
-    },
-    fields: ['src', 'dst', 'weight'],
-    secondFields: ['weight', 'src'],
-    expected: [
-      {src: 1, dst: 2, weight: 10},
-      {src: 2, dst: 1, weight: 20},
-    ],
-  }, {
-    name: 'retained-match-edges-filter',
-    retainedOutput: true,
-    steps: [{
-      from: 'g', normalize_graph: true, as: 'normalized',
-    }, {
-      from: 'normalized',
-      match_edges: {fields: ['src', 'dst', 'weight']},
-      as: 'matched',
-    }, {
-      from: 'matched', filter: 'weight > 10', as: 'out',
-    }],
-    fields: ['src', 'dst', 'weight'],
-    secondFields: ['weight', 'src'],
-    expected: [{src: 2, dst: 1, weight: 20}],
-  }, {
-    name: 'match-edges-predicate',
-    step: {
-      from: 'g',
-      match_edges: {
-        where: 'weight > 10',
-        fields: ['src', 'dst', 'weight'],
-      },
-      as: 'out',
-    },
-    fields: ['src', 'dst', 'weight'],
-    secondFields: ['weight', 'src'],
-    expected: [{src: 2, dst: 1, weight: 20}],
-  }, {
-    name: 'graph-bounds',
-    step: {
-      from: 'g',
-      graph_bounds: {max_nodes: 1, max_edges: 1, max_degree: 1},
-      as: 'out',
-    },
-    fields: ['kind', 'node_id', 'actual', 'max'],
-    secondFields: ['kind', 'node_id'],
-    // The structural Graph bounds contract emits totals before per-node degree.
-    expected: [
-      {kind: 'nodes', node_id: null, actual: 2, max: 1},
-      {kind: 'edges', node_id: null, actual: 2, max: 1},
-      {kind: 'degree', node_id: 1, actual: 2, max: 1},
-      {kind: 'degree', node_id: 2, actual: 2, max: 1},
-    ],
-  }, {
-    name: 'degree-both',
-    step: {from: 'g', degree: {direction: 'both'}, as: 'out'},
-    fields: ['node', 'degree'],
-    secondFields: ['degree'],
-    expected: [{node: 1, degree: 2}, {node: 2, degree: 2}],
-  }, {
-    name: 'reach-out',
-    completedTasks: 6,
-    step: {
-      from: 'g',
-      reach: {start: 1, direction: 'out', max_depth: 2},
-      as: 'out',
-    },
-    fields: ['start_id', 'node_id', 'depth'],
-    secondFields: ['node_id', 'depth'],
-    expected: [
-      {start_id: 1, node_id: 1, depth: 0},
-      {start_id: 1, node_id: 2, depth: 1},
-    ],
-  }, {
-    name: 'reach-in',
-    completedTasks: 6,
-    step: {
-      from: 'g',
-      reach: {start: 1, direction: 'in', max_depth: 2},
-      as: 'out',
-    },
-    fields: ['start_id', 'node_id', 'depth'],
-    secondFields: ['node_id', 'depth'],
-    expected: [
-      {start_id: 1, node_id: 1, depth: 0},
-      {start_id: 1, node_id: 2, depth: 1},
-    ],
-  }, {
-    name: 'reach-both',
-    completedTasks: 6,
-    step: {
-      from: 'g',
-      reach: {start: 1, direction: 'both', max_depth: 2},
-      as: 'out',
-    },
-    fields: ['start_id', 'node_id', 'depth'],
-    secondFields: ['node_id', 'depth'],
-    expected: [
-      {start_id: 1, node_id: 1, depth: 0},
-      {start_id: 1, node_id: 2, depth: 1},
-    ],
-  }, {
-    name: 'components-weak',
-    step: {from: 'g', components: {kind: 'weak'}, as: 'out'},
-    fields: ['node_id', 'component_id', 'component_size'],
-    secondFields: ['component_id', 'component_size'],
-    expected: [
-      {node_id: 1, component_id: 1, component_size: 2},
-      {node_id: 2, component_id: 1, component_size: 2},
-    ],
-  }, {
-    name: 'components-strong',
-    step: {from: 'g', components: {kind: 'strong'}, as: 'out'},
-    fields: ['node_id', 'component_id', 'component_size'],
-    secondFields: ['component_id', 'component_size'],
-    expected: [
-      {node_id: 1, component_id: 1, component_size: 2},
-      {node_id: 2, component_id: 1, component_size: 2},
-    ],
-  }, {
-    name: 'retained-bounds-filter',
-    retainedOutput: true,
-    selectedStructural: true,
-    step: {
-      from: 'g',
-      graph_bounds: {max_nodes: 1},
-      as: 'out',
-    },
-    fields: ['kind', 'node_id', 'actual', 'max'],
-    secondFields: ['kind', 'node_id'],
-    expected: [
-      {kind: 'nodes', node_id: null, actual: 2, max: 1},
-    ],
-  }, {
-    name: 'retained-degree-filter',
-    retainedOutput: true,
-    selectedStructural: true,
-    step: {from: 'g', degree: {direction: 'both'}, as: 'out'},
-    fields: ['node', 'degree'],
-    secondFields: ['degree'],
-    expected: [{node: 1, degree: 2}, {node: 2, degree: 2}],
-  }, {
-    name: 'retained-reach-filter',
-    retainedOutput: true,
-    selectedStructural: true,
-    step: {
-      from: 'g',
-      reach: {start: 1, direction: 'out', max_depth: 2},
-      as: 'out',
-    },
-    fields: ['start_id', 'node_id', 'depth'],
-    secondFields: ['node_id', 'depth'],
-    expected: [
-      {start_id: 1, node_id: 1, depth: 0},
-      {start_id: 1, node_id: 2, depth: 1},
-    ],
-  }, {
-    name: 'retained-shortest-filter',
-    retainedOutput: true,
-    selectedStructural: true,
-    step: {
-      from: 'g',
-      shortest_path: {
-        source: 1, target: 2, direction: 'out', max_hops: 2,
-      },
-      as: 'out',
-    },
-    fields: ['source_id', 'target_id', 'hop_count'],
-    secondFields: ['target_id', 'hop_count'],
-    expected: [{source_id: 1, target_id: 2, hop_count: 1}],
-  }, {
-    name: 'components-retained-filter',
-    retainedOutput: true,
-    selectedStructural: true,
-    step: {from: 'g', components: {kind: 'weak'}, as: 'out'},
-    fields: ['node_id', 'component_id', 'component_size'],
-    secondFields: ['component_id', 'component_size'],
-    expected: [
-      {node_id: 1, component_id: 1, component_size: 2},
-      {node_id: 2, component_id: 1, component_size: 2},
-    ],
+    name:'edge-match',
+    step:{from:'g',match_edges:{definition:'E',where:'true',
+      fields:['src','dst','weight']},as:'out'},
+    fields:['src','dst','weight'],secondFields:['weight','src'],
+    expected:[{src:1,dst:2,weight:10},{src:2,dst:1,weight:20}],
+    completedTasks:5,
   }];
-  graphPublicationCases.push({
-    name: 'selected-subgraph-literal',
-    retainedOutput: true,
-    selectedStructural: true,
-    steps: [{
-      from: 'g', subgraph: {nodes: {ids: [1]}}, as: 'selected',
-    }, {
-      from: 'selected', node_rows: true, as: 'out',
-    }],
-    fields: ['id', 'node_name'],
-    secondFields: ['node_name'],
-    expected: [{id: 1, node_name: 'first'}],
-  }, {
-    name: 'selected-subgraph-edge-predicate',
-    retainedOutput: true,
-    selectedStructural: true,
-    steps: [{
-      from: 'g',
-      subgraph: {nodes: {ids: [1, 2]}, edges: 'weight > 10'},
-      as: 'selected',
-    }, {
-      from: 'selected', edge_rows: true, as: 'out',
-    }],
-    fields: ['src', 'dst', 'weight'],
-    secondFields: ['weight', 'src'],
-    expected: [{src: 2, dst: 1, weight: 20}],
-  }, {
-    name: 'selected-subgraph-relation-selector',
-    retainedOutput: true,
-    selectedStructural: true,
-    selectorInput: true,
-    steps: [{
-      from: 'g',
-      subgraph: {nodes: {from: 'selected', id: 'id'}},
-      as: 'selected_graph',
-    }, {
-      from: 'selected_graph', node_rows: true, as: 'out',
-    }],
-    fields: ['id', 'node_name'],
-    secondFields: ['node_name'],
-    expected: [
-      {id: 1, node_name: 'first'},
-      {id: 2, node_name: 'second'},
-    ],
-  });
-  const structuralEdgeExpectations = [{
-    source: 'graft',
-    expected: [
-      {src: 1, dst: 2, weight: 10},
-      {src: 2, dst: 1, weight: 20},
-      {src: 3, dst: 4, weight: 30},
-      {src: 4, dst: 3, weight: 40},
-    ],
-  }, {
-    source: 'union',
-    expected: [
-      {src: 1, dst: 2, weight: 10},
-      {src: 2, dst: 1, weight: 20},
-      {src: 3, dst: 4, weight: 30},
-      {src: 4, dst: 3, weight: 40},
-    ],
-  }, {
-    source: 'subtract-nonempty',
-    expected: [
-      {src: 1, dst: 2, weight: 10},
-      {src: 2, dst: 1, weight: 20},
-    ],
-  }];
-  for (const edgeCase of structuralEdgeExpectations) {
-    const publicationCase = structuredClone(graphPublicationCases.find(value =>
-      value.name === edgeCase.source));
-    publicationCase.name = `${edgeCase.source}-edges`;
-    delete publicationCase.steps.at(-1).node_rows;
-    publicationCase.steps.at(-1).edge_rows = true;
-    publicationCase.fields = ['src', 'dst', 'weight'];
-    publicationCase.secondFields = ['weight', 'src'];
-    publicationCase.expected = edgeCase.expected;
-    graphPublicationCases.push(publicationCase);
-  }
   for (const publicationCase of graphPublicationCases) {
     const graphProgram = structuredClone(graphProgramBase);
-    if (publicationCase.rightRows) {
-      const rightValues = structuredClone(graphProgram.stages[1]);
-      rightValues.id = 'right_values';
-      rightValues.steps[0].values.rows = publicationCase.rightRows;
-      graphProgram.stages.splice(2, 0, rightValues);
-      graphProgram.stages.pop();
-    }
     const graphStage = graphProgram.stages.find(stage => stage.id === 'graph');
-    const consumerA = graphProgram.stages.find(stage =>
-      stage.id === 'consumer_a');
-    const consumerB = graphProgram.stages.find(stage =>
-      stage.id === 'consumer_b');
+    const consumerA = graphProgram.stages.find(stage => stage.id === 'consumer_a');
+    const consumerB = graphProgram.stages.find(stage => stage.id === 'consumer_b');
     const tail = graphProgram.stages.find(stage => stage.id === 'tail');
-    if (publicationCase.rightRows) {
-      graphStage.inputs.right_rows = {
-        result: {stage: 'right_values', result: 'r'},
+    if (publicationCase.name === 'retained-trail-relation-filter') {
+      const seedSource = {
+        id:'seed_source',
+        inputs:{rows:{result:{stage:'values',result:'r'}}},
+        steps:[structuredClone(graphStage.steps[0]),{
+          from:'g',match_nodes:{definition:'N',
+            bindings:{identity:'element'},where:'true',fields:['element']},
+          as:'seeds',
+        }],
+        results:{r:{from:'seeds',fields:['element']}},
       };
-    }
-    if (publicationCase.selectorInput) {
-      graphStage.inputs.selected = {
-        result: {stage: 'values', result: 'r'},
-      };
-    }
-    if (publicationCase.concise === true) {
-      graphStage.steps[0] = {
-        from: 'rows',
-        graph: {source: 'src', target: 'dst'},
-        as: 'g',
-      };
+      graphProgram.stages.splice(graphProgram.stages.indexOf(graphStage),0,seedSource);
+      graphStage.inputs.seeds = {result:{stage:'seed_source',result:'r'}};
     }
     graphStage.steps.splice(
       1,
@@ -2399,7 +1862,7 @@ async function exerciseStrategyGraph(
       tail.steps[0].select = [publicationCase.fields[0]];
       tail.results.r.fields = [publicationCase.fields[0]];
     }
-    if (publicationCase.name === 'node-rows-filter-sort-take' ||
+    if (publicationCase.name === 'node-match-filter-sort-take' ||
         publicationCase.retainedOutput) {
       graphProgram.results.consumed_a = {
         from: {stage: 'consumer_a', result: 'r'},
@@ -2408,14 +1871,7 @@ async function exerciseStrategyGraph(
         from: {stage: 'consumer_b', result: 'r'},
       };
     }
-    const createSgaFixture = publicationCase.name.startsWith('components-')
-      ? fixture.strategyFixtureSgaComponentsCreate
-      : publicationCase.name.startsWith('reach-') ||
-          publicationCase.name === 'retained-reach-filter'
-        ? fixture.strategyFixtureSgaReachCreate
-        : publicationCase.name === 'retained-shortest-filter'
-          ? fixture.strategyFixtureSgaShortestSizedCreate
-        : fixture.strategyFixtureSgaCreate;
+    const createSgaFixture = fixture.strategyFixtureSgaCreate;
     let sgaFixture;
     try {
       sgaFixture = createSgaFixture(
@@ -2438,18 +1894,18 @@ async function exerciseStrategyGraph(
     ));
     const sgaRetained = publicationCase.retainedOutput
       ? await createCarrierRetainedStore('sga', {
-        failCleanupLease: publicationCase.name === 'retained-node-rows'
+        failCleanupLease: publicationCase.name === 'retained-node-match'
           ? 1 : undefined,
       })
       : undefined;
-    let sgaPublicationOwner;
+    let sgaPublicationOwner, failedGraphExecution;
     let sgaPublicationStore;
     try {
       assert.equal(
         fixture.strategyFixtureOpen(sgaFixture, sgaCapture.source()),
         true,
       );
-      const setup = publicationCase.name === 'retained-node-rows'
+      const setup = publicationCase.name === 'retained-node-match'
         ? fixture.strategyFixtureSgaRetainedNodeLimit(sgaFixture, 2)
         : publicationCase.retainedOutput
           ? fixture.strategyFixtureSgaRetainedSubset(sgaFixture)
@@ -2458,7 +1914,7 @@ async function exerciseStrategyGraph(
       const resultCount = runtime.resultInventory(setup).length;
       assert.equal(
         resultCount,
-        publicationCase.name === 'node-rows-filter-sort-take' ||
+        publicationCase.name === 'node-match-filter-sort-take' ||
           publicationCase.retainedOutput ? 3 : 1,
       );
       sgaPublicationStore = await openLocalPublicationStore({
@@ -2491,8 +1947,7 @@ async function exerciseStrategyGraph(
       if (!publicationCase.retainedOutput) {
         assert.deepEqual(
           sgaPublicationOwner.execution.completed.map(value => value.realization),
-          Array(publicationCase.completedTasks ??
-            (publicationCase.name === 'node-rows' ? 6 : 5))
+          Array(publicationCase.completedTasks ?? 7)
             .fill('local-managed'),
           publicationCase.name,
         );
@@ -2505,7 +1960,7 @@ async function exerciseStrategyGraph(
         assert(sgaPublicationOwner.execution.completed.some(value =>
           value.outputRepresentation === 'managed-local-memory'));
       }
-      if (publicationCase.name === 'node-rows-filter-sort-take') {
+      if (publicationCase.name === 'node-match-filter-sort-take') {
         assert.deepEqual(
           sgaPublicationOwner.execution.completed.map(value => value.task),
           [1, 2, 3, 4, 5, 6, 7, 8, 9],
@@ -2513,7 +1968,7 @@ async function exerciseStrategyGraph(
       }
       const expectedResults = {
         published: publicationCase.expected,
-        ...(publicationCase.name === 'node-rows-filter-sort-take' ||
+        ...(publicationCase.name === 'node-match-filter-sort-take' ||
           publicationCase.retainedOutput ? {
           consumed_a: publicationCase.expected,
           consumed_b: publicationCase.expected.map(row =>
@@ -2537,7 +1992,7 @@ async function exerciseStrategyGraph(
           expected,
           `${publicationCase.name}/${occurrence.name}`,
         );
-        if (publicationCase.name === 'edge-rows' &&
+        if (publicationCase.name === 'edge-match' &&
             occurrence.name === 'published') {
           assert.throws(
             () => assert.deepEqual([...actual].reverse(), expected),
@@ -2546,9 +2001,23 @@ async function exerciseStrategyGraph(
           );
         }
       }
+    } catch (error) {
+      failedGraphExecution = error.execution;
+      console.error('Current Graph publication failure', publicationCase.name,
+        inspect({status:failedGraphExecution?.status,
+          failure:failedGraphExecution?.failure,
+          completed:failedGraphExecution?.completed}, {depth:8}));
+      throw error;
     } finally {
+      if (failedGraphExecution !== undefined) {
+        await failedGraphExecution.close();
+        assert.equal(await failedGraphExecution.cleanup(), true);
+        assert.equal(failedGraphExecution.cleanupPending(), false);
+        assert.equal(failedGraphExecution.usage().heldBytes, 0n);
+        assert.equal(failedGraphExecution.usage().reservedExecutionBytes, 0n);
+      }
       if (sgaPublicationOwner !== undefined) {
-        if (publicationCase.name === 'retained-node-rows') {
+        if (publicationCase.name === 'retained-node-match') {
           assert.equal(sgaRetained.leases.length, 1);
           await assert.rejects(
             async () => sgaPublicationOwner.close(),
@@ -2575,40 +2044,33 @@ async function exerciseStrategyGraph(
     }
   }
   for (const failureCase of [
-    'construction-capacity', 'consumer-filter', 'structural-filter',
+    'construction-capacity', 'consumer-filter', 'following-relation-filter',
+    'match-predicate',
   ]) {
     const failureProgram = structuredClone(graphProgramBase);
-    failureProgram.stages[2].steps.splice(1, 1,
-      ...(failureCase === 'structural-filter' ? [{
-        graph: {
-          nodes: {from: 'rows', id: 'id', fields: ['node_name']},
-          edges: {
-            from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
-          },
-        },
-        as: 'right_graph',
-      }, {
-        from: 'g',
-        union_graphs: {with: ['right_graph', 'g', 'right_graph']},
-        as: 'united',
-      }, {
-        from: 'united', node_rows: true, as: 'projected',
-      }, {
-        from: 'projected', filter: 'true', as: 'out',
-      }] : [{from: 'g', node_rows: true, as: 'out'}]),
-    );
+    failureProgram.stages[2].steps.splice(1,1,{
+      from:'g', match_nodes:{definition:'N',
+        where:failureCase === 'match-predicate' ? '1 / (id - id) > 0' : 'true',
+      fields:['id','node_name']}, as:'out',
+    });
+    failureProgram.stages[2].steps.at(-1).as = 'projected';
+    failureProgram.stages[2].steps.push({
+      from:'projected',
+      filter:failureCase === 'following-relation-filter'
+        ? '1 / (id - id) > 0' : 'true',
+      as:'out',
+    });
     failureProgram.results.consumed_a = {
       from: {stage: 'consumer_a', result: 'r'},
     };
-    if (failureCase === 'structural-filter') {
+    if (failureCase === 'match-predicate') {
       failureProgram.stages.pop();
     } else {
       failureProgram.results.consumed_b = {
         from: {stage: 'consumer_b', result: 'r'},
       };
     }
-    if (failureCase === 'consumer-filter' ||
-        failureCase === 'structural-filter') {
+    if (failureCase === 'consumer-filter') {
       failureProgram.stages[3].steps = [{
         filter: '1 / (id - id) > 0', as: 'filtered',
       }, {
@@ -2667,9 +2129,15 @@ async function exerciseStrategyGraph(
       failureCase !== 'construction-capacity');
       assert.equal(failureExecution.failure?.code, 'MoonBitHostFailure');
       assert(failureExecution.failure.cause);
-      assert.equal(failureCase === 'construction-capacity'
+      // The Graph provider preserves its typed InputSet rejection; row
+      // kernels preserve their exact scalar error and authored location.
+      assert.equal(failureCase === 'construction-capacity' ||
+          failureCase === 'match-predicate'
         ? fixture.strategyFixtureSgaConstructionLimitFailure(
           failureExecution.failure.cause)
+        : failureCase === 'following-relation-filter'
+          ? fixture.strategyFixtureManagedFilterArithmetic(
+            failureExecution.failure.cause, 2)
         : fixture.strategyFixtureSgaConsumerFilterArithmetic(
           failureExecution.failure.cause), true,
       `${failureCase}: preserve the selected typed failure; ` +
@@ -3377,6 +2845,289 @@ async function exerciseStrategyGraph(
     await rankingPublicationStore?.close();
     await rm(rankingPublicationDirectory, {recursive: true, force: true});
     await rankingRetained.close();
+  }
+  const scoreContract = {
+    domain: 'unit.v1', normalization: 'unit.v1', range: [0, 1],
+  };
+  const scoreSchema = {
+    q: {type: 'number', nullable: false},
+    id: {type: 'number', nullable: false},
+    score: {type: 'number', nullable: false},
+  };
+  const scoredEnvironment = JSON.parse(args[0]);
+  scoredEnvironment.schema_snapshots = ['right', 'left'].map(input => ({
+    output_carrier: 'relation',
+    schema: {
+      type: 'object', nullable: false, additional_properties: false,
+      fields: Object.fromEntries(Object.entries(scoreSchema).map(
+        ([name, field]) => [name, {type: field.type, nullable: false}],
+      )),
+    },
+    score_contracts: {score: scoreContract},
+    source_ref: `source:local/fusion/${input}`,
+    version: 'actql-local-input-schema/0.1',
+  })).sort((left, right) => canonicalHash(left).localeCompare(
+    canonicalHash(right)));
+  const scoredEnvironmentBody = {...scoredEnvironment};
+  delete scoredEnvironmentBody.evidence_bundle_cid;
+  scoredEnvironment.evidence_bundle_cid = canonicalHash(scoredEnvironmentBody);
+  const scoredArgs = [
+    canonical(scoredEnvironment),
+    scoredEnvironment.evidence_bundle_cid,
+    ...args.slice(2),
+  ];
+  for (const {name, policy, score, failConsumer = false,
+    cancelRanking = false} of [
+    {name: 'maximum', policy: 'max', score: 0.75},
+    {name: 'weighted', policy: {weighted_sum: {left: 0.5, right: 0.5}},
+      score: 0.6875},
+    {name: 'maximum-consumer-failure', policy: 'max', score: 0.75,
+      failConsumer: true},
+    {name: 'maximum-in-flight-cancel', policy: 'max', score: 0.75,
+      cancelRanking: true},
+  ]) {
+    const scoredProgram = {
+      version: 'actql/0.1', id: 'p',
+      params: {minimum: {type: 'number', nullable: false}},
+      stages: [carrierVectorPublicationProgram.stages[0], {
+        id: 'fusion',
+        inputs: {
+          left: {carrier: 'relation', schema: scoreSchema},
+          right: {carrier: 'relation', schema: scoreSchema},
+        },
+        steps: [{
+          from: 'left',
+          merge_rankings: {
+            with: 'right', by: ['q'], candidate: 'id', score: 'score',
+            score_policy: policy, score_contract: scoreContract, k: 2,
+          },
+          as: 'ranked',
+        }, {
+          from: 'ranked', filter: 'id = 2', as: 'out',
+        }],
+        results: {r: {from: 'out', fields: rankingFields}},
+      }, ...['a', 'b'].map(id => ({
+        id: `consumer_${id}`,
+        inputs: {x: {result: {stage: 'fusion', result: 'r'}}},
+        steps: [{select: rankingFields, as: 'out'}],
+        results: {r: {from: 'out', fields: rankingFields}},
+      }))],
+      results: {
+        published: {from: {stage: 'fusion', result: 'r'}},
+        consumed_a: {from: {stage: 'consumer_a', result: 'r'}},
+        consumed_b: {from: {stage: 'consumer_b', result: 'r'}},
+      },
+    };
+    if (failConsumer) {
+      scoredProgram.stages.find(stage => stage.id === 'consumer_a').steps = [{
+        filter: '1 / (id - id) > 0', as: 'failed',
+      }, {from: 'failed', select: rankingFields, as: 'out'}];
+    }
+    const scoredFixture = fixture.strategyFixtureVecaScoredCreate(
+      ...scoredArgs, JSON.stringify(scoredProgram), orderedContract, 2,
+    );
+    const scoredCapture = await runNativeHostQuery(
+      grant, fixture.strategyFixtureAcquisition(scoredFixture), suppliedLimits,
+    );
+    const scoredDirectory = await mkdtemp(join(
+      root, `_build/duckdb-fixtures/ranking-${name}-publication-entry-`,
+    ));
+    const scoredAbort = new AbortController();
+    let rankingDispatched = false, rankingAdvanced = false;
+    let cancellationScheduled = false, rankingCancelRequested = false;
+    let rankingCompletedBeforeCancel = false, rankingStopped = false;
+    const scoredRetained = await createCarrierRetainedStore(`ranking-${name}`,
+      {
+        failCleanupLease: failConsumer ? 1 : undefined,
+        beforeClose() {
+          if (cancelRanking && scoredAbort.signal.aborted) {
+            assert.equal(rankingStopped, true,
+              'supplied ranking output release must follow stop');
+          }
+        },
+      });
+    let scoredOwner;
+    let scoredFailureExecution;
+    let scoredStore;
+    let computeEntrances = 0;
+    const scoredRuntime = new Proxy(hostRuntime, {
+      get(target, property, receiver) {
+        if (property !== 'strategyModule_local_Dispatch' ||
+            !cancelRanking) return Reflect.get(target, property, receiver);
+        return (setup, task) => {
+          const producers = target.strategyHostManagedProducers(setup);
+          const ranking = target.strategyHostManagedInputCount(setup) === 2 &&
+            Array.isArray(producers) && producers.length === 2 &&
+            producers.every(value => value === -1);
+          const operations = checked(target[property](setup, task));
+          if (!ranking) return {$tag: 1, _0: operations};
+          rankingDispatched = true;
+          return {$tag: 1, _0: new Proxy(operations, {
+            get(operation, member, receiver) {
+              if (member === 'execute') {
+                assert.fail('supplied ranking used synchronous execution');
+              }
+              if (member === 'execution_stopped') return () => {
+                const value = operation.execution_stopped();
+                if (scoredAbort.signal.aborted && value) rankingStopped = true;
+                return value;
+              };
+              if (member === 'request_cancel') return () => {
+                rankingCancelRequested = true;
+                return operation.request_cancel();
+              };
+              if (member !== 'advance') {
+                return Reflect.get(operation, member, receiver);
+              }
+              return quantum => {
+                const value = operation.advance(Math.min(quantum, 1));
+                const poll = checked(value);
+                if (poll.complete && !scoredAbort.signal.aborted) {
+                  rankingCompletedBeforeCancel = true;
+                }
+                if (!poll.complete && poll.progress > 0n) {
+                  rankingAdvanced = true;
+                  if (!cancellationScheduled) {
+                    cancellationScheduled = true;
+                    setTimeout(() => scoredAbort.abort(), 0);
+                  }
+                }
+                return value;
+              };
+            },
+          })};
+        };
+      },
+    });
+    const scoredHost = createNodeHostEntry(() => scoredRuntime,
+      async (...installationArgs) => {
+        const contributions = await installStrategyContributions(
+          ...installationArgs);
+        return contributions.map(contribution => ({
+          ...contribution,
+          run(...args) {
+            computeEntrances++;
+            return contribution.run(...args);
+          },
+          ...(typeof contribution.runPrepared === 'function' ? {
+            runPrepared(...args) {
+              computeEntrances++;
+              return contribution.runPrepared(...args);
+            },
+          } : {}),
+        }));
+      });
+    try {
+      assert.equal(fixture.strategyFixtureOpen(
+        scoredFixture, scoredCapture.source()), true);
+      const setup = fixture.strategyFixtureVecaRetainedSubset(scoredFixture);
+      const runtime = runtimeCore(scoredRuntime);
+      assert.equal(runtime.resultInventory(setup).length, 3);
+      scoredStore = await openLocalPublicationStore({
+        directory: scoredDirectory,
+        storeAuthorityCid: hash(`ranking-${name}-publication-store`),
+        capacityBytes: 4 * 1024 * 1024,
+        maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+        maxObjects: 100,
+        maxContractNodes: 10000,
+        maxContractDepth: 64,
+      }, runtime.publicationControl);
+      const plan = standardPublicationPlan(
+        runtime, runtime.programDefinitionCid(setup), 3,
+        `ranking-${name}-publication-attempt`,
+      );
+      try {
+        scoredOwner = await scoredHost.runPublishedCapturedStrategy(
+          setup, {store: scoredStore, plan},
+          {local: scoredRetained.configuration}, scoredAbort.signal,
+        );
+      } catch (error) {
+        scoredFailureExecution = error.execution;
+        if (!failConsumer && !cancelRanking) throw error;
+        assert.equal(error.code, 'CapturedRunPublicationFailed');
+      }
+      const publicationKey = {
+        namespaceId: plan.request.namespaceId,
+        authorityScopeCid: plan.request.authorityScopeCid,
+        runDefinitionCid: plan.runDefinition.identity,
+      };
+      if (cancelRanking) {
+        assert.equal(scoredOwner, undefined);
+        assert.equal(rankingDispatched, true);
+        assert.equal(rankingAdvanced, true);
+        assert.equal(cancellationScheduled, true);
+        assert.equal(rankingCancelRequested, true);
+        assert.equal(rankingCompletedBeforeCancel, false);
+        assert.equal(rankingStopped, true);
+        assert.equal(scoredFailureExecution.status, 'host-tasks-failed');
+        assert.equal(scoredFailureExecution.failure?.name, 'AbortError');
+        await assert.rejects(scoredStore.lookupCommittedIndex(
+          publicationKey, () => true), /PublicationLookupDenied/);
+      } else if (failConsumer) {
+        assert(scoredRetained.leases.length > 0);
+        assert.equal(scoredOwner, undefined);
+        assert(computeEntrances > 0);
+        assert.equal(scoredFailureExecution.status, 'host-tasks-failed');
+        assert(scoredFailureExecution.completed.some(value =>
+          value.outputRepresentation === 'retained-file'));
+        assert.equal(scoredFailureExecution.failure?.code, 'MoonBitHostFailure');
+        assert.equal(fixture.strategyFixtureRetainedCapturedFilterArithmetic(
+          scoredFailureExecution.failure.cause), true);
+        await assert.rejects(scoredStore.lookupCommittedIndex(
+          publicationKey, () => true), /PublicationLookupDenied/);
+      } else {
+        assert(scoredRetained.leases.length > 0);
+        assert.equal(scoredOwner.status, 'published');
+        assert.equal(scoredOwner.publication.publication.state, 'succeeded');
+        assert(scoredOwner.execution.completed.some(value =>
+          value.outputRepresentation === 'retained-file'));
+        const committedIndex = await scoredStore.lookupCommittedIndex(
+          publicationKey, () => true);
+        const committedManifest = JSON.parse((await scoredStore
+          .readPublicationContract(committedIndex.result_manifest_cid,
+            'result_manifest')).wire);
+        assert.deepEqual(Object.keys(committedManifest.results).sort(),
+          ['consumed_a', 'consumed_b', 'published']);
+        for (const resultName of ['published', 'consumed_a', 'consumed_b']) {
+          const received = [];
+          await scoredStore.consumeCommittedResult(
+            publicationKey,
+            committedManifest.results[resultName].result_definition_cid,
+            () => true, chunk => received.push(Buffer.from(chunk)),
+          );
+          assert.deepEqual(JSON.parse(Buffer.concat(received).toString('utf8')),
+            [{q: 1, id: 2, score, rank: 2}]);
+        }
+      }
+    } finally {
+      if (scoredOwner !== undefined) {
+        await scoredOwner.close();
+        assert.equal(scoredOwner.cleanupPending(), false);
+        assert.equal(await scoredOwner.cleanup(), true);
+        assert.equal(scoredOwner.execution.usage().heldBytes, 0n);
+        assert.equal(scoredOwner.execution.usage().reservedExecutionBytes, 0n);
+      } else if (scoredFailureExecution !== undefined) {
+        const entrancesAtFailure = computeEntrances;
+        if (failConsumer) {
+          await assert.rejects(async () => scoredFailureExecution.close(),
+            /InjectedCarrierRetainedCleanupPending/);
+          assert.equal(computeEntrances, entrancesAtFailure);
+          assert.equal(scoredRetained.cleanupFailures(), 1);
+          assert.equal(scoredFailureExecution.cleanupPending(), true);
+          scoredRetained.permitCleanup();
+        } else await scoredFailureExecution.close();
+        assert.equal(await scoredFailureExecution.cleanup(), true);
+        assert.equal(scoredFailureExecution.cleanupPending(), false);
+        assert.equal(computeEntrances, entrancesAtFailure);
+        assert.equal(scoredFailureExecution.usage().heldBytes, 0n);
+        assert.equal(scoredFailureExecution.usage().reservedExecutionBytes,
+          0n);
+      }
+      scoredCapture.close();
+      await scoredStore?.close();
+      await rm(scoredDirectory, {recursive: true, force: true});
+      await scoredRetained.close();
+    }
   }
   const nearestFields = ['query_id', 'candidate_id', 'score', 'rank'];
   const nearestSchema = {
@@ -4638,784 +4389,89 @@ async function exerciseStrategyGraph(
   const stressSortTextBytes = 660;
   const stressSortText = '𠮷' + 'x'.repeat(stressSortTextBytes - 4);
   assert.equal(Buffer.byteLength(stressSortText, 'utf8'), stressSortTextBytes);
+  // Preserve the selected Relation cancellation obligations after the sole
+  // current Graph constructor/MATCH prefix; no retired normalize/row adapter.
+  const matchedRelationSteps = (step, fields = ['id', 'node_name']) => [{
+    from: 'g', match_nodes: {definition: 'N', where: 'true', fields},
+    as: 'projected',
+  }, {from: 'projected', ...step, as: 'out'}];
   const graphCancellationCases = [{
-    name: 'concise-graph-construction',
-    concise: true,
-    rows: 100,
-    advanceQuantum: 1,
-    cancelOnManagedStart: 2,
-    constructionProgress: 0,
-    step: {from: 'g', edge_rows: true, as: 'out'},
-    fields: ['src', 'dst', 'id', 'weight'],
+    name:'property-construction-in-flight',
+    selectedStructural:true,
+    rows:40,advanceQuantum:1,
+    cancelOnManagedStart:2,managedStarts:2,constructionProgress:0,
+    completedTasks:[1],
+    step:{from:'g',match_nodes:{definition:'N',where:'true',
+      fields:['id','node_name']},as:'out'},
+    fields:['id','node_name'],
   }, {
-    name: 'node-rows',
-    rows: 100,
-    advanceQuantum: 16,
-    managedStarts: 3,
-    completedTasks: [1, 2],
-    constructionProgress: 200,
-    step: {from: 'g', node_rows: true, as: 'out'},
+    name:'current-match-nodes-predicate-in-flight',
+    selectedStructural:true,
+    rows:40,advanceQuantum:1,
+    constructionProgress:80,constructionStarts:[2],
+    cancelOnManagedStart:3,managedStarts:3,cancelTask:3,
+    completedTasks:[1,2],
+    step:{from:'g',match_nodes:{definition:'N',where:"node_name = 'node-39'",
+      fields:['id','node_name']},as:'out'},
+    fields:['id','node_name'],
+  }, {
+    name:'current-match-edges-predicate-in-flight',
+    selectedStructural:true,
+    retainedOutput:true,rows:40,advanceQuantum:1,
+    // Retained VALUES uses the file route, not a ManagedStart. The first
+    // observed managed owner constructs Graph; the second executes MATCH.
+    constructionProgress:80,constructionStarts:[1],
+    cancelOnManagedStart:2,managedStarts:2,cancelTask:3,
+    completedTasks:[1,2],
+    step:{from:'g',match_edges:{definition:'E',where:'weight > 10',
+      fields:['src','dst','weight']},as:'out'},
+    fields:['src','dst','weight'],
+  }, {
+    name: 'property-match-filter',
+    rows: 40, advanceQuantum: 1,
+    cancelOnManagedStart: 4, managedStarts: 4, cancelTask: 4,
+    completedTasks: [1, 2, 3],
+    steps: matchedRelationSteps({filter: 'id > 0'}),
     fields: ['id', 'node_name'],
   }, {
-    name: 'edge-rows',
-    rows: 100,
-    advanceQuantum: 16,
-    managedStarts: 3,
-    completedTasks: [1, 2],
-    constructionProgress: 200,
-    step: {from: 'g', edge_rows: true, as: 'out'},
-    fields: ['src', 'dst', 'weight'],
-  }, {
-    name: 'normalize-fused-kernel',
-    rows: 40,
-    advanceQuantum: 1,
-    // The first 80 steps construct 40 nodes and 40 edges.
-    constructionProgress: 80,
-    managedStarts: 2,
-    completedTasks: [1],
-    steps: [{
-      from: 'g', normalize_graph: true, as: 'normalized',
-    }, {
-      from: 'normalized', node_rows: true, as: 'out',
-    }],
+    name: 'property-match-select',
+    rows: 40, advanceQuantum: 1,
+    cancelOnManagedStart: 4, managedStarts: 4, cancelTask: 4,
+    completedTasks: [1, 2, 3],
+    steps: matchedRelationSteps({select: ['id', 'node_name']}),
     fields: ['id', 'node_name'],
   }, {
-    name: 'subgraph-fused-bridge',
-    rows: 40,
-    advanceQuantum: 1,
-    // The prefix must remain active after graph construction completes.
-    constructionProgress: 80,
-    managedStarts: 2,
-    completedTasks: [1],
-    steps: [{
-      from: 'g',
-      subgraph: {
-        nodes: {ids: Array.from({length: 40}, (_, index) => index + 1)},
-      },
-      as: 'selected',
-    }, {
-      from: 'selected', node_rows: true, as: 'out',
-    }],
+    name: 'property-match-take',
+    rows: 40, advanceQuantum: 1,
+    cancelOnManagedStart: 4, managedStarts: 4, cancelTask: 4,
+    completedTasks: [1, 2, 3],
+    steps: matchedRelationSteps({take: {count: 1, offset: 0}}),
     fields: ['id', 'node_name'],
   }, {
-    name: 'subgraph-selected-filter',
-    rows: 40,
-    advanceQuantum: 1,
-    constructionProgress: 80,
-    cancelOnManagedStart: 3,
-    managedStarts: 3,
-    completedTasks: [1, 2],
-    steps: [{
-      from: 'g',
-      subgraph: {
-        nodes: {ids: Array.from({length: 40}, (_, index) => index + 1)},
-      },
-      as: 'selected',
-    }, {
-      from: 'selected', node_rows: true, as: 'projected',
-    }, {
-      from: 'projected', filter: 'id > 0', as: 'out',
-    }],
-    fields: ['id', 'node_name'],
-  }, {
-    name: 'normalize-filter',
-    rows: 40,
-    advanceQuantum: 1,
-    cancelOnManagedStart: 5,
-    managedStarts: 5,
-    completedTasks: [1, 2, 3, 4],
-    steps: [{
-      from: 'g', normalize_graph: true, as: 'normalized',
-    }, {
-      from: 'normalized', node_rows: true, as: 'projected',
-    }, {
-      from: 'projected', filter: 'id > 0', as: 'out',
-    }],
-    fields: ['id', 'node_name'],
-  }, {
-    name: 'normalize-retained-filter',
-    retainedOutput: true,
-    rows: 40,
-    advanceQuantum: 1,
-    constructionProgress: 80,
-    constructionStarts: [1],
-    cancelOnManagedStart: 4,
-    managedStarts: 4,
-    completedTasks: [1, 2, 3, 4],
-    steps: [{
-      from: 'g', normalize_graph: true, as: 'normalized',
-    }, {
-      from: 'normalized', node_rows: true, as: 'projected',
-    }, {
-      from: 'projected', filter: 'id > 0', as: 'out',
-    }],
-    fields: ['id', 'node_name'],
-  }, {
-    name: 'normalize-selected-kernel',
-    rows: 40,
-    advanceQuantum: 1,
-    // Values, graph construction, then selected normalize-view execution.
-    cancelOnManagedStart: 3,
-    managedStarts: 3,
-    completedTasks: [1, 2],
-    steps: [{
-      from: 'g', normalize_graph: true, as: 'normalized',
-    }, {
-      from: 'normalized', node_rows: true, as: 'projected',
-    }, {
-      from: 'projected', filter: 'id > 0', as: 'out',
-    }],
-    fields: ['id', 'node_name'],
-  }, {
-    name: 'normalize-select',
-    rows: 40,
-    advanceQuantum: 1,
-    cancelOnManagedStart: 5,
-    managedStarts: 5,
-    completedTasks: [1, 2, 3, 4],
-    steps: [{
-      from: 'g', normalize_graph: true, as: 'normalized',
-    }, {
-      from: 'normalized', node_rows: true, as: 'projected',
-    }, {
-      from: 'projected', select: ['id', 'node_name'], as: 'out',
-    }],
-    fields: ['id', 'node_name'],
-  }, {
-    name: 'normalize-take',
-    rows: 40,
-    advanceQuantum: 1,
-    cancelOnManagedStart: 5,
-    managedStarts: 5,
-    completedTasks: [1, 2, 3, 4],
-    steps: [{
-      from: 'g', normalize_graph: true, as: 'normalized',
-    }, {
-      from: 'normalized', node_rows: true, as: 'projected',
-    }, {
-      from: 'projected', take: 1, as: 'out',
-    }],
-    fields: ['id', 'node_name'],
-  }, {
-    name: 'normalize-sort',
-    rows: 40,
-    advanceQuantum: 1,
-    cancelOnManagedStart: 5,
-    managedStarts: 5,
-    completedTasks: [1, 2, 3, 4],
-    steps: [{
-      from: 'g', normalize_graph: true, as: 'normalized',
-    }, {
-      from: 'normalized', node_rows: true, as: 'projected',
-    }, {
-      from: 'projected', sort: [{id: 'desc'}], as: 'out',
-    }],
-    fields: ['id', 'node_name'],
-  }, {
-    name: 'normalize-filter-sort-take',
-    rows: 40,
-    advanceQuantum: 1,
-    cancelOnManagedStart: 6,
-    managedStarts: 6,
-    completedTasks: [1, 2, 3, 4, 5],
-    steps: [{
-      from: 'g', normalize_graph: true, as: 'normalized',
-    }, {
-      from: 'normalized', node_rows: true, as: 'projected',
-    }, {
-      from: 'projected', filter: 'id > 0', as: 'filtered',
-    }, {
-      from: 'filtered', sort: [{id: 'desc'}], as: 'ordered',
-    }, {
-      from: 'ordered', take: {count: 1, offset: 0}, as: 'out',
-    }],
-    fields: ['id', 'node_name'],
-  }, {
-    name: 'normalize-sort-wide-comparison',
-    rows: 2,
-    sortStress: true,
-    cancelAfterSortAdvances: 70,
-    advanceQuantum: 1,
-    managedStarts: 5,
-    completedTasks: [1, 2, 3, 4],
-    steps: [{
-      from: 'g', normalize_graph: true, as: 'normalized',
-    }, {
-      from: 'normalized', node_rows: true, as: 'projected',
-    }, {
-      from: 'projected',
-      sort: [
-        {node_name: 'asc'},
-        ...stressSortKeys.map(key => ({[key]: 'asc'})),
-        {id: 'asc'},
-      ],
-      as: 'out',
-    }],
+    name: 'property-match-sort-wide-comparison',
+    rows: 2, sortStress: true, cancelAfterSortAdvances: 70,
+    advanceQuantum: 1, managedStarts: 4, cancelTask: 4,
+    completedTasks: [1, 2, 3],
+    steps: matchedRelationSteps({sort: [
+      {node_name: 'asc'},
+      ...stressSortKeys.map(key => ({[key]: 'asc'})),
+      {id: 'asc'},
+    ]}, ['id', 'node_name', ...stressSortKeys]),
     fields: ['id', 'node_name', ...stressSortKeys],
   }, {
-    name: 'normalize-assert',
-    rows: 40,
-    advanceQuantum: 1,
-    cancelOnManagedStart: 5,
-    managedStarts: 5,
-    completedTasks: [1, 2, 3, 4],
-    steps: [{
-      from: 'g', normalize_graph: true, as: 'normalized',
-    }, {
-      from: 'normalized', node_rows: true, as: 'projected',
-    }, {
-      from: 'projected', assert_rows: {where: 'id > 0'}, as: 'out',
-    }],
-    fields: ['id', 'node_name'],
-  }, {
-    name: 'normalize-assert-unique',
-    rows: 40,
-    advanceQuantum: 1,
-    cancelOnManagedStart: 5,
-    managedStarts: 5,
-    completedTasks: [1, 2, 3, 4],
-    steps: [{
-      from: 'g', normalize_graph: true, as: 'normalized',
-    }, {
-      from: 'normalized', node_rows: true, as: 'projected',
-    }, {
-      from: 'projected', assert_rows: {unique_by: ['id']}, as: 'out',
-    }],
-    fields: ['id', 'node_name'],
-  }, {
-    name: 'subgraph',
-    rows: 40,
-    advanceQuantum: 1,
-    constructionProgress: 80,
-    steps: [{
-      from: 'g', subgraph: {nodes: {ids: [1]}}, as: 'selected',
-    }, {
-      from: 'selected', node_rows: true, as: 'out',
-    }],
-    fields: ['id', 'node_name'],
-  }, {
-    name: 'subgraph-node-predicate',
-    rows: 40,
-    advanceQuantum: 1,
-    constructionProgress: 80,
-    steps: [{
-      from: 'g',
-      subgraph: {nodes: {where: "node_name = 'node-40'"}},
-      as: 'selected',
-    }, {
-      from: 'selected', node_rows: true, as: 'out',
-    }],
-    fields: ['id', 'node_name'],
-  }, {
-    name: 'subgraph-edge-predicate',
-    rows: 40,
-    advanceQuantum: 1,
-    constructionProgress: 80,
-    steps: [{
-      from: 'g',
-      subgraph: {nodes: {ids: [1, 2]}, edges: 'weight > 10'},
-      as: 'selected',
-    }, {
-      from: 'selected', edge_rows: true, as: 'out',
-    }],
-    fields: ['src', 'dst', 'weight'],
-  }, {
-    name: 'subgraph-relation-selector',
-    relationSelector: true,
-    rows: 40,
-    advanceQuantum: 1,
-    constructionProgress: 80,
-    steps: [{
-      from: 'g',
-      subgraph: {nodes: {from: 'selected', id: 'id'}},
-      as: 'selected_graph',
-    }, {
-      from: 'selected_graph', node_rows: true, as: 'out',
-    }],
-    fields: ['id', 'node_name'],
-  }, {
-    name: 'graft',
-    rows: 40,
-    advanceQuantum: 1,
-    constructionProgress: 160,
-    steps: [{
-      graph: {
-        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
-        edges: {
-          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
-        },
-      },
-      as: 'right_graph',
-    }, {
-      from: 'g', graft_graph: {with: 'right_graph'}, as: 'grafted',
-    }, {
-      from: 'grafted', node_rows: true, as: 'out',
-    }],
-    fields: ['id', 'node_name'],
-  }, {
-    name: 'union',
-    rows: 40,
-    advanceQuantum: 1,
-    constructionProgress: 160,
-    steps: [{
-      graph: {
-        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
-        edges: {
-          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
-        },
-      },
-      as: 'right_graph',
-    }, {
-      from: 'g',
-      union_graphs: {with: ['right_graph', 'g', 'right_graph']},
-      as: 'united',
-    }, {
-      from: 'united', node_rows: true, as: 'out',
-    }],
-    fields: ['id', 'node_name'],
-  }, {
-    name: 'union-selected-retained',
-    retainedOutput: true,
-    selectedStructural: true,
-    rows: 40,
-    advanceQuantum: 1,
-    constructionProgress: 80,
-    cancelOnManagedStart: 3,
-    managedStarts: 3,
-    cancelTask: 4,
+    name: 'property-match-assert',
+    rows: 40, advanceQuantum: 1,
+    cancelOnManagedStart: 4, managedStarts: 4, cancelTask: 4,
     completedTasks: [1, 2, 3],
-    steps: [{
-      graph: {
-        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
-        edges: {
-          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
-        },
-      },
-      as: 'right_graph',
-    }, {
-      from: 'g',
-      union_graphs: {with: ['right_graph', 'g', 'right_graph']},
-      as: 'united',
-    }, {
-      from: 'united', node_rows: true, as: 'out',
-    }],
+    steps: matchedRelationSteps({assert_rows: {where: 'id > 0'}}),
     fields: ['id', 'node_name'],
   }, {
-    name: 'mean',
-    rows: 40,
-    advanceQuantum: 1,
-    constructionProgress: 160,
-    steps: [{
-      graph: {
-        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
-        edges: {
-          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
-        },
-      },
-      as: 'right_graph',
-    }, {
-      mean_graphs: {
-        with: ['right_graph', 'g', 'right_graph'],
-        weights: [1, 2, 3],
-        support: {nodes: 1, edges: 1},
-        properties: {
-          nodes: {node_name: 'exact_equal'},
-          edges: {
-            weight: {mean: {missing: 'exclude', nulls: 'fail'}},
-          },
-        },
-      },
-      as: 'averaged',
-    }, {
-      from: 'averaged', node_rows: true, as: 'out',
-    }],
-    fields: ['id', 'node_name'],
-  }, {
-    name: 'subtract-exact',
-    rows: 40,
-    advanceQuantum: 1,
-    constructionProgress: 160,
-    steps: [{
-      graph: {
-        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
-        edges: {
-          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
-        },
-      },
-      as: 'right_graph',
-    }, {
-      from: 'g',
-      subtract_graphs: {
-        with: 'right_graph',
-        merge: {
-          node_properties: {node_name: 'exact_equal'},
-          edge_properties: {weight: 'exact_equal'},
-        },
-      },
-      as: 'subtracted',
-    }, {
-      from: 'subtracted', node_rows: true, as: 'out',
-    }],
-    fields: ['id', 'node_name'],
-  }, {
-    name: 'graphs-equal-in-flight',
-    rows: 2,
-    advanceQuantum: 1,
-    constructionProgress: 8,
-    steps: [{
-      graph: {
-        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
-        edges: {
-          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
-        },
-      },
-      as: 'right_graph',
-    }, {
-      from: 'g', graphs_equal: {with: 'right_graph'}, as: 'out',
-    }],
-    fields: ['equal'],
-  }, {
-    name: 'retained-graphs-equal-filter-in-flight',
-    retainedOutput: true,
-    selectedStructural: true,
-    rows: 2,
-    advanceQuantum: 1,
-    constructionStarts: [1, 2],
-    constructionProgress: 8,
-    cancelOnManagedStart: 3,
-    managedStarts: 3,
-    cancelTask: 4,
+    name: 'property-match-assert-unique',
+    rows: 40, advanceQuantum: 1,
+    cancelOnManagedStart: 4, managedStarts: 4, cancelTask: 4,
     completedTasks: [1, 2, 3],
-    steps: [{
-      graph: {
-        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
-        edges: {
-          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
-        },
-      },
-      as: 'right_graph',
-    }, {
-      from: 'g', graphs_equal: {with: 'right_graph'}, as: 'out',
-    }],
-    fields: ['equal'],
-  }, {
-    name: 'graph-diff-in-flight',
-    rows: 2,
-    advanceQuantum: 1,
-    constructionProgress: 8,
-    steps: [{
-      graph: {
-        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
-        edges: {
-          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
-        },
-      },
-      as: 'right_graph',
-    }, {
-      from: 'g', graph_diff: {with: 'right_graph'}, as: 'out',
-    }],
-    fields: ['delta'],
-  }, {
-    name: 'retained-graph-diff-filter-in-flight',
-    retainedOutput: true,
-    selectedStructural: true,
-    rows: 2,
-    advanceQuantum: 1,
-    constructionStarts: [1, 2],
-    constructionProgress: 8,
-    cancelOnManagedStart: 3,
-    managedStarts: 3,
-    cancelTask: 4,
-    completedTasks: [1, 2, 3],
-    steps: [{
-      graph: {
-        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
-        edges: {
-          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
-        },
-      },
-      as: 'right_graph',
-    }, {
-      from: 'g', graph_diff: {with: 'right_graph'}, as: 'out',
-    }],
-    fields: ['delta'],
-  }, {
-    name: 'graph-apply-delta-in-flight',
-    rows: 2,
-    advanceQuantum: 1,
-    // The delta Stage constructs two two-node, two-edge Graphs.
-    constructionProgress: 8,
-    deltaStage: true,
-    managedStarts: 3,
-    completedTasks: [1, 2],
-    cancelOnManagedStart: 3,
-    steps: [{
-      from: 'g', apply_graph_delta: {with: 'changes', field: 'delta'},
-      as: 'applied',
-    }, {
-      from: 'applied', node_rows: true, as: 'out',
-    }],
+    steps: matchedRelationSteps({assert_rows: {unique_by: ['id']}}),
     fields: ['id', 'node_name'],
-  }, {
-    name: 'graph-bounds',
-    rows: 40,
-    step: {
-      from: 'g',
-      graph_bounds: {max_nodes: 1, max_edges: 1, max_degree: 1},
-      as: 'out',
-    },
-    fields: ['kind', 'node_id', 'actual', 'max'],
-  }, {
-    name: 'retained-bounds-filter-in-flight',
-    retainedOutput: true,
-    selectedStructural: true,
-    rows: 40,
-    advanceQuantum: 1,
-    constructionProgress: 40,
-    constructionStarts: [1],
-    cancelOnManagedStart: 2,
-    managedStarts: 2,
-    cancelTask: 3,
-    completedTasks: [1, 2],
-    steps: [{from: 'g', graph_bounds: {max_nodes: 1}, as: 'out'}],
-    fields: ['kind', 'node_id', 'actual', 'max'],
-  }, {
-    name: 'retained-degree-filter-in-flight',
-    retainedOutput: true,
-    selectedStructural: true,
-    rows: 40,
-    advanceQuantum: 1,
-    constructionProgress: 40,
-    constructionStarts: [1],
-    cancelOnManagedStart: 2,
-    managedStarts: 2,
-    cancelTask: 3,
-    completedTasks: [1, 2],
-    steps: [{from: 'g', degree: {direction: 'both'}, as: 'out'}],
-    fields: ['node', 'degree'],
-  }, {
-    name: 'retained-reach-filter-in-flight',
-    retainedOutput: true,
-    selectedStructural: true,
-    rows: 40,
-    advanceQuantum: 1,
-    constructionProgress: 40,
-    constructionStarts: [1],
-    cancelOnManagedStart: 2,
-    managedStarts: 2,
-    cancelTask: 3,
-    completedTasks: [1, 2],
-    steps: [{
-      from: 'g',
-      reach: {start: 1, direction: 'out', max_depth: 2},
-      as: 'out',
-    }],
-    fields: ['start_id', 'node_id', 'depth'],
-  }, {
-    name: 'retained-shortest-filter-in-flight',
-    retainedOutput: true,
-    selectedStructural: true,
-    rows: 40,
-    advanceQuantum: 1,
-    constructionProgress: 40,
-    constructionStarts: [1],
-    cancelOnManagedStart: 2,
-    managedStarts: 2,
-    cancelTask: 3,
-    completedTasks: [1, 2],
-    steps: [{
-      from: 'g',
-      shortest_path: {
-        source: 1, target: 2, direction: 'out', max_hops: 2,
-      },
-      as: 'out',
-    }],
-    fields: ['source_id', 'target_id', 'hop_count'],
-  }, {
-    name: 'components-retained-filter-in-flight',
-    retainedOutput: true,
-    selectedStructural: true,
-    rows: 40,
-    advanceQuantum: 1,
-    constructionProgress: 40,
-    constructionStarts: [1],
-    cancelOnManagedStart: 2,
-    managedStarts: 2,
-    cancelTask: 3,
-    completedTasks: [1, 2],
-    steps: [{from: 'g', components: {kind: 'weak'}, as: 'out'}],
-    fields: ['node_id', 'component_id', 'component_size'],
-  }, {
-    name: 'match-nodes-predicate-in-flight',
-    rows: 40,
-    step: {
-      from: 'g',
-      match_nodes: {
-        where: "node_name = 'node-39'",
-        fields: ['id', 'node_name'],
-      },
-      as: 'out',
-    },
-    fields: ['id', 'node_name'],
-  }, {
-    name: 'retained-match-nodes-filter-in-flight',
-    retainedOutput: true,
-    selectedStructural: true,
-    rows: 40,
-    advanceQuantum: 1,
-    constructionProgress: 40,
-    constructionStarts: [1],
-    cancelOnManagedStart: 2,
-    managedStarts: 2,
-    cancelTask: 3,
-    completedTasks: [1, 2],
-    steps: [{
-      from: 'g',
-      match_nodes: {
-        where: "node_name = 'node-39'",
-        fields: ['id', 'node_name'],
-      },
-      as: 'out',
-    }],
-    fields: ['id', 'node_name'],
-  }, {
-    name: 'match-edges-in-flight',
-    rows: 40,
-    step: {
-      from: 'g',
-      match_edges: {fields: ['src', 'dst', 'weight']},
-      as: 'out',
-    },
-    fields: ['src', 'dst', 'weight'],
-  }, {
-    name: 'retained-match-edges-filter-in-flight',
-    retainedOutput: true,
-    selectedStructural: true,
-    rows: 40,
-    advanceQuantum: 1,
-    constructionProgress: 40,
-    constructionStarts: [1],
-    cancelOnManagedStart: 2,
-    managedStarts: 2,
-    cancelTask: 3,
-    completedTasks: [1, 2],
-    steps: [{
-      from: 'g',
-      match_edges: {
-        where: 'weight > 10',
-        fields: ['src', 'dst', 'weight'],
-      },
-      as: 'out',
-    }],
-    fields: ['src', 'dst', 'weight'],
-  }, {
-    name: 'match-edges-predicate-in-flight',
-    rows: 40,
-    step: {
-      from: 'g',
-      match_edges: {
-        where: 'weight > 10',
-        fields: ['src', 'dst', 'weight'],
-      },
-      as: 'out',
-    },
-    fields: ['src', 'dst', 'weight'],
-  }, {
-    name: 'degree-both',
-    rows: 40,
-    step: {from: 'g', degree: {direction: 'both'}, as: 'out'},
-    fields: ['node', 'degree'],
-  }, {
-    name: 'reach-out',
-    rows: 40,
-    advanceQuantum: 1,
-    constructionProgress: 40,
-    constructionStarts: [1],
-    cancelOnManagedStart: 2,
-    managedStarts: 2,
-    cancelTask: 2,
-    completedTasks: [1],
-    step: {
-      from: 'g',
-      reach: {start: 1, direction: 'out', max_depth: 40},
-      as: 'out',
-    },
-    fields: ['start_id', 'node_id', 'depth'],
-  }, {
-    name: 'shortest-out',
-    rows: 40,
-    advanceQuantum: 1,
-    constructionProgress: 40,
-    constructionStarts: [1],
-    cancelOnManagedStart: 2,
-    managedStarts: 2,
-    cancelTask: 2,
-    completedTasks: [1],
-    step: {
-      from: 'g',
-      shortest_path: {
-        source: 1,
-        target: 2,
-        direction: 'out',
-        max_hops: 2,
-      },
-      as: 'out',
-    },
-    fields: ['source_id', 'target_id', 'hop_count', 'node_ids', 'edge_ids'],
-  }, {
-    name: 'traverse-out',
-    rows: 40,
-    advanceQuantum: 1,
-    constructionProgress: 80,
-    step: {
-      from: 'g',
-      traverse: {
-        start: {ids: [1]},
-        direction: 'out',
-        min_hops: 1,
-        max_hops: 2,
-        emit: 'nodes',
-      },
-      as: 'out',
-    },
-    fields: ['start_id', 'node_id', 'depth'],
-  }, {
-    name: 'traverse-paths',
-    rows: 40,
-    advanceQuantum: 1,
-    constructionProgress: 80,
-    step: {
-      from: 'g',
-      traverse: {
-        start: {ids: [1]},
-        direction: 'out',
-        min_hops: 1,
-        max_hops: 40,
-        emit: 'paths',
-        max_output_rows: 40,
-      },
-      as: 'out',
-    },
-    fields: ['start_id', 'end_id', 'hop_count', 'node_ids', 'edge_ids'],
-  }, {
-    name: 'components-strong',
-    rows: 40,
-    step: {from: 'g', components: {kind: 'strong'}, as: 'out'},
-    fields: ['node_id', 'component_id', 'component_size'],
-  }, {
-    name: 'degree-finalization',
-    rows: 40,
-    cancelDuringFinalization: true,
-    step: {from: 'g', degree: {direction: 'both'}, as: 'out'},
-    fields: ['node', 'degree'],
-  }, {
-    name: 'degree-second-result-finalization',
-    rows: 40,
-    cancelDuringFinalization: true,
-    cancelAfterFirstIdentity: true,
-    resultAliases: 2,
-    step: {from: 'g', degree: {direction: 'both'}, as: 'out'},
-    fields: ['node', 'degree'],
   }, {
     name: 'to-events-bridge',
     family: 'tea',
@@ -5856,13 +4912,6 @@ async function exerciseStrategyGraph(
       cancellationCase.family === 'sequence';
     const vecaFamily = cancellationCase.family === 'veca';
     const graphFamily = !teaFamily && !vecaFamily;
-    // Structural two-Graph comparisons use the unsized Graph fixture.
-    const unsizedGraph = [
-      'graphs-equal-in-flight', 'graph-diff-in-flight',
-      'graph-apply-delta-in-flight',
-      'retained-graphs-equal-filter-in-flight',
-      'retained-graph-diff-filter-in-flight',
-    ].includes(cancellationCase.name);
     const teaTransform = cancellationCase.operation === 'window-fixed'
       ? {window_events: {kind: 'fixed', size: 10}}
       : cancellationCase.operation === 'window-sliding'
@@ -6622,13 +5671,8 @@ async function exerciseStrategyGraph(
         as: 'out',
       });
     }
-    if (graphFamily && cancellationCase.relationSelector === true) {
-      graphCancellationProgram.stages[2].inputs.selected = {
-        result: {stage: 'values', result: 'r'},
-      };
-    }
     const graphStageIndex = 2;
-    if (graphFamily && !unsizedGraph) {
+    if (graphFamily) {
       graphCancellationProgram.stages[1].steps[0].values.rows =
         Array.from({length: cancellationCase.rows}, (_, index) => ({
           id: index + 1,
@@ -6645,24 +5689,13 @@ async function exerciseStrategyGraph(
       }
       for (const row of valueStep.rows) {
         row.node_name = stressSortText;
-        for (const key of stressSortKeys) {
-          row[key] = stressSortText;
-        }
+        for (const key of stressSortKeys) row[key] = stressSortText;
       }
-      graphCancellationProgram.stages[1].results.r.fields.push(
-        ...stressSortKeys,
-      );
-      graphCancellationProgram.stages[graphStageIndex].steps[0]
-        .graph.nodes.fields.push(...stressSortKeys);
+      graphCancellationProgram.stages[1].results.r.fields.push(...stressSortKeys);
+      // Both definition labels already expose all_columns from this exact
+      // input; no tuple-only Graph field list needs extending.
     }
     if (graphFamily) {
-      if (cancellationCase.concise === true) {
-        graphCancellationProgram.stages[graphStageIndex].steps[0] = {
-          from: 'rows',
-          graph: {source: 'src', target: 'dst'},
-          as: 'g',
-        };
-      }
       graphCancellationProgram.stages[graphStageIndex].steps.splice(
         1,
         1,
@@ -6684,9 +5717,7 @@ async function exerciseStrategyGraph(
         graphFields;
       graphCancellationProgram.stages[graphStageIndex + 1].results.r.fields =
         graphFields;
-      const graphSecondFields = unsizedGraph
-        ? graphFields
-        : graphFields.slice(1);
+      const graphSecondFields = graphFields.slice(1);
       graphCancellationProgram.stages[graphStageIndex + 2].steps[0].select =
         graphSecondFields;
       graphCancellationProgram.stages[graphStageIndex + 2].results.r.fields =
@@ -6695,29 +5726,6 @@ async function exerciseStrategyGraph(
         [graphFields[0]];
       graphCancellationProgram.stages[graphStageIndex + 3].results.r.fields =
         [graphFields[0]];
-    }
-    if (cancellationCase.name === 'normalize-filter-sort-take') {
-      graphCancellationProgram.stages.splice(graphStageIndex + 1);
-    }
-    if (graphFamily && cancellationCase.deltaStage === true) {
-      // A separate Stage computes the Graph delta the Graph Stage applies.
-      const graphStage = graphCancellationProgram.stages[graphStageIndex];
-      graphStage.inputs.changes = {result: {stage: 'graph_delta', result: 'r'}};
-      graphCancellationProgram.stages.splice(graphStageIndex, 0, {
-        id: 'graph_delta',
-        inputs: {rows: {result: {stage: 'values', result: 'r'}}},
-        steps: [structuredClone(graphStage.steps[0]), {
-          ...structuredClone(graphStage.steps[0]),
-          as: 'right_graph',
-        }, {from: 'g', graph_diff: {with: 'right_graph'}, as: 'out'}],
-        results: {r: {from: 'out', fields: ['delta']}},
-      });
-    }
-    if (cancellationCase.resultAliases === 2) {
-      graphCancellationProgram.results = {
-        first: {from: {stage: 'graph', result: 'r'}},
-        second: {from: {stage: 'graph', result: 'r'}},
-      };
     }
     let cancellationArguments = args;
     if (cancellationCase.scoredPolicy !== undefined) {
@@ -6763,23 +5771,7 @@ async function exerciseStrategyGraph(
       ? fixture.strategyFixtureTeaCreate
       : vecaFamily
         ? fixture.strategyFixtureVecaCreate
-      : unsizedGraph
-        ? fixture.strategyFixtureSgaCreate
-      : cancellationCase.name.startsWith('components-')
-        ? fixture.strategyFixtureSgaComponentsSizedCreate
-        : cancellationCase.name === 'traverse-paths'
-          ? fixture.strategyFixtureSgaTraversePathsSizedCreate
-        : cancellationCase.name === 'traverse-out'
-          ? fixture.strategyFixtureSgaTraverseSizedCreate
-        : cancellationCase.name === 'reach-out' ||
-          cancellationCase.name === 'retained-reach-filter-in-flight'
-          ? fixture.strategyFixtureSgaReachSizedCreate
-        : cancellationCase.name === 'shortest-out' ||
-          cancellationCase.name === 'retained-shortest-filter-in-flight'
-          ? fixture.strategyFixtureSgaShortestSizedCreate
-        : cancellationCase.concise === true
-          ? fixture.strategyFixtureSgaDerivedCreate
-        : fixture.strategyFixtureSgaSizedCreate;
+      : fixture.strategyFixtureSgaCreate;
     let cancellationFixture;
     try {
       cancellationFixture = createCancellationFixture(
@@ -6787,13 +5779,13 @@ async function exerciseStrategyGraph(
           ? cancellationArguments
           : sgaEnvironmentArguments(cancellationArguments)),
         JSON.stringify(graphCancellationProgram),
-        ...(teaFamily || unsizedGraph
+        ...(teaFamily || graphFamily
           ? []
           : vecaFamily
             ? cancellationCase.scoredPolicy !== undefined
               ? [orderedContract, cancellationCase.rows]
               : [orderedContract]
-          : [BigInt(cancellationCase.rows)]),
+          : []),
       );
     } catch (error) {
       throw new Error(`Graph cancellation fixture ${cancellationCase.name} failed to check`,
@@ -6915,7 +5907,7 @@ async function exerciseStrategyGraph(
                   const selectedQuantum = cancellationCase.advanceQuantum ??
                     quantum;
                   const resumeStartedAt = cancellationCase.sortStress &&
-                    start === 5
+                    start === expectedManagedStarts
                     ? performance.now() : 0;
                   const result = operation.advance(selectedQuantum);
                   const observation = checked(result);
@@ -6930,7 +5922,7 @@ async function exerciseStrategyGraph(
                   if (cancellationCase.fusedNearest && start === 3) {
                     fusedNearestBridgeRows += observation?.progress ?? 0n;
                   }
-                  if (cancellationCase.sortStress && start === 5) {
+                  if (cancellationCase.sortStress && start === expectedManagedStarts) {
                     maxSortResumeMs = Math.max(
                       maxSortResumeMs,
                       performance.now() - resumeStartedAt,
@@ -6939,7 +5931,7 @@ async function exerciseStrategyGraph(
                     selectedSortReportedWork += observation?.work ?? 0n;
                   }
                   if (cancellationCase.cancelAfterSortAdvances !== undefined &&
-                      start === 5 && observation?.complete === false &&
+                      start === expectedManagedStarts && observation?.complete === false &&
                       selectedSortAdvances >=
                         cancellationCase.cancelAfterSortAdvances &&
                       !cancellationScheduled) {
@@ -6996,13 +5988,25 @@ async function exerciseStrategyGraph(
       assert.equal(
         managedStarts,
         expectedManagedStarts,
-        cancellationCase.name,
+        `${cancellationCase.name}: ${JSON.stringify({
+          managedTaskByStart, advanceObservations, lifecycleObservations,
+        }, (_, value) => typeof value === 'bigint' ? value.toString() : value)}`,
       );
       if (cancellationCase.cancelTask !== undefined) {
+        const cancelledStart = cancellationCase.cancelOnManagedStart ??
+          expectedManagedStarts;
         assert.equal(
-          managedTaskByStart[cancellationCase.cancelOnManagedStart],
+          managedTaskByStart[cancelledStart],
           cancellationCase.cancelTask,
-          cancellationCase.name,
+          `${cancellationCase.name}: ${JSON.stringify({
+            managedTaskByStart,
+            completed:cancellationExecution.completed.map(value => ({
+              task:value.task,realization:value.realization,
+              representation:value.outputRepresentation,
+            })),
+            firstPoll:advanceObservations.find(value =>
+              value.start === cancelledStart),
+          }, (_, value) => typeof value === 'bigint' ? value.toString() : value)}`,
         );
       }
       if (cancellationCase.fusedNearest) {
@@ -12611,7 +11615,8 @@ async function exerciseStrategyGraph(
         fixture.strategyFixtureAcquisition(f), fixture.strategyFixtureLedger(f), suppliedLimits, rootRetention);
       try {
         assert.equal(captured.output, undefined);
-        assert.equal(captured.source, undefined);
+        assert.equal(typeof captured.source, 'function');
+        assert.ok(captured.source());
         // Admission keeps the full file ceiling. Only the exact sealed body
         // becomes a holding; unused capacity is released after completion.
         assert.equal(captured.physicalCapacity.retentionBytes, 134615840n);
@@ -12656,7 +11661,8 @@ async function exerciseStrategyGraph(
   const accountedComputes = [];
   try {
     assert.equal(accounted.output, undefined);
-    assert.equal(accounted.source, undefined);
+    assert.equal(typeof accounted.source, 'function');
+    assert.ok(accounted.source());
     const graph = fixture.strategyFixtureGraph(accountedFixture);
     const dag = accounted.openDAG(graph);
     assert.equal(fixture.strategyFixtureAttach(accountedFixture, dag), true);
@@ -13296,14 +12302,26 @@ async function exerciseStrategyGraph(
       const closing = failureExecution?.close();
       const observedClosing = Promise.allSettled([closing]);
       if (failureExecution) {
-        assert.equal(await failureExecution.cleanup(), true);
         const [closeObservation] = await observedClosing;
         if (closeObservation.status === 'rejected') {
           const error = closeObservation.reason;
-          assert.equal(error.code, 'ManagedOutputCleanupPending');
+          assert(error.code === 'ManagedOutputCleanupPending' ||
+            (error instanceof AggregateError &&
+              error.message === 'ManagedSiteTransferCleanupFailed'));
           assert.equal(error.cleanupPending, true);
           assert.equal(typeof error.cleanupHandle?.retry, 'function');
         }
+        // Each cleanup pass retries each independent owner once. A Store
+        // retry may precede the Transfer retry that releases its reader pin.
+        const cleaned = await failureExecution.cleanup();
+        if (!cleaned) {
+          assert.equal(failureExecution.cleanupPending(), true);
+          assert(failureExecution.usage().reservedExecutionBytes > 0n,
+            'pending output cleanup must retain its original scratch');
+          assert.equal(await failureExecution.cleanup(), true,
+            'after source stop, retry must settle the original output owner');
+        }
+        assert.equal(failureExecution.cleanupPending(), false);
         assert.equal(failureExecution.usage().reservedTransferBytes, 0n);
         assert.equal(failureExecution.usage().reservedRetentionBytes, 0n);
         assert.equal(failureExecution.usage().reservedExecutionBytes, 0n,

@@ -9,13 +9,6 @@ pub(all) enum ExpressionConsumer {
   AnalyticArgument(String)
   SequencePredicate(Int)
   GraphMatchPredicate
-  ReachStart
-  SubgraphNodes
-  SubgraphEdges
-  TraverseStart
-  TraverseEdges(Int)
-  TraverseNodes(Int)
-  ShortestEndpoint(@schema.Side)
   InferInput(Int)
 } derive(Eq, Debug)
 
@@ -265,60 +258,10 @@ pub fn collect_expression_slots(
             @graph.match_predicate(operation),
             GraphMatchPredicate,
           )
-        Reach(operation) =>
-          match @graph.reach_start(operation) {
-            @graph.SelectedReachStarts(selector) =>
-              slot_predicate(
-                c,
-                step,
-                @graph.selector_predicate(selector),
-                ReachStart,
-              )
-            _ => ()
-          }
-        Subgraph(checked~, ..) => {
-          slot_predicate(
-            c,
-            step,
-            @graph.selector_predicate(@graph.subgraph_nodes(checked)),
-            SubgraphNodes,
-          )
-          slot_predicate(c, step, @graph.subgraph_edges(checked), SubgraphEdges)
-        }
-        Traverse(checked~, ..) => {
-          slot_predicate(
-            c,
-            step,
-            @graph.selector_predicate(@graph.traverse_start(checked)),
-            TraverseStart,
-          )
-          for i in 0..<@graph.traverse_hop_count(checked) {
-            let hop = @graph.traverse_hop_at(checked, i).unwrap()
-            slot_predicate(
-              c,
-              step,
-              @graph.hop_predicate(hop, @graph.Edges),
-              TraverseEdges(i),
-            )
-            slot_predicate(
-              c,
-              step,
-              @graph.hop_predicate(hop, @graph.Nodes),
-              TraverseNodes(i),
-            )
-          }
-        }
-        Shortest(checked~, ..) =>
-          for side in [@schema.Left, @schema.Right] {
-            let predicate = match @graph.shortest_endpoint(checked, side) {
-              @graph.Single(_) => None
-              @graph.Selected(selector) => @graph.selector_predicate(selector)
-            }
-            slot_predicate(c, step, predicate, ShortestEndpoint(side))
-          }
         // These checked forms retain scalar/cell operands or field selectors,
         // not general Expression roots. Do not use a catch-all here.
-        Join(..)
+        Traverse(..)
+        | Join(..)
         | Append(..)
         | Nest(..)
         | Set(..)
@@ -330,14 +273,7 @@ pub fn collect_expression_slots(
         | Calendar(_)
         | Window(_)
         | Projection(_)
-        | Graph(_)
-        | GraphEquality(..)
-        | GraphDiff(..)
-        | GraphApply(..)
-        | GraphStructural(..)
-        | GraphUnion(_)
-        | GraphMean(_)
-        | GraphConstruction(..)
+        | PropertyGraphConstruction(..)
         | Vector(_)
         | Nearest(..)
         | Pool(_)

@@ -100,6 +100,26 @@ export const acceptedSiteOutput = durable => {
     physicalManifestCid, measurementEvidenceCid, rowCount,
     retainedBytes, subjectCid});
 };
+// An admitted transport candidate still requires the original Run's trusted
+// Source, policy and authorization checks before Invocation/publication.
+export const acceptedSourceObservation = durable => {
+  const option = owner.coordinatorAcceptedSourceObservation(durable);
+  if (option?.$tag === 0) return undefined;
+  if (option?.$tag !== 1 || !Array.isArray(option._0) ||
+      option._0.length !== 5 ||
+      !option._0.every(value => typeof value === 'string')) {
+    throw new Error('InvalidCoordinatorSourceObservationProjection');
+  }
+  const [ordinal, sourceEvidenceWire, inputLogicalWire,
+    captureStartedAt, captureCompletedAt] = option._0;
+  const taskOrdinal = Number(ordinal);
+  if (!Number.isSafeInteger(taskOrdinal) || taskOrdinal < 0 ||
+      String(taskOrdinal) !== ordinal) {
+    throw new Error('InvalidCoordinatorSourceObservationProjection');
+  }
+  return Object.freeze({taskOrdinal, sourceEvidenceWire, inputLogicalWire,
+    captureStartedAt, captureCompletedAt});
+};
 export const issueOutputPlanPollJson = (durable, input) => {
   const integer = value => typeof value === 'bigint'
     ? value > 0n && value <= 9223372036854775807n

@@ -3,6 +3,7 @@ package "actql/actql/connectors/duckdb/host"
 
 import {
   "actql/actql/check_environment",
+  "actql/actql/connector_sdk",
   "actql/actql/connectors/duckdb/acquisition",
   "actql/actql/connectors/duckdb/adapter",
   "actql/actql/decode_core",
@@ -50,11 +51,15 @@ pub fn capture_broad_host_source(BroadHostRun, @acquisition.DuckDBBroadObservati
 
 pub fn capture_native_host_source(NativeHostRun, @acquisition.DuckDBNativeObservation, Bool, Int, @execution_relation.ValueLimits, Int, Int) -> Result[NativeHostSourceCapture, @execution_query.CapturedSourceIssue]
 
+pub fn cleanup_broad_host_residual(BroadHostRun) -> Result[Bool, @connector_sdk.FixedComputeIssue]
+
 pub fn close_broad_host(BroadHostRun) -> Unit
 
 pub fn close_native_host(NativeHostRun) -> Unit
 
 pub fn complete_broad_host(BroadHostRun) -> Result[@acquisition.DuckDBBroadObservation, BroadHostIssue]
+
+pub fn complete_broad_host_bounded_residual(BroadHostRun, @execution_query.QueryReceipt, (@execution_query.QuerySequence, @execution_query.QueryReceipt, @query_planning.QueryLogicalGuards, @acquisition.DuckDBBroadCompletionLimits) -> @execution_relation.CompletedOutput?, () -> Result[Bool, @connector_sdk.FixedComputeIssue]) -> Result[@acquisition.DuckDBBroadObservation, BroadHostIssue]
 
 pub fn complete_native_host(NativeHostRun, @acquisition.DuckDBNativeCompletionLimits) -> Result[@acquisition.DuckDBNativeObservation, NativeHostIssue]
 
@@ -67,6 +72,8 @@ pub fn configured_broad_host_limits(BroadHostConfiguration) -> BroadHostLimits
 pub fn configured_native_capacity(NativeHostConfiguration) -> NativeCapacity?
 
 pub fn configured_native_host_limits(NativeHostConfiguration) -> NativeHostLimits
+
+pub fn configured_native_host_source(NativeHostConfiguration) -> (String, String)
 
 pub fn configured_retained_native_capacity(NativeHostConfiguration) -> NativeCapacity?
 
@@ -95,6 +102,8 @@ pub fn native_host_source_capture_identity_matches(NativeHostSourceCapture, @exe
 pub fn native_host_source_capture_source(NativeHostSourceCapture) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]
 
 pub fn native_host_source_capture_source_ref(NativeHostSourceCapture) -> String?
+
+pub fn prepare_broad_host_residual_input(BroadHostRun) -> Result[(@execution_query.QuerySequence, @execution_query.QueryReceipt, () -> Bool, @query_planning.QueryLogicalGuards, @acquisition.DuckDBBroadCompletionLimits), BroadHostIssue]
 
 pub fn prepare_native_source_evidence_context(@query_planning.QueryRequirement) -> Result[NativeSourceEvidenceContext, NativeSourceEvidenceIssue]
 

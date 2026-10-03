@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "ci-maintenance-pr-profile",
+  "kind": "change",
+  "revision": "9c8868a36a26c90f4f7229bea1425f66bb7d294e",
+  "parents": [
+    "4303f0681c7e7ae3544563fa9dd6d7e5c0eebd41"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "4303f0681c7e7ae3544563fa9dd6d7e5c0eebd41",
+          "digest": "a22ee792f4b836c7d950d8f89f0f8266701e2516557a1718ea4399604b1a3783",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "667b34995b7bfc7cdd5aeb9e69f5a869f830bb52ebd41e064a5b3d1f6f52d5e8",
+      "afterMode": "100644",
+      "reason": "Schedule only lint, spec and a fail-closed aggregate for exact reviewed existing maintenance-file edits. Preserve all selected runtime and three-target proof acceptance commands, producer artifact identities and main verification; omitted families are explicitly not applicable and produce no reused or partial evidence."
+    }
+  ]
+}

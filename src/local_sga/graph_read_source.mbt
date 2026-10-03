@@ -96,17 +96,86 @@ fn graph_read_edge_endpoints(
 }
 
 ///|
-fn graph_read_edge_label(
+fn graph_read_edge_identity(
   source : GraphReadSource,
   edge : Int,
-) -> @value.CheckedValue?? {
+) -> @value.CheckedValue? {
   match source {
     Stored(read) =>
       @graph.producer_read_storage(read).bind(storage => {
-        @storage.edge_label(storage, edge)
+        @storage.edge_identity(storage, edge)
       })
-    Viewed(view) => @lifecycle.producer_view_edge_label(view, edge).to_option()
+    Viewed(view) =>
+      @lifecycle.producer_view_edge_identity(view, edge).to_option()
   }
+}
+
+///|
+fn graph_read_node_identity_order_key(
+  source : GraphReadSource,
+  node : Int,
+) -> String? {
+  match source {
+    Stored(read) =>
+      @graph.producer_read_storage(read).bind(storage => {
+        @storage.node_identity_order_key(storage, node)
+      })
+    Viewed(view) =>
+      @lifecycle.producer_view_node_identity_order_key(view, node).to_option()
+  }
+}
+
+///|
+fn graph_read_edge_identity_order_key(
+  source : GraphReadSource,
+  edge : Int,
+) -> String? {
+  match source {
+    Stored(read) =>
+      @graph.producer_read_storage(read).bind(storage => {
+        @storage.edge_identity_order_key(storage, edge)
+      })
+    Viewed(view) =>
+      @lifecycle.producer_view_edge_identity_order_key(view, edge).to_option()
+  }
+}
+
+///|
+fn graph_read_edge_definition(source : GraphReadSource, edge : Int) -> Int? {
+  match source {
+    Stored(read) =>
+      @graph.producer_read_storage(read).bind(storage => {
+        @storage.edge_definition_index(storage, edge)
+      })
+    Viewed(view) =>
+      @lifecycle.producer_view_edge_definition(view, edge).to_option()
+  }
+}
+
+///|
+fn graph_read_node_definition(source : GraphReadSource, node : Int) -> Int? {
+  match source {
+    Stored(read) =>
+      @graph.producer_read_storage(read).bind(storage => {
+        @storage.node_definition_index(storage, node)
+      })
+    Viewed(view) =>
+      @lifecycle.producer_view_node_definition(view, node).to_option()
+  }
+}
+
+///|
+fn property_match_field_index(
+  prepared : @lower.PreparedGraphMatch,
+  field : @schema.FieldName,
+) -> Int? {
+  let properties = @lower.graph_match_property_schema(prepared)
+  for index in 0..<@carrier.field_count(properties) {
+    if @carrier.field_at(properties, index).unwrap().name == field {
+      return Some(index)
+    }
+  }
+  None
 }
 
 ///|
@@ -122,24 +191,5 @@ fn graph_read_edge_property(
       })
     Viewed(view) =>
       @lifecycle.producer_view_edge_property(view, edge, property).to_option()
-  }
-}
-
-///|
-fn graph_read_edge_index(
-  source : GraphReadSource,
-  from : @value.CheckedValue,
-  to : @value.CheckedValue,
-  label : @value.CheckedValue?,
-) -> Result[Int?, Unit] {
-  match source {
-    Stored(read) =>
-      match @graph.producer_read_storage(read) {
-        Some(storage) =>
-          @storage.edge_index(storage, from, to, label).map_err(_ => ())
-        None => Err(())
-      }
-    Viewed(view) =>
-      @lifecycle.producer_view_edge_index(view, from, to, label).map_err(_ => ())
   }
 }

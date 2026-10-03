@@ -24,9 +24,10 @@ The [standard-profile ledger](frontend-standard-profiles.md) distinguishes these
 ActQL operations from GQL pattern syntax and SQL/PGQ-derived table mapping.
 The adopted Property Graph constructor requires independently keyed edges
 and graph-owned node/edge label sets. The operation inventory below refers to
-the current simple-Graph contract; it is not evidence that those consumers
-already preserve the new identity model. Adapt laws and consumers together,
-and reject unsupported new-model input instead of collapsing parallel edges.
+the historical simple-Graph contract; that implementation is retired, not a
+fallback for the sole Property Graph model. It is not current consumer
+acceptance evidence. Adapt laws and consumers together, and reject unsupported
+operations instead of collapsing parallel edges.
 
 DATA binds a logical producer. Existing lowering emits ordinary steps with
 `as`/`from`; a bare DATA alias reuses its producer without emitting a step.
@@ -93,11 +94,15 @@ Graph-to-Relation bridges and relational steps; bounded patterns also use
 traverse. MATCH coverage does not imply natural syntax for every SGA operation.
 
 The [Local operation inventory](../reviews/2026-09-19-sga-veca-tea-local-coverage.json)
-records operation-level Host/kernel evidence. In the last column, Host refers
+records current supported/refused boundaries and separately retains historical
+operation-level evidence. In the historical last column, Host refers
 to [standard-host.test.mjs](../../adapters/connectors/duckdb/node/test/standard-host.test.mjs)
-and integration to [local_carrier_graph_wbtest.mbt](../../src/query_integration/local_carrier_graph_wbtest.mbt).
-This is evidence for existing operations, not packed execution of the new
-named source.
+and integration referred to `local_carrier_graph_wbtest.mbt`, now available
+only in Git history. Current constructor and MATCH/TRAIL resource evidence
+uses [Property Graph construction](../../src/query_integration/property_graph_construction_wbtest.mbt)
+and [TRAIL resources](../../src/query_integration/property_graph_trail_resource_wbtest.mbt).
+Historical successes do not establish current execution or packed acceptance
+of the new named source.
 
 | Program operation | Pipe/current input | Other inputs | Output | Adopted named DATA | Local evidence |
 | --- | --- | --- | --- | --- | --- |

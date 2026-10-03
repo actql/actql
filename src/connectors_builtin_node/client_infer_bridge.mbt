@@ -191,14 +191,60 @@ pub fn client_program_compile_local_infer(
 ///|
 /// The installed Host retains the checked barrier and derives call identity
 /// from the exact completed input before the first physical model dispatch.
-#export_name("clientProgramStartScopedInferExecution")
-pub fn client_program_start_scoped_infer_execution(
+
+///|
+#export_name("clientProgramAdmitInferCapturedInput")
+pub fn client_program_admit_infer_captured_input(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  source : @query.CapturedInputSource,
+  identity : @query.CapturedSourceRelationIdentity,
+  requirement : @planning.QueryRequirement,
+  logical : @publication.RunEvidenceValue,
+  source_evidence_wire : String,
+  authority_scope_cid : String,
+  data_policy_cid : String,
+  started_at : String,
+  completed_at : String,
+) -> Result[
+  @publication_host.ClientInferCapturedInput,
+  @publication_host.ClientInferCallScopeIssue,
+] {
+  let source_evidence = match
+    @publication.admit_run_evidence_value(
+      "source_evidence", source_evidence_wire, 100000, 10000, 100,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(@publication_host.Evidence(issue))
+  }
+  let (source_ref, source_contract) = @planning.query_requirement_source(
+    requirement,
+  )
+  let observation = match
+    @publication.admit_model_source_observation(
+      source_evidence, logical, source_ref, source_contract, authority_scope_cid,
+      data_policy_cid, started_at, completed_at,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(@publication_host.Evidence(issue))
+  }
+  @publication_host.admit_client_infer_captured_input(
+    prepared, step, source, identity, requirement, logical, observation,
+  )
+}
+
+///|
+#export_name("clientProgramStartAcquiredInferExecution")
+pub fn client_program_start_acquired_infer_execution(
   prepared : @publication_host.PreparedClientProgram,
   step : Int,
   graph : @publication_host.ClientInferPlanGraph,
   registry : String,
   values : String,
   provider : @model.ModelProvider,
+  input : @publication_host.ClientInferCapturedInput,
+  fragment : String,
+  ordered : String,
 ) -> Result[@infer_host.Execution, @infer_host.Issue] {
   @infer_host.start(
     prepared,
@@ -209,6 +255,77 @@ pub fn client_program_start_scoped_infer_execution(
     @publication_host.client_infer_plan_graph_request_cid(graph),
     @infer_host.standard_limits(),
     plan=Some(graph),
+    acquired_input=Some(input),
+    fragment_body=Some(fragment),
+    ordered_body=Some(ordered),
+  )
+}
+
+///|
+#export_name("clientProgramRestoreInferCapturedInput")
+pub fn client_program_restore_infer_captured_input(
+  input : @publication_host.ClientInferCapturedInput,
+  source : @publication.RunEvidenceValue,
+  observation : @publication.RunEvidenceValue,
+) -> Result[
+  @publication_host.ClientInferCapturedInput,
+  @publication_host.ClientInferCallScopeIssue,
+] {
+  @publication_host.restore_client_infer_captured_input(
+    input, source, observation,
+  )
+}
+
+///|
+#export_name("clientProgramStartAcquiredInferSlotReplay")
+pub fn client_program_start_acquired_infer_slot_replay(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  graph : @publication_host.ClientInferPlanGraph,
+  registry : String,
+  values : String,
+  read : @model.ModelSlotReplayRead,
+  input : @publication_host.ClientInferCapturedInput,
+  fragment : String,
+  ordered : String,
+) -> Result[@infer_host.Execution, @infer_host.Issue] {
+  @infer_host.start_restored_slot_replay(
+    prepared,
+    step,
+    registry,
+    values,
+    read,
+    @infer_host.standard_limits(),
+    graph,
+    acquired_input=Some(input),
+    fragment_body=Some(fragment),
+    ordered_body=Some(ordered),
+  )
+}
+
+///|
+#export_name("clientProgramStartScopedInferExecution")
+pub fn client_program_start_scoped_infer_execution(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  graph : @publication_host.ClientInferPlanGraph,
+  registry : String,
+  values : String,
+  provider : @model.ModelProvider,
+  fragment : String,
+  ordered : String,
+) -> Result[@infer_host.Execution, @infer_host.Issue] {
+  @infer_host.start(
+    prepared,
+    step,
+    registry,
+    values,
+    provider,
+    @publication_host.client_infer_plan_graph_request_cid(graph),
+    @infer_host.standard_limits(),
+    plan=Some(graph),
+    fragment_body=Some(fragment),
+    ordered_body=Some(ordered),
   )
 }
 
@@ -222,6 +339,8 @@ pub fn client_program_start_infer_replay(
   registry : String,
   values : String,
   capture : @model.VerifiedModelCapture,
+  fragment : String,
+  ordered : String,
 ) -> Result[@infer_host.Execution, @infer_host.Issue] {
   @infer_host.start_replay(
     prepared,
@@ -231,6 +350,8 @@ pub fn client_program_start_infer_replay(
     capture,
     @infer_host.standard_limits(),
     graph,
+    fragment_body=Some(fragment),
+    ordered_body=Some(ordered),
   )
 }
 
@@ -631,6 +752,8 @@ pub fn client_program_start_restored_infer_replay(
   registry : String,
   values : String,
   capture : @publication.ModelCaptureBundleRead,
+  fragment : String,
+  ordered : String,
 ) -> Result[@infer_host.Execution, @infer_host.Issue] {
   @infer_host.start_restored_replay(
     prepared,
@@ -640,6 +763,8 @@ pub fn client_program_start_restored_infer_replay(
     capture,
     @infer_host.standard_limits(),
     graph,
+    fragment_body=Some(fragment),
+    ordered_body=Some(ordered),
   )
 }
 
@@ -718,6 +843,8 @@ pub fn client_program_start_restored_infer_slot_replay(
   registry : String,
   values : String,
   read : @model.ModelSlotReplayRead,
+  fragment : String,
+  ordered : String,
 ) -> Result[@infer_host.Execution, @infer_host.Issue] {
   @infer_host.start_restored_slot_replay(
     prepared,
@@ -727,6 +854,8 @@ pub fn client_program_start_restored_infer_slot_replay(
     read,
     @infer_host.standard_limits(),
     graph,
+    fragment_body=Some(fragment),
+    ordered_body=Some(ordered),
   )
 }
 
@@ -1210,6 +1339,7 @@ pub fn client_program_infer_egress_issue_kind(
     @publication_host.RetentionDenied => "retention_denied"
     @publication_host.TrainingDenied => "training_denied"
     @publication_host.ChangedObservation => "changed_observation"
+    @publication_host.InputPolicyUnavailable => "input_policy_unavailable"
   }
 }
 

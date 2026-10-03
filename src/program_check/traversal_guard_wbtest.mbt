@@ -1,5 +1,5 @@
 ///|
-test "formal traversal guards bind producer Unit limits and imported execution gates" {
+test "current TRAIL guards bind producer Unit limits and imported execution gates" {
   for
     (value, expected_cid) in [
       (
@@ -23,14 +23,17 @@ test "formal traversal guards bind producer Unit limits and imported execution g
         checked_results=programs,
         second_stage=true,
         parameters=parameter,
-        sga=true,
+        property_graph=true,
         graph_construction_limit=Some(1000),
         traversal_capacity=true,
-        generated_rows=Some("[]"),
+        generated_rows=Some("[{\"id\":1},{\"id\":2}]"),
         producer_expression="id",
-        producer_suffix=",{\"graph\":{\"nodes\":{\"from\":\"seed\",\"id\":\"id\",\"fields\":[]},\"edges\":{\"from\":\"derived\",\"source\":\"id\",\"target\":\"value\",\"fields\":[]}},\"as\":\"g\"},{\"traverse\":{\"start\":{\"where\":{\"literal\":false}},\"direction\":\"out\",\"min_hops\":0,\"max_hops\":1,\"emit\":\"nodes\",\"max_output_rows\":" +
-          (if parameter { "{\"$param\":\"n\"}" } else { value.to_string() }) +
-          "}},{\"select\":[{\"id\":\"start_id\"},{\"value\":\"depth\"}],\"as\":\"projected\"}",
+        producer_suffix=current_trail_resources_suffix(
+          "out",
+          "1",
+          guard_text=",\"max_output_rows\":" +
+            (if parameter { "{\"$param\":\"n\"}" } else { value.to_string() }),
+        ),
         producer_result_from="projected",
         extra_step_budget=3,
       )

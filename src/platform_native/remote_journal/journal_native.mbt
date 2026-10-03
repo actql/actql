@@ -196,18 +196,30 @@ fn Journal::restore_observation(
         Ok(item) => item
         Err(issue) => return Err(Protocol(issue))
       }
+      let source_observation = match
+        @remote.remote_managed_output_source_observation_json(record, body) {
+        Ok(value) => value
+        Err(issue) => return Err(Protocol(issue))
+      }
       Ok({
         record,
         evidence: Some(restored.0),
         subject: Some(restored.1),
         measurement: Some(restored.2),
+        source_observation,
       })
     }
     Err(@sqlite.NotFound) =>
       if @remote.dispatch_record_requires_managed_observation(record) {
         Err(StateCollision)
       } else {
-        Ok({ record, evidence: None, subject: None, measurement: None, })
+        Ok({
+          record,
+          evidence: None,
+          subject: None,
+          measurement: None,
+          source_observation: None,
+        })
       }
     Err(issue) => Err(Physical(issue))
   }
@@ -1055,6 +1067,7 @@ pub fn Journal::commit_evidence_transition(
   evidence : @remote.RemoteExecutionEvidence,
   subject : @remote.RemoteManagedOutputSubject,
   measurement : @remote.RemoteManagedOutputMeasurement,
+  source_observation? : @remote.RemoteSourceObservation? = None,
 ) -> Result[Unit, NativeRemoteJournalIssue] {
   if self.closed {
     return Err(Closed)
@@ -1074,7 +1087,11 @@ pub fn Journal::commit_evidence_transition(
   }
   let observation_body = match
     @remote.remote_managed_output_observation_json(
-      transition, evidence, subject, measurement,
+      transition,
+      evidence,
+      subject,
+      measurement,
+      source_observation~,
     ) {
     Ok(value) => @utf8.encode(value)
     Err(issue) => return Err(Protocol(issue))

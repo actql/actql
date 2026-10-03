@@ -299,17 +299,9 @@ pub fn local_managed_sequence_supported(
         is Some(_)
       @lower.SequenceMatchStep(_) => true
       @lower.NestStep(_) => true
-      @lower.GraphBasicStep(_) => false
-      @lower.GraphStructuralStep(_) => false
-      @lower.GraphUnionStep(_) => false
-      @lower.GraphMeanStep(_) => false
       @lower.GraphMatchStep(_) => false
-      @lower.GraphReachStep(_) => false
-      @lower.GraphSubgraphStep(_) => false
       @lower.GraphTraverseStep(_) => false
-      @lower.GraphShortestStep(_) => false
-      @lower.GraphRelationStep(_) => false
-      @lower.GraphConstructionStep(_) => false
+      @lower.PropertyGraphConstructionStep(_) => false
       @lower.VectorStep(_) => false
       @lower.EventStep(_) => false
       @lower.CarrierProjectionStep(_) => false
@@ -528,6 +520,12 @@ pub fn execute_local_fixed_compute_with_usage(
   let request = @connector.fixed_compute_candidate_request(
     @connector.prepared_compute_candidate(prepared),
   )
+  // The synchronous compatibility executor only understands completed
+  // producers. A supplied port must use the bounded materializing provider;
+  // treating the legacy producer-only view as an empty input would be unsafe.
+  if @connector.fixed_compute_request_has_supplied_input(request) {
+    return Err(UnsupportedInputShape)
+  }
   let ceilings = join_output_ceilings.copy()
   if join_output_ceiling is Some(ceiling) {
     ceilings.push(ceiling)
@@ -547,7 +545,13 @@ pub fn execute_local_fixed_compute_with_usage(
     is Some(target) else {
     return Err(UnsupportedInputShape)
   }
-  let inputs = @connector.fixed_compute_request_inputs(request)
+  let inputs : Array[@execution.ProducerRead] = []
+  for input in @connector.fixed_compute_request_inputs(request) {
+    guard @execution.fixed_relation_read_completed(input) is Some(read) else {
+      return Err(UnsupportedInputShape)
+    }
+    inputs.push(read)
+  }
   if representations is Some(copies) {
     if copies.length() != inputs.length() {
       return Err(UnsupportedInputShape)

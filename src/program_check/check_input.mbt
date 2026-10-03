@@ -13,6 +13,7 @@ struct CheckEnvironment {
   wire : @environment.WireEnvironment
   expressions : @context.ExpressionProfiles
   operations : @context.PureOperationProfiles
+  property_graph : Bool
   numeric : @numeric.Profile?
   calendar : @environment.SelectedCalendarProfile?
   text_rank : @environment.SelectedTextRankProfile?
@@ -30,12 +31,14 @@ pub fn checking_environment(
   numeric_profile? : @numeric.Profile? = None,
   calendar? : @environment.SelectedCalendarProfile? = None,
   text_rank? : @environment.SelectedTextRankProfile? = None,
+  property_graph? : Bool = false,
   model_tasks? : @environment.ModelTasks? = None,
 ) -> CheckEnvironment {
   {
     wire,
     expressions: expression_profiles,
     operations: operation_profiles,
+    property_graph,
     numeric: numeric_profile,
     calendar,
     text_rank,

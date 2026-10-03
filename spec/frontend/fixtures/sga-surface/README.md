@@ -1,6 +1,7 @@
-> These `.aql` files are historical/internal fixtures, not accepted public
-> source. Independent `*.expected-program.json` files remain machine-input
-> execution fixtures. JSON execution does not complete new text migration.
+> These `.aql` files and independent `*.expected-program.json` files preserve
+> historical/internal tuple-Graph fixtures, not current executable inputs.
+> Current admission refuses the retired constructor even with the keyed
+> Property Graph profile installed. Historical rows do not prove current execution.
 > See [migration mapping](../../../../docs/design/frontend-language-migration.md).
 
 # SGA surface baseline fixtures
@@ -97,8 +98,8 @@ Result order declaration.
 ## Historical public text execution evidence
 
 These observations apply to the recorded earlier SHAs. Current packed tests
-submit the independent machine Programs and reject the historical text. They
-do not demonstrate replacement text migration.
+use the independently authored keyed Property Graph Program and reject the
+retired inputs. They do not demonstrate replacement text migration.
 
 At `0601a0f02f99e23cb38b908f2d0955a96339b50f`, the standard clean packed
 installation passed `normalize-rows`, `mean-graphs`, `traverse-paths`,
@@ -114,12 +115,21 @@ All original eight cases passed packed Embedded Local and HTTP at that SHA.
 The five additional cases above passed, for thirteen standard named-source cases.
 The earlier failed probes and their repaired provider boundaries are recorded
 in `docs/reviews/2026-09-29-sga-packed-run-handoff.md`.
-The distribution Client job runs `scripts/sga-surface-checker.test.mjs`
-against common preparation. It admits all thirteen source-free Graph fixtures,
+At that historical revision, the distribution Client job ran
+`scripts/sga-surface-checker.test.mjs` against common preparation. It admitted
+all thirteen source-free Graph fixtures,
 checks typed Graph/Delta task edges and Result roots, and rejects a Relation
 passed to a Graph-only operation and a bounds call without a threshold.
 Source authorization and independent positive, rejection and boundary
 fixtures for other Graph operations remain separate work.
+
+The current sole Property Graph implementation no longer executes these tuple
+Programs. That test now checks typed refusal of the retired constructor with
+the current profile installed. Current Plan and Host custody/resource tests
+use `scripts/property-graph-surface-checker.test.mjs`; current unsupported
+consumer refusal is derived from the existing family inventory by
+`scripts/property-graph-public-host.test.mjs`. These historical rows and CIDs
+must not be reported as current execution acceptance.
 
 At `5835d644410e702223c0b77250a9a154abfcabea`, all fourteen fixtures,
 including `shortest-path`, passed through clean packed Embedded Local and

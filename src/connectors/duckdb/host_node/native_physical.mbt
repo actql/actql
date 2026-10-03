@@ -11,7 +11,8 @@ priv struct NativePhysical {
   mut closed : Bool
   mut completed : Bool
   mut holding : @resources.Holding?
-  mut dag : @strategy.CapturedDAG?
+  mut dag : (@strategy.CapturedDAG, Int)?
+  mut capture : @acquisition_host.NativeHostSourceCapture?
   mut source : @query.CapturedInputSource?
   mut observation : @duckdb_query.DuckDBNativeObservation?
 }
@@ -178,6 +179,7 @@ fn open_native_physical(
           completed: false,
           holding: None,
           dag: None,
+          capture: None,
           source: None,
           observation: None,
         }),
@@ -241,7 +243,7 @@ pub fn native_host_open_dag(
     !p.closed &&
     p.completed &&
     p.dag is None &&
-    p.holding is Some(holding) else {
+    p.holding is Some(_) else {
     raise Physical(InvalidCharge)
   }
   guard p.source is Some(source) &&
@@ -253,18 +255,44 @@ pub fn native_host_open_dag(
     Ok(value) => value
     Err(issue) => raise Strategy(issue)
   }
+  native_host_retain_captured_task(run, dag, 0, observation)
+  dag
+}
+
+///|
+/// Transfer this issuer's exact completed capture into its validated DAG slot.
+/// The original reservation/holding and physical cleanup owner remain intact.
+#export_name("nativeHostRetainCapturedTask")
+pub fn native_host_retain_captured_task(
+  run : NativeNodeRun,
+  dag : @strategy.CapturedDAG,
+  task : Int,
+  observation : @duckdb_query.DuckDBNativeObservation,
+) -> Unit raise NodeHostFailure {
+  guard run.physical is Some(p) &&
+    !p.closed &&
+    p.completed &&
+    p.dag is None &&
+    p.holding is Some(holding) &&
+    p.source is Some(source) &&
+    p.observation is Some(expected) &&
+    physical_equal(expected, observation) &&
+    physical_equal(p.ledger, @strategy.captured_dag_ledger(dag)) &&
+    @strategy.captured_task_source_matches(dag, task, source) else {
+    raise Physical(InvalidCharge)
+  }
   match
     @strategy.retain_captured_task_allocation(
       dag,
-      0,
+      task,
       holding,
-      release_confirmed=p.release_confirmed,
+      // Closing a DAG cannot release storage still exposed by the issuer's
+      // source/evidence handle. Native close and external cleanup are separate.
+      release_confirmed=fn() { p.closed && (p.release_confirmed)() },
     ) {
     Ok(_) => {
-      p.dag = Some(dag)
+      p.dag = Some((dag, task))
       p.holding = None
-      p.source = None
-      dag
     }
     Err(issue) => raise Physical(issue)
   }
@@ -275,9 +303,10 @@ fn close_native_physical(run : NativeNodeRun) -> Unit {
   guard run.physical is Some(p) && !p.closed else { return }
   p.closed = true
   p.source = None
+  p.capture = None
   p.observation = None
-  if p.dag is Some(dag) {
-    @strategy.close_captured_task_output(dag, 0)
+  if p.dag is Some((dag, task)) {
+    @strategy.close_captured_task_output(dag, task)
   }
   refresh_native_physical(run)
 }
@@ -285,7 +314,7 @@ fn close_native_physical(run : NativeNodeRun) -> Unit {
 ///|
 fn refresh_native_physical(run : NativeNodeRun) -> Unit {
   guard run.physical is Some(p) && p.closed else { return }
-  if p.dag is Some(dag) {
+  if p.dag is Some((dag, _)) {
     @strategy.refresh_captured_retention(dag)
   }
   if !p.settled || !(p.release_confirmed)() {

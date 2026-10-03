@@ -125,6 +125,27 @@ test "Infer compilation reaches the shared Run owner with the checked barrier" {
       )
       is Err(@publication.RunEvidenceReferenceMismatch("model_capture")),
     )
+    // An acquired-input issuer cannot discharge model capture custody.
+    // Empty arrays exercise the early refusal, not acquired INFER support.
+    assert_true(
+      issue_client_compiled_multi_task_invocation(
+        admitted,
+        definition,
+        [],
+        [],
+        [],
+        [],
+        [],
+        "sha256:" + "e".repeat(64),
+        "sha256:" + "c".repeat(64),
+        "2026-10-01T00:00:00.000Z",
+        "2026-10-01T00:00:00.000Z",
+        100000,
+        10000,
+        100,
+      )
+      is Err(@publication.RunEvidenceReferenceMismatch("model_capture")),
+    )
     assert_eq(
       client_compiled_run_result_transformation(admitted, prepared, 0).unwrap()
       is Some(_),

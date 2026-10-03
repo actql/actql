@@ -72,6 +72,7 @@ import {authorizeLocalDatabase, revokeLocalDatabase} from
   '../connectors/duckdb/node/session.mjs';
 import {machineCid} from '../../scripts/actql-spec-family.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
+import {valuesPublicationOracle} from '../../scripts/client-values-dependency-oracle.mjs';
 
 const {DuckDBInstance} = createRequire(new URL(
   '../connectors/duckdb/node/package.json', import.meta.url))(
@@ -339,9 +340,15 @@ test('checked acquired source and downstream task emit their input ports',
       {message: 'InstalledSourcePreparationMismatch'});
       assert.equal(handedOff.outcome, 'not_started');
       assert.equal(handedOff.message, 'InstalledSourcePreparationMismatch');
-      await assert.rejects(openCapturedDuckDBSource({...sourceOptions,
-        preparedSource, transportLimits: {...sourceOptions.transportLimits,
-          maxRows: 1},
+      const smallerOptions = {...sourceOptions,
+        transportLimits: {...sourceOptions.transportLimits, maxRows: 1}};
+      await assert.rejects(openCapturedDuckDBSource({...smallerOptions, preparedSource,
+        reportAcquisitionFailure(failure) { handedOff = failure; }}),
+      {message: 'InstalledSourceResourcePolicyMismatch'});
+      assert.equal(handedOff.outcome, 'not_started');
+      const smallerPrepared = await prepareCapturedDuckDBSource(smallerOptions);
+      await assert.rejects(openCapturedDuckDBSource({...smallerOptions,
+        preparedSource: smallerPrepared,
         reportAcquisitionFailure(failure) { handedOff = failure; }}),
       {code: 'Rows'});
       assert.equal(handedOff.outcome, 'stopped');
@@ -379,9 +386,8 @@ test('checked acquired source and downstream task emit their input ports',
         return close.call(this);
       });
       try {
-        await assert.rejects(openCapturedDuckDBSource({...sourceOptions,
-          preparedSource, transportLimits: {...sourceOptions.transportLimits,
-            maxRows: 1},
+        await assert.rejects(openCapturedDuckDBSource({...smallerOptions,
+          preparedSource: smallerPrepared,
           reportAcquisitionFailure(failure) { handedOff = failure; }}),
         {code: 'Rows'});
         assert.equal(handedOff.outcome, 'unknown');
@@ -397,8 +403,13 @@ test('checked acquired source and downstream task emit their input ports',
       }
 
       let localHostOpens = 0;
+      let sourceChecks = 0;
       const postCaptureRuntime = {...moon,
-        clientProgramCapturedSourceMatches() { throw new Error('CapturedSourceCheckInjected'); },
+        clientProgramCapturedTaskSourceMatches(_prepared, _source, task) {
+          sourceChecks++;
+          assert.equal(task, 0);
+          throw new Error('CapturedSourceCheckInjected');
+        },
         clientProgramOpenCapturedLocalHost(...args) {
           localHostOpens++;
           return moon.clientProgramOpenCapturedLocalHost(...args);
@@ -408,6 +419,7 @@ test('checked acquired source and downstream task emit their input ports',
         moon: postCaptureRuntime,
         reportAcquisitionFailure(failure) { handedOff = failure; }}),
       {message: 'CapturedSourceCheckInjected'});
+      assert.equal(sourceChecks, 1);
       assert.equal(handedOff.outcome, 'stopped');
       assert.equal(localHostOpens, 0);
       const opened = await openCapturedDuckDBSource({...sourceOptions,
@@ -728,16 +740,20 @@ test('private Plan binding uses the escaped checked Unit Result name', async () 
   const body = checked(
     moon.clientProgramPublicationRowsBindingJson(prepared, 0, 0));
   const binding = JSON.parse(body);
-  const oldUnit = valuesUnitIdentity(renamed, true);
-  assert.equal(oldUnit,
-    'sha256:87fbe52e6d002927b0ef3808c1e34b64cc05f5fe72636a7b3e3b1bc26b4c55d0');
-  const oldBinding = valuesPublicationRowsBinding(oldUnit, 'a~/b');
-  assert.equal(oldBinding.resolved_limit_cid,
-    'sha256:af61d9586bf003fcbc3b11b9ae73618a17eba72f93fa05a858fa83a9d5df949c');
-  assert.equal(oldBinding.binding_cid,
-    'sha256:ecc6be2770eb2454dae19082be8a632b494dfa296af148a884752232698c81fa');
-  assert.deepEqual(binding,
-    valuesPublicationRowsBinding(valuesUnitIdentity(renamed), 'a~/b'));
+  const expected = valuesPublicationOracle({resultName: 'a~/b'});
+  assert.deepEqual([
+    binding.target.unit_definition_cid,
+    binding.target.result_name,
+    binding.subject_ref,
+    binding.resolved_limit_cid,
+    binding.binding_cid,
+  ], [
+    expected.unit,
+    'a~/b',
+    `unit:${expected.unit}#/results/a~0~1b/rows`,
+    expected.limits[0].resolved_limit_cid,
+    expected.bindings[0].binding_cid,
+  ]);
   assert.equal(binding.binding_cid,
     hashWithoutSelf(binding, 'binding_cid'));
   assert.doesNotThrow(() => checked(
@@ -1009,6 +1025,7 @@ function checkedValuesPublicationPlan(prepared, control,
 
 test('Node JS bridge derives the checked named Result and request identity', async () => {
   const {document, environment} = await checkedFixture();
+  const expected = valuesPublicationOracle();
   const prepared = moon.clientProgramPrepareEffectFree(
     document, 'json', environment);
   assert.ok(prepared);
@@ -1095,13 +1112,23 @@ test('Node JS bridge derives the checked named Result and request identity', asy
   const expectedPlan = valuesResultPlan(valuesUnitIdentity(source));
   assert.equal(moon.clientProgramResultPlanName(resultPlan), 'answer');
   assert.equal(moon.clientProgramResultPlanCid(resultPlan),
-    expectedPlan.result_plan_logical_cid);
+    expected.resultPlan);
   assert.equal(moon.clientProgramResultPlanCid(resultPlan),
     canonicalHashWithoutSelf(JSON.parse(resultPlanWire),
       'result_plan_logical_cid'));
   assert.equal(moon.clientProgramResultPlanRowContractCid(resultPlan),
     moon.clientProgramResultRowContractCid(resultRow));
-  assert.deepEqual(JSON.parse(resultPlanWire), expectedPlan);
+  assert.deepEqual(JSON.parse(resultPlanWire), {
+    version: 'actql-result-plan/0.1', result_name: 'answer',
+    unit_definition_cid: expected.unit,
+    unit_result_name: 'rows', unit_result_ordinal: 0,
+    projection: [{input: 'id', output: 'id', value_contract_cid:
+      'sha256:8a7be765d273ccfa06d916976f27fcb0404d814371e72c058502335b51b9bd3d'}],
+    order: {strategy: 'inherited', terms: []},
+    typed_output_port: {carrier: 'relation', name: 'rows',
+      row_contract_cid: moon.clientProgramResultRowContractCid(resultRow)},
+    result_plan_logical_cid: moon.clientProgramResultPlanCid(resultPlan),
+  });
   assert.equal(moon.clientProgramResultPlanWire(checked(
     moon.clientProgramAdmitResultPlan(prepared, 0, resultPlanWire))),
   resultPlanWire);
@@ -1304,7 +1331,7 @@ test('Node JS bridge derives the checked named Result and request identity', asy
     moon.clientProgramPublicationBytesLimitJson(prepared, 0, 0));
   const rowsLimit = JSON.parse(rowsLimitBody);
   const bytesLimit = JSON.parse(bytesLimitBody);
-  const unit = `unit:${valuesUnitIdentity(source)}`;
+  const unit = `unit:${expected.unit}`;
   assert.deepEqual([rowsLimit.subject_ref, bytesLimit.subject_ref],
     [`${unit}#/results/rows/rows`, `${unit}#/results/rows/bytes`]);
   assert.deepEqual([rowsLimit.unit, rowsLimit.effective_max,
@@ -1343,14 +1370,14 @@ test('Node JS bridge derives the checked named Result and request identity', asy
   const bytesBinding = JSON.parse(bytesBindingBody);
   const oldRows = valuesPublicationRowsBinding(oldUnit, 'rows');
   const oldBytes = valuesPublicationRowsBinding(oldUnit, 'rows', 'bytes');
+  const predecessor = valuesPublicationOracle({legacy: true});
+  assert.equal(oldUnit, predecessor.unit);
   assert.deepEqual([
     oldRows.resolved_limit_cid, oldBytes.resolved_limit_cid,
     oldRows.binding_cid, oldBytes.binding_cid,
   ], [
-    'sha256:d1b8cac20c88b332522c591586126319f5bd20393c081fb0bc9a27d38eece4d1',
-    'sha256:1d01310da1218b834d27dbcd7363f3c4a46f9b38a87173474e7ef45e0fede8da',
-    'sha256:cd90e6f813ff852cb0b453e2d862ee91e8051802217323fa950862e6d09edd51',
-    'sha256:82ab94c9ff4d94f6b11d7c9e27ddbcfd2a4b1c7b7312f062690a1c1963a581b7',
+    ...predecessor.limits.map(limit => limit.resolved_limit_cid),
+    ...predecessor.bindings.map(binding => binding.binding_cid),
   ]);
   assert.deepEqual(rowsBinding,
     valuesPublicationRowsBinding(valuesUnitIdentity(source), 'rows'));
@@ -2399,11 +2426,19 @@ async function effectFixture({splitSource = false,
   }
   environmentDocument.evidence_bundle_cid = canonicalHashWithoutSelf(
     environmentDocument, 'evidence_bundle_cid');
-  const environment = moon.clientProgramCheckEnvironment(
+  const environmentArgs = [
     canonicalJson(environmentDocument),
     environmentDocument.evidence_bundle_cid,
-    false, false, true, splitSource, false, false, false,
-  );
+    false, false, true, false, false, false, false,
+  ];
+  const environment = splitSource
+    ? moon.clientProgramCheckEnvironmentWithPropertyGraphProfile(
+      ...environmentArgs,
+      machineCid(JSON.parse(await readFile(new URL(
+        '../../spec/contracts/actql-numeric-reduction.json', import.meta.url), 'utf8'))),
+      machineCid(JSON.parse(await readFile(new URL(
+        '../../spec/dependencies/actql-property-graph-laws.json', import.meta.url), 'utf8'))))
+    : moon.clientProgramCheckEnvironment(...environmentArgs);
   assert.ok(environment);
   const document = JSON.parse(documentBody);
   if (sourceIds) {
@@ -2427,12 +2462,14 @@ async function effectFixture({splitSource = false,
       id: 'middle',
       inputs: {rows: {result: {stage: 'source', result: 'rows'}}},
       steps: [
-        {graph: {
-          nodes: {from: 'rows', id: 'id', fields: []},
-          edges: {from: 'rows', source: 'id', target: 'id', fields: []},
+        {property_graph: {
+          version: 'actql-property-graph-constructor/0.1',
+          nodes: [{name: 'N', from: 'rows', key: ['id'],
+            labels: [{name: 'Node', properties: {mode: 'all_columns'}}]}],
+          edges: [],
         }, as: 'g'},
-        {from: 'g', normalize_graph: true, as: 'normalized'},
-        {from: 'normalized', node_rows: true, as: 'projected'},
+        {from: 'g', match_nodes: {definition: 'N', label: 'Node',
+          where: 'true', fields: ['id']}, as: 'projected'},
         {from: 'projected', take: 2, as: 'selected'},
       ],
       results: {
@@ -5861,13 +5898,13 @@ async function verifySharedEffectSource({splitSource, expectedTask}) {
 
 test('two Effect members hold one completed Result independently', async () => {
   await verifySharedEffectSource({splitSource: false, expectedTask: 0});
-  await verifySharedEffectSource({splitSource: true, expectedTask: 4});
+  await verifySharedEffectSource({splitSource: true, expectedTask: 3});
 });
 
 test('Effect sources retain exact physical producers across split Stages',
   async () => {
     for (const [splitEffectSource, expectedTask] of [
-      ['consumer', 5], ['middle', 4], ['early', 3],
+      ['consumer', 4], ['middle', 3], ['early', 2],
     ]) {
       const {document, environment} = await effectFixture({
         splitSource: true, splitEffectSource,

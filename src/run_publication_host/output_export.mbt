@@ -171,6 +171,88 @@ pub fn prepare_captured_result_publication_export(
   } else {
     max_pins
   }
+  if task < @strategy.captured_compute_first_task(run) {
+    // A captured Source is already complete and has no cell Compute target.
+    // Keep its exact occurrence/owner and use the existing Source Result
+    // projection; an equal-looking replacement cell output is not authority.
+    if converted_output is Some(_) {
+      return Err(Output(ForeignMaterial))
+    }
+    let borrow = match
+      @strategy.borrow_captured_any_result_output(
+        run, task, occurrence, ceiling,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Retain(issue))
+    }
+    let preparation = match
+      @strategy.start_captured_any_result_borrow_export(
+        borrow,
+        {
+          max_fields: limits.max_result_fields,
+          max_mapping_work: limits.max_result_mapping_work,
+          max_order_work: limits.max_result_order_work,
+          max_workspace_entries: limits.max_result_workspace_entries,
+        },
+        limits.max_rows,
+        limits.values,
+        limits.payload_wire,
+        limits.logical_wire,
+        limits.schema,
+        limits.max_batch_bytes,
+      ) {
+      Ok(value) => value
+      Err(issue) => {
+        @strategy.release_captured_any_result_borrow(borrow) |> ignore
+        return Err(Output(issue))
+      }
+    }
+    // Each advance is bounded and the existing Result owner accounts for
+    // total rows, projection/order work, value nodes and retained bytes.
+    while true {
+      match
+        @execution.advance_completed_result_relation_export(preparation, 256) {
+        Ok((true, _)) => break
+        Ok((false, _)) => continue
+        Err(issue) => {
+          @execution.cancel_completed_result_relation_export(preparation)
+          |> ignore
+          @strategy.release_captured_any_result_borrow(borrow) |> ignore
+          return Err(Output(issue))
+        }
+      }
+    }
+    let stream = match
+      @execution.finish_completed_result_relation_export_preparation(
+        preparation,
+      ) {
+      Ok(value) => value
+      Err(issue) => {
+        @execution.cancel_completed_result_relation_export(preparation)
+        |> ignore
+        @strategy.release_captured_any_result_borrow(borrow) |> ignore
+        return Err(Output(issue))
+      }
+    }
+    return Ok({
+      stream,
+      retained: Some(Any(borrow)),
+      replay_values: limits.values,
+      replay_wire: limits.payload_wire,
+      max_batch_bytes: limits.max_batch_bytes,
+      definition: Some(definition),
+      declared_fields: Some(
+        @results.fields(
+          @results.port_result(
+            @execution.managed_result_occurrence_port(occurrence),
+          ),
+        ),
+      ),
+      receipt: None,
+      evidence: None,
+      artifact: None,
+    })
+  }
   let borrow = match
     @strategy.borrow_captured_result_completion(run, task, occurrence, ceiling) {
     Ok(value) => value

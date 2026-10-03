@@ -20,7 +20,7 @@ pub(all) enum LocalMaterializingIssue {
 
 ///|
 struct LocalMaterializingAttempt {
-  inputs : Array[@execution.ProducerRead]
+  inputs : Array[@execution.FixedRelationRead]
   imports : Array[@execution.CompletedOutputImport?]
   copies : Array[@execution.CompletedOutput?]
   limits : LocalImportLimits
@@ -37,7 +37,7 @@ struct LocalMaterializingAttempt {
   // existing owner is the sole accumulator, also for close-driven stop polls.
   mut provider_work : Result[Int64, ManagedProviderWorkIssue]
   // The reads given to the provider: imported copies rebind their producer.
-  mut reads : Array[@execution.ProducerRead]
+  mut reads : Array[@execution.FixedRelationRead]
   mut started : Bool
   mut closed : Bool
   mut settled : Bool
@@ -189,7 +189,8 @@ pub fn[E] prepare_local_materializing_execution(
   }
   let mut transfer = 0L
   for input in inputs {
-    if !@execution.producer_read_has_cell_access(input) {
+    if @execution.fixed_relation_read_completed(input) is Some(read) &&
+      !@execution.producer_read_has_cell_access(read) {
       if per_input > 9223372036854775807L - retention ||
         imports.wire.max_bytes.to_int64() > 9223372036854775807L - transfer {
         return Err(Capacity)
@@ -311,8 +312,15 @@ pub fn local_materializing_input(
   if attempt.closed || attempt.started {
     None
   } else {
-    attempt.inputs.get(port)
+    attempt.inputs.get(port).bind(@execution.fixed_relation_read_completed)
   }
+}
+
+///|
+pub fn local_materializing_input_count(
+  attempt : LocalMaterializingAttempt,
+) -> Int {
+  attempt.inputs.length()
 }
 
 ///|
@@ -453,14 +461,24 @@ pub fn advance_local_materializing_attempt(
       }
       let inputs = attempt.inputs.copy()
       for index, input in attempt.inputs {
-        match attempt.copies[index] {
-          Some(output) =>
-            match @execution.rebind_producer_representation(input, output) {
-              Ok(read) => inputs[index] = read
-              Err(_) => return Err(Candidate(ForeignPreparation))
+        match input {
+          @execution.CompletedRelation(read) =>
+            match attempt.copies[index] {
+              Some(output) =>
+                match @execution.rebind_producer_representation(read, output) {
+                  Ok(rebound) =>
+                    inputs[index] = @execution.fixed_completed_relation_read(
+                      rebound,
+                    )
+                  Err(_) => return Err(Candidate(ForeignPreparation))
+                }
+              None =>
+                if !@execution.producer_read_has_cell_access(read) {
+                  return Err(State)
+                }
             }
-          None =>
-            if !@execution.producer_read_has_cell_access(input) {
+          @execution.SuppliedRelation(read) =>
+            if !@execution.supplied_relation_read_available(read) {
               return Err(State)
             }
         }
@@ -471,7 +489,14 @@ pub fn advance_local_materializing_attempt(
         start_managed_provider_with_inputs_and_execution(
           attempt.provider,
           attempt.sequence,
-          inputs.map(managed_provider_relation_input),
+          inputs.map(input => {
+            match input {
+              @execution.CompletedRelation(read) =>
+                managed_provider_relation_input(read)
+              @execution.SuppliedRelation(read) =>
+                managed_provider_supplied_relation_input(read)
+            }
+          }),
           attempt.max_rows,
           attempt.max_value_bytes,
           attempt.execution,
@@ -513,19 +538,13 @@ pub fn advance_local_materializing_attempt(
     Ok(Complete(output, progress~, work~)) =>
       if bounded(progress, work, true) {
         // Anchor to the exact reads the provider was started with.
-        let anchored = match
+        let anchored = @execution.anchor_completed_output_fixed_inputs(
+          output,
           @execution.completion_preparation_selected_step(
             @execution.generated_completion_preparation(attempt.sequence),
-          ) {
-          Some(step) =>
-            @execution.anchor_completed_output_operation_inputs(
-              output,
-              step,
-              attempt.reads,
-            )
-          None =>
-            @execution.anchor_completed_output_inputs(output, attempt.reads)
-        }
+          ),
+          attempt.reads,
+        )
         guard anchored is Some(anchored) else {
           close_local_materializing_attempt(attempt)
           return Err(Candidate(ForeignPreparation))

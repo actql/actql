@@ -145,6 +145,12 @@ pub fn client_values_host_issue_task_invocation(@run_publication_host.PreparedCl
 
 pub fn client_values_host_issue_task_run_definition(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, @run_publication.RunPublicationAdmission, String, String, String, String) -> Result[@run_publication.PublicationContract, ClientValuesHostTaskDefinitionIssue]
 
+pub fn client_values_host_issue_task_run_materials(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @program_check.CheckEnvironment, String, String, String?) -> Result[String, @run_publication_host.ClientTaskRunMaterialsIssue]
+
+pub fn client_values_host_issue_task_succeeded_run_state_wire(@run_publication.PublicationContract, @run_publication_host.ClientTaskCompilation, String, Array[String], Array[String], Array[String], Array[String]) -> String?
+
+pub fn client_values_host_issue_task_unpublished_run_state_wire(@run_publication.PublicationContract, @run_publication_host.ClientTaskCompilation, String, Bool, Bool, Bool, Bool) -> String?
+
 pub fn client_values_host_issue_unpublished_run_state_wire(@run_publication.PublicationContract, @run_publication_host.ClientValuesCompilation, String, Bool, Bool, Bool, Bool) -> String?
 
 pub fn client_values_host_manifest_read_grant_allows_bytes(@run_publication.PublicationContract, Int) -> Bool
@@ -179,11 +185,15 @@ pub fn client_values_host_prepare_result_material_holds_step(@run_publication.Re
 
 pub fn client_values_host_prepare_run_start(@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool) -> Result[Int, @run_publication_host.ClientRunStartIssue]
 
+pub fn client_values_host_prepare_task_dispatch(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication_host.ClientRequestIdentity, Int, Int, String, String, Int, String, String, String, String, String, String, String, String) -> Result[@remote_site_protocol.DispatchRequest, @run_publication_host.ClientTaskDispatchIssue]
+
 pub fn client_values_host_project_committed_result_read_wire(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[@run_publication.PublicationContract]) -> String?
 
 pub fn client_values_host_project_publication_snapshot(@run_publication.PublicationContract?, Int, @run_publication.PublicationContract?) -> Result[Array[String], ClientValuesHostPublicationSnapshotIssue]
 
 pub fn client_values_host_project_site_run(@run_publication.PublicationContract, @run_publication_host.ClientValuesCompilation, String, String, String, Bool, Bool) -> Result[Array[String], Unit]
+
+pub fn client_values_host_project_task_site_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, String, String, String, Bool, Bool) -> Result[Array[String], Unit]
 
 pub fn client_values_host_publication_contract_identity(@run_publication.PublicationContract) -> String
 
@@ -273,11 +283,19 @@ pub fn client_values_host_run_evidence_value_wire(@run_publication.RunEvidenceVa
 
 pub fn client_values_host_seal_run_evidence_value(String, String, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValueIssue]
 
+pub fn client_values_host_source_evidence_facts(@run_publication_host.PreparedClientProgram, Int, Int) -> Array[String]?
+
 pub fn client_values_host_source_free_request_identity(@run_publication_host.PreparedClientProgram, String, String) -> Result[@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentityIssue]
 
 pub fn client_values_host_task_compiled_plan_wire(@run_publication_host.ClientTaskCompilation) -> String
 
+pub fn client_values_host_task_execution_shape(@run_publication_host.PreparedClientProgram) -> Array[Int]
+
 pub fn client_values_host_task_fact_manifest_wire(@run_publication_host.ClientTaskCompilation) -> String
+
+pub fn client_values_host_task_input_binding(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientTaskDispatchIssue]
+
+pub fn client_values_host_task_keys(@run_publication_host.PreparedClientProgram) -> Result[Array[String], @run_publication_host.ClientTaskFragmentIssue]
 
 pub fn client_values_host_task_plan_wire(@run_publication_host.ClientTaskCompilation) -> String
 

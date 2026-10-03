@@ -132,7 +132,7 @@ pub fn execute_synchronous_compute(
   }
   compute.started = true
   for input in compute.candidate.request.inputs {
-    if !@execution.producer_read_available(input) {
+    if !@execution.fixed_relation_read_available(input) {
       return Err(Compute(InputUnavailable))
     }
   }

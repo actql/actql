@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "packed-acquired-infer-acceptance",
+  "kind": "change",
+  "revision": "8771658ec4802bcd491e87fef2af84d0e1d1f75b",
+  "parents": [
+    "420ee65e556585667dc3d6c23f22ea2b5012a2d5"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "420ee65e556585667dc3d6c23f22ea2b5012a2d5",
+          "digest": "c85826b67599582e59441e4842354f291d6d6c986df76a4a3cc8adc15dc9ca9d",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "4d5a67fab548a9b8cf4719441809cc1841eb01ead5a3928efc4f4f2e3f41003f",
+      "afterMode": "100644",
+      "reason": "Run the independently authored packed acquired-input INFER acceptance in the Client job and retain its exact-checkout evidence. Preserve the existing packed acceptance commands and aggregate gate."
+    }
+  ]
+}

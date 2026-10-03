@@ -19,6 +19,7 @@ struct RemoteDispatchResponse {
   evidence : RemoteExecutionEvidence?
   subject : RemoteManagedOutputSubject?
   measurement : RemoteManagedOutputMeasurement?
+  source_observation : RemoteSourceObservation?
 }
 
 ///|
@@ -80,6 +81,7 @@ pub fn remote_dispatch_status_json(
   evidence : RemoteExecutionEvidence?,
   subject : RemoteManagedOutputSubject?,
   measurement : RemoteManagedOutputMeasurement?,
+  source_observation? : RemoteSourceObservation? = None,
 ) -> Result[String, DispatchIssue] {
   let state = dispatch_record_state_codes(record)
   let complete = evidence is Some(_) &&
@@ -87,6 +89,14 @@ pub fn remote_dispatch_status_json(
     measurement is Some(_)
   if (state[1] == 2) != complete {
     return Err(InvalidDispatch)
+  }
+  match source_observation {
+    Some(value) =>
+      if !complete ||
+        !remote_source_observation_matches_dispatch(value, record.request) {
+        return Err(InvalidDispatch)
+      }
+    None => ()
   }
   let evidence_values = match (evidence, subject, measurement) {
     (Some(execution), Some(output), Some(measured)) => {
@@ -151,6 +161,13 @@ pub fn remote_dispatch_status_json(
     @encode.number_value(writer, record.revision.to_double())
     @encode.key(writer, "state")
     emit_response_state(writer, record)
+    match source_observation {
+      Some(value) => {
+        @encode.key(writer, "source_observation")
+        @encode.string_value(writer, remote_source_observation_json(value))
+      }
+      None => ()
+    }
     @encode.key(writer, "subject")
     match evidence_values {
       Some(values) =>
@@ -353,7 +370,8 @@ pub fn admit_remote_dispatch_response_json(
     let common = ["dispatch_request_cid", "revision", "state", "version"]
     let names = match expected {
       DispatchReply => common
-      StatusReply => common + ["evidence", "measurement", "subject"]
+      StatusReply =>
+        common + ["evidence", "measurement", "source_observation", "subject"]
     }
     let object = response_decoded(@decode.closed_object(root, names))
     let expected_version = match expected {
@@ -380,6 +398,23 @@ pub fn admit_remote_dispatch_response_json(
       DispatchReply => (None, None, None)
       StatusReply => response_evidence(object, request)
     }
+    let source_observation = match
+      @decode.lookup(object, "source_observation") {
+      None => None
+      Some(cursor) => {
+        if expected != StatusReply ||
+          evidence is None ||
+          subject is None ||
+          measurement is None {
+          raise ResponseJsonStop
+        }
+        let wire = response_decoded(@decode.text(cursor))
+        match admit_remote_source_observation_json(wire, request) {
+          Ok(value) => Some(value)
+          Err(_) => raise ResponseJsonStop
+        }
+      }
+    }
     Ok({
       kind: expected,
       dispatch_request_cid: request.dispatch_request_cid,
@@ -392,6 +427,7 @@ pub fn admit_remote_dispatch_response_json(
       evidence,
       subject,
       measurement,
+      source_observation,
     })
   } catch {
     ResponseJsonStop => Err(InvalidDispatch)
@@ -477,4 +513,11 @@ pub fn remote_dispatch_response_measurement(
   response : RemoteDispatchResponse,
 ) -> RemoteManagedOutputMeasurement? {
   response.measurement
+}
+
+///|
+pub fn remote_dispatch_response_source_observation(
+  response : RemoteDispatchResponse,
+) -> RemoteSourceObservation? {
+  response.source_observation
 }

@@ -291,7 +291,7 @@ export function inferTaskRunAdmission(options) {
 // Retention and Result evidence reuse the ordinary publication plan. The
 // caller owns the returned binding until all Store users have settled.
 export function inferTaskPublicationPlan({moon, control, preparedProgram,
-  admitted, operation, issuance, modelEvidence, authorityScopeCid, namespaceId,
+  admitted, operation, issuance, modelEvidence, sourceEvidence = [], authorityScopeCid, namespaceId,
   storeAuthorityCid, now}) {
   control.checkClientCompiledRunOwner(admitted.compiled, preparedProgram);
   if (admitted.kind !== 'infer' || !Array.isArray(modelEvidence)) {
@@ -308,7 +308,7 @@ export function inferTaskPublicationPlan({moon, control, preparedProgram,
       compiledPlanCid: admitted.compiledPlan.identity,
       programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
       inputRelationCids: observation.captured_input_artifact_cids,
-      sourceEvidence: [], modelEvidence, authorityScopeCid, namespaceId,
+      sourceEvidence, modelEvidence, authorityScopeCid, namespaceId,
       storeAuthorityCid, dataPolicyCid: observation.data_policy_cid,
       createdAt: admitted.createdAt, now,
       resultCount: moon.clientProgramResultCount(preparedProgram),
@@ -400,6 +400,44 @@ export function acquiredTaskPublicationPlan({moon, control, acquired,
     programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
     inputRelationCids: [moon.clientProgramCapturedSourceLogicalCid(
       captured.identity)], sourceEvidence: [sourceEvidence],
+    authorityScopeCid, namespaceId, storeAuthorityCid,
+    dataPolicyCid: effectiveDataPolicyCid, createdAt: acquired.createdAt,
+    now, resultCount: moon.clientProgramResultCount(preparedProgram),
+    compiled: acquired.compiled, preparedProgram});
+}
+
+
+// The existing checked publication owner receives the complete occurrence
+// inventory. Each source evidence retains its own read policy; the final
+// publication policy is the checker's join of exact Result contributors.
+export function acquiredMultiTaskPublicationPlan({moon, control, acquired,
+  preparedProgram, sources, authorityScopeCid, effectiveDataPolicyCid,
+  captureStartedAt, captureCompletedAt, namespaceId, storeAuthorityCid, now}) {
+  control.checkClientCompiledRunOwner(acquired.compiled, preparedProgram);
+  if (!Array.isArray(sources) || sources.length !== 2 ||
+      moon.clientProgramPublicationDataPolicyCid(preparedProgram) !== effectiveDataPolicyCid ||
+      sources.some(({captured, sourceEvidenceWire}, task) =>
+        typeof sourceEvidenceWire !== 'string' || captured?.logicalInput === undefined ||
+        captured?.identity === undefined || captured?.requirement === undefined ||
+        !moon.clientProgramCapturedTaskSourceMatches(preparedProgram, captured.capture.source(), task))) {
+    throw new TypeError('InvalidAcquiredTaskPublication');
+  }
+  const observed = sources.map(source => ({...source,
+    inputLogicalWire: moon.strategyRunEvidenceJson(source.captured.logicalInput)}));
+  const {observation, invocation} = control.issueCheckedClientCompiledMultiInvocation(
+    acquired.compiled, acquired.runDefinition, {sources: observed, authorityScopeCid,
+      dataPolicyCid: effectiveDataPolicyCid, captureStartedAt, captureCompletedAt}, limits);
+  return localPublicationPlan({control, admission: acquired.admission,
+    runDefinition: acquired.runDefinition, invocation, observation,
+    compiledPlanCid: acquired.compiledPlan.identity,
+    programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
+    // Result derivation records a unique set of logical content dependencies.
+    // Equal content does not coalesce the occurrence-owned captures or either
+    // Source Evidence entry retained above in the Observation Set.
+    inputRelationCids: [...new Set(sources.map(source =>
+      moon.clientProgramCapturedSourceLogicalCid(source.captured.identity)))],
+    sourceEvidence: sources.map(source => control.admitRunEvidence('source_evidence',
+      source.sourceEvidenceWire, limits)),
     authorityScopeCid, namespaceId, storeAuthorityCid,
     dataPolicyCid: effectiveDataPolicyCid, createdAt: acquired.createdAt,
     now, resultCount: moon.clientProgramResultCount(preparedProgram),

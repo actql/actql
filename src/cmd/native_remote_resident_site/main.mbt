@@ -68,6 +68,61 @@ fn load_text(
 }
 
 ///|
+/// A local operator configures the physical Source. No Program, Run
+/// materials or Cloud dispatch can supply a path, table or library here.
+fn source_configuration(
+  matches : @argparse.Matches,
+  engine_root : String,
+  max_file_bytes : Int64,
+) -> @resident_host.ResidentSourceConfiguration? raise CommandStop {
+  let names = [
+    "source-ref", "source-contract-cid", "source-database", "source-schema", "source-table",
+    "duckdb-library",
+  ]
+  if names.all(name => optional(matches, name) is None) {
+    return None
+  }
+  // A partial physical mapping must fail closed before any database open.
+  for name in names {
+    required(matches, name) |> ignore
+  }
+  let library = match
+    @duckdb.load_library(required(matches, "duckdb-library")) {
+    Ok(value) => value
+    Err(_) => stop("failed to load configured DuckDB library")
+  }
+  Some({
+    source_ref: required(matches, "source-ref"),
+    source_contract_cid: required(matches, "source-contract-cid"),
+    library,
+    database_path: required(matches, "source-database"),
+    memory_bytes: required_int64(matches, "budget-execution-bytes"),
+    database_schema: required(matches, "source-schema"),
+    table: required(matches, "source-table"),
+    query_contract_body: load_text(
+      engine_root, "query-contract.json", max_file_bytes,
+    ),
+    evidence_contract_body: load_text(
+      engine_root, "query-evidence-contract.json", max_file_bytes,
+    ),
+    two_receipt_contract_body: load_text(
+      engine_root, "query-two-receipt-contract.json", max_file_bytes,
+    ),
+    fragment_contract_body: load_text(
+      engine_root, "fragment.json", max_file_bytes,
+    ),
+    ledger: {
+      planning_work: 100000,
+      attempts: 1,
+      holdings: 1,
+      transfer_bytes: required_int64(matches, "max-output-bytes"),
+      retained_bytes: required_int64(matches, "budget-retained-bytes"),
+      execution_bytes: required_int64(matches, "budget-execution-bytes"),
+    },
+  })
+}
+
+///|
 /// The normal path always reads the current system clock. The optional root
 /// is an acceptance-test clock, owned by the local test (never dispatch data).
 /// Missing/invalid clock bytes fail the existing lifetime check closed.
@@ -110,6 +165,9 @@ fn refusal_code(refusal : @resident.ResidentDispatchRefusal) -> String {
     UnsupportedBudget => "unsupported-budget"
     MaterialsMissing => "materials-missing"
     MaterialsRejected(_) => "materials-rejected"
+    TaskMaterialsRejected(_) => "task-materials-rejected"
+    ForeignSource => "foreign-source"
+    UnsupportedTask => "unsupported-task"
     NotCurrent => "not-current"
     QueueFull => "queue-full"
   }
@@ -142,10 +200,35 @@ fn host_code(issue : @resident_host.ResidentHostIssue) -> String {
     EnvelopeMissing => "envelope-missing"
     Refused(refusal) => "refused-" + refusal_code(refusal)
     Values(_) => "values"
+    Source(issue) => source_code(issue)
     Runtime(@runtime.StartClaimLost(_)) => "start-claim-lost"
     Runtime(@runtime.StartCancelled) => "start-cancelled"
     Runtime(@runtime.ExecutorEntryUnrecorded) => "executor-entry-unrecorded"
     Runtime(issue) => "runtime-" + runtime_code(issue)
+  }
+}
+
+///|
+// Stable categories expose the failing boundary without physical paths,
+// credentials, SQL or the configured Source document.
+fn source_code(issue : @resident_host.ResidentSourceIssue) -> String {
+  match issue {
+    UnsupportedSource => "source-unsupported"
+    ForeignInput => "source-foreign-input"
+    Query(Sequences) => "source-query-sequences"
+    Query(MissingStage) => "source-query-stage"
+    Query(Requirement(_)) => "source-query-requirement"
+    Acquisition(InvalidSource) => "source-acquisition-source"
+    Acquisition(InvalidContracts) => "source-acquisition-contracts"
+    Acquisition(Preparation) => "source-acquisition-preparation"
+    Acquisition(Registration) => "source-acquisition-registration"
+    Acquisition(Candidate) => "source-acquisition-candidate"
+    Acquisition(Selection) => "source-acquisition-selection"
+    Binding(_) => "source-physical-binding"
+    Task(_) => "source-task-binding"
+    Fragment(_) => "source-task-fragment"
+    Inventory(_) => "source-result-inventory"
+    Standard(_) => "source-standard-executor"
   }
 }
 
@@ -400,7 +483,9 @@ fn close_site_environment(environment : SiteEnvironment) -> Unit {
 }
 
 ///|
-fn run_admission() -> @resident_host.ResidentRunAdmission raise CommandStop {
+fn run_admission(
+  matches : @argparse.Matches,
+) -> @resident_host.ResidentRunAdmission raise CommandStop {
   let manifests = match
     @host.admit_client_compilation_manifests(
       @environment.compiler_grammar_manifest_wire(),
@@ -413,8 +498,17 @@ fn run_admission() -> @resident_host.ResidentRunAdmission raise CommandStop {
     Err(_) => stop("compiler manifests admission failed")
   }
   {
-    // This implementation runs source-free Values Runs with the relation
-    // profile only.
+    source: match
+      (
+        optional(matches, "source-ref"),
+        optional(matches, "source-contract-cid"),
+      ) {
+      (Some(source_ref), Some(source_contract_cid)) =>
+        Some((source_ref, source_contract_cid))
+      (None, None) => None
+      _ => stop("incomplete Source admission configuration")
+    },
+    // Both Values and read-only Source tasks use the checked relation profile.
     expressions: { text_time: false, veca: false, },
     operations: {
       rela: true,
@@ -1131,7 +1225,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
   let observation_url = required(matches, "observation-url")
   let dispatch_budget = budget(matches)
   let site_delegation = delegation(matches, dispatch_budget)
-  let admission = run_admission()
+  let admission = run_admission(matches)
   let generation = required_int(matches, "site-generation")
   let queue = match
     @resident.ResidentAcceptedQueue::new(
@@ -2100,6 +2194,7 @@ fn run_holder(
   let values_body = load_text(values_root, "values.json", max_file_bytes)
   let output_bytes = required_int64(matches, "max-output-bytes")
   let execution : @resident_host.ResidentExecution = {
+    source: source_configuration(matches, values_root, max_file_bytes),
     site: environment.site,
     active_runtime: environment.active_runtime,
     operation_capability_cid: required(matches, "operation-capability-cid"),
@@ -2203,7 +2298,7 @@ fn run_holder(
   let result = @resident_host.execute_resident_attempt(
     environment.journal,
     execution,
-    run_admission(),
+    run_admission(matches),
     required(holder, "attempt"),
     claimant,
     // Read the holder clock at each authority check, not before rebuilding
@@ -2431,6 +2526,12 @@ fn command() -> @argparse.Command {
       global("budget-retained-bytes"),
       global("budget-execution-bytes"),
       global("engine-root"),
+      global("duckdb-library"),
+      global("source-ref"),
+      global("source-contract-cid"),
+      global("source-database"),
+      global("source-schema"),
+      global("source-table"),
       global("executor-entry-log"),
       global("test-clock-root"),
       defaulted("queue-capacity", "4"),

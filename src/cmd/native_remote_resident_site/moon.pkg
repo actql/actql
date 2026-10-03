@@ -23,6 +23,7 @@ import {
   "actql/actql/remote_resident_site" @resident,
   "actql/actql/remote_site_protocol" @remote,
   "actql/actql/run_publication_host" @host,
+  "actql/actql/connectors/duckdb/adapters/native" @duckdb,
   "moonbitlang/core/argparse",
   "moonbitlang/core/env",
   "moonbitlang/core/string",

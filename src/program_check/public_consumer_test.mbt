@@ -559,10 +559,16 @@ fn public_effect_mapping_closure(
   split_before? : Bool = false,
 ) -> Unit raise {
   let (plain, _, _, evidence, base_limits) = public_input_fixture(generated~)
+  // A new-profile Graph boundary keeps the Effect binding regression without
+  // depending on retired tuple identities or unsupported normalization.
+  let graph_steps =
+    #|{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"rows","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}],"edges":[]},"as":"g"},{"from":"g","match_nodes":{"definition":"N","label":"Node","where":"true","fields":["id","value"]},"as":"projected"},{"from":"projected","filter":"true","as":"selected"}
   let plain = if split_before {
     plain.replace(
       old="},{\"id\":\"consumer\",\"inputs\":{\"rows\":{\"result\":{\"stage\":\"producer\",\"result\":\"out\"}}}",
-      new="},{\"id\":\"middle\",\"inputs\":{\"rows\":{\"result\":{\"stage\":\"producer\",\"result\":\"out\"}}},\"steps\":[{\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\",\"fields\":[\"value\"]},\"edges\":{\"from\":\"rows\",\"source\":\"id\",\"target\":\"id\",\"fields\":[]}},\"as\":\"g\"},{\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{\"from\":\"normalized\",\"node_rows\":true,\"as\":\"projected\"},{\"from\":\"projected\",\"filter\":\"true\",\"as\":\"selected\"}],\"results\":{\"out\":{\"from\":\"selected\",\"fields\":[\"id\",\"value\"]}}},{\"id\":\"consumer\",\"inputs\":{\"rows\":{\"result\":{\"stage\":\"middle\",\"result\":\"out\"}}}",
+      new="},{\"id\":\"middle\",\"inputs\":{\"rows\":{\"result\":{\"stage\":\"producer\",\"result\":\"out\"}}},\"steps\":[" +
+        graph_steps +
+        "],\"results\":{\"out\":{\"from\":\"selected\",\"fields\":[\"id\",\"value\"]}}},{\"id\":\"consumer\",\"inputs\":{\"rows\":{\"result\":{\"stage\":\"middle\",\"result\":\"out\"}}}",
     )
   } else {
     plain
@@ -578,6 +584,14 @@ fn public_effect_mapping_closure(
           steps: 10,
           results: 3,
         },
+      },
+    }
+  } else if split_source {
+    {
+      ..base_limits,
+      compilation: {
+        ..base_limits.compilation,
+        structure: { ..base_limits.compilation.structure, steps: 6, },
       },
     }
   } else {
@@ -596,7 +610,7 @@ fn public_effect_mapping_closure(
     .replace(
       old="{\"take\":1,\"as\":\"selected\"}",
       new=if split_source {
-        "{\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\",\"fields\":[\"value\"]},\"edges\":{\"from\":\"rows\",\"source\":\"id\",\"target\":\"id\",\"fields\":[]}},\"as\":\"g\"},{\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{\"from\":\"normalized\",\"node_rows\":true,\"as\":\"projected\"},{\"from\":\"projected\",\"filter\":\"true\",\"as\":\"selected\"}"
+        graph_steps
       } else {
         "{\"take\":1,\"as\":\"selected\"}"
       },
@@ -642,13 +656,8 @@ fn public_effect_mapping_closure(
   let environment = @program_check.checking_environment(
     wire,
     { text_time: false, veca: false, },
-    {
-      rela: true,
-      sga: split_source || split_before,
-      tea: false,
-      calendar: false,
-      text_rank: false,
-    },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    property_graph=split_source || split_before,
   )
   match
     @program_check.prepare_effect_computation_candidate(
@@ -672,7 +681,12 @@ fn public_effect_mapping_closure(
     limits,
     2,
     2,
-  ).unwrap()
+  )
+  let candidate = match candidate {
+    Ok(candidate) => candidate
+    Err(Computation(issue)) => raise issue
+    _ => fail("Effect fixture admission failed")
+  }
   let mappings = @environment.check_mapping_contract_shapes(
     wire,
     { max_bytes: 20000, max_nodes: 2000, max_depth: 100, max_members: 100, },
@@ -751,16 +765,18 @@ fn public_effect_mapping_closure(
     },
   )
   if split_source {
+    // One producer task, then constructor, MATCH and filter. The intermediate
+    // Result belongs to MATCH; the final Result belongs to the following filter.
     assert_eq(
       @strategy.checked_effect_source_task(first_source),
       if split_intermediate {
-        3
+        2
       } else {
-        4
+        3
       },
     )
   } else if split_before {
-    assert_eq(@strategy.checked_effect_source_task(first_source), 5)
+    assert_eq(@strategy.checked_effect_source_task(first_source), 4)
   } else {
     assert_eq(@strategy.checked_effect_source_task(first_source), 1)
   }
@@ -807,7 +823,7 @@ fn public_effect_mapping_closure(
       @strategy.graph_task_count(
         @strategy.checked_effect_computation_graph(graph_owner),
       ),
-      6,
+      5,
     )
     return
   }
@@ -826,7 +842,7 @@ fn public_effect_mapping_closure(
       @strategy.checked_effect_computation_graph(graph_owner),
     ),
     if split_source {
-      5
+      4
     } else {
       2
     },
@@ -1804,13 +1820,13 @@ fn public_source_limits(stage_count : Int) -> @program_check.CompileLimits {
 
 ///|
 test "Effect source binds the final physical task of a split Stage" {
-  public_effect_mapping_closure(false, split_source=true)
+  public_effect_mapping_closure(true, split_source=true)
 }
 
 ///|
 test "Effect source binds an intermediate physical task of a split Stage" {
   public_effect_mapping_closure(
-    false,
+    true,
     split_source=true,
     split_intermediate=true,
   )
@@ -1818,5 +1834,5 @@ test "Effect source binds an intermediate physical task of a split Stage" {
 
 ///|
 test "Effect source follows a preceding split Stage" {
-  public_effect_mapping_closure(false, split_before=true)
+  public_effect_mapping_closure(true, split_before=true)
 }

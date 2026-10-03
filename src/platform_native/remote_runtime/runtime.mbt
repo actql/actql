@@ -26,6 +26,7 @@ struct NativeRemoteOutput {
     String,
   ]
   release : () -> Bool
+  source_observation : @remote.RemoteSourceObservation?
 }
 
 ///|
@@ -287,6 +288,7 @@ pub fn prepare_native_remote_output(
           open_reader,
           open_manifest_reader,
           release,
+          source_observation: None,
         }),
       )
     Err(_) => Err(OutputRejected)
@@ -1417,7 +1419,11 @@ fn NativeRemoteRuntime::run_success(
         }
         match
           self.journal.commit_evidence_transition(
-            transition, evidence, subject, measurement,
+            transition,
+            evidence,
+            subject,
+            measurement,
+            source_observation=output.source_observation,
           ) {
           Ok(_) => {
             owner.evidence = Some(evidence)
@@ -1443,6 +1449,41 @@ fn NativeRemoteRuntime::run_success(
     }
   } nobreak {
     Err(Protocol(@remote.InvalidTransition))
+  }
+}
+
+///|
+/// Attach a completed Source candidate to its exact physical output owner.
+/// A rejected attachment retains that owner's stop/cleanup responsibility;
+/// it never discards the output or re-executes its provider.
+pub fn attach_native_remote_source_observation(
+  execution : NativeRemotePhysicalExecution,
+  request : @remote.DispatchRequest,
+  task : Int,
+  observation : @remote.RemoteSourceObservation,
+) -> NativeRemotePhysicalExecution {
+  match execution {
+    NativeRemoteExecutionFailed(_) => execution
+    NativeRemoteOutputReady(output) => {
+      let facts = @remote.remote_source_observation_projection(observation)
+      if output.source_observation is Some(_) ||
+        facts.0 != task ||
+        !@remote.remote_source_observation_matches_dispatch(
+          observation, request,
+        ) {
+        return prepare_native_remote_failure(
+          "foreign-source-observation",
+          false,
+          true,
+          false,
+          output.release,
+        ).unwrap()
+      }
+      NativeRemoteOutputReady({
+        ..output,
+        source_observation: Some(observation),
+      })
+    }
   }
 }
 

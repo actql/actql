@@ -42,7 +42,18 @@ pub fn prepare_duckdb_query(
     Err(issue) => return Err(issue)
   }
   let native = match
-    @duckdb.compile_native_filter_select(owner, database_schema, table, limits) {
+    @duckdb.compile_native_filter_select_prefix(
+      @execution.generated_prepared_sequence(
+        @query.query_generated_sequence(
+          @planning.query_material_owner(
+            @planning.query_requirement_material(requirement),
+          ),
+        ),
+      ),
+      database_schema,
+      table,
+      limits,
+    ) {
     Err(issue) => Err(DuckDBNativeIssue::Compilation(issue))
     Ok(query) =>
       match

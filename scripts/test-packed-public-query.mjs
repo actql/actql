@@ -40,31 +40,41 @@ for (const [source, destination] of [
   ['scripts/fixtures/public-query-input.mjs', 'public-query-input.mjs'],
   ['scripts/fixtures/string-values-restart.mjs', 'string-values-restart.mjs'],
   ['scripts/fixtures/packed-public-query.mjs', 'acceptance.mjs'],
+  ['scripts/fixtures/packed-two-source-public-query.mjs', 'packed-two-source-public-query.mjs'],
+  ['scripts/fixtures/packed-two-source-example.mjs', 'packed-two-source-example.mjs'],
+  ['scripts/fixtures/planner-selection-public-query.mjs', 'planner-selection-public-query.mjs'],
+  ['scripts/fixtures/packed-planner-selection.mjs', 'packed-planner-selection.mjs'],
+  ['scripts/fixtures/two-source-public-query.mjs', 'two-source-public-query.mjs'],
+  ['scripts/fixtures/two-source-restart.mjs', 'two-source-restart.mjs'],
   ['adapters/host-node/fixtures/query-amount-environment.json', 'source-environment.json'],
   ['spec/local-check-environment.json', 'base-environment.json'],
   ['spec/frontend/fixtures/pipe-scope/cases.json', 'pipe-scope-cases.json'],
   ['spec/frontend/fixtures/join-order/cases.json', 'join-order-cases.json'],
-  ['scripts/accept-sga-public-source.mjs', 'accept-sga-public-source.mjs'],
-  ['scripts/reach-selector-capacity-fixture.mjs', 'reach-selector-capacity-fixture.mjs'],
+  ['spec/frontend/fixtures/data-set-strategy/repro-program.json', 'data-set-strategy-program.json'],
   ['scripts/fixtures/packed-sga-cancellation.mjs', 'sga-cancellation.mjs'],
+  ['scripts/property-graph-public-host.test.mjs', 'property-graph-public-host.test.mjs'],
+  ['scripts/check-canonical-json.mjs', 'check-canonical-json.mjs'],
+  ['docs/reviews/2026-09-19-sga-veca-tea-local-coverage.json', 'local-family-coverage.json'],
 ]) {
   await writeFile(join(root, destination), await readFile(join(repository, source)));
 }
-await mkdir(join(root, 'sga-source-fixtures'));
-for (const name of ['normalize-rows', 'mean-graphs', 'traverse-paths',
-  'shortest-path',
-  'reach-selector', 'reach-selector-duplicates', 'reach-selector-empty',
-  'reach-selector-nullable',
-  'union-graphs', 'graft-graphs', 'subtract-graphs', 'degree-rows',
-  'components', 'graph-bounds', 'match-projections', 'reach-subgraph',
-  'graphs-equal', 'diff-apply']) {
-  for (const suffix of ['named.aql', 'expected-program.json', 'expected-results.json']) {
-    const file = `${name}.${suffix}`;
-    await writeFile(join(root, 'sga-source-fixtures', file),
-      await readFile(join(repository,
-        'spec/frontend/fixtures/sga-surface', file)));
-  }
+await mkdir(join(root, 'two-source-fixtures'));
+for (const name of ['database-rows.json', 'two-source-join.program.json',
+  'two-source-join.expected.json', 'equal-content-join.expected.json',
+  'left-only.program.json', 'left.environment.json', 'right.environment.json']) {
+  await writeFile(join(root, 'two-source-fixtures', name), await readFile(join(repository,
+    'adapters/host-node/fixtures/two-source', name)));
 }
+// Copy the exact documented example and its shared JSON fixtures.
+const exampleReadme = await readFile(join(repository,
+  'examples/two-source-join/README.md'), 'utf8');
+const exampleCommands = [...exampleReadme.matchAll(/```bash\n([\s\S]*?)\n```/gu)];
+assert.equal(exampleCommands.length, 2);
+run('bash', ['-eu', '-c', exampleCommands[0][1]], root,
+  {...environment, ACTQL_CHECKOUT: repository});
+await mkdir(join(root, 'fixtures'));
+await writeFile(join(root, 'fixtures/property-graph-parallel.program.json'),
+  await readFile(join(repository, 'scripts/fixtures/property-graph-parallel.program.json')));
 run('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
   '-keyout', 'remote.key', '-out', 'remote.crt', '-days', '1',
   '-subj', '/CN=localhost',
@@ -78,6 +88,9 @@ const runtimeEnvironment = {...environment,
   NODE_EXTRA_CA_CERTS: join(root, 'remote.crt')};
 if (process.argv.includes('--source-free-only')) {
   runtimeEnvironment.ACTQL_TEST_SOURCE_FREE_ONLY = '1';
+}
+if (process.argv.includes('--data-set-strategy-only')) {
+  runtimeEnvironment.ACTQL_TEST_DATA_SET_STRATEGY_ONLY = '1';
 }
 if (process.argv.includes('--query-composition-only')) {
   runtimeEnvironment.ACTQL_TEST_QUERY_COMPOSITION_ONLY = '1';
@@ -93,6 +106,9 @@ if (process.argv.includes('--alias-scope-only')) {
 }
 if (process.argv.includes('--infer-refusal-only')) {
   runtimeEnvironment.ACTQL_TEST_INFER_REFUSAL_ONLY = '1';
+}
+if (process.argv.includes('--two-source-only')) {
+  runtimeEnvironment.ACTQL_TEST_TWO_SOURCE_ONLY = '1';
 }
 for (const name of ['NODE_PATH', 'NODE_OPTIONS', 'MOON_HOME', 'ACTQL_LOCAL_SOURCE_PROFILE',
   'ACTQL_LOCAL_EFFECT_PROFILE', 'ACTQL_LOCAL_STATE_DIR']) {
@@ -127,26 +143,71 @@ if (process.argv.includes('--cancellation-only')) {
     runtimeEnvironment, 120000).trimEnd());
   return;
 }
-const output = run(process.execPath, ['acceptance.mjs'], root,
-  runtimeEnvironment, 900_000);
-console.log(output.trimEnd());
+const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
+const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
+const narrowPublicQuery = process.argv.some(flag => ['--source-free-only',
+  '--query-composition-only', '--pipe-result-only', '--join-order-only',
+  '--alias-scope-only', '--infer-refusal-only', '--two-source-only',
+  '--data-set-strategy-only'].includes(flag));
+try {
+  if (!plannerSelectionOnly && !twoSourceExampleOnly) {
+    const output = run(process.execPath, ['acceptance.mjs'], root,
+      runtimeEnvironment, 900_000);
+    console.log(output.trimEnd());
+  }
+  // The same packed installation executes this bounded candidate corpus once.
+  // Cost inputs go to the Host profile; the public Program never chooses a route.
+  if (plannerSelectionOnly || !narrowPublicQuery && !twoSourceExampleOnly) {
+    console.log(run(process.execPath, ['packed-planner-selection.mjs'], root,
+      runtimeEnvironment, 180_000).trimEnd());
+  }
+  if (twoSourceExampleOnly || !plannerSelectionOnly && !narrowPublicQuery) {
+    console.log(run(process.execPath, ['packed-two-source-example.mjs'], root,
+      runtimeEnvironment, 180_000).trimEnd());
+  }
+} finally {
+  try {
+    await writeFile(join(directory, 'two-source-example.json'),
+      await readFile(join(root, 'two-source-example-report.json')));
+  } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  // Preserve two-source observations beside existing command/tarball evidence
+  // before the harness removes its installed consumer, including on failure.
+  try {
+    await writeFile(join(directory, 'two-source-acceptance.json'),
+      await readFile(join(root, 'two-source-packed-report.json')));
+  } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  try {
+    await writeFile(join(directory, 'planner-selection-acceptance.json'),
+      await readFile(join(root, 'planner-selection-packed-report.json')));
+  } catch (error) { if (error.code !== 'ENOENT') throw error; }
+}
+if (plannerSelectionOnly || twoSourceExampleOnly) return;
 // The first Host process has exited: no live Local installation still owns
 // its Store. Restore retained Results in a new process without resubmission.
 // Narrow selections without the String fixture have no retained String Run.
 // Keep restart acceptance for full/source-free selections that create it.
 if (!process.argv.some(flag => ['--alias-scope-only', '--infer-refusal-only',
-  '--join-order-only', '--query-composition-only', '--pipe-result-only'].includes(flag))) {
+  '--join-order-only', '--query-composition-only', '--pipe-result-only',
+  '--data-set-strategy-only', '--two-source-only'].includes(flag))) {
   console.log(run(process.execPath, ['string-values-restart.mjs'], root,
     runtimeEnvironment, 120000).trimEnd());
 }
 if (process.argv.includes('--source-free-only') ||
+  process.argv.includes('--data-set-strategy-only') ||
   process.argv.includes('--query-composition-only') ||
   process.argv.includes('--pipe-result-only') ||
   process.argv.includes('--alias-scope-only') ||
   process.argv.includes('--infer-refusal-only') ||
+  process.argv.includes('--two-source-only') ||
   process.argv.includes('--join-order-only')) return;
 console.log(run(process.execPath, ['sga-cancellation.mjs'], root,
   runtimeEnvironment, 120000).trimEnd());
+await mkdir(join(root, 'tls'));
+await writeFile(join(root, 'tls/site.key'), await readFile(join(root, 'remote.key')));
+await writeFile(join(root, 'tls/site.crt'), await readFile(join(root, 'remote.crt')));
+await writeFile(join(root, 'tls/ca.crt'), await readFile(join(root, 'remote.crt')));
+console.log(run(process.execPath, ['--test', 'property-graph-public-host.test.mjs'], root,
+  {...runtimeEnvironment, ACTQL_PROPERTY_GRAPH_PACKED: '1'}, 180000).trimEnd());
 run('moon', ['build', '--target', 'native', '--release',
   'src/cmd/native_client'], repository, environment);
 const nativeClient = join(repository, '_build/native/release/build/cmd',

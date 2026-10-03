@@ -44,6 +44,10 @@ pub fn finish_local_materializing_input(LocalMaterializingAttempt, Int) -> Resul
 
 pub fn finish_local_output_export(LocalMaterializingAttempt) -> Result[(@execution_relation.AdmittedOutputStreamReceipt, String), LocalMaterializingIssue]
 
+pub fn guarded_relation_completed_output(GuardedRelationExecution) -> @execution_relation.CompletedOutput?
+
+pub fn guarded_relation_execution(GuardedRelationExecution) -> ManagedProviderExecution
+
 pub fn install_local_export_retention(LocalMaterializingAttempt, () -> Bool) -> Result[Unit, LocalMaterializingIssue]
 
 pub fn local_bounded_relation_provider(@execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.GeneratedSequence) -> ManagedProvider?
@@ -67,6 +71,8 @@ pub fn local_materializing_cumulative_work(LocalMaterializingAttempt) -> Result[
 pub fn local_materializing_guard_usage(LocalMaterializingAttempt) -> (Int, Int, Int)?
 
 pub fn local_materializing_input(LocalMaterializingAttempt, Int) -> @execution_relation.ProducerRead?
+
+pub fn local_materializing_input_count(LocalMaterializingAttempt) -> Int
 
 pub fn local_materializing_provider_work(LocalMaterializingAttempt) -> Int64?
 
@@ -142,6 +148,8 @@ pub fn managed_provider_execution((Int) -> Result[ManagedProviderPoll, @connecto
 
 pub fn managed_provider_failed(@connector_sdk.FixedComputeIssue, Int64, Int64) -> ManagedProviderPoll
 
+pub fn managed_provider_record_handoff_work(ManagedProviderExecution, Int64) -> Result[Unit, ManagedProviderWorkIssue]
+
 pub fn managed_provider_relation_input(@execution_relation.ProducerRead) -> ManagedProviderInput
 
 pub fn managed_provider_runs_numeric(ManagedProvider) -> Bool
@@ -158,6 +166,8 @@ pub fn managed_provider_with_numeric((@execution_relation.GeneratedSequence) -> 
 
 pub fn next_local_output_export(LocalMaterializingAttempt) -> Result[String?, LocalMaterializingIssue]
 
+pub fn prepare_guarded_supplied_relation(@execution_relation.GeneratedSequence, @execution_relation.SuppliedRelationRead, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int, Int, max_name_bytes~ : Int) -> Result[GuardedRelationExecution, @connector_sdk.FixedComputeIssue]
+
 pub fn prepare_local_compute_execution(@connector_sdk.FixedComputeChoice, @connector_sdk.PreparedCompute[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, join_output_ceiling? : (Int, Int64)?, join_output_ceilings? : Array[(Int, Int64)]) -> Result[@connector_sdk.SynchronousCompute, @connector_sdk.FixedComputeIssue]
 
 pub fn prepare_local_compute_module(@connector_sdk.CapabilityRegistry, @connector_sdk.CapabilityRegistration, Array[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int, Int, managed_capacity? : @connector_sdk.FixedComputeCapacity, managed_providers? : Array[ManagedProvider]) -> Result[LocalComputeModule, @connector_sdk.FixedComputeIssue]
@@ -172,6 +182,8 @@ pub fn[T] prepare_local_module_managed_compute_with_estimates(LocalComputeModule
 
 pub fn[E] prepare_local_module_materializing_compute(LocalComputeModule, Int, @connector_sdk.FixedComputeRequest, LocalImportLimits, (LocalMaterializingIssue) -> E, (Int, Int64)?, output_limits? : LocalExportLimits?, join_output_ceilings? : Array[(Int, Int64)], expansion_output_ceilings? : Array[(Int, Int64)], session_output_ceilings? : Array[(Int, Int64)], interval_search_ceilings? : Array[(Int, Int64)], asof_search_ceilings? : Array[(Int, Int64)], sequence_match_ceilings? : Array[(Int, Int64, Int64)], aggregate_output_ceilings? : Array[@connector_sdk.AggregateOutputCeiling], analytic_envelopes? : Array[@connector_sdk.AnalyticEnvelope]) -> Result[@connector_sdk.PreparedExecution[LocalMaterializingAttempt, E], LocalModuleIssue]
 
+pub fn start_guarded_supplied_relation(@execution_relation.GeneratedSequence, @execution_relation.SuppliedRelationRead, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int, Int, max_name_bytes~ : Int) -> Result[ManagedProviderExecution, @connector_sdk.FixedComputeIssue]
+
 pub fn start_managed_provider(ManagedProvider, @execution_relation.GeneratedSequence, Array[@execution_relation.ProducerRead], Int, Int) -> Result[ManagedProviderExecution, @connector_sdk.FixedComputeIssue]
 
 pub fn start_managed_provider_with_execution(ManagedProvider, @execution_relation.GeneratedSequence, Array[@execution_relation.ProducerRead], Int, Int, @execution_relation.SequenceExecutionLimits) -> Result[ManagedProviderExecution, @connector_sdk.FixedComputeIssue]
@@ -183,6 +195,8 @@ pub fn start_managed_provider_with_inputs_and_execution(ManagedProvider, @execut
 // Errors
 
 // Types and methods
+type GuardedRelationExecution
+
 pub(all) enum LocalBoundedRelationCheck {
   Group
   Analytic

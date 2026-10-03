@@ -202,7 +202,7 @@ pub fn prepare_local_program(
       }
       if @sourceviews.input_for(partition, i, name) is None ||
         names.contains(name) ||
-        !(registration is @pipeline.CarrierInput(_)) {
+        !(registration is @pipeline.SourceViewInput(_, _, _, _)) {
         return Err(InvalidSourceViewRegistration(i, name))
       }
       names[name] = ()

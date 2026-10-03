@@ -1,0 +1,1476 @@
+{
+  "description": "Exact canonical published declaration bytes and Git identities, independently inspected on 2026-10-03. Descriptor regression data does not replace full real-history validation.",
+  "records": [
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/main-pr225-ci-resolution.json",
+      "reference": "7c38d206d8fcc77c66c4edeba1d6fa3b2b86eb85",
+      "blob": "2bab7142e7cea72147d2d9bd3e19d16a3354490b",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "main-pr225-ci-resolution",
+        "kind": "resolution",
+        "revision": "6520c3f59b86307229536824fac8f8b5ac5450e4",
+        "parents": [
+          "398b85c87e0eb29a3d3db0ed21e53ea84464566c",
+          "89a7fd00479c70093cb88282ac3d0cb08b7bcda2"
+        ],
+        "changes": [
+          {
+            "path": ".github/workflows/ci.yml",
+            "before": [
+              {
+                "revision": "398b85c87e0eb29a3d3db0ed21e53ea84464566c",
+                "digest": "ce517405b172df0cd29617fb14a157a9776d86b389ecfb64ca9c5fe6ab83b568",
+                "mode": "100644"
+              },
+              {
+                "revision": "89a7fd00479c70093cb88282ac3d0cb08b7bcda2",
+                "digest": "7535581d92b1b266b91cd76fd4703f16d2d2817d9430bf8ac96e32948ebb532d",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "a22ee792f4b836c7d950d8f89f0f8266701e2516557a1718ea4399604b1a3783",
+            "afterMode": "100644",
+            "reason": "Record the actual main merge of #225: preserve the reviewed PR-only CI target selection and acquired-INFER acceptance from main while adding the bounded local execution/hook regression steps once in lint and macOS. Both parents changed CI since their common base; the committed workflow composes both without restoring duplicate branch push runs or removing any proof obligation."
+          }
+        ],
+        "inputs": [
+          "adopt-12e8c958ee13",
+          "adopt-343a5565c1ac",
+          "adopt-985dbbba2789",
+          "adopt-dafff1a1aeea",
+          "bounded-local-execution-guard",
+          "ci-portable-pr-targets",
+          "client-ci-runner-context",
+          "client-ci-split",
+          "issue-180-foundation-composition",
+          "packed-acquired-infer-acceptance",
+          "parallel-pipeline-evidence",
+          "resolve-acquired-infer-client-ci",
+          "resolve-local-guard-acquired-infer-ci",
+          "resolve-local-guard-pipeline-ci",
+          "resolve-main-model-backing",
+          "resolve-parallel-pipeline-main-infer"
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/resolve-local-guard-portable-pr-ci.json",
+      "reference": "3a32c416ba23821694a1b8c6aac961ba6a4807ea",
+      "blob": "49cc43f2e1b40e7ad1d96625fc194b1f4c217b31",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "resolve-local-guard-portable-pr-ci",
+        "kind": "resolution",
+        "revision": "6520c3f59b86307229536824fac8f8b5ac5450e4",
+        "parents": [
+          "398b85c87e0eb29a3d3db0ed21e53ea84464566c",
+          "89a7fd00479c70093cb88282ac3d0cb08b7bcda2"
+        ],
+        "changes": [
+          {
+            "path": ".github/workflows/ci.yml",
+            "before": [
+              {
+                "revision": "398b85c87e0eb29a3d3db0ed21e53ea84464566c",
+                "digest": "ce517405b172df0cd29617fb14a157a9776d86b389ecfb64ca9c5fe6ab83b568",
+                "mode": "100644"
+              },
+              {
+                "revision": "89a7fd00479c70093cb88282ac3d0cb08b7bcda2",
+                "digest": "7535581d92b1b266b91cd76fd4703f16d2d2817d9430bf8ac96e32948ebb532d",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "a22ee792f4b836c7d950d8f89f0f8266701e2516557a1718ea4399604b1a3783",
+            "afterMode": "100644",
+            "reason": "Compose main's portable PR target selection with the bounded local-check guard's lint and native fixtures. Preserve one PR workflow, full main verification, all required proof and client jobs, and the existing aggregate dependencies without restoring duplicate runs."
+          }
+        ],
+        "inputs": [
+          "adopt-12e8c958ee13",
+          "adopt-343a5565c1ac",
+          "adopt-985dbbba2789",
+          "adopt-dafff1a1aeea",
+          "bounded-local-execution-guard",
+          "ci-portable-pr-targets",
+          "client-ci-runner-context",
+          "client-ci-split",
+          "issue-180-foundation-composition",
+          "packed-acquired-infer-acceptance",
+          "parallel-pipeline-evidence",
+          "resolve-acquired-infer-client-ci",
+          "resolve-local-guard-acquired-infer-ci",
+          "resolve-local-guard-pipeline-ci",
+          "resolve-main-model-backing",
+          "resolve-parallel-pipeline-main-infer"
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/resolve-main-local-guard-ci-6520c3f59.json",
+      "reference": "ad902e348e37b5c28e4429b4152ec456e9640ed8",
+      "blob": "f7f8f52777cdad190e3fc84fe59e2939e4120fc9",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "resolve-main-local-guard-ci-6520c3f59",
+        "kind": "resolution",
+        "revision": "6520c3f59b86307229536824fac8f8b5ac5450e4",
+        "parents": [
+          "398b85c87e0eb29a3d3db0ed21e53ea84464566c",
+          "89a7fd00479c70093cb88282ac3d0cb08b7bcda2"
+        ],
+        "inputs": [
+          "adopt-12e8c958ee13",
+          "adopt-343a5565c1ac",
+          "adopt-985dbbba2789",
+          "adopt-dafff1a1aeea",
+          "bounded-local-execution-guard",
+          "ci-portable-pr-targets",
+          "client-ci-runner-context",
+          "client-ci-split",
+          "issue-180-foundation-composition",
+          "packed-acquired-infer-acceptance",
+          "parallel-pipeline-evidence",
+          "resolve-acquired-infer-client-ci",
+          "resolve-local-guard-acquired-infer-ci",
+          "resolve-local-guard-pipeline-ci",
+          "resolve-main-model-backing",
+          "resolve-parallel-pipeline-main-infer"
+        ],
+        "changes": [
+          {
+            "path": ".github/workflows/ci.yml",
+            "before": [
+              {
+                "revision": "398b85c87e0eb29a3d3db0ed21e53ea84464566c",
+                "digest": "ce517405b172df0cd29617fb14a157a9776d86b389ecfb64ca9c5fe6ab83b568",
+                "mode": "100644"
+              },
+              {
+                "revision": "89a7fd00479c70093cb88282ac3d0cb08b7bcda2",
+                "digest": "7535581d92b1b266b91cd76fd4703f16d2d2817d9430bf8ac96e32948ebb532d",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "a22ee792f4b836c7d950d8f89f0f8266701e2516557a1718ea4399604b1a3783",
+            "afterMode": "100644",
+            "reason": "Preserve main's portable PR target selector and single CI trigger policy while integrating the bounded local-execution guard regression steps from PR #225. The actual merge adds the existing guard/hook tests to lint and native macOS without restoring the earlier full portable target matrix or duplicate branch runs. This records the reviewed GitHub main merge against its two real parents, not a new workflow change in this Frontend branch."
+          }
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/resolve-main-local-guard-ci.json",
+      "reference": "b09e8e21cc1ac366db6f4f7157711282c1e5967a",
+      "blob": "20e95385cf3e1092a2c243eca58b9850a1f18fa0",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "resolve-main-local-guard-ci",
+        "kind": "resolution",
+        "revision": "6520c3f59b86307229536824fac8f8b5ac5450e4",
+        "parents": [
+          "398b85c87e0eb29a3d3db0ed21e53ea84464566c",
+          "89a7fd00479c70093cb88282ac3d0cb08b7bcda2"
+        ],
+        "changes": [
+          {
+            "path": ".github/workflows/ci.yml",
+            "before": [
+              {
+                "revision": "398b85c87e0eb29a3d3db0ed21e53ea84464566c",
+                "digest": "ce517405b172df0cd29617fb14a157a9776d86b389ecfb64ca9c5fe6ab83b568",
+                "mode": "100644"
+              },
+              {
+                "revision": "89a7fd00479c70093cb88282ac3d0cb08b7bcda2",
+                "digest": "7535581d92b1b266b91cd76fd4703f16d2d2817d9430bf8ac96e32948ebb532d",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "a22ee792f4b836c7d950d8f89f0f8266701e2516557a1718ea4399604b1a3783",
+            "afterMode": "100644",
+            "reason": "Preserve main CI cost controls and portable target selection together with the bounded local guard tests from #225 in the existing Linux lint and macOS jobs. Retain the original jobs, conditions, evidence campaigns and commands; describe the actual main merge without changing historical inputs."
+          }
+        ],
+        "inputs": [
+          "adopt-12e8c958ee13",
+          "adopt-343a5565c1ac",
+          "adopt-985dbbba2789",
+          "adopt-dafff1a1aeea",
+          "bounded-local-execution-guard",
+          "ci-portable-pr-targets",
+          "client-ci-runner-context",
+          "client-ci-split",
+          "issue-180-foundation-composition",
+          "packed-acquired-infer-acceptance",
+          "parallel-pipeline-evidence",
+          "resolve-acquired-infer-client-ci",
+          "resolve-local-guard-acquired-infer-ci",
+          "resolve-local-guard-pipeline-ci",
+          "resolve-main-model-backing",
+          "resolve-parallel-pipeline-main-infer"
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/resolve-resident-source-latest-main.json",
+      "reference": "b09e8e21cc1ac366db6f4f7157711282c1e5967a",
+      "blob": "decd45cd1187ec7dc8c967de1084e3b0bd3ead5d",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "resolve-resident-source-latest-main",
+        "kind": "resolution",
+        "revision": "3ad450f7996ccb8187de5d3d8e5288a5d4f640ed",
+        "parents": [
+          "9a3bb78f43a94ef9435f8daded7c2be76c357958",
+          "88fbcc95306abb4fc41f0d488bcc6d38ec19506d"
+        ],
+        "changes": [
+          {
+            "path": "package.json",
+            "before": [
+              {
+                "revision": "9a3bb78f43a94ef9435f8daded7c2be76c357958",
+                "digest": "05f989915c150485a9166a5cca28ce25ec63c4818cc957f3e1ff4f42b226d261",
+                "mode": "100644"
+              },
+              {
+                "revision": "88fbcc95306abb4fc41f0d488bcc6d38ec19506d",
+                "digest": "a564c8fef5bbc0da1c5df2872148d3bead5be9da79124d76031b775f5d1372d4",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "e07d7f96553d52930e9042b1776bb9eed0b6df1e89142bb3a2011442c3b84ef4",
+            "afterMode": "100644",
+            "reason": "Compose the resident Source native acceptance registration with main local-check guard commands, Property Graph and packed admission acceptance registrations. Keep both independent command sets, normal checked-task dispatch boundaries and existing proof commands; do not change the foundation baseline or inherited declarations."
+          }
+        ],
+        "inputs": [
+          "adopt-12e8c958ee13",
+          "adopt-3877b637406b",
+          "adopt-63b114ad524b",
+          "adopt-678626b010b4",
+          "adopt-7427f7f09276",
+          "adopt-9a7c592a8ed9",
+          "adopt-b480cffb6e6d",
+          "adopt-bf2d058c21c1",
+          "adopt-f24288853c19",
+          "pr164-main-a32-verification-resolution",
+          "pr164-main4f-runtime-check-resolution",
+          "pr164-property-graph-source",
+          "remove-duplicate-runtime-package-checks",
+          "resident-source-native-registration",
+          "sdk-cancel-response-loss-registration"
+        ]
+      }
+    }
+  ],
+  "dependencies": [
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/adopt-12e8c958ee13.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "57ef860fbd1484e281a323e52085515088457de0",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "adopt-12e8c958ee13",
+        "kind": "resolution",
+        "revision": "12e8c958ee13baf92509b01d35052a76a740281b",
+        "parents": [
+          "343a5565c1acb2a229064834f53c5df3341ab297",
+          "16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a"
+        ],
+        "changes": [
+          {
+            "path": ".github/workflows/ci.yml",
+            "before": [
+              {
+                "revision": "343a5565c1acb2a229064834f53c5df3341ab297",
+                "digest": "3b4aafd0a3694bb3d14f5b1c775c82e22113a5d6665fe2908ad6827b9fb06d03",
+                "mode": "100644"
+              },
+              {
+                "revision": "16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a",
+                "digest": "ba0d74e9894af43d6f7258fd41c90c937828a862791f15c022703876b5b94128",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "c85826b67599582e59441e4842354f291d6d6c986df76a4a3cc8adc15dc9ca9d",
+            "afterMode": "100644",
+            "reason": "Preserve the original #178 integration of packed INFER verification with main public-check, native-release and capacity validation; retain both original parent identities and registrations."
+          },
+          {
+            "path": "package.json",
+            "before": [
+              {
+                "revision": "343a5565c1acb2a229064834f53c5df3341ab297",
+                "digest": "0270aa455dc0fedc8a394f6e4637f1e8812f95da839ee76c33a58edba30a110f",
+                "mode": "100644"
+              },
+              {
+                "revision": "16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a",
+                "digest": "17d239ce960452949ff61e2b72f772677165cd230f0c98621820f1f992950e52",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "28aa357d16dcf7079b020150dff2783473bb9f6ce6b010cba94388702c570716",
+            "afterMode": "100644",
+            "reason": "Preserve the original #178 integration of packed INFER verification with main public-check, native-release and capacity validation; retain both original parent identities and registrations."
+          }
+        ],
+        "inputs": [
+          "adopt-343a5565c1ac",
+          "adopt-3877b637406b",
+          "adopt-63b114ad524b",
+          "adopt-678626b010b4",
+          "adopt-7427f7f09276",
+          "adopt-9a7c592a8ed9",
+          "adopt-b480cffb6e6d",
+          "adopt-bf2d058c21c1",
+          "adopt-f24288853c19"
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/adopt-343a5565c1ac.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "95702578b177cedb89f4a32caebe2c404acdb4bf",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "adopt-343a5565c1ac",
+        "kind": "change",
+        "revision": "343a5565c1acb2a229064834f53c5df3341ab297",
+        "parents": [
+          "eb2e5c6abd1b8364f0243ff91521715b758a932f"
+        ],
+        "changes": [
+          {
+            "path": ".github/workflows/ci.yml",
+            "before": [
+              {
+                "revision": "eb2e5c6abd1b8364f0243ff91521715b758a932f",
+                "digest": "45cef4006676ea0e55adb36edb56759aae12ade2d422e075a29fe56bf6532e2c",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "3b4aafd0a3694bb3d14f5b1c775c82e22113a5d6665fe2908ad6827b9fb06d03",
+            "afterMode": "100644",
+            "reason": "Retain packed single-INFER capture/replay execution and its exact-source evidence upload from #178."
+          }
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/adopt-3877b637406b.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "348043fe753d934672fcd5de075777b6d8288ea3",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "adopt-3877b637406b",
+        "kind": "change",
+        "revision": "3877b637406b99a224beb343018c7f347960d734",
+        "parents": [
+          "cd157ac3272445562eadcb420a057135beeb590a"
+        ],
+        "changes": [
+          {
+            "path": "package.json",
+            "before": [
+              {
+                "revision": "cd157ac3272445562eadcb420a057135beeb590a",
+                "digest": "227c2fcb42df515554d897a418b7ec1ae6fddc02f43a04d8c46d53780a229e2f",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "17f9008869fdbf738c229401430f068a494ffc9aa151e1cf610ba804de1fb3e5",
+            "afterMode": "100644",
+            "reason": "Retain installed INFER public-host tests and model dependency contract generation/tests from #178."
+          }
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/adopt-63b114ad524b.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "2ce113f022799abf58d319b71013f7cc32162952",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "adopt-63b114ad524b",
+        "kind": "change",
+        "revision": "63b114ad524b934cf809b96d37d0d81ea215815c",
+        "parents": [
+          "1d9492d99f60ed9361e4b1e7e9b0f173eba25cbe"
+        ],
+        "changes": [
+          {
+            "path": "package.json",
+            "before": [
+              {
+                "revision": "1d9492d99f60ed9361e4b1e7e9b0f173eba25cbe",
+                "digest": "b2a2e9d89062492329be9f67f81ab0f3b6d8bd656df6525055736a6af3f7fd78",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "227c2fcb42df515554d897a418b7ec1ae6fddc02f43a04d8c46d53780a229e2f",
+            "afterMode": "100644",
+            "reason": "Retain model-attempt evidence contract generation and tests from #178."
+          }
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/adopt-678626b010b4.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "6d9c57858eb876bffbb4e9faa403338d5e245469",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "adopt-678626b010b4",
+        "kind": "resolution",
+        "revision": "678626b010b4ce10dffebe0ecec210a52b0c5941",
+        "parents": [
+          "9a7c592a8ed942aee7e39d3b8a52684c1e1190e1",
+          "50fcc1ccd7e1cfb4ac379687f95a19043fdc113f"
+        ],
+        "changes": [
+          {
+            "path": "package.json",
+            "before": [
+              {
+                "revision": "9a7c592a8ed942aee7e39d3b8a52684c1e1190e1",
+                "digest": "bfff96de4de52f706d54fc43c99436a6b5271facb84c9a1bfad743fcf9b5171c",
+                "mode": "100644"
+              },
+              {
+                "revision": "50fcc1ccd7e1cfb4ac379687f95a19043fdc113f",
+                "digest": "78c15ac34fbe375959bf166c3d236ce06a2a6a0d4d2f4b2d7f7f094e844a8a15",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "0270aa455dc0fedc8a394f6e4637f1e8812f95da839ee76c33a58edba30a110f",
+            "afterMode": "100644",
+            "reason": "Preserve the original #178 merge of model execution/capture tests with current main gate registrations; retain all earlier source declarations and the actual integrated result."
+          }
+        ],
+        "inputs": [
+          "adopt-3877b637406b",
+          "adopt-63b114ad524b",
+          "adopt-7427f7f09276",
+          "adopt-9a7c592a8ed9",
+          "adopt-b480cffb6e6d",
+          "adopt-bf2d058c21c1",
+          "adopt-f24288853c19"
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/adopt-7427f7f09276.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "78493e1eab4ffee68680453a06d6da791ed21536",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "adopt-7427f7f09276",
+        "kind": "resolution",
+        "revision": "7427f7f09276e5210c2b830a72ed60aab97337a9",
+        "parents": [
+          "9f3b8bf520c6a0c82be0c95fc273f8b1429afba9",
+          "d07968af22fc0f9069812244a0a0ab1bd4b6c938"
+        ],
+        "changes": [
+          {
+            "path": "package.json",
+            "before": [
+              {
+                "revision": "9f3b8bf520c6a0c82be0c95fc273f8b1429afba9",
+                "digest": "9d2efc7eff5b84b7d268937f526b50b5f46c4c543dc31caeaf252a43932f9e20",
+                "mode": "100644"
+              },
+              {
+                "revision": "d07968af22fc0f9069812244a0a0ab1bd4b6c938",
+                "digest": "96f84b8ba78071944fc4c6710479730e4d643d14a3c03e7a94c9a7250c95f64a",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "6eb1ec485ae3dc81a00083795cbac8e55ce481f9483a9e6417ac24d7c008de13",
+            "afterMode": "100644",
+            "reason": "Preserve the original #178 merge of its INFER registration with then-current frontend/Host gate registrations; bind both parent files and the actual integrated result."
+          }
+        ],
+        "inputs": [
+          "adopt-b480cffb6e6d"
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/adopt-985dbbba2789.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "b5c710d42e9b7695a555bbffefc8dd7457aac6e1",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "adopt-985dbbba2789",
+        "kind": "change",
+        "revision": "985dbbba27895e049a99a40185f59214f3e4fce1",
+        "parents": [
+          "854d02796d3e0c38bf7b5e498cd050281cbfb043"
+        ],
+        "changes": [
+          {
+            "path": ".github/workflows/ci.yml",
+            "before": [
+              {
+                "revision": "854d02796d3e0c38bf7b5e498cd050281cbfb043",
+                "digest": "ba0d74e9894af43d6f7258fd41c90c937828a862791f15c022703876b5b94128",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "9e4d00a3acf8373ed1f20983bee128303e191f5c2ccbcae32a6269a0e86557dd",
+            "afterMode": "100644",
+            "reason": "Retain the existing Array/backing Node regressions alongside pipeline tests, as introduced in #179 and merged through #181."
+          }
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/adopt-9a7c592a8ed9.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "4ae0e42a5112d117a06518d471c073e0e8464a0e",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "adopt-9a7c592a8ed9",
+        "kind": "change",
+        "revision": "9a7c592a8ed942aee7e39d3b8a52684c1e1190e1",
+        "parents": [
+          "f89bcc5bcecee9f8d037564a50f3db70169a868a"
+        ],
+        "changes": [
+          {
+            "path": "package.json",
+            "before": [
+              {
+                "revision": "f89bcc5bcecee9f8d037564a50f3db70169a868a",
+                "digest": "17f9008869fdbf738c229401430f068a494ffc9aa151e1cf610ba804de1fb3e5",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "bfff96de4de52f706d54fc43c99436a6b5271facb84c9a1bfad743fcf9b5171c",
+            "afterMode": "100644",
+            "reason": "Retain installed model-capture recovery tests in the distribution Client gate from #178."
+          }
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/adopt-b480cffb6e6d.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "ddae6382ab8349f958112ad4fb71aaec435f77c7",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "adopt-b480cffb6e6d",
+        "kind": "change",
+        "revision": "b480cffb6e6d805c58efc4e8b4edb4aec42bbfe1",
+        "parents": [
+          "27c93c33b7de9557eb2fdbd8974e9165b61e8f18"
+        ],
+        "changes": [
+          {
+            "path": "package.json",
+            "before": [
+              {
+                "revision": "27c93c33b7de9557eb2fdbd8974e9165b61e8f18",
+                "digest": "4193b7724e3125f3d4e9a404b882187bd525034bba612bdc7a1da13390df0356",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "9d2efc7eff5b84b7d268937f526b50b5f46c4c543dc31caeaf252a43932f9e20",
+            "afterMode": "100644",
+            "reason": "Retain the installed model acquisition ownership checker registration from #178."
+          }
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/adopt-bf2d058c21c1.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "a6af13b6b68c92470c8c380ecf08d58ec51fa392",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "adopt-bf2d058c21c1",
+        "kind": "change",
+        "revision": "bf2d058c21c170cb9fa15cad96b5edc09cb223c0",
+        "parents": [
+          "fb5b893320a04f8ca88e3ee674cf9ad66157f682"
+        ],
+        "changes": [
+          {
+            "path": "package.json",
+            "before": [
+              {
+                "revision": "fb5b893320a04f8ca88e3ee674cf9ad66157f682",
+                "digest": "830828d77efb331483cbe74a138f18395df5aa5b3c85dcd5c2e3145f2c663bc9",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "b2a2e9d89062492329be9f67f81ab0f3b6d8bd656df6525055736a6af3f7fd78",
+            "afterMode": "100644",
+            "reason": "Retain adopted model-slot observation contract generation and tests from #178."
+          }
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/adopt-dafff1a1aeea.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "fe2e2a17eb0e6eeccf3ff38ddd4915732f8c4135",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "adopt-dafff1a1aeea",
+        "kind": "resolution",
+        "revision": "dafff1a1aeeaa8dd3168e9d9ba1b571455ba5f35",
+        "parents": [
+          "8f906009fd3d64b5873f227bc24ec993938023be",
+          "df3ffb5e059e50c139d18228688da5b1eed6769d"
+        ],
+        "changes": [
+          {
+            "path": ".github/workflows/ci.yml",
+            "before": [
+              {
+                "revision": "8f906009fd3d64b5873f227bc24ec993938023be",
+                "digest": "c85826b67599582e59441e4842354f291d6d6c986df76a4a3cc8adc15dc9ca9d",
+                "mode": "100644"
+              },
+              {
+                "revision": "df3ffb5e059e50c139d18228688da5b1eed6769d",
+                "digest": "9e4d00a3acf8373ed1f20983bee128303e191f5c2ccbcae32a6269a0e86557dd",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "ecea48a0b7c94c50367b87e2ef02fc67a50a2b9972fd2b29effa01ecd4ce1523",
+            "afterMode": "100644",
+            "reason": "Preserve the original #178/#181 workflow integration with both packed INFER evidence and backing-capacity regressions; no gate is removed or attributed to a new implementation."
+          }
+        ],
+        "inputs": [
+          "adopt-12e8c958ee13",
+          "adopt-343a5565c1ac",
+          "adopt-985dbbba2789"
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/adopt-f24288853c19.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "0d47b8c65c10a5f0360e2b481565a6f58818acd0",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "adopt-f24288853c19",
+        "kind": "change",
+        "revision": "f24288853c1958ba1cd7d6cad9309aed41d63961",
+        "parents": [
+          "7427f7f09276e5210c2b830a72ed60aab97337a9"
+        ],
+        "changes": [
+          {
+            "path": "package.json",
+            "before": [
+              {
+                "revision": "7427f7f09276e5210c2b830a72ed60aab97337a9",
+                "digest": "6eb1ec485ae3dc81a00083795cbac8e55ce481f9483a9e6417ac24d7c008de13",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "830828d77efb331483cbe74a138f18395df5aa5b3c85dcd5c2e3145f2c663bc9",
+            "afterMode": "100644",
+            "reason": "Retain the model call-slot contract generation and independent canonical identity tests from #178."
+          }
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/bounded-local-execution-guard.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "bd2584547908bff3b674c2bd9c427b013d96bd50",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "bounded-local-execution-guard",
+        "kind": "change",
+        "revision": "4af1e6ec9d790d5c0f9d98ddae36fbf3abcadd7a",
+        "parents": [
+          "4f6feed519170e46c0065d1491c40287e6d34f1a"
+        ],
+        "changes": [
+          {
+            "path": ".github/workflows/ci.yml",
+            "before": [
+              {
+                "revision": "4f6feed519170e46c0065d1491c40287e6d34f1a",
+                "digest": "de409cdab2ba453ae6bf107c5f08a398cf8413df2aee171ff89d90dc3288f85e",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "bb816881c7ab5d9d6a0444720a5d42ea7e22ff0b60e00d22e26b79bd3b0c41c9",
+            "afterMode": "100644",
+            "reason": "Add only bounded local-execution ownership, cancellation, policy and optional hook-adapter fixtures to the existing Linux lint and macOS native jobs. Preserve every existing job, acceptance command, aggregate dependency, timeout, compiler invocation and proof campaign. The hooks do not launch tests or install client settings; hosted verification still exercises the pushed revision."
+          },
+          {
+            "path": "scripts/local-checks.mjs",
+            "before": [
+              {
+                "revision": "4f6feed519170e46c0065d1491c40287e6d34f1a",
+                "digest": "2d62841fbb560af82c7c4308ec183b84bdca15e5499715a6df925969859ea732",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "ce17ad1f0947134f9dfd9887353552fd85f35adcc57d2a6c1b63c669ae3170f8",
+            "afterMode": "100644",
+            "reason": "Route selected local jobs and focused test/build commands through the reviewed shared classifier and process supervisor. Require deliberate --allow-heavy friction for known-heavy work, apply explicit or workflow time budgets, exclude overlapping worktrees and machine-heavy runs, preserve first-cause child failure/cancellation, and retain evidence and locks on incomplete cleanup. Keep cheap jobs, reporting operations and existing argument forwarding available. This is local resource protection, not human approval or a change to historical proof requirements."
+          }
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/ci-portable-pr-targets.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "1912ee0f5087c2c8be21e671ecee153e1f1d5788",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "ci-portable-pr-targets",
+        "kind": "change",
+        "revision": "3e9f013880d1d4d9c37fbd5f398fec814d302dd5",
+        "parents": [
+          "da400a71fcba5b742ee3ffbd6352694cd1ca091a"
+        ],
+        "changes": [
+          {
+            "path": ".github/workflows/ci.yml",
+            "before": [
+              {
+                "revision": "da400a71fcba5b742ee3ffbd6352694cd1ca091a",
+                "digest": "378594ad66e917058065462a18c13bd3d4f4933b63771bd5142f6012d90f2c54",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "ce517405b172df0cd29617fb14a157a9776d86b389ecfb64ca9c5fe6ab83b568",
+            "afterMode": "100644",
+            "reason": "Remove duplicate integration-branch push execution while retaining PR runs and full main verification. Select JS-only core and omit macOS only for reviewed portable PR inputs; target-specific syntax, ownership, canonical identities, build or unknown inputs retain all core targets and macOS. Keep every Client and three-target proof campaign, acceptance command, same-attempt artifact guard and aggregate intact. Fail the final aggregate for missing/failed selection or malformed macOS selection."
+          }
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/client-ci-runner-context.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "f92ce4baf3393722bc9ad48b103571edf850254c",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "client-ci-runner-context",
+        "kind": "change",
+        "revision": "82727dc5db4f5a6a28eda42ff2ec28e1ae3e6b4a",
+        "parents": [
+          "91fcac6907b82c7fc1d2ce81c74150e5cc2302ce"
+        ],
+        "changes": [
+          {
+            "path": ".github/workflows/ci.yml",
+            "before": [
+              {
+                "revision": "91fcac6907b82c7fc1d2ce81c74150e5cc2302ce",
+                "digest": "07726bee0521d937e2f57e6147b227cd8897e0df19aeb7aa1cd3fa5281ca28c2",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "de409cdab2ba453ae6bf107c5f08a398cf8413df2aee171ff89d90dc3288f85e",
+            "afterMode": "100644",
+            "reason": "Correct GitHub context availability after the initial workflow validation failure: remove runner.temp from job-level env and let the identity-checked download composite set the same private paths via GITHUB_ENV inside the assigned runner. Preserve all jobs, acceptance commands, guards, uploads and limits."
+          }
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/client-ci-split.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "1fdd2ff39dd58fabc6dab13f04340fb0a11f4e89",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "client-ci-split",
+        "kind": "change",
+        "revision": "2d7cd1ca295086c3370ffb6d96efa257535c7a20",
+        "parents": [
+          "bcbf77049fe4991c9b0f1a18541ac7a7952b01ad"
+        ],
+        "changes": [
+          {
+            "path": ".github/workflows/ci.yml",
+            "before": [
+              {
+                "revision": "bcbf77049fe4991c9b0f1a18541ac7a7952b01ad",
+                "digest": "36e951a381e4be1061b14e536801262bcedef20964915d55ea60efdfc060c209",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "07726bee0521d937e2f57e6147b227cd8897e0df19aeb7aa1cd3fa5281ca28c2",
+            "afterMode": "100644",
+            "reason": "Split the unchanged Client acceptance commands into independent distribution, packed-public and Salesforce/recovery jobs. Produce immutable same-checkout tarballs once and download only the exact validated producer artifact ID. Preserve the client/global aggregate and all conditional gates, evidence uploads and timeout limits; prepare recovery runtime bridges privately."
+          },
+          {
+            "path": "scripts/local-checks.mjs",
+            "before": [
+              {
+                "revision": "bcbf77049fe4991c9b0f1a18541ac7a7952b01ad",
+                "digest": "bcab6e27f3cdb094eec5b818c81b5aecbe13a2fd281f9f2502f2f302c7eded0b",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "2d62841fbb560af82c7c4308ec183b84bdca15e5499715a6df925969859ea732",
+            "afterMode": "100644",
+            "reason": "Map every previously Client-covered local change to the independent acceptance groups and expose client as CI-only aggregation. Keep the same workflow-derived acceptance commands available locally; local package fallback remains unchanged."
+          }
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/issue-180-foundation-composition.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "c8c89b22ae0f9ec5520d940cffe68a2d90c38fbe",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "issue-180-foundation-composition",
+        "kind": "change",
+        "revision": "28f7a9887b740eb83e0d6de8b7d5611972bb0a49",
+        "parents": [
+          "16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a"
+        ],
+        "changes": [
+          {
+            "path": ".github/workflows/ci.yml",
+            "before": [
+              {
+                "revision": "16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a",
+                "digest": "ba0d74e9894af43d6f7258fd41c90c937828a862791f15c022703876b5b94128",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "b3945aa267d98ac5228eff6f4cfd4bffe697b72d6dd09edefe82d3fd97dc652a",
+            "afterMode": "100644",
+            "reason": "Generate and archive the deterministic exact-source foundation manifest before the unchanged pipeline, mutation, capacity and oracle gates."
+          },
+          {
+            "path": "proofs/relation-pipeline/current-foundation.md",
+            "before": [
+              {
+                "revision": "16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a",
+                "digest": "0b8cac2626f1d562b34d2e8ab8549f2a92157ed843c392418f86a953c2ded0c0",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "9a38041ed3616afee11f08c85d702f8fca13cc6ab0db9e43bc513bd85b7c040b",
+            "afterMode": "100644",
+            "reason": "Document immutable migration inputs, independent declarations, exact Git-DAG coverage and reviewed overlap resolution without shared-manifest edits."
+          },
+          {
+            "path": "proofs/relation-pipeline/fixtures/foundation-repository.mjs",
+            "before": [
+              {
+                "revision": "16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a",
+                "digest": null,
+                "mode": null
+              }
+            ],
+            "afterDigest": "8d536778ed0f56a49a20ebf4ff443dfd43d274a4cb1c410eada9f058b9895ab0",
+            "afterMode": "100644",
+            "reason": "Build independent real-Git integration fixtures for #172/#173/#175-shaped changes, old forks and exact merged registration/rationale preservation."
+          },
+          {
+            "path": "proofs/relation-pipeline/fixtures/history-driver.mjs",
+            "before": [
+              {
+                "revision": "16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a",
+                "digest": "fa99e61292ebf53d375b479cf1ddb68c922d8390aa82b5a871c2eeff47f7d06e",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "ec5c6174fcbaa6d16c970d782afba08e5ff26515a8b60645ba783ae52b31b3cd",
+            "afterMode": "100644",
+            "reason": "Exercise the existing historical rejection cases against the frozen legacy checkpoint rather than a mutable current record."
+          },
+          {
+            "path": "proofs/relation-pipeline/foundation.mjs",
+            "before": [
+              {
+                "revision": "16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a",
+                "digest": null,
+                "mode": null
+              }
+            ],
+            "afterDigest": "33239e0e1fddda2b05666cbf6c09b2ad2dfa8c6a01f10c31a22f572c3a3428c0",
+            "afterMode": "100644",
+            "reason": "Validate every protected transition in the full Git DAG, immutable declaration/record history, actual merged bytes and explicit complete overlap resolution without weakening provenance."
+          },
+          {
+            "path": "proofs/relation-pipeline/foundation.test.mjs",
+            "before": [
+              {
+                "revision": "16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a",
+                "digest": null,
+                "mode": null
+              }
+            ],
+            "afterDigest": "987ccdfc42556bc61ba6ce802036b5e63e053f6c573ec13a51547610fdb449b6",
+            "afterMode": "100644",
+            "reason": "Add real-Git acceptance and adversarial coverage for deterministic composition, independent and overlapping branches, historical pins and undeclared or uncommitted drift."
+          },
+          {
+            "path": "proofs/relation-pipeline/history.mjs",
+            "before": [
+              {
+                "revision": "16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a",
+                "digest": "2a00338e67189acc2d3944c7485b88837ab6832ec18b2e423725f54b37c83c00",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "142e57dae208b6445ba027bdf6b9521ac6de21ecf84991c09aafb3e07c8be62a",
+            "afterMode": "100644",
+            "reason": "Preserve all historical pins and frozen #175 migration checks, compose exact current declarations and generate only the ignored source-bound aggregate."
+          },
+          {
+            "path": "proofs/relation-pipeline/history.test.mjs",
+            "before": [
+              {
+                "revision": "16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a",
+                "digest": "2812756d385f41f3cd0dd1478103a2d9160174879eb9278e5a866658f0e99c7a",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "dbf2df2705c675f65c1f9ed05334ebe0ddaf3b19173df6531c2de3598bfcc1dd",
+            "afterMode": "100644",
+            "reason": "Retain historical negative cases and require exact-source repository composition with repeated byte-identical aggregate output."
+          }
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/packed-acquired-infer-acceptance.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "07fc4d7fbd3917e96c66e863442a3372e51d0248",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "packed-acquired-infer-acceptance",
+        "kind": "change",
+        "revision": "8771658ec4802bcd491e87fef2af84d0e1d1f75b",
+        "parents": [
+          "420ee65e556585667dc3d6c23f22ea2b5012a2d5"
+        ],
+        "changes": [
+          {
+            "path": ".github/workflows/ci.yml",
+            "before": [
+              {
+                "revision": "420ee65e556585667dc3d6c23f22ea2b5012a2d5",
+                "digest": "c85826b67599582e59441e4842354f291d6d6c986df76a4a3cc8adc15dc9ca9d",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "4d5a67fab548a9b8cf4719441809cc1841eb01ead5a3928efc4f4f2e3f41003f",
+            "afterMode": "100644",
+            "reason": "Run the independently authored packed acquired-input INFER acceptance in the Client job and retain its exact-checkout evidence. Preserve the existing packed acceptance commands and aggregate gate."
+          }
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/parallel-pipeline-evidence.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "b8764f8dcf91077cd2f4b079f84cf27c66ec31b8",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "parallel-pipeline-evidence",
+        "kind": "change",
+        "revision": "6efc625efd006471224d5b0a3a788de4ab2a4c45",
+        "parents": [
+          "4f6feed519170e46c0065d1491c40287e6d34f1a"
+        ],
+        "changes": [
+          {
+            "path": ".github/workflows/ci.yml",
+            "before": [
+              {
+                "revision": "4f6feed519170e46c0065d1491c40287e6d34f1a",
+                "digest": "de409cdab2ba453ae6bf107c5f08a398cf8413df2aee171ff89d90dc3288f85e",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "d2145f41e8a6898fd84629bb76be49167751e52e6092ac2eba310bb1166981b0",
+            "afterMode": "100644",
+            "reason": "Run the unchanged ordinary-mutation and structural-capacity campaigns in separate full-history checkouts at the same tested revision. Keep capacity restoration, its positive and negative audits, and final normal three-target execution together. Preserve pipeline-evidence as the fail-closed required join and retain every existing campaign, target, fresh exploration, shrink, audit and global aggregate requirement. Transfer only sealed same-run/same-attempt evidence through exact immutable artifact IDs, verify bounded regular-file archive and per-file digests, retain original compiled workspace/receipt identities, reject collisions, and run existing audits against read-only transferred bytes without restoring compiler build trees. No acceptance skip, proof-result reuse, new cache or workflow permission change is introduced."
+          }
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/pr164-main-a32-verification-resolution.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "252a292e2e87e44852a13ebe391dc64a6e3d79e7",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "pr164-main-a32-verification-resolution",
+        "kind": "resolution",
+        "revision": "b2180c826a0115b0f2a611efb77d25dc2cdb39ad",
+        "parents": [
+          "3d8a8d1b0e11673f228f32e3dc36816facf60c66",
+          "a32d8c94404c3f6be52d1fcfb73aab21cbf7093c"
+        ],
+        "changes": [
+          {
+            "path": "package.json",
+            "before": [
+              {
+                "revision": "3d8a8d1b0e11673f228f32e3dc36816facf60c66",
+                "digest": "123454a746bc622c2c955d2b1d38a4f018a379fab9370ac1383b314cdff8a773",
+                "mode": "100644"
+              },
+              {
+                "revision": "a32d8c94404c3f6be52d1fcfb73aab21cbf7093c",
+                "digest": "b559af7ef2b305b47c26f6171b315b5acae04dd2767f5cf080b8776ca92b55a6",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "e41780792bb4367b938688d93fee06d6fc3d54033091475fc6e58c6ce44974ba",
+            "afterMode": "100644",
+            "reason": "Record the prior current-main merge retaining both keyed Graph surface/public/fresh-packed snapshot verification and the SDK cancellation response-loss regression exactly once. Preserve both source rationales, all historical foundation records and every validator. This declaration repairs missing provenance only; it changes no source, contract, expected result or acceptance rule."
+          }
+        ],
+        "inputs": [
+          "adopt-12e8c958ee13",
+          "adopt-3877b637406b",
+          "adopt-63b114ad524b",
+          "adopt-678626b010b4",
+          "adopt-7427f7f09276",
+          "adopt-9a7c592a8ed9",
+          "adopt-b480cffb6e6d",
+          "adopt-bf2d058c21c1",
+          "adopt-f24288853c19",
+          "pr164-property-graph-source",
+          "sdk-cancel-response-loss-registration"
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/pr164-main4f-runtime-check-resolution.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "b0882a97a01fd50a8851a2346d11d3bf2de9bc9b",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "pr164-main4f-runtime-check-resolution",
+        "kind": "resolution",
+        "revision": "aca1d3f6a4130f6be5054f2428eb9f2718448d60",
+        "parents": [
+          "73c58a1e1c17a09b96e5c5822fbb514aeb4e961a",
+          "4f6feed519170e46c0065d1491c40287e6d34f1a"
+        ],
+        "changes": [
+          {
+            "path": "package.json",
+            "before": [
+              {
+                "revision": "73c58a1e1c17a09b96e5c5822fbb514aeb4e961a",
+                "digest": "e41780792bb4367b938688d93fee06d6fc3d54033091475fc6e58c6ce44974ba",
+                "mode": "100644"
+              },
+              {
+                "revision": "4f6feed519170e46c0065d1491c40287e6d34f1a",
+                "digest": "946a8de4938e3f11af16540b994ea97fd277be254154a0203a5097df4461f416",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "a564c8fef5bbc0da1c5df2872148d3bead5be9da79124d76031b775f5d1372d4",
+            "afterMode": "100644",
+            "reason": "Resolve current main runtime-check deduplication together with the existing keyed Property Graph registration. Retain constructor law/spec checks, snapshot custody, public and fresh packed snapshot acceptance, and SDK cancellation regression exactly once. Remove only the already internally verified immediate builder checks removed by main; preserve all underlying generation, wrapper/type/unit/packed validation. No historical foundation, validator or acceptance expectation is changed."
+          }
+        ],
+        "inputs": [
+          "adopt-12e8c958ee13",
+          "adopt-3877b637406b",
+          "adopt-63b114ad524b",
+          "adopt-678626b010b4",
+          "adopt-7427f7f09276",
+          "adopt-9a7c592a8ed9",
+          "adopt-b480cffb6e6d",
+          "adopt-bf2d058c21c1",
+          "adopt-f24288853c19",
+          "pr164-main-a32-verification-resolution",
+          "pr164-property-graph-source",
+          "remove-duplicate-runtime-package-checks",
+          "sdk-cancel-response-loss-registration"
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/pr164-property-graph-source.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "5dc084330049a312db5fe70ae34b8e48d3dc92d4",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "pr164-property-graph-source",
+        "kind": "change",
+        "revision": "81ef098cb8a588f0ebb9eca2ae7f95ec972d55d3",
+        "parents": [
+          "0fd6332757176b88e8c4071e4a2cd0be3d6254e3"
+        ],
+        "changes": [
+          {
+            "path": "package.json",
+            "before": [
+              {
+                "revision": "0fd6332757176b88e8c4071e4a2cd0be3d6254e3",
+                "digest": "28aa357d16dcf7079b020150dff2783473bb9f6ce6b010cba94388702c570716",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "123454a746bc622c2c955d2b1d38a4f018a379fab9370ac1383b314cdff8a773",
+            "afterMode": "100644",
+            "reason": "Register keyed Property Graph law and registration checks in the existing specification command, public surface and packed snapshot acceptance in distribution, and carrier snapshot custody in retained-boundary. Retain all prior verification commands; historical foundation records and validators are unchanged."
+          }
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/remove-duplicate-runtime-package-checks.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "7fdc675875e090a9ab34be2c81223404c4598655",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "remove-duplicate-runtime-package-checks",
+        "kind": "change",
+        "revision": "7a021fee6d9d72dd0cadcc4c8d5b8f2386f2ee72",
+        "parents": [
+          "629042c9581046f78af0f3c47899db8444ff98dc"
+        ],
+        "changes": [
+          {
+            "path": "package.json",
+            "before": [
+              {
+                "revision": "629042c9581046f78af0f3c47899db8444ff98dc",
+                "digest": "b559af7ef2b305b47c26f6171b315b5acae04dd2767f5cf080b8776ca92b55a6",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "946a8de4938e3f11af16540b994ea97fd277be254154a0203a5097df4461f416",
+            "afterMode": "100644",
+            "reason": "Remove only five immediate builder --check invocations already performed with the same inputs by build-runtime-packages.mjs. Retain its generation, internal validation, tracked-wrapper refusal and contract-version gate, every existing build/type/unit/packed test, and all four package prepack hooks. Independent orchestration regressions run before the unchanged cold-pack checks. No proof campaign, historical pin, validator or result reuse changes."
+          }
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/resident-source-native-registration.json",
+      "reference": "b09e8e21cc1ac366db6f4f7157711282c1e5967a",
+      "blob": "810d7f748137f9f79426e6f29c8b051529071215",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "resident-source-native-registration",
+        "kind": "change",
+        "revision": "9de752b1bfbee786056bf86f6c748813e89c3820",
+        "parents": [
+          "8b21ddd3f4a17fcecbb9bcf5878082148af0aa99"
+        ],
+        "changes": [
+          {
+            "path": "package.json",
+            "before": [
+              {
+                "revision": "8b21ddd3f4a17fcecbb9bcf5878082148af0aa99",
+                "digest": "946a8de4938e3f11af16540b994ea97fd277be254154a0203a5097df4461f416",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "05f989915c150485a9166a5cca28ce25ec63c4818cc957f3e1ff4f42b226d261",
+            "afterMode": "100644",
+            "reason": "Register the actual resident read-only Source acquisition and formal release process acceptance beside existing native Values checks; pipeline execution and measurement commands remain unchanged."
+          }
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/resolve-acquired-infer-client-ci.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "ebe62e05fcfa7367fa8b48c61f9af0695ef94718",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "resolve-acquired-infer-client-ci",
+        "kind": "resolution",
+        "revision": "1377cb4dd6771eff8f8cd57f41393ceaa4e6cb0b",
+        "parents": [
+          "48a470dff92a00d884ef61eeaa7c2143828b3a53",
+          "a32d8c94404c3f6be52d1fcfb73aab21cbf7093c"
+        ],
+        "changes": [
+          {
+            "path": ".github/workflows/ci.yml",
+            "before": [
+              {
+                "revision": "48a470dff92a00d884ef61eeaa7c2143828b3a53",
+                "digest": "4d5a67fab548a9b8cf4719441809cc1841eb01ead5a3928efc4f4f2e3f41003f",
+                "mode": "100644"
+              },
+              {
+                "revision": "a32d8c94404c3f6be52d1fcfb73aab21cbf7093c",
+                "digest": "de409cdab2ba453ae6bf107c5f08a398cf8413df2aee171ff89d90dc3288f85e",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "cea8141d269389901753e357ecba72540480924e84b67d40514ae3d9ad63bcee",
+            "afterMode": "100644",
+            "reason": "Retain main's independently scheduled Client package and packed acceptance jobs while adding the acquired-input INFER scenario and its evidence upload. Keep the aggregate Client gate and existing acceptance commands unchanged."
+          }
+        ],
+        "inputs": [
+          "adopt-12e8c958ee13",
+          "adopt-343a5565c1ac",
+          "adopt-985dbbba2789",
+          "adopt-dafff1a1aeea",
+          "client-ci-runner-context",
+          "client-ci-split",
+          "issue-180-foundation-composition",
+          "packed-acquired-infer-acceptance",
+          "resolve-main-model-backing"
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/resolve-local-guard-acquired-infer-ci.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "7f8a535d25a6fb1f06e2f4f379f3f081345d4f33",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "resolve-local-guard-acquired-infer-ci",
+        "kind": "resolution",
+        "revision": "7086830562e50d4c805c26e7a884b2da6ea21e7f",
+        "parents": [
+          "ad26309eaee827ecab10d80afc399bf6e2c45129",
+          "c26adeb078fd54327cc9263544f4c57420f6e3c2"
+        ],
+        "changes": [
+          {
+            "path": ".github/workflows/ci.yml",
+            "before": [
+              {
+                "revision": "ad26309eaee827ecab10d80afc399bf6e2c45129",
+                "digest": "bb816881c7ab5d9d6a0444720a5d42ea7e22ff0b60e00d22e26b79bd3b0c41c9",
+                "mode": "100644"
+              },
+              {
+                "revision": "c26adeb078fd54327cc9263544f4c57420f6e3c2",
+                "digest": "cea8141d269389901753e357ecba72540480924e84b67d40514ae3d9ad63bcee",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "2d2bc636e6b0e5e890fbb716074b737786c65e461ed9918b7d4b51cd1da80f3d",
+            "afterMode": "100644",
+            "reason": "Compose the local guard's bounded fixture steps in existing Linux lint and macOS jobs with main's packed acquired-INFER acceptance and always-on evidence upload. Both independently reviewed command sets remain exactly once. Preserve all inherited jobs, needs, conditions, limits, compiler/proof commands and additive declarations; change no historical baseline or prior declaration."
+          }
+        ],
+        "inputs": [
+          "adopt-12e8c958ee13",
+          "adopt-343a5565c1ac",
+          "adopt-985dbbba2789",
+          "adopt-dafff1a1aeea",
+          "bounded-local-execution-guard",
+          "client-ci-runner-context",
+          "client-ci-split",
+          "issue-180-foundation-composition",
+          "packed-acquired-infer-acceptance",
+          "resolve-acquired-infer-client-ci",
+          "resolve-main-model-backing"
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/resolve-local-guard-pipeline-ci.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "e97d5d044600164cf056dfd0589919d9bbaccd8f",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "resolve-local-guard-pipeline-ci",
+        "kind": "resolution",
+        "revision": "89d2f4ae0d16cb87da79ea8e0e81b0154492a8b7",
+        "parents": [
+          "f2477c83e55dbbcf4779d1fd77ce4533acf0eca7",
+          "b7a74fe387683bfd92c409126e774a7a4418d37b"
+        ],
+        "changes": [
+          {
+            "path": ".github/workflows/ci.yml",
+            "before": [
+              {
+                "revision": "f2477c83e55dbbcf4779d1fd77ce4533acf0eca7",
+                "digest": "2d2bc636e6b0e5e890fbb716074b737786c65e461ed9918b7d4b51cd1da80f3d",
+                "mode": "100644"
+              },
+              {
+                "revision": "b7a74fe387683bfd92c409126e774a7a4418d37b",
+                "digest": "378594ad66e917058065462a18c13bd3d4f4933b63771bd5142f6012d90f2c54",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "7535581d92b1b266b91cd76fd4703f16d2d2817d9430bf8ac96e32948ebb532d",
+            "afterMode": "100644",
+            "reason": "Preserve main's independently sealed pipeline mutation/capacity producers and required exact-artifact audit join, together with the local guard fixtures in the existing Linux lint and macOS jobs. All main jobs, needs, conditions, permissions, budgets and commands remain byte-equivalent after removing only the two additive guard steps; inherited source and resolution declarations remain unchanged."
+          },
+          {
+            "path": "scripts/local-checks.mjs",
+            "before": [
+              {
+                "revision": "f2477c83e55dbbcf4779d1fd77ce4533acf0eca7",
+                "digest": "ce17ad1f0947134f9dfd9887353552fd85f35adcc57d2a6c1b63c669ae3170f8",
+                "mode": "100644"
+              },
+              {
+                "revision": "b7a74fe387683bfd92c409126e774a7a4418d37b",
+                "digest": "2d62841fbb560af82c7c4308ec183b84bdca15e5499715a6df925969859ea732",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "38a760e2666261c88634817726d7874545f7f051a782a5ab16f39b49ff64e437",
+            "afterMode": "100644",
+            "reason": "Integrate the split pipeline's hosted provenance boundary into local job routing. Explicitly refuse pipeline-mutations, pipeline-capacity and pipeline-evidence execution before creating locks or evidence even with --allow-heavy or supplied GitHub metadata. Keep list/changed/literal dry-run read-only without fabricated CI context, preserve other local jobs and focused routes, and retain the existing owned-process guard, output flushing and cancellation semantics. Raw campaigns are not converted into an alternate hosted acceptance route."
+          }
+        ],
+        "inputs": [
+          "adopt-12e8c958ee13",
+          "adopt-343a5565c1ac",
+          "adopt-985dbbba2789",
+          "adopt-dafff1a1aeea",
+          "bounded-local-execution-guard",
+          "client-ci-runner-context",
+          "client-ci-split",
+          "issue-180-foundation-composition",
+          "packed-acquired-infer-acceptance",
+          "parallel-pipeline-evidence",
+          "resolve-acquired-infer-client-ci",
+          "resolve-local-guard-acquired-infer-ci",
+          "resolve-main-model-backing",
+          "resolve-parallel-pipeline-main-infer"
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/resolve-main-model-backing.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "3d20b77ea51e06270712c9437286fe74b2fc0bce",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "resolve-main-model-backing",
+        "kind": "resolution",
+        "revision": "fcf1c6efe00db7e17632090c5ff6bea9eef818d5",
+        "parents": [
+          "e86d28e85468f02fdc2a43ff796980ce585b0f81",
+          "9fe3e2d738b541c17414a5eb09cd759c3e99adb4"
+        ],
+        "changes": [
+          {
+            "path": ".github/workflows/ci.yml",
+            "before": [
+              {
+                "revision": "e86d28e85468f02fdc2a43ff796980ce585b0f81",
+                "digest": "b3945aa267d98ac5228eff6f4cfd4bffe697b72d6dd09edefe82d3fd97dc652a",
+                "mode": "100644"
+              },
+              {
+                "revision": "9fe3e2d738b541c17414a5eb09cd759c3e99adb4",
+                "digest": "ecea48a0b7c94c50367b87e2ef02fc67a50a2b9972fd2b29effa01ecd4ce1523",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "36e951a381e4be1061b14e536801262bcedef20964915d55ea60efdfc060c209",
+            "afterMode": "100644",
+            "reason": "Integrate main #178 model capture/replay and #181 backing-capacity test/evidence steps with the foundation aggregate generation step; retain every existing workflow command and all source declarations without rewriting historical or migration inputs."
+          }
+        ],
+        "inputs": [
+          "adopt-12e8c958ee13",
+          "adopt-343a5565c1ac",
+          "adopt-985dbbba2789",
+          "adopt-dafff1a1aeea",
+          "issue-180-foundation-composition"
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/resolve-parallel-pipeline-main-infer.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "cdb7343babbc9effaa8f2058cd6759a13c363f84",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "resolve-parallel-pipeline-main-infer",
+        "kind": "resolution",
+        "revision": "13de27e2bbabfdd6a853f7e78eed8482716a0f96",
+        "parents": [
+          "d3edc149473231522ca2c105e1cc697a943fa1ab",
+          "c26adeb078fd54327cc9263544f4c57420f6e3c2"
+        ],
+        "inputs": [
+          "adopt-12e8c958ee13",
+          "adopt-343a5565c1ac",
+          "adopt-985dbbba2789",
+          "adopt-dafff1a1aeea",
+          "client-ci-runner-context",
+          "client-ci-split",
+          "issue-180-foundation-composition",
+          "packed-acquired-infer-acceptance",
+          "parallel-pipeline-evidence",
+          "resolve-acquired-infer-client-ci",
+          "resolve-main-model-backing"
+        ],
+        "changes": [
+          {
+            "path": ".github/workflows/ci.yml",
+            "before": [
+              {
+                "revision": "d3edc149473231522ca2c105e1cc697a943fa1ab",
+                "digest": "d2145f41e8a6898fd84629bb76be49167751e52e6092ac2eba310bb1166981b0",
+                "mode": "100644"
+              },
+              {
+                "revision": "c26adeb078fd54327cc9263544f4c57420f6e3c2",
+                "digest": "cea8141d269389901753e357ecba72540480924e84b67d40514ae3d9ad63bcee",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "378594ad66e917058065462a18c13bd3d4f4933b63771bd5142f6012d90f2c54",
+            "afterMode": "100644",
+            "reason": "Compose the independent current-main acquired-input INFER acceptance with the parallel Relation Pipeline producers. Retain main's packed acquired-INFER command and all existing Client acceptance, the split's complete mutation and capacity campaigns, same-workspace capacity restoration and final-normal sequence, strict same-attempt sealed-artifact join, and the existing global check. This explicit resolution records both independent workflow edits without changing campaign semantics, dropping checks, weakening provenance, reusing prior proof results or expanding workflow permissions."
+          }
+        ]
+      }
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation-declarations/sdk-cancel-response-loss-registration.json",
+      "reference": "25093479e16c40874701ae7f884ffcc7538d425b",
+      "blob": "e241f24afe35fa905267d4b21fd95abbf3780eb3",
+      "declaration": {
+        "version": "actql-foundation-declaration/0.1",
+        "id": "sdk-cancel-response-loss-registration",
+        "kind": "change",
+        "revision": "93e316653e510faec9bd40db8240ec9734e07e1e",
+        "parents": [
+          "bcbf77049fe4991c9b0f1a18541ac7a7952b01ad"
+        ],
+        "changes": [
+          {
+            "path": "package.json",
+            "before": [
+              {
+                "revision": "bcbf77049fe4991c9b0f1a18541ac7a7952b01ad",
+                "digest": "28aa357d16dcf7079b020150dff2783473bb9f6ce6b010cba94388702c570716",
+                "mode": "100644"
+              }
+            ],
+            "afterDigest": "b559af7ef2b305b47c26f6171b315b5acae04dd2767f5cf080b8776ca92b55a6",
+            "afterMode": "100644",
+            "reason": "Register the bounded public SDK cancellation-response-loss acceptance in the existing distribution Client gate. Preserve every existing test command, proof gate, corpus, mutation and foundation owner unchanged."
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -122,7 +122,7 @@ pub fn checked_program_has_effects(CheckedProgram) -> Bool
 
 pub fn checked_stage_results(CheckedProgram) -> @stage_results.Checked
 
-pub fn checking_environment(@check_environment.WireEnvironment, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile? : @numeric_reduction.Profile?, calendar? : @check_environment.SelectedCalendarProfile?, text_rank? : @check_environment.SelectedTextRankProfile?, model_tasks? : @check_environment.ModelTasks?) -> CheckEnvironment
+pub fn checking_environment(@check_environment.WireEnvironment, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile? : @numeric_reduction.Profile?, calendar? : @check_environment.SelectedCalendarProfile?, text_rank? : @check_environment.SelectedTextRankProfile?, property_graph? : Bool, model_tasks? : @check_environment.ModelTasks?) -> CheckEnvironment
 
 pub fn checking_environment_cid(CheckEnvironment) -> String
 
@@ -131,16 +131,6 @@ pub fn checking_environment_model_tasks(CheckEnvironment) -> @check_environment.
 pub fn checking_environment_wire(CheckEnvironment) -> @check_environment.WireEnvironment
 
 pub fn close_effect_computation_static(EffectComputationCandidate, @check_environment.MappingContractShapes, @stage_results.EffectStaticCandidateLimits) -> Result[EffectProgramStaticCandidate, @stage_results.EffectStaticCandidateIssue]
-
-pub fn components_limit_claim(ComponentsLimit, @capacity_program_step.ComponentsScope) -> @capacity_witness.LimitClaim
-
-pub fn components_limit_proof_at(ComponentsLimit, Int) -> ReidentifiedStep?
-
-pub fn components_limit_proof_count(ComponentsLimit) -> Int
-
-pub fn components_limit_selection(ComponentsLimit) -> @pipeline_check_context.ComponentsLimitsCheck
-
-pub fn components_limit_source(ComponentsLimit) -> UnitOperationSource
 
 pub fn contract_inventory(CheckedProgram) -> @pipeline_check_context.CoreContractInventory
 
@@ -380,6 +370,8 @@ pub fn pivot_numeric_slots_operation(PivotNumericSlots) -> UnitOperationSource
 
 pub fn prepare_effect_computation_candidate(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, Int, Int) -> Result[EffectComputationCandidate, EffectComputationIssue]
 
+pub fn prepare_infer_input_source_policy(CheckedProgram, Int, Int, Int, Int, Int, Int) -> PublicationSourcePolicy? raise UnitBuildFailure
+
 pub fn prepare_infer_item_limit(CheckedProgram, Int, Int, Int, Int, Int, Int) -> InferItemLimit raise UnitBuildFailure
 
 pub fn proof_application(ReidentifiedStep) -> @capacity_program_step.StepBound
@@ -451,6 +443,10 @@ pub fn publication_policy_lag_count(PublicationSourcePolicy) -> Int
 pub fn publication_policy_local_check_at(PublicationSourcePolicy, Int) -> @pipeline_check_context.LocalInputExecutionCheck?
 
 pub fn publication_policy_local_check_count(PublicationSourcePolicy) -> Int
+
+pub fn publication_policy_model_step_at(PublicationSourcePolicy, Int) -> PublicationPolicyModelStep?
+
+pub fn publication_policy_model_step_count(PublicationSourcePolicy) -> Int
 
 pub fn publication_policy_nest_at(PublicationSourcePolicy, Int) -> PublicationPolicyNest?
 
@@ -571,10 +567,6 @@ pub fn unit_asof_search_limit_at(CheckedProgram, Int, Int) -> AsOfSearchLimit?
 pub fn unit_asof_search_limit_count(CheckedProgram, Int) -> Int?
 
 pub fn unit_completeness_requirement(CheckedProgram, Int, @pipeline_typing.Target) -> UnitCompletenessRequirement?
-
-pub fn unit_components_limit_at(CheckedProgram, Int, Int) -> ComponentsLimit?
-
-pub fn unit_components_limit_count(CheckedProgram, Int) -> Int?
 
 pub fn unit_contract_at(CheckedProgram, Int, Int) -> (String, @pipeline_check_context.CoreContractBody)?
 
@@ -848,8 +840,6 @@ pub(all) struct CompileValueLimits {
   text_bytes : Int
 } derive(Eq, @debug.Debug)
 
-type ComponentsLimit
-
 pub(all) enum DiagnosticCategory {
   InvalidInput
   InvalidConfiguration
@@ -1111,6 +1101,11 @@ pub struct PublicationPolicyLag {
   field : @relation_typing.KeyField
   output : String
   offset : @relation_typing.CountValue
+}
+
+pub struct PublicationPolicyModelStep {
+  step : Int
+  infer : @relation_evidence.CheckedInfer
 }
 
 pub struct PublicationPolicyNest {

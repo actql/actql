@@ -211,54 +211,65 @@ test "aggregate and sequence guards retain distinct protected quantities" {
 }
 
 ///|
-test "Graph output guards exclude hop limits and diagnostic thresholds" {
-  for
-    (body, scope) in [
-      (
-        "\"components\":{\"kind\":\"weak\",\"max_output_rows\":7}",
-        @pipeline_typing.ComponentOutputRows,
-      ),
-      (
-        "\"traverse\":{\"start\":{\"ids\":[1]},\"direction\":\"both\",\"min_hops\":0,\"max_hops\":3,\"emit\":\"nodes\",\"max_output_rows\":7}",
-        @pipeline_typing.TraverseOutputRows,
-      ),
-      (
-        "\"shortest_path\":{\"source\":1,\"target\":2,\"direction\":\"both\",\"max_hops\":3,\"max_output_rows\":7}",
-        @pipeline_typing.ShortestOutputRows,
-      ),
-    ] {
-    let p = @pipeline_typing.check_carriers(
-      cursor("[{" + body + "}]"),
-      [("g", delta_graph())],
-      None,
-      None,
-      limits(),
-    ).unwrap()
-    let guards = @pipeline_typing.collect_author_guards(
-      p,
-      max_work=100,
-      max_text_bytes=1000,
-    ).unwrap()
-    assert_eq(@pipeline_typing.author_guard_count(guards), 1)
-    assert_eq(
-      @pipeline_typing.author_guard_scope(
-        @pipeline_typing.author_guard_at(guards, 0).unwrap(),
-      ),
-      scope,
-    )
-  }
+test "current TRAIL output guards exclude hop limits without fabricating unsupported guards" {
+  let identity = "{\"definition\":\"N\",\"domain\":\"sha256:" +
+    "0".repeat(64) +
+    "\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]}"
   let p = @pipeline_typing.check_carriers(
-    cursor("[{\"graph_bounds\":{\"max_nodes\":0,\"max_edges\":0}}]"),
-    [("g", delta_graph())],
+    cursor(
+      "[{\"traverse\":{\"start\":{\"ids\":[" +
+      identity +
+      "]},\"direction\":\"both\",\"min_hops\":0,\"max_hops\":3,\"path_mode\":\"trail\",\"emit\":\"paths\",\"max_output_rows\":7}}]",
+    ),
+    [("g", query_property_graph())],
     None,
     None,
     limits(),
   ).unwrap()
+  let guards = @pipeline_typing.collect_author_guards(
+    p,
+    max_work=100,
+    max_text_bytes=1000,
+  ).unwrap()
+  assert_eq(@pipeline_typing.author_guard_count(guards), 1)
+  assert_eq(@pipeline_typing.author_guard_step_range(guards, 0), Some((0, 1)))
+  assert_true(
+    physical_equal(@pipeline_typing.author_guards_pipeline(guards), p),
+  )
+  let occurrence = @pipeline_typing.author_guard_at(guards, 0).unwrap()
+  assert_eq(@pipeline_typing.author_guard_scope(occurrence), TraverseOutputRows)
+  assert_eq(@pipeline_typing.author_guard_field(occurrence), "max_output_rows")
+  assert_true(
+    @pipeline_typing.author_guard_value(occurrence) is @relation.Literal(7L),
+  )
   assert_eq(
-    @pipeline_typing.author_guard_count(
-      @pipeline_typing.collect_author_guards(p, max_work=1, max_text_bytes=0).unwrap(),
-    ),
-    0,
+    @decode.cursor_path(@pipeline_typing.author_guard_source(occurrence)),
+    [Index(0), Key("traverse"), Key("max_output_rows")],
+  )
+  let (work, text) = @pipeline_typing.author_guards_usage(guards)
+  assert_true(
+    @pipeline_typing.collect_author_guards(
+      p,
+      max_work=work,
+      max_text_bytes=text,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    @pipeline_typing.collect_author_guards(
+      p,
+      max_work=work - 1,
+      max_text_bytes=text,
+    )
+    is Err(_),
+  )
+  assert_true(
+    @pipeline_typing.collect_author_guards(
+      p,
+      max_work=work,
+      max_text_bytes=text - 1,
+    )
+    is Err(_),
   )
 }
 

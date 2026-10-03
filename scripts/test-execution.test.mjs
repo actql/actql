@@ -134,7 +134,7 @@ test('local-checks integrates real selected and unmatched Node tests', t => {
   const script = fileURLToPath(new URL('./local-checks.mjs', import.meta.url));
   for (const [pattern, status] of [['selected', 0], ['missing-selection', 1]]) {
     const child = spawnSync(process.execPath, [script, 'test', 'node', '--',
-      '--test-name-pattern', pattern, file], {encoding: 'utf8', env: childEnv, timeout: 10_000});
+      '--test-name-pattern', pattern, file], {encoding: 'utf8', env: {...childEnv, HOME: root}, timeout: 10_000});
     assert.equal(child.status, status, child.stdout + child.stderr);
     assert.match(child.stdout + child.stderr, /counts=/u);
   }
@@ -159,4 +159,50 @@ test('pinned MoonBit real pass, unmatched, skip-only and failure selections', t 
     assert.equal(result.status === 0, success, result.diagnostic + '\n' + child.stderr);
     assert.equal(result.counts?.tests, total, result.diagnostic);
   }
+});
+
+import {readFileSync, readdirSync} from 'node:fs';
+
+function runRecorded(root, file, extra = {}) {
+  const helper = new URL('./test-execution.mjs', import.meta.url).href;
+  return spawnSync(process.execPath, ['--input-type=module', '-e',
+    `import {runFocusedTests} from ${JSON.stringify(helper)};
+     process.exitCode = runFocusedTests('node', [${JSON.stringify(file)}],
+       ${JSON.stringify({cwd: root, evidenceScratch: join(root, 'evidence'), ...extra})});`],
+    {encoding: 'utf8', env: childEnv, timeout: 10_000});
+}
+
+test('focused assertion failure survives an explicitly requested successful rerun', t => {
+  const root = fixture(t), file = join(root, 'selected.mjs');
+  writeFileSync(file, "import {test} from 'node:test'; import assert from 'node:assert/strict'; test('selected', () => assert.equal(1, 2));");
+  const failed = runRecorded(root, file);
+  assert.equal(failed.status, 1, failed.stderr);
+  const [original] = readdirSync(join(root, 'evidence'));
+  const path = join(root, 'evidence', original, 'summary.json');
+  const before = readFileSync(path, 'utf8');
+  const observed = JSON.parse(before);
+  assert.equal(observed.complete, false);
+  assert.equal(observed.commands[0].verificationStatus, 1);
+  assert.match(readFileSync(join(root, 'evidence', original, '001.stdout.log'), 'utf8'), /AssertionError/u);
+  writeFileSync(file, "import {test} from 'node:test'; test('selected', () => {});");
+  const passed = runRecorded(root, file);
+  assert.equal(passed.status, 0, passed.stderr);
+  assert.equal(readdirSync(join(root, 'evidence')).length, 2);
+  assert.equal(readFileSync(path, 'utf8'), before, 'failed attempt bytes are immutable across reruns');
+  const summaries = readdirSync(join(root, 'evidence')).map(name => JSON.parse(readFileSync(join(root, 'evidence', name, 'summary.json'))));
+  assert.equal(summaries.filter(summary => summary.complete).length, 1);
+});
+
+test('unwritable focused evidence destination preserves failure and fails a green attempt', t => {
+  const root = fixture(t), file = join(root, 'selected.mjs');
+  const blocked = join(root, 'not-a-directory');
+  writeFileSync(blocked, 'unrelated');
+  for (const fail of [true, false]) {
+    writeFileSync(file, `import {test} from 'node:test'; test('selected', () => {${fail ? "throw new Error('expected assertion failure')" : ''}});`);
+    const child = runRecorded(root, file, {evidenceScratch: join(blocked, 'child')});
+    assert.equal(child.status, 1);
+    assert.match(child.stderr, /evidence write failed/u);
+    assert.match(child.stderr, new RegExp('primary test status: ' + (fail ? 1 : 0)));
+  }
+  assert.equal(readFileSync(blocked, 'utf8'), 'unrelated');
 });

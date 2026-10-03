@@ -10,16 +10,23 @@ import {createServer} from 'node:https';
 import {createRequire} from 'node:module';
 import {userInfo} from 'node:os';
 import {inspect} from 'node:util';
-import {resolve} from 'node:path';
+import {relative, resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {connect} from '@actql/node';
 import {openInstalledRemoteHttpHost} from
   '@actql/local-node/http-host';
-import {canonical, judge} from './dbt-compat-judge.mjs';
+import {canonical, judge, packageIdentity, textIdentity} from
+  './dbt-compat-judge.mjs';
 
 const [casesPath, compiledPath, resultsPath] = process.argv.slice(2);
 const specification = JSON.parse(await readFile(casesPath, 'utf8'));
 // {case name: compiled SQL text exactly as dbt wrote it}
 const compiled = JSON.parse(await readFile(compiledPath, 'utf8'));
+const installed = await Promise.all(['client-wire', 'sdk', 'run-host-core',
+  'local-node', 'node'].map(name => packageIdentity(
+  resolve('node_modules', '@actql', name))));
+const module = relative(process.cwd(), fileURLToPath(
+  import.meta.resolve('@actql/node'))).replaceAll('\\', '/');
 
 // Refusals of a submitted text by the ordinary Client admission. Anything
 // else (connection, timeout, missing dependency) is a fault, not a finding.
@@ -72,7 +79,8 @@ await installRows(source.rows);
 const view = environment.source_views[0];
 const sourceProfilePath = resolve('source-profile.json');
 await writeFile(sourceProfilePath, canonical({
-  version: 'actql-installed-duckdb-source/0.1', database,
+  acquisitionPlanning: {policy: 'priority', priority: ['nativeQuery', 'broadQuery']},
+    version: 'actql-installed-duckdb-source/0.1', database,
   schema: 'main', table: source.table, sourceRef: 'connector://crm/main/r#v',
   // The exact relation name dbt rendered for ref('stg_orders').
   queryAliases: [{name: source.relation, sourceRef: 'connector://crm/main/r#v',
@@ -185,7 +193,8 @@ async function record(client, transport, name, item, text, format) {
       state: {status: 'failed',
         reason: 'injected by ACTQL_DBT_PROBE_INJECT_RUN_FAILURE'}};
   }
-  const entry = {case: name, transport, ...outcome,
+  const entry = {case: name, transport, entry: '@actql/node:client.aql',
+    module, format, input: textIdentity(text), ...outcome,
     ...judge(item, outcome, source.columns)};
   outcomes.push(entry);
   await writeOutcomes();
@@ -196,7 +205,7 @@ const outcomes = [];
 // A fault (anything but a classified outcome) stops the run; the outcomes so
 // far and the fault are written first, so the evidence shows where it stopped.
 async function writeOutcomes(fault) {
-  await writeFile(resultsPath, JSON.stringify({outcomes,
+  await writeFile(resultsPath, JSON.stringify({installed, outcomes,
     ...(fault === undefined ? {} : {fault})}, null, 2) + '\n');
 }
 
@@ -211,9 +220,9 @@ async function exercise(transport, options) {
       if (entry.stage === 'named-result' && item.program !== undefined) {
         // The same filter and projection authored as a JSON Program. It goes
         // through the same runtime, so it is a comparison, not an oracle:
-        // it must reproduce the dbt model's rows.
+        // both paths must satisfy the independently authored expected rows.
         await record(client, transport, `${item.name}:json-program`,
-          {expect: 'rows', rows: entry.all, order: 'unordered'},
+          {...item, expect: 'rows'},
           await readFile(item.program, 'utf8'), 'json');
       }
     }
@@ -231,7 +240,7 @@ async function exercise(transport, options) {
     }
     await installRows(source.rows);
   } finally {
-    client.close?.();
+    await client.close?.();
   }
 }
 

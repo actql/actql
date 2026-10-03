@@ -1,11 +1,15 @@
 ///|
 test "capacity demand keeps node and edge premises separate at the same graph target" {
   for reverse in [false, true] {
-    let nodes = "{\"node_rows\":true,\"from\":\"g\",\"as\":\"nodes\"}"
-    let edges = "{\"edge_rows\":true,\"from\":\"g\",\"as\":\"edges\"}"
-    let text = "{\"version\":\"actql/0.1\",\"id\":\"quantity-demand\",\"stages\":[{\"id\":\"s\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"src\":{\"type\":\"number\",\"nullable\":false},\"dst\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"src\":1,\"dst\":2}]},\"as\":\"seed\"},{\"graph\":{\"source\":\"src\",\"target\":\"dst\"},\"as\":\"g\"}," +
+    let nodes = "{\"match_nodes\":{\"definition\":\"N\",\"bindings\":{\"identity\":\"key\"},\"where\":\"true\",\"fields\":[\"key\"]},\"from\":\"g\",\"as\":\"nodes\"}"
+    let edges = "{\"match_edges\":{\"definition\":\"E\",\"bindings\":{\"identity\":\"key\"},\"where\":\"true\",\"fields\":[\"key\"]},\"from\":\"g\",\"as\":\"edges\"}"
+    let text = (
+        #|{"version":"actql/0.1","id":"quantity-demand","stages":[{"id":"s","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1},{"id":2}]},"as":"n"},{"values":{"schema":{"id":{"type":"number","nullable":false},"src":{"type":"number","nullable":false},"dst":{"type":"number","nullable":false}},"rows":[{"id":10,"src":1,"dst":2}]},"as":"e"},{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"n","key":["id"]}],"edges":[{"name":"E","from":"e","key":["id"],"source":{"definition":"N","key":["src"]},"target":{"definition":"N","key":["dst"]}}]},"as":"g"},
+      ) +
       (if reverse { edges + "," + nodes } else { nodes + "," + edges }) +
-      "],\"results\":{\"nodes\":{\"from\":\"nodes\",\"fields\":[\"id\"]},\"edges\":{\"from\":\"edges\",\"fields\":[\"src\",\"dst\"]}}}],\"results\":{\"out\":{\"from\":{\"stage\":\"s\",\"result\":\"nodes\"}}}}"
+      (
+        #|],"results":{"nodes":{"from":"nodes","fields":["key"]},"edges":{"from":"edges","fields":["key"]}}}],"results":{"out":{"from":{"stage":"s","result":"nodes"}}}}
+      )
     let program = @syntax.parse(
       text,
       {
@@ -26,7 +30,7 @@ test "capacity demand keeps node and edge premises separate at the same graph ta
       max_parameters=0,
       {
         max_stages: 1,
-        max_steps: 4,
+        max_steps: 5,
         max_results: 2,
         max_work: 1000000,
         max_nodes: 100000,
@@ -59,19 +63,19 @@ test "capacity demand keeps node and edge premises separate at the same graph ta
       }
       let witness = @wire.program_proof_witness(proof)
       match @law.name(@wire.law(witness)) {
-        "actql.bound.graph-nodes" => {
+        "actql.bound.property-graph-nodes" => {
           assert_eq(@wire.value(witness), 2L)
           node_count += 1
         }
-        "actql.bound.graph-edges" => {
+        "actql.bound.property-graph-edges" => {
           assert_eq(@wire.value(witness), 1L)
           edge_count += 1
         }
-        "actql.bound.graph-node-rows" => {
+        "actql.bound.match-nodes" => {
           assert_eq(@wire.value(witness), 2L)
           node_rows += 1
         }
-        "actql.bound.graph-edge-rows" => {
+        "actql.bound.match-edges" => {
           assert_eq(@wire.value(witness), 1L)
           edge_rows += 1
         }

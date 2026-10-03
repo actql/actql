@@ -29,6 +29,31 @@ pub struct PublicationSourcePolicy {
   priv nests : Array[PublicationPolicyNest]
   priv temporal_joins : Array[PublicationPolicyTemporalJoin]
   priv carrier_steps : Array[PublicationPolicyCarrierStep]
+  priv model_steps : Array[PublicationPolicyModelStep]
+}
+
+///|
+/// An external model observation is not a pure transfer of the source policy.
+/// Keep its checked occurrence for capture admission while retaining all of
+/// its input provenance. Static preparation alone cannot attest its output.
+pub struct PublicationPolicyModelStep {
+  step : Int
+  infer : @evidence.CheckedInfer
+}
+
+///|
+pub fn publication_policy_model_step_count(
+  value : PublicationSourcePolicy,
+) -> Int {
+  value.model_steps.length()
+}
+
+///|
+pub fn publication_policy_model_step_at(
+  value : PublicationSourcePolicy,
+  index : Int,
+) -> PublicationPolicyModelStep? {
+  value.model_steps.get(index)
 }
 
 ///|
@@ -498,10 +523,57 @@ fn prepare_publication_source_policy(
   budget : IdentityBudget,
   producers? : Array[BuiltUnit]? = None,
 ) -> PublicationSourcePolicy? raise UnitBuildFailure {
+  prepare_target_source_policy(
+    unit,
+    publication.stage,
+    @publication.target(@publication.port_result(publication.port)),
+    budget,
+    producers~,
+  )
+}
+
+///|
+/// Reuse the publication provenance walk at the model's checked input edge.
+/// This describes input policy, not a model response or dispatch permission.
+pub fn prepare_infer_input_source_policy(
+  program : CheckedProgram,
+  unit : Int,
+  index : Int,
+  max_work : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> PublicationSourcePolicy? raise UnitBuildFailure {
+  if max_work < 0 || max_bytes < 0 || max_nodes < 0 || max_depth < 0 {
+    raise BudgetExceeded
+  }
+  guard program.units.get(unit) is Some(selected) &&
+    @pipeline.step_at(selected.pipeline, index) is Some(step) &&
+    step.operation is @pipeline.Infer(_) &&
+    @pipeline.input_occurrence_count(step) == 1 &&
+    @pipeline.input_occurrence_at(step, 0) is Some(input) else {
+    raise ForeignOwner
+  }
+  prepare_target_source_policy(
+    selected,
+    unit,
+    input.target,
+    { work: max_work, bytes: max_bytes, nodes: max_nodes, depth: max_depth, },
+    producers=Some(program.units),
+  )
+}
+
+///|
+fn prepare_target_source_policy(
+  unit : BuiltUnit,
+  stage : Int,
+  original : @pipeline.Target,
+  budget : IdentityBudget,
+  producers? : Array[BuiltUnit]? = None,
+) -> PublicationSourcePolicy? raise UnitBuildFailure {
   if unit.source_execution.is_empty() {
     return None
   }
-  let original = @publication.target(@publication.port_result(publication.port))
   let pending = [original]
   let visited_steps : Map[Int, Bool] = Map([])
   let visited_inputs : Map[Int, Bool] = Map([])
@@ -527,13 +599,13 @@ fn prepare_publication_source_policy(
   let nests : Array[PublicationPolicyNest] = []
   let temporal_joins : Array[PublicationPolicyTemporalJoin] = []
   let carrier_steps : Array[PublicationPolicyCarrierStep] = []
+  let model_steps : Array[PublicationPolicyModelStep] = []
   // A single named keyed input can have several correlation producers. Index
   // the owned gates by join occurrence, never by response CID or input name.
   let keyed_responses : Map[Int, SourceExecution] = Map([])
   for check in unit.source_execution {
     identity_charge(budget, 1)
-    if check.subject.stage == publication.stage &&
-      check.kind is KeyedResponse(binding) {
+    if check.subject.stage == stage && check.kind is KeyedResponse(binding) {
       let step = @sourceviews.keyed_join_step(binding.join)
       if keyed_responses.contains(step) {
         raise ForeignOwner
@@ -553,9 +625,14 @@ fn prepare_publication_source_policy(
         let step = @pipeline.step_at(unit.pipeline, index).unwrap()
         let mut keyed_right = false
         let expected = match step.operation {
-          // Model policy and captured issuer provenance need their own closure.
-          // Do not classify acquisition as a pure transfer from source rows.
-          @pipeline.Infer(_) => raise UnsupportedStaticPath(step.source)
+          @pipeline.Infer(infer) => {
+            // Follow the exact input edge without claiming that its policy
+            // attests the external response. The execution/publication owner
+            // must separately bind the model's adopted slot captures.
+            model_steps.push({ step: index, infer, })
+            unknown = true
+            1
+          }
           @pipeline.Values(_) | @pipeline.TimeSeries(_) => {
             identity_charge(budget, 1)
             generators.push({ step: index, operation: step.operation, })
@@ -808,138 +885,11 @@ fn prepare_publication_source_policy(
             let mut missing = !@graph.traverse_patterned(operation) ||
               @graph.selector_id_count(start) > 0 ||
               @graph.traverse_output_guard(operation) is Some(_)
-            if @graph.selector_predicate(start) is Some(predicate) {
-              if publication_expression_unknown(
-                  @graph.predicate_expression(predicate),
-                  budget,
-                ) {
-                missing = true
-              }
-            }
             for hop in 0..<@graph.traverse_hop_count(operation) {
               identity_charge(budget, 1)
               let hop = @graph.traverse_hop_at(operation, hop).unwrap()
               if @graph.hop_type_count(hop).unwrap_or(0) > 0 {
                 missing = true
-              }
-              for entity in [@graph.Nodes, @graph.Edges] {
-                identity_charge(budget, 1)
-                if @graph.hop_predicate(hop, entity) is Some(predicate) {
-                  if publication_expression_unknown(
-                      @graph.predicate_expression(predicate),
-                      budget,
-                    ) {
-                    missing = true
-                  }
-                }
-              }
-            }
-            carrier_steps.push({
-              step: index,
-              operation: step.operation,
-              unknown_provenance: missing,
-            })
-            unknown = unknown || missing
-            if selector is Some(_) {
-              2
-            } else {
-              1
-            }
-          }
-          @pipeline.Shortest(
-            source_selector~,
-            target_selector~,
-            checked=operation
-          ) => {
-            identity_charge(budget, 1)
-            for side in 0..<2 {
-              identity_charge(budget, 1)
-              if @graph.shortest_endpoint(
-                  operation,
-                  if side == 0 {
-                    Left
-                  } else {
-                    Right
-                  },
-                )
-                is @graph.Selected(selector) {
-                if @graph.selector_predicate(selector) is Some(predicate) {
-                  let _ = publication_expression_unknown(
-                    @graph.predicate_expression(predicate),
-                    budget,
-                  )
-                }
-              }
-            }
-            // The explicit hop bound contributes authored value provenance;
-            // endpoint predicates still consume their complete traversal budget.
-            carrier_steps.push({
-              step: index,
-              operation: step.operation,
-              unknown_provenance: true,
-            })
-            unknown = true
-            1 +
-            (if source_selector is Some(_) { 1 } else { 0 }) +
-            (if target_selector is Some(_) { 1 } else { 0 })
-          }
-          @pipeline.Reach(_) => {
-            identity_charge(budget, 1)
-            carrier_steps.push({
-              step: index,
-              operation: step.operation,
-              unknown_provenance: true,
-            })
-            // The explicit start identity and depth are authored values.
-            unknown = true
-            1
-          }
-          @pipeline.GraphMean(operation) => {
-            identity_charge(budget, 1)
-            carrier_steps.push({
-              step: index,
-              operation: step.operation,
-              unknown_provenance: true,
-            })
-            // Every sample participates, including zero-weight samples.
-            // Weights and support thresholds are authored values, not attestations.
-            unknown = true
-            @graph.mean_sample_count(@graph.mean_options(operation))
-          }
-          @pipeline.GraphEquality(..)
-          | @pipeline.GraphDiff(..)
-          | @pipeline.GraphApply(..)
-          | @pipeline.GraphStructural(..)
-          | @pipeline.GraphUnion(_) => {
-            identity_charge(budget, 1)
-            carrier_steps.push({
-              step: index,
-              operation: step.operation,
-              unknown_provenance: false,
-            })
-            match step.operation {
-              @pipeline.GraphUnion(operation) =>
-                @graph.union_count(operation) + 1
-              _ => 2
-            }
-          }
-          @pipeline.Subgraph(selector~, checked=operation) => {
-            identity_charge(budget, 1)
-            let nodes = @graph.subgraph_nodes(operation)
-            let mut missing = @graph.selector_id_count(nodes) > 0
-            for
-              predicate in [
-                @graph.selector_predicate(nodes),
-                @graph.subgraph_edges(operation),
-              ] {
-              identity_charge(budget, 1)
-              if predicate is Some(predicate) {
-                if publication_expression_unknown(
-                    @graph.predicate_expression(predicate),
-                    budget,
-                  ) {
-                  missing = true
-                }
               }
             }
             carrier_steps.push({
@@ -974,37 +924,14 @@ fn prepare_publication_source_policy(
             unknown = unknown || missing
             1
           }
-          @pipeline.Graph(operation) => {
-            identity_charge(budget, 1)
-            let missing = match @graph.options(operation) {
-              Normalize | DegreeOptions(_) => false
-              ComponentOptions(_, max_output_rows~) =>
-                max_output_rows is Some(_)
-              BoundsOptions(max_nodes~, max_edges~, max_degree~) =>
-                max_nodes is Some(_) ||
-                max_edges is Some(_) ||
-                max_degree is Some(_)
-            }
-            carrier_steps.push({
-              step: index,
-              operation: step.operation,
-              unknown_provenance: missing,
-            })
-            unknown = unknown || missing
-            1
-          }
-          @pipeline.GraphConstruction(nodes~, ..) => {
+          @pipeline.PropertyGraphConstruction(inputs~, ..) => {
             identity_charge(budget, 1)
             carrier_steps.push({
               step: index,
               operation: step.operation,
               unknown_provenance: false,
             })
-            if nodes is Some(_) {
-              2
-            } else {
-              1
-            }
+            inputs.length()
           }
           @pipeline.Vector(operation) => {
             identity_charge(budget, 1)
@@ -1174,7 +1101,7 @@ fn prepare_publication_source_policy(
         for check in unit.source_execution {
           identity_charge(budget, 1)
           let subject = check.subject
-          if subject.stage == publication.stage &&
+          if subject.stage == stage &&
             check.kind is CarrierResponse &&
             identity_compare(
               @sourceviews.declaration(subject.source).input_name,
@@ -1248,7 +1175,7 @@ fn prepare_publication_source_policy(
             identity_charge(budget, 1)
             let check = @context.local_input_closure_at(unit.local_inputs, i).unwrap()
             let subject = check.subject
-            if subject.stage == publication.stage &&
+            if subject.stage == stage &&
               subject.target == target &&
               physical_equal(subject.pipeline, unit.pipeline) {
               locals.push(check)
@@ -1320,6 +1247,7 @@ fn prepare_publication_source_policy(
     nests,
     temporal_joins,
     carrier_steps,
+    model_steps,
   }
   |> Some
 }

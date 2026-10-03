@@ -1330,6 +1330,44 @@ test('close recovery retains all handles, attempts every retry and never repeats
   assert.deepEqual(retries, [2, 1, 1]);
 });
 
+test('dependent output cleanup preserves responsibility across explicit passes', async () => {
+  const registration = {}, f = fixture([registration, registration]);
+  let sourcePending = true, outputPending = true, runs = 0;
+  const closes = [0, 0], retries = [0, 0];
+  const output = {status: () => ({pending: outputPending}), async retry() {
+    retries[0]++;
+    if (!sourcePending) outputPending = false;
+  }};
+  const source = {status: () => ({pending: sourcePending}), async retry() {
+    retries[1]++;
+    sourcePending = false;
+  }};
+  const result = await runInstalledStrategy(f.setup, f.core, [{registration,
+    run(task) {
+      runs++;
+      f.complete.add(task.index);
+      return {close() {
+        closes[task.index - 1]++;
+        throw Object.assign(new Error(`pending ${task.index}`), {
+          cleanupPending: true,
+          cleanupHandle: task.index === 1 ? output : source,
+        });
+      }};
+    },
+  }]);
+  assert.throws(() => result.close(), /pending 1/);
+  assert.equal(await result.cleanup(), false);
+  assert.equal(result.cleanupPending(), true);
+  assert.equal(outputPending, true);
+  assert.equal(sourcePending, false);
+  assert.deepEqual(retries, [1, 1]);
+  assert.equal(await result.cleanup(), true);
+  assert.equal(result.cleanupPending(), false);
+  assert.deepEqual(retries, [2, 1]);
+  assert.deepEqual(closes, [1, 1]);
+  assert.equal(runs, 2, 'recovery must not repeat Compute');
+});
+
 test('reasonless release failure remains unconfirmed without guessing a safe retry', async () => {
   for (const phase of ['output', 'core']) {
     const registration = {}, f = fixture([registration]);

@@ -86,6 +86,7 @@ function fixture(api, control, options = {}) {
       const next = control.admit('delivery_record', wire, limits);
       assert.equal(JSON.parse(next.wire).delivery_attempt_cid, state.selected.identity);
       await options.beforeAppend?.(next);
+      if (state.record?.wire === next.wire) return;
       assert.equal(control.deliveryTransition(state.record, next), true);
       state.record = next;
       state.records.push(wire);
@@ -139,6 +140,116 @@ function fixture(api, control, options = {}) {
 export {fixture as createResultDeliveryFixture};
 
 export const deliveryAcceptanceCases = {
+  async 'concurrent cleanup shares one pending append and retry Promise'(api, control) {
+    let entered, release, appends = 0;
+    const arrived = new Promise(resolve => { entered = resolve; });
+    const gate = new Promise(resolve => { release = resolve; });
+    const original = Object.freeze(new Error('initial streaming append failed'));
+    const f = fixture(api, control, {beforeAppend: async () => {
+      if (++appends === 1) throw original;
+      if (appends === 2) { entered(); await gate; }
+    }});
+    let failure;
+    await assert.rejects(f.deliver(), error => { failure = error; return true; });
+    const first = failure.cleanupHandle.retry();
+    await arrived;
+    const second = failure.cleanupHandle.retry();
+    try {
+      assert.equal(first, second, 'concurrent callers must join the same Promise');
+      assert.equal(appends, 2, 'a hanging append must not start another loop');
+      assert.equal(failure.cleanupHandle.status().pending, true);
+    } finally { release(); await Promise.allSettled([first, second]); }
+    assert.equal(failure.cleanupPending, false);
+    assert.equal(failure.cause, original);
+    assert.equal(failure.primaryFailure, original);
+    assert.deepEqual(failure.cleanupErrors, [original]);
+    assert.deepEqual(f.state.records.map(wire => JSON.parse(wire).state),
+      ['streaming', 'failed']);
+    assert.equal(appends, 3);
+    assert.equal((await failure.cleanupHandle.retry()).pending, false);
+    assert.equal(appends, 3, 'settled retries must not append again');
+    assert.equal(f.state.readers, 0);
+    assert.deepEqual(f.state.chunks, []);
+    assert.equal(f.state.finishes, 0);
+  },
+  async 'concurrent cleanup cannot skip a failed terminal append'(api, control) {
+    let entered, releaseFirst, releaseSecond, appends = 0, streamingRetries = 0;
+    const arrived = new Promise(resolve => { entered = resolve; });
+    const firstGate = new Promise(resolve => { releaseFirst = resolve; });
+    const secondGate = new Promise(resolve => { releaseSecond = resolve; });
+    const original = new Error('initial streaming append failed');
+    const terminalFailure = new Error('terminal append unavailable');
+    let terminalAvailable = false;
+    const attempted = [];
+    const f = fixture(api, control, {beforeAppend: async record => {
+      attempted.push(record.wire);
+      if (++appends === 1) throw original;
+      if (JSON.parse(record.wire).state === 'streaming') {
+        if (++streamingRetries === 1) { entered(); await firstGate; }
+        else await secondGate;
+      } else if (!terminalAvailable) throw terminalFailure;
+    }});
+    let failure;
+    await assert.rejects(f.deliver(), error => { failure = error; return true; });
+    const first = failure.cleanupHandle.retry();
+    await arrived;
+    const second = failure.cleanupHandle.retry();
+    releaseFirst();
+    const firstStatus = await first;
+    releaseSecond();
+    const secondStatus = await second;
+    assert.equal(firstStatus.pending, true);
+    assert.equal(secondStatus.pending, true, 'no caller may discharge an unpersisted terminal');
+    assert.equal(firstStatus, secondStatus);
+    assert.equal(failure.cleanupPending, true);
+    assert.equal(JSON.parse(f.state.record.wire).state, 'streaming');
+    assert.deepEqual(failure.cleanupErrors, [original, terminalFailure]);
+    assert.equal(failure.cause, original);
+    assert.equal(failure.primaryFailure, original);
+    assert.equal(streamingRetries, 1);
+    terminalAvailable = true;
+    const resumed = failure.cleanupHandle.retry();
+    assert.notEqual(resumed, first, 'a failed flight must allow a later retry');
+    assert.equal((await resumed).pending, false);
+    assert.equal(failure.cleanupPending, false);
+    assert.deepEqual(f.state.records.map(wire => JSON.parse(wire).state),
+      ['streaming', 'failed']);
+    assert.equal(attempted[0], attempted[1]);
+    assert.equal(attempted[2], attempted[3], 'retry must retain the exact terminal wire');
+    assert.deepEqual(failure.cleanupErrors, [original, terminalFailure]);
+    await failure.cleanupHandle.retry();
+    assert.equal(attempted.length, 4);
+    assert.equal(f.state.readers, 0);
+    assert.deepEqual(f.state.chunks, []);
+    assert.equal(f.state.finishes, 0);
+  },
+  async 'a rejected cleanup flight releases its guard for a later retry'(api, control) {
+    const original = new Error('initial streaming append failed');
+    let appends = 0, rejectAction = true;
+    const f = fixture(api, {...control,
+      deliveryRecordRetryAction(...arguments_) {
+        if (rejectAction) return 'invalid_action';
+        return control.deliveryRecordRetryAction(...arguments_);
+      },
+    }, {beforeAppend() { if (++appends === 1) throw original; }});
+    let failure;
+    await assert.rejects(f.deliver(), error => { failure = error; return true; });
+    const first = failure.cleanupHandle.retry();
+    assert.equal(failure.cleanupHandle.retry(), first);
+    await assert.rejects(first, {code: 'InvalidResultDeliveryRecordRetry'});
+    assert.equal(failure.cleanupPending, true);
+    assert.deepEqual(failure.cleanupErrors, [original]);
+    assert.equal(appends, 1);
+    rejectAction = false;
+    const resumed = failure.cleanupHandle.retry();
+    assert.notEqual(resumed, first);
+    assert.equal((await resumed).pending, false);
+    assert.equal(appends, 3);
+    assert.equal(failure.cause, original);
+    assert.equal(f.state.readers, 0);
+    assert.deepEqual(f.state.chunks, []);
+    assert.equal(f.state.finishes, 0);
+  },
   async 'advanced-time replay uses the retained attempt without another reader'(api, control) {
     const f = fixture(api, control);
     const first = await f.deliver();

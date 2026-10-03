@@ -11,8 +11,8 @@ const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
 // object to client-dispatch-owner before calling run, hence before any advance.
 // Exactly one physical provider or already Store-confirmed saved read is used.
 export function openNodeInferOperation({moon, preparedProgram, step, graph,
-  registry, values, provider, savedCapture, savedSlots, quantityCapacity,
-  physicalPreflight, egressAdmission, computeSuffix, signal, quantum = 256, observeProgress}) {
+  registry, values, fragment, ordered, provider, savedCapture, savedSlots, quantityCapacity,
+  physicalPreflight, egressAdmission, computeSuffix, acquiredInput, signal, quantum = 256, observeProgress}) {
   if (!Number.isSafeInteger(quantum) || quantum < 1 || quantum > 2147483647 ||
       [provider, savedCapture, savedSlots].filter(value => value !== undefined)
         .length !== 1) {
@@ -41,14 +41,23 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     throw new TypeError('InvalidInstalledInferQuantityCapacity');
   }
   signal?.throwIfAborted();
+  if (acquiredInput !== undefined && savedCapture !== undefined) {
+    throw new TypeError('AcquiredInferReplayNotConnected');
+  }
   const active = checked(savedSlots !== undefined
-    ? moon.clientProgramStartRestoredInferSlotReplay(preparedProgram, step,
-      graph, registry, values, savedSlots)
+    ? acquiredInput === undefined
+      ? moon.clientProgramStartRestoredInferSlotReplay(preparedProgram, step,
+        graph, registry, values, savedSlots, fragment, ordered)
+      : moon.clientProgramStartAcquiredInferSlotReplay(preparedProgram, step,
+        graph, registry, values, savedSlots, acquiredInput, fragment, ordered)
     : savedCapture === undefined
-      ? moon.clientProgramStartScopedInferExecution(preparedProgram, step,
-        graph, registry, values, provider)
+      ? acquiredInput === undefined
+        ? moon.clientProgramStartScopedInferExecution(preparedProgram, step,
+          graph, registry, values, provider, fragment, ordered)
+        : moon.clientProgramStartAcquiredInferExecution(preparedProgram, step,
+          graph, registry, values, provider, acquiredInput, fragment, ordered)
       : moon.clientProgramStartRestoredInferReplay(preparedProgram, step,
-        graph, registry, values, savedCapture));
+        graph, registry, values, savedCapture, fragment, ordered));
   const requestStop = () => moon.clientProgramCancelInferExecution(active);
   if (quantityCapacity !== undefined) {
     const {limits, perAttempt} = quantityCapacity;

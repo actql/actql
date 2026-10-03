@@ -131,15 +131,77 @@ fn check_pipeline_fixture(
     attach_pipeline_inputs(prepared, same_shape, 10000000)
     is Err(ForeignInput("remote")),
   )
-  let foreign = registered_stage(@inputs.source(foreign_source), [registration])
+  // The common checker refuses a foreign declaration before attachment.
+  let foreign_body = @decode.open_object(
+    @syntax.stage_body(
+      @stages.stage_at(@inputs.source(foreign_source), 0).unwrap(),
+    ),
+  ).unwrap()
+  assert_true(
+    @pipeline.check_with_evidence(
+      @decode.required(foreign_body, "steps").unwrap(),
+      [registration],
+      Some(@stages.declarations(@inputs.source(foreign_source))),
+      @decode.lookup(foreign_body, "from"),
+      {
+        max_steps: 100,
+        max_work: 1000000,
+        max_text_bytes: 1000000,
+        max_nodes: 100000,
+        max_tokens: 100000,
+        max_depth: 100,
+      },
+    )
+    is Err({ kind: KeyEvidence(InputContractMismatch), .. }),
+  )
+  let foreign_owner = prepare_pipeline_inputs(
+    resolve(foreign_source, foreign_catalog, caps()).unwrap(),
+    10000000,
+  ).unwrap()
+  let foreign = registered_stage(@inputs.source(foreign_source), [
+    pipeline_input_at(foreign_owner, 0, 0).unwrap(),
+  ])
   assert_true(
     attach_pipeline_inputs(prepared, foreign, 10000000) is Err(ForeignStage),
   )
   // A reconstructed Carrier is not the selected contract owner even when its
   // row contract is shared and its complete type is equal.
-  guard registration.1 is @pipeline.CarrierInput(carrier) else {
+  guard registration.1
+    is @pipeline.SourceViewInput(original_stage, declared_name, _, owner) else {
     fail("carrier registration")
   }
+  guard pipeline_input_at(foreign_owner, 0, 0).unwrap().1
+    is @pipeline.SourceViewInput(_, _, foreign_declaration, _) else {
+    fail("foreign declaration registration")
+  }
+  let original_body = @decode.open_object(@syntax.stage_body(original_stage)).unwrap()
+  assert_true(
+    @pipeline.check_with_evidence(
+      @decode.required(original_body, "steps").unwrap(),
+      [
+        (
+          registration.0,
+          @pipeline.SourceViewInput(
+            original_stage, declared_name, foreign_declaration, owner,
+          ),
+        ),
+      ],
+      Some(@stages.declarations(source)),
+      @decode.lookup(original_body, "from"),
+      {
+        max_steps: 100,
+        max_work: 1000000,
+        max_text_bytes: 1000000,
+        max_nodes: 100000,
+        max_tokens: 100000,
+        max_depth: 100,
+      },
+    )
+    is Err({ kind: KeyEvidence(InputContractMismatch), .. }),
+  )
+  let carrier = @environment.carrier_schema_value(
+    @environment.source_view_carrier_schema(owner),
+  )
   if @carrier.relation_rows(carrier) is Some(rows) {
     let copied = @carrier.relation(rows)
     let copied_stage = registered_stage(source, [

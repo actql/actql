@@ -40,7 +40,9 @@ test "common dispatch tickets belong to one driver even for the same run" {
   assert_eq(@connector.fixed_compute_request_input_count(request), 1)
   assert_true(
     physical_equal(
-      @connector.fixed_compute_request_input(request, 0).unwrap(),
+      @execution.fixed_relation_read_completed(
+        @connector.fixed_compute_request_input(request, 0).unwrap(),
+      ).unwrap(),
       @strategy.captured_task_input(run, 1, 100, 10000).unwrap(),
     ),
   )
