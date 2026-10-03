@@ -200,6 +200,7 @@ pub fn client_program_composed_infer_local_provider(
   open : (Array[@local.ManagedProviderInput]) -> @infer_host.Execution?,
   observe_issue : (@infer_host.Issue) -> Unit,
   retain_completed : (@infer_host.Execution) -> Bool,
+  allow_cleanup : (@infer_host.Execution) -> Bool,
 ) -> @local.ManagedProvider {
   @infer_host.composed_local_provider(
     occurrence,
@@ -215,6 +216,7 @@ pub fn client_program_composed_infer_local_provider(
       @connector.ComputeUnsupported
     },
     retain_completed~,
+    allow_cleanup~,
   )
 }
 
