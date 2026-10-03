@@ -45,13 +45,11 @@ fn graph_current_owner(
 }
 
 ///|
-test "unconnected lowering consumers cannot issue old Graph kernels for a current definition" {
+test "unconnected lowering consumers cannot issue retired Graph kernels for a current definition" {
   for
     (name, body) in [
       ("normalize_graph", "true"),
-      ("degree", "{\"direction\":\"both\"}"),
       ("components", "{\"kind\":\"strong\"}"),
-      ("graph_bounds", "{\"max_nodes\":1}"),
       (
         "reach",
         "{\"start\":{\"ids\":[" +
@@ -115,5 +113,25 @@ test "unconnected lowering consumers cannot issue old Graph kernels for a curren
       )
     }
     assert_true(issue.path.contains(@source.Key(name)))
+  }
+}
+
+///|
+test "current Graph diagnostics lower to their registered typed operations" {
+  for
+    (name, body, operation) in [
+      ("degree", "{\"direction\":\"both\"}", "SGA.degree_metrics"),
+      ("graph_bounds", "{\"max_nodes\":1}", "SGA.bounds_check"),
+    ] {
+    let prepared = graph_current_owner(
+      "[{\"from\":\"g\",\"" + name + "\":" + body + "}]",
+      false,
+    )
+    let plan = @lowering_relation.bound_preparation(prepared)
+    assert_eq(@lowering_relation.node_count(plan), 1)
+    assert_eq(
+      @lowering_relation.operation(@lowering_relation.node_at(plan, 0).unwrap()),
+      operation,
+    )
   }
 }

@@ -250,6 +250,10 @@ pub fn operation_obligations_at(OperationObligations, Int) -> OperationObligatio
 
 pub fn operation_obligations_count(OperationObligations) -> Int
 
+pub fn operation_obligations_graph_bounds(OperationObligations) -> @graph_typing.CheckedGraphBounds?
+
+pub fn operation_obligations_graph_degree(OperationObligations) -> @graph_typing.CheckedDegree?
+
 pub fn operation_obligations_match(OperationObligations) -> @graph_typing.CheckedMatch?
 
 pub fn operation_obligations_property_construction(OperationObligations) -> @graph_typing.CheckedPropertyConstruction?
@@ -451,6 +455,8 @@ pub enum CheckedOperation {
   Window(@temporal_window.CheckedWindow)
   Projection(@carrier_projection.CheckedProjection)
   GraphMatch(@graph_typing.CheckedMatch)
+  GraphBounds(@graph_typing.CheckedGraphBounds)
+  GraphDegree(@graph_typing.CheckedDegree)
   Traverse(selector~ : Target?, checked~ : @graph_typing.CheckedTraverse)
   PropertyGraphConstruction(inputs~ : Array[Target], checked~ : @graph_typing.CheckedPropertyConstruction)
   Vector(@vector_typing.CheckedVector)
@@ -696,6 +702,7 @@ pub(all) enum OperationObligation {
   CalendarRequirement(@calendar_typing.Obligation)
   WindowRequirement(@temporal_window.Obligation)
   MatchRequirement(@graph_typing.MatchObligation)
+  DiagnosticRequirement(@graph_typing.DiagnosticObligation)
   TraverseRequirement(@graph_typing.TraverseObligation)
   SelectorRequirement(@graph_typing.SelectorObligation)
   ConstructionRequirement(@graph_typing.ConstructionObligation)

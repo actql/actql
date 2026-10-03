@@ -7,6 +7,58 @@ fn formal_property_suffix() -> String {
 }
 
 ///|
+test "Property Graph diagnostics bind relation capacity before publication" {
+  for
+    (body, field, numeric) in [
+      ("{\"graph_bounds\":{\"max_nodes\":0}}", "kind", "actual"),
+      ("{\"degree\":{\"direction\":\"both\"}}", "node", "degree"),
+    ] {
+    let programs : Array[CheckedProgram] = []
+    let _ = local_construction_fixture(
+      { work: 100000000, bytes: 10000000, nodes: 1000000, depth: 100, },
+      through_check=true,
+      checked_results=programs,
+      property_graph=true,
+      graph_construction_limit=Some(1000),
+      generated_rows=Some("[{\"id\":1}]"),
+      producer_suffix="," +
+        (
+          #|{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"seed","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}],"edges":[]},"as":"g"}
+        ) +
+        "," +
+        body +
+        ",{\"select\":[{\"id\":\"" +
+        field +
+        "\"},{\"value\":\"" +
+        numeric +
+        "\"}],\"as\":\"projected\"}",
+      producer_result_from="projected",
+      extra_step_budget=3,
+    )
+    let program = programs[0]
+    let pipeline = unit_pipeline(program, 0).unwrap()
+    let closure = @context.stage_requirement_operations(requirements(program))
+    let mut checks = 0
+    for i in 0..<@context.operation_closure_count(closure) {
+      if @context.operation_closure_at(closure, i)
+        is Some(ExecutionCheck(GraphDiagnosticExecution(check))) {
+        checks += 1
+        assert_eq(check.site.step, 3)
+        assert_true(physical_equal(check.site.pipeline, pipeline))
+        assert_eq(check.input, @pipeline.Step(2))
+        assert_eq(
+          @policy.ceiling_field(check.output_rows),
+          "max_relation_output_rows",
+        )
+        assert_eq(@policy.ceiling_value(check.output_rows), 1000L)
+      }
+    }
+    assert_eq(checks, 2)
+    assert_true(unit_publication_at(program, 0, 0) is Some(_))
+  }
+}
+
+///|
 test "formal Property Graph constructor and MATCH select their distinct profile and existing resource owners" {
   for empty in [false, true] {
     let programs : Array[CheckedProgram] = []
