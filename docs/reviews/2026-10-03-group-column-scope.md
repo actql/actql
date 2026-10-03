@@ -112,8 +112,28 @@ runtime acceptance. The expectations x=7 and x=9, and explicit ORDER BY, remain
 unchanged. No Host ceiling, owner, provider or physical strategy is changed here.
 
 The later JOIN/empty-input/shared-producer public cases remain unexecuted.
-Hosted CI is pending. This is a lowering repair with representative public
-acceptance, not completion of the full grouping corpus.
+The automatic CI for submitted `e1366724e05e1296e06f7678eb28ef745fc2eaa8`
+([run 37160787074](https://github.com/actql/actql/actions/runs/37160787074))
+completed unsuccessfully. Its packed artifact independently records failure
+of `group-snapshot-original-key`; later cases and HTTP were not reached.
+Distribution also stopped on an obsolete byte-equality assertion between SQL
+and Pipe grouping Programs. The two forms retain the same predicates, COUNT,
+key, output columns and ORDER, but have different projection/checkpoint placement.
+The distribution comparison now checks each against its own independently
+authored complete machine Program, instead of using one product output as
+another's expectation. The new narrowly selected Node test passes 1/1 after
+building only the JS test bridge. An initial authored fixture used the wrong
+Result-reference key `name`; it was corrected to the existing Program contract's
+`result` key, and that failed invocation is not a product defect or a pass.
+Full distribution acceptance has not been rerun locally.
+
+The two capacity refusals have been assigned to A for common-boundary
+investigation and D for subsequent public reacceptance. See the fixed
+[capacity handoff](https://github.com/actql/actql/blob/10273f0d08ccaf8d0b833432ccfca8a68451a385/docs/reviews/2026-10-04-frontend-capacity-handoff.md)
+for minimal source, actual checked Programs, independent rows, 550,139,392 /
+626,696,448-byte reservations and the untouched 536,870,912-byte ceiling.
+No overestimate is proven yet. This is a lowering repair with representative
+public acceptance, not completion of the full grouping corpus.
 
 ### Recorded package SHA-256
 
