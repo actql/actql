@@ -56,9 +56,46 @@ jobs:
   performance-matrix:
     if: github.event_name == 'workflow_dispatch' && inputs.performance_matrix && !inputs.packed_query_evidence_probe
     uses: ./.github/workflows/performance-matrix.yml
-  # Quick checks that need no full test build: they report version, format,
-  # interface and environment problems within minutes.
+  # Admission checks complete before any normal runtime/proof runner starts.
+  # Actual retained history is checked before installing the build toolchain.
+  preflight:
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.22.0
+          cache: npm
+      - name: Validate actual retained foundation history
+        run: node proofs/relation-pipeline/history.mjs --write
+      - run: npm ci
+      - name: Check owned contract versions
+        run: npm run check:contract-versions
+      - name: Check specification metadata without updating it
+        run: npm run check:metadata
+      - name: Install pinned MoonBit
+        run: |
+          node scripts/setup-moonbit.mjs
+          toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
+          echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
+          echo "$toolchain/bin" >> "$GITHUB_PATH"
+      - run: moon fmt --check
+      - name: Check public interfaces
+        run: node scripts/check-moonbit-api.mjs
+      - name: Verify admission checks did not change tracked files
+        run: git diff --exit-code
+      - name: Reject superseded revisions before fan-out
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/ci-preflight.mjs
+  # Remaining independent lint diagnostics run after mandatory admission.
   lint:
+    needs: [preflight]
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -69,11 +106,6 @@ jobs:
       - uses: ./.github/actions/setup-toolchain
         with:
           python: 'true'
-      - name: Check owned contract versions
-        run: npm run check:contract-versions
-      - run: moon fmt --check
-      - name: Check public interfaces
-        run: node scripts/check-moonbit-api.mjs
       - name: Type-check public SDK and Client wire declarations
         run: npm run check:client-types
       - name: Test read-only worktree inventory fixtures
@@ -86,6 +118,8 @@ jobs:
         run: node --test scripts/moonbit-environment.test.mjs
       - name: Test native SQLite namespace ownership
         run: node --test scripts/test-native-core.test.mjs
+      - name: Test preflight admission and latest-revision guard
+        run: node --test scripts/ci-preflight.test.mjs
       - name: Test conservative CI target selection
         run: node --test scripts/ci-targets.test.mjs
       - name: Test Client CI partition and aggregate requirements
@@ -101,7 +135,7 @@ jobs:
   # One runner per target: check, then test, each with --deny-warn, as
   # before. A target never shares a runner or _build with another.
   core:
-    needs: [select-targets]
+    needs: [select-targets, preflight]
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     name: core (${{ matrix.target }})
     strategy:
@@ -136,7 +170,7 @@ jobs:
           fi
   # Conditional proof and correspondence evidence beside the existing gates.
   session-evidence:
-    needs: [select-targets]
+    needs: [select-targets, preflight]
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -188,7 +222,7 @@ jobs:
   # Isolated producers retain every campaign and never share source/build trees.
   # Evidence is from this run AND attempt; rerun all jobs after partial retries.
   pipeline-mutations:
-    needs: [select-targets]
+    needs: [select-targets, preflight]
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -246,7 +280,7 @@ jobs:
           include-hidden-files: true
           if-no-files-found: warn
   pipeline-capacity:
-    needs: [select-targets]
+    needs: [select-targets, preflight]
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -376,7 +410,7 @@ jobs:
           if-no-files-found: error
   # Host, authorization, Checkpoint and retained-state owners.
   host:
-    needs: [select-targets]
+    needs: [select-targets, preflight]
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -422,7 +456,7 @@ jobs:
   # Share only clean-checkout tarballs and their source/digest manifest.
   # Consumers retain fresh installs and private target/native build outputs.
   client-packages:
-    needs: [select-targets]
+    needs: [select-targets, preflight]
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -453,7 +487,7 @@ jobs:
           retention-days: 7
   client-distribution:
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
-    needs: [select-targets, client-packages]
+    needs: [select-targets, preflight, client-packages]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -474,7 +508,7 @@ jobs:
         run: npm run check:distribution-client
   client-packed:
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
-    needs: [select-targets, client-packages]
+    needs: [select-targets, preflight, client-packages]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -533,7 +567,7 @@ jobs:
           name: packed-result-description-${{ github.sha }}
   # These source-backed checks need no packed artifact or other Client job.
   client-salesforce:
-    needs: [select-targets]
+    needs: [select-targets, preflight]
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -588,7 +622,7 @@ jobs:
           '
   # Native storage, publication and control, and the Native retained path.
   native:
-    needs: [select-targets]
+    needs: [select-targets, preflight]
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -654,7 +688,7 @@ jobs:
   # scheduled (see its condition).
   check:
     if: ${{ always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
-    needs: [select-targets, lint, core, host, client, native, spec, session-evidence, pipeline-evidence, native-macos,
+    needs: [select-targets, preflight, lint, core, host, client, native, spec, session-evidence, pipeline-evidence, native-macos,
       native-separated-network, workers, connector-addition, duckdb-node]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -668,6 +702,7 @@ jobs:
           CI_PLAN: ${{ needs.select-targets.outputs.plan }}
         run: node scripts/ci-targets.mjs gate
   spec:
+    needs: [preflight]
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -689,19 +724,17 @@ jobs:
           toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
           echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
           echo "$toolchain/bin" >> "$GITHUB_PATH"
-      - run: npm run check:spec
+      - run: npm run check:spec-after-preflight
       - name: Check strict Local resource boundary evidence
         run: npm run check:local-resource-completion
       - name: Check independently pinned execution authorization vectors
         run: npm run check:execution-authorization-vectors
-      - name: Check specification metadata without updating it
-        run: npm run check:metadata
-      - name: Verify metadata checks did not change tracked files
+      - name: Verify specification checks did not change tracked files
         run: git diff --exit-code
   # Full main coverage; PRs keep macOS for target/runtime-sensitive or unknown
   # inputs. The selector records why a portable PR omits this job.
   native-macos:
-    needs: [select-targets]
+    needs: [select-targets, preflight]
     if: >-
       ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
         needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.macos == 'true' }}
@@ -737,7 +770,7 @@ jobs:
           ACTQL_TEST_SCRATCH_ROOT="$RUNNER_TEMP/actql-native" \
             npm run check:native-http-client
   native-separated-network:
-    needs: [select-targets]
+    needs: [select-targets, preflight]
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -773,7 +806,7 @@ jobs:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/actql-native-network
         run: npm run check:native-separated-network
   workers:
-    needs: [select-targets]
+    needs: [select-targets, preflight]
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -807,7 +840,7 @@ jobs:
       - name: Build inspect and execute the Workers JS profile
         run: npm test --prefix adapters/workers
   connector-addition:
-    needs: [select-targets]
+    needs: [select-targets, preflight]
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -847,7 +880,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
   duckdb-node:
-    needs: [select-targets]
+    needs: [select-targets, preflight]
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -881,4 +914,5 @@ jobs:
         run: node --test adapters/connectors/duckdb/node/bench/matched-equivalent-pair.test.mjs
       - name: Build fixture-independent acquisition Host entries
         run: npm run build:host --prefix adapters/connectors/duckdb/node
+
 
