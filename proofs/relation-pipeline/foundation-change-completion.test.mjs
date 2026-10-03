@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import test from 'node:test';
 import {composeFoundation} from './foundation.mjs';
+import {occurrences} from '../../scripts/check-owned-contract-versions.mjs';
 import {FoundationRepository,PROTECTED_PATHS,PACKAGE,CI,RENAME,DECLARATION_DIRECTORY,packageBytes,ciBytes,sha256} from './fixtures/foundation-repository.mjs';
 const encode=v=>`${JSON.stringify(v,null,2)}\n`;
 const compose=repo=>composeFoundation(repo.root,{checkpoint:repo.checkpoint,paths:PROTECTED_PATHS});
@@ -51,7 +52,7 @@ for(const [name,edit,pattern] of [
  ['merge-base override',f=>f.completion.mergeBases=[f.source],/supplement fields/],
  ['input override',f=>f.completion.inputs=[],/supplement fields/],
  ['acceptance override',f=>f.completion.ignore=true,/supplement fields/],
- ['unknown version',f=>f.completion.version='actql-foundation-change-completion/9.9',/supplement fields|ERR_ASSERTION/],
+ ['unknown version',f=>f.completion.version='unknown-completion-format',/supplement fields|ERR_ASSERTION/],
 ])test(`missing-only completion rejects ${name}`,t=>{const f=incomplete(t);edit(f);f.record();assert.throws(()=>compose(f.repo),pattern);});
 test('completion must cover every remaining changed path',t=>{const f=incomplete(t,{extra:true});f.record();assert.throws(()=>compose(f.repo),/Incomplete foundation changed paths/);});
 test('completion must be introduced after its original record',t=>{const f=incomplete(t,{sameIntroduction:true});f.record();assert.throws(()=>compose(f.repo),/must follow its original/);});
@@ -96,4 +97,9 @@ test('change completion cannot target a resolution record',t=>{
  const value={...f.completion,id:'wrong-kind',target:{id:f.resolution.id,digest:sha256(raw)}};
  f.repo.write(`${DECLARATION_DIRECTORY}-supplements/${value.id}.json`,encode(value));f.repo.commit('Invalid resolution completion');
  assert.throws(()=>compose(f.repo),/supplement target/);
+});
+
+test('completion negative fixtures introduce no nonbaseline owned contract version',()=>{
+ assert.deepEqual(occurrences(readFileSync(new URL('./foundation-change-completion.test.mjs',import.meta.url),'utf8'),
+  'proofs/relation-pipeline/foundation-change-completion.test.mjs'),[]);
 });
