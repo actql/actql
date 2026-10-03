@@ -1,0 +1,37 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "ci-mandatory-preflight",
+  "kind": "change",
+  "revision": "3061bc48c9abc1c68c99321fe0011552d2fba4a8",
+  "parents": [
+    "b18632b65570713e36c0a83e8afd0063bc37a5c3"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "b18632b65570713e36c0a83e8afd0063bc37a5c3",
+          "digest": "667b34995b7bfc7cdd5aeb9e69f5a869f830bb52ebd41e064a5b3d1f6f52d5e8",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "a7813573053d9a9b498bb58d54e029c22feb67934288bda90c35624815eb93bc",
+      "afterMode": "100644",
+      "reason": "Move mandatory contract-version, metadata, format and public-interface admission before expensive CI fan-out; add actual retained-history and PR-head/main-ref freshness admission. Preserve complete local specification validation, full selected campaign commands, per-producer foundation binding and fail-closed final aggregation. No product behavior, proof validator, immutable baseline, history rewrite or cross-run evidence reuse."
+    },
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "b18632b65570713e36c0a83e8afd0063bc37a5c3",
+          "digest": "5568135ba9f9417ed68315079c33817e13009bcbe9a8b55ca9a97d45e812324f",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "a5acef60ab169cc5eb2eb2b55f73a29ca867f181268ec3fc41f40cca726a8b11",
+      "afterMode": "100644",
+      "reason": "Move mandatory contract-version, metadata, format and public-interface admission before expensive CI fan-out; add actual retained-history and PR-head/main-ref freshness admission. Preserve complete local specification validation, full selected campaign commands, per-producer foundation binding and fail-closed final aggregation. No product behavior, proof validator, immutable baseline, history rewrite or cross-run evidence reuse."
+    }
+  ]
+}

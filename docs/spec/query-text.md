@@ -135,8 +135,11 @@ Recursive declarations,
 forward references and references to a displaced range variable remain
 invalid. Parsing shares the existing syntax-node, CTE-count and work budgets.
 
-Nonrecursive CTEs and named, noncorrelated FROM subqueries become checked Stage
-Result references, so reusing a source does not imply another physical read.
+Nonrecursive CTEs and named, noncorrelated FROM subqueries use checked producer
+references, so reusing a source does not imply another physical read.
+Standalone query assembly can retain a producer as a Stage Result. A CTE
+inside a DATA query body may instead reference an existing pipeline step;
+the binding alone does not require another Stage, acquisition or saved Result.
 JOIN, grouping, sets, analytic and Pipe operations lower to existing Program
 operations and AoA meaning. No connector receives the original SQL as a raw
 query. Finite bounds, stable-order evidence, identity requirements, captured
@@ -304,14 +307,24 @@ Graph-wide property types and same-label property sets belong to the
 common Graph contract. The Frontend cannot issue those checked facts,
 replace static labels with property predicates or discard edge identity.
 
-The current independent Frontend checkpoint parses mappings and retains
-lowering fixtures. **Public preparation explicitly refuses the constructor
-until the unified common Graph owner is adopted.** Neither parser success
-nor independent source construction establishes execution or snapshot
-support. No conversion to the old simple-Graph contract is permitted.
-Supported Relation DATA uses existing query-expression lowering; captured
-DATA sources and DATA CTE/JOIN bodies remain explicit implementation gaps.
-These are support limits, not permanent restrictions of the target language.
+DATA query bodies use existing query-expression lowering, including supported
+CTE and set forms. An acquired Relation retains its original input declaration
+and the Host-selected capture boundary. Multiple references to that input use
+the same prepared producer; a DATA or CTE binding does not acquire it again.
+Constructor input paths follow the published source name rules before being
+bound to those producers. A schema declaration alone does not supply the
+admitted Source View provenance required by the common Graph checker.
+
+Frontend preparation passes the constructed Program to the common checker;
+it cannot substitute its own Graph admission or execution. Source construction
+and checking alone establish neither execution nor snapshot support. No
+conversion to the old simple-Graph contract is permitted. DATA single-JOIN
+bodies use the ordinary JOIN projection, alias and ordering rules, retaining
+their existing logical operands. JOIN chains beyond that assembly, unused
+CTE checking without scheduling acquisition, and standalone Stage
+references without their producer definitions remain explicit implementation
+gaps. These are support limits, not permanent restrictions of the target
+language.
 
 ## Named logical SGA calls
 

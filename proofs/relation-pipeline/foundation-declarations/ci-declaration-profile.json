@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "ci-declaration-profile",
+  "kind": "change",
+  "revision": "85feba30ba9f9857357849618ce5f7151961e04a",
+  "parents": [
+    "5fab842da109227a0010710e06d279d800cd6285"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "5fab842da109227a0010710e06d279d800cd6285",
+          "digest": "a7813573053d9a9b498bb58d54e029c22feb67934288bda90c35624815eb93bc",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "48f0cb1ab766ff086618f5e611b1a6667e2f4dc19f64f387be4c1dcb3475e0e0",
+      "afterMode": "100644",
+      "reason": "Require selection before preflight and execute existing foundation/history/integration regressions for declaration-only PRs. Archive only the exact composed foundation and selection as provenance/applicability, not semantic proof evidence. Keep actual full-history admission, lint/spec, selected campaign commands and strict final aggregation. Runtime/proof families are omitted only for complete canonical regular declaration additions; main remains full."
+    }
+  ]
+}
