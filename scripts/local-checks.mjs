@@ -153,7 +153,7 @@ async function runSelected(command, kind, args) {
 // CI jobs that cover a changed path. The narrow checks come first; the jobs
 // are what to run before pushing, and Linux CI remains the full check.
 const areas = [
-  [/^proofs\/relation-pipeline\//u, ['pipeline-mutations', 'pipeline-capacity', 'pipeline-evidence']],
+  [/^proofs\/relation-pipeline\//u, Object.keys(ciOnlyPipelineJobs)],
   [/^scripts\/packed-client-packages/u, ['client-packages', 'client-distribution', 'client-packed']],
   [/^scripts\/(build-runtime-packages|test-runtime-package-build|build-local-node|build-run-host-core|build-remote-(coordinator|transfer)-package)|^packages\/(run-host-core|coordinator-core|transfer-core)\//u, ['host']],
   [/^\.github\/|^scripts\/local-checks(?:[-.])/u, ['lint']],

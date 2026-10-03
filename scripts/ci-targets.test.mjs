@@ -89,11 +89,11 @@ test('whole-family scheduling retains the core matrix and complete selected proo
   assert.equal(jobs.core.strategy.matrix.target, '${{ fromJSON(needs.select-targets.outputs.targets) }}');
   assert.deepEqual(jobs['native-macos'].needs, ['select-targets', 'preflight']);
   assert.match(jobs['native-macos'].if, /needs\.select-targets\.outputs\.macos == 'true'/u);
-  for (const name of ['session-evidence', 'pipeline-mutations', 'pipeline-capacity']) {
+  for (const name of ['session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation']) {
     assert.match(jobs[name].if, /needs\.select-targets\.outputs\.profile == 'full'/u);
     assert.deepEqual(jobs[name].needs, ['select-targets', 'preflight']);
   }
-  assert.deepEqual(jobs['pipeline-evidence'].needs, ['pipeline-mutations', 'pipeline-capacity']);
+  assert.deepEqual(jobs['pipeline-evidence'].needs, ['pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation']);
   const capacity = jobs['pipeline-capacity'].steps.map(step => step.run ?? '').join('\n');
   assert.match(capacity, /node proofs\/relation-pipeline\/capacity\/run\.mjs all/u);
   assert.match(capacity, /node proofs\/relation-pipeline\/run\.mjs all/u);
@@ -310,7 +310,7 @@ const scheduled = (name, needs, inputs = {}) => {
 };
 test('aggregate workflow expressions run on mixed failures and skip only wholly unselected families', () => {
   for (const [name, groups] of [['client', ['client-packages', 'client-distribution', 'client-packed', 'client-salesforce']],
-    ['pipeline-evidence', ['pipeline-mutations', 'pipeline-capacity']]]) {
+    ['pipeline-evidence', ['pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation']]]) {
     assert.deepEqual(jobs[name].needs, groups);
     assert.match(jobs[name].if, /always\(\)/u);
     const skipped = Object.fromEntries(groups.map(group => [group, {result: 'skipped'}]));
@@ -322,15 +322,15 @@ test('aggregate workflow expressions run on mixed failures and skip only wholly 
     assert.equal(scheduled(name, skipped, {performance_matrix: true}), false);
   }
   const evidence = jobs['pipeline-evidence'];
-  assert.equal(evidence.steps.find(step => step.name === 'Require successful producers and exact immutable artifact identities').env.PIPELINE_NEEDS,
+  assert.equal(evidence.steps.find(step => step.name === 'Require all four producers and mandatory validation before transfer').env.PIPELINE_NEEDS,
     '${{ toJSON(needs) }}');
-  assert.equal(evidence.steps.find(step => step.run === 'node proofs/relation-pipeline/ci-artifacts.mjs join').env.PIPELINE_NEEDS,
+  assert.equal(evidence.steps.find(step => step.run === 'node proofs/relation-pipeline/ci-parts.mjs join').env.PIPELINE_NEEDS,
     '${{ toJSON(needs) }}');
 });
 
 test('every heavy primitive is selected as one complete job and lint/spec always retain their tests', () => {
   const heavy = ['core', 'host', 'client-packages', 'client-distribution', 'client-packed', 'client-salesforce',
-    'native', 'session-evidence', 'pipeline-mutations', 'pipeline-capacity', 'native-macos',
+    'native', 'session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos',
     'native-separated-network', 'workers', 'connector-addition', 'duckdb-node'];
   for (const name of heavy) {
     assert(jobs[name].needs.includes('select-targets'));
@@ -528,7 +528,7 @@ test('declaration profile requires actual full history and validator regressions
     assert.throws(() => verifyGate(plan(selected), candidate, context));
   }
   for (const name of ['core', 'host', 'client-packages', 'client-distribution', 'client-packed', 'client-salesforce',
-    'native', 'session-evidence', 'pipeline-mutations', 'pipeline-capacity', 'native-macos', 'native-separated-network',
+    'native', 'session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'native-separated-network',
     'workers', 'connector-addition', 'duckdb-node']) {
     assert.equal(scheduled(name, {'select-targets': {outputs: {profile: 'declaration', macos: 'false'}}}), false, name);
   }

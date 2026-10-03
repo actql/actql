@@ -195,7 +195,7 @@ test('focused runner installs only Node and MoonBit while preserving upstream ar
   assert(focused.some(step => step.run?.includes('node scripts/setup-moonbit.mjs')));
   const artifact = 'node --test proofs/relation-pipeline/ci-artifacts.test.mjs';
   assert.equal(jobs.preflight.steps.filter(step => step.run === artifact).length, 1);
-  assert(jobs['pipeline-mutations'].steps.some(step => step.run?.includes('if [[ "$test" != proofs/relation-pipeline/ci-artifacts.test.mjs ]]')));
+  assert(jobs['pipeline-validation'].steps.some(step => step.run?.includes('if [[ "$test" != proofs/relation-pipeline/ci-artifacts.test.mjs ]]')));
 });
 
 test('full success checkpoint accepts focused-only job skipped but requires every full family', async () => {
