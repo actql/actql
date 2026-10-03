@@ -1,0 +1,141 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "four-owned-pipeline-producers",
+  "kind": "change",
+  "revision": "9d5a6555a4e171c6e5b77cdcea779a769cb8e787",
+  "parents": [
+    "f8e538f370a7e8839e07af173e48c0e95c7934b1"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "f8e538f370a7e8839e07af173e48c0e95c7934b1",
+          "digest": "4a97ae9211f1f9c42e514cdc8e581fdaf4f6b87b9882128d5980d61134f279b6",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "524a3c1198c42a99efde66c7fb823ec5f561d1598a5682f71ddf1ccbef9ec138",
+      "afterMode": "100644",
+      "reason": "Partition the unchanged scientific obligation union into exactly two capacity and two mutation producers at one source/run/attempt. Preserve every case, target, fixed/fresh search, shrink, healthy replay and negative control. Add separate fresh-owner recovery observations on each restored mutable root before closure and PART sealing; retain the global 86-case three-target corpus in L-C0. Validate immutable original reports, exact assigned scope and owner identities before a derived complete union, then run full scientific and whole-report negative audits. Synthetic validation runs once and is mandatory. No proof-result cache, shared mutable build, runner change or historical evidence reuse."
+    },
+    {
+      "path": "proofs/relation-pipeline/audit-target-regression.mjs",
+      "before": [
+        {
+          "revision": "f8e538f370a7e8839e07af173e48c0e95c7934b1",
+          "digest": "0dbb3351c92ab271ad2149244161ff4222e2483017b7f82e2d62ca14ed99f48d",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "9c7da45c044621a0224dbf6cb9c872f888ca6fe5964b7506aff45146b945a10a",
+      "afterMode": "100644",
+      "reason": "Partition the unchanged scientific obligation union into exactly two capacity and two mutation producers at one source/run/attempt. Preserve every case, target, fixed/fresh search, shrink, healthy replay and negative control. Add separate fresh-owner recovery observations on each restored mutable root before closure and PART sealing; retain the global 86-case three-target corpus in L-C0. Validate immutable original reports, exact assigned scope and owner identities before a derived complete union, then run full scientific and whole-report negative audits. Synthetic validation runs once and is mandatory. No proof-result cache, shared mutable build, runner change or historical evidence reuse."
+    },
+    {
+      "path": "proofs/relation-pipeline/audit.mjs",
+      "before": [
+        {
+          "revision": "f8e538f370a7e8839e07af173e48c0e95c7934b1",
+          "digest": "b2e5a5c6ccb94ae53ea5c3654925ceede8c29f17bb661df57f0e6a713e77d970",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "bc8006f47fab5b9d44c8d9f4963d2ca1e0bcfae6ca1a5c13fda265730643ef86",
+      "afterMode": "100644",
+      "reason": "Partition the unchanged scientific obligation union into exactly two capacity and two mutation producers at one source/run/attempt. Preserve every case, target, fixed/fresh search, shrink, healthy replay and negative control. Add separate fresh-owner recovery observations on each restored mutable root before closure and PART sealing; retain the global 86-case three-target corpus in L-C0. Validate immutable original reports, exact assigned scope and owner identities before a derived complete union, then run full scientific and whole-report negative audits. Synthetic validation runs once and is mandatory. No proof-result cache, shared mutable build, runner change or historical evidence reuse."
+    },
+    {
+      "path": "proofs/relation-pipeline/capacity/finish.mjs",
+      "before": [
+        {
+          "revision": "f8e538f370a7e8839e07af173e48c0e95c7934b1",
+          "digest": "5d9961e50caec4c4ac3e59e4f4d2385ec7e72b5a028b48bba5311684efbf274c",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "a8f4e65d8411d6447af7b38876b778ef3438b2cdc0702dcfd738a2f3ff160dde",
+      "afterMode": "100644",
+      "reason": "Partition the unchanged scientific obligation union into exactly two capacity and two mutation producers at one source/run/attempt. Preserve every case, target, fixed/fresh search, shrink, healthy replay and negative control. Add separate fresh-owner recovery observations on each restored mutable root before closure and PART sealing; retain the global 86-case three-target corpus in L-C0. Validate immutable original reports, exact assigned scope and owner identities before a derived complete union, then run full scientific and whole-report negative audits. Synthetic validation runs once and is mandatory. No proof-result cache, shared mutable build, runner change or historical evidence reuse."
+    },
+    {
+      "path": "proofs/relation-pipeline/execute.mjs",
+      "before": [
+        {
+          "revision": "f8e538f370a7e8839e07af173e48c0e95c7934b1",
+          "digest": "ddbd463f9eccba06825302d84c55b65b2ffc51142e266dd337de48ad71cd1539",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "141e39ab30a397161fece359ee0f45a83fb703f4ce067c908883bd8640c8e94d",
+      "afterMode": "100644",
+      "reason": "Partition the unchanged scientific obligation union into exactly two capacity and two mutation producers at one source/run/attempt. Preserve every case, target, fixed/fresh search, shrink, healthy replay and negative control. Add separate fresh-owner recovery observations on each restored mutable root before closure and PART sealing; retain the global 86-case three-target corpus in L-C0. Validate immutable original reports, exact assigned scope and owner identities before a derived complete union, then run full scientific and whole-report negative audits. Synthetic validation runs once and is mandatory. No proof-result cache, shared mutable build, runner change or historical evidence reuse."
+    },
+    {
+      "path": "proofs/relation-pipeline/fixtures/mutation-driver.mjs",
+      "before": [
+        {
+          "revision": "f8e538f370a7e8839e07af173e48c0e95c7934b1",
+          "digest": "dd7643cb316783ad2c2d2de3a56eafa210b94fd227ab4c469402fdb2727baf61",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "070e17341fb6449a2c892da2fe3ba0759a5720734f0fcb0b55a7bbbe971c3a6e",
+      "afterMode": "100644",
+      "reason": "Partition the unchanged scientific obligation union into exactly two capacity and two mutation producers at one source/run/attempt. Preserve every case, target, fixed/fresh search, shrink, healthy replay and negative control. Add separate fresh-owner recovery observations on each restored mutable root before closure and PART sealing; retain the global 86-case three-target corpus in L-C0. Validate immutable original reports, exact assigned scope and owner identities before a derived complete union, then run full scientific and whole-report negative audits. Synthetic validation runs once and is mandatory. No proof-result cache, shared mutable build, runner change or historical evidence reuse."
+    },
+    {
+      "path": "proofs/relation-pipeline/mutations.mjs",
+      "before": [
+        {
+          "revision": "f8e538f370a7e8839e07af173e48c0e95c7934b1",
+          "digest": "1397d1252b43f542d9eda3bb551c60dee06f4f705a2287e14423190571ac395c",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "bff7c3a3e30fe1a816c191b47e3dee1fa488ee6c04cff67085aea0c09c62b6f6",
+      "afterMode": "100644",
+      "reason": "Partition the unchanged scientific obligation union into exactly two capacity and two mutation producers at one source/run/attempt. Preserve every case, target, fixed/fresh search, shrink, healthy replay and negative control. Add separate fresh-owner recovery observations on each restored mutable root before closure and PART sealing; retain the global 86-case three-target corpus in L-C0. Validate immutable original reports, exact assigned scope and owner identities before a derived complete union, then run full scientific and whole-report negative audits. Synthetic validation runs once and is mandatory. No proof-result cache, shared mutable build, runner change or historical evidence reuse."
+    },
+    {
+      "path": "proofs/relation-pipeline/mutations.test.mjs",
+      "before": [
+        {
+          "revision": "f8e538f370a7e8839e07af173e48c0e95c7934b1",
+          "digest": "93d55a224f3dfc8aa36d5e1a61da8a5c797ba1338c0be1b2fd1a68760335d29d",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "9d8ba16118a83d90b9bb706c57ac19a93aa9fc3cd64dfa31f710f45515cd1076",
+      "afterMode": "100644",
+      "reason": "Partition the unchanged scientific obligation union into exactly two capacity and two mutation producers at one source/run/attempt. Preserve every case, target, fixed/fresh search, shrink, healthy replay and negative control. Add separate fresh-owner recovery observations on each restored mutable root before closure and PART sealing; retain the global 86-case three-target corpus in L-C0. Validate immutable original reports, exact assigned scope and owner identities before a derived complete union, then run full scientific and whole-report negative audits. Synthetic validation runs once and is mandatory. No proof-result cache, shared mutable build, runner change or historical evidence reuse."
+    },
+    {
+      "path": "proofs/relation-pipeline/run.mjs",
+      "before": [
+        {
+          "revision": "f8e538f370a7e8839e07af173e48c0e95c7934b1",
+          "digest": "212ae2eccc368d6e14d6dcddb40cd4b2ffa9f92144a65a984453dfe752edd45f",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "f0ff6e45a83c6dc377b0ba8ca7833ee3818e61c6cee3d53db45c3adcfcd4db7d",
+      "afterMode": "100644",
+      "reason": "Partition the unchanged scientific obligation union into exactly two capacity and two mutation producers at one source/run/attempt. Preserve every case, target, fixed/fresh search, shrink, healthy replay and negative control. Add separate fresh-owner recovery observations on each restored mutable root before closure and PART sealing; retain the global 86-case three-target corpus in L-C0. Validate immutable original reports, exact assigned scope and owner identities before a derived complete union, then run full scientific and whole-report negative audits. Synthetic validation runs once and is mandatory. No proof-result cache, shared mutable build, runner change or historical evidence reuse."
+    },
+    {
+      "path": "scripts/local-checks.mjs",
+      "before": [
+        {
+          "revision": "f8e538f370a7e8839e07af173e48c0e95c7934b1",
+          "digest": "38a760e2666261c88634817726d7874545f7f051a782a5ab16f39b49ff64e437",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "c08cc71efdca36baa1d93f8cae1186a532331f6e160c58a439bc8d0d783829de",
+      "afterMode": "100644",
+      "reason": "Derive pipeline changed-file suggestions from the complete CI-only job registry, so all four owned producer jobs, mandatory validation and aggregate expose dry-run inspection without a local heavy-execution bypass. This completes the actual source-commit changed-path inventory; no validator acceptance is weakened."
+    }
+  ]
+}
