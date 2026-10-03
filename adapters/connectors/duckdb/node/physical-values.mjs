@@ -90,6 +90,14 @@ export function physicalType(type) {
     : { id });
 }
 
+// The third private descriptor cell carries array length or decimal precision.
+export function physicalFieldsFrame(fields) {
+  return JSON.stringify(fields.map(({name, type}) => [name, type.id,
+    type.id === 'DOUBLE_ARRAY' ? String(type.length) :
+      type.precision === undefined ? null : String(type.precision),
+    type.scale === undefined ? null : String(type.scale)]));
+}
+
 export function exportPhysicalValue(value, type) {
   if (value === null) return null;
   const { id } = type;

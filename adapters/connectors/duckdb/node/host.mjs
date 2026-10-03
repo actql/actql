@@ -11,6 +11,7 @@ import { computePhysicalCapacity } from './physical-capacity.mjs';
 import {boundedTransport} from './transport-bounds.mjs';
 import {createImportBatch} from './import-batch.mjs';
 import { checked } from './runtime-result.mjs';
+import {physicalFieldsFrame as fieldsFrame} from './physical-values.mjs';
 import { retainedConfiguration } from './retained-configuration.mjs';
 import { createLocalRetainedStore } from '../../../store-local/files.mjs';
 import {createProcessStoreLease} from '../../../store-local/process-client.mjs';
@@ -1060,15 +1061,6 @@ async function runHostCompute(
     }
     throw error;
   }
-}
-
-function fieldsFrame(fields) {
-  // Structural transport only: physical type interpretation remains MoonBit's
-  // shared descriptor decoder. Names are not NFC/LF-normalized here.
-  return JSON.stringify(fields.map(({ name, type }) => [
-    name, type.id, type.precision === undefined ? null : String(type.precision),
-    type.scale === undefined ? null : String(type.scale),
-  ]));
 }
 
 function rows(value) {

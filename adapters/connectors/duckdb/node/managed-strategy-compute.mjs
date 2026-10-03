@@ -8,6 +8,7 @@ import {registerManagedInput, withManagedInputFiles} from
 import {computePhysicalCapacity} from './physical-capacity.mjs';
 import {withComputeDatabase, DuckDBTransportError, validateLimits} from './session.mjs';
 import {checked} from './runtime-result.mjs';
+import {physicalFieldsFrame as fieldsFrame} from './physical-values.mjs';
 import {encodeManagedColumnFrame, managedColumnCodecContractCid,
   managedColumnTransferEstimate,
   managedColumnRowProvider} from './managed-column-codec.mjs';
@@ -51,12 +52,6 @@ function logicalMeasurementAccounting(values, prefix) {
     [`${prefix}Nodes`]: values[2],
   });
 }
-function fieldsFrame(fields) {
-  return JSON.stringify(fields.map(({name, type}) => [name, type.id,
-    type.precision === undefined ? null : String(type.precision),
-    type.scale === undefined ? null : String(type.scale)]));
-}
-
 // outputStorage is Host policy, not Program input. Its directory and framing
 // are admitted before native work; capacity comes from the selected MoonBit
 // setup and cannot be enlarged here.

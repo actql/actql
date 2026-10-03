@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {bindPhysicalValue, exportPhysicalValue, physicalJsonScalarBytes,
+import {bindPhysicalValue, exportPhysicalValue, physicalFieldsFrame,
+  physicalJsonScalarBytes,
   physicalType, PhysicalValueError} from '../physical-values.mjs';
 import {DuckDBInstance, DuckDBTypeId} from '@duckdb/node-api';
 import {boundedVectorItem} from '../bounded-vector.mjs';
@@ -33,6 +34,11 @@ test('fixed DuckDB double arrays retain component bits under typed vector transp
   const type = physicalType({typeId: DuckDBTypeId.ARRAY, length: 2,
     valueType: {typeId: DuckDBTypeId.DOUBLE}});
   assert.deepEqual(type, {id: 'DOUBLE_ARRAY', length: 2});
+  assert.equal(physicalFieldsFrame([{name: 'embedding', type}]),
+    '[["embedding","DOUBLE_ARRAY","2",null]]');
+  assert.equal(physicalFieldsFrame([{name: 'amount', type:
+    {id: 'DECIMAL', precision: 38, scale: 18}}]),
+  '[["amount","DECIMAL","38","18"]]');
   const encoded = exportPhysicalValue({items: [1, -0]}, type);
   assert.equal(encoded, '3ff0000000000000,8000000000000000');
   assert.equal(physicalJsonScalarBytes(encoded),
