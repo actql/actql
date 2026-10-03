@@ -1,5 +1,17 @@
 # Source-INFER prefix: published contract follow-up
 
+## Current follow-through
+
+The gaps below describe the pinned historical inspection. Main now contains
+`f9e6dbe36d263ef7baf4799646a1c53ebca47df9`, which forwards the existing
+fragment/ordered contracts through source-free physical execution and replay.
+The [source acceptance follow-through](2026-10-03-source-infer-public-acceptance.md)
+records independent input/row/type fixtures, selected installed-runtime
+diagnostics and the exact-source hosted acceptance still required. The old
+uncertain Runs remain protected; no old request is redispatched to test the fix.
+
+## Historical inspection
+
 This is read-only source inspection of A's published #223 at
 `61b0760d303d054b76f3444e9abab6181e3d52e4`, not adoption of that SHA or a
 new packed execution result. The formally selected source-free owner remains
