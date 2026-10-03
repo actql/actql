@@ -514,7 +514,8 @@ export async function exercisePublicQueryInput(connect, options,
       assert.deepEqual((await client.lookupRequest(requestId)).ref, execution.ref);
       assert.deepEqual(await counters(), beforeRead,
         'reading, attaching and resending must not accept or acquire again');
-      await completedCase?.({name, ref: execution.ref, expected, columns});
+      await completedCase?.({name, ref: execution.ref, execution, expected, columns,
+        beforeSubmit, beforeRead});
       console.log(`Public query passed: ${requestPrefix}/${name}`);
       if (name === 'sql') {
         await assert.rejects(execution.result('answer').all({maxRows: 1}),
