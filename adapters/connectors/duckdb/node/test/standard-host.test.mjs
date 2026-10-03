@@ -2852,10 +2852,12 @@ async function exerciseStrategyGraph(
     scoredEnvironment.evidence_bundle_cid,
     ...args.slice(2),
   ];
-  for (const {name, policy, score} of [
+  for (const {name, policy, score, failConsumer = false} of [
     {name: 'maximum', policy: 'max', score: 0.75},
     {name: 'weighted', policy: {weighted_sum: {left: 0.5, right: 0.5}},
       score: 0.6875},
+    {name: 'maximum-consumer-failure', policy: 'max', score: 0.75,
+      failConsumer: true},
   ]) {
     const scoredProgram = {
       version: 'actql/0.1', id: 'p',
@@ -2889,6 +2891,11 @@ async function exerciseStrategyGraph(
         consumed_b: {from: {stage: 'consumer_b', result: 'r'}},
       },
     };
+    if (failConsumer) {
+      scoredProgram.stages.find(stage => stage.id === 'consumer_a').steps = [{
+        filter: '1 / (id - id) > 0', as: 'failed',
+      }, {from: 'failed', select: rankingFields, as: 'out'}];
+    }
     const scoredFixture = fixture.strategyFixtureVecaScoredCreate(
       ...scoredArgs, JSON.stringify(scoredProgram), orderedContract, 2,
     );
@@ -2898,10 +2905,30 @@ async function exerciseStrategyGraph(
     const scoredDirectory = await mkdtemp(join(
       root, `_build/duckdb-fixtures/ranking-${name}-publication-entry-`,
     ));
-    const scoredRetained = await createCarrierRetainedStore(`ranking-${name}`);
+    const scoredRetained = await createCarrierRetainedStore(`ranking-${name}`,
+      {failCleanupLease: failConsumer ? 1 : undefined});
     let scoredOwner;
     let scoredFailureExecution;
     let scoredStore;
+    let computeEntrances = 0;
+    const scoredHost = createNodeHostEntry(() => hostRuntime,
+      async (...installationArgs) => {
+        const contributions = await installStrategyContributions(
+          ...installationArgs);
+        return contributions.map(contribution => ({
+          ...contribution,
+          run(...args) {
+            computeEntrances++;
+            return contribution.run(...args);
+          },
+          ...(typeof contribution.runPrepared === 'function' ? {
+            runPrepared(...args) {
+              computeEntrances++;
+              return contribution.runPrepared(...args);
+            },
+          } : {}),
+        }));
+      });
     try {
       assert.equal(fixture.strategyFixtureOpen(
         scoredFixture, scoredCapture.source()), true);
@@ -2922,40 +2949,54 @@ async function exerciseStrategyGraph(
         `ranking-${name}-publication-attempt`,
       );
       try {
-        scoredOwner = await runPublishedCapturedStrategy(
+        scoredOwner = await scoredHost.runPublishedCapturedStrategy(
           setup, {store: scoredStore, plan},
           {local: scoredRetained.configuration}, new AbortController().signal,
         );
       } catch (error) {
         scoredFailureExecution = error.execution;
-        throw error;
+        if (!failConsumer) throw error;
+        assert.equal(error.code, 'CapturedRunPublicationFailed');
       }
-      assert.equal(scoredOwner.status, 'published');
-      assert.equal(scoredOwner.publication.publication.state, 'succeeded');
-      assert(scoredRetained.leases.length > 0);
-      assert(scoredOwner.execution.completed.some(value =>
-        value.outputRepresentation === 'retained-file'));
       const publicationKey = {
         namespaceId: plan.request.namespaceId,
         authorityScopeCid: plan.request.authorityScopeCid,
         runDefinitionCid: plan.runDefinition.identity,
       };
-      const committedIndex = await scoredStore.lookupCommittedIndex(
-        publicationKey, () => true);
-      const committedManifest = JSON.parse((await scoredStore
-        .readPublicationContract(committedIndex.result_manifest_cid,
-          'result_manifest')).wire);
-      assert.deepEqual(Object.keys(committedManifest.results).sort(),
-        ['consumed_a', 'consumed_b', 'published']);
-      for (const resultName of ['published', 'consumed_a', 'consumed_b']) {
-        const received = [];
-        await scoredStore.consumeCommittedResult(
-          publicationKey,
-          committedManifest.results[resultName].result_definition_cid,
-          () => true, chunk => received.push(Buffer.from(chunk)),
-        );
-        assert.deepEqual(JSON.parse(Buffer.concat(received).toString('utf8')),
-          [{q: 1, id: 2, score, rank: 2}]);
+      assert(scoredRetained.leases.length > 0);
+      if (failConsumer) {
+        assert.equal(scoredOwner, undefined);
+        assert(computeEntrances > 0);
+        assert.equal(scoredFailureExecution.status, 'host-tasks-failed');
+        assert(scoredFailureExecution.completed.some(value =>
+          value.outputRepresentation === 'retained-file'));
+        assert.equal(scoredFailureExecution.failure?.code, 'MoonBitHostFailure');
+        assert.equal(fixture.strategyFixtureManagedFilterArithmetic(
+          scoredFailureExecution.failure.cause, 0), true);
+        await assert.rejects(scoredStore.lookupCommittedIndex(
+          publicationKey, () => true), /PublicationLookupDenied/);
+      } else {
+        assert.equal(scoredOwner.status, 'published');
+        assert.equal(scoredOwner.publication.publication.state, 'succeeded');
+        assert(scoredOwner.execution.completed.some(value =>
+          value.outputRepresentation === 'retained-file'));
+        const committedIndex = await scoredStore.lookupCommittedIndex(
+          publicationKey, () => true);
+        const committedManifest = JSON.parse((await scoredStore
+          .readPublicationContract(committedIndex.result_manifest_cid,
+            'result_manifest')).wire);
+        assert.deepEqual(Object.keys(committedManifest.results).sort(),
+          ['consumed_a', 'consumed_b', 'published']);
+        for (const resultName of ['published', 'consumed_a', 'consumed_b']) {
+          const received = [];
+          await scoredStore.consumeCommittedResult(
+            publicationKey,
+            committedManifest.results[resultName].result_definition_cid,
+            () => true, chunk => received.push(Buffer.from(chunk)),
+          );
+          assert.deepEqual(JSON.parse(Buffer.concat(received).toString('utf8')),
+            [{q: 1, id: 2, score, rank: 2}]);
+        }
       }
     } finally {
       if (scoredOwner !== undefined) {
@@ -2965,9 +3006,21 @@ async function exerciseStrategyGraph(
         assert.equal(scoredOwner.execution.usage().heldBytes, 0n);
         assert.equal(scoredOwner.execution.usage().reservedExecutionBytes, 0n);
       } else if (scoredFailureExecution !== undefined) {
-        await scoredFailureExecution.close();
-        assert.equal(scoredFailureExecution.cleanupPending(), false);
+        const entrancesAtFailure = computeEntrances;
+        if (failConsumer) {
+          await assert.rejects(async () => scoredFailureExecution.close(),
+            /InjectedCarrierRetainedCleanupPending/);
+          assert.equal(computeEntrances, entrancesAtFailure);
+          assert.equal(scoredRetained.cleanupFailures(), 1);
+          assert.equal(scoredFailureExecution.cleanupPending(), true);
+          scoredRetained.permitCleanup();
+        } else await scoredFailureExecution.close();
         assert.equal(await scoredFailureExecution.cleanup(), true);
+        assert.equal(scoredFailureExecution.cleanupPending(), false);
+        assert.equal(computeEntrances, entrancesAtFailure);
+        assert.equal(scoredFailureExecution.usage().heldBytes, 0n);
+        assert.equal(scoredFailureExecution.usage().reservedExecutionBytes,
+          0n);
       }
       scoredCapture.close();
       await scoredStore?.close();
