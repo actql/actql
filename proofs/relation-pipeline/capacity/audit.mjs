@@ -14,10 +14,22 @@ import { admitClaim, inspectEvents, violation, workspaceBound, inputs } from './
 import { checkCensus } from './census.mjs';
 import { auditCoreProbe } from './backing/core-probe.mjs';
 import { inspectPipelineBacking } from './backing/pipeline.mjs';
+import { auditParentStartup } from './parent-control/audit.mjs';
+import { rejectParentSubstitutions } from './parent-control/regression.mjs';
+import { auditCustody, auditCustodyMutations } from './parent-control/custody.mjs';
 export function validate(report, current, targets, read) {
   assert.equal(report.version, 'actql-relation-pipeline-structure/0.1');
   assert.deepEqual(report.source, current, 'Stale capacity source');
   assert.deepEqual(report.toolchain, JSON.parse(read('toolchain.json')), 'Unpinned compiler declaration');
+  assert.deepEqual(report.custody.source, current, 'Stale custody campaign');
+  auditCustodyMutations(report.custody.mutations, current, read);
+  assert.deepEqual(report.custody.records.map(({ target, mode }) => ({ target, mode })),
+    targets.flatMap(target => ['normal', 'pending', 'success'].map(mode => ({ target, mode }))), 'Incomplete custody targets/modes');
+  for (const entry of report.custody.records) {
+    const bytes = read(entry.path);
+    assert.equal(hash(bytes), entry.digest);
+    auditCustody(JSON.parse(bytes), entry.target, entry.mode, current, read);
+  }
   auditCoreProbe(report.backingCore, targets, read);
   assert.deepEqual(report.backingModel.command, ['node', 'proofs/relation-pipeline/capacity/backing/check.mjs']);
   assert.equal(report.backingModel.exit, 0); assert.equal(report.backingModel.sourceDigest, current.digest);
@@ -25,7 +37,12 @@ export function validate(report, current, targets, read) {
   assert(read(report.backingModel.logPath).toString().includes('6 array backing model propositions checked'));
   assert(read(report.backingModel.logPath).toString().includes('4 restricted Map model propositions checked'));
   assert(read(report.backingModel.logPath).toString().includes('4 conditional native Map extent propositions checked'));
+  assert(read(report.backingModel.logPath).toString().includes('3 selected native Array extent propositions checked'));
   admitClaim(report.claim);
+  if (targets.includes('native')) {
+    auditParentStartup(report.parentStartup, current, read);
+    rejectParentSubstitutions(report.parentStartup, current, read);
+  } else assert.equal(report.parentStartup, undefined, 'Native parent evidence cannot apply to a portable-only campaign');
   const corpus = fixedCorpus(registry, registrations).filter(c => c.steps.filter(s => s.op === 'distinct').length === 1);
   assert.deepEqual(report.corpus, corpus, 'Scope must come from the reviewed corpus, not caller labels');
   assert.equal(report.seed, 148256);

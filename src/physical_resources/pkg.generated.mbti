@@ -68,6 +68,8 @@ pub fn retire_shared_capacity(SharedAllocation) -> Unit
 
 pub fn return_shared_capacity(SharedBorrow) -> Result[Unit, LedgerIssue]
 
+pub fn settle_completed_output_reservation(Ledger, Reservation, Holding?, Int64, Int64) -> Result[Unit, LedgerIssue]
+
 pub fn settle_execution_delegation(Ledger, ExecutionDelegation, LedgerUsage?) -> Result[Unit, LedgerIssue]
 
 pub fn settle_execution_reservation(Ledger, Reservation, remaining_execution? : Int64) -> Result[Unit, LedgerIssue]

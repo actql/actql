@@ -82,6 +82,12 @@ every internal allocation's final Host reservation-to-holding transfer. That
 boundary remains explicitly unproved here. No ordinary execution is rejected
 because runtime byte sizing is unavailable.
 
+The [installed scratch retirement correction](parent-control/CUSTODY.md) makes
+that stop/cleanup distinction explicit at the existing task reservation owner.
+Its finite source-free serial regression retains reservation through actual
+child cleanup false/error/retry and preserves final cumulative work. It does not
+close successful accepted-output last-holder or complete allocation-byte bounds.
+
 ## The 256-byte obligation remains open
 
 `generated_sequence_capacity` uses 256 per selected node/container ceiling;
@@ -91,6 +97,16 @@ existing ledger admits declared conservative allowances; it is not an allocator
 measurement or a formal proof of a runtime byte bound. The chain-specific Ref,
 closure, array growth and edge-wrapper sizing derivation is still missing.
 The fixed value is unchanged and is not renamed into a convenient logical fee.
+
+The [native parent startup diagnostic](parent-control/README.md) independently
+binds actual captures and requested object extents for one existing two-child
+registered pipeline. Its included startup lower bound is 616 bytes, already
+above the separate 512-byte parent component under the pinned native layout.
+This contradicts that standalone component premise, not the total reservation:
+child/base slack and complete parent/edge upper bounds must still be examined.
+Native-containing capacity campaigns and their final audits require its
+separate source-bound receipt; portable-only runs cannot reuse it as portable
+layout evidence. Unconditional allocation-byte claims remain rejected.
 
 The structural claim gate rejects unconditional allocation-byte claims and
 omitted runtime premises. It sits at evidence issuance/admission, not normal

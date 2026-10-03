@@ -46,6 +46,7 @@ struct Reservation {
   mut quantities : QuantityAmounts?
   mut uncertain_quantities : QuantityAmounts?
   mut observed_quantities : (Bool, Bool, Bool)
+  mut completed_output : (Int?, Int64, Int64)?
 }
 
 ///|
@@ -53,6 +54,7 @@ struct Reservation {
 struct Holding {
   owner : Ledger
   serial : Int
+  reservation_serial : Int
   bytes : Int64
   mut live : Bool
 }
@@ -203,6 +205,7 @@ pub fn reserve_attempt(
     quantities,
     uncertain_quantities: None,
     observed_quantities: (false, false, false),
+    completed_output: None,
   })
 }
 
@@ -231,6 +234,9 @@ pub fn charge_transfer(
   match reservation_check(ledger, reservation) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
+  }
+  if reservation.completed_output is Some(_) {
+    return Err(ClosedReservation)
   }
   if bytes < 0L {
     return Err(InvalidCharge)
@@ -261,6 +267,9 @@ pub fn mark_transfer_uncertain(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  if reservation.completed_output is Some(_) {
+    return Err(ClosedReservation)
+  }
   if bytes < 0L {
     return Err(InvalidCharge)
   }
@@ -289,6 +298,9 @@ pub fn retain_allocation(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  if reservation.completed_output is Some(_) {
+    return Err(ClosedReservation)
+  }
   if bytes < 0L {
     return Err(InvalidCharge)
   }
@@ -306,7 +318,88 @@ pub fn retain_allocation(
     reserved_retention_bytes: u.reserved_retention_bytes - bytes,
     held_bytes: u.held_bytes + bytes,
   }
-  Ok({ owner: ledger, serial: u.holdings, bytes, live: true, })
+  Ok({
+    owner: ledger,
+    serial: u.holdings,
+    reservation_serial: reservation.serial,
+    bytes,
+    live: true,
+  })
+}
+
+///|
+/// Confirm an admitted output holding before publication. Refund only unused
+/// capacity; keep independently retained allocations and consumed/uncertain
+/// usage intact. Remaining execution is unreclaimed scratch, not compute work.
+/// An identical notification is idempotent, including after final cleanup.
+pub fn settle_completed_output_reservation(
+  ledger : Ledger,
+  reservation : Reservation,
+  holding : Holding?,
+  output_bytes : Int64,
+  remaining_execution : Int64,
+) -> Result[Unit, LedgerIssue] {
+  if !physical_equal(ledger, reservation.owner) {
+    return Err(ForeignOwner)
+  }
+  if output_bytes < 0L || remaining_execution < 0L {
+    return Err(InvalidCharge)
+  }
+  let identity = match holding {
+    Some(value) => {
+      if !physical_equal(ledger, value.owner) {
+        return Err(ForeignOwner)
+      }
+      if value.reservation_serial != reservation.serial ||
+        value.bytes != output_bytes {
+        return Err(InvalidCharge)
+      }
+      Some(value.serial)
+    }
+    None => {
+      if output_bytes != 0L {
+        return Err(InvalidCharge)
+      }
+      None
+    }
+  }
+  let notification = (identity, output_bytes, remaining_execution)
+  if reservation.completed_output is Some(previous) {
+    return if previous == notification { Ok(()) } else { Err(InvalidCharge) }
+  }
+  match reservation_check(ledger, reservation) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if remaining_execution > reservation.execution ||
+    (holding is Some(value) && !value.live) {
+    return Err(InvalidCharge)
+  }
+  let usage = ledger.usage
+  ledger.usage = {
+    ..usage,
+    reserved_transfer_bytes: usage.reserved_transfer_bytes -
+    reservation.transfer,
+    reserved_retention_bytes: usage.reserved_retention_bytes -
+    reservation.retention,
+    reserved_execution_bytes: usage.reserved_execution_bytes -
+    reservation.execution +
+    remaining_execution,
+  }
+  if reservation.quantities is Some(amount) {
+    ledger.quantity_usage = {
+      ..ledger.quantity_usage,
+      reserved: subtract_quantities(ledger.quantity_usage.reserved, amount),
+    }
+    reservation.quantities = None
+  }
+  reservation.transfer = 0L
+  reservation.retention = 0L
+  reservation.execution = remaining_execution
+  reservation.cleanup_pending = remaining_execution > 0L
+  reservation.completed_output = Some(notification)
+  reservation.open = remaining_execution > 0L
+  Ok(())
 }
 
 ///|
