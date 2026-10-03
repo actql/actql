@@ -96,9 +96,29 @@ fixture stimulus, not a runtime patch or a schema-invalid acceptance claim.
 The failed diagnostic and its state are preserved independently.
 
 No full local Core, Client, native or proof suite was repeated. Syntax checks
-and selected document-link checks supplement the diagnostics. Exact committed
-source acceptance remains a hosted PR-CI obligation until its result is recorded
-in the PR; earlier diagnostics are not relabelled as that result.
+and selected document-link checks supplement the diagnostics. These earlier
+diagnostics are not relabelled as the subsequent exact-source CI result.
+
+## Completed hosted acceptance
+
+[PR #261](https://github.com/actql/actql/pull/261) submitted source
+`1ba6c06670f991594a8404d7f61a28ab5bdb5789` passed
+[automatic CI 37119634895](https://github.com/actql/actql/actions/runs/37119634895).
+All required jobs succeeded; optional performance/probe jobs were skipped.
+Its CI test-merge tree, `d7aa461e3a664fb2bce9680a36df935e2cbb2777`, is
+identical to the submitted tree. The main merge is
+`b7aa6cf21e45a086f32bcb6a480d8dfdde79d24f`.
+
+The [packed Client job](https://github.com/actql/actql/actions/runs/37119634895/job/111193553513)
+passed the seven positives and four typed refusals above on both installed
+Local and HTTPS Hosts, including full descriptions, stream completion and
+committed-capture recovery in a fresh process with zero Model redispatch.
+The normally produced package artifact is `11271524947`, named
+`actql-client-packages-37119634895-1-d7aa461e3a664fb2bce9680a36df935e2cbb2777`,
+with digest
+`sha256:6a1461f50b4366c07ba73b041ed0469e1a838d44f3ad37dd308f0bfcbdb2ec33`.
+This is the selected source-free acceptance evidence; it is not a claim that
+subsequent source changes, acquired-input text or all INFER outcomes passed.
 
 ## Reproduction and hosted registration
 
@@ -117,8 +137,8 @@ installation, TLS setup and command/tarball evidence. There is no new CI job,
 second package producer or duplicate install for these cases. Existing narrow
 selections exclude this corpus unless `--infer-source-only` is selected.
 
-This closes only the selected source-free INFER/KEEP/AS acceptance obligations
-once exact-source CI succeeds. Acquired-input INFER, all classified failure
+This closes only the selected source-free INFER/KEEP/AS acceptance obligations.
+Acquired-input text INFER, all classified failure
 outcomes, broader multirow combinations, real model services, Cloud and the full
 new-Frontend migration remain separate evidence obligations. The remaining
 Graph, Effect, VecA and TEA language migration is not declared complete here.
