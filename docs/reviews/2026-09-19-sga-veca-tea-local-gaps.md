@@ -2701,8 +2701,8 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | `managed` | 23/40 |
 | `standard_host` | 23/40 |
 | `consumer_lifetime` | 23/40 |
-| `resources` | 27/40 |
-| `cancellation` | 27/40 |
+| `resources` | 28/40 |
+| `cancellation` | 28/40 |
 | `publication` | 23/40 |
 | `three_targets` | 19/40 |
 | complete operations | 19/40 |

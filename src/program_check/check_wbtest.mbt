@@ -158,7 +158,6 @@ test "check rejects unsupported or malformed later steps without a partial resul
     (steps, source_error) in [
       ("[{\"asof_join\":{}}]", true),
       ("[{\"sequence\":{}}]", true),
-      ("[{\"normalize_graph\":{}}]", false),
       ("[{\"subgraph\":{}}]", false),
       ("[{\"traverse\":{}}]", true),
       ("[{\"reach\":{}}]", false),
