@@ -18,6 +18,8 @@ import {
 }
 
 // Values
+pub fn check_components(@decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedComponents, Issue]
+
 pub fn check_degree(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedDegree, Issue]
 
 pub fn check_graph_bounds(@decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedGraphBounds, Issue]
@@ -33,6 +35,22 @@ pub fn check_property_construction(@decode_core.Cursor, Array[(String, @carrier_
 pub fn check_selector(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedSelector, MatchIssue]
 
 pub fn check_traverse(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedTraverse, MatchIssue]
+
+pub fn components_input(CheckedComponents) -> @carrier_contract.Carrier
+
+pub fn components_kind(CheckedComponents) -> ComponentKind
+
+pub fn components_max_output_rows(CheckedComponents) -> Count?
+
+pub fn components_output(CheckedComponents) -> @carrier_contract.Carrier
+
+pub fn components_pending_at(CheckedComponents, Int) -> ComponentsObligation?
+
+pub fn components_pending_count(CheckedComponents) -> Int
+
+pub fn components_source(CheckedComponents) -> @decode_core.Cursor
+
+pub fn components_usage(CheckedComponents) -> Usage
 
 pub fn degree_direction(CheckedDegree) -> Direction
 
@@ -249,6 +267,8 @@ pub fn traverse_usage(CheckedTraverse) -> PredicateUsage
 // Errors
 
 // Types and methods
+type CheckedComponents
+
 type CheckedDegree
 
 type CheckedGraphBounds
@@ -266,6 +286,20 @@ type CheckedPropertyConstruction
 type CheckedSelector
 
 type CheckedTraverse
+
+pub(all) enum ComponentKind {
+  Weak
+  Strong
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ComponentsObligation {
+  AdmitComponentGraph
+  EnforceComponentInputNodes
+  ResolveComponentResources
+  EnforceComponentOutputRows
+  EnforceComponentAuthorGuard
+  BindComponentAuthorGuard(String)
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ConstructionObligation {
   AdmitGraphInputRows

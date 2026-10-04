@@ -19,13 +19,22 @@ fn graph_diagnostic_execution_check(
   site : OperationRequirementSite,
   policy : @policy.Policy,
 ) -> Result[OperationExecutionCheck?, OperationResolutionIndexIssue] {
-  guard site.requirement is @pipeline.DiagnosticRequirement(pending) else {
-    return Ok(None)
-  }
-  let rule = match pending {
-    ResolveDiagnosticResources => RequireDiagnosticResources
-    EnforceDiagnosticRelationRows => EnforceDiagnosticRows
-    AdmitDiagnosticGraph | BindDiagnosticThreshold(_) => return Ok(None)
+  let rule = match site.requirement {
+    @pipeline.DiagnosticRequirement(pending) =>
+      match pending {
+        ResolveDiagnosticResources => RequireDiagnosticResources
+        EnforceDiagnosticRelationRows => EnforceDiagnosticRows
+        AdmitDiagnosticGraph | BindDiagnosticThreshold(_) => return Ok(None)
+      }
+    @pipeline.ComponentsRequirement(pending) =>
+      match pending {
+        EnforceComponentInputNodes | ResolveComponentResources =>
+          RequireDiagnosticResources
+        EnforceComponentOutputRows | EnforceComponentAuthorGuard =>
+          EnforceDiagnosticRows
+        AdmitComponentGraph | BindComponentAuthorGuard(_) => return Ok(None)
+      }
+    _ => return Ok(None)
   }
   guard site.group == 0 &&
     @pipeline.operation_obligations_scope(site.obligations) == @pipeline.Body &&
@@ -37,17 +46,25 @@ fn graph_diagnostic_execution_check(
     target == input else {
     return Err(ForeignOccurrence(site.step))
   }
-  let exact = match step.operation {
-    @pipeline.GraphBounds(operation) =>
+  let exact = match (step.operation, site.requirement) {
+    (@pipeline.GraphBounds(operation), @pipeline.DiagnosticRequirement(pending)) =>
       @pipeline.operation_obligations_graph_bounds(site.obligations)
       is Some(owner) &&
       physical_equal(owner, operation) &&
       @graph.graph_bounds_pending_at(operation, site.index) == Some(pending)
-    @pipeline.GraphDegree(operation) =>
+    (@pipeline.GraphDegree(operation), @pipeline.DiagnosticRequirement(pending)) =>
       @pipeline.operation_obligations_graph_degree(site.obligations)
       is Some(owner) &&
       physical_equal(owner, operation) &&
       @graph.degree_pending_at(operation, site.index) == Some(pending)
+    (
+      @pipeline.GraphComponents(operation),
+      @pipeline.ComponentsRequirement(pending),
+    ) =>
+      @pipeline.operation_obligations_graph_components(site.obligations)
+      is Some(owner) &&
+      physical_equal(owner, operation) &&
+      @graph.components_pending_at(operation, site.index) == Some(pending)
     _ => false
   }
   if !exact {
