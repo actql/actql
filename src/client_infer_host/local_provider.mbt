@@ -84,6 +84,7 @@ pub fn composed_local_provider(
   open : (Array[@local.ManagedProviderInput]) -> Result[Execution, Issue],
   project_issue : (Issue) -> @connector.FixedComputeIssue,
   retain_completed? : (Execution) -> Bool = _ => true,
+  allow_cleanup? : (Execution) -> Bool = _ => true,
 ) -> @local.ManagedProvider {
   let opened = Ref(false)
   @local.managed_provider_with_inputs(
@@ -112,7 +113,7 @@ pub fn composed_local_provider(
       if !physical_equal(active.occurrence, occurrence) {
         return Err(project_issue(InvalidAdvance))
       }
-      local_component(active, project_issue, retain_completed~).map_err(
+      local_component(active, project_issue, retain_completed~, allow_cleanup~).map_err(
         project_issue,
       )
     },

@@ -17,6 +17,8 @@ const {connectEmbeddedLocal, openInstalledRemoteHttpHost} = await import(packed
 
 const fixture = JSON.parse(await readFile(new URL('./fixtures/property-graph-parallel.program.json', import.meta.url), 'utf8'));
 const presenceFixture = JSON.parse(await readFile(new URL('./fixtures/property-graph-presence.program.json', import.meta.url), 'utf8'));
+const definitionFixture = JSON.parse(await readFile(new URL('./fixtures/property-graph-definition-rows.program.json', import.meta.url), 'utf8'));
+const traversalFixture = JSON.parse(await readFile(new URL('./fixtures/property-graph-traverse-nodes.expected.json', import.meta.url), 'utf8'));
 // Use the existing authoritative inventory, not a second supported-operation
 // list or hand-authored per-consumer request fixtures. The common checker
 // refuses unsupported operation keys before interpreting their payloads.
@@ -103,6 +105,82 @@ const presenceRows = {
 // order must be established, not inherited accidentally from already sorted input.
 assert.deepEqual(presenceFixture.stages[0].steps[0].values.rows.map(row=>row.person_key),[2,1]);
 assert.deepEqual(presenceFixture.stages[0].steps[2].values.rows.map(row=>row.edge_key),[11,10]);
+
+// Authored heterogeneous declarations and expected streams. The second edge
+// uses the same endpoints and raw keys, but remains a distinct definition.
+function definitionScenario(projection, empty, alternate = false) {
+  const document = structuredClone(presenceFixture);
+  document.id = `definition-${projection}-${empty ? 'empty' : 'values'}`;
+  const steps = document.stages[0].steps;
+  steps[1].values.schema.q = number;
+  steps[1].values.rows[0].q = 9;
+  steps[3].property_graph.nodes[1].labels = [{name:'Company',properties:
+    {mode:'columns',columns:[{from:'q',to:'q'}]}}];
+  steps[3].property_graph.edges[0].labels[0].properties =
+    {mode:'columns',columns:[{from:'source_key',to:'weight'}]};
+  steps[3].property_graph.edges.push({...structuredClone(steps[3].property_graph.edges[0]),
+    name:'F',labels:[{name:'Other',properties:{mode:'columns',columns:[{from:'target_key',to:'score'}]}}]});
+  if (empty) steps[0].values.rows = [];
+  const selected = projection === 'node_rows' ? (alternate ? 'M' : 'N') : (alternate ? 'F' : 'E');
+  const property = projection === 'node_rows' ? (alternate ? 'q' : 'p') : (alternate ? 'score' : 'weight');
+  const key = projection === 'node_rows' ? (alternate ? 'company_key' : 'person_key') : 'edge_key';
+  steps[4] = {from:'g',[projection]:{definition:selected.toLowerCase()},as:'rows'};
+  steps[5] = {filter:`${property} IS NULL OR ${property} > 0`,as:'filtered'};
+  steps.push({rename:{[property]:'value'},as:'renamed'},
+    {select:['id',key,'value'],as:'projected'});
+  document.stages[0].results.out.fields = ['id',key,'value'];
+  const ctor = structuredClone(steps[3].property_graph);
+  const producerDefinitions = [];
+  let occurrence = 0;
+  for (const family of ['nodes','edges']) for (const element of ctor[family]) {
+    const source = steps.slice(0,3).find(step=>step.as === element.from);
+    producerDefinitions.push({body:{values:source.values},dependencies:[]});
+    delete element.from;
+    element.input_occurrence = occurrence++;
+  }
+  const domain = cid({constructor:ctor,producer_definitions:producerDefinitions,
+    version:'actql-property-graph-definition/0.1'});
+  const identity = (definition,key,kinds) => ({definition,domain,key,key_types:kinds.map(kind=>({kind}))});
+  const node = key=>identity('N',[key,'a'],['number','string']);
+  const contract = structuredClone(presenceContract);
+  contract.domain = domain;
+  Object.assign(contract.node_definitions[0],{labels:{Company:['q']},properties:{q:number}});
+  Object.assign(contract.edge_definitions[0],{labels:{Link:['weight']},properties:{weight:number}});
+  contract.edge_definitions.push({...structuredClone(contract.edge_definitions[0]),
+    name:'F',labels:{Other:['score']},properties:{score:number}});
+  const nodes = [{id:identity('M',[3],['number']),key:[3],props:{q:9}},
+    ...(empty ? [] : [1,2].map(key=>({id:node(key),key:[key,'a'],props:{p:key===1 ? 7 : null}})))];
+  const edges = empty ? [] : ['E','F'].flatMap(definition=>[10,11].map(key=>({
+    id:identity(definition,[key,'a'],['number','string']),key:[key,'a'],
+    props:definition==='E' ? {weight:1} : {score:2},src:node(1),dst:node(2)})));
+  const snapshot = canonicalText(['actql-property-graph-snapshot/0.1',cid(contract),contract,nodes,edges]);
+  const retained = projection === 'node_rows' && alternate
+    ? [{id:identity('M',[3],['number']),labels:['Company'],company_key:3,q:9}]
+    : empty ? [] : projection === 'node_rows'
+      ? [1,2].map(key=>({id:node(key),labels:['Owner','Person'],person_key:key,tenant_key:'a',p:key===1 ? 7 : null}))
+      : [10,11].map(key=>({id:identity(selected,[key,'a'],['number','string']),src:node(1),dst:node(2),
+        labels:[alternate ? 'Other' : 'Link'],edge_key:key,tenant_key:'a',[property]:alternate ? 2 : 1}));
+  const expected = retained.map(row=>({id:row.id,[key]:row[key],value:row[property]}));
+  return {document,retained,expected,snapshot,property,key};
+}
+const traversalProgram = structuredClone(fixture);
+traversalProgram.stages[0].steps[0].values.rows = traversalFixture.node_keys.map(id=>({id,tenant:'a'}));
+traversalProgram.stages[0].steps[1].values.rows = traversalFixture.edges.map(edge=>({...edge,tenant:'a'}));
+const traversalDomain = cid({constructor,
+  producer_definitions:traversalProgram.stages[0].steps.slice(0,2)
+    .map(step=>({body:{values:step.values},dependencies:[]})),
+  version:'actql-property-graph-definition/0.1'});
+const traversalIdentity = (definition,key)=>({definition,domain:traversalDomain,
+  key:['a',key],key_types:[{kind:'string'},{kind:'number'}]});
+const traversalContract = {...graphContract,domain:traversalDomain};
+// Explicitly canonical expected order, independent of descending source input.
+const traversalSnapshot = canonicalText(['actql-property-graph-snapshot/0.1',cid(traversalContract),traversalContract,
+  [1,2,3].map(id=>({id:traversalIdentity('N',id),key:['a',id],props:{id,tenant:'a'}})),
+  [10,11,12,13,14].map(key=>{
+    const edge=traversalFixture.edges.find(edge=>edge.key===key);
+    return {id:traversalIdentity('E',key),key:['a',key],props:{...edge,tenant:'a'},
+      src:traversalIdentity('N',edge.src),dst:traversalIdentity('N',edge.dst)};
+  })]);
 
 for (const mode of ['local','remote']) {
   test(`keyed constructor and TRAIL reach public Named Results through ${mode}`, {timeout:60_000}, async t => {
@@ -265,6 +343,86 @@ for (const mode of ['local','remote']) {
           sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true},
       ]);
       assert.deepEqual(await (await client.attach(projected.ref)).result('answer').all(),expected);
+    }
+    for (const projection of ['node_rows','edge_rows']) for (const [empty,alternate] of [[false,false],[true,false],[false,true]]) {
+      const {document,retained,expected,snapshot,key} = definitionScenario(projection,empty,alternate);
+      const run = await client.aql(canonicalText(document),{format:'json',requestId:`${document.id}-${alternate}-${mode}`});
+      const state = await run.wait();
+      assert.equal(state.status,'succeeded',JSON.stringify(state));
+      assert.deepEqual(await run.result('answer').all(),expected);
+      assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
+      const columns = (await run.result('answer').describe()).columns;
+      assert.deepEqual(columns.map(column=>column.name),['id',key,'value']);
+      assert.deepEqual(columns[2].contract,projection==='node_rows' && !alternate ? {type:'number',nullable:true} : number);
+      await assertSnapshot(run,3,'sha256:'+createHash('sha256').update(snapshot).digest('hex'),snapshot);
+      const stream = canonicalText(retained);
+      assert.deepEqual(relationSnapshots.get(run.ref.runDefinitionCid),[
+        {task:4,cid:cid(retained),bytes:Buffer.byteLength(stream),verifiedReadBytes:Buffer.byteLength(stream),
+          rows:retained.length,sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true},
+      ]);
+    }
+    for (const body of [{definition:'Unknown'},{definition:'E'},{definition:'N',label:'Person'},{}]) {
+      const {document} = definitionScenario('node_rows',false);
+      document.stages[0].steps[4].node_rows = body;
+      const requestId = `invalid-definition-${JSON.stringify(body)}-${mode}`;
+      const before = physicalSteps.length;
+      await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+        error=>error instanceof ClientError && error.code==='ClientProgramRejected');
+      assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+      assert.deepEqual(physicalSteps.slice(before),[]);
+    }
+    for (const collision of ['id','person_key']) {
+      const {document} = definitionScenario('node_rows',false);
+      for (const label of document.stages[0].steps[3].property_graph.nodes[0].labels)
+        label.properties.columns[0].to = collision;
+      const requestId = `selected-collision-${collision}-${mode}`;
+      const before = physicalSteps.length;
+      await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+        error=>error instanceof ClientError && error.code==='ClientProgramRejected');
+      assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+      assert.deepEqual(physicalSteps.slice(before),[]);
+    }
+    const minimal = await client.aql(canonicalText(definitionFixture),
+      {format:'json',requestId:`minimal-definition-${mode}`});
+    const minimalState = await minimal.wait();
+    assert.equal(minimalState.status,'succeeded',JSON.stringify(minimalState));
+    assert.deepEqual(await minimal.result('answer').all(),[{value:7},{value:null}]);
+    assert.deepEqual((await minimal.result('answer').describe()).columns,
+      [{name:'value',contract:{type:'number',nullable:true}}]);
+    for (const [index,scenario] of traversalFixture.cases.entries()) {
+      const document = structuredClone(traversalProgram);
+      document.id = `property-traverse-nodes-${index}`;
+      const start = scenario.relation_start ? {from:'seeds',id:'element'}
+        : {ids:scenario.start_keys.map(key=>traversalIdentity('N',key))};
+      const body = scenario.hops ? {hops:scenario.hops}
+        : {direction:'out',min_hops:scenario.min_hops,max_hops:scenario.max_hops,...scenario.conditions};
+      document.stages[0].steps[3] = {from:'g',traverse:{start,...body,path_mode:scenario.path_mode,emit:'nodes'},as:'visited'};
+      if (scenario.relation_start) document.stages[0].steps.splice(3,0,
+        {from:'g',match_nodes:{definition:'N',label:'Node',bindings:{identity:'element'},
+          where:'id = 1',fields:['element']},as:'seeds'});
+      document.stages[0].steps.push({from:'visited',select:['start_id','node_id','depth'],as:'projected'});
+      document.stages[0].results.out = {from:'projected',fields:['start_id','node_id','depth']};
+      let traversed;
+      try {
+        traversed = await client.aql(canonicalText(document),
+          {format:'json',requestId:`traverse-nodes-${index}-${mode}`});
+      } catch (cause) {
+        throw new Error(`Traversal submission failed: ${scenario.name}; ${String(cause.cause?.cause ?? cause.code)}`,{cause});
+      }
+      const state = await traversed.wait();
+      assert.equal(state.status,'succeeded',JSON.stringify(state));
+      const expected = scenario.rows.map(({start_key,node_key,depth})=>({
+        start_id:traversalIdentity('N',start_key),node_id:traversalIdentity('N',node_key),depth}));
+      assert.deepEqual(await traversed.result('answer').all(),expected,scenario.name);
+      assert.deepEqual((await traversed.result('answer').describe()).columns.map(column=>column.name),
+        ['start_id','node_id','depth']);
+      await assertSnapshot(traversed,2,cid(JSON.parse(traversalSnapshot)),traversalSnapshot);
+      const stream=canonicalText(expected);
+      assert.deepEqual(relationSnapshots.get(traversed.ref.runDefinitionCid),[
+        {task:scenario.relation_start ? 4 : 3,cid:cid(expected),bytes:Buffer.byteLength(stream),verifiedReadBytes:Buffer.byteLength(stream),
+          rows:expected.length,sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true},
+      ]);
+      assert.deepEqual(await (await client.attach(traversed.ref)).result('answer').all(),expected,scenario.name);
     }
   });
 }

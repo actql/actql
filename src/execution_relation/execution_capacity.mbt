@@ -29,6 +29,24 @@ pub fn execution_capacity_execution_bytes(value : ExecutionCapacity) -> Int64 {
 }
 
 ///|
+/// A selected sequence keeps the original context inventory for exact owner
+/// validation, but only its selected operations can allocate fragment state.
+fn capacity_uses_fragment_step(
+  generated : GeneratedSequence,
+  step : Int,
+) -> Bool {
+  if generated.selected_steps is None && generated.selected_prefix_end is None {
+    return true
+  }
+  for index in 0..<generated_sequence_step_count(generated) {
+    if generated_sequence_step_index_at(generated, index) == Some(step) {
+      return true
+    }
+  }
+  false
+}
+
+///|
 pub fn generated_sequence_capacity(
   generated : GeneratedSequence,
   limits : SequenceExecutionLimits,
@@ -83,6 +101,12 @@ pub fn generated_sequence_capacity(
   // to manufacture a fitting candidate, or use elapsed time as logical work.
   let mut fragment_peak = 0L
   for context in generated.contexts {
+    if !capacity_uses_fragment_step(
+        generated,
+        @lower.kernel_step(context.kernel),
+      ) {
+      continue
+    }
     let live = context.limits.max_live_value_bytes
     let physical = context.physical
     if live < 0L ||

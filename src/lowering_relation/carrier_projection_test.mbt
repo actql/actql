@@ -78,3 +78,73 @@ test "Graph row projections lower to registered typed Carrier bridges" {
     )
   }
 }
+
+///|
+test "selected Graph definition is retained in checked and emitted Plan parameters" {
+  for operation in ["node_rows", "edge_rows"] {
+    let name = if operation == "node_rows" { "N" } else { "E" }
+    let owner = carrier_projection_owner(
+      "[{\"from\":\"g\",\"" +
+      operation +
+      "\":{\"definition\":\"" +
+      name.to_lower() +
+      "\"}}]",
+      [("g", graph_match_carrier())],
+    )
+    let sequence = @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
+    guard @lowering_relation.sequence_step(sequence, 0)
+      is Some(@lowering_relation.CarrierProjectionStep(projected)) else {
+      fail("selected Graph Bridge")
+    }
+    assert_eq(
+      @lowering_relation.carrier_projection_definition(projected),
+      Some(name),
+    )
+    let writer = @encode.writer(10000, 1000, 100)
+    @lowering_relation.emit_sequence_steps(sequence, writer)
+    assert_true(
+      @encode.finish(writer).contains(
+        "\"params\":{\"definition\":\"" + name + "\"}",
+      ),
+    )
+  }
+}
+
+///|
+test "same-schema definition selection is stable and not erased from Plan meaning" {
+  let properties = @carrier.rows(
+    [],
+    field_set=Closed,
+    max_fields=0,
+    max_name_bytes=0,
+  ).unwrap()
+  let definitions = ["N", "M"].map(name => {
+    @carrier.property_node_definition(
+      name,
+      [@contract.primitive(NumberType, nullable=false)],
+      properties,
+      [],
+      max_fields=2,
+      max_name_bytes=100,
+    ).unwrap()
+  })
+  let graph = @carrier.property_graph(
+    "sha256:" + "0".repeat(64),
+    definitions,
+    [],
+    max_definitions=2,
+    max_contract_work=1000,
+  ).unwrap()
+  let emitted = ["N", "N", "M"].map(name => {
+    let owner = carrier_projection_owner(
+      "[{\"from\":\"g\",\"node_rows\":{\"definition\":\"" + name + "\"}}]",
+      [("g", graph)],
+    )
+    let sequence = @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
+    let writer = @encode.writer(10000, 1000, 100)
+    @lowering_relation.emit_sequence_steps(sequence, writer)
+    @encode.finish(writer)
+  })
+  assert_eq(emitted[0], emitted[1])
+  assert_false(emitted[0] == emitted[2])
+}

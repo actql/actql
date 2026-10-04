@@ -6,7 +6,7 @@ const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
 const text = value => typeof value === 'string' && value.length > 0;
-const genericResponseOperations = new Set(['dispatch', 'query', 'release']);
+const genericResponseOperations = new Set(['dispatch', 'query', 'cancel', 'release']);
 
 async function readBounded(request, maxBytes) {
   const announced = request.headers['content-length'];
@@ -86,6 +86,7 @@ export async function startHttpsOutboundSiteGateway({
       typeof control.pollJson !== 'function' ||
       typeof control.pollOutputJson !== 'function' ||
       typeof control.pollQueryJson !== 'function' ||
+      typeof control.pollCancelJson !== 'function' ||
       typeof control.pollReleaseJson !== 'function' ||
       typeof control.admitPollOutput !== 'function' ||
       typeof control.admitOutputResult !== 'function' ||
@@ -238,6 +239,8 @@ export async function startHttpsOutboundSiteGateway({
       acceptanceObserved: false,
       envelope: operation === 'query'
         ? control.pollQueryJson(dispatch)
+        : operation === 'cancel'
+          ? control.pollCancelJson(dispatch)
         : operation === 'release'
           ? control.pollReleaseJson(dispatch)
           : operation === 'output'
@@ -301,10 +304,10 @@ export async function startHttpsOutboundSiteGateway({
     `/v1/sites/${encodeURIComponent(binding.siteKey)}/generations/` +
     `${binding.siteGeneration}/outbound/${suffix}`;
   const queryPreemptsDispatch = entry => entry.operation === 'dispatch' &&
-    pending.has(`query:${entry.identity}`);
+    (pending.has(`query:${entry.identity}`) || pending.has(`cancel:${entry.identity}`));
   // These are transport waiters, not execution or redelivery permission.
-  // An explicit query of the same exact dispatch must not sit behind its
-  // unresolved send (for example, after the acceptance response was lost).
+  // An explicit query or cancellation of the same exact dispatch must not
+  // sit behind its unresolved send (for example, after a lost acceptance).
   // Keep FIFO ordering for unrelated work and for release/output custody.
   const nextEntry = binding => [...pending.values()]
     .filter(entry => entry.binding === binding && !queryPreemptsDispatch(entry))
@@ -446,6 +449,7 @@ export async function startHttpsOutboundSiteGateway({
         }
         try {
           statusReply = entry.operation === 'query' ||
+            entry.operation === 'cancel' ||
             entry.operation === 'release' || entry.acceptanceObserved;
           try {
             admitted = control.admitResponseJson(body, entry.dispatch, statusReply);
@@ -522,6 +526,18 @@ export async function startHttpsOutboundSiteGateway({
       if (matched.operation === 'dispatch' && !statusReply &&
           projected.state.every(value => value === 0)) {
         matched.acceptanceObserved = true;
+        replyJson(response, 200, {accepted: true});
+        return;
+      }
+      if (matched.operation === 'cancel' &&
+          !([3, 4, 5].includes(projected.state[0]) &&
+            projected.state[2] === 2 && projected.state[3] === 0 &&
+            projected.state[4] === 0)) {
+        // Ordinary status (even after an offer) cannot prove that the Site
+        // saved Cancel. Admit the observation, but keep offering the exact
+        // cancellation until the common owner admits terminal execution and
+        // released cleanup with no retained material or quarantine obligation.
+        // Unknown execution is not terminal cancellation evidence.
         replyJson(response, 200, {accepted: true});
         return;
       }
@@ -649,6 +665,10 @@ export async function startHttpsOutboundSiteGateway({
     release({dispatch, signal} = {}) {
       if (dispatch === undefined) fail('InvalidOutboundDispatch');
       return waitFor(dispatch, signal, 'release', undefined);
+    },
+    cancel({dispatch, signal} = {}) {
+      if (dispatch === undefined) fail('InvalidOutboundDispatch');
+      return waitFor(dispatch, signal, 'cancel', undefined);
     },
     // Stop offering a dispatch the Site has not accepted; its waiters are
     // rejected. The Coordinator then learns the outcome by query.

@@ -159,6 +159,35 @@ native correspondence or a complete byte proof. The conditional **2344** bound,
 scalar callback payload assumptions, lifetime exclusions and all unresolved
 capacity obligations remain unchanged; hosted native receipts are required.
 
+#### Traversal ceiling configuration
+
+Node traversal adds `GeneratedSequence.traversal_ceilings`, one reference to an
+Array of `(step, paths, rows)` tuples. `prepare_generated_sequence` creates its
+empty owner before candidate selection. Updates copy the existing Array, bind
+only a checked `GraphTraverseStep`, and replace an existing step's limits by
+their minimum rather than append duplicate entries. Selection views share that
+configuration reference; they do not create a second ledger or execute it.
+The ordinary Relation executor refuses a nonempty traversal ledger rather than
+silently ignore its limits. Candidate factories, their four callback fields,
+capture identities and the RowStep capability predicate are unchanged.
+
+The source census includes the new configuration Array, backing, tuples,
+enlarged selected records, retained configurations and old/new update overlap.
+These are not part of the **2344** candidate-factory construction component or
+the **680 + 16*C(n)** retained-core subtotal; their original checked configuration
+owner and unresolved selected-context/lifetime obligations remain explicit.
+In particular, the empty Array is still an allocation, and replacing a
+configuration does not prove physical reclamation. No whole-parent bound,
+portable byte bound or Graph execution refinement follows from this refresh.
+
+The current-source premise digest is accompanied by a whole-file regression
+against the original Git blob: only the exact ledger field, initialization,
+ordinary-executor refusal and the two checked helpers are removed before that
+comparison, alongside the already reviewed Graph false-branch replacement.
+An unrelated source edit, field-type change or altered helper is still refused.
+Historical sources, formulas, ABI assumptions, native observation requirements
+and complete-claim refusals remain unchanged.
+
 ### Conditional candidate-construction component
 
 The selection loop evaluates all eleven provider factories before testing the

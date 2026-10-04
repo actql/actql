@@ -1,0 +1,61 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-traverse-nodes-relation-rows-parent",
+  "kind": "resolution",
+  "revision": "b71ee436725503072a6c2502da4ff5df3a024e8c",
+  "parents": [
+    "45469dcaa865b6ddb47506cca03889c2af67ac1a",
+    "7a3800ec96d78e207706f776b9a8a5622b61a033"
+  ],
+  "mergeBases": [
+    "9bc97334b1ec6afddef1b319fc48ac52f8ec7879",
+    "b5d5261eff36409e247d8e866edee048fd8c9f2e"
+  ],
+  "inputs": [
+    "four-owned-pipeline-producers",
+    "mutation-workspace-audit-compatibility",
+    "mutation-workspace-isolation",
+    "resolve-composition-custody-main-maximal-bases",
+    "resolve-composition-infer-main-maximal-bases",
+    "resolve-host-owner-main-7081dedfd",
+    "reuse-general-audit-preparation"
+  ],
+  "changes": [
+    {
+      "path": "proofs/relation-pipeline/audit-target-regression.mjs",
+      "before": [
+        {
+          "revision": "45469dcaa865b6ddb47506cca03889c2af67ac1a",
+          "digest": "a7d5481c9b843bfd88f28e68b50a511de2968435941af617ec646f5523d9b232",
+          "mode": "100644"
+        },
+        {
+          "revision": "7a3800ec96d78e207706f776b9a8a5622b61a033",
+          "digest": "a7d5481c9b843bfd88f28e68b50a511de2968435941af617ec646f5523d9b232",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "a7d5481c9b843bfd88f28e68b50a511de2968435941af617ec646f5523d9b232",
+      "afterMode": "100644",
+      "reason": "Retain the already merged audit implementation unchanged while normally integrating the Relation rows parent into node traversal. Both parents have the same audited bytes, but the complete two-maximal-base analysis requires an explicit resolution at the older base. Preserve all ancestral audit source receipts, independent target-substitution checks, immutable declarations and actual ordered parents; no proof validator or Graph implementation is changed."
+    },
+    {
+      "path": "proofs/relation-pipeline/audit.mjs",
+      "before": [
+        {
+          "revision": "45469dcaa865b6ddb47506cca03889c2af67ac1a",
+          "digest": "465f96a3183a898bce9ef636ec40da28a804393870d739abf8a4237f759fe7bd",
+          "mode": "100644"
+        },
+        {
+          "revision": "7a3800ec96d78e207706f776b9a8a5622b61a033",
+          "digest": "465f96a3183a898bce9ef636ec40da28a804393870d739abf8a4237f759fe7bd",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "465f96a3183a898bce9ef636ec40da28a804393870d739abf8a4237f759fe7bd",
+      "afterMode": "100644",
+      "reason": "Retain the already merged audit implementation unchanged while normally integrating the Relation rows parent into node traversal. Both parents have the same audited bytes, but the complete two-maximal-base analysis requires an explicit resolution at the older base. Preserve all ancestral audit source receipts, independent target-substitution checks, immutable declarations and actual ordered parents; no proof validator or Graph implementation is changed."
+    }
+  ]
+}

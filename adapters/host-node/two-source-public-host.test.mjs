@@ -71,9 +71,9 @@ test('two installed sources use normal public Local/HTTPS execution and owned re
     await t.test('Local and HTTPS: distinct, equal-content, unused source, then fresh retained attach/lookup/resend', async () => {
       await runChild(configuration, 'public-success');
       await runChild(configuration, 'retained');
-      assert.equal((await report('public-success', 'public-success')).cases, 6);
+      assert.equal((await report('public-success', 'public-success')).cases, 8);
       const restarted = await report('retained', 'retained');
-      assert.equal(restarted.cases, 6);
+      assert.equal(restarted.cases, 8);
       assert.deepEqual(restarted.provider.sourceProviderOpens, []);
     });
     for (const [name, action] of [['exact-inventory', 'recover-exact'],
@@ -109,8 +109,11 @@ test('two installed sources use normal public Local/HTTPS execution and owned re
     });
     for (const [action, label] of [
       ['failure-second', 'real second provider fails after first acquisition, cleanup releases its retained input'],
-      ['cancel-second-boundary', 'cancel at awaited second-acquisition boundary, first Native holding is released'],
-      ['cleanup-retry', 'failed first Native cleanup retains ownership, Host close retries without source reread'],
-    ]) await t.test(label, () => runChild(configuration, action));
+      ['cancel-second-boundary', 'cancel at awaited second-acquisition boundary, first acquisition holding is released'],
+      ['cleanup-retry', 'failed first acquisition cleanup retains ownership, Host close retries without source reread'],
+    ]) {
+      await t.test(label, () => runChild(configuration, action));
+      await t.test(`Broad: ${label}`, () => runChild(configuration, action, `broad-${action}`));
+    }
     scratch.passed();
   });

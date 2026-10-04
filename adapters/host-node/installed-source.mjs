@@ -1,13 +1,18 @@
-// The standard Host's installed source binding, selected by the
-// Host profile's version. Each installation adapter keeps its own physical
-// I/O, grants and cleanup; the Host's Run, Checkpoint and dispatch owners
-// stay the same for every adapter.
+// The standard Host's installed source binding, selected by the Host
+// profile's version from the installed connector table. Each installation
+// adapter keeps its own physical I/O, grants and cleanup; the Host's Run,
+// Checkpoint and dispatch owners stay the same for every adapter, and the
+// Host never branches on a provider name: a connector enters the table by
+// its own `host-bundle.json` manifest (`installed-connectors.mjs`).
 //
 // An adapter provides:
 // - `realizationKey`, `environmentWire` (the Check Environment of this
 //   installation), `readAuthorization` ({accountConfiguration, context}, for
 //   the Host's pre-acquisition Checkpoint) and `sourceAccess` (the base
 //   access whose `authorization` a Checkpoint may wrap);
+// - `connectorRegistration`/`connectorRevision` when its manifest declares
+//   them: the installed implementation's own identification, which must
+//   equal the declaration;
 // - `admitsSource(sourceRef)`: whether a checked source is this installation's;
 // - `prepare({preparedProgram, preparedEffect, registry, values, fragment, ordered,
 //   sourceAccess})`: the checked source, read tuple and physical binding an
@@ -23,6 +28,7 @@ import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
+import {duckDBPhysicalTarget} from './duckdb-physical-target.mjs';
 import {composeInstalledCheckEnvironment, verifyInstalledConnectorBindings} from
   './installed-check-environment.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
@@ -31,11 +37,53 @@ import {INSTALLED_DUCKDB_SOURCE_VERSION, installDuckDBSourceProfile} from
   './installed-duckdb-source.mjs';
 import {openCapturedDuckDBSource, prepareCapturedDuckDBSource} from
   './captured-duckdb-source.mjs';
+import {installedConnectors} from
+  '../connectors-builtin/installations.generated.mjs';
+import {installedConnectorFor, installedConnectorTable,
+  loadInstalledConnectorModule, providerBundleUrl,
+  verifyInstalledConnectorRegistration} from './installed-connectors.mjs';
 
-const INSTALLED_SALESFORCE_SOURCE_VERSION =
-  'actql-installed-salesforce-source/0.1';
-const salesforceBundle = new URL('../../_build/js/release/build/' +
-  'connectors/salesforce/host_node/host_node.js', import.meta.url);
+// DuckDB is the Host's built-in source binding: it needs no provider bundle
+// or credential Site. It enters the same table as every declared connector;
+// moving it behind its own manifest is a separate change.
+const duckdbInstallation = Object.freeze({
+  name: 'builtin_source',
+  source: Object.freeze({
+    profileVersion: INSTALLED_DUCKDB_SOURCE_VERSION,
+    load: async () => Object.freeze({
+      check: profile => profile,
+      // Logical profile canonicalization must not alias distinct provider
+      // names: the exact physical target is its own identity part.
+      identityParts: profile => [profile, duckDBPhysicalTarget(profile)],
+      load: async (profile, {root, principalId, moon}) => duckdbAdapter(
+        await installDuckDBSourceProfile(profile, {root, principalId}), moon,
+        {root, principalId}),
+    }),
+  }),
+});
+const installations = installedConnectorTable([duckdbInstallation,
+  ...installedConnectors]);
+
+// Select the installed connector of a Host profile and load its
+// installation module. An unknown version is refused before any I/O.
+async function selectInstallation(profile) {
+  const entry = installedConnectorFor(installations, profile);
+  return {entry, module: await loadInstalledConnectorModule(entry)};
+}
+
+// The Site binds its credential grants to the exact standard runtime this
+// Host executes.
+const runtimeBundleCidOf = async runtimeUrl => `sha256:${createHash('sha256')
+  .update(await readFile(runtimeUrl)).digest('hex')}`;
+
+// The connector's compiled provider bundle and the runtime identity its
+// Site binds to; a built-in binding without a provider bundle needs neither.
+async function providerRuntime(entry, runtimeUrl) {
+  const bundle = providerBundleUrl(entry);
+  if (bundle === undefined) return {};
+  return {providerMoon: await import(bundle.href),
+    runtimeBundleCid: await runtimeBundleCidOf(runtimeUrl)};
+}
 
 // A connected embedded Host keeps one installed source for its lifetime.
 // Compare its full published generation and Site binding on later connects,
@@ -55,17 +103,9 @@ export async function installedSourceIdentity(path) {
   const {providerProfile, queryAliases} = splitSourceAliasProfile(profile);
   // Omission and an explicitly empty alias publication have the same meaning.
   if (queryAliases.length === 0) delete profile.queryAliases;
-  const parts = [profile];
-  if (profile?.version === INSTALLED_SALESFORCE_SOURCE_VERSION) {
-    const {checkInstalledSalesforceSourceProfile} = await import(
-      '../connectors/salesforce/host/installed-salesforce-source.mjs');
-    const checked = checkInstalledSalesforceSourceProfile(
-      providerProfile);
-    parts.push(await read(checked.siteProfilePath),
-      await read(checked.publicationPath));
-    profile.accountConfigurationWire = JSON.parse(
-      profile.accountConfigurationWire);
-  } else if (profile?.version !== INSTALLED_DUCKDB_SOURCE_VERSION) {
+  const {module} = await selectInstallation(profile);
+  const parts = await module.identityParts(profile, providerProfile, read);
+  if (!Array.isArray(parts) || parts.length === 0) {
     throw new TypeError('InvalidInstalledSourceProfile');
   }
   const hash = createHash('sha256');
@@ -89,8 +129,7 @@ function duckdbAdapter(profile, moon, {root, principalId}) {
     connectorBindings: Object.freeze(catalogIds.map(connectorId =>
       Object.freeze({connectorId, bindingCid: contentCid({
         version: 'actql-installed-duckdb-source-binding/0.1',
-        root, principalId, database: profile.database,
-        schema: profile.schema, table: profile.table,
+        root, principalId, physicalBinding: duckDBPhysicalTarget(profile),
         sourceRef: profile.sourceRef,
       })}))),
     readAuthorization: profile.readAuthorization,
@@ -110,75 +149,48 @@ function duckdbAdapter(profile, moon, {root, principalId}) {
   });
 }
 
-// The explicit publication step of an installed source that has one (a
-// Salesforce source publishes its targeted declaration). A Host start never
-// runs it; it uses the same state root and principal the Host will.
-export async function publishInstalledSourceProfile(path, {root, principalId,
-  moon, runtimeUrl, resolveSecret, signal}) {
+async function readProfile(path) {
   if (typeof path !== 'string' || !isAbsolute(path)) {
     throw new TypeError('InvalidInstalledSourceProfilePath');
   }
-  let profile;
-  try { profile = JSON.parse(await readFile(path, 'utf8')); }
+  try { return JSON.parse(await readFile(path, 'utf8')); }
   catch (cause) {
     throw Object.assign(new TypeError('InvalidInstalledSourceProfile',
       {cause}), {code: 'InvalidInstalledSourceProfile'});
   }
-  if (profile?.version !== INSTALLED_SALESFORCE_SOURCE_VERSION) {
+}
+
+// The explicit publication step of an installed source whose connector has
+// one (a Salesforce source publishes its targeted declaration). A Host start
+// never runs it; it uses the same state root and principal the Host will.
+export async function publishInstalledSourceProfile(path, {root, principalId,
+  moon, runtimeUrl, resolveSecret, signal}) {
+  const profile = await readProfile(path);
+  const {entry, module} = await selectInstallation(profile);
+  if (module.publish === undefined) {
     throw Object.assign(new TypeError('InstalledSourcePublicationUnsupported'),
       {code: 'InstalledSourcePublicationUnsupported'});
   }
-  const {checkInstalledSalesforceSourceProfile,
-    publishInstalledSalesforceSource} = await import(
-    '../connectors/salesforce/host/installed-salesforce-source.mjs');
-  const checked = checkInstalledSalesforceSourceProfile(
-    splitSourceAliasProfile(profile).providerProfile);
-  const salesforceMoon = await import(salesforceBundle.href);
-  const runtimeBundleCid = `sha256:${createHash('sha256')
-    .update(await readFile(runtimeUrl)).digest('hex')}`;
-  return publishInstalledSalesforceSource(checked, {root, principalId, moon,
-    salesforceMoon, runtimeBundleCid, resolveSecret, signal});
+  const checked = module.check(splitSourceAliasProfile(profile).providerProfile);
+  return module.publish(checked, {root, principalId, moon, resolveSecret,
+    signal, installation: entry, ...await providerRuntime(entry, runtimeUrl)});
 }
 
 // Load the Host's installed source from `path`, or none. An unknown version
-// or an invalid profile is refused before any provider or Site I/O.
+// or an invalid profile is refused before any provider or Site I/O. Only the
+// selected connector's module and provider bundle are loaded.
 export async function loadInstalledSource(path, {root, principalId, moon,
   runtimeUrl, baseEnvironmentWire, resolveSecret}) {
   if (path === undefined) return undefined;
-  if (typeof path !== 'string' || !isAbsolute(path)) {
-    throw new TypeError('InvalidInstalledSourceProfilePath');
-  }
-  let profile;
-  try { profile = JSON.parse(await readFile(path, 'utf8')); }
-  catch (cause) {
-    throw Object.assign(new TypeError('InvalidInstalledSourceProfile',
-      {cause}), {code: 'InvalidInstalledSourceProfile'});
-  }
+  const profile = await readProfile(path);
   const {providerProfile, queryAliases} = splitSourceAliasProfile(profile);
-  if (profile?.version === INSTALLED_DUCKDB_SOURCE_VERSION) {
-    const adapter = duckdbAdapter(await installDuckDBSourceProfile(providerProfile,
-      {root, principalId}), moon, {root, principalId});
-    return Object.freeze({...adapter, queryAliases});
-  }
-  if (profile?.version === INSTALLED_SALESFORCE_SOURCE_VERSION) {
-    // The Salesforce adapter and its provider bundle are loaded only for a
-    // Salesforce installation.
-    const {checkInstalledSalesforceSourceProfile,
-      loadInstalledSalesforceSource} = await import(
-      '../connectors/salesforce/host/installed-salesforce-source.mjs');
-    const checked = checkInstalledSalesforceSourceProfile(providerProfile);
-    const salesforceMoon = await import(salesforceBundle.href);
-    // The Site binds its credential grants to the exact standard runtime
-    // this Host executes.
-    const runtimeBundleCid = `sha256:${createHash('sha256')
-      .update(await readFile(runtimeUrl)).digest('hex')}`;
-    const adapter = await loadInstalledSalesforceSource(checked, {root,
-      principalId, moon, salesforceMoon, baseEnvironmentWire, runtimeBundleCid,
-      resolveSecret});
-    return Object.freeze({...adapter, queryAliases});
-  }
-  throw Object.assign(new TypeError('InvalidInstalledSourceProfile'),
-    {code: 'InvalidInstalledSourceProfile'});
+  const {entry, module} = await selectInstallation(profile);
+  const checked = module.check(providerProfile);
+  const adapter = verifyInstalledConnectorRegistration(entry,
+    await module.load(checked, {root, principalId, moon, baseEnvironmentWire,
+      resolveSecret, installation: entry,
+      ...await providerRuntime(entry, runtimeUrl)}));
+  return Object.freeze({...adapter, queryAliases});
 }
 
 // Installation inventory is bounded and inert. Only a checked acquisition

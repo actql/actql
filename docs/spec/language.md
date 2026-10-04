@@ -5329,7 +5329,7 @@ Definition-scoped `match_nodes` and `match_edges` select a required
 optional explicit `bindings` (`identity`, plus edge `source`/`target`). Binding
 names are ordinary caller-selected fields; collisions reject. Bounded keyed
 `traverse` requires explicit `path_mode` (`walk`, `trail` or `acyclic`) and
-`emit: "paths"`. TRAIL tracks independent edge identities, not endpoint tuples.
+`emit: "paths"` or `emit: "nodes"`. TRAIL tracks independent edge identities, not endpoint tuples.
 Unimplemented SGA consumers reject this profile; keyed construction and this
 vertical path are not a claim of complete SGA support.
 
@@ -5492,6 +5492,22 @@ dependency under the ordinary policy identity rules.
 These operations convert the admitted Property Graph to the existing Relation
 using the corresponding registered bridge. Bare `to_rows` is not accepted for a graph because node rows and edge
 rows are distinct meanings.
+
+```json
+{"from":"g","node_rows":{"definition":"Person"},"as":"people"}
+```
+
+<!-- requirement-block: graph-rows.definition-selection graph-rows.definition-schema graph-rows.definition-identity -->
+The body MUST be either `true` (all definitions of the corresponding element
+kind) or a closed object containing only `definition` (one definition of that
+kind). Definition lookup MUST use the admitted Graph name identity and reject
+unknown names, a name of the wrong element kind, or additional fields at check
+time, rather than return an empty Relation. Output schema and presence MUST
+derive from the selected declarations even for zero rows; nullable remains
+independent of presence. Selection is part of the Program and emitted Plan
+meaning, not a runtime inference from data. Selected rows retain their original
+typed identities, domains, key components and node endpoint identities. The
+initial object form does not support label refinement.
 
 <!-- requirement-block: graph-rows.fields-and-aliases graph-rows.typed-identity-roles graph-rows.omission-is-not-null graph-rows.saved-key-correspondence -->
 Graph row projection MUST retain the admitted identity types and property
@@ -5713,7 +5729,7 @@ one traversal mode. Homogeneous mode requires literal finite integer-valued
 `min_hops` and `max_hops` in the stated ranges and explicit `direction`, with
 optional `edge_types`, `edge_where`, and `node_where`. Pattern mode instead
 requires a nonempty `hops` array
-and rejects all four homogeneous members. Each hop admits only `direction`,
+and rejects the homogeneous direction, bounds and filter members. Each hop admits only `direction`,
 optional `edge_types`, `edge_where`, and `node_where`. A pattern follows its
 entire ordered hop list. Predicates require nullable or non-null boolean and
 retain only true. Edge-type lists contain nonempty normalized strings; absence
@@ -5732,17 +5748,31 @@ check-time error, not an implicit NULL or a runtime fallback. A declared
 nullable property whose value is NULL retains the ordinary expression NULL
 rules. A statically empty edge selection still checks any authored predicate.
 
-`emit: nodes` returns `start_id`, `node_id`, and minimum `depth`, ordered by
-those fields. `emit: paths` additionally requires semantic edge identity and
+<!-- requirement-block: traverse.minimum-eligible-node-depth-and-order -->
+`emit: nodes` returns the required, non-null `start_id`, `node_id`, and minimum
+`depth` columns. Identity columns retain the complete admitted typed Graph
+identity, not an endpoint key, display string or provider locator. The output
+contains exactly one row per typed `(start_id, node_id)` pair and is ordered by
+start identity, then node identity, then depth, using the existing typed
+identity comparison. `emit: paths` additionally requires semantic edge identity and
 returns `start_id`, `end_id`, `hop_count`, `node_ids`, and `edge_ids`. Paths are
-simple (a node cannot repeat) and are ordered by start identity, hop count,
+eligible under the authored `path_mode` and are ordered by start identity, hop count,
 node-identity sequence, then edge-identity sequence using AoA canonical value
 order. Duplicate paths are removed by exact identity.
-For node emission, minimum depth is taken only over simple paths that satisfy
-the complete authored hop and predicate conditions. A shorter ineligible path
-does not suppress an eligible longer one. Node and path emission share this
-path eligibility rule; node emission collapses each start/end pair to its
-minimum eligible depth without changing the path tie order.
+For both emissions, `walk` permits repeated nodes and edges, `trail` forbids
+reusing an edge identity, and `acyclic` forbids revisiting a node identity.
+Finite authored hop bounds still apply to every mode. Node emission takes
+minimum depth only over paths satisfying the entire authored mode, hop range,
+label and predicate conditions. A shorter path below `min_hops` does not
+suppress an eligible longer path; an intermediate node visit MUST NOT prune
+other eligible path states. Parallel edges remain distinct during exploration,
+then node emission collapses their eligible endpoints to the same start/node
+pair. The zero-hop path participates exactly when homogeneous `min_hops` is
+zero. For example, distinct edges A→B and B→A with exactly two hops produce
+`(A, A, 2)` for `walk` and `trail`, but no row for `acyclic`.
+Node deduplication does not change path emission's exact-path identity or tie
+order. The search-path ceiling and the node-output row ceiling remain separate;
+multiple eligible paths to one node do not consume multiple node-output rows.
 
 <!-- requirement-block: traverse.typed-edge-identity-records -->
 In traversal and shortest-path output, each `edge_ids` element MUST be the

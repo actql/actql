@@ -14,7 +14,7 @@ const expectedGates = {
   "check:remote-site-runtime": [
     "moon build --target js --release src/connectors_builtin_node",
     "node scripts/build-runtime-packages.mjs coordinator-core",
-    "node --test packages/coordinator-core/payload.test.mjs adapters/host-common/remote-bundle-control.test.mjs adapters/host-common/remote-coordinator-abi.test.mjs adapters/host-common/remote-credential-control.test.mjs adapters/host-common/remote-dispatch-wire.test.mjs adapters/host-common/remote-transfer-control.test.mjs adapters/host-node/sqlite-coordinator-journal.test.mjs adapters/host-node/remote-site-coordinator.test.mjs adapters/host-node/outbound-site-gateway.test.mjs adapters/site-node/runtime-bundle-operations.test.mjs adapters/site-node/runtime-bundle-store.test.mjs adapters/site-node/sqlite-credential-journal.test.mjs adapters/site-node/sqlite-dispatch-journal.test.mjs adapters/site-node/sqlite-transfer-journal.test.mjs adapters/site-node/sqlite-transfer-store-journal.test.mjs adapters/site-node/https-credential-resource.test.mjs adapters/site-node/https-direct-transfer.test.mjs adapters/site-node/https-transfer-store.test.mjs adapters/site-node/remote-dispatch-runtime.test.mjs adapters/site-node/remote-standard-direct-execution.test.mjs adapters/site-node/https-agent.test.mjs adapters/site-node/https-agent-authorization.test.mjs",
+    "node --test packages/coordinator-core/payload.test.mjs packages/coordinator-core/cancellation.test.mjs adapters/host-common/remote-bundle-control.test.mjs adapters/host-common/remote-coordinator-abi.test.mjs adapters/host-common/remote-credential-control.test.mjs adapters/host-common/remote-dispatch-wire.test.mjs adapters/host-common/remote-transfer-control.test.mjs adapters/host-node/sqlite-coordinator-journal.test.mjs adapters/host-node/remote-site-coordinator.test.mjs adapters/host-node/outbound-site-gateway.test.mjs adapters/site-node/runtime-bundle-operations.test.mjs adapters/site-node/runtime-bundle-store.test.mjs adapters/site-node/sqlite-credential-journal.test.mjs adapters/site-node/sqlite-dispatch-journal.test.mjs adapters/site-node/sqlite-transfer-journal.test.mjs adapters/site-node/sqlite-transfer-store-journal.test.mjs adapters/site-node/https-credential-resource.test.mjs adapters/site-node/https-direct-transfer.test.mjs adapters/site-node/https-transfer-store.test.mjs adapters/site-node/remote-dispatch-runtime.test.mjs adapters/site-node/remote-standard-direct-execution.test.mjs adapters/site-node/https-agent.test.mjs adapters/site-node/https-agent-authorization.test.mjs",
     "node scripts/test-packed-coordinator-core.mjs"
   ],
   "check:transfer-core": [
@@ -149,6 +149,13 @@ distribution[3] = distribution[3].replace(
   'scripts/infer-owner-checker.test.mjs scripts/property-graph-surface-checker.test.mjs scripts/property-graph-public-host.test.mjs ',
 );
 distribution.splice(5, 0, 'node scripts/test-packed-property-graph.mjs');
+
+// Source computation handoff regression uses the same already-prepared
+// runtime and existing distribution job; it adds no package build or job.
+distribution[3] = distribution[3].replace(
+  'adapters/host-node/client-program-bridge.test.mjs ',
+  'adapters/host-node/client-program-bridge.test.mjs adapters/host-node/public-source-preparation.test.mjs ',
+);
 
 test('runtime preparation preserves physical cwd and output through a symlinked temporary parent', t => {
   const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'runtime-build-alias-')));

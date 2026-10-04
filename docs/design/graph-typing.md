@@ -244,6 +244,20 @@ shared. The builder does not prove path existence, simple-path constraints,
 cardinality, ordering, weights or execution bounds. It is not yet a complete
 traversal checker or pipeline operation.
 
+The current Property Graph node emission uses the same bounded traversal owner
+as path emission, not the retired reach implementation. It enumerates paths
+under their authored mode and conditions before collecting the minimum eligible
+depth per typed start/node pair. A visited node does not prune path states.
+Node output is ordered by typed start identity and typed node identity and uses
+required `start_id`, `node_id`, `depth` fields. The checked search-path and
+output-row envelopes are bound to the generated occurrence separately; private
+path enumeration cannot borrow the deduplicated node output ceiling. The Local
+driver retains the completed node Relation through the existing export/Store/
+source-revocation/import owner before ordinary projection and publication.
+Literal and Relation start selectors, homogeneous bounds and authored hop
+patterns are supported. Predicate start selectors remain explicitly unsupported;
+this does not change the language's admitted selector meaning.
+
 `check_traverse` now composes that builder with shared start selectors and either
 homogeneous bounds or an ordered nonempty pattern. The closed modes are mutually
 exclusive. All source/predicate/output work shares one cumulative budget, including
@@ -302,12 +316,12 @@ The mode and empty-filter rules are now explicit in Language and the machine
 schema. Unlike the pinned reference decoder, no max_paths source option or
 default output ceiling is admitted. A present edge-type filter requires semantic
 label evidence even when empty; a mere property or closed domain is insufficient.
-Minimum node depth, simple paths, exact path deduplication, canonical order,
+Minimum eligible node depth, path-mode-aware enumeration, exact path deduplication, canonical order,
 binding checks and execution resources remain separate obligations. No evaluator
 or lowering is included.
 
 `TraversalCheck` binds graph admission, authored-hop enforcement, hop predicate
-evaluation, node minimum-depth selection or simple-path enumeration and exact
+evaluation, node minimum-eligible-depth selection or path-mode-aware enumeration and exact
 path deduplication, and canonical output ordering to the same checked operation.
 It retains the primary Graph and optional selector Relation with their input
 roles. Indexed hop/predicate readers consume the retained operation; they do not
@@ -705,8 +719,15 @@ implementation of Graph Delta execution.
 
 ## Graph row projections and names
 
-`carrier_projection` checks `node_rows: true` and `edge_rows: true` on an admitted
-definition-keyed Property Graph. Incomplete contracts refuse projection. Node
+`carrier_projection` checks `node_rows: true` and `edge_rows: true`, or the closed
+`{definition: "Person"}` body for either bridge, on an admitted definition-keyed
+Property Graph. `true` projects every definition of the corresponding kind;
+the object selects one definition using the existing Graph name identity.
+Unknown names, wrong element kinds and additional fields refuse during checking,
+not as an empty output. The resolved selection is retained by the checked
+projection and emitted in Plan parameters. The existing bounded row kernel
+filters canonical producer order without introducing a second Graph or Relation
+owner. Incomplete contracts refuse projection. Node
 roles are `id`, `labels`; edge roles are `id`, `src`, `dst`, `labels`, with the
 existing typed Graph identities and deterministic label arrays. No retired
 endpoint-tuple or nullable `rel` representation is used.
@@ -719,13 +740,17 @@ case-insensitive comparison reuses the Graph name owner. Canonical definition
 order fixes display spelling across serialization/reload.
 
 Existing Relation presence records distinguish Required from Conditional and
-omission from NULL. Only columns guaranteed by every definition can be normally
-referenced in this initial bridge; dataset sampling does not refine that schema.
+omission from NULL. Only columns guaranteed by every selected definition can be
+normally referenced; the declaration-derived schema is unchanged when selection
+produces zero rows. Nullable is independent of presence, and dataset sampling
+does not refine the schema. A single selected definition retains its declared
+properties and typed key aliases; no data-driven promotion is needed. Label
+refinement and direct publication of Conditional columns remain unsupported.
 The existing row kernel, completion port, retention and cleanup owners carry
 the resulting Relation. This is not a separate Graph Relation or runtime.
 
 `GraphProjectionCheck` binds the exact checked projection, input edge and
-requirement occurrence. Its interpretation follows the two Graph-row requirement
+requirement occurrence. Its interpretation follows the Graph-row requirement
 blocks, without interpreting a future check as completed Graph admission:
 
 | Rule | Required behavior | Execution boundary |

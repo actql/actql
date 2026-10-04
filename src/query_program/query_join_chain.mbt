@@ -206,7 +206,7 @@ fn compile_join_chain_steps(
       ("with", construction.text(right.1)),
       (
         "max_output_rows",
-        construction.add(Number(limits.max_join_output_rows.to_double())),
+        construction.add(Number(authored_join_bound(part, limits).to_double())),
       ),
       ("select", construction.object(projected)),
     ]

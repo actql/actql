@@ -1,0 +1,18 @@
+{
+  "installation": {
+    "registration": "salesforce",
+    "revision": "salesforce/0.1",
+    "providerBundle": "connectors/salesforce/host_node",
+    "responseHeaders": [],
+    "source": {
+      "profileVersion": "actql-installed-salesforce-source/0.1",
+      "module": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+      "exports": {
+        "check": "checkInstalledSalesforceSourceProfile",
+        "identityParts": "installedSalesforceSourceIdentityParts",
+        "publish": "publishInstalledSalesforceSource",
+        "load": "loadInstalledSalesforceSource"
+      }
+    }
+  }
+}

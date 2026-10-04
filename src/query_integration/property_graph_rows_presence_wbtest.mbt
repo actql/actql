@@ -31,7 +31,10 @@ fn property_rows_value_limits() -> @execution.ValueLimits {
 }
 
 ///|
-fn property_rows_resource_boundary(edge : Bool) -> Unit raise {
+fn property_rows_resource_boundary(
+  edge : Bool,
+  selected? : Bool = false,
+) -> Unit raise {
   let nodes = keyed_source_owner(
     "{\"person_key\":{\"type\":\"number\",\"nullable\":false}}", "[{\"person_key\":1}]",
   )
@@ -63,7 +66,17 @@ fn property_rows_resource_boundary(edge : Bool) -> Unit raise {
   }
   let owner = keyed_graph_receiver(
     graph_owner,
-    body=if edge { "[{\"edge_rows\":true}]" } else { "[{\"node_rows\":true}]" },
+    body=if selected {
+      if edge {
+        "[{\"edge_rows\":{\"definition\":\"E\"}}]"
+      } else {
+        "[{\"node_rows\":{\"definition\":\"N\"}}]"
+      }
+    } else if edge {
+      "[{\"edge_rows\":true}]"
+    } else {
+      "[{\"node_rows\":true}]"
+    },
   )
   let input = @graphs.prepare_producer_read(owner, 0, graph_owner, graph).unwrap()
   let completion = task_test_completion(owner)
@@ -73,7 +86,8 @@ fn property_rows_resource_boundary(edge : Bool) -> Unit raise {
   // Scan + schema matching + verification + append cost 3+6+3+1 for nodes,
   // 5+15+5+1 for edges. Thus work is 40 / 93, not sampled from a product run.
   // Workspace is four ordering slots per row plus schema width (3 / 5).
-  let exact_work = if edge { 93 } else { 40 }
+  // An explicit definition checks each candidate once before producing it.
+  let exact_work = (if edge { 93 } else { 40 }) + (if selected { 1 } else { 0 })
   let exact_slots = if edge { 9 } else { 7 }
   for viewed in [false, true] {
     let start = fn(control, work, slots) {
@@ -180,6 +194,12 @@ test "node rows admit exact work and workspace and reclaim every private phase" 
 ///|
 test "edge rows admit exact work and workspace and reclaim every private phase" {
   property_rows_resource_boundary(true)
+}
+
+///|
+test "selected node and edge rows retain exact work workspace cancellation and cleanup" {
+  property_rows_resource_boundary(false, selected=true)
+  property_rows_resource_boundary(true, selected=true)
 }
 
 ///|
@@ -516,6 +536,62 @@ test "definition Graph node rows preserve numeric composite key aliases values N
       assert_true(@local_bridge.cleanup_events_to_rows(active).unwrap())
       assert_false(@local_bridge.events_to_rows_cleanup_pending(active))
     }
+  }
+  let selected_owner = keyed_graph_receiver(
+    graph_owner,
+    body="[{\"node_rows\":{\"definition\":\"n\"}}]",
+  )
+  let input = @graphs.prepare_producer_read(
+    selected_owner, 0, graph_owner, restored,
+  ).unwrap()
+  for viewed in [false, true] {
+    let active = if viewed {
+      @local_bridge.start_graph_view_to_rows(
+        @bounded.control(),
+        task_test_completion(selected_owner),
+        prepared_sequence(selected_owner),
+        0,
+        @graphs.producer_read_view(input).unwrap(),
+        2,
+        property_rows_value_limits(),
+        100,
+        1000,
+      ).unwrap()
+    } else {
+      @local_bridge.start_graph_to_rows(
+        @bounded.control(),
+        task_test_completion(selected_owner),
+        prepared_sequence(selected_owner),
+        0,
+        input,
+        2,
+        property_rows_value_limits(),
+        100,
+        1000,
+        [],
+      ).unwrap()
+    }
+    // The third (Company) input still costs ordering/filter work but does not
+    // consume a produced-row slot. Preserve ordinary access after real retention.
+    let output = property_rows_retained_copy(property_rows_terminal(active))
+    assert_eq(@execution.completed_row_count(output), 2)
+    assert_eq(@execution.completed_column_count(output), 5)
+    let p = property_rows_column(output, "p")
+    let person = property_rows_column(output, "person_key")
+    assert_true(
+      @execution.completed_cell(output, 0, p) is Some(@execution.Number(7)),
+    )
+    assert_true(
+      @execution.completed_cell(output, 1, p) is Some(@execution.Null),
+    )
+    assert_true(
+      @execution.completed_cell(output, 0, person) is Some(@execution.Number(1)),
+    )
+    assert_true(
+      @execution.completed_cell(output, 1, person) is Some(@execution.Number(2)),
+    )
+    assert_true(@local_bridge.cleanup_events_to_rows(active).unwrap())
+    assert_false(@local_bridge.events_to_rows_cleanup_pending(active))
   }
   assert_true(@local_bridge.cleanup_rows_to_graph(construction).unwrap())
   assert_true(@graphs.discard_completed(graph))
