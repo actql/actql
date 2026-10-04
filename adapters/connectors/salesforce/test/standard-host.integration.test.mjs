@@ -101,11 +101,14 @@ const program = JSON.stringify({version: 'actql/0.1', id: 'salesforce-read',
 async function installation(t, {readable = ['Test_Record__c'],
   sourceResources = ['Test_Record__c'], extraObjects = [],
   writableObjects = [],
-  queryFailureStatus, storedRecords, temporalFields = false,
+  queryFailureStatus, queryFailureOnRequest, storedRecords, recordsByResource,
+  temporalFields = false,
   numberFields = false, retainedRelationOutput = false} = {}) {
   const org = await openSalesforceEffectSiteFixture(t, {commonMoon,
     salesforceMoon, runInvocationCid: cid('1'), dispatchRequestCid: cid('2'),
-    queryFailureStatus, storedRecords, extraObjects, writableObjects,
+    queryFailureStatus, queryFailureOnRequest, storedRecords,
+    recordsByResource, extraObjects,
+    writableObjects,
     temporalFields,
     numberFields,
     optionalText: storedRecords !== undefined});
@@ -169,7 +172,7 @@ async function installation(t, {readable = ['Test_Record__c'],
       closers.push(() => connected.close());
       return connected;
     };
-    return {client: await as('owner-token'), as, close};
+    return {client: await as('owner-token'), as, close, host};
   };
   const queries = () => org.seen.filter(item =>
     item.path.startsWith('/services/data/v62.0/query'));
@@ -313,8 +316,16 @@ test('two Salesforce views retain a joined public Result', async t => {
   const diagnostics = [];
   const setup = await installation(t, {
     readable: ['Test_Record__c', 'Other_Record__c'],
-    sourceResources: ['Test_Record__c', 'Other_Record__c'],
+    sourceResources: ['Other_Record__c', 'Test_Record__c'],
     writableObjects: ['Other_Record__c'], retainedRelationOutput: true,
+    recordsByResource: {Other_Record__c: [
+      {Id: 'a00000000000001', External_Key__c: 'key-1',
+        Name: 'other-1'},
+      {Id: 'a00000000000003', External_Key__c: 'key-3',
+        Name: 'other-3'},
+      {Id: 'a00000000000004', External_Key__c: 'key-4',
+        Name: 'other-4'},
+    ]},
   });
   await setup.publish();
   const {client, close} = await setup.open({authorization: checkpointAuthorization({
@@ -328,19 +339,16 @@ test('two Salesforce views retain a joined public Result', async t => {
   const state = await execution.wait();
   assert.equal(state.status, 'succeeded', JSON.stringify(state));
   assert.deepEqual(await execution.result('joined').all(), [
-    {key: 'key-1', left_name: 'record-1', right_name: 'record-1'},
-    {key: 'key-2', left_name: 'record-2', right_name: 'record-2'},
-    {key: 'key-3', left_name: 'record-3', right_name: 'record-3'},
+    {key: 'key-1', left_name: 'record-1', right_name: 'other-1'},
+    {key: 'key-3', left_name: 'record-3', right_name: 'other-3'},
   ]);
   assert.deepEqual(await execution.result('consumed_a').all(), [
     {key: 'key-1', left_name: 'record-1'},
-    {key: 'key-2', left_name: 'record-2'},
     {key: 'key-3', left_name: 'record-3'},
   ]);
   assert.deepEqual(await execution.result('consumed_b').all(), [
-    {key: 'key-1', right_name: 'record-1'},
-    {key: 'key-2', right_name: 'record-2'},
-    {key: 'key-3', right_name: 'record-3'},
+    {key: 'key-1', right_name: 'other-1'},
+    {key: 'key-3', right_name: 'other-3'},
   ]);
   const captured = diagnostics.filter(item => item.name ===
     'acquisition_completed');
@@ -368,9 +376,8 @@ test('two Salesforce views retain a joined public Result', async t => {
   const reopened = await setup.open({authorization: checkpointAuthorization()});
   const attached = await reopened.client.attach(execution.ref);
   assert.deepEqual(await attached.result('joined').all(), [
-    {key: 'key-1', left_name: 'record-1', right_name: 'record-1'},
-    {key: 'key-2', left_name: 'record-2', right_name: 'record-2'},
-    {key: 'key-3', left_name: 'record-3', right_name: 'record-3'},
+    {key: 'key-1', left_name: 'record-1', right_name: 'other-1'},
+    {key: 'key-3', left_name: 'record-3', right_name: 'other-3'},
   ]);
   assert.equal(setup.queries().length, 2);
 });
@@ -417,6 +424,161 @@ test('two-view capture stays owned when cancellation precedes the second read',
       'acquisition_cleanup_completed').length, 1);
     assert.deepEqual(await readdir(join(setup.root, 'state',
       'carrier-snapshots')), []);
+  });
+
+test('second Salesforce view failure releases the first retained capture',
+  async t => {
+    const observations = [];
+    const setup = await installation(t, {
+      readable: ['Test_Record__c', 'Other_Record__c'],
+      sourceResources: ['Test_Record__c', 'Other_Record__c'],
+      writableObjects: ['Other_Record__c'], retainedRelationOutput: true,
+      queryFailureStatus: 503, queryFailureOnRequest: 2,
+    });
+    await setup.publish();
+    const {client, close} = await setup.open({authorization:
+      checkpointAuthorization({
+        observe(name, detail) { observations.push({name, detail}); },
+      })});
+    const document = twoViewJoinProgram();
+    const requestId = 'salesforce-second-view-fails';
+    const execution = await client.aql(JSON.stringify(document),
+      {format: 'json', requestId});
+    const state = await execution.wait();
+    assert.equal(state.status, 'failed', JSON.stringify(state));
+    assert.equal(state.result_available, false);
+    await assert.rejects(execution.result('joined').all());
+    assert.equal(setup.queries().length, 2);
+    assert.deepEqual(observations.filter(item => item.name ===
+      'acquisition_completed').map(item => item.detail.task), [0]);
+    assert.deepEqual(observations.filter(item => item.name ===
+      'acquisition_cleanup_completed').map(item => item.detail.task), [0]);
+    const cleaned = observations.filter(item => item.name ===
+      'dispatch_cleanup_completed');
+    assert.ok(cleaned.length > 0);
+    for (const key of ['reservedTransferBytes', 'heldBytes',
+      'reservedRetentionBytes', 'reservedExecutionBytes',
+      'uncertainTransferBytes']) {
+      assert.equal(cleaned.at(-1).detail.resourceUsage[key], '0', key);
+    }
+    assert.deepEqual(await readdir(join(setup.root, 'state',
+      'carrier-snapshots')), []);
+    const resent = await client.aql(JSON.stringify(document),
+      {format: 'json', requestId});
+    assert.deepEqual(resent.ref, execution.ref);
+    assert.equal(setup.queries().length, 2);
+    await close();
+    const reopened = await setup.open({authorization:
+      checkpointAuthorization()});
+    const attached = await reopened.client.attach(execution.ref);
+    assert.equal((await attached.wait()).status, 'failed');
+    assert.equal(setup.queries().length, 2);
+  });
+
+test('two-view failure after both captures publishes nothing or reacquires',
+  async t => {
+    const observations = [];
+    const setup = await installation(t, {
+      readable: ['Test_Record__c', 'Other_Record__c'],
+      sourceResources: ['Test_Record__c', 'Other_Record__c'],
+      writableObjects: ['Other_Record__c'], retainedRelationOutput: true,
+    });
+    await setup.publish();
+    const authorization = checkpointAuthorization({
+      observe(name, detail) { observations.push({name, detail}); },
+      faultInjection(name, detail) {
+        if (name === 'acquisition_completed' && detail.task === 1) {
+          throw new Error('InjectedSecondCaptureFailure');
+        }
+      },
+    });
+    const {client, close} = await setup.open({authorization});
+    const document = twoViewJoinProgram();
+    const requestId = 'salesforce-two-view-failure';
+    const execution = await client.aql(JSON.stringify(document),
+      {format: 'json', requestId});
+    const state = await execution.wait();
+    assert.equal(state.status, 'failed', JSON.stringify(state));
+    assert.equal(state.result_available, false);
+    await assert.rejects(execution.result('joined').all());
+    assert.equal(setup.queries().length, 2);
+    assert.deepEqual(observations.filter(item => item.name ===
+      'acquisition_cleanup_completed').map(item => item.detail.task), [0, 1]);
+    const cleaned = observations.filter(item => item.name ===
+      'dispatch_cleanup_completed');
+    assert.ok(cleaned.length > 0);
+    for (const key of ['reservedTransferBytes', 'heldBytes',
+      'reservedRetentionBytes', 'reservedExecutionBytes',
+      'uncertainTransferBytes']) {
+      assert.equal(cleaned.at(-1).detail.resourceUsage[key], '0', key);
+    }
+    assert.deepEqual(await readdir(join(setup.root, 'state',
+      'carrier-snapshots')), []);
+    const resent = await client.aql(JSON.stringify(document),
+      {format: 'json', requestId});
+    assert.deepEqual(resent.ref, execution.ref);
+    assert.equal(setup.queries().length, 2);
+    await close();
+    const reopened = await setup.open({authorization});
+    const attached = await reopened.client.attach(execution.ref);
+    assert.equal((await attached.wait()).status, 'failed');
+    assert.equal(setup.queries().length, 2);
+  });
+
+test('two-view cleanup retry retains both capture owners without rereading',
+  async t => {
+    let permitCleanup = false;
+    let reachedCleanup;
+    const firstCleanup = new Promise(resolve => { reachedCleanup = resolve; });
+    const observations = [];
+    const setup = await installation(t, {
+      readable: ['Test_Record__c', 'Other_Record__c'],
+      sourceResources: ['Test_Record__c', 'Other_Record__c'],
+      writableObjects: ['Other_Record__c'], retainedRelationOutput: true,
+    });
+    await setup.publish();
+    const {client, host, close} = await setup.open({authorization:
+      checkpointAuthorization({
+        observe(name, detail) { observations.push({name, detail}); },
+        faultInjection(name, detail) {
+          if (name === 'acquisition_completed' && detail.task === 1) {
+            throw new Error('InjectedPostCaptureFailure');
+          }
+          if (name === 'acquisition_cleanup_started' && detail.task === 0) {
+            reachedCleanup();
+            if (!permitCleanup) throw new Error('InjectedCaptureCloseFailure');
+          }
+        },
+      })});
+    const document = twoViewJoinProgram();
+    const execution = await client.aql(JSON.stringify(document),
+      {format: 'json', requestId: 'salesforce-two-view-cleanup-retry'});
+    await firstCleanup;
+    const reads = setup.queries().length;
+    assert.equal(reads, 2);
+    await assert.rejects(host.close(), error =>
+      error.code === 'ClientDispatchCleanupPending');
+    const pending = observations.filter(item => item.name ===
+      'acquisition_cleanup_started' && item.detail.task === 0);
+    assert.ok(pending.length >= 2);
+    assert.ok(pending.every(item =>
+      BigInt(item.detail.resourceUsage.heldBytes) > 0n));
+    permitCleanup = true;
+    await host.close();
+    assert.equal(setup.queries().length, reads);
+    assert.deepEqual(observations.filter(item => item.name ===
+      'acquisition_cleanup_completed').map(item => item.detail.task), [1, 0]);
+    const cleaned = observations.filter(item => item.name ===
+      'dispatch_cleanup_completed');
+    assert.ok(cleaned.length > 0);
+    assert.equal(cleaned.at(-1).detail.resourceUsage.heldBytes, '0');
+    await close();
+    const reopened = await setup.open({authorization:
+      checkpointAuthorization()});
+    const attached = await reopened.client.attach(execution.ref);
+    assert.equal((await attached.wait()).status, 'failed');
+    await assert.rejects(attached.result('joined').all());
+    assert.equal(setup.queries().length, reads);
   });
 
 test('retained Salesforce acquisition failure publishes nothing or rereads',

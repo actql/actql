@@ -72,9 +72,14 @@ same installed Salesforce source can also fill the two checked input tasks
 of a retained Join. The Host selects both view bindings, reserves their
 physical capture capacities in the shared ledger, charges received pages,
 and transfers each captured holding to its exact task. The public HTTPS
-fixture checks the Join and two downstream consumer Named Results, resend
-without reacquisition, attach after Host reopen, and cancellation after the
-first capture but before the second read. Final dispatch cleanup releases
+fixture uses asymmetric Resource rows to check exact left/right Join input
+binding and two downstream consumer Named Results. It checks resend without
+reacquisition, attach after Host reopen, and cancellation after the first
+capture but before the second read. A provider failure during the second
+read releases the first captured holding without publication or reacquisition.
+A fault after both captures confirms nonpublication, and a separate failed
+close retains its holding through shutdown retry without another provider
+read. Final dispatch cleanup releases
 the transfer reservation and all retained holdings. These tests do not
 establish a Store writer fault, cancellation after positive Join work, or
 every Salesforce acquisition variant.
