@@ -41,6 +41,22 @@ Relation, HTTPS Carrier execution, every TEA/VecA variant, or Carrier-specific
 failure recovery at the public ingress. Existing configured standard-Host
 evidence for those boundaries remains separate.
 
+The provider-neutral installed row source now selects the same checked
+single-capture retained Host as the built-in source when its ordinary Query
+acquisition succeeds. Its Effect path remains on the existing Effect owner.
+The GitHub Issues HTTPS fixture exercises this common row-source adapter:
+one captured source feeds two separate Relation consumer tasks whose physical
+outputs are both `retained-file`. Both Named Results match independently
+specified ordered rows, the Compute Store has no remaining row files after
+cleanup, and a resend plus a closed-and-reopened Host read the committed
+Results without another provider request. This proves the installed generic
+row-source handoff, not every connector's custom acquisition adapter or a
+fresh-process restart. The existing bounded retained driver and writer fault
+tests remain the shared resource, cancellation and cleanup evidence. A second
+HTTPS case fails the source after one accepted page; the Run publishes no
+Result, leaves no row-file scratch, and a same-request resend performs no
+additional provider read. It does not stand in for a Store writer fault.
+
 ## Current Property Graph migration (2026-10-02)
 
 The new definition-keyed Property Graph is the sole executable Graph contract.
