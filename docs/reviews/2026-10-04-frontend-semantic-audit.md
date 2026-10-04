@@ -34,7 +34,7 @@ A's selected-fragment capacity repair (#295, main merge
 | Obligation | Current evidence | Remaining boundary |
 |---|---|---|
 | Scoped Pipe ORDER distinguishes current columns from selected-expression inputs | #286 is merged; its focused public acceptance and exact submitted CI are recorded below | Broader ORDER conformance is not inferred from these counterexamples |
-| Aggregate arguments/keys resolve immutable input aliases before output scope closes | #287 packed source `508cbeccc8826c24eb0c8efc74c0d64168c64a35`: all 8 positives and 4 refusals pass on **each** of Embedded Local and HTTP | Submitted `6ee85f358bf3dabbf8d9d983b344638284df98ee` adds the report; [automatic CI 37167483900](https://github.com/actql/actql/actions/runs/37167483900) completed successfully, including all required jobs and final check; PR body updated and Draft removed for re-review |
+| Aggregate arguments/keys resolve immutable input aliases before output scope closes | #287 packed source `508cbeccc8826c24eb0c8efc74c0d64168c64a35`: all 8 positives and 4 refusals pass on **each** of Embedded Local and HTTP | Submitted `6ee85f358bf3dabbf8d9d983b344638284df98ee` adds the report; [automatic CI 37167483900](https://github.com/actql/actql/actions/runs/37167483900) completed successfully, including all required jobs and final check; integrated by main merge `b6c69a7e5bdbf25dc3bc5cf5224b980536efb3ec`; this repair unit is complete |
 | A CTE-local WHERE must not filter another consumer's shared Source | Existing JS bridge rebuilt from integration `289c422c9a7e5d951cad7920884749ab8624a586` still emits the wrong capture predicate; the independent obligation fails 0 passed / 1 failed | D owns the direct CTE capture dependency/Source-predicate repair; no parallel repair is made here |
 | Parameter, LIMIT/OFFSET, NULL and duplicate preservation; LEFT/INNER distinction | The historical public controls below pass at their stated source and digests | They have not been rerun against this integrated main, and are not blanket conformance evidence |
 
@@ -58,7 +58,8 @@ includes all four Group refusals. All five recorded tarball digests match the
 local packed-source table. The same submitted-HEAD run subsequently completed
 successfully, including client-packed, client, pipeline-evidence and final
 check. This is additional public acceptance and CI evidence for that run, not
-a relabeling of the old failed run. No merge was performed.
+a relabeling of the old failed run. The user subsequently merged #287 into
+main `b6c69a7e5bdbf25dc3bc5cf5224b980536efb3ec`; B performed no merge.
 
 ### Current CTE lowering reproducer and ownership
 
@@ -101,9 +102,15 @@ Graph-row text input is a separate completion unit
 ([#303](https://github.com/actql/actql/pull/303)); its selected 5 positives / 5
 refusals on each transport do not close this SQL/CTE audit or imply all Graph
 consumer coverage. The audit remains incomplete pending D's CTE repair and its
-unchanged public counterexample. B's scoped ORDER and Group repair units are
-ready for review with their stated public acceptance and exact-SHA CI evidence;
-that does not make the outstanding shared-capture defect disappear.
+unchanged public counterexample. B's scoped ORDER and Group repair units are integrated and complete. Only
+the saved CTE counterexample's post-repair acceptance waits for D; this does
+not block independent Frontend work. #303 submitted HEAD
+`bd05a93a5729b9ac6d24c949b72f7066f259c896` completed all required automatic
+CI in run 37168925792. Its public packed artifact `11291126032` records clean
+merge tree `01c978b43b4e6b5afd50ee5fc1922bb31d0fd85a`, all five Graph-row
+positives and five refusals per transport, a complete passed summary and no
+evidence errors. Definition/label selection is the next independent unit;
+that does not close the outstanding shared-capture defect.
 
 ## Historical repair follow-up before main capacity integration
 
