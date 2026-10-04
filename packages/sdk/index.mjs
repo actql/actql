@@ -684,6 +684,7 @@ async function connectSelected(selected, port) {
     // Host's actql-check-outcome/0.1 value: a report bound to its scope and
     // context, a failure, or unavailable. None of them is a thrown error.
     check: async (text, options = {}) => {
+      if (typeof text !== 'string') fail('InvalidCheckRequest');
       const signal = options.signal;
       let body;
       try {
@@ -706,7 +707,7 @@ async function connectSelected(selected, port) {
       if (!validCheckOutcome(outcome)) fail('InvalidHostCheckOutcome');
       const report = outcome.report ?? outcome.partial_report;
       if (report) {
-        const received = new Map([['source', {kind: 'text', text}]]);
+        const received = new Map([['source', {kind: 'text', text: body.input.text}]]);
         if (body.input.parameterDeclarations !== undefined) received.set('parameter_declarations',
           {kind: 'structured', value: body.input.parameterDeclarations});
         if (body.parameters !== null) received.set('parameters', {kind: 'structured', value: body.parameters});

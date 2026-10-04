@@ -35,6 +35,20 @@ const oversizedControl = cancelled => new Response(new ReadableStream({
   cancel() { cancelled.push(true); },
 }));
 
+test('check refuses source coercion before serialization or transport', async t => {
+  let sent = 0;
+  mock.method(globalThis, 'fetch', async url => {
+    assert.ok(url.pathname.endsWith('/connect'));
+    sent++;
+    return Response.json(profile);
+  });
+  t.after(() => mock.restoreAll());
+  const client = await connect(options);
+  await assert.rejects(client.check({toJSON() { assert.fail('source coercion'); }},
+    {format: 'sql'}), {code: 'InvalidCheckRequest'});
+  assert.equal(sent, 1);
+});
+
 test('check rejects a location inside an original UTF-8 scalar', async t => {
   const revision = 'rev:' + '4'.repeat(64);
   let start = 9;
