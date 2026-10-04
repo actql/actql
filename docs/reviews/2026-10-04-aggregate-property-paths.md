@@ -231,3 +231,44 @@ Only evidence, reproduction material and an unused fixture export were added
 after the tested source. Submitted-HEAD CI remains distinct and is reported in
 the PR. The retained diagnostic install/Store must not be reused as an unchanged
 distribution after the logging overlay.
+
+## Integrated source preparation (2026-10-05)
+
+Main `82d3e85e0150157ab2a3beedcf9e1e476f565b58`, including the #403
+retained Relation branch provider and #399 public retained-output connection,
+was normally merged at `39ba09585086ab44bedc50a49e238170d5c97f96`.
+The only conflicts were the packed corpus imports/routing/selection lists.
+Both sides' fixtures and focused flags are retained; main's CI policy and
+common execution changes are preserved. No new common implementation or
+expectation change is introduced. The PR remains independent with base main.
+
+These commands ran at that clean integrated source with the pinned toolchain:
+
+- `node scripts/local-checks.mjs test moon -- --target js src/query_program/aggregate_property_paths_test.mbt`:
+  **8/8**, guard `run-88JfG0`, focused receipt `focused-test-hYWXZv`.
+- `node scripts/local-checks.mjs test moon -- --target js src/query_expression/lower_test.mbt`:
+  **10/10**, guard `run-J07PcI`, focused receipt `focused-test-uboUi3`.
+- Syntax checks for the two conflicted JavaScript files and `git diff --check`:
+  passed. These are integration/lowering checks, not public execution evidence.
+
+The existing bounded selection
+`node scripts/test-packed-public-query.mjs --aggregate-property-only --keep-artifacts`
+was requested through the heavy-check guard, but **did not launch**. Attempt
+`run-VxXGW1` refused before executing its step because another worktree's
+active public acceptance held the shared heavy lock. That lock/process/output
+was not removed, interrupted or bypassed. No tarballs or public cases were
+produced by this attempt, and it is not a product failure.
+
+The earlier clean `46fa3cd853e5b95f089fa676f174476df2242c8a` pack and
+`Dispatch(NoStrategy)` diagnosis above are historical evidence only. The main
+changes give a reason to resume the original eight positives and four
+preparation refusals, but do not themselves prove the old blocker is resolved
+or identify a new current-HEAD failure. Fresh integrated-source Local/HTTP
+acceptance remains **unverified**, including Named rows/full ordered types,
+empty aggregates, the limited OVER case, typed refusals and same-Run reuse.
+The unrelated JOIN capacity diagnosis is not projected onto this Program.
+
+No full Core, all-target, native, proof or performance campaign is added.
+After the shared acceptance slot is available, use one ordinary clean-source
+pack and the unchanged selection above. CI for the later evidence-only HEAD
+is reported separately in the PR. No manual CI rerun or PR merge is performed.
