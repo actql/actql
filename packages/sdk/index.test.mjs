@@ -7,6 +7,24 @@ import {createServer} from 'node:http';
 import {checkReasonSchemaCid} from '@actql/client-wire';
 import {connect, ClientError, getCheckInput, resolveCheckLocation, explainCheckReason} from './index.mjs';
 
+test('constraint explanations use owned families without choosing a failed numeric bound', () => {
+  const hints = {
+    numeric: 'Supply a number satisfying the declared integer, minimum and maximum constraints.',
+    duration: 'Supply a string in the admitted duration format.',
+    array_length: 'Supply an array with the declared exact length.',
+    array_size: 'Supply an array within the declared maximum item count.',
+  };
+  for (const [constraint, hint] of Object.entries(hints)) {
+    assert.deepEqual(explainCheckReason({code: 'supplied_value_constraint_violation',
+      facts: {parameter: 'private-name', constraint}}),
+    {kind: 'known', summary: 'A supplied value violates a declared constraint.', hint});
+  }
+  assert.equal(explainCheckReason({code: 'future_code', facts: {constraint: 'numeric'}}).kind, 'unknown');
+  assert.equal(explainCheckReason({code: 'supplied_value_constraint_violation',
+    facts: {constraint: 'private-provider-text'}}).hint,
+  'Correct the value to satisfy the declared constraint family.');
+});
+
 const ref = Object.freeze({namespaceId: 'namespace-a',
   authorityScopeCid: `sha256:${'a'.repeat(64)}`,
   runDefinitionCid: `sha256:${'b'.repeat(64)}`});

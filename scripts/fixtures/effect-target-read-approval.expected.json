@@ -1,0 +1,12 @@
+{
+  "rows": [{"id": "a00000000000001"}, {"id": "a00000000000002"}],
+  "columns": [{"name": "id", "contract": {"type": "string", "nullable": false}}],
+  "targetReadCounts": [0, 0, 0, 0, 8, 8, 12, 12],
+  "effectWriteCounts": [0, 0, 0, 0, 0, 0, 4, 4],
+  "writes": [
+    {"target": "Other_Record__c/a00000000000001", "body": {"Name": "a00000000000001"}},
+    {"target": "Other_Record__c/a00000000000002", "body": {"Name": "a00000000000002"}},
+    {"target": "Test_Record__c/a00000000000001", "body": {"Name": "a00000000000001"}},
+    {"target": "Test_Record__c/a00000000000002", "body": {"Name": "a00000000000002"}}
+  ]
+}
