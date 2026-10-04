@@ -42,6 +42,7 @@ struct ApplyPreparation {
   mut base_decoded : @decode.Cursor?
   mut body_admission : BodyAdmission?
   mut before_admission : BeforeAdmission?
+  mut record_append : @storage.PropertySnapshotAppend?
   mut pending_output : @decode.Cursor?
   mut pending_edge : Bool
   chunks : Array[String]
@@ -213,7 +214,8 @@ pub fn prepare_apply(
     return Err(OutputLimit)
   }
   // Decoded Delta retention, action/key indexes, base snapshot/decoded framing,
-  // and the existing provisional Storage all remain in the resolved budget.
+  // the existing provisional Storage, and its staged record preparation all
+  // remain in the same resolved budget. No second workspace owner is created.
   guard checked_add(usage.nodes, usage.nodes) is Some(twice_delta) &&
     checked_add(twice_delta, twice_delta) is Some(action_slots) &&
     source_workspace(Stored(base)) is Some(snapshot_slots) &&
@@ -224,7 +226,10 @@ pub fn prepare_apply(
     is Some(with_storage) &&
     before_workspace_slots(limits) is Some(before_slots) &&
     checked_add(with_storage, before_slots) is Some(required) &&
-    required <= limits.max_workspace_slots else {
+    @storage.property_snapshot_append_workspace_slots(graph, storage_limits)
+    is Some(append_slots) &&
+    checked_add(required, append_slots) is Some(with_append) &&
+    with_append <= limits.max_workspace_slots else {
     return Err(WorkspaceLimit)
   }
   guard delta_object(delta, [
@@ -265,6 +270,7 @@ pub fn prepare_apply(
     base_decoded: None,
     body_admission: None,
     before_admission: None,
+    record_append: None,
     pending_output: None,
     pending_edge: false,
     chunks: [],
@@ -289,33 +295,6 @@ fn decoded_record(
     return None
   }
   @decode.element_at(records, index)
-}
-
-///|
-fn append_apply_record(
-  value : ApplyPreparation,
-  cursor : @decode.Cursor,
-  edge : Bool,
-) -> (Result[Unit, Issue], Int64) {
-  guard value.builder is Some(builder) else { return (Err(Terminal), 0L) }
-  let before = @storage.builder_construction_work(builder)
-  let result = if edge {
-    @storage.append_property_snapshot_edge(
-      builder,
-      cursor,
-      reference_issuer=value.reference_issuer,
-    )
-  } else {
-    @storage.append_property_snapshot_node(
-      builder,
-      cursor,
-      reference_issuer=value.reference_issuer,
-    )
-  }
-  let work = @storage.builder_construction_work(builder) - before
-  // A failed admission can already have charged the existing builder. Return
-  // its delta independently of success; the parent reports it exactly once.
-  (result.map_err(issue => Storage(issue)), work.to_int64())
 }
 
 ///|
@@ -572,27 +551,55 @@ pub fn advance_apply(
             )
         }
       }
-      AppendRecord => {
-        if value.pending_output is Some(cursor) {
-          let (result, work) = append_apply_record(
-            value,
-            cursor,
-            value.pending_edge,
-          )
-          // Only the existing builder's actual work is reported here. Cursor
-          // admission_usage describes its entire retained tree, not a record's
-          // traversal, and must not be multiplied into this poll's work.
-          used += work
-          if result is Err(issue) {
-            return Ok(apply_failure(value, issue, used, progress))
+      AppendRecord =>
+        if value.record_append is Some(append) {
+          match
+            @storage.advance_property_snapshot_append(
+              append,
+              quantum - used.to_int(),
+            ) {
+            @storage.PropertySnapshotAppendContinue(work~) =>
+              used += work.to_int64()
+            @storage.PropertySnapshotAppendFailed(issue, work~) =>
+              return Ok(
+                apply_failure(
+                  value,
+                  Storage(issue),
+                  used + work.to_int64(),
+                  progress,
+                ),
+              )
+            @storage.PropertySnapshotAppendComplete(work~) => {
+              used += work.to_int64()
+              @storage.cleanup_property_snapshot_append(append)
+              value.record_append = None
+              value.pending_output = None
+              value.phase = if value.pending_edge {
+                ApplyEdges
+              } else {
+                ApplyNodes
+              }
+              progress += 1
+            }
+          }
+        } else if value.pending_output is Some(cursor) {
+          used += 1
+          match
+            @storage.start_property_snapshot_append(
+              value.builder.unwrap(),
+              cursor,
+              edge=value.pending_edge,
+              reference_issuer=value.reference_issuer,
+            ) {
+            Ok(append) => value.record_append = Some(append)
+            Err(issue) =>
+              return Ok(apply_failure(value, Storage(issue), used, progress))
           }
         } else {
           used += 1
+          value.phase = if value.pending_edge { ApplyEdges } else { ApplyNodes }
+          progress += 1
         }
-        value.pending_output = None
-        value.phase = if value.pending_edge { ApplyEdges } else { ApplyNodes }
-        progress += 1
-      }
       ApplyFinished => return Err(Terminal)
     }
   }
@@ -601,6 +608,10 @@ pub fn advance_apply(
 
 ///|
 pub fn cleanup_apply(value : ApplyPreparation) -> Bool {
+  if value.record_append is Some(append) {
+    @storage.cleanup_property_snapshot_append(append)
+    value.record_append = None
+  }
   if value.snapshot_preparation is Some(preparation) {
     @snapshot.cancel(preparation) |> ignore
     value.snapshot_preparation = None

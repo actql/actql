@@ -260,13 +260,30 @@ test "property delta failed append preserves the existing builder work report" {
   assert_true(reached_append)
   let builder = preparation.builder.unwrap()
   let before = @storage.builder_construction_work(builder)
-  guard advance_apply(preparation, 1)
-    is Ok(ApplyFailed(Storage(InvalidIdentity), work~, ..)) else {
-    fail("identity mismatch did not fail at the existing Graph owner")
+  let mut rejected = false
+  let mut reported_work = 0L
+  for _ in 0..<10000 {
+    match advance_apply(preparation, 1).unwrap() {
+      ApplyContinue(work~, ..) => {
+        assert_eq(work, 1L)
+        reported_work += work
+      }
+      ApplyFailed(Storage(InvalidIdentity), work~, ..) => {
+        assert_eq(work, 1L)
+        reported_work += work
+        rejected = true
+        break
+      }
+      _ => fail("identity mismatch did not fail at the existing Graph owner")
+    }
   }
+  assert_true(rejected)
   let actual_work = @storage.builder_construction_work(builder) - before
   assert_true(actual_work > 0)
-  assert_true(work >= actual_work.to_int64())
+  // Poll traversal work and the existing constructor reservation count are
+  // separate contracts. Each completed transition is reported exactly once.
+  assert_true(reported_work > 0)
+  assert_eq(@storage.builder_node_count(builder), 2)
   assert_true(preparation.result is None)
   assert_true(advance_apply(preparation, 1) is Err(Terminal))
   assert_true(cleanup_apply(preparation))
@@ -293,17 +310,104 @@ test "property delta storage budget failure retains work and cleanup custody" {
   assert_true(preparation.phase == AppendRecord)
   let builder = preparation.builder.unwrap()
   let before = @storage.builder_construction_work(builder)
-  guard advance_apply(preparation, 1)
-    is Ok(ApplyFailed(Storage(WorkLimit), work~, ..)) else {
-    fail("provisional storage work limit did not reject")
+  let mut rejected = false
+  let mut reported_work = 0L
+  for _ in 0..<10000 {
+    match advance_apply(preparation, 1).unwrap() {
+      ApplyContinue(work~, ..) => {
+        assert_eq(work, 1L)
+        reported_work += work
+      }
+      ApplyFailed(Storage(WorkLimit), work~, ..) => {
+        assert_eq(work, 1L)
+        reported_work += work
+        rejected = true
+        break
+      }
+      _ => fail("provisional storage work limit did not reject")
+    }
   }
+  assert_true(rejected)
   let actual_work = @storage.builder_construction_work(builder) - before
   assert_eq(actual_work, 1)
-  assert_true(work >= actual_work.to_int64())
+  assert_true(reported_work > 0)
+  assert_eq(@storage.builder_node_count(builder), 0)
   assert_true(preparation.builder is Some(_))
   assert_true(preparation.result is None)
   assert_true(cleanup_apply(preparation))
   assert_eq(@storage.builder_workspace_slots(builder), 0)
   assert_true(advance_apply(preparation, 1) is Err(Terminal))
   assert_eq(@storage.node_count(base), 3)
+}
+
+///|
+test "property delta includes staged record workspace before provisional allocation" {
+  let base = delta_fixture_storage(false)
+  let delta = delta_cursor(delta_fixture_expected())
+  let limits = delta_fixture_limits()
+  let graph = source_graph(Stored(base)).unwrap()
+  // Configuration terms are separately admitted; neither the retained Builder
+  // slots nor the decoded body budget replaces the record's transient custody.
+  let append = @storage.property_snapshot_append_workspace_slots(
+    graph,
+    storage_limits(),
+  ).unwrap()
+  assert_eq(append, 40964)
+  let required = @decode.admission_usage(delta).nodes * 4 +
+    source_workspace(Stored(base)).unwrap() +
+    body_workspace_slots(limits).unwrap() +
+    storage_limits().max_workspace_slots +
+    before_workspace_slots(limits).unwrap() +
+    append
+  assert_true(required > append && required <= limits.max_workspace_slots)
+  assert_true(
+    prepare_apply(
+      base,
+      delta,
+      { ..limits, max_workspace_slots: required - 1, },
+      storage_limits(),
+    )
+    is Err(WorkspaceLimit),
+  )
+  let admitted = prepare_apply(
+    base,
+    delta,
+    { ..limits, max_workspace_slots: required, },
+    storage_limits(),
+  ).unwrap()
+  assert_true(admitted.builder is None)
+  assert_true(cleanup_apply(admitted))
+  assert_eq(@storage.node_count(base), 3)
+}
+
+///|
+test "property delta cancels active record preparation before its atomic commit" {
+  let base = delta_fixture_storage(false)
+  let preparation = prepare_fixture_apply(base, delta_fixture_expected())
+  let mut entered = false
+  for _ in 0..<100000 {
+    assert_true(advance_apply(preparation, 1) is Ok(ApplyContinue(work=1, ..)))
+    if preparation.record_append is Some(_) {
+      entered = true
+      break
+    }
+  }
+  assert_true(entered)
+  let builder = preparation.builder.unwrap()
+  assert_eq(@storage.builder_node_count(builder), 0)
+  for _ in 0..<20 {
+    assert_true(advance_apply(preparation, 1) is Ok(ApplyContinue(work=1, ..)))
+  }
+  assert_true(preparation.record_append is Some(_))
+  assert_eq(@storage.builder_node_count(builder), 0)
+  assert_true(@storage.builder_construction_work(builder) > 0)
+  assert_true(preparation.result is None)
+  assert_true(cleanup_apply(preparation))
+  assert_true(preparation.record_append is None)
+  assert_eq(@storage.builder_workspace_slots(builder), 0)
+  assert_eq(@storage.builder_retained_value_bytes(builder), 0)
+  assert_true(cleanup_apply(preparation))
+  assert_true(advance_apply(preparation, 1) is Err(Terminal))
+  assert_eq(@storage.node_count(base), 3)
+  assert_eq(@storage.edge_count(base), 2)
 }
