@@ -78,6 +78,7 @@ pub(all) enum Issue {
   UnsupportedInfer
   UnsupportedNearest
   UnsupportedResult
+  UnsupportedEffect
   Construction(@builder.Issue)
   Expression(@expression.Diagnostic)
   Admission(@program.SyntaxError)
@@ -140,6 +141,7 @@ priv struct RetainedResult {
   from : String
   fields : Array[String]
   terminal : Bool
+  carrier_complete : Bool
 }
 
 ///|
@@ -215,6 +217,7 @@ fn program_root(
   context : Context,
   stages : Array[@builder.Node],
   result_exports? : Array[(String, String)]? = None,
+  staged_result_exports? : Array[(String, (String, String))]? = None,
 ) -> @builder.Node raise Abort {
   let entries = [
     ("version", construction.text("actql/0.1")),
@@ -223,8 +226,12 @@ fn program_root(
     (
       "results",
       construction.object(
-        result_exports
-        .unwrap_or([(context.result_name, context.stage_result)])
+        staged_result_exports
+        .unwrap_or_else(() => {
+          result_exports
+          .unwrap_or([(context.result_name, context.stage_result)])
+          .map(pair => (pair.0, (context.stage_id, pair.1)))
+        })
         .map(pair => {
           (
             pair.0,
@@ -232,8 +239,8 @@ fn program_root(
               (
                 "from",
                 construction.object([
-                  ("stage", construction.text(context.stage_id)),
-                  ("result", construction.text(pair.1)),
+                  ("stage", construction.text(pair.1.0)),
+                  ("result", construction.text(pair.1.1)),
                 ]),
               ),
             ]),
@@ -1374,6 +1381,10 @@ fn compile_steps(
   } else {
     [(initial_range, pipe_visible.copy())]
   }
+  let mut selected_input_scope : JoinChainScope = {
+    visible: pipe_visible.copy(),
+    ranges: pipe_ranges.copy(),
+  }
   let mut pipe_changed = initial_scope is Some(_)
   // Materializing a SELECT resets private slots, not the replacement of
   // range variables. Never resolve subsequent operators through the source
@@ -1409,6 +1420,21 @@ fn compile_steps(
     }
     match operation {
       GraphCall(_) => raise Abort(UnsupportedGraph)
+      AssertUnique(keys) => {
+        let unique : Array[@builder.Node] = []
+        for path in keys {
+          guard pipe_slot(path, pipe_visible, pipe_ranges) is Some(slot) else {
+            raise Abort(UnknownColumn)
+          }
+          unique.push(construction.text(slot))
+        }
+        entries.push(
+          (
+            "assert_rows",
+            construction.object([("unique_by", construction.array(unique))]),
+          ),
+        )
+      }
       RetainResult(name) => {
         guard retained is Some(retained) else { raise Abort(UnsupportedResult) }
         if requires_graph_projection {
@@ -1486,6 +1512,7 @@ fn compile_steps(
           from,
           fields: pipe_visible.map(pair => pair.0),
           terminal: terminal_result,
+          carrier_complete: !needs_view,
         })
         if terminal_result {
           output = pipe_visible.map(pair => pair.0)
@@ -2120,6 +2147,13 @@ fn compile_steps(
         entries.push(("select", construction.array(selected)))
         output = names
         selected_expressions = expressions
+        // Preserve the SELECT input meaning even when projection/DISTINCT
+        // materializes a public name that shadows an original input column.
+        selected_input_scope = {
+          visible: pipe_visible.copy(),
+          ranges: pipe_ranges.copy(),
+        }
+        selected_output_slots = bindings.copy()
         if !distinct && @query.operation_at(query, i + 1) is Some(Order(_)) {
           if entries.length() == 2 && entries[0].0 == "from" {
             ignore(entries.remove(0))
@@ -2323,11 +2357,18 @@ fn compile_steps(
           let expression = term.expression
           let mut selected : String? = None
           if pipe_selected {
-            for pair in selected_expressions {
-              if selected is None && same_expression(expression, pair.0) {
-                selected = Some(pair.1)
-              }
-            }
+            selected = reusable_order_expression(
+              expression,
+              selected_expressions,
+              selected_output_slots,
+              path => {
+                pipe_slot(
+                  path,
+                  selected_input_scope.visible,
+                  selected_input_scope.ranges,
+                )
+              },
+            )
           }
           let direct = match
             @query.expression_node(
@@ -2403,14 +2444,23 @@ fn compile_steps(
           // With no deferred SELECT, remove sort-only slots immediately.
           // Retain demanded original slots for the existing range snapshots.
           step_entries.push(entries)
-          step_entries.push([
-            (
-              "select",
-              construction.array(
-                active_fields.map(field => construction.text(field)),
+          // An immediately following RESULT already selects these exact
+          // active fields and binds its checkpoint. There is no intervening
+          // consumer of the hidden slots, so one projection does both jobs.
+          let result_projects_next = match @query.operation_at(query, i + 1) {
+            Some(RetainResult(_)) => true
+            _ => false
+          }
+          if !result_projects_next {
+            step_entries.push([
+              (
+                "select",
+                construction.array(
+                  active_fields.map(field => construction.text(field)),
+                ),
               ),
-            ),
-          ])
+            ])
+          }
           deferred = true
         }
       }
@@ -2655,6 +2705,13 @@ pub fn compile(
   context : Context,
   limits : Limits,
 ) -> Result[@program.Program, Issue] {
+  if @query.terminal_effect(query) is Some(_) {
+    return compile_query_script(
+      @query.single_query_script(query),
+      context,
+      limits,
+    )
+  }
   let mut has_nearest = false
   for i in 0..<@query.operation_count(query) {
     if @query.operation_at(query, i) is Some(Nearest(_)) {
@@ -3452,6 +3509,7 @@ fn compile_join_steps(
     raise Abort(UnsupportedCte)
   }
   let part = @query.join_part_at(query, 0).unwrap()
+  let max_output_rows = authored_join_bound(part, limits)
   let left_qualifier = @query.relation_alias(query).unwrap_or(left_name)
   let right_qualifier = part.source_alias.unwrap_or(right_name)
   if same_name(left_qualifier, right_qualifier) {
@@ -3532,7 +3590,7 @@ fn compile_join_steps(
           ("with", construction.text(right_from)),
           (
             "max_output_rows",
-            construction.add(Number(limits.max_join_output_rows.to_double())),
+            construction.add(Number(max_output_rows.to_double())),
           ),
           ("select", construction.object(select)),
         ]),
@@ -3556,7 +3614,7 @@ fn compile_join_steps(
           ),
           (
             "max_output_rows",
-            construction.add(Number(limits.max_join_output_rows.to_double())),
+            construction.add(Number(max_output_rows.to_double())),
           ),
           ("select", construction.object(select)),
         ]),
@@ -3691,7 +3749,7 @@ fn compile_join_steps(
         ("with", construction.text(right_from)),
         (
           "max_output_rows",
-          construction.add(Number(limits.max_join_output_rows.to_double())),
+          construction.add(Number(max_output_rows.to_double())),
         ),
         ("select", construction.object(select)),
       ]),
@@ -3715,7 +3773,7 @@ fn compile_join_steps(
         ),
         (
           "max_output_rows",
-          construction.add(Number(limits.max_join_output_rows.to_double())),
+          construction.add(Number(max_output_rows.to_double())),
         ),
         ("select", construction.object(select)),
       ]),
@@ -5434,4 +5492,18 @@ fn compile_join_query(
       Err(issue)
     }
   }
+}
+
+///|
+fn authored_join_bound(
+  part : @query.JoinPart,
+  limits : Limits,
+) -> Int64 raise Abort {
+  let bound = part.max_output_rows.unwrap_or(limits.max_join_output_rows)
+  if bound < 1L ||
+    bound > 9007199254740991L ||
+    bound > limits.max_join_output_rows {
+    raise Abort(UnsupportedJoin)
+  }
+  bound
 }

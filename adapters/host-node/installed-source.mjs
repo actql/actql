@@ -23,6 +23,7 @@ import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
+import {duckDBPhysicalTarget} from './duckdb-physical-target.mjs';
 import {composeInstalledCheckEnvironment, verifyInstalledConnectorBindings} from
   './installed-check-environment.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
@@ -65,7 +66,11 @@ export async function installedSourceIdentity(path) {
       await read(checked.publicationPath));
     profile.accountConfigurationWire = JSON.parse(
       profile.accountConfigurationWire);
-  } else if (profile?.version !== INSTALLED_DUCKDB_SOURCE_VERSION) {
+  } else if (profile?.version === INSTALLED_DUCKDB_SOURCE_VERSION) {
+    // Logical profile canonicalization must not alias distinct provider names.
+    // This is inert configuration comparison, before any provider acquisition.
+    parts.push(duckDBPhysicalTarget(profile));
+  } else {
     throw new TypeError('InvalidInstalledSourceProfile');
   }
   const hash = createHash('sha256');
@@ -89,8 +94,7 @@ function duckdbAdapter(profile, moon, {root, principalId}) {
     connectorBindings: Object.freeze(catalogIds.map(connectorId =>
       Object.freeze({connectorId, bindingCid: contentCid({
         version: 'actql-installed-duckdb-source-binding/0.1',
-        root, principalId, database: profile.database,
-        schema: profile.schema, table: profile.table,
+        root, principalId, physicalBinding: duckDBPhysicalTarget(profile),
         sourceRef: profile.sourceRef,
       })}))),
     readAuthorization: profile.readAuthorization,

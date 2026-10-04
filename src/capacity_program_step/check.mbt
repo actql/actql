@@ -117,6 +117,22 @@ fn operation_rule(
   unit : @arithmetic.BoundUnit,
 ) -> Result[(String, Rule), Issue] {
   match step.operation {
+    @pipeline.Projection(checked) => {
+      let (law, input_unit) = match @projection.operation(checked) {
+        @projection.NodeRows =>
+          ("actql.bound.graph-node-rows", @arithmetic.Nodes)
+        @projection.EdgeRows =>
+          ("actql.bound.graph-edge-rows", @arithmetic.Edges)
+        _ => ("", @arithmetic.Rows)
+      }
+      if law != "" {
+        return if unit == @arithmetic.Rows {
+          Ok((law, GraphMeasure(@arithmetic.Rows, input_unit, 0, 1L)))
+        } else {
+          Err(LawMismatch)
+        }
+      }
+    }
     @pipeline.PropertyGraphConstruction(checked~, ..) => {
       let nodes = @graph.property_construction_node_count(checked)
       let edges = @graph.property_construction_edge_count(checked)

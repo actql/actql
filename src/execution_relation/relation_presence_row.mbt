@@ -14,7 +14,7 @@ pub(all) enum RelationPresenceIssue {
   PresenceNotGuaranteed(Int)
   InvalidLimits
   Limit
-}
+} derive(Eq, Debug)
 
 ///|
 /// Immutable checked cells under one exact Relation schema. This representation

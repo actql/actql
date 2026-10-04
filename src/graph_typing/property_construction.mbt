@@ -238,6 +238,7 @@ fn property_element(
       properties,
       labels,
       label_properties~,
+      key_columns=keys.map(field => @row.reference_name(field.name)),
       max_fields=b.limits.max_nodes,
       max_name_bytes=b.limits.max_text_bytes,
       max_contract_work=b.work,

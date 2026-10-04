@@ -16,6 +16,7 @@ const {connectEmbeddedLocal, openInstalledRemoteHttpHost} = await import(packed
   : '../adapters/host-node/embedded-local.mjs');
 
 const fixture = JSON.parse(await readFile(new URL('./fixtures/property-graph-parallel.program.json', import.meta.url), 'utf8'));
+const presenceFixture = JSON.parse(await readFile(new URL('./fixtures/property-graph-presence.program.json', import.meta.url), 'utf8'));
 // Use the existing authoritative inventory, not a second supported-operation
 // list or hand-authored per-consumer request fixtures. The common checker
 // refuses unsupported operation keys before interpreting their payloads.
@@ -52,9 +53,9 @@ const string = {type:'string',nullable:false};
 const lawCid = 'sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc';
 const graphContract = {version:'actql-property-graph-contract/0.1',domain:expectedDomain,
   identity_law_cid:lawCid,value_law_cid:lawCid,
-  node_definitions:[{name:'N',key_contracts:[string,number],
+  node_definitions:[{name:'N',key_columns:['tenant','id'],key_contracts:[string,number],
     labels:{Node:['id','tenant'],Person:[]},properties:{id:number,tenant:string}}],
-  edge_definitions:[{name:'E',key_contracts:[string,number],labels:{Link:[],R:['dst','key','src','tenant']},
+  edge_definitions:[{name:'E',key_columns:['tenant','key'],key_contracts:[string,number],labels:{Link:[],R:['dst','key','src','tenant']},
     properties:{dst:number,key:number,src:number,tenant:string},source_definition:'N',target_definition:'N'}]};
 const expectedSnapshot = canonicalText(['actql-property-graph-snapshot/0.1',cid(graphContract),graphContract,
   [{id:identity('N',1),key:['a',1],props:{id:1,tenant:'a'}}],
@@ -62,11 +63,53 @@ const expectedSnapshot = canonicalText(['actql-property-graph-snapshot/0.1',cid(
     src:identity('N',1),dst:identity('N',1)}))]);
 const snapshotCid = 'sha256:' + createHash('sha256').update(expectedSnapshot).digest('hex');
 
+const presenceConstructor = structuredClone(presenceFixture.stages[0].steps[3].property_graph);
+occurrence = 0;
+for (const family of ['nodes','edges']) for (const element of presenceConstructor[family]) {
+  delete element.from;
+  element.input_occurrence = occurrence++;
+}
+const presenceDomain = cid({constructor:presenceConstructor,
+  producer_definitions:presenceFixture.stages[0].steps.slice(0,3)
+    .map(step => ({body:{values:step.values},dependencies:[]})),
+  version:'actql-property-graph-definition/0.1'});
+const presenceIdentity = (definition, key, kinds) => ({definition,domain:presenceDomain,
+  key,key_types:kinds.map(kind=>({kind}))});
+const nodeIdentity = key => presenceIdentity('N',[key,'a'],['number','string']);
+const presenceContract = {version:'actql-property-graph-contract/0.1',domain:presenceDomain,
+  identity_law_cid:lawCid,value_law_cid:lawCid,
+  node_definitions:[{name:'M',key_columns:['company_key'],key_contracts:[number],labels:{},properties:{}},
+    {name:'N',key_columns:['person_key','tenant_key'],key_contracts:[number,string],
+      labels:{Owner:['p'],Person:['p']},properties:{p:{type:'number',nullable:true}}}],
+  edge_definitions:[{name:'E',key_columns:['edge_key','tenant_key'],key_contracts:[number,string],
+    labels:{Link:[]},properties:{},source_definition:'N',target_definition:'N'}]};
+const presenceSnapshot = canonicalText(['actql-property-graph-snapshot/0.1',cid(presenceContract),presenceContract,
+  [{id:presenceIdentity('M',[3],['number']),key:[3],props:{}},
+    ...[1,2].map(key=>({id:nodeIdentity(key),key:[key,'a'],props:{p:key===1 ? 7 : null}}))],
+  [10,11].map(key=>({id:presenceIdentity('E',[key,'a'],['number','string']),key:[key,'a'],props:{},
+    src:nodeIdentity(1),dst:nodeIdentity(2)}))]);
+const presenceSnapshotCid = 'sha256:' + createHash('sha256').update(presenceSnapshot).digest('hex');
+// Independent full Relation streams, including unprojected conditional fields.
+// These are canonical ordered rows, not bytes captured from the implementation.
+const presenceRows = {
+  node_rows: [{company_key:3,id:presenceIdentity('M',[3],['number']),labels:[]},
+    ...[1,2].map(key=>({id:nodeIdentity(key),labels:['Owner','Person'],
+      p:key===1 ? 7 : null,person_key:key,tenant_key:'a'}))],
+  edge_rows: [10,11].map(key=>({edge_key:key,
+    id:presenceIdentity('E',[key,'a'],['number','string']),
+    src:nodeIdentity(1),dst:nodeIdentity(2),labels:['Link'],tenant_key:'a'})),
+};
+// The source fixture deliberately supplies descending keys. Canonical Graph
+// order must be established, not inherited accidentally from already sorted input.
+assert.deepEqual(presenceFixture.stages[0].steps[0].values.rows.map(row=>row.person_key),[2,1]);
+assert.deepEqual(presenceFixture.stages[0].steps[2].values.rows.map(row=>row.edge_key),[11,10]);
+
 for (const mode of ['local','remote']) {
   test(`keyed constructor and TRAIL reach public Named Results through ${mode}`, {timeout:60_000}, async t => {
     const directory = await mkdtemp(new URL(`${mode}-`, scratch));
     t.diagnostic(`Retained Host regression evidence: ${directory}`);
     const snapshots = new Map();
+    const relationSnapshots = new Map();
     const snapshotWaiters = new Map();
     const physicalSteps = [];
     const keys = generateKeyPairSync('ed25519');
@@ -79,20 +122,24 @@ for (const mode of ['local','remote']) {
       reviewers:[{keyId:'graph-test-reviewer',reviewerId:'graph-test-reviewer',
         principalId:userInfo().username,
         publicKey:keys.publicKey.export({type:'spki',format:'pem'})}],
+      observe(name, detail) {
+        if (name === 'dispatch_failed') t.diagnostic(`Dispatch failure: ${detail.code}`);
+      },
       faultInjection(name, detail) {
       physicalSteps.push(name);
       if (name === 'computed') {
         snapshots.set(detail.ref.runDefinitionCid, detail.carrierSnapshots);
+        relationSnapshots.set(detail.ref.runDefinitionCid, detail.relationSnapshots);
         snapshotWaiters.get(detail.ref.runDefinitionCid)?.();
       }
     }};
-    const assertSnapshot = async run => {
+    const assertSnapshot = async (run, task = 2, expectedCid = snapshotCid, expectedBytes = expectedSnapshot) => {
       // This awaited installed fault hook observes the completed physical
       // route, not an SDK-created diagnostic or a new execution authority.
       if (!snapshots.has(run.ref.runDefinitionCid)) await new Promise(resolve =>
         snapshotWaiters.set(run.ref.runDefinitionCid,resolve));
-      assert.deepEqual(snapshots.get(run.ref.runDefinitionCid), [{task:2,cid:snapshotCid,
-        bytes:Buffer.byteLength(expectedSnapshot),verifiedReadBytes:Buffer.byteLength(expectedSnapshot),
+      assert.deepEqual(snapshots.get(run.ref.runDefinitionCid), [{task,cid:expectedCid,
+        bytes:Buffer.byteLength(expectedBytes),verifiedReadBytes:Buffer.byteLength(expectedBytes),
         sourceReleased:true,restored:true,temporaryBodyReclaimed:true}]);
       assert.deepEqual(await readdir(`${directory}/carrier-snapshots`), []);
     };
@@ -172,5 +219,52 @@ for (const mode of ['local','remote']) {
       hop_count:2,node_ids:[identity('N',1),identity('N',1),identity('N',1)],edge_ids:keys.map(key=>identity('E',key))}));
     assert.deepEqual(rows.map(canonicalText).sort(),expected.map(canonicalText).sort());
     await assertSnapshot(paths);
+
+    // Definitions, not sample values or IS NOT NULL, determine row presence.
+    // Refusal precedes durable Run acceptance and every physical step.
+    for (const selector of ['select','filter']) {
+      const rejected = structuredClone(presenceFixture);
+      const requestId = `conditional-property-${selector}-${mode}`;
+      rejected.stages[0].steps[5] = selector === 'select'
+        ? {select:['p'],as:'projected'}
+        : {filter:'p IS NOT NULL',as:'projected'};
+      rejected.stages[0].results.out.fields = selector === 'select' ? ['p'] : ['id'];
+      const before = physicalSteps.length;
+      await assert.rejects(client.aql(canonicalText(rejected),{format:'json',requestId}),
+        error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
+      assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+      assert.deepEqual(physicalSteps.slice(before),[]);
+    }
+    for (const projection of ['node_rows','edge_rows']) {
+      const document = structuredClone(presenceFixture);
+      document.id = `property-${projection}`;
+      document.stages[0].steps[4] = {from:'g',[projection]:true,as:'rows'};
+      const projected = await client.aql(canonicalText(document),
+        {format:'json',requestId:`property-${projection}-${mode}`});
+      const projectedState = await projected.wait();
+      assert.equal(projectedState.status,'succeeded',JSON.stringify(projectedState));
+      const actual = await projected.result('answer').all();
+      const expected = projection === 'node_rows'
+        ? [{id:presenceIdentity('M',[3],['number']),labels:[]},
+          ...[1,2].map(key=>({id:nodeIdentity(key),labels:['Owner','Person']}))]
+        : [10,11].map(key=>({id:presenceIdentity('E',[key,'a'],['number','string']),labels:['Link']}));
+      // node_rows/edge_rows preserve canonical Graph identity order. Compare
+      // the ordered oracle directly; sorting would hide a transport regression.
+      assert.deepEqual(actual,expected);
+      assert.deepEqual((await projected.result('answer').describe()).columns.map(column=>column.name),['id','labels']);
+      // The installed route saves the Graph, revokes its source, reloads it,
+      // and feeds ordinary Relation projection before public publication.
+      await assertSnapshot(projected,3,presenceSnapshotCid,presenceSnapshot);
+      // This is Relation retention, not the preceding Graph snapshot. The
+      // exact full stream is saved, original cell access is refused, then the
+      // same completion is imported and only guaranteed columns are projected.
+      const stream = canonicalText(presenceRows[projection]);
+      assert.deepEqual(relationSnapshots.get(projected.ref.runDefinitionCid),[
+        {task:4,cid:cid(presenceRows[projection]),bytes:Buffer.byteLength(stream),
+          verifiedReadBytes:Buffer.byteLength(stream),rows:presenceRows[projection].length,
+          sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true},
+      ]);
+      assert.deepEqual(await (await client.attach(projected.ref)).result('answer').all(),expected);
+    }
   });
 }

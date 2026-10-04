@@ -242,3 +242,35 @@ for (const failingTask of [0, 1]) {
     }
   });
 }
+
+// The same authored Program, physical rows, policy and capacities choose Broad
+// through ordinary installed priority. This is not a synthetic capture route.
+test('two Broad captures keep original identity and positive custody in the shared ledger', async t => {
+  const f = await twoSourceCaptureFixture(t, {priority: ['broadQuery', 'nativeQuery']});
+  for (const source of f.preparedSources) {
+    assert.equal(source.prepared.selection.selectedCandidate, 'broadQuery');
+    assert.equal(source.prepared.selection.nativeSupported, true);
+    assert.equal(source.prepared.selection.broadSupported, true);
+  }
+  const pair = await f.capturePair();
+  const {moon} = f;
+  const usage = () => moon.clientProgramMultiCapturedLedgerUsage(pair.ledger);
+  assert.ok(usage()[5] > 0n, 'completed Broad inputs still hold their admitted bytes');
+  assert.ok(usage()[2] > 0n, 'the original acquisition holdings remain accounted');
+  checked(f.issue(pair));
+  for (const [task, capture] of pair.captured.entries()) {
+    assert.equal(capture.acquisition.selection.selectedCandidate, 'broadQuery');
+    assert.equal(nativeSourceIdentityMatches(capture.capture, pair.identities[task]), true);
+    assert.equal(nativeSourceIdentityMatches(capture.capture, pair.identities[1 - task]), false);
+    refused(f.issue(pair, f.compile(), {captures: [pair.captures[1], pair.captures[0]]}),
+      'selected Broad captures cannot swap physical occurrence identity');
+  }
+  await pair.captured[0].close();
+  assert.ok(usage()[5] > 0n, 'closing the first capture cannot release the second capture');
+  const counts = usage().slice(0, 4);
+  await pair.captured[0].close();
+  assert.deepEqual(usage().slice(0, 4), counts, 'repeat close does not create attempts or holdings');
+  await pair.captured[1].close();
+  assert.ok(usage().slice(4).every(value => value === 0n),
+    'the original capacity owner settles all pending retention and execution reservations');
+});
