@@ -2730,6 +2730,12 @@ fn start_bounded_binding_rows_with_input(
     return Err(InvalidExecution)
   }
   let body = @lower.kernel_body(kernel)
+  // Keyed DISTINCT already owns projection followed by full-row comparison.
+  // Only its Required projected columns are read by the comparator/output;
+  // ChargeInput still admits every original cell, including omitted columns.
+  let keyed_distinct = body is @lower.DistinctRows &&
+    @lower.kernel_distinct_projection(kernel) is Some(_) &&
+    @schema.all_fields_required(output_schema)
   let preserve_presence = !@schema.all_fields_required(input_schema) &&
     (
       body is @lower.Filter(_) ||
@@ -2740,7 +2746,8 @@ fn start_bounded_binding_rows_with_input(
     )
   if !@schema.all_fields_required(input_schema) &&
     !preserve_presence &&
-    !(body is @lower.Select(_)) {
+    !(body is @lower.Select(_)) &&
+    !keyed_distinct {
     return Err(InvalidExecution)
   }
   if preserve_presence &&
@@ -2833,7 +2840,8 @@ fn start_bounded_binding_rows_with_input(
     body is @lower.PartitionedTopK(_, _)
   if !@schema.all_fields_required(input_schema) &&
     !select_mode &&
-    !preserve_presence {
+    !preserve_presence &&
+    !keyed_distinct {
     return Err(InvalidExecution)
   }
   let partition_limit = match body {

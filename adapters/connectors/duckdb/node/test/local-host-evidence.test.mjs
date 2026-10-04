@@ -110,12 +110,16 @@ async function fixture(t) {
       '--signer', init.json.signer]),
     // Reads only through the encrypted Store with the installation key.
     async read(attempt, name, cid) {
-      const port = openContinuationEvidence({ stateDirectory: state,
-        ...await loadPrivateEvidenceKey(state),
-        contractControl: runtimeCore(moon).publicationControl,
-        preparation: () => undefined });
-      try { return (await (await port.open(attempt)).bytes(name, cid)).toString('utf8'); }
-      finally { await port.close(); }
+      const host = await openLocalHost(config);
+      try {
+        const port = openContinuationEvidence({ stateDirectory: state,
+          ...await loadPrivateEvidenceKey(state),
+          contractControl: runtimeCore(moon).publicationControl,
+          isTerminalRunOutcome: host.journal.isTerminalRunOutcome,
+          preparation: () => undefined });
+        try { return (await (await port.open(attempt)).bytes(name, cid)).toString('utf8'); }
+        finally { await port.close(); }
+      } finally { await host.close(); }
     },
     ledger: async attempt =>
       JSON.parse(await readFile(join(state, 'attempts', `${attempt}.json`), 'utf8')),
@@ -341,3 +345,4 @@ test('a failed deletion keeps cleanup ownership and a retry completes it', async
   // Only the (shared) request identity remains.
   assert.equal((await input.objects()).length, 1);
 });
+
