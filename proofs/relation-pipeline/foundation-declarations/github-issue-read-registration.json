@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "github-issue-read-registration",
+  "kind": "change",
+  "revision": "1cf2bdef5cb11219efd9aaa11553db59e20d47b2",
+  "parents": [
+    "287f11733beb49a75c9f756d67be73f660c9dce8"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "287f11733beb49a75c9f756d67be73f660c9dce8",
+          "digest": "77a4596be8d5412aced51cb97408d63d53839da6e7679725109d922c9623dcf8",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "5c877d5db18542bc15679b2105f8f1915bd9d300ba5f460b2b797da70a3e1607",
+      "afterMode": "100644",
+      "reason": "Register the GitHub provider bridge build and its independent HTTPS fixture tests in the existing remote Site runtime gate. Preserve every existing test command, proof gate, corpus, mutation and foundation owner unchanged."
+    }
+  ]
+}
