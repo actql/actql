@@ -31,7 +31,8 @@ export function getCheckInput(outcome, documentId, revision) {
 export function resolveCheckLocation(outcome, location, currentInput) {
   const original = getCheckInput(outcome, location?.document_id, location?.revision);
   const input = currentInput ?? original;
-  if (!original || !input || input.documentId !== original.documentId ||
+  if (!original || !input || location.revision !== original.revision ||
+      input.documentId !== original.documentId ||
       input.revision !== original.revision || input.kind !== original.kind ||
       location.kind !== original.kind ||
       (input.kind === 'text' ? input.text !== original.text :

@@ -53,6 +53,10 @@ test('check rejects a location inside an original UTF-8 scalar', async t => {
   start = 8;
   const result = await client.check("SELECT '😀' AS n", {format: 'sql'});
   assert.equal(resolveCheckLocation(result, result.report.reasons[0].location).text, '😀');
+  assert.equal(resolveCheckLocation(result,
+    {...result.report.reasons[0].location, revision: undefined}), undefined);
+  assert.equal(resolveCheckLocation(result,
+    {...result.report.reasons[0].location, revision: 'rev:' + '5'.repeat(64)}), undefined);
 });
 
 test('review wire budget covers maximum base64 without relaxing body limits',
