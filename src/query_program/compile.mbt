@@ -1374,6 +1374,10 @@ fn compile_steps(
   } else {
     [(initial_range, pipe_visible.copy())]
   }
+  let mut selected_input_scope : JoinChainScope = {
+    visible: pipe_visible.copy(),
+    ranges: pipe_ranges.copy(),
+  }
   let mut pipe_changed = initial_scope is Some(_)
   // Materializing a SELECT resets private slots, not the replacement of
   // range variables. Never resolve subsequent operators through the source
@@ -2120,6 +2124,13 @@ fn compile_steps(
         entries.push(("select", construction.array(selected)))
         output = names
         selected_expressions = expressions
+        // Preserve the SELECT input meaning even when projection/DISTINCT
+        // materializes a public name that shadows an original input column.
+        selected_input_scope = {
+          visible: pipe_visible.copy(),
+          ranges: pipe_ranges.copy(),
+        }
+        selected_output_slots = bindings.copy()
         if !distinct && @query.operation_at(query, i + 1) is Some(Order(_)) {
           if entries.length() == 2 && entries[0].0 == "from" {
             ignore(entries.remove(0))
@@ -2323,11 +2334,18 @@ fn compile_steps(
           let expression = term.expression
           let mut selected : String? = None
           if pipe_selected {
-            for pair in selected_expressions {
-              if selected is None && same_expression(expression, pair.0) {
-                selected = Some(pair.1)
-              }
-            }
+            selected = reusable_order_expression(
+              expression,
+              selected_expressions,
+              selected_output_slots,
+              path => {
+                pipe_slot(
+                  path,
+                  selected_input_scope.visible,
+                  selected_input_scope.ranges,
+                )
+              },
+            )
           }
           let direct = match
             @query.expression_node(
@@ -2403,14 +2421,23 @@ fn compile_steps(
           // With no deferred SELECT, remove sort-only slots immediately.
           // Retain demanded original slots for the existing range snapshots.
           step_entries.push(entries)
-          step_entries.push([
-            (
-              "select",
-              construction.array(
-                active_fields.map(field => construction.text(field)),
+          // An immediately following RESULT already selects these exact
+          // active fields and binds its checkpoint. There is no intervening
+          // consumer of the hidden slots, so one projection does both jobs.
+          let result_projects_next = match @query.operation_at(query, i + 1) {
+            Some(RetainResult(_)) => true
+            _ => false
+          }
+          if !result_projects_next {
+            step_entries.push([
+              (
+                "select",
+                construction.array(
+                  active_fields.map(field => construction.text(field)),
+                ),
               ),
-            ),
-          ])
+            ])
+          }
           deferred = true
         }
       }
