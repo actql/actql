@@ -26,6 +26,7 @@ export function installNodeClientCheck({moon, environment, publication,
       typeof moon.clientProgramCheckSource !== 'function' ||
       typeof moon.clientProgramCheckUnavailable !== 'function' ||
       typeof moon.clientProgramCheckCompilerIdentity !== 'function' ||
+      typeof moon.clientProgramCheckContextIdentity !== 'function' ||
       typeof moon.clientProgramCheckingEnvironmentCid !== 'function' ||
       environment === undefined ||
       !(contextKey instanceof Uint8Array) || contextKey.byteLength !== 32 ||
@@ -35,6 +36,7 @@ export function installNodeClientCheck({moon, environment, publication,
   }
   const environmentCid = moon.clientProgramCheckingEnvironmentCid(environment);
   const compiler = JSON.parse(moon.clientProgramCheckCompilerIdentity());
+  const checkingContext = JSON.parse(moon.clientProgramCheckContextIdentity(environment));
   const aliases = publication?.aliases ?? [];
   if (publication !== undefined &&
       publication.environmentCid !== environmentCid) {
@@ -87,14 +89,14 @@ export function installNodeClientCheck({moon, environment, publication,
 
   // Keyed by this Host over everything the verdict is about: the audience
   // and its disclosure policy, the exact source and format, the scope, the
-  // compiler and checking environment, the visible names and the supplied
+  // compiler and public checking selections, the visible names and supplied
   // bindings. Equal requests give an equal reference here; the reference is
   // not a public hash of supplied values.
   const contextRef = (principalId, input, parameters, visible) => {
     const bound = {version: contextVersion, audience: principalId,
       disclosure_policy: disclosurePolicy, projection: version, scope,
       compiler, reason_schema_cid: checkReasonSchemaCid,
-      environment_cid: environmentCid, visible_aliases: visible};
+      checking_context: checkingContext, visible_aliases: visible};
     let preimage;
     try {
       preimage = canonicalJson({...bound,
@@ -134,4 +136,3 @@ export function installNodeClientCheck({moon, environment, publication,
     return validCheckOutcome(outcome) ? outcome : failed('check_internal');
   };
 }
-
