@@ -5,7 +5,6 @@ import {CapturedRunPublicationError,
   runPublishedCapturedStrategy} from './entry.mjs';
 import {acquiredTaskPublicationPlan, acquiredMultiTaskPublicationPlan} from './local-values-plan.mjs';
 import {installedSourceFor} from './installed-source.mjs';
-import {capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity} from './captured-duckdb-source.mjs';
 import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -282,11 +281,20 @@ export function installNodeClientDispatchOwner({moon, control, journal,
             await prepareAcquisition(preparedProgram, access, source.occurrence);
           selectedSources.push({...source, access, preparedSource});
         }
-        const capacities = selectedSources.map(source => capturedDuckDBPhysicalCapacity(source.preparedSource));
-        ledger = moon.clientProgramPrepareMultiCapturedLocalAcquisitionLedger(preparedProgram,
-          selectedSources.map(source => capturedDuckDBConfiguration(source.preparedSource)),
-          capacities.map(capacity => capacity.transferBytes),
-          capacities.map(capacity => capacity.executionBytes),
+        const capacities = selectedSources.map(source => {
+          if (retainedRelationOutput &&
+              source.adapter.supportsRetainedRelationOutput !== true) {
+            throw new TypeError('InstalledSourceRetainedOutputUnsupported');
+          }
+          if (typeof source.adapter.ledgerCapacity !== 'function') {
+            throw new TypeError('InstalledMultiSourceCapacityUnavailable');
+          }
+          return source.adapter.ledgerCapacity(source.preparedSource);
+        });
+        ledger = moon.clientProgramPrepareMultiCapturedLocalInstalledLedger(preparedProgram,
+          capacities.map(value => value.capacity),
+          capacities.map(value => value.transferBytes),
+          capacities.map(value => value.executionBytes),
           registry, values, fragment, ordered);
         if (ledger === undefined) throw new Error('InstalledMultiSourceLedgerUnavailable');
         entry.acquisitionLedger = ledger;

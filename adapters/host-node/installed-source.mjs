@@ -35,7 +35,8 @@ import {retainInstalledHostInitializationFailure} from './installed-host-cleanup
 import {splitSourceAliasProfile} from './source-alias-publication.mjs';
 import {INSTALLED_DUCKDB_SOURCE_VERSION, installDuckDBSourceProfile} from
   './installed-duckdb-source.mjs';
-import {openCapturedDuckDBSource, prepareCapturedDuckDBSource} from
+import {openCapturedDuckDBSource, prepareCapturedDuckDBSource,
+  capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity} from
   './captured-duckdb-source.mjs';
 import {installedConnectors} from
   '../connectors-builtin/installations.generated.mjs';
@@ -136,6 +137,19 @@ function duckdbAdapter(profile, moon, {root, principalId}) {
     readAuthorization: profile.readAuthorization,
     sourceAccess: profile.sourceAccess,
     admitsSource: sourceRef => sourceRef === profile.sourceRef,
+    ledgerCapacity(prepared) {
+      const physical = capturedDuckDBPhysicalCapacity(prepared);
+      const capacity = moon.clientProgramInstalledDuckDBCaptureCapacity(
+        capturedDuckDBConfiguration(prepared));
+      if (capacity === undefined) {
+        throw new TypeError('InstalledSourceCapacityUnavailable');
+      }
+      return Object.freeze({
+        capacity,
+        transferBytes: physical.transferBytes,
+        executionBytes: physical.executionBytes,
+      });
+    },
     prepare: ({preparedProgram, preparedEffect, registry, values, fragment, ordered,
       sourceAccess, occurrence}) => prepareCapturedDuckDBSource({...common,
       preparedProgram, preparedEffect, registry, values, fragment, ordered,
@@ -230,9 +244,10 @@ export async function loadInstalledSources(paths, options) {
     for (const path of paths) {
       const source = await loadInstalledSource(path, options);
       sources.push(source);
-      // This first public multi-input profile is two independent DuckDB
-      // acquisitions. Other providers retain their existing singular path.
-      if (source.realizationKey !== 'duckdb-acquired') {
+      // Each independently installed source must have an exact checked
+      // occurrence and an owned capacity before either read may start.
+      if (typeof source.sourceAccess?.sourceRef !== 'string' ||
+          typeof source.ledgerCapacity !== 'function') {
         throw new TypeError('InstalledMultiSourceUnsupported');
       }
     }
@@ -244,7 +259,9 @@ export async function loadInstalledSources(paths, options) {
       throw new TypeError('InstalledSourceBindingAmbiguous');
     }
     return Object.freeze({
-      realizationKey: 'duckdb-acquired', environmentWire,
+      realizationKey: sources.every(source =>
+        source.realizationKey === 'duckdb-acquired')
+        ? 'duckdb-acquired' : 'installed-multi-acquired', environmentWire,
       sources: Object.freeze(sources),
       connectorBindings: Object.freeze(sources.flatMap(source => source.connectorBindings)),
       queryAliases: Object.freeze(sources.flatMap(source => source.queryAliases ?? [])),
