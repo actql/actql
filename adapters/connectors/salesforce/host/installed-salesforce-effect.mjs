@@ -1052,6 +1052,10 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
     generationCid: installed.generationCid,
     connectorBindings: Object.freeze([
       installedSalesforceSiteBinding(site, connectorId)]),
+    // The installed implementation's own identification; the Host refuses
+    // the installation when its declared registration differs.
+    connectorRegistration: site.connectorRegistration,
+    connectorRevision: site.connectorRevision,
     connection: site.connection,
     mappings: Object.freeze(installed.mappings.map(mapping => Object.freeze({
       resource: mapping.write.resource, kind: mapping.write.kind,

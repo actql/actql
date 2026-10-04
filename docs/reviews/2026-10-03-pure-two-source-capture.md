@@ -159,3 +159,15 @@ prove active temporary holding inventory. Those common connections remain
 with A; cumulative allocation counters and `client.close()` alone are not
 physical release evidence. Existing failure/recovery matrices are reused,
 not duplicated for this optional-Effect pair.
+
+### Manifest and Session CI main integration
+
+The next normal merge adopts main
+`c4fc104d8a700794766dcee5114617b001f8a6f9`, including #334's existing
+manifest-selected Effect installation and #326's current scoped Session CI
+setting. No conflicts or product acceptance changes are needed. Client
+scheduling, acquisition custody and the selected installation table pass
+30/30 focused Node tests after this integration. The previous PR run
+37180581517 passed preflight but had not started its packed consumer when
+this integration was prepared. That older submitted SHA's results remain
+separate from the new automatic PR run; no manual rerun is requested.

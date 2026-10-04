@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readCatalog, compareCatalogs} from './actions.mjs';
 import {actionInputs, compareInputs, packageImports, sharedFiles, mutationSnapshotExtras} from './inputs.mjs';
+import {reviewedPackageConfiguration, reviewedPackageConfigurations, packageConfigurationReview} from './package-configurations.mjs';
 
 const catalog = readCatalog();
 const runtime = {profile: 'controlled-test-runtime', components: {node: '1'.repeat(64)}, unresolved: []};
@@ -77,6 +78,28 @@ test('literal normal, test and whitebox imports are tracked; arbitrary expressio
   assert.deepEqual(packageImports('import { "actql/actql/a" @a } import { "moonbitlang/core/json" } for "wbtest"').imports,
     ['actql/actql/a', 'moonbitlang/core/json']);
   assert.throws(() => packageImports('import { dynamic_dependency() }'), /unknown package import/u);
+});
+
+test('reviewed native-only configuration requires its independent path/bytes/toolchain and JS target', () => {
+  const [path, digest] = Object.entries(reviewedPackageConfigurations)[0];
+  const request = {path, digest, target: 'js', toolchainDigest: packageConfigurationReview.toolchainDigest};
+  assert(reviewedPackageConfiguration(request));
+  for (const changed of [
+    {...request, path: 'src/unreviewed/moon.pkg'},
+    {...request, digest: 'f'.repeat(64)},
+    {...request, target: 'native'},
+    {...request, target: 'wasm'},
+    {...request, toolchainDigest: 'f'.repeat(64)},
+  ]) assert.equal(reviewedPackageConfiguration(changed), false);
+  // Even at a reviewed path, source is read independently; a copied descriptor
+  // or a changed pre-build option does not inherit the reviewed digest.
+  const files = new Map(base);
+  files.set(path, 'options(pre_build: { "command": "unreviewed" })');
+  const selected = {...action, package: path.slice(0, -'/moon.pkg'.length)};
+  const observed = inventory(files, 'a'.repeat(40), selected);
+  assert(observed.unresolved.some(reason => reason.endsWith(path)));
+  assert.deepEqual(observed.inputs.packageConfigurations, []);
+  assert(observed.inputs.files.some(file => file.path === path));
 });
 
 test('literal formatter exclusions remain bound; dynamic configuration stays open', () => {
