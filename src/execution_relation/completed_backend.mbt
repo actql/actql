@@ -1,6 +1,6 @@
 ///|
 // Representation selection precedes execution; an error never retries through
-// another evaluator. Filter retains sparse rows; projection makes dense rows.
+// another evaluator. Filter/derive retain presence; projection makes dense rows.
 fn evaluate_completed_body(
   body : RowBodySource,
   input : CompletedTable,
@@ -21,10 +21,16 @@ fn evaluate_completed_body(
   }
   if input is PresenceTable(table) && !projection {
     guard body is PreparedBody(kernel) &&
-      @lower.kernel_body(kernel) is @lower.Filter(_) else {
+      (
+        @lower.kernel_body(kernel) is @lower.Filter(_) ||
+        @lower.kernel_body(kernel) is @lower.SnapshotMap(_) ||
+        @lower.kernel_body(kernel) is @lower.OrderedBindings(_)
+      ) else {
       return Err(InvalidRows)
     }
     let rows = []
+    let dense : Array[Array[@admitted.Value]] = []
+    let schema = @lower.kernel_output_schema(kernel)
     let names = match
       evaluate_row_body_into(
         body,
@@ -33,23 +39,35 @@ fn evaluate_completed_body(
         control,
         output,
         workspace,
-        fn(_row, source, _names, _selected) {
-          let row = table.rows[source]
-          if !reserve_slots(workspace, 1) ||
-            !reserve_slots(workspace, row.cells.length()) ||
-            !spend_control(control, row.cells.length()) {
-            return Err(RowLimit)
-          }
-          rows.push({ ..row, cells: row.cells.copy(), })
-          Ok(())
-        },
+        fn(_row, _source, _names, _selected) { Err(InvalidRows) },
         ordered_budget=logical,
         preserve_filter_rows=true,
+        accept_presence_row=Some(fn(cells, _names, usage) {
+          if @schema.all_fields_required(schema) {
+            let row = []
+            for cell in cells {
+              guard cell is Some(value) else { return Err(InvalidRows) }
+              if !reserve_slots(workspace, 1) || !spend_control(control, 1) {
+                return Err(RowLimit)
+              }
+              row.push(value)
+            }
+            dense.push(row)
+            release_slots(workspace, cells.length())
+          } else {
+            rows.push({ schema, cells, usage, })
+          }
+          Ok(())
+        }),
       ) {
       Ok(names) => names
       Err(issue) => return Err(issue)
     }
-    return Ok(PresenceTable({ ..table, id, names, rows, }))
+    return if @schema.all_fields_required(schema) {
+      Ok(AdmittedTable({ owner: table.owner, id, names, rows: dense, }))
+    } else {
+      Ok(PresenceTable({ ..table, id, names, rows, }))
+    }
   }
   if input is RowTable(_) || !projection {
     return evaluate_row_body(

@@ -1169,6 +1169,7 @@ test "bounded selected empty sort uses linear charged advances" {
 ///|
 fn bounded_binding_rows_ordered_context(
   sequence : @lower.PreparedSequence,
+  rows? : Int64 = 2L,
 ) -> FragmentRuntimeContext raise {
   guard @lower.sequence_step(sequence, 0) is Some(@lower.RowStep(kernel)) else {
     fail("ordered row kernel")
@@ -1188,7 +1189,7 @@ fn bounded_binding_rows_ordered_context(
   let ordered = prepare_ordered_limits(
     params,
     {
-      max_input_rows: 2L,
+      max_input_rows: rows,
       max_value_bytes: 1000L,
       max_live_value_bytes: 10000L,
       max_work: 100000L,

@@ -65,9 +65,9 @@ non-nullable value type. Closed column knowledge therefore does not imply that
 every declared column occurs in every row. Ordinary object value contracts keep
 their exact required-field rules.
 
-The execution profile permits projection, Required-only filter expressions,
+The execution profile permits projection, Required-only filter/derive expressions,
 Required-key sort and proven-order take on conditional inputs. Every syntactic
-filter reference and authored sort key must be Required,
+expression reference and authored sort key must be Required,
 including references in lazy/dead branches; runtime samples and `IS NOT NULL`
 do not provide a presence proof. Graph definition/label selection derives its
 schema from declarations through its existing Bridge contract, not row predicates.
@@ -76,7 +76,14 @@ rows are admitted and charged before predicate evaluation, including rows that
 will be rejected. The existing bounded evaluator copies admitted surviving cells,
 charges presence containers, and retains them until output handoff or cleanup.
 Logical wire retention omits absent keys without inventing NULL values; physical
-presence slots remain charged by the common row owner. Sort moves each complete
+presence slots remain charged by the common row owner. Derive retains unchanged
+fields' presence and adds present computed bindings with their checked value
+types/nullability. Ordered replacement refers to its exact prior binding version:
+replacing an optional input field with a computed binding makes the new field
+Required without reading or proving the old optional field. Both synchronous
+and resumable evaluation use the existing expression, row and completion owners.
+Physical Store save/reload preserves derived rows before guaranteed projection.
+Sort moves each complete
 typed row, including absent cells, according to its existing admitted order
 completion; take applies offset/count to that proven order. Neither operation
 promotes Conditional columns or discards them. Selection and retained presence
