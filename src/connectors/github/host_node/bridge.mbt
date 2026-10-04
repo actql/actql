@@ -205,9 +205,74 @@ pub fn github_next_page_json(
 }
 
 ///|
-/// Classify a comment-create response: `{"outcome": "Created", "id": n,
-/// "nodeId": "..."}`, `{"outcome": "Refused", "status": n}` or
-/// `{"outcome": "Unknown"}`.
+fn comment_request_json(
+  request : Result[String, @catalog.CommentRequestIssue],
+) -> String {
+  let json : Json = match request {
+    Ok(body) => { "body": body.to_json() }
+    Err(InvalidSubjectId) => { "refused": "InvalidSubjectId" }
+    Err(InvalidBody) => { "refused": "InvalidBody" }
+  }
+  json.stringify()
+}
+
+///|
+/// The subject check body for one comment: `{"body": "..."}` or
+/// `{"refused": "..."}`.
+#export_name("githubCommentSubjectRequestJson")
+pub fn github_comment_subject_request_json(subject_id : String) -> String {
+  comment_request_json(@catalog.comment_subject_request(subject_id))
+}
+
+///|
+/// The comment mutation body: `{"body": "..."}` or `{"refused": "..."}`.
+#export_name("githubAddCommentRequestJson")
+pub fn github_add_comment_request_json(
+  subject_id : String,
+  body : String,
+) -> String {
+  comment_request_json(@catalog.add_comment_request(subject_id, body))
+}
+
+///|
+/// Project a subject check: `{"subject": {"node_id", "number"}}` or
+/// `{"refused": {...}}`.
+#export_name("githubCommentSubjectJson")
+pub fn github_comment_subject_json(
+  body : Bytes,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  subject_id : String,
+  expected_node_id : String,
+  expected_database_id : Double,
+  expected_name_with_owner : String,
+) -> String {
+  let json : Json = match
+    @catalog.project_comment_subject_response(
+      body,
+      { max_bytes, max_nodes, max_depth, max_rows: 1, },
+      subject_id,
+      expected_node_id,
+      expected_database_id.to_int64(),
+      expected_name_with_owner,
+    ) {
+    Ok(subject) =>
+      {
+        "subject": {
+          "node_id": subject.node_id.to_json(),
+          "number": Json::number(subject.number.to_double()),
+        },
+      }
+    Err(issue) => { "refused": graphql_issue_name(issue) }
+  }
+  json.stringify()
+}
+
+///|
+/// Classify a comment mutation response: `{"outcome": "Created", "id": n,
+/// "nodeId": "..."}`, `{"outcome": "Refused", "status": n}`,
+/// `{"outcome": "Rejected", "type": "..."}` or `{"outcome": "Unknown"}`.
 #export_name("githubCommentOutcomeJson")
 pub fn github_comment_outcome_json(
   status : Int,
@@ -215,12 +280,21 @@ pub fn github_comment_outcome_json(
   values : Array[String],
   body : Bytes,
   max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  subject_id : String,
 ) -> String {
   guard headers_of(names, values) is Some(headers) else {
     return ({ "outcome": "Unknown" } : Json).stringify()
   }
   let json : Json = match
-    @catalog.classify_comment_response(status, headers, body, max_bytes) {
+    @catalog.classify_comment_response(
+      status,
+      headers,
+      body,
+      { max_bytes, max_nodes, max_depth, max_rows: 1, },
+      subject_id,
+    ) {
     Created(id~, node_id~) =>
       {
         "outcome": "Created",
@@ -228,6 +302,7 @@ pub fn github_comment_outcome_json(
         "nodeId": node_id.to_json(),
       }
     Refused(status~) => { "outcome": "Refused", "status": status.to_json() }
+    Rejected(kind~) => { "outcome": "Rejected", "type": kind.to_json() }
     Unknown => { "outcome": "Unknown" }
   }
   json.stringify()
@@ -240,6 +315,8 @@ fn graphql_issue_name(issue : @catalog.GraphqlResponseIssue) -> Json {
     RateLimited => { "kind": "RateLimited" }
     Errors(kind) => { "kind": "Errors", "type": kind.to_json() }
     RepositoryUnavailable => { "kind": "RepositoryUnavailable" }
+    SubjectUnavailable => { "kind": "SubjectUnavailable" }
+    ForeignSubject => { "kind": "ForeignSubject" }
     WrongType(name) => { "kind": "WrongType", "type": name.to_json() }
     ForeignRepository => { "kind": "ForeignRepository" }
     IdRepresentationChanged => { "kind": "IdRepresentationChanged" }

@@ -386,48 +386,6 @@ test "issue pages exclude pull requests and keep null distinct from omission" {
 }
 
 ///|
-test "comment creation settles only on documented outcomes" {
-  let created = @utf8.encode(
-    "{\"id\":7,\"node_id\":\"IC_7\",\"body\":\"hello\",\"user\":{\"login\":\"octo\"}}",
-  )
-  assert_eq(
-    classify_comment_response(201, headers([]), created, 10000),
-    Created(id=7L, node_id="IC_7"),
-  )
-  for status in [401, 403, 404, 410, 422] {
-    assert_eq(
-      classify_comment_response(status, headers([]), b"{}", 10000),
-      Refused(status~),
-    )
-  }
-  // A lost or ambiguous reply stays unknown: no inference from content.
-  assert_eq(
-    classify_comment_response(201, headers([]), b"{\"id\":7}", 10000),
-    Unknown,
-  )
-  assert_eq(
-    classify_comment_response(201, headers([]), b"not json", 10000),
-    Unknown,
-  )
-  assert_eq(classify_comment_response(201, headers([]), created, 4), Unknown)
-  assert_eq(
-    classify_comment_response(
-      403,
-      headers([("retry-after", "60")]),
-      b"{}",
-      10000,
-    ),
-    Unknown,
-  )
-  assert_eq(classify_comment_response(429, headers([]), b"{}", 10000), Unknown)
-  assert_eq(classify_comment_response(502, headers([]), b"", 10000), Unknown)
-  assert_eq(
-    classify_comment_response(200, headers([]), created, 10000),
-    Unknown,
-  )
-}
-
-///|
 test "non-ASCII query values decode as exact UTF-8, without normalization" {
   let origin = "https://api.github.com"
   let path = "/repos/o/r/issues"
