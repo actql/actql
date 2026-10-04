@@ -165,10 +165,15 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       throw new Error('InferPreparedCallSetUnavailable');
     }
     const inputWire = moon.clientProgramInferPreparedInputWire(set);
-    if (typeof inputWire !== 'string') {
+    const binding = moon.clientProgramInferPreparedCallBinding(set);
+    if (typeof inputWire !== 'string' ||
+        [binding?._0, binding?._1, binding?._2].some(value =>
+          typeof value !== 'string' || value.length === 0)) {
       throw new Error('InferPreparedCallSetUnavailable');
     }
     retainedCallSet = Object.freeze({inputWire, count,
+      binding: Object.freeze({providerId: binding._0, taskCid: binding._1,
+        fixedRequestCid: binding._2}),
       slotWire(index) {
         if (!waiting || closing || reclaimed || !Number.isSafeInteger(index) ||
             index < 0 || index >= count) {
@@ -197,7 +202,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       if ((index + 1) % step === 0) await yieldEventLoop();
     }
     readSignal?.throwIfAborted();
-    return Object.freeze({inputWire: set.inputWire,
+    return Object.freeze({inputWire: set.inputWire, binding: set.binding,
       slotWires: Object.freeze(slotWires)});
   }
 

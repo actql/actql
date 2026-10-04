@@ -411,6 +411,14 @@ pub fn client_program_infer_prepared_call_count(
 }
 
 ///|
+#export_name("clientProgramInferPreparedCallBinding")
+pub fn client_program_infer_prepared_call_binding(
+  set : @model.PreparedModelCallSet,
+) -> (String, String, String)? {
+  @model.prepared_model_call_set_binding(set)
+}
+
+///|
 #export_name("clientProgramInferPreparedInputWire")
 pub fn client_program_infer_prepared_input_wire(
   set : @model.PreparedModelCallSet,

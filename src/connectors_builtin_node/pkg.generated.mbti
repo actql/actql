@@ -653,6 +653,8 @@ pub fn client_program_infer_plan_request_wire(@run_publication_host.ClientInferP
 
 pub fn client_program_infer_prefix_fragment(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[@run_publication_host.ClientTaskFragmentNode, @run_publication_host.ClientTaskFragmentIssue]
 
+pub fn client_program_infer_prepared_call_binding(@model_execution.PreparedModelCallSet) -> (String, String, String)?
+
 pub fn client_program_infer_prepared_call_count(@model_execution.PreparedModelCallSet) -> Int?
 
 pub fn client_program_infer_prepared_call_set(@client_infer_host.Execution) -> @model_execution.PreparedModelCallSet?

@@ -112,6 +112,8 @@ pub fn model_physical_request_plan(ModelRequest, Int64, @physical_resources.Quan
 
 pub fn model_slot_replay_count(ModelSlotReplayRead) -> Int?
 
+pub fn prepared_model_call_set_binding(PreparedModelCallSet) -> (String, String, String)?
+
 pub fn prepared_model_call_set_count(PreparedModelCallSet) -> Int?
 
 pub fn prepared_model_call_set_input(PreparedModelCallSet) -> @run_publication.RunEvidenceValue?

@@ -871,6 +871,25 @@ pub fn prepared_model_call_set_count(set : PreparedModelCallSet) -> Int? {
 }
 
 ///|
+/// These identities come from the retained execution, not a journal request.
+/// They are facts for exact binding and never authorize physical dispatch.
+pub fn prepared_model_call_set_binding(
+  set : PreparedModelCallSet,
+) -> (String, String, String)? {
+  if model_execution_prepared_call_set(set.owner) is None {
+    return None
+  }
+  guard set.owner.state.source is Provider(provider) else { return None }
+  Some(
+    (
+      provider.provider_id,
+      @environment.model_task_identity(set.owner.state.task).2,
+      set.owner.state.fixed_request_cid,
+    ),
+  )
+}
+
+///|
 pub fn prepared_model_call_set_slot(
   set : PreparedModelCallSet,
   index : Int,

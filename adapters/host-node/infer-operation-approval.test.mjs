@@ -31,6 +31,8 @@ function fixture({count = 1, onSlot} = {}) {
     clientProgramInferExecutionPollKind: poll => poll.kind,
     clientProgramInferPreparedCallSet: owner => owner === active ? set : undefined,
     clientProgramInferPreparedCallCount: value => value === set ? count : undefined,
+    clientProgramInferPreparedCallBinding: value => value === set ?
+      {_0: 'models/fixture', _1: 'task-cid', _2: 'request-cid'} : undefined,
     clientProgramInferPreparedInputWire: value => value === set ? 'input' : undefined,
     clientProgramInferPreparedSlotWire: (value, index) => {
       onSlot?.(index);
@@ -85,10 +87,13 @@ test('deferred Model operation waits once and resumes the same owner', async () 
   assert.equal(waiting.kind, 'waiting');
   assert.equal(waiting.callSet.inputWire, 'input');
   assert.equal(waiting.callSet.count, 1);
+  assert.deepEqual(waiting.callSet.binding, {providerId: 'models/fixture',
+    taskCid: 'task-cid', fixedRequestCid: 'request-cid'});
   assert.equal(waiting.callSet.slotWire(0), 'slot');
   assert.equal(operation.preparedCallSet(), waiting.callSet);
   assert.deepEqual(await operation.materializeCallSet({quantum: 1}), {
-    inputWire: 'input', slotWires: ['slot'],
+    inputWire: 'input', binding: {providerId: 'models/fixture',
+      taskCid: 'task-cid', fixedRequestCid: 'request-cid'}, slotWires: ['slot'],
   });
   assert.equal(await operation.run(), waiting);
   assert.deepEqual({starts: calls.starts, advances: calls.advances,
