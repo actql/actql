@@ -144,6 +144,92 @@ fn bounded_family_relation_chain(
 }
 
 ///|
+/// A checked binary Relation task may reuse a private intermediate in two
+/// later steps and join those branches. Keep only this bounded, single-root
+/// shape together; other nonlinear or Carrier paths retain per-edge tasks.
+fn bounded_branched_relation_chain(
+  graph : CheckedDAG,
+  stage : Int,
+  work : Ref[Int],
+) -> Bool raise CarrierWorkStop {
+  let prepared = @lower.bound_preparation(graph.owners[stage])
+  let count = @pipeline.step_count(@lower.pipeline(prepared))
+  guard count >= 3 && @lower.node_at(prepared, 0) is Some(first) else {
+    return false
+  }
+  match @lower.payload(first) {
+    @lower.AppendRows(_) | @lower.SetRows(_) | @lower.CrossJoinRows(_) => ()
+    _ => return false
+  }
+  for result in graph.results {
+    carrier_work(work)
+    if result.task == stage &&
+      @ports.port_target(
+        @execution.managed_result_occurrence_port(result.occurrence),
+      ) !=
+      @pipeline.Step(count - 1) {
+      return false
+    }
+  }
+  // Reserve every bitmap slot before allocating the private reachability array.
+  carrier_work(work, amount=count)
+  let used_by_later = Array::make(count, false)
+  let mut branched = false
+  for step in 0..<count {
+    carrier_work(work)
+    guard @lower.node_at(prepared, step) is Some(node) &&
+      @carrier.kind(@lower.node_output_carrier(node)) == @carrier.RelationKind else {
+      return false
+    }
+    match @lower.payload(node) {
+      @lower.AppendRows(_)
+      | @lower.SetRows(_)
+      | @lower.CrossJoinRows(_)
+      | @lower.Where(_)
+      | @lower.Derive(_)
+      | @lower.Select(_) => ()
+      _ => return false
+    }
+    let mut internal_inputs = 0
+    for port in 0..<@lower.node_input_count(node) {
+      carrier_work(work)
+      guard @lower.node_accepts_managed_relation_view(node, port) &&
+        @lower.node_input_target(node, port) is Some(target) &&
+        @lower.preparation_carrier_at(prepared, target) is Some(carrier) &&
+        @carrier.kind(carrier) == @carrier.RelationKind else {
+        return false
+      }
+      match target {
+        @pipeline.Step(producer) => {
+          if producer < 0 || producer >= step {
+            return false
+          }
+          used_by_later[producer] = true
+          internal_inputs += 1
+          if producer != step - 1 || port > 0 {
+            branched = true
+          }
+        }
+        @pipeline.Input(source) =>
+          if source < 0 || source >= @lower.preparation_input_count(prepared) {
+            return false
+          }
+      }
+    }
+    if step > 0 && internal_inputs == 0 {
+      return false
+    }
+  }
+  for step in 0..<(count - 1) {
+    carrier_work(work)
+    if !used_by_later[step] {
+      return false
+    }
+  }
+  branched
+}
+
+///|
 /// Split a mixed sequence at checked managed read boundaries. A prefix without
 /// standalone providers remains one fused task through its Relation bridge;
 /// later row operations use their own selected tasks.
@@ -257,6 +343,9 @@ fn carrier_segment_prefix_end(
   // The registered family child and bounded row suffix share one chain owner.
   // Carrier-valued inputs and intermediate Result roots still use segmentation.
   if bounded_family_relation_chain(graph, stage, work) {
+    return None
+  }
+  if bounded_branched_relation_chain(graph, stage, work) {
     return None
   }
   let mut found_carrier = false

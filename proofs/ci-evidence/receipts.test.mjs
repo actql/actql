@@ -6,6 +6,8 @@ import {join} from 'node:path';
 import {readCatalog, catalogPath} from './actions.mjs';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {checkApplications} from './applications.mjs';
+import {checkPlan} from './check.mjs';
+import {checkCertificate} from './final.mjs';
 import {actionInputs, hash, sharedFiles} from './inputs.mjs';
 import {sealReceipt, canonicalReceipt, parseReceipt, authenticateOrigin, readOriginReceipt, readOriginReceipts, observationUnits, mutationIds} from './receipts.mjs';
 
@@ -85,6 +87,26 @@ test('canonical immutable receipt binds actual command output and independent ex
 
 test('a completed main origin is authenticated by attempt, job and archive metadata', async () => {
   assert.equal((await authenticateOrigin({receipt: receipt(), artifactId: 6, expected, request: api(), acquisition: 'reused'})).id, 6);
+});
+test('manual receipt keeps its actual trigger and authenticates fresh and protected-main provenance', async () => {
+  const manual = sealReceipt({origin: {...origin, event: 'workflow_dispatch'}, action, inputs: inputs(), output, status: 0, milliseconds: 15});
+  assert.deepEqual(parseReceipt(canonicalReceipt(manual)), manual);
+  const request = api('1'.repeat(64), ({run}) => { run.event = 'workflow_dispatch'; });
+  await authenticateOrigin({receipt: manual, artifactId: 6, expected, request, acquisition: 'reused'});
+  await authenticateOrigin({receipt: manual, artifactId: 6,
+    expected: {...expected, candidateRevision: revision, runHeadRevision: revision, runId: 3, runAttempt: 4}, request, acquisition: 'fresh'});
+  await assert.rejects(authenticateOrigin({receipt: manual, artifactId: 6, expected, request: api(), acquisition: 'reused'}));
+  let runReads = 0;
+  await assert.rejects(authenticateOrigin({receipt: manual, artifactId: 6, expected, acquisition: 'reused',
+    request: async path => {
+      const value = await request(path);
+      if (path === '/actions/runs/3' && ++runReads > 1) value.event = 'push';
+      return value;
+    }}));
+  assert.equal(runReads, 2);
+  const branch = {...manual, origin: {...manual.origin, branch: 'feature'}};
+  await assert.rejects(authenticateOrigin({receipt: branch, artifactId: 6, expected,
+    request: api('1'.repeat(64), ({run}) => { run.event = 'workflow_dispatch'; run.head_branch = 'feature'; }), acquisition: 'reused'}));
 });
 
 for (const [name, mutate] of [
@@ -218,4 +240,46 @@ test('the actual family application path consumes one authenticated archive with
   assert.equal(result.applications.length, 3);
   assert.equal(calls.filter(path => path.includes('/jobs?')).length, 1);
   assert.equal(calls.filter(path => path === '/actions/artifacts/6').length, 1);
+});
+
+for (const event of ['push', 'workflow_dispatch']) test(`authenticated ${event}/main reuse reaches the executed Lean checker and final certificate`, async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-main-application-final-'));
+  t.after(() => rm(directory, {recursive: true}));
+  const archive = join(directory, 'origin.zip'), catalog = readCatalog();
+  catalog.actions = catalog.actions.filter(value => ['model', 'session-js'].includes(value.id));
+  const bundle = metadata => catalog.actions.flatMap(action => {
+    const observation = action.id === 'model' ? 'Checked 14 theorems, expected claim types and axiom dependencies\n' : output;
+    const original = sealReceipt({origin: {...origin, ...metadata}, action, inputs: inputs(action),
+      output: observation, status: 0, milliseconds: 15});
+    return [[`receipts/${action.id}.json`, canonicalReceipt(original)], [`observations/${action.id}.log`, observation]];
+  });
+  const members = bundle({event}), originalBytes = members.find(([path]) => path === 'receipts/session-js.json')[1];
+  const bytes = zip(members);
+  await writeFile(archive, bytes);
+  const request = api(hash(bytes), ({run}) => { run.event = event; });
+  const options = {root: directory, context: expected, runtime: {profile: 'controlled-test-runtime', unresolved: []},
+    protectedRevision: revision, entries: catalog.actions.map(action => ({actionId: action.id, acquisition: 'reused', archive, artifactId: 6})),
+    treeAt: () => sourceTree(catalog), request};
+  let leanOutput, submitted;
+  const produced = await checkApplications({...options, prove: (required, applications, {receiptDigests}) => {
+    submitted = {required, applications, receiptDigests};
+    assert(applications.every(value => value.mainOrigin));
+    return checkPlan(required, applications, {onOutput: value => { leanOutput = Buffer.from(value); }});
+  }});
+  const certificate = {version: 'actql-verification-family-certificate/0.1', mode: 'scoped-execution', context: expected,
+    catalogDigest: hash(encode(catalog)), receiptDigests: submitted.receiptDigests, lean: produced.lean};
+  const verified = await checkApplications({...options, prove: (required, applications, {receiptDigests}) =>
+    checkCertificate({certificate, output: leanOutput, context: expected, catalog, required, applications, receiptDigests})});
+  assert.equal(verified.lean.accepted, true);
+  assert.equal(verified.lean.inputDigest, produced.lean.inputDigest);
+  assert.equal(verified.applications.find(value => value.actionId === 'session-js').originReceiptDigest, hash(originalBytes));
+  assert(canonicalReceipt(parseReceipt(originalBytes)).equals(originalBytes));
+
+  for (const denied of [{event: 'workflow_dispatch', branch: 'feature'}, {event: 'pull_request', branch: 'main'}]) {
+    const invalidBytes = zip(bundle(denied));
+    await writeFile(archive, invalidBytes);
+    await assert.rejects(checkApplications({...options,
+      request: api(hash(invalidBytes), ({run}) => { run.event = denied.event; run.head_branch = denied.branch; })}),
+    /protected main integration/u);
+  }
 });

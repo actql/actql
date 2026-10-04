@@ -203,3 +203,28 @@ test "transfer destination admission owns common bounds and independence" {
     ),
   )
 }
+
+///|
+test "failed transfer completion releases its already acquired Site holding" {
+  // The Site holding precedes common completion. Completion may refuse when
+  // its retained source is no longer available; cleanup must retain custody
+  // through destination reclaim and abort, then release the separate holding.
+  assert_eq(
+    managed_transfer_cleanup_step(
+      false, false, true, false, true, true, false, true, true, false,
+    ).unwrap(),
+    TransferReclaimDestination,
+  )
+  assert_eq(
+    managed_transfer_cleanup_step(
+      false, false, true, false, true, true, true, true, true, false,
+    ).unwrap(),
+    TransferAbortRun,
+  )
+  assert_eq(
+    managed_transfer_cleanup_step(
+      false, false, false, false, true, true, true, true, true, false,
+    ).unwrap(),
+    TransferReleaseSiteHolding,
+  )
+}
