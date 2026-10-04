@@ -137,7 +137,7 @@ test "Graph row DATA alias lowers the existing edge bridge once" {
 test "Graph row source rejects invented selection arguments and Carrier changes" {
   for
     suffix in [
-      "FROM g |> node_rows(definition: 'N') |> SELECT id", "FROM g |> edge_rows(extra: true) |> SELECT id",
+      "FROM g |> node_rows(definition: 'N', label: 'Node') |> SELECT id", "FROM g |> edge_rows(extra: true) |> SELECT id",
       "FROM g |> node_rows() |> edge_rows() |> SELECT id", "FROM n |> node_rows() |> SELECT id",
       "FROM g |> node_rows() |> SELECT missing",
     ] {
