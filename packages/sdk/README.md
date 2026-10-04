@@ -315,6 +315,12 @@ stale revision, changed content or invalid byte boundary. Supplying its optional
 current-input argument validates the same identity/revision/content. Text spans
 are UTF-8 byte intervals; structured values/declarations have revision-bound
 pointers. There is no SDK parser, automatic fix or Host input re-fetch API.
+Nested object/array type failures identify the declared child type and the
+existing binder's path, with JSON pointer escaping for field names. Supplied
+constraint violations can carry that path with their safe generic reason.
+Missing submitted nodes and pointers beyond the public bound have no location;
+invalid defaults never point into supplied values. Values remain in the local
+submitted snapshot, not in public diagnostic facts.
 
 This coordinated correction changes the closed `actql-check-outcome/0.1` schema
 and introduces `actql-check-reason/0.1`. Schema identity, validator and SDK/Host

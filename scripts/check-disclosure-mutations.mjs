@@ -22,7 +22,8 @@ const mutations = [
   ['an unresolved obligation is reported as a violation',
     'if findings\n    .iter()\n    .any(finding => {\n' +
     '      finding\n      is (Violation(_)\n      | SyntaxViolation(_, _)\n' +
-    '      | TypeViolation(_, _, _)\n      | UndeclaredParameter(_, _))\n    }) {\n' +
+    '      | TypeViolation(_, _, _, _)\n      | SuppliedViolation(_)\n' +
+    '      | UndeclaredParameter(_, _))\n    }) {\n' +
     '    "invalid"',
     'if findings.iter().any(finding => !(finding is Limit(_))) {\n' +
     '    "invalid"'],
@@ -38,6 +39,18 @@ const mutations = [
   ['an authored UTF-8 location is shifted by one byte',
     '@encode.number_value(writer, start.to_double())',
     '@encode.number_value(writer, (start + 1).to_double())'],
+  ['a nested supplied pointer escapes slash before tilde',
+    'name.replace_all(old="~", new="~0").replace_all(old="/", new="~1")',
+    'name.replace_all(old="/", new="~1").replace_all(old="~", new="~0")'],
+  ['a nested supplied pointer escapes only the first occurrence',
+    'name.replace_all(old="~", new="~0").replace_all(old="/", new="~1")',
+    'name.replace(old="~", new="~0").replace(old="/", new="~1")'],
+  ['a nested expected type is replaced by the root type',
+    'guard check_type_name(source) is Some(expected) else',
+    'guard check_type_name(root_source) is Some(expected) else'],
+  ['a supplied constraint loses its owned location',
+    'let fallback = SuppliedViolation(pointer)',
+    'let fallback = SuppliedViolation(None)'],
 ];
 
 const strict = id => ({id, operator: 'strictEqual'});
@@ -52,6 +65,14 @@ const targets = [
   ['supplied type violations and missing values expose different typed facts', [strict('missing-value')]],
   ['authored syntax locations retain exact UTF-8 input revisions',
     [strict('syntax-outcome'), deep('syntax-location')]],
+  ['nested supplied type facts follow the submitted contract and path',
+    [strict('nested-outcome'), deep('nested-type')]],
+  ['nested supplied type facts follow the submitted contract and path',
+    [strict('nested-outcome'), deep('nested-type')]],
+  ['nested supplied type facts follow the submitted contract and path',
+    [strict('nested-outcome'), deep('nested-type')]],
+  ['supplied constraint locations retain the binder path without private values',
+    [strict('constraint-outcome'), deep('constraint-location')]],
 ];
 
 // Reuse the common reporter and nonzero-execution evidence. A process failure
