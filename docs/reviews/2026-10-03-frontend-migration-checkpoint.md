@@ -213,6 +213,31 @@ select none, the existing two-profile setting is retained, and an explicit
 empty plural setting is still rejected. Outer/generated driver syntax and
 diff checks pass; no runtime build or extra packed campaign was added.
 
+### Prepared current-main integration and unchanged NO-GO
+
+Normal merge `d8dd3a918294c8f719f1d18e9272bc54f9fca0de` has ordered parents
+`1cab6d28d377080d722974b51dc508b2d26a516c` and main
+`779ef222a165c644ffb9b97090b4d060dc7feeab`. It adopts the latest diagnostic,
+Graph frontend and GitHub connector changes without conflicts. Selected Graph
+fixture and Client scheduling checks pass 18/18 (`run-71PAHm`).
+
+The first actual complete-history check rejects this merge's undeclared
+`package.json` overlap. The separate declaration introduced at
+`e5e250828446a6e8b683cac5676e8d436af9d283` binds the exact parent bytes/modes,
+result bytes and all 41 ancestral package source groups. The same complete
+history validator then succeeds. Existing declarations, supplements and their
+introduction histories are preserved; neither the validator nor gates changed.
+This closes that new integration obligation, separately from product acceptance.
+
+Public #304 remains Draft at `f90ba1b2f3f875becc2e58fe0cc24d30f88b2957`,
+with its recorded packed Graph failure. The prepared integration is not pushed
+solely to repeat the known unresolved Policy failure. No publicly available A
+Result Policy/body implementation has been verified for adoption. The temporary
+Model egress CID selection is still present and must be replaced by A's formal
+common connection. Node/edge Local/HTTPS approval, execution and both-process
+restoration remain unaccepted. Independent expected states, rows, call counts
+and assertion counterexamples are unchanged; no Policy body is fabricated.
+
 ## Historical pure two-Source JSON/text composition checkpoint (2026-10-04)
 
 The packed acceptance adopted main
