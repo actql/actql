@@ -7,6 +7,7 @@ import {execFileSync} from 'node:child_process';
 import {generateKeyPairSync} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, readdir, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
+import {createRequire} from 'node:module';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
 import test, {after} from 'node:test';
@@ -23,6 +24,8 @@ import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {openHttpsExchangeFixture} from
   '../../../site-node/https-exchange-fixture.mjs';
 import {graphqlRoute, issueReads} from './github-graphql.fixture.mjs';
+import {observeTwoSourceProvider} from
+  '../../../../scripts/fixtures/two-source-public-query.mjs';
 // The comment Effect's acceptance runs with the source's.
 import './github-comment-effect.integration.test.mjs';
 import {INSTALLED_GITHUB_SITE_VERSION, INSTALLED_GITHUB_SOURCE_VERSION} from
@@ -77,7 +80,7 @@ const program = JSON.stringify({version: 'actql/0.1', id: 'github-read',
   results: {issues: {from: {stage: 'compute', result: 'r'}}}});
 
 async function installation(t, {faults = [], retainedRelationOutput = false,
-  observe, faultInjection, secondSource = false} = {}) {
+  observe, faultInjection, secondSource = false, mixedSource = false} = {}) {
   // The provider's current state; tests change it after publication while
   // the local Site profile stays fixed.
   const state = {
@@ -133,6 +136,41 @@ async function installation(t, {faults = [], retainedRelationOutput = false,
       accountConfigurationWire: accountConfiguration(
         `github:${new URL(api.origin).host}/octocat/copy`)}));
   }
+  const mixedProfilePath = join(root, 'duckdb-source-profile.json');
+  let duckdb;
+  if (mixedSource) {
+    duckdb = createRequire(join(repository,
+      'adapters/connectors/duckdb/node/package.json'))('@duckdb/node-api');
+    const database = join(root, 'mixed-source.duckdb');
+    const instance = await duckdb.DuckDBInstance.create(database);
+    const connection = await instance.connect();
+    try {
+      await connection.run('CREATE TABLE records(id DOUBLE, amount DOUBLE)');
+      await connection.run('INSERT INTO records VALUES (1, 100), (5, 500)');
+    } finally { connection.closeSync(); instance.closeSync(); }
+    const environment = JSON.parse(await readFile(join(repository,
+      'adapters/host-node/fixtures/two-source/left.environment.json'), 'utf8'));
+    const view = environment.source_views[0];
+    await writeFile(mixedProfilePath, canonicalJson({
+      version: 'actql-installed-duckdb-source/0.1', database,
+      schema: 'main', table: 'records',
+      acquisitionPlanning: {policy: 'priority',
+        priority: ['nativeQuery', 'broadQuery']},
+      sourceRef: environment.schema_snapshots[0].source_ref,
+      queryAliases: [{name: 'mixed_records',
+        sourceRef: environment.schema_snapshots[0].source_ref,
+        sourceViewContractCid: view.contract_cid,
+        schemaContractCid: view.output.schema.cid}],
+      checkEnvironmentWire: canonicalJson(environment),
+      accountConfigurationWire: canonicalJson({
+        version: 'actql-execution-account-config/0.1',
+        account_id: 'mixed-source', entries: [{entry_id: 'read-database',
+          outcome: 'allow', principal: {all: true},
+          connection: {any_of: ['local-database']},
+          resource: {any_of: [database]}, operation: {any_of: ['read']},
+          exclusions: []}]}),
+    }));
+  }
   const hostRoot = join(root, 'state');
   const hostKeys = observe === undefined ? undefined :
     generateKeyPairSync('ed25519');
@@ -162,7 +200,8 @@ async function installation(t, {faults = [], retainedRelationOutput = false,
   const open = async () => {
     const host = await openInstalledRemoteHttpHost({directory: hostRoot,
       authenticate: header => tokens.get(header?.replace(/^Bearer /u, '')),
-      ...(secondSource ? {sourceProfilePaths: [profilePath, secondProfilePath]}
+      ...(secondSource || mixedSource ? {sourceProfilePaths: [profilePath,
+        secondSource ? secondProfilePath : mixedProfilePath]}
         : {sourceProfilePath: profilePath}),
       resolveSourceSecret: secret,
       retainedRelationOutput, authorization: hostAuthorization});
@@ -184,7 +223,7 @@ async function installation(t, {faults = [], retainedRelationOutput = false,
     closers.push(() => client.close());
     return {client, close, host};
   };
-  return {api, state, root, site, sitePath, profile, publish, open,
+  return {api, state, root, site, sitePath, profile, publish, open, duckdb,
     connection};
 }
 
@@ -374,6 +413,81 @@ test('two installed row sources retain a joined public Named Result',
     assert.deepEqual(await attached.result('consumed_a').all(), consumedA);
     assert.deepEqual(await attached.result('consumed_b').all(), consumedB);
     assert.equal(listings(setup.api).length, 3);
+  });
+
+test('GitHub and DuckDB captures share one retained two-source owner',
+  async t => {
+    const observations = [];
+    const setup = await installation(t, {retainedRelationOutput: true,
+      mixedSource: true,
+      observe(name, detail) { observations.push([name, detail]); }});
+    await setup.publish();
+    const provider = observeTwoSourceProvider(setup.duckdb, {mixed:
+      join(setup.root, 'mixed-source.duckdb')});
+    t.after(() => provider.restore());
+    const document = twoRowSourceProgram();
+    document.id = 'github-duckdb-retained-join';
+    document.stages[1].inputs.remote = {connector: 'crm/main', resource: 'r'};
+    document.stages[1].steps = [
+      {filter: 'id >= 0', as: 'open'},
+      {select: ['id', 'amount'], as: 'rows'},
+    ];
+    document.stages[1].results.r.fields = ['id', 'amount'];
+    document.stages[2].steps[0].join.on = [{left: 'number', right: 'id'}];
+    document.stages[2].steps[0].join.select = {
+      number: 'left.number', left_title: 'left.title',
+      amount: 'right.amount',
+    };
+    document.stages[2].results.r.fields = ['number', 'left_title', 'amount'];
+    document.stages[4].steps[0].select = ['number', 'amount'];
+    document.stages[4].results.r.fields = ['number', 'amount'];
+    const wire = JSON.stringify(document);
+    const {client, close} = await setup.open();
+    const run = await client.aql(wire, {format: 'json',
+      requestId: 'github-duckdb-retained-join'});
+    const state = await run.wait();
+    assert.equal(state.status, 'succeeded', JSON.stringify(state));
+    const joined = [{number: 1, left_title: 'Issue 1', amount: 100},
+      {number: 5, left_title: 'Issue 5', amount: 500}];
+    assert.deepEqual(await run.result('joined').all(), joined);
+    assert.deepEqual(await run.result('consumed_a').all(),
+      [{number: 1, left_title: 'Issue 1'},
+        {number: 5, left_title: 'Issue 5'}]);
+    assert.deepEqual(await run.result('consumed_b').all(),
+      [{number: 1, amount: 100}, {number: 5, amount: 500}]);
+    assert.equal(observations.filter(([name]) =>
+      name === 'acquisition_completed').length, 2);
+    assertAcquisitionReleased(observations);
+    const providerReads = provider.snapshot().sourceReads;
+    assert.ok(providerReads > 0, 'the selected DuckDB source performed physical I/O');
+    const reads = listings(setup.api).length;
+    assert.equal(reads, 2);
+    const resent = await client.aql(wire, {format: 'json',
+      requestId: 'github-duckdb-retained-join'});
+    assert.deepEqual(resent.ref, run.ref);
+    assert.equal(listings(setup.api).length, reads);
+    assert.equal(provider.snapshot().sourceReads, providerReads);
+    const reversed = structuredClone(document);
+    reversed.id = 'duckdb-github-retained-join';
+    [reversed.stages[0], reversed.stages[1]] =
+      [reversed.stages[1], reversed.stages[0]];
+    const reverseRun = await client.aql(JSON.stringify(reversed),
+      {format: 'json', requestId: 'duckdb-github-retained-join'});
+    const reverseState = await reverseRun.wait();
+    assert.equal(reverseState.status, 'succeeded', JSON.stringify(reverseState));
+    assert.deepEqual(await reverseRun.result('joined').all(), joined);
+    const reverseReads = provider.snapshot().sourceReads;
+    assert.ok(reverseReads > providerReads);
+    assert.equal(listings(setup.api).length, reads + 2);
+    await client.close();
+    await close();
+    const reopened = await setup.open();
+    const attached = await reopened.client.attach(run.ref);
+    assert.deepEqual(await attached.result('joined').all(), joined);
+    const reverseAttached = await reopened.client.attach(reverseRun.ref);
+    assert.deepEqual(await reverseAttached.result('joined').all(), joined);
+    assert.equal(listings(setup.api).length, reads + 2);
+    assert.equal(provider.snapshot().sourceReads, reverseReads);
   });
 
 test('a failed second row source preserves first-input cleanup without publication',

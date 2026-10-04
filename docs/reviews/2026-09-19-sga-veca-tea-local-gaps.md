@@ -36,9 +36,12 @@ and reads them again after Host reopen without provider I/O. Later-source
 failure, cancellation after the first capture, and a failed cleanup followed
 by retry leave no partial Result or lost holding and do not reacquire a source.
 The existing two-DuckDB-source retained route remains covered separately.
-This is evidence for the installed GitHub row-source pair and shared two-input
-owner, not all provider combinations, all Join variants, or exact/one-short
-physical limits for the row capture.
+The same public HTTPS fixture now combines a GitHub row source and a DuckDB
+source in both Program acquisition orders. Each run reads its independent
+expected Join rows from the real retained Store, and resend and reopened-Host
+attach do not reacquire either provider. This is evidence for those installed
+source pairs and the shared two-input owner, not every provider combination,
+every Join variant, or exact/one-short physical limits for the row capture.
 
 The installed full-family Host now declares TEA and VecA to the common checker,
 matching its already registered bounded providers. This does not make a
