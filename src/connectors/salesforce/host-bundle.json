@@ -13,6 +13,16 @@
         "publish": "publishInstalledSalesforceSource",
         "load": "loadInstalledSalesforceSource"
       }
+    },
+    "effect": {
+      "profileVersion": "actql-installed-salesforce-effect/0.1",
+      "module": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
+      "exports": {
+        "check": "checkInstalledSalesforceEffectInstallation",
+        "identityParts": "installedSalesforceEffectIdentityParts",
+        "publish": "publishInstalledSalesforceEffectInstallation",
+        "load": "loadInstalledSalesforceEffectInstallation"
+      }
     }
   }
 }
