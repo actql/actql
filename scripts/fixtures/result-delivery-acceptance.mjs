@@ -113,7 +113,7 @@ function fixture(api, control, options = {}) {
     authorizeResultReadRequest: () => true,
     admitResultRead: () => ({authorizationContextCid: cid('2'), dataCeilingCid: cid('a'),
       egressAdmissionCid: cid('3'), expiresAt: '2026-10-02T00:00:00.000Z',
-      maxBytes: 1024, maxUses: 1}),
+      maxBytes: options.maxBytes ?? 1024, maxUses: 1}),
     authorizeResultRead(facts) {
       state.authorizations.push(facts.delivery);
       return state.allowed;

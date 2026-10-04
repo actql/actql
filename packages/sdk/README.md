@@ -58,6 +58,14 @@ Result or serialization contract, and invalid record/receipt combinations.
 A release receipt never proves that the Client
 received or saved every value. A reader reaches `complete` only after the
 normal wire terminator; values yielded before a failure are a prefix.
+`rowsYielded()` counts complete rows returned to that reader's caller. For
+`batches()` it counts rows in batches already yielded, excluding a pending
+batch. Read-stream errors retain the same `attemptId` and `rowsYielded`; these
+errors from `all()`, `one()` or `scalar()` report zero because the call returns
+no values.
+The count proves neither Run completion nor Client persistence. A fresh read
+has a new attempt ID and starts from the beginning; no retry or append occurs
+automatically.
 An empty JSONL record fails the attempt instead of silently omitting a row.
 
 `await result.describe({format: 'jsonl'})` returns the confirmed Result's
