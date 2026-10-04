@@ -208,6 +208,8 @@ pub fn default_read_mode(SourceViewModes) -> SourceReadMode
 
 pub fn emit(WireEnvironment, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn emit_host_policy(WireEnvironment, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn emit_member(Member, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_model_prompt_payload(ModelDependency, @encode_core.Writer) -> Bool raise @encode_core.EncodeFailure

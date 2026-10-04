@@ -4,10 +4,10 @@ export {checkReasonSchemaCid} from './client-host.generated.js';
 import {validDeliveryAttempt, validDeliveryRecord,
   validHostReleaseReceipt} from './publication.generated.js';
 import {clientHostOperations, clientHostRequestKeys,
-  validAdmissionShape, validCancellationShape, validCheckpointReviewShape,
+  validProfileContract, validAdmissionContract, validCancellationShape, validCheckpointReviewShape,
   validCheckpointSummaryShape, validConnectionShape, validHeldShape,
   validLookupFoundShape, validLookupNotFoundShape, validLookupUnknownShape,
-  validProfileShape, validRequestCancellationShape, validResultDescriptionShape, validResolveItemShape,
+  validRequestCancellationShape, validResultDescriptionShape, validResolveItemShape,
   validResolveResultShape, validResourceInspectionShape,
   validResourceListingShape, validResourcePeekShape,
   validRunRefShape, validRunStateShape, validCheckOutcomeShape,
@@ -142,20 +142,7 @@ export function validSubmitPreparationError(value) {
   return validSubmitPreparationErrorShape(value);
 }
 
-export function validClientConnection(value) {
-  if (!validConnectionShape(value) ||
-      !(value.mode === 'remote' && value.owner === 'remote' ||
-        value.mode === 'local' && value.owner === 'local' ||
-        value.mode === 'hybrid' && ['local', 'cloud'].includes(value.owner))) return false;
-  if (value.mode === 'hybrid') {
-    if (!boundedText(value.movementPolicyRef)) return false;
-    return value.owner === 'local'
-      ? boundedText(value.cloudConnectionRef)
-      : value.cloudConnectionRef === undefined && value.runners.length > 0;
-  }
-  return value.movementPolicyRef === undefined &&
-    value.cloudConnectionRef === undefined && value.runners.length === 0;
-}
+export const validClientConnection = validConnectionShape;
 
 export function validClientBody(operation, body) {
   const bodyKeys = clientHostRequestKeys(operation);
@@ -260,18 +247,8 @@ export function validClientBody(operation, body) {
 
 // Structural Host replies bind connection and request identity without
 // deciding Run admission, authorization, retry or state transitions.
-export function validClientProfile(value, selected) {
-  return validClientConnection(selected) &&
-    validProfileShape(value) &&
-    value.mode === selected.mode && value.owner === selected.owner &&
-    !(selected.durability === 'durable' && value.durability !== 'durable');
-}
-
-export function validClientAdmission(value, selected) {
-  return validClientConnection(selected) &&
-    validAdmissionShape(value) &&
-    !(selected.durability === 'durable' && value.durability !== 'durable');
-}
+export const validClientProfile = validProfileContract;
+export const validClientAdmission = validAdmissionContract;
 
 // A request the Host holds before any Run exists: waiting on a
 // `prepare_attempt` Checkpoint, resuming after an approval, or ended without

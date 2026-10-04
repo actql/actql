@@ -199,6 +199,22 @@ fn graph_read_node_key_component(
 }
 
 ///|
+fn graph_read_edge_key_component(
+  source : GraphReadSource,
+  edge : Int,
+  component : Int,
+) -> @value.CheckedValue? {
+  match source {
+    Stored(read) =>
+      @graph.producer_read_storage(read).bind(storage => {
+        @storage.edge_typed_key_at(storage, edge, component)
+      })
+    Viewed(view) =>
+      @lifecycle.producer_view_edge_key(view, edge, component).to_option()
+  }
+}
+
+///|
 fn property_match_field_index(
   prepared : @lower.PreparedGraphMatch,
   field : @schema.FieldName,

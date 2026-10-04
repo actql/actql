@@ -21,6 +21,10 @@ function fixture(states = [], publication = aliases) {
       assert.equal(value, environment); return environmentCid;
     },
     clientProgramCheckCompilerIdentity: () => '{"compiler":"fixture"}',
+    clientProgramCheckContextIdentity: value => {
+      assert.equal(value, environment);
+      return '{"host_policy_profile":{},"model_task_contract_cids":[],"profiles":{}}';
+    },
     clientProgramCheckUnavailable: correlation_ref => JSON.stringify({
       version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid, outcome: 'unavailable',
       problem: {code: 'check_unavailable'}, correlation_ref}),
@@ -79,13 +83,14 @@ test('composition: each source uses its own decision in either order', async () 
   }
 });
 
-test('composition: unusable owners withhold only an unestablishable whole context', async () => {
+test('composition: unusable read owners hide only their own names', async () => {
   for (const states of [[{index: 0, action: 'throw'}],
     [{index: 0, action: 'throw'}, {index: 1, action: 'throw'}]]) {
     for (const publication of [[], aliases]) {
       const f = fixture(states, publication);
-      assert.equal((await f.check(request())).outcome, 'unavailable');
-      assert.equal(f.checked.length, 0);
+      assert.deepEqual(await f.check(request()), await fixture([], []).check(request()));
+      assert.equal(f.checked.length, 1);
+      assert.deepEqual(f.visible(), []);
       assert.deepEqual(f.calls, states.map(state => state.index));
     }
   }
@@ -127,15 +132,16 @@ test('composition: abort propagates without consulting later owners or checking'
 });
 
 
-test('composition: only applicable read owners determine whole-context unavailability', async () => {
+test('composition: missing read tuples and failed read owners preserve checking', async () => {
   const absentTuple = {index: 0, action: 'throw', noReadTuple: true};
   const none = fixture([absentTuple]);
   assert.equal((await none.check(request())).outcome, 'completed');
   assert.deepEqual(none.calls, []);
   assert.deepEqual(none.visible(), []);
-  const unavailable = fixture([absentTuple, {index: 1, action: 'throw'}]);
-  assert.equal((await unavailable.check(request())).outcome, 'unavailable');
-  assert.deepEqual(unavailable.calls, [1]);
+  const failedOwner = fixture([absentTuple, {index: 1, action: 'throw'}]);
+  assert.deepEqual(await failedOwner.check(request()), await none.check(request()));
+  assert.deepEqual(failedOwner.calls, [1]);
+  assert.deepEqual(failedOwner.visible(), []);
 });
 
 // Fixed HMAC vectors derived independently with Python's JSON serialization
@@ -146,12 +152,12 @@ test('composition: exact Unicode source and received-input fallback have fixed r
   async () => {
     const texts = ["SELECT 'caf\u00e9' AS label", "SELECT 'cafe\u0301' AS label"];
     const vectors = [{parameterDeclarations: undefined, refs: [
-      'ctx:3c5e6603eb3b87ee838bf1bca6e4a56005b8feabb4fde3402cc23ab42969dc76',
-      'ctx:e4e2e35678dee036e9703a639a4b23a39f909d871f39fd4bee83f7c348978051',
+      'ctx:5a15632c1c22741da23b342023a8c9c7423586ff9faef931b60e8f1ae86b16a4',
+      'ctx:2ca093b515e22a4a3d18c4b7bca508a178a2dbc817577fb311e6419fd6ba7637',
     ]}, {parameterDeclarations: {'\u00e9': {type: 'string'}, 'e\u0301': {type: 'string'}},
       refs: [
-        'ctx:df61e9db969af9f212256a4a538625b27cf772f151f2f85c6f67d9e71700e451',
-        'ctx:0431078ee43d7614b9e60df27c00279ff917a08e455ec88833ef8fe7e32baec8',
+        'ctx:0faf1bbbc25e1c002548f59cf87256383d0c1fd84435b902e5d8aa652ba988e2',
+        'ctx:b53208caee12a293841b62a0acb8877619810519f5e9e7781f4801cef04b8bfb',
       ]}];
     const f = fixture([], []);
     for (const {parameterDeclarations, refs} of vectors) {

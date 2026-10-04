@@ -610,9 +610,28 @@ Document IDs (`source`, `parameter_declarations`, `parameters`) are roles within
 one report, not private file paths. Each Host issues a keyed, domain-separated
 revision over that role's exact bytes. These revisions are not public content
 hashes, authorization grants or retrieval references. `context_ref` additionally
-binds audience, disclosure policy, compiler, environment, requested scope,
-visible Source set and bindings. Changing authority or checking context can
+binds audience, disclosure policy, compiler, requested scope, admitted public
+Host policy and checker profile selections, installed ModelTask contract CIDs,
+visible Source contracts and bindings. The full private Environment CID still
+binds internal publication ownership and Source authorization, but is excluded
+from the public reference preimage. Adding or changing a hidden Source cannot
+distinguish its presence through this reference. Changing authority, visible
+Source contracts, policy or checker selections can
 change `context_ref` without changing the same input revision.
+
+Public Local and HTTPS ingress authenticate and authorize each check before
+invoking its installed checker. A Source read-decision owner only controls its
+own names' disclosure. Missing read tuples, denied or undecided decisions, and
+non-abort exceptions from that owner all hide those names before checking;
+their number cannot revoke the admitted whole check binding. With that binding,
+the common checker returns a completed report containing independent safe
+violations and the public unresolved coverage boundary for protected resolution.
+Required bound values remain missing-value limits and typed Requirements.
+Caller aborts still propagate, and connection authorization failures still
+refuse the operation before checking. The common `unavailable` outcome remains
+reserved for an unestablishable whole audience-bound context; a count of failed
+Source read owners is not evidence of that condition. This changes neither
+the closed outcome schema nor its identity, and adds no input persistence.
 
 The SDK detaches structured caller input synchronously before awaiting credentials
 or transport, and retains immutable input snapshots in a weak association with
@@ -669,6 +688,12 @@ JSON pointer tokens escape `~` before `/`, retaining exact field spelling and
 array indices. A missing submitted node or a pointer exceeding 4,096 UTF-16
 code units has no public location; paths are never truncated or fabricated.
 Default-origin failures do not acquire a supplied-document location.
+Declaration admission failures can carry a reader-owned pointer in the submitted
+`parameter_declarations` document, including an invalid default, type member or
+metadata member. The pointer must resolve to an admitted submitted node; a missing
+member is omitted rather than invented. An admitted empty declaration map has the
+known root pointer `""`. Admission budgets and internal failures remain separate
+from declaration violations and do not receive a violation location.
 A missing value is a Requirement for bound-input checking, not a diagnostic or
 verified template report. Its declaration pointer/revision identifies the full
 submitted admission contract, including constraints; supplying a value requires

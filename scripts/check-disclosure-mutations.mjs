@@ -24,6 +24,7 @@ const mutations = [
     '      finding\n      is (Violation(_)\n      | SyntaxViolation(_, _)\n' +
     '      | QueryViolation(_, _)\n' +
     '      | TypeViolation(_, _, _, _)\n      | SuppliedViolation(_)\n' +
+    '      | DeclarationViolation(_)\n' +
     '      | ConstraintViolation(_, _, _)\n' +
     '      | UndeclaredParameter(_, _))\n    }) {\n' +
     '    "invalid"',
@@ -67,6 +68,12 @@ const mutations = [
   ['an unresolved column starts one byte after its authored token',
     '        @source_origin.start(origin).byte_offset,',
     '        @source_origin.start(origin).byte_offset + 1,'],
+  ['an invalid declaration loses its owned location',
+    'findings.push(DeclarationViolation(pointer))',
+    'findings.push(DeclarationViolation(None))'],
+  ['an invalid declaration points at the root instead of its failing member',
+    'writer, "parameter_declarations", revision, pointer,',
+    'writer, "parameter_declarations", revision, "",'],
 ];
 
 const strict = id => ({id, operator: 'strictEqual'});
@@ -97,6 +104,10 @@ const targets = [
     [strict('column-outcome'), strict('column-verdict'), deep('column-location')]],
   ['unresolved column expressions retain authored source positions',
     [strict('column-outcome'), strict('column-verdict'), deep('column-location')]],
+  ['invalid declarations retain only their owned submitted locations',
+    [strict('declaration-outcome'), deep('declaration-location')]],
+  ['invalid declarations retain only their owned submitted locations',
+    [strict('declaration-outcome'), deep('declaration-location')]],
 ];
 
 // Reuse the common reporter and nonzero-execution evidence. A process failure

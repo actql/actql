@@ -11,7 +11,8 @@ import {connect as connectRemote} from '../../packages/sdk/index.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {installPlannerSelectionFixture, exercisePlannerSelectionPublicQuery,
-  plannerSelectionPlanningFor} from '../../scripts/fixtures/planner-selection-public-query.mjs';
+  exerciseRetainedPlannerPublicQuery, plannerSelectionPlanningFor} from
+  '../../scripts/fixtures/planner-selection-public-query.mjs';
 
 const repository = fileURLToPath(new URL('../../', import.meta.url));
 const duckdb = createRequire(new URL('../connectors/duckdb/node/package.json', import.meta.url))('@duckdb/node-api');
@@ -42,5 +43,19 @@ test('public Local/HTTPS route the same Program through the common acquisition c
       await writeFile(resolve(root, 'planner-selection-report.json'),
         JSON.stringify({status: 'passed', cases: observations.length, observations}, null, 2) + '\n');
     } finally { setDefaultCACertificates(originalCAs); }
+    scratch.passed();
+  });
+
+test('public Local selects retained output for an acquired Relation',
+  {timeout: 180_000}, async () => {
+    const scratch = await createOwnedScratch({parent: resolve(repository, '_build'),
+      prefix: 'retained-planner-', label: 'retained public acquisition',
+      digests: () => []});
+    const root = scratch.path;
+    const environment = JSON.parse(await readFile(new URL(
+      './fixtures/two-source/left.environment.json', import.meta.url), 'utf8'));
+    const installation = await installPlannerSelectionFixture({root, duckdb,
+      environment, acquisitionPlanningFor: plannerSelectionPlanningFor});
+    await exerciseRetainedPlannerPublicQuery({connect, root, installation});
     scratch.passed();
   });

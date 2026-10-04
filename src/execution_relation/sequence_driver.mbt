@@ -904,6 +904,7 @@ fn[T : RelationRows] run_sequence_steps(
     let result = match @lower.sequence_step(sequence, i).unwrap() {
       @lower.ValuesStep(_) => import_values(i)
       @lower.TimeSeriesStep(_) => return Err(InputSet)
+      @lower.GraphEqualityStep(_) => return Err(InputSet)
       @lower.WindowStep(window) => {
         let route = store.wiring.routes[i]
         guard route.length() == 1 &&
@@ -995,6 +996,7 @@ fn[T : RelationRows] run_sequence_steps(
       @lower.GraphMatchStep(_) => return Err(InputSet)
       @lower.GraphTraverseStep(_) => return Err(InputSet)
       @lower.GraphDiagnosticStep(_) => return Err(InputSet)
+      @lower.GraphNormalizeStep(_) => return Err(InputSet)
       @lower.PropertyGraphConstructionStep(_) => return Err(InputSet)
       @lower.VectorStep(_) => return Err(InputSet)
       @lower.EventStep(_) => return Err(InputSet)

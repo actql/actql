@@ -13,6 +13,11 @@ export const installedConnectors = Object.freeze([
       load: () => import("../connectors/github/host/installed-github-source.mjs")
         .then(module => Object.freeze({check: module.checkInstalledGitHubSourceProfile, identityParts: module.installedGitHubSourceIdentityParts, publish: module.publishInstalledGitHubSource, load: module.loadInstalledGitHubSource})),
     }),
+    effect: Object.freeze({
+      profileVersion: "actql-installed-github-effect/0.1",
+      load: () => import("../connectors/github/host/installed-github-effect.mjs")
+        .then(module => Object.freeze({check: module.checkInstalledGitHubEffectProfile, identityParts: module.installedGitHubEffectIdentityParts, publish: module.publishInstalledGitHubEffect, load: module.loadInstalledGitHubEffect})),
+    }),
   }),
   Object.freeze({
     name: "salesforce", registration: "salesforce",

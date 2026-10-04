@@ -231,15 +231,19 @@ pub fn append_with_properties(
 
 ///|
 /// Resolve a closed frontend macro before its element reference is lowered.
-/// Other callers retain the ordinary scalar-function vocabulary above.
+/// A caller with object-bearing columns can also enable prefix resolution;
+/// macro arguments still resolve before ordinary references in the same tree.
 pub fn append_with_macros(
   ast : @query.Expression,
   resolve : (Array[@query.NamePart]) -> String?,
   resolve_macro : (Array[@query.NamePart], Array[@query.NamePart]) -> MacroValue?,
   builder : @builder.Builder,
   max_work : Int,
+  resolve_properties? : Bool = false,
 ) -> Result[@builder.Node, Diagnostic] {
-  append_resolved(ast, resolve, resolve_macro, builder, max_work, false)
+  append_resolved(
+    ast, resolve, resolve_macro, builder, max_work, resolve_properties,
+  )
 }
 
 ///|

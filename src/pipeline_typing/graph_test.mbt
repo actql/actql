@@ -337,7 +337,6 @@ test "unconnected current Graph consumers cannot manufacture a legacy checked pi
     "\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]}"
   for
     (name, body) in [
-      ("normalize_graph", "true"),
       (
         "reach",
         "{\"start\":{\"ids\":[" +
@@ -353,7 +352,6 @@ test "unconnected current Graph consumers cannot manufacture a legacy checked pi
         "]},\"direction\":\"out\",\"max_hops\":1}",
       ),
       ("subgraph", "{\"nodes\":{\"where\":\"active\"},\"edges\":\"active\"}"),
-      ("graphs_equal", "{\"with\":\"peer\"}"),
       ("graph_diff", "{\"with\":\"peer\"}"),
       ("graft_graph", "{\"with\":\"peer\"}"),
       ("subtract_graphs", "{\"with\":\"peer\"}"),
