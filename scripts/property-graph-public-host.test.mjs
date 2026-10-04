@@ -408,7 +408,7 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
     t.after(() => client.close());
     if (profile === 'selector-derive') {
       for (const [selector,projection,empty] of [
-        ['definition','node_rows',false], ['definition','edge_rows',true],
+        ['definition','node_rows',false], ['definition','edge_rows',false], ['definition','edge_rows',true],
         ['label','node_rows',true], ['label','node_rows',false], ['label','edge_rows',false],
         ['fixture','node_rows',false],
       ]) {
