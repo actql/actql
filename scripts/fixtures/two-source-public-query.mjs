@@ -145,12 +145,15 @@ export function expectedTwoSourceResults(fixture, variant) {
 }
 
 export async function openTwoSourcePublicHost({connect, openInstalledRemoteHttpHost,
-  mode, directory, sourceProfilePaths, tls, authorization}) {
+  mode, directory, sourceProfilePaths, tls, authorization,
+  retainedRelationOutput = false}) {
   let host, server;
   let options = {mode: 'local', owner: 'local', durability: 'durable',
-    installation: {directory, sourceProfilePaths, ...(authorization === undefined ? {} : {authorization})}};
+    installation: {directory, sourceProfilePaths, retainedRelationOutput,
+      ...(authorization === undefined ? {} : {authorization})}};
   if (mode === 'https') {
     host = await openInstalledRemoteHttpHost({directory, sourceProfilePaths, authorization,
+      retainedRelationOutput,
       authenticate: header => header === 'Bearer fixture-token' ? userInfo().username : undefined});
     server = createServer(tls, host.handler);
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));

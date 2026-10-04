@@ -25,6 +25,7 @@ const mutations = [
     '      | LexicalViolation(_, _)\n' +
     '      | ExpressionViolation(_, _)\n' +
     '      | TypeViolation(_, _, _, _)\n      | SuppliedViolation(_)\n' +
+    '      | DeclarationViolation(_)\n' +
     '      | ConstraintViolation(_, _, _)\n' +
     '      | UndeclaredParameter(_, _))\n    }) {\n' +
     '    "invalid"',
@@ -76,6 +77,12 @@ const mutations = [
   ['a lexical violation loses its typed explanation',
     'LexicalViolation(_, _) => Some("query_lexical_invalid")',
     'LexicalViolation(_, _) => Some("query_syntax_invalid")'],
+  ['an invalid declaration loses its owned location',
+    'findings.push(DeclarationViolation(pointer))',
+    'findings.push(DeclarationViolation(None))'],
+  ['an invalid declaration points at the root instead of its failing member',
+    'writer, "parameter_declarations", revision, pointer,',
+    'writer, "parameter_declarations", revision, "",'],
   ['an expression lowerer budget is reported as invalid input',
     '        ) => findings.push(Limit("analysis_budget_exhausted"))\n' +
     '        // Other failures of generated construction/admission and invalid',
@@ -146,6 +153,10 @@ const targets = [
   ...Array.from({length: 3}, () =>
     ['typed lexical explanations retain the submitted token position',
       [strict('lexical-outcome'), strict('lexical-verdict'), deep('lexical-reason')]]),
+  ['invalid declarations retain only their owned submitted locations',
+    [strict('declaration-outcome'), deep('declaration-location')]],
+  ['invalid declarations retain only their owned submitted locations',
+    [strict('declaration-outcome'), deep('declaration-location')]],
   ['expression construction limits remain undetermined', [strict('expression-budget-verdict')]],
   ['expression construction limits remain undetermined', [strict('expression-budget-outcome')]],
   ['expression construction limits remain undetermined', [strict('expression-budget-verdict')]],

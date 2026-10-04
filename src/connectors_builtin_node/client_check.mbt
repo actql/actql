@@ -12,6 +12,7 @@ priv enum CheckFinding {
   ExpressionViolation(String, (Int, Int)?)
   TypeViolation(String, String, String, String?)
   SuppliedViolation(String?)
+  DeclarationViolation(String?)
   ConstraintViolation(String, String, String?)
   UndeclaredParameter(String, (Int, Int)?)
   RequiredValue(String, String)
@@ -129,7 +130,7 @@ fn check_source_findings(
     Some(body) =>
       match check_declarations(body) {
         Ok(_) => ()
-        Err(Budget) => {
+        Err({ kind: Budget, .. }) => {
           findings.push(Limit("analysis_budget_exhausted"))
           // Declarations are unavailable, but syntax is independent of them.
           // Reuse the frontend's bounded parser without inventing a context
@@ -145,11 +146,11 @@ fn check_source_findings(
           }
           return Report
         }
-        Err(Invalid) => {
-          findings.push(Violation("parameter_declarations_invalid"))
+        Err({ kind: Invalid, pointer, }) => {
+          findings.push(DeclarationViolation(pointer))
           return Report
         }
-        Err(Internal) => return Failed("check_internal")
+        Err({ kind: Internal, .. }) => return Failed("check_internal")
       }
     None => ()
   }
@@ -347,6 +348,7 @@ fn check_source_findings(
       | ExpressionViolation(_, _)
       | TypeViolation(_, _, _, _)
       | SuppliedViolation(_)
+      | DeclarationViolation(_)
       | ConstraintViolation(_, _, _)
       | UndeclaredParameter(_, _))
     }) {
@@ -445,11 +447,18 @@ fn check_binding_fault(issue : @parameter_binding.Issue) -> CheckInputFault {
 }
 
 ///|
+/// Keep admission classification separate from an owned declaration location.
+priv struct CheckDeclarationFault {
+  kind : CheckInputFault
+  pointer : String?
+}
+
+///|
 /// Admit the caller's declaration document with the limits of source
 /// preparation, keeping budget and violation apart.
 fn check_declarations(
   body : String,
-) -> Result[@parameter_binding.Declarations, CheckInputFault] {
+) -> Result[@parameter_binding.Declarations, CheckDeclarationFault] {
   let node = match
     @source.parse_json_bytes(@utf8.encode(body), {
       max_input_bytes: 1048576,
@@ -458,7 +467,14 @@ fn check_declarations(
     }) {
     Ok(node) => node
     Err({ issue, .. }) =>
-      return Err(if check_parse_budget(issue) { Budget } else { Invalid })
+      return Err({
+        kind: if check_parse_budget(issue) {
+          Budget
+        } else {
+          Invalid
+        },
+        pointer: None,
+      })
   }
   let cursor = match
     @decode.admit(node, {
@@ -468,7 +484,8 @@ fn check_declarations(
       max_total_string_bytes: 1048576,
     }) {
     Ok(cursor) => cursor
-    Err(issue) => return Err(check_decode_fault(issue))
+    Err(issue) =>
+      return Err({ kind: check_decode_fault(issue), pointer: None, })
   }
   match
     @parameter_binding.read_declarations(Some(cursor), {
@@ -478,7 +495,28 @@ fn check_declarations(
       max_text_bytes: 65536,
     }) {
     Ok(declared) => Ok(declared)
-    Err(issue) => Err(check_binding_fault(issue))
+    Err(issue) => {
+      let kind = check_binding_fault(issue)
+      let path = match issue {
+        Decode({ path, .. })
+        | Contract(Decode({ path, .. }))
+        | Value(Decode({ path, .. })) => Some(path)
+        Contract(ContractIssue(_, path~, ..))
+        | Value(ValueIssue(_, path~, ..))
+        | ParameterIssue(_, path~, ..) => Some(path)
+        _ => None
+      }
+      // The declaration reader owns these paths. A missing member or an
+      // unadmitted node cannot acquire a location in the submitted document.
+      let pointer = if kind is Invalid &&
+        path is Some(path) &&
+        check_supplied_cursor(cursor, path) is Some(_) {
+        check_supplied_pointer(path)
+      } else {
+        None
+      }
+      Err({ kind, pointer, })
+    }
   }
 }
 
@@ -495,6 +533,7 @@ fn check_verdict(findings : Array[CheckFinding]) -> String {
       | ExpressionViolation(_, _)
       | TypeViolation(_, _, _, _)
       | SuppliedViolation(_)
+      | DeclarationViolation(_)
       | ConstraintViolation(_, _, _)
       | UndeclaredParameter(_, _))
     }) {
@@ -538,6 +577,7 @@ fn write_check_report(
       ExpressionViolation(_, _) => Some("query_expression_invalid")
       TypeViolation(_, _, _, _) => Some("supplied_value_type_mismatch")
       SuppliedViolation(_) => Some("supplied_value_invalid")
+      DeclarationViolation(_) => Some("parameter_declarations_invalid")
       ConstraintViolation(_, _, _) =>
         Some("supplied_value_constraint_violation")
       UndeclaredParameter(_, _) => Some("parameter_undeclared")
@@ -707,6 +747,17 @@ fn write_check_report(
               writer, "parameters", revision, pointer,
             )
           }
+          break
+        }
+      }
+    }
+    if code == "parameter_declarations_invalid" {
+      for finding in findings {
+        if finding is DeclarationViolation(Some(pointer)) &&
+          documents.declarations_revision is Some(revision) {
+          write_check_structured_location(
+            writer, "parameter_declarations", revision, pointer,
+          )
           break
         }
       }

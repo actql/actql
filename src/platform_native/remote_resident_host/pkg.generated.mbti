@@ -5,8 +5,10 @@ import {
   "actql/actql/client_local_host",
   "actql/actql/connectors/duckdb/adapters/native",
   "actql/actql/connectors/duckdb/host_native",
+  "actql/actql/connectors/duckdb/standard_host",
   "actql/actql/execution_site",
   "actql/actql/physical_resources",
+  "actql/actql/physical_strategy",
   "actql/actql/pipeline_check_context",
   "actql/actql/platform_native/http_client",
   "actql/actql/platform_native/publication_store",
@@ -33,6 +35,8 @@ pub fn complete_resident_output_intent(@remote_journal.Journal, @publication_pay
 pub fn deliver_resident_output(ResidentExecuted, @remote_journal.Journal, String, String, Int, @remote_site_protocol.RemotePollOutput, @publication_store.Store, @http_client.Client, @remote_transfer_journal.Journal, String, String, Int, (String) -> Unit) -> ResidentDelivery
 
 pub fn execute_resident_attempt(@remote_journal.Journal, ResidentExecution, ResidentRunAdmission, String, String, () -> String, ((String) -> Bool)?) -> Result[ResidentExecuted, ResidentExecutionFailure]
+
+pub fn open_resident_source_compute(@run_publication_host.PreparedClientProgram, ResidentSourceComputeConfiguration, String, observe? : (ResidentSourceComputeEvent) -> Bool) -> Result[ResidentSourceCompute, (ResidentSourceComputeIssue, @remote_standard_host.NativeRemoteStandardInputFailure)]
 
 pub fn plan_resident_output(ResidentExecuted, @remote_journal.Journal, String, String, Int, @remote_site_protocol.RemotePollOutput) -> Result[@remote_site_protocol.RemoteOutputPlan, ResidentOutputIssue]
 
@@ -125,6 +129,49 @@ pub(all) struct ResidentRunAdmission {
   manifests : @run_publication_host.ClientCompilationManifests
   limits : @run_publication_host.ClientValuesRunMaterialsLimits
   source : (String, String)?
+}
+
+type ResidentSourceCompute
+pub fn ResidentSourceCompute::close(Self) -> Bool
+pub fn ResidentSourceCompute::execute_task(Self, Int) -> Result[@host_native.NativeStandardStrategyTaskCompletion, ResidentSourceComputeIssue]
+pub fn ResidentSourceCompute::prepare_result_export(Self, @run_publication_host.PublicationOutputExportLimits) -> Result[@run_publication_host.PublicationOutputExport, ResidentSourceComputeIssue]
+pub fn ResidentSourceCompute::usage(Self) -> @physical_resources.LedgerUsage
+
+pub(all) struct ResidentSourceComputeConfiguration {
+  source : ResidentSourceConfiguration
+  registry_body : String
+  values_body : String
+  dispatch : @standard_host.TaskDispatchLimits
+  estimates : Array[@standard_host.DispatchEstimateProfile]
+  search : @physical_strategy.SearchLimits
+  imports : @host_native.NativeComputeImportLimits
+  transfer_bytes : Int64
+  execution_bytes : Int64
+  retained : @host_native.NativeStrategyRetainedOutputProfile?
+}
+
+pub(all) enum ResidentSourceComputeEvent {
+  AcquisitionEntered
+  ProducerCaptured
+  ConsumerEntered(Int)
+  ConsumerCompleted(Int)
+  CleanupPending
+  CleanupCompleted
+}
+
+pub(all) enum ResidentSourceComputeIssue {
+  UnsupportedGraph
+  Unavailable
+  Source(ResidentSourceIssue)
+  Acquisition(@host_native.NativeReadOnlySourceIssue)
+  Execution(@host_native.NativeAcquisitionFailure)
+  Capture
+  Run(@run_publication_host.ClientRunOpenIssue)
+  Dispatch(@standard_host.DispatchIssue)
+  Compute(@host_native.NativeStandardStrategyRunIssue)
+  Export(@run_publication_host.PublicationOutputExportIssue)
+  Capacity(@physical_resources.LedgerIssue)
+  ObservationUnrecorded(ResidentSourceComputeEvent)
 }
 
 pub(all) struct ResidentSourceConfiguration {

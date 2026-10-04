@@ -18,27 +18,39 @@ import {propertyGraphSourceSuccesses, propertyGraphSourceExecutionFailures, prop
   from "./property-graph-source-input.mjs";
 import {groupStarSuccesses, groupStarRefusals}
   from './group-star-source-input.mjs';
+import {groupOrdinalSuccesses, groupOrdinalRefusals}
+  from './group-ordinal-source-input.mjs';
 import {distinctOrderSuccesses, distinctOrderRefusals}
   from './distinct-order-source-input.mjs';
 import {groupSelectScopeSuccesses, groupSelectScopeRefusals}
   from './group-select-scope-source-input.mjs';
 import {havingProjectionSuccesses, havingProjectionRefusals}
   from './having-projection-source-input.mjs';
+import {implicitPropertySuccesses, implicitPropertyRefusals}
+  from './implicit-property-source-input.mjs';
+import {groupPropertySuccesses, groupPropertyRefusals}
+  from './group-property-source-input.mjs';
 import {uniquePublicQueryCases} from './public-query-cases.mjs';
 import {orderOrdinalSuccesses, orderOrdinalRefusals}
   from './order-ordinal-source-input.mjs';
 import {graphRowSourceSuccesses, graphRowSourceRefusals}
   from './property-graph-row-source-input.mjs';
+import {graphPropertyPredicateSuccesses, graphPropertyPredicateRefusals}
+  from './graph-property-predicate-source-input.mjs';
 import {graphTraverseSourceSuccesses, graphTraverseSourceRefusals}
   from './property-graph-traverse-source-input.mjs';
 import {acquiredDataSuccesses, acquiredGraphSourceSuccesses, acquiredDataRefusals}
   from './acquired-data-source-input.mjs';
+import {graphProjectionPropertySuccesses, graphProjectionPropertyRefusals}
+  from './graph-projection-property-source-input.mjs';
 
 if (process.env.ACTQL_TEST_TWO_SOURCE_ONLY === '1') {
   await import('./packed-two-source-public-query.mjs');
 } else {
 const propertyGraphOnly = process.env.ACTQL_TEST_PROPERTY_GRAPH_SOURCE_ONLY === "1";
+const graphPropertyPredicateOnly = process.env.ACTQL_TEST_GRAPH_PROPERTY_PREDICATE_ONLY === '1';
 const graphRowsOnly = process.env.ACTQL_TEST_GRAPH_ROWS_ONLY === '1';
+const graphProjectionPropertyOnly = process.env.ACTQL_TEST_GRAPH_PROJECTION_PROPERTY_ONLY === '1';
 const orderOrdinalOnly = process.env.ACTQL_TEST_ORDER_ORDINAL_ONLY === '1';
 const distinctOrderOnly = process.env.ACTQL_TEST_DISTINCT_ORDER_ONLY === '1';
 const graphTraverseOnly = process.env.ACTQL_TEST_GRAPH_TRAVERSE_ONLY === '1';
@@ -48,14 +60,17 @@ const inferOnly = process.env.ACTQL_TEST_INFER_REFUSAL_ONLY === '1';
 const joinOnly = process.env.ACTQL_TEST_JOIN_ORDER_ONLY === '1';
 const groupOnly = process.env.ACTQL_TEST_GROUP_SCOPE_ONLY === '1';
 const groupSelectScopeOnly = process.env.ACTQL_TEST_GROUP_SELECT_SCOPE_ONLY === '1';
+const implicitPropertyOnly = process.env.ACTQL_TEST_IMPLICIT_PROPERTY_ONLY === '1';
+const groupPropertyOnly = process.env.ACTQL_TEST_GROUP_PROPERTY_ONLY === '1';
 const havingProjectionOnly = process.env.ACTQL_TEST_HAVING_PROJECTION_ONLY === '1';
 const groupStarOnly = process.env.ACTQL_TEST_GROUP_STAR_ONLY === '1';
+const groupOrdinalOnly = process.env.ACTQL_TEST_GROUP_ORDINAL_ONLY === '1';
 const compositionOnly = process.env.ACTQL_TEST_QUERY_COMPOSITION_ONLY === '1';
 const resultOnly = process.env.ACTQL_TEST_PIPE_RESULT_ONLY === '1';
 const dataOnly = process.env.ACTQL_TEST_RELATION_DATA_ONLY === '1';
 const acquiredDataOnly = process.env.ACTQL_TEST_ACQUIRED_DATA_ONLY === '1';
 const dataSetStrategyOnly = process.env.ACTQL_TEST_DATA_SET_STRATEGY_ONLY === '1';
-const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || havingProjectionOnly || groupStarOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly;
+const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const joinChain = JSON.parse(await readFile('join-chain-cases.json', 'utf8'));
 const groupScope = JSON.parse(await readFile('group-scope-cases.json', 'utf8'));
@@ -72,7 +87,12 @@ const dataSetStrategyInputs = {
     ]}}}],
   refusals: [],
 };
-const scopeInputs = havingProjectionOnly ? {successes: havingProjectionSuccesses, refusals: havingProjectionRefusals}
+const scopeInputs = graphProjectionPropertyOnly ? {successes: graphProjectionPropertySuccesses, refusals: graphProjectionPropertyRefusals}
+  : graphPropertyPredicateOnly ? {successes: graphPropertyPredicateSuccesses, refusals: graphPropertyPredicateRefusals}
+  : implicitPropertyOnly ? {successes: implicitPropertySuccesses, refusals: implicitPropertyRefusals}
+  : groupOrdinalOnly ? {successes: groupOrdinalSuccesses, refusals: groupOrdinalRefusals}
+  : groupPropertyOnly ? {successes: groupPropertySuccesses, refusals: groupPropertyRefusals}
+  : havingProjectionOnly ? {successes: havingProjectionSuccesses, refusals: havingProjectionRefusals}
   : groupSelectScopeOnly ? {successes: groupSelectScopeSuccesses, refusals: groupSelectScopeRefusals}
   : groupStarOnly ? {successes: groupStarSuccesses, refusals: groupStarRefusals}
   : orderOrdinalOnly ? {successes: orderOrdinalSuccesses, refusals: orderOrdinalRefusals}
@@ -95,10 +115,18 @@ const scopeInputs = havingProjectionOnly ? {successes: havingProjectionSuccesses
   : compositionOnly ? {successes: queryCompositionSuccesses, refusals: queryCompositionRefusals}
   : inferOnly ? {successes: [querySuccesses[0]], refusals: inferRefusals}
   : groupOnly ? groupScope : joinOnly ? joinOrder : scopeOnly ? {successes: scope.successes,
-  refusals: scope.refusals} : {successes: [...dataSetStrategyInputs.successes, ...querySuccesses, ...sourceFreeSuccesses, ...queryCompositionSuccesses, ...pipeResultSuccesses, ...relationDataSuccesses, ...acquiredDataSuccesses, ...acquiredGraphSourceSuccesses, ...propertyGraphSourceSuccesses, ...scope.successes, ...joinOrder.successes, ...groupStarSuccesses],
-  refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...relationDataRefusals, ...acquiredDataRefusals, ...propertyGraphSourceRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals, ...groupStarRefusals],
+  refusals: scope.refusals} : {successes: [...dataSetStrategyInputs.successes, ...querySuccesses, ...sourceFreeSuccesses, ...queryCompositionSuccesses, ...pipeResultSuccesses, ...relationDataSuccesses, ...acquiredDataSuccesses, ...acquiredGraphSourceSuccesses, ...propertyGraphSourceSuccesses, ...scope.successes, ...joinOrder.successes, ...groupStarSuccesses, ...groupOrdinalSuccesses],
+  refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...relationDataRefusals, ...acquiredDataRefusals, ...propertyGraphSourceRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals, ...groupStarRefusals, ...groupOrdinalRefusals],
   executionFailures: [...pipeResultExecutionFailures, ...propertyGraphSourceExecutionFailures]};
 if (!scopeOnly) {
+  scopeInputs.successes.push(...graphProjectionPropertySuccesses);
+  scopeInputs.refusals.push(...graphProjectionPropertyRefusals);
+  scopeInputs.successes.push(...graphPropertyPredicateSuccesses);
+  scopeInputs.refusals.push(...graphPropertyPredicateRefusals);
+  scopeInputs.successes.push(...implicitPropertySuccesses);
+  scopeInputs.refusals.push(...implicitPropertyRefusals);
+  scopeInputs.successes.push(...groupPropertySuccesses);
+  scopeInputs.refusals.push(...groupPropertyRefusals);
   scopeInputs.successes.push(...havingProjectionSuccesses);
   scopeInputs.refusals.push(...havingProjectionRefusals);
   scopeInputs.successes.push(...groupSelectScopeSuccesses);

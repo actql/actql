@@ -1,0 +1,13 @@
+supported_targets = "native"
+
+import {
+  "actql/actql/platform_native/remote_resident_host" @resident,
+  "actql/actql/run_publication_host" @host,
+  "actql/actql/platform_native/remote_standard_host" @output,
+  "actql/actql/physical_strategy" @strategy,
+  "actql/actql/connectors/duckdb/adapters/native" @duckdb,
+  "actql/actql/connectors/duckdb/host_native" @duckdb_native,
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/platform_native/filesystem",
+  "moonbitlang/core/env",
+} for "wbtest"

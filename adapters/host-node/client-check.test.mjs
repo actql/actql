@@ -234,6 +234,50 @@ const protectedSource = [{boundary: 'source_resolution',
   reason: 'unresolved_protected'}];
 
 for (const [entrance, open] of Object.entries(entrances)) {
+  test(`${entrance}: invalid declarations retain only their owned submitted locations`, async t => {
+    const client = await open(t, configurations.denied);
+    for (const [declaration, pointer] of [
+      [{options: {type: 'number', minimum: 1, default: 0}}, '/options/default'],
+      [{options: {type: 'object', fields: {count: {type: 'number'}},
+        default: {count: 'private-value'}}}, '/options/default/count'],
+      [{options: {type: 'number', future: 'private-value'}}, '/options/future'],
+      [{options: {type: 'number', meta: {actql_private: 'private-value'}}},
+        '/options/meta/actql_private'],
+      [{options: {type: 'object', fields: {'/a~~//é': {type: 'number'}},
+        default: {'/a~~//é': 'private-value'}}}, '/options/default/~1a~0~0~1~1é'],
+      [{'a~~//é': {type: 'number'}}, '/a~0~0~1~1é'],
+      [{}, ''],
+    ]) {
+      const outcome = await client.check('SELECT 1 AS n', {format: 'sql',
+        parameterDeclarations: declaration, parameters: {options: 3}});
+      assert.equal(outcome.outcome, 'completed', '[check-mutation:declaration-outcome]');
+      assert.equal(outcome.report.verdict, 'invalid');
+      const input = getCheckInput(outcome, 'parameter_declarations');
+      const location = {kind: 'structured', document_id: 'parameter_declarations',
+        revision: input.revision, pointer};
+      assert.deepEqual(outcome.report.reasons,
+        [{code: 'parameter_declarations_invalid', location}], '[check-mutation:declaration-location]');
+      assert.equal(resolveCheckLocation(outcome, location).input, input);
+      assert.equal(resolveCheckLocation(outcome, location,
+        {...input, value: {options: {type: 'number'}}}), undefined);
+      assert.equal(resolveCheckLocation(JSON.parse(JSON.stringify(outcome)), location), undefined);
+      assert.equal(JSON.stringify(outcome).includes('private-value'), false);
+      assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+    }
+    // The reader's missing-member path does not name a submitted node.
+    for (const declaration of [
+      {options: {default: 0}},
+      {options: {type: 'object', fields: {count: {type: 'number'}}, default: {}}},
+      {options: {type: 'object', fields: {['a'.repeat(4096)]: {type: 'number'}},
+        default: {['a'.repeat(4096)]: 'private-value'}}},
+    ]) {
+      const outcome = await client.check('SELECT 1 AS n', {format: 'sql',
+        parameterDeclarations: declaration});
+      assert.deepEqual(outcome.report.reasons, [{code: 'parameter_declarations_invalid'}]);
+    }
+    client.assertNoExecution();
+  });
+
   test(`${entrance}: unresolved column expressions retain authored source positions`, async t => {
     const client = await open(t, configurations.denied);
     const visible = await open(t, configurations.allowed);
@@ -370,7 +414,10 @@ for (const [entrance, open] of Object.entries(entrances)) {
     const defaults = await client.check('SELECT 1 AS n', {format: 'sql',
       parameterDeclarations: {options: {type: 'number', minimum: 1, default: 0}},
       parameters: {options: 3}});
-    assert.deepEqual(defaults.report.reasons, [{code: 'parameter_declarations_invalid'}]);
+    assert.deepEqual(defaults.report.reasons, [{code: 'parameter_declarations_invalid',
+      location: {kind: 'structured', document_id: 'parameter_declarations',
+        revision: getCheckInput(defaults, 'parameter_declarations').revision,
+        pointer: '/options/default'}}]);
     const longKey = 'a'.repeat(4096);
     const oversizedConstraint = await client.check('SELECT 1 AS n', {format: 'sql',
       parameterDeclarations: {options: {type: 'object', fields: {[longKey]: {type: 'number', minimum: 1}}}},
@@ -1297,6 +1344,15 @@ async function acceptDisclosure(install) {
     assert.deepEqual(nested.report.reasons[0].facts,
       {parameter: 'options', expected_type: 'number', actual_type: 'string'});
     assert.equal(nested.report.reasons[0].location.pointer, '/options/~1a~0~0~1~1é/1');
+    const invalidDeclaration = sourceRequest('SELECT id FROM records', {options: 3},
+      {options: {type: 'number', minimum: 1, default: 0}});
+    const declaration = await check(invalidDeclaration);
+    assert.equal(canonicalJson(declaration), canonicalJson(await absent(invalidDeclaration)),
+      '[check-mutation:declaration-disclosure]');
+    assert.equal(declaration.report.verdict, 'invalid');
+    assert.equal(declaration.report.reasons[0].code, 'parameter_declarations_invalid');
+    assert.equal(declaration.report.reasons[0].location.document_id, 'parameter_declarations');
+    assert.equal(declaration.report.reasons[0].location.pointer, '/options/default');
     const constraintRequest = sourceRequest('SELECT id FROM records',
       {options: {count: 0}},
       {options: {type: 'object', fields: {count: {type: 'number', minimum: 1}}}});

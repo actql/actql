@@ -2326,8 +2326,10 @@ test "grouped SELECT rejects nongrouped field and invalid aggregate form" {
     ] {
     assert_true(@query.parse_query(text, syntax_limits()) is Err(_), msg=text)
   }
+  // Position 1 is the grouped input value; position 2 is an aggregate and
+  // must still be rejected by ordinary grouping admission.
   let ordinal = @query.parse_query(
-    "SELECT amount, COUNT(*) AS n FROM orders GROUP BY 1",
+    "SELECT amount, COUNT(*) AS n FROM orders GROUP BY 2",
     syntax_limits(),
   ).unwrap()
   assert_true(
