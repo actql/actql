@@ -356,26 +356,39 @@ pub fn model_call_attempt_admit(
 ) -> String {
   try {
     let (scope, _) = model_call_set(request_wire)
-    guard safe_integer(attempt_index) is Some(index) else {
-      raise ModelBridgeFailed("InvalidModelAttemptIndex")
-    }
-    let attempt = model_evidence("model_call_attempt", attempt_wire)
-    let authority = model_evidence("model_dispatch_authority", authority_wire)
-    match
-      @publication.check_model_invocation_attempt(
-        scope, ordinal, attempt, authority, index,
-      ) {
-      Ok(_) =>
-        ok({
-          "attemptIndex": Json::number(index.to_double()),
-          "attemptCid": Json::string(
-            @publication.run_evidence_value_identity(attempt),
-          ),
-        })
-      Err(issue) => fail_detail("InvalidModelAttempt", @debug.to_string(issue))
-    }
+    model_admit_attempt(
+      scope, ordinal, attempt_wire, authority_wire, attempt_index,
+    )
   } catch {
     ModelBridgeFailed(issue) => fail_detail("InvalidModelAttempt", issue)
+  }
+}
+
+///|
+fn model_admit_attempt(
+  scope : @publication.BoundModelInvocationScope,
+  ordinal : Int,
+  attempt_wire : String,
+  authority_wire : String,
+  attempt_index : Double,
+) -> String raise ModelBridgeFailure {
+  guard safe_integer(attempt_index) is Some(index) else {
+    raise ModelBridgeFailed("InvalidModelAttemptIndex")
+  }
+  let attempt = model_evidence("model_call_attempt", attempt_wire)
+  let authority = model_evidence("model_dispatch_authority", authority_wire)
+  match
+    @publication.check_model_invocation_attempt(
+      scope, ordinal, attempt, authority, index,
+    ) {
+    Ok(_) =>
+      ok({
+        "attemptIndex": Json::number(index.to_double()),
+        "attemptCid": Json::string(
+          @publication.run_evidence_value_identity(attempt),
+        ),
+      })
+    Err(issue) => fail_detail("InvalidModelAttempt", @debug.to_string(issue))
   }
 }
 
@@ -396,24 +409,9 @@ pub fn model_immediate_call_attempt_admit(
       raise ModelBridgeFailed("UnexpectedModelCheckpoint")
     }
     let scope = model_bound_call_set(request_wire)
-    guard safe_integer(attempt_index) is Some(index) else {
-      raise ModelBridgeFailed("InvalidModelAttemptIndex")
-    }
-    let attempt = model_evidence("model_call_attempt", attempt_wire)
-    let authority = model_evidence("model_dispatch_authority", authority_wire)
-    match
-      @publication.check_model_invocation_attempt(
-        scope, ordinal, attempt, authority, index,
-      ) {
-      Ok(_) =>
-        ok({
-          "attemptIndex": Json::number(index.to_double()),
-          "attemptCid": Json::string(
-            @publication.run_evidence_value_identity(attempt),
-          ),
-        })
-      Err(issue) => fail_detail("InvalidModelAttempt", @debug.to_string(issue))
-    }
+    model_admit_attempt(
+      scope, ordinal, attempt_wire, authority_wire, attempt_index,
+    )
   } catch {
     ModelBridgeFailed(issue) => fail_detail("InvalidModelAttempt", issue)
   }
