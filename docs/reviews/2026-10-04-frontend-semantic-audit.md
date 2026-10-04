@@ -1,5 +1,93 @@
 # SQL, Pipe and DATA semantic preservation audit
 
+## Current closure and merged follow-ups
+
+Observed main: `779ef222a165c644ffb9b97090b4d060dc7feeab`.
+The bounded SQL/Pipe/DATA semantic audit is complete: its three reproduced
+ORDER, aggregate-scope and shared-CTE predicate defects are repaired and
+integrated. This closes the selected counterexamples and controls below, not
+Frontend r1 or language-wide standards conformance. Historical checks retain
+their original source identities; no new main-wide execution campaign was run.
+
+| Repair or independent unit | Integrated source and evidence | Status |
+|---|---|---|
+| Scoped ORDER #286 | Main repair and independent public controls recorded below | Complete |
+| Aggregate input scope #287 | Main merge `b6c69a7e5bdbf25dc3bc5cf5224b980536efb3ec`; 8 positives/4 refusals per transport and exact submitted CI recorded below | Complete |
+| Shared CTE Source predicate #325 | D product `39c85bc9162a2d44ffdbef21c3db0b0e2fe0f5ac`, submitted `dafd8f41a742957e0631619ff0707077b241bc7e`, main merge `fc3378ec65551edd7d5d52ca1d88ea15d6e690fa` | Complete; post-repair public evidence inspected below |
+| Graph row definition/label selection #316 | Final submitted `0e508b1a89991f8913b243a1a5c01a57f114638f`, main merge `30c4ad31daf9e4d7359e3b6d09ca09733c5cd41f` | Merged; final-source automatic CI and public acceptance pass |
+| Traverse node-input connection #323 | Final submitted `d016aee02a6282bc3fdcf6925653cf9a01908769`, main merge `779ef222a165c644ffb9b97090b4d060dc7feeab` | Merged; automatic CI 37181402237 is still running at this checkpoint; predecessor acceptance is separate |
+
+### D's repaired CTE counterexample
+
+The [D repair record](https://github.com/actql/actql/blob/dafd8f41a742957e0631619ff0707077b241bc7e/docs/reviews/2026-10-04-cte-shared-source-predicate.md)
+retains the authored query from B's handoff. Its public input has IDs 1 and 2,
+with the unrelated `amount` property NULL for ID 1 instead of the historical
+value 10. The query only selects `id`; the independent expected rows remain
+`[{"id":1},{"id":2}]`. This input variation is not a change to the expected
+semantics or a claim that the two physical inputs are byte-identical.
+
+Inspection of the merged `compile_cte_query` path confirms that the common
+capture analysis includes JOIN-right references under the nonrecursive CTE's
+lexical scope. A later visible CTE can shadow an outer Source. Shared acquisition
+keeps the complete capture, and `chosen` retains its own predicate. B did not
+implement a parallel repair or modify D's files.
+
+[Automatic CI 37175901462](https://github.com/actql/actql/actions/runs/37175901462)
+completed successfully for D's exact submitted HEAD. Inspected
+[packed artifact 11293958629](https://github.com/actql/actql/actions/runs/37175901462/artifacts/11293958629)
+records clean synthetic merge `fe157143d15cf622e2669f874aa93d98cdaae4be`, with
+actual parents main `67f2b659c25db21fd4188ffaab295439c0bda401` and D's submitted
+HEAD. Summary is passed/complete, evidence errors are empty, and command 007
+exits 0 with complete output and no signal. All four CTE controls are logged
+on both packed Embedded Local and authenticated HTTP: the original SQL and
+text queries, terminal JOIN-right Source reuse, and lexical shadowing.
+
+The unchanged public helper checks independent rows, full ordered column/type/
+nullability contracts through `Result.describe()`, completed row reads, one
+physical acquisition session, same-request Run identity, and unchanged
+admission/I/O counters after read, attach and resend. The shadowing control
+expects only ID 1; it does not force an unfiltered outer Source where the
+visible CTE is the actual operand. The old failed probe remains historical
+reproduction material, not a currently failing acceptance requirement.
+
+### Final #316 evidence and #323 status
+
+[Automatic CI 37179230157](https://github.com/actql/actql/actions/runs/37179230157)
+completed successfully for #316's final source: 27 successful jobs, including
+the final check, and only the three configured conditional skips. Inspected
+[artifact 11295127185](https://github.com/actql/actql/actions/runs/37179230157/artifacts/11295127185)
+records clean synthetic merge `4eafecc6160b8b3c9e9d5d61eae7a44523449938`, with
+actual parents main `50420c8b6d28040f3668fe42054a7f68787e4365` and final B HEAD.
+Its summary is passed/complete with no evidence errors; command 007 exits 0
+with complete output. The existing Graph-row corpus retains 13 positives and
+11 refusals on each transport, independent JSON controls, typed identities,
+ordered Result descriptions, stream completion and request reuse. Refusal
+checks require zero Run admission/provider I/O. This is final-source evidence,
+not a relabeling of predecessor CI 37175353412.
+
+#323's final-source [automatic run 37181402237](https://github.com/actql/actql/actions/runs/37181402237)
+remains in progress. Its predecessor's successful 5 positives/7 refusals per
+transport and run 37176192146 below are retained as predecessor evidence only.
+Neither the user's merge nor the earlier green run establishes final-source
+CI success. No manual CI rerun, main CI monitoring, local full Core, proof,
+performance or repeated packed campaign was added for this status update.
+
+Verified artifact tarball SHA-256 digests:
+
+| Package | D #325 artifact | Final B #316 artifact |
+|---|---|---|
+| client-wire | `5da98d3edb615f960f0511be9d6e61431cd34d02304a8bd6b6e576f7775f91a0` | `5da98d3edb615f960f0511be9d6e61431cd34d02304a8bd6b6e576f7775f91a0` |
+| sdk | `2fc910067348e421346945ced1e728e107bbe6fa455ee00f9d71da46e8123c5b` | `2fc910067348e421346945ced1e728e107bbe6fa455ee00f9d71da46e8123c5b` |
+| run-host-core | `7de3bf85443afa6ef4247c1844c2a6bfeb7ac2274ef44e2f48ef35dabb993725` | `b4aecd37bea2189f99d5f53b35fbaabe22130abe439a75b097a3a5c2fe62ea01` |
+| local-node | `0d1effdc4e34de0bb2916591d080046f819a84dfad50f90fc46f5a34ed41722e` | `dbb42565cd8ca6f9a4e6a6fab6e37c7e541f51132e1edb19afbb704da801524e` |
+| node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+The sections below retain earlier checkpoints, including then-open ownership,
+CI and defect status. The current closure above supersedes those delivery
+statements without converting old failures or earlier-SHA checks into new
+successes. Broader lexical/type/analytic/Graph and recovery conformance remains
+outside this selected semantic audit.
+
 ## Baseline and scope
 
 Audited main: `ba3d6d12891f884b1bb55bb4d67bf043d4a58a94`.
@@ -61,7 +149,7 @@ check. This is additional public acceptance and CI evidence for that run, not
 a relabeling of the old failed run. The user subsequently merged #287 into
 main `b6c69a7e5bdbf25dc3bc5cf5224b980536efb3ec`; B performed no merge.
 
-### Current CTE lowering reproducer and ownership
+### Historical CTE lowering reproducer and ownership
 
 The [diagnostic probe](../../spec/frontend/fixtures/semantic-audit/cte-capture-probe.mjs)
 uses the existing query test bridge and the unchanged authored source/rows in
@@ -255,7 +343,7 @@ or completed execution coverage. The B-owned Graph-call branch and D-owned
 capture/CTE boundary were [shared with D](https://github.com/actql/actql/pull/273#issuecomment-5976330639);
 no common execution owner or parallel CTE repair was added.
 
-### Current parameter boundary check
+### Parameter boundary check at the stated predecessor
 
 At clean submitted source `898d6ddff9aa1b97557bf3972237e764ebcc57d6`,
 the existing focused JS parameter test passes **1/1** using `local-checks`.
