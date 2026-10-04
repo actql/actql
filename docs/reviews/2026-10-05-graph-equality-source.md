@@ -3,6 +3,9 @@
 Base: `1a71730b0e5ff3e22a5f519c119a74fd589ed03d` (`origin/main`).
 The common Property Graph comparison owner from #356 is already in this base;
 this Frontend unit has no unmerged implementation dependency.
+Before packaging, main `bf2865b0ad20f988ac00ce05d512faa94ce49ea1` was normally
+merged. Only the packed-driver copy/selection lists conflicted; both the new
+equality corpus and main's property corpora were retained.
 
 ## Counterexample and repair
 
@@ -84,12 +87,36 @@ expected value.
 ## Verification
 
 - Baseline narrow JS: 1/2 passed; equivalent source was the expected failure.
-- Repaired focused JS, including Graph rows/selectors, DATA normalize, traversal
+- Pre-integration focused JS, including Graph rows/selectors, DATA normalize, traversal
   nodes and the fixed Values Run consumer: 24/24 passed.
-- Selected Node manifest, independent Values-vector and public-corpus checks:
+- Pre-integration Node manifest, independent Values-vector and public-corpus checks:
   9/9 passed.
 - Compilation freshness, 368 canonical identities and specification family
   closure (10 owners, 255 machine imports, 23 document imports) passed.
-- Packed external Local/HTTP acceptance: pending at this implementation commit.
+- Integrated source `19da48be38d0551b116b82ece9b0ff198badaf09`: focused equality
+  and Graph-row JS checks passed 11/11. Both merged packed scripts passed syntax
+  checks; their existing selectors and normally registered corpora are retained.
+- The same clean source passed normal-prepack external Embedded Local and
+  authenticated HTTP: six positives and ten preparation refusals per transport.
+  Command: `node scripts/test-packed-public-query.mjs --graph-equality-only
+  --keep-artifacts`, serialized through the existing shared heavy-check guard.
+  Original receipt `public-query-evidence-m2EIlH` records twelve child commands
+  at exit zero, complete output and no evidence errors. README Local/HTTPS and
+  missing-generated-asset controls passed separately.
+- Named rows and ordered full column contracts, typed empty output, completed
+  streams, same-Run resend/attach/lookup and unchanged acquisition counts passed.
+  Refusals left Run admission/provider I/O unchanged, including the preserved
+  common ORDER/LIMIT refusal. Later report edits are documentation only, not
+  another packed verification of a different product tree.
+- Five ordinary `npm pack` tarballs were installed outside the checkout. The
+  runtime consumer has no compiler on PATH and no checkout module dependencies.
 - Exact submitted-SHA CI, Wasm/native and full integration: unverified. No
   manual CI retry or broad local campaign substitutes for those checks.
+
+| Package | Tarball SHA-256 |
+|---|---|
+| client-wire | `52fe3218df346cfb9dae0adc248071563fe68918bded16f8d733415e65584fc0` |
+| sdk | `f81bf27c3bb42a007bc16b6f89a15542a89c7fb844e2893870d1161a8e8abc6d` |
+| run-host-core | `c71bd5e6f3eccc5d9e33da21831d7461333f2da314fa71d4ddb006ed32406f18` |
+| local-node | `b66c49cb3c45ee4234ad7d7f61087ce0a64ee59e1d26c624e13a4a29a2a2741a` |
+| node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
