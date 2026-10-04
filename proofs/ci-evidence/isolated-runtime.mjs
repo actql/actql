@@ -63,6 +63,16 @@ export function checkIsolatedInputs({runtime, manifest, tree}) {
   assert.equal(manifest.platformInputs.platform, 'linux'); assert.equal(manifest.platformInputs.architecture, 'x64');
   const byPath = new Map(manifest.root.entries.map(entry => [entry.path, entry]));
   assert.equal(byPath.size, manifest.root.entries.length, 'Duplicate image input');
+  const children = new Map();
+  for (const entry of manifest.root.entries) {
+    assert(typeof entry.path === 'string', 'Invalid image path');
+    const offset = entry.path.lastIndexOf('/');
+    if (offset >= 0) {
+      const parent = entry.path.slice(0, offset);
+      if (!children.has(parent)) children.set(parent, []);
+      children.get(parent).push(entry.path.slice(offset + 1));
+    }
+  }
   for (const entry of manifest.root.entries) {
     assert(/^[A-Za-z0-9_.\/+\-]+$/u.test(entry.path) && !entry.path.split('/').some(part => ['', '.', '..'].includes(part)), 'Invalid image path');
     assert(imageRoots.includes(entry.path.split('/')[0]), 'Unreviewed image root');
@@ -70,8 +80,7 @@ export function checkIsolatedInputs({runtime, manifest, tree}) {
     if (entry.path.includes('/')) assert.equal(byPath.get(entry.path.slice(0, entry.path.lastIndexOf('/')))?.kind, 'directory', 'Missing image parent directory');
     if (entry.kind === 'file') assert(Number.isSafeInteger(entry.bytes) && entry.bytes >= 0 && /^[a-f0-9]{64}$/u.test(entry.digest), 'Incomplete image file');
     if (entry.kind === 'directory') {
-      const actual = manifest.root.entries.filter(child => child.path.startsWith(`${entry.path}/`) && !child.path.slice(entry.path.length + 1).includes('/'))
-        .map(child => child.path.slice(entry.path.length + 1)).sort();
+      const actual = (children.get(entry.path) ?? []).sort();
       assert.deepEqual(entry.members, actual, 'Incomplete image directory membership');
     }
   }
@@ -122,6 +131,7 @@ export function checkIsolatedInputs({runtime, manifest, tree}) {
 
 export function snapshotFromGit(tree) {
   const paths = mutationSourcePaths(tree).filter(path => path.startsWith('src/') || path.startsWith('proofs/bounded-session/') || mutationSnapshotExtras.includes(path));
+  tree.prefetch?.(paths);
   const sources = Object.fromEntries(paths.sort().map(path => [path, hash(tree.read(path))]));
   return {digest: hash(JSON.stringify(sources)), sources};
 }

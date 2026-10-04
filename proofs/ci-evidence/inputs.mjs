@@ -31,12 +31,38 @@ export const sharedFiles = ['proofs/ci-evidence/actions.mjs', 'proofs/ci-evidenc
   'scripts/ci-main-base.mjs', 'scripts/ci-targets.mjs',
   '.github/workflows/ci.yml', '.github/actions/setup-toolchain/action.yml'];
 
+// Read cat-file's length-delimited binary protocol, never split blob bytes on
+// newlines. Bind every returned object to the ls-tree identity and content; a
+// missing/truncated/reordered/substituted response cannot populate the cache.
+export function readBlobBatch(output, objects) {
+  assert(Buffer.isBuffer(output) && Array.isArray(objects) && objects.length > 0 && objects.length <= 256);
+  const parsed = new Map();
+  let offset = 0;
+  for (const object of objects) {
+    assert(validSha(object) && !parsed.has(object), 'Invalid/duplicate requested Git blob');
+    const end = output.indexOf(10, offset);
+    assert(end >= offset, 'Missing Git batch header');
+    const header = output.subarray(offset, end).toString('ascii');
+    const match = /^([a-f0-9]{40}) blob (0|[1-9][0-9]*)$/u.exec(header);
+    assert(match && match[1] === object, 'Missing/wrong Git batch blob identity/type');
+    const size = Number(match[2]); offset = end + 1;
+    assert(Number.isSafeInteger(size) && size <= 64 * 1024 * 1024 && offset + size < output.length && output[offset + size] === 10,
+      'Truncated/unbounded Git batch blob');
+    const bytes = output.subarray(offset, offset + size);
+    const digest = createHash('sha1').update(`blob ${size}\0`).update(bytes).digest('hex');
+    assert.equal(digest, object, 'Git batch blob bytes differ from object identity');
+    parsed.set(object, Buffer.from(bytes)); offset += size + 1;
+  }
+  assert.equal(offset, output.length, 'Unexpected extra Git batch output');
+  return parsed;
+}
+
 // Read an immutable Git revision. No generated/untracked inputs can silently
 // join the closure. The execution boundary must independently require a clean
 // tracked checkout and the corresponding runtime manifest.
 export function gitTree(root, revision) {
   assert(validSha(revision), 'Expected full input revision');
-  const git = args => execFileSync('git', args, {cwd: root, maxBuffer: 64 * 1024 * 1024});
+  const git = (args, input) => execFileSync('git', args, {cwd: root, input, maxBuffer: 64 * 1024 * 1024});
   assert.equal(git(['replace', '-l']).toString().trim(), '', 'Replaced Git history');
   const entries = new Map();
   const bytes = new Map();
@@ -45,10 +71,24 @@ export function gitTree(root, revision) {
     assert(match, 'Unmodelled Git object');
     entries.set(match[4], {path: match[4], mode: match[1], object: match[3], kind: match[2]});
   }
-  return {entries, read(path) {
+  function prefetch(paths) {
+    const objects = new Set();
+    for (const path of paths) {
+      const entry = entries.get(path);
+      assert(entry?.kind === 'blob', `Missing source input: ${path}`);
+      if (!bytes.has(entry.object)) objects.add(entry.object);
+    }
+    const selected = [...objects];
+    for (let offset = 0; offset < selected.length; offset += 256) {
+      const batch = selected.slice(offset, offset + 256);
+      const parsed = readBlobBatch(git(['cat-file', '--batch'], `${batch.join('\n')}\n`), batch);
+      for (const [object, data] of parsed) bytes.set(object, data);
+    }
+  }
+  return {entries, prefetch, read(path) {
     const entry = entries.get(path);
     assert(entry?.kind === 'blob', `Missing source input: ${path}`);
-    if (!bytes.has(entry.object)) bytes.set(entry.object, git(['cat-file', 'blob', entry.object]));
+    if (!bytes.has(entry.object)) prefetch([path]);
     return bytes.get(entry.object);
   }};
 }
@@ -140,7 +180,9 @@ export function actionInputs({tree, revision, action, runtime}) {
       for (const path of ['src/bounded_execution', 'src/connectors/local', 'src/query_integration']) visit(path);
     } else unresolved.add(`unreviewed executor: ${action.id}`);
   }
-  const files = [...included].sort().map(path => {
+  const paths = [...included].sort();
+  tree.prefetch?.(paths.filter(path => tree.entries.get(path).kind === 'blob'));
+  const files = paths.map(path => {
     const entry = tree.entries.get(path);
     const bytes = entry.kind === 'blob' ? tree.read(path) : null;
     return {path, kind: entry.kind, mode: entry.mode, bytes: bytes?.length ?? 0, digest: bytes ? hash(bytes) : entry.object};

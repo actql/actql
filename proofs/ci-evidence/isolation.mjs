@@ -36,6 +36,7 @@ export function mutationSourcePaths(tree) {
 export function stageMutationSource({tree, destination, maxBytes = 128 * 1024 * 1024}) {
   assert(Number.isSafeInteger(maxBytes) && maxBytes > 0, 'Invalid source byte bound');
   const paths = mutationSourcePaths(tree), files = [];
+  tree.prefetch?.(paths);
   let bytes = 0;
   for (const path of paths) {
     const data = tree.read(path), mode = Number.parseInt(tree.entries.get(path).mode.slice(-3), 8);
