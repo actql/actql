@@ -37,6 +37,7 @@ fn operation_count_contract(
     @pipeline.GraphMatch(_)
     | @pipeline.GraphBounds(_)
     | @pipeline.GraphDegree(_)
+    | @pipeline.GraphEquality(..)
     | @pipeline.Traverse(..) => PropertyGraph
     @pipeline.Projection(_) => ClassificationOnly
     @pipeline.Nearest(..) | @pipeline.Ranking(_) | @pipeline.TextRank(..) =>

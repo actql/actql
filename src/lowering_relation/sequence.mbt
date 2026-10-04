@@ -23,6 +23,7 @@ pub enum PreparedStep {
   NestStep(PreparedNestKernel)
   GraphMatchStep(PreparedGraphMatch)
   GraphDiagnosticStep(PreparedGraphDiagnostic)
+  GraphEqualityStep(PreparedGraphEquality)
   GraphTraverseStep(PreparedGraphTraverse)
   PropertyGraphConstructionStep(PreparedPropertyGraphConstruction)
   VectorStep(PreparedVector)
@@ -58,6 +59,7 @@ pub(all) enum SequenceIssue {
   NestFailure(Int, NestIssue)
   GraphMatchFailure(Int, GraphMatchIssue)
   GraphDiagnosticFailure(Int, GraphDiagnosticIssue)
+  GraphEqualityFailure(Int, GraphEqualityIssue)
   GraphTraverseFailure(Int, GraphTraverseIssue)
   GraphConstructionFailure(Int, GraphConstructionIssue)
   VectorFailure(Int, VectorIssue)
@@ -304,6 +306,14 @@ fn prepare_sequence_count(
         }
         GraphDiagnosticStep(prepared)
       }
+      GraphEqualityRows(_) => {
+        let prepared = match
+          prepare_graph_equality_node(owner.prepared.nodes[i]) {
+          Ok(value) => value
+          Err(issue) => return Err(GraphEqualityFailure(i, issue))
+        }
+        GraphEqualityStep(prepared)
+      }
       GraphTraverseRows(_) => {
         let (prepared, used_entries, used_names, remaining) = match
           prepare_graph_traverse_node(
@@ -529,6 +539,7 @@ pub fn emit_sequence_step_range(
       NestStep(v) => emit_nest_kernel(v, out)
       GraphMatchStep(v) => emit_graph_match_node(v, out)
       GraphDiagnosticStep(v) => emit_graph_diagnostic_node(v, out)
+      GraphEqualityStep(v) => emit_graph_equality_node(v, out)
       GraphTraverseStep(v) => emit_graph_traverse_node(v, out)
       PropertyGraphConstructionStep(v) =>
         emit_property_graph_construction_node(v, out)

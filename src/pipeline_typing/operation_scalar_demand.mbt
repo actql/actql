@@ -167,6 +167,7 @@ pub fn operation_scalar_demand(
     | SetRequirement(_)
     | ValuesRequirement(_)
     | MatchRequirement(_)
+    | PropertyEqualityRequirement(_)
     | SelectorRequirement(_)
     | ConstructionRequirement(_)
     | VectorRequirement(_)

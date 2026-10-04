@@ -22,6 +22,11 @@ pub fn operation_profile_requirement(
         | EnforceDiagnosticRelationRows
         | BindDiagnosticThreshold(_) => None
       }
+    PropertyEqualityRequirement(o) =>
+      match o {
+        AdmitBothPropertyGraphs => Some(PropertyGraph)
+        CompareCompleteGraphValues | ResolvePropertyEqualityResources => None
+      }
     TraverseRequirement(o) =>
       match o {
         ResolvePropertyGraphTraversalProfile => Some(PropertyGraph)
