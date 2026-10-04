@@ -107,6 +107,45 @@ const presenceRows = {
 assert.deepEqual(presenceFixture.stages[0].steps[0].values.rows.map(row=>row.person_key),[2,1]);
 assert.deepEqual(presenceFixture.stages[0].steps[2].values.rows.map(row=>row.edge_key),[11,10]);
 
+function presenceFilterScenario(empty, selection = false) {
+  const document = structuredClone(presenceFixture);
+  document.id = `presence-${selection ? 'selection' : 'filter'}-${empty ? 'empty' : 'values'}`;
+  const steps = document.stages[0].steps;
+  steps[0].values.rows.unshift({person_key:4,tenant_key:'a',p:8});
+  steps[1].values = {schema:{person_key:number,tenant_key:string},
+    rows:[{person_key:3,tenant_key:'a'}]};
+  steps[3].property_graph.nodes[1].key = ['person_key','tenant_key'];
+  if (empty) for (const step of steps.slice(0,3)) step.values.rows = [];
+  steps[5] = {filter:selection ? 'person_key > 0' : 'person_key < 4',as:'filtered'};
+  if (selection) steps.push({sort:[{person_key:'desc'}],as:'sorted'},
+    {take:{count:3,offset:1},as:'taken'});
+  steps.push({select:['id','labels','person_key'],as:'projected'});
+  document.stages[0].results.out.fields = ['id','labels','person_key'];
+  const constructor = structuredClone(steps[3].property_graph);
+  let occurrence = 0;
+  for (const family of ['nodes','edges']) for (const element of constructor[family]) {
+    delete element.from;
+    element.input_occurrence = occurrence++;
+  }
+  const domain = cid({constructor,producer_definitions:steps.slice(0,3)
+    .map(step=>({body:{values:step.values},dependencies:[]})),
+    version:'actql-property-graph-definition/0.1'});
+  const identity = (definition,key)=>({definition,domain,key:[key,'a'],
+    key_types:[{kind:'number'},{kind:'string'}]});
+  // Independently authored canonical order and presence states. The fourth
+  // row is removed without removing any of omission, explicit NULL or value.
+  const before = empty ? [] : [
+    {id:identity('M',3),labels:[],person_key:3,tenant_key:'a'},
+    {id:identity('N',1),labels:['Owner','Person'],p:7,person_key:1,tenant_key:'a'},
+    {id:identity('N',2),labels:['Owner','Person'],p:null,person_key:2,tenant_key:'a'},
+    {id:identity('N',4),labels:['Owner','Person'],p:8,person_key:4,tenant_key:'a'},
+  ];
+  const sorted = empty ? [] : [before[3],before[0],before[2],before[1]];
+  const retained = selection ? sorted.slice(1) : before.slice(0,3);
+  const snapshots = selection ? [before,before,sorted,retained] : [before,retained];
+  return {document,before,retained,snapshots,expected:retained.map(({id,labels,person_key})=>({id,labels,person_key}))};
+}
+
 // Authored heterogeneous declarations and expected streams. The second edge
 // uses the same endpoints and raw keys, but remains a distinct definition.
 function definitionScenario(projection, empty, alternate = false) {
@@ -256,8 +295,11 @@ function labelScenario(projection, empty) {
   return {document,retained,snapshot,expected:retained.map(row=>({id:row.id,value:row[property]}))};
 }
 
-for (const mode of ['local','remote']) {
-  test(`keyed constructor and TRAIL reach public Named Results through ${mode}`, {timeout:60_000}, async t => {
+for (const mode of ['local','remote']) for (const profile of ['graph','presence-filter','presence-selection']) {
+  const name = profile === 'graph'
+    ? `keyed constructor and TRAIL reach public Named Results through ${mode}`
+    : `presence ${profile === 'presence-filter' ? 'filter' : 'selection sort and take'} survives Relation Store and public Named Results through ${mode}`;
+  test(name, {timeout:60_000}, async t => {
     const directory = await mkdtemp(new URL(`${mode}-`, scratch));
     t.diagnostic(`Retained Host regression evidence: ${directory}`);
     const snapshots = new Map();
@@ -321,6 +363,29 @@ for (const mode of ['local','remote']) {
       client = await connect({mode,endpoint:`https://127.0.0.1:${server.address().port}/`,token:'synthetic-test-token'});
     }
     t.after(() => client.close());
+    if (profile !== 'graph') {
+      for (const empty of [false,true]) {
+        const {document,snapshots:expectedSnapshots,expected} = presenceFilterScenario(empty, profile === 'presence-selection');
+        const run = await client.aql(canonicalText(document),
+          {format:'json',requestId:`${document.id}-${mode}`});
+        const state = await run.wait();
+        assert.equal(state.status,'succeeded',JSON.stringify(state));
+        assert.deepEqual(await run.result('answer').all(),expected);
+        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
+        assert.deepEqual((await run.result('answer').describe()).columns.map(column=>column.name),
+          ['id','labels','person_key']);
+        // Save each sparse intermediate through the real Relation Store,
+        // revoke source cell access, and reload before the next operation.
+        assert.deepEqual(relationSnapshots.get(run.ref.runDefinitionCid),
+          expectedSnapshots.map((rows,index)=>{
+            const bytes = canonicalText(rows);
+            return {task:4+index,cid:cid(rows),bytes:Buffer.byteLength(bytes),
+              verifiedReadBytes:Buffer.byteLength(bytes),rows:rows.length,
+              sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true};
+          }));
+      }
+      return;
+    }
     // Both public transports must refuse before durable Run acceptance,
     // acquisition I/O or dispatch. A checker-only verdict is not enough.
     for (const entry of unsupported) for (const externalInput of [false,true]) {
@@ -374,12 +439,12 @@ for (const mode of ['local','remote']) {
 
     // Definitions, not sample values or IS NOT NULL, determine row presence.
     // Refusal precedes durable Run acceptance and every physical step.
-    for (const selector of ['select','filter']) {
+    for (const selector of ['select','filter','dead-filter']) {
       const rejected = structuredClone(presenceFixture);
       const requestId = `conditional-property-${selector}-${mode}`;
       rejected.stages[0].steps[5] = selector === 'select'
         ? {select:['p'],as:'projected'}
-        : {filter:'p IS NOT NULL',as:'projected'};
+        : {filter:selector === 'dead-filter' ? 'if(false, p > 0, true)' : 'p IS NOT NULL',as:'projected'};
       rejected.stages[0].results.out.fields = selector === 'select' ? ['p'] : ['id'];
       const before = physicalSteps.length;
       await assert.rejects(client.aql(canonicalText(rejected),{format:'json',requestId}),

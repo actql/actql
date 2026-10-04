@@ -47,8 +47,10 @@ const pairs = headers => [headers.map(entry => entry[0]),
 // Read one repository's Issues. `authorizationFor(index)` returns the
 // credential authorization of the next request after rechecking the current
 // read decision; it is called immediately before every request.
+// `consumePage(rows, page)`, when given, receives each accepted page's rows
+// before the next request; a throw stops the read like any other stop.
 export async function readGitHubIssues({moon, origin, owner, repo,
-  filters = [], credential, authorizationFor, limits,
+  filters = [], credential, authorizationFor, limits, consumePage,
   callResource = callHttpsCredentialResource, signal}) {
   if (!moon || typeof moon.githubIssuePageJson !== 'function' ||
       typeof authorizationFor !== 'function' || !credential ||
@@ -111,6 +113,12 @@ export async function readGitHubIssues({moon, origin, owner, repo,
     const {page} = projected;
     if (rows.length + page.rows.length > owned.maxRows) {
       stopped('GitHubReadRowLimit');
+    }
+    if (consumePage !== undefined) {
+      try { await consumePage(page.rows, next.page); }
+      catch (cause) {
+        stopped(cause?.code ?? 'GitHubPageNotAdmitted', {cause});
+      }
     }
     rows.push(...page.rows);
     accepted.push(Object.freeze({page: next.page, useCid: response.useCid,
