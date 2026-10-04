@@ -24,7 +24,7 @@ The workflow uses the existing executions directly:
    acquisition plan selects a qualified main original. Fresh source restoration is
    checked before a receipt is recorded. The final existing bounded Session
    runner records its actual model and three-target test executions.
-3. `collect.mjs finish` runs the executable Lean checker over all 26
+3. `collect.mjs finish` runs the executable Lean checker over the complete registered
    applications and records the exact Lean input/output digests.
 4. Upload the original receipts, observations, results and certificate as
    `session-actions-<run>-<attempt>-<tested-revision>`.
@@ -81,6 +81,47 @@ deletion, open runtime boundaries, whole target/profile replacement, incomplete
 obligations, mixed attempts, failed/cancelled origins, missing/changed ZIP
 members, certificate input/output changes and token isolation during transport.
 Full correspondence and physical tests remain in their existing CI jobs.
+
+## Adding a local obligation through the ordinary PR
+
+The published initial 26 descriptors remain protected requirements. An added
+local obligation no longer fails initialization merely because the catalog is
+larger. Initialization, the actual runner, producer finish and final consumer
+all check the catalog against the same finite execution recipes. A registration
+without an executable recipe is refused before collection; a recipe without a
+registered requirement is refused too. The new recipe and its runner/fixture
+registry are verification inputs, including their bytes and modes.
+
+For an existing numeric/NULL Relation operation:
+
+1. Keep independent expected values and operation-specific boundaries in its
+   existing MoonBit fixture. Reuse the common Session/adapter evidence only for
+   the already established premises. Do not widen a connection profile by
+   relabeling a receipt or inferred result.
+2. Add the finite fixture selection, package, optional literal filter, minimum
+   test count, reviewed profile, remaining premises and dependency IDs to
+   `localExecutionSuites` in `execution-recipes.mjs`. `{target}` in dependency
+   IDs expands to the actual JS/Wasm/native selection. The existing Nest entries
+   are concrete examples; no execution callback or runner branch is needed.
+3. Register the corresponding three action descriptors in
+   `bounded-session-actions.json`. The recipe checker compares command, target,
+   package, minimum, profile, premises and dependencies, rather than just names.
+   Keep every published original descriptor unchanged. New derived connection
+   claims additionally require independently reviewed fixture coverage and
+   binding checks; adding a local test action does not issue such claims.
+4. Use the repository's bounded Node wrapper for the changed recipe/application
+   tests. Submit the ordinary PR and use its automatic CI. The existing runner
+   executes the actual fixture, records its subprocess output and artifacts,
+   and adds its current receipt to the complete executed Lean requirement input.
+   Missing or substituted new receipts fail final acceptance.
+
+Added local actions execute fresh. Only the previously qualified isolated
+`mutations-js` action can currently reuse a protected-main original. New
+registrations are not automatically runtime-closed or reusable. Changes to the
+execution recipes/runner are policy changes and invalidate old policy inputs;
+they do not authorize borrowing an old experiment's evidence. This registration
+connection removes a development restriction; it is not measured CI savings or
+completion of the whole incremental verification objective.
 
 ## Runtime input observation (dependent unit)
 
