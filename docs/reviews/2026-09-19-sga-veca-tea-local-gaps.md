@@ -1,5 +1,29 @@
 # SGA, VecA, and TEA Local execution gaps
 
+## Current public retained Relation output
+
+An installed Local or HTTP Host can now set `retainedRelationOutput: true` in
+its trusted installation configuration. The public Client's ordinary Program
+path then opens the existing checked retained factory for source-free tasks or
+one DuckDB-captured source, and installs a real row Store for output while
+keeping the existing Carrier snapshot Store. Omission and `false` preserve the
+previous memory-output selection and installation identity. A different value
+is rejected; an installed source without retained-output support and a
+two-source acquisition are rejected before physical start rather than silently
+falling back to memory output. Effect and INFER dispatch keep their separate
+existing owners.
+
+The public source-free Values/sort and DuckDB-acquired filter/sort Programs
+read independently expected Named Result rows. The acquired case also checks
+description, attach, and idempotent resend, and the Host observes the actual
+`retained-file` output representation before cleanup. The unchanged public
+Local/HTTPS acquisition-selection fixture passes in the default mode. A
+separate writer regression cancels while the Store lease is being acquired;
+it checks zero reservations, nonpublication, and cleanup retry. These tests
+establish the public configuration connection, not retained output for every
+installed source or two-source Program. Full CI and Native Host cancellation
+remain separate verification units.
+
 ## Current Property Graph migration (2026-10-02)
 
 The new definition-keyed Property Graph is the sole executable Graph contract.
@@ -1118,10 +1142,11 @@ The existing row-only Compute Store failure tests remain separate evidence.
 Public Client retained-mode selection remains Host-owned as described above.
 `embedded-local.mjs` already chooses the task compiler in `planFor` for
 multi-task Programs or Graph Carrier Programs. This includes the multi-task
-Events/Vectors Programs exercised here. The remaining Client connection is in
-`client-dispatch-owner.mjs`: carry the retained configuration and select the
-retained factory instead of the current memory-output factory. Neither Client
-owner is replaced here.
+Events/Vectors Programs exercised here. The public Client connection in
+`client-dispatch-owner.mjs` now carries the retained mode to the checked
+source-free or single DuckDB-captured factory.
+The older configured standard-Host family cases below are not themselves
+public Client acceptance for every family. Neither Client owner is replaced.
 This addition certifies explicit configured standard-Host factory paths, not
 an implicit retained mode in every Client configuration. Native Host in-flight
 cancellation and full family-variant acceptance are not completed by these
@@ -1195,11 +1220,12 @@ buffer reservation, and successful later reuse of the original capture.
 Full-content verification rejects foreign values, changed order and truncation;
 the independent envelope vectors also cover exact bytes and one-byte-short.
 
-Public Client dispatch still chooses the memory-output captured factory; its Host owner
-must explicitly connect the additive retained factory and Store configuration.
-This concrete configuration gap remains, rather than being hidden by the
-configured standard-Host proof. Linux CI and Native Host in-flight cancellation
-are separate evidence and completion units.
+This was the public Client configuration gap at the time of the captured-input
+factory proof. The current installed Host now selects the additive retained
+factory when explicitly configured, for a single DuckDB-captured source.
+Other connector sources and multi-source retained output remain outside this
+connection. Linux CI and Native Host in-flight cancellation are separate
+evidence and completion units.
 
 #### Mixed retained Store and typed Carrier paths
 

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {createHash} from 'node:crypto';
+import {createHash, generateKeyPairSync} from 'node:crypto';
 import {mkdtemp, readFile, readdir, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import {createRequire} from 'node:module';
@@ -17,6 +17,7 @@ import {installedSourceIdentity, loadInstalledSource} from './installed-source.m
 import {prepareCapturedDuckDBSource, openCapturedDuckDBSource} from
   './captured-duckdb-source.mjs';
 import {splitSourceAliasProfile} from './source-alias-publication.mjs';
+import {canonicalJson} from './local-account-config.mjs';
 
 test('installed HTTP status denies an unregistered Run with a public code',
   async t => {
@@ -87,12 +88,62 @@ test('embedded Host reuses equivalent installation options, not object identity'
     await first.close();
     await second.close();
 
+    await assert.rejects(connectEmbeddedLocal({mode: 'local', owner: 'local',
+      installation: {directory, retainedRelationOutput: true}}),
+    {name: 'TypeError', message: 'InstalledHostConfigurationMismatch'});
+    await assert.rejects(connectEmbeddedLocal({mode: 'local', owner: 'local',
+      installation: {directory, retainedRelationOutput: 'enabled'}}),
+    {name: 'TypeError', message: 'InvalidLocalRetainedOutputConfiguration'});
+
     const foreign = join(directory, 'different-source.json');
     await writeFile(foreign,
       '{"version":"actql-installed-duckdb-source/0.1","database":"/other.duckdb","schema":"main","table":"records"}');
     await assert.rejects(connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, sourceProfilePath: foreign}}),
     {name: 'TypeError', message: 'InstalledHostConfigurationMismatch'});
+  });
+
+test('public source-free Program uses installed retained Relation output',
+  async t => {
+    const directory = await mkdtemp(join(tmpdir(), 'actql-public-retained-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    let outputRepresentations;
+    const keys = generateKeyPairSync('ed25519');
+    const authorization = {
+      accountConfiguration: canonicalJson({
+        version: 'actql-execution-account-config/0.1',
+        account_id: 'retained-source-free', entries: [{entry_id: 'write',
+          outcome: 'allow', principal: {all: true}, connection: {all: true},
+          resource: {all: true}, operation: {any_of: ['write']}, exclusions: []}]}),
+      reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer',
+        principalId: userInfo().username,
+        publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
+      hostKey: {keyId: 'host', privateKey: keys.privateKey.export({
+        type: 'pkcs8', format: 'pem'})},
+      observe(name, detail) {
+        if (name === 'computed') outputRepresentations = detail.outputRepresentations;
+      },
+    };
+    const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
+      installation: {directory, retainedRelationOutput: true,
+        authorization}}).catch(error => {
+      assert.fail(error.primaryFailure?.stack ?? error.stack);
+    });
+    t.after(() => client.close());
+    const program = {version: 'actql/0.1', id: 'public-retained-values',
+      stages: [{id: 'source', inputs: {}, steps: [{values: {
+        schema: {id: {type: 'number', nullable: false}},
+        rows: [{id: 2}, {id: 1}]}, as: 'seed'},
+      {from: 'seed', sort: [{id: 'asc'}], as: 'ordered'}],
+      results: {rows: {from: 'ordered', fields: ['id']}}}],
+      results: {rows: {from: {stage: 'source', result: 'rows'}}}};
+    const execution = await client.aql(JSON.stringify(program), {format: 'json',
+      requestId: 'public-retained-values'});
+    const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
+    assert.equal(state.status, 'succeeded');
+    assert.deepEqual(await execution.result('rows').all(), [{id: 1}, {id: 2}]);
+    assert.ok(outputRepresentations?.some(value =>
+      value.representation === 'retained-file'));
   });
 
 test('installed Host admits only an exact Result policy original', async t => {

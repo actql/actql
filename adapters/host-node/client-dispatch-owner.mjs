@@ -15,6 +15,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   prepareAcquisition, planFor, sourceProfile, registry, values, fragment,
   ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
   faultInjection, runInfer, computeConfigurations = {},
+  retainedRelationOutput = false,
   runPublished = runPublishedCapturedStrategy}) {
   const entries = new Map();
   const diagnostic = diagnosticObserver(observed);
@@ -54,6 +55,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       entry.sourceCapture = await installedSource.open({preparedProgram,
         registry, values, fragment, ordered, sourceAccess,
         signal: entry.abort.signal, preparedSource,
+        retainedRelationOutput,
         reportAcquisitionFailure: acquisition.retain});
     } catch (error) {
       const ended = acquisition.outcome(error);
@@ -254,11 +256,18 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         throw new Error('InstalledInferDispatchUnavailable');
       }
       const multiple = held.preparedSources?.length === 2;
+      if (multiple && retainedRelationOutput) {
+        throw new TypeError('InstalledMultiSourceRetainedOutputUnsupported');
+      }
       if (inferring && multiple) {
         throw new Error('InstalledInferMultiSourceUnsupported');
       }
       const installedSource = acquiring && !multiple
         ? installedSourceFor(sourceProfile, held.preparedSource.checkedSource.sourceRef) : undefined;
+      if (retainedRelationOutput && !inferring && installedSource !== undefined &&
+          installedSource.supportsRetainedRelationOutput !== true) {
+        throw new TypeError('InstalledSourceRetainedOutputUnsupported');
+      }
       let ledger;
       const selectedSources = [];
       if (multiple) {
@@ -288,7 +297,10 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       let setup;
       let acquiredInfer;
       if (!acquiring && !inferring) {
-        setup = moon.clientProgramOpenSourceFreeLocalHost(
+        const open = retainedRelationOutput
+          ? moon.clientProgramOpenSourceFreeLocalRetainedHost
+          : moon.clientProgramOpenSourceFreeLocalHost;
+        setup = open(
           preparedProgram, registry, values, 1n, 0n, 0n, 0n,
           fragment, ordered);
         if (setup === undefined) throw new Error('ClientProgramNeedsInputs');
@@ -458,6 +470,9 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       entry.cleanupOwner = published;
       entry.publicationCommitted = true;
       await step('computed', {ref: accepted.ref,
+        outputRepresentations: (published.execution?.completed ?? [])
+          .map(task => ({task:task.task,
+            representation:task.outputRepresentation})),
         carrierSnapshots: (published.execution?.completed ?? [])
           .filter(task => task.snapshot !== undefined)
           .map(task => ({task:task.task,...task.snapshot})),

@@ -61,7 +61,8 @@ import {installRunStateAuthority, installRunStateService,
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {createLocalRetainedStore} from '../store-local/files.mjs';
-import {installLocalSnapshotStore} from '../local-node/retained-store.mjs';
+import {installLocalRetainedStore, installLocalSnapshotStore} from
+  '../local-node/retained-store.mjs';
 import {installRemoteCheckpoints} from './client-checkpoints.mjs';
 import {assertEffectTargetReadBinding, effectTargetReadContinuation} from
   './effect-target-read-continuation.mjs';
@@ -117,6 +118,8 @@ async function embeddedInstallationIdentity(root, installation) {
       modelEnvironment: installation.modelInstallation}),
     ...(installation?.resultDataPolicy === undefined ? {} : {
       resultDataPolicy: installation.resultDataPolicy}),
+    ...(installation?.retainedRelationOutput === true ? {
+      retainedRelationOutput: true} : {}),
     hostKey: authorization?.hostKey === undefined ? null : {
       keyId: authorization.hostKey.keyId,
       publicKeyCid: publicKeyCid(authorization.hostKey.privateKey)},
@@ -154,7 +157,11 @@ const REALIZATION_KEY = 'source-free-values';
 async function openInstalledHost({root, mode = 'local', beforeDispatch,
   authorization, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
   effectProfilePath, resolveEffectSecret, effectInstallation,
-  modelInstallation, registerModelProviders, resultDataPolicy}) {
+  modelInstallation, registerModelProviders, resultDataPolicy,
+  retainedRelationOutput = false}) {
+  if (typeof retainedRelationOutput !== 'boolean') {
+    throw new TypeError('InvalidLocalRetainedOutputConfiguration');
+  }
   const selectedSourcePaths = installedSourcePaths({sourceProfilePath, sourceProfilePaths});
   const selectedEffectPath = effectProfilePath ??
     process.env.ACTQL_LOCAL_EFFECT_PROFILE;
@@ -286,7 +293,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     // only after the common driver has reserved work/capacity and captured
     // the snapshot cleanup owner. Graph row Relations use the same Store for
     // verified export/reload before their ordinary guaranteed projection.
-    localSnapshotConfiguration = installLocalSnapshotStore((_key, bytes, frame) =>
+    const installStore = retainedRelationOutput
+      ? installLocalRetainedStore : installLocalSnapshotStore;
+    localSnapshotConfiguration = installStore((_key, bytes, frame) =>
       createLocalRetainedStore({parentDirectory:snapshotDirectory,
         capacityBytes:bytes,maxFrameBytes:frame,maxEntries:1}));
     journal = openClientRequestJournal(journalDirectory);
@@ -882,7 +891,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     observed, prepareAcquisition, planFor, sourceProfile, registry, values,
     faultInjection: authorization?.faultInjection,
     fragment, ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
-    runInfer, computeConfigurations: {local:localSnapshotConfiguration}});
+    runInfer, retainedRelationOutput,
+    computeConfigurations: {local:localSnapshotConfiguration}});
   const startDispatch = dispatchOwner.start;
   const recoverEffectCapture = (ref, signal) => {
     const retained = journal.lookupRunDefinition(ref, moon, control);
@@ -1882,7 +1892,7 @@ export async function openInstalledRemoteHttpHost({directory,
   authenticate, beforeDispatch, authorization, sourceProfilePath, sourceProfilePaths,
   resolveSourceSecret, effectProfilePath, resolveEffectSecret,
   effectInstallation, modelInstallation, registerModelProviders,
-  resultDataPolicy}) {
+  resultDataPolicy, retainedRelationOutput}) {
   if (typeof directory !== 'string' || !directory ||
       typeof authenticate !== 'function' ||
       beforeDispatch !== undefined && typeof beforeDispatch !== 'function') {
@@ -1891,7 +1901,8 @@ export async function openInstalledRemoteHttpHost({directory,
   const host = await openInstalledHost({root: resolve(directory), mode: 'remote',
     beforeDispatch, authorization, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
     effectProfilePath, resolveEffectSecret, effectInstallation,
-    modelInstallation, registerModelProviders, resultDataPolicy});
+    modelInstallation, registerModelProviders, resultDataPolicy,
+    retainedRelationOutput});
   const handle = createClientHttpHandler({
     ...host.hostOperations, authenticate, maxRequestBytes: 65536,
   });
@@ -1982,6 +1993,10 @@ export async function connectEmbeddedLocal(options) {
       typeof installation !== 'object' || Array.isArray(installation))) {
     throw new TypeError('InvalidInstalledHostOptions');
   }
+  if (installation?.retainedRelationOutput !== undefined &&
+      typeof installation.retainedRelationOutput !== 'boolean') {
+    throw new TypeError('InvalidLocalRetainedOutputConfiguration');
+  }
   const root = installation?.directory === undefined ? localStateRoot() :
     resolve(installation.directory);
   const identity = await embeddedInstallationIdentity(root, installation);
@@ -1996,7 +2011,8 @@ export async function connectEmbeddedLocal(options) {
         resolveEffectSecret: installation?.resolveEffectSecret,
         modelInstallation: installation?.modelInstallation,
         registerModelProviders: installation?.registerModelProviders,
-        resultDataPolicy: installation?.resultDataPolicy})});
+        resultDataPolicy: installation?.resultDataPolicy,
+        retainedRelationOutput: installation?.retainedRelationOutput})});
     profiles.set(root, opened);
     opened.host.catch(() => {
       if (profiles.get(root) === opened) profiles.delete(root);
