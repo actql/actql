@@ -187,6 +187,26 @@ or replacement CI run was made. [Automatic CI 37175353412](https://github.com/ac
 is still in progress for the published integration HEAD. The preceding 27-job
 and packed successes are not relabelled as this new Git revision's evidence.
 
+Fresh packed execution is now confirmed for that published `7ee4c774...` HEAD
+in [artifact 11293569005](https://github.com/actql/actql/actions/runs/37175353412/artifacts/11293569005).
+The clean CI merge is `d0c949b8beee41575a8bd566966b8b2bf29c93fc`, with
+actual Git parents C `8c2933d672520085e291b9ada47b1c136954f4d5` and B
+`7ee4c7740138e0b2c2f745b24510a25eab484e9d`. The summary is passed/complete,
+source is clean, and evidence errors are empty. Acceptance command 007 exits
+0, with null signal and complete output. Its log records all 13 Graph-row
+positives on each of packed Embedded Local and HTTP. The exact-source driver
+includes and completes all 11 refusals on both transports: typed input errors,
+unchanged accepted-Run/provider-I/O counters and missing request lookup.
+The helper compares independent rows and ordered Result descriptions and
+checks attach/resubmit/read reuse without further acceptance or acquisition.
+All five tarball digests match the selector package table above, verified from
+this new artifact rather than assumed from the predecessor. Required automatic
+CI remains unfinished; this is public execution evidence, not a final CI GO.
+The downloaded evidence archive is
+`/private/tmp/actql-pr316-packed-public-query-11293569005.zip`; it contains
+logs and summaries, without a new local runtime build or install. This selector
+success does not resolve D's saved shared-CTE predicate counterexample.
+
 The independent traversal text connection is now
 [Draft #323](https://github.com/actql/actql/pull/323), submitted
 `898d6ddff9aa1b97557bf3972237e764ebcc57d6`, normally integrated with the same
