@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
 import {fileURLToPath} from 'node:url';
+import {groupedQueryCases} from './fixtures/grouped-query-programs.mjs';
 import {compileCapturedQueryJson, compileQueryJson,
   compileValuesQueryJson} from
   '../_build/js/debug/build/query_program_test_bridge/query_program_test_bridge.js';
@@ -14,6 +15,16 @@ const input = expected.stages[0].inputs.orders;
 const fields = Object.keys(input.schema);
 const sql = await readFile(fixture('query-pair.standard.sql'), 'utf8');
 const pipe = await readFile(fixture('query-pair.pipe.sql'), 'utf8');
+
+test('SQL and Pipe grouping preserve independent predicate and projection Programs', () => {
+  for (const {name, source, expected: program} of groupedQueryCases) {
+    const wire = compileCapturedQueryJson(source, 'records', 'remote',
+      JSON.stringify({connector: 'crm/main', resource: 'r'}),
+      JSON.stringify(['id', 'amount']), 'fixture.grouped_query');
+    assert.notEqual(wire, '', name);
+    assert.deepEqual(JSON.parse(wire), program, name);
+  }
+});
 
 test('independent SQL and Pipe pair lower to the same admitted Program', () => {
   for (const source of [sql, pipe]) {

@@ -1298,3 +1298,303 @@ test "native journal keeps output intents until their cleanup is complete" {
   assert_true(journal.close())
   assert_true(reader.close())
 }
+
+///|
+test "native cancellation tombstone survives restart and delayed dispatch" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    fail("SQLite library missing")
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    fail("SQLite root missing")
+  }
+  let library = @sqlite.load_library(path).unwrap()
+  let database_path = root +
+    "/cancel-unseen-" +
+    @env.now().to_string() +
+    ".sqlite3"
+  let request = test_request("cancel-unseen")
+  let original = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(test_site()),
+  ).unwrap()
+  let cancelled = original.request_cancellation(request).unwrap()
+  assert_eq(@remote.dispatch_record_state_codes(cancelled), [5, 0, 2, 0, 0])
+  assert_true(original.cancellation_requested(request).unwrap())
+  assert_true(original.close())
+  let reopened = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(test_site()),
+  ).unwrap()
+  let repeated = reopened.request_cancellation(request).unwrap()
+  let (kind, delayed) = reopened.accept(request).unwrap()
+  assert_eq(kind, @remote.ExistingDispatch)
+  assert_eq(@remote.dispatch_record_state_codes(delayed), [5, 0, 2, 0, 0])
+  assert_eq(
+    @remote.dispatch_record_revision(repeated),
+    @remote.dispatch_record_revision(cancelled),
+  )
+  assert_eq(
+    @remote.dispatch_record_revision(delayed),
+    @remote.dispatch_record_revision(cancelled),
+  )
+  assert_true(
+    reopened.accept(test_request("changed-dispatch")) is Err(StateCollision),
+  )
+  assert_true(reopened.close())
+}
+
+///|
+test "native cancellation preserves a winning start and excludes a losing one" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    fail("SQLite library missing")
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    fail("SQLite root missing")
+  }
+  let library = @sqlite.load_library(path).unwrap()
+  let database_path = root +
+    "/cancel-race-" +
+    @env.now().to_string() +
+    ".sqlite3"
+  let site = test_site()
+  let starter = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(site),
+  ).unwrap()
+  let canceller = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(test_site()),
+  ).unwrap()
+  let request = test_request("cancel-first")
+  let (_, before) = starter.accept(request).unwrap()
+  let stale_start = @remote.prepare_begin_provisioning(
+    before,
+    test_capability(site),
+  ).unwrap()
+  let cancelled = canceller.request_cancellation(request).unwrap()
+  assert_eq(@remote.dispatch_record_state_codes(cancelled), [5, 0, 0, 0, 0])
+  assert_eq(starter.claim_start(stale_start, "executor-a").unwrap(), Cancelled)
+  let started_request = test_request_for(
+    "start-first",
+    8,
+    4,
+    test_cid("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+  )
+  let (_, started) = starter.accept(started_request).unwrap()
+  assert_eq(
+    starter
+    .claim_start(
+      @remote.prepare_begin_provisioning(started, test_capability(site)).unwrap(),
+      "executor-b",
+    )
+    .unwrap(),
+    Won,
+  )
+  let requested = canceller.request_cancellation(started_request).unwrap()
+  assert_eq(@remote.dispatch_record_state_codes(requested), [1, 0, 0, 0, 0])
+  assert_true(canceller.cancellation_requested(started_request).unwrap())
+  assert_eq(
+    @remote.dispatch_record_revision(
+      canceller.request_cancellation(started_request).unwrap(),
+    ),
+    @remote.dispatch_record_revision(requested),
+  )
+  assert_true(canceller.close())
+  assert_true(starter.close())
+}
+
+///|
+test "native cancellation persistence failure rolls back the startable admission" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    fail("SQLite library missing")
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    fail("SQLite root missing")
+  }
+  let library = @sqlite.load_library(path).unwrap()
+  let database_path = root +
+    "/cancel-save-failure-" +
+    @env.now().to_string() +
+    ".sqlite3"
+  let original = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(test_site()),
+  ).unwrap()
+  let request = test_request("cancel-save-failure")
+  // Occupy the exact attempt with corrupt cancellation bytes. This causes the
+  // mutation to fail after BEGIN, before any terminal record can be committed.
+  let key = @remote.dispatch_request_attempt_identity(request).unwrap()
+  original.database
+  .insert("site_cancel_request", key, @utf8.encode("invalid"))
+  .unwrap()
+  |> ignore
+  assert_true(original.request_cancellation(request) is Err(StateCollision))
+  assert_true(original.require(request) is Err(MissingDispatch))
+  assert_true(original.close())
+  let reopened = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(test_site()),
+  ).unwrap()
+  assert_true(reopened.require(request) is Err(MissingDispatch))
+  assert_true(reopened.request_cancellation(request) is Err(StateCollision))
+  assert_true(reopened.close())
+}
+
+///|
+#borrow(database)
+extern "C" fn test_fail_cancel_commit(
+  database : @sqlite.Database,
+  failures : Int,
+) -> Unit = "actql_native_sqlite_test_fail_commit"
+
+///|
+test "native cancellation commit failure keeps responsibility retryable" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    fail("SQLite library missing")
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    fail("SQLite root missing")
+  }
+  let library = @sqlite.load_library(path).unwrap()
+  let database_path = root +
+    "/cancel-commit-failure-" +
+    @env.now().to_string() +
+    ".sqlite3"
+  let request = test_request("cancel-commit-failure")
+  let original = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(test_site()),
+  ).unwrap()
+  test_fail_cancel_commit(original.database, 1)
+  assert_true(original.request_cancellation(request) is Err(Physical(_)))
+  assert_true(original.require(request) is Err(MissingDispatch))
+  assert_false(original.cancellation_requested(request).unwrap())
+  assert_true(original.close())
+  let retry = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(test_site()),
+  ).unwrap()
+  let cancelled = retry.request_cancellation(request).unwrap()
+  assert_eq(@remote.dispatch_record_state_codes(cancelled), [5, 0, 2, 0, 0])
+  assert_eq(
+    @remote.dispatch_record_revision(
+      retry.request_cancellation(request).unwrap(),
+    ),
+    @remote.dispatch_record_revision(cancelled),
+  )
+  assert_true(retry.close())
+}
+
+///|
+#borrow(database)
+extern "C" fn test_fail_cancel_commit_reply(
+  database : @sqlite.Database,
+  failures : Int,
+) -> Unit = "actql_native_sqlite_test_fail_commit_reply"
+
+///|
+test "native cancellation lost commit reply reuses its terminal record" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    fail("SQLite library missing")
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    fail("SQLite root missing")
+  }
+  let library = @sqlite.load_library(path).unwrap()
+  let database_path = root +
+    "/cancel-commit-reply-" +
+    @env.now().to_string() +
+    ".sqlite3"
+  let request = test_request("cancel-commit-reply")
+  let original = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(test_site()),
+  ).unwrap()
+  test_fail_cancel_commit_reply(original.database, 1)
+  assert_true(original.request_cancellation(request) is Err(Physical(_)))
+  assert_true(original.close())
+  let retry = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(test_site()),
+  ).unwrap()
+  let saved = retry.require(request).unwrap()
+  assert_eq(@remote.dispatch_record_state_codes(saved), [5, 0, 2, 0, 0])
+  let repeated = retry.request_cancellation(request).unwrap()
+  assert_eq(
+    @remote.dispatch_record_revision(repeated),
+    @remote.dispatch_record_revision(saved),
+  )
+  assert_true(retry.cancellation_requested(request).unwrap())
+  assert_true(retry.close())
+}
+
+///|
+test "native cancellation preserves completed execution and rejects stale binding" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    fail("SQLite library missing")
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    fail("SQLite root missing")
+  }
+  let library = @sqlite.load_library(path).unwrap()
+  let database_path = root +
+    "/cancel-settled-" +
+    @env.now().to_string() +
+    ".sqlite3"
+  let site = test_site()
+  let owner = open_journal(library, database_path, 262144L, test_control(site)).unwrap()
+  let request = test_request("cancel-settled")
+  let (_, record) = owner.accept(request).unwrap()
+  assert_eq(
+    owner
+    .claim_start(
+      @remote.prepare_begin_provisioning(record, test_capability(site)).unwrap(),
+      "executor-c",
+    )
+    .unwrap(),
+    Won,
+  )
+  owner
+  .commit_transition(@remote.prepare_begin_remote_execution(record).unwrap())
+  .unwrap()
+  owner
+  .commit_transition(@remote.prepare_confirm_native_settled(record).unwrap())
+  .unwrap()
+  let revision = @remote.dispatch_record_revision(record)
+  let preserved = owner.request_cancellation(request).unwrap()
+  assert_eq(@remote.dispatch_record_state_codes(preserved), [3, 0, 0, 0, 0])
+  assert_eq(@remote.dispatch_record_revision(preserved), revision)
+  let stale = test_request_for(
+    "cancel-stale",
+    13,
+    3,
+    test_cid("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+  )
+  assert_true(
+    owner.request_cancellation(stale)
+    is Err(Protocol(@remote.StaleSiteGeneration)),
+  )
+  assert_true(owner.require(stale) is Err(MissingDispatch))
+  assert_false(owner.cancellation_requested(stale).unwrap())
+  assert_true(owner.close())
+}
