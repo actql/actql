@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {encode} from '../bounded-session/action-inputs.mjs';
-import {catalogPath, compareCatalogs, validateCatalog} from './actions.mjs';
+import {catalogPath, preserveProtectedActions, validateCatalog} from './actions.mjs';
 import {actionInputs, compareInputs, gitTree, hash, sharedFiles} from './inputs.mjs';
 import {readOriginReceipts} from './receipts.mjs';
 import {checkPlan} from './check.mjs';
@@ -65,11 +65,7 @@ export async function checkApplications({root, context, runtime, actionRuntimes 
   const candidateTree = tree(context.candidateRevision), protectedTree = tree(protectedRevision);
   const catalog = validateCatalog(JSON.parse(candidateTree.read(catalogPath).toString('utf8')));
   const protectedCatalog = validateCatalog(JSON.parse(protectedTree.read(catalogPath).toString('utf8')));
-  compareCatalogs(protectedCatalog, catalog);
-  for (const original of protectedCatalog.actions) {
-    assert.equal(encode(catalog.actions.find(action => action.id === original.id)), encode(original),
-      'Changed protected registration requires a reviewed policy update');
-  }
+  preserveProtectedActions(protectedCatalog, catalog);
   assert(Array.isArray(entries) && entries.length === catalog.actions.length, 'Incomplete required applications');
   const byId = new Map();
   for (const entry of entries) {
