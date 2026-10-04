@@ -10,6 +10,8 @@ import test from 'node:test';
 import './installed-connectors.test.mjs';
 // The neutral row source's Site boundary runs with the installation tests.
 import './installed-row-source.test.mjs';
+// Real installed-Host target cancellation and process restart.
+import './embedded-target-cancel.test.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from
   './embedded-local.mjs';
 import {installedEffectIdentity} from './installed-effect.mjs';
@@ -282,6 +284,10 @@ test('installed Host admits only an exact Result policy original', async t => {
     authenticate: () => userInfo().username,
     resultDataPolicy: {...original, cid: `sha256:${'a'.repeat(64)}`}}),
   {code: 'MoonBitHostFailure'});
+  await assert.rejects(openInstalledRemoteHttpHost({directory,
+    authenticate: () => userInfo().username,
+    resultDataPolicy: {kind: original.kind, cid: original.cid}}),
+  {name: 'TypeError', message: 'InvalidHostResultDataPolicy'});
   const host = await openInstalledRemoteHttpHost({directory,
     authenticate: () => userInfo().username, resultDataPolicy: original});
   t.after(async () => host.close());

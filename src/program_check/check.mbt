@@ -107,6 +107,7 @@ fn check_supported_source(
               | "traverse"
               | "degree"
               | "graph_bounds"
+              | "graphs_equal"
               | "normalize_graph"
               | "components"
               | "to_vectors"
