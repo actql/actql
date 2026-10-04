@@ -152,3 +152,20 @@ export function scratchDockerfile() {
   return ['FROM scratch', 'COPY root/ /', ...Object.entries(isolatedEnvironment).map(([name, value]) => `ENV ${name}=${value}`),
     'USER 1000:1000', 'WORKDIR /workspace', `ENTRYPOINT ["/runtime/node", "/source/${child}"]`, ''].join('\n');
 }
+
+// The build instruction bytes are not a substitute for inspecting the image
+// actually produced. Refuse extra ENV, startup hooks and automatically mounted
+// volumes before running any command from that image. Never print ENV values.
+export function checkImageDefinition({image, imageId, owner}) {
+  assert(/^sha256:[a-f0-9]{64}$/u.test(imageId) && /^[0-9]+:[0-9]+:[0-9]+$/u.test(owner), 'Invalid image identity/owner');
+  assert.equal(image.Id, imageId); assert.equal(image.Os, 'linux'); assert.equal(image.Architecture, 'amd64');
+  const config = image.Config;
+  assert(config?.Labels?.['org.actql.ci.owner'] === owner, 'Wrong built image owner');
+  assert(encode(config.Env) === encode(Object.entries(isolatedEnvironment).map(([name, value]) => `${name}=${value}`)), 'Unexpected built image environment');
+  assert(config.User === '1000:1000' && config.WorkingDir === '/workspace', 'Changed image user/workdir');
+  assert(encode(config.Entrypoint) === encode(['/runtime/node', `/source/${child}`]), 'Changed image entrypoint');
+  for (const field of ['Cmd', 'Volumes', 'Healthcheck', 'OnBuild', 'ExposedPorts']) {
+    assert(config[field] === undefined || config[field] === null, 'Unreviewed image startup/configuration');
+  }
+  return true;
+}

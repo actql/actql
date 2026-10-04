@@ -18,7 +18,7 @@ function fixture(t) {
   const tree = {entries: new Map([...bodies.keys()].map(path => [path, {mode: '100644', kind: 'blob'}])), read: path => bodies.get(path)};
   stageMutationSource({tree, destination: root});
   const executables = ['runtime/node', ...['moon', 'moonc', 'moonrun'].map(name => `runtime/moonbit/bin/${name}`)];
-  for (const path of [...executables, 'lib/test.so', 'runtime/moonbit/lib/core/README.md']) {
+  for (const path of [...executables, 'lib/libstdc++.so.6', 'runtime/moonbit/lib/core/README.md']) {
     mkdirSync(dirname(join(root, path)), {recursive: true}); writeFileSync(join(root, path), path);
     chmodSync(join(root, path), executables.includes(path) ? 0o755 : 0o644);
   }
@@ -27,7 +27,7 @@ function fixture(t) {
   const manifest = {version: 'actql-isolated-mutation-inputs/0.1', environment: isolatedEnvironment,
     dockerfile: scratchDockerfile(), root: observeImageRoot(root),
     platformInputs: {platform: 'linux', architecture: 'x64', kernelRelease: 'fixture'},
-    loaderObservations: executables.map(executable => ({executable, digest: hash(executable), static: false, paths: ['/lib/test.so']}))};
+    loaderObservations: executables.map(executable => ({executable, digest: hash(executable), static: false, paths: ['/lib/libstdc++.so.6']}))};
   const runtime = imageRuntime(manifest), before = snapshotFromGit(tree);
   const report = {source: before, results: mutationIds.map(id => ({id, killed: true, target: 'js', failureCount: 1}))};
   const payload = {version: 'actql-isolated-mutation-observation/0.1', root: manifest.root,
@@ -35,7 +35,10 @@ function fixture(t) {
     logs: Object.fromEntries(mutationIds.map(id => [id, 'Total tests: 1, passed: 0, failed: 1.\n']))};
   const state = {context: {candidateRevision: 'a'.repeat(40)}, origin: {runId: 1, runAttempt: 2, jobId: 3}, actionRuntimes: {'mutations-js': runtime}};
   const imageId = `sha256:${'b'.repeat(64)}`, owner = '1:2:3';
-  const execution = {imageId, owner, arguments: isolatedRunArguments({imageId, owner, cidFile: '/owned/container.id'}),
+  const execution = {imageId, owner, imageDefinition: {Id: imageId, Os: 'linux', Architecture: 'amd64', Config: {
+    Labels: {'org.actql.ci.owner': owner}, Env: Object.entries(isolatedEnvironment).map(([name, value]) => `${name}=${value}`),
+    User: '1000:1000', WorkingDir: '/workspace', Entrypoint: ['/runtime/node', '/source/proofs/ci-evidence/isolated-mutations.mjs']}},
+    arguments: isolatedRunArguments({imageId, owner, cidFile: '/owned/container.id'}),
     costs: {preparationMilliseconds: 1, buildMilliseconds: 2, executionMilliseconds: 3, inspectionMilliseconds: 4, closeMilliseconds: 5}};
   const files = {'isolated-inputs.json': manifest, 'isolated-observation.json': payload, 'isolated-execution.json': execution,
     'receipts/mutations-js.json': {origin: state.origin, inputs: {inputs: {runtime}}, execution: {milliseconds: 15}},

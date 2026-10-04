@@ -170,6 +170,11 @@ runtimes, final three-target validation, chain/capacity campaigns and required
 checks are unchanged. Image preparation, build, execution, inspection and owned
 container/image closure costs are recorded separately. No registry base, host
 installation cache, workflow change or parallel receipt ledger is introduced.
+The actual built image definition is also checked and retained: fixed ENV,
+entrypoint, user and workdir; no extra command, startup hook, volume or health
+check. The final consumer verifies this inspected definition independently of
+the intended Dockerfile. Staged Dockerfile/control bytes are checked again
+before build, and unexpected environment values are not printed.
 
 **This executor remains comparison-only.** Its kernel/CPU and action closure
 still require acceptance; Docker isolation is not a proof of OS determinism.

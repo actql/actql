@@ -10,7 +10,7 @@ import {encode} from '../bounded-session/action-inputs.mjs';
 import {snapshot} from '../bounded-session/evidence.mjs';
 import {hash} from './inputs.mjs';
 import {copyRegular, stageDistribution, stageMutationSource, loaderPaths, isolatedEnvironment,
-  isolatedRunArguments, scratchDockerfile} from './isolation.mjs';
+  isolatedRunArguments, scratchDockerfile, checkImageDefinition} from './isolation.mjs';
 import {observeImageRoot, platformInputs, imageRuntime, checkIsolatedInputs, checkIsolatedResult} from './isolated-runtime.mjs';
 
 const jsonBytes = value => Buffer.from(`${encode(value)}\n`);
@@ -85,13 +85,15 @@ export function executeIsolatedMutation({root, tree, prepared}) {
   let imageId, failure, answer;
   try {
     let start = performance.now();
+    assert.equal(readFileSync(join(prepared.context, 'Dockerfile'), 'utf8'), prepared.manifest.dockerfile, 'Changed build instruction bytes');
+    assert.equal(encode(JSON.parse(readFileSync(join(prepared.context, 'root/control/inputs.json'), 'utf8'))), encode(prepared.manifest), 'Changed staged control inputs');
     docker(['build', '--network=none', '--pull=false', '--label', `org.actql.ci.owner=${prepared.owner}`,
       '--iidfile', iidFile, '--tag', tag, prepared.context]);
     imageId = readFileSync(iidFile, 'utf8').trim();
     assert(/^sha256:[a-f0-9]{64}$/u.test(imageId), 'Missing immutable built image ID');
     const image = JSON.parse(docker(['image', 'inspect', imageId]));
-    assert.equal(image.length, 1); assert.equal(image[0].Id, imageId);
-    assert.equal(image[0].Config.Labels['org.actql.ci.owner'], prepared.owner);
+    assert.equal(image.length, 1);
+    checkImageDefinition({image: image[0], imageId, owner: prepared.owner});
     costs.buildMilliseconds = Math.round(performance.now() - start);
     start = performance.now();
     const args = isolatedRunArguments({imageId, cidFile, owner: prepared.owner});
@@ -107,7 +109,7 @@ export function executeIsolatedMutation({root, tree, prepared}) {
     assert.equal(snapshot(root).digest, before.digest, 'Host source changed during isolation');
     const output = `${lines.filter(line => !line.startsWith(prefix)).join('\n')}${result.stderr ?? ''}`;
     costs.inspectionMilliseconds = Math.round(performance.now() - start);
-    answer = {output, payload, imageId, owner: prepared.owner, arguments: args, costs};
+    answer = {output, payload, imageId, imageDefinition: image[0], owner: prepared.owner, arguments: args, costs};
   } catch (error) { failure = error; }
   const start = performance.now();
   try {

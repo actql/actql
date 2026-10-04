@@ -4,7 +4,7 @@ import {mkdtempSync, mkdirSync, readFileSync, writeFileSync, chmodSync, lstatSyn
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {mutationSourcePaths, stageMutationSource, copyRegular, stageDistribution, loaderPaths,
-  isolatedRunArguments, scratchDockerfile, mutationSnapshotExtras, isolatedEnvironment, isolatedSourceFiles} from './isolation.mjs';
+  isolatedRunArguments, scratchDockerfile, mutationSnapshotExtras, isolatedEnvironment, isolatedSourceFiles, checkImageDefinition} from './isolation.mjs';
 
 const temporary = t => {
   const path = mkdtempSync(join(tmpdir(), 'actql-isolated-input-test-'));
@@ -104,4 +104,26 @@ test('the action uses an immutable image, no host mount/network/secret environme
   const dockerfile = scratchDockerfile(); assert(dockerfile.startsWith('FROM scratch\n'));
   assert.equal(Object.keys(isolatedEnvironment).includes('GITHUB_TOKEN'), false);
   assert(!dockerfile.includes('RUN ') && !dockerfile.includes('apt') && !dockerfile.includes('Lean'));
+});
+
+test('the actual image definition rejects changed environment, hooks, volumes, identity and owner', () => {
+  const imageId = `sha256:${'a'.repeat(64)}`, owner = '1:2:3';
+  const image = {Id: imageId, Os: 'linux', Architecture: 'amd64', Config: {
+    Labels: {'org.actql.ci.owner': owner}, Env: Object.entries(isolatedEnvironment).map(([name, value]) => `${name}=${value}`),
+    User: '1000:1000', WorkingDir: '/workspace', Entrypoint: ['/runtime/node', '/source/proofs/ci-evidence/isolated-mutations.mjs'],
+    Cmd: null, Volumes: null, OnBuild: null}};
+  assert(checkImageDefinition({image, imageId, owner}));
+  for (const alter of [
+    image => image.Id = `sha256:${'b'.repeat(64)}`,
+    image => image.Config.Labels['org.actql.ci.owner'] = '1:2:4',
+    image => image.Config.Env.push('UNREVIEWED=value'),
+    image => image.Config.User = '0:0',
+    image => image.Config.Entrypoint = ['/runtime/another-command'],
+    image => image.Config.Healthcheck = {Test: ['CMD', '/runtime/another-command']},
+    image => image.Config.Volumes = {'/runtime': {}},
+    image => image.Config.OnBuild = ['RUN external-command'],
+  ]) {
+    const changed = structuredClone(image); alter(changed);
+    assert.throws(() => checkImageDefinition({image: changed, imageId, owner}));
+  }
 });

@@ -10,7 +10,7 @@ import {encode} from '../bounded-session/action-inputs.mjs';
 import {hash} from './inputs.mjs';
 import {isolatedEnvironment, mutationSourcePaths, scratchDockerfile} from './isolation.mjs';
 import {mutationIds} from './mutation-inventory.mjs';
-import {isolatedRunArguments, mutationSnapshotExtras} from './isolation.mjs';
+import {isolatedRunArguments, mutationSnapshotExtras, checkImageDefinition} from './isolation.mjs';
 
 export const isolatedProfile = 'isolated-session-mutations-linux';
 export const isolatedResidual = 'isolated comparison only: reviewed action/kernel/CPU closure and acceptance remain required';
@@ -64,7 +64,7 @@ export function checkIsolatedInputs({runtime, manifest, tree}) {
   const byPath = new Map(manifest.root.entries.map(entry => [entry.path, entry]));
   assert.equal(byPath.size, manifest.root.entries.length, 'Duplicate image input');
   for (const entry of manifest.root.entries) {
-    assert(/^[A-Za-z0-9_.\/-]+$/u.test(entry.path) && !entry.path.split('/').some(part => ['', '.', '..'].includes(part)), 'Invalid image path');
+    assert(/^[A-Za-z0-9_.\/+\-]+$/u.test(entry.path) && !entry.path.split('/').some(part => ['', '.', '..'].includes(part)), 'Invalid image path');
     assert(imageRoots.includes(entry.path.split('/')[0]), 'Unreviewed image root');
     assert(['file', 'directory', 'symlink'].includes(entry.kind) && Number.isInteger(entry.mode) && entry.mode >= 0 && entry.mode <= 0o777, 'Unsupported image entry');
     if (entry.path.includes('/')) assert.equal(byPath.get(entry.path.slice(0, entry.path.lastIndexOf('/')))?.kind, 'directory', 'Missing image parent directory');
@@ -155,6 +155,7 @@ export async function readActionRuntimes({zip, state, tree}) {
   checkIsolatedResult({payload, manifest, before: snapshotFromGit(tree)});
   const owner = `${state.origin.runId}:${state.origin.runAttempt}:${state.origin.jobId}`;
   assert.equal(execution.owner, owner, 'Wrong isolated executor owner');
+  checkImageDefinition({image: execution.imageDefinition, imageId: execution.imageId, owner});
   const cidIndex = execution.arguments.indexOf('--cidfile'); assert(cidIndex >= 0);
   assert.deepEqual(execution.arguments, isolatedRunArguments({imageId: execution.imageId,
     cidFile: execution.arguments[cidIndex + 1], owner}), 'Changed isolation configuration');

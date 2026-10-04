@@ -115,7 +115,8 @@ async function mutations() {
   writeFileSync(join(originalDirectory, 'mutations.json'), `${JSON.stringify(result.payload.report, null, 2)}\n`, {flag: 'wx'});
   for (const [id, output] of Object.entries(result.payload.logs)) writeFileSync(join(originalDirectory, `mutation-${id}.log`), output, {flag: 'wx'});
   write(join(directory, 'isolated-observation.json'), result.payload);
-  write(join(directory, 'isolated-execution.json'), {imageId: result.imageId, owner: result.owner, arguments: result.arguments, costs: result.costs});
+  write(join(directory, 'isolated-execution.json'), {imageId: result.imageId, imageDefinition: result.imageDefinition,
+    owner: result.owner, arguments: result.arguments, costs: result.costs});
   recordExistingAction({id: 'mutations-js', command: ['node', 'proofs/bounded-session/mutations.mjs'], output: result.output,
     status: 0, milliseconds: Object.values(result.costs).reduce((sum, value) => sum + value, 0),
     extraArtifacts: ['isolated-observation.json', 'isolated-execution.json'],
