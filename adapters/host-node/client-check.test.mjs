@@ -230,6 +230,46 @@ const protectedSource = [{boundary: 'source_resolution',
   reason: 'unresolved_protected'}];
 
 for (const [entrance, open] of Object.entries(entrances)) {
+  test(`${entrance}: unresolved column expressions retain authored source positions`, async t => {
+    const client = await open(t, configurations.denied);
+    for (const format of ['sql', 'aql-text']) {
+      for (const [text, start, end, token] of [
+        ['SELECT missing AS n', 7, 14, 'missing'],
+        ['/*😀*/\r\nSELECT missing AS n', 17, 24, 'missing'],
+        ['/* missing */ SELECT missing AS n', 21, 28, 'missing'],
+        ['SELECT missing AS n, missing AS m', 7, 14, 'missing'],
+        ['SELECT `é😀` AS n', 7, 15, '`é😀`'],
+      ]) {
+        const outcome = await client.check(text, {format});
+        assert.equal(outcome.outcome, 'completed', '[check-mutation:column-outcome]');
+        assert.equal(outcome.report.verdict, 'invalid', '[check-mutation:column-verdict]');
+        const original = getCheckInput(outcome, 'source');
+        assert.deepEqual(outcome.report.reasons, [{code: 'query_invalid',
+          location: {document_id: 'source', revision: original.revision,
+            kind: 'text', start_byte: start, end_byte: end, precision: 'exact'}}],
+        '[check-mutation:column-location]');
+        assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+        const location = outcome.report.reasons[0].location;
+        assert.equal(resolveCheckLocation(outcome, location).text, token);
+        assert.equal(resolveCheckLocation(outcome, location,
+          {...original, text: 'SELECT id AS n'}), undefined);
+        assert.equal(resolveCheckLocation(JSON.parse(JSON.stringify(outcome)), location), undefined);
+        assert.equal(explainCheckReason(outcome.report.reasons[0]).kind, 'known');
+      }
+      // Double quotes are string literals; backticks quote identifiers.
+      const literal = await client.check('SELECT "é😀" AS n', {format});
+      assert.equal(literal.report.verdict, 'verified');
+      assert.deepEqual(literal.report.reasons, []);
+      const bare = await client.check('SELECT missing', {format});
+      assert.deepEqual(bare.report.reasons, [{code: 'query_invalid'}]);
+      const protectedInput = await client.check('SELECT missing AS n FROM records', {format});
+      assert.equal(protectedInput.report.verdict, 'undetermined');
+      assert.deepEqual(protectedInput.report.reasons, []);
+      assert.deepEqual(protectedInput.report.coverage, {limits: [], unresolved: protectedSource});
+    }
+    client.assertNoExecution();
+  });
+
   test(`${entrance}: nested supplied type facts follow the submitted contract and path`, async t => {
     const client = await open(t, configurations.denied);
     const cases = [
