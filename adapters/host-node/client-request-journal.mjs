@@ -171,9 +171,19 @@ function validateSourceInventory(wire) {
 function admissionEvidenceShape(value) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
   const keys = Object.keys(value).sort().join(',');
-  if (!['authorization,prepared', 'authorization,prepared,sourceInventory'].includes(keys) ||
+  if (!['authorization,prepared', 'authorization,prepared,sourceInventory',
+    'authorization,prepared,resultPolicyOriginal',
+    'authorization,prepared,resultPolicyOriginal,sourceInventory'].includes(keys) ||
       typeof value.prepared !== 'string' || typeof value.authorization !== 'string') return false;
   if (value.sourceInventory !== undefined) validateSourceInventory(value.sourceInventory);
+  if (value.resultPolicyOriginal !== undefined &&
+      (value.resultPolicyOriginal === null ||
+       typeof value.resultPolicyOriginal !== 'object' ||
+       Array.isArray(value.resultPolicyOriginal) ||
+       Object.keys(value.resultPolicyOriginal).sort().join(',') !== 'cid,kind,wire' ||
+       value.resultPolicyOriginal.kind !== 'data_policy' ||
+       typeof value.resultPolicyOriginal.cid !== 'string' ||
+       typeof value.resultPolicyOriginal.wire !== 'string')) return false;
   return true;
 }
 
