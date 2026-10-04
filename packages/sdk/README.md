@@ -71,6 +71,9 @@ The count proves neither Run completion nor Client persistence. A fresh read
 has a new attempt ID and starts from the beginning; no retry or append occurs
 automatically.
 An empty JSONL record fails the attempt instead of silently omitting a row.
+Malformed JSON and non-object JSONL records fail as `InvalidResultFrame` before
+being counted or yielded, matching the Local typed-frame boundary. Invalid row
+text is not retained as a parser cause. Scalar values within object fields remain valid.
 
 `await result.describe({format: 'jsonl'})` returns the confirmed Result's
 existing Definition, Artifact and schema identifiers, declaration-ordered

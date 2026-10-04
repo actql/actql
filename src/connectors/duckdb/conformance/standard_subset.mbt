@@ -303,6 +303,15 @@ pub fn strategy_fixture_retained_chain_filter_arithmetic(
 }
 
 ///|
+/// The branched task fails only after both retained filter outputs are joined.
+#export_name("strategyFixtureRetainedBranchFilterArithmetic")
+pub fn strategy_fixture_retained_branch_filter_arithmetic(
+  issue : @local_driver.LocalDispatchIssue,
+) -> Bool {
+  retained_filter_arithmetic_at(issue, 4)
+}
+
+///|
 /// The acquired producer begins with the filter, not a Values child.
 #export_name("strategyFixtureRetainedCapturedFilterArithmetic")
 pub fn strategy_fixture_retained_captured_filter_arithmetic(

@@ -37,7 +37,7 @@ test "whole-row distinct preserves first occurrence and feeds take in the same d
 }
 
 ///|
-test "distinct comparison readiness depends on selected schema not row count" {
+test "whole-row distinct admits complete array values independent of row count" {
   for rows in ["[]", "[{\"k\":1,\"payload\":[1]}]"] {
     for projected in [false, true] {
       let sequence = prepared_sequence(
@@ -69,7 +69,14 @@ test "distinct comparison readiness depends on selected schema not row count" {
           ["k"],
         )
       } else {
-        assert_true(result is Err(UnsupportedRowComparison(1, _)))
+        let complete = execute_generated_sequence(result.unwrap(), [], {
+          rows: run_limits(),
+          max_work: 100000,
+          max_frames: 100,
+        }).unwrap()
+        let output = completed_output(complete, Step(step)).unwrap()
+        assert_eq(completed_column_name(output, 1), Some("payload"))
+        assert_eq(completed_row_count(output), if rows == "[]" { 0 } else { 1 })
       }
     }
   }
@@ -184,6 +191,15 @@ test "whole-row distinct compares every key domain including owned references" {
     "{\"type\":\"number\",\"nullable\":false}",
   )
   let cases = [
+    (
+      "{\"type\":\"array\",\"nullable\":false,\"items\":{\"type\":\"number\",\"nullable\":true}}",
+      "[1,null]", "ordinary",
+    ),
+    (
+      "{\"type\":\"object\",\"nullable\":false,\"additional_properties\":false,\"fields\":{\"x\":{\"type\":\"number\",\"nullable\":false}}}",
+      "{\"x\":7}", "ordinary",
+    ),
+    ("{\"type\":\"json\",\"nullable\":false}", "{\"x\":[7,null]}", "ordinary"),
     ("{\"type\":\"string\",\"nullable\":false}", "\"é\"", "ordinary"),
     ("{\"type\":\"number\",\"nullable\":false}", "1", "ordinary"),
     (

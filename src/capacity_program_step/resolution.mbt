@@ -321,7 +321,10 @@ fn resolved_output(
   }
   let (limit, law) = match enforcement {
     SequenceEnforcement(v) =>
-      (@sequence.limit(v, @sequence.OutputRows), "actql.bound.sequence-output")
+      (
+        @sequence.host_limit(v, @sequence.OutputRows),
+        "actql.bound.sequence-output",
+      )
     JoinEnforcement(v) => (v.limit, "actql.bound.join-resolved-output")
     TraversalEnforcement(v) => (v.rows, "actql.bound.traverse-output")
   }

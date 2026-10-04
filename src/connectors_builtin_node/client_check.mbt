@@ -12,6 +12,7 @@ priv enum CheckFinding {
   QueryViolation(Int, Int)
   TypeViolation(String, String, String, String?)
   SuppliedViolation(String?)
+  DeclarationViolation(String?)
   ConstraintViolation(String, String, String?)
   UndeclaredParameter(String, (Int, Int)?)
   RequiredValue(String, String)
@@ -129,7 +130,7 @@ fn check_source_findings(
     Some(body) =>
       match check_declarations(body) {
         Ok(_) => ()
-        Err(Budget) => {
+        Err({ kind: Budget, .. }) => {
           findings.push(Limit("analysis_budget_exhausted"))
           // Declarations are unavailable, but syntax is independent of them.
           // Reuse the frontend's bounded parser without inventing a context
@@ -145,11 +146,11 @@ fn check_source_findings(
           }
           return Report
         }
-        Err(Invalid) => {
-          findings.push(Violation("parameter_declarations_invalid"))
+        Err({ kind: Invalid, pointer, }) => {
+          findings.push(DeclarationViolation(pointer))
           return Report
         }
-        Err(Internal) => return Failed("check_internal")
+        Err({ kind: Internal, .. }) => return Failed("check_internal")
       }
     None => ()
   }
@@ -191,36 +192,48 @@ fn check_source_findings(
     Err(_) => return Failed("check_internal")
   }
   if supplied_admitted {
-    match context.parameter_declarations {
-      Some(declared) =>
+    // Omitted declarations admit the binder's empty set; an authored empty
+    // declaration map was rejected above and must not be substituted here.
+    let declared = match context.parameter_declarations {
+      Some(declared) => declared
+      None =>
         match
-          @parameter_binding.bind(declared, supplied, {
+          @parameter_binding.read_declarations(None, {
+            max_parameters: 1024,
             max_nodes: 8192,
             max_depth: 64,
             max_text_bytes: 65536,
           }) {
-          Ok(NeedsBindings(missing)) => {
-            findings.push(Limit("bound_values_missing"))
-            for index in 0..<@parameter_binding.missing_count(missing) {
-              let declaration = @parameter_binding.missing_at(missing, index).unwrap()
-              if declaration.name.length() <= 256 &&
-                check_declaration_type(declaration) is Some(expected) {
-                findings.push(RequiredValue(declaration.name, expected))
-              }
-            }
-          }
-          Ok(Ready(_)) => ()
-          Err(issue) =>
-            match check_binding_fault(issue) {
-              Budget => findings.push(Limit("analysis_budget_exhausted"))
-              Invalid =>
-                findings.push(
-                  check_supplied_type_finding(issue, declared, supplied),
-                )
-              Internal => return Failed("check_internal")
-            }
+          Ok(declared) => declared
+          Err(_) => return Failed("check_internal")
         }
-      None => ()
+    }
+    match
+      @parameter_binding.bind(declared, supplied, {
+        max_nodes: 8192,
+        max_depth: 64,
+        max_text_bytes: 65536,
+      }) {
+      Ok(NeedsBindings(missing)) => {
+        findings.push(Limit("bound_values_missing"))
+        for index in 0..<@parameter_binding.missing_count(missing) {
+          let declaration = @parameter_binding.missing_at(missing, index).unwrap()
+          if declaration.name.length() <= 256 &&
+            check_declaration_type(declaration) is Some(expected) {
+            findings.push(RequiredValue(declaration.name, expected))
+          }
+        }
+      }
+      Ok(Ready(_)) => ()
+      Err(issue) =>
+        match check_binding_fault(issue) {
+          Budget => findings.push(Limit("analysis_budget_exhausted"))
+          Invalid =>
+            findings.push(
+              check_supplied_type_finding(issue, declared, supplied, parameters),
+            )
+          Internal => return Failed("check_internal")
+        }
     }
   }
   let lowered = match
@@ -260,8 +273,55 @@ fn check_source_findings(
           | AmbiguousColumn
           | DuplicateOutput
         ) => findings.push(Violation("query_invalid"))
-        QueryLowering(Expression(_)) =>
-          findings.push(check_query_finding(issue))
+        // Expression lowering wraps the same construction owner and its
+        // budgets. The wrapper cannot turn its own limit into bad input.
+        QueryLowering(
+          Expression(
+            {
+              issue: WorkLimit
+              | Construction(
+                InputLimit
+                | NodeLimit
+                | DepthLimit
+                | StringLimit
+                | OriginLimit
+                | OutputLimit
+                | Admission({ kind: BudgetExceeded, .. })
+              )
+              | Admission(
+                {
+                  kind: BudgetExceeded
+                  | Decode(BudgetExceeded)
+                  | Text(
+                    CapacityExceeded
+                    | TreeAdmission(BudgetExceeded)
+                    | Lexical(ByteLimit | TokenLimit)
+                  ),
+                  ..
+                }
+              ),
+              ..
+            }
+          )
+        ) => findings.push(Limit("analysis_budget_exhausted"))
+        // Other failures of generated construction/admission and invalid
+        // lowering limits belong to the checker, not to the author.
+        QueryLowering(
+          Expression(
+            { issue: InvalidLimits | Construction(_) | Admission(_), .. }
+          )
+        ) => return Failed("check_internal")
+        QueryLowering(
+          Expression(
+            {
+              issue: UnknownReference
+              | UnsupportedFunction
+              | InvalidArguments
+              | InvalidNumber,
+              ..
+            }
+          )
+        ) => findings.push(check_query_finding(issue))
         // Host query context, not the caller's input.
         QueryLowering(InvalidContext) => return Failed("check_context_invalid")
         // A construction budget of this check: undetermined, never invalid.
@@ -300,6 +360,7 @@ fn check_source_findings(
       | QueryViolation(_, _)
       | TypeViolation(_, _, _, _)
       | SuppliedViolation(_)
+      | DeclarationViolation(_)
       | ConstraintViolation(_, _, _)
       | UndeclaredParameter(_, _))
     }) {
@@ -398,11 +459,18 @@ fn check_binding_fault(issue : @parameter_binding.Issue) -> CheckInputFault {
 }
 
 ///|
+/// Keep admission classification separate from an owned declaration location.
+priv struct CheckDeclarationFault {
+  kind : CheckInputFault
+  pointer : String?
+}
+
+///|
 /// Admit the caller's declaration document with the limits of source
 /// preparation, keeping budget and violation apart.
 fn check_declarations(
   body : String,
-) -> Result[@parameter_binding.Declarations, CheckInputFault] {
+) -> Result[@parameter_binding.Declarations, CheckDeclarationFault] {
   let node = match
     @source.parse_json_bytes(@utf8.encode(body), {
       max_input_bytes: 1048576,
@@ -411,7 +479,14 @@ fn check_declarations(
     }) {
     Ok(node) => node
     Err({ issue, .. }) =>
-      return Err(if check_parse_budget(issue) { Budget } else { Invalid })
+      return Err({
+        kind: if check_parse_budget(issue) {
+          Budget
+        } else {
+          Invalid
+        },
+        pointer: None,
+      })
   }
   let cursor = match
     @decode.admit(node, {
@@ -421,7 +496,8 @@ fn check_declarations(
       max_total_string_bytes: 1048576,
     }) {
     Ok(cursor) => cursor
-    Err(issue) => return Err(check_decode_fault(issue))
+    Err(issue) =>
+      return Err({ kind: check_decode_fault(issue), pointer: None, })
   }
   match
     @parameter_binding.read_declarations(Some(cursor), {
@@ -431,7 +507,28 @@ fn check_declarations(
       max_text_bytes: 65536,
     }) {
     Ok(declared) => Ok(declared)
-    Err(issue) => Err(check_binding_fault(issue))
+    Err(issue) => {
+      let kind = check_binding_fault(issue)
+      let path = match issue {
+        Decode({ path, .. })
+        | Contract(Decode({ path, .. }))
+        | Value(Decode({ path, .. })) => Some(path)
+        Contract(ContractIssue(_, path~, ..))
+        | Value(ValueIssue(_, path~, ..))
+        | ParameterIssue(_, path~, ..) => Some(path)
+        _ => None
+      }
+      // The declaration reader owns these paths. A missing member or an
+      // unadmitted node cannot acquire a location in the submitted document.
+      let pointer = if kind is Invalid &&
+        path is Some(path) &&
+        check_supplied_cursor(cursor, path) is Some(_) {
+        check_original_pointer(body, cursor, path)
+      } else {
+        None
+      }
+      Err({ kind, pointer, })
+    }
   }
 }
 
@@ -448,6 +545,7 @@ fn check_verdict(findings : Array[CheckFinding]) -> String {
       | QueryViolation(_, _)
       | TypeViolation(_, _, _, _)
       | SuppliedViolation(_)
+      | DeclarationViolation(_)
       | ConstraintViolation(_, _, _)
       | UndeclaredParameter(_, _))
     }) {
@@ -491,6 +589,7 @@ fn write_check_report(
       QueryViolation(_, _) => Some("query_invalid")
       TypeViolation(_, _, _, _) => Some("supplied_value_type_mismatch")
       SuppliedViolation(_) => Some("supplied_value_invalid")
+      DeclarationViolation(_) => Some("parameter_declarations_invalid")
       ConstraintViolation(_, _, _) =>
         Some("supplied_value_constraint_violation")
       UndeclaredParameter(_, _) => Some("parameter_undeclared")
@@ -640,6 +739,17 @@ fn write_check_report(
               writer, "parameters", revision, pointer,
             )
           }
+          break
+        }
+      }
+    }
+    if code == "parameter_declarations_invalid" {
+      for finding in findings {
+        if finding is DeclarationViolation(Some(pointer)) &&
+          documents.declarations_revision is Some(revision) {
+          write_check_structured_location(
+            writer, "parameter_declarations", revision, pointer,
+          )
           break
         }
       }
@@ -900,6 +1010,58 @@ fn check_supplied_pointer(path : Array[@decode.PathSegment]) -> String? {
 }
 
 ///|
+/// Binder paths use admitted keys, which may have been normalized by the
+/// input reader. Recover each owned key from its retained source span with
+/// the existing preserving JSON reader; this explains a proven finding and
+/// does not change binding, admission or the caller's original document.
+fn check_original_pointer(
+  body : String,
+  root : @decode.Cursor,
+  path : Array[@decode.PathSegment],
+) -> String? {
+  guard path.length() <= 65 else { return None }
+  let bytes = @utf8.encode(body)
+  let original : Array[@decode.PathSegment] = []
+  let mut cursor = root
+  let mut remaining = 65536
+  for segment in path {
+    match segment {
+      @source.Key(key) => {
+        guard @decode.open_object(cursor) is Ok(object) &&
+          @decode.lookup(object, key) is Some(child) &&
+          @decode.cursor_key_span(child) is Some(span) else {
+          return None
+        }
+        guard span.start_byte >= 0 &&
+          span.end_byte > span.start_byte &&
+          span.end_byte <= bytes.length() &&
+          span.end_byte - span.start_byte <= remaining else {
+          return None
+        }
+        remaining -= span.end_byte - span.start_byte
+        guard @source.parse_json_bytes_preserving(
+            bytes[span.start_byte:span.end_byte].to_owned(),
+            { max_input_bytes: 65536, max_nodes: 1, max_depth: 0, },
+          )
+          is Ok({ value: String(name), .. }) else {
+          return None
+        }
+        original.push(@source.Key(name))
+        cursor = child
+      }
+      @source.Index(index) => {
+        guard @decode.element_at(cursor, index) is Some(child) else {
+          return None
+        }
+        original.push(@source.Index(index))
+        cursor = child
+      }
+    }
+  }
+  check_supplied_pointer(original)
+}
+
+///|
 /// Missing members have no submitted node to locate. Use only the supplied
 /// cursor's existing children; declaration-only paths are not input locations.
 fn check_supplied_cursor(
@@ -937,6 +1099,7 @@ fn check_supplied_type_finding(
   issue : @parameter_binding.Issue,
   declarations : @parameter_binding.Declarations,
   supplied : @decode.Cursor?,
+  parameters : String?,
 ) -> CheckFinding {
   let path = match issue {
     BindingInput(Supplied, Value(ValueIssue(_, path~, ..))) => path
@@ -946,8 +1109,9 @@ fn check_supplied_type_finding(
     _ => return Violation("supplied_value_invalid")
   }
   let pointer = if supplied is Some(cursor) &&
+    parameters is Some(body) &&
     check_supplied_cursor(cursor, path) is Some(_) {
-    check_supplied_pointer(path)
+    check_original_pointer(body, cursor, path)
   } else {
     None
   }

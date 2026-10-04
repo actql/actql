@@ -25,20 +25,23 @@ const mutations = [
     '      | LexicalViolation(_, _)\n' +
     '      | QueryViolation(_, _)\n' +
     '      | TypeViolation(_, _, _, _)\n      | SuppliedViolation(_)\n' +
+    '      | DeclarationViolation(_)\n' +
     '      | ConstraintViolation(_, _, _)\n' +
     '      | UndeclaredParameter(_, _))\n    }) {\n' +
     '    "invalid"',
     'if findings.iter().any(finding => !(finding is Limit(_))) {\n' +
     '    "invalid"'],
   ['an exhausted construction budget is reported as a failure',
-    '          )\n        ) => findings.push(Limit("analysis_budget_exhausted"))',
-    '          )\n        ) => return Failed("check_internal")'],
+    '        ) => findings.push(Limit("analysis_budget_exhausted"))\n' +
+    '        // The Program built from accepted source: never blamed on the author.',
+    '        ) => return Failed("check_internal")\n' +
+    '        // The Program built from accepted source: never blamed on the author.'],
   ['a supplied-value budget is reported as a violation',
     'Budget => findings.push(Limit("analysis_budget_exhausted"))',
     'Budget => findings.push(Violation("supplied_value_invalid"))'],
   ['a missing value is reported as a violation',
-    'Ok(NeedsBindings(missing)) => {\n            findings.push(Limit("bound_values_missing"))',
-    'Ok(NeedsBindings(missing)) => {\n            findings.push(Violation("bound_values_missing"))'],
+    'Ok(NeedsBindings(missing)) => {\n        findings.push(Limit("bound_values_missing"))',
+    'Ok(NeedsBindings(missing)) => {\n        findings.push(Violation("bound_values_missing"))'],
   ['an authored UTF-8 location is shifted by one byte',
     '@encode.number_value(writer, start.to_double())',
     '@encode.number_value(writer, (start + 1).to_double())'],
@@ -76,6 +79,48 @@ const mutations = [
   ['a lexical violation loses its typed explanation',
     'LexicalViolation(_, _) => Some("query_lexical_invalid")',
     'LexicalViolation(_, _) => Some("query_syntax_invalid")'],
+  ['an invalid declaration loses its owned location',
+    'findings.push(DeclarationViolation(pointer))',
+    'findings.push(DeclarationViolation(None))'],
+  ['an invalid declaration points at the root instead of its failing member',
+    'writer, "parameter_declarations", revision, pointer,',
+    'writer, "parameter_declarations", revision, "",'],
+  ['absent declarations skip independently supplied binding',
+    '  if supplied_admitted {',
+    '  if supplied_admitted && context.parameter_declarations is Some(_) {'],
+  ['absent declarations lose the supplied member location',
+    'let fallback = SuppliedViolation(pointer)',
+    'let fallback = SuppliedViolation(None)'],
+  ['absent declarations discard a safe violation beside a protected Source',
+    'QueryLowering(UnknownRelation) =>\n' +
+    '          findings.push(Unresolved("source_resolution"))',
+    'QueryLowering(UnknownRelation) => {\n' +
+    '          if context.parameter_declarations is None { findings.clear() }\n' +
+    '          findings.push(Unresolved("source_resolution"))\n' +
+    '        }'],
+  ['original structured keys are replaced by admitted spellings',
+    'original.push(@source.Key(name))',
+    'original.push(@source.Key(key))'],
+  ['an expression lowerer budget is reported as invalid input',
+    '        ) => findings.push(Limit("analysis_budget_exhausted"))\n' +
+    '        // Other failures of generated construction/admission and invalid',
+    '        ) => findings.push(Violation("query_invalid"))\n' +
+    '        // Other failures of generated construction/admission and invalid'],
+  ['an expression lowerer budget is reported as checker failure',
+    '        ) => findings.push(Limit("analysis_budget_exhausted"))\n' +
+    '        // Other failures of generated construction/admission and invalid',
+    '        ) => return Failed("check_internal")\n' +
+    '        // Other failures of generated construction/admission and invalid'],
+  ['an expression lowerer budget is silently verified',
+    '        ) => findings.push(Limit("analysis_budget_exhausted"))\n' +
+    '        // Other failures of generated construction/admission and invalid',
+    '        ) => ()\n' +
+    '        // Other failures of generated construction/admission and invalid'],
+  ['an expression lowerer budget hides independent input violations',
+    '        ) => findings.push(Limit("analysis_budget_exhausted"))\n' +
+    '        // Other failures of generated construction/admission and invalid',
+    '        ) => {\n          findings.clear()\n          findings.push(Limit("analysis_budget_exhausted"))\n        }\n' +
+    '        // Other failures of generated construction/admission and invalid'],
 ];
 
 const strict = id => ({id, operator: 'strictEqual'});
@@ -109,6 +154,22 @@ const targets = [
   ...Array.from({length: 3}, () =>
     ['typed lexical explanations retain the submitted token position',
       [strict('lexical-outcome'), strict('lexical-verdict'), deep('lexical-reason')]]),
+  ['invalid declarations retain only their owned submitted locations',
+    [strict('declaration-outcome'), deep('declaration-location')]],
+  ['invalid declarations retain only their owned submitted locations',
+    [strict('declaration-outcome'), deep('declaration-location')]],
+  ['absent declarations still bind independently supplied input',
+    [strict('absent-binding-verdict')]],
+  ['absent declarations still bind independently supplied input',
+    [deep('absent-binding-location')]],
+  ['absent declarations still bind independently supplied input',
+    [strict('absent-binding-verdict')]],
+  ['structured locations keep original key spellings after admission',
+    [deep('original-key-location')]],
+  ['expression construction limits remain undetermined', [strict('expression-budget-verdict')]],
+  ['expression construction limits remain undetermined', [strict('expression-budget-outcome')]],
+  ['expression construction limits remain undetermined', [strict('expression-budget-verdict')]],
+  ['expression construction limits remain undetermined', [strict('expression-budget-mixed')]],
 ];
 
 // Reuse the common reporter and nonzero-execution evidence. A process failure

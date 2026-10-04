@@ -1473,13 +1473,28 @@ export async function installRemoteCheckpoints({root, namespaceId,
       }
       return journal.getRunState(runId);
     },
+    // Route only through the journal's exact current continuation. The
+    // transition owner fences physical entry; this lookup grants no authority.
+    cancelEffectContinuation(runId, runDefinitionCid) {
+      const view = journal.activeRunCheckpoint(runId);
+      if (!['effect_set', 'read_access'].includes(view?.kind) ||
+          view.runId !== runId || view.runDefinitionCid !== runDefinitionCid ||
+          view.prepareAttemptId !== null) return false;
+      const state = journal.getRunState(runId);
+      if (state?.status === 'waiting_checkpoint') {
+        return journal.cancelCheckpoint(view.checkpointCid).outcome === 'cancelled';
+      }
+      if (state?.status === 'resuming') {
+        return journal.cancelUnsentResume(view.checkpointCid).outcome === 'cancelled';
+      }
+      return false;
+    },
     hasUnresolvedSourceStart(runId, runDefinitionCid) {
-      return [0, 1].some(task => {
-        const view = journal.inspect(`${runId}-source-${task}`);
-        return view?.kind === 'read_access' && view.runId === runId &&
-          view.runDefinitionCid === runDefinitionCid &&
-          journal.hasStartedResume(view.checkpointCid);
-      });
+      const view = journal.activeRunCheckpoint(runId);
+      return view?.kind === 'read_access' && view.runId === runId &&
+        view.runDefinitionCid === runDefinitionCid &&
+        view.checkpointId.startsWith(`${runId}-source-`) &&
+        journal.hasStartedResume(view.checkpointCid);
     },
     hasUnresolvedEffectTargetStart(runId, runDefinitionCid) {
       const view = journal.activeRunCheckpoint(runId);
