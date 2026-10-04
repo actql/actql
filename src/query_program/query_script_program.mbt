@@ -187,6 +187,20 @@ pub fn compile_query_script(
         RelationQuery(query) => {
           let graph = script_graph_input(query, graphs)
           if graph is Some(graph) {
+            if script_has_graph_rows(query) {
+              let bound = lower_script_graph_rows(
+                construction, query, graph, limits, steps, reserved, output,
+              )
+              known = known.filter(input => {
+                !(input.relation.length() == 1 &&
+                same_name(input.relation[0], declaration.name))
+              })
+              known.push({ ..bound, relation: [declaration.name], })
+              graphs = graphs.filter(graph => {
+                !same_name(graph.name, declaration.name)
+              })
+              continue
+            }
             let bound = lower_script_graph_calls(
               construction, query, graph, steps, reserved,
             )
@@ -265,7 +279,21 @@ pub fn compile_query_script(
     }
     let retained : Array[RetainedResult] = []
     let query = @query.script_query(script)
-    let result = if @query.graph_query(query) is Some(_) {
+    let result = if script_has_graph_rows(query) {
+      guard script_graph_input(query, graphs) is Some(graph) else {
+        raise Abort(UnsupportedGraph)
+      }
+      lower_script_graph_rows(
+        construction,
+        query,
+        graph,
+        limits,
+        steps,
+        reserved,
+        "aql_script_result",
+        retained=Some(retained),
+      )
+    } else if @query.graph_query(query) is Some(_) {
       lower_script_keyed_graph_query(
         construction, query, graphs, limits, steps, reserved, "aql_script_result",
         retained,
