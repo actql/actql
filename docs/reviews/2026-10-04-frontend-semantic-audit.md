@@ -47,6 +47,18 @@ in this selected corpus after the capacity repair. See the
 [Group acceptance record](https://github.com/actql/actql/blob/6ee85f358bf3dabbf8d9d983b344638284df98ee/docs/reviews/2026-10-03-group-column-scope.md) for package digests
 and the exact verified source/report-only delta.
 
+The submitted-HEAD automatic CI has also completed its raw public SQL/Pipe
+packed step successfully. Inspected artifact `11289912726`
+(`packed-public-query-4a0005773bd97e3771872e6efceab552b41b5ddf-37167483900-1`)
+records clean CI merge tree `4a0005773bd97e3771872e6efceab552b41b5ddf`,
+summary `passed`, `complete:true`, no evidence errors, and exit 0 / complete
+output for acceptance command 007. Its log includes all eight Group positives
+on each transport; the existing application's default refusal loop also
+includes all four Group refusals. All five recorded tarball digests match the
+local packed-source table. This is additional public acceptance evidence for
+the submitted run, not a relabeling of the old failed run or a claim that its
+remaining CI jobs/aggregate checks have completed.
+
 ### Current CTE lowering reproducer and ownership
 
 The [diagnostic probe](../../spec/frontend/fixtures/semantic-audit/cte-capture-probe.mjs)
