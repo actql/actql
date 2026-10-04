@@ -18,6 +18,18 @@ export declare function getCheckInput(outcome: CheckOutcome, documentId: string,
 export declare function resolveCheckLocation(outcome: CheckOutcome,
   location: WireCheckLocation, currentInput?: CheckInput):
   (WireCheckLocation & Readonly<{input: CheckInput; text?: string}>) | undefined;
+/** Zero-based UTF-16 coordinates for the original revision; no CRLF-interior position or edits. */
+export declare function resolveCheckTextRange(outcome: CheckOutcome,
+  location: WireCheckLocation, currentInput?: CheckInput):
+  (Extract<WireCheckLocation, {kind: 'text'}> & Readonly<{
+    input: CheckInput & Readonly<{kind: 'text'; text: string}>;
+    text: string;
+    positionEncoding: 'utf-16';
+    range: Readonly<{
+      start: Readonly<{line: number; character: number}>;
+      end: Readonly<{line: number; character: number}>;
+    }>;
+  }>) | undefined;
 export declare function explainCheckReason(reason: Readonly<{code: string}>):
   Readonly<{kind: 'known' | 'unknown'; summary: string; hint?: string}>;
 

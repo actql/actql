@@ -29,7 +29,11 @@ export function actionsReader({repository, token, fetchImpl = fetch}) {
 
 export function fullCheckpointJobs(gateJobs) {
   assert(Array.isArray(gateJobs) && gateJobs.includes('preflight') && gateJobs.includes('core'), 'Invalid gate policy');
-  return ['check', ...gateJobs.flatMap(name => name === 'core' ? ['core (js)', 'core (wasm)', 'core (native)'] : [name])];
+  // The focused-only profile is an alternative to full execution, not a
+  // missing full-family obligation. Every full family still requires success;
+  // do not generalize this exclusion to arbitrary skipped jobs.
+  return ['check', ...gateJobs.filter(name => name !== 'focused-tests')
+    .flatMap(name => name === 'core' ? ['core (js)', 'core (wasm)', 'core (native)'] : [name])];
 }
 
 function validRun(run, {repository, repositoryId, workflowId, ancestors}) {

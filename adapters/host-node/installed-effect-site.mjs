@@ -15,6 +15,7 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {isEffectApplyPreflightRejection} from './effect-run-apply.mjs';
 import {isEffectPreparationRefusal} from '../host-common/effect-preparation-result.mjs';
 import {isEffectCaptureRecoveryRefusal} from './effect-run-recovery.mjs';
+import {isEffectTargetReadRefusal} from './effect-target-read-continuation.mjs';
 
 const fail = code => {
   throw Object.assign(new Error(code), {code});
@@ -55,6 +56,8 @@ function continuation(facts, stage) {
     unit_id: effectUnitId(facts),
     preview_cid: facts.control.effectComputationPreviewSemanticCid(
       stage.preview),
+    ...(facts.targetReads === undefined ? {} : {
+      target_read_binding: facts.targetReads.captureBinding()}),
     provider});
 }
 
@@ -93,6 +96,7 @@ function authorization(facts, stage, beforeDefer) {
     reviewWire: facts.control.effectComputationPreviewWire(stage.preview),
     continuationWire: continuation(facts, stage),
     beforeDefer,
+    targetReads: facts.targetReads,
   });
 }
 
@@ -117,7 +121,8 @@ function noEffectRowWasSent(options) {
 function terminalPreSendRefusal(error, options) {
   return error instanceof ExecutionAuthorizationError &&
       error.authorization?.action === 'deny' ||
-    (isEffectApplyPreflightRejection(error) || isEffectPreparationRefusal(error)) &&
+    (isEffectApplyPreflightRejection(error) || isEffectPreparationRefusal(error) ||
+      isEffectTargetReadRefusal(error)) &&
       noEffectRowWasSent(options);
 }
 
@@ -134,6 +139,7 @@ function finishStatus(result) {
 
 function cleanupCustody(physical, requirePhysical = false) {
   let stage;
+  let readAuthorization;
   let disposed = false;
   let release;
   let released = false;
@@ -145,6 +151,13 @@ function cleanupCustody(physical, requirePhysical = false) {
     }
   };
   return Object.freeze({
+    expectPhysical() { requirePhysical = true; },
+    retainReadAuthorization(owner) {
+      if (readAuthorization !== undefined || typeof owner?.close !== 'function') {
+        fail('InstalledEffectCleanupOwnerAlreadySet');
+      }
+      readAuthorization = owner;
+    },
     attachPhysical(value) {
       if (physical !== undefined && physical !== value ||
           typeof value?.close !== 'function' ||
@@ -168,6 +181,7 @@ function cleanupCustody(physical, requirePhysical = false) {
       // Effect execution has stopped before dispatch custody closes. Its
       // consumer pins must go before the borrowed Compute output can reclaim.
       let failure;
+      try { readAuthorization?.close(); } catch (error) { failure = error; }
       try { await releaseInputs(); } catch (error) { failure = error; }
       try { await physical?.close(); } catch (error) { failure ??= error; }
       if (failure !== undefined) throw failure;
@@ -220,10 +234,13 @@ async function currentRunState(facts, result, stage) {
 // Compute. The recovered hook receives the exact durable capture only.
 export function createInstalledEffectSite({environmentWire,
   prepareCaptured, prepareRecovered, privateEvidenceKey,
+  targetReadInventory, targetReadAuthorization,
   claimant = 'installed-effect-host', leaseMs = 60_000}) {
   if (typeof environmentWire !== 'string' || !environmentWire ||
       typeof prepareCaptured !== 'function' ||
       typeof prepareRecovered !== 'function' ||
+      targetReadInventory !== undefined && typeof targetReadInventory !== 'function' ||
+      (targetReadInventory === undefined) !== (targetReadAuthorization === undefined) ||
       privateEvidenceKey !== undefined &&
         (!(privateEvidenceKey instanceof Uint8Array) ||
           privateEvidenceKey.byteLength !== 32) ||
@@ -233,6 +250,7 @@ export function createInstalledEffectSite({environmentWire,
   }
   return Object.freeze({
     environmentWire,
+    targetReadInventory, targetReadAuthorization,
     privateEvidenceKey: privateEvidenceKey === undefined ? undefined :
       Uint8Array.from(privateEvidenceKey),
     async execute(facts) {
@@ -241,11 +259,20 @@ export function createInstalledEffectSite({environmentWire,
       if (typeof facts.openComputation !== 'function') {
         fail('InvalidInstalledEffectComputationPort');
       }
-      const custody = cleanupCustody(undefined, true);
+      const custody = cleanupCustody(undefined);
       retainExecution(custody);
+      if (facts.targetReads !== undefined) {
+        custody.retainReadAuthorization(facts.targetReads);
+        let readiness;
+        try { readiness = await facts.targetReads.prepare(); }
+        catch (error) { facts.observePreEffectFailure?.(); throw error; }
+        if (readiness.status === 'waiting_checkpoint') return readiness;
+      }
+      custody.expectPhysical();
       facts.beginPhysicalWork?.();
       let opened;
       try {
+        facts.targetReads?.enterComputation();
         opened = await facts.openComputation(Object.freeze({
           retainComputationOwner: owner => custody.attachPhysical(owner),
         }));
@@ -283,7 +310,7 @@ export function createInstalledEffectSite({environmentWire,
         // definitive here, but observation/transport failures are not. The
         // dispatch owner still waits for physical stop and cleanup before
         // recording the outcome; this does not release that responsibility.
-        if (isEffectPreparationRefusal(error) ||
+        if (isEffectPreparationRefusal(error) || isEffectTargetReadRefusal(error) ||
             error instanceof ExecutionAuthorizationError &&
               error.authorization?.action === 'deny') {
           facts.observePreEffectFailure?.();
@@ -394,11 +421,20 @@ export function createInstalledEffectSite({environmentWire,
       if (claimed.action !== 'claimed') return claimed;
       let stage;
       try {
+        if (facts.prepareTargetReads !== undefined) {
+          const targetReads = await facts.prepareTargetReads(claimed);
+          if (targetReads !== undefined) {
+            custody.retainReadAuthorization(targetReads);
+            const readiness = await targetReads.prepare();
+            if (readiness.status !== 'ready') fail('InstalledEffectRepeatDeferralUnsupported');
+            facts = Object.freeze({...facts, targetReads});
+          }
+        }
         stage = await prepareRecovered(Object.freeze({...facts,
           recovered,
           retainRecoveryOwner: owner => custody.attachPhysical(owner)}));
       } catch (error) {
-        if (isEffectPreparationRefusal(error) ||
+        if (isEffectPreparationRefusal(error) || isEffectTargetReadRefusal(error) ||
             error instanceof ExecutionAuthorizationError &&
               error.authorization?.action === 'deny') {
           const refused = checkpointJournal.refuseUnsentEffectResume(
