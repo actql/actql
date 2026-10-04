@@ -8,6 +8,11 @@ main is `3c443c5bf3483170aa941feac767650a76b532f2`. The child depends on
 #374's receiver-identity check for ORDER expression reuse; it does not copy
 that fix. Integrate the parent before retargeting this PR to main.
 
+Main `7e32faa5a455dc4beafa02a8cd06313e83772d50` (including #388) was normally
+merged at `79ccf879a6bce95d304e3a4165d8dd62e1118606`, without conflicts.
+This keeps main's Draft preparation policy and does not replace the unmerged
+#374 dependency. The published child remains Draft while execution is incomplete.
+
 The adopted [query scope](../spec/query-text.md#scope-and-lowering) and
 [nullable property contract](../spec/query-text.md#infer-keep-source-projection)
 already allow nested fields after resolving a visible column or range prefix.
@@ -100,12 +105,84 @@ producer shared by the seven row projections. Rows, nullable values, duplicate
 ID 2, SELECT/WHERE/ORDER expressions, full column expectations and JOIN bound 12
 are unchanged. This keeps the corpus within the existing task admission budget
 and also exercises shared producer use. No task ceiling, strategy or Program
-after lowering is changed. The same bridge then prepared all nine text cases;
-fresh packed execution remains pending. The first failed install was removed
-after preserving its logs and complete command identity/digests.
+after lowering is changed. The same bridge then prepared all nine text cases.
+Clean normal packs at `d150b9432f6d1628686c1ffe8412bfe35e1b5970`
+(`public-query-evidence-Q46Dqg`) and integrated source
+`79ccf879a6bce95d304e3a4165d8dd62e1118606`
+(`public-query-evidence-g15LM6`) both passed the independent JSON control, then
+admitted the first SQL source and ended with `ACTQL_E_UNPUBLISHED_RUN`.
+The remaining eight text positives, all five refusals and HTTP were not reached
+in either attempt. This is not successful public acceptance. The earlier failed
+installations were removed after preserving command logs and identity/digests;
+the integrated installation is retained for this failure's diagnosis.
 
-Packed execution and submitted-HEAD CI are pending. This is implementation,
-focused checker and partial public evidence, not a claim of complete acceptance.
+No full Core, all-target, proof or performance suite was added after main
+integration. Subsequent focused diagnostics reuse the retained five packages,
+with this SHA's normal prepack digests:
+
+| Package | Tarball SHA-256 |
+|---|---|
+| client-wire | `52fe3218df346cfb9dae0adc248071563fe68918bded16f8d733415e65584fc0` |
+| sdk | `f81bf27c3bb42a007bc16b6f89a15542a89c7fb844e2893870d1161a8e8abc6d` |
+| run-host-core | `65b6408c2bb93597b8c92fc424b010b5e1d3e8b75ba414ad006bd30d57999a86` |
+| local-node | `bdf8322d72da299bb3eddfceac71f5ef9a0f9ae8f8d51424f52d3dfa33d34fd8` |
+| node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+## Common execution boundary and reproduction
+
+Diagnostic-only logging in private installed copies of `runtime-result.mjs`
+and `runtime-core.mjs` identified `NodeHostFailure.Dispatch` containing
+`ComputeHostIssue.Dispatch(InstalledDispatchIssue.NoStrategy)`. The failure is at
+`strategyHostNext` → `physical_host.prepare_next_compute_task` →
+`prepare_next_installed_task`, before the first task executes. The observed
+cursor is task **0**, with **0** managed inputs and an empty producer list.
+Submitting the first source's generated Program unchanged through JSON, with
+the same parameter values and Host profile, reproduced that same failure.
+The logging copies were restored afterwards; no repository Host, checker,
+strategy, runtime or package manifest was changed. These observations are
+diagnostics, not pristine Local/HTTP acceptance or proof that every strategy
+candidate is unavailable. Candidate derivation/installation is still unresolved.
+
+The [minimal authored source and independent single-row expectation](../../scripts/fixtures/join-property-shared-seed.repro.mjs)
+reduce this to one shared producer:
+
+```sql
+DATA seed = SELECT 1 AS id;
+DATA objects = SELECT 1 AS id, @a AS payload FROM seed;
+DATA others = SELECT 1 AS id, @b AS other FROM seed;
+SELECT l.payload.score
+FROM objects AS l JOIN others AS r ON l.id = r.id MAX_OUTPUT_ROWS 1
+```
+
+With `a = {score: 10}`, `b = {score: 20}` and the fixture's typed declarations,
+the independently required answer is `[{score: 10}]`, one nullable numeric
+column. This minimal source also prepares and is admitted, then fails unpublished
+in the retained, restored installation. The control declaring each input with
+its own FROM-less SELECT instead succeeds and returns exactly that row.
+This control is diagnostic isolation; it does not replace the shared-producer
+fixture or satisfy its acceptance obligation.
+
+The [saved ten-step generated Program](../../scripts/fixtures/join-property-shared-seed.repro.program.json)
+is a reproduction, **not** a lowering oracle, saved from the ordinarily prepared
+source. Minimal JSON preparation/execution is not yet an executed assertion. The larger
+first source's generated JSON reproduction above was executed. Use the fixture's
+`parameters` for JSON; its declarations are already in the Program and must not
+be added externally. For source, supply both `parameterDeclarations` and
+`parameters` to existing `client.aql`. Use the same standard installation/profile
+for both, wait, then read `execution.result('answer').rows()` and `describe()`
+only after success. The existing focused clean-pack reproduction command remains
+`node scripts/test-packed-public-query.mjs --join-property-only --keep-artifacts`;
+do not rebuild a separate execution owner or patch the generated Program.
+
+The common Compute/strategy owner can trace the task-0 revision and installed
+candidates from these source/JSON reproductions. B retains the receiver lowering,
+independent oracles and unchanged full public expectations. After the common
+repair, resume all ten positives and five refusals on both Local and HTTP;
+successful single-row/control probes are not substitutes for that completion.
+
+Submitted-HEAD CI is unverified. Draft's `awaiting ready_for_review` is intentional
+and is not a rerun request. This is implementation, focused checker and partial
+public evidence, not a claim of complete acceptance.
 No grammar, wire, schema, saved-data or contract-version changes. Corrected
 sources produce their normal Program identities. Full Core, all targets, native,
 proof, performance and a Google service differential run are not local checks
