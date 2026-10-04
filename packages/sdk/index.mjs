@@ -473,7 +473,11 @@ async function connectSelected(selected, port) {
                       maxRowWireBytes) {
                     fail('ResultRowWireLimit');
                   }
-                  const row = JSON.parse(item);
+                  let row;
+                  try { row = JSON.parse(item); }
+                  catch { fail('InvalidResultFrame'); }
+                  if (row === null || typeof row !== 'object' ||
+                      Array.isArray(row)) fail('InvalidResultFrame');
                   if (retainedValueBytes(row) > maxRowRetainedValueBytes) {
                     fail('ResultRowRetainedLimit');
                   }
