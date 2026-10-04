@@ -32,6 +32,8 @@ pub fn advance_json_admission(JsonAdmission) -> JsonAdmissionPoll
 
 pub fn advance_recheck_runtime_value(RecheckCursor) -> RecheckPoll
 
+pub fn advance_reference_admission(ReferenceAdmission) -> ReferenceAdmissionPoll
+
 pub fn advance_typed_admission(TypedAdmission) -> TypedAdmissionPoll
 
 pub fn advance_wire_emit(WireEmitCursor) -> Bool raise @encode_core.EncodeFailure
@@ -59,6 +61,8 @@ pub fn cancel_json_admission(JsonAdmission) -> Unit
 pub fn cancel_object_value(ObjectBuilder) -> Bool
 
 pub fn cancel_recheck_runtime_value(RecheckCursor) -> Unit
+
+pub fn cancel_reference_admission(ReferenceAdmission) -> Unit
 
 pub fn cancel_typed_admission(TypedAdmission) -> Unit
 
@@ -150,9 +154,13 @@ pub fn start_canonical_conversion(@canonical_json.CanonicalValue, Limits, contra
 
 pub fn start_complete_equality(CheckedValue, CheckedValue, Limits) -> Result[CompleteEquality, CompleteEqualityIssue]
 
+pub fn start_host_typed_admission(ReferenceIssuer, @value_contract.Contract, @decode_core.Cursor, Limits, ReferenceLimits) -> Result[TypedAdmission, Issue]
+
 pub fn start_json_admission(@decode_core.Cursor, Limits) -> Result[JsonAdmission, Issue]
 
 pub fn start_recheck_runtime_value(Value, @value_contract.Contract, Limits) -> RecheckCursor?
+
+pub fn start_reference_admission(ReferenceIssuer, @value_contract.Contract, @decode_core.Cursor, ReferenceLimits) -> Result[ReferenceAdmission, ReferenceIssue]
 
 pub fn start_typed_admission(@value_contract.Contract, @decode_core.Cursor, Limits) -> Result[TypedAdmission, Issue]
 
@@ -272,6 +280,15 @@ pub enum RecheckPoll {
   RecheckContinue
   RecheckComplete(CheckedValue, Int, Int)
   RecheckFailed
+}
+
+type ReferenceAdmission
+
+pub enum ReferenceAdmissionPoll {
+  ReferenceAdmissionContinue
+  ReferenceAdmissionComplete(CheckedValue, Int, Int)
+  ReferenceAdmissionFailed(ReferenceIssue)
+  ReferenceAdmissionTerminal
 }
 
 type ReferenceDomain

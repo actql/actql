@@ -16,6 +16,7 @@ priv enum TypedAdmissionFrame {
   TypedObjectNext(TypedObjectAdmission, ObjectBuilder, Int)
   TypedVectorNext(@decode.Cursor, VectorBuilder, Int)
   TypedJson(JsonAdmission, @decode.Cursor)
+  TypedReference(ReferenceAdmission, @decode.Cursor)
   TypedArrayAppend(ArrayBuilder)
   TypedObjectAppend(ObjectBuilder, String)
 }
@@ -32,6 +33,8 @@ struct TypedAdmission {
   frames : Array[TypedAdmissionFrame]
   mut value : Value?
   mut terminal : Bool
+  mut reference_issuer : ReferenceIssuer?
+  mut reference_limits : ReferenceLimits?
 }
 
 ///|
@@ -69,7 +72,41 @@ pub fn start_typed_admission(
     frames: [ReadTyped(root, contract, 0, false)],
     value: None,
     terminal: false,
+    reference_issuer: None,
+    reference_limits: None,
   })
+}
+
+///|
+/// Host-only resumed admission through the same typed owner. Passing an
+/// issuer does not grant authority to ordinary data; each reference still
+/// crosses the existing canonical-envelope and current-authorization boundary.
+pub fn start_host_typed_admission(
+  issuer : ReferenceIssuer,
+  contract : @contract.Contract,
+  root : @decode.Cursor,
+  limits : Limits,
+  reference_limits : ReferenceLimits,
+) -> Result[TypedAdmission, Issue] {
+  if reference_limits.max_bytes < 0 ||
+    reference_limits.max_nodes < 1 ||
+    reference_limits.max_depth < 0 ||
+    reference_limits.max_text_units < 0 {
+    return Err(
+      ValueIssue(
+        InvalidLimits,
+        path=@decode.cursor_path(root),
+        span=@decode.cursor_span(root),
+      ),
+    )
+  }
+  let admission = match start_typed_admission(contract, root, limits) {
+    Ok(admission) => admission
+    Err(issue) => return Err(issue)
+  }
+  admission.reference_issuer = Some(issuer)
+  admission.reference_limits = Some(reference_limits)
+  Ok(admission)
 }
 
 ///|
@@ -170,8 +207,26 @@ fn TypedAdmission::step(admission : TypedAdmission) -> Unit raise Abort {
           admission.value = None
           admission.frames.push(TypedJson(json, cursor))
         }
-        @contract.ResourceRef(_) | @contract.ArtifactRef(_) =>
-          fail(cursor, UnsupportedReference)
+        @contract.ResourceRef(_) | @contract.ArtifactRef(_) => {
+          guard admission.reference_issuer is Some(issuer) &&
+            admission.reference_limits is Some(limits) else {
+            fail(cursor, UnsupportedReference)
+          }
+          let reference = match
+            start_reference_admission(issuer, contract, cursor, {
+              ..limits,
+              max_depth: Int::min(
+                limits.max_depth,
+                budget.max_depth - parent_depth,
+              ),
+            }) {
+            Ok(reference) => reference
+            Err(Unauthorized) => fail(cursor, UnauthorizedReference)
+            Err(_) => fail(cursor, InvalidReference)
+          }
+          admission.value = None
+          admission.frames.push(TypedReference(reference, cursor))
+        }
         shape => admission.value = Some(read_scalar(cursor, shape, budget))
       }
     }
@@ -289,6 +344,23 @@ fn TypedAdmission::step(admission : TypedAdmission) -> Unit raise Abort {
         JsonAdmissionFailed(issue) => raise Abort(issue)
         JsonAdmissionTerminal => fail(cursor, WrongType)
       }
+    TypedReference(reference, cursor) =>
+      match advance_reference_admission(reference) {
+        ReferenceAdmissionContinue =>
+          admission.frames.push(TypedReference(reference, cursor))
+        ReferenceAdmissionComplete(checked, nodes, text) => {
+          if nodes < 1 || nodes - 1 > budget.nodes || text > budget.text {
+            fail(cursor, BudgetExceeded)
+          }
+          budget.nodes -= nodes - 1
+          budget.text -= text
+          admission.value = Some(checked.value)
+        }
+        ReferenceAdmissionFailed(Unauthorized) =>
+          fail(cursor, UnauthorizedReference)
+        ReferenceAdmissionFailed(_) | ReferenceAdmissionTerminal =>
+          fail(cursor, InvalidReference)
+      }
     TypedArrayAppend(builder) => {
       guard admission.value is Some(value) && append_array_item(builder, value) else {
         fail(root, BudgetExceeded)
@@ -335,6 +407,8 @@ pub fn advance_typed_admission(
     admission.root = None
     admission.value = None
     admission.terminal = true
+    admission.reference_issuer = None
+    admission.reference_limits = None
     TypedAdmissionComplete(
       { contract: admission.contract, value, },
       admission.limits.max_nodes - admission.budget.nodes,
@@ -361,6 +435,7 @@ pub fn cancel_typed_admission(admission : TypedAdmission) -> Unit {
       TypedObjectAppend(builder, _) => cancel_object_value(builder) |> ignore
       TypedVectorNext(_, builder, _) => cancel_vector_value(builder) |> ignore
       TypedJson(json, _) => cancel_json_admission(json)
+      TypedReference(reference, _) => cancel_reference_admission(reference)
       ReadTyped(_, _, _, _) => ()
     }
   }
@@ -368,4 +443,6 @@ pub fn cancel_typed_admission(admission : TypedAdmission) -> Unit {
   admission.root = None
   admission.value = None
   admission.terminal = true
+  admission.reference_issuer = None
+  admission.reference_limits = None
 }

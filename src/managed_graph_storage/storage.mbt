@@ -188,40 +188,25 @@ fn encoded_values(
   pending_bytes : Int,
   pending_work : Int,
 ) -> Result[(String, Int, Int), Issue] {
-  if pending_work > builder.limits.max_work - builder.work {
-    return Err(WorkLimit)
-  }
-  let remaining_work = builder.limits.max_work - builder.work - pending_work
-  let node_limit = Int::min(builder.limits.max_value_nodes, remaining_work)
-  if node_limit < 1 {
-    return Err(WorkLimit)
-  }
-  if pending_bytes > builder.limits.max_total_value_bytes - builder.value_bytes {
-    return Err(ValueLimit)
-  }
-  let remaining = builder.limits.max_total_value_bytes -
-    builder.value_bytes -
-    pending_bytes
-  let cap = Int::min(builder.limits.max_value_bytes, remaining)
-  if cap < 0 {
-    return Err(ValueLimit)
-  }
-  try {
-    let out = @encode.writer(cap, node_limit, builder.limits.max_value_depth)
-    @encode.begin_array(out)
-    for value in values {
-      @value.emit_wire_value(value.value, out)
-    }
-    @encode.end_array(out)
-    let (text, bytes, nodes, _) = @encode.finish_text_usage(out)
-    Ok((text, bytes, nodes))
-  } catch {
-    _ =>
-      if node_limit < builder.limits.max_value_nodes {
-        Err(WorkLimit)
-      } else {
-        Err(ValueLimit)
+  let preparation = start_value_encoding(
+    builder, values, pending_bytes, pending_work,
+  )
+  while true {
+    match advance_value_encoding(preparation, 64) {
+      ValueEncodingContinue(work~) => ignore(work)
+      ValueEncodingComplete(text, bytes~, nodes~, work~) => {
+        ignore(work)
+        cleanup_value_encoding(preparation)
+        return Ok((text, bytes, nodes))
       }
+      ValueEncodingFailed(issue, work~) => {
+        ignore(work)
+        cleanup_value_encoding(preparation)
+        return Err(issue)
+      }
+    }
+  } nobreak {
+    Err(Closed)
   }
 }
 

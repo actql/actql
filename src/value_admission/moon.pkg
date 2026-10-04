@@ -18,6 +18,7 @@ import {
 
 import {
   "actql/actql/source_value" @source,
+  "moonbitlang/core/encoding/utf8",
 } for "wbtest"
 
 formatter(
