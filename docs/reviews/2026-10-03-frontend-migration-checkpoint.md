@@ -882,3 +882,36 @@ retry are also covered. These prove their recorded scope at that tested source,
 not the pending restored Graph matrix or active temporary-holder inventory.
 All four Graph node/edge Local/HTTPS cases and the new automatic CI remain
 required after this correction and the next main adoption. #304 remains Draft.
+
+The next normal merge `2669b421e0e9bd131f9a98b74e621aaaeb00b47f` adopts main
+`336b1d8ceb1cc9bbe3c2291660129d3bedad0f89` without source conflicts. Full
+retained-history validation passes on that merge, with existing originals and
+supplements preserved. Main does not change the selected Effect restoration,
+embedded preparation, common Policy receiver or Graph fixture files.
+
+A bounded retained-package diagnostic (`run-Vzks3F`, 2/2) additionally uses the
+exact failed `f1460dcc4f0509a62e1aff6a98751c6b39ecc1b3` Local tarball and its
+compiled MoonBit Policy body owner. It reads the original from the preserved
+earlier local Graph request journal, rather than fabricating a body. That
+original has CID
+`sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563`.
+The original passes real common body admission with independently pinned limits
+`{maxWireBytes:1000000,maxNodes:100000,maxDepth:64}`. Through the failed
+package's restoration adapter, the same saved original becomes undefined and
+the real common shape guard throws `InvalidHostResultDataPolicy`. Through the
+corrected source adapter, it remains exact and passes that unchanged packaged
+common owner. Missing original and malformed limits still reject. This isolates
+the missing handoff, with core Run tokens stubbed; the positive half is explicitly
+a mixed-source diagnostic, not fresh-package public acceptance or inspection of
+the failed runner's unavailable journal.
+
+The complete handoff uses the Host-selected original during admission, stores it
+in `runAdmissionEvidence.resultPolicyOriginal`, reuses that stored value during
+initial execution and restoration, and revalidates it with `localContractLimits`.
+`effectPublicationAdmission` supplies the same limits as `resultDataPolicyLimits`;
+`acquired-effect-computation.mjs` forwards the admitted original and those limits
+to `adoptCheckedClientEffectInferRun`. No Model contract substitution, Policy or
+limits guard relaxation, timeout increase or new execution owner is introduced.
+Active temporary-holder count observation is a separate completion unit. The
+existing cleanup and reservation-return checks remain; no all-holder-zero claim
+is made here. Graph text and additional operations are outside #304.
