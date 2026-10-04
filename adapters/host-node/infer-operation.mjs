@@ -273,6 +273,23 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     return run();
   }
 
+  function resumeApprovedFromReadback({requestWire, checkpointWire,
+    verifiedWire, admission, now, current, immediate = false}) {
+    if (!waiting || closing || reclaimed ||
+        [requestWire, checkpointWire, verifiedWire].some(value =>
+          typeof value !== 'string' || value.length === 0) ||
+        typeof now !== 'function' || typeof current !== 'function' ||
+        typeof immediate !== 'boolean') {
+      return Promise.reject(new Error('InferApprovalReadbackUnavailable'));
+    }
+    let grant;
+    try {
+      grant = checked(moon.clientProgramModelInvocationGrantHandle(
+        requestWire, checkpointWire, verifiedWire, now(), immediate));
+    } catch (error) { return Promise.reject(error); }
+    return resumeApproved({grant, admission, now, current});
+  }
+
   async function stop() {
     closing = true;
     requestStop();
@@ -301,7 +318,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     return closeFlight;
   }
 
-  const operation = Object.freeze({run, resumeApproved, preparedCallSet,
+  const operation = Object.freeze({run, resumeApproved,
+    resumeApprovedFromReadback, preparedCallSet,
     materializeCallSet,
     entryFailure: () => entryFailure, stop, close, cleanup,
     cleanupPending: () => !reclaimed,

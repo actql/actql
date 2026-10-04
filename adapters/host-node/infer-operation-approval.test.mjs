@@ -45,6 +45,13 @@ function fixture({count = 1, onSlot} = {}) {
       waiting = false;
       return ok(undefined);
     },
+    clientProgramModelInvocationGrantHandle(request, checkpoint, verified,
+      at, immediate) {
+      calls.grants ??= [];
+      calls.grants.push({request, checkpoint, verified, at, immediate});
+      return request === 'originals' && checkpoint === 'checkpoint' &&
+        verified === 'verified' ? ok('grant') : {$tag: 0, _0: 'foreign'};
+    },
     clientProgramInferExecutionOutput: () => 'output',
     clientProgramInferExecutionStopped: () => stopped,
     clientProgramCancelInferExecution() {
@@ -86,6 +93,35 @@ test('deferred Model operation waits once and resumes the same owner', async () 
   assert.equal(operation.preparedCallSet(), undefined);
   await operation.close();
   assert.equal(calls.cleaned, 1);
+});
+
+test('journal readback is admitted before the waiting owner resumes', async () => {
+  const {moon, calls} = fixture();
+  const operation = openNodeInferOperation({moon, preparedProgram: {}, step: 2,
+    graph: {}, registry: 'registry', values: 'values', fragment: 'fragment',
+    ordered: 'ordered', provider: {}, deferDispatch: true,
+    enterCall: () => true});
+  assert.equal((await operation.run()).kind, 'waiting');
+  await assert.rejects(operation.resumeApprovedFromReadback({
+    requestWire: 'foreign', checkpointWire: 'checkpoint',
+    verifiedWire: 'verified', admission: 'admission',
+    now: () => 'trusted-now', current: () => true,
+  }));
+  assert.equal(calls.resumes, 0);
+  assert.equal((await operation.run()).kind, 'waiting');
+  assert.equal(await operation.resumeApprovedFromReadback({
+    requestWire: 'originals', checkpointWire: 'checkpoint',
+    verifiedWire: 'verified', admission: 'admission',
+    now: () => 'trusted-now', current: () => true,
+  }), 'output');
+  assert.deepEqual(calls.grants, [
+    {request: 'foreign', checkpoint: 'checkpoint',
+      verified: 'verified', at: 'trusted-now', immediate: false},
+    {request: 'originals', checkpoint: 'checkpoint',
+      verified: 'verified', at: 'trusted-now', immediate: false},
+  ]);
+  assert.equal(calls.resumes, 1);
+  await operation.close();
 });
 
 test('deferred Model operation stops and cleans up without approval', async () => {
