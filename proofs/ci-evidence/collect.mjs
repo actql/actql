@@ -3,7 +3,7 @@
 // independently authenticated as successful by the artifact consumer.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {mkdirSync, readFileSync, writeFileSync, existsSync} from 'node:fs';
+import {mkdirSync, readFileSync, writeFileSync, existsSync, copyFileSync, constants} from 'node:fs';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {performance} from 'node:perf_hooks';
@@ -18,10 +18,13 @@ import {observeRuntime} from './runtime.mjs';
 import {comparisonPlan, compareFreshObservations} from './plan.mjs';
 import {prepareIsolatedMutation, executeIsolatedMutation} from './isolated-execution.mjs';
 import {runtimeForAction} from './isolated-runtime.mjs';
+import {acquisitionPlan} from './acquisition.mjs';
+import {readReadyOrigin} from './acceptance.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const directory = join(root, '.artifacts/session-actions');
 const isolatedDirectory = join(root, '.artifacts/session-isolated-build');
+const comparisonDirectory = join(root, '.artifacts/session-comparison-cache');
 const git = args => execFileSync('git', args, {cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024}).trim();
 const json = path => JSON.parse(readFileSync(path, 'utf8'));
 const write = (path, value) => writeFileSync(path, `${encode(value)}\n`, {flag: 'wx'});
@@ -66,10 +69,34 @@ export async function initialize() {
   write(join(directory, 'context.json'), {context, origin, runtime, actionRuntimes});
   write(join(directory, 'runtime-distributions.json'), distributionInputs);
   write(join(directory, 'runtime-measurement.json'), measurement);
-  const comparison = await comparisonPlan({root, context, runtime, actionRuntimes, directory,
-    token: process.env.ACTIONS_READ_TOKEN, request});
+  assert(!existsSync(comparisonDirectory), 'Another comparison owns this cache directory');
+  mkdirSync(comparisonDirectory);
+  let transport, accepted;
+  const comparison = await comparisonPlan({root, context, runtime, actionRuntimes, directory: comparisonDirectory,
+    token: process.env.ACTIONS_READ_TOKEN, request, onArchive: value => { transport = value; }});
   write(join(directory, 'comparison-plan.json'), comparison);
-  console.log(`Comparison collection initialized for ${revision}; all actions still execute`);
+  const acquisition = await acquisitionPlan({context, catalog: readCatalog(), comparison, event: origin.event,
+    readReady: async () => {
+      assert(transport, 'Missing authenticated comparison transport');
+      accepted = await readReadyOrigin({root, catalog: readCatalog(), sourceArchive: transport.archive,
+        sourceArtifact: {id: transport.artifact.id, digest: transport.artifact.digest.slice('sha256:'.length)},
+        baseline: comparison.baseline, candidateContext: context, treeAt: value => gitTree(root, value), request,
+        token: process.env.ACTIONS_READ_TOKEN, directory: comparisonDirectory});
+      return accepted;
+    }});
+  write(join(directory, 'acquisition-plan.json'), acquisition);
+  write(join(directory, 'collection-costs.json'), {runtimeObservation: measurement,
+    isolatedPreparationMilliseconds: prepared.preparationMilliseconds, stagedSourceBytes: prepared.sourceBytes,
+    comparison: comparison.costs, acquisitionMilliseconds: acquisition.milliseconds});
+  if (acquisition.actions.some(entry => entry.acquisition === 'reused')) {
+    mkdirSync(join(directory, 'reused'));
+    copyFileSync(transport.archive, join(directory, 'reused/session-origin.zip'), constants.COPYFILE_EXCL);
+    copyFileSync(accepted.archive, join(directory, 'reused/session-applicability.zip'), constants.COPYFILE_EXCL);
+    // Original canonical bytes, not a relabeled candidate receipt.
+    writeFileSync(join(directory, 'receipts/mutations-js.json'), canonicalReceipt(accepted.original.receipt), {flag: 'wx'});
+  }
+  console.log(`Collection initialized for ${revision}: ${acquisition.actions.filter(entry => entry.acquisition === 'fresh').length} fresh, ` +
+    `${acquisition.actions.filter(entry => entry.acquisition === 'reused').length} reused`);
 }
 
 export function recordExistingAction({id, command, output, status, milliseconds, result = null, extraArtifacts = []}) {
@@ -106,6 +133,14 @@ export function recordExistingAction({id, command, output, status, milliseconds,
 async function mutations() {
   const state = json(join(directory, 'context.json')), prepared = json(join(isolatedDirectory, 'prepared.json'));
   const revision = git(['rev-parse', 'HEAD']); assert.equal(revision, state.context.candidateRevision);
+  const acquisition = json(join(directory, 'acquisition-plan.json')).actions.find(entry => entry.actionId === 'mutations-js');
+  assert(acquisition, 'Missing independent mutation execution obligation');
+  if (acquisition.acquisition === 'reused') {
+    assert.equal(acquisition.reason, 'verified-main-comparison');
+    console.log(`REUSED mutations-js from main ${acquisition.origin.revision}, run ${acquisition.origin.runId}/${acquisition.origin.runAttempt}; not executed on candidate`);
+    return;
+  }
+  assert.equal(acquisition.acquisition, 'fresh');
   assert.equal(prepared.owner, `${state.origin.runId}:${state.origin.runAttempt}:${state.origin.jobId}`);
   const result = executeIsolatedMutation({root, tree: gitTree(root, revision), prepared});
   process.stdout.write(result.output);
@@ -125,30 +160,46 @@ async function mutations() {
 
 export function finish() {
   const state = json(join(directory, 'context.json')), catalog = readCatalog();
+  const acquisition = json(join(directory, 'acquisition-plan.json'));
+  assert.deepEqual(acquisition.actions.map(entry => entry.actionId), catalog.actions.map(action => action.id));
+  assert.equal(encode(acquisition.context), encode(state.context));
   assert.equal(git(['diff', '--name-only', 'HEAD']), '', 'Unrestored final source');
   const requirements = [], applications = [], receiptDigests = [], receipts = [];
+  const candidateTree = gitTree(root, state.context.candidateRevision);
   for (const action of catalog.actions) {
     const bytes = readFileSync(join(directory, `receipts/${action.id}.json`)), receipt = parseReceipt(bytes);
-    assert.equal(encode(receipt.origin), encode(state.origin), 'Mixed collection owner');
+    const entry = acquisition.actions.find(value => value.actionId === action.id);
+    if (entry.acquisition === 'fresh') assert.equal(encode(receipt.origin), encode(state.origin), 'Mixed fresh collection owner');
+    else {
+      assert.equal(entry.actionId, 'mutations-js'); assert.equal(entry.acquisition, 'reused');
+      assert.equal(receipt.origin.testedRevision, entry.origin.revision); assert.equal(hash(bytes), entry.origin.receiptDigest);
+    }
     assert.equal(encode(receipt.action), encode(action), 'Wrong collected descriptor');
     receipts.push(receipt);
-    const records = leanRecords(action, receipt.inputs, {receipt}, state.context, 'fresh');
+    const manifest = actionInputs({tree: candidateTree, revision: state.context.candidateRevision,
+      action, runtime: runtimeForAction(action, state.runtime, state.actionRuntimes)});
+    assert.equal(manifest.key, entry.candidateActionKey, 'Changed execution-plan inputs');
+    const records = leanRecords(action, manifest, {receipt}, state.context, entry.acquisition);
     requirements.push(records.required); applications.push(records.application);
     receiptDigests.push({actionId: action.id, digest: hash(bytes)});
   }
   const comparison = json(join(directory, 'comparison-plan.json'));
   const observations = compareFreshObservations({plan: comparison, context: state.context, runtime: state.runtime,
     actionRuntimes: state.actionRuntimes,
-    tree: gitTree(root, state.context.candidateRevision), receipts});
+    tree: candidateTree, receipts,
+    acquisitions: acquisition.actions,
+    mutationResult: existsSync(join(directory, 'results/mutations-js.json')) ? json(join(directory, 'results/mutations-js.json')) : null});
   write(join(directory, 'comparison-observations.json'), observations);
   const start = performance.now();
   const lean = checkPlan(requirements, applications, {onOutput: output => writeFileSync(join(directory, 'lean-output.log'), output, {flag: 'wx'})});
   write(join(directory, 'checked.json'), {version: 'actql-verification-family-certificate/0.1',
-    mode: 'comparison', context: state.context, catalogDigest: hash(encode(catalog)), receiptDigests,
+    mode: 'scoped-execution', context: state.context, catalogDigest: hash(encode(catalog)), receiptDigests,
+    acquisitionDigest: hash(readFileSync(join(directory, 'acquisition-plan.json'))),
     comparisonDigest: hash(readFileSync(join(directory, 'comparison-plan.json'))),
     comparisonObservationsDigest: hash(readFileSync(join(directory, 'comparison-observations.json'))),
     lean, milliseconds: Math.round(performance.now() - start)});
-  console.log(`Checked ${receiptDigests.length} fresh actions; runtime closure and reuse remain pending`);
+  console.log(`Checked ${receiptDigests.length} obligations: ${acquisition.actions.filter(entry => entry.acquisition === 'fresh').length} fresh, ` +
+    `${acquisition.actions.filter(entry => entry.acquisition === 'reused').length} reused`);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

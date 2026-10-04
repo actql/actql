@@ -70,7 +70,7 @@ for (const [source, destination] of [
   await writeFile(join(root, destination), await readFile(join(repository, source)));
 }
 await mkdir(join(root, 'two-source-fixtures'));
-for (const name of ['database-rows.json', 'two-source-join.program.json',
+for (const name of ['database-rows.json', 'two-source-join.program.json', 'two-source-join.aql',
   'two-source-join.expected.json', 'equal-content-join.expected.json',
   'left-only.program.json', 'left.environment.json', 'right.environment.json']) {
   await writeFile(join(root, 'two-source-fixtures', name), await readFile(join(repository,
@@ -90,6 +90,8 @@ await writeFile(join(root, 'fixtures/property-graph-presence.program.json'),
   await readFile(join(repository, 'scripts/fixtures/property-graph-presence.program.json')));
 await writeFile(join(root, 'fixtures/property-graph-definition-rows.program.json'),
   await readFile(join(repository, 'scripts/fixtures/property-graph-definition-rows.program.json')));
+await writeFile(join(root, 'fixtures/property-graph-label-rows.program.json'),
+  await readFile(join(repository, 'scripts/fixtures/property-graph-label-rows.program.json')));
 await writeFile(join(root, 'fixtures/property-graph-traverse-nodes.expected.json'),
   await readFile(join(repository, 'scripts/fixtures/property-graph-traverse-nodes.expected.json')));
 run('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
@@ -263,8 +265,8 @@ if (process.argv.includes('--source-free-only') ||
   process.argv.includes('--infer-refusal-only') ||
   process.argv.includes('--two-source-only') ||
   process.argv.includes('--join-order-only') ||
-  process.argv.includes('--graph-rows-only') ||
-  process.argv.includes('--group-scope-only')) return;
+  process.argv.includes('--group-scope-only') ||
+  process.argv.includes('--graph-rows-only')) return;
 if (!process.argv.includes('--property-graph-source-only')) {
   console.log(run(process.execPath, ['sga-cancellation.mjs'], root,
     runtimeEnvironment, 120000).trimEnd());

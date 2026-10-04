@@ -62,7 +62,41 @@ fn keyed_bridge_owner(
   nodes : @lower.BoundPrepared,
   edges : @lower.BoundPrepared,
   body? : String? = None,
+  edge_alt? : @lower.BoundPrepared? = None,
 ) -> @lower.BoundPrepared {
+  let inputs = [
+    (
+      "nodes",
+      @pipeline.ProducedInput(
+        @pipeline.produced_input(
+          @lower.pipeline(@lower.bound_preparation(nodes)),
+          @pipeline.Step(0),
+        ).unwrap(),
+      ),
+    ),
+    (
+      "edges",
+      @pipeline.ProducedInput(
+        @pipeline.produced_input(
+          @lower.pipeline(@lower.bound_preparation(edges)),
+          @pipeline.Step(0),
+        ).unwrap(),
+      ),
+    ),
+  ]
+  if edge_alt is Some(source) {
+    inputs.push(
+      (
+        "edges_alt",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(source)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+    )
+  }
   let checked = @pipeline.check_with_evidence(
     input_cursor(
       body.unwrap_or(
@@ -71,26 +105,7 @@ fn keyed_bridge_owner(
         ),
       ),
     ),
-    [
-      (
-        "nodes",
-        @pipeline.ProducedInput(
-          @pipeline.produced_input(
-            @lower.pipeline(@lower.bound_preparation(nodes)),
-            @pipeline.Step(0),
-          ).unwrap(),
-        ),
-      ),
-      (
-        "edges",
-        @pipeline.ProducedInput(
-          @pipeline.produced_input(
-            @lower.pipeline(@lower.bound_preparation(edges)),
-            @pipeline.Step(0),
-          ).unwrap(),
-        ),
-      ),
-    ],
+    inputs,
     None,
     None,
     {
@@ -120,9 +135,14 @@ fn keyed_bridge_inputs(
   owner : @lower.BoundPrepared,
   nodes : @lower.BoundPrepared,
   edges : @lower.BoundPrepared,
+  edge_alt? : @lower.BoundPrepared? = None,
 ) -> Array[@execution.ProducerRead] raise {
   let inputs = []
-  for index, source in [nodes, edges] {
+  let sources = [nodes, edges]
+  if edge_alt is Some(source) {
+    sources.push(source)
+  }
+  for index, source in sources {
     let output = carrier_events_source_output(source)
     inputs.push(
       @execution.prepare_producer_read(

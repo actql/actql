@@ -143,6 +143,8 @@ pub fn carrier_projection_definition(PreparedCarrierProjection) -> String?
 
 pub fn carrier_projection_input_carrier(PreparedCarrierProjection) -> @carrier_contract.Carrier
 
+pub fn carrier_projection_label(PreparedCarrierProjection) -> String?
+
 pub fn carrier_projection_operation(PreparedCarrierProjection) -> @carrier_projection.Operation
 
 pub fn carrier_projection_output_carrier(PreparedCarrierProjection) -> @carrier_contract.Carrier

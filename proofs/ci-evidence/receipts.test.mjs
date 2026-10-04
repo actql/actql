@@ -3,9 +3,11 @@ import assert from 'node:assert/strict';
 import {mkdtemp, writeFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {readCatalog} from './actions.mjs';
+import {readCatalog, catalogPath} from './actions.mjs';
+import {encode} from '../bounded-session/action-inputs.mjs';
+import {checkApplications} from './applications.mjs';
 import {actionInputs, hash, sharedFiles} from './inputs.mjs';
-import {sealReceipt, canonicalReceipt, parseReceipt, authenticateOrigin, readOriginReceipt, observationUnits, mutationIds} from './receipts.mjs';
+import {sealReceipt, canonicalReceipt, parseReceipt, authenticateOrigin, readOriginReceipt, readOriginReceipts, observationUnits, mutationIds} from './receipts.mjs';
 
 const revision = 'a'.repeat(40), candidate = 'b'.repeat(40);
 const action = readCatalog().actions.find(entry => entry.id === 'session-js');
@@ -15,13 +17,17 @@ const origin = {repository: 'actql/actql', repositoryId: 1, testedRevision: revi
   runId: 3, runAttempt: 4, jobId: 5, event: 'push', branch: 'main'};
 const expected = {repository: 'actql/actql', repositoryId: 1, workflowId: 2,
   ancestors: [revision], candidateRevision: candidate, runHeadRevision: 'c'.repeat(40), runId: 30, runAttempt: 1};
-function inputs(selected = action, rev = revision) {
+function sourceTree(catalog = null) {
   const files = new Map([...sharedFiles.map(path => [path, path]),
     ['src/bounded_execution/moon.pkg', ''], ['src/bounded_execution/session.mbt', 'kernel'],
-    ['proofs/bounded-session/a.mjs', 'proof']]);
-  const tree = {entries: new Map([...files].map(([path]) => [path, {kind: 'blob', mode: '100644'}])),
+    ['proofs/bounded-session/a.mjs', 'proof'],
+    ...['check.mjs', 'Session.lean', 'Claims.lean', 'lean-toolchain', 'setup-lean.mjs'].map(name => [`proofs/bounded-session/${name}`, name])]);
+  if (catalog) files.set(catalogPath, encode(catalog));
+  return {entries: new Map([...files].map(([path]) => [path, {kind: 'blob', mode: '100644'}])),
     read: path => Buffer.from(files.get(path))};
-  return actionInputs({tree, revision: rev, action: selected,
+}
+function inputs(selected = action, rev = revision) {
+  return actionInputs({tree: sourceTree(), revision: rev, action: selected,
     runtime: {profile: 'controlled-test-runtime', unresolved: []}});
 }
 const receipt = () => sealReceipt({origin, action, inputs: inputs(), output, status: 0, milliseconds: 15});
@@ -139,4 +145,77 @@ test('the mutation observation inventory cannot be replaced by thirteen unrelate
   const mutation = readCatalog().actions.find(entry => entry.id === 'mutations-js');
   assert.equal(observationUnits(mutation, mutationIds.map(id => `${id}: detected by replacement tests`).join('\n'), 0), 13);
   assert.throws(() => observationUnits(mutation, mutationIds.map((_, i) => `unrelated-${i}: detected by replacement tests`).join('\n'), 0), /mutation identities/u);
+});
+
+test('one archive group authenticates a common owner while retaining each independent target and receipt bytes', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-action-group-'));
+  t.after(() => rm(directory, {recursive: true}));
+  const filename = join(directory, 'origin.zip');
+  const native = readCatalog().actions.find(entry => entry.id === 'session-native');
+  const other = sealReceipt({origin, action: native, inputs: inputs(native), output, status: 0, milliseconds: 17});
+  const members = [['receipts/session-js.json', canonicalReceipt(receipt())], ['observations/session-js.log', output],
+    ['receipts/session-native.json', canonicalReceipt(other)], ['observations/session-native.log', output]];
+  const bytes = zip(members); await writeFile(filename, bytes);
+  const calls = [], request = api(hash(bytes));
+  const options = {archive: filename, artifactId: 6, actions: [action, native], expected, acquisition: 'reused',
+    request: async path => { calls.push(path); return request(path); }};
+  const result = await readOriginReceipts(options);
+  assert.deepEqual([...result.keys()], ['session-js', 'session-native']);
+  assert.deepEqual(result.get('session-native').receipt, other);
+  assert.equal(result.get('session-js').receiptDigest, hash(members[0][1]));
+  assert.equal(result.get('session-native').receiptDigest, hash(members[2][1]));
+  assert.equal(calls.filter(path => path.includes('/jobs?')).length, 1);
+  assert.equal(calls.filter(path => path === '/actions/artifacts/6').length, 1);
+  assert.equal(calls.filter(path => path === '/actions/runs/3').length, 3);
+  for (const actions of [[], [action, action]]) await assert.rejects(readOriginReceipts({...options, actions}));
+
+  const wrongOwner = structuredClone(other); wrongOwner.origin.jobId = 99;
+  const mixed = zip([...members.slice(0, 2), ['receipts/session-native.json', canonicalReceipt(wrongOwner)], members[3]]);
+  await writeFile(filename, mixed);
+  await assert.rejects(readOriginReceipts({...options, request: api(hash(mixed))}), /Mixed receipt archive owners/u);
+  await writeFile(filename, zip(members.slice(0, 2)));
+  await assert.rejects(readOriginReceipts(options), /member not found/u);
+});
+
+test('an attempt transition after all grouped member inspections refuses the entire group', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-action-group-transition-'));
+  t.after(() => rm(directory, {recursive: true}));
+  const filename = join(directory, 'origin.zip');
+  const bytes = zip([['receipts/session-js.json', canonicalReceipt(receipt())], ['observations/session-js.log', output]]);
+  await writeFile(filename, bytes);
+  const request = api(hash(bytes)); let reads = 0;
+  await assert.rejects(readOriginReceipts({archive: filename, artifactId: 6, actions: [action], expected, acquisition: 'reused',
+    request: async path => {
+      const value = await request(path);
+      if (path === '/actions/runs/3' && ++reads === 3) value.run_attempt++;
+      return value;
+    }}));
+  assert.equal(reads, 3);
+});
+
+test('the actual family application path consumes one authenticated archive without dropping obligations', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-family-group-'));
+  t.after(() => rm(directory, {recursive: true}));
+  const archive = join(directory, 'origin.zip'), catalog = readCatalog();
+  catalog.actions = catalog.actions.filter(value => ['model', 'session-js', 'session-native'].includes(value.id));
+  const members = catalog.actions.flatMap(action => {
+    const observation = action.id === 'model' ? 'Checked 14 theorems, expected claim types and axiom dependencies\n' : output;
+    const original = sealReceipt({origin, action, inputs: inputs(action), output: observation, status: 0, milliseconds: 1});
+    return [[`receipts/${action.id}.json`, canonicalReceipt(original)], [`observations/${action.id}.log`, observation]];
+  });
+  const bytes = zip(members); await writeFile(archive, bytes);
+  const request = api(hash(bytes)), calls = [];
+  const result = await checkApplications({root: directory, context: expected,
+    runtime: {profile: 'controlled-test-runtime', unresolved: []}, protectedRevision: revision,
+    entries: catalog.actions.map(action => ({actionId: action.id, acquisition: 'reused', archive, artifactId: 6})),
+    treeAt: () => sourceTree(catalog), request: async path => { calls.push(path); return request(path); },
+    prove: (required, applications) => {
+      assert.deepEqual(required.map(value => value.action), catalog.actions.map(value => value.id));
+      assert.deepEqual(applications.map(value => value.target), ['model', 'js', 'native']);
+      assert(applications.every(value => value.authenticated && value.successful && value.reused && value.closed));
+      return {accepted: true};
+    }});
+  assert.equal(result.applications.length, 3);
+  assert.equal(calls.filter(path => path.includes('/jobs?')).length, 1);
+  assert.equal(calls.filter(path => path === '/actions/artifacts/6').length, 1);
 });
