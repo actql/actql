@@ -66,7 +66,7 @@ every declared column occurs in every row. Ordinary object value contracts keep
 their exact required-field rules.
 
 The execution profile permits projection, Required-only filter/derive expressions,
-Required-key sort, proven-order take and Required-key DISTINCT on conditional inputs. Every syntactic
+Required-key sort, proven-order take, Required-key DISTINCT and GROUP on conditional inputs. Every syntactic
 expression reference and authored sort key must be Required,
 including references in lazy/dead branches; runtime samples and `IS NOT NULL`
 do not provide a presence proof. Graph definition/label selection derives its
@@ -92,6 +92,15 @@ rows in first-occurrence order. Omitted, NULL and present values of unselected
 columns do not participate in equality; the entire sparse input and its presence
 slots still undergo admission and resource accounting. Its projected output is
 dense and uses the existing completion, Store export/import and cleanup owners.
+GROUP requires guaranteed group keys and every aggregate argument, filter and
+aggregate-local order reference, including dead expression branches. Both the
+selected exact-count and general-group providers admit and charge the complete
+sparse input before aggregation. Expression snapshots omit absent unreferenced
+cells rather than reading them as NULL. The result follows the existing dense
+GROUP schema, nullability, empty-input and canonical group-order contracts;
+input Conditional columns are not propagated as undeclared output columns.
+Its existing row/completion and Store export/import owners retain the aggregate
+result independently of the consumed input's unused presence states.
 Sparse whole-row DISTINCT remains explicitly unsupported, not a comparison of
 only guaranteed columns. Selection and retained presence
 slots use the existing bounded row workspace and cleanup path. Other row consumers reject conditional inputs rather than rebuilding

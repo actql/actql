@@ -135,7 +135,8 @@ fn check_impl(
     operation is Derive ||
     operation is Sort ||
     operation is Take ||
-    operation is Distinct) {
+    operation is Distinct ||
+    operation is Group) {
     fail(body, ConditionalInputNotImplemented)
   }
   let parameter_types : Map[String, @contract.Contract] = Map([])
@@ -354,6 +355,7 @@ fn check_impl(
       let (details, fields) = check_group(
         b, body, visible, parameters, parameter_types, bindings, pending, group_prefix,
       )
+      check_group_presence(b, input_schema, details, bindings)
       group = Some(details)
       output = schema_type(b, body, fields)
       Aggregation

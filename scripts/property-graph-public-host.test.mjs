@@ -351,9 +351,28 @@ function presenceKeyedDistinctScenario(empty) {
   return {document,before,expected};
 }
 
-for (const mode of ['local','remote']) for (const profile of ['graph','presence-filter','presence-selection','selector-derive','presence-keyed-distinct']) {
+function presenceGroupScenario(empty) {
+  const {document,before} = presenceFilterScenario(empty, false, 1);
+  document.id = `presence-group-${empty ? 'empty' : 'values'}`;
+  document.stages[0].steps.splice(5,document.stages[0].steps.length-5,
+    {group:{by:['person_key'],aggregates:{
+      m:{fn:'max',expr:'person_key',filter:'person_key > 0'},n:{fn:'count'},
+    }},as:'grouped'});
+  document.stages[0].results.out.from = 'grouped';
+  document.stages[0].results.out.fields = ['person_key','m','n'];
+  // M:1 and N:1 coalesce on the guaranteed raw key. Their optional property
+  // states do not change the count/max; canonical GROUP key order is numeric.
+  const expected = empty ? [] : [
+    {person_key:1,m:1,n:2},{person_key:2,m:2,n:1},{person_key:4,m:4,n:1},
+  ];
+  return {document,before,expected};
+}
+
+for (const mode of ['local','remote']) for (const profile of ['graph','presence-filter','presence-selection','selector-derive','presence-keyed-distinct','presence-group']) {
   const name = profile === 'graph'
     ? `keyed constructor and TRAIL reach public Named Results through ${mode}`
+    : profile === 'presence-group'
+      ? `presence group survives Relation Store and public Named Results through ${mode}`
     : profile === 'presence-keyed-distinct'
       ? `presence keyed distinct survives Relation Store and public Named Results through ${mode}`
     : profile === 'selector-derive'
@@ -423,6 +442,47 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
       client = await connect({mode,endpoint:`https://127.0.0.1:${server.address().port}/`,token:'synthetic-test-token'});
     }
     t.after(() => client.close());
+    if (profile === 'presence-group') {
+      for (const empty of [false,true]) {
+        const {document,before,expected} = presenceGroupScenario(empty);
+        const run = await client.aql(canonicalText(document),
+          {format:'json',requestId:`${document.id}-${mode}`});
+        const state = await run.wait();
+        assert.equal(state.status,'succeeded',JSON.stringify(state));
+        assert.deepEqual(await run.result('answer').all(),expected);
+        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
+        assert.deepEqual((await run.result('answer').describe()).columns,
+          [{name:'person_key',contract:number},
+            {name:'m',contract:{type:'number',nullable:true}},{name:'n',contract:number}]);
+        assert.deepEqual(relationSnapshots.get(run.ref.runDefinitionCid),
+          [[4,before],[5,expected]].map(([task,rows])=>{
+            const bytes = canonicalText(rows);
+            return {task,cid:cid(rows),bytes:Buffer.byteLength(bytes),
+              verifiedReadBytes:Buffer.byteLength(bytes),rows:rows.length,
+              sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true};
+          }));
+        assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
+      }
+      // Check all authored reference lanes, even unused/dead branches. An
+      // empty Relation cannot turn a Conditional property into a Required one.
+      for (const empty of [false,true]) for (const group of [
+        {by:['p'],aggregates:{n:{fn:'count'}}},
+        {by:['person_key'],aggregates:{n:{fn:'count',field:'p'}}},
+        {by:['person_key'],aggregates:{n:{fn:'max',expr:'if(false, p, person_key)'}}},
+        {by:['person_key'],aggregates:{n:{fn:'count',filter:'false AND p IS NOT NULL'}}},
+        {by:['person_key'],aggregates:{n:{fn:'first',field:'person_key',order_by:[{p:'asc'}]}}},
+      ]) {
+        const {document} = presenceGroupScenario(empty);
+        document.stages[0].steps[5].group = group;
+        const requestId = `conditional-group-${mode}-${empty}-${cid(group)}`;
+        const before = physicalSteps.length;
+        await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+          error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
+        assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+        assert.deepEqual(physicalSteps.slice(before),[]);
+      }
+      return;
+    }
     if (profile === 'presence-keyed-distinct') {
       for (const empty of [false,true]) {
         const {document,before,expected} = presenceKeyedDistinctScenario(empty);

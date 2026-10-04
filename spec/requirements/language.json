@@ -817,6 +817,39 @@
       }
     },
     {
+      "requirement_id": "actql.language/value-contracts.relation-group-reference-presence",
+      "statement_sha256": "36dce3c39b739afd1aa2c349a9e20549d5cf0ec1434e67a1d31f42c32525b447",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "value-contracts",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.relation-group-input-admission",
+      "statement_sha256": "3d8c054b4ea9cb182f4731343ecf68e4f1a2c3306fd4701057ab7212d1893878",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "value-contracts",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.relation-group-output-contract",
+      "statement_sha256": "17f954ab237024797ce52c46b9ade8784b59a90f6a10c745ebd882a06ba96680",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "value-contracts",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/value-contracts.empty-object-contracts",
       "statement_sha256": "bf090b017152ce0db497143b00a7a7f5850358063d6e9f5dd848e28eeec452fb",
       "status": "pending",

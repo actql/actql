@@ -620,7 +620,8 @@ fn check_impl(
       key != "derive" &&
       key != "sort" &&
       key != "take" &&
-      key != "distinct" {
+      key != "distinct" &&
+      key != "group" {
       if carrier(input, inputs, steps) is @carrier.Relation(rows) {
         if !@carrier.all_fields_required(rows) {
           fail(
@@ -1661,7 +1662,8 @@ fn check_impl(
             key == "derive" ||
             key == "sort" ||
             key == "take" ||
-            key == "distinct",
+            key == "distinct" ||
+            key == "group",
         )
         let operation_limits : @relation.Limits = {
           max_work: b.work,

@@ -765,7 +765,7 @@ MUST be schema-guaranteed present. Conditional references MUST fail during
 checking; sample values, an empty Relation and `IS NOT NULL` do not prove
 presence. Projection of guaranteed columns and filter/derive expressions that
 reference only guaranteed columns, Required-key sort, proven-order take and
-keyed DISTINCT over guaranteed columns are
+keyed DISTINCT and GROUP over guaranteed references are
 supported. Filter MUST preserve the exact
 input schema, ordered surviving rows and each cell's presence; it MUST admit and
 charge all input rows before evaluating the predicate, including rejected rows.
@@ -805,6 +805,16 @@ The complete sparse input MUST still be admitted and charged, including omitted
 cells' presence slots and values not selected for output. An unguaranteed key
 MUST fail during checking. Sparse whole-row `distinct: true` remains unsupported
 in this profile and MUST NOT be reinterpreted as guaranteed-key DISTINCT.
+
+<!-- requirement-block: value-contracts.relation-group-reference-presence value-contracts.relation-group-input-admission value-contracts.relation-group-output-contract -->
+GROUP on conditional Relation inputs MUST require schema-guaranteed presence
+for every group key and every reference in aggregate arguments, filters and
+aggregate-local ordering, including syntactically present unevaluated branches.
+The complete sparse input MUST be admitted and charged before aggregation,
+without reading absent unreferenced cells as NULL or omitting their presence
+storage from resource accounting. The aggregate result MUST retain the existing
+GROUP output schema, types, nullability, empty-input behavior and ordering
+through retention and reload; unselected input columns do not survive grouping.
 
 <!-- requirement-block: value-contracts.empty-object-contracts -->
 Both authored and checked object contracts MUST permit `fields: {}`. This closed
