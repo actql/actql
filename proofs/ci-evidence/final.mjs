@@ -45,7 +45,7 @@ export async function verifyCurrentFamily({root, artifactId, expectedDigest, con
   assert.equal(metadata.digest, `sha256:${expectedDigest.replace(/^sha256:/u, '')}`, 'Job output/API archive digest mismatch');
   const zip = await openArtifactZip(archive, {expectedSha256: metadata.digest,
     limits: {maxCompressedBytes: 64 * 1024 * 1024, maxTotalBytes: 256 * 1024 * 1024, maxEntries: 2000}});
-  let state, certificate, output, distributionInputs, comparison, comparisonObservations, receipts, actionRuntimes;
+  let state, certificate, output, distributionInputs, comparison, comparisonObservations, receipts, actionRuntimes, mutationResult;
   try {
     distributionInputs = await zip.json('runtime-distributions.json');
     state = await zip.json('context.json'); certificate = await zip.json('checked.json'); output = await zip.read('lean-output.log');
@@ -56,6 +56,7 @@ export async function verifyCurrentFamily({root, artifactId, expectedDigest, con
     comparison = JSON.parse(planBytes); comparisonObservations = JSON.parse(observationsBytes);
     const catalog = readCatalog(join(root, 'proofs/ci-evidence/bounded-session-actions.json'));
     receipts = await Promise.all(catalog.actions.map(async action => parseReceipt(await zip.read(`receipts/${action.id}.json`))));
+    mutationResult = await zip.json('results/mutations-js.json');
   } finally { await zip.close(); }
   assert.equal(encode(state.context), encode(context), 'Wrong collection candidate/run/attempt');
   checkRuntimeObservation(state.runtime, distributionInputs);
@@ -74,7 +75,7 @@ export async function verifyCurrentFamily({root, artifactId, expectedDigest, con
   assert.deepEqual(result.applications.map(entry => ({actionId: entry.actionId, digest: entry.originReceiptDigest})), certificate.receiptDigests);
   assert(result.applications.every(entry => entry.acquisition === 'fresh'));
   assert.equal(encode(comparisonObservations), encode(compareFreshObservations({plan: comparison, context,
-    runtime: state.runtime, actionRuntimes, tree: gitTree(root, context.candidateRevision), receipts})), 'Wrong comparison of actual fresh executions');
+    runtime: state.runtime, actionRuntimes, tree: gitTree(root, context.candidateRevision), receipts, mutationResult})), 'Wrong comparison of actual fresh executions');
   const confirmation = await verifyComparison({plan: comparison, root, context, runtime: state.runtime, actionRuntimes, request, token, directory});
   result.comparison = {baseline: comparison.baseline, recordedStatuses: comparison.actions.map(entry => ({actionId: entry.actionId, status: entry.status})),
     producerCosts: comparison.costs, confirmation, reuseAuthorized: false};

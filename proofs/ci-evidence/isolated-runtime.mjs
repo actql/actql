@@ -11,7 +11,8 @@ import {hash} from './inputs.mjs';
 import {isolatedEnvironment, mutationSourcePaths, scratchDockerfile} from './isolation.mjs';
 import {mutationIds} from './mutation-inventory.mjs';
 import {isolatedRunArguments, mutationSnapshotExtras, checkImageDefinition} from './isolation.mjs';
-import {isolatedContract, matchesIsolatedContract} from './isolated-contract.mjs';
+import {isolatedContract, matchesIsolatedContract, isolatedExperimentDigest} from './isolated-contract.mjs';
+import {mutationObservation} from './mutation-observation.mjs';
 
 export const isolatedProfile = 'isolated-session-mutations-linux';
 export const isolatedResidual = 'isolated comparison only: reviewed action/kernel/CPU closure and acceptance remain required';
@@ -64,6 +65,7 @@ export function checkIsolatedInputs({runtime, manifest, tree}) {
   assert.equal(encode(manifest.environment), encode(isolatedEnvironment), 'Changed isolated environment');
   assert.equal(manifest.dockerfile, scratchDockerfile(), 'Changed isolated executor definition');
   assert.equal(manifest.sourceSnapshotDigest, snapshotFromGit(tree).digest, 'Wrong reviewed source cohort');
+  assert.equal(manifest.experimentDigest, isolatedExperimentDigest(tree), 'Wrong reviewed finite experiment');
   assert.equal(manifest.toolchainDigest, hash(tree.read('toolchain.json')), 'Wrong reviewed toolchain pin');
   assert(typeof manifest.hostImage === 'string' && /^[A-Za-z0-9_.-]+$/u.test(manifest.hostImage), 'Invalid host image identity');
   assert.equal(manifest.platformInputs.platform, 'linux'); assert.equal(manifest.platformInputs.architecture, 'x64');
@@ -149,6 +151,7 @@ export function checkIsolatedResult({payload, manifest, before}) {
   assert.equal(payload.readOnlyConfirmed, true); assert.equal(payload.restored, true);
   assert.equal(payload.shellStartupConfirmed, true, 'Required build shell did not start');
   assert.equal(encode(payload.report.source), encode(before), 'Isolated action did not execute the selected actual source');
+  mutationObservation(payload.report);
   assert.deepEqual(payload.report.results.map(entry => entry.id).sort(), [...mutationIds].sort());
   assert.deepEqual(Object.keys(payload.logs).sort(), [...mutationIds].sort(), 'Missing/extra original mutation logs');
   for (const entry of payload.report.results) {

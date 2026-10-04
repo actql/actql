@@ -25,6 +25,7 @@ export const sharedFiles = ['proofs/ci-evidence/actions.mjs', 'proofs/ci-evidenc
   'proofs/ci-evidence/isolation.mjs', 'proofs/ci-evidence/isolated-mutations.mjs',
   'proofs/ci-evidence/isolated-runtime.mjs', 'proofs/ci-evidence/isolated-execution.mjs',
   'proofs/ci-evidence/mutation-inventory.mjs',
+  'proofs/ci-evidence/mutation-observation.mjs',
   'proofs/ci-evidence/runtime.mjs', 'proofs/ci-evidence/collect.mjs', 'proofs/ci-evidence/transport.mjs', 'proofs/ci-evidence/final.mjs',
   'proofs/ci-evidence/cli.mjs',
   'proofs/ci-evidence/Reuse.lean', 'proofs/ci-evidence/Claims.lean',

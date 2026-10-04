@@ -14,6 +14,7 @@ import {readOriginReceipt} from './receipts.mjs';
 import {downloadArtifact, ArtifactUnavailable, unavailableTransport} from './transport.mjs';
 import {checkRuntimeObservation} from './runtime.mjs';
 import {runtimeForAction, readActionRuntimes} from './isolated-runtime.mjs';
+import {mutationObservation} from './mutation-observation.mjs';
 
 export const comparisonVersion = 'actql-verification-action-comparison/0.1';
 const positive = value => Number.isSafeInteger(value) && value > 0;
@@ -150,7 +151,8 @@ export async function comparisonPlan({root, context, runtime, actionRuntimes = {
       entry.equal = comparison.equal; entry.closed = comparison.eligible; entry.unresolved = comparison.reasons;
       entry.origin = {receiptDigest: original.receiptDigest, actionKey: reconstructed.key,
         revision: receipt.origin.testedRevision, runId: receipt.origin.runId, runAttempt: receipt.origin.runAttempt,
-        units: receipt.execution.units, milliseconds: receipt.execution.milliseconds};
+        units: receipt.execution.units, milliseconds: receipt.execution.milliseconds,
+        scientificDigest: original.scientificDigest ?? null};
     } catch (error) {
       // Optional origin authentication must not prevent any fresh action from
       // running. Keep authenticated earlier entries; this entry has no origin
@@ -162,7 +164,7 @@ export async function comparisonPlan({root, context, runtime, actionRuntimes = {
   return finish();
 }
 
-export function compareFreshObservations({plan, context, runtime, actionRuntimes = {}, tree, receipts}) {
+export function compareFreshObservations({plan, context, runtime, actionRuntimes = {}, tree, receipts, mutationResult = null}) {
   assert.equal(plan.version, comparisonVersion); assert.equal(plan.mode, 'comparison');
   assert.equal(plan.reuseAuthorized, false, 'Comparison cannot authorize skip');
   assert(unchanged(plan.context, context), 'Different comparison owner');
@@ -178,13 +180,19 @@ export function compareFreshObservations({plan, context, runtime, actionRuntimes
     assert.equal(entry.candidateActionKey, current.key, 'Changed candidate comparison inputs');
     assert(unchanged(receipt.inputs, current), 'Fresh receipt does not match comparison candidate');
     const comparable = entry.equal && entry.origin !== null;
-    const matches = comparable && receipt.execution.units === entry.origin.units;
-    // This measures count correspondence only. It is not a proof of output
-    // determinism, and an open runtime cannot become closed because counts match.
+    const scientificDigest = action.id === 'mutations-js' ? mutationObservation(mutationResult).digest : null;
+    const matches = comparable && receipt.execution.units === entry.origin.units &&
+      (action.id !== 'mutations-js' || scientificDigest === entry.origin.scientificDigest);
+    // For mutations compare the registered experiment selections and actual
+    // detection results too. This is finite correspondence, not a proof of
+    // determinism; matching results cannot close an unreviewed input boundary.
     if (entry.closed) assert(matches, 'Closed equal-input action disagreed with normal execution');
-    return {actionId: action.id, status: !comparable ? 'not-comparable' : matches ? 'counts-match' : 'counts-mismatch',
+    return {actionId: action.id, status: !comparable ? 'not-comparable' : matches ?
+      action.id === 'mutations-js' ? 'scientific-match' : 'counts-match' :
+      action.id === 'mutations-js' ? 'scientific-mismatch' : 'counts-mismatch',
       freshUnits: receipt.execution.units, originUnits: comparable ? entry.origin.units : null,
-      freshMilliseconds: receipt.execution.milliseconds, originMilliseconds: entry.origin?.milliseconds ?? null};
+      freshMilliseconds: receipt.execution.milliseconds, originMilliseconds: entry.origin?.milliseconds ?? null,
+      scientificDigest, originScientificDigest: comparable ? entry.origin.scientificDigest : null};
   });
 }
 

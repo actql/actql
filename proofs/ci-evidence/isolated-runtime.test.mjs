@@ -5,15 +5,16 @@ import {tmpdir} from 'node:os';
 import {join, dirname} from 'node:path';
 import {hash} from './inputs.mjs';
 import {mutationIds} from './receipts.mjs';
+import {mutationContracts} from './mutation-inventory.mjs';
 import {stageMutationSource, isolatedSourceFiles, mutationSnapshotExtras, isolatedEnvironment, scratchDockerfile, isolatedRunArguments} from './isolation.mjs';
 import {observeImageRoot, imageRuntime, checkIsolatedInputs, checkIsolatedResult, snapshotFromGit, runtimeForAction, readActionRuntimes} from './isolated-runtime.mjs';
 import {staticElf} from './isolated-execution.mjs';
-import {isolatedContract, matchesIsolatedContract} from './isolated-contract.mjs';
+import {isolatedContract, matchesIsolatedContract, isolatedExperimentDigest, isolatedExperimentPaths} from './isolated-contract.mjs';
 
 function fixture(t) {
   const root = mkdtempSync(join(tmpdir(), 'actql-image-correspondence-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));
-  const bodies = new Map([...isolatedSourceFiles, ...mutationSnapshotExtras,
+  const bodies = new Map([...isolatedSourceFiles, ...mutationSnapshotExtras, ...isolatedExperimentPaths,
     'proofs/bounded-session/mutations.mjs', 'proofs/bounded-session/evidence.mjs', 'src/example/moon.pkg', 'src/example/source.mbt']
     .map(path => [path, Buffer.from(path)]));
   const tree = {entries: new Map([...bodies.keys()].map(path => [path, {mode: '100644', kind: 'blob'}])), read: path => bodies.get(path)};
@@ -29,9 +30,10 @@ function fixture(t) {
     dockerfile: scratchDockerfile(), root: observeImageRoot(root),
     platformInputs: {platform: 'linux', architecture: 'x64', kernelRelease: 'fixture'},
     loaderObservations: executables.map(executable => ({executable, digest: hash(executable), static: false, paths: ['/lib/libstdc++.so.6']})),
-    sourceSnapshotDigest: snapshotFromGit(tree).digest, toolchainDigest: hash(tree.read('toolchain.json')), hostImage: 'fixture'};
+    sourceSnapshotDigest: snapshotFromGit(tree).digest, experimentDigest: isolatedExperimentDigest(tree),
+    toolchainDigest: hash(tree.read('toolchain.json')), hostImage: 'fixture'};
   const runtime = imageRuntime(manifest), before = snapshotFromGit(tree);
-  const report = {source: before, results: mutationIds.map(id => ({id, killed: true, target: 'js', failureCount: 1}))};
+  const report = {source: before, results: mutationIds.map(id => ({id, ...mutationContracts[id], killed: true, target: 'js', failureCount: 1}))};
   const payload = {version: 'actql-isolated-mutation-observation/0.1', root: manifest.root,
     platformInputs: manifest.platformInputs, environment: isolatedEnvironment, readOnlyConfirmed: true, shellStartupConfirmed: true, restored: true, report,
     logs: Object.fromEntries(mutationIds.map(id => [id, 'Total tests: 1, passed: 0, failed: 1.\n']))};
@@ -87,6 +89,7 @@ test('restoration, runtime/kernel mismatch, missing mutation logs and compiler-o
     payload => payload.platformInputs.kernelRelease = 'changed',
     payload => payload.root.entries[0].mode = 0,
     payload => payload.report.source.digest = 'f'.repeat(64),
+    payload => payload.report.results[0].suite = 'src/unrelated',
     payload => delete payload.logs[mutationIds[0]],
     payload => payload.logs[mutationIds[0]] = 'Compiler failed',
     payload => payload.logs[mutationIds[0]] += 'Error: [1000] compile failed\n',
@@ -120,14 +123,14 @@ test('static classification reads ELF program headers rather than trusting an ld
 test('conditional source/environment contract cannot be widened or copied onto independent image inputs', t => {
   const f = fixture(t);
   assert.equal(matchesIsolatedContract(f.manifest), false);
-  const purported = {...f.manifest, sourceSnapshotDigest: isolatedContract.snapshotDigest,
+  const purported = {...f.manifest, experimentDigest: isolatedContract.experimentDigest,
     toolchainDigest: isolatedContract.toolchainDigest, hostImage: isolatedContract.hostImage,
     platformInputs: {...f.manifest.platformInputs, kernelRelease: isolatedContract.kernelRelease}};
   assert(matchesIsolatedContract(purported));
   const runtime = imageRuntime(purported);
-  assert.throws(() => checkIsolatedInputs({runtime, manifest: purported, tree: f.tree}), /source cohort/u);
+  assert.throws(() => checkIsolatedInputs({runtime, manifest: purported, tree: f.tree}), /finite experiment/u);
   for (const changed of [
-    {...purported, sourceSnapshotDigest: 'f'.repeat(64)},
+    {...purported, experimentDigest: 'f'.repeat(64)},
     {...purported, toolchainDigest: 'f'.repeat(64)},
     {...purported, hostImage: 'unknown'},
     {...purported, platformInputs: {...purported.platformInputs, kernelRelease: 'unknown'}},

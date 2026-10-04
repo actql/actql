@@ -18,7 +18,7 @@ export const isolatedSourceFiles = Object.freeze(['proofs/ci-evidence/isolated-m
   'proofs/ci-evidence/runtime.mjs', 'proofs/ci-evidence/inputs.mjs',
   'proofs/ci-evidence/package-configurations.mjs',
   'proofs/ci-evidence/isolated-contract.mjs',
-  'proofs/ci-evidence/mutation-inventory.mjs']);
+  'proofs/ci-evidence/mutation-inventory.mjs', 'proofs/ci-evidence/mutation-observation.mjs']);
 const child = isolatedSourceFiles[0];
 const safe = path => typeof path === 'string' && /^[A-Za-z0-9_.\/-]+$/u.test(path) &&
   !isAbsolute(path) && !path.split('/').some(part => ['', '.', '..'].includes(part));

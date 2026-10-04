@@ -139,7 +139,8 @@ export function finish() {
   const comparison = json(join(directory, 'comparison-plan.json'));
   const observations = compareFreshObservations({plan: comparison, context: state.context, runtime: state.runtime,
     actionRuntimes: state.actionRuntimes,
-    tree: gitTree(root, state.context.candidateRevision), receipts});
+    tree: gitTree(root, state.context.candidateRevision), receipts,
+    mutationResult: json(join(directory, 'results/mutations-js.json'))});
   write(join(directory, 'comparison-observations.json'), observations);
   const start = performance.now();
   const lean = checkPlan(requirements, applications, {onOutput: output => writeFileSync(join(directory, 'lean-output.log'), output, {flag: 'wx'})});

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {mutationObservation} from './mutation-observation.mjs';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {parseTestExecution} from '../../scripts/test-execution.mjs';
 import {openArtifactZip} from '../../scripts/ci-artifact-reader.mjs';
@@ -199,6 +200,7 @@ export async function readOriginReceipts({archive, artifactId, actions, expected
       }
       const observation = await zip.read(`observations/${action.id}.log`);
       assert.equal(observationUnits(action, observation.toString('utf8'), receipt.execution.exit), receipt.execution.units);
+      let scientificDigest = null;
       if (action.id === 'mutations-js') {
         const path = 'results/mutations-js.json';
         assert(receipt.artifacts.some(entry => entry.path === path), 'Missing mutation result artifact');
@@ -207,8 +209,9 @@ export async function readOriginReceipts({archive, artifactId, actions, expected
         assert(result.results.every(entry => entry.killed === true && positive(entry.failureCount) && entry.target === 'js'));
         assert.equal(result.sourceRestored, true, 'Unconfirmed mutation source restoration');
         assert.equal(result.revision, receipt.origin.testedRevision, 'Wrong mutation source revision');
+        scientificDigest = mutationObservation(result).digest;
       }
-      checked.set(action.id, {receipt, receiptDigest: hash(bytes), artifactId, archiveDigest: zip.sha256});
+      checked.set(action.id, {receipt, receiptDigest: hash(bytes), artifactId, archiveDigest: zip.sha256, scientificDigest});
     }
     // A rerun or head transition during the bounded ZIP inspection invalidates
     // the entire group. The before/after check surrounds all member validation.
