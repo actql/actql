@@ -1,4 +1,5 @@
 import type {ClientSourceFormat, WireCancellation, WireCheckpointSummary, WireClientProfile,
+  WireConnection,
   WireRequestCancellation,
   WireDeliveryAttemptLookup, WireHeldRequest, WireRequestLookup,
   WireResolveItem, WireResolveResult, WireRunRef,
@@ -14,6 +15,16 @@ export type CheckInput = Readonly<{documentId: string; revision: string}> & (
 /** Available only for the exact response of this SDK check call. */
 export declare function getCheckInput(outcome: CheckOutcome, documentId: string,
   revision?: string): CheckInput | undefined;
+export type SubmissionInput = Readonly<{
+  requestId: string;
+  kind: 'program' | 'aql';
+  input: unknown;
+  parameters: unknown;
+  connection: Readonly<WireConnection>;
+  lookupContext: Readonly<{endpoint: string; scopeRef: string}>;
+}>;
+/** Original prepared JSON input, not evidence of sending, acceptance or permission to resend. */
+export declare function getSubmissionInput(result: unknown): SubmissionInput | undefined;
 /** Omitted for unavailable/stale input or a pointer without a submitted JSON node. No edits are applied. */
 export declare function resolveCheckLocation(outcome: CheckOutcome,
   location: WireCheckLocation, currentInput?: CheckInput):

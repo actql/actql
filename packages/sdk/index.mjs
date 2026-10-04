@@ -12,6 +12,10 @@ import {bytesCid, contentCid, checkedSigner, signedAnswer} from './checkpoints.m
 // The response owns only a weak association to this call's immutable inputs.
 // A parsed/copied report has no such association and cannot resolve a location.
 const checkInputs = new WeakMap();
+// Original request data is available only through explicit SDK access, never
+// by serializing an error or Run handle. It does not establish acceptance.
+const submissionInputs = new WeakMap();
+const submissionContexts = new WeakMap();
 const utf8 = new TextEncoder();
 const freezeInput = value => {
   if (value !== null && typeof value === 'object') {
@@ -25,6 +29,10 @@ export function getCheckInput(outcome, documentId, revision) {
   const input = checkInputs.get(outcome)?.get(documentId);
   return input && (revision === undefined || input.revision === revision)
     ? input : undefined;
+}
+
+export function getSubmissionInput(result) {
+  return submissionInputs.get(result);
 }
 
 const structuredNodeExists = (value, pointer) => {
@@ -165,6 +173,12 @@ export class ClientError extends Error {
   }
 }
 const fail = code => { throw new ClientError(code); };
+const submissionUnknown = (context, cause) => {
+  const result = new ClientError('SubmissionUnknown', {...context, cause});
+  const input = submissionContexts.get(context);
+  if (input) submissionInputs.set(result, input);
+  return result;
+};
 const readFailure = (cause, attemptId, rowsYielded) => new ClientError(
   typeof cause?.code === 'string' ? cause.code : 'ResultReadUnknown',
   {attemptId, rowsYielded, cause,
@@ -369,7 +383,7 @@ async function connectSelected(selected, port) {
           if (isClientSubmitRejection(cause?.code)) {
             throw new ClientError(cause.code, {cause});
           }
-          throw new ClientError('SubmissionUnknown', {...submitContext, cause});
+          throw submissionUnknown(submitContext, cause);
         }
         if (cause instanceof ClientError) {
           throw cause;
@@ -399,7 +413,7 @@ async function connectSelected(selected, port) {
       });
     } catch (cause) {
       if (operation === 'submit') {
-        throw new ClientError('SubmissionUnknown', {...submitContext, cause});
+        throw submissionUnknown(submitContext, cause);
       }
       throw new ClientError('ClientTransportUnknown', {cause});
     }
@@ -411,8 +425,7 @@ async function connectSelected(selected, port) {
         ? error.code : `HostHTTP${response.status}`;
       if (operation === 'submit' && (response.status >= 500 ||
           !isClientSubmitRejection(code))) {
-        throw new ClientError('SubmissionUnknown', {...submitContext,
-          cause: new ClientError(code)});
+        throw submissionUnknown(submitContext, new ClientError(code));
       }
       throw new ClientError(code, {status: response.status});
     }
@@ -738,24 +751,36 @@ async function connectSelected(selected, port) {
     const context = {requestId, lookupContext: Object.freeze({
       endpoint: selected.endpoint, scopeRef: confirmed.scopeRef,
     })};
-    const response = await exchange('submit', {requestId, kind, input,
-      parameters: options.parameters ?? null}, options.signal, context);
+    let body;
+    try {
+      body = freezeInput(JSON.parse(JSON.stringify({requestId, kind, input,
+        parameters: options.parameters ?? null})));
+    } catch { fail('InvalidClientPayload'); }
+    const snapshot = freezeInput({...body, connection: selected.wire,
+      lookupContext: context.lookupContext});
+    submissionContexts.set(context, snapshot);
+    const response = await exchange('submit', body, options.signal, context);
     let admitted;
     try { admitted = await controlValue(response); }
     catch (cause) {
-      throw new ClientError('SubmissionUnknown', {...context, cause});
+      throw submissionUnknown(context, cause);
     }
     if (admitted?.kind === 'held' &&
         validSubmitReply(admitted, selected.wire, requestId)) {
-      throw new RequestHeld(Object.freeze({...admitted,
+      const held = new RequestHeld(Object.freeze({...admitted,
         ...(admitted.checkpoint === undefined ? {} :
           {checkpoint: Object.freeze({...admitted.checkpoint})})}),
       context.lookupContext);
+      submissionInputs.set(held, snapshot);
+      throw held;
     }
-    try { return execution(admitted); }
+    let result;
+    try { result = execution(admitted); }
     catch (cause) {
-      throw new ClientError('SubmissionUnknown', {...context, cause});
+      throw submissionUnknown(context, cause);
     }
+    submissionInputs.set(result, snapshot);
+    return result;
   };
   return Object.freeze({
     profile: confirmed,

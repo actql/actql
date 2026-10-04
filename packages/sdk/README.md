@@ -14,19 +14,54 @@ confirmed owner, durability and capability snapshot. `aql(text,
 immediately and resolve only after an acceptance response. Both accept
 `requestId`. An omitted ID is generated before send; an uncertain submission
 error exposes that ID and a lookup context. Call `lookupRequest(requestId)`
-to inspect the existing request without starting Compute. To resubmit after
-an ambiguous response, use the original entrance with the same ID and exactly
-the same intent; safety depends on the Host's atomic deduplication and its
-documented request-record retention horizon.
+to inspect the existing request without starting Compute. An unknown response
+does not prove nonacceptance, and the SDK does not retry automatically.
 Profile, admission and request-lookup replies use the public
 `@actql/client-wire` validators, including exact connection and durability
 bindings. A found request lookup must echo the requested ID. A malformed or
 foreign acceptance does not become a known Run.
 The Client serializes the submitted Program and parameters before awaiting an
 asynchronous credential callback, so later mutation of caller objects cannot
-change that transmission. An application that may need to resend must retain
-its own original input and explicit request ID. After an unknown response,
-retain the original connection selection as well: `lookupContext` identifies
+change that transmission. `getSubmissionInput(result)` retrieves this call's
+detached, deeply frozen JSON request input from its returned Execution,
+`SubmissionUnknown` error or `RequestHeld` error. It includes the original
+request ID, submission kind, Program or text with declarations, supplied
+parameters, connection selection and lookup context. Local and HTTPS use the
+same JSON-value snapshot. Text is not normalized or converted to different
+newlines. Credentials and signing keys are not added to this snapshot.
+
+```js
+import {getSubmissionInput} from '@actql/sdk';
+
+try {
+  const execution = await client.start(program, {requestId, parameters});
+  const submitted = getSubmissionInput(execution);
+  // Compare the accepted handle with this call's original input.
+} catch (error) {
+  if (error.code !== 'SubmissionUnknown') throw error;
+  const submitted = getSubmissionInput(error);
+  // Inspect the original request; do not submit the edited Program again.
+  const lookup = await client.lookupRequest(submitted.requestId);
+}
+```
+
+The snapshot is local input custody, not evidence that sending, acceptance,
+preparation, execution or release succeeded. It grants no lookup, replay or
+effect authority. A copied or deserialized handle/error, an attach result or
+an error supplied by a credential callback has no association and returns
+`undefined`. Reusing another call's error cannot rebind its input.
+The SDK retains an association weakly while its original handle/error is
+reachable; an application that keeps that result or the retrieved snapshot
+keeps its input. It does not impose a fixed retention period or persist the
+input. Retaining multiple results can retain multiple inputs; this accessor
+adds no aggregate SDK retention limit. Input size continues to be governed by the installed Host's existing
+submission limits; this accessor adds no new Host storage or re-fetch API.
+The input may contain application secrets, so applications must select what
+they display or persist rather than log it wholesale. It is not an
+authorization-bound `context_ref` or a new public input hash.
+
+After an unknown response, retain the original connection selection as well:
+`lookupContext` identifies
 the endpoint and Host-reported scope for investigation, but does not grant
 access or authorize looking up the request through a different Workspace or
 embedded Host root. Reconnect never submits automatically.
