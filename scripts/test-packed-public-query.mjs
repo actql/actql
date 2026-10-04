@@ -68,7 +68,7 @@ for (const [source, destination] of [
   await writeFile(join(root, destination), await readFile(join(repository, source)));
 }
 await mkdir(join(root, 'two-source-fixtures'));
-for (const name of ['database-rows.json', 'two-source-join.program.json',
+for (const name of ['database-rows.json', 'two-source-join.program.json', 'two-source-join.aql',
   'two-source-join.expected.json', 'equal-content-join.expected.json',
   'left-only.program.json', 'left.environment.json', 'right.environment.json']) {
   await writeFile(join(root, 'two-source-fixtures', name), await readFile(join(repository,
