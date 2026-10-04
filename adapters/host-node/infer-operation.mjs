@@ -273,6 +273,20 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     return run();
   }
 
+  function resumeImmediate({admission, current}) {
+    if (!waiting || closing || reclaimed || typeof current !== 'function') {
+      return Promise.reject(new Error('InferImmediateResumeUnavailable'));
+    }
+    try {
+      checked(moon.clientProgramResumeImmediateInferExecution(active,
+        admission, current));
+    } catch (error) { return Promise.reject(error); }
+    waiting = false;
+    retainedCallSet = undefined;
+    flight = undefined;
+    return run();
+  }
+
   function resumeApprovedFromReadback({requestWire, checkpointWire,
     verifiedWire, admission, now, current, immediate = false}) {
     if (!waiting || closing || reclaimed ||
@@ -318,7 +332,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     return closeFlight;
   }
 
-  const operation = Object.freeze({run, resumeApproved,
+  const operation = Object.freeze({run, resumeApproved, resumeImmediate,
     resumeApprovedFromReadback, preparedCallSet,
     materializeCallSet,
     entryFailure: () => entryFailure, stop, close, cleanup,

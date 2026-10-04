@@ -946,6 +946,33 @@ pub fn resume_model_approved_call_set(
 }
 
 ///|
+/// The ordinary allow path uses current account authority, not a fabricated
+/// Model approval. A separate durable entry still precedes each physical send.
+pub fn resume_model_immediate_call_set(
+  set : PreparedModelCallSet,
+  admission : @publication_host.ClientInferDispatchAdmission,
+  current : () -> Bool,
+) -> Result[Unit, ModelExecutionIssue] {
+  let state = set.owner.state
+  guard state.approval_pending &&
+    model_execution_prepared_call_set(set.owner) is Some(_) &&
+    state.call_scope is Some(scope) &&
+    state.source is Provider(_) &&
+    @publication_host.client_infer_dispatch_account_allow(admission) &&
+    @publication_host.client_infer_dispatch_matches_scope(admission, scope) else {
+    return Err(RequestIdentity)
+  }
+  if !current() ||
+    @publication_host.check_client_infer_dispatch_current(admission) is Err(_) {
+    return Err(ApprovalUnavailable)
+  }
+  state.dispatch_admission = Some(admission)
+  state.approval_current = Some(current)
+  state.approval_pending = false
+  Ok(())
+}
+
+///|
 pub fn request_model_cancel(execution : ModelExecution) -> Bool {
   let requested = @bounded.request_cancel(execution.control)
   if requested {

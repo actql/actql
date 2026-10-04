@@ -186,6 +186,16 @@ pub fn client_infer_dispatch_matches_scope(
 }
 
 ///|
+/// An ordinary account allow is not a delegated approval. It can continue a
+/// prepared call set without manufacturing a Checkpoint or reviewer claim.
+pub fn client_infer_dispatch_account_allow(
+  value : ClientInferDispatchAdmission,
+) -> Bool {
+  @authorization.dispatch_authorization_basis(value.authorization)
+  is @authorization.AccountAllow(_)
+}
+
+///|
 pub fn client_infer_dispatch_matches_run(
   value : ClientInferDispatchAdmission,
   compiled : ClientCompiledRun,

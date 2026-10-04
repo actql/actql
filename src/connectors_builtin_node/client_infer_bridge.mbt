@@ -448,6 +448,18 @@ pub fn client_program_resume_approved_infer_execution(
 }
 
 ///|
+/// Ordinary allow continues after input completion without a synthetic
+/// reviewer approval or Checkpoint.
+#export_name("clientProgramResumeImmediateInferExecution")
+pub fn client_program_resume_immediate_infer_execution(
+  active : @infer_host.Execution,
+  admission : @publication_host.ClientInferDispatchAdmission,
+  current : () -> Bool,
+) -> Result[Unit, @infer_host.Issue] {
+  @infer_host.resume_immediate_model_call_set(active, admission, current)
+}
+
+///|
 /// The retained journal readback is re-admitted in this runtime so the
 /// execution owner receives a typed grant, not an adapter-created summary.
 #export_name("clientProgramModelInvocationGrantHandle")

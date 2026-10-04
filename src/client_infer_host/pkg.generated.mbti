@@ -112,6 +112,8 @@ pub fn result_publication_selection(ResultPublication) -> @run_publication_host.
 
 pub fn resume_approved_model_call_set(Execution, @checkpoint_runtime.ModelInvocationGrant, @run_publication_host.ClientInferDispatchAdmission, () -> String, () -> Bool) -> Result[Unit, Issue]
 
+pub fn resume_immediate_model_call_set(Execution, @run_publication_host.ClientInferDispatchAdmission, () -> Bool) -> Result[Unit, Issue]
+
 pub fn sealing_observation(Execution) -> Bool
 
 pub fn standard_limits() -> Limits

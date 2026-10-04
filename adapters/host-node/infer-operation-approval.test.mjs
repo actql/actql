@@ -45,6 +45,14 @@ function fixture({count = 1, onSlot} = {}) {
       waiting = false;
       return ok(undefined);
     },
+    clientProgramResumeImmediateInferExecution(owner, admission, current) {
+      assert.equal(owner, active);
+      assert.equal(admission, 'admission');
+      assert.equal(current(), true);
+      calls.resumes++;
+      waiting = false;
+      return ok(undefined);
+    },
     clientProgramModelInvocationGrantHandle(request, checkpoint, verified,
       at, immediate) {
       calls.grants ??= [];
@@ -145,6 +153,23 @@ test('journal readback is admitted before the waiting owner resumes', async () =
   ]);
   assert.equal(calls.resumes, 1);
   await operation.close();
+});
+
+test('ordinary allow resumes the same prepared operation without a grant', async () => {
+  const {moon, calls} = fixture();
+  const operation = openNodeInferOperation({moon, preparedProgram: {}, step: 2,
+    graph: {}, registry: 'registry', values: 'values', fragment: 'fragment',
+    ordered: 'ordered', provider: {}, deferDispatch: true,
+    enterCall: () => { calls.entries++; return true; }});
+  assert.equal((await operation.run()).kind, 'waiting');
+  assert.equal(calls.entries, 0);
+  assert.equal(await operation.resumeImmediate({admission: 'admission',
+    current: () => true}), 'output');
+  assert.equal(calls.starts, 1);
+  assert.equal(calls.resumes, 1);
+  assert.equal(calls.grants, undefined);
+  await operation.close();
+  assert.equal(calls.cleaned, 1);
 });
 
 test('deferred Model operation stops and cleans up without approval', async () => {

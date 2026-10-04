@@ -22,10 +22,12 @@ fn evidence_account(
 }
 
 ///|
-fn evidence_authorize(active : Execution) -> Unit {
+fn evidence_allow_admission(
+  active : Execution,
+) -> @publication_host.ClientInferDispatchAdmission {
   let (compiled, definition) = invocation_fixture_compiled(active)
   let configuration = evidence_account(@authorization.Allow)
-  let permit = @publication_host.issue_client_infer_dispatch_admission(
+  @publication_host.issue_client_infer_dispatch_admission(
     compiled,
     definition,
     configuration,
@@ -33,7 +35,11 @@ fn evidence_authorize(active : Execution) -> Unit {
     "2026-10-02T00:00:00.000Z",
     observe_current=() => Ok((configuration, "2026-10-02T00:00:00.000Z")),
   ).unwrap()
-  bind_dispatch_admission(active, permit).unwrap()
+}
+
+///|
+fn evidence_authorize(active : Execution) -> Unit {
+  bind_dispatch_admission(active, evidence_allow_admission(active)).unwrap()
 }
 
 ///|
@@ -77,6 +83,67 @@ test "deferred call inventory waits without dispatch and retains input until sto
   assert_true(prepared_model_call_set(active) is None)
   assert_true(cleanup(active).unwrap())
   assert_eq(calls.val, 0)
+}
+
+///|
+test "ordinary allow resumes complete Model input without reviewer approval" {
+  let calls = Ref(0)
+  let entries = Ref(0)
+  let active = failed_outcome_start(
+    @model.Timeout,
+    calls,
+    defer_dispatch=true,
+    enter_call=Some(_ => {
+      entries.val += 1
+      true
+    }),
+  )
+  let (compiled, definition) = invocation_fixture_compiled(active)
+  let mut waiting = false
+  let mut waiting_work = 0L
+  for _ in 0..<2000 {
+    let poll = advance(active, 1).unwrap()
+    if poll is Waiting(work~) {
+      waiting = true
+      waiting_work = work
+      break
+    }
+    assert_true(poll is Continue(_))
+  }
+  assert_true(waiting)
+  assert_eq(calls.val, 0)
+  assert_eq(entries.val, 0)
+  let configuration = evidence_account(@authorization.Allow)
+  let changed = @publication_host.issue_client_infer_dispatch_admission(
+    compiled,
+    definition,
+    configuration,
+    "fixture-principal",
+    "2026-10-02T00:00:00.000Z",
+    observe_current=() => {
+      Ok((evidence_account(@authorization.Deny), "2026-10-02T00:00:00.000Z"))
+    },
+  ).unwrap()
+  assert_true(
+    resume_immediate_model_call_set(active, changed, () => true)
+    is Err(Model(@model.ApprovalUnavailable)),
+  )
+  assert_eq(calls.val, 0)
+  let allow = @publication_host.issue_client_infer_dispatch_admission(
+    compiled,
+    definition,
+    configuration,
+    "fixture-principal",
+    "2026-10-02T00:00:00.000Z",
+    observe_current=() => Ok((configuration, "2026-10-02T00:00:00.000Z")),
+  ).unwrap()
+  resume_immediate_model_call_set(active, allow, () => true).unwrap()
+  assert_true(
+    fixture_finish(active, initial_work=waiting_work) is Complete(_, ..),
+  )
+  assert_eq(calls.val, 1)
+  assert_eq(entries.val, 1)
+  assert_true(cleanup(active).unwrap())
 }
 
 ///|

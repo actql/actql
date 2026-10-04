@@ -136,6 +136,8 @@ pub fn request_model_cancel(ModelExecution) -> Bool
 
 pub fn resume_model_approved_call_set(PreparedModelCallSet, @checkpoint_runtime.ModelInvocationGrant, @run_publication_host.ClientInferDispatchAdmission, () -> String, () -> Bool) -> Result[Unit, ModelExecutionIssue]
 
+pub fn resume_model_immediate_call_set(PreparedModelCallSet, @run_publication_host.ClientInferDispatchAdmission, () -> Bool) -> Result[Unit, ModelExecutionIssue]
+
 pub fn retain_model_outcomes(ModelOutcomeRead) -> ModelOutcomeRead?
 
 pub fn retain_model_slot_replay(ModelSlotReplayRead) -> ModelSlotReplayRead?

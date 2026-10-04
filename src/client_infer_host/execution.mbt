@@ -1062,6 +1062,35 @@ pub fn resume_approved_model_call_set(
 }
 
 ///|
+/// Continue an input-complete ordinary allow under the original Run owner.
+/// Delegated decisions require the separate checked Checkpoint grant path.
+pub fn resume_immediate_model_call_set(
+  active : Execution,
+  admission : @publication_host.ClientInferDispatchAdmission,
+  current : () -> Bool,
+) -> Result[Unit, Issue] {
+  guard !active.reclaimed &&
+    !active.cancelled &&
+    !active.advancing &&
+    active.phase is Model &&
+    active.model is Some(model) &&
+    @model.model_execution_prepared_call_set(model) is Some(set) else {
+    return Err(InvalidAdvance)
+  }
+  guard active.run_binding is Some(bound) &&
+    @publication_host.client_infer_dispatch_matches_run(
+      admission,
+      bound.compiled,
+      bound.definition,
+    ) else {
+    return Err(InvalidAdvance)
+  }
+  @model.resume_model_immediate_call_set(set, admission, current).map_err(issue => {
+    Issue::Model(issue)
+  })
+}
+
+///|
 pub fn completed(poll : Poll) -> @relation.CompletedOutput? {
   match poll {
     Complete(value, ..) => Some(value)

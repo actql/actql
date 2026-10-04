@@ -260,6 +260,8 @@ pub fn client_infer_composed_source_observations(ClientInferComposedSources) -> 
 
 pub fn client_infer_composed_sources_matches(ClientInferComposedSources, ClientInferOccurrence) -> Bool
 
+pub fn client_infer_dispatch_account_allow(ClientInferDispatchAdmission) -> Bool
+
 pub fn client_infer_dispatch_authority(ClientInferDispatchAdmission) -> @run_publication.RunEvidenceValue
 
 pub fn client_infer_dispatch_matches_run(ClientInferDispatchAdmission, ClientCompiledRun, @run_publication.PublicationContract) -> Bool

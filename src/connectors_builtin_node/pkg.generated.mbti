@@ -1063,6 +1063,8 @@ pub fn client_program_result_row_contract_wire(@run_publication_host.ClientResul
 
 pub fn client_program_resume_approved_infer_execution(@client_infer_host.Execution, @checkpoint_runtime.ModelInvocationGrant, @run_publication_host.ClientInferDispatchAdmission, () -> String, () -> Bool) -> Result[Unit, @client_infer_host.Issue]
 
+pub fn client_program_resume_immediate_infer_execution(@client_infer_host.Execution, @run_publication_host.ClientInferDispatchAdmission, () -> Bool) -> Result[Unit, @client_infer_host.Issue]
+
 pub fn client_program_row_source_accept_page(@client_row_source_host.RowRun, Bytes) -> Result[Int, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_attempt(@client_row_source_host.RowRun) -> @client_row_source_host.RowAttempt
