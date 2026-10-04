@@ -1,6 +1,10 @@
 {
   "left": [
     {
+      "id": -1,
+      "amount": 999
+    },
+    {
       "id": 3,
       "amount": 30
     },
@@ -19,6 +23,10 @@
   ],
   "right": [
     {
+      "id": -1,
+      "amount": 888
+    },
+    {
       "id": 3,
       "amount": 300
     },
@@ -36,6 +44,10 @@
     }
   ],
   "equal_content": [
+    {
+      "id": -1,
+      "amount": 999
+    },
     {
       "id": 3,
       "amount": 30
