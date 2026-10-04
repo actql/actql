@@ -838,6 +838,7 @@ const contextKey = new Uint8Array(32).fill(7);
 // A fixed test-only key makes complete envelopes comparable across physically
 // different private inventories. No provider or Run handler is installed.
 async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
+  closed = false, connectionAllowed = true,
   profiles = [false, false, true, true, false, false, false]} = {}) {
   const admitted = moon.clientProgramCheckEnvironment(canonicalText(wire),
     wire.evidence_bundle_cid, ...profiles);
@@ -846,6 +847,7 @@ async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
     : await createNodeAuthorizationGate({configuration: account(readOutcome),
       context: {principal: owner, contextCid: `sha256:${'3'.repeat(64)}`}});
   if (authorization) t.after(() => authorization.close());
+  if (closed) authorization.close();
   const check = installNodeClientCheck({moon, environment: admitted, contextKey,
     publication: sourceAliasPublication(moon, admitted, aliases),
     sourceAccesses: authorization === undefined ? [] : [{authorization,
@@ -858,7 +860,8 @@ async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
       maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
       maxRows: 10, maxBatchRows: 10, maxBatchRetainedValueBytes: 2048}};
   const configuration = {authenticate: () => owner,
-    authorizeConnection: () => true, negotiate: () => profile, check,
+    authorizeConnection: ({operation}) => operation === 'connect' || connectionAllowed,
+    negotiate: () => profile, check,
     maxRowBytes: 1024};
   if (entrance === 'local') {
     const client = await connectInProcess({mode, owner: mode},
@@ -941,6 +944,72 @@ test('the admitted checker exposes exact selections without private Source inven
 });
 
 for (const entrance of ['local', 'http']) {
+  test(`${entrance}: failed Source read owners preserve the bound public check`, async t => {
+    const absent = await contextClient(t, entrance, absentEnvironment);
+    const hidden = [
+      await contextClient(t, entrance, sourceEnvironment,
+        {aliases: [alias], readOutcome: 'deny'}),
+      await contextClient(t, entrance, sourceEnvironment,
+        {aliases: [alias], readOutcome: 'allow', closed: true}),
+      await contextClient(t, entrance,
+        withPolicy(rightEnvironment, sourceEnvironment.host_policy_profile),
+        {aliases: [rightAlias], readOutcome: 'allow', closed: true}),
+    ];
+    for (const [text, options, verdict, codes, limits] of [
+      ['SELECT 1 AS n', {format: 'sql'}, 'verified', [], []],
+      ['SELECT id FROM records', {format: 'sql'}, 'undetermined', [], []],
+      ['/*😀*/\r\nSELECT missing AS n', {format: 'sql'}, 'invalid', ['query_invalid'], []],
+      [query, {format: 'sql', parameterDeclarations: declarations,
+        parameters: {minimum: 'twenty'}}, 'invalid', ['supplied_value_type_mismatch'], []],
+      [query, {format: 'sql', parameterDeclarations: declarations},
+        'undetermined', [], [{code: 'bound_values_missing'}]],
+      [query, {format: 'sql', parameterDeclarations: {...declarations, another: {type: 'number'}},
+        parameters: {minimum: 'twenty'}}, 'invalid', ['supplied_value_type_mismatch'], []],
+    ]) {
+      const expected = await absent.check(text, options);
+      assert.equal(expected.outcome, 'completed');
+      assert.equal(expected.report.verdict, verdict);
+      assert.deepEqual(expected.report.scope, {kind: 'bound_input'});
+      assert.deepEqual(expected.report.coverage, {limits,
+        unresolved: text.includes('FROM records') ? protectedSource : []});
+      assert.deepEqual(expected.report.reasons.map(reason => reason.code), codes);
+      for (const client of hidden) {
+        const outcome = await client.check(text, options);
+        assert.deepEqual(outcome, expected, '[check-mutation:source-owner]');
+        assert.equal(getCheckInput(outcome, 'source').text, text);
+        if (codes[0] === 'query_invalid') {
+          const original = getCheckInput(outcome, 'source');
+          assert.deepEqual(outcome.report.reasons[0].location,
+            {document_id: 'source', revision: original.revision,
+              kind: 'text', start_byte: 17, end_byte: 24, precision: 'exact'});
+          assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location).text, 'missing');
+        }
+        if (codes[0] === 'supplied_value_type_mismatch') {
+          const original = getCheckInput(outcome, 'parameters');
+          assert.deepEqual(outcome.report.reasons[0], {code: codes[0],
+            facts: {parameter: 'minimum', expected_type: 'number', actual_type: 'string'},
+            location: {document_id: 'parameters', revision: original.revision,
+              kind: 'structured', pointer: '/minimum'}});
+          assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location).input, original);
+        }
+        if (limits.length) {
+          const declared = getCheckInput(outcome, 'parameter_declarations');
+          assert.deepEqual(outcome.report.requirements, [{code: 'parameter_value_required',
+            facts: {parameter: 'minimum', expected_type: 'number'},
+            location: {document_id: 'parameter_declarations', revision: declared.revision,
+              kind: 'structured', pointer: '/minimum'}}]);
+        }
+      }
+    }
+  });
+
+  test(`${entrance}: Source failure cannot bypass connection authorization`, async t => {
+    const client = await contextClient(t, entrance, sourceEnvironment,
+      {aliases: [alias], readOutcome: 'allow', closed: true, connectionAllowed: false});
+    await assert.rejects(client.check('SELECT 1 AS n', {format: 'sql'}),
+      {code: 'ClientConnectionDenied'});
+  });
+
   test(`${entrance}: private Source inventories cannot change public context references`, async t => {
     const absent = await contextClient(t, entrance, absentEnvironment);
     const hidden = [
@@ -1015,7 +1084,8 @@ const sourceRequest = (text, parameters = null, parameterDeclarations) => ({
 async function acceptDisclosure(install) {
   const absent = await installation(install, configurations.absent);
   const hidden = {denied: await installation(install, configurations.denied),
-    undecidable: await installation(install, configurations.undecidable)};
+    undecidable: await installation(install, configurations.undecidable),
+    failedOwner: await installation(install, configurations.allowed, {closed: true})};
   for (const [variant, check] of Object.entries(hidden)) {
     for (const name of ['violation', 'satisfied']) {
       const left = await absent(ownerRequest(name));
@@ -1070,18 +1140,6 @@ async function acceptDisclosure(install) {
   assert.notEqual(
     await refOf(sourceRequest('SELECT @x AS v', {x: '\u00e9'}, text)),
     await refOf(sourceRequest('SELECT @x AS v', {x: 'e\u0301'}, text)));
-  // When the decision owner itself cannot be consulted, the absent and the
-  // denied installation are both unavailable, with nothing else to compare.
-  const unavailable = [];
-  for (const configuration of [configurations.absent, configurations.denied]) {
-    const check = await installation(install, configuration, {closed: true});
-    const outcome = await check(ownerRequest('violation'));
-    assert.deepEqual(Object.keys(outcome).sort(),
-      ['correlation_ref', 'outcome', 'problem', 'reason_schema_cid', 'version']);
-    unavailable.push({...outcome, correlation_ref: '<corr>'});
-  }
-  assert.deepEqual(unavailable[0], unavailable[1]);
-  assert.equal(unavailable[0].outcome, 'unavailable');
 }
 
 test('fixed-key owners give byte-equal outcomes for absent, denied and ' +
@@ -1131,21 +1189,20 @@ test('the public outcome contract keeps verdicts bound and partial ' +
 const ownerSource = await readFile(new URL('./client-check.mjs',
   import.meta.url), 'utf8');
 const mutations = Object.freeze({
-  // A denied name becomes unavailable while an absent one completes.
-  'denied changes the outcome kind': [
-    "if (decision?.action !== 'dispatch') return [];",
-    "if (decision?.action === 'deny') return undefined;\n" +
-    "    if (decision?.action !== 'dispatch') return [];"],
-  // An undecided source withholds the whole check, unrelated violations
-  // included.
-  'an undecided source withholds the check': [
-    "if (decision?.action !== 'dispatch') return [];",
-    "if (!['dispatch', 'deny'].includes(decision?.action)) return undefined;\n" +
-    "    if (decision?.action !== 'dispatch') return [];"],
-  // Whether the decision owner is consulted depends on the published names.
-  'unavailability depends on the published names': [
-    'if (!readTuple) return null;',
-    'if (!readTuple || aliases.length === 0) return null;'],
+  // A hidden published name changes the whole outcome instead of coverage.
+  'hidden publication changes the outcome kind': [
+    'const visible = await visibleAliases(signal);',
+    "const visible = await visibleAliases(signal);\n" +
+    "    if (aliases.length > 0 && visible.length === 0) return JSON.parse(moon.clientProgramCheckUnavailable('corr:mutant'));"],
+  // Empty visibility withholds independently disclosable input violations.
+  'empty visibility withholds the check': [
+    'const visible = await visibleAliases(signal);',
+    "const visible = await visibleAliases(signal);\n" +
+    "    if (visible.length === 0) return JSON.parse(moon.clientProgramCheckUnavailable('corr:mutant'));"],
+  // An unusable read owner reveals the installed publication.
+  'failed read owner reveals names': [
+    'if (signal?.aborted) throw cause;\n      return undefined;',
+    'if (signal?.aborted) throw cause;\n      return aliases;'],
   // A hidden name is checked as if it were visible.
   'hidden source is checked as visible': [
     'JSON.stringify({environmentCid, aliases: visible})',
