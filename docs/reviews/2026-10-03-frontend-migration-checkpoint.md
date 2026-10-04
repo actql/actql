@@ -571,3 +571,47 @@ Fresh-packed node/edge Local/HTTPS approval, execution and both-process restart
 must pass on the new submitted source before Graph acceptance is claimed. Formal
 active temporary-holder inventory remains a separate common-owner observation
 handoff; zero bytes or cumulative allocation counts do not prove active count.
+
+
+### Actual Compiled Run Policy accessor regression
+
+While automatic #304 CI `37185226241` was running for
+`8f115d142763c37ec1411e6243d3cbf3760173a4`, additional caller inspection found
+that A's `compiledInferSourceFreeResultPolicy` passed a Compiled Run through the
+publication-contract token map. The real installed-INFER bridge selection
+fails with `Foreign publication contract` before correction (`run-gbRILx`,
+1 executed failure). This is a JS token-domain projection fault, separate from
+A's formal Policy/body admission and the historical missing-original failure.
+
+Correction `6b551aa87de825ab28fa7f3e8a185592081ae09a` uses the existing
+`compiledRunTokens` map and rejects foreign compiled owners before invoking the
+common accessor. The same real bridge selection passes 1/1 (`run-4bxJGZ`),
+returns the exact admitted unknown-provenance original, and refuses an ordinary
+Run Definition as a Compiled Run. No new Policy, fallback or common execution
+owner is introduced. D owns this small Host projection correction; the two-file
+commit is independent of Graph fixture imports and can be shared with A's #339.
+Fresh-packed Graph approval/restart remains unproven until the corrected source
+runs through the existing public consumer.
+
+### Packed public reader-close evidence from #342
+
+Submitted #342 source is `00c3519e1afc0015d65f674ebd8f83dd4daa32a5`, automatic
+CI `37184275679`. Its tested merge is
+`79ca0c42ba0be0e6559092d355ce64f91decd32f`, with ordered parents main
+`4cd79be2d720d60288c2816aee318aeb7bd2b3e6` and that submitted source.
+Public-query artifact `11296264067` has a clean complete/passed final summary
+and 40 commands with status and verification status zero and complete output.
+All five consumer tarball digests match exact-source producer artifact
+`11296511816`. Submitted and tested merge blobs are identical for the authored
+expected rows and all three reader-close harness files.
+
+Four retained observations pass: Native JSON (`distinct`) and Broad text
+(`broad-text`), each Local/HTTPS. One reader closes after its first row and stays
+prefix/1; another attempt completes all five independent expected rows.
+New full read/description preserve NULLs, duplicates, types, column and row
+order. Lookup/resubmission return the same Run, the request journal is unchanged,
+and retained acquisition observation reports no new Source session or SQL I/O.
+This verifies public consumer iterator independence, not physical producer
+cleanup, remaining active-holder inventory or formal reservation return.
+The overall exact-HEAD CI is still running; this artifact predates later Effect
+composition and is not evidence for that phase or for source-free Graph.
