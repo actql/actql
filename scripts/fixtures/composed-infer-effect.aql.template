@@ -1,0 +1,18 @@
+DATA left_rows = FROM left_records |> WHERE id = id;
+DATA right_rows = FROM right_records |> WHERE id = id;
+DATA joined = SELECT l.id AS id, l.amount AS left_amount, r.amount AS right_amount
+  FROM left_rows AS l JOIN right_rows AS r ON l.id = r.id MAX_OUTPUT_ROWS 10;
+FROM joined
+  |> ASSERT UNIQUE BY (id)
+  |> INFER `model-task:composition-risk.v1` ITEM KEY (id)
+     INPUT (score = right_amount) KEEP (id, left_amount, right_amount) AS assessment
+  |> WHERE assessment.outcome = 'ok'
+  |> SELECT id, left_amount, right_amount, assessment.value.risk AS risk
+  |> ORDER BY id
+  |> RESULT classified
+  |> WHERE risk = 'high'
+  |> EXTEND 'a00000000000002' AS target_id, 'review-required' AS next_name
+  |> RESULT updates
+  |> EFFECT save UPDATE TARGET 'connector://crm-main/Test_Record__c'
+     MAPPING `__PUBLICATION_MAPPING_REF__`
+     FROM RESULT updates ID target_id SET (Name = next_name)

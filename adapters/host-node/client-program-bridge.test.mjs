@@ -136,6 +136,17 @@ test('public source preparation binds installed aliases before checking a Progra
   const pipe = prepare('FROM records |> SELECT id', 'aql-text');
   assert.ok(moon.clientProgramPreparationReady(pipe),
     String(moon.clientProgramPreparationIssueCode(pipe)));
+  const computation = moon.clientProgramPrepareSourceComputationWithParameters(
+    'FROM records |> SELECT id', 'aql-text', environment,
+    JSON.stringify(publication), undefined, undefined, true, []);
+  const pure = moon.clientProgramSourceComputationPure(computation);
+  assert.ok(pure);
+  assert.equal(moon.clientProgramSourceComputationEffect(computation), undefined);
+  const sourceOwner = moon.clientProgramPreparationReady(pure);
+  assert.ok(sourceOwner, moon.clientProgramPreparationIssueCode(pure));
+  assert.equal(moon.clientProgramDefinitionCid(sourceOwner),
+    moon.clientProgramDefinitionCid(moon.clientProgramPreparationReady(pipe)));
+  assert.equal(moon.clientProgramResultName(sourceOwner, 0), 'answer');
   for (const text of [
     'WITH c AS (FROM records |> WHERE amount > 10) FROM c |> SELECT id, amount',
     'WITH first AS (FROM records |> WHERE amount > 10), c AS (FROM first) FROM c |> SELECT id, amount',

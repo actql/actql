@@ -317,14 +317,28 @@ test('baseline preimages and changed normative pins independently determine the 
   const predecessorGrammar = pin('24f53c1f64028206dbc01f6c3d0c11d991c8c9d512581fdfd007a250315f8bbd');
   assert.equal(vector(predecessorGrammar, preRefreshContract, preRefreshDependencies, barrierCid).run.run_definition_cid,
     pin('5347f97a234b92717a8495614590b5e4b0a87a4b8bd796f051952ef164988663'));
-  assert.equal(vector(predecessorGrammar, cid(aoaContract), {
+  const beforeSelectionDependencies = {
     unit:pin('9a0e59c162b656a2196ee404011eb7a4ec763c8b402dfda359b2cc6dd5aa0e96'),
     proof:pin('efcf93f32e510db6482caa901dd99a17bbbba43ce64d3be922901a318bcb479b'),
     resultPlan:pin('f2bc4e444acdf0ff644c912506c021619caa331091bba1d49ec8dd1b67b603ae'),
-  },barrierCid).run.run_definition_cid,
+  };
+  assert.equal(vector(predecessorGrammar, cid(aoaContract),
+    beforeSelectionDependencies, barrierCid).run.run_definition_cid,
     pin('ac34b3b002f08db23c1a394241c6b2666379e27e17ffda269f20d025cbbba97a'));
-  assert.equal(current.run.run_definition_cid,
+  // Preserve both normal-merge parents with their original grammar and Unit
+  // dependencies. Current text grammar plus definition selection has a new CID.
+  const mainGrammar = pin('cb357b785390fb3e581a6ece8e61d49d9d93676666df77dd18a2d7f72f381bff');
+  assert.equal(vector(mainGrammar, preRefreshContract, preRefreshDependencies,
+    barrierCid).run.run_definition_cid,
+    pin('07ba9ca36c06c85c6fdc3e88aaed22d02dff38348fb1d7003aa6ab4108b3654e'));
+  assert.equal(vector(mainGrammar, cid(aoaContract), beforeSelectionDependencies,
+    barrierCid).run.run_definition_cid,
+    pin('8e2f3659d83e5bdc7058fb2c1044879fea2fdf23bb1ab7266f8b07d544abf0b4'));
+  assert.equal(vector(pin('7ecc0f8b6d170d5e3452b18912e03892c0e6ca68b5e640b2b03aeacd9dbbb612'),
+    cid(aoaContract), dependencies, barrierCid).run.run_definition_cid,
     pin('6a5c24d7320c4edfcd61609c5490463b38df1f0c73b398f01b196f1feff35c80'));
+  assert.equal(current.run.run_definition_cid,
+    pin('33063a0c0762a010768e79c8d6de94682c4dddf66657b3681d9ae57e71630e4e'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');

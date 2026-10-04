@@ -81,6 +81,7 @@ pub(all) enum Issue {
   UnsupportedInfer
   UnsupportedNearest
   UnsupportedResult
+  UnsupportedEffect
   Construction(@program_source_builder.Issue)
   Expression(@query_expression.Diagnostic)
   Admission(@stage_syntax.SyntaxError)

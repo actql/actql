@@ -363,19 +363,16 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     environment, sourcePublication,
     allowEffects: effectInstallation !== undefined});
   const checkSource = installNodeClientCheck({moon, environment,
-    publication: sourcePublication, sourceAccess: sourceProfile?.sourceAccess});
+    publication: sourcePublication,
+    sourceAccesses: (sourceProfile?.sources ??
+      (sourceProfile === undefined ? [] : [sourceProfile]))
+      .map(source => source.sourceAccess)});
   // Checking dispatches nothing and reads no source rows; the audience is
   // the authenticated caller this connection admits.
   const check = async ({principalId: actual, connection, input, parameters,
     signal}) => {
     if (!hostConnection({principalId: actual, connection})) {
       throw clientOperationError('ClientConnectionDenied');
-    }
-    // The current disclosure adapter has one source authorization owner.
-    // Do not use either installation's decision to disclose the other.
-    if (sourceProfile?.sources !== undefined) {
-      return JSON.parse(moon.clientProgramCheckUnavailable(
-        `corr:${randomBytes(16).toString('hex')}`));
     }
     return checkSource({principalId: actual, input, parameters, signal});
   };
@@ -552,7 +549,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       signal?.addEventListener('abort', abort, {once: true});
     });
     try {
-      await Promise.race([operation, interrupted]);
+      // The dispatch supervisor records execution failure only after owned
+      // stop and cleanup. Its rejected physical Promise is not a failure of
+      // this public observation operation. Read the resulting Run state;
+      // unresolved custody remains unknown rather than becoming success.
+      await Promise.race([operation.then(() => undefined, () => undefined),
+        interrupted]);
     } finally {
       signal?.removeEventListener('abort', abort);
     }
@@ -1757,3 +1759,4 @@ export async function connectEmbeddedLocal(options) {
   const {installation: _installation, ...clientOptions} = options;
   return connectInProcess(clientOptions, host.port);
 }
+

@@ -79,9 +79,38 @@
       "text":"FROM records |> AS t |> SELECT id AS amount, amount AS id |> ORDER BY amount + 1",
       "columns":[{"name":"amount","contract":{"type":"number","nullable":false}},{"name":"id","contract":{"type":"number","nullable":true}}],
       "expected":[{"amount":1,"id":null},{"amount":2,"id":20},{"amount":3,"id":30},{"amount":3,"id":30}]
+    },
+    {
+      "name":"scoped-order-rebound-alias", "format":"aql-text",
+      "sourceRows":[{"id":1,"amount":10},{"id":2,"amount":20}],
+      "text":"FROM records |> AS original |> SELECT -id AS id |> ORDER BY -id |> RESULT answer",
+      "columns":[{"name":"id","contract":{"type":"number","nullable":false}}],
+      "expected":[{"id":-1},{"id":-2}]
+    },
+    {
+      "name":"scoped-order-distinct-rebound-alias", "format":"aql-text",
+      "sourceRows":[{"id":1,"amount":10},{"id":2,"amount":20},{"id":1,"amount":10}],
+      "text":"FROM records |> AS original |> SELECT DISTINCT -id AS id |> ORDER BY -id |> RESULT answer",
+      "columns":[{"name":"id","contract":{"type":"number","nullable":false}}],
+      "expected":[{"id":-1},{"id":-2}]
+    },
+    {
+      "name":"scoped-order-unchanged-expression", "format":"aql-text",
+      "sourceRows":[{"id":1,"amount":10},{"id":2,"amount":20}],
+      "text":"FROM records |> AS original |> SELECT -id AS score |> ORDER BY -id |> RESULT answer",
+      "columns":[{"name":"score","contract":{"type":"number","nullable":false}}],
+      "expected":[{"score":-2},{"score":-1}]
+    },
+    {
+      "name":"scoped-order-qualified-input", "format":"aql-text",
+      "sourceRows":[{"id":1,"amount":10},{"id":2,"amount":20}],
+      "text":"FROM records |> AS original |> SELECT -original.id AS id |> ORDER BY -original.id |> RESULT answer",
+      "columns":[{"name":"id","contract":{"type":"number","nullable":false}}],
+      "expected":[{"id":-2},{"id":-1}]
     }
   ],
   "refusals": [
+    {"name":"scoped-order-displaced-range","format":"aql-text","text":"FROM records AS before |> AS original |> SELECT -id AS id |> ORDER BY -before.id |> RESULT answer"},
     {"name":"as-old-after-select-where","format":"aql-text","text":"FROM records AS old |> AS current |> SELECT id |> WHERE old.id = 1"},
     {"name":"as-old-after-select-select","format":"aql-text","text":"FROM records AS old |> AS current |> SELECT id |> SELECT old.id"},
     {"name":"as-old-after-select-extend","format":"aql-text","text":"FROM records AS old |> AS current |> SELECT id |> EXTEND old.id AS next"},

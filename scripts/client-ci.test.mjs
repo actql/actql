@@ -8,7 +8,7 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {parse} from 'yaml';
-import {compositionProgram, compositionTemplate, compositionExpectations} from
+import {compositionProgram, compositionTemplate, compositionExpectations, compositionText, compositionTextTemplate} from
   './fixtures/composed-infer-effect-input.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -35,11 +35,25 @@ test('the submitted JSON fixture binds only the newly published MappingRef', () 
   assert.throws(() => compositionProgram(''));
 });
 
-test('ordinary packed composition ships JSON input and independent replay expectations', () => {
+test('the authored text fixture binds only its published MappingRef', () => {
+  for (const mapping of ['fixture-mapping-first', 'fixture-mapping-second']) {
+    const text = compositionText(mapping);
+    assert.equal(text.replace(mapping, '__PUBLICATION_MAPPING_REF__'), compositionTextTemplate);
+    assert(text.includes('MAX_OUTPUT_ROWS 10'));
+    assert(text.includes('|> ASSERT UNIQUE BY (id)'));
+    assert(text.includes('|> EFFECT save UPDATE'));
+    assert.equal(text.match(/WHERE id = id/gu).length, 2);
+  }
+  for (const mapping of ['', 'bad`reference', 'bad\nreference']) {
+    assert.throws(() => compositionText(mapping));
+  }
+});
+
+test('ordinary packed composition ships JSON and authored text with independent replay expectations', () => {
   const script = readFileSync(new URL('./test-packed-salesforce-source.mjs', import.meta.url), 'utf8');
-  assert(script.includes(": twoSourceEffect ? ['two-source'] : ['source', 'infer']"));
+  assert(script.includes(": twoSourceEffect ? ['two-source'] : ['source', 'infer', 'infer-text']"));
   for (const name of ['composed-infer-effect.program.template.json',
-    'composed-infer-effect.expected.json']) {
+    'composed-infer-effect.expected.json', 'composed-infer-effect.aql.template']) {
     assert(script.includes("'" + name + "'"), 'isolated consumer must receive ' + name);
   }
   assert.deepEqual(compositionExpectations.sourceReadSessions, [2, 0, 0, 0]);

@@ -59,6 +59,22 @@ pub fn prepare_client_effect_computation(
     Ok(value) => value
     Err(issue) => return Err(Syntax(issue))
   }
+  prepare_parsed_client_effect_computation(
+    parsed, environment, supplied, evidence, limits,
+  )
+}
+
+///|
+/// Preserve the parser's Program and supplied values at the frontend/Host
+/// handoff. Static closure, Mapping admission and graph preparation remain
+/// the same Effect owner as document-based preparation.
+pub fn prepare_parsed_client_effect_computation(
+  parsed : @syntax.Program,
+  environment : @checked.CheckEnvironment,
+  supplied : @decode.Cursor?,
+  evidence : Array[@context.StageCapacityInput],
+  limits : ClientEffectComputationLimits,
+) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue] {
   let computation = match
     @checked.prepare_effect_computation_candidate(
       parsed,
