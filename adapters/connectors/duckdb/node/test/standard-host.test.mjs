@@ -7967,6 +7967,16 @@ async function exerciseStrategyGraph(
   branchedOrderSteps[5] = {
     from: 'ordered_greater', append: {with: 'unique_less'}, as: 'out',
   };
+  const branchedTakeProgram = structuredClone(branchedOrderProgram);
+  const branchedTakeSteps = branchedTakeProgram.stages.find(stage =>
+    stage.id === 'crossed').steps;
+  branchedTakeSteps.splice(4, 0, {
+    from: 'ordered_greater', take: {count: 2, offset: 0},
+    as: 'limited_greater',
+  });
+  branchedTakeSteps[6] = {
+    from: 'limited_greater', append: {with: 'unique_less'}, as: 'out',
+  };
   for (const [name, program, tasks] of [
     ['values', zeroInputProgram, [1, 2, 3]],
     ['captured Relation filter/select chain', capturedRelationChainProgram,
@@ -8008,6 +8018,8 @@ async function exerciseStrategyGraph(
     ['external append fork-mixed-group-join', branchedMixedAggregateProgram,
       [1, 2, 3, 4, 5]],
     ['external append fork-sort-distinct-join', branchedOrderProgram,
+      [1, 2, 3, 4, 5]],
+    ['external append fork-sort-take-distinct-join', branchedTakeProgram,
       [1, 2, 3, 4, 5]],
     ['filter then append captured input', filterThenAppendProgram,
       [1, 2, 3, 4]],
@@ -9409,6 +9421,8 @@ async function exerciseStrategyGraph(
       expected: [{n: 9}, {n: 1.5}], fields: ['n']},
     {name: 'append-fork-sort-distinct-join', source: branchedOrderProgram,
       expected: [4, 3, 2, 2, 1, 2].map(id => ({id})), fields: ['id']},
+    {name: 'append-fork-sort-take-distinct-join', source: branchedTakeProgram,
+      expected: [4, 3, 1, 2].map(id => ({id})), fields: ['id']},
     {name: 'except-all-filter', source: retainedBinaryChain(
       retainedSetProgram('except'), [{filter: 'id > 1'}], ['id']),
     expected: [{id: 2}], fields: ['id']},

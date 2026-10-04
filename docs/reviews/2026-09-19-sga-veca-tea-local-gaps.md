@@ -762,6 +762,10 @@ producer and both consumers read the fixed ordered rows
 `[{id: 4}, {id: 3}, {id: 2}, {id: 2}, {id: 1}, {id: 2}]`; the memory-output
 Host also runs the authored Program as one physical task. This does not
 admit arbitrary order-sensitive or nonlinear child operations.
+The selected `take` child can follow the sorted branch without splitting
+the task or resetting its cumulative budget. On the same duplicated input,
+the real Store publishes `[{id: 4}, {id: 3}, {id: 1}, {id: 2}]` to the
+producer and two consumers; the memory-output Host runs the same Program.
 The chain owner supplies cumulative work, overlapping child capacity,
 stop-before-release and reverse cleanup for these selected children. The
 earlier fork-join fault cases exercise that owner; they are shared lifecycle
