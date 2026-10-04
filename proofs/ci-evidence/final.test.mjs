@@ -18,7 +18,7 @@ test('final certificate binds the actual Lean input, output, catalog and origina
   const catalog = readCatalog(), receiptDigests = [{actionId: 'session-js', digest: 'e'.repeat(64)}];
   let output;
   const lean = checkPlan(required, applications, {onOutput: bytes => { output = Buffer.from(bytes); }});
-  const certificate = {version: 'actql-verification-family-certificate/0.1', mode: 'comparison', context,
+  const certificate = {version: 'actql-verification-family-certificate/0.1', mode: 'scoped-execution', context,
     catalogDigest: hash(encode(catalog)), receiptDigests, lean};
   const request = {certificate, output, context, catalog, required, applications, receiptDigests};
   assert.equal(checkCertificate(request).accepted, true);
@@ -48,4 +48,9 @@ test('workflow retains campaigns, collects actual existing executions, and requi
   const consumer = gate.steps.find(step => step.run === 'node proofs/ci-evidence/final.mjs');
   assert(consumer && consumer.if === "${{ needs.session-evidence.result == 'success' }}");
   assert.equal(consumer.env.SESSION_ARTIFACT_ID, '${{ needs.session-evidence.outputs.artifact-id }}');
+  const retained = gate.steps.find(step => step.with?.name?.startsWith('session-applicability-'));
+  assert(retained && retained.if.includes('steps.session-acceptance-check.outcome'));
+  assert.equal(retained.with.path, '.artifacts/session-applicability/verified-family.json');
+  assert.equal(retained.with['if-no-files-found'], 'error');
+  assert.equal(consumer.id, 'session-acceptance-check');
 });
