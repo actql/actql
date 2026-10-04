@@ -208,6 +208,37 @@ test "durable entry refusal prevents physical Model invocation" {
 }
 
 ///|
+test "durable entry observes reserved usage before recording an attempt" {
+  let calls = Ref(0)
+  let entries = Ref(0)
+  let reference : Ref[Execution?] = Ref(None)
+  let transfer_at_entry = Ref(-1L)
+  let tokens_at_entry = Ref(-1L)
+  let active = failed_outcome_start(
+    @model.Timeout,
+    calls,
+    enter_call=Some(_ => {
+      entries.val += 1
+      let model = reference.val.unwrap().model.unwrap()
+      transfer_at_entry.val = @model.model_execution_resource_usage(model).uncertain_transfer_bytes
+      tokens_at_entry.val = @model.model_execution_quantity_usage(model).uncertain.tokens
+      false
+    }),
+  )
+  reference.val = Some(active)
+  bind_quantity_capacity(active, fixture_quantity_capacity(33L, 500L)).unwrap()
+  evidence_authorize(active)
+  assert_true(
+    fixture_finish(active) is Failed(Model(@model.EntryUnavailable), ..),
+  )
+  assert_eq(entries.val, 1)
+  assert_eq(transfer_at_entry.val, 66536L)
+  assert_eq(tokens_at_entry.val, 33L)
+  assert_eq(calls.val, 0)
+  assert_true(cleanup(active).unwrap())
+}
+
+///|
 test "common model owner issues mixed slot attempt accounting and authority proofs" {
   let calls = Ref(0)
   let active = failed_outcome_start(

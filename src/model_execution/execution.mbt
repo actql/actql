@@ -500,6 +500,25 @@ fn advance_model(
   if @bounded.stop_requested(reader) is Some(reason) {
     return @bounded.Stopped(reason, 1, 1)
   }
+  // ModelResponse contains typed content and token observations, not exact
+  // transport bytes. Retain the dispatched envelope as uncertain usage before
+  // recording durable entry or entering physical I/O. A failed reservation
+  // cannot leave a journaled attempt that was never eligible to send.
+  match
+    @resources.mark_transfer_uncertain(
+      state.ledger,
+      reservation,
+      state.limits.max_request_bytes + state.limits.max_response_bytes,
+    ) {
+    Err(issue) => return @bounded.Failed(Ledger(issue), 1, 1)
+    Ok(_) => ()
+  }
+  if state.quantity_capacity is Some(_) {
+    match @resources.mark_quantities_uncertain(state.ledger, reservation) {
+      Err(issue) => return @bounded.Failed(Ledger(issue), 1, 1)
+      Ok(_) => ()
+    }
+  }
   // The entry callback may commit and then lose its acknowledgement. Retain
   // the owner-issued attempt before that boundary so cleanup and inspection
   // cannot mistake an ambiguous send for an untouched slot.
@@ -515,25 +534,6 @@ fn advance_model(
         authority: trace.authority,
       }) else {
       return @bounded.Failed(EntryUnavailable, 1, 1)
-    }
-  }
-  // ModelResponse contains typed content and token observations, not exact
-  // transport bytes. Retain the dispatched envelope as uncertain usage before
-  // entering physical I/O: invalid metadata, rejected content or cancellation
-  // must not make that request unused when cleanup settles its reservation.
-  match
-    @resources.mark_transfer_uncertain(
-      state.ledger,
-      reservation,
-      state.limits.max_request_bytes + state.limits.max_response_bytes,
-    ) {
-    Err(issue) => return @bounded.Failed(Ledger(issue), 1, 1)
-    Ok(_) => ()
-  }
-  if state.quantity_capacity is Some(_) {
-    match @resources.mark_quantities_uncertain(state.ledger, reservation) {
-      Err(issue) => return @bounded.Failed(Ledger(issue), 1, 1)
-      Ok(_) => ()
     }
   }
   let invoked = match state.physical_preflight {
