@@ -6786,6 +6786,20 @@
           "fixture": "Graph bounds yields during typed identity ordering and rejects partial output"
         },
         {
+          "role": "graph_bounds_cumulative_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+          "fixture": "Graph bounds yields during typed identity ordering and rejects partial output"
+        },
+        {
+          "role": "graph_bounds_view_cumulative_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+          "fixture": "Graph bounds yields during typed identity ordering and rejects partial output"
+        },
+        {
           "role": "graph_bounds_stored_workspace_exact_one_short",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -6847,8 +6861,8 @@
       "resource_assurance": {
         "entrypoint": {
           "work": {
-            "exact_limit": "graph_bounds_work_exact_one_short",
-            "one_short_limit": "graph_bounds_work_exact_one_short"
+            "exact_limit": "graph_bounds_cumulative_work_exact_one_short",
+            "one_short_limit": "graph_bounds_cumulative_work_exact_one_short"
           },
           "workspace": {
             "exact_limit": "graph_bounds_stored_workspace_exact_one_short",
@@ -6857,8 +6871,8 @@
         },
         "selected_entrypoint": {
           "work": {
-            "exact_limit": "graph_bounds_view_work_workspace_exact_one_short",
-            "one_short_limit": "graph_bounds_view_work_workspace_exact_one_short"
+            "exact_limit": "graph_bounds_view_cumulative_work_exact_one_short",
+            "one_short_limit": "graph_bounds_view_cumulative_work_exact_one_short"
           },
           "workspace": {
             "exact_limit": "graph_bounds_view_work_workspace_exact_one_short",
@@ -6891,6 +6905,20 @@
       "boundary_tests": [
         {
           "role": "degree_control_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+          "fixture": "Graph bounds yields during typed identity ordering and rejects partial output"
+        },
+        {
+          "role": "degree_cumulative_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+          "fixture": "Graph bounds yields during typed identity ordering and rejects partial output"
+        },
+        {
+          "role": "degree_view_cumulative_work_exact_one_short",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
@@ -6951,8 +6979,8 @@
       "resource_assurance": {
         "entrypoint": {
           "work": {
-            "exact_limit": "degree_control_work_exact_one_short",
-            "one_short_limit": "degree_control_work_exact_one_short"
+            "exact_limit": "degree_cumulative_work_exact_one_short",
+            "one_short_limit": "degree_cumulative_work_exact_one_short"
           },
           "workspace": {
             "exact_limit": "degree_stored_workspace_exact_one_short",
@@ -6961,8 +6989,8 @@
         },
         "selected_entrypoint": {
           "work": {
-            "exact_limit": "degree_view_work_workspace_exact_one_short",
-            "one_short_limit": "degree_view_work_workspace_exact_one_short"
+            "exact_limit": "degree_view_cumulative_work_exact_one_short",
+            "one_short_limit": "degree_view_cumulative_work_exact_one_short"
           },
           "workspace": {
             "exact_limit": "degree_view_work_workspace_exact_one_short",
