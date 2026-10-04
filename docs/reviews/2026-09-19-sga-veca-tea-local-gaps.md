@@ -42,8 +42,12 @@ confirms physical stop, publishes no Result, releases both captures, and
 does not reacquire on same-request resend.
 This selected row-file task uses the same `localStrategyContribution.run` and
 `prepareLocalRetainedOutput` writer as the retained binary-chain append and
-finalize fault harness. That shared writer proof does not by itself show a
-connector-specific writer failure at the public HTTPS ingress.
+finalize fault harness. Two public HTTPS cases now lose the acknowledgement
+after actual Store append and after actual seal, respectively. Both leave the
+Join and consumer Results unavailable, reclaim the writer and two acquired
+inputs, and avoid another writer entry or provider read on same-request resend.
+These are acknowledgement-loss faults at the selected writer boundary, not a
+claim about every possible OS write error or the mixed-provider variant.
 The existing two-DuckDB-source retained route remains covered separately.
 The same public HTTPS fixture now combines a GitHub row source and a DuckDB
 source in both Program acquisition orders. Each run reads its independent

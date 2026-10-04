@@ -461,7 +461,9 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
       let importedRows = 0, importedBytes = 0n;
       let output;
       try {
-        if (operations.output != null) output = prepareLocalRetainedOutput(operations.output, createLease, checked, signal);
+        if (operations.output != null) output = prepareLocalRetainedOutput(
+          operations.output, createLease, checked, signal, faultInjection,
+        );
         for (const input of operations.inputs) {
           signal?.throwIfAborted();
           const usage = await readLocalRetainedInput(

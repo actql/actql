@@ -957,6 +957,59 @@ test('two-source Join cancellation waits for Compute stop before input cleanup',
     assert.equal(listings(setup.api).length, reads);
   });
 
+async function verifyLostRetainedStoreAcknowledgement(t, phase, event) {
+  const observations = [];
+  let accepted;
+  let faultCalls = 0;
+  const setup = await installation(t, {retainedRelationOutput: true,
+    secondSource: true,
+    observe(name, detail) { observations.push([name, detail]); },
+    faultInjection(name, detail) {
+      if (name === event) {
+        faultCalls++;
+        accepted = detail;
+        throw new Error(`FixtureRetained${phase}AcknowledgementLost`);
+      }
+    }});
+  await setup.publish();
+  const {client} = await setup.open();
+  const document = JSON.stringify(twoRowSourceProgram());
+  const run = await client.aql(document, {format: 'json',
+    requestId: `github-two-source-store-${phase}-failure`});
+  const state = await run.wait();
+  assert.equal(state.status, 'failed', JSON.stringify(state));
+  assert.equal(state.result_available, false);
+  assert.equal(faultCalls, 1);
+  assert.ok((accepted.admittedWriteBytes ?? accepted.sealedBytes) > 0);
+  assert.ok(accepted.reservedBytes > 0);
+  for (const name of ['joined', 'consumed_a', 'consumed_b']) {
+    assert.equal(state.result_availability[name].state, 'unavailable');
+    await assert.rejects(run.result(name).all(),
+      {code: 'ResultAccessDenied'});
+  }
+  assert.equal(observations.filter(([name]) =>
+    name === 'acquisition_completed').length, 2);
+  assert.equal(observations.filter(([name]) =>
+    name === 'acquisition_cleanup_completed').length, 2);
+  assertAcquisitionReleased(observations);
+  assert.deepEqual(await readdir(join(setup.root, 'state',
+    'carrier-snapshots')), []);
+  const reads = listings(setup.api).length;
+  const resent = await client.aql(document, {format: 'json',
+    requestId: `github-two-source-store-${phase}-failure`});
+  assert.deepEqual(resent.ref, run.ref);
+  assert.equal(listings(setup.api).length, reads);
+  assert.equal(faultCalls, 1);
+}
+
+for (const [phase, event] of [
+  ['append', 'local_retained_output_appended'],
+  ['finalize', 'local_retained_output_sealed'],
+]) {
+  test(`two-source retained Join reclaims a lost Store ${phase} acknowledgement`,
+    t => verifyLostRetainedStoreAcknowledgement(t, phase, event));
+}
+
 test('retained row source does not publish after a later page fails',
   async t => {
     const setup = await installation(t, {retainedRelationOutput: true,
