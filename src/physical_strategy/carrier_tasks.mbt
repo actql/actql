@@ -355,6 +355,7 @@ fn carrier_segment_prefix_end(
             @carrier.kind(carrier) != @carrier.RelationKind {
             let mut retained_relation = false
             for edge in graph.data {
+              carrier_work(work)
               if edge.consumer == stage &&
                 edge.input == source &&
                 edge.producer >= 0 &&

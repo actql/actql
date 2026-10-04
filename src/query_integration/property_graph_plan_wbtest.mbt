@@ -200,4 +200,60 @@ test "retained external Relation selector splits only its Carrier consumer" {
   assert_eq(@strategy.graph_task_selected_step(graph, 3), Some(1))
   assert_eq(@strategy.graph_task_input_count(graph, 3), Some(2))
   assert_eq(@strategy.graph_task_selected_step(graph, 4), Some(2))
+  let program = @strategy.graph_program(graph)
+  let owners = [
+    @strategy.graph_task_owner(graph, 0).unwrap(),
+    @strategy.graph_task_owner(graph, 1).unwrap(),
+    @strategy.graph_task_owner(graph, 2).unwrap(),
+  ]
+  // Two Values requirements; five each for both constructors and MATCHes;
+  // eleven for the typed Subgraph operation. Three stage remap visits.
+  for task, expected in [2, 10, 5, 11, 5] {
+    assert_eq(@strategy.graph_task_operation_count(graph, task), Some(expected))
+    assert_eq(
+      @strategy.graph_task_numeric_observation_count(graph, task),
+      Some(0),
+    )
+  }
+  // Independent authored-shape account: original DAG admission 43;
+  // classification 30 (including the five retained-selector edge visits);
+  // task mapping 8; edge mapping 33; controls 2; operations 36; Result 1.
+  // The full retained-selector scan costs five even when its match is last.
+  // 66 stops before the selector's first edge; 70 stops before its fifth.
+  // 152 is one short of the complete immutable graph. No partial graph escapes.
+  for work in [0, 43, 66, 70, 152] {
+    assert_true(
+      @strategy.prepare_checked_dag(
+        program,
+        owners,
+        20,
+        work,
+        source_free_root=true,
+      )
+      is Err(WorkLimit),
+    )
+  }
+  let bounded = @strategy.prepare_checked_dag(
+    program,
+    owners,
+    20,
+    153,
+    source_free_root=true,
+  ).unwrap()
+  assert_true(physical_equal(@strategy.graph_program(bounded), program))
+  assert_eq(@strategy.graph_task_count(bounded), 5)
+  for task, expected in [None, None, Some(0), Some(1), Some(2)] {
+    assert_eq(@strategy.graph_task_selected_step(bounded, task), expected)
+    assert_true(
+      physical_equal(
+        @strategy.graph_task_owner(bounded, task).unwrap(),
+        owners[if task < 2 { task } else { 2 }],
+      ),
+    )
+  }
+  assert_eq(@strategy.graph_task_input_count(bounded, 3), Some(2))
+  assert_eq(@strategy.graph_data_count(bounded), 7)
+  assert_eq(@strategy.graph_control_count(bounded), 2)
+  assert_eq(@strategy.graph_result_count(bounded), 1)
+  assert_eq(@strategy.graph_result_task(bounded, 0), Some(4))
 }
