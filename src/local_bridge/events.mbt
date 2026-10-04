@@ -450,6 +450,21 @@ fn events_to_rows_step(
       BeginRecord =>
         if events_source_record_count(state.source) is Some(count) &&
           state.record < count {
+          if state.source is GraphRows(source) &&
+            source.selected_definition is Some(_) {
+            if !charge_events_to_rows_work(state) {
+              return @bounded.Failed(ControlWorkLimit, progress, used)
+            }
+            used += 1
+            match graph_row_selected(source, state.record) {
+              None => return @bounded.Failed(InputUnavailable, progress, used)
+              Some(false) => {
+                state.record += 1
+                continue
+              }
+              Some(true) => ()
+            }
+          }
           state.source_field = 0
           state.verified_column = 0
           state.matched_count = 0

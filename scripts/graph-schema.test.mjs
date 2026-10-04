@@ -81,7 +81,11 @@ test('graph bodies preserve literal options and optional positive component guar
 test('keyed schemas are explicit closed alternatives and preserve complete legacy branches', () => {
   const legacy = legacyGraphSchemas(), current = graphSchemas();
   for (const name of Object.keys(legacy)) {
-    if (['match_nodes','match_edges','traverse'].includes(name)) {
+    if (['node_rows','edge_rows'].includes(name)) {
+      assert.deepEqual(current[name].oneOf[0], legacy[name]);
+      assert.deepEqual(current[name].oneOf[1], {type:'object',additionalProperties:false,
+        required:['definition'],properties:{definition:{type:'string',minLength:1}}});
+    } else if (['match_nodes','match_edges','traverse'].includes(name)) {
       assert.equal(current[name].oneOf.length, 2);
       assert.deepEqual(current[name].oneOf[0], legacy[name]);
       const keyed = current[name].oneOf[1];
