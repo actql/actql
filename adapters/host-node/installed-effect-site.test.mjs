@@ -77,6 +77,7 @@ for (const outcome of ['not_started', 'stopped', 'unknown']) {
         run: context => site.execute({...context,
           openComputation: ({retainComputationOwner}) =>
             openAcquiredEffectComputation({acquired: {prepared: {}},
+              moon: {clientProgramEffectAcquisitionCount: () => 1},
               now: () => '2026-09-29T00:00:00.000Z',
               retainComputationOwner,
               sourceProfile: {prepare() { return {}; }, open() {
