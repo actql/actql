@@ -5,7 +5,9 @@
 Audited main: `ba3d6d12891f884b1bb55bb4d67bf043d4a58a94`.
 The runtime was normally packed from that clean revision, using Node
 22.23.2 and MoonBit 0.10.12+1634b282e. This record and its independent
-fixtures do not change the runtime or claim a fix.
+fixtures do not change the runtime or claim a fix. This is the original
+execution baseline; the integrated follow-up below supersedes delivery status,
+without reclassifying historical failures.
 
 The audit reads the accepted scope rules in [query-text](../spec/query-text.md),
 the [Pipe scope acceptance](2026-10-01-pipe-alias-scope.md),
@@ -22,7 +24,73 @@ counterexamples below were handed off because they share `query_program/compile.
 The follow-up scope below separates the independent ORDER/Group branches from
 D's assertion, Effect, Source predicate and JOIN-limit locations.
 
-## Repair follow-up on current main
+## Integrated follow-up after the capacity repair
+
+Main integration baseline: `5caeccc79dacc758afa5d87c2cee6be024e32565`.
+It includes the scoped ORDER repair (#286), D's composition work (#273), and
+A's selected-fragment capacity repair (#295, main merge
+`2a74d07fef4ce4e58e4d35d72039f982ddf66f26`).
+
+| Obligation | Current evidence | Remaining boundary |
+|---|---|---|
+| Scoped Pipe ORDER distinguishes current columns from selected-expression inputs | #286 is merged; its focused public acceptance and exact submitted CI are recorded below | Broader ORDER conformance is not inferred from these counterexamples |
+| Aggregate arguments/keys resolve immutable input aliases before output scope closes | #287 packed source `508cbeccc8826c24eb0c8efc74c0d64168c64a35`: all 8 positives and 4 refusals pass on **each** of Embedded Local and HTTP | Submitted `6ee85f358bf3dabbf8d9d983b344638284df98ee` adds the report; [automatic CI 37167483900](https://github.com/actql/actql/actions/runs/37167483900) is in progress at this checkpoint; Draft remains |
+| A CTE-local WHERE must not filter another consumer's shared Source | Existing JS bridge rebuilt from integration `289c422c9a7e5d951cad7920884749ab8624a586` still emits the wrong capture predicate; the independent obligation fails 0 passed / 1 failed | D owns the direct CTE capture dependency/Source-predicate repair; no parallel repair is made here |
+| Parameter, LIMIT/OFFSET, NULL and duplicate preservation; LEFT/INNER distinction | The historical public controls below pass at their stated source and digests | They have not been rerun against this integrated main, and are not blanket conformance evidence |
+
+The #287 selection retains full ordered Result descriptions, nullable types,
+unchanged expected rows and declared ordering, stream completion, one shared
+Source acquisition, no additional acquisition on retry/attach/read, and
+zero durable Run admission/provider I/O for the refusal cases. The 512 MiB
+ceiling and fixture expectations are unchanged. No new CTE failure was reached
+in this selected corpus after the capacity repair. See the
+[Group acceptance record](https://github.com/actql/actql/blob/6ee85f358bf3dabbf8d9d983b344638284df98ee/docs/reviews/2026-10-03-group-column-scope.md) for package digests
+and the exact verified source/report-only delta.
+
+### Current CTE lowering reproducer and ownership
+
+The [diagnostic probe](../../spec/frontend/fixtures/semantic-audit/cte-capture-probe.mjs)
+uses the existing query test bridge and the unchanged authored source/rows in
+[cases.json](../../spec/frontend/fixtures/semantic-audit/cases.json). It is an
+explicitly failing handoff probe, not registered passing acceptance or a
+replacement executor. Its expected capture predicate is authored directly:
+`{literal:true}`, with `id = 1` retained on `chosen`. Both consumers still
+reference the same capture, so a repair must not reacquire the Source.
+
+At `289c422c9a7e5d951cad7920884749ab8624a586`, the actual admitted Program
+instead puts `{eq:[{field:"id"},{literal:1}]}` on `capture`, removes the WHERE
+from `aql_cte_0`, and binds `aql_cte_1.inputs.r` to that filtered
+`capture/source`. This is a current compiled-Program reproduction, not merely
+source inspection. It is **not** common-checker or packed Host execution; the
+wrong public rows on both transports remain the historical baseline evidence.
+
+The current direct `compile_cte_query` dependency check uses `query_terms`
+(principal FROM plus set terms), missing JOIN-right Source dependencies.
+The separate CTE scope validator's JOIN-name validation does not repair that
+capture analysis. `source_frontend/lower.mbt` still routes ordinary SQL and
+zero-DATA scripts to this path. D's DATA/script improvements and the completed
+#287 Group corpus therefore do not close this independent CTE counterexample.
+
+Reproduce with the repository-pinned Node/MoonBit toolchain:
+
+```sh
+node scripts/local-checks.mjs build moon -- --target js src/query_program_test_bridge
+node scripts/local-checks.mjs test node -- spec/frontend/fixtures/semantic-audit/cte-capture-probe.mjs
+```
+
+The probe saves an **observed**, not expected, Program to
+`_build/semantic-audit/cte-capture-observed-program.json`; local-checks retains
+the failed assertion and its nonzero exit. Current check scope: one focused JS
+bridge build and one failed Node semantic obligation. No whole-Core or packed
+campaign was added for this known, separately owned defect.
+
+Graph-row text input is a separate completion unit
+([#303](https://github.com/actql/actql/pull/303)); its selected 5 positives / 5
+refusals on each transport do not close this SQL/CTE audit or imply all Graph
+consumer coverage. The audit remains incomplete pending D's CTE repair and its
+unchanged public counterexample, and #287's submitted CI result.
+
+## Historical repair follow-up before main capacity integration
 
 Repair baseline: `a4132d64f9cd83022d38bcb9c4e79d981fb2f803`.
 Relevant Frontend source comparisons against the audited runtime were unchanged;

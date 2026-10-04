@@ -171,7 +171,35 @@ If the derivation is sound, keep refusal and propose separate within-budget
 acceptance and over-budget refusal cases with the same semantic obligations.
 The current expected values and order are not silently changed by this handoff.
 
-## Closed Frontend-only follow-up and outstanding acceptance
+## Integrated capacity follow-up: selected public acceptance closed
+
+A's #295 is now in the integrated main baseline
+`5caeccc79dacc758afa5d87c2cee6be024e32565`, through merge
+`2a74d07fef4ce4e58e4d35d72039f982ddf66f26` (repair commit
+`46654bbed4f6740cb49f3a89d1f60b2cdcdd5a5a`). #287 adopted that main normally.
+The 512 MiB ceiling, independent expectations and declared ordering were not
+changed.
+
+Normally packed clean source `508cbeccc8826c24eb0c8efc74c0d64168c64a35`
+passes all 8 positives and 4 refusals on **each** of Embedded Local and HTTP,
+including the formerly refused original/current grouping keys and later
+SQL/Pipe/empty/shared-source cases. This confirms Named Result rows, ordered
+full type/nullability contracts, complete streams, shared acquisition counts,
+same-Run retry and no I/O on re-read; input refusals precede admission/I/O.
+No later failure was found in that selected Group corpus. Package digests and
+the submitted report-only delta are recorded in the
+[Group evidence](https://github.com/actql/actql/blob/6ee85f358bf3dabbf8d9d983b344638284df98ee/docs/reviews/2026-10-03-group-column-scope.md).
+
+Submitted HEAD: `6ee85f358bf3dabbf8d9d983b344638284df98ee`.
+[Automatic CI 37167483900](https://github.com/actql/actql/actions/runs/37167483900)
+is in progress at this checkpoint; #287 remains Draft pending its result and
+review. The old byte totals and failed CI below are historical observations,
+not current failures or new measurements. B made no common capacity formula
+change. The separately reproduced CTE shared-capture predicate defect remains
+D-owned and is recorded in the [audit](2026-10-04-frontend-semantic-audit.md);
+successful Group acceptance does not close it.
+
+## Historical Frontend-only follow-up before the capacity repair
 
 [#286](https://github.com/actql/actql/pull/286) removed an unobservable duplicate
 scoped ORDER cleanup projection when an immediately adjacent RESULT already
