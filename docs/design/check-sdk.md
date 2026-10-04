@@ -619,6 +619,20 @@ distinguish its presence through this reference. Changing authority, visible
 Source contracts, policy or checker selections can
 change `context_ref` without changing the same input revision.
 
+Public Local and HTTPS ingress authenticate and authorize each check before
+invoking its installed checker. A Source read-decision owner only controls its
+own names' disclosure. Missing read tuples, denied or undecided decisions, and
+non-abort exceptions from that owner all hide those names before checking;
+their number cannot revoke the admitted whole check binding. With that binding,
+the common checker returns a completed report containing independent safe
+violations and the public unresolved coverage boundary for protected resolution.
+Required bound values remain missing-value limits and typed Requirements.
+Caller aborts still propagate, and connection authorization failures still
+refuse the operation before checking. The common `unavailable` outcome remains
+reserved for an unestablishable whole audience-bound context; a count of failed
+Source read owners is not evidence of that condition. This changes neither
+the closed outcome schema nor its identity, and adds no input persistence.
+
 The SDK detaches structured caller input synchronously before awaiting credentials
 or transport, and retains immutable input snapshots in a weak association with
 that exact response. `getCheckInput` retrieves that call's snapshot;
