@@ -89,7 +89,7 @@ pub fn start_match_nodes(@bounded_execution.Control, @execution_relation.Complet
 
 pub fn start_match_nodes_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[MatchNodesExecution, MatchNodesIssue]
 
-pub fn start_normalize_view(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[NormalizeExecution, NormalizeIssue]
+pub fn start_normalize_view(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @managed_graph_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[NormalizeExecution, NormalizeIssue]
 
 pub fn start_traverse(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], max_paths? : Int) -> Result[TraverseExecution, TraverseIssue]
 
@@ -189,6 +189,7 @@ type NormalizeExecution
 pub(all) enum NormalizeIssue {
   InvalidNormalizeKernel
   NormalizeInputUnavailable
+  NormalizeControlWorkLimit
   NormalizeWorkspaceLimit
   NormalizeOutput(@managed_graph_runtime.Issue)
   NormalizeExecutionIssue(@bounded_execution.Issue)

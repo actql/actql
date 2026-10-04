@@ -93,10 +93,11 @@ fn constructor_material(sequence : @execution.GeneratedSequence) -> Bool {
   if selected is None && @execution.generated_sequence_step_count(sequence) != 1 {
     return false
   }
-  match @lower.sequence_step(
-    @execution.generated_prepared_sequence(sequence),
-    selected.unwrap_or(0),
-  ) {
+  match
+    @lower.sequence_step(
+      @execution.generated_prepared_sequence(sequence),
+      selected.unwrap_or(0),
+    ) {
     Some(@lower.PropertyGraphConstructionStep(_))
     | Some(@lower.GraphNormalizeStep(_)) => true
     _ => false
@@ -378,15 +379,17 @@ fn advance_execution(
           return fail_execution(value)
         }
         let step = value.selected_step.unwrap_or(0)
-        match @sga.start_normalize_view(
-          value.control,
-          value.sequence,
-          step,
-          value.carrier_inputs[0],
-          value.limits,
-          value.storage_bytes,
-          fn() { true },
-        ) {
+        match
+          @sga.start_normalize_view(
+            value.control,
+            value.sequence,
+            step,
+            value.carrier_inputs[0],
+            value.limits,
+            value.storage_bytes,
+            fn() { true },
+            control_work_limit=Some(value.limits.max_work),
+          ) {
           Ok(active) => value.normalization = Some(active)
           Err(_) => return fail_execution(value)
         }
@@ -1098,9 +1101,9 @@ fn cleanup_execution(
       @sga.graph_degree_cleanup_pending(active)
     None => false
   }
-  let normalization_pending = value.normalization.map(
-    @sga.normalize_cleanup_pending,
-  ).unwrap_or(false)
+  let normalization_pending = value.normalization
+    .map(@sga.normalize_cleanup_pending)
+    .unwrap_or(false)
   if failed {
     return Err(issue())
   }
@@ -1236,7 +1239,10 @@ pub fn provider(
         if relations.length() != expected || !carriers.is_empty() {
           return Err(@connector.Execution(@execution.InputSet))
         }
-      } else if direct_match || direct_traverse || direct_diagnostic || direct_normalize {
+      } else if direct_match ||
+        direct_traverse ||
+        direct_diagnostic ||
+        direct_normalize {
         if carriers.length() != 1 ||
           relations.length() !=
           (if direct_traverse { direct_traverse_relation_count } else { 0 }) {

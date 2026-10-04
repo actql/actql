@@ -43,6 +43,7 @@ priv struct NormalizeState {
   mut source_keys : Array[@value.CheckedValue]
   mut target_keys : Array[@value.CheckedValue]
   mut properties : Array[@value.CheckedValue]
+  mut control_work_remaining : Int?
 }
 
 ///|
@@ -63,6 +64,7 @@ pub enum NormalizePoll {
 pub(all) enum NormalizeIssue {
   InvalidNormalizeKernel
   NormalizeInputUnavailable
+  NormalizeControlWorkLimit
   NormalizeWorkspaceLimit
   NormalizeOutput(@graph.Issue)
   NormalizeExecutionIssue(@bounded.Issue)
@@ -88,7 +90,7 @@ fn normalize_width(values : Array[Int]) -> Int? {
 }
 
 ///|
-fn normalize_step(
+fn normalize_body_step(
   state : NormalizeState,
   quantum : Int,
   reader : @bounded.Reader,
@@ -422,6 +424,37 @@ fn normalize_step(
 }
 
 ///|
+fn normalize_step(
+  state : NormalizeState,
+  quantum : Int,
+  reader : @bounded.Reader,
+) -> @bounded.KernelStep[@graph.Completed, NormalizeIssue] {
+  if @bounded.stop_requested(reader) is Some(reason) {
+    return @bounded.Stopped(reason, 0, 0)
+  }
+  let bounded_quantum = match state.control_work_remaining {
+    None => quantum
+    Some(remaining) => {
+      if remaining < 1 {
+        return @bounded.Failed(NormalizeControlWorkLimit, 0, 0)
+      }
+      Int::min(quantum, remaining)
+    }
+  }
+  let result = normalize_body_step(state, bounded_quantum, reader)
+  let charged = match result {
+    @bounded.Continue(_, work)
+    | @bounded.Complete(_, _, work)
+    | @bounded.Failed(_, _, work)
+    | @bounded.Stopped(_, _, work) => work
+  }
+  if state.control_work_remaining is Some(remaining) {
+    state.control_work_remaining = Some(remaining - charged)
+  }
+  result
+}
+
+///|
 fn cleanup_normalize_state(state : NormalizeState) -> Bool {
   if state.output is Some(output) {
     @graph.cancel_output(output) |> ignore
@@ -443,7 +476,11 @@ pub fn start_normalize_view(
   limits : @storage.Limits,
   storage_bytes : Int64,
   available : () -> Bool,
+  control_work_limit? : Int? = None,
 ) -> Result[NormalizeExecution, NormalizeIssue] {
+  if control_work_limit is Some(limit) && limit < 0 {
+    return Err(NormalizeControlWorkLimit)
+  }
   let owner = @lower.sequence_owner(sequence)
   guard @lower.sequence_step(sequence, step)
     is Some(@lower.GraphNormalizeStep(_)) &&
@@ -484,6 +521,7 @@ pub fn start_normalize_view(
     source_keys: [],
     target_keys: [],
     properties: [],
+    control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
     control, state, normalize_step, cleanup_normalize_state, @graph.discard_completed,

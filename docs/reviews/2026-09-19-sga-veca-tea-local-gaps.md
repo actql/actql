@@ -558,9 +558,9 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Registered operations | 69 |
-| Executable production routes | 56 |
-| Typed pre-execution refusals (not execution success) | 13 |
-| Operation-specific boundary records | 56 |
+| Executable production routes | 57 |
+| Typed pre-execution refusals (not execution success) | 12 |
+| Operation-specific boundary records | 57 |
 | Four-role lifecycle assurance | 56 |
 | Full route work/workspace assurance | 56 |
 | Path-scoped work/workspace assurance | 104 |
@@ -4671,6 +4671,8 @@ published MATCH rows and two consumer Named Results, and reclaimed its
 resources. The shared task splitter
 now separates a selected Carrier-to-Carrier normalization before a later
 Relation consumer without changing the fused preference of other families.
-This is not current-profile completion: work exact/one-short, large-value
-noninterruptible sections, all-target execution, broader Host failures, and
-final-source CI still need evidence.
+The copy now enforces an independently calculated 37-step control-work
+boundary at quantum one and seven; 36 fails without publishing output. This
+is not current-profile completion: Graph storage's encoded-value work and
+large-value noninterruptible sections, broader Host failures, and final-source
+CI still need evidence.

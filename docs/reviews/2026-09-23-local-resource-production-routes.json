@@ -6201,7 +6201,86 @@
       "inventory": "families",
       "family": "SGA",
       "operation": "normalize_graph",
-      "profile": "sga_graph"
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_normalize_view("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/normalize.mbt",
+        "symbol": "start_normalize_view"
+      },
+      "selected_entrypoint": {
+        "path": "src/local_sga/normalize.mbt",
+        "symbol": "start_normalize_view"
+      },
+      "boundary_tests": [
+        {
+          "role": "normalize_exact_node_capacity",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_provider_custody_wbtest.mbt",
+          "fixture": "selected normalize_graph copies a keyed Graph in bounded steps and keeps its input live"
+        },
+        {
+          "role": "normalize_one_short_node_capacity",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_provider_custody_wbtest.mbt",
+          "fixture": "selected normalize_graph copies a keyed Graph in bounded steps and keeps its input live"
+        },
+        {
+          "role": "normalize_one_short_edge_capacity",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_provider_custody_wbtest.mbt",
+          "fixture": "selected normalize_graph copies a keyed Graph in bounded steps and keeps its input live"
+        },
+        {
+          "role": "normalize_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_provider_custody_wbtest.mbt",
+          "fixture": "selected normalize_graph copies a keyed Graph in bounded steps and keeps its input live"
+        },
+        {
+          "role": "normalize_view_exact_node_capacity",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_provider_custody_wbtest.mbt",
+          "fixture": "selected normalize_graph copies a keyed Graph in bounded steps and keeps its input live"
+        },
+        {
+          "role": "normalize_view_one_short_node_capacity",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_provider_custody_wbtest.mbt",
+          "fixture": "selected normalize_graph copies a keyed Graph in bounded steps and keeps its input live"
+        },
+        {
+          "role": "normalize_view_one_short_edge_capacity",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_provider_custody_wbtest.mbt",
+          "fixture": "selected normalize_graph copies a keyed Graph in bounded steps and keeps its input live"
+        },
+        {
+          "role": "normalize_view_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_provider_custody_wbtest.mbt",
+          "fixture": "selected normalize_graph copies a keyed Graph in bounded steps and keeps its input live"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "installed_retained_graph_named_results",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "retained-normalized-node-match"
+        }
+      ]
     },
     {
       "inventory": "families",

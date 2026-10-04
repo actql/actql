@@ -186,6 +186,117 @@ test "selected normalize_graph copies a keyed Graph in bounded steps and keeps i
     assert_true(terminal)
     assert_true(@local_sga.cleanup_normalize(active).unwrap())
   }
+  // One node and one edge definition take four scan steps. Preparation takes
+  // one. The node takes Begin(2), two keys plus transition(3), one property
+  // plus transition(2), and Commit(1). Two edges take Begin(3) and, each,
+  // key(2), source keys(3), target keys(3), property transition(1), Commit(1).
+  // Finish adds one: 4 + 1 + 8 + 23 + 1 = 37 control-work units.
+  let exact_work = 37
+  for quantum in [1, 7] {
+    for allowed in [exact_work - 1, exact_work] {
+      let bounded_view = @carrier_runtime.material_prepare_view(
+        original, receiver, 0, owner,
+      ).unwrap()
+      let active = @local_sga.start_normalize_view(
+        @bounded.control(),
+        prepared_sequence(receiver),
+        0,
+        bounded_view,
+        carrier_graph_storage_limits(),
+        4096L,
+        () => true,
+        control_work_limit=Some(allowed),
+      ).unwrap()
+      let mut terminal = false
+      let mut observed_work = 0L
+      for _ in 0..<100 {
+        match @local_sga.advance_normalize(active, quantum).unwrap() {
+          @local_sga.NormalizeContinue(work~, ..) => {
+            assert_true(work >= observed_work)
+            observed_work = work
+          }
+          @local_sga.NormalizeComplete(output, work~, ..) => {
+            assert_eq(allowed, exact_work)
+            assert_true(work >= observed_work)
+            observed_work = work
+            assert_true(@graphs.discard_completed(output))
+            terminal = true
+            break
+          }
+          @local_sga.NormalizeFailed(
+            @local_sga.NormalizeControlWorkLimit,
+            work~,
+            ..
+          ) => {
+            assert_eq(allowed, exact_work - 1)
+            assert_true(work >= observed_work)
+            observed_work = work
+            terminal = true
+            break
+          }
+          _ => fail("normalize control-work boundary returned another result")
+        }
+      }
+      assert_true(terminal)
+      assert_eq(observed_work, allowed.to_int64())
+      assert_true(@local_sga.cleanup_normalize(active).unwrap())
+      assert_false(@local_sga.normalize_cleanup_pending(active))
+      assert_true(@local_sga.advance_normalize(active, 1) is Err(_))
+    }
+  }
+  for
+    (node_limit, edge_limit, expected) in [
+      (1, 2, "complete"),
+      (0, 2, "node_limit"),
+      (1, 1, "edge_limit"),
+    ] {
+    let bounded_view = @carrier_runtime.material_prepare_view(
+      original, receiver, 0, owner,
+    ).unwrap()
+    let active = @local_sga.start_normalize_view(
+      @bounded.control(),
+      prepared_sequence(receiver),
+      0,
+      bounded_view,
+      {
+        ..carrier_graph_storage_limits(),
+        max_nodes: node_limit,
+        max_edges: edge_limit,
+      },
+      4096L,
+      () => true,
+    ).unwrap()
+    let mut terminal = false
+    for _ in 0..<100 {
+      match @local_sga.advance_normalize(active, 1).unwrap() {
+        @local_sga.NormalizeContinue(..) => ()
+        @local_sga.NormalizeComplete(output, ..) => {
+          assert_eq(expected, "complete")
+          assert_true(@graphs.discard_completed(output))
+          terminal = true
+          break
+        }
+        @local_sga.NormalizeFailed(
+          @local_sga.NormalizeOutput(@graphs.Storage(issue)),
+          ..
+        ) => {
+          if expected == "node_limit" {
+            assert_true(issue is @graph_storage.NodeLimit)
+          } else if expected == "edge_limit" {
+            assert_true(issue is @graph_storage.EdgeLimit)
+          } else {
+            fail("exact node and edge capacity rejected normalization")
+          }
+          terminal = true
+          break
+        }
+        _ => fail("normalize capacity returned another result")
+      }
+    }
+    assert_true(terminal)
+    assert_true(@local_sga.cleanup_normalize(active).unwrap())
+    assert_true(@carrier_runtime.material_available(original))
+  }
   assert_true(@carrier_runtime.reclaim_material(normalized))
   assert_true(@carrier_runtime.reclaim_material(original))
 }
