@@ -12,10 +12,17 @@ const parameterDeclarations = {a: payload, b: payload, c: payload,
   oa: other, ob: other, oc: other, od: other};
 const parameters = {a: {score: 10}, b: {score: 20}, c: null,
   oa: {score: 5}, ob: {score: 30}, oc: {score: 15}, od: {score: 40}};
-const data = 'DATA objects = SELECT 2 AS id, @a AS payload '
-  + 'UNION ALL SELECT 1 AS id, @b AS payload UNION ALL SELECT 3 AS id, @c AS payload; '
-  + 'DATA others = SELECT 1 AS id, @oa AS other UNION ALL SELECT 2 AS id, @ob AS other '
-  + 'UNION ALL SELECT 3 AS id, @oc AS other UNION ALL SELECT 2 AS id, @od AS other; ';
+// One explicit logical unit producer keeps this authored corpus within the
+// standard 32-task admission ceiling. All seven rows and their multiplicity
+// remain unchanged; no compiler output or resource limit is patched.
+const data = 'DATA seed = SELECT 1 AS unit; '
+  + 'DATA objects = SELECT 2 AS id, @a AS payload FROM seed '
+  + 'UNION ALL SELECT 1 AS id, @b AS payload FROM seed '
+  + 'UNION ALL SELECT 3 AS id, @c AS payload FROM seed; '
+  + 'DATA others = SELECT 1 AS id, @oa AS other FROM seed '
+  + 'UNION ALL SELECT 2 AS id, @ob AS other FROM seed '
+  + 'UNION ALL SELECT 3 AS id, @oc AS other FROM seed '
+  + 'UNION ALL SELECT 2 AS id, @od AS other FROM seed; ';
 const join = 'FROM objects AS l JOIN others AS r ON l.id = r.id MAX_OUTPUT_ROWS 12';
 const pipeJoin = 'FROM objects AS l |> JOIN others AS r ON l.id = r.id MAX_OUTPUT_ROWS 12';
 const idColumn = {name: 'id', contract: number};

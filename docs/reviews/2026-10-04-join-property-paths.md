@@ -87,8 +87,25 @@ both sides now explicitly bind CTEs, without changing CTE implementation or
 expanding its current support claim. Two temporary test/compiler errors were
 corrected before submission and are not execution passes.
 
-Packed execution and submitted-HEAD CI are pending. This is implementation and
-focused checker evidence, not yet a claim of public JOIN property execution.
+The first clean packed source `01cc6a4bababea17764293b973ffa63383ad9c8f`
+(`public-query-evidence-7sRChy`) passed the independent JSON and SQL/Pipe
+property projection controls on Local, then stopped at WHERE's input-snapshot
+case. The preserved bridge cause is `Graph(TaskLimit)`, not a checker error or
+alias misbinding. The standard common owner permits 32 tasks. A private bridge
+probe using that build confirmed this cause for six remaining preparation
+shapes; it is diagnostic evidence, not public execution acceptance.
+
+The authored text now declares one explicit `DATA seed = SELECT 1 AS unit`
+producer shared by the seven row projections. Rows, nullable values, duplicate
+ID 2, SELECT/WHERE/ORDER expressions, full column expectations and JOIN bound 12
+are unchanged. This keeps the corpus within the existing task admission budget
+and also exercises shared producer use. No task ceiling, strategy or Program
+after lowering is changed. The same bridge then prepared all nine text cases;
+fresh packed execution remains pending. The first failed install was removed
+after preserving its logs and complete command identity/digests.
+
+Packed execution and submitted-HEAD CI are pending. This is implementation,
+focused checker and partial public evidence, not a claim of complete acceptance.
 No grammar, wire, schema, saved-data or contract-version changes. Corrected
 sources produce their normal Program identities. Full Core, all targets, native,
 proof, performance and a Google service differential run are not local checks
