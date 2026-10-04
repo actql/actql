@@ -1911,7 +1911,7 @@ pub fn[T] start_local_managed_dispatch(
     material: fn() { retained.val },
     carrier_material: fn() { carrier.val },
     prepare_relation_snapshot: fn(storage_released) {
-      // Retain checked Graph row bridges, sparse filters, derived rows and node traversals. The
+      // Retain checked Graph row bridges, sparse selections, derived rows and node traversals. The
       // operation keys come from the checked owner, not caller-supplied names.
       let prepared = @lower.bound_preparation(
         @execution.generated_sequence_owner(setup.sequence),
@@ -1928,7 +1928,7 @@ pub fn[T] start_local_managed_dispatch(
           if key == "BRIDGE.graph.to_node_rows" ||
             key == "BRIDGE.graph.to_edge_rows" {
             graph_rows = true
-          } else if key == "REL.derive" {
+          } else if key == "REL.derive" || key == "REL.distinct" {
             graph_rows = true
           } else if (
               key == "REL.where" ||

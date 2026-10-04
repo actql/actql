@@ -34,7 +34,6 @@ const MAX_REVIEW_BYTES = 256 * 1024;
 const MAX_PAGE = 100;
 const PAGE = 100;
 const LOOKUP_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
-const TERMINAL_RUNS = new Set(['succeeded', 'failed', 'cancelled']);
 const MULTI_SOURCE_SUBMISSION = 'actql-remote-multi-source-submission/0.1';
 
 function coded(code, detail) {
@@ -331,6 +330,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
   try {
   evidence = openContinuationEvidence({
     stateDirectory: state, ...privateKey, contractControl,
+    isTerminalRunOutcome: journal.isTerminalRunOutcome,
     preparation(prepareAttemptId) {
       if (prepareAttemptId.startsWith('effect-')) {
         const run = journal.getRunState(prepareAttemptId.slice(7));
@@ -787,7 +787,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
           const {captured} = await continuationOf(prepareAttemptId);
           await step('run_observed', {prepareAttemptId, runId});
           const status = await host.observe({captured, runId});
-          if (TERMINAL_RUNS.has(status)) {
+          if (journal.isTerminalRunOutcome(status)) {
             journal.finishRun(runId, {status});
           }
         } catch (error) {
@@ -1796,7 +1796,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
     // The checkpoint-journal Run created by a resumed request ended.
     runFinished(runId, status) {
       const run = journal.getRunState(runId);
-      if (run === undefined || TERMINAL_RUNS.has(run.status) ||
+      if (run === undefined || journal.isTerminalRunOutcome(run.status) ||
           run.status !== 'running') return;
       journal.finishRun(runId, {status});
       // Retention settles in the owned sweep (which stop() waits for), or in
@@ -1836,3 +1836,4 @@ export async function installRemoteCheckpoints({root, namespaceId,
       {journal, store: evidence});
   }
 }
+

@@ -131,3 +131,42 @@ test "public Property Graph checking derives Result capacity without interpretin
     }
   }
 }
+
+///|
+test "public Property Graph normalization preserves a checked Graph before MATCH" {
+  let (text, _, base, _, original_limits) = public_input_fixture(
+    generated=true,
+    graph_policy=true,
+  )
+  let source = text
+    .replace(
+      old="\"as\":\"seed\"},{\"assert_rows\":{\"unique_by\":[\"id\"]}}",
+      new="\"as\":\"raw_seed\"},{\"assert_rows\":{\"unique_by\":[\"id\"]},\"as\":\"seed\"}",
+    )
+    .replace(
+      old="\"as\":\"derived\"}]",
+      new="\"as\":\"derived\"},{\"property_graph\":{\"version\":\"actql-property-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"seed\",\"key\":[\"id\"],\"labels\":[{\"name\":\"Node\",\"properties\":{\"mode\":\"all_columns\"}}]}],\"edges\":[]},\"as\":\"g\"},{\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{\"from\":\"normalized\",\"match_nodes\":{\"definition\":\"N\",\"label\":\"Node\",\"where\":\"true\",\"fields\":[\"id\"]},\"as\":\"matched\"},{\"from\":\"matched\",\"derive\":{\"value\":\"id\"},\"as\":\"projected\"}]",
+    )
+    .replace(old="\"from\":\"derived\"", new="\"from\":\"projected\"")
+  let environment = @program_check.checking_environment(
+    @program_check.checking_environment_wire(base),
+    { text_time: false, veca: false, },
+    { rela: true, sga: true, tea: false, calendar: false, text_rank: false, },
+    property_graph=true,
+  )
+  let limits = {
+    ..original_limits,
+    compilation: {
+      ..original_limits.compilation,
+      structure: { ..original_limits.compilation.structure, steps: 9, },
+    },
+  }
+  let outcome = @program_check.check_document(
+    source,
+    environment,
+    None,
+    limits,
+    format=Json,
+  )
+  public_checked(outcome) |> ignore
+}

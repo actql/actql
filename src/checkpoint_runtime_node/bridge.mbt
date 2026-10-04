@@ -309,6 +309,15 @@ pub fn run_state_admit(wire : String) -> String {
 }
 
 ///|
+#export_name("runOutcomeTerminal")
+pub fn run_outcome_terminal(status : String) -> Bool {
+  match @checkpoint.parse_run_status(status) {
+    Some(outcome) => @checkpoint.run_outcome_terminal(outcome)
+    None => false
+  }
+}
+
+///|
 #export_name("runTransitionAllowed")
 pub fn run_transition_allowed(from : String, to : String) -> Bool {
   match (@checkpoint.parse_run_status(from), @checkpoint.parse_run_status(to)) {
