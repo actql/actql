@@ -1393,8 +1393,18 @@ test(`acquired Effect second Source approval restores the first ${realization} c
       maxInputPins: 3, expectedDependencyCount: 3};
     const effectInstallation = createInstalledEffectSite({
       environmentWire: fixture.environmentWire, privateEvidenceKey: Buffer.alloc(32, 63),
+      // Keep the optional target binding identical through Source restoration
+      // and the later Effect-commit restoration, without changing read counts.
+      targetReadAuthorization: {accountConfiguration: effectCommitConfiguration(),
+        context: {principal: owner, contextCid: contentCid({targetFixture: directory})}},
+      targetReadInventory: () => [{readTuple: {connection: 'reference',
+        resource: 'records', operation: 'read'}, physicalBinding: {
+        version: 'fixture-effect-target/0.1', mappings: [...fixture.mappingCids]}}],
       prepareCaptured(facts) { captures++; return prepareReferenceCapture(facts, hooks); },
-      prepareRecovered: facts => prepareReferenceRecovery(facts, hooks),
+      prepareRecovered: facts => {
+        assert.deepEqual(facts.targetReads.captureBinding(), facts.continuation.target_read_binding);
+        return prepareReferenceRecovery(facts, hooks);
+      },
     });
     const configuration = JSON.parse(effectCommitConfiguration());
     configuration.entries[1].connection = {all: true};

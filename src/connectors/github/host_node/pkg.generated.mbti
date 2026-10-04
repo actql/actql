@@ -2,11 +2,17 @@
 package "actql/actql/connectors/github/host_node"
 
 // Values
+pub fn github_add_comment_request_json(String, String) -> String
+
 pub fn github_api_version() -> String
 
 pub fn github_classify_failure_json(Int, Array[String], Array[String]) -> String
 
-pub fn github_comment_outcome_json(Int, Array[String], Array[String], Bytes, Int) -> String
+pub fn github_comment_outcome_json(Int, Array[String], Array[String], Bytes, Int, Int, Int, String) -> String
+
+pub fn github_comment_subject_json(Bytes, Int, Int, Int, String, String, Double, String) -> String
+
+pub fn github_comment_subject_request_json(String) -> String
 
 pub fn github_issue_page_json(Bytes, Int, Int, Int, Int) -> String
 
