@@ -220,8 +220,8 @@ test('CI selection follows the owned contract baseline without a legacy exceptio
 
 
 test('maintenance inventory is exact and every existing reviewed modification qualifies', () => {
-  assert.equal(maintenanceFiles.length, 17);
-  assert.equal(new Set(maintenanceFiles).size, 17);
+  assert.equal(maintenanceFiles.length, 15);
+  assert.equal(new Set(maintenanceFiles).size, 15);
   for (const path of maintenanceFiles) {
     const selection = validateSelection(maintenanceSelection([path]));
     assert.equal(selection.profile, 'maintenance', path);
@@ -234,7 +234,8 @@ test('maintenance inventory is exact and every existing reviewed modification qu
   for (const path of ['README.md', 'src/source_span/span.mbt', 'packages/sdk/README.md',
     'docs/spec/language.md', 'docs/design/something.md', 'docs/reviews/report.json',
     'scripts/local-checks.mjs', 'proofs/relation-pipeline/ci-artifacts.mjs',
-    'scripts/ci-review.config.json', 'scripts/new-reporter.mjs']) {
+    'scripts/ci-review.config.json', 'scripts/new-reporter.mjs',
+    'scripts/ci-artifact-reader.mjs', 'scripts/ci-artifact-reader.test.mjs']) {
     assert.equal(maintenanceSelection([path]).profile, 'full', path);
     assert.equal(maintenanceSelection([maintenanceFiles[0], path]).profile, 'full', path);
   }
