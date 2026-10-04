@@ -357,6 +357,7 @@ return entries.length;
 // installed profile's version; it never branches on a provider name.
 const hostBundleKeys = ['installation'];
 const installationKeys = ['providerBundle', 'registration', 'responseHeaders', 'revision', 'source'];
+const optionalInstallationKeys = ['effect'];
 const sourceKeys = ['exports', 'module', 'profileVersion'];
 const sourceExports = ['check', 'identityParts', 'load', 'publish'];
 const requiredSourceExports = ['check', 'identityParts', 'load'];
@@ -368,10 +369,15 @@ const sameKeys = (value, keys) => value !== null && typeof value === 'object' &&
 export function checkHostBundle(root, name, path) {
   const manifest = JSON.parse(readFileSync(path, 'utf8'));
   const invalid = reason => new Error(`Invalid Host bundle manifest (${reason}): ${path}`);
-  if (!sameKeys(manifest, hostBundleKeys) || !sameKeys(manifest.installation, installationKeys)) {
+  const declaredKeys = manifest.installation !== null && typeof manifest.installation === 'object'
+    ? Object.keys(manifest.installation) : [];
+  if (!sameKeys(manifest, hostBundleKeys) ||
+      !sameKeys(Object.fromEntries(declaredKeys.filter(key => !optionalInstallationKeys.includes(key))
+        .map(key => [key, true])), installationKeys) ||
+      declaredKeys.some(key => !installationKeys.includes(key) && !optionalInstallationKeys.includes(key))) {
     throw invalid('keys');
   }
-  const {registration, revision, providerBundle, responseHeaders, source} = manifest.installation;
+  const {registration, revision, providerBundle, responseHeaders, source, effect} = manifest.installation;
   if (registration !== name || !/^[a-z][a-z0-9_]*$/.test(name)) throw invalid('registration');
   if (typeof revision !== 'string' || !new RegExp(`^${name}/\\d+\\.\\d+$`).test(revision)) throw invalid('revision');
   if (typeof providerBundle !== 'string' ||
@@ -387,50 +393,63 @@ export function checkHostBundle(root, name, path) {
         reservedHttpHeader(header))) {
     throw invalid('responseHeaders');
   }
-  if (!sameKeys(source, sourceKeys)) throw invalid('source keys');
-  if (typeof source.profileVersion !== 'string' ||
-      !/^actql-installed-[a-z0-9-]+\/0\.1$/.test(source.profileVersion)) throw invalid('profileVersion');
-  if (typeof source.module !== 'string' ||
-      !source.module.startsWith(`adapters/connectors/${name}/host/`) ||
-      !/\.mjs$/.test(source.module) || !existsSync(join(root, source.module))) throw invalid('module');
-  if (source.exports === null || typeof source.exports !== 'object' || Array.isArray(source.exports) ||
-      Object.keys(source.exports).some(key => !sourceExports.includes(key)) ||
-      requiredSourceExports.some(key => !(key in source.exports))) throw invalid('exports keys');
-  const moduleText = readFileSync(join(root, source.module), 'utf8');
-  for (const [key, symbol] of Object.entries(source.exports)) {
-    if (typeof symbol !== 'string' || !/^[A-Za-z_]\w*$/.test(symbol) ||
-        !new RegExp(`^export (?:async )?function ${symbol}\\b|^export const ${symbol}\\b`, 'm').test(moduleText)) {
-      throw invalid(`export ${key}`);
+  const checkSection = (section, label) => {
+    const prefix = label === 'source' ? '' : `${label} `;
+    if (!sameKeys(section, sourceKeys)) throw invalid(`${label} keys`);
+    if (typeof section.profileVersion !== 'string' ||
+        !/^actql-installed-[a-z0-9-]+\/0\.1$/.test(section.profileVersion)) throw invalid(`${prefix}profileVersion`);
+    if (typeof section.module !== 'string' ||
+        !section.module.startsWith(`adapters/connectors/${name}/host/`) ||
+        !/\.mjs$/.test(section.module) || !existsSync(join(root, section.module))) throw invalid(`${prefix}module`);
+    if (section.exports === null || typeof section.exports !== 'object' || Array.isArray(section.exports) ||
+        Object.keys(section.exports).some(key => !sourceExports.includes(key)) ||
+        requiredSourceExports.some(key => !(key in section.exports))) throw invalid(`${prefix}exports keys`);
+    const moduleText = readFileSync(join(root, section.module), 'utf8');
+    for (const [key, symbol] of Object.entries(section.exports)) {
+      if (typeof symbol !== 'string' || !/^[A-Za-z_]\w*$/.test(symbol) ||
+          !new RegExp(`^export (?:async )?function ${symbol}\\b|^export const ${symbol}\\b`, 'm').test(moduleText)) {
+        throw invalid(`${prefix}export ${key}`);
+      }
     }
-  }
+    return {profileVersion: section.profileVersion, module: section.module, exports: {...section.exports}};
+  };
+  const checkedSource = checkSection(source, 'source');
+  const checkedEffect = effect === undefined ? undefined : checkSection(effect, 'effect');
+  if (checkedEffect?.profileVersion === checkedSource.profileVersion) throw invalid('effect profileVersion');
   return {name, registration, revision, providerBundle, responseHeaders: [...responseHeaders],
-    source: {profileVersion: source.profileVersion, module: source.module, exports: {...source.exports}}};
+    source: checkedSource, ...(checkedEffect === undefined ? {} : {effect: checkedEffect})};
 }
 
 export function generateInstallations(installations, output, root) {
   const versions = installations.map(entry => entry.source.profileVersion);
   if (new Set(versions).size !== versions.length) throw new Error('Duplicate installed source profile version');
+  const effectVersions = installations.filter(entry => entry.effect !== undefined)
+    .map(entry => entry.effect.profileVersion);
+  if (new Set(effectVersions).size !== effectVersions.length) throw new Error('Duplicate installed Effect profile version');
+  const section = (section, label) => {
+    const module = relative(dirname(output), join(root, section.module));
+    const exports = Object.entries(section.exports)
+      .map(([key, symbol]) => `${key}: module.${symbol}`).join(', ');
+    return `    ${label}: Object.freeze({\n` +
+      `      profileVersion: ${JSON.stringify(section.profileVersion)},\n` +
+      `      load: () => import(${JSON.stringify(module)})\n` +
+      `        .then(module => Object.freeze({${exports}})),\n` +
+      `    }),\n`;
+  };
   const literal = value => JSON.stringify(value);
   return '// Generated by scripts/connector-node-bundles.mjs; edit connector host manifests.\n' +
     '// Installed Host bindings declared by connector-owned `host-bundle.json`\n' +
     '// manifests. The common Host selects one entry by the installed profile\'s\n' +
     '// version and loads only that connector\'s module and provider bundle.\n' +
     'export const installedConnectors = Object.freeze([\n' +
-    installations.map(entry => {
-      const module = relative(dirname(output), join(root, entry.source.module));
-      const exports = Object.entries(entry.source.exports)
-        .map(([key, symbol]) => `${key}: module.${symbol}`).join(', ');
-      return `  Object.freeze({\n` +
+    installations.map(entry => `  Object.freeze({\n` +
         `    name: ${literal(entry.name)}, registration: ${literal(entry.registration)},\n` +
         `    revision: ${literal(entry.revision)},\n` +
         `    providerBundle: ${literal(entry.providerBundle)},\n` +
         `    responseHeaders: Object.freeze(${literal(entry.responseHeaders)}),\n` +
-        `    source: Object.freeze({\n` +
-        `      profileVersion: ${literal(entry.source.profileVersion)},\n` +
-        `      load: () => import(${literal(module)})\n` +
-        `        .then(module => Object.freeze({${exports}})),\n` +
-        `    }),\n  }),\n`;
-    }).join('') +
+        section(entry.source, 'source') +
+        (entry.effect === undefined ? '' : section(entry.effect, 'effect')) +
+        `  }),\n`).join('') +
     ']);\n';
 }
 

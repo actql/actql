@@ -14,6 +14,11 @@
 //   resolveSecret, installation, providerMoon?, runtimeBundleCid?})`: the
 //   installed source adapter (`installed-source.mjs`);
 // - optionally `publish(checked, options)`: the explicit publication step.
+//
+// An Effect installation module (optional `effect` section) exports the same
+// entries; its `identityParts(profile, read)` takes the profile only, and its
+// `load` also receives the Host's own `ledgerRoot` and returns the Effect
+// Site hooks (`installed-effect.mjs`).
 import {basename} from 'node:path';
 
 const fail = (code, cause) => {
@@ -36,10 +41,44 @@ function checkEntry(entry) {
         !/^connectors\/[a-z][a-z0-9_]*\/[a-z][a-z0-9_]*$/u.test(
           entry.providerBundle)) ||
       (entry.responseHeaders !== undefined &&
-        !Array.isArray(entry.responseHeaders))) {
+        !Array.isArray(entry.responseHeaders)) ||
+      (entry.effect !== undefined && (!entry.effect ||
+        typeof entry.effect !== 'object' ||
+        !profileVersionPattern.test(entry.effect.profileVersion ?? '') ||
+        entry.effect.profileVersion === entry.source.profileVersion ||
+        typeof entry.effect.load !== 'function'))) {
     fail('InvalidInstalledConnectorEntry');
   }
   return entry;
+}
+
+// The table by installed Effect profile version, over the entries that
+// declare an Effect installation.
+export function installedEffectTable(entries) {
+  if (!Array.isArray(entries)) fail('InvalidInstalledConnectorEntry');
+  const table = new Map();
+  for (const entry of entries) {
+    const checked = checkEntry(entry);
+    if (checked.effect === undefined) continue;
+    if (table.has(checked.effect.profileVersion)) {
+      fail('InstalledConnectorVersionAmbiguous');
+    }
+    table.set(checked.effect.profileVersion, checked);
+  }
+  return table;
+}
+
+// Load the selected connector's Effect installation module.
+export async function loadInstalledEffectModule(entry) {
+  const module = await entry.effect.load();
+  if (!module || typeof module !== 'object' ||
+      typeof module.check !== 'function' ||
+      typeof module.identityParts !== 'function' ||
+      typeof module.load !== 'function' ||
+      (module.publish !== undefined && typeof module.publish !== 'function')) {
+    fail('InvalidInstalledConnectorModule');
+  }
+  return module;
 }
 
 // The table by installed source profile version; duplicate versions refuse
