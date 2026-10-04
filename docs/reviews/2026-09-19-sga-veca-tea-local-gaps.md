@@ -756,6 +756,12 @@ selected task and publishes `[{n: 4}, {n: 2}]`; the existing whole-task
 provider, rather than the narrower split eligibility for `COUNT`, admits it.
 Independent `SUM` and `AVG` branch slots likewise seal and publish
 `[{n: 9}, {n: 1.5}]` through the retained Store and two consumer Results.
+The same checked shape permits selected bounded `sort` and `distinct`
+children on different branches. With a duplicated input ID, the retained
+producer and both consumers read the fixed ordered rows
+`[{id: 4}, {id: 3}, {id: 2}, {id: 2}, {id: 1}, {id: 2}]`; the memory-output
+Host also runs the authored Program as one physical task. This does not
+admit arbitrary order-sensitive or nonlinear child operations.
 The chain owner supplies cumulative work, overlapping child capacity,
 stop-before-release and reverse cleanup for these selected children. The
 earlier fork-join fault cases exercise that owner; they are shared lifecycle

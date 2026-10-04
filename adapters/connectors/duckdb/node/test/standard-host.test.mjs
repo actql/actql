@@ -7956,6 +7956,17 @@ async function exerciseStrategyGraph(
     stage.id === 'crossed').steps;
   branchedNumericSteps[3].group.aggregates.n = {fn: 'sum', field: 'id'};
   branchedNumericSteps[4].group.aggregates.n = {fn: 'avg', field: 'id'};
+  const branchedOrderProgram = structuredClone(branchedRelationProgram);
+  branchedOrderProgram.stages.find(stage => stage.id === 'cross_right')
+    .steps[0].values.rows = [{id: 2}, {id: 3}, {id: 4}];
+  const branchedOrderSteps = branchedOrderProgram.stages.find(stage =>
+    stage.id === 'crossed').steps;
+  branchedOrderSteps.splice(3, 0,
+    {from: 'greater', sort: [{id: 'desc'}], as: 'ordered_greater'},
+    {from: 'less', distinct: true, as: 'unique_less'});
+  branchedOrderSteps[5] = {
+    from: 'ordered_greater', append: {with: 'unique_less'}, as: 'out',
+  };
   for (const [name, program, tasks] of [
     ['values', zeroInputProgram, [1, 2, 3]],
     ['captured Relation filter/select chain', capturedRelationChainProgram,
@@ -7995,6 +8006,8 @@ async function exerciseStrategyGraph(
     ['external append fork-group-join', branchedGroupProgram,
       [1, 2, 3, 4, 5]],
     ['external append fork-mixed-group-join', branchedMixedAggregateProgram,
+      [1, 2, 3, 4, 5]],
+    ['external append fork-sort-distinct-join', branchedOrderProgram,
       [1, 2, 3, 4, 5]],
     ['filter then append captured input', filterThenAppendProgram,
       [1, 2, 3, 4]],
@@ -9394,6 +9407,8 @@ async function exerciseStrategyGraph(
       expected: [{n: 4}, {n: 2}], fields: ['n']},
     {name: 'append-fork-sum-avg-join', source: branchedNumericGroupProgram,
       expected: [{n: 9}, {n: 1.5}], fields: ['n']},
+    {name: 'append-fork-sort-distinct-join', source: branchedOrderProgram,
+      expected: [4, 3, 2, 2, 1, 2].map(id => ({id})), fields: ['id']},
     {name: 'except-all-filter', source: retainedBinaryChain(
       retainedSetProgram('except'), [{filter: 'id > 1'}], ['id']),
     expected: [{id: 2}], fields: ['id']},
