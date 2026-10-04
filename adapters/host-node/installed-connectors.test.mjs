@@ -91,3 +91,38 @@ test('the generated table declares Salesforce and nothing provider-named is in t
     'utf8');
   assert.doesNotMatch(host.replace(/\/\/[^\n]*/g, ''), /salesforce/i);
 });
+
+test('the Effect table selects declared Effect installations by their own version', async () => {
+  const {installedEffectTable, loadInstalledEffectModule} = await import(
+    './installed-connectors.mjs');
+  const effect = {profileVersion: 'actql-installed-example-effect/0.1',
+    load: async () => ({check: p => p, identityParts: p => [p],
+      load: async () => ({})})};
+  const table = installedEffectTable([entry({effect}), entry({name: 'plain',
+    registration: undefined, revision: undefined, providerBundle: undefined,
+    source: {profileVersion: 'actql-installed-plain-source/0.1',
+      load: async () => ({})}})]);
+  assert.deepEqual([...table.keys()], ['actql-installed-example-effect/0.1']);
+  assert.equal(installedConnectorFor(table,
+    {version: 'actql-installed-example-effect/0.1'},
+    'InvalidInstalledEffectProfile').name, 'example');
+  // A source version never selects an Effect installation.
+  assert.throws(() => installedConnectorFor(table,
+    {version: 'actql-installed-example-source/0.1'},
+    'InvalidInstalledEffectProfile'), {code: 'InvalidInstalledEffectProfile'});
+  assert.equal(typeof (await loadInstalledEffectModule(table.get(
+    'actql-installed-example-effect/0.1'))).load, 'function');
+  assert.throws(() => installedEffectTable([entry({effect: {...effect,
+    profileVersion: 'actql-installed-example-source/0.1'}})]),
+  {code: 'InvalidInstalledConnectorEntry'});
+  assert.throws(() => installedEffectTable([entry({effect}), entry({
+    name: 'twin', registration: 'twin', revision: 'twin/0.1',
+    providerBundle: 'connectors/twin/host_node',
+    source: {profileVersion: 'actql-installed-twin-source/0.1',
+      load: async () => ({})}, effect})]),
+  {code: 'InstalledConnectorVersionAmbiguous'});
+  const {readFile} = await import('node:fs/promises');
+  const host = await readFile(new URL('./installed-effect.mjs', import.meta.url),
+    'utf8');
+  assert.doesNotMatch(host.replace(/\/\/[^\n]*/g, ''), /salesforce/i);
+});

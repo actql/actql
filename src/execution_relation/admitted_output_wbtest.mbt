@@ -105,6 +105,38 @@ test "provisional output retains exact checked target and shared immutable value
 }
 
 ///|
+test "admitted output shares work capacity with surrounding kernel steps" {
+  let owner = capture_fixture()
+  let limits : ValueLimits = {
+    max_nodes: 6,
+    max_text_bytes: 10,
+    max_depth: 2,
+    max_work: 17,
+  }
+  let exact = prepare_admitted_output(owner, Step(1), 2, limits).unwrap()
+  assert_true(admitted_output_charge_control_work(exact, 1))
+  append_admitted_output(exact, output_fixture_row(owner, 0)).unwrap()
+  append_admitted_output(exact, output_fixture_row(owner, 1)).unwrap()
+  assert_false(admitted_output_charge_control_work(exact, 1))
+  let rows = finish_admitted_output(exact).unwrap()
+  assert_eq(admitted_output_usage(rows).work, 16)
+  assert_false(admitted_output_charge_control_work(exact, 0))
+
+  let one_short = prepare_admitted_output(owner, Step(1), 2, {
+    ..limits,
+    max_work: 16,
+  }).unwrap()
+  assert_true(admitted_output_charge_control_work(one_short, 1))
+  append_admitted_output(one_short, output_fixture_row(owner, 0)).unwrap()
+  assert_true(
+    append_admitted_output(one_short, output_fixture_row(owner, 1))
+    is Err(CaptureLimit),
+  )
+  assert_true(one_short.buffer.rows.is_empty())
+  assert_false(admitted_output_charge_control_work(one_short, 0))
+}
+
+///|
 test "provisional output rejection is atomic under exact ownership and resource bounds" {
   let owner = capture_fixture()
   let limits : ValueLimits = {
