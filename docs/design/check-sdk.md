@@ -580,7 +580,8 @@ The active producers and consumers share this one contract:
 | `scripts/generate-client-host-wire.mjs`, `packages/client-wire` | Generate types/structural guards; enforce location/document and verdict/evidence consistency |
 | `packages/sdk` | Validates each response and binds locations to that call's immutable submitted inputs |
 | `packages/local-node` build graph | Packages the same Host adapter and compiled bridge, with the SDK/client-wire package dependencies |
-| Independent Host, SDK and generator tests | Fix byte ranges and facts independently; reject malformed facts and contract mismatches |
+| Independent Host, SDK, generator and packed two-Source fixtures | Fix byte ranges and facts independently; reject malformed facts and contract mismatches; `scripts/fixtures/two-source-public-query.mjs` consumes the same report |
+| `canonical_json` identity fixtures | Read current registered schema bodies against normative pins; historical identity vectors remain immutable |
 
 The Client–Host `check` request shape and `actql-client-host/0.1` identity remain
 unchanged; the registered check outcome/reason schemas are the response authority.

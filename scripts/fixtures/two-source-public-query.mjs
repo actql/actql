@@ -189,10 +189,14 @@ export async function exerciseTwoSourcePublicQuery({connect, openInstalledRemote
       const check = await checker.check('SELECT 1 AS value', {format: 'sql'});
       assert.equal(check.outcome, 'completed');
       assert.match(check.report.context_ref, /^ctx:[0-9a-f]{64}$/u);
-      assert.deepEqual({...check, report: {...check.report, context_ref: '<ctx>'}},
+      assert.match(check.report.inputs[0].revision, /^rev:[0-9a-f]{64}$/u);
+      assert.deepEqual({...check, report: {...check.report, context_ref: '<ctx>',
+        inputs: check.report.inputs.map(input => ({...input, revision: '<revision>'}))}},
         {version: 'actql-check-outcome/0.1', outcome: 'completed',
+          reason_schema_cid: 'sha256:6ef2aefaf03e046fcfa830ce1b0648c6b04701162755ba869a9996cd69ade8ef',
           report: {context_ref: '<ctx>', scope: {kind: 'bound_input'},
-            verdict: 'verified', reasons: [],
+            inputs: [{document_id: 'source', kind: 'text', revision: '<revision>', byte_length: 17}],
+            verdict: 'verified', reasons: [], requirements: [],
             coverage: {limits: [], unresolved: []}}});
       assert.deepEqual(provider.snapshot(), before, 'plural check performs no provider I/O');
       await exercisePublicQueryInput(connect, running.options, {
