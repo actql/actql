@@ -24,13 +24,35 @@ clean `27dc783a4c1b8dca34c496d21362c42866250513` passed
 Local and authenticated HTTPS installations with no runtime MoonBit toolchain.
 This is fixed-SHA local packed evidence; automatic PR CI is a separate check.
 
-The later ordinary integration is
+The previous ordinary integration is
 `5962250507a903413654c0744bfb1176fd2b410c`, adopting main
 `d5f0802c93e2863b092aa8f1a9e9a7cc97b12c5b` and its installed connector
 manifests. Both additions in `scripts/test-packed-public-query.mjs` survive the
 merge; existing foundation records are preserved. Pinned JS runtime build,
 the two real capture boundary cases and complete retained-history validation
 passed at this integration. It is not a new local packed campaign.
+
+Automatic PR CI [37172424649](https://github.com/actql/actql/actions/runs/37172424649)
+at submitted `ee892e1155da1bbd287e8ffabc2407a8f8029a57` passed the packed,
+distribution and client aggregate jobs. Fresh packages bind clean tested merge
+`d6176313d4a21c08497241fd8f3df5453cd72d00` against main
+`d5f0802c93e2863b092aa8f1a9e9a7cc97b12c5b`. The packed log confirms all
+12 normal cases, retained recovery and the existing second-input failure,
+cancellation and cleanup-retry cases. Retained public-query artifact
+`11291694091` has a complete passed summary and expected verification status
+for all 40 command records. Full CI was still running when inspected; it is
+not yet recorded as fully successful.
+
+The latest ordinary integration is
+`586cf84261a1ce86e142b9da9b327b138477ccca`, adopting main
+`3a7be90e681326fef04cf2c28fe11dbfee729e2b` and B #303's Graph row source
+lowering. The packed consumer retains both the pure JSON/text cases and the
+new Graph row case registration. There were no conflicts or new foundation
+declaration requirements; all existing records and supplements are preserved.
+The public-query/frontend fixture checks passed (10 cases), complete
+retained-history validation passed, and `git diff --check` passed. This is
+focused integration verification, not another local packed campaign or a
+success claim for the new HEAD's automatic CI.
 
 [Earlier automatic PR CI 37170657090](https://github.com/actql/actql/actions/runs/37170657090)
 at `e210c920e6b05b21bb6f9216933717ea635dd0c2` found two capture expectation
