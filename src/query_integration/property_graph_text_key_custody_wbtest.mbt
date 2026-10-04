@@ -909,3 +909,156 @@ test "Graph bounds yields during typed identity ordering and rejects partial out
   assert_true(@local_bridge.cleanup_rows_to_graph(construction).unwrap())
   assert_true(@graphs.discard_completed(graph))
 }
+
+///|
+test "Graph diagnostics count typed edge definitions and self-loop incidences" {
+  let first = "alpha"
+  let second = "beta"
+  let source = keyed_source_owner(
+    "{\"id\":{\"type\":\"string\",\"nullable\":false},\"src\":{\"type\":\"string\",\"nullable\":false},\"dst\":{\"type\":\"string\",\"nullable\":false}}",
+    "[{\"id\":\"alpha\",\"src\":\"alpha\",\"dst\":\"alpha\"},{\"id\":\"beta\",\"src\":\"beta\",\"dst\":\"alpha\"}]",
+  )
+  let body =
+    #|[{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"nodes","key":["id"]}],"edges":[{"name":"E","from":"edges","key":["id"],"source":{"definition":"N","key":["src"]},"target":{"definition":"N","key":["dst"]},"labels":[{"name":"Link","properties":{"mode":"no_properties"}}]},{"name":"F","from":"edges_alt","key":["id"],"source":{"definition":"N","key":["src"]},"target":{"definition":"N","key":["dst"]},"labels":[{"name":"Alternate","properties":{"mode":"no_properties"}}]}]},"as":"g"}]
+  let owner = keyed_bridge_owner(
+    source,
+    source,
+    body=Some(body),
+    edge_alt=Some(source),
+  )
+  let construction = @local_bridge.start_rows_to_property_graph(
+    @bounded.control(),
+    prepared_sequence(owner),
+    0,
+    keyed_bridge_inputs(owner, source, source, edge_alt=Some(source)),
+    { ..carrier_graph_storage_limits(), max_work: 10000, },
+    10000L,
+    1000,
+    () => true,
+  ).unwrap()
+  let graph = match
+    keyed_bridge_terminal(construction, max_fixture_steps=10000) {
+    @local_bridge.Complete(value, ..) => value
+    _ => fail("typed two-definition Graph construction failed")
+  }
+  guard @pipeline.carrier_at(
+      @lower.pipeline(@lower.bound_preparation(owner)),
+      @pipeline.Step(0),
+    )
+    is Some(@carrier_contract.GraphValue(schema)) else {
+    fail("typed two-definition Graph schema")
+  }
+  let domain = @carrier_contract.property_graph_domain(
+    @carrier_contract.graph_property_definition(schema),
+  )
+  let identity = fn(key : String) {
+    "{\"definition\":\"N\",\"domain\":\"" +
+    domain +
+    "\",\"key\":[\"" +
+    key +
+    "\"],\"key_types\":[{\"kind\":\"string\"}]}"
+  }
+  let limits : @execution.ValueLimits = {
+    max_work: 10000,
+    max_nodes: 10000,
+    max_text_bytes: 10000,
+    max_depth: 50,
+  }
+  for
+    (direction, expected_first, expected_second) in [
+      ("in", 4, 0),
+      ("out", 2, 2),
+      ("both", 6, 2),
+    ] {
+    let receiver = keyed_graph_receiver(
+      owner,
+      body="[{\"from\":\"g\",\"degree\":{\"direction\":\"" + direction + "\"}}]",
+    )
+    let input = @graphs.prepare_producer_read(receiver, 0, owner, graph).unwrap()
+    let active = @local_sga.start_graph_degree(
+      @bounded.control(),
+      task_test_completion(receiver),
+      prepared_sequence(receiver),
+      0,
+      input,
+      2,
+      limits,
+      8,
+      10000,
+      10000,
+      [],
+    ).unwrap()
+    let mut output = None
+    for _ in 0..<10000 {
+      match @local_sga.advance_graph_degree(active, 1).unwrap() {
+        @local_sga.GraphDegreeContinue(..) => ()
+        @local_sga.GraphDegreeComplete(value, ..) => {
+          output = Some(value)
+          break
+        }
+        _ => fail("typed multi-definition degree failed")
+      }
+    }
+    for
+      (index, key, degree) in [
+        (0, first, expected_first),
+        (1, second, expected_second),
+      ] {
+      assert_eq(
+        @execution.completed_output_row_wire(
+          output.unwrap(),
+          index,
+          10000,
+          10000,
+          50,
+        ).unwrap(),
+        "{\"degree\":" + degree.to_string() + ",\"node\":" + identity(key) + "}",
+      )
+    }
+    assert_true(@local_sga.cleanup_graph_degree(active).unwrap())
+    assert_true(@graphs.producer_read_available(input))
+  }
+  let receiver = keyed_graph_receiver(
+    owner,
+    body="[{\"from\":\"g\",\"graph_bounds\":{\"max_edges\":3,\"max_degree\":3}}]",
+  )
+  let input = @graphs.prepare_producer_read(receiver, 0, owner, graph).unwrap()
+  let active = @local_sga.start_graph_bounds(
+    @bounded.control(),
+    task_test_completion(receiver),
+    prepared_sequence(receiver),
+    0,
+    input,
+    2,
+    limits,
+    10,
+    10000,
+    10000,
+    [],
+  ).unwrap()
+  let mut output = None
+  for _ in 0..<10000 {
+    match @local_sga.advance_graph_bounds(active, 1).unwrap() {
+      @local_sga.GraphBoundsContinue(..) => ()
+      @local_sga.GraphBoundsComplete(value, ..) => {
+        output = Some(value)
+        break
+      }
+      _ => fail("typed multi-definition bounds failed")
+    }
+  }
+  assert_eq(
+    @execution.completed_output_row_wire(output.unwrap(), 0, 10000, 10000, 50).unwrap(),
+    "{\"actual\":4,\"kind\":\"edges\",\"max\":3,\"node_id\":null}",
+  )
+  assert_eq(
+    @execution.completed_output_row_wire(output.unwrap(), 1, 10000, 10000, 50).unwrap(),
+    "{\"actual\":6,\"kind\":\"degree\",\"max\":3,\"node_id\":" +
+    identity(first) +
+    "}",
+  )
+  assert_true(@local_sga.cleanup_graph_bounds(active).unwrap())
+  assert_true(@graphs.producer_read_available(input))
+  assert_true(@local_bridge.cleanup_rows_to_graph(construction).unwrap())
+  assert_true(@graphs.discard_completed(graph))
+}

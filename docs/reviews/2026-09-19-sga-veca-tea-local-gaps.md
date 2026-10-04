@@ -39,8 +39,13 @@ on a two-node directed Graph with workspace 8/7 and control work 178/177.
 The same stored and managed-view fixture now shares one budget between
 control steps and retained output values: bounds work 802/801 and degree
 work 760/759 are exact/one-short with independently counted values.
-Remaining formal variants and final-source CI are not yet current-profile
-completion evidence; the old tuple diagnostics records below remain historical.
+A focused JS fixture also counts two separately bound typed edge definitions,
+including a self-loop with two incidences, for incoming, outgoing and total
+degree and combined edge/degree bounds. The retained Host degree case passes
+through the real Store with two consumers; the corresponding bounds Host case
+is registered but was not locally executed in this unit. Remaining formal
+variants and final-source CI are not yet current-profile completion evidence;
+the old tuple diagnostics records below remain historical.
 
 The retained Node Host now also exercises combined node, edge and degree
 threshold violations, zero thresholds on an empty Graph, and `degree` in all

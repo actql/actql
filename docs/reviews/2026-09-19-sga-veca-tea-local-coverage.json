@@ -1265,7 +1265,7 @@
       "variants": ["node bound", "edge bound", "degree bound", "combined bounds"],
       "status": "partial",
       "owner": "local-sga",
-      "current_gap": "Current definition-keyed Graph bounds reach a bounded selected provider, retained Store publication and two consumers. Combined node/edge/degree thresholds, zero bounds on an empty Graph, and long typed-key ordering are exercised. The stored and viewed two-node fixture now enforces cumulative control and output-value work at exact/one-short limits. Other formal branches and final CI remain open.",
+      "current_gap": "Current definition-keyed Graph bounds reach a bounded selected provider, retained Store publication and two consumers. Combined node/edge/degree thresholds, zero bounds on an empty Graph, long typed-key ordering and a focused JS two-definition self-loop case are exercised. The stored and viewed two-node fixture enforces cumulative control and output-value work at exact/one-short limits. The new multi-definition retained Host bounds case is registered but not yet locally executed; other formal branches and final CI remain open.",
       "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "publication"],
       "layer_evidence": [
         {
@@ -1341,7 +1341,7 @@
       "variants": ["incoming", "outgoing", "both", "typed edges"],
       "status": "partial",
       "owner": "local-sga",
-      "current_gap": "Current definition-keyed Graph degree uses the bounded diagnostic provider. A two-node directed fixture covers in/out/both and semantic ID order; the retained Store publishes all three directions and empty Graph output with two consumers. The stored and viewed two-node fixture now enforces cumulative control and output-value work at exact/one-short limits. All typed edge variants and final CI remain open.",
+      "current_gap": "Current definition-keyed Graph degree uses the bounded diagnostic provider. Two-node fixtures cover in/out/both, semantic ID order and, on focused JS, a self-loop across two separately bound typed edge definitions. The retained Store publishes directional and empty Graph output with two consumers; its selected multi-definition self-loop case also passed. The stored and viewed fixture enforces cumulative control and output-value work at exact/one-short limits. Other typed edge variants and final CI remain open.",
       "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "publication"],
       "layer_evidence": [
         {
