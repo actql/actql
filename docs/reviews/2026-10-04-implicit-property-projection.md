@@ -106,9 +106,30 @@ expected contracts from rows.
   size evidence. Rows, order, NULL expectations and product code are unchanged.
   Logs and the failure receipt were retained; disposable installation artifacts
   were removed. Text positives, refusals and HTTP were not reached in that run.
-- Fresh packed Local/HTTP acceptance and submitted-HEAD CI are pending at this
-  source commit. Full Core, all targets, native, proof and performance campaigns
-  were not run locally. No Google service differential execution was performed.
+- Fresh packed source `7c08da22b6eb510aa83bd7d54a166bc1740392b6` passed **nine
+  positives and five preparation refusals per Embedded Local and authenticated
+  HTTP** (`public-query-evidence-CT6UKf`). Independent rows, declared column
+  order, complete checked contracts, nullable nested members, empty schemas,
+  duplicate values and absence of private columns matched. Result streams
+  completed; resubmit, lookup and attach retained the same Run and acquisition
+  counters. Refusals retained zero Run admission and provider reads.
+- The packed receipt identifies a clean source tree, completed success, no
+  evidence errors and removal of disposable tarballs, installation and Host
+  Store. Twelve captured commands ran; unrelated planner, native, SGA and
+  String restart campaigns were not invoked. The README quickstart and
+  missing-runtime-asset control passed separately from these nine positives.
+- The evidence commit changes only this review document after the packed source
+  above. Submitted-HEAD CI remains a separate obligation. Full Core, all targets,
+  native, proof and performance campaigns were not run locally. No Google service
+  differential execution was performed.
+
+| Normally packed tarball | SHA-256 |
+| --- | --- |
+| `actql-client-wire-0.0.0-development.tgz` | `52fe3218df346cfb9dae0adc248071563fe68918bded16f8d733415e65584fc0` |
+| `actql-sdk-0.0.0-development.tgz` | `f81bf27c3bb42a007bc16b6f89a15542a89c7fb844e2893870d1161a8e8abc6d` |
+| `actql-run-host-core-0.0.0-development.tgz` | `65b6408c2bb93597b8c92fc424b010b5e1d3e8b75ba414ad006bd30d57999a86` |
+| `actql-local-node-0.0.0-development.tgz` | `a8f500c239169bbc37b048894bfec7842292fb3fd04a3af1cde19af4b6039982` |
+| `actql-node-0.0.0-development.tgz` | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
 
 This closes neither pending aggregate execution support nor all Frontend r1
 coverage. Their independently recorded blockers remain separate from this unit.
