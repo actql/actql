@@ -80,3 +80,14 @@ export function compareCatalogs(protectedCatalog, candidateCatalog) {
     }).map(action => action.id),
   };
 }
+
+// Additive local obligations are permitted. Published requirements cannot be
+// deleted or weakened merely by editing the candidate's registration labels.
+export function preserveProtectedActions(protectedCatalog, candidateCatalog) {
+  const comparison = compareCatalogs(protectedCatalog, candidateCatalog);
+  for (const original of protectedCatalog.actions) {
+    assert.equal(encode(candidateCatalog.actions.find(action => action.id === original.id)), encode(original),
+      'Changed protected registration requires a reviewed policy update');
+  }
+  return comparison;
+}

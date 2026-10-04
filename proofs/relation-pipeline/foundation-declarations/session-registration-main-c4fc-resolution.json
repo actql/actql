@@ -1,0 +1,79 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "session-registration-main-c4fc-resolution",
+  "kind": "resolution",
+  "revision": "2cd36d4cdb1fd9107579dd749ef3cee3d9f100d8",
+  "parents": [
+    "c20ef0ec6fa2aa71eb9469c8f93b775f375eaf17",
+    "c4fc104d8a700794766dcee5114617b001f8a6f9"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "c20ef0ec6fa2aa71eb9469c8f93b775f375eaf17",
+          "digest": "48754bae657b704280738c57a165798f74655094394d1f4318df3c4ce2b52fad",
+          "mode": "100644"
+        },
+        {
+          "revision": "c4fc104d8a700794766dcee5114617b001f8a6f9",
+          "digest": "48754bae657b704280738c57a165798f74655094394d1f4318df3c4ce2b52fad",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "48754bae657b704280738c57a165798f74655094394d1f4318df3c4ce2b52fad",
+      "afterMode": "100644",
+      "reason": "Normally merge main after PR #326 was integrated. Retain the scoped Session acquisition and final acceptance workflow bytes agreed by both parents, including existing CI cost controls. Apply the retained validator to every real maximal merge base; preserve all original declarations, completion records and complete ancestral dependencies. Identical final bytes do not exempt the actual merge from its required declaration."
+    }
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-343a5565c1ac",
+    "adopt-985dbbba2789",
+    "adopt-dafff1a1aeea",
+    "bounded-local-execution-guard",
+    "ci-artifact-preflight-fixtures",
+    "ci-declaration-profile",
+    "ci-focused-fixed-requests",
+    "ci-main-carryforward",
+    "ci-maintenance-pr-profile",
+    "ci-mandatory-preflight",
+    "ci-native-query-partition",
+    "ci-operation-evidence-admission",
+    "ci-portable-pr-targets",
+    "client-ci-runner-context",
+    "client-ci-split",
+    "four-owned-pipeline-producers",
+    "incremental-session-comparison",
+    "issue-180-foundation-composition",
+    "main-json-composition-246-resolution",
+    "main-pr225-ci-resolution",
+    "packed-acquired-infer-acceptance",
+    "packed-composed-infer-effect-acceptance",
+    "parallel-pipeline-evidence",
+    "resolve-acquired-infer-client-ci",
+    "resolve-ci-main-carryforward-artifact-preflight",
+    "resolve-composed-infer-effect-main-11fde344",
+    "resolve-composition-current-ci-main",
+    "resolve-composition-custody-main-maximal-bases",
+    "resolve-composition-infer-main-maximal-bases",
+    "resolve-composition-maintenance-ci-main",
+    "resolve-composition-reviewed-supplements-main",
+    "resolve-four-producers-current-main",
+    "resolve-host-owner-main-7081dedfd",
+    "resolve-incremental-session-main-e9718942",
+    "resolve-local-guard-acquired-infer-ci",
+    "resolve-local-guard-pipeline-ci",
+    "resolve-local-guard-portable-pr-ci",
+    "resolve-main-local-guard-ci",
+    "resolve-main-local-guard-ci-6520c3f59",
+    "resolve-main-model-backing",
+    "resolve-parallel-pipeline-main-infer",
+    "scoped-session-acquisition"
+  ],
+  "mergeBases": [
+    "3a83cd0570197db7a59ab257974e3a0401f92e62",
+    "917f802f5074e67112ca64919f39690b31dbccf7"
+  ]
+}

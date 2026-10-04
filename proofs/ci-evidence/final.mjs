@@ -12,6 +12,7 @@ import {actionsReader} from '../../scripts/ci-main-base.mjs';
 import {openArtifactZip} from '../../scripts/ci-artifact-reader.mjs';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {readCatalog, initialRegistrationRevision} from './actions.mjs';
+import {checkExecutionRecipes} from './execution-recipes.mjs';
 import {hash} from './inputs.mjs';
 import {checkApplications} from './applications.mjs';
 import {leanInput} from './check.mjs';
@@ -41,6 +42,8 @@ export function checkCertificate({certificate, output, context, catalog, require
 
 export async function verifyCurrentFamily({root, artifactId, expectedDigest, context, request, archive, token, directory}) {
   const started = performance.now();
+  const catalog = readCatalog(join(root, 'proofs/ci-evidence/bounded-session-actions.json'));
+  checkExecutionRecipes(catalog);
   // Independently validate the API metadata again for each receipt below. This
   // first open only reads data needed to reconstruct the current obligation.
   const metadata = await request(`/actions/artifacts/${artifactId}`);
@@ -50,7 +53,6 @@ export async function verifyCurrentFamily({root, artifactId, expectedDigest, con
   const zip = await openArtifactZip(archive, {expectedSha256: metadata.digest,
     limits: {maxCompressedBytes: 64 * 1024 * 1024, maxTotalBytes: 256 * 1024 * 1024, maxEntries: 2000}});
   let state, certificate, certificateDigest, output, distributionInputs, comparison, comparisonObservations, receipts, actionRuntimes, mutationResult, acquisition;
-  const catalog = readCatalog(join(root, 'proofs/ci-evidence/bounded-session-actions.json'));
   try {
     distributionInputs = await zip.json('runtime-distributions.json');
     state = await zip.json('context.json'); const certificateBytes = await zip.read('checked.json');
