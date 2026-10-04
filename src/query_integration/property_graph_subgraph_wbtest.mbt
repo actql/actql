@@ -59,11 +59,13 @@ fn keyed_subgraph_relation_owner(
 }
 
 ///|
-test "keyed subgraph charges the exact empty-edge work boundary" {
+test "keyed subgraph false edge admits exact work and workspace" {
   let nodes = keyed_node_source(
     rows="[{\"id\":1,\"tenant\":\"a\",\"name\":\"one\"}]",
   )
-  let edges = keyed_edge_source(rows="[]")
+  let edges = keyed_edge_source(
+    rows="[{\"key\":10,\"tenant\":\"a\",\"src\":1,\"dst\":1}]",
+  )
   let graph_owner = keyed_bridge_owner(nodes, edges)
   let construction = @local_bridge.start_rows_to_property_graph(
     @bounded.control(),
@@ -103,96 +105,187 @@ test "keyed subgraph charges the exact empty-edge work boundary" {
     graph_owner,
     body="[{\"from\":\"g\",\"subgraph\":{\"nodes\":{\"ids\":[{\"definition\":\"N\",\"domain\":\"" +
       domain +
-      "\",\"key\":[\"a\",1],\"key_types\":[{\"kind\":\"string\"},{\"kind\":\"number\"}]}]}}}]",
+      "\",\"key\":[\"a\",1],\"key_types\":[{\"kind\":\"string\"},{\"kind\":\"number\"}]}]},\"edges\":\"false\"}}]",
   )
   let input = @graphs.prepare_producer_read(owner, 0, graph_owner, graph).unwrap()
   // Two profile phases consume two steps each. Output preparation consumes one,
   // selection initialization and resolution two each, node visitation two,
-  // two key reads, one property read, node commit one, empty-edge visitation
-  // one, and finish one: 17 total. Phase transitions do not read material.
-  for limit in [16, 17] {
-    let active = @local_sga.start_subgraph_view(
-      @bounded.control(),
-      prepared_sequence(owner),
-      0,
-      @graphs.producer_read_view(input).unwrap(),
-      None,
-      { ..carrier_graph_storage_limits(), max_work: 1000, },
-      8192L,
-      () => true,
-      control_work_limit=Some(limit),
-    ).unwrap()
-    let mut terminal = false
-    for _ in 0..<30 {
-      match @local_sga.advance_subgraph(active, 1).unwrap() {
-        @local_sga.SubgraphContinue(..) => ()
-        @local_sga.SubgraphComplete(result, ..) => {
-          assert_eq(limit, 17)
-          assert_eq(
-            @graph_storage.node_count(
-              @graphs.completed_storage(result).unwrap(),
-            ),
-            1,
-          )
-          assert_true(@graphs.discard_completed(result))
-          terminal = true
-          break
-        }
-        @local_sga.SubgraphFailed(@local_sga.SubgraphWorkLimit, ..) => {
-          assert_eq(limit, 16)
-          terminal = true
-          break
-        }
-        _ => fail("unexpected subgraph boundary result")
+  // two key reads, one property read, node commit one, rejected edge and end
+  // marker two, and finish one: 18 total. Phase transitions do not read data.
+  for stored in [false, true] {
+    for limit in [17, 18] {
+      let limits = { ..carrier_graph_storage_limits(), max_work: 1000, }
+      let started = if stored {
+        @local_sga.start_subgraph(
+          @bounded.control(),
+          prepared_sequence(owner),
+          0,
+          input,
+          None,
+          limits,
+          8192L,
+          () => true,
+          control_work_limit=Some(limit),
+        )
+      } else {
+        @local_sga.start_subgraph_view(
+          @bounded.control(),
+          prepared_sequence(owner),
+          0,
+          @graphs.producer_read_view(input).unwrap(),
+          None,
+          limits,
+          8192L,
+          () => true,
+          control_work_limit=Some(limit),
+        )
       }
+      let active = started.unwrap()
+      let mut terminal = false
+      for _ in 0..<30 {
+        match @local_sga.advance_subgraph(active, 1).unwrap() {
+          @local_sga.SubgraphContinue(..) => ()
+          @local_sga.SubgraphComplete(result, ..) => {
+            assert_eq(limit, 18)
+            assert_eq(
+              @graph_storage.node_count(
+                @graphs.completed_storage(result).unwrap(),
+              ),
+              1,
+            )
+            assert_eq(
+              @graph_storage.edge_count(
+                @graphs.completed_storage(result).unwrap(),
+              ),
+              0,
+            )
+            assert_true(@graphs.discard_completed(result))
+            terminal = true
+            break
+          }
+          @local_sga.SubgraphFailed(@local_sga.SubgraphWorkLimit, ..) => {
+            assert_eq(limit, 17)
+            terminal = true
+            break
+          }
+          _ => fail("unexpected subgraph boundary result")
+        }
+      }
+      assert_true(terminal)
+      assert_true(@local_sga.cleanup_subgraph(active).unwrap())
     }
-    assert_true(terminal)
-    assert_true(@local_sga.cleanup_subgraph(active).unwrap())
   }
   // The edge definition needs five scratch slots. The selector bitmap needs
   // one, the fixed scratch reservation adds sixteen, and one retained node
   // uses eight storage slots (record, indices, key and property values).
-  for workspace in [29, 30] {
-    let active = @local_sga.start_subgraph_view(
-      @bounded.control(),
-      prepared_sequence(owner),
-      0,
-      @graphs.producer_read_view(input).unwrap(),
-      None,
-      {
+  for stored in [false, true] {
+    for workspace in [29, 30] {
+      let limits = {
         ..carrier_graph_storage_limits(),
         max_work: 1000,
         max_workspace_slots: workspace,
-      },
-      8192L,
-      () => true,
-      control_work_limit=Some(17),
-    ).unwrap()
-    let mut terminal = false
-    for _ in 0..<30 {
+      }
+      let started = if stored {
+        @local_sga.start_subgraph(
+          @bounded.control(),
+          prepared_sequence(owner),
+          0,
+          input,
+          None,
+          limits,
+          8192L,
+          () => true,
+          control_work_limit=Some(18),
+        )
+      } else {
+        @local_sga.start_subgraph_view(
+          @bounded.control(),
+          prepared_sequence(owner),
+          0,
+          @graphs.producer_read_view(input).unwrap(),
+          None,
+          limits,
+          8192L,
+          () => true,
+          control_work_limit=Some(18),
+        )
+      }
+      let active = started.unwrap()
+      let mut terminal = false
+      for _ in 0..<30 {
+        match @local_sga.advance_subgraph(active, 1).unwrap() {
+          @local_sga.SubgraphContinue(..) => ()
+          @local_sga.SubgraphComplete(result, ..) => {
+            assert_eq(workspace, 30)
+            assert_true(@graphs.discard_completed(result))
+            terminal = true
+            break
+          }
+          @local_sga.SubgraphFailed(
+            @local_sga.SubgraphOutput(
+              @graphs.Storage(@graph_storage.WorkspaceLimit)
+            ),
+            ..
+          ) => {
+            assert_eq(workspace, 29)
+            terminal = true
+            break
+          }
+          _ => fail("unexpected subgraph workspace result")
+        }
+      }
+      assert_true(terminal)
+      assert_true(@local_sga.cleanup_subgraph(active).unwrap())
+    }
+  }
+  for stored in [false, true] {
+    let control = @bounded.control()
+    let limits = { ..carrier_graph_storage_limits(), max_work: 1000, }
+    let started = if stored {
+      @local_sga.start_subgraph(
+        control,
+        prepared_sequence(owner),
+        0,
+        input,
+        None,
+        limits,
+        8192L,
+        () => true,
+        control_work_limit=Some(18),
+      )
+    } else {
+      @local_sga.start_subgraph_view(
+        control,
+        prepared_sequence(owner),
+        0,
+        @graphs.producer_read_view(input).unwrap(),
+        None,
+        limits,
+        8192L,
+        () => true,
+        control_work_limit=Some(18),
+      )
+    }
+    let active = started.unwrap()
+    let mut progressed = false
+    for _ in 0..<20 {
       match @local_sga.advance_subgraph(active, 1).unwrap() {
-        @local_sga.SubgraphContinue(..) => ()
-        @local_sga.SubgraphComplete(result, ..) => {
-          assert_eq(workspace, 30)
-          assert_true(@graphs.discard_completed(result))
-          terminal = true
-          break
-        }
-        @local_sga.SubgraphFailed(
-          @local_sga.SubgraphOutput(
-            @graphs.Storage(@graph_storage.WorkspaceLimit)
-          ),
-          ..
-        ) => {
-          assert_eq(workspace, 29)
-          terminal = true
-          break
-        }
-        _ => fail("unexpected subgraph workspace result")
+        @local_sga.SubgraphContinue(progress~, ..) =>
+          if progress > 0L {
+            progressed = true
+            break
+          }
+        _ => fail("subgraph terminated before cancellation")
       }
     }
-    assert_true(terminal)
+    assert_true(progressed)
+    assert_true(@bounded.request_cancel(control))
+    assert_true(
+      @local_sga.advance_subgraph(active, 1)
+      is Ok(@local_sga.SubgraphStopped(_, ..)),
+    )
     assert_true(@local_sga.cleanup_subgraph(active).unwrap())
+    assert_true(@graphs.producer_read_available(input))
   }
   assert_true(@graphs.producer_read_available(input))
   assert_true(@graphs.discard_completed(graph))
