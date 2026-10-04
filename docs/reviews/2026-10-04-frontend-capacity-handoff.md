@@ -192,8 +192,9 @@ the submitted report-only delta are recorded in the
 
 Submitted HEAD: `6ee85f358bf3dabbf8d9d983b344638284df98ee`.
 [Automatic CI 37167483900](https://github.com/actql/actql/actions/runs/37167483900)
-is in progress at this checkpoint; #287 remains Draft pending its result and
-review. The old byte totals and failed CI below are historical observations,
+completed successfully, including client-packed, client, pipeline-evidence and
+final check. #287's body now records the final result and Draft is removed for
+re-review; no merge was performed. The old byte totals and failed CI below are historical observations,
 not current failures or new measurements. B made no common capacity formula
 change. The separately reproduced CTE shared-capture predicate defect remains
 D-owned and is recorded in the [audit](2026-10-04-frontend-semantic-audit.md);
