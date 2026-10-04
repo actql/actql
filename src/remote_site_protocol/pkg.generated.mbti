@@ -182,6 +182,8 @@ pub fn dispatch_record_durable_json(DispatchRecord) -> Result[String, DispatchIs
 
 pub fn dispatch_record_matches_request(DispatchRecord, DispatchRequest) -> Bool
 
+pub fn dispatch_record_request(DispatchRecord) -> DispatchRequest
+
 pub fn dispatch_record_requires_managed_observation(DispatchRecord) -> Bool
 
 pub fn dispatch_record_revision(DispatchRecord) -> Int
@@ -508,6 +510,8 @@ pub fn remote_poll_dispatch_run_materials(RemotePollDispatch) -> String?
 
 pub fn remote_poll_not_seen_json(DispatchRequest) -> Result[String, DispatchIssue]
 
+pub fn remote_poll_operation_is_cancel(RemotePollOperation) -> Bool
+
 pub fn remote_poll_operation_is_output(RemotePollOperation) -> Bool
 
 pub fn remote_poll_operation_is_output_plan(RemotePollOperation) -> Bool
@@ -797,6 +801,7 @@ pub(all) enum RemotePollOperation {
   Plan(RemotePollOutput)
   Output(RemotePollOutput)
   Query(DispatchRequest)
+  Cancel(DispatchRequest)
   Release(DispatchRequest)
 }
 

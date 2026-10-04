@@ -51,6 +51,14 @@ test "cancel wire binds the original request and carries no start materials" {
   let original = coordinator_request("cancel-wire", 93)
   let body = remote_poll_cancel_json(original).unwrap()
   let admitted = admit_remote_poll_cancel_json(body).unwrap()
+  let operation = admit_remote_poll_operation_json(body).unwrap()
+  assert_true(remote_poll_operation_is_cancel(operation))
+  assert_false(remote_poll_operation_is_query(operation))
+  assert_false(remote_poll_operation_is_release(operation))
+  assert_eq(
+    dispatch_request_identity(remote_poll_operation_request(operation)),
+    dispatch_request_identity(original),
+  )
   assert_eq(
     dispatch_request_identity(admitted),
     dispatch_request_identity(original),

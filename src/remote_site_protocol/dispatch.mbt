@@ -2615,3 +2615,9 @@ pub fn dispatch_request_journal_key(request : DispatchRequest) -> Array[String] 
     request.task_attempt.to_string(),
   ]
 }
+
+///|
+/// The original typed request, without issuing another attempt or authority.
+pub fn dispatch_record_request(record : DispatchRecord) -> DispatchRequest {
+  record.request
+}
