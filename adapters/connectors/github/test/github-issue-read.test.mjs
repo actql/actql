@@ -254,3 +254,51 @@ test('a lost reply is an error with an unknown credential use, never a page',
     assert.equal(error.unfetched.page, 1);
     assert.equal(context.journal.recover().at(-1).outcome, 'unknown');
   });
+
+test('a non-ASCII label filter continues on page two with the same value',
+  async t => {
+    // No space: the fixture spells a space as `+` (form encoding), which an
+    // RFC 3986 query reads as a literal plus; that link is refused below.
+    const label = '日本語ラベル';
+    const routes = [];
+    const context = await setup(t, {routes});
+    routes.push(listing(context.fixture, [issue(1), issue(2), issue(3)],
+      {query: {labels: label}}));
+    const result = await context.read({filters: [['labels', label]]});
+    assert.equal(result.complete, true);
+    assert.deepEqual(result.rows.map(entry => entry.number), [1, 2, 3]);
+    const seen = context.fixture.seen();
+    assert.equal(seen.length, 2);
+    // Both requests carry exactly the same label value, UTF-8 percent-encoded
+    // once.
+    assert.deepEqual(seen.map(entry => entry.query.labels), [label, label]);
+    const encoded = '%E6%97%A5%E6%9C%AC%E8%AA%9E%E3%83%A9%E3%83%99%E3%83%AB';
+    assert.equal(seen[0].path, `${path}?labels=${encoded}&per_page=2`);
+    assert.equal(seen[1].path, `${path}?labels=${encoded}&per_page=2&page=2`);
+  });
+
+test('NFC and NFD label values stay distinct across pages', async t => {
+  for (const label of ['café', 'café']) {
+    const routes = [];
+    const context = await setup(t, {routes});
+    routes.push(listing(context.fixture, [issue(1), issue(2), issue(3)],
+      {query: {labels: label}}));
+    const result = await context.read({filters: [['labels', label]]});
+    assert.equal(result.complete, true);
+    assert.deepEqual(context.fixture.seen().map(entry => entry.query.labels),
+      [label, label]);
+  }
+});
+
+test('a continuation that spells a space as + is refused, not guessed', async t => {
+  const routes = [];
+  const context = await setup(t, {routes});
+  routes.push(listing(context.fixture, [issue(1), issue(2), issue(3)],
+    {query: {labels: 'a b'}}));
+  const error = await context.read({filters: [['labels', 'a b']]})
+    .then(() => undefined, value => value);
+  assert.equal(error.code, 'GitHubLinkRefused');
+  assert.equal(error.refusal, 'MalformedLink');
+  assert.deepEqual(error.acceptedPages.map(page => page.rows), [2]);
+  assert.equal(context.fixture.seen()[0].query.labels, 'a b');
+});
