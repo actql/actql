@@ -2434,6 +2434,11 @@ fn compile_steps(
                     path => resolve_column(path, query, input, active_fields),
                   )
                   is Some(_)
+                let selected_ordinal = order_ordinal_column(
+                    term.expression,
+                    output,
+                  )
+                  is Some(_)
                 let selected_name = match
                   @query.expression_node(
                     term.expression,
@@ -2445,7 +2450,7 @@ fn compile_steps(
                     })
                   _ => false
                 }
-                !selected_expression && !selected_name
+                !selected_expression && !selected_name && !selected_ordinal
               })
             _ => false
           }
@@ -2522,13 +2527,21 @@ fn compile_steps(
               },
             )
           }
-          let direct = match
-            @query.expression_node(
-              expression,
-              @query.expression_root(expression),
-            ).unwrap().kind {
-            Reference(path) => resolve(path)
-            _ => None
+          let ordinal = order_ordinal_column(
+            expression,
+            pipe_visible.map(pair => pair.0),
+          )
+          let direct = if ordinal is Some(name) {
+            resolve([{ value: name, quoted: false, }])
+          } else {
+            match
+              @query.expression_node(
+                expression,
+                @query.expression_root(expression),
+              ).unwrap().kind {
+              Reference(path) => resolve(path)
+              _ => None
+            }
           }
           let name = if direct is Some(slot) {
             slot
@@ -2634,7 +2647,7 @@ fn compile_steps(
               term.expression,
               @query.expression_root(term.expression),
             ).unwrap().kind
-          let mut selected : String? = None
+          let mut selected = order_ordinal_column(term.expression, output)
           match kind {
             Reference(path) if path.length() == 1 =>
               for field in output {
@@ -5292,7 +5305,7 @@ fn join_order_projection(
       let reserved = visible_names + left_fields + right_fields
       for term in terms {
         let expression = term.expression
-        let mut selected : String? = None
+        let mut selected = order_ordinal_column(expression, visible_names)
         match
           @query.expression_node(expression, @query.expression_root(expression)).unwrap().kind {
           Reference(path) if path.length() == 1 =>
