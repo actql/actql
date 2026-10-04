@@ -14,6 +14,20 @@ const tarball = name => `actql-${name}-0.0.0-development.tgz`;
 const git = (repository, ...args) => execFileSync('git', args,
   {cwd: repository, encoding: 'utf8'});
 
+test('packed public-query staging covers every eagerly loaded Graph fixture', async () => {
+  const consumer = await readFile(new URL('./property-graph-public-host.test.mjs', import.meta.url), 'utf8');
+  const producer = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const fixtures = [...consumer.matchAll(/readFile\(new URL\('\.\/(fixtures\/[^']+)', import\.meta\.url\)/gu)]
+    .map(match => match[1]);
+  assert(fixtures.length > 0, 'the consumer must declare actual fixture dependencies');
+  // This is a staging-source contract, not execution evidence. Packed CI also
+  // runs the consumer in an external installation with no checkout fallback.
+  for (const fixture of fixtures) {
+    assert(producer.includes(`await writeFile(join(root, '${fixture}'),\n  await readFile(join(repository, 'scripts/${fixture}')));`),
+      `Packed public-query staging omitted ${fixture}`);
+  }
+});
+
 // A repository with one file in each build input directory, an ignored
 // generated directory, and one packed tarball shared through a manifest.
 async function fixture(t) {
