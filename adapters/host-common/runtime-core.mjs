@@ -1986,8 +1986,9 @@ function publicationControl(moon) {
       return result;
     },
     compiledInferSourceFreeResultPolicy(compiled) {
-      const original = moon.clientProgramCompiledRunSourceFreeResultPolicy(
-        token(compiled));
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined) throw new TypeError('Foreign Client compiled Run');
+      const original = moon.clientProgramCompiledRunSourceFreeResultPolicy(value);
       return original === undefined ? undefined : Object.freeze({
         kind: original._0, cid: original._1, wire: original._2,
       });

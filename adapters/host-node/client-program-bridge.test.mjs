@@ -6140,6 +6140,18 @@ test('checked INFER barrier compiles within the original Effect Run', async () =
   // The Model egress contract alone cannot satisfy Result dependency custody.
   assert.throws(() => checked(moon.clientProgramEffectAllowedInferRun(allowed)),
     {code: 'MoonBitHostFailure'});
+  const control = runtimeCore(moon).publicationControl;
+  const policyWire = '{"classification":"unknown","source_data_policy_cids":[],"source_response_policy_cids":[],"unknown_provenance":true,"version":"actql-effective-data-policy/0.1"}';
+  const original = control.admitSourceFreeResultPolicy({kind: 'data_policy',
+    cid: 'sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563',
+    wire: policyWire}, publicationLimits);
+  const admittedDefinition = control.admit('run_definition',
+    moon.strategyPublicationContractJson(definition), publicationLimits);
+  const compiled = control.adoptCheckedClientEffectInferRun(allowed,
+    admittedDefinition, original, publicationLimits);
+  assert.deepEqual(control.compiledInferSourceFreeResultPolicy(compiled), original);
+  assert.throws(() => control.compiledInferSourceFreeResultPolicy(admittedDefinition),
+    {name: 'TypeError', message: 'Foreign Client compiled Run'});
   const foreign = moon.clientProgramEffectPreparationReady(
     moon.clientProgramPrepareEffectComputationWithParameters(JSON.stringify(document),
       'json', environment, undefined, []));
