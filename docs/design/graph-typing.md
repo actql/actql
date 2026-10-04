@@ -720,9 +720,15 @@ implementation of Graph Delta execution.
 ## Graph row projections and names
 
 `carrier_projection` checks `node_rows: true` and `edge_rows: true`, or the closed
-`{definition: "Person"}` body for either bridge, on an admitted definition-keyed
-Property Graph. `true` projects every definition of the corresponding kind;
-the object selects one definition using the existing Graph name identity.
+`{definition: "Person"}` or `{label: "Person"}` body for either bridge, on an
+admitted definition-keyed Property Graph. `true` projects every definition of the corresponding kind;
+the definition object selects one definition using the existing Graph name identity.
+The exclusive label object selects every same-kind definition that declares the
+label, not a subset inferred from observed data. Empty output retains that full
+candidate schema. Shared columns join their compatible types/nullability; only
+columns guaranteed in every candidate are Required. Mixed/extra selector fields
+refuse checking. Runtime label comparisons use the existing work owner one
+comparison at a time, permitting cancellation between comparisons.
 Unknown names, wrong element kinds and additional fields refuse during checking,
 not as an empty output. The resolved selection is retained by the checked
 projection and emitted in Plan parameters. The existing bounded row kernel
@@ -745,7 +751,12 @@ normally referenced; the declaration-derived schema is unchanged when selection
 produces zero rows. Nullable is independent of presence, and dataset sampling
 does not refine the schema. A single selected definition retains its declared
 properties and typed key aliases; no data-driven promotion is needed. Label
-refinement and direct publication of Conditional columns remain unsupported.
+refinement uses the same finite union and presence owner. Direct publication of
+Conditional columns and row-predicate presence refinement remain unsupported.
+The existing Relation checker also refuses ordinary filter operations on an
+input that still carries Conditional fields, even when that filter only names a
+Required field. Select the guaranteed columns first, then apply ordinary
+filter/rename/projection. This does not prove presence of the discarded fields.
 The existing row kernel, completion port, retention and cleanup owners carry
 the resulting Relation. This is not a separate Graph Relation or runtime.
 

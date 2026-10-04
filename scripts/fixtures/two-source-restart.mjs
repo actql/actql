@@ -121,6 +121,11 @@ if (action === 'public-success') {
     }
     delete environment.evidence_bundle_cid; environment.evidence_bundle_cid = cid(environment);
     changed.checkEnvironmentWire = canonical(environment);
+    // Keep the public alias bound to the intentionally changed valid view.
+    // The retained Run must reject generation drift at its dependency owner,
+    // rather than failing unrelated Host alias publication during startup.
+    changed.queryAliases = changed.queryAliases.map(alias => ({...alias,
+      sourceViewContractCid: view.contract_cid}));
     const path = resolve(root, `${caseName}-changed-right.profile.json`);
     await writeFile(path, canonical(changed)); sourceProfilePaths[1] = path;
     // An ordinary public submission must reach accepted dispatch under the
