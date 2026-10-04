@@ -1,3 +1,5 @@
+import {ownHttpRequest, ownResponseHeaderNames} from './http-exchange.mjs';
+
 const fail = () => {
   throw Object.assign(new Error('InvalidOwnedInvocationContext'), {
     code: 'InvalidOwnedInvocationContext',
@@ -64,7 +66,9 @@ export function ownInvocationContext({authorization, credential, limits,
   });
 }
 
-// Providers select an operation and immutable request. The common boundary
+// Providers select an operation and immutable request: method, exact path,
+// ordered query pairs, allowed non-secret request headers, body, and the
+// response header names their installation declared. The common boundary
 // assembles one scoped physical invocation without interpreting its outcome.
 export function invokeScopedCredentialOperation({
   authorization,
@@ -73,7 +77,10 @@ export function invokeScopedCredentialOperation({
   operation,
   method,
   path,
+  query,
+  headers,
   body,
+  responseHeaders,
   maxRequestBytes,
   maxResponseBytes,
   signal,
@@ -82,6 +89,8 @@ export function invokeScopedCredentialOperation({
       typeof operation !== 'string' || operation.length === 0 ||
       typeof method !== 'string' || typeof path !== 'string' ||
       (body !== undefined && typeof body !== 'string')) fail();
+  const request = ownHttpRequest({method, path, query, headers, body});
+  const observed = ownResponseHeaderNames(responseHeaders);
   const context = ownInvocationContext({
     authorization, credential,
     limits: {maxRequestBytes, maxResponseBytes},
@@ -92,7 +101,10 @@ export function invokeScopedCredentialOperation({
     ...context.credential,
     ...context.authorization,
     operations: new Map([[operation, Object.freeze({
-      method, path, ...(body === undefined ? {} : {body}),
+      method: request.method, path: request.target,
+      ...(request.body === undefined ? {} : {body: request.body}),
+      ...(request.headers.length === 0 ? {} : {headers: request.headers}),
+      ...(observed.length === 0 ? {} : {responseHeaders: observed}),
     })]]),
     maxRequestBytes: context.limits.maxRequestBytes,
     maxResponseBytes: context.limits.maxResponseBytes,
