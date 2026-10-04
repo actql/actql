@@ -159,9 +159,10 @@ pub(all) enum CommentOutcome {
 ///
 /// - HTTP 200 whose `addComment` names a created comment on exactly the
 ///   requested subject, an Issue, with no `errors`: created.
-/// - HTTP 200 with `errors` and no `data` member: the GraphQL specification
-///   states such an error was raised before execution, so nothing was
-///   applied; rejected. A rate limit stays unknown, as GitHub does not
+/// - HTTP 200 with a non-empty `errors` list of well-formed errors (each an
+///   object with a string `message`) and no `data` member: the GraphQL
+///   specification states such an error was raised before execution, so
+///   nothing was applied; rejected. A malformed error list stays unknown. A rate limit stays unknown, as GitHub does not
 ///   document that a throttled mutation was not applied.
 /// - HTTP 200 with `errors` and `data` (even null): execution began; unknown.
 /// - 403/404/410/422 without rate-limit evidence: refused, as for REST.
@@ -209,14 +210,22 @@ pub fn classify_comment_response(
       }
       let mut kind = ""
       for item in items {
-        guard @decode.open_object(item) is Ok(error) else { return Unknown }
+        // A request error is a well-formed GraphQL error: an object with a
+        // string `message`. Anything else is not evidence that execution
+        // never began.
+        guard @decode.open_object(item) is Ok(error) &&
+          @decode.field(error, "message") is Present(message) &&
+          @decode.text(message) is Ok(_) else {
+          return Unknown
+        }
         let text = match @decode.field(error, "type") {
           Present(value) =>
             match @decode.text(value) {
               Ok(text) if !text.is_empty() => text
               _ => return Unknown
             }
-          _ => "UNKNOWN"
+          Missing => "UNKNOWN"
+          ExplicitNull => return Unknown
         }
         if text == "RATE_LIMITED" {
           return Unknown
