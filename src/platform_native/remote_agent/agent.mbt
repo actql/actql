@@ -56,6 +56,8 @@ pub fn advance_native_outbound_operation(
     None => Ok(Idle)
     Some(@remote.Plan(output)) => Ok(OutputPlanRequested(output))
     Some(@remote.Output(output)) => Ok(OutputRequested(output))
+    Some(@remote.Cancel(_)) =>
+      Err(Client(@client.Protocol(@remote.InvalidDispatch)))
     Some(@remote.Query(request)) =>
       match acknowledge_status(request) {
         Ok(Some(record)) => {
