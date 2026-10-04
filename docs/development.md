@@ -54,8 +54,8 @@ need a focused diagnostic on that backend. Select it explicitly; JS success
 does not validate native-only code. An explicitly requested whole-target
 diagnostic uses `node scripts/local-checks.mjs run core --target <target>
 --allow-heavy`, with the workflow budget or an explicit `--timeout-seconds`.
-This is not an everyday local check. Main CI retains the full supported-target
-matrix.
+This is not an everyday local check. Manual integration CI retains the full
+supported-target matrix.
 
 `node scripts/check-moonbit-api.mjs` invokes `moon info` on all three targets
 and checks tracked interfaces. Preserve this cross-target gate in CI; run it
@@ -174,8 +174,8 @@ and performance gates remain explicit diagnostics, not local defaults.
 Keep incremental `_build` artifacts. Use the bounded/nonzero-test wrapper below
 for selected tests and builds; do not run competing gates or mutate a worktree
 while a gate uses it. Report the observed test counts, failures, skipped or
-unrun checks and any remaining target/boundary coverage. Main CI retains full
-verification; local and PR results prove only their executed selection.
+unrun checks and any remaining target/boundary coverage. Manual integration CI
+retains full verification; local and PR results prove only their executed selection.
 
 ## Runtime package artifacts
 
@@ -405,6 +405,77 @@ is intentionally failed; later assertions check that collection does not alter
 that result. The regular `packed-query-evidence.test.mjs` gate exercises local
 capture, partial selection, ownership guards and the action's exact upload-status
 shell without rerunning packed product acceptance or a mutation campaign.
+
+## PR checks and manual integration checkpoints
+
+Normal CI runs on PR opened, synchronize, reopened, ready_for_review and
+converted_to_draft events. There is no
+main-push, scheduled, workflow-completion or merge-queue trigger. Advancing main
+alone does not require updating an unchanged PR or rerunning its successful
+checks. A changed PR head still needs its own applicable checks; missing,
+failed or stale required evidence is not converted into a pass. The recorded
+checkout may be the PR's synthetic merge at event time, not current main.
+
+### Draft preparation and Ready verification
+
+Draft pushes and reopen events run preparation checks, not merge verification.
+The existing five jobs (`select-targets`, `preflight`, `lint`, `spec`, `check`)
+are retained; no separate cheap-check workflow or duplicate push trigger is added.
+The final `check` intentionally fails with “awaiting ready_for_review” even if
+preparation passes. This is an incomplete verification state, not proof of a
+product regression. Marking Ready triggers the existing normal coverage at that
+event's exact checkout; later non-Draft pushes rerun it for the new head. Earlier
+head results cannot satisfy the new plan's source identity.
+
+Normal coverage still preserves the existing reviewed maintenance, declaration,
+portable and owning-family exceptions. General product changes select full
+coverage. Ready does not invent a new exemption or turn a narrow historic result
+into a full campaign. Returning to Draft triggers preparation again; the shared
+PR concurrency group cancels a superseded Ready/full attempt without a separate
+run-cancellation API or sticky label.
+
+The Draft command inventory is deliberately bounded:
+
+- Preflight: retained-history validation; operation-support inventory regression;
+  `npm ci`; synthetic pipeline artifact contracts; owned contract versions and
+  metadata checks; pinned MoonBit setup and `moon fmt --check`; tracked-file
+  cleanliness and the existing current-PR-head guard. Three-target API generation
+  is deferred. Declaration provenance still passes actual-history validation.
+- Lint: Node/root npm setup, public SDK/Client TypeScript declarations, and the
+  existing preflight, focused-selection, target-selection and main-baseline
+  fixtures. No native DuckDB setup, product build or dependency-isolation build.
+- Spec: Node/root npm setup, document links, strict Local resource-boundary
+  evidence validation and independently pinned execution-authorization vector
+  freshness. No Python/MoonBit spec setup or compound `check:spec-after-preflight`.
+- Only an exact existing reviewed fixed-request test family adds `focused-tests`:
+  its owning JS package check and selected test files, through the existing
+  nonzero wrapper. Ordinary Draft product changes do not automatically run their
+  affected product tests; there is no complete dependency engine here.
+
+Full Core matrices, Host/Client package builds and acceptance, native/macOS,
+network, Worker, connector, DuckDB, session proof and pipeline proof campaigns
+are deferred while Draft. The CI unit fixtures above are synthetic checks of
+scheduling/evidence contracts, not execution of those product campaigns. Missing
+or invalid Draft/event metadata fails closed. The five-job count (six for the
+reviewed focused family) is a scheduling count, not a measured hosted runtime
+or promise of zero preparation cost. Manual dispatch remains the explicit normal
+full path and is not downgraded because a PR happens to be Draft.
+
+Before a release or another meaningful integration milestone, explicitly run
+`gh workflow run CI --ref main`. With the probe/performance flags left false,
+this selects the existing full job families and JS/wasm/native matrix. Add
+`-f native_macos=true` when the macOS checkpoint is required. Dispatching the
+probe or performance-only modes is not a full integration checkpoint.
+
+This intentionally delays detection of incompatibilities between independently
+validated PRs until the chosen integration checkpoint. Review its exact source
+SHA and actual required-job results before treating that checkpoint as verified.
+No branch-protection settings or check obligations are relaxed by this policy.
+Existing historical main-push baselines remain historical evidence only; stopping
+automatic main runs neither creates a new trusted origin nor permits missing or
+changed producer inputs to be reused. Reuse must still satisfy its existing
+source, policy and artifact checks. Do not dispatch a replacement full run for
+every merge or move the duplicate campaign to the PR merely because main moved.
 
 ## CI evidence by source revision
 
@@ -738,3 +809,4 @@ CI runs only synthetic regression fixtures, not a scan of CI worktrees:
 ```sh
 node --test scripts/worktree-inventory.test.mjs
 ```
+
