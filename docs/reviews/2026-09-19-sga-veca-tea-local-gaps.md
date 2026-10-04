@@ -732,8 +732,21 @@ reclamation. The memory-output chain uses the same owner and remains a
 regression control. No synchronous fallback or new Host state machine was
 added.
 
-A nonlinear producer that appends `l` and then filters `l` rather than the
-append result is still unsupported by the bounded selected provider. The
+A checked binary Relation producer can now branch from a private intermediate
+and rejoin in the same task: `append` → two filters reading the appended rows
+→ `append` of the two filtered outputs. The planner retains this bounded,
+single-root shape as one task. The selected Relation owner keeps both earlier
+completions live, binds each later input to its exact step and port, and uses
+one cumulative work budget and overlapping child capacity. The retained Host
+reads the producer and two consumer Named Results against fixed ordered rows;
+the later-branch cancellation, arithmetic failure, Store append/finalize
+failure, and cleanup checks exercise the same owner. The memory-output Host
+also completes the identical authored Program through the same physical task
+shape. This does not admit arbitrary nonlinear operations or intermediate
+Result roots.
+
+A disconnected producer that appends `l` and then filters `l` rather than the
+append result remains unsupported by the bounded selected provider. The
 ordinary retained-only Host rejects that Program during whole-graph selection:
 no Compute dispatch, Store lease, or completed task is created. Another
 eligible implementation may provide a valid offer. The `unsupported-chain`
