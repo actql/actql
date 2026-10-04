@@ -1,0 +1,203 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/client_row_source_host"
+
+import {
+  "actql/actql/check_environment",
+  "actql/actql/encode_core",
+  "actql/actql/execution_query",
+  "actql/actql/execution_relation",
+  "actql/actql/query_planning",
+  "actql/actql/run_publication",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn abort_row_run(RowRun) -> Unit
+
+pub fn accept_row_run_page(RowRun, Bytes) -> Result[Int, RowHostIssue]
+
+pub fn begin_row_run(RowRun, Int, Int, Int) -> Result[Unit, RowHostIssue]
+
+pub fn capture_row_run(RowRun) -> Result[RowSourceCapture, RowHostIssue]
+
+pub fn close_row_run(RowRun) -> Unit
+
+pub fn finish_row_run(RowRun) -> Result[Unit, RowHostIssue]
+
+pub fn generate_row_declaration(String, String, String, Array[RowViewSpec], RowDeclarationLimits) -> Result[RowDeclaration, RowDeclarationIssue]
+
+pub fn issue_row_source_evidence(RowAcquisition, RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, RowHostIssue]
+
+pub fn prepare_row_acquisition(RowDeclaration, @query_planning.QueryRequirement, String, String) -> Result[RowAcquisition, RowHostIssue]
+
+pub fn prepare_row_source(@query_planning.QueryRequirement, RowDeclaration) -> Result[RowSourcePreparation, RowSourceIssue]
+
+pub fn restore_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]
+
+pub fn row_acquisition_columns(RowAcquisition) -> Array[String]
+
+pub fn row_capture_source(RowSourceCapture) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]
+
+pub fn row_declaration_catalog_cid(RowDeclaration) -> String
+
+pub fn row_declaration_evidence_members(RowDeclaration) -> (Array[String], Array[String]) raise @encode_core.EncodeFailure
+
+pub fn row_declaration_view(RowDeclaration, String) -> RowDeclaredView?
+
+pub fn row_observation_cid(RowObservation) -> String
+
+pub fn row_run_attempt(RowRun) -> RowAttempt
+
+pub fn row_source_columns(RowSourcePreparation) -> Array[String]
+
+pub fn row_source_requirement(RowSourcePreparation) -> @query_planning.QueryRequirement
+
+pub fn row_source_target(RowDeclaration, @query_planning.QueryRequirement) -> Result[(String, Array[String]), RowHostIssue]
+
+pub fn start_row_acquisition(RowAcquisition, String, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]
+
+// Errors
+
+// Types and methods
+type RowAcquisition
+
+type RowAttempt
+
+pub(all) enum RowAttemptIssue {
+  InvalidState
+  Read(RowSourceIssue)
+  Residual(@execution_query.QueryGuardIssue)
+  MissingOutput
+  Retention(@query_planning.QueryRetentionIssue)
+}
+
+pub(all) struct RowCompletionLimits {
+  execution : @execution_relation.SequenceExecutionLimits
+  guards : @execution_query.QueryGuardMeasureLimits
+  retention : @query_planning.QueryRetentionLimits
+  records : @query_planning.QueryMaterialLimits
+  capture : @query_planning.QueryEvidenceLimits
+}
+
+pub struct RowDeclaration {
+  connector_id : String
+  connector_registration : String
+  connector_version : String
+  catalog : String
+  catalog_cid : String
+  contracts : Array[String]
+  views : Array[RowDeclaredView]
+  view_bodies : Array[String]
+  manifest_entry : String
+  manifest_entry_cid : String
+}
+
+pub(all) enum RowDeclarationIssue {
+  InvalidConnectorId
+  InvalidRegistration
+  InvalidView
+  UnsupportedType(String)
+  DuplicateName(String)
+  OutputLimit
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RowDeclarationLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_views : Int
+  max_fields : Int
+} derive(Eq, @debug.Debug)
+
+pub struct RowDeclaredView {
+  resource : String
+  source_ref : String
+  view_cid : String
+  fields : Array[String]
+  carrier_schema_cid : String
+  data_policy_cid : String
+}
+
+pub(all) enum RowEvidenceIssue {
+  InvalidLimits
+  IdentifierLimit
+  IdentifierExhausted
+  IssuerClosed
+  NotSelected
+  UnauthorizedAttempt
+  UnverifiedTransport
+  NotRetained
+  ForeignRecords
+  AlreadyCaptured
+  Attempt(RowAttemptIssue)
+  Artifact(@query_planning.QueryArtifactIssue)
+}
+
+pub(all) struct RowField {
+  name : String
+  value_type : String
+  nullable : Bool
+} derive(Eq, @debug.Debug)
+
+pub(all) enum RowHostIssue {
+  InvalidSpecification
+  Declaration(RowDeclarationIssue)
+  ForeignDeclaration
+  Source(RowSourceIssue)
+  InvalidContracts
+  Registration
+  Candidate
+  Selection
+  Evidence(RowEvidenceIssue)
+  Attempt(RowAttemptIssue)
+  Consumer(@execution_query.CapturedSourceIssue)
+  SourceEvidence(RowSourceEvidenceIssue)
+  InvalidState
+}
+
+type RowObservation
+
+pub(all) struct RowPageLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_rows : Int
+} derive(Eq, @debug.Debug)
+
+type RowRun
+
+type RowSourceCapture
+
+pub(all) enum RowSourceEvidenceIssue {
+  ObservationUnavailable
+  ObservationMismatch
+  Member(@check_environment.SourceEvidenceMemberIssue)
+  LogicalInput(@run_publication.SourceInputLogicalIssue)
+  InvalidPolicy
+  Encoding(@encode_core.EncodeFailure)
+  Evidence(@run_publication.RunEvidenceValueIssue)
+}
+
+pub(all) enum RowSourceIssue {
+  ForeignSource
+  UndeclaredSource
+  InvalidInputSchema
+  InvalidPage
+  MissingField(String)
+  UnexpectedField(String)
+  Value(String)
+  Capture(@execution_relation.CaptureIssue)
+  Closed
+} derive(@debug.Debug)
+
+type RowSourcePreparation
+
+pub(all) struct RowViewSpec {
+  resource : String
+  resource_kind : String
+  fields : Array[RowField]
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

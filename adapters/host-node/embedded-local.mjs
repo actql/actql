@@ -1,7 +1,7 @@
 // One installed Local Host for the current OS user. The Client talks to the
 // Host in process; the journal and publication Store own durable physical I/O.
 import {ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';
-import {createHash, createPublicKey, randomBytes} from 'node:crypto';
+import {createHash, createPublicKey, randomBytes, randomUUID} from 'node:crypto';
 import {mkdir, readFile, stat} from 'node:fs/promises';
 import {homedir, userInfo} from 'node:os';
 import {join, resolve} from 'node:path';
@@ -15,6 +15,8 @@ import {installNodeClientRunStart} from './client-run-start.mjs';
 import {installNodeClientEffectRun} from './client-effect-run.mjs';
 import {runCapturedEffectComputation} from './entry.mjs';
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
+import {acquiredEffectContinuation} from './acquired-effect-continuation.mjs';
+import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {capturedDuckDBConfiguration} from './captured-duckdb-source.mjs';
 import {recoverAdmittedEffectRun} from './effect-run-recovery.mjs';
 import {retireCompletedEffectfulCapture} from
@@ -163,6 +165,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     control.admitSourceFreeResultPolicy(resultDataPolicy, localContractLimits);
   const modelProviders = installModelProviders(moon, registerModelProviders);
   const inferSelections = new WeakMap();
+  const effectSubmissions = new WeakMap();
   const principalId = userInfo().username;
   const baseEnvironmentWire = (await readFile(join(packageRoot,
     'spec/local-check-environment.json'), 'utf8')).trimEnd();
@@ -423,7 +426,14 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           // the Checkpoint lifecycle alone.
           continue;
         }
-        if (continuation !== undefined &&
+        if (continuation?.status === 'resuming' && !dispatchOwner.live(ref) &&
+            checkpoints.hasUnresolvedSourceStart(runId, ref.runDefinitionCid)) {
+          state = issueInstalledUnpublishedRunState(moon, {runId,
+            observedAt: now(), resultNames: retained.resultNames,
+            dispatchReserved: true, preDispatchFailureConfirmed: false,
+            cancelledBeforeStart: false, observedTerminalOutcome: 'none',
+            executionUnknown: true});
+        } else if (continuation !== undefined &&
             continuation.status !== 'running') {
           state = continuation.runState;
         } else {
@@ -474,16 +484,20 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       return false;
     }
     const runId = control.runDefinitionRunId(retained.runDefinition);
-    const view = checkpoints.journal.inspect(`${runId}-effect-commit`);
-    if (view?.kind !== 'effect_set' || view.runId !== runId ||
+    const state = checkpoints.journal.getRunState(runId);
+    const view = state?.runState.checkpoint === undefined
+      ? [`${runId}-effect-commit`, `${runId}-source-1`, `${runId}-source-0`]
+        .map(id => checkpoints.journal.inspect(id)).find(item => item !== undefined &&
+          checkpoints.journal.currentResume(item.checkpointCid)?.state !== 'completed')
+      : checkpoints.journal.inspect(state.runState.checkpoint.checkpoint_cid);
+    if (!['effect_set', 'read_access'].includes(view?.kind) || view.runId !== runId ||
         view.runDefinitionCid !== ref.runDefinitionCid ||
         view.prepareAttemptId !== null) return false;
-    const state = checkpoints.journal.getRunState(runId)?.status;
-    if (state === 'waiting_checkpoint') {
+    if (state?.status === 'waiting_checkpoint') {
       return checkpoints.journal.cancelCheckpoint(view.checkpointCid)
         .outcome === 'cancelled';
     }
-    if (state === 'resuming') {
+    if (state?.status === 'resuming') {
       return checkpoints.journal.cancelUnsentResume(view.checkpointCid)
         .outcome === 'cancelled';
     }
@@ -884,6 +898,65 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
         binding.storeAuthorityCid === storeAuthorityCid},
     async () => moon);
   };
+  const executeEffectComputation = (facts, sourceResume) => dispatchOwner.track(facts.ref, {
+        run: ({signal, retainExecution, beginPhysicalWork,
+          observePreEffectFailure}) =>
+          effectInstallation.execute(
+          Object.freeze({...facts, signal, retainExecution,
+            beginPhysicalWork, observePreEffectFailure, moon, control,
+            assertContinuationCurrent: sourceResume?.assertCurrent,
+            publicationPlan: facts.preparedExecution,
+            store, storeAuthorityCid, authorityScopeCid,
+            observeRun: ({ref}) => observeRun({ref, principalId}),
+            openComputation: ({retainComputationOwner} = {}) => {
+              if (inferSelections.has(facts.prepared) ||
+                  moon.clientProgramEffectPrepareQueryAcquisition(
+                facts.prepared, 0, 0)?.$tag === 1) {
+                const sourceContinuation = acquiredEffectContinuation({
+                  checkpoints: inferSelections.has(facts.prepared) ||
+                    sourceProfile?.realizationKey !== 'duckdb-acquired' ? undefined : checkpoints,
+                  moon, acquired: facts.preparedExecution,
+                  submission: effectSubmissions.get(facts.prepared),
+                  declaredResults: moon.clientProgramEffectCompilationResultNames(facts.compilation),
+                  unitId: moon.clientProgramEffectCompilationUnitId(facts.compilation),
+                  principalId, signal, resume: sourceResume,
+                  currentRun: () => journal.lookupRunDefinition(facts.ref, moon, control)
+                    ?.cancellationRequested === false});
+                return openAcquiredEffectComputation({moon,
+                  owner: facts.owner, acquired: facts.preparedExecution,
+                  sourceProfile, registry, values, fragment, ordered,
+                  sourceAccess: sourceProfile?.sourceAccess, signal, now,
+                  retainComputationOwner, infer: inferSelections.get(facts.prepared),
+                  computeConfigurations: {local: localSnapshotConfiguration},
+                  store, principalId, faultInjection: authorization?.faultInjection,
+                  observe: authorization?.observe, sourceContinuation});
+              }
+              const setup = moon.clientProgramOpenSourceFreeLocalEffectHost(
+                facts.owner, registry, values, 1n, 0n, 0n, 0n);
+              if (setup === undefined) {
+                throw new Error('InstalledEffectProgramUnsupported');
+              }
+              return runCapturedEffectComputation(setup, {}, signal).then(
+                execution => Object.freeze({execution, checkedHost: setup}));
+            },
+            recoverCapture: ({signal: recoverySignal} = {}) =>
+              recoverEffectCapture(facts.ref, recoverySignal),
+            effectAuthorization: checkpoints === undefined ? undefined : options =>
+              checkpoints.effectAuthorization({...options,
+                ...(sourceResume?.active !== true ? {} : {journalPort: {
+                  ...checkpoints.journal,
+                  persistCheckpoint: checkpoint => checkpoints.journal.completeResume(
+                    sourceResume.claim, {checkpoint}),
+                  submitResolution: item => checkpoints.journal.submitResolution(item),
+                }})}),
+            recordReconciliation: (...args) =>
+              effectRun.recordReconciliation(...args)})),
+        observeStopped: terminalOutcome => {
+          journal.markPhysicalClose(facts.ref, sourceResume === undefined ? terminalOutcome : null);
+          if (sourceResume !== undefined) sourceResume.observedTerminalOutcome = terminalOutcome;
+        },
+        barrierFailureOutcome: 'failed',
+      });
   const effectRun = effectInstallation === undefined ? undefined :
     installNodeClientEffectRun({moon, publicationControl: control, journal,
       now, inferPlanFor: prepared => inferSelections.get(prepared)?.graph,
@@ -929,59 +1002,23 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           ? acquiredEffectPublicationAdmission(options)
           : sourceFreeEffectPublicationPlan(options);
       },
-      execute: facts => dispatchOwner.track(facts.ref, {
-        run: ({signal, retainExecution, beginPhysicalWork,
-          observePreEffectFailure}) =>
-          effectInstallation.execute(
-          Object.freeze({...facts, signal, retainExecution,
-            beginPhysicalWork, observePreEffectFailure, moon, control,
-            publicationPlan: facts.preparedExecution,
-            store, storeAuthorityCid, authorityScopeCid,
-            observeRun: ({ref}) => observeRun({ref, principalId}),
-            openComputation: ({retainComputationOwner} = {}) => {
-              if (inferSelections.has(facts.prepared) ||
-                  moon.clientProgramEffectPrepareQueryAcquisition(
-                facts.prepared, 0, 0)?.$tag === 1) {
-                // Read admission is the installed source's immediate gate.
-                // Do not borrow an Effect commit permit or create a read
-                // Checkpoint that this Effect profile cannot resume.
-                return openAcquiredEffectComputation({moon,
-                  owner: facts.owner, acquired: facts.preparedExecution,
-                  sourceProfile, registry, values, fragment, ordered,
-                  sourceAccess: sourceProfile?.sourceAccess, signal, now,
-                  retainComputationOwner, infer: inferSelections.get(facts.prepared),
-                  computeConfigurations: {local: localSnapshotConfiguration},
-                  store, principalId, faultInjection: authorization?.faultInjection,
-                  observe: authorization?.observe});
-              }
-              const setup = moon.clientProgramOpenSourceFreeLocalEffectHost(
-                facts.owner, registry, values, 1n, 0n, 0n, 0n);
-              if (setup === undefined) {
-                throw new Error('InstalledEffectProgramUnsupported');
-              }
-              return runCapturedEffectComputation(setup, {}, signal).then(
-                execution => Object.freeze({execution, checkedHost: setup}));
-            },
-            recoverCapture: ({signal: recoverySignal} = {}) =>
-              recoverEffectCapture(facts.ref, recoverySignal),
-            effectAuthorization: checkpoints?.effectAuthorization,
-            recordReconciliation: (...args) =>
-              effectRun.recordReconciliation(...args)})),
-        observeStopped: terminalOutcome => journal.markPhysicalClose(
-          facts.ref, terminalOutcome),
-        barrierFailureOutcome: 'failed',
-      }),
+      execute: executeEffectComputation,
     });
   const runIdOf = accepted => control.runDefinitionRunId(
     accepted.runDefinition?.wire === undefined
       ? journal.lookupRunDefinition(accepted.ref, moon, control).runDefinition
       : accepted.runDefinition);
-  const admitEffectDefinition = submission => effectRun.accept({
+  const admitEffectDefinition = submission => {
+    const {requestId, principalId, connection, kind, input, parameters} = submission;
+    effectSubmissions.set(submission.preparedProgram, JSON.parse(canonicalValueJson({
+      requestId, principalId, connection, kind, input, parameters})));
+    return effectRun.accept({
     prepared: submission.preparedProgram, authorityScopeCid,
     requestId: submission.requestId, namespaceId,
     principalId: submission.principalId, connection: submission.connection,
     lookupExpiresAt: plus(now(), 7 * 24 * 60 * 60 * 1000),
-  });
+    });
+  };
   const submitEffect = async (submission, requested, resultNames) => {
     const {requestId, principalId: actual, connection, kind, input,
       parameters, preparedProgram} = submission;
@@ -1481,7 +1518,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           // Durable custody still exists only before transfer to a Checkpoint
           // or physical dispatch. A complete private record is not sufficient
           // to establish that transfer. The original unknown Run stays intact.
-          if (checkpoints.journal.inspect(`${runId}-effect-commit`) !== undefined) continue;
+          if ([`${runId}-effect-commit`, `${runId}-source-0`, `${runId}-source-1`]
+            .some(id => checkpoints.journal.inspect(id) !== undefined)) continue;
           await retireEffectCapture(ref);
         } catch (error) { failures.push(error); }
       }
@@ -1501,7 +1539,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     for (;;) {
       const page = checkpoints.journal.listRunCheckpoints({after, limit: 100});
       for (const view of page) {
-        if (view.kind !== 'effect_set' || view.prepareAttemptId !== null ||
+        if (!['effect_set', 'read_access'].includes(view.kind) || view.prepareAttemptId !== null ||
             !['failed', 'cancelled'].includes(
               checkpoints.journal.getRunState(view.runId)?.status)) continue;
         const ref = Object.freeze({namespaceId, authorityScopeCid,
@@ -1529,7 +1567,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     for (;;) {
       const page = checkpoints.journal.listRunCheckpoints({after, limit: 100});
       for (const view of page) {
-        if (view.kind !== 'effect_set' || view.prepareAttemptId !== null) {
+        if (!['effect_set', 'read_access'].includes(view.kind) || view.prepareAttemptId !== null) {
           continue;
         }
         const key = view.runDefinitionCid;
@@ -1549,6 +1587,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           continue;
         }
         if (runStatus !== 'resuming') continue;
+        if (checkpoints.journal.currentResume(view.checkpointCid)?.state === 'completed') continue;
         if (effectResumeFlights.has(key) ||
             dispatchOwner.operation(ref) !== undefined) {
           busy = true;
@@ -1559,6 +1598,123 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           if (retained === undefined ||
               retained.runDefinition.identity !== key) {
             throw new Error('EffectResumeRunDefinitionMissing');
+          }
+          if (view.kind === 'read_access') {
+            // Check before claiming: changed bindings must not turn an
+            // earlier entered physical continuation into an unsent failure.
+            // Retained inputs cannot prove that later work never started.
+            if (checkpoints.journal.hasStartedResume(view.checkpointCid)) {
+              // Another owner can publish after this observation. Keep the
+              // existing sweep alive without authorizing another execution.
+              busy = true;
+              const reconciliation = effectRun.reconciliation(ref);
+              if (reconciliation !== undefined) {
+                checkpoints.journal.settleObservedEffectResume(view.checkpointCid,
+                  ref.runDefinitionCid, JSON.stringify(reconciliation));
+                continue;
+              }
+              if (await store.confirmCommittedIndex(ref) !== undefined) {
+                const published = await inspectAuthorizedRunState(stateService,
+                  {indexKey: ref, principalId, purpose: 'inspect'});
+                if (published.status === 'succeeded') {
+                  checkpoints.journal.settleObservedEffectResume(view.checkpointCid,
+                    ref.runDefinitionCid, JSON.stringify(published));
+                  busy = true;
+                }
+              }
+              continue;
+            }
+            const claimed = checkpoints.journal.claimResume(view.runId, {
+              claimant: `source-host-${process.pid}-${randomUUID()}`,
+              leaseMs: authorization?.leaseMs ?? 60000,
+              binding: checkpoints.binding, preserveStarted: true,
+              expectedCheckpointCid: view.checkpointCid});
+            if (claimed.action !== 'claimed') {
+              if (claimed.action === 'admitted' || claimed.action === 'busy') busy = true;
+              continue;
+            }
+            if (claimed.checkpointCid !== view.checkpointCid) continue;
+            const flight = (async () => {
+              let sourceResume;
+              let leaseFailure;
+              const leaseMs = authorization?.leaseMs ?? 60000;
+              const renewal = setInterval(() => {
+                try {
+                  if (checkpoints.journal.currentResume(view.checkpointCid)?.state ===
+                      'completed') return;
+                  checkpoints.journal.renewResume(claimed.claim, leaseMs);
+                }
+                catch (error) { leaseFailure = error; }
+              }, Math.max(1, Math.min(1000, Math.floor(leaseMs / 3))));
+              renewal.unref?.();
+              try {
+                const continuation = await checkpoints.computationContinuation(view);
+                const submission = {...continuation.submission};
+                submission.preparedProgram = await prepareSubmit(submission);
+                const request = requestOf(submission);
+                if (!request.effectful || inferSelections.has(submission.preparedProgram)) {
+                  throw new Error('UnsupportedAcquiredEffectContinuation');
+                }
+                const accepted = await admitEffectDefinition(submission);
+                if (accepted.ref.runDefinitionCid !== ref.runDefinitionCid) {
+                  throw new Error('EffectContinuationRunMismatch');
+                }
+                const facts = await effectRun.restoreComputation(accepted);
+                sourceResume = {claim: claimed.claim, view, continuation, active: true,
+                  assertCurrent() {
+                    if (leaseFailure !== undefined) throw leaseFailure;
+                    if (journal.lookupRunDefinition(ref, moon, control)?.cancellationRequested) {
+                      throw Object.assign(new Error('ClientRunCancellationRequested'),
+                        {code: 'ClientRunCancellationRequested'});
+                    }
+                    return checkpoints.journal.admitResume(claimed.claim,
+                      {checkpointCid: view.checkpointCid});
+                  }};
+                const result = await executeEffectComputation(facts, sourceResume);
+                // Resume exits only through the existing terminal outcome
+                // or atomic next-Checkpoint transition, never a fabricated
+                // resuming-to-running intermediate public state.
+                if (checkpoints.journal.getRunState(view.runId)?.status === 'resuming') {
+                  const ended = effectRun.reconciliation(ref) ?? await observeRun({ref, principalId});
+                  if (terminal(ended.status) || ended.status === 'needs_reconciliation') {
+                    const {control: _control, ...state} = ended;
+                    checkpoints.journal.completeResume(claimed.claim, {
+                      runStateWire: JSON.stringify(state)});
+                  } else if (['failed_without_effect_dispatch', 'failed_effect_set']
+                    .includes(result?.status)) {
+                    checkpoints.journal.completeResume(claimed.claim, {status: 'failed'});
+                  }
+                }
+              } catch (error) {
+                if (['ResumeClaimStale', 'PriorAdmissionUnresolved'].includes(error?.code) ||
+                    error.authorization?.detail === 'ResumeClaimStale') throw error;
+                const refusal = checkpoints.journal.refuseUnsentSourceResume(
+                  view.checkpointCid, view.runDefinitionCid, claimed.claim);
+                // A started source with an unresolved physical owner stays
+                // with its original claim and custody. Never reacquire it.
+                if (refusal.outcome === 'admitted' &&
+                    ['failed', 'cancelled'].includes(sourceResume?.observedTerminalOutcome)) {
+                  checkpoints.journal.completeResume(claimed.claim, {
+                    status: sourceResume.observedTerminalOutcome});
+                }
+                throw error;
+              } finally {
+                clearInterval(renewal);
+              }
+            })();
+            effectResumeFlights.set(key, flight);
+            void flight.catch(error => diagnostic('source_resume_failed', {
+              ref, code: error?.code ?? error?.message,
+              detail: error.authorization?.detail,
+              cause: error.authorization?.error?.code,
+              missingModule: error?.code === 'ERR_MODULE_NOT_FOUND' ? error.url : undefined})).finally(() => {
+              effectResumeFlights.delete(key);
+              if (checkpoints.journal.getRunState(view.runId)?.status !== 'resuming') {
+                void checkpoints.sweep();
+              }
+            });
+            busy = true;
+            continue;
           }
           const continuation = await checkpoints.effectContinuation(view);
           const flight = dispatchOwner.track(ref, {

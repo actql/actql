@@ -29,7 +29,8 @@ const LEDGER_VERSION = 'actql-local-continuation-retention/0.1';
 const HOLDING_VERSION = 'actql-local-continuation-holding/0.1';
 const NAMESPACE = 'local-continuation-private';
 const NAMES = Object.freeze(['captured_input', 'invocation_request',
-  'prepared_invocation', 'review_projection', 'continuation_record']);
+  'prepared_invocation', 'review_projection', 'continuation_record',
+  'source_capture']);
 // Terminal Run statuses. `needs_reconciliation` keeps its evidence.
 const TERMINAL_RUNS = Object.freeze(['succeeded', 'failed', 'cancelled']);
 const ATTEMPT = /^[A-Za-z0-9._:-]{1,128}$/u;

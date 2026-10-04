@@ -80,6 +80,18 @@ test('missing source, false directory membership, changed environment/definition
   assert.throws(() => checkIsolatedInputs({...f, runtime: {...f.runtime, unresolved: []}}));
 });
 
+test('independent image validation refuses reintroduced installed core build metadata', t => {
+  const f = fixture(t);
+  for (const path of ['lib/core/_build/.moon_db', ...['js', 'wasm', 'native']
+    .map(target => `lib/core/_build/${target}/release/bundle/all_pkgs.json`)]) {
+    const manifest = structuredClone(f.manifest);
+    manifest.root.entries.push({path: `runtime/moonbit/${path}`, kind: 'file', mode: 0o644,
+      bytes: 1, digest: hash('owner-dependent metadata')});
+    assert.throws(() => checkIsolatedInputs({runtime: imageRuntime(manifest), manifest, tree: f.tree}),
+      /Installed core build metadata must be absent/u);
+  }
+});
+
 test('restoration, runtime/kernel mismatch, missing mutation logs and compiler-only failure cannot seal success', t => {
   const f = fixture(t);
   for (const alter of [

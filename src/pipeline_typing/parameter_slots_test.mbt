@@ -139,23 +139,23 @@ test "parameterized Graph bounds retains each exact threshold occurrence" {
 }
 
 ///|
-test "unconnected Graph components refuses before issuing parameter slots" {
-  for
-    (operation, body) in [
-      (
-        "components", "{\"kind\":\"weak\",\"max_output_rows\":{\"$param\":\"n\"}}",
-      ),
-    ] {
-    let issue = @pipeline_typing.check_carriers(
-      cursor("[{\"from\":\"g\",\"" + operation + "\":" + body + "}]"),
-      [("g", query_property_graph())],
-      Some(operand_parameters()),
-      None,
-      limits(),
-    ).unwrap_err()
-    assert_true(issue.kind is Graph(@graph.UnsupportedGraphOperation))
-    assert_true(issue.path.contains(@source.Key(operation)))
-  }
+test "parameterized Graph components retains its output bound slot" {
+  let checked = @pipeline_typing.check_carriers(
+    cursor(
+      "[{\"from\":\"g\",\"components\":{\"kind\":\"weak\",\"max_output_rows\":{\"$param\":\"n\"}}}]",
+    ),
+    [("g", query_property_graph())],
+    Some(operand_parameters()),
+    None,
+    limits(),
+  ).unwrap()
+  let slots = collect_parameter_slots(checked, max_work=100, max_slots=1).unwrap()
+  assert_eq(parameter_slot_count(slots), 1)
+  assert_eq(@decode.cursor_path(parameter_slot_at(slots, 0).unwrap().source), [
+    @source.Index(0),
+    @source.Key("components"),
+    @source.Key("max_output_rows"),
+  ])
 }
 
 ///|

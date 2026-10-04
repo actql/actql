@@ -177,6 +177,27 @@ test('acquired Effect preparation failure is not an unobserved acquisition',
     assert.equal(reads, 0);
   });
 
+test('a stale Source admission is not an unknown provider acquisition', async () => {
+  let retained;
+  let reads = 0;
+  let closes = 0;
+  await assert.rejects(openAcquiredEffectComputation({
+    acquired: {prepared: {}}, now: () => '2026-09-29T00:00:00.000Z',
+    retainComputationOwner(owner) { retained = owner; },
+    sourceProfile: {prepare: () => ({}), open() { reads++; }},
+    sourceContinuation: {
+      accessFor: access => access, prepared() {}, times: () => ({}),
+      beforeRead: () => ({enter() { throw new Error('StaleResumeClaim'); }}),
+      close() { closes++; },
+    },
+  }), {message: 'StaleResumeClaim'});
+  await retained.close();
+  assert.equal(await retained.cleanup(), true);
+  assert.equal(retained.cleanupPending(), false);
+  assert.equal(reads, 0);
+  assert.equal(closes, 1);
+});
+
 test('source evidence failure retains capture cleanup until release succeeds',
   async () => {
     let retained;

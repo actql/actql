@@ -1,0 +1,72 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-github-issue-source-main",
+  "kind": "resolution",
+  "revision": "7812b849fa6ffb4ef2415973c4d2f80bad8d9882",
+  "parents": [
+    "45d9b774b5fbed289ee1a6336957e642a308f9a8",
+    "e51097122b949849ef2bb895dfb305bad1c3a248"
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-3877b637406b",
+    "adopt-63b114ad524b",
+    "adopt-678626b010b4",
+    "adopt-7427f7f09276",
+    "adopt-9a7c592a8ed9",
+    "adopt-b480cffb6e6d",
+    "adopt-bf2d058c21c1",
+    "adopt-f24288853c19",
+    "adopt-sga-query-contract",
+    "ci-mandatory-preflight",
+    "frontend-sga-main-integration",
+    "frontend-unified-graph-source-integration",
+    "github-issue-read-registration",
+    "github-issue-source-acceptance-registration",
+    "main-pr233-package-resolution",
+    "packed-composed-infer-effect-acceptance",
+    "pr164-main-a32-verification-resolution",
+    "pr164-main4f-runtime-check-resolution",
+    "pr164-property-graph-source",
+    "public-text-computation-bridge-ci",
+    "read-progress-current-main-resolution",
+    "remove-duplicate-runtime-package-checks",
+    "resident-cancellation-issuer-registration",
+    "resident-cancellation-native-registration",
+    "resident-source-native-registration",
+    "resolve-cancellation-foundation-main-5caeccc79",
+    "resolve-composition-custody-main-maximal-bases",
+    "resolve-composition-frontend-latest-main",
+    "resolve-composition-infer-main-maximal-bases",
+    "resolve-composition-resident-source-main",
+    "resolve-composition-reviewed-supplements-main",
+    "resolve-frontend-graph-label-dependency-5fa4bc547",
+    "resolve-frontend-graph-row-input-main-0e1516677",
+    "resolve-github-issue-driver-main-5dcef9189",
+    "resolve-resident-cancel-foundation-7b5a8048",
+    "resolve-resident-source-latest-main",
+    "scoped-session-acquisition-main-resolution",
+    "sdk-cancel-response-loss-registration",
+    "sdk-read-progress-registration"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "45d9b774b5fbed289ee1a6336957e642a308f9a8",
+          "digest": "5a75d28768087e696cd5398d849c00f14e75f20e911fb81a42de50319fce030d",
+          "mode": "100644"
+        },
+        {
+          "revision": "e51097122b949849ef2bb895dfb305bad1c3a248",
+          "digest": "a93e5585f00347667c01c5427a58e51acea26b333fa6e7a3fcf741818b0c6ea9",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "cc319786f188d46e7357d53dea5269f4ad7375ebc6ba0b3c587079c006068c91",
+      "afterMode": "100644",
+      "reason": "Normally integrate latest main into the GitHub Issue source branch. Keep main's gate commands and add only the GitHub provider bridge build and public Client acceptance to the existing installed SaaS source gate, as registered on the branch. Preserve every existing test command, proof gate, corpus, mutation and foundation owner unchanged."
+    }
+  ]
+}

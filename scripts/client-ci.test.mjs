@@ -7,8 +7,10 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
+import {runInNewContext} from 'node:vm';
 import './two-source-optional-effect.test.mjs';
 import {parse} from 'yaml';
+import {optionalEffectCases} from './fixtures/two-source-optional-effect.mjs';
 import {compositionProgram, compositionTemplate, compositionExpectations, compositionText, compositionTextTemplate} from
   './fixtures/composed-infer-effect-input.mjs';
 
@@ -52,7 +54,20 @@ test('the authored text fixture binds only its published MappingRef', () => {
 
 test('ordinary packed composition ships JSON and authored text with independent replay expectations', () => {
   const script = readFileSync(new URL('./test-packed-salesforce-source.mjs', import.meta.url), 'utf8');
-  assert(script.includes(": twoSourceEffect ? ['two-source'] : ['source', 'infer', 'infer-text', 'infer-graph-node', 'infer-graph-edge']"));
+  const selection = flags => JSON.parse(runInNewContext(script.slice(
+    script.indexOf('const twoSourceEffect = process.argv'),
+    script.indexOf('const inferEnabled =')) + '\nJSON.stringify(compositionCases)',
+  {process: {argv: ['node', 'harness', ...flags]}, optionalEffectCases}));
+  assert.deepEqual(selection([]), ['source', 'infer', 'infer-text', 'infer-graph-node', 'infer-graph-edge', 'read-approval']);
+  assert.deepEqual(selection(['--two-source-effect']), ['two-source']);
+  assert.deepEqual(selection(['--composed-infer']), ['infer', 'infer-text']);
+  assert.deepEqual(selection(['--composed-text']), ['infer-text']);
+  assert.deepEqual(selection(['--composed-graph-node']), ['infer-graph-node']);
+  assert.deepEqual(selection(['--composed-graph-edge']), ['infer-graph-edge']);
+  assert.deepEqual(selection(['--composed-graph']), ['infer-graph-node', 'infer-graph-edge']);
+  assert.deepEqual(selection(['--two-source-read-approval']), ['read-approval']);
+  assert.deepEqual(selection(['--optional-effect-only']), []);
+
   for (const name of ['composed-infer-effect.program.template.json',
     'composed-infer-effect.expected.json', 'composed-infer-effect.aql.template']) {
     assert(script.includes("'" + name + "'"), 'isolated consumer must receive ' + name);
@@ -62,6 +77,57 @@ test('ordinary packed composition ships JSON and authored text with independent 
   assert.deepEqual(compositionExpectations.effectWriteCounts, [0, 0, 1, 1]);
   assert.deepEqual(compositionExpectations.restartBoundaries,
     ['capture-waiting', 'approval-committed']);
+});
+
+test('Source approval narrowing preserves ordinary optional Effect pairs and restart outputs', () => {
+  const script = readFileSync(new URL('./test-packed-salesforce-source.mjs', import.meta.url), 'utf8');
+  const selection = flags => JSON.parse(runInNewContext(script.slice(
+    script.indexOf('const twoSourceEffect = process.argv'),
+    script.indexOf('const inferEnabled =')) + '\nJSON.stringify(optionalCases)',
+  {process: {argv: ['node', 'harness', ...flags]}, optionalEffectCases}));
+  assert.deepEqual(selection([]), ['native-json', 'broad-text']);
+  assert.deepEqual(selection(['--optional-effect-only']), ['native-json', 'broad-text']);
+  for (const flag of ['--two-source-read-approval', '--two-source-effect',
+    '--composed-infer', '--composed-text']) assert.deepEqual(selection([flag]), []);
+  const output = script.match(/process\.stdout\.write\((boundary[^,]+),/u)?.[1];
+  assert.ok(output, 'the same termination driver must serve both approval paths and the pure pair');
+  for (const [boundary, expected] of [
+    ['source-waiting', 'held\\n'], ['capture-waiting', 'held\\n'], ['completed', 'held\\n'],
+    ['source-approval-committed', 'approved\\n'], ['approval-committed', 'approved\\n'],
+  ]) assert.equal(runInNewContext(output, {boundary}), expected);
+  assert.ok(script.includes("name === 'effect_resume_failed' || name === 'source_resume_failed'"));
+  assert.ok(script.includes("optionalKind && name === 'acquisition_completed'"));
+});
+
+test('packed Source approval keeps independent read and Effect restart counters', () => {
+  const expected = JSON.parse(readFileSync(new URL(
+    './fixtures/two-source-read-approval.expected.json', import.meta.url), 'utf8'));
+  assert.deepEqual(expected.sourceProviderOpenCounts,
+    [[1, 0], [1, 0], [1, 1], [1, 1], [1, 1], [1, 1]]);
+  assert.deepEqual(expected.sourceReadSessions, [1, 0, 1, 0, 0, 0]);
+  assert.deepEqual(expected.effectWriteCounts, [0, 0, 0, 0, 1, 1]);
+  assert.deepEqual(expected.restartBoundaries, ['source-waiting',
+    'source-approval-committed', 'capture-waiting', 'approval-committed']);
+});
+
+test('packed Source approval preserves the credential Site account identity', () => {
+  const script = readFileSync(new URL('./test-packed-salesforce-source.mjs', import.meta.url), 'utf8');
+  const accountConfiguration = JSON.stringify({
+    version: 'actql-execution-account-config/0.1', account_id: 'shared-site-account',
+    entries: [{entry_id: 'a-fixture-model', outcome: 'allow',
+      principal: {all: true}, connection: {any_of: ['unused-model']},
+      resource: {any_of: ['unused-task']}, operation: {any_of: ['infer']}, exclusions: []}],
+  });
+  const setup = script.slice(script.indexOf('const authorization = JSON.parse(readFileSync'),
+    script.indexOf('const pendingScratch ='));
+  const actual = JSON.parse(runInNewContext(setup + '\nJSON.stringify(authorization)', {
+    readFileSync: () => JSON.stringify({accountConfiguration}),
+    sourceReadApproval: true, process: {env: {}},
+  }));
+  assert.equal(actual.accountConfiguration, accountConfiguration,
+    'an unused Model rule must not make Host and Site configuration CIDs diverge');
+  assert(script.includes('if (!sourceReadApproval) {\n    const model = await modelConfiguration'),
+    'Source approval case still installs no Model');
 });
 
 test('each Client group retains its acceptance commands exactly once', () => {

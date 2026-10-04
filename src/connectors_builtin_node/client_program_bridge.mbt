@@ -6540,3 +6540,194 @@ pub fn client_program_effect_publication_policy_bodies(
     value, max_bytes, max_nodes, max_depth,
   )
 }
+
+// Provider-neutral installed row sources. A connector's Site driver pushes
+// pages of JSON rows; declaration generation, admission, capture and Source
+// Evidence are owned here, by the runtime that checked the Program. Nothing
+// crosses from a provider's compiled bundle except strings and bytes, and no
+// provider name appears in these entries.
+
+///|
+#export_name("clientProgramRowSourceRestoreDeclaration")
+pub fn client_program_row_source_restore_declaration(
+  connector_id : String,
+  connector_registration : String,
+  connector_version : String,
+  views_json : String,
+  expected_catalog_cid : String?,
+) -> Result[
+  @client_row_source_host.RowDeclaration,
+  @client_row_source_host.RowHostIssue,
+] {
+  @client_row_source_host.restore_row_declaration(
+    connector_id, connector_registration, connector_version, views_json, expected_catalog_cid,
+  )
+}
+
+///|
+/// The published parts of a declaration as one JSON text: Catalog CID,
+/// Catalog, contracts, views, view bodies, manifest entry and its CID, and
+/// the Check Environment evidence members.
+#export_name("clientProgramRowSourceDeclarationJson")
+pub fn client_program_row_source_declaration_json(
+  declaration : @client_row_source_host.RowDeclaration,
+) -> String {
+  let (schemas, capabilities) = @client_row_source_host.row_declaration_evidence_members(
+    declaration,
+  ) catch {
+    _ => return "null"
+  }
+  let views : Array[Json] = declaration.views.map(view => {
+    "resource": view.resource.to_json(),
+    "source_ref": view.source_ref.to_json(),
+    "view_cid": view.view_cid.to_json(),
+    "fields": view.fields.to_json(),
+    "carrier_schema_cid": view.carrier_schema_cid.to_json(),
+    "data_policy_cid": view.data_policy_cid.to_json(),
+  })
+  let json : Json = {
+    "connector_id": declaration.connector_id.to_json(),
+    "connector_registration": declaration.connector_registration.to_json(),
+    "connector_version": declaration.connector_version.to_json(),
+    "catalog": declaration.catalog.to_json(),
+    "catalog_cid": declaration.catalog_cid.to_json(),
+    "contracts": declaration.contracts.to_json(),
+    "views": Json::array(views),
+    "view_bodies": declaration.view_bodies.to_json(),
+    "manifest_entry": declaration.manifest_entry.to_json(),
+    "manifest_entry_cid": declaration.manifest_entry_cid.to_json(),
+    "evidence_schemas": schemas.to_json(),
+    "evidence_capabilities": capabilities.to_json(),
+  }
+  json.stringify()
+}
+
+///|
+#export_name("clientProgramRowSourceTarget")
+pub fn client_program_row_source_target(
+  declaration : @client_row_source_host.RowDeclaration,
+  requirement : @planning.QueryRequirement,
+) -> Result[Array[String], @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.row_source_target(declaration, requirement).map(target => {
+    [target.0, ..target.1]
+  })
+}
+
+///|
+#export_name("clientProgramRowSourcePrepareAcquisition")
+pub fn client_program_row_source_prepare_acquisition(
+  declaration : @client_row_source_host.RowDeclaration,
+  requirement : @planning.QueryRequirement,
+  query_contract : String,
+  evidence_contract : String,
+) -> Result[
+  @client_row_source_host.RowAcquisition,
+  @client_row_source_host.RowHostIssue,
+] {
+  @client_row_source_host.prepare_row_acquisition(
+    declaration, requirement, query_contract, evidence_contract,
+  )
+}
+
+///|
+#export_name("clientProgramRowSourceColumns")
+pub fn client_program_row_source_columns(
+  acquisition : @client_row_source_host.RowAcquisition,
+) -> Array[String] {
+  @client_row_source_host.row_acquisition_columns(acquisition)
+}
+
+///|
+#export_name("clientProgramRowSourceStart")
+pub fn client_program_row_source_start(
+  acquisition : @client_row_source_host.RowAcquisition,
+  nonce : String,
+  verify : (@client_row_source_host.RowAttempt) -> Bool,
+) -> Result[
+  @client_row_source_host.RowRun,
+  @client_row_source_host.RowHostIssue,
+] {
+  @client_row_source_host.start_row_acquisition(acquisition, nonce, verify)
+}
+
+///|
+#export_name("clientProgramRowSourceAttempt")
+pub fn client_program_row_source_attempt(
+  run : @client_row_source_host.RowRun,
+) -> @client_row_source_host.RowAttempt {
+  @client_row_source_host.row_run_attempt(run)
+}
+
+///|
+#export_name("clientProgramRowSourceBegin")
+pub fn client_program_row_source_begin(
+  run : @client_row_source_host.RowRun,
+  max_page_bytes : Int,
+  max_page_rows : Int,
+  max_capture_rows : Int,
+) -> Result[Bool, @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.begin_row_run(
+    run, max_page_bytes, max_page_rows, max_capture_rows,
+  ).map(_ => true)
+}
+
+///|
+#export_name("clientProgramRowSourceAcceptPage")
+pub fn client_program_row_source_accept_page(
+  run : @client_row_source_host.RowRun,
+  page : Bytes,
+) -> Result[Int, @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.accept_row_run_page(run, page)
+}
+
+///|
+#export_name("clientProgramRowSourceFinish")
+pub fn client_program_row_source_finish(
+  run : @client_row_source_host.RowRun,
+) -> Result[Bool, @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.finish_row_run(run).map(_ => true)
+}
+
+///|
+#export_name("clientProgramRowSourceClose")
+pub fn client_program_row_source_close(
+  run : @client_row_source_host.RowRun,
+) -> Unit {
+  @client_row_source_host.close_row_run(run)
+}
+
+///|
+#export_name("clientProgramRowSourceCapture")
+pub fn client_program_row_source_capture(
+  run : @client_row_source_host.RowRun,
+) -> Result[
+  @client_row_source_host.RowSourceCapture,
+  @client_row_source_host.RowHostIssue,
+] {
+  @client_row_source_host.capture_row_run(run)
+}
+
+///|
+#export_name("clientProgramRowSourceCaptureSource")
+pub fn client_program_row_source_capture_source(
+  capture : @client_row_source_host.RowSourceCapture,
+) -> Result[@query.CapturedInputSource, @query.CapturedSourceIssue] {
+  @client_row_source_host.row_capture_source(capture)
+}
+
+///|
+#export_name("clientProgramRowSourceIssueSourceEvidence")
+pub fn client_program_row_source_issue_source_evidence(
+  acquisition : @client_row_source_host.RowAcquisition,
+  capture : @client_row_source_host.RowSourceCapture,
+  identity : @query.CapturedSourceRelationIdentity,
+  logical_input : @publication.RunEvidenceValue,
+  authority_scope_cid : String,
+  effective_data_policy_cid : String,
+  observed_at : String,
+) -> Result[String, @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.issue_row_source_evidence(
+    acquisition, capture, identity, logical_input, authority_scope_cid, effective_data_policy_cid,
+    observed_at,
+  ).map(value => @publication.run_evidence_value_json(value))
+}

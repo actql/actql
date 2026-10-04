@@ -8,6 +8,8 @@ import {join} from 'node:path';
 import test from 'node:test';
 // The installed connector table runs with the installation tests.
 import './installed-connectors.test.mjs';
+// The neutral row source's Site boundary runs with the installation tests.
+import './installed-row-source.test.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from
   './embedded-local.mjs';
 import {installedEffectIdentity} from './installed-effect.mjs';

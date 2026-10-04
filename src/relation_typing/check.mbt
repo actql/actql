@@ -6,6 +6,7 @@ fn expression(
   visible : Map[String, (@contract.Contract, ReferenceTarget)],
   parameters : @parameter.Declarations?,
   argument_domain? : @typing.ArgumentDomain? = None,
+  presence_schema? : @schema.Schema? = None,
 ) -> Binding raise Stop {
   let admitted = match
     @syntax.admit(source, {
@@ -39,6 +40,11 @@ fn expression(
     match visible.get(occurrence.name) {
       None => unknown_reference(source, occurrence)
       Some((contract, target)) => {
+        if presence_schema is Some(schema) &&
+          @schema.lookup_reference(schema, occurrence.name) is Some(field) &&
+          field.presence == @schema.Conditional {
+          fail(source, PresenceRequired(occurrence.name))
+        }
         references.push({ occurrence, target, })
         if !seen.contains(occurrence.name) {
           seen[occurrence.name] = true
@@ -121,9 +127,12 @@ fn check_impl(
     limits,
   }
   schema_preflight(b, body, input)
-  // The first presence profile permits only projection of schema-guaranteed
-  // columns. Other kernels must not erase presence by rebuilding dense types.
-  if !@schema.all_fields_required(input) && !(operation is Select) {
+  // Only implemented preservation kernels may consume conditional rows.
+  if !@schema.all_fields_required(input) &&
+    !(operation is Select ||
+    operation is Filter ||
+    operation is Sort ||
+    operation is Take) {
     fail(body, ConditionalInputNotImplemented)
   }
   let parameter_types : Map[String, @contract.Contract] = Map([])
@@ -401,6 +410,16 @@ fn check_impl(
         match operation {
           Sort => {
             let terms = row_order(b, body, visible)
+            if !@schema.all_fields_required(input) {
+              for term in terms {
+                spend(b, term.source)
+                let name = @schema.reference_name(term.field)
+                if @schema.lookup_reference(input, name) is Some(field) &&
+                  field.presence == @schema.Conditional {
+                  fail(term.source, PresenceRequired(name))
+                }
+              }
+            }
             if !terms.is_empty() {
               pending.push({ kind: SortOrderCompletion, source: body, })
             }
@@ -481,7 +500,14 @@ fn check_impl(
       Form::RowOperation
     }
     Filter => {
-      let binding = expression(b, body, None, visible, parameters)
+      let binding = expression(
+        b,
+        body,
+        None,
+        visible,
+        parameters,
+        presence_schema=Some(input_schema),
+      )
       if !(@typing.result_type(binding.expression).shape is @contract.Boolean) {
         fail(body, ExpectedBoolean)
       }
