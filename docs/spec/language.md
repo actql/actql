@@ -759,12 +759,16 @@ The existence guarantee MUST participate in schema identity and retained schema
 storage. Row content identity MUST distinguish omitted keys from explicit NULL,
 without including physical presence bitmap/layout choices.
 
-<!-- requirement-block: value-contracts.relation-reference-presence value-contracts.relation-conditional-reference-rejection value-contracts.relation-unsupported-consumers -->
+<!-- requirement-block: value-contracts.relation-reference-presence value-contracts.relation-conditional-reference-rejection value-contracts.relation-filter-preservation value-contracts.relation-filter-complete-input-admission value-contracts.relation-unsupported-consumers -->
 In the initial presence profile, ordinary references and public Result columns
 MUST be schema-guaranteed present. Conditional references MUST fail during
 checking; sample values, an empty Relation and `IS NOT NULL` do not prove
-presence. Projection of guaranteed columns is supported. Other consumers of a
-conditional schema remain explicitly unsupported until their preservation or
+presence. Projection of guaranteed columns and filtering by expressions that
+reference only guaranteed columns are supported. Filter MUST preserve the exact
+input schema, ordered surviving rows and each cell's presence; it MUST admit and
+charge all input rows before evaluating the predicate, including rejected rows.
+All syntactic references require presence, including unevaluated branches.
+Other consumers of a conditional schema remain explicitly unsupported until their preservation or
 refinement rules are implemented; they MUST NOT fill omission with NULL or
 silently drop presence. This does not make ordinary object properties optional.
 

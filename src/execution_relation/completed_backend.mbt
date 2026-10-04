@@ -1,6 +1,6 @@
 ///|
 // Representation selection precedes execution; an error never retries through
-// another evaluator. Non-projection expressions keep the existing row builder.
+// another evaluator. Filter retains sparse rows; projection makes dense rows.
 fn evaluate_completed_body(
   body : RowBodySource,
   input : CompletedTable,
@@ -19,8 +19,37 @@ fn evaluate_completed_body(
     Projection(_) => true
     PreparedBody(kernel) => @lower.kernel_is_projection(kernel)
   }
-  if input is PresenceTable(_) && !projection {
-    return Err(InvalidRows)
+  if input is PresenceTable(table) && !projection {
+    guard body is PreparedBody(kernel) &&
+      @lower.kernel_body(kernel) is @lower.Filter(_) else {
+      return Err(InvalidRows)
+    }
+    let rows = []
+    let names = match
+      evaluate_row_body_into(
+        body,
+        input,
+        max_rows,
+        control,
+        output,
+        workspace,
+        fn(_row, source, _names, _selected) {
+          let row = table.rows[source]
+          if !reserve_slots(workspace, 1) ||
+            !reserve_slots(workspace, row.cells.length()) ||
+            !spend_control(control, row.cells.length()) {
+            return Err(RowLimit)
+          }
+          rows.push({ ..row, cells: row.cells.copy(), })
+          Ok(())
+        },
+        ordered_budget=logical,
+        preserve_filter_rows=true,
+      ) {
+      Ok(names) => names
+      Err(issue) => return Err(issue)
+    }
+    return Ok(PresenceTable({ ..table, id, names, rows, }))
   }
   if input is RowTable(_) || !projection {
     return evaluate_row_body(

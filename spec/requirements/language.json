@@ -674,6 +674,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/value-contracts.relation-filter-preservation",
+      "statement_sha256": "7220ef7d16902dbc7b8722eed9bf67a9342bf73a24be2d662f650e8de6a28a0d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "value-contracts",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.relation-filter-complete-input-admission",
+      "statement_sha256": "ceaeb3a385d89239b63bf0e6fbc5f65a6b374a438551256708854154277352f5",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "value-contracts",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/value-contracts.relation-unsupported-consumers",
       "statement_sha256": "840b733d80c7db144df64cdd9790c34fe11d7f0d159078d8500af363ee089d3b",
       "status": "pending",

@@ -68,6 +68,8 @@ const acceptance = {
     'ordered node_rows and edge_rows on initial read and reattach',
     'Relation Store save, original output unavailable, verified reload with omission and NULL distinct',
     'guaranteed id and labels projection through public Named Results',
+    'Required-only filter retains omitted NULL and value cells through Relation Store reload',
+    'filter initial read and reattach preserve independent canonical row order and empty schema',
     'conditional property refusal before Run admission',
     'declaration-derived definition selection with empty and nullable Results',
     'selected property filter and alias projection after Relation Store reload',
