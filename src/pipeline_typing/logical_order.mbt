@@ -213,7 +213,11 @@ fn derive_logical_orders(
       | TextRank(..)
       | AsOfJoin(..) => true
       Pool(_) => true
-      GraphMatch(_) | GraphBounds(_) | GraphDegree(_) | Traverse(..) => true
+      GraphMatch(_)
+      | GraphBounds(_)
+      | GraphDegree(_)
+      | GraphComponents(_)
+      | Traverse(..) => true
       Vector(op) => @vector.operation(op) == @vector.ScoreVectors
       Unary(op) | WindowGroup(op) =>
         match @relation.operation(op) {
