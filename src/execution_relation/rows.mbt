@@ -76,6 +76,9 @@ fn table_from_capture_bounded(
     return Err(InvalidRowLimits)
   }
   let width = @schema.field_count(input.schema)
+  if !@schema.all_fields_required(input.schema) {
+    return Err(InvalidRows)
+  }
   // Admit the complete layout before allocating copied arrays. Borrowed
   // capture containers coexist with the new table during conversion.
   if !reserve_slots(workspace, input.rows.length()) ||
@@ -141,8 +144,15 @@ fn[T : RowValues] retain_row(
     return false
   }
   for i = 0; i < names.length(); i = i + 1 {
-    if !charge_text(output, names[i]) ||
-      !measure_result(row.value_at(i), output) {
+    if !charge_text(output, names[i]) {
+      return false
+    }
+    let measured = if row.value_present(i) {
+      measure_result(row.value_at(i), output)
+    } else {
+      charge_node(output, 2)
+    }
+    if !measured {
       return false
     }
   }

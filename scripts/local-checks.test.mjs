@@ -157,3 +157,23 @@ test('focused Node route preserves nonzero-execution refusal', t => {
   assert.equal(empty.status, 1, empty.stderr);
   assert.match(empty.stdout + empty.stderr, /no successfully executed test cases/u);
 });
+
+test('changed shared-core guidance stays advisory without executing gates', t => {
+  const f = fixture(t);
+  const git = join(f.root, 'bin/git');
+  writeFileSync(git, `#!${process.execPath}\nconsole.log('src/source_span/span.mbt');\n`);
+  chmodSync(git, 0o755);
+  const result = f.run(['changed']);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Candidate narrow checks.*affected callers and validators/u);
+  assert.match(result.stdout, /moon check --target js src\/source_span/u);
+  assert.match(result.stdout, /Related CI jobs \(advisory inspection; not required local execution\)/u);
+  assert.match(result.stdout, /matching-target diagnostics for native-only or FFI changes/u);
+  assert.match(result.stdout, /not complete reverse-dependent coverage/u);
+  assert.match(result.stdout, /exact-SHA CI; report executed and unverified coverage separately/u);
+  assert.doesNotMatch(result.stdout, /before push|add --target wasm|verify the whole SHA/u);
+  for (const path of ['calls', 'moon-args', '_build', '.artifacts']) {
+    assert.equal(existsSync(join(f.root, path)), false, path);
+  }
+  assert.deepEqual(readdirSync(join(f.root, 'home')), []);
+});

@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "ci-operation-evidence-admission",
+  "kind": "change",
+  "revision": "12c09a5b29e3990ad4bb3487d7b3663279b3400e",
+  "parents": [
+    "adf43ce95eb833630140f619c0aefba266b056bd"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "adf43ce95eb833630140f619c0aefba266b056bd",
+          "digest": "f7d317b9da185705e2449030d4ef6b2599bff2f039e18008df77b9ba04c3c827",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "fdc1857811c45519e44cb439e4f626f3bcf363039c02cd7699c80faf7809c05c",
+      "afterMode": "100644",
+      "reason": "Run the unchanged four operation support/evidence inventory tests in mandatory preflight before runtime and proof fan-out. Keep the original specification checks, all successful-admission job selections, semantic validators and final-gate failure requirements unchanged; no cached evidence, skipped success or contract change."
+    }
+  ]
+}

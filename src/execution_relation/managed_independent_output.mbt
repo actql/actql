@@ -41,6 +41,12 @@ pub fn copy_completed_output_independent(
     }
   }
   let table = match source {
+    PresenceTable(rows) =>
+      CompletedTable::PresenceTable({
+        ..rows,
+        names: rows.names.copy(),
+        rows: rows.rows.map(row => { ..row, cells: row.cells.copy(), }),
+      })
     RowTable(rows) =>
       CompletedTable::RowTable({
         owner: rows.owner,
@@ -141,6 +147,8 @@ priv struct IndependentRowCopyState {
   mut names : Array[String]
   mut rows : Array[Array[Value]]
   mut row_values : Array[Value]?
+  mut presence_rows : Array[AdmittedRelationRow]
+  mut presence_cells : Array[@admitted.Value?]?
   mut row : Int
   mut column : Int
   mut phase : IndependentRowCopyPhase
@@ -204,7 +212,11 @@ fn independent_row_copy_step(
           if !reserve_slots(state.workspace, 1) {
             return @bounded.Failed(Limit, progress, used)
           }
-          state.row_values = Some([])
+          if source_rows is PresenceTable(_) {
+            state.presence_cells = Some([])
+          } else {
+            state.row_values = Some([])
+          }
           state.column = 0
           state.phase = CopyCells
           used += 1
@@ -213,41 +225,79 @@ fn independent_row_copy_step(
         }
       CopyCells =>
         if state.column < state.names.length() {
-          guard state.row_values is Some(row_values) else {
-            return @bounded.Failed(UnsupportedRepresentation, progress, used)
-          }
           if !reserve_slots(state.workspace, 1) {
             return @bounded.Failed(Limit, progress, used)
           }
-          row_values.push(
-            IndexedRows::read_cell(source_rows, state.row, state.column),
-          )
+          match source_rows {
+            PresenceTable(table) => {
+              guard state.presence_cells is Some(cells) else {
+                return @bounded.Failed(
+                  UnsupportedRepresentation,
+                  progress,
+                  used,
+                )
+              }
+              cells.push(table.rows[state.row].cells[state.column])
+            }
+            _ => {
+              guard state.row_values is Some(row_values) else {
+                return @bounded.Failed(
+                  UnsupportedRepresentation,
+                  progress,
+                  used,
+                )
+              }
+              row_values.push(
+                IndexedRows::read_cell(source_rows, state.row, state.column),
+              )
+            }
+          }
           state.column += 1
           used += 1
         } else {
           state.phase = CommitRow
         }
       CommitRow => {
-        guard state.row_values is Some(row_values) else {
-          return @bounded.Failed(UnsupportedRepresentation, progress, used)
-        }
         if !reserve_slots(state.workspace, 1) {
           return @bounded.Failed(Limit, progress, used)
         }
-        state.rows.push(row_values)
+        match source_rows {
+          PresenceTable(table) => {
+            guard state.presence_cells is Some(cells) else {
+              return @bounded.Failed(UnsupportedRepresentation, progress, used)
+            }
+            state.presence_rows.push({ ..table.rows[state.row], cells, })
+          }
+          _ => {
+            guard state.row_values is Some(row_values) else {
+              return @bounded.Failed(UnsupportedRepresentation, progress, used)
+            }
+            state.rows.push(row_values)
+          }
+        }
         state.row_values = None
+        state.presence_cells = None
         state.row += 1
         state.phase = BeginRow
         progress += 1
         used += 1
       }
       FinishCopy => {
-        let table : CompletedTable = RowTable({
-          owner: RelationRows::checked_owner(source_rows),
-          id: RelationRows::relation_id(source_rows),
-          names: state.names,
-          rows: state.rows,
-        })
+        let table : CompletedTable = match source_rows {
+          PresenceTable(original) =>
+            PresenceTable({
+              ..original,
+              names: state.names,
+              rows: state.presence_rows,
+            })
+          _ =>
+            RowTable({
+              owner: RelationRows::checked_owner(source_rows),
+              id: RelationRows::relation_id(source_rows),
+              names: state.names,
+              rows: state.rows,
+            })
+        }
         let prepared = @lower.bound_preparation(
           RelationRows::checked_owner(source_rows),
         )
@@ -264,6 +314,7 @@ fn independent_row_copy_step(
         }
         state.names = []
         state.rows = []
+        state.presence_rows = []
         state.source = None
         state.source_rows = None
         // The completed generation takes custody of these admitted arrays.
@@ -292,6 +343,8 @@ fn cleanup_independent_row_copy_state(state : IndependentRowCopyState) -> Bool {
   state.names = []
   state.rows = []
   state.row_values = None
+  state.presence_rows = []
+  state.presence_cells = None
   release_slots(state.workspace, state.workspace.live)
   true
 }
@@ -328,6 +381,8 @@ pub fn start_bounded_independent_row_copy(
     names: [],
     rows: [],
     row_values: None,
+    presence_rows: [],
+    presence_cells: None,
     row: 0,
     column: 0,
     phase: CopyNames,

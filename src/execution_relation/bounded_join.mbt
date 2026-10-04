@@ -549,6 +549,7 @@ pub fn start_bounded_join(
       max_rows: ceiling,
       budget,
       rows: [],
+      presence_rows: [],
       open: true,
       reading: false,
     },

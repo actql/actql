@@ -31,12 +31,14 @@ test('operation count checker law literals have semantic bodies, not only regist
   const classification = JSON.parse(readFileSync(new URL(
     '../docs/reviews/2026-09-19-sga-veca-tea-local-coverage.json', import.meta.url),'utf8')).current_graph_profile.classification;
   // The historical quantity body remains pinned and independently tested
-  // below. Only definition-selected MATCH retains an applicable rule here.
+  // below. Definition-selected MATCH and entity-to-row projection retain
+  // applicable quantity rules. Projection uses the registered graph-* name.
   // Current TRAIL emits paths, so the old minimum-depth node-emission bound
   // is not an applicable law. Construction has its separate keyed body.
   for (const [operation, status] of Object.entries(classification)) {
     if (status !== 'partial') continue;
-    const law = `actql.bound.${operation.replaceAll('_', '-')}`;
+    const prefix = operation === 'node_rows' || operation === 'edge_rows' ? 'graph-' : '';
+    const law = `actql.bound.${prefix}${operation.replaceAll('_', '-')}`;
     if (graph.law_ids.includes(law)) visit({law_id:law});
   }
   const source = readFileSync(new URL('../src/capacity_program_step/check.mbt',import.meta.url),'utf8');

@@ -290,6 +290,8 @@ pub fn collect_expression_slots(
         | Calendar(_)
         | Window(_)
         | Projection(_)
+        | GraphBounds(_)
+        | GraphDegree(_)
         | PropertyGraphConstruction(..)
         | Vector(_)
         | Nearest(..)

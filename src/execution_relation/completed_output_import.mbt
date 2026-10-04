@@ -193,12 +193,16 @@ pub fn finish_completed_output_import(
     Step(index) => @lower.node_id(@lower.node_at(prepared, index).unwrap())
     Input(_) => abort("retained output must have a checked step target")
   }
-  let table = AdmittedTable({
-    owner: original.owner,
-    id,
-    names,
-    rows: rows.rows,
-  })
+  let table = if @schema.all_fields_required(rows.schema) {
+    AdmittedTable({ owner: original.owner, id, names, rows: rows.rows, })
+  } else {
+    PresenceTable({
+      owner: original.owner,
+      id,
+      names,
+      rows: rows.presence_rows,
+    })
+  }
   // Same immutable completion and logical restrictions, independently admitted
   // physical storage. Do not capture the source copy's availability callback.
   let completion : CompletedSequence = {
@@ -215,4 +219,33 @@ pub fn finish_completed_output_import(
     table: Some(table),
     representation: None,
   })
+}
+
+///|
+fn append_completed_output_import_presence(
+  value : CompletedOutputImport,
+  row : AdmittedRelationRow,
+) -> Result[Unit, CompletedImportIssue] {
+  if !value.open || value.reading {
+    return Err(Closed)
+  }
+  if !completed_output_available(value.source) {
+    cancel_completed_output_import(value) |> ignore
+    return Err(Unavailable)
+  }
+  value.reading = true
+  let result : Result[Unit, CompletedImportIssue] = match
+    append_admitted_output_presence(value.admitted, row) {
+    Err(issue) => Err(Admission(issue))
+    Ok(_) =>
+      match append_admitted_output_stream_presence(value.stream, row) {
+        Ok(_) => Ok(())
+        Err(issue) => Err(Encoding(issue))
+      }
+  }
+  value.reading = false
+  if result is Err(_) {
+    cancel_completed_output_import(value) |> ignore
+  }
+  result
 }

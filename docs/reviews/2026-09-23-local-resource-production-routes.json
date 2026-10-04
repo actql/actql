@@ -6739,13 +6739,216 @@
       "inventory": "families",
       "family": "SGA",
       "operation": "graph_bounds",
-      "profile": "sga_graph"
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_graph_bounds("
+      },
+      "additional_dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_graph_bounds_view("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/graph_diagnostics.mbt",
+        "symbol": "start_graph_bounds"
+      },
+      "selected_entrypoint": {
+        "path": "src/local_sga/graph_diagnostics.mbt",
+        "symbol": "start_graph_bounds_view"
+      },
+      "boundary_tests": [
+        {
+          "role": "graph_bounds_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+          "fixture": "Graph bounds yields during typed identity ordering and rejects partial output"
+        },
+        {
+          "role": "graph_bounds_stored_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+          "fixture": "Graph bounds yields during typed identity ordering and rejects partial output"
+        },
+        {
+          "role": "graph_bounds_long_text_compare_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+          "fixture": "Graph bounds yields during typed identity ordering and rejects partial output"
+        },
+        {
+          "role": "graph_bounds_view_work_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+          "fixture": "Graph bounds yields during typed identity ordering and rejects partial output"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "graph_bounds_fused_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "current-graph-bounds-fused-in-flight"
+        },
+        {
+          "role": "graph_bounds_selected_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "current-graph-bounds-in-flight"
+        },
+        {
+          "role": "graph_bounds_retained_named_results",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "retained-graph-bounds"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "graph_bounds_work_exact_one_short",
+          "one_short_limit": "graph_bounds_work_exact_one_short",
+          "in_flight_cancel": "graph_bounds_fused_host_in_flight_cancel",
+          "cleanup": "graph_bounds_long_text_compare_cancel_cleanup"
+        },
+        "selected_entrypoint": {
+          "exact_limit": "graph_bounds_view_work_workspace_exact_one_short",
+          "one_short_limit": "graph_bounds_view_work_workspace_exact_one_short",
+          "in_flight_cancel": "graph_bounds_selected_host_in_flight_cancel",
+          "cleanup": "graph_bounds_view_work_workspace_exact_one_short"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "graph_bounds_work_exact_one_short",
+            "one_short_limit": "graph_bounds_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "graph_bounds_stored_workspace_exact_one_short",
+            "one_short_limit": "graph_bounds_stored_workspace_exact_one_short"
+          }
+        },
+        "selected_entrypoint": {
+          "work": {
+            "exact_limit": "graph_bounds_view_work_workspace_exact_one_short",
+            "one_short_limit": "graph_bounds_view_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "graph_bounds_view_work_workspace_exact_one_short",
+            "one_short_limit": "graph_bounds_view_work_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "families",
       "family": "SGA",
       "operation": "degree",
-      "profile": "sga_graph"
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_graph_degree("
+      },
+      "additional_dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_graph_degree_view("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/graph_diagnostics.mbt",
+        "symbol": "start_graph_degree"
+      },
+      "selected_entrypoint": {
+        "path": "src/local_sga/graph_diagnostics.mbt",
+        "symbol": "start_graph_degree_view"
+      },
+      "boundary_tests": [
+        {
+          "role": "degree_control_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+          "fixture": "Graph bounds yields during typed identity ordering and rejects partial output"
+        },
+        {
+          "role": "degree_stored_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+          "fixture": "Graph bounds yields during typed identity ordering and rejects partial output"
+        },
+        {
+          "role": "degree_view_work_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+          "fixture": "Graph bounds yields during typed identity ordering and rejects partial output"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "degree_fused_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "current-degree-fused-in-flight"
+        },
+        {
+          "role": "degree_selected_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "current-degree-selected-in-flight"
+        },
+        {
+          "role": "degree_retained_named_results",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "retained-degree-metrics"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "degree_control_work_exact_one_short",
+          "one_short_limit": "degree_control_work_exact_one_short",
+          "in_flight_cancel": "degree_fused_host_in_flight_cancel",
+          "cleanup": "degree_stored_workspace_exact_one_short"
+        },
+        "selected_entrypoint": {
+          "exact_limit": "degree_view_work_workspace_exact_one_short",
+          "one_short_limit": "degree_view_work_workspace_exact_one_short",
+          "in_flight_cancel": "degree_selected_host_in_flight_cancel",
+          "cleanup": "degree_view_work_workspace_exact_one_short"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "degree_control_work_exact_one_short",
+            "one_short_limit": "degree_control_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "degree_stored_workspace_exact_one_short",
+            "one_short_limit": "degree_stored_workspace_exact_one_short"
+          }
+        },
+        "selected_entrypoint": {
+          "work": {
+            "exact_limit": "degree_view_work_workspace_exact_one_short",
+            "one_short_limit": "degree_view_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "degree_view_work_workspace_exact_one_short",
+            "one_short_limit": "degree_view_work_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "families",
@@ -8553,13 +8756,127 @@
       "inventory": "families",
       "family": "Bridge",
       "operation": "node_rows",
-      "profile": "carrier_bridges"
+      "profile": "carrier_bridges",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@bridge.start_graph_to_rows("
+      },
+      "entrypoint": {
+        "path": "src/local_bridge/events.mbt",
+        "symbol": "start_storage_to_rows"
+      },
+      "view_dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@bridge.start_graph_view_to_rows("
+      },
+      "boundary_tests": [
+        {
+          "role": "node_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_rows_presence_wbtest.mbt",
+          "fixture": "node rows admit exact work and workspace and reclaim every private phase"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "node_rows_host_in_flight_cancel",
+          "suite": "node:property_graph_surface_checker",
+          "targets": [
+            "node"
+          ],
+          "path": "scripts/property-graph-surface-checker.test.mjs",
+          "fixture": "node_rows Host in-flight cancellation reclaims private Relation without publishing"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "node_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
+          "one_short_limit": "node_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
+          "in_flight_cancel": "node_rows_host_in_flight_cancel",
+          "cleanup": "node_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "node_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
+            "one_short_limit": "node_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup"
+          },
+          "workspace": {
+            "exact_limit": "node_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
+            "one_short_limit": "node_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup"
+          }
+        }
+      },
+      "notes": "Stored and viewed Graph wrappers both enter start_storage_to_rows. The exact/one-short kernel fixture executes both wrappers; the installed Host cancellation traverses the same bounded kernel. This entry records that common resource/cleanup owner once, not two distinct proven Host paths."
     },
     {
       "inventory": "families",
       "family": "Bridge",
       "operation": "edge_rows",
-      "profile": "carrier_bridges"
+      "profile": "carrier_bridges",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@bridge.start_graph_to_rows("
+      },
+      "entrypoint": {
+        "path": "src/local_bridge/events.mbt",
+        "symbol": "start_storage_to_rows"
+      },
+      "view_dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@bridge.start_graph_view_to_rows("
+      },
+      "boundary_tests": [
+        {
+          "role": "edge_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_rows_presence_wbtest.mbt",
+          "fixture": "edge rows admit exact work and workspace and reclaim every private phase"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "edge_rows_host_in_flight_cancel",
+          "suite": "node:property_graph_surface_checker",
+          "targets": [
+            "node"
+          ],
+          "path": "scripts/property-graph-surface-checker.test.mjs",
+          "fixture": "edge_rows Host in-flight cancellation reclaims private Relation without publishing"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "edge_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
+          "one_short_limit": "edge_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
+          "in_flight_cancel": "edge_rows_host_in_flight_cancel",
+          "cleanup": "edge_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "edge_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
+            "one_short_limit": "edge_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup"
+          },
+          "workspace": {
+            "exact_limit": "edge_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
+            "one_short_limit": "edge_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup"
+          }
+        }
+      },
+      "notes": "Stored and viewed Graph wrappers both enter start_storage_to_rows. The exact/one-short kernel fixture executes both wrappers; the installed Host cancellation traverses the same bounded kernel. This entry records that common resource/cleanup owner once, not two distinct proven Host paths."
     },
     {
       "inventory": "families",

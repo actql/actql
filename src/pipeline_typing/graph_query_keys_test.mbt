@@ -193,8 +193,7 @@ test "current identity projection loss and TRAIL enumeration do not fabricate Re
   assert_true(@pipeline_typing.candidate_key(trail, Step(0)) is None)
   for
     operation in [
-      "\"degree\":{\"direction\":\"both\"}", "\"components\":{\"kind\":\"weak\"}",
-      "\"graph_bounds\":{\"max_nodes\":0,\"max_degree\":0}", "\"shortest_path\":{\"source\":1,\"target\":2,\"direction\":\"out\",\"max_hops\":3}",
+      "\"components\":{\"kind\":\"weak\"}", "\"shortest_path\":{\"source\":1,\"target\":2,\"direction\":\"out\",\"max_hops\":3}",
     ] {
     let issue = @pipeline_typing.check_carriers(
       cursor("[{" + operation + "}]"),
@@ -207,6 +206,21 @@ test "current identity projection loss and TRAIL enumeration do not fabricate Re
       issue.kind is Graph(@graph.UnsupportedGraphOperation) ||
       issue.kind
       is GraphMatch(@graph.Structure(@graph.UnsupportedGraphOperation)),
+    )
+  }
+  for
+    operation in [
+      "\"degree\":{\"direction\":\"both\"}", "\"graph_bounds\":{\"max_nodes\":0,\"max_degree\":0}",
+    ] {
+    assert_true(
+      @pipeline_typing.check_carriers(
+        cursor("[{" + operation + "}]"),
+        [("g", graph)],
+        None,
+        None,
+        limits(),
+      )
+      is Ok(_),
     )
   }
 }

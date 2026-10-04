@@ -114,12 +114,34 @@ test "time-series steps retain direct parameter slots" {
 }
 
 ///|
-test "parameterized unconnected Graph consumers refuse before issuing parameter slots" {
+test "parameterized Graph bounds retains each exact threshold occurrence" {
+  let checked = @pipeline_typing.check_carriers(
+    cursor(
+      "[{\"from\":\"g\",\"graph_bounds\":{\"max_nodes\":{\"$param\":\"n\"},\"max_degree\":{\"$param\":\"n\"}}}]",
+    ),
+    [("g", query_property_graph())],
+    Some(operand_parameters()),
+    None,
+    limits(),
+  ).unwrap()
+  let slots = collect_parameter_slots(checked, max_work=100, max_slots=2).unwrap()
+  assert_eq(parameter_slot_count(slots), 2)
+  assert_eq(@decode.cursor_path(parameter_slot_at(slots, 0).unwrap().source), [
+    @source.Index(0),
+    @source.Key("graph_bounds"),
+    @source.Key("max_nodes"),
+  ])
+  assert_eq(@decode.cursor_path(parameter_slot_at(slots, 1).unwrap().source), [
+    @source.Index(0),
+    @source.Key("graph_bounds"),
+    @source.Key("max_degree"),
+  ])
+}
+
+///|
+test "unconnected Graph components refuses before issuing parameter slots" {
   for
     (operation, body) in [
-      (
-        "graph_bounds", "{\"max_nodes\":{\"$param\":\"n\"},\"max_degree\":{\"$param\":\"n\"}}",
-      ),
       (
         "components", "{\"kind\":\"weak\",\"max_output_rows\":{\"$param\":\"n\"}}",
       ),

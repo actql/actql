@@ -38,21 +38,34 @@ function checkedPublication(moon, environment, publication) {
 }
 
 export function installNodePublicSourcePreparation({moon, environment,
-  publication}) {
+  publication, allowEffects = false, effectEvidence = []}) {
   if (moon === null || typeof moon !== 'object' ||
       typeof moon.clientProgramCheckingEnvironmentCid !== 'function' ||
-      environment === undefined) {
+      environment === undefined || typeof allowEffects !== 'boolean' ||
+      !Array.isArray(effectEvidence) || effectEvidence.length > 1024) {
     throw new TypeError('InvalidPublicSourcePreparationInstallation');
   }
   const aliasesWire = checkedPublication(moon, environment, publication);
+  const evidence = Object.freeze([...effectEvidence]);
   return Object.freeze({
     prepare({document, format, declarations, supplied}) {
-      if (typeof moon.clientProgramPrepareSourceWithParameters !== 'function') {
+      if (typeof moon.clientProgramPrepareSourceComputationWithParameters !== 'function' ||
+          typeof moon.clientProgramSourceComputationPure !== 'function' ||
+          typeof moon.clientProgramSourceComputationEffect !== 'function') {
         throw Object.assign(new Error('ClientProgramUnsupported'),
           {code: 'ClientProgramUnsupported'});
       }
-      return moon.clientProgramPrepareSourceWithParameters(
-        document, format, environment, aliasesWire, declarations, supplied);
+      const outcome = moon.clientProgramPrepareSourceComputationWithParameters(
+        document, format, environment, aliasesWire, declarations, supplied,
+        allowEffects, evidence);
+      const pure = moon.clientProgramSourceComputationPure(outcome);
+      const effect = moon.clientProgramSourceComputationEffect(outcome);
+      if ((pure === undefined) === (effect === undefined) ||
+          (effect !== undefined && !allowEffects)) {
+        throw new TypeError('InvalidClientSourceComputationOutcome');
+      }
+      return pure !== undefined ? {kind: 'effect_free', outcome: pure}
+        : {kind: 'effectful', outcome: effect};
     },
   });
 }

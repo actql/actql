@@ -26,7 +26,7 @@ test "read current graph body retains the independently fixed identity and exact
   let value = @graph_contract.read_cursor(cursor, caps()).unwrap()
   assert_eq(
     @graph_contract.cid(value),
-    "sha256:3e06c160155f0542561eab6a31c31422a78e7a749490ff5b24fb0ce4c7ff3321",
+    "sha256:6a0fe1664c431e3b0835ccaf2fff3569e99492ae427eab4ccb65d34096ce604d",
   )
   assert_eq(@graph_contract.stringify(value, caps()), property_body())
   let exact : @graph_contract.Limits = {

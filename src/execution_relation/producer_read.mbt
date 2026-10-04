@@ -245,6 +245,10 @@ pub fn producer_read_cell(
   column : Int,
 ) -> Value? {
   guard producer_read_available(value) else { return None }
+  guard @schema.field_at(value.schema, column) is Some(field) &&
+    field.presence == @schema.Required else {
+    return None
+  }
   guard value.columns.get(column) is Some(source) else { return None }
   completed_cell(value.bound.output, row, source)
 }

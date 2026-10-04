@@ -110,6 +110,7 @@ fn same_completed_storage(
     (NumberTable(a), NumberTable(b)) => physical_equal(a, b)
     (AdmittedTable(a), AdmittedTable(b)) => physical_equal(a, b)
     (ColumnTable(a), ColumnTable(b)) => physical_equal(a, b)
+    (PresenceTable(a), PresenceTable(b)) => physical_equal(a, b)
     _ => false
   }
 }

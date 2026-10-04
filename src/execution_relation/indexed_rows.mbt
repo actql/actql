@@ -7,6 +7,12 @@ priv trait IndexedRows {
   fn column_count(Self) -> Int
   fn row_width(Self, Int) -> Int
   fn read_cell(Self, Int, Int) -> Value
+  fn cell_present(Self, Int, Int) -> Bool = _
+}
+
+///|
+impl IndexedRows with fn cell_present(_self, _row, _column) {
+  true
 }
 
 ///|
@@ -57,6 +63,12 @@ impl RelationRows for Table with fn field_names(self) {
 priv trait RowValues {
   fn value_count(Self) -> Int
   fn value_at(Self, Int) -> Value
+  fn value_present(Self, Int) -> Bool = _
+}
+
+///|
+impl RowValues with fn value_present(_self, _column) {
+  true
 }
 
 ///|
@@ -84,4 +96,12 @@ impl[T : IndexedRows] RowValues for IndexedRow[T] with fn value_count(self) {
 ///|
 impl[T : IndexedRows] RowValues for IndexedRow[T] with fn value_at(self, column) {
   self.table.read_cell(self.row, column)
+}
+
+///|
+impl[T : IndexedRows] RowValues for IndexedRow[T] with fn value_present(
+  self,
+  column,
+) {
+  self.table.cell_present(self.row, column)
 }

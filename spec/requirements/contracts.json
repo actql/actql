@@ -224,7 +224,40 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/check-environment.local-relation-snapshot-shape",
-      "statement_sha256": "758f9455ca3379dbf6fd574c15adc9e22a28d4fe9a706c76129607b4a8184bfa",
+      "statement_sha256": "f9de4dd02849af9524e6b593bfb215ead4182f0cae87db6b94362ba4abdf6a57",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "local-relation-snapshot",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/check-environment.local-relation-presence-map",
+      "statement_sha256": "785d04432d488d4f1ba1cf8f665f1a46dfc22f04d695b7d5a903ed3c4d5333a6",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "local-relation-snapshot",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/check-environment.local-relation-presence-admission",
+      "statement_sha256": "68217c5d3dfb169bc231b56b24c6f53336f18ed29c12fad87660a91490b5f554",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "local-relation-snapshot",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/check-environment.local-relation-presence-projection",
+      "statement_sha256": "ddf1a1a9e2af56b6739fb32ce5931f58340c9eb510b7d2aa26e582149c8f7129",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -2017,7 +2050,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "4320ba43be95127afef5c3e666aedbf6b741d4921390ab5577051cf8a9b23766",
+      "statement_sha256": "fe7cacb81ab7c310c7b979c6196200e646176d21f39eafa11e9cfd1dcc15ff5f",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

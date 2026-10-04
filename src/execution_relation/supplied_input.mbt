@@ -73,6 +73,7 @@ pub fn capture_input(
     origin: SuppliedInput(input_index),
     schema,
     rows,
+    presence_rows: [],
     usage: { nodes: budget.nodes, text_bytes: budget.text, work: budget.work, },
   })
 }

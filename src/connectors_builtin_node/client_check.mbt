@@ -205,6 +205,7 @@ fn check_source_findings(
           | UnsupportedInfer
           | UnsupportedNearest
           | UnsupportedResult
+          | UnsupportedEffect
         ) => findings.push(Limit("implementation_limit"))
         // Resolved against visible relations only: a disclosable fact.
         QueryLowering(

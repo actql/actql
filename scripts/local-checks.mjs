@@ -1,7 +1,7 @@
 // Local verification from the CI definition itself. `run <job>` executes the
 // same `run:` commands as that locally supported job in .github/workflows/ci.yml,
 // so a local check never drifts from CI; `changed` lists the narrow checks and
-// the CI jobs that relate to the files changed since a base.
+// related CI jobs for inspection, not a complete reverse-dependency closure.
 //
 //   node scripts/local-checks.mjs test node|moon -- <test arguments>
 //   node scripts/local-checks.mjs list
@@ -151,7 +151,7 @@ async function runSelected(command, kind, args) {
 }
 
 // CI jobs that cover a changed path. The narrow checks come first; the jobs
-// are what to run before pushing, and Linux CI remains the full check.
+// are advisory references, not a requirement to run full jobs locally.
 const areas = [
   [/^proofs\/relation-pipeline\//u, Object.keys(ciOnlyPipelineJobs)],
   [/^scripts\/packed-client-packages/u, ['client-packages', 'client-distribution', 'client-packed']],
@@ -211,19 +211,21 @@ function changed() {
     }
   }
   console.log(`Changed since ${base}: ${unique.length} files\n`);
-  console.log('Narrow checks (while editing and before commit):');
+  console.log('Candidate narrow checks (inspect affected callers and validators too):');
   for (const command of narrow) console.log(`  ${command}`);
-  console.log('\nCI jobs for these areas (before push):');
+  console.log('\nRelated CI jobs (advisory inspection; not required local execution):');
   for (const name of [...related].sort()) {
     const note = ciOnly.has(name) ? `  # CI only: ${ciOnly.get(name)}`
-      : name === 'core' ? '  # add --target wasm / native when shared core changed'
+      : name === 'core' ? '  # select matching-target diagnostics for native-only or FFI changes'
         : '';
     const classification = classifyJob(name);
     const deliberate = classification.classification === 'ci-only' ? ' --dry-run'
       : classification.heavy ? ' --allow-heavy' : '';
     console.log(`  node scripts/local-checks.mjs run ${name}${deliberate}${note}`);
   }
-  console.log('\nThen push and let Linux CI verify the whole SHA.');
+  console.log('\nThese path-based candidates are not complete reverse-dependent coverage.');
+  console.log('Follow .agents/skills/actql-local-verification/SKILL.md; broad suites are not local defaults.');
+  console.log('After an authorized push, read exact-SHA CI; report executed and unverified coverage separately.');
 }
 
 const [command, argument] = process.argv.slice(2);

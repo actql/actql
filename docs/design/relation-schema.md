@@ -16,8 +16,9 @@ names and qualified join references in the
 `from_object` accepts an already checked, non-null object row contract in O(1),
 sharing its immutable fields and child contracts. Empty rows are supported;
 nullable objects and non-object roots fail with `InvalidRowContract`.
-`as_object` returns that flat representation, or `None` for a schema containing
-qualified fields. It never drops provenance or manufactures an object contract
+`as_object` returns that flat representation only when all columns are required,
+or `None` for conditional columns or qualified fields. It never drops presence
+or provenance or manufactures an object contract
 with dotted names. Field nullability remains independent of root row validity.
 
 `from_fields` validates and copies the supplied field list. Each unqualified
@@ -53,3 +54,36 @@ The [pipeline checker](pipeline-typing.md), unary operation checker and Result
 checker retain qualified fields. Local join requires flat operand schemas;
 explicit projection must remove qualification before rejoining.
 No general Carrier union, Graph/Vectors/Events checking or lowering is provided.
+
+## Row presence
+
+Each field has an independent `Required` or `Conditional` existence contract.
+`from_object` and `from_fields` make all fields required. `from_presence_fields`
+admits the same bounded finite column set with explicit row presence. Nullable
+permits a present NULL; Conditional permits key omission, including for a
+non-nullable value type. Closed column knowledge therefore does not imply that
+every declared column occurs in every row. Ordinary object value contracts keep
+their exact required-field rules.
+
+The initial execution profile permits only projection of required columns from
+a conditional input. Conditional column references fail during checking, even
+when a sample contains the value or the Relation is empty. Filtering by
+definition, label or `IS NOT NULL` does not provide a presence proof in this
+profile. Other row consumers reject conditional inputs rather than rebuilding
+their schema as dense or filling absent cells with NULL. Public Results require
+required selected and ordering columns.
+
+`execution_relation` keeps absence in its immutable row representation, not in
+the scalar Value domain. Typed access distinguishes absence from a present
+admitted value and invalid coordinates; ordinary value readers require a schema
+guarantee. Copy, input buffers, physical Store leases and retained wire reload
+use the same owners, cumulative budgets and cancellation paths as dense rows.
+Presence slots consume resources even when their values are absent. Their
+physical layout does not contribute to content identity.
+
+Canonical rows omit absent keys and emit explicit NULL unchanged. Required
+schema entries retain the checked value-contract preimage (required presence is
+implicit); conditional entries use `{contract: <checked type>, presence:
+"conditional"}`. This cannot alias a checked value contract, whose discriminator
+is `type`. Presence therefore changes schema identity, independently of row
+contents. Equal fully present rows retain their existing content identity.

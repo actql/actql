@@ -83,9 +83,32 @@ and ownership evidence; retain rejection of foreign Run/occurrence and released
 inputs. Do not remove the check, reopen the closed public slot, add another
 owner or introduce a fallback. G will not duplicate that product fix.
 
-After A's fix, G will rerun this same counterexample, verify exact-once return
-after the last consumer closes, then independently exercise early scratch
-credit, double holding credit and removed consumer-retention guards in an
-isolated copy. Each mutation must fail at its intermediate invariant and each
-byte-restored copy must pass. Those mutation acceptances are still incomplete.
-#270 remains Draft. The earlier CI success belongs only to `79107ff2...`.
+## Follow-up at A's fixed revision
+
+A implemented the acquired-binding check in #272 at
+`d5c1e949cec0064a8898554a6bf87f4e59fff235`, directly based on the fixed
+counterexample commit `7f5c7c8353c8058c5710a6cd29f7ba3af3b53215`.
+G reran the same two cases in an isolated checkout: **2/2 pass on JS**,
+including quantum 1, 7 and 1024, completion, last-consumer holding and exact-once
+cascade return. No success expectation was relaxed.
+
+Three independent product mutations in that checkout were each detected by
+the intended intermediate reservation/holding assertion. Each exact-byte/mode
+restoration then passed the same two cases. See the
+[fixture acceptance record](2026-10-03-graph-host-owner-fixtures.md#fixed-source-normal-and-mutation-acceptance)
+for source recipes, invocation evidence and limits. This is finite JS
+implementation evidence, not a formal implementation proof or cross-target
+mutation claim.
+
+## Main integration
+
+#272 merged into main as `7081dedfd69f5794de11076ab27249c4f57b0c66` on
+2026-10-04 JST; #270 is also merged. G normally merged that main revision,
+retaining the existing tests, product fix and original history declaration.
+No duplicate implementation or declaration was added.
+
+The counterexample and mutation results above retain their actual source SHA.
+The isolated fixed-source files match the integrated test and product bytes,
+so no heavy campaign was repeated for integration. The original red CI and
+previous green CI retain their distinct meanings. Later reuse changes have
+their own selected checks and automatic PR CI.

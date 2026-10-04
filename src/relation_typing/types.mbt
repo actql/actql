@@ -50,6 +50,8 @@ pub(all) enum IssueKind {
   InvalidName(String)
   DuplicateOutput(String)
   UnknownField(String)
+  PresenceRequired(String)
+  ConditionalInputNotImplemented
   InputCollision(String)
   ExpectedBoolean
   InvalidOrder
