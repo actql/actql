@@ -4,6 +4,7 @@ fn presence_filter_fixture(
   predicate? : String = "id < 4",
   input_limits? : ValueLimits = run_limits().input_values,
   workspace_limit? : Int = 10000,
+  operations? : String? = None,
 ) -> (@bounded.Control, BoundedBindingRowsExecution, ProducerRead) raise {
   let source_owner = presence_output_owner()
   let supplied = prepare_admitted_output(
@@ -44,15 +45,22 @@ fn presence_filter_fixture(
   let source = complete_trusted_output(port, ()).unwrap()
   let owner = typed_receiver(
     source_owner,
-    "[{\"filter\":\"" + predicate + "\"}]",
+    operations.unwrap_or("[{\"filter\":\"" + predicate + "\"}]"),
     target=Step(0),
   )
   let sequence = prepared_sequence(owner)
   let generated = prepare_generated_sequence(
     registered_relation_contracts(),
     sequence,
-    [sequence_fragment_context(sequence, 0, 4L)],
-    ["where_0"],
+    [
+      if @lower.sequence_step(sequence, 0) is Some(@lower.RowStep(kernel)) &&
+        @lower.kernel_body(kernel) is @lower.OrderedBindings(_) {
+        bounded_binding_rows_ordered_context(sequence, rows=4L)
+      } else {
+        sequence_fragment_context(sequence, 0, 4L)
+      },
+    ],
+    [if operations is Some(_) { "derive_0" } else { "where_0" }],
     100000,
     10000,
   ).unwrap()
