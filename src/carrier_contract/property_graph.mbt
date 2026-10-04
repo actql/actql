@@ -3,6 +3,7 @@
 struct PropertyNodeDefinition {
   name : String
   key_contracts : Array[@value.Contract]
+  key_columns : Array[String]
   properties : Knowledge
   labels : Array[String]
   label_properties : Array[(String, Knowledge)]
@@ -52,6 +53,12 @@ fn property_name_key(value : String) -> String {
 }
 
 ///|
+/// Shared admitted Graph name equality. Display spelling remains unchanged.
+pub fn property_name_identity(value : String) -> String {
+  property_name_key(value)
+}
+
+///|
 pub fn property_node_definition(
   name : String,
   key_contracts : Array[@value.Contract],
@@ -60,6 +67,7 @@ pub fn property_node_definition(
   max_fields~ : Int,
   max_name_bytes~ : Int,
   label_properties? : Array[(String, Knowledge)] = [],
+  key_columns? : Array[String] = [],
   max_contract_work? : Int = 10000,
 ) -> Result[PropertyNodeDefinition, PropertyGraphIssue] {
   property_node_definition_usage(
@@ -70,6 +78,7 @@ pub fn property_node_definition(
     max_fields~,
     max_name_bytes~,
     label_properties~,
+    key_columns~,
     max_contract_work~,
   ).map(pair => pair.0)
 }
@@ -84,6 +93,7 @@ pub fn property_node_definition_usage(
   max_fields~ : Int,
   max_name_bytes~ : Int,
   label_properties? : Array[(String, Knowledge)] = [],
+  key_columns? : Array[String] = [],
   max_contract_work? : Int = 10000,
 ) -> Result[(PropertyNodeDefinition, Int), PropertyGraphIssue] {
   if max_fields < 0 || max_name_bytes < 0 || max_contract_work < 0 {
@@ -101,6 +111,25 @@ pub fn property_node_definition_usage(
     return Err(LimitExceeded)
   }
   let mut work = max_contract_work
+  if !key_columns.is_empty() && key_columns.length() != key_contracts.length() {
+    return Err(InvalidKey)
+  }
+  let key_names : Map[String, Bool] = Map([])
+  let mut key_bytes = max_name_bytes
+  for column in key_columns {
+    if work == 0 {
+      return Err(LimitExceeded)
+    }
+    work -= 1
+    if !property_name(column) || key_names.contains(property_name_key(column)) {
+      return Err(InvalidKey)
+    }
+    key_names[property_name_key(column)] = true
+    match @scalar.admit_utf8_length(column, key_bytes) {
+      Ok(size) => key_bytes -= size
+      Err(_) => return Err(LimitExceeded)
+    }
+  }
   for contract in key_contracts {
     if work == 0 {
       return Err(LimitExceeded)
@@ -130,7 +159,7 @@ pub fn property_node_definition_usage(
     property_names[folded] = true
   }
   let seen : Map[String, Bool] = Map([])
-  let mut bytes = max_name_bytes
+  let mut bytes = key_bytes
   for text in [name, ..labels] {
     if work == 0 {
       return Err(LimitExceeded)
@@ -237,6 +266,7 @@ pub fn property_node_definition_usage(
         key_contracts: key_contracts.map(contract => {
           @value.with_nullability(contract, false)
         }),
+        key_columns: key_columns.copy(),
         properties,
         labels: admitted,
         label_properties: scoped,
@@ -537,6 +567,16 @@ pub fn property_definition_key_at(
   index : Int,
 ) -> @value.Contract? {
   value.key_contracts.get(index)
+}
+
+///|
+/// Original constructor key-column name at the corresponding typed component.
+/// An unnamed structurally admitted key does not synthesize a public alias.
+pub fn property_definition_key_column_at(
+  value : PropertyNodeDefinition,
+  index : Int,
+) -> String? {
+  value.key_columns.get(index)
 }
 
 ///|

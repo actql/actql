@@ -165,18 +165,11 @@ fn run_local_managed_lag_case(variant : String) -> Unit raise {
     "{\"previous\":30,\"id\":5,\"group\":\"a\",\"amount\":30}",
   ])
 
-  first_live.val = false
-  @strategy.close_captured_task_output(run, 4)
-  (first_ops.close)()
-  (first_ops.cleanup_refresh)() |> ignore
-  assert_false(@execution.managed_completed_output_available(first))
+  close_retained_host_consumer(run, 4, first_ops, first_live, first)
   assert_true(@execution.managed_completed_output_available(second))
   assert_true(@execution.managed_completed_output_available(producer))
 
-  second_live.val = false
-  @strategy.close_captured_task_output(run, 5)
-  (second_ops.close)()
-  (second_ops.cleanup_refresh)() |> ignore
+  close_retained_host_consumer(run, 5, second_ops, second_live, second)
   lag_live.val = false
   @strategy.close_captured_task_output(run, 3)
   (producer_ops.close)()

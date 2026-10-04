@@ -1139,6 +1139,21 @@ pub fn prepare_effect_free_client_program(
     Ok(value) => value
     Err(issue) => return Err(Syntax(issue))
   }
+  prepare_parsed_effect_free_client_program(
+    parsed, environment, supplied, limits,
+  )
+}
+
+///|
+/// Continue from the ordinary parser's owned Program. A source frontend may
+/// select this owner before semantic checking; an Effectful Program must not
+/// be checked here and then retried under the Effect owner.
+pub fn prepare_parsed_effect_free_client_program(
+  parsed : @syntax.Program,
+  environment : @checked.CheckEnvironment,
+  supplied : @decode.Cursor?,
+  limits : ClientProgramPreparationLimits,
+) -> Result[PreparedClientProgram, ClientProgramPreparationIssue] {
   for stage in @syntax.stages(parsed) {
     if !@syntax.effect_names(stage).is_empty() {
       return Err(EffectNotSupported(stage.id))

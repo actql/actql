@@ -658,14 +658,18 @@ schemas, external Contracts, expressions, and Results.
 The graph structural contract has the closed canonical body
 `{version: "actql-property-graph-contract/0.1", domain, node_definitions,
 edge_definitions, identity_law_cid, value_law_cid}`. Each definition retains its
-name, nonempty ordered key contracts, complete property contracts and static
+name, nonempty ordered key contracts, matching ordered `key_columns`, complete property contracts and static
 label-to-property sets. Edge definitions additionally name their source and
 target node definitions. Element identity is the admitted definition domain,
 definition name and complete typed key, not an endpoint tuple. Independently
 keyed parallel edges are retained. Property types and shared label property
 sets obey the graph-wide rules in [Property Graph construction](#property-graph-construction).
 `graph_contract_cid` is the ordinary ActQL CID of exactly this body, without a
-self-CID member. Property-map enumeration, source aliases, observations, graph
+self-CID member. `key_columns` binds each retained constructor key-column name
+to its component position and type; an anonymous structural definition uses
+null entries at every position, never a partially named tuple. Snapshot reload
+retains this mapping without consulting a catalog. Property-map enumeration,
+observations, graph
 contents, row counts, policy and provider locators are not contract members.
 The retired `actql-graph-contract/0.1` body is not an alternate Graph profile:
 current admission rejects it without conversion. Historical bytes and evidence
@@ -5485,29 +5489,42 @@ dependency under the ordinary policy identity rules.
 
 #### `node_rows` and `edge_rows`
 
-These operations convert a graph to relation rows using the corresponding AoA
-bridge. Bare `to_rows` is not accepted for a graph because node rows and edge
+These operations convert the admitted Property Graph to the existing Relation
+using the corresponding registered bridge. Bare `to_rows` is not accepted for a graph because node rows and edge
 rows are distinct meanings.
 
-<!-- requirement-block: graph-rows.fields-and-aliases -->
+<!-- requirement-block: graph-rows.fields-and-aliases graph-rows.typed-identity-roles graph-rows.omission-is-not-null graph-rows.saved-key-correspondence -->
 Graph row projection MUST retain the admitted identity types and property
-evidence. Node rows expose `id` and declared node properties; edge rows expose
-`src`, `dst`, nullable-string `rel` and declared edge properties. Absent edge
-labels are explicit null. No undeclared node display-label column is invented.
-Known authored identity/endpoint/label names are additional aliases of their
-corresponding bridge roles; an alias identical to its own role adds no column.
-Aliases retain their field provenance, not nested-property interpretation.
-These source-role names are not members of `graph_contract_cid`. Diff retains
-the base's names for its common contract metadata; Apply restores the base's
-names over the pinned output value contract.
+evidence. Node rows expose required `id`, `labels`; edge rows expose required
+`id`, `src`, `dst`, `labels`. Identity roles retain domain, definition and typed
+key; endpoint tuples and strings MUST NOT replace them. `labels` is a non-null
+array of non-null strings, with `[]` for no labels, using the admitted Graph's
+existing label identity, duplicate rejection and deterministic canonical order.
+There is no nullable `rel` role or compatibility output.
 
-<!-- requirement-block: graph-rows.collisions-and-unknown-evidence -->
-Projection MUST reject collisions between distinct output roles, aliases and
-properties rather than silently overwrite a value. Unknown property sets remain
-open, and unknown identity/property types remain unknown rather than becoming
-string or json. Runtime graph admission rejects collisions that cannot be ruled
-out from partial evidence. Projection alone does not prove row order, unique
-keys, successful data admission or bounded execution.
+Declared properties retain their saved output names. A retained key-column name
+exposes its original typed key component, not an alias of `id`. Composite keys
+retain every column-to-position/type correspondence. The schema is the finite
+union of these declared columns across the selected node or edge definitions.
+A column is Required only if every such definition supplies it; otherwise it is
+Conditional, independently of nullable. Missing cells MUST remain omitted, not
+NULL. Save/reload MUST retain names, types, presence and component correspondence.
+
+<!-- requirement-block: graph-rows.collisions-and-unknown-evidence graph-rows.no-collision-repair graph-rows.complete-input-contract graph-rows.reference-requires-presence graph-rows.canonical-producer-enumeration -->
+Projection MUST reject collisions between output roles, retained key aliases and
+declared properties using the existing Graph case-insensitive name identity.
+It MUST NOT overwrite, rename or duplicate a colliding column. Compatible names
+across distinct definitions share a column, with deterministic declared spelling
+and joined nullability; incompatible value types reject. Unknown Graph contracts
+MUST reject rather than invent columns or string/json identity types. Ordinary
+references to Conditional columns MUST reject at check time until a static
+presence proof is supported; sample values, empty data and IS NOT NULL are not
+such proof. Initial public Results require projection to Required columns.
+The checked Bridge MUST complete bounded enumeration in the existing canonical
+Graph identity order before exposing its Relation. That retained producer order
+can pass through guaranteed-column projection to Result publication; a standalone
+output schema does not prove order or a global candidate key. Successful data
+admission, exact input ownership and bounded execution remain separate obligations.
 
 <!-- requirement-block: graph-rows.output-enforcement -->
 Graph row projection MUST enforce the selected Host
@@ -9780,7 +9797,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:b1b5ca9f0cbfee0ec8e9502e7b7eba33c0bddb31d6a0284076ec176ebb9cd73f
+../../spec/contracts/actql-aoa.json# sha256:5f1c2b3b1fc7fb76383ab1ac7cada0c1734bb5d8e21d37b42b6172938c09e951
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:7c14b2a994a8d2ff84e5bf42ee59f0ccfff728982d693426f210b4779d7dac23
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55

@@ -305,7 +305,7 @@ pub fn client_program_compiled_run_template(@run_publication_host.ClientCompiled
 
 pub fn client_program_complete_model_output(@model_execution.ModelOutputPreparation) -> Result[@execution_relation.CompletedOutput, @model_execution.ModelExecutionIssue]
 
-pub fn client_program_composed_infer_local_provider(@run_publication_host.ClientInferOccurrence, (Array[@local.ManagedProviderInput]) -> @client_infer_host.Execution?, (@client_infer_host.Issue) -> Unit, (@client_infer_host.Execution) -> Bool) -> @local.ManagedProvider
+pub fn client_program_composed_infer_local_provider(@run_publication_host.ClientInferOccurrence, (Array[@local.ManagedProviderInput]) -> @client_infer_host.Execution?, (@client_infer_host.Issue) -> Unit, (@client_infer_host.Execution) -> Bool, (@client_infer_host.Execution) -> Bool) -> @local.ManagedProvider
 
 pub fn client_program_definition_cid(@run_publication_host.PreparedClientProgram) -> String
 
@@ -919,11 +919,15 @@ pub fn client_program_prepare_multi_captured_effect_acquisition_ledger(@run_publ
 
 pub fn client_program_prepare_multi_captured_effect_local_ledger(@run_publication_host.PreparedClientEffectComputation, Array[@actql/actql/connectors/duckdb/host.NativeHostConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 
+pub fn client_program_prepare_multi_captured_local_acquisition_ledger(@run_publication_host.PreparedClientProgram, Array[@actql/actql/connectors/duckdb/host.CaptureConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
+
 pub fn client_program_prepare_multi_captured_local_ledger(@run_publication_host.PreparedClientProgram, Array[@actql/actql/connectors/duckdb/host.NativeHostConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn client_program_prepare_query_acquisition(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[@sourceview_resolution.QueryAcquisition, @run_publication_host.ClientAcquisitionIssue]
 
 pub fn client_program_prepare_salesforce_acquisition(@client_salesforce_host.ClientSalesforceDeclaration, @query_planning.QueryRequirement, @catalog.CatalogObservation, String, String, Int) -> Result[@client_salesforce_host.ClientSalesforceAcquisition, @client_salesforce_host.ClientSalesforceIssue]
+
+pub fn client_program_prepare_source_computation_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, String?, Bool, Array[@pipeline_check_context.StageCapacityInput]) -> ClientSourceComputationBridgeOutcome
 
 pub fn client_program_prepare_source_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, String?) -> ClientProgramBridgeOutcome
 
@@ -1078,6 +1082,10 @@ pub fn client_program_semantic_document_json(@run_publication_host.PreparedClien
 pub fn client_program_semantics_cid(@run_publication_host.PreparedClientProgram) -> String
 
 pub fn client_program_semantics_json(@run_publication_host.PreparedClientProgram) -> Result[String, @run_publication_host.ClientIdentityMaterialIssue]
+
+pub fn client_program_source_computation_effect(ClientSourceComputationBridgeOutcome) -> ClientEffectProgramBridgeOutcome?
+
+pub fn client_program_source_computation_pure(ClientSourceComputationBridgeOutcome) -> ClientProgramBridgeOutcome?
 
 pub fn client_program_source_free_input_intent_cid() -> String
 
@@ -2677,6 +2685,11 @@ pub(all) enum ClientProgramValuesCompilationBridgeIssue {
 pub(all) enum ClientProgramValuesPlanBridgeIssue {
   Manifests(@run_publication_host.ClientCompilationManifestIssue)
   Plan(@run_publication_host.ClientValuesExecutablePlanIssue)
+}
+
+pub(all) enum ClientSourceComputationBridgeOutcome {
+  SourcePure(ClientProgramBridgeOutcome)
+  SourceEffect(ClientEffectProgramBridgeOutcome)
 }
 
 pub(all) enum ClientSourcePreparationIssue {

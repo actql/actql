@@ -88,27 +88,36 @@ export function installNodeClientProgramPreparation({moon, environment,
       typeof moon.clientProgramPreparationIssue !== 'function' ||
       typeof moon.clientProgramPreparationIssueCode !== 'function' ||
       environment === undefined || typeof allowEffects !== 'boolean' ||
+      !Array.isArray(effectEvidence) || effectEvidence.length > 1024 ||
       (allowEffects &&
         (typeof moon.clientProgramPrepareEffectComputationWithParameters !==
-          'function' || !Array.isArray(effectEvidence) ||
-          effectEvidence.length > 1024))) {
+          'function'))) {
     throw new TypeError('InvalidClientProgramPreparationInstallation');
   }
   const owned = new WeakSet();
   const effectOwned = new WeakSet();
+  const installedEvidence = Object.freeze([...effectEvidence]);
   const prepareEffect = !allowEffects ? undefined :
     installNodeClientEffectProgramPreparation({moon,
-      environment, evidence: effectEvidence});
+      environment, evidence: installedEvidence});
   let sourcePreparation;
   const prepare = request => {
     const {document, format, supplied, declarations} =
       serializeProgram(request);
     let outcome;
-    if (['aql-text', 'sql'].includes(format)) {
+    const sourceFormat = ['aql-text', 'sql'].includes(format);
+    if (sourceFormat) {
       sourcePreparation ??= installNodePublicSourcePreparation({moon,
-        environment, publication: sourcePublication});
-      outcome = sourcePreparation.prepare({document, format, declarations,
+        environment, publication: sourcePublication, allowEffects,
+        effectEvidence: installedEvidence});
+      const source = sourcePreparation.prepare({document, format, declarations,
         supplied});
+      if (source.kind === 'effectful') {
+        const effect = effectPreparation(moon, source.outcome);
+        effectOwned.add(effect);
+        return effect;
+      }
+      outcome = source.outcome;
     } else {
       outcome = moon.clientProgramPrepareEffectFreeWithParameters(
         document, format, environment, supplied);
@@ -120,7 +129,7 @@ export function installNodeClientProgramPreparation({moon, environment,
     }
     const issue = moon.clientProgramPreparationIssue(outcome);
     const category = moon.clientProgramPreparationIssueCode(outcome);
-    if (category === 'effect_not_supported' && prepareEffect !== undefined) {
+    if (!sourceFormat && category === 'effect_not_supported' && prepareEffect !== undefined) {
       const effect = prepareEffect(request);
       effectOwned.add(effect);
       return effect;
@@ -147,6 +156,18 @@ export function installNodeClientProgramPreparation({moon, environment,
   }));
 }
 
+function effectPreparation(moon, outcome) {
+  const prepared = moon.clientProgramEffectPreparationReady(outcome);
+  if (prepared !== undefined) return prepared;
+  const issue = moon.clientProgramEffectPreparationIssue(outcome);
+  const category = moon.clientProgramEffectPreparationIssueCode(outcome);
+  const code = effectIssueCodes[category];
+  if (issue === undefined || code === undefined) {
+    fail('ClientProgramPreparationFailure');
+  }
+  fail(code, issue);
+}
+
 // Effect preparation shares Client serialization and checked Program
 // admission. The installed Effectful submit supplies the separate durable
 // Run-start claim; this prepared handle is not a send permit.
@@ -167,14 +188,6 @@ export function installNodeClientEffectProgramPreparation({moon, environment,
     const {document, format, supplied} = serializeProgram(request);
     const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
       document, format, environment, supplied, ownedEvidence);
-    const prepared = moon.clientProgramEffectPreparationReady(outcome);
-    if (prepared !== undefined) return prepared;
-    const issue = moon.clientProgramEffectPreparationIssue(outcome);
-    const category = moon.clientProgramEffectPreparationIssueCode(outcome);
-    const code = effectIssueCodes[category];
-    if (issue === undefined || code === undefined) {
-      fail('ClientProgramPreparationFailure');
-    }
-    fail(code, issue);
+    return effectPreparation(moon, outcome);
   });
 }

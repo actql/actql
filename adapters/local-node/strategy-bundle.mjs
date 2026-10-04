@@ -4,7 +4,7 @@ import {readLocalRetainedInput} from './retained-input.mjs';
 import {localRetainedStore, localSnapshotStore} from './retained-store.mjs';
 import {prepareLocalRetainedOutput} from './retained-output.mjs';
 import {closeCompletedLocalManagedOutput} from './managed-output-custody.mjs';
-import {prepareLocalCarrierSnapshot} from './carrier-snapshot.mjs';
+import {prepareLocalCarrierSnapshot, prepareLocalRelationSnapshot} from './carrier-snapshot.mjs';
 import {planManagedInputRows, registerManagedMemoryInput,
   withManagedInputRows, withManagedOutputRows} from
   '../store-local/managed-memory-representations.mjs';
@@ -237,7 +237,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         typeof operations.cleanup_refresh !== 'function',
       );
       let available = true;
-      let snapshot, snapshotDiagnostic;
+      let snapshot, snapshotDiagnostic, relationSnapshotDiagnostic;
       try {
         const transfers = operations.inputs;
         const relationInputs = dispatchInputs.filter(input =>
@@ -326,6 +326,13 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
               );
               snapshotDiagnostic = await snapshot.roundtrip();
             }
+            if (carrierMaterial == null && createSnapshotLease != null &&
+                typeof operations.prepare_relation_snapshot === 'function') {
+              snapshot = prepareLocalRelationSnapshot(
+                operations, createSnapshotLease, checked, signal, moon,
+              );
+              relationSnapshotDiagnostic = await snapshot.roundtrip();
+            }
             const payload = nextMaterial++;
             const boundedFinalization =
               typeof operations.prepare_finalization === 'function' &&
@@ -413,6 +420,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
             outputRows,
             siteTransfers: resolved.records.length,
             siteTransferRecords: resolved.records,
+            ...(relationSnapshotDiagnostic == null ? {} : {relationSnapshot:relationSnapshotDiagnostic}),
           }),
         });
       } catch (error) {

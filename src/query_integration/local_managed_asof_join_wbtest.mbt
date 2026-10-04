@@ -149,17 +149,10 @@ test "standard Host runs bounded as-of join for two consumers" {
   )
   assert_eq(local_managed_test_rows(first_ops), joined_rows)
   assert_eq(local_managed_test_rows(second_ops), ["{\"value\":300,\"id\":1}"])
-  first_live.val = false
-  @strategy.close_captured_task_output(run, 4)
-  (first_ops.close)()
-  (first_ops.cleanup_refresh)() |> ignore
-  assert_false(@execution.managed_completed_output_available(first))
+  close_retained_host_consumer(run, 4, first_ops, first_live, first)
   assert_true(@execution.managed_completed_output_available(second))
   assert_true(@execution.managed_completed_output_available(joined))
-  second_live.val = false
-  @strategy.close_captured_task_output(run, 5)
-  (second_ops.close)()
-  (second_ops.cleanup_refresh)() |> ignore
+  close_retained_host_consumer(run, 5, second_ops, second_live, second)
   join_live.val = false
   @strategy.close_captured_task_output(run, 3)
   (join_ops.close)()
