@@ -146,12 +146,12 @@ test('composition: exact Unicode source and received-input fallback have fixed r
   async () => {
     const texts = ["SELECT 'caf\u00e9' AS label", "SELECT 'cafe\u0301' AS label"];
     const vectors = [{parameterDeclarations: undefined, refs: [
-      'ctx:879f19beef512ebb648c006c29175abe59e4a3bc33a0725efe54b0c9fbbf3b77',
-      'ctx:49d90fe86e644f543154b856969dd610bdad4dee5b4840f848bed66d979f500b',
+      'ctx:3c5e6603eb3b87ee838bf1bca6e4a56005b8feabb4fde3402cc23ab42969dc76',
+      'ctx:e4e2e35678dee036e9703a639a4b23a39f909d871f39fd4bee83f7c348978051',
     ]}, {parameterDeclarations: {'\u00e9': {type: 'string'}, 'e\u0301': {type: 'string'}},
       refs: [
-        'ctx:449533e4ee8b7160a09a5088fe1a09dc3f53b58eae556bf7ff0c32e1f3edcebb',
-        'ctx:f2aca818e68bdf3fa852513a20712bc410c803047d0df9c5720e6cf7fc78bfe9',
+        'ctx:df61e9db969af9f212256a4a538625b27cf772f151f2f85c6f67d9e71700e451',
+        'ctx:0431078ee43d7614b9e60df27c00279ff917a08e455ec88833ef8fe7e32baec8',
       ]}];
     const f = fixture([], []);
     for (const {parameterDeclarations, refs} of vectors) {

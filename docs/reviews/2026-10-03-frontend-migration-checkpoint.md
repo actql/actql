@@ -817,3 +817,22 @@ Complete history at `beeead8aaa893f101f60573e915ba88d1b2782d0` passes
 including this consumer isolation must separately retain that history result
 and finish its new automatic CI and all four pristine Graph cases. #304 remains
 Draft, and the independent #366 guard fixture failure remains tracked for G.
+
+### Effect target-read main integration
+
+Main `44e07a2de522d4dfc6d7924d4672e88d237aa6e3` adds the existing common
+Effect target-read approval owner through #359. Normal integration into the
+Graph branch resolves one Host conflict: source-free Programs retain the
+optional Source profile access, while acquired Source continuations use main's
+separate `sourceCheckpoints` journal port. The target-read owner, current-use
+authorization and atomic next-Checkpoint transition remain main's implementation.
+The issued retention original and cleanup observation window remain intact.
+
+The new main CI-selection regression initially expects only main's four
+composition cases and fails against this branch's six cases (`run-K7RXiz`). Its
+independent literal inventory now includes the already registered Graph node
+and edge cases. This changes neither expected product rows nor call counts.
+The Graph fixture, Client selection and target-read owner selections then pass
+33/33 (`run-WUe8ff`). Host/consumer syntax and whitespace checks pass. These
+focused checks do not establish fresh-packed execution of the integrated source;
+the complete four-case public Graph matrix and automatic PR CI remain required.

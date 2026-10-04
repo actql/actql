@@ -15,6 +15,7 @@ import {createHash} from 'node:crypto';
 import {mkdir} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {checkpointApprovalFacts} from '../../../host-common/checkpoint-approval.mjs';
 import {checkedEffectPreparation} from
   '../../../host-common/effect-preparation-result.mjs';
 import {checkedSalesforceCatalogPreparation} from
@@ -349,6 +350,30 @@ function membersOf(moon, prepared, installed, unit) {
   return Object.freeze(members);
 }
 
+// Resolve target reads from the checked Program and restored installation
+// before computation or provider I/O. Preserve every member binding even
+// when several members share an authorization tuple.
+export function salesforceEffectTargetReadInventory({moon, prepared, unit,
+  installed, site, connectorId}) {
+  const members = membersOf(moon, prepared, installed, unit);
+  const siteBinding = installedSalesforceSiteBinding(site, connectorId);
+  return Object.freeze(members.map(member => Object.freeze({
+    readTuple: Object.freeze({connection: site.connection,
+      resource: member.resource, operation: 'read'}),
+    physicalBinding: Object.freeze({
+      version: 'actql-installed-salesforce-effect-target-read/0.1',
+      site_binding_cid: siteBinding.bindingCid,
+      generation_cid: installed.generationCid,
+      program_id: unit.programId, stage_id: unit.stageId,
+      stage_index: member.stageIndex, effect_id: member.effectId,
+      member_index: member.memberIndex, mapping_cid: member.mapping.mappingCid,
+      mapping_ref: member.mapping.mappingRef, resource: member.resource,
+      effect_kind: member.kind, key: member.key,
+      fields: Object.freeze([...member.fields]),
+    }),
+  })));
+}
+
 // Every member's physical binding is fixed by the Run and its Program member:
 // the dispatch its Catalog, capability and grants are bound to.
 const memberDispatch = (runInvocationCid, member) => cid({
@@ -404,7 +429,8 @@ export async function loadInstalledSalesforceEffect(profile, {root,
     const installed = await restoreGeneration({site, salesforceMoon,
       profile: checkedProfile, baseEnvironmentWire});
     return installedSalesforceEffect({moon, salesforceMoon, site,
-      installed, ledgerRoot, connectorId: checkedProfile.connectorId});
+      installed, ledgerRoot, connectorId: checkedProfile.connectorId,
+      accountConfiguration: checkedProfile.accountConfigurationWire});
   } catch (error) {
     // The load's own failure stays primary; an incomplete Site release
     // travels with it to the caller.
@@ -413,7 +439,7 @@ export async function loadInstalledSalesforceEffect(profile, {root,
 }
 
 function installedSalesforceEffect({moon, salesforceMoon, site, installed,
-  ledgerRoot, connectorId}) {
+  ledgerRoot, connectorId, accountConfiguration}) {
   const effect = runtimeCore(moon).effectApplicationControl;
   let occurrence = 0;
   const nextOccurrence = label => `effect-${label}-${Date.now()}-${
@@ -425,31 +451,55 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
   const scopes = members => Object.freeze(members.map(member =>
     Object.freeze({connection: site.connection, resource: member.resource})));
 
+  const targetReadInventory = ({moon: runMoon, prepared, unit}) => {
+    if (runMoon !== moon) fail('InvalidInstalledEffectTargetInventory');
+    return salesforceEffectTargetReadInventory({moon, prepared, unit,
+      installed, site, connectorId});
+  };
+
   // A current check read of each guarded member's targets: its own read
   // decision on the Site gate under `subjectCid`, then one-use grants.
   const checkReadAuthority = async (member, runInvocationCid,
-    dispatchRequestCid, subjectCid, signal) => {
-    const decision = await site.authorization.authorize('acquisition', {
-      connection: site.connection, resource: member.resource,
-      operation: 'read'}, {subjectCid, signal});
+    dispatchRequestCid, subjectCid, signal, targetReads) => {
+    const tuple = {connection: site.connection, resource: member.resource,
+      operation: 'read'};
+    const decision = targetReads === undefined
+      ? await site.authorization.authorize('acquisition', tuple, {subjectCid, signal})
+      : await targetReads.authorize(tuple, {subjectCid, signal});
     if (decision?.action !== 'dispatch') {
       throw Object.assign(new Error('SalesforceEffectTargetReadNotAuthorized'),
         {code: 'SalesforceEffectTargetReadNotAuthorized',
           action: decision?.action});
     }
+    let approval;
+    if (targetReads !== undefined) {
+      const facts = checkpointApprovalFacts(decision);
+      const expected = {site_binding_cid:
+        installedSalesforceSiteBinding(site, connectorId).bindingCid,
+      generation_cid: installed.generationCid, effect_id: member.effectId,
+      member_index: member.memberIndex, mapping_cid: member.mapping.mappingCid,
+      mapping_ref: member.mapping.mappingRef, resource: member.resource,
+      effect_kind: member.kind, key: member.key, fields: [...member.fields]};
+      const binding = facts?.physicalBindings?.find(candidate =>
+        Object.entries(expected).every(([key, value]) =>
+          canonicalJson(candidate[key]) === canonicalJson(value)));
+      if (binding === undefined) fail('SalesforceEffectTargetReadApprovalNotAdmitted');
+      approval = site.admitCheckpointEffectTargetRead(decision, binding);
+    }
     let use = 0;
-    return async rowIndex => ({...site.issueGrant({
-      operation: 'salesforce:record:observe', decision,
+    const authorizationForRow = async rowIndex => ({...site.issueGrant({
+      operation: 'salesforce:record:observe', decision: approval ?? decision,
       resource: member.resource, runInvocationCid, dispatchRequestCid}),
     useId: `${dispatchRequestCid}-check-${subjectCid}-${rowIndex}-${use++}`});
+    return Object.assign(authorizationForRow, {approval});
   };
 
   // One member's current Catalog: a describe of exactly its Resource bound
   // to its dispatch.
   const describe = (member, runInvocationCid, dispatchRequestCid, label,
-    signal) => site.describeEffectCatalog({resources: [member.resource],
+    signal, approval) => site.describeEffectCatalog({resources: [member.resource],
     runInvocationCid, dispatchRequestCid,
-    occurrence: nextOccurrence(label), signal});
+    occurrence: nextOccurrence(label), approval, signal});
 
   // The capability of a member's requests: the Site's attestation of its
   // installed runtime and connection for the dispatch, and the member's
@@ -491,12 +541,13 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
   // reads are decided on the Site gate under the sealed Set; every write
   // grant follows the claim generation's commit decision for its tuple.
   const physicalRoute = ({members, requests, runInvocationCid, dispatches,
-    subjectCid, observedRows, applyPreview, ledger}) => {
+    subjectCid, observedRows, applyPreview, ledger, targetReads}) => {
     let currentUse;
     const current = async ({signal, preflight}) => {
       const capabilities = [];
       const targets = [];
       const catalogs = [];
+      const readAuthorities = [];
       for (const [index, member] of members.entries()) {
         // The installed Mapping of this member must still be the one the
         // Preview resolved.
@@ -504,16 +555,19 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
           mapping.mappingCid === member.mapping.mappingCid);
         if (now === undefined) fail('SalesforceEffectMappingNotInstalled');
         // Check reads are decided before this refresh's provider I/O.
+        const read = member.kind === 'create' && targetReads === undefined ? undefined :
+          await checkReadAuthority(member, runInvocationCid, dispatches[index],
+            subjectCid, signal, targetReads);
+        readAuthorities.push(read);
         targets.push(member.kind === 'create' ? undefined : {
-          authorizationForRow: await checkReadAuthority(member,
-            runInvocationCid, dispatches[index], subjectCid, signal),
+          authorizationForRow: read,
           credential: site.credential, limits: limits.target});
       }
       for (const [index, member] of members.entries()) {
         // One describe per member serves this refresh's capability and
         // current-use recheck.
         const catalog = await describe(member, runInvocationCid,
-          dispatches[index], `apply-${index}`, signal);
+          dispatches[index], `apply-${index}`, signal, readAuthorities[index]?.approval);
         catalogs.push(catalog);
         capabilities.push(capabilityOf(member, requests[index],
           catalog.observation, runInvocationCid, dispatches[index]));
@@ -584,7 +638,7 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
   // the common owner applies after the whole-set commit decision.
   async function prepareCaptured({moon: runMoon, control, store, execution,
     checkedHost, prepared, identity, plan, previewContext, unit,
-    authorizeEvidenceRead, signal}) {
+    authorizeEvidenceRead, signal, targetReads}) {
     if (runMoon !== moon || !plan || !previewContext || !execution ||
         !checkedHost || !prepared || !identity) {
       fail('InvalidInstalledEffectCapture');
@@ -611,7 +665,7 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
       return await captureStage({control, store, execution, checkedHost,
         prepared, identity, plan, previewContext, unit, members,
         runInvocationCid, dispatches, requestScope, storedResults,
-        authorizeEvidenceRead, signal, own: value => { sourceSet = value; },
+        authorizeEvidenceRead, signal, targetReads, own: value => { sourceSet = value; },
         ownInputs: release => { releaseInputs = release; }});
     } catch (error) {
       try {
@@ -641,7 +695,7 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
   async function captureStage({control, store, execution, checkedHost,
     prepared, identity, plan, previewContext, unit, members,
     runInvocationCid, dispatches, requestScope, storedResults,
-    authorizeEvidenceRead, signal, own, ownInputs}) {
+    authorizeEvidenceRead, signal, targetReads, own, ownInputs}) {
     const inputs = checked(moon.clientProgramPinEffectSources(checkedHost,
       limits.maxPinnedResults));
     const releaseInputs = () => { moon.clientProgramReleaseEffectInputs(inputs); };
@@ -683,9 +737,9 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
       run_invocation_cid: runInvocationCid, effect_id: member.effectId});
     const checkReads = [];
     for (const [index, member] of members.entries()) {
-      checkReads.push(member.kind === 'create' ? undefined :
+      checkReads.push(member.kind === 'create' && targetReads === undefined ? undefined :
         await checkReadAuthority(member, runInvocationCid, dispatches[index],
-          checkSubject(member), signal));
+          checkSubject(member), signal, targetReads));
     }
     const catalogs = [];
     let requests = [];
@@ -693,7 +747,7 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
     const observations = [];
     for (const [index, member] of members.entries()) {
       const catalog = await describe(member, runInvocationCid,
-        dispatches[index], `preview-${index}`, signal);
+        dispatches[index], `preview-${index}`, signal, checkReads[index]?.approval);
       catalogs.push(catalog);
       const project = projection(salesforceMoon, catalog.observation, member);
       const memberRequests = proposals[index].map(proposal => {
@@ -853,7 +907,7 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
         member.effect_kind === 'create' ? [] : member.row_order);
       const route = physicalRoute({members, requests, runInvocationCid,
         dispatches, subjectCid: moon.clientProgramEffectApplySubjectCid(
-          previewInputs), observedRows, applyPreview, ledger});
+          previewInputs), observedRows, applyPreview, ledger, targetReads});
       const preflight = {proofs: plans.map(item => item.proof),
         ...basePreflight({effects: body.effects, members, requestScope,
           keys: preview.keys})};
@@ -894,7 +948,7 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
   // `cleanupOwner`; the Host, not this function, closes it on failure.
   function prepareRecovered({moon: runMoon, control, store, recovered,
     continuation, authorizeEvidenceRead, contractLimits, signal,
-    retainRecoveryOwner}) {
+    retainRecoveryOwner, targetReads}) {
     if (runMoon !== moon || !recovered?.computation || !continuation ||
         !contractLimits) {
       fail('InvalidInstalledEffectRecovery');
@@ -990,7 +1044,7 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
       const route = physicalRoute({members, requests: rebuilt.requests,
         runInvocationCid, dispatches,
         subjectCid: control.effectComputationPreviewSemanticCid(preview),
-        observedRows, applyPreview, ledger});
+        observedRows, applyPreview, ledger, targetReads});
       const evidenceRead = authorizeEvidenceRead ?? (async () => true);
       const reconcileStoredResponses = async ({members: claims,
         preview: ledgerPreview}) => {
@@ -1050,6 +1104,8 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
   return Object.freeze({
     environmentWire: installed.environment.wire,
     generationCid: installed.generationCid,
+    targetReadAuthorization: Object.freeze({accountConfiguration,
+      context: site.context}),
     connectorBindings: Object.freeze([
       installedSalesforceSiteBinding(site, connectorId)]),
     // The installed implementation's own identification; the Host refuses
@@ -1061,7 +1117,7 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
       resource: mapping.write.resource, kind: mapping.write.kind,
       target: JSON.parse(mapping.body).target_ref,
       mappingRef: mapping.mappingRef, mappingCid: mapping.mappingCid}))),
-    prepareCaptured, prepareRecovered,
+    targetReadInventory, prepareCaptured, prepareRecovered,
     close: () => site.close(),
   });
 }

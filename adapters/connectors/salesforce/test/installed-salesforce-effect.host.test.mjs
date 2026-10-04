@@ -19,8 +19,11 @@ import {createInstalledEffectSite} from
   '../../../host-node/installed-effect-site.mjs';
 import {salesforceEffectSiteHooks} from
   '../host/installed-salesforce-effect-hooks.mjs';
-import {effectProgram, installedEffect} from
+import {effectProgram, installedEffect, moon, salesforceMoon} from
   './installed-salesforce-effect.fixture.mjs';
+import {installSalesforceAuthorization, installedSalesforceSiteBinding,
+  loadInstalledSalesforceSite} from '../host/installed-salesforce-site.mjs';
+import {recordCheckpointApproval} from '../../../host-common/checkpoint-approval.mjs';
 
 const repository = fileURLToPath(new URL('../../../../', import.meta.url));
 const scratch = join(repository, '_build', 'salesforce-effect-host');
@@ -43,7 +46,7 @@ const owner = userInfo().username;
 const orgId = '00D000000000001EAA';
 const connection = `salesforce:${orgId}`;
 const resources = ['Other_Record__c', 'Test_Record__c'];
-function hostConfiguration({commit = 'delegate', denied = []} = {}) {
+function hostConfiguration({commit = 'delegate', read = 'allow', denied = []} = {}) {
   const entries = [
     ...resources.flatMap(resource => [
       {entry_id: `${resource.toLowerCase().replaceAll('_', '-')}-effect`,
@@ -52,7 +55,7 @@ function hostConfiguration({commit = 'delegate', denied = []} = {}) {
         resource: {any_of: [resource]}, operation: {any_of: ['effect']},
         exclusions: []},
       {entry_id: `${resource.toLowerCase().replaceAll('_', '-')}-read`,
-        outcome: 'allow', principal: {all: true},
+        outcome: read, principal: {all: true},
         connection: {any_of: [connection]}, resource: {any_of: [resource]},
         operation: {any_of: ['read']}, exclusions: []}]),
     {entry_id: 'run-acceptance', outcome: 'allow', principal: {all: true},
@@ -77,7 +80,7 @@ const tokens = new Map([['owner-token', owner],
 
 // One Host process over `directory` with the installed Effect as loaded now.
 async function remoteHost(t, installation, directory, {configuration,
-  resumeAfterAnswer = true, beforeDispatch} = {}) {
+  resumeAfterAnswer = true, beforeDispatch, decide, loseResolveReply = false} = {}) {
   // The Host and its installed Site run under the same account text.
   const effect = await installation.load({
     accountConfigurationWire: configuration});
@@ -96,13 +99,20 @@ async function remoteHost(t, installation, directory, {configuration,
     directory: join(directory, 'state'),
     authenticate: header => tokens.get(header?.replace(/^Bearer /u, '')),
     beforeDispatch, effectInstallation,
-    authorization: {accountConfiguration: configuration, reviewers,
+    authorization: {accountConfiguration: configuration, reviewers, decide,
       observe: (name, detail) => diagnostics.push({name,
         detail: detail?.stack ?? detail?.code ?? detail}),
       reviewReaders: [], resumeAfterAnswer,
       hostKey: {keyId: 'host-key', privateKey: pem(hostKeys.privateKey)}}});
-  const server = createServer({key: tlsKey, cert: tlsCertificate},
-    host.handler);
+  let dropped = false;
+  const server = createServer({key: tlsKey, cert: tlsCertificate}, (request, response) => {
+    if (loseResolveReply && !dropped && request.url === '/actql/client/0.1/resolve') {
+      // The real handler commits the answer before sending its JSON reply.
+      // Drop that response only; the journal operation is not mocked.
+      response.end = () => { dropped = true; response.destroy(); return response; };
+    }
+    return host.handler(request, response);
+  });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   let closed = false;
   const close = async () => {
@@ -141,7 +151,9 @@ async function setup(t, {targets = ['Test_Record__c'], ...options} = {}) {
     writes: targets.map(resource => ({resource, kind: 'update',
       fields: ['Name']})),
     org: {writableObjects: ['Other_Record__c']},
-    principalId: owner, accountConfigurationWire: configuration});
+    // The explicit installation publication precedes the operation under
+    // test. Its metadata permission is not retained as a target-read grant.
+    principalId: owner, accountConfigurationWire: hostConfiguration({...options, read: 'allow'})});
   const directory = await mkdtemp(join(scratch, 'host-'));
   t.after(() => rm(directory, {recursive: true, force: true}));
   const effect = await installation.load();
@@ -220,6 +232,67 @@ test('an approved Set over two Resources resumes and writes each tuple once',
 test('the same two-Resource Set in the other member order writes each once',
   t => approvedSetResumes(t, [...resources].reverse()));
 
+test('target reads wait for both exact approvals before Preview and survive every Host restart', async t => {
+  const x = await setup(t, {targets: resources, read: 'delegate'});
+  const before = x.installation.org.seen.length;
+  let host = await remoteHost(t, x.installation, x.directory,
+    {configuration: x.configuration});
+  let client = await host.as('owner-token');
+  let run = await client.aql(x.program, {format: 'json', requestId: 'target-reads-before-preview'});
+  const ref = run.ref;
+  for (let index = 0; index < 2; index++) {
+    await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
+    const reviewer = await host.as('reviewer-token');
+    const checkpoints = (await reviewer.checkpoints()).items;
+    const checkpoint = checkpoints.find(item => item.kind === 'read_access');
+    assert.ok(checkpoint, JSON.stringify(checkpoints));
+    assert.equal(checkpoint.requiredArtifact.type, 'read_scope');
+    assert.match(checkpoint.checkpointId, new RegExp(`-target-${index}$`));
+    assert.deepEqual(run.ref, ref);
+    assert.equal(x.installation.org.seen.length, before,
+      'no provider read, metadata describe or write may precede every target approval');
+    assert.equal(writesOf(x.installation.org).length, 0);
+    await host.close();
+    await answer(t, x, checkpoint, 'approved', ref.authorityScopeCid);
+    host = await remoteHost(t, x.installation, x.directory,
+      {configuration: x.configuration});
+    client = await host.as('owner-token');
+    run = await client.attach(ref);
+  }
+  await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
+  const checkpoint = (await (await host.as('reviewer-token')).checkpoints()).items
+    .find(item => item.kind === 'effect_set');
+  assert.ok(checkpoint, 'read approvals are not Effect-commit approval');
+  assert.equal(writesOf(x.installation.org).length, 0);
+  assert.ok(x.installation.org.seen.length > before);
+  const targetReads = () => x.installation.org.seen.slice(before).filter(item =>
+    item.method === 'GET' && /\/sobjects\/[^/]+\/[^/]+$/u.test(item.path) &&
+    !item.path.endsWith('/describe')).length;
+  assert.equal(targetReads(), 8);
+  await host.close();
+  await answer(t, x, checkpoint, 'approved', ref.authorityScopeCid);
+  host = await remoteHost(t, x.installation, x.directory,
+    {configuration: x.configuration});
+  run = await (await host.as('owner-token')).attach(ref);
+  await waitFor(async () => (await run.status()).status === 'succeeded');
+  assert.deepEqual(await run.result('answer').all(), ids.map(id => ({id})));
+  assert.deepEqual((await run.result('answer').describe()).columns,
+    [{name: 'id', contract: {type: 'string', nullable: false}}]);
+  assert.equal(targetReads(), 12);
+  assert.deepEqual(writesOf(x.installation.org).map(item =>
+    item.path.split('/').slice(-2).join('/')).sort(),
+  resources.flatMap(resource => ids.map(id => `${resource}/${id}`)).sort());
+  await host.close();
+  const readsAndWrites = x.installation.org.seen.length;
+  host = await remoteHost(t, x.installation, x.directory,
+    {configuration: x.configuration});
+  run = await (await host.as('owner-token')).attach(ref);
+  assert.equal((await run.status()).status, 'succeeded');
+  assert.deepEqual(await run.result('answer').all(), ids.map(id => ({id})));
+  assert.equal(x.installation.org.seen.length, readsAndWrites);
+  await host.close();
+});
+
 test('a rejected Salesforce Effect Set writes nothing', async t => {
   const x = await setup(t);
   const {execution, checkpoint} = await heldSet(t, x, 'salesforce-set-b');
@@ -230,6 +303,156 @@ test('a rejected Salesforce Effect Set writes nothing', async t => {
   await waitFor(async () => ['failed', 'cancelled'].includes(
     (await attached.status()).status));
   assert.equal(writesOf(x.installation.org).length, 0);
+  await host.close();
+});
+
+for (const outcome of ['rejected', 'current-denial']) {
+  test(`a target read ${outcome} leaves no provider I/O or retained capture`, async t => {
+    const x = await setup(t, {targets: resources, read: 'delegate'});
+    const before = x.installation.org.seen.length;
+    let host = await remoteHost(t, x.installation, x.directory,
+      {configuration: x.configuration});
+    const run = await (await host.as('owner-token')).aql(x.program,
+      {format: 'json', requestId: 'target-refusal-' + outcome});
+    await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
+    const checkpoint = (await (await host.as('reviewer-token')).checkpoints()).items[0];
+    assert.equal(checkpoint.kind, 'read_access');
+    await host.close();
+    await answer(t, x, checkpoint, outcome === 'rejected' ? 'rejected' : 'approved',
+      run.ref.authorityScopeCid);
+    host = await remoteHost(t, x.installation, x.directory,
+      {configuration: outcome === 'rejected' ? x.configuration : hostConfiguration({read: 'deny'})});
+    const attached = await (await host.as('owner-token')).attach(run.ref);
+    const expected = outcome === 'rejected' ? 'cancelled' : 'failed';
+    await waitFor(async () => (await attached.status()).status === expected);
+    assert.equal(x.installation.org.seen.length, before);
+    assert.equal(writesOf(x.installation.org).length, 0);
+    const remaining = await host.close();
+    assert.equal(remaining.storeCleanupPending, false);
+    assert.deepEqual(remaining.pendingRetention, []);
+    assert.deepEqual(await retained(x), {holdings: [], objects: []});
+  });
+}
+
+for (const resumedDecision of ['permit', 'reject', 'defer']) {
+  test(`immediate target permits are freshly decided as ${resumedDecision} after deferred commit`, async t => {
+    const x = await setup(t, {targets: resources, read: 'delegate'});
+    let readDecisions = 0;
+    let readAnswer = 'permit';
+    const decide = view => {
+      if (view.boundary === 'acquisition') readDecisions++;
+      return {decision: view.boundary === 'acquisition' ? readAnswer : 'defer',
+        subject: view.subject, authority: 'reviewer', claims: view.requiredClaims};
+    };
+    let host = await remoteHost(t, x.installation, x.directory,
+      {configuration: x.configuration, decide});
+    const run = await (await host.as('owner-token')).aql(x.program,
+      {format: 'json', requestId: 'immediate-read-' + resumedDecision});
+    await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
+    const [checkpoint] = (await (await host.as('reviewer-token')).checkpoints()).items;
+    assert.equal(checkpoint.kind, 'effect_set', 'an immediate permit does not create a read Checkpoint');
+    assert.equal(readDecisions, 2);
+    assert.equal(writesOf(x.installation.org).length, 0);
+    await host.close();
+    await answer(t, x, checkpoint, 'approved', run.ref.authorityScopeCid);
+    readAnswer = resumedDecision;
+    host = await remoteHost(t, x.installation, x.directory,
+      {configuration: x.configuration, decide});
+    const attached = await (await host.as('owner-token')).attach(run.ref);
+    const expected = resumedDecision === 'permit' ? 'succeeded' : 'failed';
+    await waitFor(async () => (await attached.status()).status === expected);
+    assert.equal(readDecisions, resumedDecision === 'permit' ? 4 : 3);
+    assert.equal(writesOf(x.installation.org).length, resumedDecision === 'permit' ? 4 : 0);
+    if (resumedDecision === 'permit') {
+      assert.deepEqual(await attached.result('answer').all(), ids.map(id => ({id})));
+    }
+    const remaining = await host.close();
+    assert.equal(remaining.storeCleanupPending, false);
+    assert.deepEqual(remaining.pendingRetention, []);
+    if (resumedDecision !== 'permit') {
+      assert.deepEqual(await retained(x), {holdings: [], objects: []});
+    }
+  });
+}
+
+test('the credential Site independently refuses a foreign target binding before granting anything', async t => {
+  const installation = await installedEffect(t, {writes: [{resource: 'Test_Record__c',
+    kind: 'update', fields: ['Name']}]});
+  const authorization = await installSalesforceAuthorization({
+    accountConfiguration: installation.profile.accountConfigurationWire,
+    principalId: 'principal-a', root: installation.root});
+  const site = await loadInstalledSalesforceSite(installation.profile.siteProfilePath, {
+    commonMoon: moon, salesforceMoon, authorization,
+    runtimeBundleCid: installation.options.runtimeBundleCid,
+    resolveSecret: async () => 'test-only-secret'});
+  installation.onClose(() => site.close());
+  const before = installation.org.seen.length;
+  const tuple = {connection: site.connection, resource: 'Test_Record__c', operation: 'read'};
+  let fences = 0;
+  const decisionFor = binding => recordCheckpointApproval(Object.freeze({
+    action: 'dispatch', basis: 'resumed_approval', boundary: 'acquisition', tuple}), {
+    kind: 'effect_target', principalId: 'principal-a',
+    configurationCid: site.authorization.configurationCid, contextCid: site.context.contextCid,
+    readTuple: tuple, physicalBindings: [binding],
+    assertCurrent() { fences++; }, enter() { assert.fail('Admission alone must not start I/O'); },
+  });
+  const bindingFor = actual => ({version: 'actql-installed-salesforce-effect-target-read/0.1',
+    resource: 'Test_Record__c', site_binding_cid:
+      installedSalesforceSiteBinding(actual, 'fixture').bindingCid});
+  for (const change of [{siteGeneration: site.siteGeneration + 1},
+    {instanceOrigin: 'https://other.invalid'}, {connectionRevision: 'another-revision'}]) {
+    const binding = bindingFor({...site, ...change});
+    assert.throws(() => site.admitCheckpointEffectTargetRead(decisionFor(binding), binding),
+      {code: 'SalesforceEffectTargetReadApprovalNotAdmitted'});
+  }
+  assert.equal(fences, 0);
+  const binding = bindingFor(site);
+  const approved = site.admitCheckpointEffectTargetRead(decisionFor(binding), binding);
+  assert.equal(approved.kind, 'effect_target');
+  assert.equal(fences, 1);
+  for (const operation of ['salesforce:query:read', 'salesforce:record:update']) {
+    assert.throws(() => site.issueGrant({operation, decision: approved,
+      resource: 'Test_Record__c', subjectCid: 'sha256:' + '1'.repeat(64)}),
+    {code: 'SalesforceCredentialGrantNotAuthorized'});
+  }
+  assert.equal(installation.org.seen.length, before);
+});
+
+test('a lost target approval response retries the exact signed answer after restart without provider I/O', async t => {
+  const x = await setup(t, {targets: resources, read: 'delegate'});
+  const before = x.installation.org.seen.length;
+  let host = await remoteHost(t, x.installation, x.directory,
+    {configuration: x.configuration, resumeAfterAnswer: false, loseResolveReply: true});
+  const execution = await (await host.as('owner-token')).aql(x.program,
+    {format: 'json', requestId: 'target-answer-response-loss'});
+  await waitFor(async () => (await execution.status()).status === 'waiting_checkpoint');
+  let reviewer = await host.as('reviewer-token');
+  const [checkpoint] = (await reviewer.checkpoints()).items;
+  assert.equal(checkpoint.kind, 'read_access');
+  let lost;
+  try {
+    await reviewer.resolveCheckpoints([{checkpoint, decision: 'approved'}],
+      {signer: {...signer, authorityScopeCid: execution.ref.authorityScopeCid}});
+  } catch (error) { lost = error; }
+  assert.equal(lost?.code, 'ResolutionUnknown');
+  assert.equal(lost.signed.length, 1);
+  assert.equal(x.installation.org.seen.length, before);
+  await host.close();
+  host = await remoteHost(t, x.installation, x.directory, {configuration: x.configuration});
+  const attached = await (await host.as('owner-token')).attach(execution.ref);
+  await waitFor(async () => (await attached.status()).status === 'waiting_checkpoint');
+  reviewer = await host.as('reviewer-token');
+  const retried = await reviewer.resolveCheckpoints(lost.signed);
+  assert.equal(retried.results[0].status, 'duplicate');
+  assert.deepEqual(retried.signed, lost.signed);
+  const [second] = (await reviewer.checkpoints()).items;
+  assert.equal(second.kind, 'read_access');
+  assert.notEqual(second.checkpointCid, checkpoint.checkpointCid);
+  assert.equal(second.subject.runId, checkpoint.subject.runId);
+  assert.equal(x.installation.org.seen.length, before);
+  await attached.cancel();
+  await waitFor(async () => (await attached.status()).status === 'cancelled');
+  assert.equal(x.installation.org.seen.length, before);
   await host.close();
 });
 
@@ -321,14 +544,15 @@ for (const order of [resources, [...resources].reverse()]) {
 // The write reply to the first row is lost after it was sent. The outcome
 // is unknown: the Run keeps reconciliation responsibility, and neither the
 // resuming Host nor a later restart sends that row, or anything, again.
-test('a lost write reply keeps the approved Set unknown and is never resent',
-  async t => {
-    const configuration = hostConfiguration();
+for (const targetRead of ['allow', 'delegate']) {
+  test('a lost write reply keeps the approved Set unknown and is never resent' +
+    (targetRead === 'allow' ? '' : ' after target-read approval'), async t => {
+    const configuration = hostConfiguration({read: targetRead});
     const installation = await installedEffect(t, {
       writes: [{resource: 'Test_Record__c', kind: 'update',
         fields: ['Name']}],
       org: {writableObjects: ['Other_Record__c'], loseWriteReplyOnce: true},
-      principalId: owner, accountConfigurationWire: configuration});
+      principalId: owner, accountConfigurationWire: hostConfiguration()});
     const directory = await mkdtemp(join(scratch, 'host-'));
     t.after(() => rm(directory, {recursive: true, force: true}));
     const effect = await installation.load();
@@ -339,9 +563,30 @@ test('a lost write reply keeps the approved Set unknown and is never resent',
         target: mapping.target, mapping: mapping.mappingRef,
         from: {result: 'rows'}, id: 'id', set: {Name: {field: 'id'}}}}},
       ids.map(id => ({id}))))};
-    const {execution, checkpoint} = await heldSet(t, x, 'salesforce-lost');
+    let held;
+    if (targetRead === 'delegate') {
+      const before = installation.org.seen.length;
+      const first = await remoteHost(t, installation, directory, {configuration});
+      const execution = await (await first.as('owner-token')).aql(x.program,
+        {format: 'json', requestId: 'salesforce-lost'});
+      await waitFor(async () => (await execution.status()).status === 'waiting_checkpoint');
+      const read = (await (await first.as('reviewer-token')).checkpoints()).items[0];
+      assert.equal(read.kind, 'read_access');
+      assert.equal(installation.org.seen.length, before);
+      await first.close();
+      await answer(t, x, read, 'approved', execution.ref.authorityScopeCid);
+      const prepared = await remoteHost(t, installation, directory, {configuration});
+      const attached = await (await prepared.as('owner-token')).attach(execution.ref);
+      await waitFor(async () => (await attached.status()).status === 'waiting_checkpoint');
+      const checkpoint = (await (await prepared.as('reviewer-token')).checkpoints()).items[0];
+      assert.equal(checkpoint.kind, 'effect_set');
+      await prepared.close();
+      held = {execution, checkpoint};
+    } else held = await heldSet(t, x, 'salesforce-lost');
+    const {execution, checkpoint} = held;
     await answer(t, x, checkpoint, 'approved',
       execution.ref.authorityScopeCid);
+    let priorCalls;
     for (let restart = 0; restart < 2; restart++) {
       const host = await remoteHost(t, installation, directory,
         {configuration});
@@ -355,5 +600,11 @@ test('a lost write reply keeps the approved Set unknown and is never resent',
       assert.equal(state.status, 'needs_reconciliation');
       assert.equal(writesOf(installation.org).length, 1);
       await host.close();
+      const kept = await retained(x);
+      assert.ok(kept.holdings.length > 0, 'unknown Effect keeps durable capture responsibility');
+      assert.ok(kept.objects.length > 0);
+      if (priorCalls !== undefined) assert.equal(installation.org.seen.length, priorCalls);
+      priorCalls = installation.org.seen.length;
     }
   });
+}

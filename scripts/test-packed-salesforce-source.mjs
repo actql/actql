@@ -34,8 +34,11 @@ await mkdir(externalScratch, {recursive: true});
 const root = await mkdtemp(join(externalScratch, 'actql-packed-salesforce-'));
 const twoSourceEffect = process.argv.includes('--two-source-effect');
 const twoSourceReadApproval = process.argv.includes('--two-source-read-approval');
-const optionalCases = twoSourceReadApproval ? [] : optionalEffectCases(process.argv);
-const compositionCases = twoSourceReadApproval ? ['read-approval']
+const targetReadOnly = process.argv.includes('--target-read-approval');
+const targetReadApprovalEnabled = targetReadOnly || !(twoSourceEffect || twoSourceReadApproval ||
+  ['--optional-effect-only', '--composed-text', '--composed-infer'].some(flag => process.argv.includes(flag)));
+const optionalCases = twoSourceReadApproval || targetReadOnly ? [] : optionalEffectCases(process.argv);
+const compositionCases = targetReadOnly ? [] : twoSourceReadApproval ? ['read-approval']
   : process.argv.includes('--optional-effect-only') ? []
   : process.argv.includes('--composed-graph-node') ? ['infer-graph-node']
   : process.argv.includes('--composed-graph-edge') ? ['infer-graph-edge']
@@ -48,6 +51,8 @@ const inferEnabled = compositionCases.some(kind => kind.startsWith('infer'));
 const composed = compositionCases.some(kind => kind !== 'source') || optionalCases.length > 0;
 const sourceReadApprovalExpected = JSON.parse(await readFile(join(repository,
   'scripts/fixtures/two-source-read-approval.expected.json'), 'utf8'));
+const targetReadApprovalExpected = JSON.parse(await readFile(join(repository,
+  'scripts/fixtures/effect-target-read-approval.expected.json'), 'utf8'));
 const orgId = '00D000000000001EAA';
 const token = 'packed-test-only-token';
 
@@ -364,6 +369,15 @@ try {
   });
   await writeFile(join(root, 'effect-foreign.json'),
     JSON.stringify(alternateEffect));
+  const targetReadAccount = canonicalJson({...JSON.parse(effectAccount), entries:
+    JSON.parse(effectAccount).entries.map(entry => entry.entry_id === 'target-read'
+      ? {...entry, outcome: 'delegate'} : entry)});
+  await writeFile(join(root, 'target-read-authorization.json'), JSON.stringify({
+    ...JSON.parse(await readFile(join(root, 'authorization.json'), 'utf8')),
+    accountConfiguration: targetReadAccount}));
+  await writeFile(join(root, 'target-read-effect.json'), JSON.stringify({
+    ...JSON.parse(await readFile(join(root, 'effect.json'), 'utf8')),
+    accountConfigurationWire: targetReadAccount}));
   await writeFile(join(root, 'publish-effect.mjs'), `
 import {publishEffect} from '@actql/local-node';
 const published = await publishEffect();
@@ -394,7 +408,7 @@ console.log(JSON.stringify(published.mappings.map(mapping =>
 
   for (const name of ['composed-infer-effect-input.mjs',
     'composed-infer-effect.program.template.json', 'composed-infer-effect.expected.json',
-    'two-source-read-approval.expected.json',
+    'two-source-read-approval.expected.json', 'effect-target-read-approval.expected.json',
     'composed-infer-effect.aql.template',
     'composed-infer-effect-null-assert.aql.template',
     'graph-infer-effect-input.mjs',
@@ -518,6 +532,9 @@ import {graphCompositionProgram, graphCompositionExpectations,
 const composed = process.env.PACKED_COMPOSED_INFER === '1';
 const twoSourceEffect = process.env.PACKED_TWO_SOURCE_EFFECT === '1';
 const sourceReadApproval = process.env.PACKED_SOURCE_READ_APPROVAL === '1';
+const targetReadApproval = process.env.PACKED_TARGET_READ_APPROVAL === '1';
+const targetReadApprovalExpected = JSON.parse(readFileSync(
+  'effect-target-read-approval.expected.json', 'utf8'));
 const sourceReadApprovalExpected = JSON.parse(readFileSync(
   'two-source-read-approval.expected.json', 'utf8'));
 const composedText = process.env.PACKED_COMPOSED_TEXT === '1';
@@ -527,7 +544,8 @@ const {classified:expectedClassified,classifiedColumns,updates:expectedUpdates,
 import {optionalEffectSubmission, optionalEffectExpectations} from './two-source-optional-effect.mjs';
 const optionalKind = process.env.PACKED_OPTIONAL_EFFECT_KIND;
 const optionalEnabled = process.env.PACKED_OPTIONAL_EFFECT_ENABLED === '1';
-const authorization = JSON.parse(readFileSync('authorization.json', 'utf8'));
+const authorization = JSON.parse(readFileSync(process.env.PACKED_TARGET_READ_APPROVAL === '1'
+  ? 'target-read-authorization.json' : 'authorization.json', 'utf8'));
 // The Host and credential Site must retain the same account configuration
 // identity. The read-only case installs no Model, but removing an unused
 // Model rule only here would invalidate the later Effect commit grant.
@@ -687,6 +705,38 @@ try {
     });
     writeFileSync('effect-ref.json', JSON.stringify(execution.ref));
     console.log('held');
+  } else if (step === 'target-answer' || step === 'target-resume') {
+    assert.ok(targetReadApproval);
+    const ref = JSON.parse(readFileSync('effect-ref.json', 'utf8'));
+    const lookup = await client.lookupRequest('packed-effect-1');
+    assert.equal(lookup.kind, 'found');
+    assert.deepEqual(lookup.ref, ref);
+    const execution = await client.attach(ref);
+    await waitFor(async () => {
+      const state = await execution.status();
+      if (['failed', 'cancelled', 'needs_reconciliation'].includes(state.status)) {
+        throw new Error('PackedTargetReadApprovalFailed: ' + JSON.stringify(state));
+      }
+      return state.status === 'waiting_checkpoint';
+    });
+    const [checkpoint] = (await client.checkpoints()).items;
+    const index = Number(process.argv[3]);
+    assert.equal(checkpoint.subject.runDefinitionCid, ref.runDefinitionCid);
+    assert.equal(checkpoint.subject.kind, 'run_unit');
+    assert.equal(checkpoint.kind, index < 2 ? 'read_access' : 'effect_set');
+    if (index < 2) {
+      assert.equal(checkpoint.requiredArtifact.type, 'read_scope');
+      assert.ok(checkpoint.checkpointId.endsWith('-target-' + index));
+    }
+    if (step === 'target-answer') {
+      assert.ok(index < 2);
+      const key = createPrivateKey(readFileSync('reviewer.key', 'utf8'));
+      const answered = await client.resolveCheckpoints([{checkpoint, decision: 'approved'}], {
+        signer: {keyId: 'reviewer-key', reviewerId: 'reviewer',
+          authorityScopeCid: ref.authorityScopeCid, sign: bytes => sign(null, bytes, key)}});
+      assert.deepEqual(answered.results.map(item => item.status), ['committed']);
+      console.log('approved');
+    } else console.log('held');
   } else if (step === 'source-answer' || step === 'source-resume') {
     assert.ok(sourceReadApproval);
     const ref = JSON.parse(readFileSync('effect-ref.json', 'utf8'));
@@ -955,6 +1005,11 @@ try {
     assert.equal(state.status, 'succeeded');
     assert.deepEqual(await execution.result('answer').all(),
       [{id: 'a00000000000001'}, {id: 'a00000000000002'}]);
+    if (targetReadApproval) {
+      assert.deepEqual(await execution.result('answer').all(), targetReadApprovalExpected.rows);
+      assert.deepEqual((await execution.result('answer').describe()).columns,
+        targetReadApprovalExpected.columns);
+    }
     console.log('published');
   } else {
     throw new Error('InvalidPackedEffectStep');
@@ -995,6 +1050,43 @@ try {
   assert.equal(server.seen.filter(item => item.method === 'PATCH').length, 4);
   console.log('packed public Client Effect approval, restart, write and ' +
     'Named Result passed');
+
+  // Independent Values→Effect target-read acceptance. Reuse this installation
+  // and its packed public driver, but every phase owns a fresh Host process.
+  if (targetReadApprovalEnabled) for (const transport of ['local', 'https']) {
+    server.target.name = 'prior-name';
+    const environment = {...effectEnvironment, PACKED_RCE_TRANSPORT: transport,
+      PACKED_TARGET_READ_APPROVAL: '1', NODE_EXTRA_CA_CERTS: join(root, 'org.crt'),
+      ACTQL_LOCAL_EFFECT_PROFILE: join(root, 'target-read-effect.json'),
+      ACTQL_LOCAL_STATE_DIR: join(root, 'target-read-' + transport)};
+    delete environment.ACTQL_LOCAL_SOURCE_PROFILE;
+    const before = server.seen.length;
+    const phases = [
+      ['submit', [], 'held'], ['target-answer', ['0'], 'approved'],
+      ['target-resume', ['1'], 'held'], ['target-answer', ['1'], 'approved'],
+      ['target-resume', ['2'], 'held'], ['answer', [], 'approved'],
+      ['resume', [], 'published'], ['recheck', [], 'published'],
+    ];
+    const targetReads = [];
+    const effectWrites = [];
+    for (const [index, [step, args, expected]] of phases.entries()) {
+      assert.equal((await runChild('effect-run.mjs', environment, [step, ...args])).trim(), expected);
+      const calls = server.seen.slice(before);
+      targetReads.push(calls.filter(item => item.method === 'GET' &&
+        /\/sobjects\/[^/]+\/[^/]+$/u.test(item.path) && !item.path.endsWith('/describe')).length);
+      effectWrites.push(calls.filter(item => item.method === 'PATCH').length);
+      if (index < 4) assert.equal(calls.length, 0,
+        'every target tuple must be approved before any provider I/O');
+      assert.equal(targetReads[index], targetReadApprovalExpected.targetReadCounts[index]);
+      assert.equal(effectWrites[index], targetReadApprovalExpected.effectWriteCounts[index]);
+    }
+    assert.deepEqual(server.seen.slice(before).filter(item => item.method === 'PATCH')
+      .map(item => ({target: item.path.split('/').slice(-2).join('/'), body: JSON.parse(item.body)}))
+      .sort((a, b) => a.target.localeCompare(b.target)), targetReadApprovalExpected.writes);
+    console.log('packed Effect target-read approval acceptance ' + JSON.stringify({
+      transport, phases: phases.map(([step]) => step), targetReads, effectWrites,
+      expected: 'effect-target-read-approval.expected.json'}));
+  }
 
   // Read→Compute→Effect from the installed tarballs: acquire, compute and
   // hold; approve; resume in a new process; write once; nothing more on a

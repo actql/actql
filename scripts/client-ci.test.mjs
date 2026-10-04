@@ -130,6 +130,31 @@ test('packed Source approval preserves the credential Site account identity', ()
     'Source approval case still installs no Model');
 });
 
+test('packed Effect target reads keep distinct approval phases and independent provider counts', () => {
+  const script = readFileSync(new URL('./test-packed-salesforce-source.mjs', import.meta.url), 'utf8');
+  const select = flags => JSON.parse(runInNewContext(script.slice(
+    script.indexOf('const twoSourceEffect = process.argv'),
+    script.indexOf('const inferEnabled =')) +
+      '\nJSON.stringify({targetReadApprovalEnabled, compositionCases, optionalCases})',
+  {process: {argv: ['node', 'harness', ...flags]}, optionalEffectCases}));
+  assert.equal(select([]).targetReadApprovalEnabled, true);
+  assert.deepEqual(select(['--target-read-approval']), {
+    targetReadApprovalEnabled: true, compositionCases: [], optionalCases: []});
+  assert.equal(select(['--two-source-read-approval']).targetReadApprovalEnabled, false);
+  assert.deepEqual(select([]).compositionCases,
+    ['source', 'infer', 'infer-text', 'infer-graph-node', 'infer-graph-edge', 'read-approval']);
+  assert.deepEqual(select([]).optionalCases, ['native-json', 'broad-text']);
+  const expected = JSON.parse(readFileSync(new URL(
+    './fixtures/effect-target-read-approval.expected.json', import.meta.url), 'utf8'));
+  assert.deepEqual(expected.targetReadCounts, [0, 0, 0, 0, 8, 8, 12, 12]);
+  assert.deepEqual(expected.effectWriteCounts, [0, 0, 0, 0, 0, 0, 4, 4]);
+  assert.equal(expected.writes.length, 4);
+  assert.ok(script.includes("['target-answer', ['0'], 'approved']"));
+  assert.ok(script.includes("['target-answer', ['1'], 'approved']"));
+  assert.ok(script.includes("delete environment.ACTQL_LOCAL_SOURCE_PROFILE"));
+  assert.ok(script.includes("'effect-target-read-approval.expected.json'"));
+});
+
 test('each Client group retains its acceptance commands exactly once', () => {
   assert.deepEqual(runs('client-distribution'), ['npm run check:distribution-client']);
   assert.deepEqual(runs('client-packed'), [
