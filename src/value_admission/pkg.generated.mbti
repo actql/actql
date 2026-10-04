@@ -32,6 +32,8 @@ pub fn advance_json_admission(JsonAdmission) -> JsonAdmissionPoll
 
 pub fn advance_recheck_runtime_value(RecheckCursor) -> RecheckPoll
 
+pub fn advance_typed_admission(TypedAdmission) -> TypedAdmissionPoll
+
 pub fn advance_wire_emit(WireEmitCursor) -> Bool raise @encode_core.EncodeFailure
 
 pub fn append_array_item(ArrayBuilder, Value) -> Bool
@@ -57,6 +59,8 @@ pub fn cancel_json_admission(JsonAdmission) -> Unit
 pub fn cancel_object_value(ObjectBuilder) -> Bool
 
 pub fn cancel_recheck_runtime_value(RecheckCursor) -> Unit
+
+pub fn cancel_typed_admission(TypedAdmission) -> Unit
 
 pub fn cancel_vector_value(VectorBuilder) -> Bool
 
@@ -149,6 +153,8 @@ pub fn start_complete_equality(CheckedValue, CheckedValue, Limits) -> Result[Com
 pub fn start_json_admission(@decode_core.Cursor, Limits) -> Result[JsonAdmission, Issue]
 
 pub fn start_recheck_runtime_value(Value, @value_contract.Contract, Limits) -> RecheckCursor?
+
+pub fn start_typed_admission(@value_contract.Contract, @decode_core.Cursor, Limits) -> Result[TypedAdmission, Issue]
 
 pub fn start_wire_emit(Value, @encode_core.Writer) -> WireEmitCursor
 
@@ -303,6 +309,15 @@ pub struct ReferenceValue {
   envelope : @canonical_json.CanonicalValue
   wire : String
   authorize : () -> Bool
+}
+
+type TypedAdmission
+
+pub enum TypedAdmissionPoll {
+  TypedAdmissionContinue
+  TypedAdmissionComplete(CheckedValue, Int, Int)
+  TypedAdmissionFailed(Issue)
+  TypedAdmissionTerminal
 }
 
 pub enum Value {

@@ -1,9 +1,10 @@
 ///|
 priv enum JsonAdmissionFrame {
-  ReadJson(@decode.Cursor, Int, Bool)
+  ReadJson(@decode.Cursor, Int, Bool, Bool)
   ArrayNext(@decode.Cursor, ArrayBuilder, Int, Int)
   ObjectKeys(@decode.Cursor, Array[Array[String]], Int, Int)
   ObjectSort(@decode.Cursor, @sort.Sort, Int)
+  ObjectNames(@decode.Cursor, @sort.Sort, Int, Int)
   ObjectNext(@decode.Cursor, @sort.Sort, ObjectBuilder, Int, Int)
   ArrayAppend(ArrayBuilder)
   ObjectAppend(ObjectBuilder, String)
@@ -51,7 +52,7 @@ pub fn start_json_admission(
       text: limits.max_text_bytes,
       max_depth: limits.max_depth,
     },
-    frames: [ReadJson(root, 0, true)],
+    frames: [ReadJson(root, 0, true, false)],
     value: None,
     terminal: false,
   })
@@ -63,8 +64,10 @@ fn JsonAdmission::step(admission : JsonAdmission) -> Unit raise Abort {
   let root = admission.root.unwrap()
   guard admission.frames.pop() is Some(frame) else { fail(root, WrongType) }
   match frame {
-    ReadJson(cursor, depth, root) => {
-      reserve(cursor, 1, budget)
+    ReadJson(cursor, depth, root, reserved) => {
+      if !reserved {
+        reserve(cursor, 1, budget)
+      }
       if @decode.is_null(cursor) {
         if root {
           fail(cursor, UnexpectedNull)
@@ -74,6 +77,7 @@ fn JsonAdmission::step(admission : JsonAdmission) -> Unit raise Abort {
         if depth >= budget.max_depth || count > budget.nodes {
           fail(cursor, BudgetExceeded)
         }
+        reserve(cursor, count, budget)
         guard prepare_array_value(count) is Some(builder) else {
           fail(cursor, BudgetExceeded)
         }
@@ -83,6 +87,7 @@ fn JsonAdmission::step(admission : JsonAdmission) -> Unit raise Abort {
         if depth >= budget.max_depth || count > budget.nodes {
           fail(cursor, BudgetExceeded)
         }
+        reserve(cursor, count, budget)
         admission.value = None
         admission.frames.push(ObjectKeys(cursor, [], 0, depth + 1))
       } else {
@@ -103,7 +108,7 @@ fn JsonAdmission::step(admission : JsonAdmission) -> Unit raise Abort {
       if @decode.element_at(cursor, index) is Some(child) {
         admission.frames.push(ArrayNext(cursor, builder, index + 1, depth))
         admission.frames.push(ArrayAppend(builder))
-        admission.frames.push(ReadJson(child, depth, false))
+        admission.frames.push(ReadJson(child, depth, false, true))
       } else {
         admission.value = finish_array_value(builder)
         if admission.value is None {
@@ -111,20 +116,7 @@ fn JsonAdmission::step(admission : JsonAdmission) -> Unit raise Abort {
         }
       }
     ObjectKeys(cursor, keys, index, depth) =>
-      if @decode.field_at(cursor, index) is Some((name, child)) {
-        ignore(text_size(name, child, budget, identifier=true)) catch {
-          Abort(ValueIssue(kind, ..)) =>
-            raise Abort(
-              ValueIssue(
-                kind,
-                path=@decode.cursor_path(child),
-                span=@decode.cursor_key_span(child).unwrap_or(
-                  @decode.cursor_span(child),
-                ),
-              ),
-            )
-          error => raise error
-        }
+      if @decode.field_at(cursor, index) is Some((name, _)) {
         keys.push([name])
         admission.frames.push(ObjectKeys(cursor, keys, index + 1, depth))
       } else {
@@ -141,14 +133,25 @@ fn JsonAdmission::step(admission : JsonAdmission) -> Unit raise Abort {
       match @sort.advance(sort, 1) {
         Ok(@sort.Continue(..)) =>
           admission.frames.push(ObjectSort(cursor, sort, depth))
-        Ok(@sort.Complete(..)) => {
-          guard @decode.object_length(cursor) is Some(count) &&
-            prepare_object_value(count) is Some(builder) else {
-            fail(cursor, BudgetExceeded)
-          }
-          admission.frames.push(ObjectNext(cursor, sort, builder, 0, depth))
-        }
+        Ok(@sort.Complete(..)) =>
+          admission.frames.push(ObjectNames(cursor, sort, 0, depth))
         Err(_) => fail(cursor, BudgetExceeded)
+      }
+    ObjectNames(cursor, sort, index, depth) =>
+      if @sort.index_at(sort, index) is Some(source_index) {
+        guard @decode.field_at(cursor, source_index) is Some((name, child)) else {
+          fail(cursor, WrongType)
+        }
+        // Match ordinary admission's diagnostic precedence: all canonical
+        // object names are validated before any child value is traversed.
+        cursor_key_text(name, child, budget)
+        admission.frames.push(ObjectNames(cursor, sort, index + 1, depth))
+      } else {
+        guard @decode.object_length(cursor) is Some(count) &&
+          prepare_object_value(count) is Some(builder) else {
+          fail(cursor, BudgetExceeded)
+        }
+        admission.frames.push(ObjectNext(cursor, sort, builder, 0, depth))
       }
     ObjectNext(cursor, sort, builder, index, depth) =>
       if @sort.index_at(sort, index) is Some(source_index) {
@@ -159,7 +162,7 @@ fn JsonAdmission::step(admission : JsonAdmission) -> Unit raise Abort {
           ObjectNext(cursor, sort, builder, index + 1, depth),
         )
         admission.frames.push(ObjectAppend(builder, name))
-        admission.frames.push(ReadJson(child, depth, false))
+        admission.frames.push(ReadJson(child, depth, false, true))
       } else {
         @sort.cleanup(sort) |> ignore
         admission.value = finish_object_value(builder)
@@ -231,9 +234,10 @@ pub fn cancel_json_admission(admission : JsonAdmission) -> Unit {
         cancel_object_value(builder) |> ignore
       }
       ObjectAppend(builder, _) => cancel_object_value(builder) |> ignore
-      ObjectSort(_, sort, _) => @sort.cleanup(sort) |> ignore
+      ObjectSort(_, sort, _) | ObjectNames(_, sort, _, _) =>
+        @sort.cleanup(sort) |> ignore
       ObjectKeys(_, keys, _, _) => keys.clear()
-      ReadJson(_, _, _) => ()
+      ReadJson(_, _, _, _) => ()
     }
   }
   admission.frames.clear()
