@@ -7,6 +7,8 @@ import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+// Comment creation runs with the Issue read suite in the same gate.
+import './github-comment-create.test.mjs';
 import * as commonMoon from
   '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import * as moon from
