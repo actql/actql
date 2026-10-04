@@ -191,25 +191,25 @@ export async function openSalesforceEffectSiteFixture(t, {
       const soql = decodeURIComponent(request.url.slice(
         `${prefix}query?q=`.length));
       const match =
-        /^SELECT ([A-Za-z_,]+) FROM Test_Record__c( ORDER BY Id)?(?: LIMIT ([0-9]+))?$/u
+        /^SELECT ([A-Za-z_,]+) FROM ([A-Za-z_][A-Za-z_0-9]*)( ORDER BY Id)?(?: LIMIT ([0-9]+))?$/u
           .exec(soql);
-      if (match === null) {
+      if (match === null || !writable.includes(match[2])) {
         response.writeHead(400, {'content-type': 'application/json'});
         response.end('[{"errorCode":"MALFORMED_QUERY"}]');
         return;
       }
-      const stored = state !== undefined ? (match[2] === undefined
+      const stored = state !== undefined ? (match[3] === undefined
         ? [...state.values()]
         : [...state.values()].sort((a, b) => a.Id < b.Id ? -1 : 1))
-        : storedRecords ?? (match[2] === undefined ? storedOrder
+        : storedRecords ?? (match[3] === undefined ? storedOrder
         : [...storedOrder].sort()).map(index => ({
         Id: `a0000000000000${index}`,
         Name: `record-${index}`, External_Key__c: `key-${index}`,
         ...(temporalFields ? temporalValues[index] : {}),
         ...(numberFields ? numberValues[index] : {})}));
-      const records = stored.slice(0, match[3] === undefined
-        ? stored.length : Number(match[3])).map(record =>
-        Object.fromEntries([['attributes', {type: 'Test_Record__c'}],
+      const records = stored.slice(0, match[4] === undefined
+        ? stored.length : Number(match[4])).map(record =>
+        Object.fromEntries([['attributes', {type: match[2]}],
           ...match[1].split(',').map(name => [name, record[name] ?? null])]));
       response.writeHead(200, {'content-type': 'application/json'});
       response.end(replyJson({totalSize: records.length, done: true,

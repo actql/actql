@@ -100,11 +100,13 @@ const program = JSON.stringify({version: 'actql/0.1', id: 'salesforce-read',
 
 async function installation(t, {readable = ['Test_Record__c'],
   sourceResources = ['Test_Record__c'], extraObjects = [],
+  writableObjects = [],
   queryFailureStatus, storedRecords, temporalFields = false,
-  numberFields = false} = {}) {
+  numberFields = false, retainedRelationOutput = false} = {}) {
   const org = await openSalesforceEffectSiteFixture(t, {commonMoon,
     salesforceMoon, runInvocationCid: cid('1'), dispatchRequestCid: cid('2'),
-    queryFailureStatus, storedRecords, extraObjects, temporalFields,
+    queryFailureStatus, storedRecords, extraObjects, writableObjects,
+    temporalFields,
     numberFields,
     optionalText: storedRecords !== undefined});
   const root = await mkdtemp(join(scratch, 'host-'));
@@ -147,7 +149,7 @@ async function installation(t, {readable = ['Test_Record__c'],
     tokens.get(header?.replace(/^Bearer /u, '')), authorization} = {}) => {
     const host = await openInstalledRemoteHttpHost({directory: hostRoot,
       authenticate, sourceProfilePath: profilePath, authorization,
-      resolveSourceSecret: secret});
+      resolveSourceSecret: secret, retainedRelationOutput});
     const server = createServer({key: tlsKey, cert: tlsCertificate},
       host.handler);
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -213,6 +215,63 @@ test('public Client reads a published Salesforce source to a Named Result',
       '/services/data/v62.0/query',
     ]);
     assert.equal(paths.includes('/services/data/v62.0/sobjects/'), false);
+  });
+
+test('non-first Salesforce source view retains two public consumer Results',
+  async t => {
+    const observations = [];
+    const setup = await installation(t, {
+      readable: ['Test_Record__c', 'Other_Record__c'],
+      sourceResources: ['Test_Record__c', 'Other_Record__c'],
+      writableObjects: ['Other_Record__c'], retainedRelationOutput: true});
+    await setup.publish();
+    const authorization = checkpointAuthorization({
+      observe(name, detail) { observations.push([name, detail]); },
+    });
+    const {client, close} = await setup.open({authorization});
+    const document = JSON.parse(program);
+    document.id = 'salesforce-retained-multi-view';
+    document.stages[0].inputs.remote.resource = 'Other_Record__c';
+    document.stages.push({id: 'audit',
+      inputs: {x: {result: {stage: 'compute', result: 'r'}}},
+      steps: [{select: ['Name'], as: 'out'}],
+      results: {r: {from: 'out', fields: ['Name']}}});
+    document.results.audit = {from: {stage: 'audit', result: 'r'}};
+    const execution = await client.aql(JSON.stringify(document),
+      {format: 'json', requestId: 'salesforce-retained-multi-view'});
+    const state = await execution.wait();
+    assert.equal(state.status, 'succeeded', JSON.stringify(state));
+    assert.deepEqual(await execution.result('records').all(), [
+      {External_Key__c: 'key-1', Name: 'record-1'},
+      {External_Key__c: 'key-3', Name: 'record-3'},
+    ]);
+    assert.deepEqual(await execution.result('audit').all(), [
+      {Name: 'record-1'}, {Name: 'record-3'},
+    ]);
+    assert.equal(setup.queries().length, 1);
+    assert.match(decodeURIComponent(setup.queries()[0].path),
+      / FROM Other_Record__c(?:&|$)/u);
+    assert.deepEqual(observations.filter(([name]) => name === 'computed')
+      .at(-1)?.[1].outputRepresentations, [
+      {task: 1, representation: 'retained-file'},
+      {task: 2, representation: 'retained-file'},
+    ]);
+    const reads = setup.queries().length;
+    const resent = await client.aql(JSON.stringify(document),
+      {format: 'json', requestId: 'salesforce-retained-multi-view'});
+    assert.deepEqual(resent.ref, execution.ref);
+    assert.equal(setup.queries().length, reads);
+    await close();
+    const reopened = await setup.open({authorization});
+    const attached = await reopened.client.attach(execution.ref);
+    assert.deepEqual(await attached.result('records').all(), [
+      {External_Key__c: 'key-1', Name: 'record-1'},
+      {External_Key__c: 'key-3', Name: 'record-3'},
+    ]);
+    assert.deepEqual(await attached.result('audit').all(), [
+      {Name: 'record-1'}, {Name: 'record-3'},
+    ]);
+    assert.equal(setup.queries().length, reads);
   });
 
 test('invalid diagnostics retain an acquired source and its failed cleanup',

@@ -58,8 +58,14 @@ now carries each view's source reference and read tuple into Check disclosure
 and pre-acquisition Checkpoint selection. The installed source still prepares
 the selected occurrence and physical target before any read. Focused adapter,
 Check, and Checkpoint tests cover this binding, including an unused declared
-view; no public retained-Store E2E with a concrete multi-view connector is
-claimed yet.
+view. The installed Salesforce adapter now uses the checked retained
+Host factory when output retention is configured. A public HTTPS fixture
+selects the non-first view from a two-view Salesforce declaration, reads
+independently expected producer and downstream consumer Named Results from
+the real retained Store, and observes `retained-file` for both outputs.
+Resend and reopened-Host attach do not issue another Salesforce query. This
+closes the selected multi-view capture route, not two simultaneous Salesforce
+captures or its connector-specific Store failure and cancellation matrix.
 
 The installed full-family Host now declares TEA and VecA to the common checker,
 matching its already registered bounded providers. This does not make a
