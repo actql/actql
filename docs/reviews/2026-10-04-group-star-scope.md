@@ -74,8 +74,15 @@ narrows the local execution.
   select, retaining all rows and the same grouping/Result expectation. This is
   a control construction correction, not a change to a submitted source
   predicate, output expectation or common-owner admission rule.
-- Fresh packed Local/HTTP is pending. Parser/checker evidence is not public
-  execution evidence. Exact submitted-HEAD automatic CI is also pending.
+- Fresh packed Embedded Local/HTTP: **8 positives and 3 pre-admission refusals
+  per transport pass** at `81f3138626b5dd36a779e872d92ea19a7d4c6d09`.
+  `public-query-evidence-wfzbpq` is complete/passed, with no evidence errors.
+  Acceptance command 012 exits 0, signal null, with complete output (21.4s).
+  The normally packed consumer runs outside the checkout without a MoonBit
+  runtime. Successful temporary installations are removed after evidence and
+  digests are retained.
+- Exact submitted-HEAD automatic CI is pending; the preceding product's public
+  success is not relabeled as final integration evidence.
 - No full local Core, all-target, proof, performance or manual CI rerun.
 
 Reproduce the selected public corpus with the repository-pinned toolchain:
@@ -89,3 +96,21 @@ or public API is changed; generated Programs use their ordinary canonical
 identity. Stored Program semantics remain unchanged. Group-key ORDER positions
 are a separate Frontend coverage item, not implemented by this unit. A/C common
 execution and D's CTE/assert/Effect branches are outside this diff.
+
+
+## Normally packed distributions and integration
+
+| Package | SHA-256 |
+|---|---|
+| actql-client-wire-0.0.0-development.tgz | `6b448edf6ff246e1865858e9ed654e6f973c602e60b65447bcd7bbdd0afaefde` |
+| actql-sdk-0.0.0-development.tgz | `a56cc9221e093a11a0557041fc28e62f8c7c0911689f3a0dd3964bd76d8029b0` |
+| actql-run-host-core-0.0.0-development.tgz | `61c58a56eef782576b608178c38fb9bff7c550961cc39e6f6bbb458b21092fcc` |
+| actql-local-node-0.0.0-development.tgz | `88cb3e3dcf50bf61296fb8571313d9755e7de0baf85cda54de84ee30d61c8539` |
+| actql-node-0.0.0-development.tgz | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+Subsequently integrated main `4319480319f492ee271799b83cb29a688fc311ad`
+by normal merge without conflicts. This adds automatic-main CI scheduling and
+its existing history declaration/tests. Frontend source, fixture and packed
+consumer bytes are unchanged by that merge. No broad local rerun is added
+solely for integration; exact submitted-HEAD CI verifies the combined tree.
+There is no unmerged dependency on another Frontend or common-owner PR.
