@@ -1724,8 +1724,8 @@
       "variants": ["selector forms", "edge predicate absent/present", "induced structure"],
       "status": "partial",
       "owner": "local-sga",
-      "current_gap": "The keyed Property Graph checker, bounded kernel and selected provider now admit explicit and Relation selectors with induced independent edge identities. Focused JS/Wasm/native tests cover exact owner resolution, snapshot save/reload, a Relation-selected same-Stage chain, two managed Host consumers, and exact/one-short work and workspace limits. Real retained Store standard Host cases cover Named Result publication and cancellation delivered after positive Subgraph progress. Predicate node selection and Store fault cleanup remain open; historical tuple-profile evidence does not discharge these gaps.",
-      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed"],
+      "current_gap": "The keyed Property Graph checker, bounded kernel and selected provider admit explicit and Relation selectors with induced independent edge identities. The cross-Stage selector now uses the checked retained Relation port to segment constructor/Subgraph/MATCH rather than reaching MissingTask. A focused Plan regression detects the missing segmentation; source public Local/HTTPS cases verify all/subset/empty selection, independent identity/property expectations, parallel edges, endpoint exclusion, and Graph/Relation Store reload after source access is revoked. Fresh packed acceptance and final integrated-SHA CI remain pending. Earlier focused JS/Wasm/native evidence covers exact owner resolution and stored/viewed work/workspace limits; the large standard-Host diagnostic timed out before reaching this case. Predicate node selection and Store fault cleanup remain open; historical tuple-profile evidence does not discharge these gaps.",
+      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "resources", "cancellation"],
       "layer_evidence": [
         {
           "scope": "current_keyed_graph_subgraph_selection_and_handoff",
@@ -1737,6 +1737,26 @@
             "src/query_integration/property_graph_host_custody_wbtest.mbt"
           ],
           "verification": "Exact checked body owner and input ports, independent parallel edge identities, nullable property retention, snapshot reload and a selected Graph/Relation/Graph/Relation chain with two managed Host consumers."
+        },
+        {
+          "scope": "current_keyed_graph_external_relation_selector_public_reload",
+          "layers": ["checker", "lowering", "managed"],
+          "targets": ["js", "node"],
+          "evidence": [
+            "src/query_integration/property_graph_plan_wbtest.mbt",
+            "scripts/property-graph-public-host.test.mjs"
+          ],
+          "verification": "The Plan regression preserves the fused constructor/MATCH without a secondary selector and independently selects the Subgraph with both exact input ports. Source public Local/HTTPS exercises inline and retained external constructor inputs, all/subset/empty selectors, independent canonical snapshots and sparse Relation streams, original-output read refusal, reload and Named Result reread. Fresh packed and integrated-SHA CI are separate pending obligations."
+        },
+        {
+          "scope": "current_keyed_graph_subgraph_selected_resource_and_stop",
+          "layers": ["resources", "cancellation"],
+          "targets": ["js", "wasm", "native", "node"],
+          "evidence": [
+            "src/query_integration/property_graph_subgraph_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ],
+          "verification": "The stored and viewed false-edge kernel paths admit exact control work and workspace, reject one short, stop after positive progress and preserve the source. The selected viewed path additionally receives a real Node Host cancellation after positive work. The fused Host path remains unassured."
         }
       ],
       "historical_implementation_evidence": [

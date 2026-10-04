@@ -122,3 +122,82 @@ test "current property Graph and external TRAIL starts split before Relation fil
   assert_eq(@strategy.graph_task_input_count(graph, 7), Some(2))
   assert_eq(@strategy.graph_task_selected_step(graph, 8), Some(4))
 }
+
+///|
+test "external Relation-selected subgraph keeps both checked input ports" {
+  let (_, environment, limits) = local_effect_export_fixture(
+    property_graph=true,
+  )
+  let document =
+    #|{"version":"actql/0.1","id":"selected-current-subgraph","stages":[{"id":"seed_source","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"nodes"},{"values":{"schema":{"key":{"type":"number","nullable":false},"src":{"type":"number","nullable":false},"dst":{"type":"number","nullable":false}},"rows":[{"key":10,"src":1,"dst":1}]},"as":"edges"},{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"nodes","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}],"edges":[{"name":"E","from":"edges","key":["key"],"source":{"definition":"N","key":["src"]},"target":{"definition":"N","key":["dst"]},"labels":[{"name":"R","properties":{"mode":"all_columns"}}]}]},"as":"g"},{"from":"g","match_nodes":{"definition":"N","bindings":{"identity":"element"},"where":"true","fields":["element"]},"as":"seeds"}],"results":{"r":{"from":"seeds","fields":["element"]}}},{"id":"query","inputs":{"seeds":{"result":{"stage":"seed_source","result":"r"}}},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"nodes"},{"values":{"schema":{"key":{"type":"number","nullable":false},"src":{"type":"number","nullable":false},"dst":{"type":"number","nullable":false}},"rows":[{"key":10,"src":1,"dst":1}]},"as":"edges"},{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"nodes","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}],"edges":[{"name":"E","from":"edges","key":["key"],"source":{"definition":"N","key":["src"]},"target":{"definition":"N","key":["dst"]},"labels":[{"name":"R","properties":{"mode":"all_columns"}}]}]},"as":"g"},{"from":"g","subgraph":{"nodes":{"from":"seeds","id":"element"}},"as":"slice"},{"from":"slice","match_nodes":{"definition":"N","where":"true","fields":["id"]},"as":"projected"},{"from":"projected","filter":"true","as":"out"}],"results":{"r":{"from":"out","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"query","result":"r"}}}}
+  let prepared = @publication_host.prepare_effect_free_client_program(
+    document,
+    Json,
+    environment,
+    None,
+    { ..limits.program, max_tasks: 20, max_graph_work: 100000, },
+  ).unwrap()
+  let graph = @publication_host.prepared_client_graph(prepared)
+  assert_eq(@strategy.graph_task_count(graph), 10)
+  assert_eq(@strategy.graph_task_selected_step(graph, 7), Some(3))
+  assert_eq(@strategy.graph_task_input_count(graph, 7), Some(2))
+  let domain_at = fn(task : Int) {
+    let owner = @strategy.graph_task_owner(graph, task).unwrap()
+    guard @lower.preparation_carrier_at(
+        @lower.bound_preparation(owner),
+        @pipeline.Step(2),
+      )
+      is Some(@carrier_contract.GraphValue(contract)) else {
+      abort("expected keyed Graph carrier")
+    }
+    @carrier_contract.property_graph_domain(
+      @carrier_contract.graph_property_definition(contract),
+    )
+  }
+  assert_eq(domain_at(2), domain_at(6))
+}
+
+///|
+test "retained external Relation selector splits only its Carrier consumer" {
+  let (_, environment, limits) = local_effect_export_fixture(
+    property_graph=true,
+  )
+  let document =
+    #|{"version":"actql/0.1","id":"external-constructor-subgraph","stages":[
+    #|{"id":"rows","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"nodes"},{"values":{"schema":{"key":{"type":"number","nullable":false},"src":{"type":"number","nullable":false},"dst":{"type":"number","nullable":false}},"rows":[{"key":10,"src":1,"dst":1}]},"as":"edges"}],"results":{"nodes":{"from":"nodes","fields":["id"]},"edges":{"from":"edges","fields":["key","src","dst"]}}},
+    #|{"id":"selections","inputs":{"nodes":{"result":{"stage":"rows","result":"nodes"}},"edges":{"result":{"stage":"rows","result":"edges"}}},"steps":[{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"nodes","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}],"edges":[{"name":"E","from":"edges","key":["key"],"source":{"definition":"N","key":["src"]},"target":{"definition":"N","key":["dst"]},"labels":[{"name":"R","properties":{"mode":"all_columns"}}]}]},"as":"g"},{"from":"g","match_nodes":{"definition":"N","bindings":{"identity":"element"},"where":"true","fields":["element"]},"as":"selected"}],"results":{"r":{"from":"selected","fields":["element"]}}},
+    #|{"id":"query","inputs":{"nodes":{"result":{"stage":"rows","result":"nodes"}},"edges":{"result":{"stage":"rows","result":"edges"}},"seeds":{"result":{"stage":"selections","result":"r"}}},"steps":[{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"nodes","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}],"edges":[{"name":"E","from":"edges","key":["key"],"source":{"definition":"N","key":["src"]},"target":{"definition":"N","key":["dst"]},"labels":[{"name":"R","properties":{"mode":"all_columns"}}]}]},"as":"g"},{"from":"g","subgraph":{"nodes":{"from":"seeds","id":"element"}},"as":"slice"},{"from":"slice","match_nodes":{"definition":"N","where":"true","fields":["id"]},"as":"out"}],"results":{"r":{"from":"out","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"query","result":"r"}}}}
+  let preparation = @publication_host.prepare_effect_free_client_program(
+    document,
+    Json,
+    environment,
+    None,
+    {
+      ..limits.program,
+      checking: {
+        input: { ..limits.program.checking.input, max_stages: 3, },
+        compilation: {
+          ..limits.program.checking.compilation,
+          structure: {
+            ..limits.program.checking.compilation.structure,
+            stages: 3,
+          },
+        },
+      },
+      max_tasks: 20,
+      max_graph_work: 100000,
+    },
+  )
+  if preparation is Err(Check(diagnostic)) {
+    raise @program_check.diagnostic_cause(diagnostic)
+  }
+  let prepared = preparation.unwrap()
+  let graph = @publication_host.prepared_client_graph(prepared)
+  assert_eq(@strategy.graph_task_count(graph), 5)
+  // Retained constructor inputs alone keep the established fused MATCH task.
+  assert_eq(@strategy.graph_task_selected_step(graph, 1), None)
+  assert_eq(@strategy.graph_task_selected_step(graph, 2), Some(0))
+  assert_eq(@strategy.graph_task_selected_step(graph, 3), Some(1))
+  assert_eq(@strategy.graph_task_input_count(graph, 3), Some(2))
+  assert_eq(@strategy.graph_task_selected_step(graph, 4), Some(2))
+}

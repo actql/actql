@@ -580,13 +580,13 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Registered operations | 69 |
-| Executable production routes | 57 |
-| Typed pre-execution refusals (not execution success) | 12 |
-| Operation-specific boundary records | 57 |
+| Executable production routes | 58 |
+| Typed pre-execution refusals (not execution success) | 11 |
+| Operation-specific boundary records | 58 |
 | Four-role lifecycle assurance | 57 |
 | Full route work/workspace assurance | 57 |
-| Path-scoped work/workspace assurance | 106 |
-| Selected-only assurance | 0 |
+| Path-scoped work/workspace assurance | 107 |
+| Selected-only assurance | 1 |
 <!-- local-resource-accounting-summary:end -->
 
 ### Route evidence closure after the retained Store bounded lane
@@ -2716,8 +2716,8 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | `managed` | 25/40 |
 | `standard_host` | 24/40 |
 | `consumer_lifetime` | 24/40 |
-| `resources` | 28/40 |
-| `cancellation` | 28/40 |
+| `resources` | 29/40 |
+| `cancellation` | 29/40 |
 | `publication` | 24/40 |
 | `three_targets` | 19/40 |
 | complete operations | 19/40 |
@@ -4556,6 +4556,17 @@ the Named Result. A second real Store case delivers cancellation after the
 selected subgraph has made positive progress, confirms physical stop before
 cleanup, and leaves the producer and consumers unpublished. This does not yet
 prove predicate node selection or Store fault cleanup for the keyed path.
+The cross-Stage selector connection now derives its selected-task boundary from
+the checked secondary managed Relation port and its exact retained producer
+edge. Constructor inputs alone do not change the established fused MATCH route.
+A focused Plan regression fails without that connection. Source public
+Local/HTTPS cases cover constructor/Subgraph/MATCH with external retained inputs,
+independent typed identity and nullable property expectations, parallel-edge
+retention, induced endpoint exclusion, and all/subset/empty selection. Graph and
+sparse Relation Store reload revoke access to the original output and retain
+omission versus NULL. Fresh packed and integrated-SHA CI remain separate pending
+obligations. The larger standard-Host diagnostic timed out in its shared prelude;
+it is not reported as a pass or as a Subgraph assertion failure.
 
 Selected Graph bounds, degree, and weak/strong components now accept an exact
 managed Graph view when a later Relation operation splits the authored Stage.

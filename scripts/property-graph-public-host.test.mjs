@@ -336,10 +336,95 @@ function minimalSelectorDeriveScenario() {
   return {document,retained,derived,snapshot,expected:derived.map(({id,z})=>({id,z}))};
 }
 
-for (const mode of ['local','remote']) for (const profile of ['graph','presence-filter','presence-selection','selector-derive']) {
+function relationSubgraphScenario(empty, subset = false, external = false) {
+  const document = structuredClone(presenceFixture);
+  document.id = `relation-subgraph-${empty ? 'empty' : subset ? 'subset' : 'all'}-${external ? 'external' : 'inline'}`;
+  const construction = structuredClone(document.stages[0].steps.slice(0,4));
+  if (empty) for (const step of construction.slice(0,3)) step.values.rows = [];
+  document.stages = [{id:'selections',inputs:{},steps:[...structuredClone(construction),
+    subset ? {from:'g',match_nodes:{definition:'N',bindings:{identity:'id'},
+      where:'p IS NULL',fields:['id']},as:'rows'}
+      : {from:'g',node_rows:true,as:'rows'},
+    {from:'rows',select:['id'],as:'selected'}],
+  results:{out:{from:'selected',fields:['id']}}},
+  {id:'query',inputs:{selected:{result:{stage:'selections',result:'out'}}},
+    steps:[...structuredClone(construction),
+      {from:'g',subgraph:{nodes:{from:'selected',id:'id'}},as:'slice'},
+      {from:'slice',node_rows:true,as:'rows'},
+      {from:'rows',select:['id','labels'],as:'projected'}],
+    results:{out:{from:'projected',fields:['id','labels']}}}];
+  document.results = {answer:{from:{stage:'query',result:'out'}}};
+  if (external) {
+    // The regression shape has no inline VALUES or later Relation operation
+    // to force task segmentation: constructor -> Subgraph -> MATCH reads its
+    // selector from another Stage through the ordinary checked task graph.
+    const sources = construction.slice(0,3).map(step=>({id:step.as,inputs:{},
+      steps:[structuredClone(step)],results:{out:{from:step.as,
+        fields:Object.keys(step.values.schema)}}}));
+    const inputs = Object.fromEntries(sources.map(stage=>[stage.id,
+      {result:{stage:stage.id,result:'out'}}]));
+    document.stages[0].inputs = structuredClone(inputs);
+    document.stages[0].steps.splice(0,3);
+    document.stages[1].inputs = {...inputs,...document.stages[1].inputs};
+    document.stages[1].steps = [structuredClone(construction[3]),
+      {from:'g',subgraph:{nodes:{from:'selected',id:'id'}},as:'slice'},
+      {from:'slice',match_nodes:{definition:'N',bindings:{identity:'id'},
+        where:'true',fields:['id','p']},as:'projected'}];
+    document.stages[1].results.out.fields = ['id','p'];
+    document.stages.unshift(...sources);
+  }
+  // Independent snapshot/row expectations keep all three property states in
+  // the full selection. The subset retains N:2, with explicit NULL, and must
+  // exclude both edges because their N:1 endpoint is not selected.
+  const full = JSON.parse(presenceSnapshot);
+  if (empty || external) {
+    const constructor = structuredClone(construction[3].property_graph);
+    let occurrence = 0;
+    for (const family of ['nodes','edges']) for (const element of constructor[family]) {
+      delete element.from;
+      element.input_occurrence = occurrence++;
+    }
+    // Retained Results preserve the producer definition and its declared
+    // projection. Neither bound data CIDs nor product output form this oracle.
+    full[2].domain = cid({constructor,producer_definitions:construction.slice(0,3)
+      .map(step=>{
+        const producer={body:{values:step.values},dependencies:[]};
+        // Result publication checks the fields array itself as Select's
+        // source body, not a newly authored {select: ...} operation wrapper.
+        return external ? {producer,projection:Object.keys(step.values.schema)} : producer;
+      }),
+      version:'actql-property-graph-definition/0.1'});
+    full[1] = cid(full[2]);
+    for (const node of full[3]) node.id.domain = full[2].domain;
+    for (const edge of full[4]) {
+      edge.id.domain = full[2].domain;
+      edge.src.domain = full[2].domain;
+      edge.dst.domain = full[2].domain;
+    }
+    if (empty) { full[3] = []; full[4] = []; }
+  }
+  const selected = structuredClone(full);
+  if (subset) {
+    selected[3] = empty ? [] : [full[3][2]];
+    selected[4] = [];
+  }
+  const allRows = structuredClone(presenceRows.node_rows);
+  for (const row of allRows) row.id.domain = full[2].domain;
+  const retained = empty ? [] : subset ? [allRows[2]] : allRows;
+  return {document,retained,full:canonicalText(full),snapshot:canonicalText(selected),
+    expected:external ? retained.filter(row=>row.id.definition==='N').map(({id,p})=>({id,p}))
+      : retained.map(({id,labels})=>({id,labels})),
+    columns:external ? ['id','p'] : ['id','labels'],
+    graphTasks:external ? [3,6,7] : [3,9,10],
+    relationTasks:external ? (subset ? [] : [4]) : (subset ? [11] : [4,11])};
+}
+
+for (const mode of ['local','remote']) for (const profile of ['graph','presence-filter','presence-selection','selector-derive','relation-subgraph']) {
   const name = profile === 'graph'
     ? `keyed constructor and TRAIL reach public Named Results through ${mode}`
-    : profile === 'selector-derive'
+    : profile === 'relation-subgraph'
+      ? `external Relation-selected subgraph survives Store reload and public Named Results through ${mode}`
+      : profile === 'selector-derive'
       ? `selector property derive survives Relation Store and public Named Results through ${mode}`
       : `presence ${profile === 'presence-filter' ? 'filter' : 'selection sort and take'} survives Relation Store and public Named Results through ${mode}`;
   test(name, {timeout:60_000}, async t => {
@@ -406,6 +491,31 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
       client = await connect({mode,endpoint:`https://127.0.0.1:${server.address().port}/`,token:'synthetic-test-token'});
     }
     t.after(() => client.close());
+    if (profile === 'relation-subgraph') {
+      for (const [empty,subset,external] of [[false,false],[true,false],[false,true],
+        [false,false,true],[true,false,true],[false,true,true]]) {
+        const {document,retained,expected,full,snapshot,columns,graphTasks,relationTasks} = relationSubgraphScenario(empty,subset,external);
+        const run = await client.aql(canonicalText(document),
+          {format:'json',requestId:`${document.id}-${mode}`});
+        const state = await run.wait();
+        assert.equal(state.status,'succeeded',JSON.stringify(state));
+        assert.deepEqual(await run.result('answer').all(),expected);
+        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
+        assert.deepEqual((await run.result('answer').describe()).columns.map(column=>column.name),columns);
+        assert.deepEqual(snapshots.get(run.ref.runDefinitionCid),[[graphTasks[0],full],[graphTasks[1],full],[graphTasks[2],snapshot]].map(([task,bytes])=>({
+          task,cid:cid(JSON.parse(bytes)),bytes:Buffer.byteLength(bytes),verifiedReadBytes:Buffer.byteLength(bytes),
+          sourceReleased:true,restored:true,temporaryBodyReclaimed:true,
+        })));
+        const streams = relationTasks.map(task=>[task,retained]);
+        assert.deepEqual(relationSnapshots.get(run.ref.runDefinitionCid),streams.map(([task,rows])=>{
+          const bytes=canonicalText(rows);
+          return {task,cid:cid(rows),bytes:Buffer.byteLength(bytes),verifiedReadBytes:Buffer.byteLength(bytes),
+            rows:rows.length,sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true};
+        }));
+        assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
+      }
+      return;
+    }
     if (profile === 'selector-derive') {
       for (const [selector,projection,empty] of [
         ['definition','node_rows',false], ['definition','edge_rows',false], ['definition','edge_rows',true],

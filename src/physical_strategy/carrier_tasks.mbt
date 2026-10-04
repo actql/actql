@@ -276,8 +276,42 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
             }
           }
         }
-        Some(@pipeline.Input(_)) => {
+        Some(@pipeline.Input(source)) => {
           found_external_input = true
+          // A Carrier consumer can have a retained Relation selector on its
+          // secondary port. That read requires selected execution even when
+          // a later MATCH would otherwise keep the Carrier prefix fused.
+          // Constructor inputs alone do not establish this boundary.
+          if input > 0 &&
+            @lower.node_accepts_managed_relation_view(node, input) &&
+            @lower.node_accepts_managed_carrier_view(node, 0) &&
+            @lower.node_input_target(node, 0) is Some(@pipeline.Step(primary)) &&
+            @lower.preparation_carrier_at(prepared, @pipeline.Step(primary))
+            is Some(carrier) &&
+            @carrier.kind(carrier) != @carrier.RelationKind {
+            let mut retained_relation = false
+            for edge in graph.data {
+              if edge.consumer == stage &&
+                edge.input == source &&
+                edge.producer >= 0 &&
+                edge.producer < graph.owners.length() {
+                let predecessor = @lower.bound_preparation(
+                  graph.owners[edge.producer],
+                )
+                if @lower.preparation_carrier_at(predecessor, edge.target)
+                  is Some(input_carrier) &&
+                  @carrier.kind(input_carrier) == @carrier.RelationKind &&
+                  @lower.preparation_schema_at(predecessor, edge.target)
+                  is Some(_) {
+                  retained_relation = true
+                }
+              }
+            }
+            if !retained_relation {
+              return None
+            }
+            found_relation = true
+          }
           // A binary JOIN may reread an external peer in a fused chain.
           // Only a later primary port restarts an independent branch.
           if step > 0 && @lower.node_input_count(node) <= 2 && input == 0 {
