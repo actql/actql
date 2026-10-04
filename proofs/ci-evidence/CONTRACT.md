@@ -1,7 +1,10 @@
 # Incremental evidence connection contract
 
-Status: comparison implementation for review. This contract alone authorizes no
-skip. G owns the catalog, dependency closure, immutable receipt validation,
+Status: scoped activation and additive registration implementation for review.
+This contract alone authorizes no skip. Only `mutations-js` may adopt a
+qualified protected-main original; every other registered action executes
+fresh. The actual main comparison and independent final acceptance are required
+before this scope can reuse anything. G owns the catalog, dependency closure, immutable receipt validation,
 candidate applicability, executable Lean checker and this family's workflow,
 artifact and final-check wiring. dot's existing CI optimizations remain separate;
 overlapping file sections must be coordinated rather than implemented twice. The implementation
@@ -23,11 +26,43 @@ coverage. Connection coverage still comes from the independent fixture table
 in `bounded-session/evidence.mjs`. The package closure includes compilation
 dependencies even when the test command selects one file.
 
-## CLI boundary to wire
+## Ordinary PR execution boundary
+
+Contributors use the normal selected PR CI. Its Session workflow calls:
+
+```text
+node proofs/ci-evidence/collect.mjs init
+node proofs/ci-evidence/collect.mjs mutations
+node proofs/bounded-session/run.mjs all
+node proofs/ci-evidence/collect.mjs finish
+```
+
+The existing chain/capacity steps remain at their current workflow positions.
+Initialization constructs the actual acquisition plan from current
+Git/runtime inputs and independently authenticated main evidence. Main always
+executes fresh. The PR may omit only the qualified isolated JS mutation action;
+the existing runner still records every other actual execution. Producer
+finish executes the Lean checker over the complete independent inventory.
+
+The required `check` job calls `node proofs/ci-evidence/final.mjs`. It binds
+current context to the source ZIP, checks every fresh or reused original,
+reconstructs required obligations and the actually executed Lean certificate,
+and saves a separate final applicability artifact. A caller-supplied status or
+successful producer without final acceptance cannot authorize reuse.
+
+To add a local obligation, register its finite fixture recipe and matching
+action descriptors as described in [the contributor steps](README.md#adding-a-local-obligation-through-the-ordinary-pr).
+No workflow edit, execution callback or per-PR permission from G is needed.
+The initial requirements remain protected; new local actions execute fresh and
+need their own candidate receipts. A new derived operation claim additionally
+needs independent fixture scope/binding evidence, not just a registration.
+
+## Diagnostic CLI boundary
 
 All files below are relative to the candidate checkout. Consumers must pin the
 public revision; unpublished worktrees are not dependencies. The CLI exposes
-these operations (the initial plan always executes, with reuse disabled):
+these data/diagnostic operations. They are separate from the ordinary workflow's
+acquisition/final acceptance boundary and do not grant permission to omit work:
 
 ```text
 node proofs/ci-evidence/cli.mjs catalog
@@ -36,25 +71,36 @@ node proofs/ci-evidence/cli.mjs seal --request EXECUTION.json --out RECEIPT.json
 node proofs/ci-evidence/cli.mjs check --request CHECK.json --out CHECKED.json
 ```
 
-The eventual `plan` keeps every registered obligation and reports `execute` or
-`reuse` with reasons. The comparison implementation reports only `execute`.
-It does not execute tests or
-authorize skip. `seal` verifies actual command output, nonzero counts, source
-restoration where applicable and artifact bytes before emitting a canonical
-receipt. `check` independently reconstructs the expected obligations and
+CLI `plan` reports only `execute` and explicitly disables reuse. It does not
+execute tests or authorize skip. `seal` validates the supplied ordinary command
+output and nonzero count before emitting canonical receipt data; it does not
+create a trusted producer or a complete source artifact. Mutation receipts need
+the structured observations/restoration validated by the ordinary collector.
+`check` independently reconstructs the expected obligations and
 candidate inputs, authenticates original receipts and runs the Lean plan
-checker. Only its checked output can justify reuse at the final required check.
+checker for fresh-only diagnostic applications. The production workflow uses
+the acquisition and final acceptance checks above for mixed fresh/reused work.
 No boolean supplied by a caller is a trust witness.
 
 ### Requests and candidate context
 
-Each request includes `candidateRevision` (full Git SHA), `repository`,
-`repositoryId`, `workflowId`, `runId`, `runAttempt`, `policyRevision`, selected
-action IDs and a runtime manifest reference. Action IDs must match the catalog;
-the final check requires the entire applicable family, not the caller's subset.
-`policyRevision` is a trusted main checkpoint resolved through the existing
-main-baseline procedure, not `HEAD^` or `push.before`. Candidate policy changes
-disable reuse. Removing a required action cannot make its obligation disappear.
+Production context binds `candidateRevision` (full tested Git SHA), repository
+and head-repository IDs, workflow ID, run ID/attempt and run-head revision. The
+origin separately binds the successful job ID and event/branch. Runtime manifests,
+comparison and acquisition records are stored separately in the source ZIP.
+The final check requires the entire catalog, not a caller-selected subset. The
+main baseline is independently resolved through the existing checkpoint
+procedure, not `HEAD^` or `push.before`. Candidate policy changes disable reuse;
+removing a required action cannot make its obligation disappear.
+
+Diagnostic CLI requests use these exact top-level fields:
+
+| Operation | Request fields |
+| --- | --- |
+| `catalog` | No request file |
+| `plan` | `candidateRevision`, `runtime` |
+| `seal` | `actionId`, `origin`, `runtime`, `output`, `status`, `milliseconds` |
+| `check` | `context`, `runtime`, `entries` (fresh-only; actual Actions context required) |
 
 Runtime manifests bind the executor/compiler bytes, imported distribution/core,
 target/ABI, fixed flags, OS/environment profile and reviewed input boundary.
@@ -106,12 +152,14 @@ The candidate record is separate from the origin receipt:
 {
   "version": "actql-verification-action-application/0.1",
   "candidateRevision": "<full SHA>",
-  "actionId": "session-js",
+  "actionId": "mutations-js",
   "acquisition": "reused",
   "originReceiptDigest": "<sha256>",
   "originRevision": "<original full SHA>",
   "originRunId": 1,
   "originRunAttempt": 1,
+  "artifactId": 1,
+  "archiveDigest": "<sha256>",
   "candidateActionKey": "<sha256>",
   "originActionKey": "<same sha256>",
   "kind": "tested-refinement",
@@ -133,9 +181,14 @@ without an accepted application for every omitted required action.
 ## Comparison period and activation
 
 Use existing normal CI observations, not a second full CI on every PR. Before
-activation, compare at least one successful full main origin, one unrelated
-candidate with equal inputs, and one relevant-source candidate that executes
-the affected actions. Also exercise oracle/registry/target changes, added or
+activation, compare a successful full main origin with a later full main fresh
+execution under the same closed conditional input contract. That later run's
+final consumer must confirm the equal inputs and thirteen scientific mutation
+observations; the whole run and final-check owner must then succeed before its
+original is eligible for a subsequent ordinary PR. An unrelated PR, count match
+or successful producer alone cannot qualify an original. Verify an unrelated
+candidate reuses the eligible action and a relevant-source candidate executes
+the affected action fresh. Also exercise oracle/registry/target changes, added or
 renamed files, branch integration, policy weakening, corrupt/missing artifacts,
 failed/cancelled runs and mixed attempts through focused regressions.
 
