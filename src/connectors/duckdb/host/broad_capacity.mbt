@@ -4,10 +4,20 @@
 pub fn configured_broad_capacity(
   setup : BroadHostConfiguration,
 ) -> NativeCapacity? {
-  let limits = setup.limits
-  let guards = @planning.query_requirement_guards(setup.requirement)
+  prepared_broad_capacity(setup.requirement, setup.limits)
+}
+
+///|
+/// Size Broad's original bounded residual without selecting or executing it.
+/// The checked requirement and the eventual Host configuration share this
+/// capacity calculation; a pending read needs no fabricated AcquisitionChoice.
+pub fn prepared_broad_capacity(
+  requirement : @planning.QueryRequirement,
+  limits : BroadHostLimits,
+) -> NativeCapacity? {
+  let guards = @planning.query_requirement_guards(requirement)
   let query = @planning.query_material_owner(
-    @planning.query_requirement_material(setup.requirement),
+    @planning.query_requirement_material(requirement),
   )
   let measurement : @execution.FixedInputGuardMeasureLimits = {
     max_work: limits.completion.guards.max_work,
@@ -150,5 +160,16 @@ pub fn configured_capture_capacity(
   match setup.owner {
     Native(value) => configured_native_capacity(value)
     Broad(value) => configured_broad_capacity(value)
+  }
+}
+
+///|
+/// Exact checked requirement retained by the selected configuration.
+pub fn configured_capture_requirement(
+  setup : CaptureConfiguration,
+) -> @planning.QueryRequirement {
+  match setup.owner {
+    Native(value) => value.requirement
+    Broad(value) => value.requirement
   }
 }
