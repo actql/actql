@@ -24,6 +24,7 @@ const mutations = [
     '      finding\n      is (Violation(_)\n      | SyntaxViolation(_, _)\n' +
     '      | QueryViolation(_, _)\n' +
     '      | TypeViolation(_, _, _, _)\n      | SuppliedViolation(_)\n' +
+    '      | ConstraintViolation(_, _, _)\n' +
     '      | UndeclaredParameter(_, _))\n    }) {\n' +
     '    "invalid"',
     'if findings.iter().any(finding => !(finding is Limit(_))) {\n' +
@@ -50,8 +51,14 @@ const mutations = [
     'guard check_type_name(source) is Some(expected) else',
     'guard check_type_name(root_source) is Some(expected) else'],
   ['a supplied constraint loses its owned location',
-    'let fallback = SuppliedViolation(pointer)',
-    'let fallback = SuppliedViolation(None)'],
+    'return ConstraintViolation(name, constraint, pointer)',
+    'return ConstraintViolation(name, constraint, None)'],
+  ['a supplied numeric constraint is assigned to the duration family',
+    'ParameterIssue(NumericConstraint, ..)) =>\n      Some("numeric")',
+    'ParameterIssue(NumericConstraint, ..)) =>\n      Some("duration")'],
+  ['a supplied constraint loses its typed explanation facts',
+    'return ConstraintViolation(name, constraint, pointer)',
+    'return SuppliedViolation(pointer)'],
   ['an unresolved column loses its retained authored location',
     '    Some(origin) =>\n      QueryViolation(\n' +
     '        @source_origin.start(origin).byte_offset,\n' +
@@ -80,6 +87,10 @@ const targets = [
     [strict('nested-outcome'), deep('nested-type')]],
   ['nested supplied type facts follow the submitted contract and path',
     [strict('nested-outcome'), deep('nested-type')]],
+  ['supplied constraint locations retain the binder path without private values',
+    [strict('constraint-outcome'), deep('constraint-location')]],
+  ['supplied constraint locations retain the binder path without private values',
+    [strict('constraint-outcome'), deep('constraint-location')]],
   ['supplied constraint locations retain the binder path without private values',
     [strict('constraint-outcome'), deep('constraint-location')]],
   ['unresolved column expressions retain authored source positions',

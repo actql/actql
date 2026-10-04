@@ -3,6 +3,8 @@
 // repository table keyed by global node ID and resolved by name separately,
 // so a test can make a name point at another repository, make a node answer
 // for another repository, remove a repository, or change an ID's spelling.
+// It also answers the comment subject check and the `addComment` mutation
+// from a subject table, recording each created comment.
 // Expected rows are written by hand in each test; nothing here is derived
 // from the product.
 const encode = index => Buffer.from(`cursor:${index}`).toString('base64');
@@ -23,7 +25,9 @@ export const graphqlIssue = issue => ({number: issue.number,
 
 // `world()` returns the current provider state:
 // {repositories: Map(nodeId -> {databaseId, nameWithOwner, issues}),
-//  names: Map(nameWithOwner -> nodeId), pageSize, answer?(variables)}.
+//  names: Map(nameWithOwner -> nodeId), pageSize, answer?(variables),
+//  subjects?: Map(nodeId -> {type, repository, number}),
+//  commentReply?(variables), comments?: [{subjectId, body, databaseId}]}.
 // `answer`, when present, overrides the node response for misbehaviour.
 export function graphqlRoute(world) {
   return {method: 'POST', pathname: '/graphql', handle(exchange) {
@@ -41,6 +45,39 @@ export function graphqlRoute(world) {
         __typename: 'Repository', id: nodeId,
         databaseId: repository.databaseId,
         nameWithOwner: repository.nameWithOwner}}}};
+    }
+    if (query.startsWith('query ActqlCommentSubject(')) {
+      const subject = state.subjects?.get(variables.id);
+      if (subject === undefined) {
+        return {body: {data: {node: null}, errors: [{type: 'NOT_FOUND',
+          message: `Could not resolve to a node with the global id of '${variables.id}'`}]}};
+      }
+      const repository = state.repositories.get(subject.repository);
+      return {body: {data: {node: subject.type === 'Issue' ||
+        subject.type === 'PullRequest' ? {__typename: subject.type,
+        id: variables.id, number: subject.number,
+        repository: {__typename: 'Repository', id: subject.repository,
+          databaseId: repository.databaseId,
+          nameWithOwner: repository.nameWithOwner}}
+        : {__typename: subject.type}}}};
+    }
+    if (query.startsWith('mutation ActqlAddComment(')) {
+      if (state.commentReply !== undefined) {
+        return state.commentReply(variables);
+      }
+      const subject = state.subjects?.get(variables.subjectId);
+      if (subject === undefined) {
+        return {body: {data: {addComment: null}, errors: [{type: 'NOT_FOUND',
+          message: 'Could not resolve to a node'}]}};
+      }
+      // GitHub accepts a comment on an Issue or a pull request alike.
+      state.comments ??= [];
+      const databaseId = 1000 + state.comments.length;
+      state.comments.push({subjectId: variables.subjectId,
+        body: variables.body, databaseId});
+      return {body: {data: {addComment: {
+        commentEdge: {node: {id: `IC_${databaseId}`, databaseId}},
+        subject: {__typename: subject.type, id: variables.subjectId}}}}};
     }
     if (!query.startsWith('query ActqlIssues(')) {
       return {body: {errors: [{type: 'UNEXPECTED_DOCUMENT',
@@ -74,3 +111,9 @@ export const issueReads = fixture => fixture.seen()
   .filter(entry => entry.pathname === '/graphql')
   .map(entry => JSON.parse(entry.body))
   .filter(request => request.query.startsWith('query ActqlIssues('));
+
+// The comment mutations a fixture saw, with their variables.
+export const commentSends = fixture => fixture.seen()
+  .filter(entry => entry.pathname === '/graphql')
+  .map(entry => JSON.parse(entry.body))
+  .filter(request => request.query.startsWith('mutation ActqlAddComment('));

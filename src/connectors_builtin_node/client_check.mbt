@@ -11,6 +11,7 @@ priv enum CheckFinding {
   QueryViolation(Int, Int)
   TypeViolation(String, String, String, String?)
   SuppliedViolation(String?)
+  ConstraintViolation(String, String, String?)
   UndeclaredParameter(String, (Int, Int)?)
   RequiredValue(String, String)
   // An obligation that cannot be discharged from disclosable evidence.
@@ -297,6 +298,7 @@ fn check_source_findings(
       | QueryViolation(_, _)
       | TypeViolation(_, _, _, _)
       | SuppliedViolation(_)
+      | ConstraintViolation(_, _, _)
       | UndeclaredParameter(_, _))
     }) {
     return Report
@@ -443,6 +445,7 @@ fn check_verdict(findings : Array[CheckFinding]) -> String {
       | QueryViolation(_, _)
       | TypeViolation(_, _, _, _)
       | SuppliedViolation(_)
+      | ConstraintViolation(_, _, _)
       | UndeclaredParameter(_, _))
     }) {
     "invalid"
@@ -484,6 +487,8 @@ fn write_check_report(
       QueryViolation(_, _) => Some("query_invalid")
       TypeViolation(_, _, _, _) => Some("supplied_value_type_mismatch")
       SuppliedViolation(_) => Some("supplied_value_invalid")
+      ConstraintViolation(_, _, _) =>
+        Some("supplied_value_constraint_violation")
       UndeclaredParameter(_, _) => Some("parameter_undeclared")
       _ => None
     }
@@ -605,6 +610,26 @@ fn write_check_report(
     if code == "supplied_value_invalid" {
       for finding in findings {
         if finding is SuppliedViolation(pointer) {
+          if documents.parameters_revision is Some(revision) &&
+            pointer is Some(pointer) {
+            write_check_structured_location(
+              writer, "parameters", revision, pointer,
+            )
+          }
+          break
+        }
+      }
+    }
+    if code == "supplied_value_constraint_violation" {
+      for finding in findings {
+        if finding is ConstraintViolation(name, constraint, pointer) {
+          @encode.key(writer, "facts")
+          @encode.begin_object(writer)
+          @encode.key(writer, "constraint")
+          @encode.string_value(writer, constraint)
+          @encode.key(writer, "parameter")
+          @encode.string_value(writer, name)
+          @encode.end_object(writer)
           if documents.parameters_revision is Some(revision) &&
             pointer is Some(pointer) {
             write_check_structured_location(
@@ -887,6 +912,24 @@ fn check_supplied_type_finding(
     None
   }
   let fallback = SuppliedViolation(pointer)
+  // These are the binder's proven families, not another constraint check.
+  // NumericConstraint does not identify which integer/bound condition failed.
+  let constraint = match issue {
+    BindingInput(Supplied, ParameterIssue(NumericConstraint, ..)) =>
+      Some("numeric")
+    BindingInput(Supplied, ParameterIssue(DurationConstraint, ..)) =>
+      Some("duration")
+    BindingInput(Supplied, ParameterIssue(LengthConstraint, ..)) =>
+      Some("array_length")
+    BindingInput(Supplied, Value(ValueIssue(ArrayConstraint, ..))) =>
+      Some("array_size")
+    _ => None
+  }
+  if constraint is Some(constraint) &&
+    path.get(0) is Some(@source.Key(name)) &&
+    name.length() <= 256 {
+    return ConstraintViolation(name, constraint, pointer)
+  }
   guard issue
     is (BindingInput(
       Supplied,

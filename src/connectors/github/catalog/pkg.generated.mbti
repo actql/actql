@@ -6,13 +6,21 @@ import {
 }
 
 // Values
+pub let add_comment_mutation : String
+
+pub fn add_comment_request(String, String) -> Result[String, CommentRequestIssue]
+
 pub let api_version : String
 
 pub fn canonical_timestamp(String) -> String?
 
-pub fn classify_comment_response(Int, HeaderObservation, Bytes, Int) -> CommentOutcome
+pub fn classify_comment_response(Int, HeaderObservation, Bytes, PageLimits, String) -> CommentOutcome
 
 pub fn classify_failure(Int, HeaderObservation) -> ExchangeFailure
+
+pub let comment_subject_query : String
+
+pub fn comment_subject_request(String) -> Result[String, CommentRequestIssue]
 
 pub fn header_value(HeaderObservation, String) -> String?
 
@@ -20,7 +28,11 @@ pub let issues_query : String
 
 pub fn issues_request(String, Int, String?, IssueFilters) -> Result[String, GraphqlRequestIssue]
 
+pub let max_comment_characters : Int
+
 pub fn next_page(String?, String, String, Int, Int) -> Result[NextPage?, LinkIssue]
+
+pub fn project_comment_subject_response(Bytes, PageLimits, String, String, Int64, String) -> Result[CommentSubject, GraphqlResponseIssue]
 
 pub fn project_issue_page(Bytes, PageLimits) -> Result[IssuePage, IssuePageIssue]
 
@@ -46,7 +58,19 @@ pub let user_agent : String
 pub(all) enum CommentOutcome {
   Created(id~ : Int64, node_id~ : String)
   Refused(status~ : Int)
+  Rejected(kind~ : String)
   Unknown
+} derive(Eq, @debug.Debug)
+
+pub(all) enum CommentRequestIssue {
+  InvalidSubjectId
+  InvalidBody
+} derive(Eq, @debug.Debug)
+
+pub(all) struct CommentSubject {
+  node_id : String
+  number : Int64
+  repository : GraphqlRepository
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ExchangeFailure {
@@ -86,6 +110,8 @@ pub(all) enum GraphqlResponseIssue {
   RateLimited
   Errors(String)
   RepositoryUnavailable
+  SubjectUnavailable
+  ForeignSubject
   WrongType(String)
   ForeignRepository
   IdRepresentationChanged
