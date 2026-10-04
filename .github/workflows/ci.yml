@@ -28,7 +28,9 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.packed_query_evidence_probe && 'evidence-probe' || inputs.performance_matrix && 'performance' || 'normal' }}
-  cancel-in-progress: ${{ !inputs.performance_matrix }}
+  # Let an automatic main checkpoint finish; only its pending successor is replaced.
+  # PR updates and non-performance manual runs retain the existing cancellation policy.
+  cancel-in-progress: ${{ !inputs.performance_matrix && !(github.event_name == 'push' && github.ref == 'refs/heads/main') }}
 
 jobs:
   select-targets:
