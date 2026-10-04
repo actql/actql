@@ -440,6 +440,10 @@ fn[T : RelationRows] evaluate_row_body_into(
   identity_limits? : ValueLimits? = None,
   numeric? : NumericAggregateExecution? = None,
   preserve_filter_rows? : Bool = false,
+  accept_presence_row? : ((Array[@admitted.Value?], Array[String], ValueUsage) -> Result[
+    Unit,
+    RowIssue,
+  ])? = None,
 ) -> Result[Array[String], RowIssue] {
   if body is PreparedBody(kernel) {
     if !physical_equal(@lower.kernel_owner(kernel), input.checked_owner()) {
@@ -468,6 +472,7 @@ fn[T : RelationRows] evaluate_row_body_into(
     identity_limits.unwrap_or(output.limits),
     numeric,
     preserve_filter_rows,
+    accept_presence_row,
   )
   if scope is Some(s) {
     if result is Err(_) {
@@ -496,6 +501,10 @@ fn[T : RelationRows] evaluate_row_body_impl(
   identity_limits : ValueLimits,
   numeric : NumericAggregateExecution?,
   preserve_filter_rows : Bool,
+  accept_presence_row : ((Array[@admitted.Value?], Array[String], ValueUsage) -> Result[
+    Unit,
+    RowIssue,
+  ])?,
 ) -> Result[Array[String], RowIssue] {
   if max_rows < 0 ||
     control.remaining < 0 ||
@@ -602,7 +611,8 @@ fn[T : RelationRows] evaluate_row_body_impl(
       }
     Projection(view) => Select(@lower.projection_fields(view))
   }
-  if preserve_filter_rows && !(kind is Filter(_)) {
+  if preserve_filter_rows &&
+    !(kind is Filter(_) || kind is SnapshotMap(_) || kind is OrderedBindings(_)) {
     return Err(InvalidRows)
   }
   let output_names : Array[String] = []
@@ -695,6 +705,21 @@ fn[T : RelationRows] evaluate_row_body_impl(
       Err(issue) => return Err(issue)
     }
   }
+  if preserve_filter_rows && accept_presence_row is Some(_) {
+    guard body is PreparedBody(kernel) else { return Err(InvalidRows) }
+    release_slots(workspace, output_names.length())
+    output_names.clear()
+    let schema = @lower.kernel_output_schema(kernel)
+    for index in 0..<@schema.field_count(schema) {
+      guard @schema.field_at(schema, index) is Some(field) else {
+        return Err(InvalidRows)
+      }
+      if !reserve_slots(workspace, 1) || !spend_control(control, 1) {
+        return Err(RowLimit)
+      }
+      output_names.push(@schema.reference_name(field.name))
+    }
+  }
   // Complete input admission precedes all binding evaluation and shadowing.
   let input_roots : Array[ExpressionRootLease] = []
   if scope is Some(s) {
@@ -743,6 +768,16 @@ fn[T : RelationRows] evaluate_row_body_impl(
     }
     if needs_snapshot {
       for i = 0; i < input_names.length(); i = i + 1 {
+        if preserve_filter_rows &&
+          body is PreparedBody(kernel) &&
+          @schema.lookup_reference(
+            @lower.kernel_input_schema(kernel),
+            input_names[i],
+          )
+          is Some(field) &&
+          field.presence == @schema.Conditional {
+          continue
+        }
         if !RowValues::value_present(source, i) {
           continue
         }
@@ -860,6 +895,9 @@ fn[T : RelationRows] evaluate_row_body_impl(
       }
       SnapshotMap(bindings) => {
         for i = 0; i < RowValues::value_count(source); i = i + 1 {
+          if preserve_filter_rows {
+            continue
+          }
           if !spend_control(control, 1) {
             return Err(RowLimit)
           }
@@ -934,6 +972,9 @@ fn[T : RelationRows] evaluate_row_body_impl(
           by_name[bindings[i].0] = i
         }
         for name in output_names {
+          if preserve_filter_rows {
+            continue
+          }
           if !reserve_slots(workspace, 1) || !spend_control_text(control, name) {
             return Err(RowLimit)
           }
@@ -944,10 +985,102 @@ fn[T : RelationRows] evaluate_row_body_impl(
             },
           )
         }
+        if preserve_filter_rows {
+          for value in values {
+            if !reserve_slots(workspace, 1) {
+              return Err(RowLimit)
+            }
+            row.push(value)
+          }
+        }
         release_slots(workspace, values.length() + by_name.length())
       }
     }
-    if !(if preserve_filter_rows {
+    // Sparse derivation copies source presence and adds checked binding values.
+    // It never manufactures a value for an absent, untouched column.
+    let cells : Array[@admitted.Value?] = []
+    let start : ValueUsage = {
+      nodes: output.nodes,
+      text_bytes: output.text,
+      work: output.work,
+    }
+    if preserve_filter_rows && accept_presence_row is Some(_) {
+      guard body is PreparedBody(kernel) else { return Err(InvalidRows) }
+      let schema = @lower.kernel_output_schema(kernel)
+      let bindings = match kind {
+        SnapshotMap(bindings) | OrderedBindings(bindings) => bindings
+        _ => []
+      }
+      let binding_columns : Map[String, Int] = Map([])
+      for index = 0; index < bindings.length(); index = index + 1 {
+        if !reserve_slots(workspace, 1) ||
+          !spend_control(control, 1) ||
+          !spend_control_text(control, bindings[index].0) {
+          return Err(RowLimit)
+        }
+        binding_columns[bindings[index].0] = index
+      }
+      for name in output_names {
+        if !reserve_slots(workspace, 1) ||
+          !spend_control(control, 1) ||
+          !spend_control_text(control, name) {
+          return Err(RowLimit)
+        }
+        let cell = if binding_columns.get(name) is Some(index) {
+          guard @schema.lookup_reference(schema, name) is Some(field) &&
+            row.get(index) is Some(value) &&
+            checked_ordered_output_value(value, field.contract, {
+              max_nodes: output.limits.max_nodes,
+              max_text_bytes: output.limits.max_text_bytes,
+              max_depth: output.limits.max_depth,
+            })
+            is Some(checked) else {
+            return Err(InvalidRows)
+          }
+          Some(checked.value)
+        } else {
+          guard ordinals.get(name) is Some(index) else {
+            return Err(InvalidRows)
+          }
+          if RowValues::value_present(source, index) {
+            guard @schema.lookup_reference(
+                @lower.kernel_input_schema(kernel),
+                name,
+              )
+              is Some(field) &&
+              checked_ordered_output_value(
+                RowValues::value_at(source, index),
+                field.contract,
+                {
+                  max_nodes: output.limits.max_nodes,
+                  max_text_bytes: output.limits.max_text_bytes,
+                  max_depth: output.limits.max_depth,
+                },
+              )
+              is Some(checked) else {
+              return Err(InvalidRows)
+            }
+            Some(checked.value)
+          } else {
+            None
+          }
+        }
+        cells.push(cell)
+      }
+      release_slots(workspace, binding_columns.length())
+    }
+    let presence_row : Ref[Array[@admitted.Value?]]? = if preserve_filter_rows &&
+      accept_presence_row is Some(_) {
+      if !reserve_slots(workspace, 1) {
+        return Err(RowLimit)
+      }
+      Some(Ref(cells))
+    } else {
+      None
+    }
+    if !(if preserve_filter_rows && accept_presence_row is Some(_) {
+        retain_row(presence_row.unwrap(), output_names, output)
+      } else if preserve_filter_rows {
         retain_row(source, output_names, output)
       } else {
         retain_row(row, output_names, output)
@@ -955,7 +1088,15 @@ fn[T : RelationRows] evaluate_row_body_impl(
       return Err(RowLimit)
     }
     if scope is Some(s) {
-      let event = if preserve_filter_rows {
+      let event = if preserve_filter_rows && accept_presence_row is Some(_) {
+        row_event_output(
+          s,
+          output_names,
+          presence_row.unwrap(),
+          slot_roots,
+          input_roots[row_index],
+        )
+      } else if preserve_filter_rows {
         row_event_output(
           s,
           output_names,
@@ -981,7 +1122,14 @@ fn[T : RelationRows] evaluate_row_body_impl(
     if !reserve_slots(workspace, 1) {
       return Err(RowLimit)
     }
-    match
+    let accepted = if accept_presence_row is Some(accept) &&
+      preserve_filter_rows {
+      accept(cells, output_names, {
+        nodes: output.nodes - start.nodes,
+        text_bytes: output.text - start.text_bytes,
+        work: output.work - start.work,
+      })
+    } else {
       accept_row(
         row,
         row_index,
@@ -991,9 +1139,14 @@ fn[T : RelationRows] evaluate_row_body_impl(
         } else {
           None
         },
-      ) {
+      )
+    }
+    match accepted {
       Ok(_) => ()
       Err(issue) => return Err(issue)
+    }
+    if presence_row is Some(_) {
+      release_slots(workspace, 1 + row.length())
     }
     release_slots(workspace, snapshot.length())
   }

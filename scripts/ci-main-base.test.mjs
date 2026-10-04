@@ -5,6 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {actionsReader, fullCheckpointJobs, policyPaths, resolveMainBaseline} from './ci-main-base.mjs';
+import {gateJobs} from './ci-targets.mjs';
 const sha = char => char.repeat(40);
 const head = sha('d'), previous = sha('c'), base = sha('b');
 const requiredJobs = fullCheckpointJobs(['select-targets', 'preflight', 'lint', 'spec', 'core', 'native-macos', 'client', 'pipeline-evidence']);
@@ -38,6 +39,40 @@ test('full checkpoint binds tested SHA, ancestry, policy and exact successful at
   assert.equal(result.runId, 101); assert.equal(result.runAttempt, 1);
   assert.deepEqual(result.policy.map(p => p.path), policyPaths);
   assert(calls.includes('/actions/runs/101/attempts/1/jobs?per_page=100'));
+});
+// Independent full-workflow inventory: focused-tests runs only in its own
+// narrow profile and is skipped alongside the successful full families.
+const fullWorkflowJobs = ['check', 'select-targets', 'preflight', 'lint',
+  'core (js)', 'core (wasm)', 'core (native)', 'host', 'client', 'native',
+  'spec', 'session-evidence', 'pipeline-evidence', 'native-macos',
+  'native-separated-network', 'workers', 'connector-addition', 'duckdb-node'];
+function fullWorkflowFixture() {
+  const f = fixture();
+  f.options.requiredJobs = fullCheckpointJobs(gateJobs);
+  f.state.jobs.jobs = [...fullWorkflowJobs.map(name => ({name, run_id: 101,
+    run_attempt: 1, head_sha: base, status: 'completed', conclusion: 'success'})),
+  {name: 'focused-tests', run_id: 101, run_attempt: 1, head_sha: base,
+    status: 'completed', conclusion: 'skipped'}];
+  f.state.jobs.total_count = f.state.jobs.jobs.length;
+  return f;
+}
+test('real gate inventory accepts complete full main with skipped focused-only job', async () => {
+  const {options} = fullWorkflowFixture();
+  assert.equal((await resolveMainBaseline(options)).baseSha, base);
+  assert.deepEqual(options.requiredJobs, fullWorkflowJobs);
+});
+test('every full-workflow family remains required despite the focused-only skip', async () => {
+  for (const name of fullWorkflowJobs) {
+    const {options, state} = fullWorkflowFixture();
+    state.jobs.jobs.find(job => job.name === name).conclusion = 'skipped';
+    assert.equal((await resolveMainBaseline(options)).baseSha, null, name);
+  }
+});
+test('successful focused profile cannot replace required full target evidence', async () => {
+  const {options, state} = fullWorkflowFixture();
+  state.jobs.jobs.find(job => job.name === 'focused-tests').conclusion = 'success';
+  state.jobs.jobs.find(job => job.name === 'core (wasm)').conclusion = 'skipped';
+  assert.equal((await resolveMainBaseline(options)).baseSha, null);
 });
 for (const [key, value] of Object.entries({event: 'pull_request', head_branch: 'side', path: '.github/workflows/other.yml', workflow_id: 9,
   head_sha: sha('e'), conclusion: 'cancelled', status: 'in_progress', repository: {id: 99, full_name: 'actql/actql'}, head_repository: {id: 99}})) {
