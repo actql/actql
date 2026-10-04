@@ -12753,7 +12753,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "6e34166cacd478b25268491a4b28f198a029770a051ab72ab6c3c62a3fb5078f",
+      "statement_sha256": "048fd1ac5659519761e5c58325c6ae1ddfed7661bcc1c05b8db41dbad2e5ef06",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify the adopted contract against each execution owner with independent positive, negative and restart evidence.",
