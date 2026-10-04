@@ -18,6 +18,7 @@ const {connectEmbeddedLocal, openInstalledRemoteHttpHost} = await import(packed
 const fixture = JSON.parse(await readFile(new URL('./fixtures/property-graph-parallel.program.json', import.meta.url), 'utf8'));
 const presenceFixture = JSON.parse(await readFile(new URL('./fixtures/property-graph-presence.program.json', import.meta.url), 'utf8'));
 const definitionFixture = JSON.parse(await readFile(new URL('./fixtures/property-graph-definition-rows.program.json', import.meta.url), 'utf8'));
+const labelFixture = JSON.parse(await readFile(new URL('./fixtures/property-graph-label-rows.program.json', import.meta.url), 'utf8'));
 // Use the existing authoritative inventory, not a second supported-operation
 // list or hand-authored per-consumer request fixtures. The common checker
 // refuses unsupported operation keys before interpreting their payloads.
@@ -161,6 +162,79 @@ function definitionScenario(projection, empty, alternate = false) {
         labels:[alternate ? 'Other' : 'Link'],edge_key:key,tenant_key:'a',[property]:alternate ? 2 : 1}));
   const expected = retained.map(row=>({id:row.id,[key]:row[key],value:row[property]}));
   return {document,retained,expected,snapshot,property,key};
+}
+
+// Independent label candidate oracle: two definitions declare the label and
+// a third does not. Extra properties/raw aliases remain Conditional, including
+// when no candidate row exists. No captured schema or runtime output is used.
+function labelScenario(projection, empty) {
+  const document = structuredClone(presenceFixture);
+  document.id = `label-${projection}-${empty ? 'empty' : 'values'}`;
+  const steps = document.stages[0].steps;
+  Object.assign(steps[1].values.schema,{p:number,q:number});
+  Object.assign(steps[1].values.rows[0],{p:9,q:5});
+  steps[3].property_graph.nodes[1].labels = [
+    {name:'PERSON',properties:{mode:'columns',columns:[{from:'p',to:'p'}]}},
+    {name:'Company',properties:{mode:'columns',columns:[{from:'q',to:'q'}]}},
+  ];
+  steps[3].property_graph.nodes.push({...structuredClone(steps[3].property_graph.nodes[0]),
+    name:'O',labels:[{name:'Other',properties:{mode:'columns',columns:[{from:'p',to:'p'}]}}]});
+  const baseEdge = steps[3].property_graph.edges[0];
+  baseEdge.labels[0].properties = {mode:'columns',columns:[{from:'source_key',to:'weight'}]};
+  steps[3].property_graph.edges.push({...structuredClone(baseEdge),name:'F',labels:[
+    {name:'LINK',properties:{mode:'columns',columns:[{from:'target_key',to:'weight'}]}},
+    {name:'Extra',properties:{mode:'columns',columns:[{from:'target_key',to:'score'}]}},
+  ]}, {...structuredClone(baseEdge),name:'G',labels:[
+    {name:'Excluded',properties:{mode:'columns',columns:[{from:'target_key',to:'score'}]}},
+  ]});
+  if (empty) for (const step of steps.slice(0,3)) step.values.rows = [];
+  const label = projection==='node_rows' ? 'Person' : 'Link';
+  const property = projection==='node_rows' ? 'p' : 'weight';
+  steps[4] = {from:'g',[projection]:{label:label.toLowerCase()},as:'rows'};
+  // Existing ordinary Relation kernels require dense input. First use the
+  // existing presence-aware Select to prove/retain guaranteed columns; do not
+  // weaken their guard or silently fill the remaining Conditional columns.
+  steps[5] = {select:['id',property],as:'guaranteed'};
+  steps.push({filter:`${property} IS NULL OR ${property} > 0`,as:'filtered'},
+    {rename:{[property]:'value'},as:'renamed'}, {select:['id','value'],as:'projected'});
+  document.stages[0].results.out.fields = ['id','value'];
+  const ctor = structuredClone(steps[3].property_graph);
+  const producerDefinitions = [];
+  let occurrence = 0;
+  for (const family of ['nodes','edges']) for (const element of ctor[family]) {
+    const source = steps.slice(0,3).find(step=>step.as===element.from);
+    producerDefinitions.push({body:{values:source.values},dependencies:[]});
+    delete element.from;
+    element.input_occurrence = occurrence++;
+  }
+  const domain = cid({constructor:ctor,producer_definitions:producerDefinitions,
+    version:'actql-property-graph-definition/0.1'});
+  const identity = (definition,key,kinds) => ({definition,domain,key,key_types:kinds.map(kind=>({kind}))});
+  const node = key=>identity('N',[key,'a'],['number','string']);
+  const contract = structuredClone(presenceContract);
+  contract.domain = domain;
+  Object.assign(contract.node_definitions[0],{labels:{Company:['q'],PERSON:['p']},properties:{p:number,q:number}});
+  contract.node_definitions.push({...structuredClone(contract.node_definitions[1]),name:'O',labels:{Other:['p']}});
+  Object.assign(contract.edge_definitions[0],{labels:{Link:['weight']},properties:{weight:number}});
+  contract.edge_definitions.push({...structuredClone(contract.edge_definitions[0]),
+    name:'F',labels:{Extra:['score'],LINK:['weight']},properties:{score:number,weight:number}},
+    {...structuredClone(contract.edge_definitions[0]),name:'G',labels:{Excluded:['score']},properties:{score:number}});
+  const nodes = empty ? [] : [{id:identity('M',[3],['number']),key:[3],props:{p:9,q:5}},
+    ...['N','O'].flatMap(definition=>[1,2].map(key=>({
+      id:identity(definition,[key,'a'],['number','string']),key:[key,'a'],props:{p:key===1 ? 7 : null}})))];
+  const edges = empty ? [] : ['E','F','G'].flatMap(definition=>[10,11].map(key=>({
+    id:identity(definition,[key,'a'],['number','string']),key:[key,'a'],
+    props:definition==='E' ? {weight:1} : definition==='F' ? {score:2,weight:2} : {score:2},
+    src:node(1),dst:node(2)})));
+  const snapshot = canonicalText(['actql-property-graph-snapshot/0.1',cid(contract),contract,nodes,edges]);
+  const retained = empty ? [] : projection==='node_rows'
+    ? [{company_key:3,id:identity('M',[3],['number']),labels:['Company','PERSON'],p:9,q:5},
+      ...[1,2].map(key=>({id:node(key),labels:['Owner','Person'],p:key===1 ? 7 : null,person_key:key,tenant_key:'a'}))]
+    : ['E','F'].flatMap(definition=>[10,11].map(key=>({edge_key:key,tenant_key:'a',
+      id:identity(definition,[key,'a'],['number','string']),src:node(1),dst:node(2),
+      labels:definition==='E' ? ['Link'] : ['Extra','LINK'],
+      ...(definition==='E' ? {weight:1} : {score:2,weight:2})})));
+  return {document,retained,snapshot,expected:retained.map(row=>({id:row.id,value:row[property]}))};
 }
 
 for (const mode of ['local','remote']) {
@@ -352,6 +426,53 @@ for (const mode of ['local','remote']) {
       assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
       assert.deepEqual(physicalSteps.slice(before),[]);
     }
+    for (const projection of ['node_rows','edge_rows']) for (const empty of [false,true]) {
+      const {document,retained,snapshot,expected} = labelScenario(projection,empty);
+      const run = await client.aql(canonicalText(document),{format:'json',requestId:`${document.id}-${mode}`});
+      const state = await run.wait();
+      assert.equal(state.status,'succeeded',JSON.stringify(state));
+      assert.deepEqual(await run.result('answer').all(),expected);
+      assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
+      const columns = (await run.result('answer').describe()).columns;
+      assert.deepEqual(columns.map(column=>column.name),['id','value']);
+      assert.deepEqual(columns[1].contract,projection==='node_rows' ? {type:'number',nullable:true} : number);
+      await assertSnapshot(run,3,'sha256:'+createHash('sha256').update(snapshot).digest('hex'),snapshot);
+      const stream = canonicalText(retained);
+      assert.deepEqual(relationSnapshots.get(run.ref.runDefinitionCid),[
+        {task:4,cid:cid(retained),bytes:Buffer.byteLength(stream),verifiedReadBytes:Buffer.byteLength(stream),
+          rows:retained.length,sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true},
+      ]);
+    }
+    for (const projection of ['node_rows','edge_rows']) {
+      const invalid = [{label:'Unknown'},
+        {label:projection==='node_rows' ? 'Link' : 'Person'},
+        {label:'Person',definition:'N'}, {label:'Person',extra:true}, {label:7}];
+      for (const body of invalid) {
+        const {document} = labelScenario(projection,false);
+        document.stages[0].steps[4][projection] = body;
+        const requestId = `invalid-label-${projection}-${JSON.stringify(body)}-${mode}`;
+        const before = physicalSteps.length;
+        await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+          error=>error instanceof ClientError && error.code==='ClientProgramRejected');
+        assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+        assert.deepEqual(physicalSteps.slice(before),[]);
+      }
+      // Actual non-NULL sample data cannot prove Conditional presence. Both
+      // populated and empty selection must reject before Run/I/O/dispatch.
+      for (const empty of [false,true]) for (const reference of ['projection','predicate']) {
+        const {document} = labelScenario(projection,empty);
+        const field = projection==='node_rows' ? 'q' : 'score';
+        document.stages[0].steps[5] = reference==='projection'
+          ? {select:['id',field],as:'guaranteed'}
+          : {filter:`${field} IS NOT NULL`,as:'guaranteed'};
+        const requestId = `conditional-label-${projection}-${empty}-${reference}-${mode}`;
+        const before = physicalSteps.length;
+        await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+          error=>error instanceof ClientError && error.code==='ClientProgramRejected');
+        assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+        assert.deepEqual(physicalSteps.slice(before),[]);
+      }
+    }
     for (const collision of ['id','person_key']) {
       const {document} = definitionScenario('node_rows',false);
       for (const label of document.stages[0].steps[3].property_graph.nodes[0].labels)
@@ -369,6 +490,13 @@ for (const mode of ['local','remote']) {
     assert.equal(minimalState.status,'succeeded',JSON.stringify(minimalState));
     assert.deepEqual(await minimal.result('answer').all(),[{value:7},{value:null}]);
     assert.deepEqual((await minimal.result('answer').describe()).columns,
+      [{name:'value',contract:{type:'number',nullable:true}}]);
+    const labelMinimal = await client.aql(canonicalText(labelFixture),
+      {format:'json',requestId:`minimal-label-${mode}`});
+    const labelMinimalState = await labelMinimal.wait();
+    assert.equal(labelMinimalState.status,'succeeded',JSON.stringify(labelMinimalState));
+    assert.deepEqual(await labelMinimal.result('answer').all(),[{value:9},{value:7},{value:null}]);
+    assert.deepEqual((await labelMinimal.result('answer').describe()).columns,
       [{name:'value',contract:{type:'number',nullable:true}}]);
   });
 }

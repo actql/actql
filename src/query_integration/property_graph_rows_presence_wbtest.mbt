@@ -34,6 +34,7 @@ fn property_rows_value_limits() -> @execution.ValueLimits {
 fn property_rows_resource_boundary(
   edge : Bool,
   selected? : Bool = false,
+  labelled? : Bool = false,
 ) -> Unit raise {
   let nodes = keyed_source_owner(
     "{\"person_key\":{\"type\":\"number\",\"nullable\":false}}", "[{\"person_key\":1}]",
@@ -51,6 +52,22 @@ fn property_rows_resource_boundary(
       ),
     ),
   )
+  // Labelled variant puts Choice after A. Each of two labels adds a label read,
+  // scalar validation, container frame and selector comparison; cancellation
+  // must also work while the first comparison leaves selection pending.
+  let graph_owner = if labelled {
+    keyed_bridge_owner(
+      nodes,
+      edges,
+      body=Some(
+        (
+          #|[{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"nodes","key":["person_key"],"labels":[{"name":"A","properties":{"mode":"no_properties"}},{"name":"Choice","properties":{"mode":"no_properties"}}]}],"edges":[{"name":"E","from":"edges","key":["edge_key"],"source":{"definition":"N","key":["src"]},"target":{"definition":"N","key":["dst"]},"labels":[{"name":"A","properties":{"mode":"no_properties"}},{"name":"Choice","properties":{"mode":"no_properties"}}]}]},"as":"g"}]
+        ),
+      ),
+    )
+  } else {
+    graph_owner
+  }
   let construction = @local_bridge.start_rows_to_property_graph(
     @bounded.control(),
     prepared_sequence(graph_owner),
@@ -66,7 +83,13 @@ fn property_rows_resource_boundary(
   }
   let owner = keyed_graph_receiver(
     graph_owner,
-    body=if selected {
+    body=if labelled {
+      if edge {
+        "[{\"edge_rows\":{\"label\":\"choice\"}}]"
+      } else {
+        "[{\"node_rows\":{\"label\":\"choice\"}}]"
+      }
+    } else if selected {
       if edge {
         "[{\"edge_rows\":{\"definition\":\"E\"}}]"
       } else {
@@ -87,7 +110,8 @@ fn property_rows_resource_boundary(
   // 5+15+5+1 for edges. Thus work is 40 / 93, not sampled from a product run.
   // Workspace is four ordering slots per row plus schema width (3 / 5).
   // An explicit definition checks each candidate once before producing it.
-  let exact_work = (if edge { 93 } else { 40 }) + (if selected { 1 } else { 0 })
+  let exact_work = (if edge { 93 } else { 40 }) +
+    (if labelled { 8 } else if selected { 1 } else { 0 })
   let exact_slots = if edge { 9 } else { 7 }
   for viewed in [false, true] {
     let start = fn(control, work, slots) {
@@ -200,6 +224,12 @@ test "edge rows admit exact work and workspace and reclaim every private phase" 
 test "selected node and edge rows retain exact work workspace cancellation and cleanup" {
   property_rows_resource_boundary(false, selected=true)
   property_rows_resource_boundary(true, selected=true)
+}
+
+///|
+test "label node and edge rows retain exact work workspace cancellation and cleanup" {
+  property_rows_resource_boundary(false, labelled=true)
+  property_rows_resource_boundary(true, labelled=true)
 }
 
 ///|

@@ -252,7 +252,7 @@ function fixtures() {
   result.push({
     id: 'Program source grammar resource',
     value: read('spec/contracts/actql-protocol-schemas.json').artifact_schemas.executable_plan.properties.execution_material.properties.program,
-    cid: 'sha256:f80202113bbde534d6e2f20451da9c486092c710320c67535b4bc1c0fb513d9f',
+    cid: 'sha256:31be8958c4486232811be583c3674b8aacfa1cdcd300a35e12ad67dc023e1ef4',
   });
   const gateSchema = read('spec/contracts/actql-stage-contracts.json').schemas.gate_requirement;
   for (const item of read('portability/corpus/incoming-gates.json').cases) {

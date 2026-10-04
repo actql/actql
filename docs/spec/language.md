@@ -5495,19 +5495,35 @@ rows are distinct meanings.
 
 ```json
 {"from":"g","node_rows":{"definition":"Person"},"as":"people"}
+{"from":"g","node_rows":{"label":"Person"},"as":"people"}
 ```
 
-<!-- requirement-block: graph-rows.definition-selection graph-rows.definition-schema graph-rows.definition-identity -->
+<!-- requirement-block: graph-rows.definition-selection graph-rows.selector-exclusivity graph-rows.definition-schema graph-rows.definition-identity -->
 The body MUST be either `true` (all definitions of the corresponding element
-kind) or a closed object containing only `definition` (one definition of that
-kind). Definition lookup MUST use the admitted Graph name identity and reject
-unknown names, a name of the wrong element kind, or additional fields at check
-time, rather than return an empty Relation. Output schema and presence MUST
+kind), a closed object containing only `definition` (one definition of that
+kind), or a closed object containing only `label`. The forms are exclusive;
+mixed selectors, missing selectors and additional fields MUST reject at check
+time. Name lookup MUST use the admitted Graph name identity and reject
+unknown names or a name belonging only to the wrong element kind, rather than
+return an empty Relation. Output schema and presence MUST
 derive from the selected declarations even for zero rows; nullable remains
 independent of presence. Selection is part of the Program and emitted Plan
 meaning, not a runtime inference from data. Selected rows retain their original
-typed identities, domains, key components and node endpoint identities. The
-initial object form does not support label refinement.
+typed identities, domains, key components and node endpoint identities.
+
+<!-- requirement-block: graph-rows.label-selection graph-rows.label-candidates graph-rows.label-schema graph-rows.label-compatible-types graph-rows.label-plan-identity -->
+A label selector MUST select all definitions of the corresponding element kind
+whose admitted declarations contain that label. Candidate membership MUST NOT
+depend on observed rows, non-NULL values or empty results. The finite output
+schema MUST use all candidate declarations, including their retained key aliases
+and properties not associated with the selected label. A column is Required only
+when it exists in every candidate and each candidate guarantees its presence;
+otherwise it is Conditional. Compatible value types use the existing common type
+composition and nullable remains independent of presence; incompatible types
+MUST reject. The resolved label MUST be retained in the emitted Plan parameters,
+with deterministic declared spelling under the existing Graph name rules. Label
+selection filters canonical Graph row enumeration without weakening input
+admission, traversal work, output ceilings or cleanup obligations.
 
 <!-- requirement-block: graph-rows.fields-and-aliases graph-rows.typed-identity-roles graph-rows.omission-is-not-null graph-rows.saved-key-correspondence -->
 Graph row projection MUST retain the admitted identity types and property
@@ -5522,7 +5538,7 @@ Declared properties retain their saved output names. A retained key-column name
 exposes its original typed key component, not an alias of `id`. Composite keys
 retain every column-to-position/type correspondence. The schema is the finite
 union of these declared columns across the selected node or edge definitions.
-A column is Required only if every such definition supplies it; otherwise it is
+A column is Required only if every such definition guarantees it; otherwise it is
 Conditional, independently of nullable. Missing cells MUST remain omitted, not
 NULL. Save/reload MUST retain names, types, presence and component correspondence.
 

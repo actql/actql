@@ -82,9 +82,12 @@ test('keyed schemas are explicit closed alternatives and preserve complete legac
   const legacy = legacyGraphSchemas(), current = graphSchemas();
   for (const name of Object.keys(legacy)) {
     if (['node_rows','edge_rows'].includes(name)) {
+      assert.equal(current[name].oneOf.length, 3);
       assert.deepEqual(current[name].oneOf[0], legacy[name]);
       assert.deepEqual(current[name].oneOf[1], {type:'object',additionalProperties:false,
         required:['definition'],properties:{definition:{type:'string',minLength:1}}});
+      assert.deepEqual(current[name].oneOf[2], {type:'object',additionalProperties:false,
+        required:['label'],properties:{label:{type:'string',minLength:1}}});
     } else if (['match_nodes','match_edges','traverse'].includes(name)) {
       assert.equal(current[name].oneOf.length, 2);
       assert.deepEqual(current[name].oneOf[0], legacy[name]);
