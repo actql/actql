@@ -42,6 +42,7 @@ pub(all) enum IssueKind {
   IncompleteGraph
   UnsupportedGraphOperation
   OutputCollision(@relation_schema.FieldName)
+  OutputTypeConflict(@relation_schema.FieldName)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Limits {
@@ -54,6 +55,8 @@ pub(all) struct Limits {
 pub(all) enum Operation {
   Events
   Vectors
+  NodeRows
+  EdgeRows
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Usage {

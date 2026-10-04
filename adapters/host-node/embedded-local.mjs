@@ -274,7 +274,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     await mkdir(snapshotDirectory, {recursive:true,mode:0o700});
     // Installed physical wiring, never Program settings. Allocation occurs
     // only after the common driver has reserved work/capacity and captured
-    // the snapshot cleanup owner. Relation execution remains memory-backed.
+    // the snapshot cleanup owner. Graph row Relations use the same Store for
+    // verified export/reload before their ordinary guaranteed projection.
     localSnapshotConfiguration = installLocalSnapshotStore((_key, bytes, frame) =>
       createLocalRetainedStore({parentDirectory:snapshotDirectory,
         capacityBytes:bytes,maxFrameBytes:frame,maxEntries:1}));

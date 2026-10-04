@@ -8756,13 +8756,127 @@
       "inventory": "families",
       "family": "Bridge",
       "operation": "node_rows",
-      "profile": "carrier_bridges"
+      "profile": "carrier_bridges",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@bridge.start_graph_to_rows("
+      },
+      "entrypoint": {
+        "path": "src/local_bridge/events.mbt",
+        "symbol": "start_storage_to_rows"
+      },
+      "view_dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@bridge.start_graph_view_to_rows("
+      },
+      "boundary_tests": [
+        {
+          "role": "node_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_rows_presence_wbtest.mbt",
+          "fixture": "node rows admit exact work and workspace and reclaim every private phase"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "node_rows_host_in_flight_cancel",
+          "suite": "node:property_graph_surface_checker",
+          "targets": [
+            "node"
+          ],
+          "path": "scripts/property-graph-surface-checker.test.mjs",
+          "fixture": "node_rows Host in-flight cancellation reclaims private Relation without publishing"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "node_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
+          "one_short_limit": "node_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
+          "in_flight_cancel": "node_rows_host_in_flight_cancel",
+          "cleanup": "node_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "node_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
+            "one_short_limit": "node_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup"
+          },
+          "workspace": {
+            "exact_limit": "node_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
+            "one_short_limit": "node_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup"
+          }
+        }
+      },
+      "notes": "Stored and viewed Graph wrappers both enter start_storage_to_rows. The exact/one-short kernel fixture executes both wrappers; the installed Host cancellation traverses the same bounded kernel. This entry records that common resource/cleanup owner once, not two distinct proven Host paths."
     },
     {
       "inventory": "families",
       "family": "Bridge",
       "operation": "edge_rows",
-      "profile": "carrier_bridges"
+      "profile": "carrier_bridges",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@bridge.start_graph_to_rows("
+      },
+      "entrypoint": {
+        "path": "src/local_bridge/events.mbt",
+        "symbol": "start_storage_to_rows"
+      },
+      "view_dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@bridge.start_graph_view_to_rows("
+      },
+      "boundary_tests": [
+        {
+          "role": "edge_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_rows_presence_wbtest.mbt",
+          "fixture": "edge rows admit exact work and workspace and reclaim every private phase"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "edge_rows_host_in_flight_cancel",
+          "suite": "node:property_graph_surface_checker",
+          "targets": [
+            "node"
+          ],
+          "path": "scripts/property-graph-surface-checker.test.mjs",
+          "fixture": "edge_rows Host in-flight cancellation reclaims private Relation without publishing"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "edge_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
+          "one_short_limit": "edge_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
+          "in_flight_cancel": "edge_rows_host_in_flight_cancel",
+          "cleanup": "edge_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "edge_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
+            "one_short_limit": "edge_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup"
+          },
+          "workspace": {
+            "exact_limit": "edge_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
+            "one_short_limit": "edge_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup"
+          }
+        }
+      },
+      "notes": "Stored and viewed Graph wrappers both enter start_storage_to_rows. The exact/one-short kernel fixture executes both wrappers; the installed Host cancellation traverses the same bounded kernel. This entry records that common resource/cleanup owner once, not two distinct proven Host paths."
     },
     {
       "inventory": "families",

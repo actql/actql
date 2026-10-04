@@ -26,7 +26,7 @@
   "sga_identity_law_manifest_cid": "sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4",
   "property_graph_law_manifest_cid": "sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc",
   "pipeline_registry_file": "spec/dependencies/aoa-pipeline-registry.json",
-  "pipeline_registry_cid": "sha256:2e39600e7fafbb97b18ced2352fe60a53dc624128f221b308f1dd0fc489709bf",
+  "pipeline_registry_cid": "sha256:af8d2530f74cabec40daa30580dc0a036691a9d8875c0eb7a85ee40240768bcd",
   "target_module_contract_cid": "sha256:ae21e53e9cd0727435f707f49efb2ffc9fa1665abda9adde0ff57312265e06e1",
   "local_family_execution_profile": {
     "version": "actql-local-family-execution/0.1",
@@ -323,7 +323,7 @@
       "output": "graph",
       "execution_contract": {
         "pointer": "/execution_contracts/BRIDGE.rows.to_property_graph",
-        "cid": "sha256:abddf7b4088be03fa8df66c62d6ba92d7d15857e617087a61e043d3bd52e5590"
+        "cid": "sha256:b00de8912497c6af1596debd1c59ee8d3477faf0391be40f64ac82ebc6d9ebb7"
       }
     }
   },
@@ -3633,6 +3633,7 @@
                   "type": "object",
                   "additionalProperties": false,
                   "required": [
+                    "key_columns",
                     "key_contracts",
                     "labels",
                     "name",
@@ -3641,6 +3642,17 @@
                     "target_definition"
                   ],
                   "properties": {
+                    "key_columns": {
+                      "type": "array",
+                      "items": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "minLength": 1
+                      },
+                      "minItems": 1
+                    },
                     "key_contracts": {
                       "type": "array",
                       "items": {
@@ -3700,12 +3712,24 @@
                   "type": "object",
                   "additionalProperties": false,
                   "required": [
+                    "key_columns",
                     "key_contracts",
                     "labels",
                     "name",
                     "properties"
                   ],
                   "properties": {
+                    "key_columns": {
+                      "type": "array",
+                      "items": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "minLength": 1
+                      },
+                      "minItems": 1
+                    },
                     "key_contracts": {
                       "type": "array",
                       "items": {
@@ -4805,7 +4829,7 @@
         "admission": "use_existing_checked_constructor_and_typed_contract_owner_before_execution_schema_validation_alone_is_not_admission",
         "profile": "distinct_property_graph_contract_no_legacy_graph_reading_conversion_or_fallback",
         "inputs": "one_ordered_relation_occurrence_per_node_then_edge_definition_preserve_repeated_producers_exact_input_count_equals_nodes_plus_edges_zero_only_for_empty_definition_set",
-        "correspondence": "each_binding_names_exact_admitted_definition_once_keys_and_properties_are_checked_producer_column_coordinates_endpoint_coordinates_match_referenced_node_key_types",
+        "correspondence": "each_binding_names_exact_admitted_definition_once_keys_and_properties_are_checked_producer_column_coordinates_endpoint_coordinates_match_referenced_node_key_types_key_columns_has_exact_key_contract_count_all_named_or_all_anonymous_null_and_preserves_original_component_name_position_type_for_snapshot_and_rows",
         "identity": "definition_domain_and_complete_nonnull_typed_key_independent_of_properties_labels_endpoints_input_artifact_parameter_values_run_invocation_and_current_content_CIDs",
         "domain": "existing_checker_issues_domain_from_admitted_constructor_definition_and_producer_provenance_not_caller_claimed_current_data",
         "null_keys": "exclude_rows_with_null_element_key_before_uniqueness_and_endpoint_resolution",

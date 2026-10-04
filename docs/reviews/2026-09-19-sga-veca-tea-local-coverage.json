@@ -87,8 +87,8 @@
       "mean_graphs": "blocked",
       "property_graph": "partial",
       "graph": "blocked",
-      "node_rows": "blocked",
-      "edge_rows": "blocked"
+      "node_rows": "partial",
+      "edge_rows": "partial"
     },
     "completion_rule": "Historical tuple-profile suites do not discharge current Graph coverage. Partial evidence is limited to the current constructor, definition-selected MATCH/TRAIL, bounds and degree paths recorded below; it does not establish all normative variants or all SGA execution. Blocked means typed refusal before Run admission, acquisition I/O and dispatch."
   },
@@ -3129,11 +3129,17 @@
       "output": "relation",
       "canonical": ["BRIDGE.graph.to_node_rows"],
       "variants": ["identity restoration", "property columns", "collision failure"],
-      "status": "blocked",
+      "status": "partial",
       "owner": "local-bridge",
-      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
-      "completed_layers": ["contract"],
-      "layer_evidence": [],
+      "current_gap": "Current definition-keyed node rows use finite common Relation presence, typed identity roles and original typed key components. Only schema-guaranteed columns can be referenced or published. Definition/label refinements and direct publication of conditional columns remain unsupported. Exact/one-short work and workspace, kernel cleanup and installed Host cancellation apply to the common bounded row kernel. Fixed-SHA three-target CI and packed acceptance are reported separately; historical tuple-profile suites are not current completion.",
+      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "publication"],
+      "layer_evidence": [
+        "src/local_bridge/graph_rows.mbt",
+        "src/local_bridge/events.mbt",
+        "src/query_integration/property_graph_rows_presence_wbtest.mbt",
+        "scripts/property-graph-surface-checker.test.mjs",
+        "scripts/property-graph-public-query.test.mjs"
+      ],
       "historical_implementation_evidence": [
         {
           "scope": "named_result_publication_and_environment_cancellation",
@@ -3154,11 +3160,17 @@
       "output": "relation",
       "canonical": ["BRIDGE.graph.to_edge_rows"],
       "variants": ["identity restoration", "endpoint roles", "collision failure"],
-      "status": "blocked",
+      "status": "partial",
       "owner": "local-bridge",
-      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
-      "completed_layers": ["contract"],
-      "layer_evidence": [],
+      "current_gap": "Current definition-keyed edge rows preserve parallel edge identities, typed src/dst roles and original composite key components through common Relation presence. Only schema-guaranteed columns can be referenced or published. Definition/label refinements and direct publication of conditional columns remain unsupported. Exact/one-short work and workspace, kernel cleanup and installed Host cancellation apply to the common bounded row kernel. Fixed-SHA three-target CI and packed acceptance are reported separately; historical tuple-profile suites are not current completion.",
+      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "publication"],
+      "layer_evidence": [
+        "src/local_bridge/graph_rows.mbt",
+        "src/local_bridge/events.mbt",
+        "src/query_integration/property_graph_rows_presence_wbtest.mbt",
+        "scripts/property-graph-surface-checker.test.mjs",
+        "scripts/property-graph-public-query.test.mjs"
+      ],
       "historical_implementation_evidence": [
         {
           "scope": "named_result_publication_and_environment_cancellation",

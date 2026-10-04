@@ -12,6 +12,7 @@ priv enum RelationExecution {
   MatchNodesExecution(@sga.MatchNodesExecution)
   MatchEdgesExecution(@sga.MatchEdgesExecution)
   TraverseExecution(@sga.TraverseExecution)
+  GraphRowsExecution(@bridge.EventsToRowsExecution)
   GraphBoundsExecution(@sga.GraphBoundsExecution)
   GraphDegreeExecution(@sga.GraphDegreeExecution)
 }
@@ -182,6 +183,15 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         @lower.graph_traverse_emits_paths(traverse) &&
         accepts_traverse(traverse)
       }
+      @lower.CarrierProjectionStep(_) =>
+        (
+          @lower.operation(node) == "BRIDGE.graph.to_node_rows" ||
+          @lower.operation(node) == "BRIDGE.graph.to_edge_rows"
+        ) &&
+        @lower.node_input_target(node, 0)
+        .bind(target => @lower.preparation_carrier_at(prepared, target))
+        .map(current_graph)
+        .unwrap_or(false)
       @lower.GraphDiagnosticStep(diagnostic) => {
         guard @lower.node_input_target(node, 0) is Some(input) &&
           @lower.preparation_carrier_at(prepared, input) is Some(carrier) else {
@@ -640,6 +650,47 @@ fn advance_execution(
               Err(_) => return fail_execution(value)
             }
           }
+          Some(@lower.CarrierProjectionStep(_)) => {
+            let limits : @execution.ValueLimits = {
+              max_nodes: value.limits.max_value_nodes,
+              max_text_bytes: value.max_value_bytes,
+              max_depth: value.limits.max_value_depth,
+              max_work: value.limits.max_work,
+            }
+            let started = if direct_view is Some(view) {
+              @bridge.start_graph_view_to_rows(
+                value.control,
+                @execution.generated_completion_preparation(value.generated),
+                value.sequence,
+                value.projection_step,
+                view,
+                value.max_rows,
+                limits,
+                value.limits.max_workspace_slots,
+                value.limits.max_value_bytes,
+                control_work_limit=Some(value.limits.max_work),
+              )
+            } else {
+              guard input is Some(read) else { return fail_execution(value) }
+              @bridge.start_graph_to_rows(
+                value.control,
+                @execution.generated_completion_preparation(value.generated),
+                value.sequence,
+                value.projection_step,
+                read,
+                value.max_rows,
+                limits,
+                value.limits.max_workspace_slots,
+                value.limits.max_value_bytes,
+                value.inputs,
+                control_work_limit=Some(value.limits.max_work),
+              )
+            }
+            match started {
+              Ok(execution) => GraphRowsExecution(execution)
+              Err(_) => return fail_execution(value)
+            }
+          }
           Some(@lower.GraphDiagnosticStep(diagnostic)) => {
             let limits : @execution.ValueLimits = {
               max_nodes: value.limits.max_value_nodes,
@@ -771,6 +822,18 @@ fn advance_execution(
                 Ok(RelationStopped(progress, work))
               Err(_) => Err(issue())
             }
+          GraphRowsExecution(execution) =>
+            match @bridge.advance_events_to_rows(execution, quantum) {
+              Ok(@bridge.Continue(progress~, work~)) =>
+                Ok(RelationContinue(progress, work))
+              Ok(@bridge.Complete(output, progress~, work~)) =>
+                Ok(RelationComplete(output, progress, work))
+              Ok(@bridge.Failed(_, progress~, work~)) =>
+                Ok(RelationFailed(progress, work))
+              Ok(@bridge.Stopped(_, progress~, work~)) =>
+                Ok(RelationStopped(progress, work))
+              Err(_) => Err(issue())
+            }
           GraphBoundsExecution(execution) =>
             match @sga.advance_graph_bounds(execution, quantum) {
               Ok(@sga.GraphBoundsContinue(progress~, work~)) =>
@@ -873,6 +936,11 @@ fn cleanup_execution(
           Ok(_) => ()
           Err(_) => failed = true
         }
+      GraphRowsExecution(execution) =>
+        match @bridge.cleanup_events_to_rows(execution) {
+          Ok(_) => ()
+          Err(_) => failed = true
+        }
       GraphBoundsExecution(execution) =>
         match @sga.cleanup_graph_bounds(execution) {
           Ok(_) => ()
@@ -899,6 +967,8 @@ fn cleanup_execution(
     Some(MatchEdgesExecution(active)) =>
       @sga.match_edges_cleanup_pending(active)
     Some(TraverseExecution(active)) => @sga.traverse_cleanup_pending(active)
+    Some(GraphRowsExecution(active)) =>
+      @bridge.events_to_rows_cleanup_pending(active)
     Some(GraphBoundsExecution(active)) =>
       @sga.graph_bounds_cleanup_pending(active)
     Some(GraphDegreeExecution(active)) =>
@@ -994,6 +1064,7 @@ pub fn provider(
           selected_step.unwrap_or(0),
         ) {
         Some(@lower.GraphMatchStep(_)) => selected_step is Some(_)
+        Some(@lower.CarrierProjectionStep(_)) => selected_step is Some(_)
         _ => false
       }
       let direct_diagnostic = match

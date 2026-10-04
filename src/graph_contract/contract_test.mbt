@@ -136,7 +136,7 @@ test "graph contract identity matches independently fixed canonical preimage" {
   // Node canonicalText + crypto SHA-256, independently computed from this body.
   assert_eq(
     @graph_contract.cid(c),
-    "sha256:3e06c160155f0542561eab6a31c31422a78e7a749490ff5b24fb0ce4c7ff3321",
+    "sha256:6a0fe1664c431e3b0835ccaf2fff3569e99492ae427eab4ccb65d34096ce604d",
   )
   let text = @graph_contract.stringify(c, caps())
   assert_eq(@graph_contract.bytes(c), text.length())
