@@ -3025,6 +3025,51 @@ fn query_terms(query : @query.Query) -> Array[@query.Query] {
 }
 
 ///|
+// Count only references to the outer input under this nonrecursive CTE scope.
+// A later JOIN-right use needs the same complete capture as a principal FROM;
+// an earlier CTE with the input's name instead binds its own retained Result.
+// Two references suffice to establish sharing; no acquisition is performed.
+fn cte_capture_reference_count(
+  query : @query.Query,
+  declarations : @query.Query,
+  visible_ctes : Int,
+  input : Input,
+) -> Int {
+  let mut count = 0
+  for term in query_terms(query) {
+    let paths = [@query.relation(term)]
+    for index in 0..<@query.join_part_count(term) {
+      paths.push(@query.join_part_at(term, index).unwrap().relation)
+    }
+    for index in 0..<@query.operation_count(term) {
+      if @query.operation_at(term, index) is Some(Nearest(clause)) {
+        paths.push(clause.relation)
+      }
+    }
+    for path in paths {
+      if !input_relation_matches(path, input) {
+        continue
+      }
+      let mut shadowed = false
+      for index in 0..<visible_ctes {
+        if same_relation_path(path, [
+            @query.cte_at(declarations, index).unwrap().name,
+          ]) {
+          shadowed = true
+        }
+      }
+      if !shadowed {
+        count += 1
+        if count == 2 {
+          return count
+        }
+      }
+    }
+  }
+  count
+}
+
+///|
 fn compile_cte_query(
   query : @query.Query,
   context : Context,
@@ -3076,16 +3121,25 @@ fn compile_cte_query(
       let mut referenced_elsewhere = captures_source &&
         (
           @query.set_part_count(cte.query) > 0 ||
-          query_terms(query).any(term => {
-            same_relation_path(@query.relation(term), captures[0].relation)
-          })
+          cte_capture_reference_count(cte.query, query, index, captures[0]) > 1 ||
+          cte_capture_reference_count(
+            query,
+            query,
+            @query.cte_count(query),
+            captures[0],
+          ) >
+          0
         )
       for other in 0..<@query.cte_count(query) {
         if captures_source &&
           other != index &&
-          query_terms(@query.cte_at(query, other).unwrap().query).any(term => {
-            same_relation_path(@query.relation(term), captures[0].relation)
-          }) {
+          cte_capture_reference_count(
+            @query.cte_at(query, other).unwrap().query,
+            query,
+            other,
+            captures[0],
+          ) >
+          0 {
           referenced_elsewhere = true
         }
       }
@@ -3238,7 +3292,7 @@ fn compile_cte_query(
       } else if @query.join_part_count(query) == 1 {
         let part = @query.join_part_at(query, 0).unwrap()
         let mut right_input : Input? = None
-        for input in cte_inputs {
+        for input in known {
           if same_relation_path(input.relation, part.relation) {
             right_input = Some(input)
           }
