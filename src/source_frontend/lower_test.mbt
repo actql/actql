@@ -132,6 +132,67 @@ fn lookup(cursor : @wire.Cursor, key : String) -> @wire.Cursor {
 }
 
 ///|
+test "unresolved column projection exposes only retained authored identifier origins" {
+  // Independent byte expectations preserve the original four-byte scalar and
+  // CRLF. The existing lowerer owns name resolution and its typed conclusion.
+  for
+    (text, start, end) in [
+      ("SELECT missing AS n", 7, 14),
+      ("/*😀*/\r\nSELECT missing AS n", 17, 24),
+    ] {
+    for format in [Format::Sql, Format::Text] {
+      let issue = match
+        lower(text, format, Some(test_context()), source_path="submitted.sql") {
+        Err(issue) => issue
+        Ok(_) => fail("the existing lowerer must reject an unknown column")
+      }
+      assert_true(
+        issue is QueryLowering(Expression({ issue: UnknownReference, .. })),
+      )
+      let origin = unknown_column_origin(issue).unwrap()
+      assert_eq(@origin.kind(origin), @origin.Authored)
+      let span = @origin.span(origin)
+      assert_eq(span.source_path, "submitted.sql")
+      assert_eq(span.start_byte, start)
+      assert_eq(span.end_byte, end)
+    }
+  }
+  for format in [Format::Sql, Format::Text] {
+    let issue = match
+      lower("SELECT missing AS n FROM protected", format, Some(test_context())) {
+      Err(issue) => issue
+      Ok(_) => fail("an unpublished Source must remain unresolved")
+    }
+    assert_true(issue is QueryLowering(UnknownRelation))
+    assert_true(unknown_column_origin(issue) is None)
+  }
+  // The unaliased optimization currently carries no original origin. Do not
+  // invent a span by inspecting the input after the lowerer has rejected it.
+  let unlocated = match lower("SELECT missing", Sql, Some(test_context())) {
+    Err(issue) => issue
+    Ok(_) => fail("the existing lowerer must reject an unknown column")
+  }
+  assert_true(unlocated is QueryLowering(UnknownColumn))
+  assert_true(unknown_column_origin(unlocated) is None)
+  assert_true(
+    unknown_column_origin(
+      QueryLowering(Expression({ issue: UnknownReference, origin: None, })),
+    )
+    is None,
+  )
+  let document = @origin.document("missing", 64).unwrap()
+  let generated = @origin.range(document, 0, 7, kind=Generated).unwrap()
+  assert_true(
+    unknown_column_origin(
+      QueryLowering(
+        Expression({ issue: UnknownReference, origin: Some(generated), }),
+      ),
+    )
+    is None,
+  )
+}
+
+///|
 test "retained query Program keeps authored unknown-Parameter spans through the existing checker" {
   // Fixed byte expectations include four-byte Unicode and an unmodified CRLF.
   // They are authored independently of lowerer output and token positions.
