@@ -30,6 +30,8 @@ pub fn issue_row_source_evidence(RowAcquisition, RowSourceCapture, @execution_qu
 
 pub fn prepare_row_acquisition(RowDeclaration, @query_planning.QueryRequirement, String, String) -> Result[RowAcquisition, RowHostIssue]
 
+pub fn prepare_row_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]
+
 pub fn prepare_row_source(@query_planning.QueryRequirement, RowDeclaration) -> Result[RowSourcePreparation, RowSourceIssue]
 
 pub fn restore_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]
@@ -155,6 +157,32 @@ pub(all) enum RowHostIssue {
   InvalidState
 }
 
+pub struct RowMapping {
+  resource : String
+  mapping_ref : String
+  mapping_cid : String
+  body : String
+  write_fields : Array[String]
+  omittable : Array[String]
+}
+
+pub(all) enum RowMappingIssue {
+  InvalidSpecification
+  NotWritable(String)
+  EmptyWrite
+  DuplicateField(String)
+  FieldNotWritable(String)
+  MissingRequiredField(String)
+  InvalidNullBehavior(String)
+  OutputLimit
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RowMappingSource {
+  target : String
+  field : String
+  null_behavior : String
+} derive(Eq, @debug.Debug)
+
 type RowObservation
 
 pub(all) struct RowPageLimits {
@@ -196,6 +224,16 @@ pub(all) struct RowViewSpec {
   resource : String
   resource_kind : String
   fields : Array[RowField]
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RowWriteSpec {
+  resource : String
+  resource_kind : String
+  primary_identity : String
+  fields : Array[RowField]
+  create_fields : Array[String]
+  required_fields : Array[String]
+  permission : String
 } derive(Eq, @debug.Debug)
 
 // Type aliases
