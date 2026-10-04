@@ -108,16 +108,18 @@ const presenceRows = {
 assert.deepEqual(presenceFixture.stages[0].steps[0].values.rows.map(row=>row.person_key),[2,1]);
 assert.deepEqual(presenceFixture.stages[0].steps[2].values.rows.map(row=>row.edge_key),[11,10]);
 
-function presenceFilterScenario(empty) {
+function presenceFilterScenario(empty, selection = false) {
   const document = structuredClone(presenceFixture);
-  document.id = `presence-filter-${empty ? 'empty' : 'values'}`;
+  document.id = `presence-${selection ? 'selection' : 'filter'}-${empty ? 'empty' : 'values'}`;
   const steps = document.stages[0].steps;
   steps[0].values.rows.unshift({person_key:4,tenant_key:'a',p:8});
   steps[1].values = {schema:{person_key:number,tenant_key:string},
     rows:[{person_key:3,tenant_key:'a'}]};
   steps[3].property_graph.nodes[1].key = ['person_key','tenant_key'];
   if (empty) for (const step of steps.slice(0,3)) step.values.rows = [];
-  steps[5] = {filter:'person_key < 4',as:'filtered'};
+  steps[5] = {filter:selection ? 'person_key > 0' : 'person_key < 4',as:'filtered'};
+  if (selection) steps.push({sort:[{person_key:'desc'}],as:'sorted'},
+    {take:{count:3,offset:1},as:'taken'});
   steps.push({select:['id','labels','person_key'],as:'projected'});
   document.stages[0].results.out.fields = ['id','labels','person_key'];
   const constructor = structuredClone(steps[3].property_graph);
@@ -139,8 +141,10 @@ function presenceFilterScenario(empty) {
     {id:identity('N',2),labels:['Owner','Person'],p:null,person_key:2,tenant_key:'a'},
     {id:identity('N',4),labels:['Owner','Person'],p:8,person_key:4,tenant_key:'a'},
   ];
-  const retained = before.slice(0,3);
-  return {document,before,retained,expected:retained.map(({id,labels,person_key})=>({id,labels,person_key}))};
+  const sorted = empty ? [] : [before[3],before[0],before[2],before[1]];
+  const retained = selection ? sorted.slice(1) : before.slice(0,3);
+  const snapshots = selection ? [before,before,sorted,retained] : [before,retained];
+  return {document,before,retained,snapshots,expected:retained.map(({id,labels,person_key})=>({id,labels,person_key}))};
 }
 
 // Authored heterogeneous declarations and expected streams. The second edge
@@ -332,12 +336,12 @@ function minimalSelectorDeriveScenario() {
   return {document,retained,derived,snapshot,expected:derived.map(({id,z})=>({id,z}))};
 }
 
-for (const mode of ['local','remote']) for (const profile of ['graph','presence-filter','selector-derive']) {
+for (const mode of ['local','remote']) for (const profile of ['graph','presence-filter','presence-selection','selector-derive']) {
   const name = profile === 'graph'
     ? `keyed constructor and TRAIL reach public Named Results through ${mode}`
-    : profile === 'presence-filter'
-      ? `presence filter survives Relation Store and public Named Results through ${mode}`
-      : `selector property derive survives Relation Store and public Named Results through ${mode}`;
+    : profile === 'selector-derive'
+      ? `selector property derive survives Relation Store and public Named Results through ${mode}`
+      : `presence ${profile === 'presence-filter' ? 'filter' : 'selection sort and take'} survives Relation Store and public Named Results through ${mode}`;
   test(name, {timeout:60_000}, async t => {
     const directory = await mkdtemp(new URL(`${mode}-`, scratch));
     t.diagnostic(`Retained Host regression evidence: ${directory}`);
@@ -444,9 +448,9 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
       }
       return;
     }
-    if (profile === 'presence-filter') {
+    if (profile !== 'graph') {
       for (const empty of [false,true]) {
-        const {document,before,retained,expected} = presenceFilterScenario(empty);
+        const {document,snapshots:expectedSnapshots,expected} = presenceFilterScenario(empty, profile === 'presence-selection');
         const run = await client.aql(canonicalText(document),
           {format:'json',requestId:`${document.id}-${mode}`});
         const state = await run.wait();
@@ -455,10 +459,10 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
         assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
         assert.deepEqual((await run.result('answer').describe()).columns.map(column=>column.name),
           ['id','labels','person_key']);
-        // Save the Bridge and filtered intermediate through the real Relation
-        // Store, revoke source cell access, and reload before public projection.
+        // Save each sparse intermediate through the real Relation Store,
+        // revoke source cell access, and reload before the next operation.
         assert.deepEqual(relationSnapshots.get(run.ref.runDefinitionCid),
-          [before,retained].map((rows,index)=>{
+          expectedSnapshots.map((rows,index)=>{
             const bytes = canonicalText(rows);
             return {task:4+index,cid:cid(rows),bytes:Buffer.byteLength(bytes),
               verifiedReadBytes:Buffer.byteLength(bytes),rows:rows.length,

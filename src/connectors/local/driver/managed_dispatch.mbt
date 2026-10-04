@@ -1930,7 +1930,11 @@ pub fn[T] start_local_managed_dispatch(
             graph_rows = true
           } else if key == "REL.derive" {
             graph_rows = true
-          } else if key == "REL.where" &&
+          } else if (
+              key == "REL.where" ||
+              key == "REL.orderByStable" ||
+              key == "REL.limit"
+            ) &&
             @lower.preparation_schema_at(
               prepared,
               @pipeline.Step(

@@ -49,7 +49,6 @@ test "unconnected lowering consumers cannot issue retired Graph kernels for a cu
   for
     (name, body) in [
       ("normalize_graph", "true"),
-      ("components", "{\"kind\":\"strong\"}"),
       (
         "reach",
         "{\"start\":{\"ids\":[" +
@@ -122,6 +121,9 @@ test "current Graph diagnostics lower to their registered typed operations" {
     (name, body, operation) in [
       ("degree", "{\"direction\":\"both\"}", "SGA.degree_metrics"),
       ("graph_bounds", "{\"max_nodes\":1}", "SGA.bounds_check"),
+      (
+        "components", "{\"kind\":\"strong\",\"max_output_rows\":2}", "SGA.components",
+      ),
     ] {
     let prepared = graph_current_owner(
       "[{\"from\":\"g\",\"" + name + "\":" + body + "}]",

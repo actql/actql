@@ -740,6 +740,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/value-contracts.relation-selection-preservation",
+      "statement_sha256": "7dcae05dc295a6c577cb098f28e804e1d5acda35419ac364dba0851822f59ab9",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "value-contracts",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.relation-selection-order-and-admission",
+      "statement_sha256": "98f6ba79aa80c776dc0976f5483a3005cdc706d41df17a27853e08f760a274c7",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "value-contracts",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/value-contracts.empty-object-contracts",
       "statement_sha256": "bf090b017152ce0db497143b00a7a7f5850358063d6e9f5dd848e28eeec452fb",
       "status": "pending",

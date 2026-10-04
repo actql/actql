@@ -1,5 +1,5 @@
 ///|
-test "conditional Relation presence admits guaranteed projection and filter including empty input" {
+test "conditional Relation presence admits guaranteed projection filter and derive including empty input" {
   let schema = @schema.from_presence_fields(
     [
       (
@@ -36,7 +36,11 @@ test "conditional Relation presence admits guaranteed projection and filter incl
     )
     is Err({ kind: Operation(PresenceRequired("p")), .. }),
   )
-  for body in ["[{\"derive\":{}}]"] {
+  for
+    body in [
+      "[{\"derive\":{}}]", "[{\"derive\":{\"z\":\"id + 1\"}},{\"select\":[\"id\",\"z\"]}]",
+      "[{\"derive\":[{\"p\":\"id + 1\"},{\"z\":\"p + 1\"}]},{\"select\":[\"id\",\"p\",\"z\"]}]",
+    ] {
     assert_true(
       @pipeline_typing.check(
         cursor(body),
@@ -45,7 +49,19 @@ test "conditional Relation presence admits guaranteed projection and filter incl
         None,
         limits(),
       )
-      is Err({ kind: Operation(ConditionalInputNotImplemented), .. }),
+      is Ok(_),
+    )
+  }
+  for expression in ["p + 1", "if(false, p, id)", "p IS NOT NULL"] {
+    assert_true(
+      @pipeline_typing.check(
+        cursor("[{\"derive\":{\"z\":\"" + expression + "\"}}]"),
+        [("rows", schema)],
+        None,
+        None,
+        limits(),
+      )
+      is Err({ kind: Operation(PresenceRequired("p")), .. }),
     )
   }
   assert_true(
@@ -70,6 +86,28 @@ test "conditional Relation presence admits guaranteed projection and filter incl
       is Err({ kind: Operation(PresenceRequired("p")), .. }),
     )
   }
+  assert_true(
+    @pipeline_typing.check(
+      cursor(
+        "[{\"filter\":\"id < 4\"},{\"sort\":[{\"id\":\"desc\"}]},{\"take\":1},{\"select\":[\"id\"]}]",
+      ),
+      [("rows", schema)],
+      None,
+      None,
+      limits(),
+    )
+    is Ok(_),
+  )
+  assert_true(
+    @pipeline_typing.check(
+      cursor("[{\"sort\":[{\"p\":\"asc\"}]}]"),
+      [("rows", schema)],
+      None,
+      None,
+      limits(),
+    )
+    is Err({ kind: Operation(PresenceRequired("p")), .. }),
+  )
   let dense = @schema.from_fields(
     [(Unqualified("id"), @contract.primitive(NumberType, nullable=false))],
     max_fields=1,

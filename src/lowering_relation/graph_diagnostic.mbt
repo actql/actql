@@ -2,6 +2,7 @@
 priv enum GraphDiagnosticChecked {
   Bounds(@graph.CheckedGraphBounds)
   Degree(@graph.CheckedDegree)
+  Components(@graph.CheckedComponents)
 }
 
 ///|
@@ -11,6 +12,7 @@ struct PreparedGraphDiagnostic {
   node_limit : Int64?
   edge_limit : Int64?
   degree_limit : Int64?
+  component_limit : Int64?
 }
 
 ///|
@@ -19,6 +21,8 @@ pub(all) enum GraphDiagnosticKind {
   IncomingDegreeDiagnostic
   OutgoingDegreeDiagnostic
   TotalDegreeDiagnostic
+  WeakComponentsDiagnostic
+  StrongComponentsDiagnostic
 } derive(Eq, Debug)
 
 ///|
@@ -33,6 +37,11 @@ pub fn graph_diagnostic_kind(
         @graph.Outgoing => OutgoingDegreeDiagnostic
         @graph.Both => TotalDegreeDiagnostic
       }
+    Components(checked) =>
+      match @graph.components_kind(checked) {
+        @graph.Weak => WeakComponentsDiagnostic
+        @graph.Strong => StrongComponentsDiagnostic
+      }
   }
 }
 
@@ -43,7 +52,15 @@ pub fn graph_diagnostic_bounds(
   match value.checked {
     Bounds(_) => Some((value.node_limit, value.edge_limit, value.degree_limit))
     Degree(_) => None
+    Components(_) => None
   }
+}
+
+///|
+pub fn graph_diagnostic_component_max_output_rows(
+  value : PreparedGraphDiagnostic,
+) -> Int64? {
+  value.component_limit
 }
 
 ///|
@@ -76,6 +93,7 @@ fn prepare_graph_diagnostic_node(
   let checked = match node.payload {
     GraphBoundsRows(value) => Bounds(value)
     GraphDegreeRows(value) => Degree(value)
+    GraphComponentsRows(value) => Components(value)
     _ => return Err(InvalidGraphDiagnosticWiring)
   }
   if node.inputs.length() != 1 ||
@@ -118,7 +136,7 @@ fn prepare_graph_diagnostic_node(
       }
     }
   }
-  let (node_limit, edge_limit, degree_limit) = match checked {
+  let (node_limit, edge_limit, degree_limit, component_limit) = match checked {
     Bounds(value) => {
       let (nodes, edges, degree) = @graph.graph_bounds_thresholds(value)
       let result : Array[Int64?] = []
@@ -132,13 +150,26 @@ fn prepare_graph_diagnostic_node(
             }
         }
       }
-      (result[0], result[1], result[2])
+      (result[0], result[1], result[2], None)
     }
-    Degree(_) => (None, None, None)
+    Degree(_) => (None, None, None, None)
+    Components(value) => {
+      let maximum = match @graph.components_max_output_rows(value) {
+        None => None
+        Some(bound) =>
+          match resolve(bound) {
+            Ok(integer) if integer > 0L => Some(integer)
+            Ok(_) =>
+              return Err(InvalidGraphDiagnosticParameter("max_output_rows"))
+            Err(issue) => return Err(issue)
+          }
+      }
+      (None, None, None, maximum)
+    }
   }
   Ok(
     (
-      { node, checked, node_limit, edge_limit, degree_limit, },
+      { node, checked, node_limit, edge_limit, degree_limit, component_limit, },
       bindings,
       names,
       work,
@@ -179,6 +210,21 @@ fn emit_graph_diagnostic_node(
         @encode.number_value(out, maximum.to_double())
       }
     }
+    WeakComponentsDiagnostic | StrongComponentsDiagnostic => {
+      @encode.key(out, "kind")
+      @encode.string_value(
+        out,
+        if graph_diagnostic_kind(prepared) == WeakComponentsDiagnostic {
+          "weak"
+        } else {
+          "strong"
+        },
+      )
+      if prepared.component_limit is Some(maximum) {
+        @encode.key(out, "max_output_rows")
+        @encode.number_value(out, maximum.to_double())
+      }
+    }
     direction => {
       @encode.key(out, "direction")
       @encode.string_value(
@@ -188,6 +234,7 @@ fn emit_graph_diagnostic_node(
           OutgoingDegreeDiagnostic => "out"
           TotalDegreeDiagnostic => "both"
           BoundsDiagnostic => "both"
+          WeakComponentsDiagnostic | StrongComponentsDiagnostic => "both"
         },
       )
     }

@@ -20,6 +20,12 @@ import {
 }
 
 // Values
+pub fn accounted_client_source_capture_cleanup_pending(ClientAccountedSourceCapture) -> Bool
+
+pub fn accounted_client_source_capture_source(ClientAccountedSourceCapture) -> @execution_query.CapturedInputSource?
+
+pub fn accounted_client_source_capture_usage(ClientAccountedSourceCapture) -> @physical_resources.LedgerUsage
+
 pub fn advance_client_infer_input(ClientInferInputExecution, Int) -> Result[ClientInferInputPoll, ClientInferInputIssue]
 
 pub fn cancel_client_infer_input(ClientInferInputExecution) -> Bool
@@ -31,6 +37,12 @@ pub fn cleanup_client_infer_input(ClientInferInputExecution) -> Result[Bool, Cli
 pub fn client_broad_residual_execution(ClientBroadResidual) -> @local.ManagedProviderExecution
 
 pub fn client_duckdb_acquisition_estimate(Array[Array[Int]], Array[Int64?], Array[Int64?]) -> Result[ClientDuckDBAcquisitionEstimate, ClientDuckDBAcquisitionIssue]
+
+pub fn client_duckdb_capture_capacity_accepts(ClientDuckDBCaptureCapacity, @host.CaptureConfiguration) -> Bool
+
+pub fn client_duckdb_capture_capacity_matches_requirement(ClientDuckDBCaptureCapacity, @query_planning.QueryRequirement) -> Bool
+
+pub fn client_duckdb_capture_capacity_values(ClientDuckDBCaptureCapacity) -> Array[Int64]
 
 pub fn client_duckdb_selection_broad(ClientDuckDBAcquisitionSelection) -> @host.BroadHostConfiguration?
 
@@ -50,11 +62,27 @@ pub fn client_query_residual_execution(ClientQueryResidual) -> @local.ManagedPro
 
 pub fn client_query_residual_output(ClientQueryResidual, @execution_query.QuerySequence, @execution_query.QueryReceipt, Int, Int) -> @execution_relation.CompletedOutput?
 
+pub fn client_source_capture_export_binding(ClientSourceCaptureExport) -> String
+
+pub fn client_source_capture_export_descriptor(ClientSourceCaptureExport) -> String
+
+pub fn client_source_capture_export_requirement(ClientSourceCaptureExport) -> String
+
+pub fn client_source_capture_export_rows(ClientSourceCaptureExport) -> Array[String]
+
+pub fn client_source_capture_source(ClientSourceCapture) -> @execution_query.CapturedInputSource?
+
+pub fn close_accounted_client_source_capture(ClientAccountedSourceCapture) -> Bool
+
+pub fn close_client_source_capture(ClientSourceCapture) -> Bool
+
 pub fn complete_client_broad_query_residual(ClientQueryResidual, @acquisition.DuckDBQueryIssuer, @acquisition.DuckDBBroadAttempt, @acquisition.DuckDBBroadCompletionLimits) -> Result[@acquisition.DuckDBBroadObservation, @acquisition.DuckDBEvidenceIssue]
 
 pub fn complete_client_broad_residual(ClientBroadResidual) -> Result[@acquisition.DuckDBBroadObservation, @host.BroadHostIssue]
 
 pub fn execute_source_free_values(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
+
+pub fn export_client_source_capture(@execution_query.CapturedInputSource, @query_planning.QueryRequirement, String) -> Result[ClientSourceCaptureExport, ClientSourceCaptureIssue]
 
 pub fn local_values_execution_failure_cleanup_pending(LocalValuesExecutionFailure) -> Bool
 
@@ -80,6 +108,8 @@ pub fn prepare_client_duckdb_acquisition(@query_planning.QueryRequirement, Strin
 
 pub fn prepare_client_duckdb_broad_acquisition(@query_planning.QueryRequirement, String, String, String, String, String) -> Result[@host.BroadHostConfiguration, ClientDuckDBAcquisitionIssue]
 
+pub fn prepare_client_duckdb_capture_capacity(@query_planning.QueryRequirement, String, String, String, String, String) -> Result[ClientDuckDBCaptureCapacity, ClientDuckDBAcquisitionIssue]
+
 pub fn prepare_client_effect_infer_prefix(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientInferOccurrence, String, String, fragment_body? : String?, ordered_body? : String?) -> @execution_relation.GeneratedSequence?
 
 pub fn prepare_client_effect_infer_suffix(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientInferOccurrence, String, String, fragment_body? : String?, ordered_body? : String?) -> @execution_relation.GeneratedSequence?
@@ -100,11 +130,23 @@ pub fn prepare_local_query_requirement(@run_publication_host.PreparedClientProgr
 
 pub fn prepare_multi_captured_effect_acquisition_ledger(@run_publication_host.PreparedClientEffectComputation, Array[@host.CaptureConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 
+pub fn prepare_multi_captured_effect_capacity_ledger(@run_publication_host.PreparedClientEffectComputation, Array[ClientDuckDBCaptureCapacity], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
+
 pub fn prepare_multi_captured_effect_local_ledger(@run_publication_host.PreparedClientEffectComputation, Array[@host.NativeHostConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn prepare_multi_captured_local_acquisition_ledger(@run_publication_host.PreparedClientProgram, Array[@host.CaptureConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 
+pub fn prepare_multi_captured_local_capacity_ledger(@run_publication_host.PreparedClientProgram, Array[ClientDuckDBCaptureCapacity], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
+
 pub fn prepare_multi_captured_local_ledger(@run_publication_host.PreparedClientProgram, Array[@host.NativeHostConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
+
+pub fn read_client_source_capture_descriptor(String) -> Result[@execution_relation.RetainedCompletionDescriptor, ClientSourceCaptureIssue]
+
+pub fn restore_accounted_client_source_capture(@query_planning.QueryRequirement, String, String, String, String, Array[String], @physical_resources.Ledger, ClientDuckDBCaptureCapacity, () -> Bool) -> Result[ClientAccountedSourceCapture, ClientSourceCaptureIssue]
+
+pub fn restore_client_source_capture(@query_planning.QueryRequirement, String, String, String, String, Array[String], () -> Bool) -> Result[ClientSourceCapture, ClientSourceCaptureIssue]
+
+pub fn retain_accounted_client_source_capture_task(ClientAccountedSourceCapture, @physical_strategy.CapturedDAG, Int) -> Result[Unit, ClientSourceCaptureIssue]
 
 pub fn retry_local_values_execution_failure_cleanup(LocalValuesExecutionFailure) -> Bool
 
@@ -123,6 +165,8 @@ pub fn start_client_query_residual(@execution_query.QuerySequence, @execution_qu
 // Errors
 
 // Types and methods
+type ClientAccountedSourceCapture
+
 type ClientBroadResidual
 
 pub(all) struct ClientDuckDBAcquisitionEstimate {
@@ -140,6 +184,8 @@ pub(all) enum ClientDuckDBAcquisitionIssue {
 }
 
 type ClientDuckDBAcquisitionSelection
+
+type ClientDuckDBCaptureCapacity
 
 type ClientInferInputExecution
 
@@ -177,6 +223,23 @@ pub(all) enum ClientQueryResidualIssue {
   Input(@execution_relation.ProducerReadIssue)
   Guard(@execution_relation.FixedInputGuardIssue)
   Acquisition(@host.BroadHostIssue)
+}
+
+type ClientSourceCapture
+
+type ClientSourceCaptureExport
+
+pub(all) enum ClientSourceCaptureIssue {
+  BindingMismatch
+  InvalidDescriptor
+  CustodyUnavailable
+  Capture(@execution_query.CapturedSourceIssue)
+  Export(@execution_relation.CompletedExportIssue)
+  Evidence(@execution_relation.RetainedCompletionEvidenceIssue)
+  Content(@execution_relation.RetainedContentReadIssue)
+  Readmission(@execution_relation.TrustedOutputIssue)
+  Import(@execution_relation.CompletedImportIssue)
+  Physical(@physical_resources.LedgerIssue)
 }
 
 pub struct LocalValuesExecution {

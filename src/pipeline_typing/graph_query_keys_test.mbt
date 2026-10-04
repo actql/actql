@@ -193,7 +193,7 @@ test "current identity projection loss and TRAIL enumeration do not fabricate Re
   assert_true(@pipeline_typing.candidate_key(trail, Step(0)) is None)
   for
     operation in [
-      "\"components\":{\"kind\":\"weak\"}", "\"shortest_path\":{\"source\":1,\"target\":2,\"direction\":\"out\",\"max_hops\":3}",
+      "\"shortest_path\":{\"source\":1,\"target\":2,\"direction\":\"out\",\"max_hops\":3}",
     ] {
     let issue = @pipeline_typing.check_carriers(
       cursor("[{" + operation + "}]"),
@@ -207,6 +207,46 @@ test "current identity projection loss and TRAIL enumeration do not fabricate Re
       issue.kind
       is GraphMatch(@graph.Structure(@graph.UnsupportedGraphOperation)),
     )
+  }
+  for kind in ["weak", "strong"] {
+    guard graph is @carrier.GraphValue(graph_schema) else {
+      abort("typed Graph")
+    }
+    let checked = @pipeline_typing.check_carriers(
+      cursor("[{\"from\":\"g\",\"components\":{\"kind\":\"" + kind + "\"}}]"),
+      [("g", graph)],
+      None,
+      None,
+      limits(),
+    ).unwrap()
+    let schema = @pipeline_typing.output_schema(checked).unwrap()
+    assert_eq(@schema.field_count(schema), 3)
+    let identity = @carrier.graph_identity(graph_schema)
+    for name in ["node_id", "component_id"] {
+      assert_true(
+        @contract.type_equal(
+          @schema.lookup(schema, Unqualified(name)).unwrap(),
+          identity,
+          100,
+        ),
+      )
+    }
+    assert_true(
+      @contract.type_equal(
+        @schema.lookup(schema, Unqualified("component_size")).unwrap(),
+        @contract.primitive(NumberType, nullable=false),
+        100,
+      ),
+    )
+    let keys = @pipeline_typing.candidate_keys(checked, Step(0)).unwrap()
+    assert_eq(@evidence.key_witness_count(keys), 1)
+    let key = @evidence.key_witness_at(keys, 0).unwrap()
+    assert_eq(@evidence.key_field_count(key), 1)
+    assert_eq(
+      @evidence.key_field_at(key, 0).unwrap().name,
+      Unqualified("node_id"),
+    )
+    assert_eq(@evidence.key_origin(key), GraphQueryResult)
   }
   for
     operation in [

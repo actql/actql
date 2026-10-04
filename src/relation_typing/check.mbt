@@ -130,7 +130,11 @@ fn check_impl(
   schema_preflight(b, body, input)
   // Only implemented preservation kernels may consume conditional rows.
   if !@schema.all_fields_required(input) &&
-    !(operation is Select || operation is Filter || operation is Derive) {
+    !(operation is Select ||
+    operation is Filter ||
+    operation is Derive ||
+    operation is Sort ||
+    operation is Take) {
     fail(body, ConditionalInputNotImplemented)
   }
   let parameter_types : Map[String, @contract.Contract] = Map([])
@@ -408,6 +412,16 @@ fn check_impl(
         match operation {
           Sort => {
             let terms = row_order(b, body, visible)
+            if !@schema.all_fields_required(input) {
+              for term in terms {
+                spend(b, term.source)
+                let name = @schema.reference_name(term.field)
+                if @schema.lookup_reference(input, name) is Some(field) &&
+                  field.presence == @schema.Conditional {
+                  fail(term.source, PresenceRequired(name))
+                }
+              }
+            }
             if !terms.is_empty() {
               pending.push({ kind: SortOrderCompletion, source: body, })
             }

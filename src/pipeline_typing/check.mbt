@@ -610,10 +610,15 @@ fn check_impl(
     if meta is Some(cursor) {
       metadata(b, cursor)
     }
-    // Projection and guaranteed-column filter/derive preserve conditional rows.
+    // Projection and the implemented filter/derive/sort/take kernels preserve
+    // conditional rows without making conditional fields ordinary values.
     // This checked boundary also covers consumers using Knowledge directly,
     // rather than letting them infer dense rows from known field types.
-    if key != "select" && key != "filter" && key != "derive" {
+    if key != "select" &&
+      key != "filter" &&
+      key != "derive" &&
+      key != "sort" &&
+      key != "take" {
       if carrier(input, inputs, steps) is @carrier.Relation(rows) {
         if !@carrier.all_fields_required(rows) {
           fail(
@@ -1137,7 +1142,51 @@ fn check_impl(
       current = Some(target)
       continue
     }
-    if key == "normalize_graph" || key == "components" {
+    if key == "components" {
+      let checked = match
+        @graph.check_components(
+          operation_body,
+          carrier(input, inputs, steps),
+          parameters,
+          {
+            max_work: b.work,
+            max_nodes: b.nodes,
+            max_depth: limits.max_depth,
+            max_text_bytes: b.text,
+          },
+        ) {
+        Ok(value) => value
+        Err(issue) =>
+          raise Stop({
+            kind: Graph(issue.kind),
+            source: operation_body,
+            path: issue.path.copy(),
+            span: issue.span,
+            range: None,
+          })
+      }
+      let used = @graph.components_usage(checked)
+      b.work -= used.work
+      b.nodes -= used.nodes
+      b.text -= used.text_bytes
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation: GraphComponents(checked),
+        output: @graph.components_output(checked),
+        connections: { entries: [{ role: Primary, target: input, }], },
+        window: None,
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
+    }
+    if key == "normalize_graph" {
       match carrier(input, inputs, steps) {
         @carrier.GraphValue(_) =>
           fail(operation_body, Graph(@graph.UnsupportedGraphOperation))
@@ -1607,7 +1656,9 @@ fn check_impl(
           steps,
           allow_conditional=key == "select" ||
             key == "filter" ||
-            key == "derive",
+            key == "derive" ||
+            key == "sort" ||
+            key == "take",
         )
         let operation_limits : @relation.Limits = {
           max_work: b.work,
@@ -1915,6 +1966,7 @@ fn check_impl(
         | GraphMatch(_)
         | GraphBounds(_)
         | GraphDegree(_)
+        | GraphComponents(_)
         | Event(_)
         | Sequence(_)
         | Vector(_) => [{ role: Primary, target: input, }]

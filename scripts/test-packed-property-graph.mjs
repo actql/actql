@@ -84,6 +84,8 @@ const acceptance = {
     'guaranteed id and labels projection through public Named Results',
     'Required-only filter retains omitted NULL and value cells through Relation Store reload',
     'filter initial read and reattach preserve independent canonical row order and empty schema',
+    'Required-key sort and proven-order take retain row presence through Relation Store reload',
+    'selection initial read and reattach match independent order without result sorting',
     'conditional property refusal before Run admission',
     'declaration-derived definition selection with empty and nullable Results',
     'selected property filter and alias projection after Relation Store reload',

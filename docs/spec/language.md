@@ -764,7 +764,8 @@ In the initial presence profile, ordinary references and public Result columns
 MUST be schema-guaranteed present. Conditional references MUST fail during
 checking; sample values, an empty Relation and `IS NOT NULL` do not prove
 presence. Projection of guaranteed columns and filter/derive expressions that
-reference only guaranteed columns are supported. Filter MUST preserve the exact
+reference only guaranteed columns, Required-key sort and proven-order take are
+supported. Filter MUST preserve the exact
 input schema, ordered surviving rows and each cell's presence; it MUST admit and
 charge all input rows before evaluating the predicate, including rejected rows.
 All syntactic references require presence, including unevaluated branches.
@@ -785,6 +786,14 @@ replaced input column present.
 Derive MUST reject every reference to an unguaranteed input column during
 checking, including unevaluated branches; references to a proven earlier binding
 in ordered derive retain the existing value-version semantics.
+
+<!-- requirement-block: value-contracts.relation-selection-preservation value-contracts.relation-selection-order-and-admission -->
+Sort and take on conditional Relation inputs MUST preserve the input schema,
+each selected row's values and presence, and the existing canonical content
+identity rules through retention and reload. Authored sort keys MUST be
+schema-guaranteed present, while ordering completion, take determinacy, complete
+input admission and resource accounting retain their existing obligations;
+neither observed samples nor an empty result establish order or presence.
 
 <!-- requirement-block: value-contracts.empty-object-contracts -->
 Both authored and checked object contracts MUST permit `fields: {}`. This closed
