@@ -16,10 +16,11 @@ Earlier checkpoints below retain their original source and package identities.
 
 ## Current public composition checkpoint (2026-10-04)
 
-The adopted main is `313782a85f1114b907375e2800d4aefb3a938712`, including
+The adopted main is `7dee31c1cc61b081f0feb12761b2bd5c2f41c12c`, including
 #273, A #292, selected-fragment capacity, incremental Session CI, traversal
-nodes and durable Site cancellation. D's latest ordinary integration is
-`24ab15658c9b55c28d80ee8c7b20f95e76c9e4fa`; the accepted two-Source packages
+nodes, durable Site cancellation and formal resident cleanup. D's latest
+ordinary integration is `55d32d841c60d61ccfa4ebd3af4915db2131c9c4`;
+the accepted two-Source packages
 below include main through `5caeccc79dacc758afa5d87c2cee6be024e32565` via
 `3bd65feb11770cd45819ef34dcd08fba2db03a3f`. This section
 supersedes status statements in the historical
