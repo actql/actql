@@ -11,5 +11,6 @@ import {
   "actql/actql/decode_scalar" @scalar,
   "actql/actql/capacity_policy" @policy,
   "actql/actql/capacity_sequence_limit" @sequence_limits,
+  "actql/actql/capacity_program_step" @traversal_limits,
   "actql/actql/managed_carrier_runtime" @carrier_runtime,
 }

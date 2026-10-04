@@ -1,0 +1,27 @@
+{
+  "description": "Independent numeric key-level expectations. The acceptance harness binds these components to the independently calculated constructor domain and definition N; these are not stringified Graph identities or product output.",
+  "node_keys": [3, 2, 1],
+  "edges": [
+    {"key": 13, "src": 1, "dst": 3},
+    {"key": 12, "src": 1, "dst": 2},
+    {"key": 11, "src": 2, "dst": 1},
+    {"key": 10, "src": 1, "dst": 2},
+    {"key": 14, "src": 2, "dst": 3}
+  ],
+  "cases": [
+    {"name": "two-hop walk keeps cyclic start and eligible longer endpoint", "start_keys": [1], "path_mode": "walk", "min_hops": 2, "max_hops": 2, "rows": [{"start_key": 1, "node_key": 1, "depth": 2}, {"start_key": 1, "node_key": 3, "depth": 2}]},
+    {"name": "two-hop trail retains independent return edge", "start_keys": [1], "path_mode": "trail", "min_hops": 2, "max_hops": 2, "rows": [{"start_key": 1, "node_key": 1, "depth": 2}, {"start_key": 1, "node_key": 3, "depth": 2}]},
+    {"name": "two-hop acyclic excludes revisited start", "start_keys": [1], "path_mode": "acyclic", "min_hops": 2, "max_hops": 2, "rows": [{"start_key": 1, "node_key": 3, "depth": 2}]},
+    {"name": "parallel paths collapse only at output", "start_keys": [1], "path_mode": "trail", "min_hops": 1, "max_hops": 1, "rows": [{"start_key": 1, "node_key": 2, "depth": 1}, {"start_key": 1, "node_key": 3, "depth": 1}]},
+    {"name": "minimum eligible depth and identity-first output order", "start_keys": [1], "path_mode": "walk", "min_hops": 1, "max_hops": 3, "rows": [{"start_key": 1, "node_key": 1, "depth": 2}, {"start_key": 1, "node_key": 2, "depth": 1}, {"start_key": 1, "node_key": 3, "depth": 1}]},
+    {"name": "zero-hop seeds deduplicate and sort starts", "start_keys": [3, 1, 3], "path_mode": "acyclic", "min_hops": 0, "max_hops": 1, "rows": [{"start_key": 1, "node_key": 1, "depth": 0}, {"start_key": 1, "node_key": 2, "depth": 1}, {"start_key": 1, "node_key": 3, "depth": 1}, {"start_key": 3, "node_key": 3, "depth": 0}]},
+    {"name": "walk may reuse an edge after a return", "start_keys": [1], "path_mode": "walk", "min_hops": 3, "max_hops": 3, "rows": [{"start_key": 1, "node_key": 2, "depth": 3}, {"start_key": 1, "node_key": 3, "depth": 3}]},
+    {"name": "trail can use a parallel unused edge after a return", "start_keys": [1], "path_mode": "trail", "min_hops": 3, "max_hops": 3, "rows": [{"start_key": 1, "node_key": 2, "depth": 3}, {"start_key": 1, "node_key": 3, "depth": 3}]},
+    {"name": "acyclic cannot extend a completed two-hop path", "start_keys": [1], "path_mode": "acyclic", "min_hops": 3, "max_hops": 3, "rows": []},
+    {"name": "edge predicate participates in eligibility", "start_keys": [1], "path_mode": "trail", "min_hops": 1, "max_hops": 1, "conditions": {"edge_where": "key = 13"}, "rows": [{"start_key": 1, "node_key": 3, "depth": 1}]},
+    {"name": "node predicate filters parallel endpoints", "start_keys": [1], "path_mode": "walk", "min_hops": 1, "max_hops": 1, "conditions": {"node_where": "id = 2"}, "rows": [{"start_key": 1, "node_key": 2, "depth": 1}]},
+    {"name": "unmatched label retains only the zero hop", "start_keys": [1], "path_mode": "walk", "min_hops": 0, "max_hops": 2, "conditions": {"edge_types": ["missing"]}, "rows": [{"start_key": 1, "node_key": 1, "depth": 0}]},
+    {"name": "ordered hop predicates select the eligible longer path", "start_keys": [1], "path_mode": "trail", "hops": [{"direction": "out", "edge_types": ["R"], "edge_where": "key = 10"}, {"direction": "out", "edge_where": "key = 14"}], "rows": [{"start_key": 1, "node_key": 3, "depth": 2}]},
+    {"name": "Relation start selector uses the same typed node result", "start_keys": [1], "relation_start": true, "path_mode": "trail", "min_hops": 2, "max_hops": 2, "rows": [{"start_key": 1, "node_key": 1, "depth": 2}, {"start_key": 1, "node_key": 3, "depth": 2}]}
+  ]
+}

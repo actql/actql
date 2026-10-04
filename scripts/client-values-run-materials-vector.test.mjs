@@ -248,14 +248,22 @@ test('baseline preimages and changed normative pins independently determine the 
     preRefreshDependencies,
     pin('8e3203948952a96d5153e9b0300431d29f5c209ce113f14c7f7149d3abac4818')).run.run_definition_cid,
     pin('f2b1556c0f99714896e7ea77c817f174797d3a5e66b3a8c593315ad4365ed77a'));
-  // key_columns changes the installed Graph execution contract and hence the
-  // current registry-bound Unit. Historical preimages retain their own pins.
+  // The key_columns predecessor remains an immutable historical dependency
+  // closure. The new traversal source schema changes the current Unit closure.
+  const graphRowsDependencies = {
+    unit: pin('9a0e59c162b656a2196ee404011eb7a4ec763c8b402dfda359b2cc6dd5aa0e96'),
+    proof: pin('efcf93f32e510db6482caa901dd99a17bbbba43ce64d3be922901a318bcb479b'),
+    resultPlan: pin('f2bc4e444acdf0ff644c912506c021619caa331091bba1d49ec8dd1b67b603ae'),
+  };
+  assert.equal(vector(pin('24f53c1f64028206dbc01f6c3d0c11d991c8c9d512581fdfd007a250315f8bbd'),
+    cid(aoaContract), graphRowsDependencies, barrierCid).run.run_definition_cid,
+    pin('ac34b3b002f08db23c1a394241c6b2666379e27e17ffda269f20d025cbbba97a'));
   assert.equal(dependencies.unit,
-    pin('9a0e59c162b656a2196ee404011eb7a4ec763c8b402dfda359b2cc6dd5aa0e96'));
+    pin('18dc8e9fc34fa63d1e5973243b019bda7446f2247c1ed2c5f945366bea8a520a'));
   assert.equal(dependencies.proof,
-    pin('efcf93f32e510db6482caa901dd99a17bbbba43ce64d3be922901a318bcb479b'));
+    pin('54124219997d78cedc627fd7f05f4cc236deb36700ab4942f710a1524e3bcc0e'));
   assert.equal(dependencies.resultPlan,
-    pin('f2bc4e444acdf0ff644c912506c021619caa331091bba1d49ec8dd1b67b603ae'));
+    pin('b073b5030c6a53eca1062d6acfeac9d6b8c41efbddc6b7d4d192fc7e3308e366'));
   const constructorGrammar = pin('2bf8ef0846b81f91fec96548d10dddd8c7e5a82b7db05444b38eefa316779c11');
   assert.equal(vector(constructorGrammar, preRefreshContract, preRefreshDependencies).run.run_definition_cid,
     pin('3e86d58da98d5af468f0cd07aaef40562c46117c099dfa1cb41a2de052f983f3'));
@@ -319,23 +327,40 @@ test('baseline preimages and changed normative pins independently determine the 
   const rowPredecessor = pin('24f53c1f64028206dbc01f6c3d0c11d991c8c9d512581fdfd007a250315f8bbd');
   assert.equal(vector(rowPredecessor, preRefreshContract, preRefreshDependencies, barrierCid).run.run_definition_cid,
     pin('5347f97a234b92717a8495614590b5e4b0a87a4b8bd796f051952ef164988663'));
-  assert.equal(vector(rowPredecessor, cid(aoaContract), dependencies, barrierCid).run.run_definition_cid,
+  assert.equal(vector(rowPredecessor, cid(aoaContract), graphRowsDependencies, barrierCid).run.run_definition_cid,
     pin('ac34b3b002f08db23c1a394241c6b2666379e27e17ffda269f20d025cbbba97a'));
   // Keep both integrated parents' vectors with their own grammar pins.
   const rowGrammar = pin('dc6a79192190098180af67a8726ecad1519d0c93037e43ad41d45cc288d0ef09');
   const compositionGrammar = pin('cb357b785390fb3e581a6ece8e61d49d9d93676666df77dd18a2d7f72f381bff');
   assert.equal(vector(rowGrammar, preRefreshContract, preRefreshDependencies, barrierCid).run.run_definition_cid,
     pin('7e2ae717cb6fa6b82328da3688ee0a4083dc3d78ad2793a4e02da135aceb14c7'));
-  assert.equal(vector(rowGrammar, cid(aoaContract), dependencies, barrierCid).run.run_definition_cid,
+  assert.equal(vector(rowGrammar, cid(aoaContract), graphRowsDependencies, barrierCid).run.run_definition_cid,
     pin('97c4dacbf36c4d15cd0b936c07a24d75b1d033d92d587e376c2c50ee598ea918'));
   assert.equal(vector(compositionGrammar, preRefreshContract, preRefreshDependencies, barrierCid).run.run_definition_cid,
     pin('07ba9ca36c06c85c6fdc3e88aaed22d02dff38348fb1d7003aa6ab4108b3654e'));
-  assert.equal(vector(compositionGrammar, cid(aoaContract), dependencies, barrierCid).run.run_definition_cid,
+  assert.equal(vector(compositionGrammar, cid(aoaContract), graphRowsDependencies, barrierCid).run.run_definition_cid,
     pin('8e2f3659d83e5bdc7058fb2c1044879fea2fdf23bb1ab7266f8b07d544abf0b4'));
-  assert.equal(vector(grammarCid, preRefreshContract, preRefreshDependencies, barrierCid).run.run_definition_cid,
+  assert.equal(vector(pin("bd3b6c7767656a531df52628453cbff90762a8d6013af432ced62d241d8fdb0a"), preRefreshContract, preRefreshDependencies, barrierCid).run.run_definition_cid,
     pin('fb0b9d9c1e2d0645859c0ce278205aa086b0f6daddf6f12ac2cb568d756b0ed8'));
+  assert.equal(vector(pin('24f53c1f64028206dbc01f6c3d0c11d991c8c9d512581fdfd007a250315f8bbd'),
+    preRefreshContract, preRefreshDependencies, barrierCid).run.run_definition_cid,
+    pin('5347f97a234b92717a8495614590b5e4b0a87a4b8bd796f051952ef164988663'));
+  assert.equal(vector(pin('b631f06f2ad3b4972d2ac2211819a55d40b1ffd4c5ff6e56b726a20f512c106d'), preRefreshContract, preRefreshDependencies, barrierCid).run.run_definition_cid,
+    pin('b37addde56c74a96dcf6ba4161c6c36a8d66f8bf6d77cc476ed753c29d123042'));
+  // Preserve both parents' independent vectors with their original grammar and dependencies.
+  assert.equal(vector(pin('b631f06f2ad3b4972d2ac2211819a55d40b1ffd4c5ff6e56b726a20f512c106d'),
+    cid(aoaContract), dependencies, barrierCid).run.run_definition_cid,
+    pin('33cfcb3f25ea4ace4092ddc986cf36501136c845caa6dc7d6453ed5bf3931fbf'));
+  assert.equal(vector(pin('cb357b785390fb3e581a6ece8e61d49d9d93676666df77dd18a2d7f72f381bff'),
+    preRefreshContract, preRefreshDependencies, barrierCid).run.run_definition_cid,
+    pin('07ba9ca36c06c85c6fdc3e88aaed22d02dff38348fb1d7003aa6ab4108b3654e'));
+  assert.equal(vector(pin('cb357b785390fb3e581a6ece8e61d49d9d93676666df77dd18a2d7f72f381bff'),
+    cid(aoaContract), graphRowsDependencies, barrierCid).run.run_definition_cid,
+    pin('8e2f3659d83e5bdc7058fb2c1044879fea2fdf23bb1ab7266f8b07d544abf0b4'));
+  assert.equal(vector(pin("ae383655950a9e0f2d292ffd546e6bf9eb5cb1e9a9d72e86f6086bb917f681b6"), cid(aoaContract), dependencies, barrierCid).run.run_definition_cid, pin("81d0f20687086a3a17a81541a6042c1f4c6afb3d4a9a09fceca1f69236e374d2"));
+  assert.equal(vector(pin("bd3b6c7767656a531df52628453cbff90762a8d6013af432ced62d241d8fdb0a"), cid(aoaContract), graphRowsDependencies, barrierCid).run.run_definition_cid, pin("cb619661631f118d81c0ae5fdfe60240ccde214ca7dd0b6f8c50719adbec95b1"));
   assert.equal(current.run.run_definition_cid,
-    pin('cb619661631f118d81c0ae5fdfe60240ccde214ca7dd0b6f8c50719adbec95b1'));
+    pin('4d639cb6924c87b916878498ce98e61156414ead2b3f974084ae1c9cc92cb9a6'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');

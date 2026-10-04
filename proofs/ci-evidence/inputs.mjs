@@ -11,7 +11,7 @@ const validPath = value => typeof value === 'string' && /^[A-Za-z0-9_.\/-]+$/u.t
 export const sharedFiles = ['proofs/ci-evidence/actions.mjs', 'proofs/ci-evidence/inputs.mjs',
   'proofs/ci-evidence/receipts.mjs', 'proofs/ci-evidence/check.mjs',
   'proofs/ci-evidence/applications.mjs',
-  'proofs/ci-evidence/collect.mjs', 'proofs/ci-evidence/transport.mjs', 'proofs/ci-evidence/final.mjs',
+  'proofs/ci-evidence/runtime.mjs', 'proofs/ci-evidence/collect.mjs', 'proofs/ci-evidence/transport.mjs', 'proofs/ci-evidence/final.mjs',
   'proofs/ci-evidence/cli.mjs',
   'proofs/ci-evidence/Reuse.lean', 'proofs/ci-evidence/Claims.lean',
   'scripts/test-execution.mjs', 'scripts/packed-query-evidence.mjs', 'scripts/ci-artifact-reader.mjs',
@@ -56,6 +56,14 @@ export function packageImports(source) {
     return '';
   });
   remainder = remainder.replace(/supported_targets\s*=\s*"[+a-z-]+"/gu, '');
+  // The existing formatter's literal ignore list cannot execute build work or
+  // change dependency selection. Keep its bytes in the manifest nevertheless.
+  // No other formatter expression/option is silently treated as harmless.
+  remainder = remainder.replace(/formatter\s*\(\s*ignore\s*:\s*\[([^\[\]]*)\]\s*,?\s*\)/gu, (_, body) => {
+    const residue = body.replace(/"[A-Za-z0-9_.-]+\.mbt"\s*,?/gu, '');
+    assert(!residue.trim(), 'Nonliteral/unknown formatter ignore');
+    return '';
+  });
   return {imports: [...new Set(imports)].sort(), unknown: remainder.trim() ? 'Unreviewed package configuration' : null};
 }
 
