@@ -88,10 +88,32 @@ public-query cases; `--order-ordinal-only` merely selects it locally.
 - Focused JS ORDER selection: **33/33** (`run-7CNwof`).
 - Node public-case merge controls: **2/2** (`run-LLVp8E`).
 - Pinned Moon formatting, Node syntax and diff checks pass.
-- Fresh packed Embedded Local/HTTP: pending; use
-  `node scripts/test-packed-public-query.mjs --order-ordinal-only` with the
-  repository-pinned toolchain and ordinary prepack.
+- Fresh packed Embedded Local/HTTP: **8 positives and 5 pre-admission refusals
+  per transport pass** at `24caaf26d789e68cd762b7e1d43260a8a6d4fa24`.
+  Evidence `public-query-evidence-OPpnfU` is complete/passed with no evidence
+  errors. The acceptance child (012) exits 0, signal null, with complete output.
+  Ordinary prepack builds all five packages; the consumer runs outside the
+  checkout without a MoonBit runtime. Successful temporary installations are
+  removed after evidence and digests are retained.
 - No full local Core, all-target, proof, performance or manual CI rerun.
+
+| Normally packed package | SHA-256 |
+|---|---|
+| actql-client-wire-0.0.0-development.tgz | `6b448edf6ff246e1865858e9ed654e6f973c602e60b65447bcd7bbdd0afaefde` |
+| actql-sdk-0.0.0-development.tgz | `494cafc4a5e4615dc47bba3b46bfd3c163c06690a258c8e619cc13a4198b2123` |
+| actql-run-host-core-0.0.0-development.tgz | `26032d6a2baa9798a093dc5be5293b757fd75232eb817368cef9f5aa012c8d91` |
+| actql-local-node-0.0.0-development.tgz | `b0df338e753f11d7d98ca3e199e44edaa7a3e5ac118e024a143275a794a97cc6` |
+| actql-node-0.0.0-development.tgz | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+Reproduce with the repository-pinned toolchain:
+
+```sh
+node scripts/test-packed-public-query.mjs --order-ordinal-only
+```
+
+This result belongs to the verified product SHA above. A following evidence-only
+commit does not relabel it as a fresh packed run of the final submitted HEAD;
+that HEAD's integration and normal public corpus are checked by automatic PR CI.
 
 No common checker/planner/provider, Run/Effect owner, SDK or transport is changed.
 The existing grammar already parses these expressions; no grammar, wire,
