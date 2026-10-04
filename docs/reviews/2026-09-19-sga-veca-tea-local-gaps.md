@@ -42,6 +42,17 @@ expected Join rows from the real retained Store, and resend and reopened-Host
 attach do not reacquire either provider. This is evidence for those installed
 source pairs and the shared two-input owner, not every provider combination,
 every Join variant, or exact/one-short physical limits for the row capture.
+The installed GitHub source also has a public retained-Store 100/101-row
+boundary: 100 rows publish exact ordered Named Results, while 101 reaches
+the typed `GitHubReadRowLimit`, publishes nothing, and a same-request resend
+does not fetch again. This proves the connector's total-row ceiling through
+the public route; it does not isolate the downstream row-capture ceiling,
+which is also 100 in this installation.
+The checked Program-to-RowAcquisition owner has a separate 2/1 capture-row
+boundary test: the same two-row page passes with capacity two and yields a
+capture, while capacity one gives typed `CaptureLimit` and cannot finish or
+expose a partial capture. This isolates the common capture owner but is not
+a public retained-Store 2/1 configuration test.
 For a row connector with multiple declared views, the two-installation Host
 now carries each view's source reference and read tuple into Check disclosure
 and pre-acquisition Checkpoint selection. The installed source still prepares

@@ -1,13 +1,15 @@
 import assert from 'node:assert/strict';
 import {generateKeyPairSync} from 'node:crypto';
-import {mkdtemp, rm, writeFile} from 'node:fs/promises';
+import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import {inspect} from 'node:util';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../host-common/runtime-result.mjs';
-import {createInstalledRowSource, openRowSourceCredentialSite} from
+import {createInstalledRowSource, openRowSourceCredentialSite,
+  rowSourceCheckEnvironment} from
   './installed-row-source.mjs';
 import {installedSourceReadAccesses, installedSourceReadBindings} from
   './installed-source.mjs';
@@ -53,6 +55,72 @@ test('row source exposes exact read tuples for every declared view', async () =>
       sourceRef: 'connector://foreign/r#v'}]}),
   {message: 'InvalidInstalledSourceReadAccesses'});
 });
+
+test('checked row capture admits its exact ceiling and refuses one more',
+  async () => {
+    const read = name => readFile(new URL(`../../${name}`, import.meta.url),
+      'utf8');
+    const base = (await read('spec/local-check-environment.json')).trimEnd();
+    const view = {views: [{resource: 'issues', resource_kind: 'issue', fields:
+      [{name: 'id', type: 'number', nullable: false}]}]};
+    const declaration = checked(moon.clientProgramRowSourceRestoreDeclaration(
+      'fixture', 'fixture', 'fixture/0.1', JSON.stringify(view), undefined));
+    const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(
+      declaration));
+    const environment = rowSourceCheckEnvironment(base, declared);
+    const checkedEnvironment = moon.clientProgramCheckEnvironment(
+      environment.wire, environment.evidenceCid,
+      false, false, true, false, false, false, false);
+    assert.ok(checkedEnvironment);
+    const document = JSON.stringify({version: 'actql/0.1', id: 'capture-limit',
+      stages: [{id: 'acquire',
+        inputs: {remote: {connector: 'fixture', resource: 'issues'}},
+        steps: [{filter: 'id >= 0', as: 'nonnegative'},
+          {select: ['id'], as: 'rows'}],
+        results: {r: {from: 'rows', fields: ['id']}}}],
+      results: {r: {from: {stage: 'acquire', result: 'r'}}}});
+    const prepared = moon.clientProgramPrepareEffectFree(
+      document, 'json', checkedEnvironment);
+    assert.ok(prepared);
+    const [registry, aoa, queryContract, evidenceContract] = await Promise.all([
+      read('spec/dependencies/aoa-pipeline-registry.json'),
+      read('spec/contracts/actql-aoa.json').then(JSON.parse),
+      read('spec/contracts/actql-query-acquisition.json'),
+      read('spec/contracts/actql-query-process-evidence.json'),
+    ]);
+    const required = moon.clientProgramPrepareLocalQueryRequirement(
+      prepared, 0, 0, registry,
+      JSON.stringify(aoa.execution_contracts['REL.values']),
+      JSON.stringify(aoa.execution_contracts[
+        'ACTQL.expression_fragment/0.1']),
+      JSON.stringify(aoa.execution_contracts['REL.derive.ordered']));
+    assert.equal(required.$tag, 1, inspect(required, {depth: 4}));
+    const requirement = checked(required);
+    const acquisition = checked(moon.clientProgramRowSourcePrepareAcquisition(
+      declaration, requirement, queryContract, evidenceContract));
+    const page = Buffer.from('[{"id":1},{"id":2}]', 'utf8');
+    const exact = checked(moon.clientProgramRowSourceStart(
+      acquisition, 'exact', () => true));
+    try {
+      checked(moon.clientProgramRowSourceBegin(exact, 1024, 2, 2));
+      assert.equal(checked(moon.clientProgramRowSourceAcceptPage(exact, page)), 2);
+      checked(moon.clientProgramRowSourceFinish(exact));
+      assert.ok(checked(moon.clientProgramRowSourceCapture(exact)));
+    } finally { moon.clientProgramRowSourceClose(exact); }
+    const oneShort = checked(moon.clientProgramRowSourceStart(
+      acquisition, 'one-short', () => true));
+    try {
+      checked(moon.clientProgramRowSourceBegin(oneShort, 1024, 2, 1));
+      const refused = moon.clientProgramRowSourceAcceptPage(oneShort, page);
+      assert.equal(refused.$tag, 0, inspect(refused, {depth: 4}));
+      assert.match(refused._0?._0?._0?.constructor.name ?? '',
+        /CaptureLimit$/u, inspect(refused, {depth: 4}));
+      assert.throws(() => checked(moon.clientProgramRowSourceFinish(oneShort)),
+        {code: 'MoonBitHostFailure'});
+      assert.throws(() => checked(moon.clientProgramRowSourceCapture(oneShort)),
+        {code: 'MoonBitHostFailure'});
+    } finally { moon.clientProgramRowSourceClose(oneShort); }
+  });
 
 test('the row source Site refuses an undeclared response header before any credential use',
   async t => {

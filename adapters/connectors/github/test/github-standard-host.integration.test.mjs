@@ -325,6 +325,46 @@ test('installed row source retains public output across Host reopen',
     assert.equal(listings(setup.api).length, reads);
   });
 
+test('retained row source admits its exact row ceiling and refuses one more',
+  async t => {
+    const observations = [];
+    const setup = await installation(t, {retainedRelationOutput: true,
+      observe(name, detail) { observations.push([name, detail]); }});
+    const repository = setup.state.repositories.get('R_hello');
+    repository.issues = Array.from({length: 100}, (_, index) =>
+      ({number: index + 1}));
+    setup.state.pageSize = 100;
+    await setup.publish();
+    const {client} = await setup.open();
+    const exact = await client.aql(program, {format: 'json',
+      requestId: 'github-retained-exact-row-ceiling'});
+    const exactState = await exact.wait();
+    assert.equal(exactState.status, 'succeeded', JSON.stringify(exactState));
+    assert.deepEqual(await exact.result('issues').all(),
+      Array.from({length: 100}, (_, index) => ({number: index + 1,
+        title: `Issue ${index + 1}`, author: 'octocat'})));
+    const beforeExtra = listings(setup.api).length;
+    repository.issues.push({number: 101});
+    const excess = await client.aql(program, {format: 'json',
+      requestId: 'github-retained-one-over-row-ceiling'});
+    const excessState = await excess.wait();
+    assert.equal(excessState.status, 'failed', JSON.stringify(excessState));
+    assert.ok(observations.some(([name, detail]) =>
+      name === 'dispatch_failed' && detail.code === 'GitHubReadRowLimit'),
+    JSON.stringify(observations));
+    assert.equal(excessState.result_available, false);
+    assert.equal(excessState.result_availability.issues.state, 'unavailable');
+    await assert.rejects(excess.result('issues').all(),
+      {code: 'ResultAccessDenied'});
+    assert.equal(listings(setup.api).length, beforeExtra + 2);
+    assert.deepEqual(await readdir(join(setup.root, 'state',
+      'carrier-snapshots')), []);
+    const resent = await client.aql(program, {format: 'json',
+      requestId: 'github-retained-one-over-row-ceiling'});
+    assert.deepEqual(resent.ref, excess.ref);
+    assert.equal(listings(setup.api).length, beforeExtra + 2);
+  });
+
 const twoRowSourceProgram = () =>
   ({version: 'actql/0.1', id: 'github-two-source-join',
       stages: [
