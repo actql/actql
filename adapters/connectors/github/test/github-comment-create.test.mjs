@@ -218,6 +218,12 @@ test('only documented outcomes settle a comment; the rest stay unknown',
       'unclassified-response'],
       [{body: {errors: [{type: 'RATE_LIMITED', message: 'x'}]}},
         'unclassified-response'],
+      // Malformed request errors are not evidence that nothing ran.
+      [{body: {errors: [{}]}}, 'unclassified-response'],
+      [{body: {errors: [{message: 42}]}}, 'unclassified-response'],
+      [{body: {errors: []}}, 'unclassified-response'],
+      [{body: {data: null, errors: [{type: 'NOT_FOUND', message: 'x'}]}},
+        'unclassified-response'],
       [{body: {data: {addComment: {commentEdge: {node: {id: 'IC_9',
         databaseId: 9}}, subject: {__typename: 'PullRequest',
         id: 'I_A7'}}}}}, 'unclassified-response'],
@@ -287,3 +293,19 @@ test('a different body is refused for an existing claim and nothing is sent',
     assert.equal(again.claimed, false);
     assert.equal(commentSends(context.fixture).length, 1);
   });
+
+test('a recovered reply keeps its classification without headers', async t => {
+  for (const [body, kind] of [
+    [{errors: [{type: 'NOT_FOUND', message: 'x'}]}, 'typed-failure-response'],
+    [{errors: [{}]}, 'unclassified-response'],
+    [{errors: [{message: 42}]}, 'unclassified-response'],
+  ]) {
+    const world = {...newWorld(), commentReply: () => ({body})};
+    const context = await setup(t, {world});
+    const sent = await context.dispatch(context.openLedger());
+    const stored = sent.response;
+    assert.equal(context.project({useCid: stored.credentialUseCid,
+      statusCode: stored.statusCode, body: stored.responseBytes}, undefined)
+      .kind, kind, JSON.stringify(body));
+  }
+});

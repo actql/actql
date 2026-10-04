@@ -161,6 +161,16 @@ test "a comment settles only on documented outcomes" {
     classify(200, "{\"errors\":[{\"message\":\"parse error\"}]}"),
     Rejected(kind="UNKNOWN"),
   )
+  // A malformed error list is not a request error: it stays unknown.
+  for
+    body in [
+      "{\"errors\":[{}]}", "{\"errors\":[{\"message\":42}]}", "{\"errors\":[{\"message\":null}]}",
+      "{\"errors\":[\"text\"]}", "{\"errors\":[{\"message\":\"x\",\"type\":null}]}",
+      "{\"errors\":[{\"message\":\"x\",\"type\":7}]}", "{\"errors\":{\"message\":\"x\"}}",
+      "{\"errors\":[{\"message\":\"x\",\"type\":\"NOT_FOUND\"},{}]}",
+    ] {
+    assert_eq(classify(200, body), Unknown)
+  }
   // Once execution began, or on a rate limit, the send stays unknown.
   assert_eq(
     classify(
