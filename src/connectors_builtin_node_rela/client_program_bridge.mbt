@@ -6706,3 +6706,66 @@ pub fn client_program_row_source_issue_source_evidence(
     observed_at,
   ).map(value => @publication.run_evidence_value_json(value))
 }
+
+///|
+/// The create Mapping of `resource` from the connector's declared writes, as
+/// `{"mapping_ref","mapping_cid","body","write_fields","omittable"}` or
+/// `{"issue": <name>}`. `sources_json` is
+/// `[{"target","field","null_behavior"}]`.
+#export_name("clientProgramRowSourcePrepareMapping")
+pub fn client_program_row_source_prepare_mapping(
+  declaration : @client_row_source_host.RowDeclaration,
+  writes_json : String,
+  resource : String,
+  sources_json : String,
+) -> String {
+  let refused = (name : String) => {
+    ({ "issue": name.to_json() } : Json).stringify()
+  }
+  let parsed = @json.parse(sources_json) catch {
+    _ => return refused("InvalidSpecification")
+  }
+  guard parsed is Array(items) else { return refused("InvalidSpecification") }
+  let sources = []
+  for item in items {
+    guard item is Object(entries) &&
+      entries.length() == 3 &&
+      entries.get("target") is Some(String(target)) &&
+      entries.get("field") is Some(String(field)) &&
+      entries.get("null_behavior") is Some(String(null_behavior)) else {
+      return refused("InvalidSpecification")
+    }
+    sources.push(
+      (
+        { target, field, null_behavior, } :
+        @client_row_source_host.RowMappingSource),
+    )
+  }
+  match
+    @client_row_source_host.prepare_row_mapping(
+      declaration, writes_json, resource, sources,
+    ) {
+    Ok(mapping) =>
+      (
+        {
+          "mapping_ref": mapping.mapping_ref.to_json(),
+          "mapping_cid": mapping.mapping_cid.to_json(),
+          "body": mapping.body.to_json(),
+          "write_fields": mapping.write_fields.to_json(),
+          "omittable": mapping.omittable.to_json(),
+        } : Json).stringify()
+    Err(issue) => {
+      let name = match issue {
+        InvalidSpecification => "InvalidSpecification"
+        NotWritable(_) => "NotWritable"
+        EmptyWrite => "EmptyWrite"
+        DuplicateField(_) => "DuplicateField"
+        FieldNotWritable(_) => "FieldNotWritable"
+        MissingRequiredField(_) => "MissingRequiredField"
+        InvalidNullBehavior(_) => "InvalidNullBehavior"
+        OutputLimit => "OutputLimit"
+      }
+      refused(name)
+    }
+  }
+}

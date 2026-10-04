@@ -90,6 +90,7 @@ export function explainCheckReason(reason) {
     parameter_declarations_invalid: ['The parameter declarations are invalid.', 'Correct the supplied declarations.'],
     supplied_parameters_invalid: ['The supplied parameter input is invalid.', 'Correct the supplied parameter map.'],
     supplied_value_invalid: ['A supplied value violates its declaration.', 'Correct the value to satisfy its declared contract.'],
+    supplied_value_constraint_violation: ['A supplied value violates a declared constraint.', 'Correct the value to satisfy the declared constraint family.'],
     supplied_value_type_mismatch: ['A supplied value has the wrong type.', 'Supply a value of the declared type.'],
     parameter_value_required: ['A declared parameter value is missing.', 'Supply the declared value and check the complete bound input again.'],
     program_invalid: ['The input violates the checked Program contract.', 'Correct the input under the selected contract.'],
@@ -100,6 +101,18 @@ export function explainCheckReason(reason) {
     unresolved_protected: ['Source resolution cannot be established from the disclosed context.', 'Ask the Source or checking-context owner to review the published context.'],
   };
   const known = Object.hasOwn(explanations, reason?.code) ? explanations[reason.code] : undefined;
+  const constraintHints = {
+    numeric: 'Supply a number satisfying the declared integer, minimum and maximum constraints.',
+    duration: 'Supply a string in the admitted duration format.',
+    array_length: 'Supply an array with the declared exact length.',
+    array_size: 'Supply an array within the declared maximum item count.',
+  };
+  const constraint = reason?.facts?.constraint;
+  if (reason?.code === 'supplied_value_constraint_violation' &&
+      typeof constraint === 'string' && Object.hasOwn(constraintHints, constraint)) {
+    return Object.freeze({kind: 'known', summary: known[0],
+      hint: constraintHints[constraint]});
+  }
   return Object.freeze(known ? {kind: 'known', summary: known[0], hint: known[1]}
     : {kind: 'unknown', summary: 'No supported explanation is available for this reason.'});
 }

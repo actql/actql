@@ -368,27 +368,35 @@ for (const [entrance, open] of Object.entries(entrances)) {
 
   test(`${entrance}: supplied constraint locations retain the binder path without private values`, async t => {
     const client = await open(t, configurations.denied);
-    for (const [declaration, value, pointer] of [
+    for (const [declaration, value, pointer, constraint] of [
       [{type: 'object', fields: {count: {type: 'number', integer: true}}},
-        {count: 1.5}, '/options/count'],
+        {count: 1.5}, '/options/count', 'numeric'],
       [{type: 'object', fields: {count: {type: 'number', minimum: 1}}},
-        {count: 0}, '/options/count'],
+        {count: 0}, '/options/count', 'numeric'],
+      [{type: 'object', fields: {count: {type: 'number', maximum: 1}}},
+        {count: 2}, '/options/count', 'numeric'],
       [{type: 'object', fields: {waits: {type: 'array', length: 2, items: {type: 'string'}}}},
-        {waits: ['private-value']}, '/options/waits'],
+        {waits: ['private-value']}, '/options/waits', 'array_length'],
       [{type: 'array', items: {type: 'string', format: 'duration'}},
-        ['1s', 'private-value'], '/options/1'],
+        ['1s', 'private-value'], '/options/1', 'duration'],
+      [{type: 'object', fields: {'/a~~//é': {type: 'array', max_items: 1, items: {type: 'string'}}}},
+        {'/a~~//é': ['private-value', 'private-value']}, '/options/~1a~0~0~1~1é', 'array_size'],
     ]) {
       const outcome = await client.check('SELECT id FROM records', {format: 'sql',
         parameterDeclarations: {options: declaration}, parameters: {options: value}});
       assert.equal(outcome.outcome, 'completed', '[check-mutation:constraint-outcome]');
       const original = getCheckInput(outcome, 'parameters');
       assert.equal(outcome.report.verdict, 'invalid');
-      assert.deepEqual(outcome.report.reasons, [{code: 'supplied_value_invalid',
+      assert.deepEqual(outcome.report.reasons, [{code: 'supplied_value_constraint_violation',
+        facts: {parameter: 'options', constraint},
         location: {document_id: 'parameters', revision: original.revision,
           kind: 'structured', pointer}}], '[check-mutation:constraint-location]');
       assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: protectedSource});
       assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location).input, original);
       assert.equal(JSON.stringify(outcome).includes('private-value'), false);
+      assert.equal(explainCheckReason(outcome.report.reasons[0]).kind, 'known');
+      assert.notEqual(explainCheckReason(outcome.report.reasons[0]).hint,
+        explainCheckReason({code: 'supplied_value_invalid'}).hint);
     }
     // A valid pointer exceeding the public bound is omitted, not truncated.
     for (const longKey of ['a'.repeat(4096), '~'.repeat(2050)]) {
@@ -406,6 +414,12 @@ for (const [entrance, open] of Object.entries(entrances)) {
       location: {kind: 'structured', document_id: 'parameter_declarations',
         revision: getCheckInput(defaults, 'parameter_declarations').revision,
         pointer: '/options/default'}}]);
+    const longKey = 'a'.repeat(4096);
+    const oversizedConstraint = await client.check('SELECT 1 AS n', {format: 'sql',
+      parameterDeclarations: {options: {type: 'object', fields: {[longKey]: {type: 'number', minimum: 1}}}},
+      parameters: {options: {[longKey]: 0}}});
+    assert.deepEqual(oversizedConstraint.report.reasons, [{code: 'supplied_value_constraint_violation',
+      facts: {parameter: 'options', constraint: 'numeric'}}]);
     const missingMember = await client.check('SELECT 1 AS n', {format: 'sql',
       parameterDeclarations: {options: {type: 'object', fields: {count: {type: 'number'}}}},
       parameters: {options: {}}});
@@ -928,6 +942,17 @@ async function acceptDisclosure(install) {
     assert.equal(declaration.report.reasons[0].code, 'parameter_declarations_invalid');
     assert.equal(declaration.report.reasons[0].location.document_id, 'parameter_declarations');
     assert.equal(declaration.report.reasons[0].location.pointer, '/options/default');
+    const constraintRequest = sourceRequest('SELECT id FROM records',
+      {options: {count: 0}},
+      {options: {type: 'object', fields: {count: {type: 'number', minimum: 1}}}});
+    const constraint = await check(constraintRequest);
+    assert.equal(canonicalJson(constraint), canonicalJson(await absent(constraintRequest)),
+      '[check-mutation:constraint-disclosure]');
+    assert.equal(constraint.report.verdict, 'invalid');
+    assert.deepEqual(constraint.report.coverage.unresolved, protectedSource);
+    assert.deepEqual(constraint.report.reasons[0].facts,
+      {parameter: 'options', constraint: 'numeric'});
+    assert.equal(constraint.report.reasons[0].location.pointer, '/options/count');
   }
   // A reference is never reused for another audience, another source or
   // another exact value.
@@ -1072,6 +1097,9 @@ test('http: SDK rejects contradictory evidence injected into a real verified rep
     };
     await assert.rejects(check(), {code: 'InvalidHostCheckOutcome'});
     mutation = value => ({...value, reason_schema_cid: 'sha256:' + '0'.repeat(64)});
+    await assert.rejects(check(), {code: 'InvalidHostCheckOutcome'});
+    mutation = value => ({...value,
+      reason_schema_cid: 'sha256:6ef2aefaf03e046fcfa830ce1b0648c6b04701162755ba869a9996cd69ade8ef'});
     await assert.rejects(check(), {code: 'InvalidHostCheckOutcome'});
     for (const coverage of [
       {limits: [{code: 'analysis_budget_exhausted'}], unresolved: []},

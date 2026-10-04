@@ -91,4 +91,15 @@ test('typed public facts are closed and locations bind declared input revisions'
     {...reason, location: {...location, pointer: '/bad~escape'}},
   ]) assert.equal(valid(outcome(changed)), false, JSON.stringify(changed));
   assert.equal(valid(outcome({code: 'future_code'})), true);
+  const constraint = {code: 'supplied_value_constraint_violation', location,
+    facts: {parameter: 'minimum', constraint: 'numeric'}};
+  assert.equal(valid(outcome(constraint)), true);
+  for (const changed of [
+    {...constraint, facts: undefined},
+    {...constraint, facts: {parameter: 'minimum'}},
+    {...constraint, facts: {...constraint.facts, constraint: 'future_constraint'}},
+    {...constraint, facts: {...constraint.facts, value: 0}},
+    {...constraint, code: 'parameter_undeclared'},
+    {...constraint, code: 'future_code'},
+  ]) assert.equal(valid(outcome(changed)), false, '[check-mutation:constraint-schema]');
 });
