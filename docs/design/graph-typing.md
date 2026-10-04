@@ -705,8 +705,15 @@ implementation of Graph Delta execution.
 
 ## Graph row projections and names
 
-`carrier_projection` checks `node_rows: true` and `edge_rows: true` on an admitted
-definition-keyed Property Graph. Incomplete contracts refuse projection. Node
+`carrier_projection` checks `node_rows: true` and `edge_rows: true`, or the closed
+`{definition: "Person"}` body for either bridge, on an admitted definition-keyed
+Property Graph. `true` projects every definition of the corresponding kind;
+the object selects one definition using the existing Graph name identity.
+Unknown names, wrong element kinds and additional fields refuse during checking,
+not as an empty output. The resolved selection is retained by the checked
+projection and emitted in Plan parameters. The existing bounded row kernel
+filters canonical producer order without introducing a second Graph or Relation
+owner. Incomplete contracts refuse projection. Node
 roles are `id`, `labels`; edge roles are `id`, `src`, `dst`, `labels`, with the
 existing typed Graph identities and deterministic label arrays. No retired
 endpoint-tuple or nullable `rel` representation is used.
@@ -719,13 +726,17 @@ case-insensitive comparison reuses the Graph name owner. Canonical definition
 order fixes display spelling across serialization/reload.
 
 Existing Relation presence records distinguish Required from Conditional and
-omission from NULL. Only columns guaranteed by every definition can be normally
-referenced in this initial bridge; dataset sampling does not refine that schema.
+omission from NULL. Only columns guaranteed by every selected definition can be
+normally referenced; the declaration-derived schema is unchanged when selection
+produces zero rows. Nullable is independent of presence, and dataset sampling
+does not refine the schema. A single selected definition retains its declared
+properties and typed key aliases; no data-driven promotion is needed. Label
+refinement and direct publication of Conditional columns remain unsupported.
 The existing row kernel, completion port, retention and cleanup owners carry
 the resulting Relation. This is not a separate Graph Relation or runtime.
 
 `GraphProjectionCheck` binds the exact checked projection, input edge and
-requirement occurrence. Its interpretation follows the two Graph-row requirement
+requirement occurrence. Its interpretation follows the Graph-row requirement
 blocks, without interpreting a future check as completed Graph admission:
 
 | Rule | Required behavior | Execution boundary |
