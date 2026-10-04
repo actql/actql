@@ -112,6 +112,42 @@ positives and five refusals per transport, a complete passed summary and no
 evidence errors. Definition/label selection is the next independent unit;
 that does not close the outstanding shared-capture defect.
 
+### Independent Graph work after the Group unit was integrated
+
+#303's subsequent submitted HEAD
+`7bc0367339711cc85c80ce82a387a11e3f189ce3` has fresh integrated public
+acceptance in [run 37171399256](https://github.com/actql/actql/actions/runs/37171399256),
+not merely the predecessor result above. [Artifact 11291069009](https://github.com/actql/actql/actions/runs/37171399256/artifacts/11291069009)
+records clean synthetic merge `dc89e5dfd1d0a2d8b26ca9a30fc5d9330c83f187`
+with actual parents main `d5f0802c93e2863b092aa8f1a9e9a7cc97b12c5b` and
+submitted HEAD. Summary is complete/passed with no evidence errors; command
+007 exits 0 with complete output. The unchanged application verifies all
+five Graph-row positives and five refusals on each transport, full ordered
+type contracts, stream completion, same-request Run reuse and no additional
+acquisition. Required-job/final aggregation is a separate CI result.
+
+| Package | SHA-256 at this integrated public execution |
+|---|---|
+| client-wire | `5da98d3edb615f960f0511be9d6e61431cd34d02304a8bd6b6e576f7775f91a0` |
+| sdk | `2fc910067348e421346945ced1e728e107bbe6fa455ee00f9d71da46e8123c5b` |
+| run-host-core | `7de3bf85443afa6ef4247c1844c2a6bfeb7ac2274ef44e2f48ef35dabb993725` |
+| local-node | `d9309c8940021a5d834e984c11bcb8381c79c81e764d65802f17019a79de6359` |
+| node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+The next independent unit is now [Draft #316](https://github.com/actql/actql/pull/316),
+submitted `a08ccd794e9889671548acb2f6685cc87333d6e2`. Existing string-valued
+`definition`/`label` named arguments lower to C's common selector objects;
+the common checker still owns presence, type, raw key and typed identity.
+It depends on #303 and C's #307 at
+`51764ed8846a0f3913d498d434154576d4b976dc`; #299 is already in main.
+Product source `c4c2d9b2f7a6b5425cbc14c9fe40ec64b10960bd` passed focused JS
+10/10; independent post-integration preimage checks passed 3/3. The submitted
+follow-up adds only two real-Git merge declarations and its report; retained
+history validation passes. [Its new automatic CI](https://github.com/actql/actql/actions/runs/37172844527)
+passed preflight. New public selector execution is still unverified, not
+inferred from #303's no-selection success. D's CTE source-capture repair and
+its post-fix acceptance remain separate; no parallel repair was made here.
+
 ## Historical repair follow-up before main capacity integration
 
 Repair baseline: `a4132d64f9cd83022d38bcb9c4e79d981fb2f803`.
