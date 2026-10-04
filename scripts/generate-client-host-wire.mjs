@@ -4,6 +4,8 @@ import {join, resolve} from 'node:path';
 import {project, structuralValidatorSource, typeOf} from
   './generate-client-publication-wire.mjs';
 
+import {nativeClientWire, responseRules, jsResponseRules} from './generate-native-client-wire.mjs';
+
 const root = fileURLToPath(new URL('../', import.meta.url));
 const source = 'spec/contracts/actql-client-host.json';
 const runStateSource = 'spec/contracts/actql-protocol-schemas.json';
@@ -26,6 +28,7 @@ export function buildClientHostWire(registry, protocol) {
       Array.isArray(registry.operations)) {
     throw new Error('InvalidClientHostRegistry');
   }
+  const rules = responseRules(registry);
   const operations = Object.entries(registry.operations);
   if (operations.length === 0 || operations.some(([name, keys]) =>
     !/^[a-z][a-z-]*$/u.test(name) || !Array.isArray(keys) ||
@@ -65,6 +68,7 @@ export function buildClientHostWire(registry, protocol) {
     `valid(value, schemas.run_state);\n` +
     `export const validCheckOutcomeShape = value => ` +
     `valid(value, schemas.check_outcome);\n`;
+  const native = nativeClientWire(schemas, rules);
   const types = `// Generated from the registered Client–Host machine contract.\n` +
     `export type ClientHostOperation = ${operations.map(([name]) =>
       JSON.stringify(name)).join(' | ')};\n` +
@@ -75,7 +79,7 @@ export function buildClientHostWire(registry, protocol) {
     `\nexport type WireRunStateShape = ${typeOf(schemas.run_state)};\n` +
     `export type WireCheckOutcomeShape = ${typeOf(schemas.check_outcome)};\n` +
     `export type WireCheckLocationShape = ${typeOf(project(protocol.artifact_schemas.check_reason.properties.location))};\n`;
-  return {module, types};
+  return {module: module + jsResponseRules(rules), types, native};
 }
 
 async function main() {
@@ -86,6 +90,7 @@ async function main() {
   const files = [
     ['packages/client-wire/client-host.generated.js', outputs.module],
     ['packages/client-wire/client-host.generated.d.ts', outputs.types],
+    ['src/cmd/native_client/wire.generated.mbt', outputs.native],
   ];
   for (const [path, content] of files) {
     if (process.argv.includes('--write')) {

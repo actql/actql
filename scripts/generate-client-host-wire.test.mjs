@@ -14,6 +14,8 @@ test('generated Client–Host guards and types match the machine contract',
     assert.equal(outputs.module, await readFile(new URL(
       '../packages/client-wire/client-host.generated.js', import.meta.url),
     'utf8'));
+    assert.equal(outputs.native, await readFile(new URL(
+      '../src/cmd/native_client/wire.generated.mbt', import.meta.url), 'utf8'));
     assert.equal(outputs.types, await readFile(new URL(
       '../packages/client-wire/client-host.generated.d.ts', import.meta.url),
     'utf8'));
@@ -91,4 +93,35 @@ test('typed public facts are closed and locations bind declared input revisions'
     {...reason, location: {...location, pointer: '/bad~escape'}},
   ]) assert.equal(valid(outcome(changed)), false, JSON.stringify(changed));
   assert.equal(valid(outcome({code: 'future_code'})), true);
+});
+
+
+test('authoritative structural and behavioral mutations reach both consumers', async () => {
+  const original = buildClientHostWire(registry, protocol);
+  const changed = structuredClone(registry);
+  changed.schemas.profile.properties.scopeRef.maxLength = 255;
+  changed.response_rules.profile.requireRequested.durability = 'volatile';
+  const output = buildClientHostWire(changed, protocol);
+  assert.notEqual(output.native, original.native);
+  assert.match(output.native, /text.length\(\) > 255/);
+  assert.match(output.native, /connection.get\("durability"\) == Some\(Json::string\("volatile"\)\)/);
+  const generated = await import(`data:text/javascript;base64,${Buffer.from(output.module).toString('base64')}`);
+  const {profile, connection} = await import('./fixtures/client-wire-contract-corpus.mjs');
+  assert.equal(generated.validProfileContract({...profile, scopeRef:'a'.repeat(256)}, connection), false);
+  assert.equal(generated.validProfileContract(profile, {...connection,durability:'volatile'}), false);
+});
+
+test('Native projection refuses unsupported rules instead of silently dropping them', () => {
+  for (const mutate of [
+    value => { value.schemas.profile.properties.scopeRef.pattern = '^future$'; },
+    value => { value.schemas.profile.allOf = [{additionalProperties:false}]; },
+    value => { value.schemas.profile.properties.mode.const = 'remote'; },
+    value => { value.schemas.profile.properties.scopeRef.allOf = [{maxLength:255}]; },
+    value => { value.schemas.admission.properties.revision.allOf = [{minimum:2}]; },
+    value => { value.schemas.profile.properties.scopeRef.not = {const:'forbidden'}; value.schemas.profile.properties.scopeRef.$ref = '#/$defs/value_contract'; },
+    value => { value.response_rules.profile.matchConnection.push('unknownField'); },
+  ]) {
+    const changed = structuredClone(registry); mutate(changed);
+    assert.throws(() => buildClientHostWire(changed, protocol), /UnsupportedNativeWire|InvalidClientHostResponseRule/);
+  }
 });
