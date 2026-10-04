@@ -36,6 +36,35 @@ test "conditional Relation presence admits guaranteed projection filter and deri
     )
     is Err({ kind: Operation(PresenceRequired("p")), .. }),
   )
+  let distinct = @pipeline_typing.check(
+    cursor("[{\"distinct\":[\"id\"]}]"),
+    [("rows", schema)],
+    None,
+    None,
+    limits(),
+  ).unwrap()
+  assert_true(
+    @schema.all_fields_required(
+      @pipeline_typing.output_schema(distinct).unwrap(),
+    ),
+  )
+  for
+    (body, kind) in [
+      ("[{\"distinct\":true}]", @relation.ConditionalInputNotImplemented),
+      ("[{\"distinct\":[\"p\"]}]", @relation.PresenceRequired("p")),
+    ] {
+    assert_true(
+      @pipeline_typing.check(
+        cursor(body),
+        [("rows", schema)],
+        None,
+        None,
+        limits(),
+      )
+      is Err({ kind: Operation(actual), .. }) &&
+      actual == kind,
+    )
+  }
   for
     body in [
       "[{\"derive\":{}}]", "[{\"derive\":{\"z\":\"id + 1\"}},{\"select\":[\"id\",\"z\"]}]",
