@@ -350,6 +350,16 @@ Missing submitted nodes and pointers beyond the public bound have no location;
 invalid defaults never point into supplied values. Values remain in the local
 submitted snapshot, not in public diagnostic facts.
 
+Typed lexical failures use `query_lexical_invalid` with `facts.issue`, one of
+`unexpected_end`, `unexpected_token`, `invalid_escape`, `invalid_scalar`,
+`empty_identifier`, `unterminated_comment`, `invalid_number` or
+`invalid_parameter`. `explainCheckReason` provides an issue-specific safe
+summary and hint. A location, when available, uses the parser's original source
+position, including exact zero-width positions. It contains no token text or
+private parser message. Ordinary grammar failures retain
+`query_syntax_invalid`. Budget limits remain undetermined coverage rather than
+lexical invalidity. Hints are advisory and never apply an edit or confer authority.
+
 This coordinated correction changes the closed `actql-check-outcome/0.1` schema
 and introduces `actql-check-reason/0.1`. Schema identity, validator and SDK/Host
 must match; a mismatched reply throws `InvalidHostCheckOutcome` and never becomes

@@ -85,6 +85,7 @@ export function resolveCheckTextRange(outcome, location, currentInput) {
 export function explainCheckReason(reason) {
   const explanations = {
     query_syntax_invalid: ['The query syntax is invalid.', 'Correct the query syntax at the reported location when available.'],
+    query_lexical_invalid: ['A query token violates its lexical syntax.', 'Correct the token at the reported location when available.'],
     parameter_undeclared: ['The query refers to an undeclared parameter.', 'Declare the parameter or correct its reference; a value alone cannot declare it.'],
     query_invalid: ['The query violates its language or name-resolution contract.', 'Correct the query using its declared names and visible context.'],
     parameter_declarations_invalid: ['The parameter declarations are invalid.', 'Correct the supplied declarations.'],
@@ -101,6 +102,22 @@ export function explainCheckReason(reason) {
     unresolved_protected: ['Source resolution cannot be established from the disclosed context.', 'Ask the Source or checking-context owner to review the published context.'],
   };
   const known = Object.hasOwn(explanations, reason?.code) ? explanations[reason.code] : undefined;
+  const lexicalExplanations = {
+    unexpected_end: ['The input ends before a token is complete.', 'Complete the quoted token or escape sequence at the reported position.'],
+    unexpected_token: ['A token is not valid in this lexical context.', 'Correct the token spelling or delimiter at the reported position.'],
+    invalid_escape: ['An escape sequence is invalid.', 'Use an escape allowed by the selected string or identifier syntax.'],
+    invalid_scalar: ['A token contains a scalar forbidden by its lexical context.', 'Correct the scalar escape or quoted identifier under the selected lexical syntax.'],
+    empty_identifier: ['A quoted identifier is empty.', 'Provide a non-empty identifier inside the quoting delimiters.'],
+    unterminated_comment: ['A block comment is not terminated.', 'Add the closing block-comment delimiter.'],
+    invalid_number: ['A numeric token has invalid spelling.', 'Correct the numeric token, including any exponent.'],
+    invalid_parameter: ['A parameter reference lacks a valid name.', 'Provide a valid parameter name after @.'],
+  };
+  const issue = reason?.facts?.issue;
+  if (reason?.code === 'query_lexical_invalid' && typeof issue === 'string' &&
+      Object.hasOwn(lexicalExplanations, issue)) {
+    const [summary, hint] = lexicalExplanations[issue];
+    return Object.freeze({kind: 'known', summary, hint});
+  }
   const constraintHints = {
     numeric: 'Supply a number satisfying the declared integer, minimum and maximum constraints.',
     duration: 'Supply a string in the admitted duration format.',

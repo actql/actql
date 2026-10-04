@@ -22,6 +22,7 @@ const mutations = [
   ['an unresolved obligation is reported as a violation',
     'if findings\n    .iter()\n    .any(finding => {\n' +
     '      finding\n      is (Violation(_)\n      | SyntaxViolation(_, _)\n' +
+    '      | LexicalViolation(_, _)\n' +
     '      | QueryViolation(_, _)\n' +
     '      | TypeViolation(_, _, _, _)\n      | SuppliedViolation(_)\n' +
     '      | DeclarationViolation(_)\n' +
@@ -70,6 +71,14 @@ const mutations = [
   ['an unresolved column starts one byte after its authored token',
     '        @source_origin.start(origin).byte_offset,',
     '        @source_origin.start(origin).byte_offset + 1,'],
+  ['a lexical escape is assigned to another issue family',
+    'InvalidEscape => "invalid_escape"', 'InvalidEscape => "unexpected_end"'],
+  ['a lexical violation loses its owned source position',
+    'let range = diagnostic.span.map(span => (span.start_byte, span.end_byte))',
+    'let range : (Int, Int)? = None'],
+  ['a lexical violation loses its typed explanation',
+    'LexicalViolation(_, _) => Some("query_lexical_invalid")',
+    'LexicalViolation(_, _) => Some("query_syntax_invalid")'],
   ['an invalid declaration loses its owned location',
     'findings.push(DeclarationViolation(pointer))',
     'findings.push(DeclarationViolation(None))'],
@@ -142,6 +151,9 @@ const targets = [
     [strict('column-outcome'), strict('column-verdict'), deep('column-location')]],
   ['unresolved column expressions retain authored source positions',
     [strict('column-outcome'), strict('column-verdict'), deep('column-location')]],
+  ...Array.from({length: 3}, () =>
+    ['typed lexical explanations retain the submitted token position',
+      [strict('lexical-outcome'), strict('lexical-verdict'), deep('lexical-reason')]]),
   ['invalid declarations retain only their owned submitted locations',
     [strict('declaration-outcome'), deep('declaration-location')]],
   ['invalid declarations retain only their owned submitted locations',
