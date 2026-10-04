@@ -17,6 +17,15 @@ const tupleFields = ['captures', 'identities', 'requirements',
 const sortedRows = rows => rows.map(row => ({id: row.id, amount: row.amount}))
   .sort((a, b) => a.id - b.id || (a.amount ?? -Infinity) - (b.amount ?? -Infinity));
 const refused = (value, message) => assert.equal(value?.$tag, 0, message);
+// Independently authored capture expectations after each Source's id >= 0
+// predicate. The physical database also contains a matching negative key;
+// those input rows must not appear in the captured logical relations.
+const capturedRows = {
+  left: [{id: 1, amount: null}, {id: 2, amount: 20},
+    {id: 3, amount: 30}, {id: 3, amount: 30}],
+  right: [{id: 1, amount: 100}, {id: 3, amount: 300},
+    {id: 3, amount: 301}, {id: 4, amount: 400}],
+};
 
 test('plural source configuration is bounded, copied and exclusive', () => {
   const paths = ['/owned/left.json', '/owned/right.json'];
@@ -69,13 +78,15 @@ for (const equalContent of [false, true]) {
       assert.equal(nativeSourceIdentityMatches(captured.capture,
         pair.identities[1 - task]), false,
       'a matching logical CID cannot replace the exact capture identity owner');
-      // Retaining test-side dependency bytes lets the assertion compare the
-      // actual captured rows against authored input fixtures, not product goldens.
+      // Retain the real dependency bytes and compare against the authored
+      // post-predicate expectation, preserving NULL and duplicate input rows.
       const retained = checked(moon.clientProgramIdentifyCapturedEffectSourceRelation(
         captured.capture.source()));
       const bodies = moon.clientProgramCapturedSourceDependencyBodies(retained,
         captured.capture.source());
-      assert.deepEqual(sortedRows(JSON.parse(bodies._0).value), sortedRows(f.rows[task]));
+      const expectedRows = task === 0 || equalContent
+        ? capturedRows.left : capturedRows.right;
+      assert.deepEqual(sortedRows(JSON.parse(bodies._0).value), expectedRows);
       for (const overrides of [
         {source: pair.captures[1 - task]},
         {identity: pair.identities[1 - task]},

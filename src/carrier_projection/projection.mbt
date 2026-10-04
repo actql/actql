@@ -17,6 +17,7 @@ pub(all) enum IssueKind {
   OutputCollision(@row.FieldName)
   OutputTypeConflict(@row.FieldName)
   UnknownDefinition(String)
+  UnknownLabel(String)
 } derive(Eq, Debug)
 
 ///|
@@ -49,6 +50,7 @@ struct CheckedProjection {
   output : @carrier.Carrier
   usage : Usage
   definition : String?
+  label : String?
 }
 
 ///|
@@ -124,6 +126,7 @@ pub fn check(
       text_bytes: limits.max_text_bytes - text,
     },
     definition: None,
+    label: None,
   })
 }
 
@@ -153,7 +156,13 @@ pub fn usage(value : CheckedProjection) -> Usage {
 }
 
 ///|
-/// Resolved admitted definition name; None retains the all-definition Bridge.
+/// Resolved definition selector; None can still carry a label selector.
 pub fn selected_definition(value : CheckedProjection) -> String? {
   value.definition
+}
+
+///|
+/// Deterministic admitted spelling of the selected label, not sampled row data.
+pub fn selected_label(value : CheckedProjection) -> String? {
+  value.label
 }

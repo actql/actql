@@ -381,6 +381,14 @@ fn graph_bounds_candidate_count(state : GraphBoundsState) -> Int {
 }
 
 ///|
+fn charge_graph_bounds_work(state : GraphBoundsState) -> Bool {
+  match state.output {
+    Some(output) => @execution.admitted_output_charge_control_work(output, 1)
+    None => false
+  }
+}
+
+///|
 fn graph_bounds_step(
   state : GraphBoundsState,
   quantum : Int,
@@ -401,6 +409,9 @@ fn graph_bounds_step(
     match state.phase {
       InitializeNodes =>
         if state.source_index < state.node_count {
+          if !charge_graph_bounds_work(state) {
+            return @bounded.Failed(GraphBoundsWorkLimit, progress, used)
+          }
           state.degrees.push(0L)
           state.selected.push(state.source_index)
           state.scratch.push(None)
@@ -412,6 +423,9 @@ fn graph_bounds_step(
         }
       ScanEdges =>
         if state.source_index < state.edge_count {
+          if !charge_graph_bounds_work(state) {
+            return @bounded.Failed(GraphBoundsWorkLimit, progress, used)
+          }
           guard graph_read_edge_endpoints(state.source, state.source_index)
             is Some((source, target)) &&
             state.degrees.get(source) is Some(source_degree) &&
@@ -453,10 +467,16 @@ fn graph_bounds_step(
           prepare_graph_bounds_merge(state)
         }
       Merge => {
+        if !charge_graph_bounds_work(state) {
+          return @bounded.Failed(GraphBoundsWorkLimit, progress, used)
+        }
         merge_graph_bounds(state)
         used += 1
       }
       CompareMerge => {
+        if !charge_graph_bounds_work(state) {
+          return @bounded.Failed(GraphBoundsWorkLimit, progress, used)
+        }
         used += 1
         match
           compare_bound_nodes_step(
@@ -472,6 +492,9 @@ fn graph_bounds_step(
       }
       CopyPass =>
         if state.copy_index < state.selected.length() {
+          if !charge_graph_bounds_work(state) {
+            return @bounded.Failed(GraphBoundsWorkLimit, progress, used)
+          }
           guard state.scratch[state.copy_index] is Some(node) else {
             return @bounded.Failed(InvalidGraphBoundsKernel, progress, used)
           }
@@ -491,6 +514,9 @@ fn graph_bounds_step(
         if state.candidate >= graph_bounds_candidate_count(state) {
           state.phase = Finish
         } else {
+          if !charge_graph_bounds_work(state) {
+            return @bounded.Failed(GraphBoundsWorkLimit, progress, used)
+          }
           used += 1
           if select_graph_bounds_row(state) {
             state.column = 0
@@ -500,6 +526,9 @@ fn graph_bounds_step(
         }
       ReadField =>
         if state.column < @schema.field_count(state.schema) {
+          if !charge_graph_bounds_work(state) {
+            return @bounded.Failed(GraphBoundsWorkLimit, progress, used)
+          }
           used += 1
           guard @schema.field_at(state.schema, state.column) is Some(field) &&
             checked_graph_bounds_value(state, field) is Some(value) else {
@@ -511,6 +540,9 @@ fn graph_bounds_step(
           state.phase = CommitRow
         }
       CommitRow => {
+        if !charge_graph_bounds_work(state) {
+          return @bounded.Failed(GraphBoundsWorkLimit, progress, used)
+        }
         used += 1
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidGraphBoundsKernel, progress, used)
@@ -526,6 +558,9 @@ fn graph_bounds_step(
         }
       }
       Finish => {
+        if !charge_graph_bounds_work(state) {
+          return @bounded.Failed(GraphBoundsWorkLimit, progress, used)
+        }
         used += 1
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidGraphBoundsKernel, progress, used)
