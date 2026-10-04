@@ -5,12 +5,23 @@ import {encode} from '../bounded-session/action-inputs.mjs';
 
 export const inputVersion = 'actql-verification-action-inputs/0.1';
 export const hash = value => createHash('sha256').update(value).digest('hex');
+// The existing mutation executor's restoration snapshot reads these files as
+// well as all src and proofs/bounded-session members, independently of imports.
+export const mutationSnapshotExtras = Object.freeze([
+  'toolchain.json', 'moon.mod',
+  'docs/reviews/2026-09-23-local-resource-production-routes.json',
+  'docs/reviews/2026-09-23-local-resource-accounting-audit.json',
+]);
 const validSha = value => typeof value === 'string' && /^[a-f0-9]{40}$/u.test(value);
 const validPath = value => typeof value === 'string' && /^[A-Za-z0-9_.\/-]+$/u.test(value) &&
   !value.startsWith('/') && !value.split('/').some(part => ['', '.', '..'].includes(part));
 export const sharedFiles = ['proofs/ci-evidence/actions.mjs', 'proofs/ci-evidence/inputs.mjs',
   'proofs/ci-evidence/receipts.mjs', 'proofs/ci-evidence/check.mjs',
   'proofs/ci-evidence/applications.mjs',
+  'proofs/ci-evidence/plan.mjs',
+  'proofs/ci-evidence/isolation.mjs', 'proofs/ci-evidence/isolated-mutations.mjs',
+  'proofs/ci-evidence/isolated-runtime.mjs', 'proofs/ci-evidence/isolated-execution.mjs',
+  'proofs/ci-evidence/mutation-inventory.mjs',
   'proofs/ci-evidence/runtime.mjs', 'proofs/ci-evidence/collect.mjs', 'proofs/ci-evidence/transport.mjs', 'proofs/ci-evidence/final.mjs',
   'proofs/ci-evidence/cli.mjs',
   'proofs/ci-evidence/Reuse.lean', 'proofs/ci-evidence/Claims.lean',
@@ -122,6 +133,10 @@ export function actionInputs({tree, revision, action, runtime}) {
     }
     if (action.package) visit(action.package);
     else if (action.id === 'mutations-js') {
+      listing('src', true);
+      mutationSnapshotExtras.forEach(add);
+      add('proofs/bounded-session/mutations.mjs');
+      add('proofs/bounded-session/evidence.mjs');
       for (const path of ['src/bounded_execution', 'src/connectors/local', 'src/query_integration']) visit(path);
     } else unresolved.add(`unreviewed executor: ${action.id}`);
   }

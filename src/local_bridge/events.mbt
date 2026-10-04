@@ -451,18 +451,22 @@ fn events_to_rows_step(
         if events_source_record_count(state.source) is Some(count) &&
           state.record < count {
           if state.source is GraphRows(source) &&
-            source.selected_definition is Some(_) {
+            (
+              source.selected_definition is Some(_) ||
+              source.selected_label is Some(_)
+            ) {
             if !charge_events_to_rows_work(state) {
               return @bounded.Failed(ControlWorkLimit, progress, used)
             }
             used += 1
             match graph_row_selected(source, state.record) {
               None => return @bounded.Failed(InputUnavailable, progress, used)
-              Some(false) => {
+              Some(PendingSelection) => continue
+              Some(SkipRow) => {
                 state.record += 1
                 continue
               }
-              Some(true) => ()
+              Some(SelectedRow) => ()
             }
           }
           state.source_field = 0

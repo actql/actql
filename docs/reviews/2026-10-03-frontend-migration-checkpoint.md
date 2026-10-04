@@ -213,6 +213,99 @@ select none, the existing two-profile setting is retained, and an explicit
 empty plural setting is still rejected. Outer/generated driver syntax and
 diff checks pass; no runtime build or extra packed campaign was added.
 
+## Historical pure two-Source JSON/text composition checkpoint (2026-10-04)
+
+The packed acceptance adopted main
+`7dee31c1cc61b081f0feb12761b2bd5c2f41c12c`, including A #292 Native/Broad
+acquisition and the formal cancellation/cleanup foundation. Fresh packs from
+clean `27dc783a4c1b8dca34c496d21362c42866250513` passed
+`node scripts/test-packed-public-query.mjs --two-source-only` through external
+Local and authenticated HTTPS installations with no runtime MoonBit toolchain.
+This is fixed-SHA local packed evidence; automatic PR CI is a separate check.
+
+The previous ordinary integration is
+`5962250507a903413654c0744bfb1176fd2b410c`, adopting main
+`d5f0802c93e2863b092aa8f1a9e9a7cc97b12c5b` and its installed connector
+manifests. Both additions in `scripts/test-packed-public-query.mjs` survive the
+merge; existing foundation records are preserved. Pinned JS runtime build,
+the two real capture boundary cases and complete retained-history validation
+passed at this integration. It is not a new local packed campaign.
+
+Automatic PR CI [37172424649](https://github.com/actql/actql/actions/runs/37172424649)
+at submitted `ee892e1155da1bbd287e8ffabc2407a8f8029a57` passed the packed,
+distribution and client aggregate jobs. Fresh packages bind clean tested merge
+`d6176313d4a21c08497241fd8f3df5453cd72d00` against main
+`d5f0802c93e2863b092aa8f1a9e9a7cc97b12c5b`. The packed log confirms all
+12 normal cases, retained recovery and the existing second-input failure,
+cancellation and cleanup-retry cases. Retained public-query artifact
+`11291694091` has a complete passed summary and expected verification status
+for all 40 command records. Full CI was still running when inspected; it is
+not yet recorded as fully successful.
+
+The latest ordinary integration is
+`586cf84261a1ce86e142b9da9b327b138477ccca`, adopting main
+`3a7be90e681326fef04cf2c28fe11dbfee729e2b` and B #303's Graph row source
+lowering. The packed consumer retains both the pure JSON/text cases and the
+new Graph row case registration. There were no conflicts or new foundation
+declaration requirements; all existing records and supplements are preserved.
+The public-query/frontend fixture checks passed (10 cases), complete
+retained-history validation passed, and `git diff --check` passed. This is
+focused integration verification, not another local packed campaign or a
+success claim for the new HEAD's automatic CI.
+
+[Earlier automatic PR CI 37170657090](https://github.com/actql/actql/actions/runs/37170657090)
+at `e210c920e6b05b21bb6f9216933717ea635dd0c2` found two capture expectation
+failures: the test compared post-predicate logical captures with unfiltered
+physical database input. Fix `07f717e0f501598af6df5a81b772e9013987b41d`
+separately authors each captured relation's expected rows, retaining NULL and
+duplicates and excluding the negative keys by the specified predicate. The
+public packed JOIN expected rows and product behavior are unchanged.
+
+The submitted text is retained verbatim in
+`adapters/host-node/fixtures/two-source/two-source-join.aql`. Both independent
+JSON and text inputs specify Source predicates `id >= 0`, the same id equality
+JOIN, `max_output_rows`/`MAX_OUTPUT_ROWS` 100, result column order
+`id,left_amount,right_amount` and ascending order on those fields. Existing
+expected rows/types/nullability remain unchanged. Matching negative Source keys
+are deliberately present in both inputs' databases so losing the Source
+predicates changes the joined output; duplicate rows and NULL amounts are preserved.
+This does not introduce deduplication, a different lowerer or a new executor.
+
+The existing harness now covers 12 normal cases (the previous 8 and 4 text
+Native/Broad Local/HTTPS cases), 12 fresh-process retained cases and the same
+12 recovery/failure scenarios. Each used Source has exactly one physical read
+session. Unused Source installation opens no unused provider. Fresh attach,
+row/description/stream reading, request lookup and resubmission of the exact
+stored document/format return the same Run with zero provider opens or SQL I/O.
+JSON and text Program/Run CIDs need not agree across different submissions;
+generated Stage structure is allowed to differ without changing these semantic
+and physical observations.
+
+Second-input failure, cancellation, started-unknown recovery and cleanup retry
+reuse the original owner/harness. A generation-drift fixture republishes its
+alias against the deliberately changed valid SourceView, allowing the existing
+Run dependency refusal to execute before I/O. An initial failed attempt at
+`d7d8f7d7f238142e8ee81a2c3dc2ff28aa257f30` reached all normal/retained cases
+but failed this fixture's Host alias initialization; it is not counted as a
+complete acceptance pass. No product check was relaxed to repair that fixture.
+
+Successful evidence is retained locally in
+`public-query-evidence-DxoLOl/two-source-acceptance.json` (21 child command
+records, zero unexpected failures); the earlier failed attempt is retained in
+`public-query-evidence-B1bvYj`. Both live under the workspace `.codex-scratch`.
+The packed local-node SHA-256 is
+`f09bf206ecb80841375d93f3a56956c7aa61a4df3ac3b63bb42814ef0e9ea06c`;
+run-host-core is
+`ae96f379933ec3199cd02c4d2dac7b373815a37bb6d0345cf0f836b096209d2e`.
+The pack manifest binds all five distributions to the fixed source above.
+
+This closes the selected pure JOIN JSON/text comparison. Temporary confirmed
+cleanup and zero byte/reservation observations remain distinct from an explicit
+active-hold inventory and durable Named Result retention. The cumulative ledger
+`holdings` count is not an active count. Graph→INFER→Effect Result Policy binding
+and public acceptance remain D/A work in Draft #304; this pure JOIN acceptance
+does not establish that Graph composition or its approval/restart boundaries.
+
 ## Historical implemented versus execution evidence
 
 | Surface or boundary | Implemented checkpoint | Acceptance still required |

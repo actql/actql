@@ -243,7 +243,7 @@ fn append_admitted_buffer_presence(
     copy_relation_row(row, {
       max_nodes: budget.limits.max_nodes - budget.nodes,
       max_text_bytes: budget.limits.max_text_bytes - budget.text,
-      max_work: budget.limits.max_work - budget.work,
+      max_work: remaining_value_work(budget),
       max_depth: budget.limits.max_depth,
     }) {
     Ok(copied) => copied

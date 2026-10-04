@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readCatalog, compareCatalogs} from './actions.mjs';
-import {actionInputs, compareInputs, packageImports, sharedFiles} from './inputs.mjs';
+import {actionInputs, compareInputs, packageImports, sharedFiles, mutationSnapshotExtras} from './inputs.mjs';
 
 const catalog = readCatalog();
 const runtime = {profile: 'controlled-test-runtime', components: {node: '1'.repeat(64)}, unresolved: []};
@@ -87,4 +87,23 @@ test('literal formatter exclusions remain bound; dynamic configuration stays ope
   changed.set('src/bounded_execution/moon.pkg', 'formatter(ignore: [ "session_contract_wbtest.mbt" ])');
   assert.equal(inventory(changed).unresolved.length, 0);
   assert.equal(compareInputs(inventory(), inventory(changed)).eligible, false);
+});
+
+test('mutation restoration inputs include unrelated src members and the actual resource audit JSON files', () => {
+  const selected = catalog.actions.find(value => value.id === 'mutations-js'), files = new Map(base);
+  for (const path of mutationSnapshotExtras) if (!files.has(path)) files.set(path, 'independent audit');
+  files.set('proofs/bounded-session/mutations.mjs', 'original mutation executor');
+  files.set('proofs/bounded-session/evidence.mjs', 'original snapshot');
+  files.set('src/connectors/local/moon.pkg', ''); files.set('src/query_integration/moon.pkg', '');
+  const original = inventory(files, 'a'.repeat(40), selected);
+  assert.equal(original.unresolved.length, 0);
+  for (const change of [
+    map => map.set('src/unrelated/new.mbt', 'read by snapshot even without a compilation import'),
+    map => map.set(mutationSnapshotExtras[2], 'changed audit'),
+    map => map.delete(mutationSnapshotExtras[3]),
+    map => map.delete('proofs/bounded-session/mutations.mjs'),
+  ]) {
+    const changed = new Map(files); change(changed);
+    assert.equal(compareInputs(original, inventory(changed, 'b'.repeat(40), selected)).eligible, false);
+  }
 });
