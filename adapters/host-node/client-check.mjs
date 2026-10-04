@@ -5,7 +5,7 @@
 // outcome. MoonBit owns checking and the one actql-check-outcome/0.1
 // projection.
 import {createHmac, randomBytes} from 'node:crypto';
-import {validCheckOutcome} from '../../packages/client-wire/index.mjs';
+import {validCheckOutcome, checkReasonSchemaCid} from '../../packages/client-wire/index.mjs';
 // The common value encoding: String values stay exact (CR, LF and composed
 // or decomposed spellings differ); only object member names are canonical.
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
@@ -18,7 +18,7 @@ const contextVersion = 'actql-check-context/0.1';
 const scope = 'bound_input';
 
 const failed = code => Object.freeze({outcome: 'failed',
-  problem: Object.freeze({code}), version});
+  problem: Object.freeze({code}), reason_schema_cid: checkReasonSchemaCid, version});
 
 export function installNodeClientCheck({moon, environment, publication,
   sourceAccesses = [], contextKey = randomBytes(32)}) {
@@ -93,7 +93,8 @@ export function installNodeClientCheck({moon, environment, publication,
   const contextRef = (principalId, input, parameters, visible) => {
     const bound = {version: contextVersion, audience: principalId,
       disclosure_policy: disclosurePolicy, projection: version, scope,
-      compiler, environment_cid: environmentCid, visible_aliases: visible};
+      compiler, reason_schema_cid: checkReasonSchemaCid,
+      environment_cid: environmentCid, visible_aliases: visible};
     let preimage;
     try {
       preimage = canonicalJson({...bound,
@@ -109,6 +110,10 @@ export function installNodeClientCheck({moon, environment, publication,
     return `ctx:${createHmac('sha256', key).update(preimage).digest('hex')}`;
   };
 
+  const revision = (documentId, bytes) => `rev:${createHmac('sha256', key)
+    .update('actql-check-input/0.1\0').update(documentId).update('\0')
+    .update(bytes).digest('hex')}`;
+
   return async ({principalId, input, parameters, signal}) => {
     signal?.throwIfAborted();
     const visible = await visibleAliases(signal);
@@ -122,7 +127,10 @@ export function installNodeClientCheck({moon, environment, publication,
       input.format, environment,
       JSON.stringify({environmentCid, aliases: visible}),
       declarations, supplied,
-      contextRef(principalId, input, parameters, visible)));
+      contextRef(principalId, input, parameters, visible),
+      revision('source', input.text),
+      declarations === undefined ? undefined : revision('parameter_declarations', declarations),
+      supplied === undefined ? undefined : revision('parameters', supplied)));
     return validCheckOutcome(outcome) ? outcome : failed('check_internal');
   };
 }

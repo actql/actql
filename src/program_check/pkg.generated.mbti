@@ -154,6 +154,8 @@ pub fn diagnostic_location_source_path(DiagnosticLocation) -> String
 
 pub fn diagnostic_origin(CheckDiagnostic) -> DiagnosticOrigin?
 
+pub fn diagnostic_undeclared_parameter(CheckDiagnostic) -> String?
+
 pub fn effect_computation_catalog_references(EffectComputationCandidate) -> @check_environment.CatalogReferences
 
 pub fn effect_computation_environment(EffectComputationCandidate) -> @check_environment.WireEnvironment

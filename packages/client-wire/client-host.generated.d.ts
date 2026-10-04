@@ -293,6 +293,12 @@ export type WireCheckOutcomeShape = Readonly<{
   outcome: "completed";
   report: Readonly<{
   context_ref: string;
+  inputs: readonly Readonly<{
+  document_id: "source" | "parameter_declarations" | "parameters";
+  revision: string;
+  kind: "text" | "structured";
+  byte_length: number;
+}>[];
   coverage: Readonly<{
   limits: readonly Readonly<{
   code: string;
@@ -304,17 +310,73 @@ export type WireCheckOutcomeShape = Readonly<{
 }>;
   reasons: readonly Readonly<{
   code: string;
+  location?: Readonly<{
+  kind: "text";
+  document_id: "source";
+  revision: string;
+  start_byte: number;
+  end_byte: number;
+  precision: "exact" | "approximate";
+}> | Readonly<{
+  kind: "structured";
+  document_id: "parameter_declarations" | "parameters";
+  revision: string;
+  pointer: string;
+}>;
+  facts?: Readonly<{
+  parameter: string;
+}> | Readonly<{
+  parameter: string;
+  expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "artifact_ref";
+  actual_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "artifact_ref";
+}> | Readonly<{
+  parameter: string;
+  expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "artifact_ref";
+}>;
+}>[];
+  requirements: readonly Readonly<{
+  code: "parameter_value_required";
+  location?: Readonly<{
+  kind: "text";
+  document_id: "source";
+  revision: string;
+  start_byte: number;
+  end_byte: number;
+  precision: "exact" | "approximate";
+}> | Readonly<{
+  kind: "structured";
+  document_id: "parameter_declarations" | "parameters";
+  revision: string;
+  pointer: string;
+}>;
+  facts: Readonly<{
+  parameter: string;
+}> | Readonly<{
+  parameter: string;
+  expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "artifact_ref";
+  actual_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "artifact_ref";
+}> | Readonly<{
+  parameter: string;
+  expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "artifact_ref";
+}>;
 }>[];
   scope: Readonly<{
   kind: "bound_input";
 }>;
   verdict: "invalid" | "undetermined" | "verified";
 }>;
+  reason_schema_cid: "sha256:6ef2aefaf03e046fcfa830ce1b0648c6b04701162755ba869a9996cd69ade8ef";
   version: "actql-check-outcome/0.1";
 }> | Readonly<{
   outcome: "failed";
   partial_report?: Readonly<{
   context_ref: string;
+  inputs: readonly Readonly<{
+  document_id: "source" | "parameter_declarations" | "parameters";
+  revision: string;
+  kind: "text" | "structured";
+  byte_length: number;
+}>[];
   coverage: Readonly<{
   limits: readonly Readonly<{
   code: string;
@@ -326,6 +388,55 @@ export type WireCheckOutcomeShape = Readonly<{
 }>;
   reasons: readonly Readonly<{
   code: string;
+  location?: Readonly<{
+  kind: "text";
+  document_id: "source";
+  revision: string;
+  start_byte: number;
+  end_byte: number;
+  precision: "exact" | "approximate";
+}> | Readonly<{
+  kind: "structured";
+  document_id: "parameter_declarations" | "parameters";
+  revision: string;
+  pointer: string;
+}>;
+  facts?: Readonly<{
+  parameter: string;
+}> | Readonly<{
+  parameter: string;
+  expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "artifact_ref";
+  actual_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "artifact_ref";
+}> | Readonly<{
+  parameter: string;
+  expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "artifact_ref";
+}>;
+}>[];
+  requirements: readonly Readonly<{
+  code: "parameter_value_required";
+  location?: Readonly<{
+  kind: "text";
+  document_id: "source";
+  revision: string;
+  start_byte: number;
+  end_byte: number;
+  precision: "exact" | "approximate";
+}> | Readonly<{
+  kind: "structured";
+  document_id: "parameter_declarations" | "parameters";
+  revision: string;
+  pointer: string;
+}>;
+  facts: Readonly<{
+  parameter: string;
+}> | Readonly<{
+  parameter: string;
+  expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "artifact_ref";
+  actual_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "artifact_ref";
+}> | Readonly<{
+  parameter: string;
+  expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "artifact_ref";
+}>;
 }>[];
   scope: Readonly<{
   kind: "bound_input";
@@ -335,6 +446,7 @@ export type WireCheckOutcomeShape = Readonly<{
   problem: Readonly<{
   code: string;
 }>;
+  reason_schema_cid: "sha256:6ef2aefaf03e046fcfa830ce1b0648c6b04701162755ba869a9996cd69ade8ef";
   version: "actql-check-outcome/0.1";
 }> | Readonly<{
   correlation_ref: string;
@@ -342,5 +454,19 @@ export type WireCheckOutcomeShape = Readonly<{
   problem: Readonly<{
   code: string;
 }>;
+  reason_schema_cid: "sha256:6ef2aefaf03e046fcfa830ce1b0648c6b04701162755ba869a9996cd69ade8ef";
   version: "actql-check-outcome/0.1";
+}>;
+export type WireCheckLocationShape = Readonly<{
+  kind: "text";
+  document_id: "source";
+  revision: string;
+  start_byte: number;
+  end_byte: number;
+  precision: "exact" | "approximate";
+}> | Readonly<{
+  kind: "structured";
+  document_id: "parameter_declarations" | "parameters";
+  revision: string;
+  pointer: string;
 }>;
