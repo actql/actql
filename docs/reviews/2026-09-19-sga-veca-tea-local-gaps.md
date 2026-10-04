@@ -67,6 +67,14 @@ retained Carrier snapshot. Cancellation at the captured-input handoff reclaims
 its file without a second read. This path does not claim that
 a nullable Salesforce datetime can directly serve as the non-null Event clock,
 nor does the handoff cancellation prove cancellation inside a TEA kernel.
+The installed GitHub Issues source provides a separate non-null numeric Event
+clock from issue numbers. An HTTPS Program retains that acquired input, runs
+`to_events` and a fixed `window_events` transform, and publishes the formal
+`events` Bridge and a later consumer with independent ordered window rows.
+Reading the committed Result after Host reopen does not repeat either source
+page. This is a fixed-window route with a genuine varying source clock, not
+evidence for other TEA window variants or in-kernel cancellation of an
+externally acquired input.
 For a row connector with multiple declared views, the two-installation Host
 now carries each view's source reference and read tuple into Check disclosure
 and pre-acquisition Checkpoint selection. The installed source still prepares

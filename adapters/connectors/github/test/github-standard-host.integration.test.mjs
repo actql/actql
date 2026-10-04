@@ -325,6 +325,54 @@ test('installed row source retains public output across Host reopen',
     assert.equal(listings(setup.api).length, reads);
   });
 
+test('retained GitHub rows keep Event times through a fixed window', async t => {
+  const setup = await installation(t, {retainedRelationOutput: true});
+  await setup.publish();
+  const document = JSON.parse(program);
+  document.id = 'github-retained-fixed-events';
+  document.stages[1] = {id: 'events',
+    inputs: {rows: {result: {stage: 'acquire', result: 'r'}}},
+    steps: [
+      {from: 'rows', to_events: {id: 'number', time: 'number'}, as: 'source'},
+      {from: 'source', window_events: {kind: 'fixed', size: 2},
+        as: 'windowed'},
+      {from: 'windowed', events: true, as: 'out'},
+    ], results: {r: {from: 'out', fields: ['number', 'title', 'author',
+      'window_start_ms', 'window_end_ms']}}};
+  document.stages.push({id: 'consumer',
+    inputs: {x: {result: {stage: 'events', result: 'r'}}},
+    steps: [{select: ['number', 'window_start_ms'], as: 'out'}],
+    results: {r: {from: 'out', fields: ['number', 'window_start_ms']}}});
+  document.results = {windowed: {from: {stage: 'events', result: 'r'}},
+    consumed: {from: {stage: 'consumer', result: 'r'}}};
+  const {client, close} = await setup.open();
+  const run = await client.aql(JSON.stringify(document), {format: 'json',
+    requestId: 'github-retained-fixed-events'});
+  const state = await run.wait();
+  assert.equal(state.status, 'succeeded', JSON.stringify(state));
+  const expected = [
+    {number: 1, title: 'Issue 1', author: 'octocat',
+      window_start_ms: 0, window_end_ms: 2},
+    {number: 4, title: 'Issue 4', author: 'octocat',
+      window_start_ms: 4, window_end_ms: 6},
+    {number: 5, title: 'Issue 5', author: 'octocat',
+      window_start_ms: 4, window_end_ms: 6},
+  ];
+  assert.deepEqual(await run.result('windowed').all(), expected);
+  assert.deepEqual(await run.result('consumed').all(), [
+    {number: 1, window_start_ms: 0},
+    {number: 4, window_start_ms: 4},
+    {number: 5, window_start_ms: 4},
+  ]);
+  const reads = listings(setup.api).length;
+  assert.equal(reads, 2);
+  await close();
+  const reopened = await setup.open();
+  const attached = await reopened.client.attach(run.ref);
+  assert.deepEqual(await attached.result('windowed').all(), expected);
+  assert.equal(listings(setup.api).length, reads);
+});
+
 test('retained row source admits its exact row ceiling and refuses one more',
   async t => {
     const observations = [];
