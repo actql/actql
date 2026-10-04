@@ -86,6 +86,26 @@ test('canonical immutable receipt binds actual command output and independent ex
 test('a completed main origin is authenticated by attempt, job and archive metadata', async () => {
   assert.equal((await authenticateOrigin({receipt: receipt(), artifactId: 6, expected, request: api(), acquisition: 'reused'})).id, 6);
 });
+test('manual receipt keeps its actual trigger and authenticates fresh and protected-main provenance', async () => {
+  const manual = sealReceipt({origin: {...origin, event: 'workflow_dispatch'}, action, inputs: inputs(), output, status: 0, milliseconds: 15});
+  assert.deepEqual(parseReceipt(canonicalReceipt(manual)), manual);
+  const request = api('1'.repeat(64), ({run}) => { run.event = 'workflow_dispatch'; });
+  await authenticateOrigin({receipt: manual, artifactId: 6, expected, request, acquisition: 'reused'});
+  await authenticateOrigin({receipt: manual, artifactId: 6,
+    expected: {...expected, candidateRevision: revision, runHeadRevision: revision, runId: 3, runAttempt: 4}, request, acquisition: 'fresh'});
+  await assert.rejects(authenticateOrigin({receipt: manual, artifactId: 6, expected, request: api(), acquisition: 'reused'}));
+  let runReads = 0;
+  await assert.rejects(authenticateOrigin({receipt: manual, artifactId: 6, expected, acquisition: 'reused',
+    request: async path => {
+      const value = await request(path);
+      if (path === '/actions/runs/3' && ++runReads > 1) value.event = 'push';
+      return value;
+    }}));
+  assert.equal(runReads, 2);
+  const branch = {...manual, origin: {...manual.origin, branch: 'feature'}};
+  await assert.rejects(authenticateOrigin({receipt: branch, artifactId: 6, expected,
+    request: api('1'.repeat(64), ({run}) => { run.event = 'workflow_dispatch'; run.head_branch = 'feature'; }), acquisition: 'reused'}));
+});
 
 for (const [name, mutate] of [
   ['cancelled run', ({run}) => {run.conclusion = 'cancelled';}],
