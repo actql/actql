@@ -4666,13 +4666,15 @@ properties, endpoints, and definitions into a new bounded Graph generation.
 A focused JS fixture verifies the copied keyed nodes and parallel edges,
 quantum-one progress, cancellation after a partial output before handoff, and
 a literal workspace exact/one-short boundary. A source Program passes public
-checking; one isolated standard Host case retained the normalized Graph,
-published MATCH rows and two consumer Named Results, and reclaimed its
+checking; one focused postmerge standard Host case retained the normalized
+Graph, published MATCH rows and two consumer Named Results, and reclaimed its
 resources. The shared task splitter
 now separates a selected Carrier-to-Carrier normalization before a later
 Relation consumer without changing the fused preference of other families.
 The copy now enforces an independently calculated 37-step control-work
-boundary at quantum one and seven; 36 fails without publishing output. This
-is not current-profile completion: Graph storage's encoded-value work and
-large-value noninterruptible sections, broader Host failures, and final-source
-CI still need evidence.
+boundary at quantum one and seven; 36 fails without publishing output. The
+selected-provider fixture passes on JS, Wasm and native and checks exact/one-
+short node, edge and workspace capacity. This is not current-profile
+completion: Graph storage's encoded-value work and large-value
+noninterruptible sections, broader Host failures, and final-source CI still
+need evidence.

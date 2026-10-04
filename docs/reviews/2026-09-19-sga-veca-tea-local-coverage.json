@@ -102,19 +102,29 @@
       "variants": ["duplicate policy", "dangling edge policy", "property admission"],
       "status": "partial",
       "owner": "local-sga",
-      "current_gap": "Current typed Graph normalization has JS checker, bounded provider, keyed-copy custody, control-work, workspace and entity-count exact/one-short boundaries, and one isolated retained-Store Host publication case. Graph storage encoded-value work, long-value cancellation, three-target verification, full Host matrix, and final-source CI are not yet current-profile evidence.",
+      "current_gap": "Current typed Graph normalization has checker, bounded provider, keyed-copy custody, control-work, workspace and entity-count exact/one-short boundaries on JS/Wasm/native, and a postmerge retained-Store Host publication case. Graph storage encoded-value work, long-value cancellation, the full Host failure matrix, and final-source CI are not yet current-profile evidence.",
       "completed_layers": ["contract", "resources", "cancellation"],
       "layer_evidence": [
         {
-          "scope": "current_typed_graph_copy_and_retained_host_publication",
-          "layers": ["checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "publication"],
+          "scope": "current_typed_graph_checked_program",
+          "layers": ["checker", "lowering"],
           "targets": ["js"],
-          "evidence": [
-            "src/program_check/property_graph_public_test.mbt",
-            "src/query_integration/property_graph_provider_custody_wbtest.mbt",
-            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
-          ],
-          "verification": "Focused JS Program and selected-provider tests passed. The selected-provider fixture checks independently calculated control-work exact/one-short under quanta 1 and 7, workspace and node/edge capacity exact/one-short, and partial-output cancellation. The isolated new standard Host retained-Store case passed with three independent Named Results. This does not claim the full Host matrix or three-target boundary closure."
+          "evidence": ["src/program_check/property_graph_public_test.mbt"],
+          "verification": "The focused JS Program check passed for constructor, normalize, MATCH and derive."
+        },
+        {
+          "scope": "current_typed_graph_selected_provider",
+          "layers": ["kernel", "managed", "consumer_lifetime", "resources", "cancellation"],
+          "targets": ["js", "wasm", "native"],
+          "evidence": ["src/query_integration/property_graph_provider_custody_wbtest.mbt"],
+          "verification": "The focused selected-provider fixture passed on JS, Wasm and native. It checks independently calculated control-work exact/one-short under quanta 1 and 7, workspace and node/edge capacity exact/one-short, and partial-output cancellation."
+        },
+        {
+          "scope": "current_typed_graph_retained_host_publication",
+          "layers": ["standard_host", "consumer_lifetime", "publication"],
+          "targets": ["node"],
+          "evidence": ["adapters/connectors/duckdb/node/test/standard-host.test.mjs"],
+          "verification": "The focused postmerge standard Host retained-Store case passed with three independent Named Results and final resource release. It does not claim the full Host failure matrix or resource closure."
         }
       ],
       "historical_implementation_evidence": [
