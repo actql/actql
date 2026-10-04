@@ -2,8 +2,10 @@
 
 ## Ownership and evidence status
 
-A owns investigation and any common capacity repair; D repeats the public
-acceptance after A provides a fixed source. The Run execution ceiling remains
+A owns investigation and any common capacity repair. B will finish #287's
+remaining public cases after adopting A's fixed source; D can reuse this
+handoff for the shared execution boundary without duplicating B's corpus.
+The Run execution ceiling remains
 536,870,912 bytes (512 MiB). B does not change coefficients, logical ceilings,
 providers or reservation enforcement. Zero existing reservation does not imply
 that a new attempt fits. These measurements establish rejection, not a defect
@@ -70,16 +72,91 @@ Source inspection at the fixed Group revision gives this chain:
    bounded row/input/output/measurement envelopes. It adds the maximum fragment
    allowance across `generated.contexts`:
    `live_value_bytes * 264 + (body_nodes + body_depth) * 256 + body_bytes * 8`.
-   The observed total less base scratch is respectively 539,513,856;
-   517,608,192; 594,165,248 bytes for the original three failures. These
-   differences do not reveal which individual context supplied the maximum.
-3. `physical_strategy/task_execution.mbt` preserves transfer, retention,
+   This is the base sequence allowance, not the complete managed provider
+   reservation. Subtracting base scratch from the observed managed total does
+   **not** isolate a fragment peak: chain child holding and the dispatch copy
+   allowance must also be included. The earlier subtraction-only inference is
+   superseded by the component calculation below.
+3. `connectors/local/selected_relation_provider.mbt::bounded_relation_chain_capacity`
+   sums each selected child's retention plus execution allowance, then adds
+   256 bytes per child handle. Child views keep the original context inventory.
+   The chain retains started children until reverse-order parent cleanup, even
+   though it advances one child at a time.
+4. `connectors/local/driver/managed_dispatch.mbt` adds the parent output
+   retention and any imported-input retention to provider execution capacity.
+   `physical_strategy/task_execution.mbt` preserves transfer, retention,
    scratch and execution allowances from the prepared managed execution and
    calls `physical_resources/ledger.mbt::reserve_attempt` before starting it.
-4. `reserve_attempt` rejects execution greater than ceiling minus current
+5. `reserve_attempt` rejects execution greater than ceiling minus current
    reservation before mutating usage. Initial strategy usage is all zero in
    the diagnostic. Lowering the coefficients without a sound upper-bound
    derivation would weaken this admission rule.
+
+### Group component calculation at the fixed source
+
+Source inspection at `4c0f7a1e6d93533569e877d3db6d75a9003d6c4a`
+accounts exactly for both recorded Group reservations. This is an arithmetic
+cross-check against source and observed totals, not a new execution or proof
+that the allowance is tight. Both saved Programs are source-free, so imported
+input retention and transfer are zero.
+
+| Component | Calculation | Bytes |
+|---|---|---:|
+| Child retained output | `(10,000 + 10,000 + 20,000) * 256 + 500,000 * 8` | 14,240,000 |
+| Child base scratch nodes | `(10,000 + 10,000 + 100 + 20,000 + 20,000 + 20,000 + 100) * 256` | 20,531,200 |
+| Child base scratch text | `(500,000 + 500,000 + 500,000) * 8` | 12,000,000 |
+| Fragment live roots | Compute-stage live ceiling `100,000 * 264` | 26,400,000 |
+| Fragment physical traversal | `(10,000 + 100) * 256 + 100,000 * 8` | 3,385,600 |
+| Child execution | Base scratch plus maximum fragment allowance | 62,316,800 |
+| Child holding plus execution | `14,240,000 + 62,316,800` | 76,556,800 |
+
+The saved original-key Program contains seven steps (VALUES, literal derive,
+public input projection, SET derive, group, sort, Result projection); the
+current-key Program has eight, adding the post-group key-name projection.
+Single-step views retain both derive contexts; even children without an
+expression context of their own receive the same base fragment ceiling in the
+current capacity calculation. The selected row, VALUES and group providers
+delegate their child allowance to the same sequence-capacity function.
+
+| Program | Chain children plus handles | Parent output copy holding | Imported input | Total managed execution |
+|---|---:|---:|---:|---:|
+| Original key | `7 * 76,556,800 + 7 * 256 = 535,899,392` | 14,240,000 | 0 | 550,139,392 |
+| Current key | `8 * 76,556,800 + 8 * 256 = 612,456,448` | 14,240,000 | 0 | 626,696,448 |
+
+The observed difference, 76,557,056 bytes, is one extra child allowance plus
+one handle. It is not evidence that the rename projection can simply be
+deleted. Check whether the complete fragment inventory needs charging in
+every child and whether scratch remains live after a child completes. The
+actual reverse cleanup retains children and borrowed completion readers; any
+tighter bound must account for those lifetimes and cancellation, rather than
+replace the sum with a maximum without proof.
+
+### B's lowering review and separate expectation repair
+
+At submitted #287 HEAD `d1d98c5414872bca35a6f3ec5182c211f269f81e`,
+the original-key Program already has group → sort → one Result projection.
+There is no adjacent duplicate ORDER cleanup projection like the defect fixed
+in #286. In the current-key form the intervening projection renames the
+evaluated SET slot to the visible group key `x`; following ORDER and Result
+read that new output scope. B has not established a redundant operation that
+can be removed while preserving evaluation, failures and the checkpoint
+contract. Do not drop the authored SET just because this fixture's original
+key does not consume its output.
+
+The independent complete SQL/Pipe expectations added at that HEAD close the
+obsolete Program-equality assertion only. They retain predicate, COUNT, key,
+column order and ORDER while describing each form's own projection placement.
+They do not close capacity refusal. Automatic
+[CI run 37162983732](https://github.com/actql/actql/actions/runs/37162983732)
+for that HEAD uses merge tree `6011bb1fcc48305e7351ea8dbf3cf86df542f8bc`.
+Its packed artifact again records `group-snapshot-original-key` ending with
+`ACTQL_E_UNPUBLISHED_RUN`; the preceding two SUM cases pass, but subsequent
+Group cases and HTTP are not reached. This CI artifact records the publication
+symptom; the earlier fixed-runtime diagnostic identifies capacity as the first
+failure. The independent-Program distribution job passed on that submitted
+HEAD. The packed job and its Client aggregate failed; other CI jobs were still
+running when this record was made. Distribution success and public execution
+failure are separate evidence.
 
 Remaining investigation belongs to A: identify the maximum context for each
 selected task, its upper-bound source and units, retained input/output holding
@@ -109,7 +186,7 @@ that follow-up source.
 [#287](https://github.com/actql/actql/pull/287) remains Draft. Its SET/DROP SUM
 and two scope refusals pass on both packed transports; the ordered original
 and current grouping-key examples above have not published. The broader Group
-fixture's later cases remain unexecuted. D should use the same ordinary public
+fixture's later cases remain unexecuted. B will use the same ordinary public
 path after A's fixed SHA, checking rows, ordered full describe contracts,
 stream completion and acquisition/retry counters.
 
