@@ -5493,6 +5493,22 @@ These operations convert the admitted Property Graph to the existing Relation
 using the corresponding registered bridge. Bare `to_rows` is not accepted for a graph because node rows and edge
 rows are distinct meanings.
 
+```json
+{"from":"g","node_rows":{"definition":"Person"},"as":"people"}
+```
+
+<!-- requirement-block: graph-rows.definition-selection graph-rows.definition-schema graph-rows.definition-identity -->
+The body MUST be either `true` (all definitions of the corresponding element
+kind) or a closed object containing only `definition` (one definition of that
+kind). Definition lookup MUST use the admitted Graph name identity and reject
+unknown names, a name of the wrong element kind, or additional fields at check
+time, rather than return an empty Relation. Output schema and presence MUST
+derive from the selected declarations even for zero rows; nullable remains
+independent of presence. Selection is part of the Program and emitted Plan
+meaning, not a runtime inference from data. Selected rows retain their original
+typed identities, domains, key components and node endpoint identities. The
+initial object form does not support label refinement.
+
 <!-- requirement-block: graph-rows.fields-and-aliases graph-rows.typed-identity-roles graph-rows.omission-is-not-null graph-rows.saved-key-correspondence -->
 Graph row projection MUST retain the admitted identity types and property
 evidence. Node rows expose required `id`, `labels`; edge rows expose required

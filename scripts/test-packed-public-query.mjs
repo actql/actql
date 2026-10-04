@@ -88,6 +88,8 @@ await writeFile(join(root, 'fixtures/property-graph-parallel.program.json'),
   await readFile(join(repository, 'scripts/fixtures/property-graph-parallel.program.json')));
 await writeFile(join(root, 'fixtures/property-graph-presence.program.json'),
   await readFile(join(repository, 'scripts/fixtures/property-graph-presence.program.json')));
+await writeFile(join(root, 'fixtures/property-graph-definition-rows.program.json'),
+  await readFile(join(repository, 'scripts/fixtures/property-graph-definition-rows.program.json')));
 await writeFile(join(root, 'fixtures/property-graph-traverse-nodes.expected.json'),
   await readFile(join(repository, 'scripts/fixtures/property-graph-traverse-nodes.expected.json')));
 run('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',

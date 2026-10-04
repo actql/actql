@@ -16,6 +16,7 @@ pub(all) enum IssueKind {
   UnsupportedGraphOperation
   OutputCollision(@row.FieldName)
   OutputTypeConflict(@row.FieldName)
+  UnknownDefinition(String)
 } derive(Eq, Debug)
 
 ///|
@@ -47,6 +48,7 @@ struct CheckedProjection {
   input : @carrier.Carrier
   output : @carrier.Carrier
   usage : Usage
+  definition : String?
 }
 
 ///|
@@ -77,7 +79,9 @@ pub fn check(
   if limits.max_work == 0 || limits.max_nodes == 0 {
     return Err(issue(source, BudgetExceeded))
   }
-  if @decode.boolean(source) != Ok(true) {
+  if operation != NodeRows &&
+    operation != EdgeRows &&
+    @decode.boolean(source) != Ok(true) {
     return Err(issue(source, InvalidBody))
   }
   let expected = match operation {
@@ -119,6 +123,7 @@ pub fn check(
       nodes: 1,
       text_bytes: limits.max_text_bytes - text,
     },
+    definition: None,
   })
 }
 
@@ -145,4 +150,10 @@ pub fn output(value : CheckedProjection) -> @carrier.Carrier {
 ///|
 pub fn usage(value : CheckedProjection) -> Usage {
   value.usage
+}
+
+///|
+/// Resolved admitted definition name; None retains the all-definition Bridge.
+pub fn selected_definition(value : CheckedProjection) -> String? {
+  value.definition
 }

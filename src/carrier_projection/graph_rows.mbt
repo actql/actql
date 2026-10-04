@@ -20,18 +20,57 @@ fn check_graph_rows(
     return Err(issue(source, IncompleteGraph))
   }
   let profile = @carrier.graph_property_definition(graph)
-  let definitions = if operation == NodeRows {
+  let family = if operation == NodeRows {
     @carrier.property_graph_node_definitions(profile)
   } else {
     @carrier.property_graph_edge_definitions(profile).map(
       @carrier.property_edge_element,
     )
   }
-  if definitions.length() > limits.max_work - 1 ||
-    definitions.length() > limits.max_nodes - 1 {
+  if family.length() > limits.max_work - 1 ||
+    family.length() > limits.max_nodes - 1 {
     return Err(issue(source, BudgetExceeded))
   }
-  let mut work = limits.max_work - 1 - definitions.length()
+  let mut work = limits.max_work - 1 - family.length()
+  let mut text = limits.max_text_bytes
+  let selected = if @decode.boolean(source) == Ok(true) {
+    None
+  } else {
+    let object = match @decode.closed_object(source, ["definition"]) {
+      Ok(object) => object
+      Err(_) => return Err(issue(source, InvalidBody))
+    }
+    let at = match @decode.required(object, "definition") {
+      Ok(at) => at
+      Err(_) => return Err(issue(source, InvalidBody))
+    }
+    let name = match @decode.text(at) {
+      Ok(name) => name
+      Err(_) => return Err(issue(at, InvalidBody))
+    }
+    match @scalar.admit_utf8_length(name, text) {
+      Ok(size) => text -= size
+      Err(_) => return Err(issue(at, BudgetExceeded))
+    }
+    let folded_name = @carrier.property_name_identity(name)
+    let mut found = None
+    for definition in family {
+      if @carrier.property_name_identity(
+          @carrier.property_definition_name(definition),
+        ) ==
+        folded_name {
+        found = Some(definition)
+      }
+    }
+    guard found is Some(definition) else {
+      return Err(issue(at, UnknownDefinition(name)))
+    }
+    Some(definition)
+  }
+  let definitions = match selected {
+    Some(definition) => [definition]
+    None => family
+  }
   // Spelling selection needs deterministic order, but sorting is not free work.
   // Stop as soon as the existing check budget cannot cover another comparison.
   for index in 1..<definitions.length() {
@@ -60,8 +99,14 @@ fn check_graph_rows(
     ["id", "src", "dst", "labels"]
   }
   let known : Map[String, GraphRowField] = Map([])
-  let mut text = limits.max_text_bytes
-  let mut nodes = limits.max_nodes - 1 - definitions.length()
+  // Selection narrows the output schema, not the family already enumerated.
+  let mut nodes = limits.max_nodes - 1 - family.length()
+  if selected is Some(_) {
+    if nodes == 0 {
+      return Err(issue(source, BudgetExceeded))
+    }
+    nodes -= 1
+  }
   for definition in definitions {
     let definition_names : Map[String, Bool] = Map([])
     let properties = @carrier.property_definition_properties(definition)
@@ -184,5 +229,6 @@ fn check_graph_rows(
       nodes: limits.max_nodes - nodes,
       text_bytes: limits.max_text_bytes - text,
     },
+    definition: selected.map(@carrier.property_definition_name),
   })
 }
