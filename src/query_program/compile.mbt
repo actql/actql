@@ -339,7 +339,11 @@ pub fn same_relation_path(
 ///|
 // Compare semantic source trees, ignoring grouping parentheses and spans.
 // Indices are local to each expression owner and cannot be compared directly.
-fn same_expression(left : @query.Expression, right : @query.Expression) -> Bool {
+fn same_expression(
+  left : @query.Expression,
+  right : @query.Expression,
+  references? : (Array[@query.NamePart], Array[@query.NamePart]) -> Bool = same_path,
+) -> Bool {
   let pending = [(@query.expression_root(left), @query.expression_root(right))]
   while pending.pop() is Some((a_index, b_index)) {
     let a = @query.expression_node(left, a_index).unwrap().kind
@@ -347,7 +351,7 @@ fn same_expression(left : @query.Expression, right : @query.Expression) -> Bool 
     match (a, b) {
       (Parenthesized(child), _) => pending.push((child, b_index))
       (_, Parenthesized(child)) => pending.push((a_index, child))
-      (Reference(x), Reference(y)) => if !same_path(x, y) { return false }
+      (Reference(x), Reference(y)) => if !references(x, y) { return false }
       (Call(x, ax), Call(y, ay)) => {
         if !same_path(x, y) || ax.length() != ay.length() {
           return false
@@ -397,6 +401,41 @@ fn same_expression(left : @query.Expression, right : @query.Expression) -> Bool 
     }
   }
   true
+}
+
+///|
+// GROUP expressions resolve against one input snapshot. A range-qualified
+// receiver and its unqualified spelling may denote the same physical value.
+// Unknown receivers never prove equality; property names retain their values.
+fn same_group_reference(
+  left : Array[@query.NamePart],
+  right : Array[@query.NamePart],
+  resolve : (Array[@query.NamePart]) -> String?,
+) -> Bool {
+  let prefix = fn(path : Array[@query.NamePart]) -> (String, Int)? {
+    let mut length = path.length()
+    while length > 0 {
+      if resolve(path[:length].to_owned()) is Some(slot) {
+        return Some((slot, length))
+      }
+      length -= 1
+    }
+    None
+  }
+  match (prefix(left), prefix(right)) {
+    (Some((a, a_length)), Some((b, b_length))) => {
+      if a != b || left.length() - a_length != right.length() - b_length {
+        return false
+      }
+      for index in 0..<(left.length() - a_length) {
+        if left[a_length + index].value != right[b_length + index].value {
+          return false
+        }
+      }
+      true
+    }
+    _ => false
+  }
 }
 
 ///|
@@ -1880,18 +1919,21 @@ fn compile_steps(
             root_index = child
           }
           let root = @query.expression_node(expression, root_index).unwrap()
-          let name = match root.kind {
+          let direct = match root.kind {
             Reference(path) =>
-              match
-                (if scoped {
-                  pipe_slot(path, pipe_visible, pipe_ranges)
-                } else {
-                  resolve_column(path, query, input, active_fields)
-                }) {
-                Some(field) => field
-                None => raise Abort(UnknownColumn)
+              if scoped {
+                pipe_slot(path, pipe_visible, pipe_ranges)
+              } else {
+                resolve_column(path, query, input, active_fields)
               }
-            _ => {
+            _ => None
+          }
+          let name = match direct {
+            Some(field) => field
+            None => {
+              if root.kind is Reference(path) && path.length() == 1 {
+                raise Abort(UnknownColumn)
+              }
               let name = "aql_group_key_" + index.to_string()
               if active_fields.contains(name) || key_names.contains(name) {
                 raise Abort(UnsupportedGrouping)
@@ -1922,6 +1964,30 @@ fn compile_steps(
           )
           by.push(construction.text(name))
           grouped_keys.push((expression, name))
+        }
+        if sql_group_projection {
+          // Record only SELECT trees proven to mean the same evaluated key.
+          // Reusing the key does not revive its original object after GROUP.
+          let keys = grouped_keys.copy()
+          let resolve = path => {
+            if scoped {
+              pipe_slot(path, input_visible, input_ranges)
+            } else {
+              resolve_column(path, query, input, active_fields)
+            }
+          }
+          for projection in projections {
+            if projection.expression is Some(expression) {
+              for (key, slot) in keys {
+                if same_expression(key, expression, references=(left, right) => {
+                    same_group_reference(left, right, resolve)
+                  }) {
+                  grouped_keys.push((expression, slot))
+                  break
+                }
+              }
+            }
+          }
         }
         if sql_group_projection {
           // SELECT siblings resolve against retained GROUP input values.
