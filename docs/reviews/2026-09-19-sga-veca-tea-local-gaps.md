@@ -36,9 +36,11 @@ before public completion. A portable three-target fixture checks long
 typed-identity comparison with quantum-one stop, workspace 10/9, output rows
 2/1, control work 184/183, and canonical order. It checks directional degree
 on a two-node directed Graph with workspace 8/7 and control work 178/177.
-Task-wide cumulative work, remaining formal variants, and final-source CI
-are not yet current-profile completion evidence; the old tuple diagnostics
-records below remain historical.
+The same stored and managed-view fixture now shares one budget between
+control steps and retained output values: bounds work 802/801 and degree
+work 760/759 are exact/one-short with independently counted values.
+Remaining formal variants and final-source CI are not yet current-profile
+completion evidence; the old tuple diagnostics records below remain historical.
 
 The retained Node Host now also exercises combined node, edge and degree
 threshold violations, zero thresholds on an empty Graph, and `degree` in all

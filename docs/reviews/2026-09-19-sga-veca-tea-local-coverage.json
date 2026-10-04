@@ -1265,7 +1265,7 @@
       "variants": ["node bound", "edge bound", "degree bound", "combined bounds"],
       "status": "partial",
       "owner": "local-sga",
-      "current_gap": "Current definition-keyed Graph bounds reach a bounded selected provider, retained Store publication and two consumers. Combined node/edge/degree thresholds, zero bounds on an empty Graph, and long typed-key ordering are exercised. Task-wide cumulative work, other formal branches and final CI remain open.",
+      "current_gap": "Current definition-keyed Graph bounds reach a bounded selected provider, retained Store publication and two consumers. Combined node/edge/degree thresholds, zero bounds on an empty Graph, and long typed-key ordering are exercised. The stored and viewed two-node fixture now enforces cumulative control and output-value work at exact/one-short limits. Other formal branches and final CI remain open.",
       "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "publication"],
       "layer_evidence": [
         {
@@ -1276,7 +1276,7 @@
             "src/local_sga/graph_diagnostics.mbt",
             "src/query_integration/property_graph_text_key_custody_wbtest.mbt"
           ],
-          "verification": "Long typed identity ordering, workspace 10/9, output rows 2/1, control work 184/183, and quantum-one stop cover stored and managed-view inputs on three targets."
+          "verification": "Long typed identity ordering, workspace 10/9, output rows 2/1, control work 184/183, cumulative control plus output-value work 802/801, and quantum-one stop cover stored and managed-view inputs on three targets."
         },
         {
           "scope": "current_property_graph_bounds_retained_store_publication",
@@ -1341,7 +1341,7 @@
       "variants": ["incoming", "outgoing", "both", "typed edges"],
       "status": "partial",
       "owner": "local-sga",
-      "current_gap": "Current definition-keyed Graph degree uses the bounded diagnostic provider. A two-node directed fixture covers in/out/both and semantic ID order; the retained Store publishes all three directions and empty Graph output with two consumers. Task-wide cumulative work, all typed edge variants and final CI remain open.",
+      "current_gap": "Current definition-keyed Graph degree uses the bounded diagnostic provider. A two-node directed fixture covers in/out/both and semantic ID order; the retained Store publishes all three directions and empty Graph output with two consumers. The stored and viewed two-node fixture now enforces cumulative control and output-value work at exact/one-short limits. All typed edge variants and final CI remain open.",
       "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "publication"],
       "layer_evidence": [
         {
@@ -1352,7 +1352,7 @@
             "src/local_sga/graph_diagnostics.mbt",
             "src/query_integration/property_graph_text_key_custody_wbtest.mbt"
           ],
-          "verification": "In/out/both directed-incidence results, canonical semantic ID order, workspace 8/7 and control work 178/177 cover stored and managed-view inputs on three targets."
+          "verification": "In/out/both directed-incidence results, canonical semantic ID order, workspace 8/7, control work 178/177 and cumulative control plus output-value work 760/759 cover stored and managed-view inputs on three targets."
         },
         {
           "scope": "current_property_graph_degree_retained_store_publication",

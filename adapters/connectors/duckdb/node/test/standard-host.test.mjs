@@ -1973,7 +1973,14 @@ async function exerciseStrategyGraph(
     fields:['src','dst','weight'],secondFields:['weight','src'],
     expected:[{src:1,dst:2,weight:10},{src:2,dst:1,weight:20}],
   }];
+  const focusedGraphCase = process.env.ACTQL_STANDARD_HOST_GRAPH_CASE;
+  if (focusedGraphCase !== undefined) {
+    assert(graphPublicationCases.some(value => value.name === focusedGraphCase),
+      `Unknown focused Graph case: ${focusedGraphCase}`);
+  }
   for (const publicationCase of graphPublicationCases) {
+    if (focusedGraphCase !== undefined &&
+        publicationCase.name !== focusedGraphCase) continue;
     const graphProgram = structuredClone(graphProgramBase);
     if (publicationCase.inputRows !== undefined) {
       graphProgram.stages.find(stage => stage.id === 'values')
@@ -2217,6 +2224,7 @@ async function exerciseStrategyGraph(
     'construction-capacity', 'consumer-filter', 'following-relation-filter',
     'match-predicate',
   ]) {
+    if (focusedGraphCase !== undefined) continue;
     const failureProgram = structuredClone(graphProgramBase);
     failureProgram.stages[2].steps.splice(1,1,{
       from:'g', match_nodes:{definition:'N',

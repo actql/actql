@@ -420,6 +420,50 @@ test "Graph bounds yields during typed identity ordering and rejects partial out
     )
   }
   assert_true(@local_sga.cleanup_graph_bounds(complete).unwrap())
+  // The two retained rows each cost one row node, 20 field-name bytes,
+  // actual/kind/max value work of 1+7+1, and 8 identity nodes plus
+  // 110 fixed identity text bytes and 161 key bytes: 309 each.
+  // Together with the independently counted 184 control units, the task
+  // requires exactly 802 work units, not two separate 184/618 allowances.
+  let combined_start = fn(max_work) {
+    @local_sga.start_graph_bounds(
+      @bounded.control(),
+      preparation,
+      sequence,
+      0,
+      input,
+      2,
+      { ..limits, max_work, },
+      10,
+      10000,
+      10000,
+      [],
+      control_work_limit=Some(184),
+    ).unwrap()
+  }
+  let combined_exact = combined_start(802)
+  let combined_output = finish(combined_exact)
+  assert_eq(
+    @execution.completed_output_row_wire(combined_output, 0, 10000, 10000, 50).unwrap(),
+    "{\"actual\":2,\"kind\":\"degree\",\"max\":1,\"node_id\":" +
+    identity(first) +
+    "}",
+  )
+  assert_true(@local_sga.cleanup_graph_bounds(combined_exact).unwrap())
+  let combined_short = combined_start(801)
+  let mut combined_rejected = false
+  for _ in 0..<10000 {
+    match @local_sga.advance_graph_bounds(combined_short, 1).unwrap() {
+      @local_sga.GraphBoundsContinue(..) => ()
+      @local_sga.GraphBoundsFailed(@local_sga.GraphBoundsWorkLimit, ..) => {
+        combined_rejected = true
+        break
+      }
+      _ => fail("one-short combined work returned an unrelated result")
+    }
+  }
+  assert_true(combined_rejected)
+  assert_true(@local_sga.cleanup_graph_bounds(combined_short).unwrap())
   let one_short = start(@bounded.control(), 1, 10, 10000).unwrap()
   let mut rejected = false
   for _ in 0..<10000 {
@@ -498,6 +542,50 @@ test "Graph bounds yields during typed identity ordering and rejects partial out
     "}",
   )
   assert_true(@local_sga.cleanup_graph_bounds(viewed).unwrap())
+  let combined_view = fn(max_work) {
+    @local_sga.start_graph_bounds_view(
+      @bounded.control(),
+      preparation,
+      sequence,
+      0,
+      view,
+      2,
+      { ..limits, max_work, },
+      10,
+      10000,
+      10000,
+      [],
+      control_work_limit=Some(184),
+    ).unwrap()
+  }
+  let view_exact = combined_view(802)
+  assert_eq(
+    @execution.completed_output_row_wire(
+      finish(view_exact),
+      0,
+      10000,
+      10000,
+      50,
+    ).unwrap(),
+    "{\"actual\":2,\"kind\":\"degree\",\"max\":1,\"node_id\":" +
+    identity(first) +
+    "}",
+  )
+  assert_true(@local_sga.cleanup_graph_bounds(view_exact).unwrap())
+  let view_combined_short = combined_view(801)
+  let mut view_combined_rejected = false
+  for _ in 0..<10000 {
+    match @local_sga.advance_graph_bounds(view_combined_short, 1).unwrap() {
+      @local_sga.GraphBoundsContinue(..) => ()
+      @local_sga.GraphBoundsFailed(@local_sga.GraphBoundsWorkLimit, ..) => {
+        view_combined_rejected = true
+        break
+      }
+      _ => fail("one-short viewed combined work returned another result")
+    }
+  }
+  assert_true(view_combined_rejected)
+  assert_true(@local_sga.cleanup_graph_bounds(view_combined_short).unwrap())
   let viewed_short = @local_sga.start_graph_bounds_view(
     @bounded.control(),
     preparation,
@@ -604,6 +692,62 @@ test "Graph bounds yields during typed identity ordering and rejects partial out
     }
     assert_true(@local_sga.cleanup_graph_degree(degree).unwrap())
     if direction == "in" {
+      // Each row costs one row node, ten field-name bytes, one degree node,
+      // and 8 identity nodes plus 110 fixed text bytes and 161 key bytes:
+      // 291 units. Two rows plus 178 control units require exactly 760.
+      let combined_degree = fn(max_work) raise {
+        @local_sga.start_graph_degree(
+          @bounded.control(),
+          task_test_completion(degree_owner),
+          prepared_sequence(degree_owner),
+          0,
+          degree_input,
+          2,
+          { ..limits, max_work, },
+          8,
+          10000,
+          10000,
+          [],
+          control_work_limit=Some(178),
+        ).unwrap()
+      }
+      let combined_exact = combined_degree(760)
+      let mut exact_output = None
+      for _ in 0..<10000 {
+        match @local_sga.advance_graph_degree(combined_exact, 1).unwrap() {
+          @local_sga.GraphDegreeContinue(..) => ()
+          @local_sga.GraphDegreeComplete(value, ..) => {
+            exact_output = Some(value)
+            break
+          }
+          _ => fail("exact combined degree work failed")
+        }
+      }
+      assert_eq(
+        @execution.completed_output_row_wire(
+          exact_output.unwrap(),
+          0,
+          10000,
+          10000,
+          50,
+        ).unwrap(),
+        "{\"degree\":0,\"node\":" + identity(first) + "}",
+      )
+      assert_true(@local_sga.cleanup_graph_degree(combined_exact).unwrap())
+      let combined_short = combined_degree(759)
+      let mut combined_rejected = false
+      for _ in 0..<10000 {
+        match @local_sga.advance_graph_degree(combined_short, 1).unwrap() {
+          @local_sga.GraphDegreeContinue(..) => ()
+          @local_sga.GraphDegreeFailed(@local_sga.GraphBoundsWorkLimit, ..) => {
+            combined_rejected = true
+            break
+          }
+          _ => fail("one-short combined degree work returned another result")
+        }
+      }
+      assert_true(combined_rejected)
+      assert_true(@local_sga.cleanup_graph_degree(combined_short).unwrap())
       let work_short = @local_sga.start_graph_degree(
         @bounded.control(),
         task_test_completion(degree_owner),
@@ -680,6 +824,59 @@ test "Graph bounds yields during typed identity ordering and rejects partial out
       }
       assert_true(viewed_complete)
       assert_true(@local_sga.cleanup_graph_degree(viewed).unwrap())
+      let combined_degree_view = fn(max_work) raise {
+        @local_sga.start_graph_degree_view(
+          @bounded.control(),
+          task_test_completion(degree_owner),
+          prepared_sequence(degree_owner),
+          0,
+          degree_view,
+          2,
+          { ..limits, max_work, },
+          8,
+          10000,
+          10000,
+          [],
+          control_work_limit=Some(178),
+        ).unwrap()
+      }
+      let view_exact = combined_degree_view(760)
+      let mut view_exact_output = None
+      for _ in 0..<10000 {
+        match @local_sga.advance_graph_degree(view_exact, 1).unwrap() {
+          @local_sga.GraphDegreeContinue(..) => ()
+          @local_sga.GraphDegreeComplete(output, ..) => {
+            view_exact_output = Some(output)
+            break
+          }
+          _ => fail("exact viewed combined degree work failed")
+        }
+      }
+      assert_eq(
+        @execution.completed_output_row_wire(
+          view_exact_output.unwrap(),
+          0,
+          10000,
+          10000,
+          50,
+        ).unwrap(),
+        "{\"degree\":0,\"node\":" + identity(first) + "}",
+      )
+      assert_true(@local_sga.cleanup_graph_degree(view_exact).unwrap())
+      let view_combined_short = combined_degree_view(759)
+      let mut view_combined_rejected = false
+      for _ in 0..<10000 {
+        match @local_sga.advance_graph_degree(view_combined_short, 1).unwrap() {
+          @local_sga.GraphDegreeContinue(..) => ()
+          @local_sga.GraphDegreeFailed(@local_sga.GraphBoundsWorkLimit, ..) => {
+            view_combined_rejected = true
+            break
+          }
+          _ => fail("one-short viewed combined degree returned another result")
+        }
+      }
+      assert_true(view_combined_rejected)
+      assert_true(@local_sga.cleanup_graph_degree(view_combined_short).unwrap())
       let viewed_short = @local_sga.start_graph_degree_view(
         @bounded.control(),
         task_test_completion(degree_owner),
