@@ -1940,7 +1940,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/check-outcome.unavailable-must-omit-report-fields",
-      "statement_sha256": "2b16df12da257c9456951ecaf4f9c7ff01f78972ad716177ed57fc521743e481",
+      "statement_sha256": "f5a9d77d8f5c995a463c0b6a5826d180b071b63ca7166fdff727186491239539",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

@@ -83,13 +83,14 @@ test('composition: each source uses its own decision in either order', async () 
   }
 });
 
-test('composition: unusable owners withhold only an unestablishable whole context', async () => {
+test('composition: unusable read owners hide only their own names', async () => {
   for (const states of [[{index: 0, action: 'throw'}],
     [{index: 0, action: 'throw'}, {index: 1, action: 'throw'}]]) {
     for (const publication of [[], aliases]) {
       const f = fixture(states, publication);
-      assert.equal((await f.check(request())).outcome, 'unavailable');
-      assert.equal(f.checked.length, 0);
+      assert.deepEqual(await f.check(request()), await fixture([], []).check(request()));
+      assert.equal(f.checked.length, 1);
+      assert.deepEqual(f.visible(), []);
       assert.deepEqual(f.calls, states.map(state => state.index));
     }
   }
@@ -131,15 +132,16 @@ test('composition: abort propagates without consulting later owners or checking'
 });
 
 
-test('composition: only applicable read owners determine whole-context unavailability', async () => {
+test('composition: missing read tuples and failed read owners preserve checking', async () => {
   const absentTuple = {index: 0, action: 'throw', noReadTuple: true};
   const none = fixture([absentTuple]);
   assert.equal((await none.check(request())).outcome, 'completed');
   assert.deepEqual(none.calls, []);
   assert.deepEqual(none.visible(), []);
-  const unavailable = fixture([absentTuple, {index: 1, action: 'throw'}]);
-  assert.equal((await unavailable.check(request())).outcome, 'unavailable');
-  assert.deepEqual(unavailable.calls, [1]);
+  const failedOwner = fixture([absentTuple, {index: 1, action: 'throw'}]);
+  assert.deepEqual(await failedOwner.check(request()), await none.check(request()));
+  assert.deepEqual(failedOwner.calls, [1]);
+  assert.deepEqual(failedOwner.visible(), []);
 });
 
 // Fixed HMAC vectors derived independently with Python's JSON serialization

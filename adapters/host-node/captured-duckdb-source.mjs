@@ -164,7 +164,11 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
   preparedEffect,
   registry, values, fragment, ordered, database, schema, table,
   sourceAccess, transportLimits, acquisitionPlanning, signal, preparedSource,
-  reportAcquisitionFailure, occurrence = {stage: 0, input: 0, task: 0}, ledger}) {
+  reportAcquisitionFailure, occurrence = {stage: 0, input: 0, task: 0}, ledger,
+  retainedRelationOutput = false}) {
+  if (typeof retainedRelationOutput !== 'boolean') {
+    throw new TypeError('InvalidLocalRetainedOutputConfiguration');
+  }
   if (reportAcquisitionFailure !== undefined &&
       typeof reportAcquisitionFailure !== 'function') {
     throw new TypeError('InvalidAcquisitionEndReceiver');
@@ -265,9 +269,12 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
     // cannot mint that owner or begin its computation as a read-only Run.
     const inferStep = owner.effectful || ledger !== undefined ? undefined :
       moon.clientProgramSelectedInferStep(owner.checkedOwner);
+    const open = retainedRelationOutput
+      ? moon.clientProgramOpenCapturedLocalRetainedHost
+      : moon.clientProgramOpenCapturedLocalHost;
     const setup = owner.effectful || ledger !== undefined ||
       inferStep !== undefined ? undefined :
-      moon.clientProgramOpenCapturedLocalHost(owner.checkedOwner,
+      open(owner.checkedOwner,
         capturedSource, registry, values, 1n, 0n, 0n, 0n,
         fragment, ordered);
     if (!owner.effectful && ledger === undefined &&

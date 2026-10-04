@@ -35,6 +35,48 @@ test "captured Relation branches retain one acquisition and exact input ports" {
 }
 
 ///|
+test "bounded binary Relation branch remains one checked physical task" {
+  let document =
+    #|{"version":"actql/0.1","id":"bounded-binary-rejoin","stages":[{"id":"capture","inputs":{"records":{"connector":"crm/main","resource":"r"}},"steps":[{"from":"records","filter":{"literal":true}},{"select":["id"],"as":"captured"}],"results":{"source":{"from":"captured","fields":["id"]}}},{"id":"main","inputs":{"l":{"result":{"stage":"capture","result":"source"}},"r":{"result":{"stage":"capture","result":"source"}}},"steps":[{"from":"l","append":{"with":"r"},"as":"appended"},{"from":"appended","filter":"id > 1","as":"greater"},{"from":"appended","filter":"id < 3","as":"less"},{"from":"greater","append":{"with":"less"},"as":"out"}],"results":{"rows":{"from":"out","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+  let checked = acquired_relation_branch_checked(document)
+  let owners = physical_graph_owners(checked)
+  let graph = @strategy.prepare_checked_dag(checked, owners, 10, 100000).unwrap()
+  assert_eq(@strategy.graph_captured_prefix(graph), 1)
+  assert_eq(@strategy.graph_task_count(graph), 2)
+  assert_eq(@strategy.graph_task_selected_step(graph, 1), None)
+  assert_eq(@strategy.graph_task_input_count(graph, 1), Some(2))
+  assert_eq(@strategy.graph_data_count(graph), 2)
+  for index in 0..<2 {
+    let edge = @strategy.graph_data_at(graph, index).unwrap()
+    assert_eq((edge.producer, edge.consumer, edge.input), (0, 1, index))
+  }
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+  // Reclassification keeps this already bounded branch under the same owner.
+  // Two discovery visits + the outer Result visit = 3. The branch helper
+  // adds one Result visit, four bitmap slots reserved before allocation,
+  // four Steps, six input ports and three reachability visits = 18 more.
+  // Exact total 21; task ceiling zero stays valid because nothing is expanded.
+  // 3 refuses before the helper's Result; 7 cannot reserve the bitmap;
+  // 8 refuses before its first Step; 20 refuses before its last reachability.
+  for work in [0, 2, 3, 4, 7, 8, 18, 20] {
+    assert_true(
+      @strategy.expand_internal_carrier_tasks(graph, 0, work) is Err(WorkLimit),
+    )
+  }
+  let same = @strategy.expand_internal_carrier_tasks(graph, 0, 21).unwrap()
+  assert_true(physical_equal(same, graph))
+  assert_true(physical_equal(@strategy.graph_program(same), checked))
+  for task in 0..<2 {
+    assert_true(
+      physical_equal(
+        @strategy.graph_task_owner(same, task).unwrap(),
+        owners[task],
+      ),
+    )
+  }
+}
+
+///|
 test "retained binary JOIN chain preserves its fused capacity owner" {
   let (run, issuer) = captured_graph_fixture(join=true, join_steps=[1, 2])
   let graph = @strategy.captured_dag_graph(run)
