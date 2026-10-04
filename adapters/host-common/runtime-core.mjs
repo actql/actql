@@ -2100,8 +2100,9 @@ function publicationControl(moon) {
       const admitted = checked(moon.clientProgramIssueInferDispatchAdmission(
         value, token(definition), account, principalId, at, delegated,
         observeAccount, observeAt));
-      return checked(moon.clientProgramBindInferDispatchAdmission(execution,
-        admitted));
+      checked(moon.clientProgramBindInferDispatchAdmission(execution, admitted));
+      // Approval resume uses this same opaque MoonBit owner-issued handle.
+      return admitted;
     },
     bindCheckedClientInferInvocation(compiled, execution, definition,
       verified, invocation, dataPolicyCid) {

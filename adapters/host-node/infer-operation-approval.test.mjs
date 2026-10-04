@@ -86,6 +86,20 @@ test('deferred Model operation waits once and resumes the same owner', async () 
   assert.deepEqual({starts: calls.starts, advances: calls.advances,
     resumes: calls.resumes, entries: calls.entries},
   {starts: 1, advances: 1, resumes: 0, entries: 0});
+  const dispatchAdmission = {};
+  const compiled = {};
+  const runDefinition = {};
+  const observation = {account: {}, principalId: 'owner'};
+  assert.equal(operation.bindDispatch({
+    bindCheckedClientInferDispatch(actualCompiled, active, actualDefinition,
+      actualObservation) {
+      assert.equal(actualCompiled, compiled);
+      assert.equal(actualDefinition, runDefinition);
+      assert.equal(actualObservation.account, observation.account);
+      assert.equal(actualObservation.principalId, observation.principalId);
+      return dispatchAdmission;
+    },
+  }, {compiled, runDefinition, ...observation}), dispatchAdmission);
   assert.equal(await operation.resumeApproved({grant: 'grant',
     admission: 'admission', now: () => 'now', current: () => true}), 'output');
   assert.equal(calls.starts, 1);
