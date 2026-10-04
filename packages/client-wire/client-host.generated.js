@@ -88,7 +88,127 @@ const schemas = {
         "minLength": 1,
         "maxLength": 256
       }
-    }
+    },
+    "allOf": [
+      {
+        "oneOf": [
+          {
+            "properties": {
+              "mode": {
+                "const": "remote"
+              },
+              "owner": {
+                "const": "remote"
+              },
+              "runners": {
+                "type": "array",
+                "maxItems": 0,
+                "items": {
+                  "type": "string",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              }
+            },
+            "allOf": [
+              {
+                "not": {
+                  "required": [
+                    "movementPolicyRef"
+                  ]
+                }
+              },
+              {
+                "not": {
+                  "required": [
+                    "cloudConnectionRef"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "properties": {
+              "mode": {
+                "const": "local"
+              },
+              "owner": {
+                "const": "local"
+              },
+              "runners": {
+                "type": "array",
+                "maxItems": 0,
+                "items": {
+                  "type": "string",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              }
+            },
+            "allOf": [
+              {
+                "not": {
+                  "required": [
+                    "movementPolicyRef"
+                  ]
+                }
+              },
+              {
+                "not": {
+                  "required": [
+                    "cloudConnectionRef"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "required": [
+              "movementPolicyRef",
+              "cloudConnectionRef"
+            ],
+            "properties": {
+              "mode": {
+                "const": "hybrid"
+              },
+              "owner": {
+                "const": "local"
+              }
+            }
+          },
+          {
+            "required": [
+              "movementPolicyRef"
+            ],
+            "properties": {
+              "mode": {
+                "const": "hybrid"
+              },
+              "owner": {
+                "const": "cloud"
+              },
+              "runners": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              }
+            },
+            "not": {
+              "required": [
+                "cloudConnectionRef"
+              ]
+            }
+          }
+        ]
+      }
+    ]
   },
   "profile": {
     "type": "object",
@@ -4673,3 +4793,11 @@ export const validResourcePeekShape = value => valid(value, schemas.resource_pee
 export const validResultDescriptionShape = value => valid(value, schemas.result_description);
 export const validRunStateShape = value => valid(value, schemas.run_state);
 export const validCheckOutcomeShape = value => valid(value, schemas.check_outcome);
+export const validProfileContract = (value, selected) =>
+  validConnectionShape(selected) && validProfileShape(value) &&
+  value.mode === selected.mode &&
+  value.owner === selected.owner &&
+  !(selected.durability === "durable" && value.durability !== "durable");
+export const validAdmissionContract = (value, selected) =>
+  validConnectionShape(selected) && validAdmissionShape(value) &&
+  !(selected.durability === "durable" && value.durability !== "durable");

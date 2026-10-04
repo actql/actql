@@ -14,6 +14,8 @@ import {
   "actql/actql/run_publication_host" @host,
   "actql/actql/run_publication" @publication,
   "actql/actql/client_local_host" @local,
+  "actql/actql/connector_sdk" @connector,
+  "actql/actql/connectors/duckdb/standard_host" @standard,
   "actql/actql/connectors/duckdb/host" @duckdb_host,
   "actql/actql/connectors/duckdb/host_native" @duckdb_native,
   "actql/actql/connectors/duckdb/adapters/native" @duckdb,

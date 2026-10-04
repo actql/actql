@@ -215,3 +215,60 @@ test "presence sort accepts Required keys and take preserves the schema" {
     PresenceRequired("p"),
   )
 }
+
+///|
+test "presence keyed distinct projects guaranteed keys without retaining optional columns" {
+  let input = presence_schema()
+  let checked = @relation_typing.check(
+    Distinct,
+    cursor("[\"id\"]"),
+    input,
+    None,
+    limits(),
+  ).unwrap()
+  let output = @relation_typing.output_schema(checked)
+  assert_true(@schema.all_fields_required(output))
+  assert_eq(@schema.field_count(output), 1)
+  assert_eq(@schema.field_at(output, 0).unwrap().name, Unqualified("id"))
+  assert_false(@schema.field_at(output, 0).unwrap().contract.nullable)
+  assert_eq(
+    @relation_typing.check(Distinct, cursor("[\"p\"]"), input, None, limits()).unwrap_err().kind,
+    PresenceRequired("p"),
+  )
+  assert_eq(
+    @relation_typing.check(Distinct, cursor("true"), input, None, limits()).unwrap_err().kind,
+    ConditionalInputNotImplemented,
+  )
+  let nullable = @schema.from_presence_fields(
+    [
+      (
+        Unqualified("id"),
+        @contract.primitive(NumberType, nullable=true),
+        Required,
+      ),
+      (
+        Unqualified("p"),
+        @contract.primitive(NumberType, nullable=true),
+        Conditional,
+      ),
+    ],
+    max_fields=2,
+    max_name_bytes=3,
+  ).unwrap()
+  let nullable_output = @relation_typing.output_schema(
+    @relation_typing.check(
+      Distinct,
+      cursor("[\"id\"]"),
+      nullable,
+      None,
+      limits(),
+    ).unwrap(),
+  )
+  assert_true(@schema.field_at(nullable_output, 0).unwrap().contract.nullable)
+  for body in ["[]", "[\"id\",\"id\"]", "false"] {
+    assert_true(
+      @relation_typing.check(Distinct, cursor(body), input, None, limits())
+      is Err(_),
+    )
+  }
+}

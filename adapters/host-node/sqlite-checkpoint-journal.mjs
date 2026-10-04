@@ -894,6 +894,12 @@ export function openSqliteCheckpointJournal(root, {
   return Object.freeze({
     path,
 
+    // The Core lifecycle owns outcome classification. Unknown host values
+    // cannot authorize retirement; cleanup and Result custody are separate.
+    isTerminalRunOutcome(status) {
+      return typeof status === 'string' && runtime.runOutcomeTerminal(status);
+    },
+
     // Seal and durably persist a deferred decision. The caller may report
     // a waiting Checkpoint only from the returned projection, which exists
     // only after the transaction committed. A Run-unit Checkpoint either
@@ -2135,3 +2141,4 @@ export function openSqliteCheckpointJournal(root, {
     throwSqliteInitializationFailure(database, error, 'checkpoint-journal');
   }
 }
+

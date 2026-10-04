@@ -104,6 +104,7 @@ async function fixture(t, {runOutcome = 'allow', sources = [source('left'),
   const capturedEvidence = async (checkpoints, summary) => {
     const stateDirectory = join(root, 'checkpoints');
     const evidence = openContinuationEvidence({stateDirectory,
+      isTerminalRunOutcome: checkpoints.journal.isTerminalRunOutcome,
       ...await loadPrivateEvidenceKey(stateDirectory), contractControl,
       preparation: () => ({status: 'waiting_checkpoint'})});
     try {
@@ -474,3 +475,43 @@ test('plural captures cannot borrow singular installed authorization', async t =
   await assert.rejects(submit(checkpoints, submission()), {code: 'HeldAcquisitionChanged'});
   assert.deepEqual(await f.list(checkpoints), []);
 });
+
+
+for (const [observed, terminal] of [
+  ['preparing', false], ['running', false], ['waiting_checkpoint', false],
+  ['resuming', false], ['needs_reconciliation', false], ['succeeded', true],
+  ['failed', true], ['cancelled', true], ['unknown', false], ['', false],
+  ['Succeeded', false], [undefined, false], [null, false],
+]) {
+  test(`recovery classifies observed outcome ${JSON.stringify(observed)} through Core`,
+    async t => {
+      const f = await fixture(t, {runOutcome: 'delegate', sources: [
+        source('left', 'allow'), source('right', 'allow')]});
+      const checkpoints = await f.open();
+      const captured = submission();
+      assert.equal((await submit(checkpoints, captured)).kind, 'held');
+      const physical = f.port(checkpoints);
+      await checkpoints.start(physical);
+      const [summary] = await f.list(checkpoints);
+      await f.answer(checkpoints, summary);
+      await checkpoints.sweep();
+      assert.equal(physical.state.starts, 1, JSON.stringify(f.diagnostics));
+      assert.equal(checkpoints.journal.getRunState('run-pair').status, 'running');
+      physical.observe = async () => observed;
+      await checkpoints.sweep();
+      assert.equal(checkpoints.journal.getRunState('run-pair').status,
+        terminal && observed !== 'cancelled' ? observed : 'running',
+        JSON.stringify(f.diagnostics));
+      if (observed === 'cancelled') {
+        // Terminality does not expand the existing transition table:
+        // Running -> Cancelled is rejected independently by the journal.
+        assert.equal(f.diagnostics.at(-1).detail.code, 'RunTransitionRejected');
+      }
+      assert.equal(physical.state.starts, 1);
+      if (terminal && observed !== 'cancelled') {
+        // A late completion cannot rewrite a terminal outcome or restart it.
+        checkpoints.runFinished('run-pair', 'failed');
+        assert.equal(checkpoints.journal.getRunState('run-pair').status, observed);
+      }
+    });
+}

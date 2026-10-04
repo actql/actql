@@ -337,7 +337,6 @@ test "unconnected current Graph consumers cannot manufacture a legacy checked pi
     "\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]}"
   for
     (name, body) in [
-      ("normalize_graph", "true"),
       (
         "reach",
         "{\"start\":{\"ids\":[" +

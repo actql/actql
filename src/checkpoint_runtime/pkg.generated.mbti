@@ -87,6 +87,8 @@ pub fn resumed_approval_current(ResumedApproval, String) -> Bool
 
 pub fn revalidation_failure_status(Array[String]) -> @run_publication.RunOutcomeStatus
 
+pub fn run_outcome_terminal(@run_publication.RunOutcomeStatus) -> Bool
+
 pub fn run_status_token(@run_publication.RunOutcomeStatus) -> String
 
 pub fn run_transition_allowed(@run_publication.RunOutcomeStatus, @run_publication.RunOutcomeStatus) -> Bool
