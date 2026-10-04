@@ -106,7 +106,7 @@ selection. Common limited OVER argument handling has a separate public case.
 - Changed MoonBit formatting, three JavaScript syntax checks and diff checks
   pass. An initial test helper failed to compile before baseline reproduction;
   it was corrected and is not counted as a successful test execution.
-- Fresh packed Embedded Local/authenticated HTTP acceptance is pending. The
+- Fresh packed Embedded Local/authenticated HTTP acceptance remains incomplete. The
   selected command is `node scripts/test-packed-public-query.mjs
   --aggregate-property-only`, using normal prepack and pinned toolchains.
   It must compare Named Result values and complete ordered column contracts,
@@ -154,3 +154,78 @@ order failure. The Frontend property builder now writes canonical member order,
 while the arbitrary machine-JSON member-order issue remains a separate
 common-owner handoff. The temporary diagnostic files were moved outside the checkout
 before the next clean-source acceptance.
+
+## Current public execution boundary and common-owner handoff
+
+Clean packed source `46fa3cd853e5b95f089fa676f174476df2242c8a`
+(`public-query-evidence-cC3U2r`) passed the independent JSON control through
+Embedded Local Named Result rows and ordered column contracts. The first SQL
+case was admitted, then ended `failed / ACTQL_E_UNPUBLISHED_RUN`. The remaining
+seven text positives, four preparation refusals and all aggregate HTTP cases
+were not reached. README Local/HTTPS and missing-asset controls passed separately.
+The receipt has no evidence errors and records disposable artifact removal,
+but the failed campaign is incomplete; it is not a public acceptance pass.
+
+A same-source diagnostic run retained its private installation
+(`public-query-evidence-hPqqYM`). A diagnostic-only overlay in that disposable
+installation exposed the existing execution failure; it changes no repository
+Host or common owner and is not pristine packed evidence. The actual chain was:
+
+```text
+runtimeCore.next -> strategyHostNext -> prepare_next_compute_task
+NodeHostFailure.Dispatch(ComputeHostIssue.Dispatch(InstalledDispatchIssue.NoStrategy))
+execution.status = host-tasks-failed
+publication -> StrategyNotComplete -> CapturedRunPublicationFailed
+public state -> ACTQL_E_UNPUBLISHED_RUN
+```
+
+The source preparation bridge checks this source and compiles both Values and
+task plans successfully. Its graph contains one task. Candidate exclusions and
+comparisons at the failure are empty; no specific rejected candidate has been
+identified. This is an unresolved dispatch boundary, not proof that the capacity
+budget is insufficient or that a provider kernel returned wrong rows.
+
+The [generated Program](../../scripts/fixtures/aggregate-property-data-generated.repro.program.json)
+is diagnostic product output, **not an independent expectation**. It was saved
+without patching any steps, predicates, parameters or limits. Submitting exactly
+that document through the public JSON input with the original parameter values
+also failed at the same `Dispatch(NoStrategy)` boundary. The text parser and
+lowerer were not called in this control. The six-row independent expectations
+above and the public fixture remain unchanged.
+
+For common-owner investigation, use the exported
+`aggregatePropertyDataReproduction` in the [authored fixture](../../scripts/fixtures/aggregate-property-source-input.mjs).
+It provides source, declarations, values, expected rows and ordered columns.
+The saved Program already contains its parameter declarations; JSON submission
+must pass only the separate values, without external declaration merging:
+
+```js
+const execution = await client.aql(generatedProgramText, {
+  format: 'json', parameters: aggregatePropertyDataReproduction.parameters,
+  requestId: 'aggregate-property-generated-control',
+});
+const state = await execution.wait();
+```
+
+The source reproduction command is
+`node scripts/test-packed-public-query.mjs --aggregate-property-only --keep-artifacts`
+at the recorded source SHA with pinned toolchains. A zero exit from a diagnostic
+probe that captures this failure means reproduction, not successful execution.
+The common investigation boundary is the installed strategy offer/selection for
+this one-task Values/derive/append/group/sort pipeline (A/common Compute, with
+the Host connection owner if needed). This PR adds no strategy, task partition,
+execution owner, budget increase or fallback. No dependency fix SHA is available;
+Draft remains until the original public cases pass on both transports.
+
+| Packed package at the clean source SHA | SHA-256 |
+|---|---|
+| `actql-client-wire-0.0.0-development.tgz` | `2736da3e155164d87b70e54dd6eb5fdaaa711e837097149ddf730b72d1c7bf0f` |
+| `actql-sdk-0.0.0-development.tgz` | `f81bf27c3bb42a007bc16b6f89a15542a89c7fb844e2893870d1161a8e8abc6d` |
+| `actql-run-host-core-0.0.0-development.tgz` | `1c81124d1abef56cab7d76a72498f113e5ffcc33d4a0288830a2a18e224a1275` |
+| `actql-local-node-0.0.0-development.tgz` | `b01be60a7b21696841bbc02430f4289eb3a1f3e41c68a8052f13db48414cce24` |
+| `actql-node-0.0.0-development.tgz` | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+Only evidence, reproduction material and an unused fixture export were added
+after the tested source. Submitted-HEAD CI remains distinct and is reported in
+the PR. The retained diagnostic install/Store must not be reused as an unchanged
+distribution after the logging overlay.

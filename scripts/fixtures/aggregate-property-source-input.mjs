@@ -51,6 +51,13 @@ const program = {version: 'actql/0.1', id: 'fixture.aggregate_property',
 const aggregates = 'COUNT(payload.score) AS n, COUNT(DISTINCT payload.score) AS d, '
   + 'COUNTIF(payload.score >= 20) AS h, SUM(payload.score) AS s, AVG(payload.score) AS a, '
   + 'MIN(payload.score) AS lo, MAX(payload.score) AS hi';
+// A common-owner reproduction uses these authored bindings and source. The
+// separately saved generated Program is diagnostic material, never an oracle.
+export const aggregatePropertyDataReproduction = {
+  text: data + 'SELECT bucket, ' + aggregates
+    + ' FROM objects GROUP BY bucket ORDER BY bucket',
+  parameterDeclarations, parameters, expected, columns,
+};
 const success = (name, tail, overrides = {}) => ({
   name: 'aggregate-property-' + name, format: 'aql-text', text: data + tail,
   parameterDeclarations, parameters, expected, columns, sourceReadCount: 0, ...overrides,
