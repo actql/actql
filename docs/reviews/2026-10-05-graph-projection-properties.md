@@ -61,7 +61,8 @@ unadapted edge/path property bindings remain separate completion units.
   local/qualified/backtick receivers, a macro plus typed parameter, typed empty
   output, and a projected object's new current scope.
 
-Focused JS tests: 16/16 (six new Program tests plus ten shared expression tests),
+Focused JS tests in the implementation worktree before the implementation commit:
+16/16 (six new Program tests plus ten shared expression tests),
 `run-qydawN` / `focused-test-oKdBJJ`. Existing keyed Graph callers: 5/5,
 `run-ZA1wfa` / `focused-test-TmhOmv`. These compile affected shared API consumers
 and execute NODE_ID/path macros; they are not all-Core or backend conformance.
@@ -78,7 +79,28 @@ The existing external consumer checks Named Result rows, full ordered column
 contracts through describe(), stream completion, absence of internal fields,
 same-request retry/lookup/attach without extra source reads, and typed refusals
 before Run admission/provider I/O. No generated Program is repaired by tests.
-Packed Local/HTTP execution has not yet been recorded for this change.
+Packed Local/HTTP acceptance passed at clean source
+`993ce759e38938982c950273b00c06b1459a6169`: all eight positive cases and five
+pre-admission refusals on each transport, including the independent JSON control.
+The driver also completed its existing README/HTTPS and missing-generated-asset
+controls. Invocation `public-query-evidence-p9SuW3` completed with all twelve
+captured commands at exit zero. This report is a later evidence-only commit;
+that source SHA is not silently relabeled as the submitted HEAD's hosted CI.
+
+Normal-pack tarball SHA-256 digests (development package version):
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | `52fe3218df346cfb9dae0adc248071563fe68918bded16f8d733415e65584fc0` |
+| sdk | `f81bf27c3bb42a007bc16b6f89a15542a89c7fb844e2893870d1161a8e8abc6d` |
+| run-host-core | `65b6408c2bb93597b8c92fc424b010b5e1d3e8b75ba414ad006bd30d57999a86` |
+| local-node | `627643dec816a2253878f29f4a4a893a47440a82519d9cc715bea88d4b5d8fdc` |
+| node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+The completed owned installation was removed (about 178 MiB) after checking
+successful command termination and directory identity. Original command logs,
+receipts, digest/source records and summary snapshots remain; cleanup has a
+separate record and did not rewrite those originals.
 Full required hosted CI, Wasm/native and unrelated packed corpora are not locally
 rerun. Billing-blocked CI is not product failure or verification success.
 
