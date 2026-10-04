@@ -1,0 +1,70 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "read-progress-current-main-resolution",
+  "kind": "resolution",
+  "revision": "60a733816351923303e931b012494588e17d5bf4",
+  "parents": [
+    "42d1100191450c33f7f896481a35970750863fc6",
+    "fc7900354ea0019f77f037577ca7fecada78c734"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "42d1100191450c33f7f896481a35970750863fc6",
+          "digest": "a47233f87b4947ff42437b04c4337619472684612cd6aba6edc3413154f5e259",
+          "mode": "100644"
+        },
+        {
+          "revision": "fc7900354ea0019f77f037577ca7fecada78c734",
+          "digest": "3a52a7a660756f39ea32ef75f233e29f41a65796bf9cf9f2b38dfea34ba7ec70",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "a93e5585f00347667c01c5427a58e51acea26b333fa6e7a3fcf741818b0c6ea9",
+      "afterMode": "100644",
+      "reason": "Retain the public read-progress acceptance registrations together with current main GitHub bridge/read registrations in the actual normal main merge. Preserve every historical declaration and bind the complete reachable source groups, actual ordered parent blobs and merged result."
+    }
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-3877b637406b",
+    "adopt-63b114ad524b",
+    "adopt-678626b010b4",
+    "adopt-7427f7f09276",
+    "adopt-9a7c592a8ed9",
+    "adopt-b480cffb6e6d",
+    "adopt-bf2d058c21c1",
+    "adopt-f24288853c19",
+    "adopt-sga-query-contract",
+    "ci-mandatory-preflight",
+    "frontend-sga-main-integration",
+    "frontend-unified-graph-source-integration",
+    "github-issue-read-registration",
+    "main-pr233-package-resolution",
+    "packed-composed-infer-effect-acceptance",
+    "pr164-main-a32-verification-resolution",
+    "pr164-main4f-runtime-check-resolution",
+    "pr164-property-graph-source",
+    "public-text-computation-bridge-ci",
+    "remove-duplicate-runtime-package-checks",
+    "resident-cancellation-issuer-registration",
+    "resident-cancellation-native-registration",
+    "resident-source-native-registration",
+    "resolve-cancellation-foundation-main-5caeccc79",
+    "resolve-composition-custody-main-maximal-bases",
+    "resolve-composition-frontend-latest-main",
+    "resolve-composition-infer-main-maximal-bases",
+    "resolve-composition-resident-source-main",
+    "resolve-composition-reviewed-supplements-main",
+    "resolve-frontend-graph-label-dependency-5fa4bc547",
+    "resolve-frontend-graph-row-input-main-0e1516677",
+    "resolve-github-issue-driver-main-5dcef9189",
+    "resolve-resident-cancel-foundation-7b5a8048",
+    "resolve-resident-source-latest-main",
+    "scoped-session-acquisition-main-resolution",
+    "sdk-cancel-response-loss-registration",
+    "sdk-read-progress-registration"
+  ]
+}
