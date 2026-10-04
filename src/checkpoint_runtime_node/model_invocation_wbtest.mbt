@@ -48,6 +48,59 @@ test "Model ABI returns pure bounded originals without opaque custody or retry f
 }
 
 ///|
+test "ordinary Model inventory and attempt validate without a fabricated Checkpoint" {
+  guard parse(model_fixture_wire("call_set_request")) is Some(Object(fields)) else {
+    abort("Expected object")
+  }
+  fields.remove("checkpointWire")
+  fields.remove("reviewWire")
+  let request = Json::object(fields).stringify()
+  let admitted = model_test_ok(model_immediate_call_set_admit(request))
+  assert_eq(text_member(admitted, "runId"), Some("run-model"))
+  assert_eq(
+    text_member(admitted, "scopeCid"),
+    Some(
+      "sha256:3cabfeb57f5e1b83d060f416630bf5c18026be8e23867c4b2ee7a33fcf7ba08b",
+    ),
+  )
+  assert_eq(
+    text_member(admitted, "runValidUntil"),
+    Some("2026-09-26T14:00:00.000Z"),
+  )
+  let checked = model_test_ok(
+    model_immediate_call_attempt_admit(
+      request,
+      0,
+      model_fixture_wire("model_call_attempt"),
+      model_fixture_wire("model_dispatch_authority"),
+      1.0,
+    ),
+  )
+  assert_eq(number_member(checked, "attemptIndex"), Some(1.0))
+  model_test_refuses(
+    model_immediate_call_attempt_admit(
+      request,
+      1,
+      model_fixture_wire("model_call_attempt"),
+      model_fixture_wire("model_dispatch_authority"),
+      1.0,
+    ),
+  )
+  model_test_refuses(
+    model_immediate_call_set_admit(model_fixture_wire("call_set_request")),
+  )
+  model_test_refuses(
+    model_immediate_call_attempt_admit(
+      model_fixture_wire("call_set_request"),
+      0,
+      model_fixture_wire("model_call_attempt"),
+      model_fixture_wire("model_dispatch_authority"),
+      1.0,
+    ),
+  )
+}
+
+///|
 test "Model ABI rejects missing inventory and substituted PreparedInvocation original" {
   guard parse(model_fixture_wire("call_set_request")) is Some(Object(fields)) else {
     abort("Expected object")

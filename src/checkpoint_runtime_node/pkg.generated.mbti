@@ -20,6 +20,10 @@ pub fn model_call_attempt_admit(String, Int, String, String, Double) -> String
 
 pub fn model_call_set_admit(String) -> String
 
+pub fn model_immediate_call_attempt_admit(String, Int, String, String, Double) -> String
+
+pub fn model_immediate_call_set_admit(String) -> String
+
 pub fn model_immediate_invocation_grant_at(String, String, String, String) -> String
 
 pub fn model_invocation_grant_at(String, String, String, String) -> String

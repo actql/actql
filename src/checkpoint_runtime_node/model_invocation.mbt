@@ -157,12 +157,9 @@ fn model_field(value : Json, name : String) -> Json raise ModelBridgeFailure {
 }
 
 ///|
-fn model_call_set(
+fn model_bound_call_set(
   request_wire : String,
-) -> (
-  @publication.BoundModelInvocationScope,
-  @checkpoint.ModelCheckpointBinding,
-) raise ModelBridgeFailure {
+) -> @publication.BoundModelInvocationScope raise ModelBridgeFailure {
   let request = model_parse(request_wire)
   let (admission, definition) = model_original_run(
     model_member(request, "originalRunWire"),
@@ -186,10 +183,6 @@ fn model_call_set(
     "model_input_artifact",
     model_member(request, "inputArtifactWire"),
   )
-  let review = model_evidence(
-    "run_review_projection",
-    model_member(request, "reviewWire"),
-  )
   guard model_field(request, "slotWires") is Array(wires) else {
     raise ModelBridgeFailed("MissingModelInventory")
   }
@@ -211,6 +204,22 @@ fn model_call_set(
     Ok(value) => value
     Err(issue) => raise ModelBridgeFailed(@debug.to_string(issue))
   }
+  bound
+}
+
+///|
+fn model_call_set(
+  request_wire : String,
+) -> (
+  @publication.BoundModelInvocationScope,
+  @checkpoint.ModelCheckpointBinding,
+) raise ModelBridgeFailure {
+  let bound = model_bound_call_set(request_wire)
+  let request = model_parse(request_wire)
+  let review = model_evidence(
+    "run_review_projection",
+    model_member(request, "reviewWire"),
+  )
   let checkpoint = match
     @checkpoint.admit_checkpoint_wire(
       model_member(request, "checkpointWire"),
@@ -314,6 +323,29 @@ pub fn model_call_set_admit(request_wire : String) -> String {
 }
 
 ///|
+/// The ordinary allow path has no approval Checkpoint. It still binds the
+/// original admitted Run, complete declared inventory and provider original.
+/// Physical input custody and current authority remain separate owner facts.
+#export_name("modelImmediateCallSetAdmit")
+pub fn model_immediate_call_set_admit(request_wire : String) -> String {
+  try {
+    let request = model_parse(request_wire)
+    if request is Object(fields) && fields.contains("checkpointWire") {
+      raise ModelBridgeFailed("UnexpectedModelCheckpoint")
+    }
+    let scope = model_bound_call_set(request_wire)
+    let fields = model_scope_fields(scope)
+    fields["runValidUntil"] = Json::string(
+      @publication.model_invocation_scope_valid_until(scope),
+    )
+    ok(fields)
+  } catch {
+    ModelBridgeFailed(issue) =>
+      fail_detail("InvalidImmediateModelCallSet", issue)
+  }
+}
+
+///|
 #export_name("modelCallAttemptAdmit")
 pub fn model_call_attempt_admit(
   request_wire : String,
@@ -324,6 +356,46 @@ pub fn model_call_attempt_admit(
 ) -> String {
   try {
     let (scope, _) = model_call_set(request_wire)
+    guard safe_integer(attempt_index) is Some(index) else {
+      raise ModelBridgeFailed("InvalidModelAttemptIndex")
+    }
+    let attempt = model_evidence("model_call_attempt", attempt_wire)
+    let authority = model_evidence("model_dispatch_authority", authority_wire)
+    match
+      @publication.check_model_invocation_attempt(
+        scope, ordinal, attempt, authority, index,
+      ) {
+      Ok(_) =>
+        ok({
+          "attemptIndex": Json::number(index.to_double()),
+          "attemptCid": Json::string(
+            @publication.run_evidence_value_identity(attempt),
+          ),
+        })
+      Err(issue) => fail_detail("InvalidModelAttempt", @debug.to_string(issue))
+    }
+  } catch {
+    ModelBridgeFailed(issue) => fail_detail("InvalidModelAttempt", issue)
+  }
+}
+
+///|
+/// Immutable attempt binding for ordinary allow. It cannot turn a historical
+/// authority body into a current dispatch permission.
+#export_name("modelImmediateCallAttemptAdmit")
+pub fn model_immediate_call_attempt_admit(
+  request_wire : String,
+  ordinal : Int,
+  attempt_wire : String,
+  authority_wire : String,
+  attempt_index : Double,
+) -> String {
+  try {
+    let request = model_parse(request_wire)
+    if request is Object(fields) && fields.contains("checkpointWire") {
+      raise ModelBridgeFailed("UnexpectedModelCheckpoint")
+    }
+    let scope = model_bound_call_set(request_wire)
     guard safe_integer(attempt_index) is Some(index) else {
       raise ModelBridgeFailed("InvalidModelAttemptIndex")
     }
