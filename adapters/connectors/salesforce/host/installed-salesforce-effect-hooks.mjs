@@ -15,6 +15,10 @@ export function salesforceEffectSiteHooks(effect) {
   }
   return Object.freeze({
     environmentWire: effect.environmentWire,
+    targetReadAuthorization: effect.targetReadAuthorization,
+    targetReadInventory: facts => effect.targetReadInventory({moon: facts.moon,
+      prepared: facts.prepared,
+      unit: salesforceEffectUnit(facts.moon, facts.compilation)}),
     prepareCaptured: facts => {
       const {moon, publicationPlan: plan, compilation} = facts;
       return effect.prepareCaptured({moon, control: facts.control,
@@ -27,11 +31,13 @@ export function salesforceEffectSiteHooks(effect) {
             moon.clientProgramEffectCompilationCompiledPlanWire(compilation),
             plan.contractLimits.maxWireBytes, plan.contractLimits.maxNodes,
             plan.contractLimits.maxDepth))},
-        unit: salesforceEffectUnit(moon, compilation), signal: facts.signal});
+        unit: salesforceEffectUnit(moon, compilation), signal: facts.signal,
+        targetReads: facts.targetReads});
     },
     prepareRecovered: facts => effect.prepareRecovered({moon: facts.moon,
       control: facts.control, store: facts.store, recovered: facts.recovered,
       continuation: facts.continuation, contractLimits: localContractLimits,
-      signal: facts.signal, retainRecoveryOwner: facts.retainRecoveryOwner}),
+      signal: facts.signal, retainRecoveryOwner: facts.retainRecoveryOwner,
+      targetReads: facts.targetReads}),
   });
 }

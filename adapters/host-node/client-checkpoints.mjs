@@ -26,6 +26,8 @@ import {loadCheckpointRuntime, openSqliteCheckpointJournal} from
 import {retainInstalledHostInitializationFailure} from
   './installed-host-cleanup.mjs';
 import {modelCheckpointMetadata} from './model-checkpoint-metadata.mjs';
+import {EFFECT_TARGET_CONTINUATION, effectTargetReadScope} from
+  './effect-target-read-inventory.mjs';
 
 const IDENTIFIER = /^[A-Za-z0-9._:-]{1,128}$/u;
 const MAX_REVIEW_BYTES = 256 * 1024;
@@ -110,7 +112,7 @@ function principals(values, code) {
 // authorization configuration; captured reads remain occurrence/task-bound.
 export async function installRemoteCheckpoints({root, namespaceId,
   authorityScopeCid, ownerPrincipal, siteKey, realizationKey,
-  environmentCid, contractControl, authorization, source, sources,
+  environmentCid, contractControl, authorization, source, sources, effectTarget,
   now = () => Date.now()}) {
   if (authorization === undefined) return undefined;
   if (authorization === null || typeof authorization !== 'object') {
@@ -193,6 +195,14 @@ export async function installRemoteCheckpoints({root, namespaceId,
   }
   const sourceGate = sources === undefined ? installedSources[0]?.gate
     : undefined;
+  if (effectTarget !== undefined) effectTarget = Object.freeze({
+    accountConfiguration: effectTarget.accountConfiguration,
+    context: Object.freeze({...effectTarget.context}),
+  });
+  const effectTargetGate = effectTarget === undefined ? undefined :
+    await createLocalAuthorizationGate({
+      accountConfiguration: effectTarget.accountConfiguration,
+      context: effectTarget.context, ...decisionOptions});
   function installedSource(occurrence) {
     const installed = sources === undefined ? installedSources[0]
       : installedSources.find(item => item.configuration.sourceRef ===
@@ -216,6 +226,10 @@ export async function installRemoteCheckpoints({root, namespaceId,
       configuration_cid: gate.configurationCid ?? 'missing',
       // A changed source configuration also revalidates held requests.
       source_configuration_cid: sourceGate?.configurationCid ?? null,
+      ...(effectTargetGate === undefined ? {} : {effect_target_authorization_binding: {
+        configuration_cid: effectTargetGate.configurationCid ?? null,
+        context_cid: effectTargetGate.contextCid,
+      }}),
       ...(sources === undefined ? {} : {source_authorization_bindings:
         installedSources.map(({configuration, gate: read}) => ({
           source_ref: configuration.sourceRef,
@@ -1118,11 +1132,131 @@ export async function installRemoteCheckpoints({root, namespaceId,
     journal,
     binding,
 
+    // Every target tuple has its own read-scope artifact and answer. These
+    // pre-computation approvals never reuse a Source or Effect-commit grant.
+    async effectTargetAuthorization({runId, runDefinitionCid, unitId,
+      inventoryCid, target, declaredResults, continuation, beforeDefer,
+      journalPort = journal}) {
+      if (effectTargetGate === undefined || !IDENTIFIER.test(runId ?? '') ||
+          !IDENTIFIER.test(unitId ?? '') || typeof runDefinitionCid !== 'string' ||
+          typeof inventoryCid !== 'string' || typeof continuation !== 'function' ||
+          typeof beforeDefer !== 'function' || !Array.isArray(declaredResults) ||
+          !Number.isSafeInteger(target?.index) || target.index < 0 ||
+          target.index >= 1000 || target.readTuple?.operation !== 'read' ||
+          !Array.isArray(target.physicalBindings) || target.physicalBindings.length === 0) {
+        fail('InvalidEffectTargetContinuation');
+      }
+      target = JSON.parse(canonicalJson(target));
+      const scope = effectTargetReadScope({runDefinitionCid, unitId,
+        authorityScopeCid, principalId: ownerPrincipal, inventoryCid, target});
+      const scopeCid = contentCid(scope);
+      const read = await createLocalAuthorizationGate({
+        accountConfiguration: effectTarget.accountConfiguration,
+        context: effectTarget.context, ...decisionOptions, decide,
+        answeringAuthorities: answeringAuthorities ?? authorities.map(item => item.reviewerId),
+        deferral: {journal: journalPort, authorities, binding,
+          async describe(view) {
+            if (view.boundary !== 'acquisition' || view.subject.subject_cid !== scopeCid) {
+              fail('InvalidEffectTargetCheckpointBoundary');
+            }
+            await beforeDefer();
+            const wire = await continuation();
+            if (typeof wire !== 'string') fail('InvalidEffectTargetContinuation');
+            const reviewWire = canonicalJson({scope,
+              configuration_cid: effectTargetGate.configurationCid,
+              context_cid: effectTargetGate.contextCid});
+            if (Buffer.byteLength(reviewWire) > maxReviewBytes) fail('CheckpointReviewTooLarge');
+            const refs = await evidence.hold(`effect-${runId}`, runDefinitionCid, [
+              {name: 'review_projection', wire: reviewWire},
+              {name: 'continuation_record', wire},
+            ]);
+            const created = now();
+            return {priorStatus: 'running', declaredResults: [...declaredResults], body: {
+              checkpoint_id: `${runId}-target-${target.index}`,
+              run_id: runId, run_definition_cid: runDefinitionCid,
+              continuation_state_cid: refs[1],
+              subject: {kind: 'run_unit', run_id: runId, unit_id: unitId,
+                continuation: 'resume_unit'},
+              kind: 'read_access',
+              required_artifact: {artifact_type: 'read_scope', artifact_cid: scopeCid},
+              review_projection_cid: refs[0],
+              human_summary: `Read Effect target ${target.readTuple.resource} for Run ${runId}`,
+              created_at: new Date(created).toISOString(),
+              expires_at: new Date(created + checkpointTtlMs).toISOString(),
+            }};
+          },
+        }});
+      if (read.configurationCid !== effectTargetGate.configurationCid ||
+          read.contextCid !== effectTargetGate.contextCid) {
+        read.close();
+        fail('EffectTargetCheckpointConfigurationChanged');
+      }
+      return Object.freeze({scopeCid, configurationCid: read.configurationCid,
+        contextCid: read.contextCid,
+        authorize: options => read.authorize('acquisition', target.readTuple,
+          {...options, subjectCid: scopeCid}),
+        resume: options => read.resume('acquisition', target.readTuple,
+          {...options, subjectCid: scopeCid}),
+        current: options => effectTargetGate.authorize('acquisition', target.readTuple,
+          {...options, subjectCid: scopeCid}),
+        close: () => read.close(),
+      });
+    },
+    async effectTargetContinuation(view) {
+      if (view?.kind !== 'read_access' || view.prepareAttemptId !== null) {
+        fail('InvalidEffectTargetContinuation');
+      }
+      const held = await evidence.open(`effect-${view.runId}`);
+      if (held.requestCid !== view.runDefinitionCid) fail('EffectContinuationRunMismatch');
+      const saved = await held.record('continuation_record', view.continuationStateCid);
+      if (saved?.version !== EFFECT_TARGET_CONTINUATION ||
+          saved.run_definition_cid !== view.runDefinitionCid ||
+          saved.unit_id !== view.subject?.unit_id) fail('InvalidEffectTargetContinuation');
+      return saved;
+    },
+    async runUnitReadContinuation(view) {
+      if (view?.kind !== 'read_access' || view.prepareAttemptId !== null) {
+        fail('InvalidRunUnitReadContinuation');
+      }
+      const held = await evidence.open(`effect-${view.runId}`);
+      if (held.requestCid !== view.runDefinitionCid) fail('EffectContinuationRunMismatch');
+      return held.record('continuation_record', view.continuationStateCid);
+    },
+    async inspectEffectTargetApprovals(runId, runDefinitionCid) {
+      if (!IDENTIFIER.test(runId ?? '') || typeof runDefinitionCid !== 'string') {
+        fail('InvalidEffectTargetContinuation');
+      }
+      const records = [];
+      let after = '';
+      for (;;) {
+        const page = journal.listRunCheckpoints({after, limit: PAGE});
+        for (const view of page) {
+          if (view.runId !== runId || view.kind !== 'read_access' ||
+              !view.checkpointId.startsWith(`${runId}-target-`)) continue;
+          if (view.runDefinitionCid !== runDefinitionCid || view.prepareAttemptId !== null) {
+            fail('EffectContinuationRunMismatch');
+          }
+          const held = await evidence.open(`effect-${runId}`);
+          if (held.requestCid !== runDefinitionCid) fail('EffectContinuationRunMismatch');
+          const continuation = await held.record('continuation_record', view.continuationStateCid);
+          if (continuation?.version !== EFFECT_TARGET_CONTINUATION ||
+              continuation.run_definition_cid !== runDefinitionCid) {
+            fail('InvalidEffectTargetContinuation');
+          }
+          records.push(Object.freeze({view, continuation}));
+        }
+        if (page.length < PAGE) break;
+        after = page.at(-1).checkpointCid;
+      }
+      return Object.freeze(records);
+    },
+
     // Host-installed Effect execution uses this same journal and reviewer
     // authority. The read boundary has no deferral port in this profile:
     // a deferred target read is unsupported before any provider I/O.
     async effectAuthorization({runId, runDefinitionCid, unitId,
-      declaredResults, reviewWire, continuationWire, beforeDefer, journalPort = journal}) {
+      declaredResults, reviewWire, continuationWire, beforeDefer, targetReads,
+      journalPort = journal}) {
       if (!IDENTIFIER.test(runId ?? '') || !IDENTIFIER.test(unitId ?? '') ||
           typeof beforeDefer !== 'function' ||
           typeof reviewWire !== 'string' ||
@@ -1173,9 +1307,9 @@ export async function installRemoteCheckpoints({root, namespaceId,
           fail('EffectCheckpointConfigurationChanged');
         }
         return Object.freeze({
-          authorize: (boundary, ...args) =>
-            (boundary === 'effect_commit' ? commit : read)
-              .authorize(boundary, ...args),
+          authorize: (boundary, ...args) => boundary === 'acquisition' && targetReads !== undefined
+            ? targetReads.authorize(...args)
+            : (boundary === 'effect_commit' ? commit : read).authorize(boundary, ...args),
           resume: (...args) => commit.resume(...args),
           close() { read.close(); commit.close(); },
         });
@@ -1323,9 +1457,16 @@ export async function installRemoteCheckpoints({root, namespaceId,
           typeof runDefinitionCid !== 'string') {
         fail('InvalidEffectContinuation');
       }
-      const view = journal.inspect(`${runId}-effect-commit`) ??
-        journal.inspect(`${runId}-source-1`) ??
-        journal.inspect(`${runId}-source-0`);
+      let view = journal.activeRunCheckpoint(runId);
+      if (view === undefined) {
+        let after = '';
+        for (;;) {
+          const page = journal.listRunCheckpoints({after, limit: PAGE});
+          view = page.find(item => item.runId === runId);
+          if (view !== undefined || page.length < PAGE) break;
+          after = page.at(-1).checkpointCid;
+        }
+      }
       if (view === undefined) return undefined;
       if (!['effect_set', 'read_access'].includes(view.kind) || view.runId !== runId ||
           view.runDefinitionCid !== runDefinitionCid ||
@@ -1341,6 +1482,12 @@ export async function installRemoteCheckpoints({root, namespaceId,
           view.runDefinitionCid === runDefinitionCid &&
           journal.hasStartedResume(view.checkpointCid);
       });
+    },
+    hasUnresolvedEffectTargetStart(runId, runDefinitionCid) {
+      const view = journal.activeRunCheckpoint(runId);
+      return view?.kind === 'read_access' && view.runDefinitionCid === runDefinitionCid &&
+        view.checkpointId.startsWith(`${runId}-target-`) &&
+        journal.hasStartedResume(view.checkpointCid);
     },
     // Principals admitted to the Checkpoint operations at all. Each
     // operation still applies its own authorization.
@@ -1666,6 +1813,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
       await stop();
       admittedReads.clear();
       gate.close();
+      effectTargetGate?.close();
       resumeGate.close();
       for (const installed of installedSources) {
         installed.gate.close();

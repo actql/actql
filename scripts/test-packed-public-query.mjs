@@ -40,6 +40,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/packed-readme-quickstart.mjs', 'readme-acceptance.mjs'],
   ['scripts/fixtures/public-query-input.mjs', 'public-query-input.mjs'],
   ['scripts/fixtures/public-query-cases.mjs', 'public-query-cases.mjs'],
+  ['scripts/fixtures/group-star-source-input.mjs', 'group-star-source-input.mjs'],
   ['scripts/fixtures/order-ordinal-source-input.mjs', 'order-ordinal-source-input.mjs'],
   ['scripts/fixtures/distinct-order-source-input.mjs', 'distinct-order-source-input.mjs'],
   ['scripts/fixtures/acquired-data-source-input.mjs', 'acquired-data-source-input.mjs'],
@@ -95,6 +96,8 @@ await writeFile(join(root, 'fixtures/property-graph-definition-rows.program.json
   await readFile(join(repository, 'scripts/fixtures/property-graph-definition-rows.program.json')));
 await writeFile(join(root, 'fixtures/property-graph-label-rows.program.json'),
   await readFile(join(repository, 'scripts/fixtures/property-graph-label-rows.program.json')));
+await writeFile(join(root, 'fixtures/property-graph-selector-derive.program.json'),
+  await readFile(join(repository, 'scripts/fixtures/property-graph-selector-derive.program.json')));
 await writeFile(join(root, 'fixtures/property-graph-traverse-nodes.expected.json'),
   await readFile(join(repository, 'scripts/fixtures/property-graph-traverse-nodes.expected.json')));
 run('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
@@ -140,6 +143,9 @@ if (process.argv.includes('--acquired-data-only')) {
 }
 if (process.argv.includes('--join-order-only')) {
   runtimeEnvironment.ACTQL_TEST_JOIN_ORDER_ONLY = '1';
+}
+if (process.argv.includes('--group-star-only')) {
+  runtimeEnvironment.ACTQL_TEST_GROUP_STAR_ONLY = '1';
 }
 if (process.argv.includes('--group-scope-only')) {
   runtimeEnvironment.ACTQL_TEST_GROUP_SCOPE_ONLY = '1';
@@ -212,7 +218,7 @@ if (process.argv.includes('--cancellation-only')) {
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
 const narrowPublicQuery = process.argv.some(flag => ['--source-free-only',
-  '--order-ordinal-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--distinct-order-only',
+  '--order-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-star-only',
   '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only', '--two-source-only',
   '--relation-data-only', '--acquired-data-only',
   '--data-set-strategy-only', '--property-graph-source-only', '--graph-rows-only'].includes(flag));
@@ -257,7 +263,7 @@ if (plannerSelectionOnly || twoSourceExampleOnly) return;
 // Narrow selections without the String fixture have no retained String Run.
 // Keep restart acceptance for full/source-free selections that create it.
 if (!process.argv.some(flag => ['--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
-  '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--query-composition-only', '--pipe-result-only', '--distinct-order-only',
+  '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-star-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only',
   '--relation-data-only', '--acquired-data-only', '--data-set-strategy-only', '--two-source-only',
   '--property-graph-source-only', '--graph-rows-only'].includes(flag))) {
   console.log(run(process.execPath, ['string-values-restart.mjs'], root,
@@ -277,6 +283,7 @@ if (process.argv.includes('--order-ordinal-only') ||
   process.argv.includes('--two-source-only') ||
   process.argv.includes('--join-order-only') ||
   process.argv.includes('--group-scope-only') ||
+  process.argv.includes('--group-star-only') ||
   process.argv.includes('--graph-rows-only')) return;
 if (!process.argv.includes('--property-graph-source-only')) {
   console.log(run(process.execPath, ['sga-cancellation.mjs'], root,
