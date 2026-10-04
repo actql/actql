@@ -991,6 +991,52 @@ test('the admitted checker exposes exact selections without private Source inven
 });
 
 for (const entrance of ['local', 'http']) {
+  test(`${entrance}: expression construction limits remain undetermined`, async t => {
+    const absent = await contextClient(t, entrance, absentEnvironment);
+    const hidden = [
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'deny'}),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'delegate'}),
+      await contextClient(t, entrance,
+        withPolicy(rightEnvironment, sourceEnvironment.host_policy_profile),
+        {aliases: [rightAlias], readOutcome: 'deny'}),
+    ];
+    // Forty valid calls fit the existing syntax limits. Their structured
+    // expansion exhausts the lowerer's admitted construction depth instead.
+    const text = '/*😀*/\r\nSELECT ' + 'COALESCE('.repeat(40) + '1' + ', 1)'.repeat(40) + ' AS n';
+    for (const format of ['sql', 'aql-text']) {
+      const outcome = await absent.check(text, {format});
+      assert.equal(outcome.outcome, 'completed', '[check-mutation:expression-budget-outcome]');
+      assert.equal(outcome.report.verdict, 'undetermined', '[check-mutation:expression-budget-verdict]');
+      assert.deepEqual(outcome.report.reasons, []);
+      assert.deepEqual(outcome.report.requirements, []);
+      assert.deepEqual(outcome.report.scope, {kind: 'bound_input'});
+      assert.deepEqual(outcome.report.coverage,
+        {limits: [{code: 'analysis_budget_exhausted'}], unresolved: []},
+        '[check-mutation:expression-budget-limit]');
+      assert.equal(getCheckInput(outcome, 'source').text, text);
+      for (const client of hidden) assert.deepEqual(await client.check(text, {format}), outcome);
+
+      const mixed = await absent.check(text, {format,
+        parameterDeclarations: {minimum: {type: 'number'}}, parameters: {minimum: 'private-wrong-type'}});
+      assert.equal(mixed.report.verdict, 'invalid', '[check-mutation:expression-budget-mixed]');
+      const original = getCheckInput(mixed, 'parameters');
+      assert.deepEqual(mixed.report.reasons, [{code: 'supplied_value_type_mismatch',
+        facts: {parameter: 'minimum', expected_type: 'number', actual_type: 'string'},
+        location: {document_id: 'parameters', revision: original.revision,
+          kind: 'structured', pointer: '/minimum'}}]);
+      assert.deepEqual(mixed.report.coverage, outcome.report.coverage);
+      assert.equal(JSON.stringify(mixed).includes('private-wrong-type'), false);
+      for (const client of hidden) assert.deepEqual(await client.check(text, {format,
+        parameterDeclarations: {minimum: {type: 'number'}}, parameters: {minimum: 'private-wrong-type'}}), mixed);
+    }
+    for (const text of ['SELECT UNKNOWN_FUNCTION(1) AS n', 'SELECT CONCAT() AS n']) {
+      const invalid = await absent.check(text, {format: 'sql'});
+      assert.equal(invalid.report.verdict, 'invalid');
+      assert.deepEqual(invalid.report.reasons, [{code: 'query_invalid'}]);
+      assert.deepEqual(invalid.report.coverage, {limits: [], unresolved: []});
+    }
+  });
+
   test(`${entrance}: failed Source read owners preserve the bound public check`, async t => {
     const absent = await contextClient(t, entrance, absentEnvironment);
     const hidden = [

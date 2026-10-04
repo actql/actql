@@ -31,8 +31,10 @@ const mutations = [
     'if findings.iter().any(finding => !(finding is Limit(_))) {\n' +
     '    "invalid"'],
   ['an exhausted construction budget is reported as a failure',
-    '          )\n        ) => findings.push(Limit("analysis_budget_exhausted"))',
-    '          )\n        ) => return Failed("check_internal")'],
+    '        ) => findings.push(Limit("analysis_budget_exhausted"))\n' +
+    '        // The Program built from accepted source: never blamed on the author.',
+    '        ) => return Failed("check_internal")\n' +
+    '        // The Program built from accepted source: never blamed on the author.'],
   ['a supplied-value budget is reported as a violation',
     'Budget => findings.push(Limit("analysis_budget_exhausted"))',
     'Budget => findings.push(Violation("supplied_value_invalid"))'],
@@ -74,6 +76,26 @@ const mutations = [
   ['an invalid declaration points at the root instead of its failing member',
     'writer, "parameter_declarations", revision, pointer,',
     'writer, "parameter_declarations", revision, "",'],
+  ['an expression lowerer budget is reported as invalid input',
+    '        ) => findings.push(Limit("analysis_budget_exhausted"))\n' +
+    '        // Other failures of generated construction/admission and invalid',
+    '        ) => findings.push(Violation("query_invalid"))\n' +
+    '        // Other failures of generated construction/admission and invalid'],
+  ['an expression lowerer budget is reported as checker failure',
+    '        ) => findings.push(Limit("analysis_budget_exhausted"))\n' +
+    '        // Other failures of generated construction/admission and invalid',
+    '        ) => return Failed("check_internal")\n' +
+    '        // Other failures of generated construction/admission and invalid'],
+  ['an expression lowerer budget is silently verified',
+    '        ) => findings.push(Limit("analysis_budget_exhausted"))\n' +
+    '        // Other failures of generated construction/admission and invalid',
+    '        ) => ()\n' +
+    '        // Other failures of generated construction/admission and invalid'],
+  ['an expression lowerer budget hides independent input violations',
+    '        ) => findings.push(Limit("analysis_budget_exhausted"))\n' +
+    '        // Other failures of generated construction/admission and invalid',
+    '        ) => {\n          findings.clear()\n          findings.push(Limit("analysis_budget_exhausted"))\n        }\n' +
+    '        // Other failures of generated construction/admission and invalid'],
 ];
 
 const strict = id => ({id, operator: 'strictEqual'});
@@ -108,6 +130,10 @@ const targets = [
     [strict('declaration-outcome'), deep('declaration-location')]],
   ['invalid declarations retain only their owned submitted locations',
     [strict('declaration-outcome'), deep('declaration-location')]],
+  ['expression construction limits remain undetermined', [strict('expression-budget-verdict')]],
+  ['expression construction limits remain undetermined', [strict('expression-budget-outcome')]],
+  ['expression construction limits remain undetermined', [strict('expression-budget-verdict')]],
+  ['expression construction limits remain undetermined', [strict('expression-budget-mixed')]],
 ];
 
 // Reuse the common reporter and nonzero-execution evidence. A process failure
@@ -170,27 +196,34 @@ const accepted = target => {
   return mutationAcceptance(result, expected);
 };
 
-export function checkDisclosureMutations() {
+export function checkDisclosureMutations(match) {
+  const selected = mutations.map((mutation, index) => ({mutation, target: targets[index]}))
+    .filter(({mutation: [name]}) => match === undefined || name.includes(match));
+  if (selected.length === 0) throw new Error('No disclosure mutations selected');
   const original = readFileSync(path, 'utf8');
   const results = [];
   try {
-    for (const [index, [name, from, to]] of mutations.entries()) {
+    for (const {mutation: [name, from, to], target} of selected) {
       if (original.split(from).length !== 2) {
         throw new Error(`Mutation anchor not unique: ${name}`);
       }
       writeFileSync(path, original.replace(from, to));
       build();
-      results.push({name, rejected: !accepted(targets[index])});
+      results.push({name, rejected: !accepted(target)});
     }
   } finally {
     writeFileSync(path, original);
     build();
   }
-  const restored = targets.every(target => accepted(target));
+  const restored = selected.every(({target}) => accepted(target));
   console.log(JSON.stringify({mutations: results, restoredAccepted: restored}, null, 2));
   if (!restored || results.some(result => !result.rejected)) process.exitCode = 1;
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  checkDisclosureMutations();
+  const args = process.argv.slice(2);
+  if (args.length && (args.length !== 2 || args[0] !== '--match' || !args[1])) {
+    throw new Error('Usage: check-disclosure-mutations.mjs [--match name-substring]');
+  }
+  checkDisclosureMutations(args[1]);
 }
