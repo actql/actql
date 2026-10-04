@@ -134,91 +134,24 @@ fn valid_cid(value : String) -> Bool {
 }
 
 ///|
-fn positive_limit(fields : Map[String, Json], name : String) -> Bool {
-  match fields.get(name) {
-    Some(Number(value, ..)) =>
-      value >= 1.0 && value <= 9007199254740991.0 && value == value.floor()
-    _ => false
-  }
-}
-
-///|
 fn confirmed_profile(wire : String, connection : Json) -> Json raise ClientStop {
   let profile = @json.parse(wire) catch {
     _ => stop("invalid Client Host profile")
   }
-  guard profile is Object(fields) else { stop("invalid Client Host profile") }
-  guard connection is Object(selected) else {
-    stop("invalid Client connection")
-  }
-  guard json_text(selected, "mode") is Some(mode) &&
-    json_text(selected, "owner") is Some(owner) &&
-    (
-      (mode == "remote" && owner == "remote") ||
-      (mode == "local" && owner == "local") ||
-      (mode == "hybrid" && (owner == "local" || owner == "cloud"))
-    ) else {
-    stop("invalid Client connection")
-  }
-  guard json_text(fields, "version") is Some("actql-client-host/0.1") &&
-    json_text(fields, "mode") is Some(profile_mode) &&
-    profile_mode == mode &&
-    json_text(fields, "owner") is Some(profile_owner) &&
-    profile_owner == owner &&
-    json_text(fields, "scopeRef") is Some(scope) &&
-    !scope.is_empty() &&
-    fields.get("capabilities") is Some(Array(capabilities)) &&
-    fields.get("limits") is Some(Object(limits)) else {
-    stop("invalid Client Host profile")
-  }
-  for capability in capabilities {
-    guard capability is String(name) && !name.is_empty() else {
+  match wire_profile_issue(profile, connection) {
+    Some(RequestedValueUnavailable) =>
+      stop("requested durable profile is unavailable")
+    Some(InvalidShape) | Some(ConnectionMismatch) =>
       stop("invalid Client Host profile")
-    }
-  }
-  if limits.length() != 7 ||
-    !positive_limit(limits, "maxReadWireBytes") ||
-    !positive_limit(limits, "maxRowWireBytes") ||
-    !positive_limit(limits, "maxRowRetainedValueBytes") ||
-    !positive_limit(limits, "maxRetainedValueBytes") ||
-    !positive_limit(limits, "maxRows") ||
-    !positive_limit(limits, "maxBatchRows") ||
-    !positive_limit(limits, "maxBatchRetainedValueBytes") {
-    stop("invalid Client Host profile")
-  }
-  guard json_text(fields, "durability") is Some(durability) &&
-    (durability == "volatile" || durability == "durable") else {
-    stop("invalid Client Host profile")
-  }
-  if json_text(selected, "durability") is Some("durable") &&
-    durability != "durable" {
-    stop("requested durable profile is unavailable")
+    None => ()
   }
   profile
 }
 
 ///|
-fn admitted_run(wire : String, requested_durable : Bool) -> Bool {
+fn admitted_run(wire : String, connection : Json) -> Bool {
   let value = @json.parse(wire) catch { _ => return false }
-  guard value is Object(fields) else { return false }
-  guard fields.get("ref") is Some(Object(reference)) else { return false }
-  guard json_text(reference, "namespaceId") is Some(namespace_id) &&
-    !namespace_id.is_empty() &&
-    json_text(reference, "authorityScopeCid") is Some(scope) &&
-    valid_cid(scope) &&
-    json_text(reference, "runDefinitionCid") is Some(definition) &&
-    valid_cid(definition) &&
-    fields.get("revision") is Some(Number(revision, ..)) &&
-    revision >= 0.0 &&
-    revision <= 9007199254740991.0 &&
-    revision == revision.floor() else {
-    return false
-  }
-  guard json_text(fields, "durability") is Some(durability) &&
-    (durability == "volatile" || durability == "durable") else {
-    return false
-  }
-  !requested_durable || durability == "durable"
+  wire_admission(value, connection)
 }
 
 ///|
@@ -253,16 +186,7 @@ fn preparation_refusal(bytes : Bytes) -> String? {
 
 ///|
 fn valid_reference(value : Json) -> Bool {
-  guard value is Object(fields) && fields.length() == 3 else { return false }
-  guard json_text(fields, "namespaceId") is Some(namespace_id) &&
-    !namespace_id.is_empty() &&
-    json_text(fields, "authorityScopeCid") is Some(scope) &&
-    valid_cid(scope) &&
-    json_text(fields, "runDefinitionCid") is Some(definition) &&
-    valid_cid(definition) else {
-    return false
-  }
-  true
+  wire_run_ref_shape(value)
 }
 
 ///|
@@ -674,6 +598,9 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
   }
   let root = required(matches, "connection-root")
   let connection = json_file(root, required(matches, "connection-file"), 8192L)
+  if !wire_connection_shape(connection) {
+    stop("invalid Client connection")
+  }
   let token = match
     @files.read_bounded_text_file(
       required(matches, "token-root"),
@@ -782,20 +709,10 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
   }
   if route == "submit" &&
     !held_reply(text, required(child, "request-id")) &&
-    !admitted_run(
-      text,
-      json_text(
-        match connection {
-          Object(fields) => fields
-          _ => Map([])
-        },
-        "durability",
-      ) ==
-      Some("durable"),
-    ) {
+    !admitted_run(text, connection) {
     stop("SubmissionUnknown request-id=" + required(child, "request-id"))
   }
-  if route == "attach" && !admitted_run(text, false) {
+  if route == "attach" && !admitted_run(text, connection) {
     stop("InvalidHostAdmission")
   }
   if route == "attach" && !attached_reference_matches(body, text) {

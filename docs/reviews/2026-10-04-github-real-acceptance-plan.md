@@ -43,14 +43,15 @@ The read path is the one in #319: GraphQL, bound to the published node ID.
 
 | Item | Plan |
 | --- | --- |
-| Operation | Add one comment to one seeded Issue (`POST /repos/{owner}/{repo}/issues/{n}/comments`), through the Effect Ledger claim in #315. |
+| Operation | Add one comment to one seeded Issue by its global node ID, using the fixed `ActqlAddComment` GraphQL mutation (`addComment(subjectId)`), through the Effect Ledger claim. One fixed `ActqlCommentSubject` read first confirms that the node is an Issue of the published repository. That read does not exclude a move between the check and the send. |
 | Count | **Exactly 1 comment** under this approval. |
 | Unknown outcome | If the reply is lost, or the outcome is otherwise unknown, that Effect stays **unknown**. **It is never re-sent.** A lost reply is not evidence that nothing was sent. |
 | Reconciliation | An operator reads the Issue's comments by hand and records what was observed. A comment whose body matches is **not** taken as proof that the original Effect succeeded. The unknown Effect stays unresolved until reconciled under the existing Effect recovery rules. |
 | A second comment | Not part of this approval. If needed, it is a **new, separately approved** Effect with its own body marker. It is never treated as a retry of the unresolved first one. |
 | Content | A fixed ASCII marker, `actql-acceptance <run id>`, with no mentions. Watchers are notified, so the operator unwatches the private repository beforehand. |
 | Pacing | At least 1 s between writes. |
-| Precondition | Comment creation is currently a Site driver (#315), with the Effect installer table in place (#320, merged). The write runs only after the GitHub comment Effect is installed through that table. Until then, only section 2 can run. |
+| Precondition | Comment creation is currently a Site driver, with the Effect installer table in place (#320, merged). The write runs only after the GitHub comment Effect is installed through that table. Until then, only section 2 can run. |
+| Recorded | The subject check's and the mutation's HTTP status, whether `errors` and `data` were present, and the created comment's `id` and `databaseId`. |
 
 ## 4. Cleanup
 
