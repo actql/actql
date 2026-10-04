@@ -206,6 +206,10 @@ test "retained external Relation selector splits only its Carrier consumer" {
     @strategy.graph_task_owner(graph, 1).unwrap(),
     @strategy.graph_task_owner(graph, 2).unwrap(),
   ]
+  let requirement_inventory = @context.stage_requirement_operations(
+    @program_check.requirements(program),
+  )
+  assert_eq(@context.operation_closure_count(requirement_inventory), 55)
   // Two Values requirements; five each for both constructors and MATCHes;
   // eleven for the typed Subgraph operation. Three stage remap visits.
   for task, expected in [2, 10, 5, 11, 5] {
@@ -219,7 +223,9 @@ test "retained external Relation selector splits only its Carrier consumer" {
   // classification 30 (including the five retained-selector edge visits);
   // task mapping 8; edge mapping 33; controls 2; operations 36; Result 1.
   // The full retained-selector scan costs five even when its match is last.
-  // 66 stops before the selector's first edge; 70 stops before its fifth.
+  // The earlier 55-entry requirement-inventory guard runs before classification.
+  // Budgets 66 and 70 therefore check preparation-wide refusal only;
+  // they do not identify the first or fifth retained-selector edge.
   // 152 is one short of the complete immutable graph. No partial graph escapes.
   for work in [0, 43, 66, 70, 152] {
     assert_true(
