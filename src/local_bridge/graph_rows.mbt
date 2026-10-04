@@ -11,6 +11,8 @@ priv struct GraphRowsSource {
   source : GraphRowsRead
   definition : @carrier.PropertyGraphDefinition
   selected_definition : String?
+  selected_label : String?
+  mut selection_label_index : Int
   edge : Bool
   limits : @execution.ValueLimits
   mut label_values : Array[@value.Value]
@@ -97,14 +99,51 @@ fn graph_row_definition(
 }
 
 ///|
-fn graph_row_selected(source : GraphRowsSource, record : Int) -> Bool? {
+priv enum GraphRowSelection {
+  PendingSelection
+  SelectedRow
+  SkipRow
+}
+
+///|
+/// Each call inspects at most one admitted label and consumes one control work.
+fn graph_row_selected(
+  source : GraphRowsSource,
+  record : Int,
+) -> GraphRowSelection? {
   guard source.order.bind(sort => @sort.index_at(sort, record)) is Some(record) else {
     return None
   }
   graph_row_definition(source, record).map(definition => {
-    match source.selected_definition {
-      None => true
-      Some(name) => @carrier.property_definition_name(definition) == name
+    if source.selected_definition is Some(name) {
+      if @carrier.property_definition_name(definition) == name {
+        SelectedRow
+      } else {
+        SkipRow
+      }
+    } else if source.selected_label is Some(label) {
+      let count = @carrier.property_definition_label_count(definition)
+      if source.selection_label_index >= count {
+        source.selection_label_index = 0
+        SkipRow
+      } else {
+        let (candidate, _) = @carrier.property_definition_label_at(
+          definition,
+          source.selection_label_index,
+        ).unwrap()
+        source.selection_label_index += 1
+        if @carrier.property_name_identity(candidate) == label {
+          source.selection_label_index = 0
+          SelectedRow
+        } else if source.selection_label_index == count {
+          source.selection_label_index = 0
+          SkipRow
+        } else {
+          PendingSelection
+        }
+      }
+    } else {
+      SelectedRow
     }
   })
 }
@@ -301,6 +340,10 @@ pub fn start_graph_view_to_rows(
     source: ViewedGraph(input),
     definition,
     selected_definition: @lower.carrier_projection_definition(projection),
+    selected_label: @lower.carrier_projection_label(projection).map(
+      @carrier.property_name_identity,
+    ),
+    selection_label_index: 0,
     edge: @lower.carrier_projection_operation(projection) ==
     @projection.EdgeRows,
     limits,
@@ -373,6 +416,10 @@ pub fn start_graph_to_rows(
     source: StoredGraph(storage),
     definition: @carrier.graph_property_definition(graph),
     selected_definition: @lower.carrier_projection_definition(projection),
+    selected_label: @lower.carrier_projection_label(projection).map(
+      @carrier.property_name_identity,
+    ),
+    selection_label_index: 0,
     edge: @lower.carrier_projection_operation(projection) ==
     @projection.EdgeRows,
     limits,

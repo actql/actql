@@ -52,6 +52,11 @@ pub fn carrier_projection_definition(
 }
 
 ///|
+pub fn carrier_projection_label(value : PreparedCarrierProjection) -> String? {
+  @projection.selected_label(value.checked)
+}
+
+///|
 fn emit_carrier_projection_node(
   prepared : PreparedCarrierProjection,
   out : @encode.Writer,
@@ -69,6 +74,10 @@ fn emit_carrier_projection_node(
   @encode.begin_object(out)
   if carrier_projection_definition(prepared) is Some(name) {
     @encode.key(out, "definition")
+    @encode.string_value(out, name)
+  }
+  if carrier_projection_label(prepared) is Some(name) {
+    @encode.key(out, "label")
     @encode.string_value(out, name)
   }
   @encode.end_object(out)
