@@ -7,6 +7,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
+import './two-source-optional-effect.test.mjs';
 import {parse} from 'yaml';
 import {compositionProgram, compositionTemplate, compositionExpectations, compositionText, compositionTextTemplate} from
   './fixtures/composed-infer-effect-input.mjs';

@@ -4,11 +4,15 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
 import { inventoryAction, serializeManifest } from './action-inputs.mjs';
-import { artifacts, checkBindings, checkRetirements, connectionSuites, executedConnectionCoverage, graph, nestLocalSuites, snapshot, targets, validate } from './evidence.mjs';
+import { artifacts, checkBindings, checkRetirements, graph, snapshot, targets, validate } from './evidence.mjs';
+import { recordExistingAction } from '../ci-evidence/collect.mjs';
+import { readCatalog } from '../ci-evidence/actions.mjs';
+import { checkExecutionRecipes } from '../ci-evidence/execution-recipes.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const selected = process.argv[2] ?? 'all';
 if (selected !== 'all' && !targets.includes(selected)) throw new Error('Use all, js, wasm or native');
+const recipes = checkExecutionRecipes(readCatalog());
 const pin = JSON.parse(readFileSync(join(root, 'toolchain.json'), 'utf8'));
 const home = process.env.MOON_HOME ?? join(root, '.toolchains', `moonbit-${pin.version}`);
 const moon = join(home, 'bin/moon');
@@ -36,11 +40,15 @@ function run(id, command, args, target = 'model', packagePath = null) {
     throw result.error ?? new Error(`${id} failed or executed no tests`);
   }
   console.log(`${id}: passed${count ? ` ${count} tests` : ''} (${milliseconds} ms)`);
-  return {
+  const execution = {
     command: [command === moon ? 'moon' : command, ...args], target, exit: result.status,
     passed: true, count, milliseconds, sourceDigest: source.digest,
     artifacts: packagePath ? artifacts(root, target, packagePath) : {},
   };
+  recordExistingAction({id: id === 'lean' ? 'model' : id,
+    command: [command === moon ? 'moon' : command === process.execPath ? 'node' : command, ...args],
+    output, status: result.status, milliseconds, result: execution});
+  return execution;
 }
 
 // Fresh Stage B inventory of this exact launch. This report cannot skip or
@@ -52,22 +60,17 @@ const actionInputs = inventoryAction({
 });
 writeFileSync(join(directory, 'action-inputs.json'), serializeManifest(actionInputs));
 console.log(`Lean input inventory: ${actionInputs.inputs.files.length} entries (${Math.round(performance.now() - inventoryStart)} ms); report-only, reuse ineligible`);
-const lean = run('lean', process.execPath, ['proofs/bounded-session/check.mjs']);
+const model = recipes.find(recipe => recipe.role === 'model');
+const lean = run(model.runId, process.execPath, model.action.command.slice(1));
 for (const target of selected === 'all' ? targets : [selected]) {
   const runs = { lean };
-  runs[`session-${target}`] = run(`session-${target}`, moon,
-    ['test', 'src/bounded_execution', '--target', target, '--deny-warn'], target, 'bounded_execution');
-  runs[`adapter-${target}`] = run(`adapter-${target}`, moon,
-    ['test', 'src/connectors/local', '--target', target, '--deny-warn'], target, 'connectors/local');
-  for (const suite of connectionSuites) {
-    runs[`${suite.id}-${target}`] = run(`${suite.id}-${target}`, moon,
-      ['test', suite.fixture, '--target', target, '--deny-warn'], target, 'query_integration');
-    // Reviewed per-fixture scope is independent of the caller's bindings.
-    runs[`${suite.id}-${target}`].coverage = executedConnectionCoverage(suite.id);
-  }
-  for (const suite of nestLocalSuites) {
-    runs[`${suite.id}-${target}`] = run(`${suite.id}-${target}`, moon,
-      ['test', suite.fixture, '--target', target, '--deny-warn', ...(suite.filter ? ['--filter', suite.filter] : [])], target, 'execution_relation');
+  const targetRecipes = recipes.filter(recipe => recipe.action.target === target && recipe.role !== 'external');
+  for (const recipe of targetRecipes) {
+    const action = recipe.action;
+    const execution = run(recipe.runId, moon, action.command.slice(1), target, action.package.slice('src/'.length));
+    if (execution.count < action.minimumUnits) throw new Error(`${action.id} executed fewer than its required tests`);
+    if (recipe.role === 'connection') execution.coverage = recipe.coverage;
+    runs[recipe.runId] = execution;
   }
   const report = {
     version: 'actql-bounded-session-evidence/0.1', mode: 'report-only', revision, worktreeDirty,
@@ -77,9 +80,8 @@ for (const target of selected === 'all' ? targets : [selected]) {
       'finite correspondence domains; operation/kernel premises remain obligations'],
   };
   const current = snapshot(root);
-  current.builtArtifacts = Object.assign({},
-    artifacts(root, target, 'bounded_execution'), artifacts(root, target, 'connectors/local'),
-    artifacts(root, target, 'query_integration'), artifacts(root, target, 'execution_relation'));
+  current.builtArtifacts = Object.assign({}, ...[...new Set(targetRecipes.map(recipe => recipe.action.package))]
+    .map(packagePath => artifacts(root, target, packagePath.slice('src/'.length))));
   const derived = validate(report.claims, report, current, target);
   writeFileSync(join(directory, `${target}.json`), `${JSON.stringify(report, null, 2)}\n`);
   console.log(`${target}: ${derived.length} conditional derived claim(s); existing resource gates remain authoritative`);

@@ -139,7 +139,11 @@ pub fn carrier_handoff_producer(CarrierHandoff) -> Int
 
 pub fn carrier_handoff_sequence(CarrierHandoffIndex) -> PreparedSequence
 
+pub fn carrier_projection_definition(PreparedCarrierProjection) -> String?
+
 pub fn carrier_projection_input_carrier(PreparedCarrierProjection) -> @carrier_contract.Carrier
+
+pub fn carrier_projection_label(PreparedCarrierProjection) -> String?
 
 pub fn carrier_projection_operation(PreparedCarrierProjection) -> @carrier_projection.Operation
 
@@ -294,6 +298,8 @@ pub fn fragment_request_row_limits(FragmentRequest) -> FragmentRowLimits?
 pub fn fragment_row_limits_valid(FragmentRowLimits) -> Bool
 
 pub fn graph_diagnostic_bounds(PreparedGraphDiagnostic) -> (Int64?, Int64?, Int64?)?
+
+pub fn graph_diagnostic_component_max_output_rows(PreparedGraphDiagnostic) -> Int64?
 
 pub fn graph_diagnostic_kind(PreparedGraphDiagnostic) -> GraphDiagnosticKind
 
@@ -1213,6 +1219,8 @@ pub(all) enum GraphDiagnosticKind {
   IncomingDegreeDiagnostic
   OutgoingDegreeDiagnostic
   TotalDegreeDiagnostic
+  WeakComponentsDiagnostic
+  StrongComponentsDiagnostic
 } derive(Eq, @debug.Debug)
 
 pub(all) enum GraphMatchIssue {
@@ -1421,6 +1429,7 @@ pub enum Payload {
   GraphMatchRows(@graph_typing.CheckedMatch)
   GraphBoundsRows(@graph_typing.CheckedGraphBounds)
   GraphDegreeRows(@graph_typing.CheckedDegree)
+  GraphComponentsRows(@graph_typing.CheckedComponents)
   GraphTraverseRows(@graph_typing.CheckedTraverse)
   PropertyGraphConstructionValue(@graph_typing.CheckedPropertyConstruction)
   VectorValue(@vector_typing.CheckedVector)

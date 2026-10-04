@@ -64,7 +64,7 @@ test('reviewed handoff helper leaves provider fields and constructor bodies unch
   assert.throws(() => providerConstructionBound(p => p === path ? before : read(p)),
     /Changed provider representation premise src\/connectors\/local\/managed_provider\.mbt/);
 });
-test('reviewed Graph rejection branches preserve the Relation capability predicate', () => {
+test('reviewed Graph rejection branches and traversal ledger preserve Relation candidate construction', () => {
   const path = 'src/execution_relation/generated_sequence.mbt';
   const before = historical(path), source = read(path).toString();
   assert.equal(hash(before), '3a2c83c19c767b0f160afde6b85fe84ab87e3a0a391dc95a52be98edae760981');
@@ -88,10 +88,67 @@ test('reviewed Graph rejection branches preserve the Relation capability predica
     '      | @lower.PropertyGraphConstructionStep(_)',
   ].join('\n');
   assert.equal(before.toString().split(oldBranch).length,2);
-  // GraphDiagnosticStep is only another non-Row false-branch alternative.
-  // The active RowStep predicate, constructor records, callback captures,
-  // candidate array, GeneratedSequence fields and other functions are unchanged.
-  assert.equal(before.toString().replace(oldBranch,newBranch),source);
+  // Compare the entire original source outside these exact reviewed changes.
+  // The new ledger belongs to the prepared configuration, not to the eleven
+  // candidate factories or the retained parent-core component. Its allocation
+  // and old/new lifetime overlap remain explicit unresolved census obligations.
+  const replaceOnce = (text, from, to) => {
+    assert.equal(text.split(from).length, 2, 'Changed reviewed traversal ledger premise');
+    return text.replace(from, to);
+  };
+  let withoutLedger = replaceOnce(source,
+    '  traversal_ceilings : Array[(Int, Int64, Int64)]\n', '');
+  withoutLedger = replaceOnce(withoutLedger, '        traversal_ceilings: [],\n', '');
+  withoutLedger = replaceOnce(withoutLedger,
+    '    !generated.session_output_ceilings.is_empty() ||\n    !generated.traversal_ceilings.is_empty() {',
+    '    !generated.session_output_ceilings.is_empty() {');
+  const helpers = `///|
+/// Bind independent search-path and output-row envelopes to the checked
+/// traversal occurrence. Neither quantity is inferred from the other.
+pub fn constrain_generated_traversal(
+  generated : GeneratedSequence,
+  step : Int,
+  paths : Int64,
+  rows : Int64,
+) -> Result[GeneratedSequence, SequenceRunIssue] {
+  if paths < 0L || rows < 0L {
+    return Err(InvalidLimits)
+  }
+  guard @lower.sequence_step(generated.sequence, step)
+    is Some(@lower.GraphTraverseStep(_)) else {
+    return Err(InputSet)
+  }
+  let ceilings = generated.traversal_ceilings.copy()
+  for index, (prior_step, prior_paths, prior_rows) in ceilings {
+    if prior_step == step {
+      ceilings[index] = (
+        step,
+        Int64::min(paths, prior_paths),
+        Int64::min(rows, prior_rows),
+      )
+      return Ok({ ..generated, traversal_ceilings: ceilings, })
+    }
+  }
+  ceilings.push((step, paths, rows))
+  Ok({ ..generated, traversal_ceilings: ceilings, })
+}
+
+///|
+pub fn generated_traversal_ceilings(
+  generated : GeneratedSequence,
+  step : Int,
+) -> (Int64, Int64)? {
+  for (candidate, paths, rows) in generated.traversal_ceilings {
+    if candidate == step {
+      return Some((paths, rows))
+    }
+  }
+  None
+}
+
+`;
+  withoutLedger = replaceOnce(withoutLedger, helpers, '');
+  assert.equal(before.toString().replace(oldBranch,newBranch),withoutLedger);
   assert.throws(() => providerConstructionBound(p => p === path ? before : read(p)),
     /Changed provider representation premise src\/execution_relation\/generated_sequence\.mbt/);
 });

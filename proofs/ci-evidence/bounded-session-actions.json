@@ -1,0 +1,573 @@
+{
+  "version": "actql-verification-action-catalog/0.1",
+  "family": "bounded-session",
+  "actions": [
+    {
+      "id": "model",
+      "kind": "formal-model",
+      "target": "model",
+      "command": [
+        "node",
+        "proofs/bounded-session/check.mjs"
+      ],
+      "package": null,
+      "minimumUnits": 14,
+      "profile": "BoundedSession typed claims and audited foundational axioms",
+      "premises": [
+        "Lean kernel and permitted foundational axioms"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "session-js",
+      "kind": "tested-refinement",
+      "target": "js",
+      "command": [
+        "moon",
+        "test",
+        "src/bounded_execution",
+        "--target",
+        "js",
+        "--deny-warn"
+      ],
+      "package": "src/bounded_execution",
+      "minimumUnits": 1,
+      "profile": "finite bounded Session correspondence and retained ownership regressions",
+      "premises": [
+        "MoonBit compiler/runtime",
+        "finite correspondence domain; kernel and callback premises remain"
+      ],
+      "dependencies": [
+        "model"
+      ]
+    },
+    {
+      "id": "adapter-js",
+      "kind": "tested-refinement",
+      "target": "js",
+      "command": [
+        "moon",
+        "test",
+        "src/connectors/local",
+        "--target",
+        "js",
+        "--deny-warn"
+      ],
+      "package": "src/connectors/local",
+      "minimumUnits": 1,
+      "profile": "finite cumulative-to-delta adapter correspondence and Local provider regressions",
+      "premises": [
+        "MoonBit compiler/runtime",
+        "finite correspondence domain; kernel and callback premises remain"
+      ],
+      "dependencies": [
+        "model"
+      ]
+    },
+    {
+      "id": "connection-js",
+      "kind": "tested-refinement",
+      "target": "js",
+      "command": [
+        "moon",
+        "test",
+        "src/query_integration/local_managed_set_wbtest.mbt",
+        "--target",
+        "js",
+        "--deny-warn"
+      ],
+      "package": "src/query_integration",
+      "minimumUnits": 1,
+      "profile": "reviewed except/intersect all/distinct checked nullable complete rows",
+      "premises": [
+        "reviewed fixture coverage independent of requested binding",
+        "operation-specific meaning, capacity and ownership obligations remain"
+      ],
+      "dependencies": [
+        "session-js",
+        "adapter-js"
+      ]
+    },
+    {
+      "id": "nest-connection-js",
+      "kind": "tested-refinement",
+      "target": "js",
+      "command": [
+        "moon",
+        "test",
+        "src/query_integration/local_managed_nest_wbtest.mbt",
+        "--target",
+        "js",
+        "--deny-warn"
+      ],
+      "package": "src/query_integration",
+      "minimumUnits": 4,
+      "profile": "reviewed nest correlated-parent-major checked nullable keys and two consumers",
+      "premises": [
+        "reviewed fixture coverage independent of requested binding",
+        "operation-specific meaning, capacity and ownership obligations remain"
+      ],
+      "dependencies": [
+        "session-js",
+        "adapter-js"
+      ]
+    },
+    {
+      "id": "nest-kernel-js",
+      "kind": "tested-refinement",
+      "target": "js",
+      "command": [
+        "moon",
+        "test",
+        "src/execution_relation/bounded_nest_wbtest.mbt",
+        "--target",
+        "js",
+        "--deny-warn"
+      ],
+      "package": "src/execution_relation",
+      "minimumUnits": 8,
+      "profile": "nest-kernel existing Nest-specific obligation",
+      "premises": [
+        "limited existing fixture domain; no whole-implementation capacity proof"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "nest-semantics-js",
+      "kind": "tested-refinement",
+      "target": "js",
+      "command": [
+        "moon",
+        "test",
+        "src/execution_relation/nest_sequence_wbtest.mbt",
+        "--target",
+        "js",
+        "--deny-warn"
+      ],
+      "package": "src/execution_relation",
+      "minimumUnits": 7,
+      "profile": "nest-semantics existing Nest-specific obligation",
+      "premises": [
+        "limited existing fixture domain; no whole-implementation capacity proof"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "nest-scaling-js",
+      "kind": "tested-refinement",
+      "target": "js",
+      "command": [
+        "moon",
+        "test",
+        "src/execution_relation/nest_scale_wbtest.mbt",
+        "--target",
+        "js",
+        "--deny-warn"
+      ],
+      "package": "src/execution_relation",
+      "minimumUnits": 3,
+      "profile": "nest-scaling existing Nest-specific obligation",
+      "premises": [
+        "limited existing fixture domain; no whole-implementation capacity proof"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "nest-workspace-js",
+      "kind": "tested-refinement",
+      "target": "js",
+      "command": [
+        "moon",
+        "test",
+        "src/execution_relation/bounded_resource_boundary_wbtest.mbt",
+        "--target",
+        "js",
+        "--deny-warn",
+        "--filter",
+        "bounded nest admits its exact workspace peak"
+      ],
+      "package": "src/execution_relation",
+      "minimumUnits": 1,
+      "profile": "nest-workspace existing Nest-specific obligation",
+      "premises": [
+        "limited existing fixture domain; no whole-implementation capacity proof"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "session-wasm",
+      "kind": "tested-refinement",
+      "target": "wasm",
+      "command": [
+        "moon",
+        "test",
+        "src/bounded_execution",
+        "--target",
+        "wasm",
+        "--deny-warn"
+      ],
+      "package": "src/bounded_execution",
+      "minimumUnits": 1,
+      "profile": "finite bounded Session correspondence and retained ownership regressions",
+      "premises": [
+        "MoonBit compiler/runtime",
+        "finite correspondence domain; kernel and callback premises remain"
+      ],
+      "dependencies": [
+        "model"
+      ]
+    },
+    {
+      "id": "adapter-wasm",
+      "kind": "tested-refinement",
+      "target": "wasm",
+      "command": [
+        "moon",
+        "test",
+        "src/connectors/local",
+        "--target",
+        "wasm",
+        "--deny-warn"
+      ],
+      "package": "src/connectors/local",
+      "minimumUnits": 1,
+      "profile": "finite cumulative-to-delta adapter correspondence and Local provider regressions",
+      "premises": [
+        "MoonBit compiler/runtime",
+        "finite correspondence domain; kernel and callback premises remain"
+      ],
+      "dependencies": [
+        "model"
+      ]
+    },
+    {
+      "id": "connection-wasm",
+      "kind": "tested-refinement",
+      "target": "wasm",
+      "command": [
+        "moon",
+        "test",
+        "src/query_integration/local_managed_set_wbtest.mbt",
+        "--target",
+        "wasm",
+        "--deny-warn"
+      ],
+      "package": "src/query_integration",
+      "minimumUnits": 1,
+      "profile": "reviewed except/intersect all/distinct checked nullable complete rows",
+      "premises": [
+        "reviewed fixture coverage independent of requested binding",
+        "operation-specific meaning, capacity and ownership obligations remain"
+      ],
+      "dependencies": [
+        "session-wasm",
+        "adapter-wasm"
+      ]
+    },
+    {
+      "id": "nest-connection-wasm",
+      "kind": "tested-refinement",
+      "target": "wasm",
+      "command": [
+        "moon",
+        "test",
+        "src/query_integration/local_managed_nest_wbtest.mbt",
+        "--target",
+        "wasm",
+        "--deny-warn"
+      ],
+      "package": "src/query_integration",
+      "minimumUnits": 4,
+      "profile": "reviewed nest correlated-parent-major checked nullable keys and two consumers",
+      "premises": [
+        "reviewed fixture coverage independent of requested binding",
+        "operation-specific meaning, capacity and ownership obligations remain"
+      ],
+      "dependencies": [
+        "session-wasm",
+        "adapter-wasm"
+      ]
+    },
+    {
+      "id": "nest-kernel-wasm",
+      "kind": "tested-refinement",
+      "target": "wasm",
+      "command": [
+        "moon",
+        "test",
+        "src/execution_relation/bounded_nest_wbtest.mbt",
+        "--target",
+        "wasm",
+        "--deny-warn"
+      ],
+      "package": "src/execution_relation",
+      "minimumUnits": 8,
+      "profile": "nest-kernel existing Nest-specific obligation",
+      "premises": [
+        "limited existing fixture domain; no whole-implementation capacity proof"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "nest-semantics-wasm",
+      "kind": "tested-refinement",
+      "target": "wasm",
+      "command": [
+        "moon",
+        "test",
+        "src/execution_relation/nest_sequence_wbtest.mbt",
+        "--target",
+        "wasm",
+        "--deny-warn"
+      ],
+      "package": "src/execution_relation",
+      "minimumUnits": 7,
+      "profile": "nest-semantics existing Nest-specific obligation",
+      "premises": [
+        "limited existing fixture domain; no whole-implementation capacity proof"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "nest-scaling-wasm",
+      "kind": "tested-refinement",
+      "target": "wasm",
+      "command": [
+        "moon",
+        "test",
+        "src/execution_relation/nest_scale_wbtest.mbt",
+        "--target",
+        "wasm",
+        "--deny-warn"
+      ],
+      "package": "src/execution_relation",
+      "minimumUnits": 3,
+      "profile": "nest-scaling existing Nest-specific obligation",
+      "premises": [
+        "limited existing fixture domain; no whole-implementation capacity proof"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "nest-workspace-wasm",
+      "kind": "tested-refinement",
+      "target": "wasm",
+      "command": [
+        "moon",
+        "test",
+        "src/execution_relation/bounded_resource_boundary_wbtest.mbt",
+        "--target",
+        "wasm",
+        "--deny-warn",
+        "--filter",
+        "bounded nest admits its exact workspace peak"
+      ],
+      "package": "src/execution_relation",
+      "minimumUnits": 1,
+      "profile": "nest-workspace existing Nest-specific obligation",
+      "premises": [
+        "limited existing fixture domain; no whole-implementation capacity proof"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "session-native",
+      "kind": "tested-refinement",
+      "target": "native",
+      "command": [
+        "moon",
+        "test",
+        "src/bounded_execution",
+        "--target",
+        "native",
+        "--deny-warn"
+      ],
+      "package": "src/bounded_execution",
+      "minimumUnits": 1,
+      "profile": "finite bounded Session correspondence and retained ownership regressions",
+      "premises": [
+        "MoonBit compiler/runtime",
+        "finite correspondence domain; kernel and callback premises remain"
+      ],
+      "dependencies": [
+        "model"
+      ]
+    },
+    {
+      "id": "adapter-native",
+      "kind": "tested-refinement",
+      "target": "native",
+      "command": [
+        "moon",
+        "test",
+        "src/connectors/local",
+        "--target",
+        "native",
+        "--deny-warn"
+      ],
+      "package": "src/connectors/local",
+      "minimumUnits": 1,
+      "profile": "finite cumulative-to-delta adapter correspondence and Local provider regressions",
+      "premises": [
+        "MoonBit compiler/runtime",
+        "finite correspondence domain; kernel and callback premises remain"
+      ],
+      "dependencies": [
+        "model"
+      ]
+    },
+    {
+      "id": "connection-native",
+      "kind": "tested-refinement",
+      "target": "native",
+      "command": [
+        "moon",
+        "test",
+        "src/query_integration/local_managed_set_wbtest.mbt",
+        "--target",
+        "native",
+        "--deny-warn"
+      ],
+      "package": "src/query_integration",
+      "minimumUnits": 1,
+      "profile": "reviewed except/intersect all/distinct checked nullable complete rows",
+      "premises": [
+        "reviewed fixture coverage independent of requested binding",
+        "operation-specific meaning, capacity and ownership obligations remain"
+      ],
+      "dependencies": [
+        "session-native",
+        "adapter-native"
+      ]
+    },
+    {
+      "id": "nest-connection-native",
+      "kind": "tested-refinement",
+      "target": "native",
+      "command": [
+        "moon",
+        "test",
+        "src/query_integration/local_managed_nest_wbtest.mbt",
+        "--target",
+        "native",
+        "--deny-warn"
+      ],
+      "package": "src/query_integration",
+      "minimumUnits": 4,
+      "profile": "reviewed nest correlated-parent-major checked nullable keys and two consumers",
+      "premises": [
+        "reviewed fixture coverage independent of requested binding",
+        "operation-specific meaning, capacity and ownership obligations remain"
+      ],
+      "dependencies": [
+        "session-native",
+        "adapter-native"
+      ]
+    },
+    {
+      "id": "nest-kernel-native",
+      "kind": "tested-refinement",
+      "target": "native",
+      "command": [
+        "moon",
+        "test",
+        "src/execution_relation/bounded_nest_wbtest.mbt",
+        "--target",
+        "native",
+        "--deny-warn"
+      ],
+      "package": "src/execution_relation",
+      "minimumUnits": 8,
+      "profile": "nest-kernel existing Nest-specific obligation",
+      "premises": [
+        "limited existing fixture domain; no whole-implementation capacity proof"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "nest-semantics-native",
+      "kind": "tested-refinement",
+      "target": "native",
+      "command": [
+        "moon",
+        "test",
+        "src/execution_relation/nest_sequence_wbtest.mbt",
+        "--target",
+        "native",
+        "--deny-warn"
+      ],
+      "package": "src/execution_relation",
+      "minimumUnits": 7,
+      "profile": "nest-semantics existing Nest-specific obligation",
+      "premises": [
+        "limited existing fixture domain; no whole-implementation capacity proof"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "nest-scaling-native",
+      "kind": "tested-refinement",
+      "target": "native",
+      "command": [
+        "moon",
+        "test",
+        "src/execution_relation/nest_scale_wbtest.mbt",
+        "--target",
+        "native",
+        "--deny-warn"
+      ],
+      "package": "src/execution_relation",
+      "minimumUnits": 3,
+      "profile": "nest-scaling existing Nest-specific obligation",
+      "premises": [
+        "limited existing fixture domain; no whole-implementation capacity proof"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "nest-workspace-native",
+      "kind": "tested-refinement",
+      "target": "native",
+      "command": [
+        "moon",
+        "test",
+        "src/execution_relation/bounded_resource_boundary_wbtest.mbt",
+        "--target",
+        "native",
+        "--deny-warn",
+        "--filter",
+        "bounded nest admits its exact workspace peak"
+      ],
+      "package": "src/execution_relation",
+      "minimumUnits": 1,
+      "profile": "nest-workspace existing Nest-specific obligation",
+      "premises": [
+        "limited existing fixture domain; no whole-implementation capacity proof"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "mutations-js",
+      "kind": "tested-refinement",
+      "target": "js",
+      "command": [
+        "node",
+        "proofs/bounded-session/mutations.mjs"
+      ],
+      "package": null,
+      "minimumUnits": 13,
+      "profile": "13 existing production mutation assertions and exact source restoration",
+      "premises": [
+        "JS-only mutation detection; compile failure does not qualify",
+        "normal restoration checks remain separate required actions"
+      ],
+      "dependencies": [
+        "model",
+        "session-js",
+        "adapter-js",
+        "connection-js",
+        "nest-connection-js"
+      ]
+    }
+  ]
+}

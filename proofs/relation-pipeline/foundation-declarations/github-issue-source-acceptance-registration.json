@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "github-issue-source-acceptance-registration",
+  "kind": "change",
+  "revision": "75273952b6e431ee18a6a09568b8273439af3392",
+  "parents": [
+    "e2c4135441f55bd34b73adae1120189a7e712a1a"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "e2c4135441f55bd34b73adae1120189a7e712a1a",
+          "digest": "5c877d5db18542bc15679b2105f8f1915bd9d300ba5f460b2b797da70a3e1607",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "5a75d28768087e696cd5398d849c00f14e75f20e911fb81a42de50319fce030d",
+      "afterMode": "100644",
+      "reason": "Register the GitHub provider bridge build and the public Client acceptance of the installed GitHub Issue source in the existing installed SaaS source gate. Preserve every existing test command, proof gate, corpus, mutation and foundation owner unchanged."
+    }
+  ]
+}

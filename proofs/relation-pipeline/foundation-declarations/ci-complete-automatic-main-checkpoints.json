@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "ci-complete-automatic-main-checkpoints",
+  "kind": "change",
+  "revision": "6b81d638437c9bdb7d41b907de7256eb8a7ad2d0",
+  "parents": [
+    "e51097122b949849ef2bb895dfb305bad1c3a248"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "e51097122b949849ef2bb895dfb305bad1c3a248",
+          "digest": "48754bae657b704280738c57a165798f74655094394d1f4318df3c4ce2b52fad",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "d7cb319c9c21db14238c4a130df00df7daaf1720143a607b0267db644a7f5e56",
+      "afterMode": "100644",
+      "reason": "Keep the existing concurrency groups and default single pending successor, but do not cancel a running automatic main push when a newer automatic main push arrives. Preserve cancellation for PR updates and non-performance manual runs, and preserve the performance policy. Retain every job, selector, mandatory acceptance gate, original-receipt authentication and reuse prerequisite. This scheduling change allows a main verification checkpoint to finish without accepting cancelled or partial evidence."
+    }
+  ]
+}

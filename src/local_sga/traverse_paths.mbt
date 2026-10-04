@@ -17,6 +17,7 @@ priv enum TraversePathsPhase {
   CollectStarts
   SortStarts
   BeginStart
+  InitializeNodeDepths
   SeedStart
   BeginDepth
   ScanEdge
@@ -34,6 +35,9 @@ priv enum TraversePathsPhase {
   ComparePathNodes
   ComparePathEdges
   EmitPath
+  CollectNodeDepth
+  SortNodeOutput
+  EmitNode
   ReadField
   BuildNodeIds
   BuildEdgeIds
@@ -59,6 +63,9 @@ priv struct TraversePathsState {
   minimum_depth : Int
   maximum_depth : Int
   max_rows : Int
+  max_paths : Int
+  mut searched_paths : Int
+  emit_nodes : Bool
   max_workspace_slots : Int
   value_limits : @value.Limits
   mut output : @execution.AdmittedOutput?
@@ -105,6 +112,8 @@ priv struct TraversePathsState {
   value_item_attempts : Ref[Int]
   predicate_starts : Ref[Int]
   mut emitted : Int
+  node_depths : Array[Int]
+  node_order : Array[Int]
   mut workspace_slots : Int
   mut workspace_peak : Int
   mut control_work_remaining : Int
@@ -139,6 +148,7 @@ priv enum TraversePathsPoll {
 
 ///|
 pub(all) enum TraversePathsIssue {
+  TraversePathsSearchLimit
   InvalidTraversePathsKernel
   TraversePathsInputUnavailable
   TraversePathsStartMissing
@@ -511,6 +521,41 @@ fn traverse_path_value(
 }
 
 ///|
+fn traverse_node_value(
+  state : TraversePathsState,
+  field : @schema.Field,
+) -> @value.CheckedValue? {
+  let identity = match field.name {
+    @schema.Unqualified("start_id") =>
+      state.start_nodes
+      .get(state.start_scan - 1)
+      .bind(index => graph_read_node_identity(state.source, index))
+    @schema.Unqualified("node_id") =>
+      state.node_order
+      .get(state.emit_index)
+      .bind(index => graph_read_node_identity(state.source, index))
+    @schema.Unqualified("depth") =>
+      return state.node_order
+        .get(state.emit_index)
+        .bind(index => {
+          state.node_depths
+          .get(index)
+          .bind(depth => {
+            @value.checked_number_value(depth.to_double(), field.contract)
+          })
+        })
+    _ => None
+  }
+  identity.bind(value => {
+    @value.recheck_runtime_value(
+      value.value,
+      field.contract,
+      state.value_limits,
+    )
+  })
+}
+
+///|
 fn traverse_paths_step(
   state : TraversePathsState,
   quantum : Int,
@@ -663,16 +708,39 @@ fn traverse_paths_step(
       BeginStart =>
         if state.start_scan >= state.start_nodes.length() {
           state.phase = Finish
+        } else if state.emit_nodes {
+          state.phase = InitializeNodeDepths
+        } else {
+          state.phase = SeedStart
+        }
+      InitializeNodeDepths =>
+        if state.node_depths.length() <
+          graph_read_node_count(state.source).unwrap_or(-1) {
+          used += 1
+          if state.workspace_slots >= state.max_workspace_slots {
+            return @bounded.Failed(TraversePathsWorkspaceLimit, progress, used)
+          }
+          state.node_depths.push(-1)
+          state.workspace_slots += 1
+          state.workspace_peak = Int::max(
+            state.workspace_peak,
+            state.workspace_slots,
+          )
         } else {
           state.phase = SeedStart
         }
       SeedStart => {
+        if state.searched_paths >= state.max_paths {
+          return @bounded.Failed(TraversePathsSearchLimit, progress, used)
+        }
         let path = { nodes: [state.start_nodes[state.start_scan]], edges: [], }
         guard traversal_path_slots(path) is Some(slots) &&
           slots <= state.max_workspace_slots - state.workspace_slots else {
           return @bounded.Failed(TraversePathsWorkspaceLimit, progress, used)
         }
-        if state.minimum_depth == 0 && state.emitted >= state.max_rows {
+        if !state.emit_nodes &&
+          state.minimum_depth == 0 &&
+          state.emitted >= state.max_rows {
           return @bounded.Failed(TraversePathsOutputLimit, progress, used)
         }
         state.workspace_slots += slots
@@ -682,13 +750,18 @@ fn traverse_paths_step(
         )
         state.frontier_slots = slots
         state.frontier.push(path)
+        state.searched_paths += 1
         state.start_scan += 1
         state.depth = 0
         state.path_index = 0
         state.edge_occurrence = 0
         state.emit_index = 0
         state.phase = if state.minimum_depth == 0 {
-          EmitPath
+          if state.emit_nodes {
+            CollectNodeDepth
+          } else {
+            EmitPath
+          }
         } else {
           BeginDepth
         }
@@ -698,7 +771,13 @@ fn traverse_paths_step(
           state.workspace_slots -= state.frontier_slots
           state.frontier = []
           state.frontier_slots = 0
-          state.phase = BeginStart
+          if state.emit_nodes {
+            state.sort_index = 1
+            state.sort_cursor = 1
+            state.phase = SortNodeOutput
+          } else {
+            state.phase = BeginStart
+          }
         } else {
           state.path_index = 0
           state.edge_occurrence = 0
@@ -910,6 +989,9 @@ fn traverse_paths_step(
         }
       }
       AddPath => {
+        if state.searched_paths >= state.max_paths {
+          return @bounded.Failed(TraversePathsSearchLimit, progress, used)
+        }
         used += 1
         guard state.frontier.get(state.path_index) is Some(path) else {
           return @bounded.Failed(TraversePathsInputUnavailable, progress, used)
@@ -918,7 +1000,8 @@ fn traverse_paths_step(
         if next_slots > state.max_workspace_slots - state.workspace_slots {
           return @bounded.Failed(TraversePathsWorkspaceLimit, progress, used)
         }
-        if state.depth + 1 >= state.minimum_depth &&
+        if !state.emit_nodes &&
+          state.depth + 1 >= state.minimum_depth &&
           state.emitted + state.next_frontier.length() >= state.max_rows {
           return @bounded.Failed(TraversePathsOutputLimit, progress, used)
         }
@@ -967,6 +1050,7 @@ fn traverse_paths_step(
         state.pending_nodes = []
         state.pending_edges = []
         state.next_frontier.push({ nodes, edges, })
+        state.searched_paths += 1
         state.next_frontier_slots += state.pending_slots
         state.pending_slots = 0
         state.phase = ScanEdge
@@ -981,7 +1065,11 @@ fn traverse_paths_step(
           state.depth += 1
           state.emit_index = 0
           state.phase = if state.depth >= state.minimum_depth {
-            EmitPath
+            if state.emit_nodes {
+              CollectNodeDepth
+            } else {
+              EmitPath
+            }
           } else {
             BeginDepth
           }
@@ -1076,6 +1164,99 @@ fn traverse_paths_step(
           )
         }
       }
+      CollectNodeDepth =>
+        if state.emit_index >= state.frontier.length() {
+          state.phase = BeginDepth
+        } else {
+          used += 1
+          guard state.frontier.get(state.emit_index) is Some(path) &&
+            path.nodes.last() is Some(node) &&
+            state.node_depths.get(node) is Some(depth) else {
+            return @bounded.Failed(
+              TraversePathsInputUnavailable,
+              progress,
+              used,
+            )
+          }
+          // This is output deduplication only. Never remove exploration states
+          // because another eligible path has reached the same node.
+          if depth < 0 {
+            if state.node_order.length() >= state.max_rows - state.emitted {
+              return @bounded.Failed(TraversePathsOutputLimit, progress, used)
+            }
+            if state.workspace_slots >= state.max_workspace_slots {
+              return @bounded.Failed(
+                TraversePathsWorkspaceLimit,
+                progress,
+                used,
+              )
+            }
+            state.node_order.push(node)
+            state.workspace_slots += 1
+            state.workspace_peak = Int::max(
+              state.workspace_peak,
+              state.workspace_slots,
+            )
+            state.node_depths[node] = state.depth
+          } else if state.depth < depth {
+            state.node_depths[node] = state.depth
+          }
+          state.emit_index += 1
+        }
+      SortNodeOutput =>
+        if state.sort_index >= state.node_order.length() {
+          state.emit_index = 0
+          state.phase = EmitNode
+        } else if state.sort_cursor > 0 {
+          used += 1
+          let left_index = state.node_order[state.sort_cursor - 1]
+          let right_index = state.node_order[state.sort_cursor]
+          guard graph_read_node_identity(state.source, left_index) is Some(left) &&
+            graph_read_node_identity(state.source, right_index) is Some(right) else {
+            return @bounded.Failed(
+              TraversePathsInputUnavailable,
+              progress,
+              used,
+            )
+          }
+          let order = match
+            compare_traversal_node_ids(
+              state, left, right, left_index, right_index,
+            ) {
+            Ok(value) => value
+            Err(issue) =>
+              return @bounded.Failed(
+                TraversePathsKeyOrder(issue),
+                progress,
+                used,
+              )
+          }
+          if order is Some(order) {
+            if order > 0 {
+              state.node_order[state.sort_cursor - 1] = right_index
+              state.node_order[state.sort_cursor] = left_index
+              state.sort_cursor -= 1
+            } else {
+              state.sort_index += 1
+              state.sort_cursor = state.sort_index
+            }
+          }
+        } else {
+          state.sort_index += 1
+          state.sort_cursor = state.sort_index
+        }
+      EmitNode =>
+        if state.emit_index >= state.node_order.length() {
+          state.workspace_slots -= state.node_depths.length() +
+            state.node_order.length()
+          state.node_depths.clear()
+          state.node_order.clear()
+          state.phase = BeginStart
+        } else {
+          state.column = 0
+          state.values = []
+          state.phase = ReadField
+        }
       EmitPath =>
         if state.emit_index >= state.frontier.length() {
           state.phase = BeginDepth
@@ -1177,9 +1358,13 @@ fn traverse_paths_step(
             }
             _ => {
               used += 1
-              let value = state.frontier
+              let value = if state.emit_nodes {
+                traverse_node_value(state, field)
+              } else {
+                state.frontier
                 .get(state.emit_index)
                 .bind(path => traverse_path_value(state, path, field))
+              }
               guard value is Some(value) else {
                 return @bounded.Failed(
                   TraversePathsInputUnavailable,
@@ -1265,7 +1450,7 @@ fn traverse_paths_step(
             state.emitted += 1
             state.emit_index += 1
             progress += 1
-            state.phase = EmitPath
+            state.phase = if state.emit_nodes { EmitNode } else { EmitPath }
           }
           Err(issue) =>
             return @bounded.Failed(TraversePathsOutput(issue), progress, used)
@@ -1315,6 +1500,8 @@ fn cleanup_traverse_paths_state(state : TraversePathsState) -> Bool {
   state.next_frontier.clear()
   state.pending_nodes.clear()
   state.pending_edges.clear()
+  state.node_depths.clear()
+  state.node_order.clear()
   state.values.clear()
   state.value_items = None
   state.predicate_input.clear()
@@ -1330,6 +1517,8 @@ fn traverse_paths_private_entries(state : TraversePathsState) -> Int {
     state.start_nodes.length() +
     state.pending_nodes.length() +
     state.pending_edges.length() +
+    state.node_depths.length() +
+    state.node_order.length() +
     state.values.length() +
     state.predicate_slots
   for path in state.frontier {
@@ -1357,6 +1546,7 @@ fn start_traverse_paths_read(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
+  max_paths? : Int = max_workspace_slots,
 ) -> Result[TraversePathsExecution, TraversePathsIssue] {
   let owner = @lower.sequence_owner(sequence)
   if limits.max_work < 0 {
@@ -1399,6 +1589,7 @@ fn start_traverse_paths_read(
       graph_read_edge_count(source).unwrap_or(2147483647) <= 1073741823
     ) &&
     max_rows >= 0 &&
+    max_paths >= 0 &&
     max_workspace_slots >= 0 else {
     return Err(InvalidTraversePathsKernel)
   }
@@ -1410,8 +1601,7 @@ fn start_traverse_paths_read(
   guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
     @lower.node_input_target(node, 0) is Some(target) &&
     @lower.preparation_carrier_at(@lower.bound_preparation(owner), target)
-    is Some(@carrier.GraphValue(graph)) &&
-    @lower.graph_traverse_emits_paths(prepared) else {
+    is Some(@carrier.GraphValue(graph)) else {
     return Err(InvalidTraversePathsKernel)
   }
   let starts = match @lower.graph_traverse_start_relation_field(prepared) {
@@ -1556,6 +1746,9 @@ fn start_traverse_paths_read(
     minimum_depth: minimum.to_int(),
     maximum_depth: maximum.to_int(),
     max_rows,
+    max_paths,
+    searched_paths: 0,
+    emit_nodes: !@lower.graph_traverse_emits_paths(prepared),
     max_workspace_slots,
     value_limits: {
       max_nodes: limits.max_nodes,
@@ -1606,6 +1799,8 @@ fn start_traverse_paths_read(
     value_item_attempts,
     predicate_starts,
     emitted: 0,
+    node_depths: [],
+    node_order: [],
     workspace_slots: node_count,
     workspace_peak: node_count,
     control_work_remaining: limits.max_work,
@@ -1644,6 +1839,7 @@ fn start_traverse_paths(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
+  max_paths? : Int = max_workspace_slots,
 ) -> Result[TraversePathsExecution, TraversePathsIssue] {
   start_traverse_paths_read(
     control,
@@ -1657,6 +1853,7 @@ fn start_traverse_paths(
     max_entries,
     max_name_bytes,
     inputs,
+    max_paths~,
   )
 }
 

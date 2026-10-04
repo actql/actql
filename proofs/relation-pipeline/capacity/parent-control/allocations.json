@@ -95,6 +95,10 @@
           "type": "Array[(Int, Int64)]"
         },
         {
+          "name": "traversal_ceilings",
+          "type": "Array[(Int, Int64, Int64)]"
+        },
+        {
           "name": "interval_search_ceilings",
           "type": "Array[(Int, Int64)]"
         },
@@ -250,13 +254,13 @@
     },
     {
       "id": "selected-step-context",
-      "objects": "fresh GeneratedSequence record, selected_steps Int array, retained_ids reference array and result/option wrappers for each selected child",
+      "objects": "fresh GeneratedSequence record, selected_steps Int array, retained_ids reference array and result/option wrappers for each selected child; traversal ceilings Array owner/backing and (step, paths, rows) tuples in the original checked configuration",
       "phases": [
         "startup",
         "handoff",
         "cleanup-pending"
       ],
-      "basis": "selected view copies shared context references, but both newly constructed arrays and the record are separate allocations",
+      "basis": "selected view copies shared context and traversal-ceiling references, but both newly constructed selection arrays and the record are separate allocations; traversal configuration starts with one empty Array, immutable updates copy its Array and tighten an existing occurrence or append one checked GraphTraverseStep, and old/new overlap and retained configurations remain in the census",
       "status": "complete source census; native size/lifetime bound pending"
     },
     {

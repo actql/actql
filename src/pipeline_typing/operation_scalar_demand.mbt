@@ -150,6 +150,7 @@ pub fn operation_scalar_demand(
         | FilterTraversalLabels
         | EnumeratePropertyPaths
         | DeduplicateExactPaths
+        | MinimumEligibleNodeDepth
         | CanonicalTraversalOrder
         | EnforceTraversalOutputGuard
         | ResolveTraversalResources
@@ -161,6 +162,15 @@ pub fn operation_scalar_demand(
         AdmitDiagnosticGraph
         | ResolveDiagnosticResources
         | EnforceDiagnosticRelationRows => None
+      }
+    ComponentsRequirement(v) =>
+      match v {
+        BindComponentAuthorGuard(name) => Some(SafeInteger(name, minimum=1L))
+        AdmitComponentGraph
+        | EnforceComponentInputNodes
+        | ResolveComponentResources
+        | EnforceComponentOutputRows
+        | EnforceComponentAuthorGuard => None
       }
     AppendRequirement(_)
     | SetRequirement(_)

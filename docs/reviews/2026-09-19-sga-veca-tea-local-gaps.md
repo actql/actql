@@ -6,8 +6,9 @@ The new definition-keyed Property Graph is the sole executable Graph contract.
 The previous tuple-profile coverage inventory is retained as inert historical
 text in `portability/historical/local-family-coverage-pre-property-graph.json.txt`.
 Its completed SGA/Graph-bridge claims do not apply to the new representation.
-The current manifest records six partial operations (constructor, two MATCH
-forms, explicit TRAIL, bounds and degree) and fifteen blocked old/unconnected routes. These
+The current manifest records seven partial operations (constructor, two MATCH
+forms, explicit TRAIL, bounds, degree and components) and fourteen blocked
+old/unconnected routes. These
 are implementation gaps, not permanent language exclusions. Existing non-Graph
 coverage is unchanged. Current-source snapshot, fresh packed and aggregate
 acceptance remain open; three-target focused tests do not certify full coverage.
@@ -36,9 +37,38 @@ before public completion. A portable three-target fixture checks long
 typed-identity comparison with quantum-one stop, workspace 10/9, output rows
 2/1, control work 184/183, and canonical order. It checks directional degree
 on a two-node directed Graph with workspace 8/7 and control work 178/177.
-Task-wide cumulative work, remaining formal variants, and final-source CI
-are not yet current-profile completion evidence; the old tuple diagnostics
-records below remain historical.
+The same stored and managed-view fixture now shares one budget between
+control steps and retained output values: bounds work 802/801 and degree
+work 760/759 are exact/one-short with independently counted values.
+A focused JS fixture also counts two separately bound typed edge definitions,
+including a self-loop with two incidences, for incoming, outgoing and total
+degree and combined edge/degree bounds. The retained Host degree case passes
+through the real Store with two consumers; the corresponding bounds Host case
+is registered but was not locally executed in this unit. Remaining formal
+variants and final-source CI are not yet current-profile completion evidence;
+the old tuple diagnostics records below remain historical.
+
+The retained Node Host now also exercises combined node, edge and degree
+threshold violations, zero thresholds on an empty Graph, and `degree` in all
+three directions plus empty output. Each case reads the producer and both
+consumer Named Results from the real Store against fixed rows. The asymmetric
+three-node fixture makes incoming degree and report order observable. The
+single affected Host test passes, but this does not establish task-wide
+cumulative work or every typed-edge definition variant.
+
+Current definition-keyed weak and strong `components` use the bounded Graph
+provider and typed identity comparison. A directed cycle with a one-way feeder
+and an isolated node has independently fixed component identities, sizes and
+order. The empty
+Graph accepts one output-control-work unit and rejects zero on both stored
+and viewed paths, separately from the kernel control limit. A two-node case
+checks workspace 90/89 and quantum-one cancellation with input custody through
+cleanup on both paths. The ordinary Node Host has passed selected weak and
+strong routes through a same-Stage filter, retained Store, producer Named
+Result and two consumer Named Results. Fused and selected strong cases deliver
+Host cancellation after Graph construction. Cross-target execution, other
+formal branches and submitted-SHA CI remain open; the old tuple-profile
+completion claim below is historical.
 
 The current retained-Store traversal route is exercised for WALK, TRAIL, and
 ACYCLIC `emit: paths` followed by a Relation filter in the same Stage. The
@@ -550,12 +580,12 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Registered operations | 69 |
-| Executable production routes | 56 |
-| Typed pre-execution refusals (not execution success) | 13 |
-| Operation-specific boundary records | 56 |
-| Four-role lifecycle assurance | 56 |
-| Full route work/workspace assurance | 56 |
-| Path-scoped work/workspace assurance | 104 |
+| Executable production routes | 57 |
+| Typed pre-execution refusals (not execution success) | 12 |
+| Operation-specific boundary records | 57 |
+| Four-role lifecycle assurance | 57 |
+| Full route work/workspace assurance | 57 |
+| Path-scoped work/workspace assurance | 106 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -2680,15 +2710,15 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | Coverage state | Count |
 |---|---:|
 | `contract` | 40/40 |
-| `checker` | 23/40 |
-| `lowering` | 23/40 |
-| `kernel` | 23/40 |
-| `managed` | 23/40 |
-| `standard_host` | 23/40 |
-| `consumer_lifetime` | 23/40 |
-| `resources` | 27/40 |
-| `cancellation` | 27/40 |
-| `publication` | 23/40 |
+| `checker` | 24/40 |
+| `lowering` | 24/40 |
+| `kernel` | 24/40 |
+| `managed` | 24/40 |
+| `standard_host` | 24/40 |
+| `consumer_lifetime` | 24/40 |
+| `resources` | 28/40 |
+| `cancellation` | 28/40 |
+| `publication` | 24/40 |
 | `three_targets` | 19/40 |
 | complete operations | 19/40 |
 | open operations | 21/40 |

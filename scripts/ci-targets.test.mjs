@@ -3,6 +3,7 @@ import {readFileSync, mkdtempSync, mkdirSync, rmSync, writeFileSync, chmodSync, 
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
+import {runInNewContext} from 'node:vm';
 import test from 'node:test';
 import {parse} from 'yaml';
 import {readChanges, selectTargets, validateSelection, verifyGate, maintenanceFiles, gateJobs} from './ci-targets.mjs';
@@ -81,7 +82,30 @@ test('push+PR duplication is removed without workflow-level path filtering', () 
   assert.equal(workflow.on.pull_request, null);
   assert.equal(workflow.on.push.paths, undefined);
   assert.equal(workflow.on.push['paths-ignore'], undefined);
-  assert.equal(workflow.concurrency['cancel-in-progress'], '${{ !inputs.performance_matrix }}');
+  assert.equal(workflow.concurrency['cancel-in-progress'], "${{ !inputs.performance_matrix && !(github.event_name == 'push' && github.ref == 'refs/heads/main') }}");
+});
+test('automatic main checkpoints finish while PR updates retain cancellation', () => {
+  assert.equal(workflow.concurrency.group, "${{ github.workflow }}-${{ github.ref }}-${{ inputs.packed_query_evidence_probe && 'evidence-probe' || inputs.performance_matrix && 'performance' || 'normal' }}");
+  assert.equal(workflow.concurrency.queue, undefined); // GitHub's default single pending run remains unchanged.
+  const expression = workflow.concurrency['cancel-in-progress'].slice(3, -2);
+  // Evaluate the actual checked-in boolean/string expression, not a second
+  // implementation of the decision. This is not a hosted scheduler test.
+  for (const [event, ref, performance, expected] of [
+    ['push', 'refs/heads/main', false, false],
+    ['push', 'refs/heads/main', undefined, false],
+    ['pull_request', 'refs/pull/333/merge', false, true],
+    ['pull_request', 'refs/pull/333/merge', undefined, true],
+    ['push', 'refs/heads/feature', false, true],
+    ['push', 'refs/heads/main-copy', false, true],
+    ['workflow_dispatch', 'refs/heads/main', false, true],
+    ['workflow_dispatch', 'refs/heads/feature', false, true],
+    ['workflow_dispatch', 'refs/heads/main', true, false],
+    ['workflow_dispatch', 'refs/heads/feature', true, false],
+  ]) {
+    const actual = runInNewContext(expression, {github: {event_name: event, ref},
+      inputs: {performance_matrix: performance}}, {timeout: 100});
+    assert.equal(actual, expected, `${event}:${ref}:${performance}`);
+  }
 });
 test('whole-family scheduling retains the core matrix and complete selected proof campaigns', () => {
   assert.deepEqual(jobs.core.needs, ['select-targets', 'preflight']);
@@ -220,8 +244,8 @@ test('CI selection follows the owned contract baseline without a legacy exceptio
 
 
 test('maintenance inventory is exact and every existing reviewed modification qualifies', () => {
-  assert.equal(maintenanceFiles.length, 17);
-  assert.equal(new Set(maintenanceFiles).size, 17);
+  assert.equal(maintenanceFiles.length, 15);
+  assert.equal(new Set(maintenanceFiles).size, 15);
   for (const path of maintenanceFiles) {
     const selection = validateSelection(maintenanceSelection([path]));
     assert.equal(selection.profile, 'maintenance', path);
@@ -234,7 +258,8 @@ test('maintenance inventory is exact and every existing reviewed modification qu
   for (const path of ['README.md', 'src/source_span/span.mbt', 'packages/sdk/README.md',
     'docs/spec/language.md', 'docs/design/something.md', 'docs/reviews/report.json',
     'scripts/local-checks.mjs', 'proofs/relation-pipeline/ci-artifacts.mjs',
-    'scripts/ci-review.config.json', 'scripts/new-reporter.mjs']) {
+    'scripts/ci-review.config.json', 'scripts/new-reporter.mjs',
+    'scripts/ci-artifact-reader.mjs', 'scripts/ci-artifact-reader.test.mjs']) {
     assert.equal(maintenanceSelection([path]).profile, 'full', path);
     assert.equal(maintenanceSelection([maintenanceFiles[0], path]).profile, 'full', path);
   }
