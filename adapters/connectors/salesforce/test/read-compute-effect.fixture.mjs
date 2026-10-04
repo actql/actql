@@ -214,7 +214,8 @@ export async function readComputeEffectInstallation(t, {org: orgOptions = {},
   await writeFile(sourceProfilePath, JSON.stringify(sourceProfile));
   const hostRoot = join(root, 'state');
   await publishInstalledSalesforceSource(sourceProfile, {root: hostRoot,
-    principalId: owner, moon: commonMoon, salesforceMoon, runtimeBundleCid,
+    principalId: owner, moon: commonMoon, providerMoon: salesforceMoon,
+    runtimeBundleCid,
     resolveSecret: secret});
   // The read decision the Host then runs under; the publication itself
   // described the Resource under an allowed read.
