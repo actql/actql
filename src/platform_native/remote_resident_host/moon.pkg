@@ -32,13 +32,3 @@ import {
   "actql/actql/platform_native/sqlite",
   "moonbitlang/core/json",
 }
-
-import {
-  "moonbitlang/core/env",
-  "actql/actql/execution_relation" @execution,
-  "actql/actql/platform_native/filesystem",
-} for "wbtest"
-
-options(
-  targets: { "source_compute_wbtest.mbt": [ "native" ] },
-)

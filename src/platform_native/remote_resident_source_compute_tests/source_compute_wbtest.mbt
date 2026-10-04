@@ -56,7 +56,7 @@ fn resident_compute_configuration(
   library : @duckdb.Library,
   path : String,
   import_rows? : Int = 10,
-) -> ResidentSourceComputeConfiguration {
+) -> @resident.ResidentSourceComputeConfiguration {
   let values : @execution.ValueLimits = {
     max_nodes: 10000,
     max_text_bytes: 10000,
@@ -429,7 +429,7 @@ test "resident captured Source rejects trusted identity mismatch before acquisit
     ..configuration,
     source: { ..configuration.source, source_ref: "connector://crm/other/r#v", },
   }
-  let (issue, cleanup) = open_resident_source_compute(
+  let (issue, cleanup) = @resident.open_resident_source_compute(
     resident_compute_prepared(),
     foreign,
     name,
@@ -463,7 +463,7 @@ test "resident captured Source reserves engine capacity before acquisition IO" {
       ledger: { ..configuration.source.ledger, execution_bytes: 0L, },
     },
   }
-  let (issue, cleanup) = open_resident_source_compute(
+  let (issue, cleanup) = @resident.open_resident_source_compute(
     resident_compute_prepared(),
     bounded,
     name,
@@ -481,10 +481,10 @@ test "resident captured Source reserves engine capacity before acquisition IO" {
 ///|
 fn resident_compute_open(
   prepared : @host.PreparedClientProgram,
-  config : ResidentSourceComputeConfiguration,
+  config : @resident.ResidentSourceComputeConfiguration,
   occurrence : String,
-) -> ResidentSourceCompute raise {
-  match open_resident_source_compute(prepared, config, occurrence) {
+) -> @resident.ResidentSourceCompute raise {
+  match @resident.open_resident_source_compute(prepared, config, occurrence) {
     Ok(owner) => owner
     Err((issue, cleanup)) => {
       assert_true(
@@ -515,7 +515,7 @@ fn resident_compute_open(
 
 ///|
 fn resident_compute_execute(
-  owner : ResidentSourceCompute,
+  owner : @resident.ResidentSourceCompute,
 ) -> @duckdb_native.NativeStandardStrategyTaskCompletion raise {
   match owner.execute_task(1) {
     Ok(value) => value
