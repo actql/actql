@@ -37,8 +37,8 @@ const mutations = [
     'Budget => findings.push(Limit("analysis_budget_exhausted"))',
     'Budget => findings.push(Violation("supplied_value_invalid"))'],
   ['a missing value is reported as a violation',
-    'Ok(NeedsBindings(missing)) => {\n            findings.push(Limit("bound_values_missing"))',
-    'Ok(NeedsBindings(missing)) => {\n            findings.push(Violation("bound_values_missing"))'],
+    'Ok(NeedsBindings(missing)) => {\n        findings.push(Limit("bound_values_missing"))',
+    'Ok(NeedsBindings(missing)) => {\n        findings.push(Violation("bound_values_missing"))'],
   ['an authored UTF-8 location is shifted by one byte',
     '@encode.number_value(writer, start.to_double())',
     '@encode.number_value(writer, (start + 1).to_double())'],
@@ -74,6 +74,22 @@ const mutations = [
   ['an invalid declaration points at the root instead of its failing member',
     'writer, "parameter_declarations", revision, pointer,',
     'writer, "parameter_declarations", revision, "",'],
+  ['absent declarations skip independently supplied binding',
+    '  if supplied_admitted {',
+    '  if supplied_admitted && context.parameter_declarations is Some(_) {'],
+  ['absent declarations lose the supplied member location',
+    'let fallback = SuppliedViolation(pointer)',
+    'let fallback = SuppliedViolation(None)'],
+  ['absent declarations discard a safe violation beside a protected Source',
+    'QueryLowering(UnknownRelation) =>\n' +
+    '          findings.push(Unresolved("source_resolution"))',
+    'QueryLowering(UnknownRelation) => {\n' +
+    '          if context.parameter_declarations is None { findings.clear() }\n' +
+    '          findings.push(Unresolved("source_resolution"))\n' +
+    '        }'],
+  ['original structured keys are replaced by admitted spellings',
+    'original.push(@source.Key(name))',
+    'original.push(@source.Key(key))'],
 ];
 
 const strict = id => ({id, operator: 'strictEqual'});
@@ -108,6 +124,14 @@ const targets = [
     [strict('declaration-outcome'), deep('declaration-location')]],
   ['invalid declarations retain only their owned submitted locations',
     [strict('declaration-outcome'), deep('declaration-location')]],
+  ['absent declarations still bind independently supplied input',
+    [strict('absent-binding-verdict')]],
+  ['absent declarations still bind independently supplied input',
+    [deep('absent-binding-location')]],
+  ['absent declarations still bind independently supplied input',
+    [strict('absent-binding-verdict')]],
+  ['structured locations keep original key spellings after admission',
+    [deep('original-key-location')]],
 ];
 
 // Reuse the common reporter and nonzero-execution evidence. A process failure
@@ -170,27 +194,34 @@ const accepted = target => {
   return mutationAcceptance(result, expected);
 };
 
-export function checkDisclosureMutations() {
+export function checkDisclosureMutations(match) {
+  const selected = mutations.map((mutation, index) => ({mutation, target: targets[index]}))
+    .filter(({mutation: [name]}) => match === undefined || name.includes(match));
+  if (selected.length === 0) throw new Error('No disclosure mutations selected');
   const original = readFileSync(path, 'utf8');
   const results = [];
   try {
-    for (const [index, [name, from, to]] of mutations.entries()) {
+    for (const {mutation: [name, from, to], target} of selected) {
       if (original.split(from).length !== 2) {
         throw new Error(`Mutation anchor not unique: ${name}`);
       }
       writeFileSync(path, original.replace(from, to));
       build();
-      results.push({name, rejected: !accepted(targets[index])});
+      results.push({name, rejected: !accepted(target)});
     }
   } finally {
     writeFileSync(path, original);
     build();
   }
-  const restored = targets.every(target => accepted(target));
+  const restored = selected.every(({target}) => accepted(target));
   console.log(JSON.stringify({mutations: results, restoredAccepted: restored}, null, 2));
   if (!restored || results.some(result => !result.rejected)) process.exitCode = 1;
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  checkDisclosureMutations();
+  const args = process.argv.slice(2);
+  if (args.length && (args.length !== 2 || args[0] !== '--match' || !args[1])) {
+    throw new Error('Usage: check-disclosure-mutations.mjs [--match name-substring]');
+  }
+  checkDisclosureMutations(args[1]);
 }
