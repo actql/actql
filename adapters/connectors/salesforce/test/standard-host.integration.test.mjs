@@ -463,7 +463,7 @@ test('one Salesforce view can fill two distinct acquisition slots',
     const observations = [];
     const setup = await installation(t, {retainedRelationOutput: true});
     await setup.publish();
-    const {client} = await setup.open({authorization: checkpointAuthorization({
+    const {client, close} = await setup.open({authorization: checkpointAuthorization({
       observe(name, detail) { observations.push({name, detail}); },
     })});
     const document = twoViewJoinProgram();
@@ -479,6 +479,18 @@ test('one Salesforce view can fill two distinct acquisition slots',
     ]);
     assert.deepEqual(observations.filter(item => item.name ===
       'acquisition_completed').map(item => item.detail.task), [0, 1]);
+    assert.equal(setup.queries().length, 2);
+    const resent = await client.aql(JSON.stringify(document),
+      {format: 'json', requestId: 'salesforce-repeat-view-join'});
+    assert.deepEqual(resent.ref, execution.ref);
+    await close();
+    const reopened = await setup.open({authorization: checkpointAuthorization()});
+    const attached = await reopened.client.attach(execution.ref);
+    assert.deepEqual(await attached.result('joined').all(), [
+      {key: 'key-1', left_name: 'record-1', right_name: 'record-1'},
+      {key: 'key-2', left_name: 'record-2', right_name: 'record-2'},
+      {key: 'key-3', left_name: 'record-3', right_name: 'record-3'},
+    ]);
     assert.equal(setup.queries().length, 2);
   });
 

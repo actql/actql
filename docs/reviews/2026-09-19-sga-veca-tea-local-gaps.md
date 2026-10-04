@@ -91,7 +91,9 @@ the two-adapter Salesforce binding through the same owner; it does not turn
 other provider pairs into an implicit completion claim.
 The same published Salesforce SourceView may fill two separate acquisition
 slots in different Stages. Each slot retains its own checked requirement and
-occurrence identity, while both select the same installed read authority.
+occurrence identity, while both select the same installed read authority. A
+held pair resumes across Host restart with separate approvals, and a completed
+public Result attaches after restart without reacquiring either slot.
 
 The installed full-family Host now declares TEA and VecA to the common checker,
 matching its already registered bounded providers. This does not make a
