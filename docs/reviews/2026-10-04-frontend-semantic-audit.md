@@ -38,17 +38,27 @@ subsequent submitted commits add evidence and tests without changing that
 verified runtime source. See each repair record for the exact source-to-artifact
 relationship.
 Both are Draft. The narrow ORDER positive corpus is successful; the Group
-corpus remains incomplete. Neither final automatic PR CI is declared successful. The previous submitted
-heads failed automatic CI; new runs are queued for the updated heads. The Group
-distribution assertion has been corrected to compare SQL and Pipe against
-independent complete Programs, rather than assuming their projections occupy
-identical steps. Its local 1/1 is separate from full distribution acceptance. No Host ceilings, providers, physical strategies or common owners
+corpus remains incomplete. At this checkpoint, automatic
+[ORDER CI 37162504341](https://github.com/actql/actql/actions/runs/37162504341)
+has no failed jobs and its final `pipeline-evidence` is still running.
+[Group CI 37162983732](https://github.com/actql/actql/actions/runs/37162983732)
+passes client-distribution with independent complete SQL/Pipe Programs;
+client-packed and its Client aggregate fail, while other jobs remain running.
+The first packed failure is still `group-snapshot-original-key` on merge tree
+`6011bb1fcc48305e7351ea8dbf3cf86df542f8bc`; later Group cases and HTTP are
+not reached. No previous failed HEAD is relabeled as a success. The local
+independent-Program comparison passed 1/1 separately from that CI distribution
+result. No Host ceilings, providers, physical strategies or common owners
 were changed. The CTE shared-acquisition predicate defect remains D's handoff.
 
 The [capacity handoff](2026-10-04-frontend-capacity-handoff.md) preserves all
 three original refusals, actual checked Programs and independent expected rows.
-A owns the common derivation/reservation investigation; D owns public reacceptance
-after A's fixed SHA. B's adjacent RESULT repair independently closes the ORDER
+A owns the common derivation/reservation investigation; B will finish #287's
+remaining public corpus after A's fixed SHA. D can reuse the common-boundary
+handoff without duplicating those cases. The handoff now accounts for the
+observed Group totals using child holding, child execution and parent copy
+holding, rather than inferring a fragment peak by subtracting base scratch.
+B's adjacent RESULT repair independently closes the ORDER
 example without changing the capacity formula or 512 MiB ceiling. Group's two
 capacity refusals remain unresolved. No estimate defect is inferred solely from
 zero current reservation or a small physical fixture.
@@ -110,6 +120,19 @@ and supported composed term, under the existing lexical CTE scope. When
 another consumer needs the original Source, retain the complete acquisition
 and leave this WHERE on `chosen`. Do not acquire the original Source a second
 time, remove the predicate, or equate a shadowing CTE name with an outer Source.
+
+Read-only follow-up at D's submitted
+`8a5195451195b7e4566b19bf7ba9fb5772b8f2d1` confirms that
+`compile_cte_query` still compares only each term's principal relation in
+`referenced_elsewhere` (lines 2964–2980), omitting JOIN-right dependencies.
+D's improved DATA/script dependency scan does not replace this direct CTE
+path: `source_frontend/lower.mbt` sends text scripts with no DATA declarations,
+and SQL input, to `query_program.compile`. This is current-source evidence,
+not another execution of the latest D runtime. The wrong-row execution above
+remains bound to the historical audited main. D's #273 composition acceptance
+does not cover this zero-DATA CTE counterexample. The authored source, expected
+two rows, one acquisition and no reacquisition are unchanged; no parallel
+Source-predicate repair was made in B's branch.
 
 ## Reproduced defect: aggregate input loses an immutable range snapshot
 
