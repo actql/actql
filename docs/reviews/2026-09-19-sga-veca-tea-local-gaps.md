@@ -565,12 +565,12 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Registered operations | 69 |
-| Executable production routes | 56 |
-| Typed pre-execution refusals (not execution success) | 13 |
-| Operation-specific boundary records | 56 |
-| Four-role lifecycle assurance | 56 |
-| Full route work/workspace assurance | 56 |
-| Path-scoped work/workspace assurance | 104 |
+| Executable production routes | 57 |
+| Typed pre-execution refusals (not execution success) | 12 |
+| Operation-specific boundary records | 57 |
+| Four-role lifecycle assurance | 57 |
+| Full route work/workspace assurance | 57 |
+| Path-scoped work/workspace assurance | 106 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -4542,6 +4542,21 @@ that it does not infer order from an unrelated publication representation.
 Selected Host-delivered cancellation cases are registered for all three
 diagnostics. Other retained Graph Relation-producing operations remain separate
 completion units; this change does not waive their route or resource proofs.
+
+Current Property Graph equality now checks two exact, ordered Graph operands
+against compatible closed definitions and runs the selected bounded provider.
+The retained Node Host constructs both Graphs in one Stage, compares them,
+passes the Boolean Relation through a later filter, publishes the Named Result,
+and reads two consumers from the real Store. Its timer cancellation begins
+after both Graphs are constructed and stops the selected equality kernel
+without publishing partial output. The quantum-one kernel fixture admits the
+independently derived three-step count mismatch at the exact work ceiling,
+rejects two steps, admits one workspace slot, rejects zero, and preserves both
+borrowed inputs after cleanup. A separate 512-character property fixture
+rejects insufficient nested comparison work and stops during a yielded value
+comparison. The focused equality suite passed on JS, Wasm, and native.
+Broader representation variants and same-SHA CI remain open, so current
+equality is partial.
 
 Selected `SGA.match_nodes` and `SGA.match_edges` now read an exact managed
 Graph view through their existing bounded match kernels. The Node standard
