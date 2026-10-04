@@ -657,12 +657,24 @@ object fields and array items, the projection follows the existing binder's
 supplied-input path through the admitted declaration and value. It reads the
 declared child type rather than reporting the root container type. This does
 not perform another admission or change the checker's conclusion.
-Supplied constraint violations retain their registered reason and can carry
-the same owned structured location without publishing the offending value.
+Supplied constraint violations with an owned cause use
+`supplied_value_constraint_violation` and typed `parameter`/`constraint` facts.
+The current admitted families are numeric, duration, exact array length and
+maximum array size. NumericConstraint aggregates integer/minimum/maximum failures;
+projection does not select a failing subcondition by rechecking the value.
+These reasons can carry the same owned structured location without publishing
+the offending value. Other causes retain their safe generic reason. A missing
+node, default-origin error or budget does not acquire invented constraint facts.
 JSON pointer tokens escape `~` before `/`, retaining exact field spelling and
 array indices. A missing submitted node or a pointer exceeding 4,096 UTF-16
 code units has no public location; paths are never truncated or fabricated.
 Default-origin failures do not acquire a supplied-document location.
+Declaration admission failures can carry a reader-owned pointer in the submitted
+`parameter_declarations` document, including an invalid default, type member or
+metadata member. The pointer must resolve to an admitted submitted node; a missing
+member is omitted rather than invented. An admitted empty declaration map has the
+known root pointer `""`. Admission budgets and internal failures remain separate
+from declaration violations and do not receive a violation location.
 A missing value is a Requirement for bound-input checking, not a diagnostic or
 verified template report. Its declaration pointer/revision identifies the full
 submitted admission contract, including constraints; supplying a value requires

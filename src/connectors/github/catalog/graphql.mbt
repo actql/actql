@@ -114,6 +114,8 @@ pub(all) enum GraphqlResponseIssue {
   RateLimited
   Errors(String)
   RepositoryUnavailable
+  SubjectUnavailable
+  ForeignSubject
   WrongType(String)
   ForeignRepository
   IdRepresentationChanged

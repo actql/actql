@@ -30,7 +30,7 @@ export declare function resolveCheckTextRange(outcome: CheckOutcome,
       end: Readonly<{line: number; character: number}>;
     }>;
   }>) | undefined;
-export declare function explainCheckReason(reason: Readonly<{code: string}>):
+export declare function explainCheckReason(reason: Readonly<{code: string; facts?: unknown}>):
   Readonly<{kind: 'known' | 'unknown'; summary: string; hint?: string}>;
 
 type ConnectedEndpoint = Readonly<{

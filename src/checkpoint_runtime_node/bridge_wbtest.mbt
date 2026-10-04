@@ -24,3 +24,20 @@ test "checkpoint ABI exposes stable issue codes separately from diagnostics" {
   let malformed = parse(checkpoint_admit("{")).unwrap()
   assert_eq(text_member(malformed, "issue"), Some("InvalidWire"))
 }
+
+///|
+test "terminal outcome bridge rejects unknown and unparseable tokens" {
+  assert_eq(run_outcome_terminal("preparing"), false)
+  assert_eq(run_outcome_terminal("running"), false)
+  assert_eq(run_outcome_terminal("waiting_checkpoint"), false)
+  assert_eq(run_outcome_terminal("resuming"), false)
+  assert_eq(run_outcome_terminal("needs_reconciliation"), false)
+  assert_eq(run_outcome_terminal("succeeded"), true)
+  assert_eq(run_outcome_terminal("failed"), true)
+  assert_eq(run_outcome_terminal("cancelled"), true)
+  assert_eq(run_outcome_terminal("unknown"), false)
+  assert_eq(run_outcome_terminal("Succeeded"), false)
+  assert_eq(run_outcome_terminal("succeeded "), false)
+  assert_eq(run_outcome_terminal(""), false)
+  assert_eq(run_outcome_terminal("{\"status\":\"succeeded\"}"), false)
+}

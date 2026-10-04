@@ -83,16 +83,186 @@
     "connection": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["mode", "owner", "consentRefs", "runners"],
+      "required": [
+        "mode",
+        "owner",
+        "consentRefs",
+        "runners"
+      ],
       "properties": {
-        "mode": {"enum": ["local", "remote", "hybrid"]},
-        "owner": {"enum": ["local", "remote", "cloud"]},
-        "consentRefs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}},
-        "runners": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}},
-        "durability": {"enum": ["volatile", "durable"]},
-        "movementPolicyRef": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"},
-        "cloudConnectionRef": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"}
-      }
+        "mode": {
+          "enum": [
+            "local",
+            "remote",
+            "hybrid"
+          ]
+        },
+        "owner": {
+          "enum": [
+            "local",
+            "remote",
+            "cloud"
+          ]
+        },
+        "consentRefs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          }
+        },
+        "runners": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          }
+        },
+        "durability": {
+          "enum": [
+            "volatile",
+            "durable"
+          ]
+        },
+        "movementPolicyRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+        },
+        "cloudConnectionRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+        }
+      },
+      "allOf": [
+        {
+          "oneOf": [
+            {
+              "properties": {
+                "mode": {
+                  "const": "remote"
+                },
+                "owner": {
+                  "const": "remote"
+                },
+                "runners": {
+                  "type": "array",
+                  "maxItems": 0,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  }
+                }
+              },
+              "allOf": [
+                {
+                  "not": {
+                    "required": [
+                      "movementPolicyRef"
+                    ]
+                  }
+                },
+                {
+                  "not": {
+                    "required": [
+                      "cloudConnectionRef"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "properties": {
+                "mode": {
+                  "const": "local"
+                },
+                "owner": {
+                  "const": "local"
+                },
+                "runners": {
+                  "type": "array",
+                  "maxItems": 0,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  }
+                }
+              },
+              "allOf": [
+                {
+                  "not": {
+                    "required": [
+                      "movementPolicyRef"
+                    ]
+                  }
+                },
+                {
+                  "not": {
+                    "required": [
+                      "cloudConnectionRef"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "properties": {
+                "mode": {
+                  "const": "hybrid"
+                },
+                "owner": {
+                  "const": "local"
+                }
+              },
+              "required": [
+                "movementPolicyRef",
+                "cloudConnectionRef"
+              ]
+            },
+            {
+              "properties": {
+                "mode": {
+                  "const": "hybrid"
+                },
+                "owner": {
+                  "const": "cloud"
+                },
+                "runners": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256,
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+                  }
+                }
+              },
+              "required": [
+                "movementPolicyRef"
+              ],
+              "not": {
+                "required": [
+                  "cloudConnectionRef"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     },
     "profile": {
       "type": "object",
@@ -392,6 +562,23 @@
             }
           }
         }
+      }
+    }
+  },
+  "response_rules": {
+    "profile": {
+      "matchConnection": [
+        "mode",
+        "owner"
+      ],
+      "requireRequested": {
+        "durability": "durable"
+      }
+    },
+    "admission": {
+      "matchConnection": [],
+      "requireRequested": {
+        "durability": "durable"
       }
     }
   }
