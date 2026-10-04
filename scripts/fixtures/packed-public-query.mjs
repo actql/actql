@@ -33,6 +33,8 @@ import {graphRowSourceSuccesses, graphRowSourceRefusals}
   from './property-graph-row-source-input.mjs';
 import {graphTraverseSourceSuccesses, graphTraverseSourceRefusals}
   from './property-graph-traverse-source-input.mjs';
+import {graphEqualitySourceSuccesses, graphEqualitySourceRefusals}
+  from './property-graph-equality-source-input.mjs';
 import {acquiredDataSuccesses, acquiredGraphSourceSuccesses, acquiredDataRefusals}
   from './acquired-data-source-input.mjs';
 
@@ -41,6 +43,7 @@ if (process.env.ACTQL_TEST_TWO_SOURCE_ONLY === '1') {
 } else {
 const propertyGraphOnly = process.env.ACTQL_TEST_PROPERTY_GRAPH_SOURCE_ONLY === "1";
 const graphRowsOnly = process.env.ACTQL_TEST_GRAPH_ROWS_ONLY === '1';
+const graphEqualityOnly = process.env.ACTQL_TEST_GRAPH_EQUALITY_ONLY === '1';
 const orderOrdinalOnly = process.env.ACTQL_TEST_ORDER_ORDINAL_ONLY === '1';
 const distinctOrderOnly = process.env.ACTQL_TEST_DISTINCT_ORDER_ONLY === '1';
 const graphTraverseOnly = process.env.ACTQL_TEST_GRAPH_TRAVERSE_ONLY === '1';
@@ -58,7 +61,7 @@ const resultOnly = process.env.ACTQL_TEST_PIPE_RESULT_ONLY === '1';
 const dataOnly = process.env.ACTQL_TEST_RELATION_DATA_ONLY === '1';
 const acquiredDataOnly = process.env.ACTQL_TEST_ACQUIRED_DATA_ONLY === '1';
 const dataSetStrategyOnly = process.env.ACTQL_TEST_DATA_SET_STRATEGY_ONLY === '1';
-const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || havingProjectionOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly;
+const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || havingProjectionOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || graphEqualityOnly || orderOrdinalOnly || distinctOrderOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const joinChain = JSON.parse(await readFile('join-chain-cases.json', 'utf8'));
 const groupScope = JSON.parse(await readFile('group-scope-cases.json', 'utf8'));
@@ -83,6 +86,7 @@ const scopeInputs = groupOrdinalOnly ? {successes: groupOrdinalSuccesses, refusa
   : distinctOrderOnly ? {successes: distinctOrderSuccesses, refusals: distinctOrderRefusals}
   : graphTraverseOnly ? {successes: graphTraverseSourceSuccesses, refusals: graphTraverseSourceRefusals}
   : graphRowsOnly ? {successes: graphRowSourceSuccesses, refusals: graphRowSourceRefusals}
+  : graphEqualityOnly ? {successes: graphEqualitySourceSuccesses, refusals: graphEqualitySourceRefusals}
   : scopedOrderOnly ? {
   successes: scope.successes.filter(item => item.name.startsWith('scoped-order-')),
   refusals: scope.refusals.filter(item => item.name.startsWith('scoped-order-')),
@@ -115,6 +119,8 @@ if (!scopeOnly) {
   scopeInputs.refusals.push(...graphRowSourceRefusals);
   scopeInputs.successes.push(...graphTraverseSourceSuccesses);
   scopeInputs.refusals.push(...graphTraverseSourceRefusals);
+  scopeInputs.successes.push(...graphEqualitySourceSuccesses);
+  scopeInputs.refusals.push(...graphEqualitySourceRefusals);
 }
 if (!scopeOnly) {
   scopeInputs.successes.push(...joinChain.successes);
