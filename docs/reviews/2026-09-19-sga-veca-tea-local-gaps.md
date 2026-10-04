@@ -754,6 +754,8 @@ producer and two consumer Named Results against independently fixed ordered
 rows `[{n: 3}, {n: 2}]`. A mixed `MAX`/`COUNT` branch also completes as one
 selected task and publishes `[{n: 4}, {n: 2}]`; the existing whole-task
 provider, rather than the narrower split eligibility for `COUNT`, admits it.
+Independent `SUM` and `AVG` branch slots likewise seal and publish
+`[{n: 9}, {n: 1.5}]` through the retained Store and two consumer Results.
 The chain owner supplies cumulative work, overlapping child capacity,
 stop-before-release and reverse cleanup for these selected children. The
 earlier fork-join fault cases exercise that owner; they are shared lifecycle

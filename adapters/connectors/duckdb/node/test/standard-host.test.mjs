@@ -7951,6 +7951,11 @@ async function exerciseStrategyGraph(
   const branchedMixedAggregateProgram = structuredClone(branchedGroupProgram);
   branchedMixedAggregateProgram.stages.find(stage => stage.id === 'crossed')
     .steps[3].group.aggregates.n = {fn: 'max', field: 'id'};
+  const branchedNumericGroupProgram = structuredClone(branchedGroupProgram);
+  const branchedNumericSteps = branchedNumericGroupProgram.stages.find(stage =>
+    stage.id === 'crossed').steps;
+  branchedNumericSteps[3].group.aggregates.n = {fn: 'sum', field: 'id'};
+  branchedNumericSteps[4].group.aggregates.n = {fn: 'avg', field: 'id'};
   for (const [name, program, tasks] of [
     ['values', zeroInputProgram, [1, 2, 3]],
     ['captured Relation filter/select chain', capturedRelationChainProgram,
@@ -9387,6 +9392,8 @@ async function exerciseStrategyGraph(
       expected: [{n: 3}, {n: 2}], fields: ['n']},
     {name: 'append-fork-mixed-group-join', source: branchedMixedAggregateProgram,
       expected: [{n: 4}, {n: 2}], fields: ['n']},
+    {name: 'append-fork-sum-avg-join', source: branchedNumericGroupProgram,
+      expected: [{n: 9}, {n: 1.5}], fields: ['n']},
     {name: 'except-all-filter', source: retainedBinaryChain(
       retainedSetProgram('except'), [{filter: 'id > 1'}], ['id']),
     expected: [{id: 2}], fields: ['id']},
