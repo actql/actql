@@ -18,6 +18,8 @@ priv enum ApplyPhase {
   ReadBaseBody
   ApplyNodes
   ApplyEdges
+  ValidateBefore
+  AppendRecord
   TargetSnapshot
   ApplyFinished
 } derive(Eq)
@@ -37,7 +39,11 @@ struct ApplyPreparation {
   mut snapshot_preparation : @snapshot.Preparation?
   mut base_snapshot : @snapshot.Snapshot?
   mut base_body : @value.Value?
+  mut base_decoded : @decode.Cursor?
   mut body_admission : BodyAdmission?
+  mut before_admission : BeforeAdmission?
+  mut pending_output : @decode.Cursor?
+  mut pending_edge : Bool
   chunks : Array[String]
   mut builder : @storage.Builder?
   mut result : @storage.Storage?
@@ -216,7 +222,8 @@ pub fn prepare_apply(
     checked_add(with_snapshot, body_slots) is Some(with_body) &&
     checked_add(with_body, storage_limits.max_workspace_slots)
     is Some(with_storage) &&
-    checked_add(with_storage, 16) is Some(required) &&
+    before_workspace_slots(limits) is Some(before_slots) &&
+    checked_add(with_storage, before_slots) is Some(required) &&
     required <= limits.max_workspace_slots else {
     return Err(WorkspaceLimit)
   }
@@ -255,7 +262,11 @@ pub fn prepare_apply(
     snapshot_preparation: Some(preparation),
     base_snapshot: None,
     base_body: None,
+    base_decoded: None,
     body_admission: None,
+    before_admission: None,
+    pending_output: None,
+    pending_edge: false,
     chunks: [],
     builder: None,
     result: None,
@@ -268,56 +279,16 @@ pub fn prepare_apply(
 }
 
 ///|
-fn wire_record(value : @value.Value, limits : Limits) -> String? {
-  try {
-    let writer = @encode.writer(
-      limits.max_identity_bytes,
-      limits.max_identity_nodes,
-      limits.max_identity_depth,
-    )
-    @value.emit_wire_value(value, writer)
-    Some(@encode.finish(writer))
-  } catch {
-    _ => None
-  }
-}
-
-///|
-fn record_cursor(value : @value.Value, limits : Limits) -> @decode.Cursor? {
-  guard wire_record(value, limits) is Some(text) &&
-    @source.parse_json(text, {
-      max_input_bytes: limits.max_identity_bytes,
-      max_nodes: limits.max_identity_nodes,
-      max_depth: limits.max_identity_depth,
-    })
-    is Ok(source) else {
+fn decoded_record(
+  body : @decode.Cursor?,
+  index : Int,
+  edge : Bool,
+) -> @decode.Cursor? {
+  guard body is Some(body) &&
+    @decode.element_at(body, if edge { 4 } else { 3 }) is Some(records) else {
     return None
   }
-  @decode.admit(source, {
-    max_nodes: limits.max_identity_nodes,
-    max_depth: limits.max_identity_depth,
-    max_string_bytes: limits.max_identity_bytes,
-    max_total_string_bytes: limits.max_identity_bytes,
-  }).to_option()
-}
-
-///|
-fn exact_before(
-  before : @decode.Cursor,
-  actual : @value.Value,
-  limits : Limits,
-) -> Bool {
-  guard @value.admit(json_contract(), before, {
-      max_nodes: limits.max_identity_nodes,
-      max_depth: limits.max_identity_depth,
-      max_text_bytes: limits.max_identity_bytes,
-    })
-    is Ok(before) &&
-    wire_record(before.value, limits) is Some(before) &&
-    wire_record(actual, limits) is Some(actual) else {
-    return false
-  }
-  before == actual
+  @decode.element_at(records, index)
 }
 
 ///|
@@ -451,10 +422,11 @@ pub fn advance_apply(
             return Ok(
               apply_failure(value, issue, used + work.to_int64(), progress),
             )
-          BodyComplete(body, work~) => {
+          BodyComplete(body, decoded, work~) => {
             used += work.to_int64()
             value.body_admission = None
             value.base_body = Some(body.value)
+            value.base_decoded = Some(decoded)
             value.builder = match
               @storage.prepare(
                 @carrier.graph_carrier(value.graph),
@@ -534,9 +506,11 @@ pub fn advance_apply(
           guard base_key is Some(key) else { return Err(InvalidGraph) }
           @canonical.compare_utf16(key, selected.unwrap().1.key)
         }
-        let output : @decode.Cursor? = if order < 0 {
-          guard actual is Some(actual) &&
-            record_cursor(actual, value.limits) is Some(cursor) else {
+        value.pending_edge = edge
+        value.pending_output = if order < 0 {
+          guard actual is Some(_) &&
+            decoded_record(value.base_decoded, value.base_cursor, edge)
+            is Some(cursor) else {
             return Ok(apply_failure(value, InvalidGraph, used, progress))
           }
           value.base_cursor += 1
@@ -553,10 +527,14 @@ pub fn advance_apply(
             if kind == 0 {
               return Ok(apply_failure(value, BeforeMismatch, used, progress))
             }
-            guard action.before is Some(before) &&
-              actual is Some(actual) &&
-              exact_before(before, actual, value.limits) else {
+            guard action.before is Some(before) && actual is Some(actual) else {
               return Ok(apply_failure(value, BeforeMismatch, used, progress))
+            }
+            value.before_admission = match
+              start_before(before, actual, value.limits) {
+              Some(admission) => Some(admission)
+              None =>
+                return Ok(apply_failure(value, BeforeMismatch, used, progress))
             }
             value.base_cursor += 1
           }
@@ -569,15 +547,50 @@ pub fn advance_apply(
           }
           action.after
         }
-        if output is Some(cursor) {
-          let (result, work) = append_apply_record(value, cursor, edge)
-          used += work + @decode.admission_usage(cursor).nodes.to_int64() * 3
+        value.phase = if value.before_admission is Some(_) {
+          ValidateBefore
+        } else {
+          AppendRecord
+        }
+        used += 1
+      }
+      ValidateBefore => {
+        guard value.before_admission is Some(admission) else {
+          return Err(Terminal)
+        }
+        match advance_before(admission, quantum - used.to_int()) {
+          BeforeContinue(work~) => used += work.to_int64()
+          BeforeComplete(work~) => {
+            used += work.to_int64()
+            cleanup_before(admission)
+            value.before_admission = None
+            value.phase = AppendRecord
+          }
+          BeforeFailed(issue, work~) =>
+            return Ok(
+              apply_failure(value, issue, used + work.to_int64(), progress),
+            )
+        }
+      }
+      AppendRecord => {
+        if value.pending_output is Some(cursor) {
+          let (result, work) = append_apply_record(
+            value,
+            cursor,
+            value.pending_edge,
+          )
+          // Only the existing builder's actual work is reported here. Cursor
+          // admission_usage describes its entire retained tree, not a record's
+          // traversal, and must not be multiplied into this poll's work.
+          used += work
           if result is Err(issue) {
             return Ok(apply_failure(value, issue, used, progress))
           }
         } else {
           used += 1
         }
+        value.pending_output = None
+        value.phase = if value.pending_edge { ApplyEdges } else { ApplyNodes }
         progress += 1
       }
       ApplyFinished => return Err(Terminal)
@@ -602,6 +615,12 @@ pub fn cleanup_apply(value : ApplyPreparation) -> Bool {
   }
   value.result = None
   value.base_body = None
+  value.base_decoded = None
+  value.pending_output = None
+  if value.before_admission is Some(admission) {
+    cleanup_before(admission)
+  }
+  value.before_admission = None
   value.chunks.clear()
   if value.body_admission is Some(admission) {
     cleanup_body(admission)

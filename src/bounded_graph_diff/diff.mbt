@@ -527,7 +527,7 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
           BodyContinue(work~) => used += work.to_int64()
           BodyFailed(issue, work~) =>
             return Ok(failed(value, issue, progress, used + work.to_int64()))
-          BodyComplete(body, work~) => {
+          BodyComplete(body, _, work~) => {
             used += work.to_int64()
             value.body_admission = None
             if value.phase == ReadLeftBody {

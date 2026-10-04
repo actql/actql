@@ -24,7 +24,7 @@ priv struct BodyAdmission {
 ///|
 priv enum BodyPoll {
   BodyContinue(work~ : Int)
-  BodyComplete(@value.CheckedValue, work~ : Int)
+  BodyComplete(@value.CheckedValue, @decode.Cursor, work~ : Int)
   BodyFailed(Issue, work~ : Int)
 }
 
@@ -155,7 +155,8 @@ fn advance_body(body : BodyAdmission, quantum : Int) -> BodyPoll {
           Ok(admission) => Some(admission)
           Err(_) => return BodyFailed(InvalidGraph, work=used)
         }
-        body.decoded = None
+        // Keep the same owned decode index for Apply's record access. Retained
+        // cursors do not acquire reference rights or require a second parse.
         body.phase = AdmitBody
       }
       AdmitBody => {
@@ -166,9 +167,11 @@ fn advance_body(body : BodyAdmission, quantum : Int) -> BodyPoll {
         match @value.advance_json_admission(admission) {
           @value.JsonAdmissionContinue => ()
           @value.JsonAdmissionComplete(checked, _, _) => {
+            let decoded = body.decoded.unwrap()
+            body.decoded = None
             body.admission = None
             body.phase = BodyFinished
-            return BodyComplete(checked, work=used)
+            return BodyComplete(checked, decoded, work=used)
           }
           @value.JsonAdmissionFailed(_) =>
             return BodyFailed(InvalidGraph, work=used)

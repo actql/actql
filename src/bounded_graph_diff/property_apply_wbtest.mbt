@@ -248,7 +248,10 @@ test "property delta failed append preserves the existing builder work report" {
   let preparation = prepare_fixture_apply(base, malformed)
   let mut reached_append = false
   for _ in 0..<100000 {
-    if preparation.phase == ApplyNodes && preparation.base_cursor == 3 {
+    if preparation.phase == AppendRecord &&
+      !preparation.pending_edge &&
+      preparation.base_cursor == 3 &&
+      preparation.add_cursor == 1 {
       reached_append = true
       break
     }
@@ -282,12 +285,12 @@ test "property delta storage budget failure retains work and cleanup custody" {
     { ..storage_limits(), max_work: 1, },
   ).unwrap()
   for _ in 0..<100000 {
-    if preparation.phase == ApplyNodes {
+    if preparation.phase == AppendRecord {
       break
     }
     assert_true(advance_apply(preparation, 1) is Ok(ApplyContinue(..)))
   }
-  assert_true(preparation.phase == ApplyNodes)
+  assert_true(preparation.phase == AppendRecord)
   let builder = preparation.builder.unwrap()
   let before = @storage.builder_construction_work(builder)
   guard advance_apply(preparation, 1)

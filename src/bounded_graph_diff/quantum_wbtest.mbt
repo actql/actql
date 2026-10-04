@@ -44,6 +44,7 @@ test "Delta apply respects each admitted poll quantum" {
     delta_fixture_expected(),
   )
   for poll_index in 0..<100000 {
+    let phase_before_poll = preparation.phase
     let poll = advance_apply(preparation, 1).unwrap()
     let (work, terminal) = match poll {
       ApplyContinue(work~, ..) => (work, false)
@@ -54,8 +55,10 @@ test "Delta apply respects each admitted poll quantum" {
       }
     }
     if work < 0 || work > 1 {
-      let phase = if preparation.phase == ApplyNodes {
-        "ApplyNodes"
+      let phase = if phase_before_poll == AppendRecord {
+        "AppendRecord"
+      } else if phase_before_poll == ValidateBefore {
+        "ValidateBefore"
       } else {
         "other"
       }
