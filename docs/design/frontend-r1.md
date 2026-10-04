@@ -139,7 +139,7 @@ the Frontend does not introduce an alternative String representation.
 | --- | --- | --- |
 | Single/double quoted String | The same bounded decoder and String expression; either quote may contain the other quote | Raw CR/LF is invalid in these plain forms |
 | Standard simple, octal, hex and Unicode escapes | Decode once to the exact Unicode scalar sequence | Reject malformed escapes, surrogate values and values above U+10FFFF |
-| Backtick identifier | Name resolution, separate from String data | Existing identifier escape subset remains; wider escapes are not implemented |
+| Backtick identifier | Same non-raw scalar escape decoder as String; decoded names enter ordinary name resolution | Nonempty; physical CR/CRLF decodes to LF; common authored-name constraints still apply; no raw/triple/chunk concatenation |
 | Triple single/double quoted String | Ordinary String after source newline/escape decoding | Three matching unescaped quotes terminate the chunk; physical newlines are permitted |
 | Raw String | Preserve each backslash and following scalar in an ordinary String | Prefix applies only to its immediate chunk; odd trailing backslash and plain-form physical newlines reject |
 | Adjacent String chunks | Concatenate decoded values into one String expression, retaining the original source range | Whitespace/comment separation is required; identifiers and String/bytes mixtures do not concatenate |
