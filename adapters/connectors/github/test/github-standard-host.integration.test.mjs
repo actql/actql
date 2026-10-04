@@ -249,6 +249,35 @@ test('installed row source retains public output across Host reopen',
     assert.equal(listings(setup.api).length, reads);
   });
 
+test('retained row source does not publish after a later page fails',
+  async t => {
+    const setup = await installation(t, {retainedRelationOutput: true,
+      observe() {}});
+    await setup.publish();
+    const normal = graphqlRoute(() => ({...setup.state, answer: undefined}));
+    setup.state.answer = variables => variables.after === null
+      ? normal.handle({body: JSON.stringify({query: 'query ActqlIssues(',
+        variables})})
+      : {headers: {'x-ratelimit-remaining': '0',
+        'x-ratelimit-reset': '1790000000'},
+        body: {data: null, errors: [{type: 'RATE_LIMITED',
+          message: 'API rate limit exceeded'}]}};
+    const {client} = await setup.open();
+    const run = await client.aql(program, {format: 'json',
+      requestId: 'github-retained-later-page-failure'});
+    const state = await run.wait();
+    assert.equal(state.status, 'failed', JSON.stringify(state));
+    assert.equal(state.result_available, false);
+    assert.equal(state.result_availability.issues.state, 'unavailable');
+    assert.equal(listings(setup.api).length, 2);
+    assert.deepEqual(await readdir(join(setup.root, 'state',
+      'carrier-snapshots')), []);
+    const resent = await client.aql(program, {format: 'json',
+      requestId: 'github-retained-later-page-failure'});
+    assert.deepEqual(resent.ref, run.ref);
+    assert.equal(listings(setup.api).length, 2);
+  });
+
 test('a renamed repository binding is refused until it is published again',
   async t => {
     const setup = await installation(t);
