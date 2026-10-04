@@ -53,6 +53,20 @@ boundary test: the same two-row page passes with capacity two and yields a
 capture, while capacity one gives typed `CaptureLimit` and cannot finish or
 expose a partial capture. This isolates the common capture owner but is not
 a public retained-Store 2/1 configuration test.
+An installed Salesforce source also supplies an exact retained Relation to a
+later Events Stage. The normal HTTPS Host selects the source, derives a
+non-null numeric clock, runs `to_events` and `watermark_events`, and reads the
+formal `events` Bridge followed by a same-Stage Relation filter and two
+consumers from the real Store against independent ordered rows. The acquired
+row task uses retained-file output;
+the Carrier tasks use managed material. A repeated request and reopened Host
+do not reacquire the source. Duplicate event identities fail after capture
+without publishing a partial Result. An arithmetic failure in the Relation
+filter after the formal Events Bridge likewise leaves no published Result or
+retained Carrier snapshot. Cancellation at the captured-input handoff reclaims
+its file without a second read. This path does not claim that
+a nullable Salesforce datetime can directly serve as the non-null Event clock,
+nor does the handoff cancellation prove cancellation inside a TEA kernel.
 For a row connector with multiple declared views, the two-installation Host
 now carries each view's source reference and read tuple into Check disclosure
 and pre-acquisition Checkpoint selection. The installed source still prepares
