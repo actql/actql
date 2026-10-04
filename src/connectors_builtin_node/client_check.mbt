@@ -8,7 +8,8 @@ priv enum CheckFinding {
   // A disclosable proven violation of the caller's own input.
   Violation(String)
   SyntaxViolation(Int, Int)
-  TypeViolation(String, String, String)
+  TypeViolation(String, String, String, String?)
+  SuppliedViolation(String?)
   UndeclaredParameter(String, (Int, Int)?)
   RequiredValue(String, String)
   // An obligation that cannot be discharged from disclosable evidence.
@@ -291,7 +292,8 @@ fn check_source_findings(
       finding
       is (Violation(_)
       | SyntaxViolation(_, _)
-      | TypeViolation(_, _, _)
+      | TypeViolation(_, _, _, _)
+      | SuppliedViolation(_)
       | UndeclaredParameter(_, _))
     }) {
     return Report
@@ -435,7 +437,8 @@ fn check_verdict(findings : Array[CheckFinding]) -> String {
       finding
       is (Violation(_)
       | SyntaxViolation(_, _)
-      | TypeViolation(_, _, _)
+      | TypeViolation(_, _, _, _)
+      | SuppliedViolation(_)
       | UndeclaredParameter(_, _))
     }) {
     "invalid"
@@ -474,7 +477,8 @@ fn write_check_report(
     match finding {
       Violation(code) => Some(code)
       SyntaxViolation(_, _) => Some("query_syntax_invalid")
-      TypeViolation(_, _, _) => Some("supplied_value_type_mismatch")
+      TypeViolation(_, _, _, _) => Some("supplied_value_type_mismatch")
+      SuppliedViolation(_) => Some("supplied_value_invalid")
       UndeclaredParameter(_, _) => Some("parameter_undeclared")
       _ => None
     }
@@ -573,7 +577,7 @@ fn write_check_report(
     }
     if code == "supplied_value_type_mismatch" {
       for finding in findings {
-        if finding is TypeViolation(name, expected, actual) {
+        if finding is TypeViolation(name, expected, actual, pointer) {
           @encode.key(writer, "facts")
           @encode.begin_object(writer)
           @encode.key(writer, "actual_type")
@@ -583,12 +587,23 @@ fn write_check_report(
           @encode.key(writer, "parameter")
           @encode.string_value(writer, name)
           @encode.end_object(writer)
-          if documents.parameters_revision is Some(revision) {
+          if documents.parameters_revision is Some(revision) &&
+            pointer is Some(pointer) {
             write_check_structured_location(
-              writer,
-              "parameters",
-              revision,
-              "/" + name,
+              writer, "parameters", revision, pointer,
+            )
+          }
+          break
+        }
+      }
+    }
+    if code == "supplied_value_invalid" {
+      for finding in findings {
+        if finding is SuppliedViolation(pointer) {
+          if documents.parameters_revision is Some(revision) &&
+            pointer is Some(pointer) {
+            write_check_structured_location(
+              writer, "parameters", revision, pointer,
             )
           }
           break
@@ -747,7 +762,11 @@ fn write_check_document(
 fn check_declaration_type(
   declaration : @parameter_binding.Declaration,
 ) -> String? {
-  let source = @parameter_binding.declaration_source(declaration)
+  check_type_name(@parameter_binding.declaration_source(declaration))
+}
+
+///|
+fn check_type_name(source : @decode.Cursor) -> String? {
   match @decode.open_object(source) {
     Ok(object) =>
       match @decode.lookup(object, "type") {
@@ -763,30 +782,137 @@ fn check_declaration_type(
 }
 
 ///|
-/// Explain an already proven supplied-root mismatch using admitted owned inputs.
-/// Nested/constraint failures keep their less-specific registered reason; this
-/// reader neither rechecks values nor invents an expected nested contract.
+/// RFC 6901 encoding of an owned input path. Oversized paths are omitted rather
+/// than truncated; no source spelling is normalized to construct a location.
+fn check_supplied_pointer(path : Array[@decode.PathSegment]) -> String? {
+  guard path.length() <= 65 else { return None }
+  let mut pointer = ""
+  for segment in path {
+    let token = match segment {
+      @source.Key(name) =>
+        name.replace_all(old="~", new="~0").replace_all(old="/", new="~1")
+      @source.Index(index) => {
+        guard index >= 0 else { return None }
+        index.to_string()
+      }
+    }
+    guard pointer.length() + token.length() + 1 <= 4096 else { return None }
+    pointer += "/" + token
+  }
+  Some(pointer)
+}
+
+///|
+/// Missing members have no submitted node to locate. Use only the supplied
+/// cursor's existing children; declaration-only paths are not input locations.
+fn check_supplied_cursor(
+  root : @decode.Cursor,
+  path : Array[@decode.PathSegment],
+) -> @decode.Cursor? {
+  guard path.length() <= 65 else { return None }
+  let mut cursor = root
+  for segment in path {
+    match segment {
+      @source.Key(key) => {
+        guard @decode.open_object(cursor) is Ok(object) &&
+          @decode.lookup(object, key) is Some(child) else {
+          return None
+        }
+        cursor = child
+      }
+      @source.Index(index) => {
+        guard @decode.elements(cursor) is Ok(elements) &&
+          elements.get(index) is Some(child) else {
+          return None
+        }
+        cursor = child
+      }
+    }
+  }
+  Some(cursor)
+}
+
+///|
+/// Explain an already proven mismatch using its supplied-input origin and path.
+/// Walking admitted declaration/value cursors reads explanation facts only;
+/// it does not admit values again or infer a new nested contract.
 fn check_supplied_type_finding(
   issue : @parameter_binding.Issue,
   declarations : @parameter_binding.Declarations,
   supplied : @decode.Cursor?,
 ) -> CheckFinding {
   let path = match issue {
-    BindingInput(
-      Supplied,
-      Value(ValueIssue(WrongType | UnexpectedNull, path~, ..))
-    ) => path
-    BindingInput(Supplied, Value(Decode({ kind: WrongType, path, .. }))) => path
+    BindingInput(Supplied, Value(ValueIssue(_, path~, ..))) => path
+    BindingInput(Supplied, Value(Decode({ path, .. })))
+    | BindingInput(Supplied, Decode({ path, .. })) => path
+    BindingInput(Supplied, ParameterIssue(_, path~, ..)) => path
     _ => return Violation("supplied_value_invalid")
   }
-  guard path.length() == 1 &&
+  let pointer = if supplied is Some(cursor) &&
+    check_supplied_cursor(cursor, path) is Some(_) {
+    check_supplied_pointer(path)
+  } else {
+    None
+  }
+  let fallback = SuppliedViolation(pointer)
+  guard issue
+    is (BindingInput(
+      Supplied,
+      Value(ValueIssue(WrongType | UnexpectedNull, ..))
+    )
+    | BindingInput(
+      Supplied,
+      Value(Decode({ kind: WrongType | UnexpectedNull, .. }))
+    )) else {
+    return fallback
+  }
+  guard !path.is_empty() &&
     path[0] is @source.Key(name) &&
     name.length() <= 256 &&
     supplied is Some(cursor) &&
     @decode.open_object(cursor) is Ok(object) &&
-    @decode.lookup(object, name) is Some(value) else {
-    return Violation("supplied_value_invalid")
+    @decode.lookup(object, name) is Some(root) else {
+    return fallback
   }
+  let mut value = root
+  let mut source = None
+  for index in 0..<@parameter_binding.declaration_count(declarations) {
+    let declaration = @parameter_binding.declaration_at(declarations, index).unwrap()
+    if declaration.name == name {
+      source = Some(@parameter_binding.declaration_source(declaration))
+      break
+    }
+  }
+  guard source is Some(root_source) else { return fallback }
+  let mut source = root_source
+  for index in 1..<path.length() {
+    guard @decode.open_object(source) is Ok(type_object) else {
+      return fallback
+    }
+    match path[index] {
+      @source.Key(key) => {
+        guard @decode.lookup(type_object, "fields") is Some(fields) &&
+          @decode.open_object(fields) is Ok(fields) &&
+          @decode.lookup(fields, key) is Some(child_type) &&
+          @decode.open_object(value) is Ok(object) &&
+          @decode.lookup(object, key) is Some(child) else {
+          return fallback
+        }
+        source = child_type
+        value = child
+      }
+      @source.Index(at) => {
+        guard @decode.lookup(type_object, "items") is Some(child_type) &&
+          @decode.elements(value) is Ok(elements) &&
+          elements.get(at) is Some(child) else {
+          return fallback
+        }
+        source = child_type
+        value = child
+      }
+    }
+  }
+  guard check_type_name(source) is Some(expected) else { return fallback }
   let actual = match @decode.view(value) {
     NullValue => "null"
     BoolValue(_) => "boolean"
@@ -795,14 +921,7 @@ fn check_supplied_type_finding(
     ArrayValue(_) => "array"
     ObjectValue(_) => "object"
   }
-  for index in 0..<@parameter_binding.declaration_count(declarations) {
-    let declaration = @parameter_binding.declaration_at(declarations, index).unwrap()
-    if declaration.name == name &&
-      check_declaration_type(declaration) is Some(expected) {
-      return TypeViolation(name, expected, actual)
-    }
-  }
-  Violation("supplied_value_invalid")
+  TypeViolation(name, expected, actual, pointer)
 }
 
 ///|
