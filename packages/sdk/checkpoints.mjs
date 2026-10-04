@@ -110,12 +110,15 @@ export async function signedAnswer(summary, decision, signer, decidedAt) {
     sign: bytes => signBytes.call(sourceSigner, bytes)});
   const preparation = ['run_scope', 'read_access'].includes(summary?.kind) &&
     summary.subject?.kind === 'prepare_attempt';
+  const acquiredRead = summary?.kind === 'read_access' &&
+    summary.phase === 'preflight' && summary.subject?.kind === 'run_unit' &&
+    summary.requiredArtifact?.type === 'read_scope';
   const effect = summary?.kind === 'effect_set' &&
     summary.phase === 'commit' && summary.subject?.kind === 'run_unit' &&
     summary.requiredArtifact?.type === 'effect_set_preview';
-  if (!preparation && !effect) {
-    // Run acceptance and a held source read of a request before its Run
-    // share the run-scope approval profile. Other kinds carry their own
+  if (!preparation && !acquiredRead && !effect) {
+    // Run acceptance and a held Source read before or within its Run
+    // share the invocation-scope approval profile. Other kinds carry their own
     // evidence profiles (for example an Effect Set attestation).
     throw new TypeError('UnsupportedCheckpointAnswer');
   }
@@ -164,7 +167,7 @@ export async function signedAnswer(summary, decision, signer, decidedAt) {
     resolution_id: `resolution-${summary.checkpointId}-${decision}`,
     checkpoint_id: summary.checkpointId,
     checkpoint_cid: summary.checkpointCid,
-    ...(effect ? {run_id: summary.subject.runId,
+    ...(effect || acquiredRead ? {run_id: summary.subject.runId,
       run_definition_cid: summary.subject.runDefinitionCid} :
       {prepare_attempt_id: summary.subject.prepareAttemptId}),
     decision,

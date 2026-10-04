@@ -4,7 +4,8 @@ import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
 import {acquiredEffectPublicationPlan, acquiredMultiEffectPublicationPlan,
   acquiredInferEffectPublicationPlan} from './local-values-plan.mjs';
 import {installedSourceFor} from './installed-source.mjs';
-import {capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity} from './captured-duckdb-source.mjs';
+import {capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity,
+  capturedDuckDBPendingCapacity} from './captured-duckdb-source.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runCapturedEffectComputation} from './entry.mjs';
 import {openNodeComposedInferProvider} from './infer-operation.mjs';
@@ -14,7 +15,7 @@ import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 export async function openAcquiredEffectComputation({moon, owner, acquired,
   sourceProfile, registry, values, fragment, ordered, sourceAccess,
   signal, now, retainComputationOwner, infer, store, principalId, faultInjection,
-  observe}) {
+  observe, sourceContinuation}) {
   const multiple = moon?.clientProgramEffectAcquisitionCount?.(acquired.prepared) === 2;
   if (typeof retainComputationOwner !== 'function' ||
       (multiple ? sourceProfile?.sources?.length !== 2 :
@@ -85,6 +86,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       }
       execution = undefined;
       recovery = undefined;
+      await sourceContinuation?.close();
       pending = false;
       observeUsage('effect_computation_cleanup_completed');
       return true;
@@ -107,28 +109,47 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       if (multiple && adapter.realizationKey !== 'duckdb-acquired') {
         throw new TypeError('UnsupportedEffectSourceRealization');
       }
-      const access = multiple ? adapter.sourceAccess : sourceAccess;
+      const baseAccess = multiple ? adapter.sourceAccess : sourceAccess;
+      const access = sourceContinuation?.accessFor(baseAccess, occurrence) ?? baseAccess;
       const preparedSource = await adapter.prepare({
         preparedEffect: acquired.prepared, registry, values, fragment, ordered,
         sourceAccess: access, occurrence});
       sources.push({adapter, access, preparedSource, occurrence});
       signal?.throwIfAborted();
     }
+    await sourceContinuation?.prepared(sources);
     if (multiple) {
       const capacities = sources.map(value => capturedDuckDBPhysicalCapacity(value.preparedSource));
-      ledger = moon.clientProgramPrepareMultiCapturedEffectAcquisitionLedger(
-        acquired.prepared,
-        sources.map(value => capturedDuckDBConfiguration(value.preparedSource)),
+      const pendingSelection = sources.some(value => value.preparedSource.selection === undefined);
+      ledger = (pendingSelection
+        ? moon.clientProgramPrepareMultiCapturedEffectCapacityLedger
+        : moon.clientProgramPrepareMultiCapturedEffectAcquisitionLedger)(acquired.prepared,
+        sources.map(value => (pendingSelection ? capturedDuckDBPendingCapacity
+          : capturedDuckDBConfiguration)(value.preparedSource)),
         capacities.map(value => value.transferBytes),
         capacities.map(value => value.executionBytes), registry, values, fragment, ordered);
       if (ledger === undefined) throw new Error('InstalledMultiSourceLedgerUnavailable');
     }
-    const captureStartedAt = now();
+    const captureStartedAt = sourceContinuation?.times().captureStartedAt ?? now();
     const evidence = [];
     for (const source of sources) {
       signal?.throwIfAborted();
       const acquisition = acquisitionEndHandoff();
       let captured;
+      const admission = await sourceContinuation?.beforeRead(source);
+      if (admission?.waiting !== undefined) {
+        return Object.freeze({status: 'waiting_checkpoint',
+          checkpoint: admission.waiting, cleanupOwner: custody});
+      }
+      if (admission?.retained !== undefined) {
+        const restored = sourceContinuation.restore(source, admission.retained, ledger);
+        captures.push(restored.captured);
+        evidence.push(restored);
+        continue;
+      }
+      // A refused fence proves this attempt has not called the adapter.
+      // Do not feed it into the adapter's unknown physical-outcome path.
+      admission?.enter();
       try {
         captured = await source.adapter.open({preparedEffect: acquired.prepared,
           registry, values, fragment, ordered, sourceAccess: source.access, signal,
@@ -145,8 +166,10 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
         authorityScopeCid: acquired.authorityScopeCid,
         effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid});
       evidence.push({captured, sourceEvidenceWire});
+      await sourceContinuation?.captured(source, captured, sourceEvidenceWire,
+        captureStartedAt, now());
     }
-    const captureCompletedAt = now();
+    const captureCompletedAt = sourceContinuation?.times().captureCompletedAt ?? now();
     let publicationPlan = infer === undefined ? multiple
       ? acquiredMultiEffectPublicationPlan({acquired, sources: evidence,
         captureStartedAt, captureCompletedAt})

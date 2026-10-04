@@ -29,11 +29,16 @@ const externalScratch = join(repository, '..', '.codex-scratch');
 await mkdir(externalScratch, {recursive: true});
 const root = await mkdtemp(join(externalScratch, 'actql-packed-salesforce-'));
 const twoSourceEffect = process.argv.includes('--two-source-effect');
-const compositionCases = process.argv.includes('--composed-text') ? ['infer-text']
+const twoSourceReadApproval = process.argv.includes('--two-source-read-approval');
+const compositionCases = twoSourceReadApproval ? ['read-approval']
+  : process.argv.includes('--composed-text') ? ['infer-text']
   : process.argv.includes('--composed-infer') ? ['infer', 'infer-text']
-  : twoSourceEffect ? ['two-source'] : ['source', 'infer', 'infer-text'];
+  : twoSourceEffect ? ['two-source']
+  : ['source', 'infer', 'infer-text', 'read-approval'];
 const inferEnabled = compositionCases.some(kind => kind.startsWith('infer'));
 const composed = compositionCases.some(kind => kind !== 'source');
+const sourceReadApprovalExpected = JSON.parse(await readFile(join(repository,
+  'scripts/fixtures/two-source-read-approval.expected.json'), 'utf8'));
 const orgId = '00D000000000001EAA';
 const token = 'packed-test-only-token';
 
@@ -289,17 +294,18 @@ try {
   const host = generateKeyPairSync('ed25519');
   await writeFile(join(root, 'reviewer.key'), reviewer.privateKey.export({
     type: 'pkcs8', format: 'pem'}), {mode: 0o600});
-  const composedModel = composed ? await modelConfiguration(JSON.parse(
-    await readFile(join(repository, 'spec/local-check-environment.json'),
-      'utf8'))) : undefined;
+  const composedModel = composed && !twoSourceReadApproval
+    ? await modelConfiguration(JSON.parse(await readFile(join(repository,
+      'spec/local-check-environment.json'), 'utf8'))) : undefined;
   const effectAccount = canonicalJson({
     version: 'actql-execution-account-config/0.1',
     account_id: 'packed-effect-account', entries: [
-      ...(composed ? [{entry_id: 'a-fixture-model', outcome: 'allow',
+      ...(composedModel === undefined ? [] : [{
+        entry_id: 'a-fixture-model', outcome: 'allow',
         exclusions: [], principal: {all: true},
         connection: {any_of: ['models/composition']},
         resource: {any_of: [composedModel.taskCid]},
-        operation: {any_of: ['infer']}}] : []),
+        operation: {any_of: ['infer']}}]),
       {entry_id: 'effect-commit', outcome: 'delegate', exclusions: [],
         principal: {all: true},
         connection: {any_of: [`salesforce:${orgId}`]},
@@ -379,6 +385,7 @@ console.log(JSON.stringify(published.mappings.map(mapping =>
 
   for (const name of ['composed-infer-effect-input.mjs',
     'composed-infer-effect.program.template.json', 'composed-infer-effect.expected.json',
+    'two-source-read-approval.expected.json',
     'composed-infer-effect.aql.template',
     'composed-infer-effect-null-assert.aql.template',
     'installed-infer-fixture.mjs', 'two-source-public-query.mjs',
@@ -416,6 +423,20 @@ console.log(JSON.stringify(published.mappings.map(mapping =>
     await writeFile(join(root, 'source-calls.jsonl'), '');
     await writeFile(join(root, 'composition-databases.json'),
       JSON.stringify(installed.databases));
+    if (compositionCases.includes('read-approval')) {
+      // A separate profile keeps every pre-existing composition case intact.
+      // Source1 allows its own database; Source2 delegates only its own read.
+      const right = JSON.parse(await readFile(installed.profiles.right, 'utf8'));
+      const account = JSON.parse(right.accountConfigurationWire);
+      assert.equal(account.entries.length, 1);
+      assert.deepEqual(account.entries[0].operation, {any_of: ['read']});
+      account.entries[0].outcome = 'delegate';
+      right.accountConfigurationWire = canonical(account);
+      const delegated = join(root, 'right-read-approval.profile.json');
+      await writeFile(delegated, canonical(right));
+      await writeFile(join(root, 'read-approval-profiles.json'),
+        JSON.stringify([installed.profiles.left, delegated]));
+    }
     // Independent bad rows in separate databases: never alter the positive
     // capture or infer that a NULL id rejected by JOIN tests assertion custody.
     if (compositionCases.includes('infer-text')) {
@@ -462,8 +483,16 @@ import {compositionProgram, compositionText, twoSourceEffectProgram, modelConfig
   './composed-infer-effect-input.mjs';
 const composed = process.env.PACKED_COMPOSED_INFER === '1';
 const twoSourceEffect = process.env.PACKED_TWO_SOURCE_EFFECT === '1';
+const sourceReadApproval = process.env.PACKED_SOURCE_READ_APPROVAL === '1';
+const sourceReadApprovalExpected = JSON.parse(readFileSync(
+  'two-source-read-approval.expected.json', 'utf8'));
 const composedText = process.env.PACKED_COMPOSED_TEXT === '1';
 const authorization = JSON.parse(readFileSync('authorization.json', 'utf8'));
+if (sourceReadApproval) {
+  const account = JSON.parse(authorization.accountConfiguration);
+  account.entries = account.entries.filter(entry => entry.entry_id !== 'a-fixture-model');
+  authorization.accountConfiguration = JSON.stringify(account);
+}
 if (process.env.PACKED_CHECKPOINT_TTL_MS !== undefined) {
   authorization.checkpointTtlMs = Number(process.env.PACKED_CHECKPOINT_TTL_MS);
 }
@@ -502,12 +531,14 @@ if (composed) {
   delete installation.sourceProfilePath;
   installation.sourceProfilePaths = JSON.parse(readFileSync(
     process.env.PACKED_COMPOSITION_PROFILES ?? 'composition-profiles.json', 'utf8'));
-  const model = await modelConfiguration(JSON.parse(readFileSync(
-    'base-environment.json', 'utf8')));
-  installation.modelInstallation = model.installation;
-  installation.registerModelProviders = moon => registerCompositionModel(
-    moon, model.taskCid, score => appendFileSync('model-calls.jsonl',
-      JSON.stringify({score}) + '\\n'), {cleanup: () => scratchReleased});
+  if (!sourceReadApproval) {
+    const model = await modelConfiguration(JSON.parse(readFileSync(
+      'base-environment.json', 'utf8')));
+    installation.modelInstallation = model.installation;
+    installation.registerModelProviders = moon => registerCompositionModel(
+      moon, model.taskCid, score => appendFileSync('model-calls.jsonl',
+        JSON.stringify({score}) + '\\n'), {cleanup: () => scratchReleased});
+  }
 }
 let remoteHost;
 let remoteServer;
@@ -532,7 +563,7 @@ function terminate(boundary, ref) {
   // graceful close. The following process must use only durable custody.
   if (sourceObservation) appendFileSync('source-calls.jsonl', JSON.stringify(
     sourceObservation.snapshot()) + '\\n');
-  process.stdout.write(boundary === 'capture-waiting' ? 'held\\n' : 'approved\\n',
+  process.stdout.write(boundary.endsWith('-waiting') ? 'held\\n' : 'approved\\n',
     () => process.exit(77));
   return new Promise(() => {});
 }
@@ -592,10 +623,54 @@ try {
     });
     writeFileSync('effect-ref.json', JSON.stringify(execution.ref));
     console.log('held');
+  } else if (step === 'source-answer' || step === 'source-resume') {
+    assert.ok(sourceReadApproval);
+    const ref = JSON.parse(readFileSync('effect-ref.json', 'utf8'));
+    const submission = JSON.parse(readFileSync('rce-submission.json', 'utf8'));
+    const read = JSON.parse(readFileSync('source-checkpoint.json', 'utf8'));
+    const lookup = await client.lookupRequest(submission.requestId);
+    assert.equal(lookup.kind, 'found');
+    assert.deepEqual(lookup.ref, ref, 'read approval retains the same Run');
+    const execution = await client.attach(ref);
+    await waitFor(async () => {
+      const state = await execution.status();
+      if (['failed', 'cancelled', 'needs_reconciliation'].includes(state.status)) {
+        throw new Error('PackedSourceApprovalFailed: ' + JSON.stringify(state));
+      }
+      return state.status === 'waiting_checkpoint';
+    });
+    const checkpoints = (await client.checkpoints()).items;
+    assert.equal(checkpoints.length, 1);
+    const [checkpoint] = checkpoints;
+    assert.equal(checkpoint.subject.kind, 'run_unit');
+    assert.equal(checkpoint.subject.runId, read.subject.runId);
+    assert.equal(checkpoint.subject.runDefinitionCid, ref.runDefinitionCid);
+    if (step === 'source-answer') {
+      assert.deepEqual(checkpoint, read,
+        'restart while waiting retains the exact Source2 Checkpoint');
+      const key = createPrivateKey(readFileSync('reviewer.key', 'utf8'));
+      const answer = await client.resolveCheckpoints([
+        {checkpoint, decision: 'approved'}], {signer: {
+        keyId: 'reviewer-key', reviewerId: 'reviewer',
+        authorityScopeCid: ref.authorityScopeCid,
+        sign: bytes => sign(null, bytes, key)}});
+      assert.deepEqual(answer.results.map(item => item.status), ['committed']);
+      await terminate('source-approval-committed', ref);
+    }
+    assert.equal(checkpoint.kind, 'effect_set',
+      'Source approval cannot authorize the downstream Effect');
+    assert.notEqual(checkpoint.checkpointCid, read.checkpointCid);
+    writeFileSync('source-effect-checkpoint.json', JSON.stringify(checkpoint));
+    await terminate('capture-waiting', ref);
   } else if (step === 'answer') {
     const ref = JSON.parse(readFileSync('effect-ref.json', 'utf8'));
     const [checkpoint] = (await client.checkpoints()).items;
     assert.equal(checkpoint.kind, 'effect_set');
+    if (sourceReadApproval) {
+      assert.deepEqual(checkpoint, JSON.parse(readFileSync(
+        'source-effect-checkpoint.json', 'utf8')),
+      'restart retains the separate Effect Checkpoint');
+    }
     const key = createPrivateKey(readFileSync('reviewer.key', 'utf8'));
     const signer = {keyId: 'reviewer-key', reviewerId: 'reviewer',
       authorityScopeCid: ref.authorityScopeCid,
@@ -678,6 +753,26 @@ try {
     }
     writeFileSync('effect-ref.json', JSON.stringify(execution.ref));
     writeFileSync('rce-submission.json', JSON.stringify(submission));
+    if (sourceReadApproval) {
+      const checkpoints = (await client.checkpoints()).items;
+      assert.equal(checkpoints.length, 1);
+      const [checkpoint] = checkpoints;
+      assert.equal(checkpoint.kind, 'read_access');
+      assert.equal(checkpoint.phase, 'preflight');
+      assert.equal(checkpoint.subject.kind, 'run_unit');
+      assert.equal(checkpoint.subject.runDefinitionCid, execution.ref.runDefinitionCid);
+      assert.equal(checkpoint.requiredArtifact.type, 'read_scope');
+      const projection = JSON.parse(new TextDecoder().decode(
+        (await client.reviewCheckpoint(checkpoint)).bytes));
+      const occurrence = projection.scope.occurrence;
+      assert.deepEqual([occurrence.stage, occurrence.input, occurrence.task], [1, 0, 1]);
+      assert.equal(occurrence.checkedSource.sourceRef, 'connector://crm/right/r#v');
+      assert.deepEqual(occurrence.readTuple, {connection: 'local-database',
+        resource: JSON.parse(readFileSync('composition-databases.json', 'utf8')).right,
+        operation: 'read'});
+      writeFileSync('source-checkpoint.json', JSON.stringify(checkpoint));
+      await terminate('source-waiting', execution.ref);
+    }
     if (process.argv[3] === 'success') {
       const repeated = await client.aql(submission.document, {
         format: submission.format, requestId: submission.requestId});
@@ -720,6 +815,10 @@ try {
         updateColumns);
       }
       assert.deepEqual(await execution.result('updates').all(), expectedUpdates);
+      if (sourceReadApproval) {
+        assert.deepEqual((await execution.result('updates').describe()).columns,
+          sourceReadApprovalExpected.columns);
+      }
     } else if (state.status === 'succeeded') {
       assert.deepEqual((await execution.result('updates').describe()).columns, [
         {name: 'Id', contract: {type: 'string', nullable: false}},
@@ -728,7 +827,9 @@ try {
     }
     console.log(JSON.stringify({status: state.status,
       rows: state.status === 'succeeded'
-        ? await execution.result('updates').all() : undefined}));
+        ? await execution.result('updates').all() : undefined,
+      ...(sourceReadApproval && state.status === 'succeeded' ? {
+        columns: (await execution.result('updates').describe()).columns} : {})}));
   } else if (step === 'resume' || step === 'recheck') {
     const ref = JSON.parse(readFileSync('effect-ref.json', 'utf8'));
     const execution = await client.attach(ref);
@@ -792,13 +893,17 @@ try {
   for (const compositionKind of compositionCases) {
   const composed = compositionKind !== 'source';
   const inferEnabled = compositionKind.startsWith('infer');
-  const twoSourceEffect = compositionKind === 'two-source';
+  const sourceReadApproval = compositionKind === 'read-approval';
+  const twoSourceEffect = compositionKind === 'two-source' || sourceReadApproval;
   for (const transport of ['local', 'https']) {
     server.target.name = 'prior-name';
     const rceEnvironment = {...effectEnvironment,
       PACKED_RCE_TRANSPORT: transport,
       PACKED_COMPOSED_INFER: composed ? '1' : '0',
       PACKED_TWO_SOURCE_EFFECT: twoSourceEffect ? '1' : '0',
+      PACKED_SOURCE_READ_APPROVAL: sourceReadApproval ? '1' : '0',
+      ...(sourceReadApproval
+        ? {PACKED_COMPOSITION_PROFILES: 'read-approval-profiles.json'} : {}),
       PACKED_COMPOSED_TEXT: compositionKind === 'infer-text' ? '1' : '0',
       NODE_EXTRA_CA_CERTS: join(root, 'org.crt'),
       ACTQL_LOCAL_STATE_DIR: join(root, 'rce-' + compositionKind + '-' + transport)};
@@ -828,6 +933,88 @@ try {
       'model-calls.jsonl'), 'utf8')).trim().split('\n').filter(Boolean).length : 0;
     const effectWriteCounts = [];
     let normalResult;
+    if (sourceReadApproval) {
+      const databases = JSON.parse(await readFile(join(root,
+        'composition-databases.json'), 'utf8'));
+      const sources = [databases.left, databases.right];
+      const sourceProviderOpenCounts = [];
+      const phases = [
+        {step: 'rce-submit', argument: 'read-approval', output: 'held', exit: 77},
+        {step: 'source-answer', output: 'approved', exit: 77},
+        {step: 'source-resume', output: 'held', exit: 77},
+        {step: 'answer', output: 'approved', exit: 77},
+        {step: 'rce-resume', argument: 'resubmit', exit: 0},
+        {step: 'rce-resume', argument: 'resubmit', exit: 0},
+      ];
+      let observations;
+      for (const [index, phase] of phases.entries()) {
+        const output = (await runChild('effect-run.mjs', rceEnvironment,
+          [phase.step, ...(phase.argument === undefined ? [] : [phase.argument])],
+          phase.exit)).trim();
+        if (phase.output !== undefined) assert.equal(output, phase.output);
+        else {
+          normalResult = JSON.parse(output);
+          assert.equal(normalResult.status, 'succeeded');
+          // Independently: JOIN matches ids 1 and 2; right_amount >= 200
+          // keeps only id 2 and the authored literals form this one update.
+          assert.deepEqual(normalResult.rows, expectedUpdates);
+          assert.deepEqual(normalResult.columns, sourceReadApprovalExpected.columns);
+        }
+        observations = (await readFile(join(root, 'source-calls.jsonl'), 'utf8'))
+          .trim().split('\n').filter(Boolean).slice(sourceCallsBefore)
+          .map(line => JSON.parse(line));
+        assert.equal(observations.length, index + 1);
+        const opens = observations.flatMap(item => item.sourceProviderOpens);
+        assert.ok(opens.every(path => sources.includes(path)),
+          'only the two bound Source databases may be opened');
+        sourceProviderOpenCounts.push(sources.map(path =>
+          opens.filter(opened => opened === path).length));
+        assert.deepEqual(sourceProviderOpenCounts[index],
+          sourceReadApprovalExpected.sourceProviderOpenCounts[index],
+          phase.step + ': approval and recovery must not reopen a captured Source');
+        const observation = observations[index];
+        assert.equal(observation.sourceReadSessions,
+          sourceReadApprovalExpected.sourceReadSessions[index]);
+        assert.deepEqual([...new Set(observation.sourceReadCommands.map(item => item.database))],
+          index === 0 ? [databases.left] : index === 2 ? [databases.right] : []);
+        effectWriteCounts.push(patches().length);
+        assert.equal(patches().length, sourceReadApprovalExpected.effectWriteCounts[index],
+          phase.step + ': only separate Effect approval may authorize a physical write');
+      }
+      assert.deepEqual(patches().map(item => ({id: item.path.split('/').at(-1),
+        body: JSON.parse(item.body)})), expectedWrites);
+      const modelInputs = (await readFile(join(root, 'model-calls.jsonl'), 'utf8'))
+        .trim().split('\n').filter(Boolean).slice(modelCallsBefore);
+      assert.deepEqual(modelInputs, [], 'read/Compute/Effect profile installs no Model');
+      const ref = JSON.parse(await readFile(join(root, 'effect-ref.json'), 'utf8'));
+      const boundaries = (await readFile(join(root, 'restart-boundaries.jsonl'), 'utf8'))
+        .trim().split('\n').filter(Boolean).map(line => JSON.parse(line)).filter(item =>
+          item.transport === transport && item.ref.runDefinitionCid === ref.runDefinitionCid &&
+          item.ref.authorityScopeCid === ref.authorityScopeCid);
+      assert.deepEqual(boundaries.map(item => item.boundary),
+        sourceReadApprovalExpected.restartBoundaries);
+      for (const boundary of boundaries) assert.deepEqual(boundary.ref, ref);
+      const submission = JSON.parse(await readFile(join(root, 'rce-submission.json'), 'utf8'));
+      const observation = {sourceRevision, transport, case: compositionKind,
+        profile: 'two installed Sources, Local Compute and installed Effect; no Model',
+        requestId: submission.requestId, ref, submittedFormat: submission.format,
+        submittedProgramSha256: createHash('sha256').update(submission.document).digest('hex'),
+        sourceDatabases: {left: databases.left, right: databases.right},
+        sourceCheckpointCid: JSON.parse(await readFile(join(root,
+          'source-checkpoint.json'), 'utf8')).checkpointCid,
+        effectCheckpointCid: JSON.parse(await readFile(join(root,
+          'source-effect-checkpoint.json'), 'utf8')).checkpointCid,
+        sourceProviderOpenCounts,
+        sourceReadSessions: observations.map(item => item.sourceReadSessions),
+        modelInputs, effectWriteCounts,
+        writes: patches().map(item => ({id: item.path.split('/').at(-1),
+          body: JSON.parse(item.body)})),
+        rows: normalResult.rows, columns: normalResult.columns,
+        restartBoundaries: boundaries};
+      await appendFile(join(root, 'composition-acceptance.jsonl'), JSON.stringify(observation) + '\n');
+      console.log('packed Source approval acceptance ' + JSON.stringify(observation));
+      continue;
+    }
     await rce(async () => {
       effectWriteCounts.push(patches().length);
       assert.equal(patches().length, 0);

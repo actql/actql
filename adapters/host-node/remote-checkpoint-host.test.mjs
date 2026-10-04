@@ -36,6 +36,8 @@ import {withFixtureConnector} from
   '../host-common/connector-manifest.fixture.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {exercisePublicQueryInput} from '../../scripts/fixtures/public-query-input.mjs';
+import {loadTwoSourceFixtures, installTwoSourceFixtures, observeTwoSourceProvider}
+  from '../../scripts/fixtures/two-source-public-query.mjs';
 
 const repository = fileURLToPath(new URL('../../', import.meta.url));
 const scratch = join(repository, '_build', 'remote-checkpoint-host');
@@ -55,8 +57,9 @@ const document = await readFile(join(repository,
   'packages/sdk/fixtures/values.json'), 'utf8');
 const readDocument = await readFile(join(repository,
   'adapters/connectors/duckdb/node/examples/program.json'), 'utf8');
-const {DuckDBInstance, DuckDBPreparedStatement} = createRequire(join(repository,
+const duckdb = createRequire(join(repository,
   'adapters/connectors/duckdb/node/package.json'))('@duckdb/node-api');
+const {DuckDBInstance, DuckDBPreparedStatement} = duckdb;
 const contentCid = value => `sha256:${createHash('sha256')
   .update(canonicalJson(value)).digest('hex')}`;
 const withoutCid = (value, key) => {
@@ -354,7 +357,8 @@ function referenceLedger(directory, moon, requestIdentity) {
 }
 
 async function prepareReferenceCapture(facts, {directory, mappingCids,
-  sends, loseReply, failRow, maxInputPins = 2}) {
+  sends, loseReply, failRow, maxInputPins = 2,
+  expectedDependencyCount = maxInputPins === 3 ? 2 : undefined}) {
   const {moon, control, store, execution, publicationPlan: plan,
     prepared, checkedHost, identity} = facts;
   const storedResults = await storeCompletedRunResultSet({execution,
@@ -374,10 +378,11 @@ async function prepareReferenceCapture(facts, {directory, mappingCids,
     sourceBindingCid: referenceCid('source-binding'),
     contractLimits: localContractLimits,
     localEvidenceContext: plan.localEvidenceContext});
-  if (maxInputPins === 3) {
-    // The separate ordered public Result is not an Effect dependency.
-    assert.equal(sourceSet.dependencies.length, 2);
-    assert.equal(sourceSet.payloads.length, 2);
+  if (expectedDependencyCount !== undefined) {
+    // Independently specified by the fixture's Source/Result dependency
+    // inventory; a separate ordered public Result is not an Effect dependency.
+    assert.equal(sourceSet.dependencies.length, expectedDependencyCount);
+    assert.equal(sourceSet.payloads.length, expectedDependencyCount);
   }
   const requestScope = moon.clientProgramEffectRequestScope(prepared,
     identity);
@@ -568,7 +573,7 @@ const tokens = new Map([['owner-token', owner],
   ['stranger-token', 'stranger-principal']]);
 
 async function remoteHost(t, authorization, {directory,
-  effectInstallation, sourceProfilePath, beforeDispatch} = {}) {
+  effectInstallation, sourceProfilePath, sourceProfilePaths, beforeDispatch} = {}) {
   const root = directory ?? await mkdtemp(join(scratch, 'host-'));
   let dispatches = 0;
   const host = await openInstalledRemoteHttpHost({
@@ -578,7 +583,7 @@ async function remoteHost(t, authorization, {directory,
       dispatches++;
       await beforeDispatch?.(ref);
     },
-    authorization, effectInstallation, sourceProfilePath,
+    authorization, effectInstallation, sourceProfilePath, sourceProfilePaths,
   });
   const server = createServer({key: tlsKey, cert: tlsCertificate},
     host.handler);
@@ -1172,7 +1177,7 @@ test('installed Effect allow publishes without a commit Checkpoint',
     await restarted.close();
   });
 
-for (const readDecision of ['deny', 'delegate']) {
+for (const readDecision of ['deny']) {
   test(`acquired Effect read ${readDecision} ends without Preview or write`,
     async t => {
       const directory = await mkdtemp(join(scratch, 'acquired-effect-refusal-'));
@@ -1226,6 +1231,230 @@ for (const readDecision of ['deny', 'delegate']) {
       assert.equal(providerPreparations, 0);
       await restarted.close();
     });
+}
+
+for (const uncertain of [false, true]) {
+test(uncertain
+  ? 'acquired Effect Source resume preserves recorded uncertain Effect after lost completion'
+  : 'acquired Effect Source approval renews its active lease across two approval restarts',
+  async t => {
+    const directory = await mkdtemp(join(scratch, 'source-effect-approval-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const sourceProfilePath = await installedReadFixture(directory, 'delegate');
+    const fixture = await effectFixture();
+    const program = JSON.parse(readDocument);
+    delete program.params;
+    program.stages = program.stages.slice(0, 2);
+    program.stages[0].steps[0].filter = 'id > 0';
+    program.stages[1].steps[0].filter = 'id < 3';
+    program.stages[1].results = {rows: {from: 'out', fields: ['id']}};
+    program.stages[1].effects = JSON.parse(fixture.document).stages[0].effects;
+    program.results = {answer: {from: {stage: 'compute_a', result: 'rows'}}};
+    const sends = [], diagnostics = [];
+    let sourceCalls = 0, captures = 0;
+    const create = DuckDBInstance.create;
+    const sourceDatabase = JSON.parse(await readFile(sourceProfilePath, 'utf8')).database;
+    DuckDBInstance.create = async function(database, ...args) {
+      if (database === sourceDatabase) {
+        sourceCalls++;
+        await new Promise(resolve => setTimeout(resolve, 1300));
+      }
+      return create.call(this, database, ...args);
+    };
+    t.after(() => { DuckDBInstance.create = create; });
+    const hooks = {directory, mappingCids: fixture.mappingCids, sends, maxInputPins: 2,
+      loseReply: (member, row) => uncertain && member === 0 && row === 0};
+    const installed = createInstalledEffectSite({
+      environmentWire: fixture.environmentWire,
+      privateEvidenceKey: Buffer.alloc(32, 61),
+      prepareCaptured(facts) { captures++; return prepareReferenceCapture(facts, hooks); },
+      prepareRecovered: facts => prepareReferenceRecovery(facts, hooks),
+    });
+    const effectInstallation = {...installed, async execute(facts) {
+      const result = await installed.execute(facts);
+      if (uncertain && result.status === 'needs_reconciliation') {
+        throw Object.assign(new Error('SourceCompletionLost'), {code: 'ResumeClaimStale'});
+      }
+      return result;
+    }};
+    const configuration = JSON.parse(effectCommitConfiguration('allow',
+      uncertain ? 'allow' : 'delegate'));
+    configuration.entries[1].connection = {all: true};
+    configuration.entries[1].resource = {all: true};
+    const account = () => protectedHost(undefined, {
+      accountConfiguration: canonicalJson(configuration), resumeAfterAnswer: false,
+      leaseMs: 1000,
+      observe: (name, detail) => diagnostics.push({name, detail}),
+    });
+    const options = {directory, sourceProfilePath, effectInstallation};
+    let host = await remoteHost(t, account(), options).catch(error => {
+      t.diagnostic(String(error.cause?.stack ?? error));
+      throw error;
+    });
+    const submitted = await (await host.as('owner-token')).aql(JSON.stringify(program),
+      {format: 'json', requestId: 'source-effect-approval'});
+    const wait = async (execution, expected) => waitFor(async () =>
+      (await execution.status()).status === expected).catch(async error => {
+      error.message = JSON.stringify({state: await execution.status(), diagnostics});
+      throw error;
+    });
+    await wait(submitted, 'waiting_checkpoint');
+    const [read] = (await (await host.as('reviewer-token')).checkpoints()).items;
+    assert.equal(read.kind, 'read_access');
+    assert.equal(sourceCalls, 0);
+    assert.equal(captures, 0);
+    assert.deepEqual(sends, []);
+    await host.close();
+    host = await remoteHost(t, account(), options);
+    let reviewer = await host.as('reviewer-token');
+    const [sameRead] = (await reviewer.checkpoints()).items;
+    assert.equal(sameRead.checkpointCid, read.checkpointCid);
+    await reviewer.resolveCheckpoints([{checkpoint: sameRead, decision: 'approved'}], {signer});
+    assert.equal(sourceCalls, 0, 'persisting approval alone does not read');
+    await host.close();
+    host = await remoteHost(t, account(), options);
+    let attached = await (await host.as('owner-token')).attach(submitted.ref);
+    if (uncertain) {
+      await waitFor(async () => {
+        const state = await attached.status();
+        return state.status === 'needs_reconciliation' && state.next_action.kind === 'reconcile';
+      }).catch(async error => {
+        error.message = JSON.stringify({state: await attached.status(), diagnostics});
+        throw error;
+      });
+      const observed = await attached.status();
+      assert.deepEqual(sends, [[0, 0]]);
+      assert.equal(sourceCalls, 1);
+      assert.equal(captures, 1);
+      await host.close();
+      host = await remoteHost(t, account(), options);
+      attached = await (await host.as('owner-token')).attach(submitted.ref);
+      assert.deepEqual((await attached.status()).next_action, observed.next_action);
+      assert.equal(sourceCalls, 1);
+      assert.equal(captures, 1);
+      assert.deepEqual(sends, [[0, 0]]);
+      await host.close();
+      return;
+    }
+    await wait(attached, 'waiting_checkpoint');
+    reviewer = await host.as('reviewer-token');
+    const [effect] = (await reviewer.checkpoints()).items;
+    assert.equal(effect.kind, 'effect_set');
+    assert.notEqual(effect.checkpointCid, read.checkpointCid);
+    assert.equal(sourceCalls, 1);
+    assert.equal(captures, 1);
+    assert.deepEqual(sends, []);
+    assert.deepEqual((await (await host.as('owner-token')).lookupRequest('source-effect-approval')).ref,
+      submitted.ref);
+    await reviewer.resolveCheckpoints([{checkpoint: effect, decision: 'approved'}], {
+      signer: {...signer, authorityScopeCid: submitted.ref.authorityScopeCid}});
+    await host.close();
+    host = await remoteHost(t, account(), options);
+    attached = await (await host.as('owner-token')).attach(submitted.ref);
+    await wait(attached, 'succeeded');
+    assert.deepEqual(await attached.result('answer').all(), [{id: 1}, {id: 2}]);
+    assert.deepEqual((await attached.result('answer').describe()).columns,
+      [{name: 'id', contract: {type: 'number', nullable: false}}]);
+    assert.equal(sourceCalls, 1);
+    assert.equal(captures, 1);
+    assert.deepEqual(sends, [[0, 0], [0, 1]]);
+    await host.close();
+  });
+
+}
+
+for (const realization of ['native', 'broad']) {
+test(`acquired Effect second Source approval restores the first ${realization} capture`,
+  async t => {
+    const directory = await mkdtemp(join(scratch, 'second-source-approval-'));
+    t.after(() => rm(directory, {recursive: true, force: true}));
+    const inputs = await loadTwoSourceFixtures(join(repository, 'adapters/host-node/fixtures/two-source'));
+    inputs.rows = {left: [{id: 1, amount: 10}, {id: 2, amount: 20}],
+      right: [{id: 2, amount: 200}, {id: 1, amount: 100}], equal_content: []};
+    const installation = await installTwoSourceFixtures({root: join(directory, 'sources'),
+      fixture: inputs, duckdb});
+    const sourceProfilePaths = realization === 'broad'
+      ? [installation.profiles.left_broad, installation.profiles.right_broad]
+      : [installation.profiles.left, installation.profiles.right];
+    const second = JSON.parse(await readFile(sourceProfilePaths[1], 'utf8'));
+    const readAccount = JSON.parse(second.accountConfigurationWire);
+    readAccount.entries[0].outcome = 'delegate';
+    second.accountConfigurationWire = canonicalJson(readAccount);
+    await writeFile(sourceProfilePaths[1], JSON.stringify(second));
+    const fixture = await effectFixture();
+    const program = JSON.parse(inputs.program);
+    program.stages[2].effects = JSON.parse(fixture.document).stages[0].effects;
+    program.results = {answer: {from: {stage: 'join_sources', result: 'rows'}}};
+    const sends = [], diagnostics = [];
+    let captures = 0;
+    const provider = observeTwoSourceProvider(duckdb, installation.databases);
+    t.after(() => provider.restore());
+    const hooks = {directory, mappingCids: fixture.mappingCids, sends,
+      maxInputPins: 3, expectedDependencyCount: 3};
+    const effectInstallation = createInstalledEffectSite({
+      environmentWire: fixture.environmentWire, privateEvidenceKey: Buffer.alloc(32, 63),
+      prepareCaptured(facts) { captures++; return prepareReferenceCapture(facts, hooks); },
+      prepareRecovered: facts => prepareReferenceRecovery(facts, hooks),
+    });
+    const configuration = JSON.parse(effectCommitConfiguration());
+    configuration.entries[1].connection = {all: true};
+    configuration.entries[1].resource = {all: true};
+    const account = () => protectedHost(undefined, {
+      accountConfiguration: canonicalJson(configuration), resumeAfterAnswer: false,
+      observe: (name, detail) => diagnostics.push({name, detail}),
+    });
+    const options = {directory, sourceProfilePaths, effectInstallation};
+    let host = await remoteHost(t, account(), options);
+    const submitted = await (await host.as('owner-token')).aql(JSON.stringify(program),
+      {format: 'json', requestId: `second-source-${realization}`});
+    const wait = async (execution, expected) => waitFor(async () =>
+      (await execution.status()).status === expected).catch(async error => {
+      error.message = JSON.stringify({state: await execution.status(), diagnostics,
+        provider: provider.snapshot()}); throw error;
+    });
+    await wait(submitted, 'waiting_checkpoint');
+    const [read] = (await (await host.as('reviewer-token')).checkpoints()).items;
+    assert.equal(read.kind, 'read_access');
+    assert.deepEqual(provider.snapshot().sourceProviderOpens, [installation.databases.left]);
+    assert.equal(captures, 0);
+    assert.deepEqual(sends, []);
+    await host.close();
+    host = await remoteHost(t, account(), options);
+    let reviewer = await host.as('reviewer-token');
+    const [sameRead] = (await reviewer.checkpoints()).items;
+    assert.equal(sameRead.checkpointCid, read.checkpointCid);
+    await reviewer.resolveCheckpoints([{checkpoint: sameRead, decision: 'approved'}], {signer});
+    assert.deepEqual(provider.snapshot().sourceProviderOpens, [installation.databases.left]);
+    await host.close();
+    host = await remoteHost(t, account(), options);
+    let attached = await (await host.as('owner-token')).attach(submitted.ref);
+    await wait(attached, 'waiting_checkpoint');
+    reviewer = await host.as('reviewer-token');
+    const [effect] = (await reviewer.checkpoints()).items;
+    assert.equal(effect.kind, 'effect_set');
+    assert.deepEqual(provider.snapshot().sourceProviderOpens,
+      [installation.databases.left, installation.databases.right]);
+    assert.equal(captures, 1);
+    assert.deepEqual(sends, []);
+    await reviewer.resolveCheckpoints([{checkpoint: effect, decision: 'approved'}], {
+      signer: {...signer, authorityScopeCid: submitted.ref.authorityScopeCid}});
+    await host.close();
+    host = await remoteHost(t, account(), options);
+    attached = await (await host.as('owner-token')).attach(submitted.ref);
+    await wait(attached, 'succeeded');
+    assert.deepEqual(await attached.result('answer').all(), [
+      {id: 1, left_amount: 10, right_amount: 100},
+      {id: 2, left_amount: 20, right_amount: 200}]);
+    assert.deepEqual((await attached.result('answer').describe()).columns, [
+      {name: 'id', contract: {type: 'number', nullable: false}},
+      {name: 'left_amount', contract: {type: 'number', nullable: true}},
+      {name: 'right_amount', contract: {type: 'number', nullable: true}}]);
+    assert.deepEqual(provider.snapshot().sourceProviderOpens,
+      [installation.databases.left, installation.databases.right]);
+    assert.equal(captures, 1);
+    assert.deepEqual(sends, [[0, 0], [0, 1]]);
+    await host.close();
+  });
 }
 
 for (const outcome of ['success', 'ordered', 'unknown', 'cancel', 'reject']) {
