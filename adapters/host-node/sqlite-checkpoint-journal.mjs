@@ -457,6 +457,8 @@ export function openSqliteCheckpointJournal(root, {
     intent: database.prepare(`
       SELECT * FROM resume_intents WHERE run_id = ?
       ORDER BY rowid DESC LIMIT 1`),
+    activeRunIntents: database.prepare(`
+      SELECT * FROM resume_intents WHERE run_id = ? AND state != 'completed'`),
     preparationIntent: database.prepare(`
       SELECT * FROM resume_intents WHERE prepare_attempt_id = ?
       ORDER BY rowid DESC LIMIT 1`),
@@ -749,6 +751,12 @@ export function openSqliteCheckpointJournal(root, {
   return Object.freeze({
     path,
 
+    // The Core lifecycle owns outcome classification. Unknown host values
+    // cannot authorize retirement; cleanup and Result custody are separate.
+    isTerminalRunOutcome(status) {
+      return typeof status === 'string' && runtime.runOutcomeTerminal(status);
+    },
+
     // Seal and durably persist a deferred decision. The caller may report
     // a waiting Checkpoint only from the returned projection, which exists
     // only after the transaction committed. A Run-unit Checkpoint either
@@ -971,6 +979,13 @@ export function openSqliteCheckpointJournal(root, {
       return refuseUnsentRunResume(reference, runDefinitionCid, 'read_access', claim);
     },
 
+    // Exact Run read-access refusal for continuations whose physical owner is
+    // not a Source acquisition. Preserve the same live claim and started guard.
+    refuseUnsentReadResume(reference, runDefinitionCid, claim) {
+      if (claim === undefined) fail('InvalidResumeClaim');
+      return refuseUnsentRunResume(reference, runDefinitionCid, 'read_access', claim);
+    },
+
     // Durable request cancellation of one prepare attempt, committed before
     // it is acknowledged. A waiting preparation is ended as cancelled with
     // its Checkpoint closed (a later answer is then `cancelled`). A resuming
@@ -1104,6 +1119,54 @@ export function openSqliteCheckpointJournal(root, {
       alive();
       if (!text(runId)) fail('InvalidRunId');
       return projectRunState(runId);
+    },
+
+    // The exact durable continuation currently linked to this Run. This is
+    // routing metadata only: no current claim, approval or authority is inferred.
+    activeRunCheckpoint(runId) {
+      alive();
+      if (!text(runId)) fail('InvalidRunId');
+      return transaction.run(() => {
+        const run = statements.run.get(runId);
+        if (run === undefined) return undefined;
+        const active = statements.activeRunIntents.all(runId);
+        if (active.length > 1) fail('CheckpointJournalCorrupt');
+        let reference;
+        let intent;
+        if (run.status === 'waiting_checkpoint') {
+          if (active.length !== 0 || run.checkpoint_cid === '') {
+            fail('CheckpointJournalCorrupt');
+          }
+          reference = run.checkpoint_cid;
+        } else if (run.status === 'resuming') {
+          intent = active[0];
+          if (intent === undefined ||
+              statements.intent.get(runId)?.intent_id !== intent.intent_id) {
+            fail('CheckpointJournalCorrupt');
+          }
+          reference = intent.checkpoint_cid;
+        } else {
+          if (active.length !== 0) fail('CheckpointJournalCorrupt');
+          return undefined;
+        }
+        const row = statements.checkpoint.get(reference);
+        if (row === undefined || row.run_id !== runId ||
+            row.prepare_attempt_id !== null) fail('CheckpointJournalCorrupt');
+        const admitted = core(runtime.checkpointAdmit(row.checkpoint_wire),
+          'CheckpointJournalCorrupt');
+        if (admitted.checkpoint_cid !== reference || admitted.run_id !== runId ||
+            admitted.subject_kind !== 'run_unit') fail('CheckpointJournalCorrupt');
+        if (intent === undefined) {
+          if (row.closure !== 'open') fail('CheckpointJournalCorrupt');
+        } else {
+          const resolution = statements.resolution.get(reference);
+          if (row.closure !== 'resolved' ||
+              row.resolution_cid !== intent.resolution_cid ||
+              resolution?.resolution_cid !== intent.resolution_cid ||
+              resolution.decision !== 'approved') fail('CheckpointJournalCorrupt');
+        }
+        return checkpointView(row.checkpoint_wire, row);
+      });
     },
 
     // The committed answer of one Checkpoint: decision, actor and the
@@ -1957,3 +2020,4 @@ export function openSqliteCheckpointJournal(root, {
     throwSqliteInitializationFailure(database, error, 'checkpoint-journal');
   }
 }
+

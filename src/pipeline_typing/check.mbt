@@ -1144,6 +1144,45 @@ fn check_impl(
       current = Some(target)
       continue
     }
+    if key == "normalize_graph" {
+      let checked = match
+        @graph.check_normalize(operation_body, carrier(input, inputs, steps), {
+          max_work: b.work,
+          max_nodes: b.nodes,
+          max_depth: limits.max_depth,
+          max_text_bytes: b.text,
+        }) {
+        Ok(value) => value
+        Err(issue) =>
+          raise Stop({
+            kind: Graph(issue.kind),
+            source: operation_body,
+            path: issue.path.copy(),
+            span: issue.span,
+            range: None,
+          })
+      }
+      let used = @graph.normalize_usage(checked)
+      b.work -= used.work
+      b.nodes -= used.nodes
+      b.text -= used.text_bytes
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation: GraphNormalize(checked),
+        output: @graph.normalize_output(checked),
+        connections: { entries: [{ role: Primary, target: input, }], },
+        window: None,
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
+    }
     if key == "components" {
       let checked = match
         @graph.check_components(
@@ -1187,16 +1226,6 @@ fn check_impl(
       }
       current = Some(target)
       continue
-    }
-    if key == "normalize_graph" {
-      match carrier(input, inputs, steps) {
-        @carrier.GraphValue(_) =>
-          fail(operation_body, Graph(@graph.UnsupportedGraphOperation))
-        @carrier.Opaque(GraphKind) =>
-          fail(operation_body, Graph(@graph.IncompleteGraph))
-        other =>
-          fail(operation_body, Graph(@graph.WrongCarrier(@carrier.kind(other))))
-      }
     }
     if key == "text_rank" {
       let options = vector_result(
@@ -1965,6 +1994,7 @@ fn check_impl(
         | Infer(_)
         | Window(_)
         | WindowGroup(_)
+        | GraphNormalize(_)
         | Projection(_)
         | GraphMatch(_)
         | GraphBounds(_)

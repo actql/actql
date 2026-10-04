@@ -445,3 +445,6 @@ try {
 } finally {
   await new Promise(resolve => server.close(resolve));
 }
+
+// Keep the independent shared-contract corpus on the normal Native CI entry.
+await import('./test-native-client-wire.test.mjs');
