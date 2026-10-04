@@ -5,7 +5,7 @@ import {CapturedRunPublicationError,
   runPublishedCapturedStrategy} from './entry.mjs';
 import {acquiredTaskPublicationPlan, acquiredMultiTaskPublicationPlan} from './local-values-plan.mjs';
 import {installedSourceFor} from './installed-source.mjs';
-import {capturedDuckDBNativeConfiguration, capturedDuckDBPhysicalCapacity} from './captured-duckdb-source.mjs';
+import {capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity} from './captured-duckdb-source.mjs';
 import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -260,10 +260,25 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       const installedSource = acquiring && !multiple
         ? installedSourceFor(sourceProfile, held.preparedSource.checkedSource.sourceRef) : undefined;
       let ledger;
+      const selectedSources = [];
       if (multiple) {
-        const capacities = held.preparedSources.map(source => capturedDuckDBPhysicalCapacity(source.prepared));
-        ledger = moon.clientProgramPrepareMultiCapturedLocalLedger(preparedProgram,
-          held.preparedSources.map(source => capturedDuckDBNativeConfiguration(source.prepared)),
+        // Read approvals retain their occurrence and physical target. Resolve
+        // resumed access before selecting configurations and sizing the one
+        // ledger; the exact preparations below also own the subsequent reads.
+        for (const source of held.preparedSources) {
+          entry.abort.signal.throwIfAborted();
+          const occurrence = {...source.occurrence,
+            checkedSource: source.prepared.checkedSource,
+            readTuple: source.prepared.readTuple, physicalBinding: source.prepared.physicalBinding};
+          const access = checkpoints?.acquisitionAccess(submission.requestId,
+            source.sourceAccess, occurrence) ?? source.sourceAccess;
+          const preparedSource = access === source.sourceAccess ? source.prepared :
+            await prepareAcquisition(preparedProgram, access, source.occurrence);
+          selectedSources.push({...source, access, preparedSource});
+        }
+        const capacities = selectedSources.map(source => capturedDuckDBPhysicalCapacity(source.preparedSource));
+        ledger = moon.clientProgramPrepareMultiCapturedLocalAcquisitionLedger(preparedProgram,
+          selectedSources.map(source => capturedDuckDBConfiguration(source.preparedSource)),
           capacities.map(capacity => capacity.transferBytes),
           capacities.map(capacity => capacity.executionBytes),
           registry, values, fragment, ordered);
@@ -322,16 +337,11 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         }});
         const captureStartedAt = now();
         const sources = [];
-        for (const source of held.preparedSources) {
+        for (const source of selectedSources) {
           entry.abort.signal.throwIfAborted();
-          const occurrence = {...source.occurrence,
-            checkedSource: source.prepared.checkedSource,
-            readTuple: source.prepared.readTuple, physicalBinding: source.prepared.physicalBinding};
-          const access = checkpoints?.acquisitionAccess(submission.requestId,
-            source.sourceAccess, occurrence) ?? source.sourceAccess;
-          const preparedSource = access === source.sourceAccess ? source.prepared :
-            await prepareAcquisition(preparedProgram, access, source.occurrence);
+          const {access, preparedSource} = source;
           await step('acquisition_started', {ref: accepted.ref, task: source.occurrence.task,
+            selection: preparedSource.selection,
             resourceUsage: resourceUsage(ledger)});
           entry.physicalWorkMayHaveStarted = true;
           const acquisition = acquisitionEndHandoff();
@@ -356,6 +366,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           }
           captures.push(captured);
           await step('acquisition_completed', {ref: accepted.ref, task: source.occurrence.task,
+            acquisition: captured.acquisition,
             resourceUsage: resourceUsage(ledger)});
           const sourceEvidenceWire = await captured.issueSourceEvidence({authorityScopeCid,
             effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid});
