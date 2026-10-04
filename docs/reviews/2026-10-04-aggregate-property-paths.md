@@ -161,15 +161,17 @@ Clean packed source `46fa3cd853e5b95f089fa676f174476df2242c8a`
 (`public-query-evidence-cC3U2r`) passed the independent JSON control through
 Embedded Local Named Result rows and ordered column contracts. The first SQL
 case was admitted, then ended `failed / ACTQL_E_UNPUBLISHED_RUN`. The remaining
-seven text positives, four preparation refusals and all aggregate HTTP cases
+six text positives, four preparation refusals and all aggregate HTTP cases
 were not reached. README Local/HTTPS and missing-asset controls passed separately.
 The receipt has no evidence errors and records disposable artifact removal,
 but the failed campaign is incomplete; it is not a public acceptance pass.
 
 A same-source diagnostic run retained its private installation
-(`public-query-evidence-hPqqYM`). A diagnostic-only overlay in that disposable
-installation exposed the existing execution failure; it changes no repository
-Host or common owner and is not pristine packed evidence. The actual chain was:
+(`public-query-evidence-hPqqYM`). The follow-up uses its installed Source profile
+and explicit fixture authorization. A diagnostic-only logging overlay in that
+disposable installation exposed the existing execution failure; it changes no
+repository Host or common owner and is not pristine packed evidence. The actual
+chain was:
 
 ```text
 runtimeCore.next -> strategyHostNext -> prepare_next_compute_task
