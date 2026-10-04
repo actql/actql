@@ -466,6 +466,22 @@ const twoSourceEventsWindowProgram = () => {
   return document;
 };
 
+const useDuckDBAsSecondSource = document => {
+  document.stages[1].inputs.remote = {connector: 'crm/main', resource: 'r'};
+  document.stages[1].steps = [
+    {filter: 'id >= 0', as: 'open'},
+    {select: ['id', 'amount'], as: 'rows'},
+  ];
+  document.stages[1].results.r.fields = ['id', 'amount'];
+  document.stages[2].steps[0].join.on = [{left: 'number', right: 'id'}];
+  document.stages[2].steps[0].join.select = {
+    number: 'left.number', left_title: 'left.title',
+    amount: 'right.amount',
+  };
+  document.stages[2].results.r.fields = ['number', 'left_title', 'amount'];
+  return document;
+};
+
 test('two installed row sources retain a joined public Named Result',
   async t => {
     let outputRepresentations;
@@ -566,6 +582,58 @@ test('retained two-source Join feeds an Events window and consumer', async t => 
   assert.equal(listings(setup.api).length, reads);
 });
 
+test('mixed GitHub and DuckDB captures feed a retained Events window', async t => {
+  const observations = [];
+  const setup = await installation(t, {retainedRelationOutput: true,
+    mixedSource: true,
+    observe(name, detail) { observations.push([name, detail]); }});
+  await setup.publish();
+  const provider = observeTwoSourceProvider(setup.duckdb, {mixed:
+    join(setup.root, 'mixed-source.duckdb')});
+  t.after(() => provider.restore());
+  const document = useDuckDBAsSecondSource(twoSourceEventsWindowProgram());
+  document.id = 'github-duckdb-retained-events-window';
+  document.stages[3].results.r.fields = ['number', 'left_title',
+    'amount', 'window_start_ms', 'window_end_ms'];
+  const wire = JSON.stringify(document);
+  const {client, close} = await setup.open();
+  const run = await client.aql(wire, {format: 'json',
+    requestId: 'github-duckdb-retained-events-window'});
+  const state = await run.wait();
+  assert.equal(state.status, 'succeeded', JSON.stringify(state));
+  const expected = [
+    {number: 1, left_title: 'Issue 1', amount: 100,
+      window_start_ms: 0, window_end_ms: 2},
+    {number: 5, left_title: 'Issue 5', amount: 500,
+      window_start_ms: 4, window_end_ms: 6},
+  ];
+  assert.deepEqual(await run.result('windowed').all(), expected);
+  assert.deepEqual(await run.result('consumed').all(), [
+    {number: 1, window_start_ms: 0},
+    {number: 5, window_start_ms: 4},
+  ]);
+  assert.equal(observations.filter(([name]) =>
+    name === 'acquisition_completed').length, 2);
+  assertAcquisitionReleased(observations);
+  const representations = observations.filter(([name]) =>
+    name === 'computed').at(-1)?.[1].outputRepresentations;
+  assert.ok(representations?.some(item => item.task === 2 &&
+    item.representation === 'retained-file'));
+  assert.ok(representations.some(item =>
+    item.representation === 'managed-local-memory'));
+  const providerReads = provider.snapshot().sourceReads;
+  assert.ok(providerReads > 0);
+  const githubReads = listings(setup.api).length;
+  assert.equal(githubReads, 2);
+  await client.close();
+  await close();
+  const reopened = await setup.open();
+  const attached = await reopened.client.attach(run.ref);
+  assert.deepEqual(await attached.result('windowed').all(), expected);
+  assert.equal(listings(setup.api).length, githubReads);
+  assert.equal(provider.snapshot().sourceReads, providerReads);
+});
+
 test('retained two-source Events failure keeps cleanup for retry', async t => {
   let failClose = true;
   let reachedClose;
@@ -635,18 +703,7 @@ test('GitHub and DuckDB captures share one retained two-source owner',
     t.after(() => provider.restore());
     const document = twoRowSourceProgram();
     document.id = 'github-duckdb-retained-join';
-    document.stages[1].inputs.remote = {connector: 'crm/main', resource: 'r'};
-    document.stages[1].steps = [
-      {filter: 'id >= 0', as: 'open'},
-      {select: ['id', 'amount'], as: 'rows'},
-    ];
-    document.stages[1].results.r.fields = ['id', 'amount'];
-    document.stages[2].steps[0].join.on = [{left: 'number', right: 'id'}];
-    document.stages[2].steps[0].join.select = {
-      number: 'left.number', left_title: 'left.title',
-      amount: 'right.amount',
-    };
-    document.stages[2].results.r.fields = ['number', 'left_title', 'amount'];
+    useDuckDBAsSecondSource(document);
     document.stages[4].steps[0].select = ['number', 'amount'];
     document.stages[4].results.r.fields = ['number', 'amount'];
     const wire = JSON.stringify(document);

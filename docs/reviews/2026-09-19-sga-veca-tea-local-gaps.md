@@ -86,6 +86,11 @@ the Result unavailable. An injected first-input cleanup failure retains its
 holding until Host cleanup retry succeeds, with neither source reacquired.
 The public Host reports `CapturedRunPublicationFailed`; this fixture does not
 inspect the inner arithmetic issue or prove Compute entrypoint non-reexecution.
+The same retained Join-to-Events route also accepts a GitHub capture paired
+with a DuckDB capture. Its fixed-window and consumer Results match independent
+ordered rows after Host reopen, without another read from either provider.
+This adds mixed-provider Carrier evidence, not a Store writer fault or
+post-progress Compute cancellation for an externally acquired input.
 For a row connector with multiple declared views, the two-installation Host
 now carries each view's source reference and read tuple into Check disclosure
 and pre-acquisition Checkpoint selection. The installed source still prepares
