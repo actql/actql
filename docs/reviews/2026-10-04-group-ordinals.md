@@ -104,8 +104,20 @@ correction or independent execution harness is used.
   consumer runs outside the checkout without a MoonBit runtime or fixture
   overlay. Successful temporary installations are removed after retaining
   SHA/digests, logs and complete receipts.
-- Exact submitted-HEAD automatic CI: pending. The following evidence-only
-  commit does not relabel the packed product's SHA as a different verified tree.
+- Automatic CI at `875d543cb754b5e782842cbcab6c6b03eccecbc8`
+  ([37189301150](https://github.com/actql/actql/actions/runs/37189301150))
+  failed in preflight: the actual `bf39d807dd5ad2253e9167727c61bad9b8d7970b`
+  dependency merge lacked a `package.json` resolution declaration. Product
+  jobs were not reached; this is not a product execution failure.
+- Append-only repair `f9f5afa60d0b1efd53cdd6a465f314a91d2cf222` binds the actual
+  ordered parents, both maximal merge bases, parent/result blob and mode,
+  and all 41 ancestral package source revisions. The actual retained-history
+  validator passes; the focused history/foundation Node tests pass **194/194**
+  (`run-cCRtKF`). No validator or inherited declaration was changed.
+- The current-parent integration retains main's ORDER-position corpus together
+  with GROUP-star/GROUP-position acceptance. Its submitted-HEAD automatic CI
+  remains pending. No prior-SHA receipt is relabelled as new-HEAD success.
+- Focused JS `*GROUP*` after that integration: **16/16** (`run-jz8qH2`).
 - No full local Core, all-target, proof, performance or manual CI rerun.
 
 Reproduce the selected public corpus using the repository-pinned toolchain:
