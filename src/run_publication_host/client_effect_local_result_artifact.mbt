@@ -157,48 +157,83 @@ pub fn issue_source_free_exported_client_effect_local_result_artifact(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue] {
+) -> Result[
+  ClientEffectLocalResultArtifact,
+  ClientEffectLocalResultArtifactIssue,
+] {
   if !@strategy.captured_effect_inputs_match_computation(inputs, owner.graph) {
     return Err(ForeignOwner)
   }
   let result = @strategy.captured_effect_local_result_export_result(exported)
   let unit = @strategy.captured_effect_local_result_stage(result)
   let borrow = @strategy.captured_effect_local_result_borrow(result)
-  if !@strategy.captured_effect_local_result_export_matches_receipt(inputs, exported, receipt) {
+  if !@strategy.captured_effect_local_result_export_matches_receipt(
+      inputs, exported, receipt,
+    ) {
     return Err(ForeignExport)
   }
   // Reuse the source-free issuer's original guards, including the absence of
   // imports and external inputs. An imported Unit cannot take this branch.
-  if issue_source_free_client_effect_local_invocation(owner, unit, max_bytes, max_nodes, max_depth) is Err(_) ||
+  if issue_source_free_client_effect_local_invocation(
+      owner, unit, max_bytes, max_nodes, max_depth,
+    )
+    is Err(_) ||
     !client_effect_local_invocation_matches(invocation, owner, unit) {
     return Err(ForeignInvocation)
   }
-  if !client_effect_local_result_definition_matches(definition, owner, unit,
-    @execution.managed_result_occurrence_name(@strategy.captured_any_result_borrow_occurrence(borrow))) {
+  if !client_effect_local_result_definition_matches(
+      definition,
+      owner,
+      unit,
+      @execution.managed_result_occurrence_name(
+        @strategy.captured_any_result_borrow_occurrence(borrow),
+      ),
+    ) {
     return Err(ForeignDefinition)
   }
   if @strategy.captured_effect_inputs_run_definition_cid(inputs) !=
     Some(@publication.publication_contract_identity(run_definition)) ||
-    @publication.check_run_publication_program_binding(admission, run_definition,
+    @publication.check_run_publication_program_binding(
+      admission,
+      run_definition,
       prepared_client_effect_computation_definition_cid(owner),
       prepared_client_effect_computation_semantics_cid(owner),
-      prepared_client_effect_computation_environment_cid(owner)) is Err(_) {
+      prepared_client_effect_computation_environment_cid(owner),
+    )
+    is Err(_) {
     return Err(ForeignRun)
   }
-  let (_, policy, authority) = match @publication.resolve_run_local_result_evidence_refs(
-    admission, run_definition, run_invocation, observation, retention) {
+  let (_, policy, authority) = match
+    @publication.resolve_run_local_result_evidence_refs(
+      admission, run_definition, run_invocation, observation, retention,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Context(issue))
   }
-  let scope = match @publication.seal_publication_contract("acquisition_scope",
-    "{\"sources\":[],\"version\":\"actql-acquisition-scope/0.1\"}",
-    max_bytes, max_nodes, max_depth) {
+  let scope = match
+    @publication.seal_publication_contract(
+      "acquisition_scope", "{\"sources\":[],\"version\":\"actql-acquisition-scope/0.1\"}",
+      max_bytes, max_nodes, max_depth,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Scope(issue))
   }
-  build_client_effect_local_result_artifact(inputs, borrow, definition, invocation,
-    receipt, retention, @publication.publication_contract_identity(scope), policy,
-    authority, [], max_bytes, max_nodes, max_depth, scope=Some(scope))
+  build_client_effect_local_result_artifact(
+    inputs,
+    borrow,
+    definition,
+    invocation,
+    receipt,
+    retention,
+    @publication.publication_contract_identity(scope),
+    policy,
+    authority,
+    [],
+    max_bytes,
+    max_nodes,
+    max_depth,
+    scope=Some(scope),
+  )
 }
 
 ///|
