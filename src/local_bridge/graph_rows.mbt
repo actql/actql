@@ -10,6 +10,7 @@ priv enum GraphRowsRead {
 priv struct GraphRowsSource {
   source : GraphRowsRead
   definition : @carrier.PropertyGraphDefinition
+  selected_definition : String?
   edge : Bool
   limits : @execution.ValueLimits
   mut label_values : Array[@value.Value]
@@ -91,6 +92,19 @@ fn graph_row_definition(
       )
     } else {
       @carrier.property_graph_node_at(source.definition, index)
+    }
+  })
+}
+
+///|
+fn graph_row_selected(source : GraphRowsSource, record : Int) -> Bool? {
+  guard source.order.bind(sort => @sort.index_at(sort, record)) is Some(record) else {
+    return None
+  }
+  graph_row_definition(source, record).map(definition => {
+    match source.selected_definition {
+      None => true
+      Some(name) => @carrier.property_definition_name(definition) == name
     }
   })
 }
@@ -286,6 +300,7 @@ pub fn start_graph_view_to_rows(
   let source : GraphRowsSource = {
     source: ViewedGraph(input),
     definition,
+    selected_definition: @lower.carrier_projection_definition(projection),
     edge: @lower.carrier_projection_operation(projection) ==
     @projection.EdgeRows,
     limits,
@@ -357,6 +372,7 @@ pub fn start_graph_to_rows(
   let source : GraphRowsSource = {
     source: StoredGraph(storage),
     definition: @carrier.graph_property_definition(graph),
+    selected_definition: @lower.carrier_projection_definition(projection),
     edge: @lower.carrier_projection_operation(projection) ==
     @projection.EdgeRows,
     limits,

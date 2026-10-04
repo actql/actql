@@ -106,6 +106,10 @@ export function graphSchemas() {
   }};
   const endpoint = {type:'object',additionalProperties:false,required:['definition','key'],properties:{definition:field,key:keys,references_key:keys}};
   const result = {...legacy,
+    node_rows:{oneOf:[{const:true},{type:'object',additionalProperties:false,
+      required:['definition'],properties:{definition:field}}]},
+    edge_rows:{oneOf:[{const:true},{type:'object',additionalProperties:false,
+      required:['definition'],properties:{definition:field}}]},
     property_graph:{type:'object',additionalProperties:false,required:['version','nodes','edges'],properties:{
       version:{const:'actql-property-graph-constructor/0.1'},
       nodes:{type:'array',items:element},
