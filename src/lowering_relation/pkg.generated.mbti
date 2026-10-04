@@ -297,6 +297,8 @@ pub fn fragment_row_limits_valid(FragmentRowLimits) -> Bool
 
 pub fn graph_diagnostic_bounds(PreparedGraphDiagnostic) -> (Int64?, Int64?, Int64?)?
 
+pub fn graph_diagnostic_component_max_output_rows(PreparedGraphDiagnostic) -> Int64?
+
 pub fn graph_diagnostic_kind(PreparedGraphDiagnostic) -> GraphDiagnosticKind
 
 pub fn graph_diagnostic_output_schema(PreparedGraphDiagnostic) -> @relation_schema.Schema
@@ -1215,6 +1217,8 @@ pub(all) enum GraphDiagnosticKind {
   IncomingDegreeDiagnostic
   OutgoingDegreeDiagnostic
   TotalDegreeDiagnostic
+  WeakComponentsDiagnostic
+  StrongComponentsDiagnostic
 } derive(Eq, @debug.Debug)
 
 pub(all) enum GraphMatchIssue {
@@ -1423,6 +1427,7 @@ pub enum Payload {
   GraphMatchRows(@graph_typing.CheckedMatch)
   GraphBoundsRows(@graph_typing.CheckedGraphBounds)
   GraphDegreeRows(@graph_typing.CheckedDegree)
+  GraphComponentsRows(@graph_typing.CheckedComponents)
   GraphTraverseRows(@graph_typing.CheckedTraverse)
   PropertyGraphConstructionValue(@graph_typing.CheckedPropertyConstruction)
   VectorValue(@vector_typing.CheckedVector)

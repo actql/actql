@@ -399,6 +399,14 @@ fn component_neighbor(
 }
 
 ///|
+fn charge_components_work(state : ComponentsState) -> Bool {
+  match state.output {
+    Some(output) => @execution.admitted_output_charge_control_work(output, 1)
+    None => false
+  }
+}
+
+///|
 fn components_step(
   state : ComponentsState,
   quantum : Int,
@@ -419,6 +427,9 @@ fn components_step(
     match state.phase {
       InitializeNodes =>
         if state.index < state.node_count {
+          if !charge_components_work(state) {
+            return @bounded.Failed(ComponentsWorkLimit, progress, used)
+          }
           state.out_degree.push(0)
           state.in_degree.push(0)
           state.out_start.push(0)
@@ -437,6 +448,9 @@ fn components_step(
           state.phase = FinishOffsets
         }
       FinishOffsets => {
+        if !charge_components_work(state) {
+          return @bounded.Failed(ComponentsWorkLimit, progress, used)
+        }
         state.out_start.push(0)
         state.in_start.push(0)
         state.index = 0
@@ -445,6 +459,9 @@ fn components_step(
       }
       ScanDegrees =>
         if state.index < state.edge_count {
+          if !charge_components_work(state) {
+            return @bounded.Failed(ComponentsWorkLimit, progress, used)
+          }
           guard graph_read_edge_endpoints(state.source, state.index)
             is Some((source, target)) &&
             state.out_degree.get(source) is Some(outgoing) &&
@@ -461,6 +478,9 @@ fn components_step(
         }
       BuildOffsets =>
         if state.index < state.node_count {
+          if !charge_components_work(state) {
+            return @bounded.Failed(ComponentsWorkLimit, progress, used)
+          }
           state.out_start[state.index + 1] = state.out_start[state.index] +
             state.out_degree[state.index]
           state.in_start[state.index + 1] = state.in_start[state.index] +
@@ -473,6 +493,9 @@ fn components_step(
         }
       InitializeEdges =>
         if state.index < state.edge_count {
+          if !charge_components_work(state) {
+            return @bounded.Failed(ComponentsWorkLimit, progress, used)
+          }
           state.out_edges.push(-1)
           state.in_edges.push(-1)
           state.index += 1
@@ -483,6 +506,9 @@ fn components_step(
         }
       CopyCursors =>
         if state.index < state.node_count {
+          if !charge_components_work(state) {
+            return @bounded.Failed(ComponentsWorkLimit, progress, used)
+          }
           state.out_cursor[state.index] = state.out_start[state.index]
           state.in_cursor[state.index] = state.in_start[state.index]
           state.index += 1
@@ -493,6 +519,9 @@ fn components_step(
         }
       FillEdges =>
         if state.index < state.edge_count {
+          if !charge_components_work(state) {
+            return @bounded.Failed(ComponentsWorkLimit, progress, used)
+          }
           guard graph_read_edge_endpoints(state.source, state.index)
             is Some((source, target)) else {
             return @bounded.Failed(ComponentsInputUnavailable, progress, used)
@@ -521,6 +550,9 @@ fn components_step(
           state.phase = ResetVisited
         } else {
           let node = state.index
+          if !charge_components_work(state) {
+            return @bounded.Failed(ComponentsWorkLimit, progress, used)
+          }
           state.index += 1
           used += 1
           if !state.visited[node] {
@@ -533,6 +565,9 @@ fn components_step(
       WalkFirstPass => {
         guard !state.stack_nodes.is_empty() && !state.stack_positions.is_empty() else {
           return @bounded.Failed(InvalidComponentsKernel, progress, used)
+        }
+        if !charge_components_work(state) {
+          return @bounded.Failed(ComponentsWorkLimit, progress, used)
         }
         let top = state.stack_nodes.length() - 1
         let node = state.stack_nodes[top]
@@ -559,6 +594,9 @@ fn components_step(
       }
       ResetVisited =>
         if state.index < state.visited.length() {
+          if !charge_components_work(state) {
+            return @bounded.Failed(ComponentsWorkLimit, progress, used)
+          }
           state.visited[state.index] = false
           state.index += 1
           used += 1
@@ -585,6 +623,9 @@ fn components_step(
           } else {
             state.index
           }
+          if !charge_components_work(state) {
+            return @bounded.Failed(ComponentsWorkLimit, progress, used)
+          }
           if state.strong {
             state.index -= 1
           } else {
@@ -604,6 +645,9 @@ fn components_step(
       WalkComponent => {
         guard !state.stack_nodes.is_empty() && !state.stack_positions.is_empty() else {
           return @bounded.Failed(InvalidComponentsKernel, progress, used)
+        }
+        if !charge_components_work(state) {
+          return @bounded.Failed(ComponentsWorkLimit, progress, used)
         }
         let top = state.stack_nodes.length() - 1
         let node = state.stack_nodes[top]
@@ -639,6 +683,9 @@ fn components_step(
             return @bounded.Failed(InvalidComponentsKernel, progress, used)
           }
           if state.component_min[component] < 0 {
+            if !charge_components_work(state) {
+              return @bounded.Failed(ComponentsWorkLimit, progress, used)
+            }
             state.component_min[component] = state.index
             state.index += 1
             used += 1
@@ -649,6 +696,9 @@ fn components_step(
       CompareMinimum => {
         let component = state.component[state.index]
         let minimum = state.component_min[component]
+        if !charge_components_work(state) {
+          return @bounded.Failed(ComponentsWorkLimit, progress, used)
+        }
         used += 1
         match compare_component_identity_step(state, state.index, minimum) {
           Err(issue) => return @bounded.Failed(issue, progress, used)
@@ -678,10 +728,16 @@ fn components_step(
           prepare_components_merge(state)
         }
       Merge => {
+        if !charge_components_work(state) {
+          return @bounded.Failed(ComponentsWorkLimit, progress, used)
+        }
         merge_components(state)
         used += 1
       }
       CompareMerge => {
+        if !charge_components_work(state) {
+          return @bounded.Failed(ComponentsWorkLimit, progress, used)
+        }
         used += 1
         match
           compare_component_nodes_step(
@@ -696,6 +752,9 @@ fn components_step(
       }
       CopyPass =>
         if state.copy_index < state.selected.length() {
+          if !charge_components_work(state) {
+            return @bounded.Failed(ComponentsWorkLimit, progress, used)
+          }
           guard state.scratch[state.copy_index] is Some(node) else {
             return @bounded.Failed(InvalidComponentsKernel, progress, used)
           }
@@ -721,6 +780,9 @@ fn components_step(
         }
       ReadField =>
         if state.column < @schema.field_count(state.schema) {
+          if !charge_components_work(state) {
+            return @bounded.Failed(ComponentsWorkLimit, progress, used)
+          }
           used += 1
           let node = state.selected[state.candidate]
           guard @schema.field_at(state.schema, state.column) is Some(field) &&
@@ -767,6 +829,9 @@ fn components_step(
           state.phase = CommitRow
         }
       RecheckField => {
+        if !charge_components_work(state) {
+          return @bounded.Failed(ComponentsWorkLimit, progress, used)
+        }
         used += 1
         guard state.value_recheck is Some(cursor) else {
           return @bounded.Failed(InvalidComponentsKernel, progress, used)
@@ -784,6 +849,9 @@ fn components_step(
         }
       }
       CommitRow => {
+        if !charge_components_work(state) {
+          return @bounded.Failed(ComponentsWorkLimit, progress, used)
+        }
         used += 1
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidComponentsKernel, progress, used)
