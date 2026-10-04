@@ -26,7 +26,8 @@ export const exchangeLimits = Object.freeze({
 export const exchangeMethods = Object.freeze(['GET', 'POST', 'PATCH']);
 
 // Headers the credential resource owns, that carry credentials, or that
-// reshape the connection. A provider never sets them.
+// reshape the connection. A provider never sets them, and an installation
+// never declares them as observed response headers.
 const reservedRequestHeaders = new Set([
   'authorization', 'proxy-authorization', 'cookie', 'set-cookie', 'host',
   'content-length', 'content-type', 'transfer-encoding', 'connection',
@@ -125,15 +126,24 @@ export function ownHttpRequest({method, path, query, headers, body}) {
   });
 }
 
-// The response header names an installation declared it reads.
+// Whether a lowercase header name may be declared or set by a provider.
+export function reservedHttpHeader(name) {
+  return reservedRequestHeaders.has(name);
+}
+
+// The response header names an installation declared it reads. A reserved
+// name refuses the declaration here, before any credential use or request.
 export function ownResponseHeaderNames(names = []) {
   if (!Array.isArray(names) ||
       names.length > exchangeLimits.maxObservedHeaders ||
       new Set(names).size !== names.length) {
     fail('InvalidHttpResponseHeaderNames');
   }
-  return Object.freeze(names.map(name =>
-    checkHeaderName(name, 'InvalidHttpResponseHeaderNames')));
+  return Object.freeze(names.map(name => {
+    checkHeaderName(name, 'InvalidHttpResponseHeaderNames');
+    if (reservedRequestHeaders.has(name)) fail('InvalidHttpResponseHeaderNames');
+    return name;
+  }));
 }
 
 // Observe the declared names from a received header map (Node's lowercase
@@ -145,7 +155,6 @@ export function observeResponseHeaders(received, names) {
   const entries = [];
   let total = 0;
   for (const name of owned) {
-    if (reservedRequestHeaders.has(name)) fail('InvalidHttpResponseHeaderNames');
     const value = received?.[name];
     if (value === undefined) continue;
     if (typeof value !== 'string') fail('HttpHeaderObservationInvalid');

@@ -68,6 +68,11 @@ test('response header observation admits only declared names under caps', () => 
   assert.deepEqual(observeResponseHeaders(received, []), []);
   assert.deepEqual(observeResponseHeaders(undefined, ['link']), []);
   assert.deepEqual(ownResponseHeaderNames(['link']), ['link']);
+  // A reserved name is refused as a declaration, before any exchange.
+  for (const reserved of ['set-cookie', 'authorization', 'cookie', 'host']) {
+    assert.throws(() => ownResponseHeaderNames([reserved]),
+      {code: 'InvalidHttpResponseHeaderNames'});
+  }
   assert.throws(() => observeResponseHeaders(received, ['set-cookie']),
     {code: 'InvalidHttpResponseHeaderNames'});
   assert.throws(() => observeResponseHeaders(received, ['Link']),

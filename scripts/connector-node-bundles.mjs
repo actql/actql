@@ -5,6 +5,8 @@ import {dirname, join, relative, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 import {checkComputeAssembly} from './connector-compute-bundles.mjs';
+// The same reserved names the typed exchange refuses at run time.
+import {reservedHttpHeader} from '../adapters/host-common/http-exchange.mjs';
 
 export function checkNodeAssembly(root, write = false, options = {}) {
 const assembly = options.assembly ?? 'connectors_builtin';
@@ -359,6 +361,7 @@ const sourceKeys = ['exports', 'module', 'profileVersion'];
 const sourceExports = ['check', 'identityParts', 'load', 'publish'];
 const requiredSourceExports = ['check', 'identityParts', 'load'];
 const headerName = /^[a-z0-9][a-z0-9-]*$/;
+
 const sameKeys = (value, keys) => value !== null && typeof value === 'object' &&
   !Array.isArray(value) && Object.keys(value).sort().join() === keys.join();
 
@@ -380,7 +383,8 @@ export function checkHostBundle(root, name, path) {
       !/pkgtype\(kind: "foreign_library"\)/.test(bundleManifest)) throw invalid('providerBundle kind');
   if (!Array.isArray(responseHeaders) || responseHeaders.length > 16 ||
       new Set(responseHeaders).size !== responseHeaders.length ||
-      responseHeaders.some(header => typeof header !== 'string' || !headerName.test(header))) {
+      responseHeaders.some(header => typeof header !== 'string' || !headerName.test(header) ||
+        reservedHttpHeader(header))) {
     throw invalid('responseHeaders');
   }
   if (!sameKeys(source, sourceKeys)) throw invalid('source keys');

@@ -133,6 +133,34 @@ test('allowed request headers reach the resource; reserved ones never leave the 
     assert.equal(fixture.seen().length, 1);
   });
 
+test('a reserved response header declaration is refused before any credential use or request',
+  async t => {
+    const fixture = await openHttpsExchangeFixture(t, {
+      routes: [{pathname: '/items', handle: () => ({status: 201, body: {}})}],
+    });
+    const {authorization, resource} = await credential(t, fixture.origin,
+      'items:create');
+    let resolved = 0;
+    const counted = {...resource, ca: fixture.ca,
+      resolveSecret: async () => { resolved++; return 'provider-secret'; }};
+    for (const call of [
+      () => invokeScopedCredentialOperation({authorization: authorization(),
+        credential: counted, callResource: callHttpsCredentialResource,
+        operation: 'items:create', method: 'POST', path: '/items', body: '{}',
+        responseHeaders: ['set-cookie'], maxRequestBytes: 1024,
+        maxResponseBytes: 4096}),
+      () => callHttpsCredentialResource({...counted, ...authorization(),
+        operations: new Map([['items:create', {method: 'POST', path: '/items',
+          body: '{}', responseHeaders: ['set-cookie']}]])}),
+    ]) {
+      await assert.rejects(async () => call(),
+        {code: 'InvalidHttpResponseHeaderNames'});
+    }
+    assert.equal(resolved, 0);
+    assert.equal(fixture.seen().length, 0);
+    assert.deepEqual(resource.journal.recover(), []);
+  });
+
 test('an over-long declared header refuses the exchange instead of shortening it',
   async t => {
     const fixture = await openHttpsExchangeFixture(t, {

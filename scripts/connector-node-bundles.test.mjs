@@ -151,6 +151,7 @@ test('connector host manifests generate the installed connector table and refuse
     mutate(installation => { installation.providerBundle = 'connectors/example/missing'; }, 'providerBundle package');
     mutate(installation => { installation.responseHeaders = ['Link']; }, 'responseHeaders');
     mutate(installation => { installation.responseHeaders = ['link', 'link']; }, 'responseHeaders');
+    mutate(installation => { installation.responseHeaders = ['set-cookie']; }, 'responseHeaders');
     mutate(installation => { installation.source.profileVersion = 'actql-installed-example-source'; }, 'profileVersion');
     mutate(installation => { installation.source.module = 'adapters/host-node/installed-source.mjs'; }, 'module');
     mutate(installation => { delete installation.source.exports.load; }, 'exports keys');
