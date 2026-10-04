@@ -103,7 +103,8 @@ export async function preparePinnedEffectSourceSet({
   if (!Number.isSafeInteger(count) || count < 1 || count > maxMembers) {
     throw new RangeError('EffectSourceMemberLimit');
   }
-  if (options.localEvidenceContext?.acquiredEvidence !== undefined) {
+  if (options.localEvidenceContext?.acquiredEvidence !== undefined ||
+      options.localEvidenceContext?.sourceFreeDependencyClosure === true) {
     return prepareDependentEffectSourceSet(options, count, maxGroupingWork);
   }
   const groups = [];
@@ -263,6 +264,11 @@ async function prepareDependentEffectSourceSet(options, memberCount, maxWork) {
       if (imports === 0) {
         dependency = owned.localEvidenceContext.acquiredEvidenceByUnit?.[unitIndex]
           ?? (unitIndex === 0 ? owned.localEvidenceContext.acquiredEvidence : undefined);
+        if (dependency === undefined &&
+            owned.localEvidenceContext.sourceFreeDependencyClosure === true) {
+          dependency = control.issueSourceFreeEffectEvidence(checkedOwner,
+            unitIndex, owned.contractLimits);
+        }
         if (dependency === undefined) throw new TypeError('MissingEffectSourceEvidence');
       } else {
         const observations = [];
@@ -736,9 +742,9 @@ async function preparePinnedEffectSourcePayloadOwned({
         ...local.dependency.bodies,
         ...local.staticBodies,
         ...localEvidenceContext.retentionDependencies,
-        ...localEvidenceContext.acquisitionDependencies,
+        ...(localEvidenceContext.acquisitionDependencies ?? []),
         ...(localEvidenceContext.acquiredCatalogBodies
-          ?? localEvidenceContext.acquiredEvidence.catalogBodies),
+          ?? localEvidenceContext.acquiredEvidence?.catalogBodies ?? []),
         schemaBody,
         Object.freeze({kind: 'relation_value', cid: summary.logicalCid,
           wire: '{"sort":"relation","value":' + relationChunks.join('') + '}'}),

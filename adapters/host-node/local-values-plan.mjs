@@ -198,7 +198,8 @@ export function sourceFreeInferEffectPublicationPlan({acquired,
       moon, effectCompilation: compilation, preparedEffect: prepared});
     return Object.freeze({...issued, plan: Object.freeze({...plan,
       invocationOwner, localEvidenceContext: Object.freeze({admission,
-        runDefinition, retentionDependencies, runInvocation: invocation,
+        runDefinition, retentionDependencies, sourceFreeDependencyClosure:true,
+        runInvocation: invocation,
         observation})})});
   } catch (error) {
     moon.clientProgramReleaseInferInvocationBinding(issued.binding);

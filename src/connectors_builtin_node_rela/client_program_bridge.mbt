@@ -3111,6 +3111,33 @@ pub fn client_program_issue_source_free_local_effect_result_artifact(
 }
 
 ///|
+#export_name("clientProgramIssueSourceFreeExportedLocalEffectResultArtifact")
+pub fn client_program_issue_source_free_exported_local_effect_result_artifact(
+  owner : @publication_host.PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  exported : @strategy.CapturedEffectLocalResultExport,
+  invocation : @publication_host.ClientEffectLocalInvocation,
+  definition : @publication_host.ClientEffectLocalResultDefinition,
+  receipt : @execution.CompletedRelationExportReceipt,
+  retention : @publication.PublicationContract,
+  admission : @publication.RunPublicationAdmission,
+  run_definition : @publication.PublicationContract,
+  run_invocation : @publication.PublicationContract,
+  observation : @publication.RunEvidenceValue,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectLocalResultArtifact,
+  @publication_host.ClientEffectLocalResultArtifactIssue,
+] {
+  @publication_host.issue_source_free_exported_client_effect_local_result_artifact(
+    owner, inputs, exported, definition, invocation, receipt, retention, admission,
+    run_definition, run_invocation, observation, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 #export_name("clientProgramLocalEffectResultArtifactCid")
 pub fn client_program_local_effect_result_artifact_cid(
   value : @publication_host.ClientEffectLocalResultArtifact,
