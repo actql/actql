@@ -34,6 +34,8 @@ pub fn check_property_construction(@decode_core.Cursor, Array[(String, @carrier_
 
 pub fn check_selector(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedSelector, MatchIssue]
 
+pub fn check_subgraph(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedSubgraph, MatchIssue]
+
 pub fn check_traverse(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedTraverse, MatchIssue]
 
 pub fn components_input(CheckedComponents) -> @carrier_contract.Carrier
@@ -234,6 +236,22 @@ pub fn selector_source(CheckedSelector) -> @decode_core.Cursor
 
 pub fn selector_usage(CheckedSelector) -> PredicateUsage
 
+pub fn subgraph_edge_fields(CheckedSubgraph) -> @carrier_contract.Knowledge
+
+pub fn subgraph_edge_property_position(CheckedSubgraph, Int, Int) -> Int?
+
+pub fn subgraph_edges(CheckedSubgraph) -> CheckedPredicate?
+
+pub fn subgraph_nodes(CheckedSubgraph) -> CheckedSelector
+
+pub fn subgraph_output(CheckedSubgraph) -> @carrier_contract.Carrier
+
+pub fn subgraph_pending(CheckedSubgraph) -> Array[SubgraphObligation]
+
+pub fn subgraph_source(CheckedSubgraph) -> @decode_core.Cursor
+
+pub fn subgraph_usage(CheckedSubgraph) -> PredicateUsage
+
 pub fn traverse_bounds(CheckedTraverse) -> (Double, Double)
 
 pub fn traverse_emission(CheckedTraverse) -> PathOutput
@@ -284,6 +302,8 @@ type CheckedPredicate
 type CheckedPropertyConstruction
 
 type CheckedSelector
+
+type CheckedSubgraph
 
 type CheckedTraverse
 
@@ -482,6 +502,16 @@ pub(all) enum SelectorObligation {
   DeduplicateSelectorIdentities
   RequireSelectorMembership
   ResolveSelectorResources
+} derive(Eq, @debug.Debug)
+
+pub(all) enum SubgraphObligation {
+  AdmitSubgraphInput
+  InduceSelectedEndpoints
+  FilterInducedEdges
+  PreserveSubgraphIdentitiesAndProperties
+  PreserveSubgraphPolicyAndScope
+  ResolveSubgraphResources
+  ResolveSubgraphProfile
 } derive(Eq, @debug.Debug)
 
 type TraversalHop
