@@ -489,6 +489,10 @@ const pendingScratch = process.argv[2] === 'rce-submit-pending';
 let scratchReleased = !pendingScratch;
 let temporaryReleaseConfirmed = false;
 authorization.observe = (name, detail) => {
+  if (name === 'effect_start_failed' || name === 'effect_settlement_failed') {
+    appendFileSync('composition-custody.jsonl', JSON.stringify({name, ...detail,
+      pendingScratch}) + '\\n');
+  }
   if (name.startsWith('effect_computation_')) {
     appendFileSync('composition-custody.jsonl', JSON.stringify({name, ...detail,
       pendingScratch}) + '\\n');
