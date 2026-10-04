@@ -9,7 +9,7 @@ priv enum CheckFinding {
   Violation(String)
   SyntaxViolation(Int, Int)
   LexicalViolation(String, (Int, Int)?)
-  QueryViolation(Int, Int)
+  ExpressionViolation(String, (Int, Int)?)
   TypeViolation(String, String, String, String?)
   SuppliedViolation(String?)
   ConstraintViolation(String, String, String?)
@@ -344,7 +344,7 @@ fn check_source_findings(
       is (Violation(_)
       | SyntaxViolation(_, _)
       | LexicalViolation(_, _)
-      | QueryViolation(_, _)
+      | ExpressionViolation(_, _)
       | TypeViolation(_, _, _, _)
       | SuppliedViolation(_)
       | ConstraintViolation(_, _, _)
@@ -492,7 +492,7 @@ fn check_verdict(findings : Array[CheckFinding]) -> String {
       is (Violation(_)
       | SyntaxViolation(_, _)
       | LexicalViolation(_, _)
-      | QueryViolation(_, _)
+      | ExpressionViolation(_, _)
       | TypeViolation(_, _, _, _)
       | SuppliedViolation(_)
       | ConstraintViolation(_, _, _)
@@ -535,7 +535,7 @@ fn write_check_report(
       Violation(code) => Some(code)
       SyntaxViolation(_, _) => Some("query_syntax_invalid")
       LexicalViolation(_, _) => Some("query_lexical_invalid")
-      QueryViolation(_, _) => Some("query_invalid")
+      ExpressionViolation(_, _) => Some("query_expression_invalid")
       TypeViolation(_, _, _, _) => Some("supplied_value_type_mismatch")
       SuppliedViolation(_) => Some("supplied_value_invalid")
       ConstraintViolation(_, _, _) =>
@@ -636,6 +636,26 @@ fn write_check_report(
         }
       }
     }
+    if code == "query_expression_invalid" {
+      for finding in findings {
+        if finding is ExpressionViolation(issue, range) {
+          @encode.key(writer, "facts")
+          @encode.begin_object(writer)
+          @encode.key(writer, "issue")
+          @encode.string_value(writer, issue)
+          @encode.end_object(writer)
+          if range is Some((start, end)) {
+            write_check_text_location(
+              writer,
+              documents.source_revision,
+              start,
+              end,
+            )
+          }
+          break
+        }
+      }
+    }
     if code == "parameter_undeclared" {
       for finding in findings {
         if finding is UndeclaredParameter(name, range) {
@@ -714,19 +734,6 @@ fn write_check_report(
     if code == "query_syntax_invalid" {
       for finding in findings {
         if finding is SyntaxViolation(start, end) {
-          write_check_text_location(
-            writer,
-            documents.source_revision,
-            start,
-            end,
-          )
-          break
-        }
-      }
-    }
-    if code == "query_invalid" {
-      for finding in findings {
-        if finding is QueryViolation(start, end) {
           write_check_text_location(
             writer,
             documents.source_revision,
@@ -869,17 +876,31 @@ fn check_syntax_finding(diagnostic : @query_syntax.Diagnostic) -> CheckFinding {
 }
 
 ///|
-/// Project only the existing lowerer's owned authored origin. Unresolved Source
-/// names and lowerer failures lacking provenance cannot acquire a location.
+/// Project existing typed expression issues and owned authored origins. No
+/// protected Source-resolution issue or generated origin acquires a location.
 fn check_query_finding(issue : @source_frontend.Issue) -> CheckFinding {
-  match @source_frontend.unknown_column_origin(issue) {
-    Some(origin) =>
-      QueryViolation(
-        @source_origin.start(origin).byte_offset,
-        @source_origin.end(origin).byte_offset,
-      )
-    None => Violation("query_invalid")
+  if issue is QueryLowering(Expression(diagnostic)) {
+    let code = match diagnostic.issue {
+      UnknownReference => Some("unknown_reference")
+      InvalidArguments => Some("invalid_arguments")
+      InvalidNumber => Some("invalid_number")
+      _ => None
+    }
+    if code is Some(code) {
+      let range = match diagnostic.origin {
+        Some(origin) if @source_origin.kind(origin) == @source_origin.Authored =>
+          Some(
+            (
+              @source_origin.start(origin).byte_offset,
+              @source_origin.end(origin).byte_offset,
+            ),
+          )
+        _ => None
+      }
+      return ExpressionViolation(code, range)
+    }
   }
+  Violation("query_invalid")
 }
 
 ///|

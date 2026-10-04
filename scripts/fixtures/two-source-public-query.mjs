@@ -203,7 +203,7 @@ export async function exerciseTwoSourcePublicQuery({connect, openInstalledRemote
       assert.deepEqual({...check, report: {...check.report, context_ref: '<ctx>',
         inputs: check.report.inputs.map(input => ({...input, revision: '<revision>'}))}},
         {version: 'actql-check-outcome/0.1', outcome: 'completed',
-          reason_schema_cid: 'sha256:16c81ff351a5c3d1fa56757c3c9936a68fd7014c81137e8efa1c54988a61c961',
+          reason_schema_cid: 'sha256:2b4925513d195c5debf4e059140ab737c7f5d6d92ab6280c3b8cdefe0b00c2b5',
           report: {context_ref: '<ctx>', scope: {kind: 'bound_input'},
             inputs: [{document_id: 'source', kind: 'text', revision: '<revision>', byte_length: 17}],
             verdict: 'verified', reasons: [], requirements: [],

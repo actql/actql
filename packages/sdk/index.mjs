@@ -85,6 +85,7 @@ export function resolveCheckTextRange(outcome, location, currentInput) {
 export function explainCheckReason(reason) {
   const explanations = {
     query_syntax_invalid: ['The query syntax is invalid.', 'Correct the query syntax at the reported location when available.'],
+    query_expression_invalid: ['An expression violates its reference, argument or numeric contract.', 'Correct the expression under the selected query contract.'],
     query_lexical_invalid: ['A query token violates its lexical syntax.', 'Correct the token at the reported location when available.'],
     parameter_undeclared: ['The query refers to an undeclared parameter.', 'Declare the parameter or correct its reference; a value alone cannot declare it.'],
     query_invalid: ['The query violates its language or name-resolution contract.', 'Correct the query using its declared names and visible context.'],
@@ -116,6 +117,16 @@ export function explainCheckReason(reason) {
   if (reason?.code === 'query_lexical_invalid' && typeof issue === 'string' &&
       Object.hasOwn(lexicalExplanations, issue)) {
     const [summary, hint] = lexicalExplanations[issue];
+    return Object.freeze({kind: 'known', summary, hint});
+  }
+  const expressionExplanations = {
+    unknown_reference: ['An expression reference cannot be resolved in the checked scope.', 'Use a declared reference from the disclosed query context.'],
+    invalid_arguments: ['Expression arguments violate the selected operation contract.', 'Correct the argument count or form required by the selected operation.'],
+    invalid_number: ['A numeric expression is outside the admitted numeric domain.', 'Use a finite number in the admitted precision and signed-zero domain.'],
+  };
+  if (reason?.code === 'query_expression_invalid' && typeof issue === 'string' &&
+      Object.hasOwn(expressionExplanations, issue)) {
+    const [summary, hint] = expressionExplanations[issue];
     return Object.freeze({kind: 'known', summary, hint});
   }
   const constraintHints = {
