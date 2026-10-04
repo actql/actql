@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtempSync, rmSync} from 'node:fs';
+import {mkdtempSync, rmSync, readFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {Worker} from 'node:worker_threads';
 import {loadCheckpointRuntime} from './sqlite-checkpoint-journal.mjs';
-import {C, input, open, identity, seedApproval, replaceClaim, reference, saved, runtime as fixtureRuntime} from './model-resume-state.fixture.mjs';
+import {C, input, open, identity, immediateIdentity, immediateReference, seedApproval, replaceClaim, reference, saved, runtime as fixtureRuntime} from './model-resume-state.fixture.mjs';
 
 // Public claim regressions use the retained compiled Core decision ports.
 // Model admission, input custody and Store outcomes remain explicit doubles.
@@ -35,6 +35,287 @@ const storedResume = path => {
       [table, db.prepare(`SELECT * FROM ${table}`).all()]));
   } finally {db.close();}
 };
+function startImmediate(f) {
+  return f.journal.registerImmediateModelCallSet({modelCallSet: f.registration.modelCallSet,
+    declaredResults: f.registration.declaredResults});
+}
+
+test('immediate inventory and entry have original Run provenance with no synthetic approval rows', t => {
+  const f = fixture(t);
+  const registered = startImmediate(f);
+  assert.equal(registered.checkpointCid, null);
+  assert.deepEqual(registered.slots.map(slot => slot.state), ['Unsent', 'Unsent', 'Unsent']);
+  const ref = immediateReference(0); const tokens = f.issueImmediate(ref);
+  const entry = f.journal.enterImmediateModelCall(ref, tokens);
+  assert.equal(typeof entry.then, 'undefined');
+  assert.equal(entry.provenance, 'immediate');
+  assert.equal(entry.state, 'EnteredUnknown');
+  for (const key of ['checkpointCid', 'intentId', 'claimant', 'generation', 'resolutionCid', 'decision', 'preparedCallSet']) {
+    assert.equal(Object.hasOwn(entry, key), false);
+  }
+  assert.ok(Object.isFrozen(entry));
+  mutate(f.journal.path, db => {
+    for (const table of ['checkpoints', 'resolutions', 'resume_intents', 'resume_admissions']) {
+      assert.equal(db.prepare(`SELECT count(*) AS n FROM ${table}`).get().n, 0);
+    }
+    assert.equal(db.prepare('SELECT status FROM runs').get().status, 'running');
+  });
+  assert.deepEqual(startImmediate(f), f.journal.readModelCalls(immediateIdentity));
+});
+
+test('opaque immediate issuer rejects copied, foreign, stale and wrongly bound attempts before entry', t => {
+  const f = fixture(t); startImmediate(f);
+  const ref = immediateReference(0); const tokens = f.issueImmediate(ref);
+  const foreign = fixture(t); const foreignTokens = foreign.issueImmediate(ref);
+  const before = storedResume(f.journal.path);
+  for (const attempt of [
+    {...tokens, decision: Object.freeze({...tokens.decision})},
+    {...tokens, preparedCallSet: Object.freeze({...tokens.preparedCallSet})},
+    foreignTokens,
+  ]) throwsCode(() => f.journal.enterImmediateModelCall(ref, attempt), 'ModelImmediateGrantRejected');
+  throwsCode(() => f.journal.enterImmediateModelCall({...ref, attemptWire: '{}'}, tokens), 'ModelImmediateGrantRejected');
+  throwsCode(() => f.journal.enterImmediateModelCall({...ref, authorityWire: '{}'}, tokens), 'ModelImmediateGrantRejected');
+  throwsCode(() => f.journal.enterImmediateModelCall(reference(0), tokens), 'ModelImmediateProvenanceMismatch');
+  f.invalidateDecision(tokens.decision);
+  throwsCode(() => f.journal.enterImmediateModelCall(ref, tokens), 'ModelImmediateGrantRejected');
+  assert.deepEqual(storedResume(f.journal.path), before);
+});
+
+test('a cached scoped permit may enter another slot only through a fresh exact issuer check', t => {
+  const f = fixture(t); startImmediate(f);
+  const first = immediateReference(0); const second = immediateReference(1);
+  const tokens = f.issueImmediate(first);
+  f.journal.enterImmediateModelCall(first, tokens);
+  throwsCode(() => f.journal.enterImmediateModelCall(second, tokens), 'ModelImmediateGrantRejected');
+  assert.equal(f.issueImmediate(second, {reuse: tokens}).decision, tokens.decision);
+  assert.equal(f.journal.enterImmediateModelCall(second, tokens).state, 'EnteredUnknown');
+  throwsCode(() => f.journal.enterImmediateModelCall(first, tokens), 'ModelResumeAttemptUnknown');
+});
+
+test('immediate entry fails closed for absent or asynchronous trusted issuer ports', t => {
+  for (const [admitImmediateEntry, code] of [[undefined, 'ModelImmediateVerifierUnavailable'],
+    [async () => ({}), 'AsyncModelResumeAdmission']]) {
+    const f = fixture(t, {verifierOverrides: {admitImmediateEntry}}); startImmediate(f);
+    const ref = immediateReference(0);
+    throwsCode(() => f.journal.enterImmediateModelCall(ref, f.issueImmediate(ref)), code);
+    assert.equal(f.journal.readModelCalls(immediateIdentity).slots[0].attempts.length, 0);
+  }
+});
+
+test('immediate entry uses journal time and original Run validity; historical observation survives expiry', async t => {
+  const f = fixture(t); startImmediate(f);
+  const ref = immediateReference(0);
+  const entry = f.journal.enterImmediateModelCall(ref, f.issueImmediate(ref,
+    {dispatchValidUntil: new Date(200000).toISOString()}));
+  assert.equal(entry.modelGrantExpiresAt, new Date(100000).toISOString());
+  f.clock.value = 100000;
+  const next = {...immediateReference(1), admittedAt: new Date(1000).toISOString(), at: 1000};
+  throwsCode(() => f.journal.enterImmediateModelCall(next, f.issueImmediate(next,
+    {dispatchValidUntil: new Date(200000).toISOString()})), 'ModelRunExpired');
+  f.settlements.set(entry.attemptCid, saved(entry));
+  assert.equal((await f.journal.observeImmediateModelCall(entry)).state, 'SavedSuccess');
+  const shorter = fixture(t); startImmediate(shorter);
+  const shortTokens = shorter.issueImmediate(ref, {dispatchValidUntil: new Date(2000).toISOString()});
+  shorter.clock.value = 2000;
+  throwsCode(() => shorter.journal.enterImmediateModelCall(ref, shortTokens), 'ModelImmediateGrantRejected');
+  assert.equal(shorter.journal.readModelCalls(immediateIdentity).slots[0].attempts.length, 0);
+});
+
+test('immediate cancellation wins before registration or before entry without partial inventory or sends', t => {
+  const early = fixture(t);
+  early.journal.fenceRunCancellation({originalRunWire: early.registration.modelCallSet.originalRunWire});
+  throwsCode(() => startImmediate(early), 'ModelRunCancelled');
+  assert.equal(storedResume(early.journal.path).runs.length, 0);
+  const f = fixture(t); startImmediate(f);
+  f.journal.fenceRunCancellation({originalRunWire: f.registration.modelCallSet.originalRunWire});
+  const ref = immediateReference(0);
+  throwsCode(() => f.journal.enterImmediateModelCall(ref, f.issueImmediate(ref)), 'ModelRunCancelled');
+  assert.equal(f.journal.readModelCalls(immediateIdentity).slots[0].attempts.length, 0);
+});
+
+test('entered immediate calls remain observable after sticky cancellation; later calls stay unsent', async t => {
+  const f = fixture(t); startImmediate(f);
+  const ref = immediateReference(0);
+  const entry = f.journal.enterImmediateModelCall(ref, f.issueImmediate(ref));
+  assert.equal(f.journal.fenceRunCancellation({originalRunWire: f.registration.modelCallSet.originalRunWire}).outcome, 'accepted');
+  assert.equal(f.journal.fenceRunCancellation({originalRunWire: f.registration.modelCallSet.originalRunWire}).outcome, 'already_requested');
+  const next = immediateReference(1);
+  throwsCode(() => f.journal.enterImmediateModelCall(next, f.issueImmediate(next)), 'ModelRunCancelled');
+  f.settlements.set(entry.attemptCid, saved(entry));
+  assert.equal((await f.journal.observeImmediateModelCall(entry)).state, 'SavedSuccess');
+  await assert.rejects(f.journal.observeResumedCall(entry), {code: 'ModelResumeAttemptMismatch'});
+});
+
+test('same-Run restart restores saved and unknown immediate calls but requires new current issuer admission', async t => {
+  const f = fixture(t); startImmediate(f);
+  const first = immediateReference(0); const tokens = f.issueImmediate(first);
+  const entry = f.journal.enterImmediateModelCall(first, tokens);
+  f.settlements.set(entry.attemptCid, saved(entry)); await f.journal.observeImmediateModelCall(entry);
+  const second = immediateReference(1);
+  f.journal.enterImmediateModelCall(second, f.issueImmediate(second));
+  f.journal.close();
+  const restored = open(f.root, {clock: f.clock, settlements: f.settlements});
+  t.after(() => restored.journal.close());
+  assert.deepEqual(restored.journal.readModelCalls(immediateIdentity).slots.map(slot => slot.state),
+    ['SavedSuccess', 'EnteredUnknown', 'Unsent']);
+  throwsCode(() => restored.journal.enterImmediateModelCall(first, restored.issueImmediate(first)), 'ModelResumeCallSettled');
+  throwsCode(() => restored.journal.enterImmediateModelCall(second, restored.issueImmediate(second)), 'ModelResumeAttemptUnknown');
+  const third = immediateReference(2);
+  throwsCode(() => restored.journal.enterImmediateModelCall(third, tokens), 'ModelImmediateGrantRejected');
+  assert.equal(restored.journal.enterImmediateModelCall(third, restored.issueImmediate(third)).state, 'EnteredUnknown');
+});
+
+test('immediate Store-before-marker crash repairs exact evidence and does not introduce retries', async t => {
+  let crash = true;
+  const f = fixture(t, {faults: {beforeCommit(step) {if (step === 'observeImmediateModelCall' && crash) throw Error('crash');}}});
+  startImmediate(f); const ref = immediateReference(0);
+  const entry = f.journal.enterImmediateModelCall(ref, f.issueImmediate(ref));
+  f.settlements.set(entry.attemptCid, saved(entry, 'SavedFailure', true));
+  await assert.rejects(f.journal.observeImmediateModelCall(entry), /crash/);
+  assert.equal(f.journal.readModelCalls(immediateIdentity).slots[0].state, 'EnteredUnknown');
+  crash = false;
+  assert.equal((await f.journal.observeImmediateModelCall(entry)).state, 'SavedFailure');
+  const retry = immediateReference(0, 2);
+  throwsCode(() => f.journal.enterImmediateModelCall(retry, f.issueImmediate(retry)), 'ModelResumeAttemptMismatch');
+  assert.equal(f.journal.readModelCalls(immediateIdentity).slots[0].attempts.length, 1);
+});
+
+test('explicit real Checkpoint attachment preserves immediate receipts and shares remaining deferred slots', async t => {
+  const f = fixture(t, {runtimeOverrides: claimPorts}); startImmediate(f);
+  const ref = immediateReference(0); const entry = f.journal.enterImmediateModelCall(ref, f.issueImmediate(ref));
+  const before = storedResume(f.journal.path).resume_model_attempts;
+  throwsCode(() => f.journal.registerResumeCallSet(f.registration), 'ModelResumeInventoryConflict');
+  assert.equal(f.journal.readModelCalls(immediateIdentity).checkpointCid, null);
+  f.journal.attachModelCallSetCheckpoint(f.registration);
+  f.journal.attachModelCallSetCheckpoint(f.registration);
+  assert.deepEqual(storedResume(f.journal.path).resume_model_attempts, before);
+  assert.equal(f.journal.readModelCalls(immediateIdentity).checkpointCid, identity.checkpointCid);
+  const next = immediateReference(1);
+  throwsCode(() => f.journal.enterImmediateModelCall(next, f.issueImmediate(next)), 'ModelImmediateProvenanceMismatch');
+  const claim = seedApproval(f.journal.path);
+  assert.equal(f.journal.hasStartedResume(identity.checkpointCid), true);
+  assert.deepEqual(f.journal.cancelUnsentResume(identity.checkpointCid), {outcome: 'admitted'});
+  f.journal.renewResume(claim, 10); f.clock.value += 11;
+  assert.deepEqual(f.journal.claimResume(identity.runId, {claimant: 'changed', leaseMs: 1000,
+    binding: {...f.registration.binding, environmentBindingCid: C('changed')}}), {action: 'admitted'});
+  const resumed = f.journal.claimResume(identity.runId, {claimant: 'new', leaseMs: 1000, binding: f.registration.binding});
+  const later = f.journal.enterResumedCall(resumed.claim, reference(1));
+  assert.equal(later.provenance, 'deferred');
+  f.journal.fenceRunCancellation({originalRunWire: f.registration.modelCallSet.originalRunWire});
+  f.settlements.set(entry.attemptCid, saved(entry)); f.settlements.set(later.attemptCid, saved(later));
+  assert.equal((await f.journal.observeImmediateModelCall(entry)).state, 'SavedSuccess');
+  assert.equal((await f.journal.observeResumedCall(later)).state, 'SavedSuccess');
+  assert.equal(f.journal.readResumeCalls(identity).slots[2].state, 'Unsent');
+});
+
+test('attachment mismatch or interrupted transaction preserves the entire immediate inventory', t => {
+  let crash = true;
+  const f = fixture(t, {faults: {beforeCommit(step) {if (step === 'attachModelCallSetCheckpoint' && crash) throw Error('crash');}}});
+  startImmediate(f); const ref = immediateReference(0); f.journal.enterImmediateModelCall(ref, f.issueImmediate(ref));
+  const before = storedResume(f.journal.path);
+  assert.throws(() => f.journal.attachModelCallSetCheckpoint(f.registration), /crash/);
+  assert.deepEqual(storedResume(f.journal.path), before);
+  crash = false;
+  const changed = structuredClone(f.registration);
+  changed.modelCallSet.fixedInputReceiptWire = JSON.stringify({cid: identity.inputArtifactCid, durable: true, substituted: true});
+  throwsCode(() => f.journal.attachModelCallSetCheckpoint(changed), 'ModelResumeInventoryConflict');
+  assert.deepEqual(storedResume(f.journal.path), before);
+  f.journal.attachModelCallSetCheckpoint(f.registration);
+});
+
+test('immediate registration rollback and corrupt inventory never infer an unsent call', t => {
+  const broken = fixture(t, {faults: {beforeCommit(step) {if (step === 'registerResumeCallSlot') throw Error('crash');}}});
+  assert.throws(() => startImmediate(broken), /crash/);
+  const empty = storedResume(broken.journal.path);
+  assert.equal(empty.runs.length, 0); assert.equal(empty.resume_model_scopes.length, 0);
+  const f = fixture(t); startImmediate(f);
+  mutate(f.journal.path, db => db.prepare('DELETE FROM resume_model_slots WHERE ordinal = 2').run());
+  throwsCode(() => f.journal.readModelCalls(immediateIdentity), 'ModelResumeInventoryCorrupt');
+  const ref = immediateReference(0);
+  throwsCode(() => f.journal.enterImmediateModelCall(ref, f.issueImmediate(ref)), 'ModelResumeInventoryCorrupt');
+  throwsCode(() => startImmediate(f), 'ModelResumeInventoryCorrupt');
+});
+
+test('unsupported private layouts are refused before DDL or record mutation', t => {
+  for (const marked of [true, false]) {
+    const root = mkdtempSync(join(tmpdir(), 'model-old-layout-'));
+    t.after(() => rmSync(root, {recursive: true, force: true}));
+    const path = join(root, 'checkpoint-journal.sqlite3');
+    const db = new DatabaseSync(path);
+    if (marked) {
+      db.exec('CREATE TABLE journal_metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL)');
+      db.prepare('INSERT INTO journal_metadata VALUES (?, ?)').run('schema_version', 'actql-checkpoint-journal/0.1');
+    }
+    db.exec('CREATE TABLE retained_unknown (attempt_cid TEXT PRIMARY KEY, state TEXT NOT NULL)');
+    db.prepare('INSERT INTO retained_unknown VALUES (?, ?)').run(C('old-attempt'), 'EnteredUnknown');
+    db.close(); const bytes = readFileSync(path);
+    throwsCode(() => open(root), 'UnsupportedCheckpointJournal');
+    assert.deepEqual(readFileSync(path), bytes);
+  }
+});
+
+test('a damaged recognized layout is not repaired by silently recreating missing call tables', t => {
+  const f = fixture(t); startImmediate(f); f.journal.close();
+  const database = new DatabaseSync(f.journal.path);
+  database.exec('DROP TABLE resume_model_slots');
+  database.close(); const before = readFileSync(f.journal.path);
+  assert.throws(() => open(f.root), error => error.code === 'ERR_SQLITE_ERROR');
+  assert.deepEqual(readFileSync(f.journal.path), before);
+  const unchanged = new DatabaseSync(f.journal.path);
+  assert.equal(unchanged.prepare("SELECT name FROM sqlite_schema WHERE name = 'resume_model_slots'").get(), undefined);
+  assert.equal(unchanged.prepare('SELECT count(*) AS n FROM resume_model_scopes').get().n, 1);
+  unchanged.close();
+});
+
+test('independent immediate owners racing one slot commit exactly one entered attempt', async t => {
+  const f = fixture(t); startImmediate(f);
+  const barrier = new SharedArrayBuffer(4);
+  const workerSource = `import {parentPort,workerData} from 'node:worker_threads';
+    import {open,immediateReference} from ${JSON.stringify(new URL('./model-resume-state.fixture.mjs', import.meta.url).href)};
+    const owner=open(workerData.root); const reference=immediateReference(0);
+    const tokens=owner.issueImmediate(reference); parentPort.postMessage('ready');
+    Atomics.wait(new Int32Array(workerData.barrier),0,0);
+    try {owner.journal.enterImmediateModelCall(reference,tokens); parentPort.postMessage('entered');}
+    catch(error){parentPort.postMessage(error.code ?? error.message);} finally{owner.journal.close();}`;
+  const workers = [0, 1].map(() => new Worker(workerSource, {eval: true, type: 'module',
+    workerData: {root: f.root, barrier}}));
+  const exits = workers.map(worker => new Promise(resolve => worker.once('exit', resolve)));
+  t.after(async () => {await Promise.all(workers.map(worker => worker.terminate()));});
+  const results = workers.map(worker => new Promise((resolve, reject) => {
+    worker.on('error', reject); worker.on('message', value => {if (value !== 'ready') resolve(value);});
+  }));
+  await Promise.all(workers.map(worker => new Promise((resolve, reject) => {
+    worker.once('message', resolve); worker.once('error', reject);
+  })));
+  Atomics.store(new Int32Array(barrier), 0, 1); Atomics.notify(new Int32Array(barrier), 0);
+  assert.deepEqual((await Promise.all(results)).sort(), ['ModelResumeAttemptUnknown', 'entered']);
+  await Promise.all(exits);
+  assert.equal(f.journal.readModelCalls(immediateIdentity).slots[0].attempts.length, 1);
+});
+
+test('immediate occurrence identity cannot reset sent slots and empty inventories remain explicit', t => {
+  const f = fixture(t); startImmediate(f);
+  const ref = immediateReference(0); f.journal.enterImmediateModelCall(ref, f.issueImmediate(ref));
+  const changed = structuredClone(f.registration.modelCallSet);
+  changed.scopeWire = JSON.stringify({...JSON.parse(changed.scopeWire), scopeCid: C('changed-scope'), strategyRevision: 1});
+  throwsCode(() => f.journal.registerImmediateModelCallSet({modelCallSet: changed,
+    declaredResults: f.registration.declaredResults}), 'ModelResumeOccurrenceConflict');
+  assert.equal(f.journal.readModelCalls(immediateIdentity).slots[0].state, 'EnteredUnknown');
+  const empty = fixture(t, {}, 0);
+  assert.deepEqual(startImmediate(empty).slots, []);
+  throwsCode(() => empty.journal.enterImmediateModelCall(ref, empty.issueImmediate(ref)), 'ModelResumeSlotMismatch');
+});
+
+test('a terminal original Run cannot be revived by current permission or a forged caller time', async t => {
+  const f = fixture(t); startImmediate(f);
+  const first = immediateReference(0); const entry = f.journal.enterImmediateModelCall(first, f.issueImmediate(first));
+  f.journal.finishRun(identity.runId, {status: 'failed'});
+  const next = {...immediateReference(1), at: 0};
+  throwsCode(() => f.journal.enterImmediateModelCall(next, f.issueImmediate(next)), 'ModelImmediateRunNotRunning');
+  f.settlements.set(entry.attemptCid, saved(entry));
+  assert.equal((await f.journal.observeImmediateModelCall(entry)).state, 'SavedSuccess');
+  assert.equal(f.journal.readModelCalls(immediateIdentity).slots[1].state, 'Unsent');
+});
 
 test('public unsent cancellation and invalidating claims preserve an entered Model scope', t => {
   const f = fixture(t, {runtimeOverrides: claimPorts}); const claim = f.start();

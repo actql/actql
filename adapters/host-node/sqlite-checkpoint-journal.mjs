@@ -23,7 +23,10 @@ const runtimeUrl = new URL(
   import.meta.url,
 );
 
-const SCHEMA_VERSION = 'actql-checkpoint-journal/0.1';
+// Private SQLite layout discriminator, not a public artifact version. Upgrade
+// only after all Hosts using this root have stopped and closed their journals.
+// Incompatible records are refused in place; this owner never clears/migrates them.
+const SCHEMA_VERSION = 'actql-checkpoint-journal/0.1;model-call-provenance=1';
 
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
@@ -223,9 +226,23 @@ export function openSqliteCheckpointJournal(root, {
     // Several Host processes (run, approve, resume) share one journal; a
     // writer waits for the current transaction instead of failing.
     database.exec('PRAGMA busy_timeout = 10000');
+    // Refuse an old or unmarked layout before any schema DDL or record write.
+    // This startup gate cannot revoke a connection another process already holds.
+    const hasMetadata = database.prepare(
+      "SELECT name FROM sqlite_schema WHERE type = 'table' AND name = 'journal_metadata'").get();
+    if (hasMetadata !== undefined) {
+      const version = database.prepare('SELECT value FROM journal_metadata WHERE key = ?').get('schema_version');
+      if (version?.value !== SCHEMA_VERSION) fail('UnsupportedCheckpointJournal');
+    } else if (database.prepare(
+      "SELECT name FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%' LIMIT 1").get() !== undefined) {
+      fail('UnsupportedCheckpointJournal');
+    }
     database.exec('PRAGMA journal_mode = WAL');
     database.exec('PRAGMA synchronous = FULL');
-    database.exec(`
+    // A recognized layout is opened as-is. Missing columns/tables are damage,
+    // not a request to recreate storage that may have held entered attempts.
+    if (hasMetadata === undefined) transaction.run(() => {
+      database.exec(`
       CREATE TABLE IF NOT EXISTS journal_metadata (
         key TEXT PRIMARY KEY NOT NULL,
         value TEXT NOT NULL
@@ -309,49 +326,8 @@ export function openSqliteCheckpointJournal(root, {
         dispatch_identity TEXT NOT NULL DEFAULT '',
         PRIMARY KEY (intent_id, generation)
       ) STRICT;
-    `);
-    transaction.run(() => {
+      `);
       createModelResumeTables(database);
-      // A journal created before the decision-subject binding column gains
-      // it with the empty (unbound) value.
-      const columns = database.prepare('PRAGMA table_info(checkpoints)').all();
-      if (!columns.some(column => column.name === 'decision_subject_cid')) {
-        database.exec(`ALTER TABLE checkpoints ADD COLUMN
-          decision_subject_cid TEXT NOT NULL DEFAULT ''`);
-      }
-      // ... and the requested-claims binding with no requested claim.
-      if (!columns.some(column => column.name === 'requested_claims_json')) {
-        database.exec(`ALTER TABLE checkpoints ADD COLUMN
-          requested_claims_json TEXT NOT NULL DEFAULT '[]'`);
-      }
-      // A preparation recorded before request cancellation is not cancelled.
-      const preparationColumns = database.prepare(
-        'PRAGMA table_info(preparations)').all();
-      if (!preparationColumns.some(column =>
-        column.name === 'cancel_requested')) {
-        database.exec(`ALTER TABLE preparations ADD COLUMN
-          cancel_requested INTEGER NOT NULL DEFAULT 0
-          CHECK (cancel_requested IN (0, 1))`);
-      }
-      // ... and the configuration binding, unbound.
-      if (!columns.some(column => column.name === 'configuration_cid')) {
-        database.exec(`ALTER TABLE checkpoints ADD COLUMN
-          configuration_cid TEXT NOT NULL DEFAULT ''`);
-      }
-      // A resume admission recorded before the start/reconcile distinction
-      // is a fresh start with no recorded dispatch identity.
-      const admissionColumns = database.prepare(
-        'PRAGMA table_info(resume_admissions)').all();
-      if (!admissionColumns.some(column => column.name === 'mode')) {
-        database.exec(`ALTER TABLE resume_admissions ADD COLUMN
-          mode TEXT NOT NULL DEFAULT 'start'
-          CHECK (mode IN ('start', 'reconcile'))`);
-      }
-      if (!admissionColumns.some(column => column.name ===
-          'dispatch_identity')) {
-        database.exec(`ALTER TABLE resume_admissions ADD COLUMN
-          dispatch_identity TEXT NOT NULL DEFAULT ''`);
-      }
       const row = database.prepare(
         'SELECT value FROM journal_metadata WHERE key = ?',
       ).get('schema_version');
@@ -518,6 +494,7 @@ export function openSqliteCheckpointJournal(root, {
     verifier: modelResumeVerifier, transaction, alive, now, iso, fault,
     admissionLocked, confirmEntryGrant,
     checkpoint: reference => statements.checkpoint.get(reference),
+    run: runId => statements.run.get(runId),
   });
   const intentView = row => JSON.stringify({
     state: row.state,
@@ -831,7 +808,7 @@ export function openSqliteCheckpointJournal(root, {
   function persistCheckpoint({
     body, priorStatus, declaredResults, authorities, binding,
     decisionSubjectCid, requestedClaims, configurationCid, modelCallSet,
-  }) {
+  }, attachImmediate = false) {
     alive();
     const sealed = sealBody(body);
     const inventory = modelCalls.prepare(sealed, modelCallSet);
@@ -861,7 +838,7 @@ export function openSqliteCheckpointJournal(root, {
             existing.configuration_cid !== configuration) {
           fail('CheckpointConflict');
         }
-        modelCalls.registerLocked(sealed, inventory, at, true);
+        modelCalls.registerLocked(sealed, inventory, at, true, attachImmediate);
         return;
       }
       if (isPreparation(sealed)) {
@@ -885,7 +862,7 @@ export function openSqliteCheckpointJournal(root, {
       }
       insertCheckpoint(sealed, reviewers, bound, subject, claims,
         configuration, at);
-      modelCalls.registerLocked(sealed, inventory, at);
+      modelCalls.registerLocked(sealed, inventory, at, false, attachImmediate);
       fault('persistCheckpoint');
     });
     return waitingAfterCommit(sealed);
@@ -905,13 +882,43 @@ export function openSqliteCheckpointJournal(root, {
     // only after the transaction committed. A Run-unit Checkpoint either
     // creates its Run or moves the tracked Run from `priorStatus`; a
     // preparation Checkpoint creates no Run.
-    persistCheckpoint,
+    persistCheckpoint: input => persistCheckpoint(input),
 
     // Registration includes the complete checked inventory in the Checkpoint
     // transaction. There is no API for adding an inventory or slot afterward.
     registerResumeCallSet(input) {
       if (input?.modelCallSet === undefined) fail('ModelCallInventoryRequired');
       return persistCheckpoint(input);
+    },
+
+    // Attach a real deferred approval to the same immediate inventory. This
+    // never replaces the inventory or reinitializes any existing slot/attempt.
+    attachModelCallSetCheckpoint(input) {
+      if (input?.body?.kind !== 'model_invocation' || input.modelCallSet === undefined) {
+        fail('ModelCallInventoryRequired');
+      }
+      return persistCheckpoint(input, true);
+    },
+
+    // Track the already-issued original Run and its full call inventory in one
+    // transaction. Registration grants no permission and creates no Checkpoint.
+    registerImmediateModelCallSet({modelCallSet, declaredResults}) {
+      alive();
+      const prepared = modelCalls.prepareImmediate(modelCallSet);
+      const declared = declaredJson(declaredResults);
+      const at = iso(now());
+      transaction.run(() => {
+        const runId = prepared.inventory.runId;
+        const existing = statements.run.get(runId);
+        if (existing === undefined) {
+          statements.insertRun.run(runId, 'running', at, declared, '');
+        } else if (existing.status !== 'running' || existing.declared_results_json !== declared) {
+          fail('RunStateConflict');
+        }
+        modelCalls.registerImmediateLocked(prepared, at);
+        fault('registerImmediateModelCallSet');
+      });
+      return modelCalls.public.readModelCalls(prepared.inventory);
     },
 
     ...modelCalls.public,
