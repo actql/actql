@@ -46,6 +46,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/distinct-order-source-input.mjs', 'distinct-order-source-input.mjs'],
   ['scripts/fixtures/group-select-scope-source-input.mjs', 'group-select-scope-source-input.mjs'],
   ['scripts/fixtures/having-projection-source-input.mjs', 'having-projection-source-input.mjs'],
+  ['scripts/fixtures/group-property-source-input.mjs', 'group-property-source-input.mjs'],
   ['scripts/fixtures/acquired-data-source-input.mjs', 'acquired-data-source-input.mjs'],
   ['scripts/fixtures/property-graph-source-input.mjs', 'property-graph-source-input.mjs'],
   ['scripts/fixtures/property-graph-row-source-input.mjs', 'property-graph-row-source-input.mjs'],
@@ -154,6 +155,9 @@ if (process.argv.includes('--join-order-only')) {
 if (process.argv.includes('--group-ordinal-only')) {
   runtimeEnvironment.ACTQL_TEST_GROUP_ORDINAL_ONLY = '1';
 }
+if (process.argv.includes('--group-property-only')) {
+  runtimeEnvironment.ACTQL_TEST_GROUP_PROPERTY_ONLY = '1';
+}
 if (process.argv.includes('--group-star-only')) {
   runtimeEnvironment.ACTQL_TEST_GROUP_STAR_ONLY = '1';
 }
@@ -235,6 +239,7 @@ const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
 const narrowPublicQuery = process.argv.some(flag => ['--source-free-only',
   '--graph-projection-property-only',
+  '--group-property-only',
   '--order-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--group-star-only', '--group-ordinal-only',
   '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only', '--two-source-only',
   '--relation-data-only', '--acquired-data-only',
@@ -281,6 +286,7 @@ if (plannerSelectionOnly || twoSourceExampleOnly) return;
 // Keep restart acceptance for full/source-free selections that create it.
 if (!process.argv.some(flag => ['--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
   '--graph-projection-property-only',
+  '--group-property-only',
   '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only',
   '--relation-data-only', '--acquired-data-only', '--data-set-strategy-only', '--two-source-only',
   '--property-graph-source-only', '--graph-rows-only'].includes(flag))) {
@@ -289,6 +295,7 @@ if (!process.argv.some(flag => ['--alias-scope-only', '--scoped-order-only', '--
 }
 if (process.argv.includes('--order-ordinal-only') ||
     process.argv.includes('--graph-projection-property-only') ||
+    process.argv.includes('--group-property-only') ||
     process.argv.includes('--distinct-order-only') ||
   process.argv.includes('--source-free-only') ||
   process.argv.includes('--data-set-strategy-only') ||
