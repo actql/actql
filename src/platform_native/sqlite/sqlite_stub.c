@@ -84,6 +84,8 @@ typedef struct {
   int64_t max_body_bytes;
   bool opened;
   int test_close_failures;
+  int test_commit_failures;
+  int test_commit_reply_failures;
   int test_checked_close_count;
 } actql_native_sqlite_database;
 
@@ -232,6 +234,15 @@ int32_t actql_native_sqlite_close_checked(
 void actql_native_sqlite_test_fail_close(
   actql_native_sqlite_database *database, int32_t failures
 ) { database->test_close_failures = failures; }
+
+// Whitebox-only injection: the caller owns this database and its transaction.
+void actql_native_sqlite_test_fail_commit(
+  actql_native_sqlite_database *database, int32_t failures
+) { database->test_commit_failures = failures; }
+
+void actql_native_sqlite_test_fail_commit_reply(
+  actql_native_sqlite_database *database, int32_t failures
+) { database->test_commit_reply_failures = failures; }
 
 int32_t actql_native_sqlite_test_checked_close_count(
   actql_native_sqlite_database *database
@@ -1000,7 +1011,17 @@ int32_t actql_native_sqlite_database_commit(
 ) {
   if (database == NULL || !database->opened) return 5;
   actql_clear_result(database);
+  if (database->test_commit_failures > 0) {
+    database->test_commit_failures--;
+    actql_replace_error(&database->error, "injected transaction commit failure");
+    return 4;
+  }
   int code = actql_exec(database, "COMMIT");
+  if (code == SQLITE_OK && database->test_commit_reply_failures > 0) {
+    database->test_commit_reply_failures--;
+    actql_replace_error(&database->error, "injected lost transaction commit reply");
+    return 4;
+  }
   return code == SQLITE_OK ? 0 : actql_operation_code(code);
 }
 
