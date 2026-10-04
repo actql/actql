@@ -48,8 +48,10 @@ dependency extraction, runtime determinism, Actions provenance, or production
 MoonBit refinement universally.
 
 The source extractor includes byte/mode and directory membership, descriptors,
-the checker/recorder/transport and transitive literal MoonBit imports. Unknown
-imports/configuration remain open for the affected action. Original Git inputs
+the checker/recorder/transport and transitive literal MoonBit imports. Literal
+`formatter(ignore: ["file.mbt", ...])` is a reviewed non-build option; its bytes
+remain in the input identity. Dynamic formatter/import expressions and unknown
+options remain open for the affected action. Original Git inputs
 are reconstructed independently of receipt labels. The current runtime
 observation intentionally retains an unresolved distribution/loader/environment
 boundary. It cannot authorize cross-revision reuse. The earlier report-only
@@ -71,3 +73,37 @@ deletion, open runtime boundaries, whole target/profile replacement, incomplete
 obligations, mixed attempts, failed/cancelled origins, missing/changed ZIP
 members, certificate input/output changes and token isolation during transport.
 Full correspondence and physical tests remain in their existing CI jobs.
+
+## Runtime input observation (dependent unit)
+
+`runtime.mjs` inventories actual Node executable bytes and the installed
+MoonBit/core and Lean distributions after the existing setup steps. Regular
+files carry mode/size/SHA-256; directories carry membership. Symlinks are
+recorded without traversing their targets. Missing, unstable, nonregular and
+limit-truncated inputs remain explicit coverage gaps. Each distribution has a
+50,000-entry / 2 GiB observation bound, including a bounded directory reader.
+Those bounds protect the observation; they are not a claim about runtime memory
+or a proof that an incomplete installation is sufficient.
+
+One immutable `runtime-distributions.json` stores the relative inventories.
+Runtime summaries bind their full encoded content, member counts, bytes and
+coverage gaps. Every original receipt also binds that file's exact bytes. The
+final consumer reconstructs these summaries from the authenticated ZIP and
+rejects missing/replaced inventories or erased gaps. It does not accept a
+summary solely because its label matches. Keeping the inventory once avoids
+copying the complete distribution list into each of the 26 receipts.
+
+`runtime-measurement.json` records inventory time, entries and bytes separately
+from semantic input equality. Curated execution-configuration hashes are
+recorded, but arbitrary inherited names/values and credential hashes are not.
+Physical root relocation is distinct from relative installation identity;
+symlink substitution, content, membership and mode changes remain visible.
+
+This unit still does **not** close OS/loaders/system libraries/CPU features,
+Node built-ins, arbitrary inherited configuration, external services or
+execution-time filesystem mutation. Those residuals are mandatory. An identical
+inventory is insufficient to authorize reuse. Comparison still executes every
+registered action; no runner savings are claimed yet. Next, a reviewed isolated
+executor and protected-main comparison must establish an action-specific
+closed scope before activation. Actual Linux inventory cost and corpus
+correspondence are automatic-CI evidence, not the tiny local fixture tests.
