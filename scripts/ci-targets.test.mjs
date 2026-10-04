@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {readFileSync, mkdtempSync, mkdirSync, rmSync, writeFileSync, chmodSync} from 'node:fs';
+import {readFileSync, mkdtempSync, mkdirSync, rmSync, writeFileSync, chmodSync, symlinkSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
@@ -220,8 +220,8 @@ test('CI selection follows the owned contract baseline without a legacy exceptio
 
 
 test('maintenance inventory is exact and every existing reviewed modification qualifies', () => {
-  assert.equal(maintenanceFiles.length, 13);
-  assert.equal(new Set(maintenanceFiles).size, 13);
+  assert.equal(maintenanceFiles.length, 15);
+  assert.equal(new Set(maintenanceFiles).size, 15);
   for (const path of maintenanceFiles) {
     const selection = validateSelection(maintenanceSelection([path]));
     assert.equal(selection.profile, 'maintenance', path);
@@ -571,4 +571,115 @@ test('main API permission is read-only and scoped to selection with no persisten
   const select = jobs['select-targets'].steps.find(step => step.id === 'select');
   assert.equal(select.env.GITHUB_TOKEN, '${{ github.token }}');
   assert(jobs.lint.steps.some(step => step.run?.includes('scripts/ci-main-base.test.mjs')));
+});
+
+
+const reviewProse = ['docs/reviews/2026-10-03-graph-host-acquired-input-handoff.md',
+  'docs/reviews/2026-10-03-graph-host-owner-fixtures.md'];
+const composedSelection = () => selectTargets([...reviewProse, declarationFile], {
+  maintenanceChanges: changes(reviewProse), declarationChanges: declarationChanges(), targetSensitiveDiff: true});
+test('reviewed prose modifications compose with independently validated declaration additions', () => {
+  const selected = validateSelection(composedSelection());
+  assert.equal(selected.profile, 'declaration');
+  assert.deepEqual(selected.maintenanceChanges, changes(reviewProse));
+  assert.deepEqual(selected.declarationChanges, declarationChanges());
+  for (const event of ['pull_request', 'push']) {
+    const current = validateSelection(selectTargets(selected.paths, {...selected, event,
+      mainBaseline: event === 'push' ? checkpoint() : null}));
+    assert.equal(current.profile, 'declaration');
+    assert.equal(verifyGate(plan(current), results(current), {...context, event}).length, gateJobs.length);
+  }
+  for (const name of gateJobs) {
+    for (const result of ['failure', 'cancelled', undefined,
+      results(selected)[name].result === 'success' ? 'skipped' : 'success']) {
+      assert.throws(() => verifyGate(plan(selected), {...results(selected), [name]: {result}}, context), undefined, name);
+    }
+  }
+  const packageScripts = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).scripts;
+  assert(jobs.spec.steps.some(step => step.run === 'npm run check:spec-after-preflight'));
+  for (const command of ['check:links', 'check:examples', 'check:contracts']) {
+    assert(packageScripts['check:spec-after-preflight'].split(' && ').includes(`npm run ${command}`), command);
+  }
+  assert(jobs.preflight.steps.some(step => step.run === 'npm run check:contract-versions'));
+});
+test('composition requires complete disjoint inventories and excludes consumed or unreviewed documents', () => {
+  const selected = composedSelection();
+  for (const mutate of [
+    value => { value.paths.push('docs/reviews/new-prose.md'); },
+    value => { value.paths.push(value.paths[0]); },
+    value => { value.maintenanceChanges = null; },
+    value => { value.maintenanceChanges.reverse(); },
+    value => { value.maintenanceChanges[0].after.mode = '120000'; },
+    value => { value.maintenanceChanges[0].before.mode = '000000'; },
+    value => { value.maintenanceChanges[0].after.object = value.maintenanceChanges[0].before.object; },
+    value => { value.maintenanceChanges.push(value.declarationChanges[0]); },
+    value => { value.declarationChanges.push(value.maintenanceChanges[0]); },
+    value => { value.declarationChanges[0].before.mode = '100644'; value.declarationChanges[0].before.object = 'c'.repeat(40); },
+    value => { value.declarationChanges[0].after.mode = '000000'; value.declarationChanges[0].after.object = '0'.repeat(40); },
+  ]) {
+    const invalid = structuredClone(selected); mutate(invalid);
+    assert.throws(() => validateSelection(invalid));
+    assert.equal(selectTargets(invalid.paths, invalid).profile, 'full');
+  }
+  for (const path of ['README.md', 'docs/spec/language.md', 'docs/design/pure-operation-checking.md',
+    'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
+    'docs/reviews/2026-09-19-sga-veca-tea-local-coverage.json',
+    'docs/reviews/new-prose.md', 'docs/reviews/new-prose.json', 'scripts/ci-review.config.json',
+    'package.json', '.github/workflows/ci.yml', 'src/source_span/span.mbt']) {
+    const paths = [...reviewProse, path, declarationFile];
+    assert.equal(selectTargets(paths, {maintenanceChanges: changes([...reviewProse, path]),
+      declarationChanges: declarationChanges()}).profile, 'full', path);
+  }
+});
+test('real Git composed delta rejects old records, missing canonical form, renames, modes and mixed code', t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-ci-composed-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const env = Object.fromEntries(Object.entries(process.env).filter(([name]) => !name.startsWith('GIT_')));
+  Object.assign(env, {GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null'});
+  const git = args => {
+    const result = spawnSync('git', args, {cwd: root, env, encoding: 'utf8'});
+    assert.equal(result.status, 0, result.stderr);
+    return result.stdout;
+  };
+  const put = (path, body) => {
+    mkdirSync(join(root, path, '..'), {recursive: true});
+    writeFileSync(join(root, path), body);
+  };
+  git(['init', '--quiet']); git(['config', 'user.name', 'Composition Fixture']);
+  git(['config', 'user.email', 'composition@example.invalid']);
+  git(['config', 'commit.gpgsign', 'false']); git(['config', 'core.filemode', 'true']);
+  for (const path of reviewProse) put(path, 'Original review prose\n');
+  const oldRecord = declarationFile.replace('example-change', 'old-record');
+  put(oldRecord, declarationBody.replace('example-change', 'old-record'));
+  git(['add', '.']); git(['commit', '--quiet', '-m', 'Existing reviews and declaration']);
+  const base = git(['rev-parse', 'HEAD']).trim();
+  const inspect = () => {
+    git(['add', '--all']); git(['commit', '--quiet', '-m', 'Composed fixture']);
+    const changed = readChanges({pull_request: {base: {sha: base}}}, git);
+    return validateSelection(selectTargets(changed.paths, changed));
+  };
+  const prepare = () => {
+    git(['reset', '--hard', base]); git(['clean', '-fd']);
+    for (const path of reviewProse) put(path, 'Updated review prose about retained ownership and hashes\n');
+    put(declarationFile, declarationBody);
+  };
+  prepare(); assert.equal(inspect().profile, 'declaration');
+  for (const mutate of [
+    () => put(oldRecord, declarationBody.replace('example-change', 'old-record').replace('"change"', '"resolution"')),
+    () => git(['rm', oldRecord]),
+    () => git(['mv', reviewProse[0], 'docs/reviews/new-prose.md']),
+    () => { rmSync(join(root, reviewProse[0])); symlinkSync('2026-10-03-graph-host-owner-fixtures.md', join(root, reviewProse[0])); },
+    () => chmodSync(join(root, reviewProse[0]), 0o755),
+    () => { rmSync(join(root, declarationFile)); symlinkSync('old-record.json', join(root, declarationFile)); },
+    () => chmodSync(join(root, declarationFile), 0o755),
+    () => put('src/source_span/span.mbt', 'pub struct Span { line : Int }\n'),
+    () => put('docs/reviews/new-prose.md', 'Unknown prose\n'),
+    () => put('docs/reviews/new-prose.json', '{}\n'),
+    () => put('README.md', '```javascript\nconsole.log("executable Quickstart")\n```\n'),
+  ]) {
+    prepare(); mutate(); assert.equal(inspect().profile, 'full');
+  }
+  for (const body of [JSON.stringify(JSON.parse(declarationBody)), declarationBody.replace('example-change', 'wrong-id')]) {
+    prepare(); put(declarationFile, body); assert.throws(inspect);
+  }
 });

@@ -80,6 +80,37 @@ test('moved validators execute exactly once before fan-out; complete local spec 
   assert(!scripts['check:spec-after-preflight'].includes('check:contract-versions'));
   assert(commands('spec').includes('npm run check:spec-after-preflight'));
 });
+test('operation evidence consistency is mandatory admission without changing the full plan', () => {
+  const command = 'node --test scripts/pure-operation-inventory.test.mjs';
+  const steps = jobs.preflight.steps.filter(step => step.run === command);
+  assert.equal(steps.length, 1);
+  assert.equal(steps[0].if, undefined, 'the complete inventory is checked for every normal admission');
+  assert.equal(steps[0]['continue-on-error'], undefined);
+  const preflight = commands('preflight');
+  assert(preflight.indexOf('node proofs/relation-pipeline/history.mjs --write') < preflight.indexOf(command));
+  assert(preflight.indexOf(command) < preflight.indexOf('npm ci'));
+  // Keep the original semantic checks and local command intact. This early
+  // replay rejects invalid inputs; it is not a successful reduced profile.
+  const {scripts} = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  assert(scripts['check:aoa'].includes('scripts/pure-operation-inventory.test.mjs'));
+  assert(commands('spec').includes('npm run check:spec-after-preflight'));
+  const selection = selectTargets([
+    'docs/reviews/2026-09-19-sga-veca-tea-local-coverage.json',
+    'src/program_check/check.mbt',
+  ]);
+  assert.equal(selection.profile, 'full');
+  assert.deepEqual(selection.targets, ['js', 'wasm', 'native']);
+  assert.equal(selection.macos, true);
+  const results = Object.fromEntries(gateJobs.map(name =>
+    [name, {result: name === 'focused-tests' ? 'skipped' : 'success'}]));
+  const plan = {sourceRevision: merge, selection};
+  const context = {sourceRevision: merge, event: 'pull_request'};
+  verifyGate(plan, results, context);
+  const rejected = Object.fromEntries(gateJobs.map(name => [name, {
+    result: name === 'select-targets' ? 'success' : name === 'preflight' ? 'failure' : 'skipped',
+  }]));
+  assert.throws(() => verifyGate(plan, rejected, context), /preflight: expected success/u);
+});
 test('failed, skipped, cancelled or missing preflight cannot become a passing final gate', () => {
   const selection = selectTargets(['.github/workflows/ci.yml']);
   const results = Object.fromEntries(gateJobs.map(name => [name, {result: name === 'focused-tests' ? 'skipped' : 'success'}]));

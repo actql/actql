@@ -17,6 +17,11 @@ const sha = /^[0-9a-f]{40}$/u;
 // README is excluded: packed acceptance executes its literal Quickstart blocks.
 export const maintenanceFiles = Object.freeze([
   'docs/development.md', 'docs/ci-artifact-analysis.md', 'docs/verification-actions.md',
+  // Reviewed prose only: no runtime, build, generator or proof-oracle callers.
+  // Generic links, Program examples and version scans remain required in spec
+  // and preflight. Adding a semantic consumer requires re-review here.
+  'docs/reviews/2026-10-03-graph-host-acquired-input-handoff.md',
+  'docs/reviews/2026-10-03-graph-host-owner-fixtures.md',
   'scripts/ci-evidence.mjs', 'scripts/ci-evidence.test.mjs', 'scripts/ci-review.mjs',
   'scripts/ci-timing.mjs', 'scripts/ci-artifacts.mjs', 'scripts/ci-artifacts.test.mjs',
   'scripts/verification-actions.mjs', 'scripts/verification-actions.test.mjs',
@@ -36,6 +41,16 @@ function eligibleDeclarations(paths, changes) {
       && entry.before.mode === '000000' && entry.before.object === zero
       && entry.after && Object.keys(entry.after).sort().join(',') === 'mode,object'
       && entry.after.mode === '100644' && sha.test(entry.after.object) && entry.after.object !== zero);
+}
+// Compose only the two already bounded classes, preserving their independent
+// identities and obligations. Every path must belong to exactly one inventory.
+function eligibleDeclarationSelection(paths, declarations, modifications) {
+  const declarationPaths = paths.filter(path => declarationPath.test(path));
+  const maintenancePaths = paths.filter(path => maintenance.has(path));
+  return declarationPaths.length + maintenancePaths.length === paths.length
+    && new Set(paths).size === paths.length
+    && eligibleDeclarations(declarationPaths, declarations)
+    && (maintenancePaths.length ? eligibleMaintenance(maintenancePaths, modifications) : modifications === null);
 }
 function canonicalDeclaration(path, contents) {
   const value = JSON.parse(contents);
@@ -79,8 +94,8 @@ export function selectTargets(paths, {event = 'pull_request', nativeMacos = fals
   if (!Array.isArray(paths) || !paths.length || !paths.every(validPath)) return full('Empty or invalid change inventory');
   if (eligibleMaintenance(paths, maintenanceChanges)) return {...full('Reviewed maintenance files: lint and spec required; runtime and proof families not applicable'),
     profile: 'maintenance', targets: ['js'], macos: false, maintenanceChanges};
-  if (eligibleDeclarations(paths, declarationChanges)) return {...full('Canonical declaration additions: history preflight, lint and spec required; runtime and semantic proof families not applicable'),
-    profile: 'declaration', targets: ['js'], macos: false, declarationChanges};
+  if (eligibleDeclarationSelection(paths, declarationChanges, maintenanceChanges)) return {...full('Canonical declaration additions and optional reviewed maintenance: history preflight, lint and spec required; runtime and semantic proof families not applicable'),
+    profile: 'declaration', targets: ['js'], macos: false, declarationChanges, maintenanceChanges};
   if (focusedTests && eligibleFocusedChanges(paths, focusedChanges)) {
     try { validateFocusedTests(paths, focusedChanges, focusedTests); }
     catch { return full('Invalid focused test family inventory'); }
@@ -122,9 +137,9 @@ export function validateSelection(selection) {
     assert(eligibleMaintenance(selection.paths, selection.maintenanceChanges), 'Invalid maintenance inventory');
     assert.deepEqual(selection.targets, ['js']);
     assert.equal(selection.macos, false);
-  } else assert.equal(selection.maintenanceChanges, null, 'Unexpected maintenance inventory');
+  } else if (selection.profile !== 'declaration') assert.equal(selection.maintenanceChanges, null, 'Unexpected maintenance inventory');
   if (selection.profile === 'declaration') {
-    assert(eligibleDeclarations(selection.paths, selection.declarationChanges), 'Invalid declaration inventory');
+    assert(eligibleDeclarationSelection(selection.paths, selection.declarationChanges, selection.maintenanceChanges), 'Invalid declaration/maintenance inventory');
     assert.deepEqual(selection.targets, ['js']);
     assert.equal(selection.macos, false);
   } else assert.equal(selection.declarationChanges, null, 'Unexpected declaration inventory');
@@ -175,8 +190,8 @@ export function readChanges(payload, git = args => execFileSync('git', args,
   const paths = output.split('\0').filter(Boolean);
   let maintenanceChanges = null, declarationChanges = null, focusedChanges = null, focusedTests = null, structuralChange = false;
   const focusedOnly = paths.length > 0 && paths.every(path => focusedPattern.test(path));
-  const declarationsOnly = paths.length > 0 && paths.every(path => declarationPath.test(path));
-  if (focusedOnly || declarationsOnly || paths.length && paths.every(path => maintenance.has(path))) {
+  const lightweightOnly = paths.length > 0 && paths.every(path => declarationPath.test(path) || maintenance.has(path));
+  if (focusedOnly || lightweightOnly) {
     // Exact raw Git identities distinguish ordinary edits from additions,
     // deletions, renames, symlinks and mode changes. No text/extension guess.
     const raw = git(['diff', '--no-renames', '--raw', '--no-abbrev', '-z', base, head, '--']);
@@ -190,11 +205,14 @@ export function readChanges(payload, git = args => execFileSync('git', args,
       const [, beforeMode, afterMode, beforeObject, afterObject, status] = match;
       changes.push({path: records[index + 1], before: {mode: beforeMode, object: beforeObject},
         after: {mode: afterMode, object: afterObject}});
-      if (!(focusedOnly ? ['A', 'M'].includes(status) : status === (declarationsOnly ? 'A' : 'M'))) changes[index / 2].before.mode = 'unsupported';
+      if (!(focusedOnly ? ['A', 'M'].includes(status) : status === (declarationPath.test(records[index + 1]) ? 'A' : 'M'))) changes[index / 2].before.mode = 'unsupported';
     }
-    if (declarationsOnly && eligibleDeclarations(paths, changes)) {
-      for (const change of changes) canonicalDeclaration(change.path, git(['show', `${head}:${change.path}`]));
-      declarationChanges = changes;
+    const declarations = changes.filter(change => declarationPath.test(change.path));
+    const modifications = changes.filter(change => maintenance.has(change.path));
+    if (eligibleDeclarationSelection(paths, declarations, modifications.length ? modifications : null)) {
+      for (const change of declarations) canonicalDeclaration(change.path, git(['show', `${head}:${change.path}`]));
+      declarationChanges = declarations;
+      maintenanceChanges = modifications.length ? modifications : null;
     } else if (focusedOnly && eligibleFocusedChanges(paths, changes)) {
       focusedTests = readFocusedTests(paths, changes, git);
       if (focusedTests) focusedChanges = changes;
