@@ -116,7 +116,7 @@ function buildLocalPublicationPlan({control, admission, runDefinition, invocatio
 // waiting, so retention covers the admitted Run's validity window.
 function effectPublicationAdmission({moon, control, prepared,
   compilation, allowed, definition, authorityScopeCid, namespaceId,
-  storeAuthorityCid, now}) {
+  storeAuthorityCid, now, resultDataPolicy}) {
   const template = control.admitRunEvidence('bound_invocation_template',
     moon.clientProgramEffectCompilationTemplateWire(compilation), limits);
   const preparedEvidence = control.admitRunEvidence('prepared_invocation',
@@ -134,7 +134,8 @@ function effectPublicationAdmission({moon, control, prepared,
   const dataPolicyCid = policyCid('local-result-data');
   return Object.freeze({moon, control, prepared, compilation, allowed,
     definition, authorityScopeCid, namespaceId, storeAuthorityCid, now,
-    admission, runDefinition, compiledPlan, dataPolicyCid});
+    admission, runDefinition, compiledPlan, dataPolicyCid, resultDataPolicy,
+    resultDataPolicyLimits: limits});
 }
 
 export function sourceFreeEffectPublicationPlan(options) {

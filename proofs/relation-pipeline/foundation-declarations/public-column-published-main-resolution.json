@@ -1,0 +1,97 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "public-column-published-main-resolution",
+  "kind": "resolution",
+  "revision": "a122fbfe2a8fa3c6bdae6573568d8ffd98af2249",
+  "parents": [
+    "7e71c73d65ce88b7fb5a230a3a61b9730010d7ce",
+    "4cd79be2d720d60288c2816aee318aeb7bd2b3e6"
+  ],
+  "mergeBases": [
+    "605d42356c29ff926e046e73a87a54cf3a420f0a",
+    "c834d958500b044e495b1cfbaad1f86124d2bb7f"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "7e71c73d65ce88b7fb5a230a3a61b9730010d7ce",
+          "digest": "a93e5585f00347667c01c5427a58e51acea26b333fa6e7a3fcf741818b0c6ea9",
+          "mode": "100644"
+        },
+        {
+          "revision": "4cd79be2d720d60288c2816aee318aeb7bd2b3e6",
+          "digest": "a93e5585f00347667c01c5427a58e51acea26b333fa6e7a3fcf741818b0c6ea9",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "a93e5585f00347667c01c5427a58e51acea26b333fa6e7a3fcf741818b0c6ea9",
+      "afterMode": "100644",
+      "reason": "Retain the actual identical parent/result blobs while declaring the protected lineage obligations across both maximal merge bases when adopting published nested-check main. Preserve every frozen record and include the complete ancestor source-binding groups."
+    },
+    {
+      "path": "proofs/bounded-session/run.mjs",
+      "before": [
+        {
+          "revision": "7e71c73d65ce88b7fb5a230a3a61b9730010d7ce",
+          "digest": "49de54ea58b7ac26ac746d33faaee339b4e436cd08922dd5dad2b6c49a67b961",
+          "mode": "100644"
+        },
+        {
+          "revision": "4cd79be2d720d60288c2816aee318aeb7bd2b3e6",
+          "digest": "49de54ea58b7ac26ac746d33faaee339b4e436cd08922dd5dad2b6c49a67b961",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "49de54ea58b7ac26ac746d33faaee339b4e436cd08922dd5dad2b6c49a67b961",
+      "afterMode": "100644",
+      "reason": "Retain the actual identical parent/result blobs while declaring the protected lineage obligations across both maximal merge bases when adopting published nested-check main. Preserve every frozen record and include the complete ancestor source-binding groups."
+    }
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-3877b637406b",
+    "adopt-63b114ad524b",
+    "adopt-678626b010b4",
+    "adopt-7427f7f09276",
+    "adopt-9a7c592a8ed9",
+    "adopt-b480cffb6e6d",
+    "adopt-bf2d058c21c1",
+    "adopt-f24288853c19",
+    "adopt-sga-query-contract",
+    "bounded-session-action-input-report",
+    "bounded-session-action-input-timing",
+    "ci-mandatory-preflight",
+    "frontend-sga-main-integration",
+    "frontend-unified-graph-source-integration",
+    "github-issue-read-registration",
+    "incremental-session-comparison",
+    "main-pr233-package-resolution",
+    "packed-composed-infer-effect-acceptance",
+    "pr164-main-a32-verification-resolution",
+    "pr164-main4f-runtime-check-resolution",
+    "pr164-property-graph-source",
+    "public-text-computation-bridge-ci",
+    "read-progress-current-main-resolution",
+    "remove-duplicate-runtime-package-checks",
+    "resident-cancellation-issuer-registration",
+    "resident-cancellation-native-registration",
+    "resident-source-native-registration",
+    "resolve-cancellation-foundation-main-5caeccc79",
+    "resolve-composition-custody-main-maximal-bases",
+    "resolve-composition-frontend-latest-main",
+    "resolve-composition-infer-main-maximal-bases",
+    "resolve-composition-resident-source-main",
+    "resolve-composition-reviewed-supplements-main",
+    "resolve-frontend-graph-label-dependency-5fa4bc547",
+    "resolve-frontend-graph-row-input-main-0e1516677",
+    "resolve-github-issue-driver-main-5dcef9189",
+    "resolve-resident-cancel-foundation-7b5a8048",
+    "resolve-resident-source-latest-main",
+    "scoped-session-acquisition-main-resolution",
+    "sdk-cancel-response-loss-registration",
+    "sdk-read-progress-registration",
+    "session-additive-execution-recipes"
+  ]
+}
