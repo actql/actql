@@ -31,7 +31,8 @@ const A = {nodeId: 'R_A', databaseId: 1296269, nameWithOwner: 'octo/hello'};
 const issues = count => Array.from({length: count}, (_, index) =>
   ({number: index + 1}));
 const row = number => ({number, node_id: `I_${number}`,
-  title: `Issue ${number}`, state: 'open', body: null, author: 'octocat',
+  // GitHub's GraphQL states no body as "", kept exactly as given.
+  title: `Issue ${number}`, state: 'open', body: '', author: 'octocat',
   comments: 0, created_at: '2026-10-01T00:00:00.000Z',
   updated_at: '2026-10-02T00:00:00.000Z', closed_at: null});
 

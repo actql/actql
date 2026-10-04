@@ -289,3 +289,50 @@ test('a changed node ID representation needs an explicit re-publication',
       setup.profile.publicationPath, 'utf8'));
     assert.equal(publication.repository.node_id, 'R_hello');
   });
+
+// The body column is published exactly as GitHub stated it.
+const bodyProgram = JSON.stringify({version: 'actql/0.1', id: 'github-body',
+  stages: [{id: 'acquire',
+    inputs: {remote: {connector: 'gh-hello', resource: 'issues'}},
+    steps: [{filter: "state = 'open'", as: 'open'},
+      {select: ['number', 'body'], as: 'captured'}],
+    results: {r: {from: 'captured', fields: ['number', 'body']}}},
+  {id: 'compute',
+    inputs: {x: {result: {stage: 'acquire', result: 'r'}}},
+    steps: [{select: ['number', 'body'], as: 'out'}],
+    results: {r: {from: 'out', fields: ['number', 'body']}}}],
+  results: {issues: {from: {stage: 'compute', result: 'r'}}}});
+
+test('an empty body is published as an empty string, not NULL', async t => {
+  const setup = await installation(t);
+  setup.state.repositories.get('R_hello').issues = [
+    {number: 1, body: ''}, {number: 2, body: 'text'}];
+  await setup.publish();
+  const {client} = await setup.open();
+  const execution = await client.aql(bodyProgram, {format: 'json',
+    requestId: 'github-body-1'});
+  const state = await execution.wait();
+  assert.equal(state.status, 'succeeded', JSON.stringify(state));
+  const rows = await execution.result('issues').all();
+  assert.deepEqual(rows.map(row => [row.number, row.body])
+    .sort((a, b) => a[0] - b[0]), [[1, ''], [2, 'text']]);
+});
+
+test('a missing, null or invalid body fails the Run without a Result', async t => {
+  for (const [requestId, mutate] of [
+    ['github-body-missing', node => { delete node.body; }],
+    ['github-body-null', node => { node.body = null; }],
+    ['github-body-number', node => { node.body = 7; }],
+  ]) {
+    const setup = await installation(t);
+    await setup.publish();
+    const route = graphqlRoute(() => ({...setup.state, answer: undefined}));
+    setup.state.answer = variables => {
+      const reply = route.handle({body: JSON.stringify({
+        query: 'query ActqlIssues(', variables})});
+      for (const node of reply.body.data.node.issues.nodes) mutate(node);
+      return reply;
+    };
+    await failsWithoutResult(setup, requestId);
+  }
+});

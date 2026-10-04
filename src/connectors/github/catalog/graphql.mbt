@@ -319,9 +319,10 @@ fn graphql_issue_row(
     Ok(_) => return Err(InvalidField("state"))
     Err(issue) => return Err(issue)
   }
-  // GraphQL states an Issue without a body as "", where REST stated null.
+  // The body is kept exactly as GitHub states it: an empty string stays an
+  // empty string. GraphQL's `body` is non-null, so this read never yields a
+  // NULL body (see docs/reviews/2026-10-04-github-graphql-read.md).
   let body = match graphql_text(object, "body") {
-    Ok("") => None
     Ok(text) => Some(text)
     Err(issue) => return Err(issue)
   }

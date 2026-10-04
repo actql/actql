@@ -34,7 +34,7 @@ This records the review decision on #319, Option A. The installed GitHub Issue s
 | `node_id` | string, not null | `node_id` | `id` | Opaque global ID. GitHub may state an older or newer representation for the same Issue, so values read before and after this change may differ in spelling. |
 | `title` | string, not null | `title` | `title` | Same. |
 | `state` | string, not null | `"open"` / `"closed"` | `OPEN` / `CLOSED` mapped to `"open"` / `"closed"` | Same values. |
-| `body` | string, nullable | `body` (null when empty) | `body` (`""` when empty) mapped to null | Same: an empty body is null. |
+| `body` | string, nullable | `body` | `body`, kept exactly | No value conversion: an empty string stays `""`. GraphQL states a body-less Issue as `""` (its `body` is non-null), where REST stated `null`, so this read yields no NULL body. Unifying both to NULL would be a Resource meaning change and is not made here. A missing, null or non-string `body` refuses the page. |
 | `author` | string, nullable | `user.login` | `author.login`, or null | **Changed:** an author whose account was deleted is null. REST stated GitHub's `ghost` user. |
 | `comments` | number, not null | `comments` | `comments.totalCount` | Same count. |
 | `created_at` / `updated_at` | timestamp, not null | `created_at` / `updated_at` | `createdAt` / `updatedAt` | Same instant, in ActQL spelling `...SS.000Z`. |

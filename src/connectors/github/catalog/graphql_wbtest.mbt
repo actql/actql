@@ -140,7 +140,7 @@ test "a page of the published repository maps to the existing Issue rows" {
     node_id: "I_1",
     title: "t1",
     state: "open",
-    body: None,
+    body: Some(""),
     author: Some("octo"),
     comments: 3L,
     created_at: "2026-10-01T00:00:00.000Z",
@@ -268,5 +268,34 @@ test "a publication lookup states the repository now" {
     repository_request("octo", "hello").contains(
       "\"variables\":{\"owner\":\"octo\",\"name\":\"hello\"}",
     ),
+  )
+}
+
+///|
+test "the body is kept exactly: empty, text, missing, null or invalid" {
+  let one = (fields : Array[(String, String)]) => {
+    project(
+      graphql_node(
+        "R_A",
+        1296269,
+        "octo/hello",
+        "{\"hasNextPage\":false,\"endCursor\":null}",
+        graphql_issue(1, fields),
+      ),
+    )
+  }
+  assert_eq(one([("body", "\"\"")]).unwrap().rows[0].body, Some(""))
+  assert_eq(one([("body", "\"text\"")]).unwrap().rows[0].body, Some("text"))
+  assert_eq(one([("body", "null")]), Err(Row(NullRequiredField("body"))))
+  assert_eq(one([("body", "7")]), Err(Row(InvalidField("body"))))
+  let missing = graphql_issue(1, []).replace(old="\"body\":\"\",", new="")
+  assert_eq(
+    project(
+      graphql_node(
+        "R_A", 1296269, "octo/hello", "{\"hasNextPage\":false,\"endCursor\":null}",
+        missing,
+      ),
+    ),
+    Err(Row(MissingRequiredField("body"))),
   )
 }
