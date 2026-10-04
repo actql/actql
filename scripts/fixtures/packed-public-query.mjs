@@ -20,6 +20,8 @@ import {groupStarSuccesses, groupStarRefusals}
   from './group-star-source-input.mjs';
 import {distinctOrderSuccesses, distinctOrderRefusals}
   from './distinct-order-source-input.mjs';
+import {orderPropertySuccesses, orderPropertyRefusals}
+  from './order-property-source-input.mjs';
 import {uniquePublicQueryCases} from './public-query-cases.mjs';
 import {orderOrdinalSuccesses, orderOrdinalRefusals}
   from './order-ordinal-source-input.mjs';
@@ -49,7 +51,8 @@ const resultOnly = process.env.ACTQL_TEST_PIPE_RESULT_ONLY === '1';
 const dataOnly = process.env.ACTQL_TEST_RELATION_DATA_ONLY === '1';
 const acquiredDataOnly = process.env.ACTQL_TEST_ACQUIRED_DATA_ONLY === '1';
 const dataSetStrategyOnly = process.env.ACTQL_TEST_DATA_SET_STRATEGY_ONLY === '1';
-const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupStarOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly;
+const orderPropertyOnly = process.env.ACTQL_TEST_ORDER_PROPERTY_ONLY === '1';
+const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupStarOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || orderPropertyOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const joinChain = JSON.parse(await readFile('join-chain-cases.json', 'utf8'));
 const groupScope = JSON.parse(await readFile('group-scope-cases.json', 'utf8'));
@@ -66,7 +69,8 @@ const dataSetStrategyInputs = {
     ]}}}],
   refusals: [],
 };
-const scopeInputs = groupStarOnly ? {successes: groupStarSuccesses, refusals: groupStarRefusals}
+const scopeInputs = orderPropertyOnly ? {successes: orderPropertySuccesses, refusals: orderPropertyRefusals}
+  : groupStarOnly ? {successes: groupStarSuccesses, refusals: groupStarRefusals}
   : orderOrdinalOnly ? {successes: orderOrdinalSuccesses, refusals: orderOrdinalRefusals}
   : distinctOrderOnly ? {successes: distinctOrderSuccesses, refusals: distinctOrderRefusals}
   : graphTraverseOnly ? {successes: graphTraverseSourceSuccesses, refusals: graphTraverseSourceRefusals}
@@ -91,6 +95,8 @@ const scopeInputs = groupStarOnly ? {successes: groupStarSuccesses, refusals: gr
   refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...relationDataRefusals, ...acquiredDataRefusals, ...propertyGraphSourceRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals, ...groupStarRefusals],
   executionFailures: [...pipeResultExecutionFailures, ...propertyGraphSourceExecutionFailures]};
 if (!scopeOnly) {
+  scopeInputs.successes.push(...orderPropertySuccesses);
+  scopeInputs.refusals.push(...orderPropertyRefusals);
   scopeInputs.successes.push(...orderOrdinalSuccesses);
   scopeInputs.refusals.push(...orderOrdinalRefusals);
   scopeInputs.successes.push(...distinctOrderSuccesses);

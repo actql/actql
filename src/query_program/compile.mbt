@@ -850,7 +850,12 @@ fn append_order_expression(
     order_expression_slot(path, query, input, fields, selected)
   }
   let lowered = if input.graph_bindings.is_empty() {
-    @expression.append(expression, resolve, construction.builder, max_work)
+    @expression.append_with_properties(
+      expression,
+      resolve,
+      construction.builder,
+      max_work,
+    )
   } else {
     @expression.append_with_macros(
       expression,
@@ -2681,13 +2686,14 @@ fn compile_steps(
               if pending_select is None {
                 raise Abort(UnsupportedOrdering)
               }
-              match kind {
+              let direct = match kind {
                 Reference(path) =>
-                  match resolve_column(path, query, input, active_fields) {
-                    Some(field) => field
-                    None => raise Abort(UnsupportedOrdering)
-                  }
-                _ => {
+                  resolve_column(path, query, input, active_fields)
+                _ => None
+              }
+              match direct {
+                Some(field) => field
+                None => {
                   let mut reused : String? = None
                   for pair in hidden {
                     if same_expression(term.expression, pair.0) {
