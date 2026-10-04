@@ -141,7 +141,7 @@ and conditional Lean model remain unchanged.
 | Premise | Reviewed difference | Preserved construction obligation |
 | --- | --- | --- |
 | `managed_provider.mbt` | Only adds `managed_provider_record_handoff_work`, which validates a delta and updates the existing execution accounting owner | The four `ManagedProvider` callback fields, all compatibility/numeric constructor bodies, their captures and the existing six-field `ManagedProviderExecution` are byte-identical |
-| `generated_sequence.mbt` | Replaces retired Graph alternatives with `PropertyGraphConstructionStep` in the existing `false` branch of `generated_sequence_all_row_kernels` | The `RowStep` capability predicate, sequence fields, selection/accessor bodies and all other branches are byte-identical; Graph remains rejected by this Relation predicate |
+| `generated_sequence.mbt` | Replaces retired Graph alternatives with `PropertyGraphConstructionStep` and includes `GraphEqualityStep` alongside the current Graph alternatives in the existing `false` branch of `generated_sequence_all_row_kernels` | The `RowStep` capability predicate, sequence fields, selection/accessor bodies and all other branches are byte-identical; Graph remains rejected by this Relation predicate |
 
 The added work helper runs on an existing execution owner, not while allocating
 the eleven provider candidate records. Its work updates do not add candidate

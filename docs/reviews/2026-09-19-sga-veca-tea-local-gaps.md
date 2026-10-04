@@ -2710,16 +2710,16 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | Coverage state | Count |
 |---|---:|
 | `contract` | 40/40 |
-| `checker` | 24/40 |
-| `lowering` | 24/40 |
-| `kernel` | 24/40 |
-| `managed` | 24/40 |
-| `standard_host` | 24/40 |
-| `consumer_lifetime` | 24/40 |
-| `resources` | 28/40 |
-| `cancellation` | 28/40 |
-| `publication` | 24/40 |
-| `three_targets` | 19/40 |
+| `checker` | 25/40 |
+| `lowering` | 25/40 |
+| `kernel` | 25/40 |
+| `managed` | 25/40 |
+| `standard_host` | 25/40 |
+| `consumer_lifetime` | 25/40 |
+| `resources` | 29/40 |
+| `cancellation` | 29/40 |
+| `publication` | 25/40 |
+| `three_targets` | 20/40 |
 | complete operations | 19/40 |
 | open operations | 21/40 |
 <!-- local-family-coverage-summary:end -->
