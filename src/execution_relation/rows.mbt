@@ -439,6 +439,7 @@ fn[T : RelationRows] evaluate_row_body_into(
   analytic_envelope? : SelectedAnalyticEnvelope? = None,
   identity_limits? : ValueLimits? = None,
   numeric? : NumericAggregateExecution? = None,
+  preserve_filter_rows? : Bool = false,
 ) -> Result[Array[String], RowIssue] {
   if body is PreparedBody(kernel) {
     if !physical_equal(@lower.kernel_owner(kernel), input.checked_owner()) {
@@ -466,6 +467,7 @@ fn[T : RelationRows] evaluate_row_body_into(
     analytic_envelope,
     identity_limits.unwrap_or(output.limits),
     numeric,
+    preserve_filter_rows,
   )
   if scope is Some(s) {
     if result is Err(_) {
@@ -493,6 +495,7 @@ fn[T : RelationRows] evaluate_row_body_impl(
   analytic_envelope : SelectedAnalyticEnvelope?,
   identity_limits : ValueLimits,
   numeric : NumericAggregateExecution?,
+  preserve_filter_rows : Bool,
 ) -> Result[Array[String], RowIssue] {
   if max_rows < 0 ||
     control.remaining < 0 ||
@@ -598,6 +601,9 @@ fn[T : RelationRows] evaluate_row_body_impl(
           }
       }
     Projection(view) => Select(@lower.projection_fields(view))
+  }
+  if preserve_filter_rows && !(kind is Filter(_)) {
+    return Err(InvalidRows)
   }
   let output_names : Array[String] = []
   let projection : Array[Int] = []
@@ -737,6 +743,9 @@ fn[T : RelationRows] evaluate_row_body_impl(
     }
     if needs_snapshot {
       for i = 0; i < input_names.length(); i = i + 1 {
+        if !RowValues::value_present(source, i) {
+          continue
+        }
         if !spend_control(control, 1) ||
           !spend_control_text(control, input_names[i]) {
           return Err(RowLimit)
@@ -774,7 +783,7 @@ fn[T : RelationRows] evaluate_row_body_impl(
           Err(e) => return Err(evaluation_row_issue(row_index, 0, e))
         }
         match value {
-          Boolean(true) =>
+          Boolean(true) if !preserve_filter_rows =>
             for i = 0; i < RowValues::value_count(source); i = i + 1 {
               if !spend_control(control, 1) {
                 return Err(RowLimit)
@@ -784,6 +793,7 @@ fn[T : RelationRows] evaluate_row_body_impl(
               }
               row.push(RowValues::value_at(source, i))
             }
+          Boolean(true) => ()
           Boolean(false) | Null => {
             if scope is Some(_) {
               match release_expression_root(input_roots[row_index]) {
@@ -937,18 +947,32 @@ fn[T : RelationRows] evaluate_row_body_impl(
         release_slots(workspace, values.length() + by_name.length())
       }
     }
-    if !retain_row(row, output_names, output) {
+    if !(if preserve_filter_rows {
+        retain_row(source, output_names, output)
+      } else {
+        retain_row(row, output_names, output)
+      }) {
       return Err(RowLimit)
     }
     if scope is Some(s) {
-      match
+      let event = if preserve_filter_rows {
+        row_event_output(
+          s,
+          output_names,
+          source,
+          slot_roots,
+          input_roots[row_index],
+        )
+      } else {
         row_event_output(
           s,
           output_names,
           row,
           slot_roots,
           input_roots[row_index],
-        ) {
+        )
+      }
+      match event {
         Ok(_) => ()
         Err(e) => return Err(e)
       }
