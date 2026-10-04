@@ -23,6 +23,8 @@ import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {openHttpsExchangeFixture} from
   '../../../site-node/https-exchange-fixture.mjs';
 import {graphqlRoute, issueReads} from './github-graphql.fixture.mjs';
+// The comment Effect's acceptance runs with the source's.
+import './github-comment-effect.integration.test.mjs';
 import {INSTALLED_GITHUB_SITE_VERSION, INSTALLED_GITHUB_SOURCE_VERSION} from
   '../host/installed-github-source.mjs';
 

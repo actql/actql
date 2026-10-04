@@ -610,8 +610,13 @@ Document IDs (`source`, `parameter_declarations`, `parameters`) are roles within
 one report, not private file paths. Each Host issues a keyed, domain-separated
 revision over that role's exact bytes. These revisions are not public content
 hashes, authorization grants or retrieval references. `context_ref` additionally
-binds audience, disclosure policy, compiler, environment, requested scope,
-visible Source set and bindings. Changing authority or checking context can
+binds audience, disclosure policy, compiler, requested scope, admitted public
+Host policy and checker profile selections, installed ModelTask contract CIDs,
+visible Source contracts and bindings. The full private Environment CID still
+binds internal publication ownership and Source authorization, but is excluded
+from the public reference preimage. Adding or changing a hidden Source cannot
+distinguish its presence through this reference. Changing authority, visible
+Source contracts, policy or checker selections can
 change `context_ref` without changing the same input revision.
 
 The SDK detaches structured caller input synchronously before awaiting credentials

@@ -128,6 +128,8 @@ pub fn checking_environment_cid(CheckEnvironment) -> String
 
 pub fn checking_environment_model_tasks(CheckEnvironment) -> @check_environment.ModelTasks?
 
+pub fn checking_environment_profile_selection(CheckEnvironment) -> CheckProfileSelection
+
 pub fn checking_environment_wire(CheckEnvironment) -> @check_environment.WireEnvironment
 
 pub fn close_effect_computation_static(EffectComputationCandidate, @check_environment.MappingContractShapes, @stage_results.EffectStaticCandidateLimits) -> Result[EffectProgramStaticCandidate, @stage_results.EffectStaticCandidateIssue]
@@ -780,6 +782,16 @@ pub enum CheckOutcome {
   Checked(CheckedProgram)
   NeedsInputs(InputRequests)
   Rejected(CheckDiagnostic)
+}
+
+pub(all) struct CheckProfileSelection {
+  expressions : @pipeline_check_context.ExpressionProfiles
+  operations : @pipeline_check_context.PureOperationProfiles
+  property_graph : Bool
+  model_tasks : Bool
+  numeric_profile_cid : String?
+  calendar_profile_cid : String?
+  text_rank_profile_cid : String?
 }
 
 type CheckedLocalDependencyBody
