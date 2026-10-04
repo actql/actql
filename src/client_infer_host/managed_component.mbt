@@ -7,6 +7,7 @@ pub fn local_component(
   active : Execution,
   project_issue : (Issue) -> @connector.FixedComputeIssue,
   retain_completed? : (Execution) -> Bool = _ => true,
+  allow_cleanup? : (Execution) -> Bool = _ => true,
 ) -> Result[@local.ManagedProviderExecution, Issue] {
   if active.reclaimed ||
     active.cancelled ||
@@ -62,7 +63,16 @@ pub fn local_component(
       },
       () => cancel(active),
       () => execution_stopped(active),
-      () => cleanup(active).map_err(project_issue),
+      () => {
+        // The installed Host may still need stopped attempt evidence even
+        // when no accepted output exists to pin the component. Physical stop
+        // does not grant the enclosing Local task permission to reclaim it.
+        if !allow_cleanup(active) {
+          Ok(false)
+        } else {
+          cleanup(active).map_err(project_issue)
+        }
+      },
     ),
   )
 }

@@ -373,3 +373,82 @@ submitted HEAD's automatic PR CI is recorded separately in the PR. No broad
 local Core, all-target, proof, packed or performance campaign was added.
 The fixed `d5c1e949...` Graph mutations retain that source's scope; no new
 TimeSeries mutation execution or other-target mutation detection is claimed.
+
+## Limited deduplication of existing Relation Host cases
+
+The adoption baseline is main `b5d5261eff36409e247d8e866edee048fd8c9f2e`
+(including #274 and #276). The selected
+group is the literal and parameter lag cases in `local_managed_lag_wbtest.mbt`
+and `standard Host runs bounded as-of join for two consumers` in
+`local_managed_asof_join_wbtest.mbt`. The mapping below was made before replacing
+their close blocks. The analytic/unary multi-variant fixtures are outside this
+small group.
+
+| Existing observation | Shared check or retained obligation | Actual connection |
+| --- | --- | --- |
+| Two consumer close sequences per fixture, including first-output unavailability | Use `close_retained_host_consumer` for both consumers; exact real holding credit and unchanged intermediate ledger on repeated close are checked once in its implementation. | Lag tasks 4/5 consume task 3; as-of tasks 4/5 consume task 3. Each real completed consumer output and its own installed dispatch operations are passed to the helper. |
+| First close leaves the sibling and producer available | Keep both assertions immediately after the first helper call. | Producer public ports remain open. No parent cascade credit is requested. These observations must not be relabeled as in-flight input retention evidence. |
+| Lag semantics and projection | Keep literal expected rows, NULL/partition/ordering/offset behavior, the reordered consumer projection, and the literal/parameter registrations. | VALUES task 1 passes its actual output to uniqueness task 2, then lag task 3; provider-required quantum-1 execution and the advance-count assertion remain. Each consumer receives the actual producer output and rows. |
+| As-of meaning and identity | Keep the expected chosen value 300, reordered consumer projection, search metadata and independent NamedResult CID/status. | Two actual VALUES outputs and their rows enter the installed as-of provider at task 3 with managed obligations; both consumers obtain that output through the existing Host runner. |
+| Producer/input close, cancellation, provider lifetime and capacity | Retain all existing producer/source close operations, intermediate connection observations, final recovery assertions and separate cancellation/provider tests. | The as-of two-input boundary is unchanged; the consumer-close helper does not certify that join's input ownership or algorithm bounds. |
+
+Four authored close blocks shared by these three cases are replaced, rather
+than moving a fixture or removing semantic assertions. For another consumer
+at this same boundary, authors supply its actual operations/output and
+independent expected data; they no longer repeat close sequencing, the exact
+credit calculation or idempotence assertions. The lag helper still serves its
+two existing variants; no new operation switch, harness or product code is
+introduced. No test case, target or execution frequency is removed. Repeated
+close adds an observation, so no CI speedup is claimed.
+
+### Mutation applicability and remaining connection evidence
+
+The existing fixed-source Graph double-credit mutation targets the same
+`release_allocation` implementation and exact-credit helper assertion used by
+these consumers. `ledger.mbt`, `retention.mbt` and `task_execution.mbt` are
+byte-identical between `d5c1e949cec0064a8898554a6bf87f4e59fff235` and this adoption
+baseline; the close helper's body also remains unchanged. This supports reuse
+of the previously demonstrated invariant and its failure mechanism. It is not
+a newly executed mutation on these Relation cases or the submitted HEAD.
+
+Early scratch release and missing child-dependency detection remain established
+by the unchanged MATCH false/error/retry and producer-close scenarios, with
+their precise intermediate assertions above. The migrated cases keep the
+producer open and do not inject pending cleanup. Their materialized sibling
+availability cannot establish either detection. A claim about pending cleanup
+or retention after producer close on these particular connections would need
+its own unmasked scenario and targeted mutation confirmation. No such claim
+or substitution is made: those Graph tests, the TimeSeries cleanup checks and
+all operation-specific boundaries remain required. The shared ledger delta
+and repeated-close checks strengthen these consumers without replacing those
+distinct observations with final resource zero.
+
+### Focused deduplication acceptance
+
+The following bounded/nonzero JS selections passed with the changed test bytes
+that were subsequently committed as
+`261fc4f9580068c60c4f0821e944107076d3c5f9`:
+
+```sh
+node scripts/local-checks.mjs test moon --timeout-seconds 120 -- --target js src/query_integration/local_managed_lag_wbtest.mbt --filter 'Local managed * lag feeds two downstream Computes'
+node scripts/local-checks.mjs test moon --timeout-seconds 120 -- --target js src/query_integration/local_managed_asof_join_wbtest.mbt --filter 'standard Host runs bounded as-of join for two consumers'
+```
+
+Results: lag **2/2**, as-of **1/1**. File-scoped `moon fmt --check` and
+`git diff --check` passed. The two unsupported sandbox process-group inspection
+attempts are not test successes; the same selected commands were rerun with
+permission for the bounded wrapper's inspection. Preserve this worktree's
+evidence:
+
+- Lag: `_build/focused-evidence/focused-test-r3Wz2w` and
+  `_build/local-checks/attempts/run-5L3Dkm`.
+- As-of: `_build/focused-evidence/focused-test-HdLFXC` and
+  `_build/local-checks/attempts/run-FcNc8E`.
+
+The test diff removes 18 lines and adds four helper calls (net 14 fewer test
+lines). It keeps all three cases, independent expectations and connection
+observations. This records reduced repeated close authoring/review, not a
+reduction in executed semantic coverage or CI duration. No new mutation,
+all-target, Core-wide, proof or packed local campaign was run. The submitted
+HEAD's automatic PR CI is recorded separately in the PR; the earlier Graph
+and TimeSeries runs do not certify this HEAD.

@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "public-text-computation-bridge-ci",
+  "kind": "change",
+  "revision": "c3bb605a9e79646b9e2c00fa2535597e7e29ea39",
+  "parents": [
+    "b36d7864b57dc654cc03f583d8391e9ba2a506b3"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "b36d7864b57dc654cc03f583d8391e9ba2a506b3",
+          "digest": "7ddae67a24261dacd8d65f4875afbf06b260939c9464fb5c81476cfb6ae15424",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "77a4596be8d5412aced51cb97408d63d53839da6e7679725109d922c9623dcf8",
+      "afterMode": "100644",
+      "reason": "Register the public source-computation preparation regressions in the existing check:distribution-client Node command. Preserve every previous test command and gate; reuse the existing distribution producer and job without additional builds or workflow changes."
+    }
+  ]
+}

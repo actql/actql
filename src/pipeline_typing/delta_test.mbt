@@ -2,7 +2,7 @@
 /// Independent current Graph contract; no diff result or product-emitted bytes.
 fn delta_contract() -> @graph_contract.CheckedContract raise {
   let body =
-    #|{"domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","edge_definitions":[],"identity_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","node_definitions":[{"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Node":[]},"name":"N","properties":{}}],"value_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","version":"actql-property-graph-contract/0.1"}
+    #|{"domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","edge_definitions":[],"identity_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","node_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Node":[]},"name":"N","properties":{}}],"value_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","version":"actql-property-graph-contract/0.1"}
   let contract = @graph_contract.read_cursor(cursor(body), {
     max_bytes: 10000,
     max_nodes: 1000,
@@ -11,7 +11,7 @@ fn delta_contract() -> @graph_contract.CheckedContract raise {
   // Node crypto SHA-256 of the authored canonical body, independently computed.
   assert_eq(
     @graph_contract.cid(contract),
-    "sha256:78b5e6a56288c04737f3a13a4b1ad9c653892cd22c060225f990e12406b45d1e",
+    "sha256:ad5cb6732d059d85e5d6581974006b9cb551e2704d0260e82ceebc43015db667",
   )
   contract
 }

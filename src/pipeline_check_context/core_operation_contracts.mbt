@@ -34,7 +34,10 @@ fn operation_count_contract(
     | @pipeline.AsOfJoin(..) => Join
     @pipeline.Window(_) => Window
     @pipeline.PropertyGraphConstruction(..) => PropertyGraph
-    @pipeline.GraphMatch(_) | @pipeline.Traverse(..) => PropertyGraph
+    @pipeline.GraphMatch(_)
+    | @pipeline.GraphBounds(_)
+    | @pipeline.GraphDegree(_)
+    | @pipeline.Traverse(..) => PropertyGraph
     @pipeline.Projection(_) => ClassificationOnly
     @pipeline.Nearest(..) | @pipeline.Ranking(_) | @pipeline.TextRank(..) =>
       Ranking

@@ -3,7 +3,8 @@ import {createHash} from 'node:crypto';
 import {mkdir, mkdtemp, readdir, writeFile} from 'node:fs/promises';
 import test from 'node:test';
 import {createLocalRetainedStore} from '../store-local/files.mjs';
-import {prepareLocalCarrierSnapshot} from './carrier-snapshot.mjs';
+import {prepareLocalCarrierSnapshot, prepareLocalRelationSnapshot} from './carrier-snapshot.mjs';
+import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 
 // Transport-only fixture: the real common family/driver is tested separately.
 // These bytes are authored here, never obtained from a product snapshot.
@@ -212,4 +213,122 @@ test('cancellation after seal preserves custody and publishes no restored materi
   await owner.cleanupHandle.retry();
   assert.equal(store.status().reservedBytes, 0);
   assert.deepEqual(await readdir(directory), []);
+});
+
+// The transport exercises the real common row framer. The public Host test
+// separately exercises the real completion export/import and Graph bridge.
+function relationFixture() {
+  const rows = [{id:1,p:7},{id:2,p:null},{id:3}];
+  const serialized = JSON.stringify(rows);
+  const identity = {bytes:Buffer.byteLength(serialized),
+    cid:`sha256:${createHash('sha256').update(serialized).digest('hex')}`};
+  const events = [], restored = [];
+  let cursor = 0, available = true, released;
+  const operation = {
+    key:'relation-rows', frames:{maxBytes:256,maxFrameBytes:256,
+      maxRows:3,maxRowBytes:128,maxDepth:8},
+    next() {events.push('save'); return cursor++ === 0 ? serialized : undefined;},
+    content:() => identity,
+    release_source(actual, physical) {
+      assert.equal(actual, identity.cid); assert.equal(physical(),true);
+      events.push('revoke-source'); available = false;
+    },
+    source_available:() => available,
+    begin_reload() {assert.equal(available,false); events.push('reload');},
+    append_reload(row) {restored.push(JSON.parse(row)); events.push('row');},
+    finish_reload() {assert.deepEqual(restored,rows); events.push('restore');},
+    finish() {assert.equal(released(),true); events.push('finish');},
+  };
+  const operations = {
+    prepare_relation_snapshot(check) {released = check; events.push('prepare'); return operation;},
+    output_rows:() => rows.length,
+    output_row(index) {if (!available) throw new Error('OriginalOutputUnavailable'); return rows[index];},
+  };
+  return {operation,operations,events,rows,restored,identity};
+}
+
+test('Relation Store roundtrip preserves ordered missing/NULL/value rows after source revocation', async () => {
+  const {directory,store} = await fileFixture();
+  const f = relationFixture();
+  const owner = prepareLocalRelationSnapshot(f.operations,() => store,checked,undefined,moon);
+  assert.deepEqual(await owner.roundtrip(),{...f.identity,
+    verifiedReadBytes:f.identity.bytes,rows:3,sourceReleased:true,
+    sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true});
+  assert.deepEqual(f.restored,f.rows);
+  assert.equal(Object.hasOwn(f.restored[2],'p'),false);
+  assert.equal(f.restored[1].p,null);
+  assert.deepEqual(f.events,['prepare','save','save','revoke-source','reload',
+    'row','row','row','restore','finish']);
+  assert.throws(() => f.operations.output_row(0),/OriginalOutputUnavailable/);
+  assert.equal(store.status().reservedBytes,0);
+  assert.deepEqual(await readdir(directory),[]);
+});
+
+for (const mode of ['synchronous throw','promise rejection']) {
+  test(`Relation factory ${mode} leaves no fictitious cleanup pending`, async () => {
+    const f = relationFixture(), failure = new Error('RelationFactoryRejected');
+    const owner = prepareLocalRelationSnapshot(f.operations,() => {
+      if (mode === 'synchronous throw') throw failure;
+      return Promise.reject(failure);
+    },checked,undefined,moon);
+    await assert.rejects(owner.roundtrip(),error => error === failure);
+    assert.deepEqual(f.events,['prepare']);
+    assert.deepEqual(await owner.cleanupHandle.retry(),{pending:false});
+    assert.deepEqual(await owner.cleanupHandle.retry(),{pending:false});
+  });
+}
+
+test('Relation cleanup retry releases the same holding without save/reload or Compute replay', async () => {
+  const {directory,store} = await fileFixture();
+  const f = relationFixture();
+  let factories = 0, cleanups = 0;
+  const owner = prepareLocalRelationSnapshot(f.operations,() => {
+    factories++;
+    return {...store,async cleanup() {
+      if (++cleanups === 1) throw new Error('RelationCleanupRetry');
+      await store.cleanup();
+    }};
+  },checked,undefined,moon);
+  await assert.rejects(owner.roundtrip(),/RelationCleanupRetry/);
+  assert.equal(owner.cleanupHandle.status().pending,true);
+  assert.equal(f.events.includes('finish'),false);
+  assert.equal(store.status().reservedBytes,f.identity.bytes);
+  const before = [...f.events];
+  await owner.cleanupHandle.retry(); await owner.cleanupHandle.retry();
+  owner.close(); owner.close();
+  assert.deepEqual(f.events,before);
+  assert.equal(factories,1); assert.equal(cleanups,2);
+  assert.equal(store.status().reservedBytes,0);
+  assert.deepEqual(await readdir(directory),[]);
+});
+
+test('Relation cancellation after original output revocation retains cleanup and publishes nothing', async () => {
+  const {directory,store} = await fileFixture();
+  const f = relationFixture(), controller = new AbortController();
+  const begin = f.operation.begin_reload;
+  f.operation.begin_reload = () => {
+    begin(); controller.abort(new Error('RelationReloadCancelled'));
+  };
+  const owner = prepareLocalRelationSnapshot(f.operations,() => store,checked,controller.signal,moon);
+  await assert.rejects(owner.roundtrip(),/RelationReloadCancelled/);
+  assert.throws(() => f.operations.output_row(0),/OriginalOutputUnavailable/);
+  assert.equal(f.events.includes('restore'),false);
+  assert.equal(f.events.includes('finish'),false);
+  assert.equal(owner.cleanupHandle.status().pending,true);
+  await owner.cleanupHandle.retry();
+  assert.equal(store.status().reservedBytes,0);
+  assert.deepEqual(await readdir(directory),[]);
+});
+
+test('Relation Store byte-limit failure does not revoke the original output or begin reload', async () => {
+  const {directory,store} = await fileFixture();
+  const f = relationFixture();
+  f.operation.frames.maxBytes = 8; f.operation.frames.maxFrameBytes = 8;
+  const owner = prepareLocalRelationSnapshot(f.operations,() => store,checked,undefined,moon);
+  await assert.rejects(owner.roundtrip(),/LocalSnapshotByteLimit/);
+  assert.deepEqual(f.events,['prepare','save']);
+  assert.deepEqual(f.operations.output_row(0),f.rows[0]);
+  await owner.cleanupHandle.retry();
+  assert.equal(store.status().reservedBytes,0);
+  assert.deepEqual(await readdir(directory),[]);
 });

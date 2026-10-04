@@ -43,13 +43,15 @@ export async function installTwoSourceFixtures({root, fixture, duckdb}) {
   }
   for (const [name, source, databaseName] of [['left', 'left', 'left'],
     ['right', 'right', 'right'], ['right_equal', 'right', 'equal_content'],
-    ['right_missing', 'right', 'right']]) {
+    ['right_missing', 'right', 'right'], ['left_broad', 'left', 'left'],
+    ['right_broad', 'right', 'right'], ['right_missing_broad', 'right', 'right']]) {
     const environment = fixture.environments[source], database = databases[databaseName];
     profiles[name] = resolve(root, `${name}.profile.json`);
     await writeFile(profiles[name], canonical({
-      acquisitionPlanning: {policy: 'priority', priority: ['nativeQuery', 'broadQuery']},
+      acquisitionPlanning: {policy: 'priority', priority: name.endsWith('_broad')
+        ? ['broadQuery', 'nativeQuery'] : ['nativeQuery', 'broadQuery']},
     version: 'actql-installed-duckdb-source/0.1', database, schema: 'main',
-      table: name === 'right_missing' ? 'missing_records' : 'records',
+      table: name.startsWith('right_missing') ? 'missing_records' : 'records',
       sourceRef: environment.schema_snapshots[0].source_ref,
       checkEnvironmentWire: canonical(environment),
       accountConfigurationWire: canonical({version: 'actql-execution-account-config/0.1',
@@ -162,11 +164,13 @@ export async function openTwoSourcePublicHost({connect, openInstalledRemoteHttpH
 }
 
 export async function exerciseTwoSourcePublicQuery({connect, openInstalledRemoteHttpHost,
-  root, fixture, installation, provider, tls}) {
+  root, fixture, installation, provider, tls, authorization}) {
   const retained = [];
-  for (const mode of ['local', 'https']) for (const variant of ['distinct', 'equal-content', 'unused-right']) {
-    const sourceProfilePaths = [installation.profiles.left,
-      installation.profiles[variant === 'equal-content' ? 'right_equal' : 'right']];
+  for (const mode of ['local', 'https']) for (const variant of ['distinct', 'equal-content', 'unused-right', 'broad']) {
+    const sourceProfilePaths = variant === 'broad'
+      ? [installation.profiles.left_broad, installation.profiles.right_broad]
+      : [installation.profiles.left,
+        installation.profiles[variant === 'equal-content' ? 'right_equal' : 'right']];
     const directory = resolve(root, `${mode}-${variant}-state`);
     const expectedDatabases = variant === 'unused-right' ? [installation.databases.left]
       : [installation.databases.left, installation.databases[variant === 'equal-content' ? 'equal_content' : 'right']];
@@ -174,15 +178,22 @@ export async function exerciseTwoSourcePublicQuery({connect, openInstalledRemote
     const text = variant === 'unused-right' ? fixture.leftOnly : fixture.program;
     const observe = () => ({...provider.snapshot(), acceptedRuns: readTwoSourceJournal(directory).length});
     const before = provider.snapshot();
+    const selections = [];
+    const observedAuthorization = {...authorization, observe(name, detail) {
+      if (name === 'acquisition_completed') selections.push(detail.acquisition?.selection);
+    }};
     const running = await openTwoSourcePublicHost({connect, openInstalledRemoteHttpHost,
-      mode, directory, sourceProfilePaths, tls});
+      mode, directory, sourceProfilePaths, tls, authorization: observedAuthorization});
     try {
       const checker = await running.connect();
       const check = await checker.check('SELECT 1 AS value', {format: 'sql'});
-      assert.equal(check.outcome, 'unavailable');
-      assert.deepEqual(Object.keys(check).sort(),
-        ['correlation_ref', 'outcome', 'problem', 'version']);
-      assert.equal(check.problem.code, 'check_unavailable');
+      assert.equal(check.outcome, 'completed');
+      assert.match(check.report.context_ref, /^ctx:[0-9a-f]{64}$/u);
+      assert.deepEqual({...check, report: {...check.report, context_ref: '<ctx>'}},
+        {version: 'actql-check-outcome/0.1', outcome: 'completed',
+          report: {context_ref: '<ctx>', scope: {kind: 'bound_input'},
+            verdict: 'verified', reasons: [],
+            coverage: {limits: [], unresolved: []}}});
       assert.deepEqual(provider.snapshot(), before, 'plural check performs no provider I/O');
       await exercisePublicQueryInput(connect, running.options, {
         requestPrefix: `${mode}-${variant}`, observe, refusals: [],
@@ -198,18 +209,26 @@ export async function exerciseTwoSourcePublicQuery({connect, openInstalledRemote
         assert.equal(new Set(commands.filter(command => command.database === database).map(command => command.session)).size, 1);
       }
       assert.ok(opens.every(database => expectedDatabases.includes(database)), 'unused source performs zero provider opens');
+      assert.equal(selections.length, expectedDatabases.length);
+      for (const selected of selections) {
+        assert.equal(selected.status, 'selected');
+        assert.equal(selected.selectedCandidate, variant === 'broad' ? 'broadQuery' : 'nativeQuery');
+        assert.equal(selected.selectionBasis, 'explicitPriority');
+        assert.ok(selected.nativeSupported && selected.broadSupported,
+          'the common owner reports both eligible candidates before explicit priority');
+      }
     } finally { await running.close(); }
   }
-  assert.equal(retained.length, 6);
+  assert.equal(retained.length, 8);
   return retained;
 }
 
 export async function verifyTwoSourceRetained({connect, openInstalledRemoteHttpHost,
-  fixture, retained, provider, tls}) {
+  fixture, retained, provider, tls, authorization}) {
   assert.deepEqual(provider.snapshot().sourceProviderOpens, []);
   for (const item of retained) {
     const before = readTwoSourceJournal(item.directory);
-    const running = await openTwoSourcePublicHost({connect, openInstalledRemoteHttpHost, tls, ...item});
+    const running = await openTwoSourcePublicHost({connect, openInstalledRemoteHttpHost, tls, authorization, ...item});
     const client = await running.connect();
     try {
       const attached = await client.attach(item.ref);

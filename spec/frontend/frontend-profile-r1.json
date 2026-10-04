@@ -761,7 +761,8 @@
         "|> SET",
         "|> DROP",
         "|> RENAME",
-        "|> AS"
+        "|> AS",
+        "|> ASSERT UNIQUE BY (fields)"
       ],
       "canonical_lowering": "shared Query AST and ordinary Steps",
       "preconditions": [
@@ -1283,7 +1284,8 @@
       "feature_id": "effect.declaration",
       "surface_forms": [
         "|> EFFECT name ...",
-        "EFFECT name ..."
+        "EFFECT name ...",
+        "|> EFFECT name UPDATE TARGET string MAPPING identifier FROM RESULT name ID field SET (assignments)"
       ],
       "canonical_lowering": "stage effect map",
       "preconditions": [
@@ -1293,7 +1295,7 @@
       "spec_section": "12.2",
       "execution_evidence_ids": [],
       "adoption": "supported",
-      "implementation_status": "not_implemented",
+      "implementation_status": "partial",
       "delivery_unit": "PR-2",
       "acceptance_case_ids": [
         "FX-01",
@@ -1535,7 +1537,7 @@
         "FX-13"
       ],
       "additional_fixture_requirements": [
-        "Query scalar INFER, raw HTTP and arbitrary WASM rejection; explicit Pipe EFFECT is adopted but not implemented"
+        "Query scalar INFER, raw HTTP and arbitrary WASM rejection; explicit Pipe UPDATE EFFECT is partially implemented"
       ]
     },
     {

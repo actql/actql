@@ -705,26 +705,24 @@ implementation of Graph Delta execution.
 
 ## Graph row projections and names
 
-`carrier_projection` checks `node_rows: true` and `edge_rows: true` on typed,
-partially known and opaque Graphs. The fixed roles and restored source aliases
-follow [Graph rows](../spec/language.md#graph-rows). Opaque Graphs produce open
-Relation knowledge with untyped identity columns, not an invented closed schema.
-Typed properties, including nullable and structural children, are preserved.
+`carrier_projection` checks `node_rows: true` and `edge_rows: true` on an admitted
+definition-keyed Property Graph. Incomplete contracts refuse projection. Node
+roles are `id`, `labels`; edge roles are `id`, `src`, `dst`, `labels`, with the
+existing typed Graph identities and deterministic label arrays. No retired
+endpoint-tuple or nullable `rel` representation is used.
 
-`GraphRowNames` is validated source-role metadata, separate from value domains
-and graph law evidence. It does not establish a semantic edge-label role or a
-closed label domain. Graph contract serialization excludes it. Diff carries base
-names and Apply preserves current base names, regardless of names attached to
-the separately resolved contract. Projection returns both bridge roles and
-non-identical semantic aliases; collisions fail instead of dropping properties.
+Saved `key_columns` associates each named constructor key component with its
+original value type and position. Key aliases expose those values, not `id`.
+The finite definition union preserves declared property output names and joins
+only compatible types. Role/alias/property collisions refuse projection;
+case-insensitive comparison reuses the Graph name owner. Canonical definition
+order fixes display spelling across serialization/reload.
 
-This clarifies the former brief AoA-bridge reference using Sketch's restoration
-behavior, while retaining actual non-string identity types and complete property
-knowledge. An undeclared optional AoA display label is not a typed property.
-Source graph construction attaches these names from the selected role fields.
-Projection is connected to the ordinary pipeline and Relation consumers, without
-inventing order/uniqueness/resource proofs. Lowering must implement these admitted
-typed rows rather than copy a string-only or property-dropping reference shape.
+Existing Relation presence records distinguish Required from Conditional and
+omission from NULL. Only columns guaranteed by every definition can be normally
+referenced in this initial bridge; dataset sampling does not refine that schema.
+The existing row kernel, completion port, retention and cleanup owners carry
+the resulting Relation. This is not a separate Graph Relation or runtime.
 
 `GraphProjectionCheck` binds the exact checked projection, input edge and
 requirement occurrence. Its interpretation follows the two Graph-row requirement
@@ -734,7 +732,7 @@ blocks, without interpreting a future check as completed Graph admission:
 | --- | --- | --- |
 | AdmitGraphRecords | Validate the input Graph against its retained identity and property contracts; partial static knowledge does not waive runtime admission. | Before input use |
 | RejectColumnCollisions | Reject collisions among distinct bridge roles, source aliases and properties, including collisions not decidable from an open field set. | Before output |
-| RestoreIdentityNames | Emit the fixed bridge roles and known source aliases with the retained types and values; absent edge labels are explicit null and no display-label property is invented. | Before output |
+| RestoreIdentityNames | Emit typed identity roles, labels arrays and original typed key-column values; omission follows the finite definition union's presence contract. | Before output |
 
 Failure rejects the operation output without partial publication. These bindings
 do not preserve an arbitrary Graph enumeration as Relation order or establish

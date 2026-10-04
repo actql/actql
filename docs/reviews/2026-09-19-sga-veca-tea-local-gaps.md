@@ -6,8 +6,8 @@ The new definition-keyed Property Graph is the sole executable Graph contract.
 The previous tuple-profile coverage inventory is retained as inert historical
 text in `portability/historical/local-family-coverage-pre-property-graph.json.txt`.
 Its completed SGA/Graph-bridge claims do not apply to the new representation.
-The current manifest records four partial operations (constructor, two MATCH
-forms and explicit TRAIL) and seventeen blocked old/unconnected routes. These
+The current manifest records six partial operations (constructor, two MATCH
+forms, explicit TRAIL, bounds and degree) and fifteen blocked old/unconnected routes. These
 are implementation gaps, not permanent language exclusions. Existing non-Graph
 coverage is unchanged. Current-source snapshot, fresh packed and aggregate
 acceptance remain open; three-target focused tests do not certify full coverage.
@@ -26,6 +26,19 @@ final three-target, packed, and submitted-SHA acceptance remains open, as do
 other SGA consumers; gate success is not
 all-SGA completion.
 See `docs/reviews/2026-10-02-property-graph-vertical.md` for checkpoint evidence.
+
+The current definition-keyed `graph_bounds` and `degree` paths now use a
+bounded Graph diagnostic provider. The same-Stage Graph-to-Relation filter
+reaches two independent consumers, and the Node standard Host reads retained
+producer and consumer Named Results from a real Store against fixed rows.
+Both diagnostic routes receive selected and fused in-flight Host cancellation
+before public completion. A portable three-target fixture checks long
+typed-identity comparison with quantum-one stop, workspace 10/9, output rows
+2/1, control work 184/183, and canonical order. It checks directional degree
+on a two-node directed Graph with workspace 8/7 and control work 178/177.
+Task-wide cumulative work, remaining formal variants, and final-source CI
+are not yet current-profile completion evidence; the old tuple diagnostics
+records below remain historical.
 
 The current retained-Store traversal route is exercised for WALK, TRAIL, and
 ACYCLIC `emit: paths` followed by a Relation filter in the same Stage. The
@@ -537,12 +550,12 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Registered operations | 69 |
-| Executable production routes | 52 |
-| Typed pre-execution refusals (not execution success) | 17 |
-| Operation-specific boundary records | 52 |
-| Four-role lifecycle assurance | 52 |
-| Full route work/workspace assurance | 52 |
-| Path-scoped work/workspace assurance | 98 |
+| Executable production routes | 56 |
+| Typed pre-execution refusals (not execution success) | 13 |
+| Operation-specific boundary records | 56 |
+| Four-role lifecycle assurance | 56 |
+| Full route work/workspace assurance | 56 |
+| Path-scoped work/workspace assurance | 104 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -2667,15 +2680,15 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | Coverage state | Count |
 |---|---:|
 | `contract` | 40/40 |
-| `checker` | 19/40 |
-| `lowering` | 19/40 |
-| `kernel` | 19/40 |
-| `managed` | 19/40 |
-| `standard_host` | 19/40 |
-| `consumer_lifetime` | 19/40 |
-| `resources` | 23/40 |
-| `cancellation` | 23/40 |
-| `publication` | 19/40 |
+| `checker` | 23/40 |
+| `lowering` | 23/40 |
+| `kernel` | 23/40 |
+| `managed` | 23/40 |
+| `standard_host` | 23/40 |
+| `consumer_lifetime` | 23/40 |
+| `resources` | 27/40 |
+| `cancellation` | 27/40 |
+| `publication` | 23/40 |
 | `three_targets` | 19/40 |
 | complete operations | 19/40 |
 | open operations | 21/40 |

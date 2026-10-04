@@ -106,3 +106,53 @@ test "Local component keeps composed INFER work deltas and output custody" {
   assert_true(@local.cleanup_managed_provider(child).unwrap())
   assert_eq(calls.val, 2)
 }
+
+///|
+test "failed assertion component retains stopped evidence until Host cleanup" {
+  let source = infer_fixture_program.replace(
+    old="\"rows\":[{\"id\":\"a\",\"text\":\"hello\"}]",
+    new="\"rows\":[{\"id\":\"a\",\"text\":\"hello\"},{\"id\":\"a\",\"text\":\"second\"}]",
+  )
+  let calls = Ref(0)
+  let active = fixture_start(fixture_prepared(source~), () => calls.val += 1)
+  let issue : Ref[Issue?] = Ref(None)
+  let released = Ref(false)
+  let child = local_component(
+    active,
+    failure => {
+      issue.val = Some(failure)
+      @connector.ComputeUnsupported
+    },
+    allow_cleanup=_ => released.val,
+  ).unwrap()
+  for _ in 0..<5000 {
+    match @local.advance_managed_provider(child, 1).unwrap() {
+      @local.Continue(..) => ()
+      @local.Failed(_, ..) => break
+      _ => abort("duplicate assertion must fail before Model dispatch")
+    }
+  }
+  assert_true(
+    issue.val
+    is Some(
+      Input(
+        @input.Local(
+          @connector.Execution(
+            @relation.SequenceRunIssue::Rows(
+              _,
+              @relation.AssertionDuplicate(0, 1)
+            )
+          )
+        )
+      )
+    ),
+  )
+  assert_eq(calls.val, 0)
+  assert_true(execution_stopped(active))
+  assert_true(!@local.cleanup_managed_provider(child).unwrap())
+  assert_eq(stopped_attempt_count(active), Some(0))
+  assert_true(cleanup(active).unwrap())
+  released.val = true
+  assert_true(@local.cleanup_managed_provider(child).unwrap())
+  assert_eq(calls.val, 0)
+}

@@ -165,6 +165,40 @@ fn graph_read_node_definition(source : GraphReadSource, node : Int) -> Int? {
 }
 
 ///|
+fn graph_read_property_definition(
+  source : GraphReadSource,
+) -> @carrier.PropertyGraphDefinition? {
+  match source {
+    Stored(read) =>
+      @graph.producer_read_storage(read).bind(storage => {
+        match @storage.carrier(storage) {
+          @carrier.GraphValue(graph) =>
+            Some(@carrier.graph_property_definition(graph))
+          _ => None
+        }
+      })
+    Viewed(view) =>
+      @lifecycle.producer_view_property_graph_definition(view).to_option()
+  }
+}
+
+///|
+fn graph_read_node_key_component(
+  source : GraphReadSource,
+  node : Int,
+  component : Int,
+) -> @value.CheckedValue? {
+  match source {
+    Stored(read) =>
+      @graph.producer_read_storage(read).bind(storage => {
+        @storage.node_typed_key_at(storage, node, component)
+      })
+    Viewed(view) =>
+      @lifecycle.producer_view_node_key(view, node, component).to_option()
+  }
+}
+
+///|
 fn property_match_field_index(
   prepared : @lower.PreparedGraphMatch,
   field : @schema.FieldName,

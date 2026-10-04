@@ -68,7 +68,7 @@ test('SourceView Graph fixture owns independent schema and the complete CID chai
   const expected = {
     domain: 'sha256:' + '0'.repeat(64), edge_definitions: [],
     identity_law_cid: cid(read('spec/dependencies/actql-property-graph-laws.json')),
-    node_definitions: [{key_contracts: [{nullable: false, type: 'number'}],
+    node_definitions: [{key_columns: [null], key_contracts: [{nullable: false, type: 'number'}],
       labels: {Node: ['id']}, name: 'N', properties: {id: {nullable: false, type: 'number'}}}],
     value_law_cid: cid(read('spec/dependencies/actql-property-graph-laws.json')),
     version: 'actql-property-graph-contract/0.1',
@@ -84,7 +84,7 @@ test('SourceView Graph fixture owns independent schema and the complete CID chai
   }
   assert.equal(catalog.catalog_cid, without(catalog, 'catalog_cid'));
   assert.equal(environment.evidence_bundle_cid, without(environment, 'evidence_bundle_cid'));
-  assert.equal(environment.evidence_bundle_cid, 'sha256:daa21d77bc5c20b691c71098c493813e7e63f838be76326fc20d687337d49e63');
+  assert.equal(environment.evidence_bundle_cid, 'sha256:600789313d7045af61cc8e70147cac3b86828abee26dd974f7d585a864812250');
   assert.ok(source.includes('"' + environment.evidence_bundle_cid + '"'));
   const sorted = entries => [...entries].sort((a, b) => a.id.localeCompare(b.id));
   assert.deepEqual(sorted(environment.contract_registry), sorted(catalog.contracts));
@@ -103,8 +103,8 @@ test('SourceView Graph fixture owns independent schema and the complete CID chai
 
 test('constructor pins a distinct complete execution contract and exact shared dependencies', () => {
   checkRegistration(aoa, law, protocol, registry);
-  assert.equal(cid(body), 'sha256:abddf7b4088be03fa8df66c62d6ba92d7d15857e617087a61e043d3bd52e5590');
-  assert.equal(cid(registry), 'sha256:2e39600e7fafbb97b18ced2352fe60a53dc624128f221b308f1dd0fc489709bf');
+  assert.equal(cid(body), 'sha256:b00de8912497c6af1596debd1c59ee8d3477faf0391be40f64ac82ebc6d9ebb7');
+  assert.equal(cid(registry), 'sha256:af8d2530f74cabec40daa30580dc0a036691a9d8875c0eb7a85ee40240768bcd');
   assert.equal(body.dependencies.property_graph_law.cid,
     'sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc');
   assert.equal(body.dependencies.canonical_value_contract.cid,

@@ -1068,10 +1068,76 @@ fn check_impl(
       current = Some(target)
       continue
     }
-    if key == "normalize_graph" ||
-      key == "degree" ||
-      key == "components" ||
-      key == "graph_bounds" {
+    if key == "degree" || key == "graph_bounds" {
+      let graph = carrier(input, inputs, steps)
+      let (operation, output, used) = if key == "degree" {
+        let checked = match
+          @graph.check_degree(operation_body, graph, {
+            max_work: b.work,
+            max_nodes: b.nodes,
+            max_depth: limits.max_depth,
+            max_text_bytes: b.text,
+          }) {
+          Ok(value) => value
+          Err(issue) =>
+            raise Stop({
+              kind: Graph(issue.kind),
+              source: operation_body,
+              path: issue.path.copy(),
+              span: issue.span,
+              range: None,
+            })
+        }
+        (
+          GraphDegree(checked),
+          @graph.degree_output(checked),
+          @graph.degree_usage(checked),
+        )
+      } else {
+        let checked = match
+          @graph.check_graph_bounds(operation_body, graph, parameters, {
+            max_work: b.work,
+            max_nodes: b.nodes,
+            max_depth: limits.max_depth,
+            max_text_bytes: b.text,
+          }) {
+          Ok(value) => value
+          Err(issue) =>
+            raise Stop({
+              kind: Graph(issue.kind),
+              source: operation_body,
+              path: issue.path.copy(),
+              span: issue.span,
+              range: None,
+            })
+        }
+        (
+          GraphBounds(checked),
+          @graph.graph_bounds_output(checked),
+          @graph.graph_bounds_usage(checked),
+        )
+      }
+      b.work -= used.work
+      b.nodes -= used.nodes
+      b.text -= used.text_bytes
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation,
+        output,
+        connections: { entries: [{ role: Primary, target: input, }], },
+        window: None,
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
+    }
+    if key == "normalize_graph" || key == "components" {
       match carrier(input, inputs, steps) {
         @carrier.GraphValue(_) =>
           fail(operation_body, Graph(@graph.UnsupportedGraphOperation))
@@ -1426,28 +1492,14 @@ fn check_impl(
       current = Some(target)
       continue
     }
-    if key == "node_rows" || key == "edge_rows" {
-      if @decode.boolean(operation_body) != Ok(true) {
-        fail(operation_body, Projection(@projection.InvalidBody))
-      }
-      match carrier(input, inputs, steps) {
-        @carrier.GraphValue(_) =>
-          fail(
-            operation_body,
-            Projection(@projection.UnsupportedGraphOperation),
-          )
-        @carrier.Opaque(GraphKind) =>
-          fail(operation_body, Projection(@projection.IncompleteGraph))
-        other =>
-          fail(
-            operation_body,
-            Projection(@projection.WrongCarrier(@carrier.kind(other))),
-          )
-      }
-    }
-    if key == "events" || key == "vectors" {
+    if key == "events" ||
+      key == "vectors" ||
+      key == "node_rows" ||
+      key == "edge_rows" {
       let projection = match key {
         "events" => @projection.Events
+        "node_rows" => @projection.NodeRows
+        "edge_rows" => @projection.EdgeRows
         _ => @projection.Vectors
       }
       let checked = match
@@ -1859,6 +1911,8 @@ fn check_impl(
         | WindowGroup(_)
         | Projection(_)
         | GraphMatch(_)
+        | GraphBounds(_)
+        | GraphDegree(_)
         | Event(_)
         | Sequence(_)
         | Vector(_) => [{ role: Primary, target: input, }]

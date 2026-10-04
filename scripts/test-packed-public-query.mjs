@@ -85,6 +85,8 @@ run('bash', ['-eu', '-c', exampleCommands[0][1]], root,
 await mkdir(join(root, 'fixtures'));
 await writeFile(join(root, 'fixtures/property-graph-parallel.program.json'),
   await readFile(join(repository, 'scripts/fixtures/property-graph-parallel.program.json')));
+await writeFile(join(root, 'fixtures/property-graph-presence.program.json'),
+  await readFile(join(repository, 'scripts/fixtures/property-graph-presence.program.json')));
 run('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
   '-keyout', 'remote.key', '-out', 'remote.crt', '-days', '1',
   '-subj', '/CN=localhost',
@@ -125,6 +127,9 @@ if (process.argv.includes('--group-scope-only')) {
 }
 if (process.argv.includes('--alias-scope-only')) {
   runtimeEnvironment.ACTQL_TEST_PIPE_SCOPE_ONLY = '1';
+}
+if (process.argv.includes('--scoped-order-only')) {
+  runtimeEnvironment.ACTQL_TEST_SCOPED_ORDER_ONLY = '1';
 }
 if (process.argv.includes('--infer-refusal-only')) {
   runtimeEnvironment.ACTQL_TEST_INFER_REFUSAL_ONLY = '1';
@@ -189,7 +194,7 @@ const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
 const narrowPublicQuery = process.argv.some(flag => ['--source-free-only',
   '--query-composition-only', '--pipe-result-only', '--join-order-only',
-  '--alias-scope-only', '--infer-refusal-only', '--two-source-only',
+  '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only', '--two-source-only',
   '--relation-data-only', '--acquired-data-only',
   '--data-set-strategy-only', '--property-graph-source-only'].includes(flag));
 try {
@@ -232,7 +237,7 @@ if (plannerSelectionOnly || twoSourceExampleOnly) return;
 // its Store. Restore retained Results in a new process without resubmission.
 // Narrow selections without the String fixture have no retained String Run.
 // Keep restart acceptance for full/source-free selections that create it.
-if (!process.argv.some(flag => ['--alias-scope-only', '--infer-refusal-only',
+if (!process.argv.some(flag => ['--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
   '--join-order-only', '--query-composition-only', '--pipe-result-only',
   '--relation-data-only', '--acquired-data-only', '--data-set-strategy-only', '--two-source-only',
   '--property-graph-source-only'].includes(flag))) {
@@ -246,6 +251,7 @@ if (process.argv.includes('--source-free-only') ||
   process.argv.includes('--relation-data-only') ||
   process.argv.includes('--acquired-data-only') ||
   process.argv.includes('--alias-scope-only') ||
+  process.argv.includes('--scoped-order-only') ||
   process.argv.includes('--infer-refusal-only') ||
   process.argv.includes('--two-source-only') ||
   process.argv.includes('--join-order-only')) return;
