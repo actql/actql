@@ -24,6 +24,7 @@ pub(all) enum TraverseObligation {
   FilterTraversalLabels
   EnumeratePropertyPaths
   DeduplicateExactPaths
+  MinimumEligibleNodeDepth
   CanonicalTraversalOrder
   EnforceTraversalOutputGuard
   BindTraversalOutputGuard(String)
@@ -156,7 +157,7 @@ pub fn check_traverse(
     b.text -= start.usage.text_bytes
     let at = decoded(@decode.required(root, "emit"))
     let emit = match decoded(@decode.text(at)) {
-      "nodes" => fail(at, UnsupportedGraphProfile)
+      "nodes" => TraversedNodes
       "paths" => TraversedPaths
       _ => fail(at, InvalidBody)
     }
@@ -442,7 +443,11 @@ fn traverse_pending_each(
   emit(ResolveTraversalResources)
   emit(ResolvePropertyGraphTraversalProfile)
   emit(EnumeratePropertyPaths)
-  emit(DeduplicateExactPaths)
+  if c.emit == TraversedPaths {
+    emit(DeduplicateExactPaths)
+  } else {
+    emit(MinimumEligibleNodeDepth)
+  }
   if c.guard_rows is Some(bound) {
     emit(EnforceTraversalOutputGuard)
     if bound is Parameter(name) {

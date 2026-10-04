@@ -341,6 +341,7 @@ for (const scenario of [
   {name: 'current-match-edges-literal', op:'match_edges', where:'true', field:'key', expected:2},
   {name: 'current-match-edges-predicate', op:'match_edges', where:'key > 0', field:'key', expected:2},
   {name: 'current-trail', op:'traverse', field:'hop_count', expected:2},
+  {name: 'current-traverse-nodes', op:'traverse', field:'depth', emit:'nodes', expected:1},
 ]) {
   for (const cancel of [false,true,'relation']) {
     test(`current MATCH Host keeps two consumers or cancels private work: ${scenario.name}/${cancel}`, async () => {
@@ -352,7 +353,7 @@ for (const scenario of [
       if(scenario.op==='traverse'){
         value.stages[0].steps.splice(3,1,
           {from:'g',match_nodes:{definition:'N',bindings:{identity:'element'},where:'true',fields:['element']},as:'seeds'},
-          {from:'g',traverse:{start:{from:'seeds',id:'element'},direction:'out',min_hops:2,max_hops:2,path_mode:'trail',emit:'paths'},as:'matched'});
+          {from:'g',traverse:{start:{from:'seeds',id:'element'},direction:'out',min_hops:2,max_hops:2,path_mode:'trail',emit:scenario.emit ?? 'paths'},as:'matched'});
       }else value.stages[0].steps[3]=match;
       value.stages[0].steps.push(
         {from:'matched', filter:{literal:true}, as:'left'},

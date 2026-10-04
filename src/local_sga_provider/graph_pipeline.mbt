@@ -110,7 +110,6 @@ fn accepts_traverse(value : @lower.PreparedGraphTraverse) -> Bool {
   } else {
     @lower.graph_traverse_bounds(value)
   }
-  @lower.graph_traverse_emits_paths(value) &&
   bounds is Some((minimum, maximum)) &&
   minimum <= 2147483647L &&
   maximum <= 2147483647L &&
@@ -180,7 +179,6 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         }
         current_graph(carrier) &&
         @lower.operation(node) == "SGA.traverse" &&
-        @lower.graph_traverse_emits_paths(traverse) &&
         accepts_traverse(traverse)
       }
       @lower.CarrierProjectionStep(_) =>
@@ -605,6 +603,27 @@ fn advance_execution(
               }
             }
           Some(@lower.GraphTraverseStep(_)) => {
+            // The checked search envelope is independent of output cardinality.
+            // Public dispatch always binds it from the captured limit owner.
+            let (paths, rows) = @execution.generated_traversal_ceilings(
+              value.generated,
+              value.projection_step,
+            ).unwrap_or(
+              (
+                value.limits.max_workspace_slots.to_int64(),
+                value.max_rows.to_int64(),
+              ),
+            )
+            let max_paths = if paths < 2147483647L {
+              paths.to_int()
+            } else {
+              2147483647
+            }
+            let max_rows = if rows < value.max_rows.to_int64() {
+              rows.to_int()
+            } else {
+              value.max_rows
+            }
             let started = if direct_view is Some(view) {
               @sga.start_traverse_view(
                 value.control,
@@ -612,7 +631,7 @@ fn advance_execution(
                 value.sequence,
                 value.projection_step,
                 view,
-                value.max_rows,
+                max_rows,
                 {
                   max_nodes: value.limits.max_value_nodes,
                   max_text_bytes: value.max_value_bytes,
@@ -623,6 +642,7 @@ fn advance_execution(
                 value.limits.max_value_bytes,
                 value.limits.max_value_bytes,
                 value.inputs,
+                max_paths~,
               )
             } else {
               guard input is Some(input) else { return fail_execution(value) }
@@ -632,7 +652,7 @@ fn advance_execution(
                 value.sequence,
                 value.projection_step,
                 input,
-                value.max_rows,
+                max_rows,
                 {
                   max_nodes: value.limits.max_value_nodes,
                   max_text_bytes: value.max_value_bytes,
@@ -643,6 +663,7 @@ fn advance_execution(
                 value.limits.max_value_bytes,
                 value.limits.max_value_bytes,
                 value.inputs,
+                max_paths~,
               )
             }
             match started {
@@ -1040,9 +1061,7 @@ pub fn provider(
           @execution.generated_prepared_sequence(sequence),
           selected_step.unwrap_or(0),
         ) {
-        Some(@lower.GraphTraverseStep(traverse)) =>
-          selected_step is Some(_) &&
-          @lower.graph_traverse_emits_paths(traverse)
+        Some(@lower.GraphTraverseStep(_)) => selected_step is Some(_)
         _ => false
       }
       let direct_traverse_relation_count = match

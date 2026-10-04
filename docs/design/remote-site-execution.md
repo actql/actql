@@ -123,6 +123,35 @@ remain running until handler exit is observed. A non-cooperative handler enters
 the existing unknown-cleanup path; cancellation alone cannot release its
 reservation or authorize a replacement execution.
 
+### Durable cancellation before Site admission
+
+`actql-remote-poll-cancel/0.1` carries the original canonical request and its
+exact CID, without materials or execution authority. Site authentication and
+current delegation checks precede journal mutation. The operation binds the
+Coordinator authority, Run, task attempt, dispatch, Site generation, runtime,
+and grant already present in that request; a request ID alone is insufficient.
+
+The existing Site journal persists the cancellation intent. For an absent
+attempt, cancellation admission installs a nonstartable `ExecutionCancelled`
+record with `CleanupReleased` inside the same fenced transaction that excludes
+start claims. No resources were acquired for that absent record. A transient
+not-seen response cannot establish this durable prohibition. Failed or uncertain
+persistence returns no terminal success; an exact retry reconciles the saved
+record without another attempt or resource return.
+
+For a previously accepted attempt, cancellation and the exclusive start claim
+race in that journal. Only cancellation winning the unclaimed Accepted state
+may confirm cancellation before physical execution. Cleanup remains active.
+After start, saving cancellation intent does not confirm physical stop or
+cleanup; the existing physical stop and cleanup owners retain that obligation.
+A completed execution disposition and its evidence are never rewritten to
+unexecuted by a later cancellation.
+
+The attempt index and exact request-CID collision checks retain cancellation
+records across process reconstruction. There is no cancellation-specific record
+retirement. A future retirement must preserve the existing generation/lifetime
+and replay exclusion; deleting a cancellation must never revive an old dispatch.
+
 The accepted record is made durable before physical execution begins. A
 terminal success is reported only after its required evidence, holdings, and
 journal facts are durable. After restart, the Site generation changes and old

@@ -4909,6 +4909,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/traverse.minimum-eligible-node-depth-and-order",
+      "statement_sha256": "deb144df5813a884272ef4a35422f151d7550d4ee14ea78bcfb448d16747b24f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "traverse",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/traverse.typed-edge-identity-records",
       "statement_sha256": "78f5f88722e0d85ca448395c64ce70f5bc16ef236f6e207390d9cab604999e5b",
       "status": "pending",
@@ -12566,7 +12577,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "fe7cacb81ab7c310c7b979c6196200e646176d21f39eafa11e9cfd1dcc15ff5f",
+      "statement_sha256": "c75e27665ceaa3513bb2f35285026a24e3cb9e1663961a08a183b4b85e6d900c",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -13743,10 +13754,10 @@
     },
     {
       "requirement_id": "actql.protocol.run/machine-contracts.exact-artifacts",
-      "statement_sha256": "15ff0b5d29b3f9684fb5b75bf13a4be4767eb200bee0161ab76f01ec8a44eb35",
+      "statement_sha256": "da64f38c6a29c905c5304a05efd794e0d7f40d68e49f60cc1a303f166a20f53e",
       "status": "pending",
       "reason": "implementation_evidence_required",
-      "next_action": "Verify the revised exact contract pins with independent positive and negative evidence.",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "machine-contracts",
         "kind": "law"
