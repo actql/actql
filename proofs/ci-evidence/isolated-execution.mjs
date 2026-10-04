@@ -11,7 +11,8 @@ import {snapshot} from '../bounded-session/evidence.mjs';
 import {hash} from './inputs.mjs';
 import {copyRegular, stageDistribution, stageMutationSource, loaderPaths, isolatedEnvironment,
   isolatedRunArguments, scratchDockerfile, checkImageDefinition} from './isolation.mjs';
-import {observeImageRoot, platformInputs, imageRuntime, checkIsolatedInputs, checkIsolatedResult} from './isolated-runtime.mjs';
+import {observeImageRoot, platformInputs, imageRuntime, checkIsolatedInputs, checkIsolatedResult, snapshotFromGit} from './isolated-runtime.mjs';
+import {isolatedExperimentDigest} from './isolated-contract.mjs';
 
 const jsonBytes = value => Buffer.from(`${encode(value)}\n`);
 const command = (program, args, options = {}) => {
@@ -72,7 +73,10 @@ export function prepareIsolatedMutation({root, tree, origin, directory}) {
   for (const library of [...libraries].sort()) copyRegular({source: realpathSync(library), target: join(imageRoot, library.slice(1)), budget});
   const probe = join(imageRoot, 'runtime/actql-write-probe'); writeFileSync(probe, '', {flag: 'wx', mode: 0o666}); chmodSync(probe, 0o666);
   const manifest = {version: 'actql-isolated-mutation-inputs/0.1', environment: isolatedEnvironment,
-    dockerfile: scratchDockerfile(), root: observeImageRoot(imageRoot), platformInputs: platformInputs(), loaderObservations};
+    dockerfile: scratchDockerfile(), root: observeImageRoot(imageRoot), platformInputs: platformInputs(), loaderObservations,
+    sourceSnapshotDigest: snapshotFromGit(tree).digest, toolchainDigest: hash(tree.read('toolchain.json')),
+    experimentDigest: isolatedExperimentDigest(tree),
+    hostImage: process.env.ImageVersion ?? 'unrecorded'};
   const runtime = imageRuntime(manifest); checkIsolatedInputs({runtime, manifest, tree});
   mkdirSync(join(imageRoot, 'control')); writeFileSync(join(imageRoot, 'control/inputs.json'), jsonBytes(manifest), {flag: 'wx'});
   writeFileSync(join(context, 'Dockerfile'), manifest.dockerfile, {flag: 'wx'});

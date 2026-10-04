@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "scoped-session-acquisition",
+  "kind": "change",
+  "revision": "a0c21e4ad0b03d66a5c7ed5ed84d7da4bcfbee41",
+  "parents": [
+    "6b612b3cf4961958b9349ba0bd7ef63941f7eb2f"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "6b612b3cf4961958b9349ba0bd7ef63941f7eb2f",
+          "digest": "5e537afd4786c0c42333d0977fea82bef819ba4d3328bf1f861ee397bfd43c00",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "48754bae657b704280738c57a165798f74655094394d1f4318df3c4ce2b52fad",
+      "afterMode": "100644",
+      "reason": "Add authenticated final Session applicability evidence after the successful required check. Permit only the existing JS mutation action to use an unchanged original receipt from a verified successful main comparison; all other Session actions remain fresh. Keep the independent action inventory, mixed fresh/reused Lean certificate, actual producer and final authentication, existing workflow job selection and all unrelated campaigns. No original receipt is rewritten and an unavailable required reused origin cannot count as acceptance."
+    }
+  ]
+}

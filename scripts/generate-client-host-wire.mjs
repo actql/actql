@@ -51,6 +51,7 @@ export function buildClientHostWire(registry, protocol) {
     `// Run: node scripts/generate-client-host-wire.mjs --write\n` +
     `const schemas = ${JSON.stringify(schemas, null, 2)};\n` +
     `const operationKeys = ${JSON.stringify(registry.operations, null, 2)};\n\n` +
+    `export const checkReasonSchemaCid = ${JSON.stringify(protocol.artifact_schema_cids.check_reason)};\n` +
     structuralValidatorSource() +
     `export const clientHostOperations = Object.freeze(` +
     `Object.keys(operationKeys));\n` +
@@ -72,7 +73,8 @@ export function buildClientHostWire(registry, protocol) {
       `export type Wire${exports[index]}Shape = ${typeOf(schemas[name])};\n`
     ).join('\n') +
     `\nexport type WireRunStateShape = ${typeOf(schemas.run_state)};\n` +
-    `export type WireCheckOutcomeShape = ${typeOf(schemas.check_outcome)};\n`;
+    `export type WireCheckOutcomeShape = ${typeOf(schemas.check_outcome)};\n` +
+    `export type WireCheckLocationShape = ${typeOf(project(protocol.artifact_schemas.check_reason.properties.location))};\n`;
   return {module, types};
 }
 
