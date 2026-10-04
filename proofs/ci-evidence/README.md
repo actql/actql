@@ -153,3 +153,48 @@ Lean's 2 GiB observation limit at `lib/lean/libLean.a` and MoonBit's
 checked 26 fresh receipts; this is an observation/correspondence unit, not a net
 savings result. Runtime isolation, scoped activation and measured net savings
 on ordinary PRs remain required for the overall task.
+
+# First isolated execution: existing JS mutations
+
+The first controlled executor is the unchanged `mutations-js` action: all 13
+required mutations, running assertion failures, byte-exact restoration and raw
+logs remain required. The collector stages its actual Git snapshot inputs,
+the installed pinned Node executable, MoonBit/core installation, required build
+shell and inspected ELF loader/library bytes into a `FROM scratch` image. The
+pinned Moon build executor invokes `/bin/sh -c` ([n2 source at its pinned
+revision](https://github.com/moonbitlang/n2/blob/79d275ef051cf0d4864ae3b4f4947e3f3f035899/src/process_posix.rs));
+stage the resolved shell as a regular `/bin/sh`, bind its bytes and loader
+inputs, and require its actual startup before the unchanged mutation executor.
+This shell startup is not counted as a mutation kill. This action does not
+execute Lean, so the Lean installation is excluded by its execution path,
+without raising the earlier inventory limit or clearing its residuals.
+
+Staging preserves internal distribution links and binds their targets; missing,
+external, cyclic, limited or unstable inputs refuse preparation. An inspected
+immutable image ID executes without network, host mounts, inherited CI secrets
+or capabilities, with a read-only root and fresh writable tmpfs. The child
+compares the actual image inventory and kernel/CPU/environment profile before
+execution, makes an actual read-only write probe, runs the original action once
+and verifies restoration and unchanged image inputs. Parent and final consumer
+independently compare the source bytes against Git and inspect all 13 original
+assertion logs. The original log/report artifact locations are preserved.
+
+Only this action receives the isolated runtime profile. The other 25 action
+runtimes, final three-target validation, chain/capacity campaigns and required
+checks are unchanged. Image preparation, build, execution, inspection and owned
+container/image closure costs are recorded separately. No registry base, host
+installation cache, workflow change or parallel receipt ledger is introduced.
+The actual built image definition is also checked and retained: fixed ENV,
+entrypoint, user and workdir; no extra command, startup hook, volume or health
+check. The final consumer verifies this inspected definition independently of
+the intended Dockerfile. Staged Dockerfile/control bytes are checked again
+before build, and unexpected environment values are not printed.
+
+**This executor remains comparison-only.** Its kernel/CPU and action closure
+still require acceptance; Docker isolation is not a proof of OS determinism.
+In particular, `/proc`, virtual devices, clock/entropy, compiler behavior and
+complete dynamic dependency discovery are not established merely by copying
+the ELF dependencies. The mandatory isolated residual cannot be removed by a
+carried runtime label. Actual CI execution, main comparison, scoped activation
+and net savings remain required. No local Docker or mutation campaign is needed
+to submit this bounded executor change; use its natural PR CI.

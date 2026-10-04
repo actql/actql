@@ -13,6 +13,7 @@ import {policyUnchanged} from './applications.mjs';
 import {readOriginReceipt} from './receipts.mjs';
 import {downloadArtifact, ArtifactUnavailable, unavailableTransport} from './transport.mjs';
 import {checkRuntimeObservation} from './runtime.mjs';
+import {runtimeForAction, readActionRuntimes} from './isolated-runtime.mjs';
 
 export const comparisonVersion = 'actql-verification-action-comparison/0.1';
 const positive = value => Number.isSafeInteger(value) && value > 0;
@@ -41,7 +42,7 @@ export function selectOriginArtifact(data, baseline, context) {
   return artifact;
 }
 
-async function readRuntime({archive, artifact, baseline, context}) {
+async function readRuntime({archive, artifact, baseline, context, tree}) {
   const zip = await openArtifactZip(archive, {expectedSha256: artifact.digest,
     limits: {maxCompressedBytes: 64 * 1024 * 1024, maxTotalBytes: 256 * 1024 * 1024, maxEntries: 2000}});
   try {
@@ -55,14 +56,14 @@ async function readRuntime({archive, artifact, baseline, context}) {
     assert.equal(state.context.runAttempt, baseline.runAttempt);
     assert.equal(state.context.workflowId, context.workflowId);
     checkRuntimeObservation(state.runtime, distributionInputs);
-    return state.runtime;
+    return {runtime: state.runtime, actionRuntimes: await readActionRuntimes({zip, state, tree})};
   } finally { await zip.close(); }
 }
 
 // All injection points are internal test seams. The CI caller supplies actual
 // Git, the existing Actions client and transport; request JSON cannot override
 // authentication, history, source extraction or runtime validation.
-export async function comparisonPlan({root, context, runtime, directory, token, request,
+export async function comparisonPlan({root, context, runtime, actionRuntimes = {}, directory, token, request,
   recordedRunId = null, treeAt = revision => gitTree(root, revision),
   git = args => execFileSync('git', args, {cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024}),
   resolveBaseline = resolveMainBaseline, download = downloadArtifact, read = readOriginReceipt,
@@ -72,7 +73,7 @@ export async function comparisonPlan({root, context, runtime, directory, token, 
   const start = performance.now(), tree = treeAt(context.candidateRevision);
   const catalog = validateCatalog(JSON.parse(tree.read(catalogPath)));
   const actions = catalog.actions.map(action => ({actionId: action.id, acquisition: 'execute',
-    candidateActionKey: actionInputs({tree, revision: context.candidateRevision, action, runtime}).key,
+    candidateActionKey: actionInputs({tree, revision: context.candidateRevision, action, runtime: runtimeForAction(action, runtime, actionRuntimes)}).key,
     status: 'checkpoint-unavailable', origin: null, equal: false, closed: false, unresolved: []}));
   // At the final consumer validate the originally selected checkpoint again,
   // rather than changing the origin when another old run finishes meanwhile.
@@ -115,7 +116,7 @@ export async function comparisonPlan({root, context, runtime, directory, token, 
   try {
     artifact = selectOriginArtifact(await request(`/actions/runs/${baseline.runId}/artifacts?per_page=100`), baseline, context);
     archive = await download({repository: context.repository, artifactId: artifact.id, token, directory});
-    originRuntime = await loadRuntime({archive, artifact, baseline, context});
+    originRuntime = await loadRuntime({archive, artifact, baseline, context, tree: originTree});
     plan.artifact = {id: artifact.id, digest: artifact.digest, bytes: artifact.size_in_bytes};
   } catch (error) {
     if (!unavailableTransport(error)) throw error;
@@ -139,10 +140,11 @@ export async function comparisonPlan({root, context, runtime, directory, token, 
       assert.equal(receipt.origin.runId, baseline.runId); assert.equal(receipt.origin.runAttempt, baseline.runAttempt);
       assert.equal(original.artifactId, artifact.id);
       assert.equal(original.archiveDigest, artifact.digest.replace(/^sha256:/u, ''));
-      assert(unchanged(receipt.inputs.inputs.runtime, originRuntime), 'Receipt runtime differs from authenticated observation');
-      const reconstructed = actionInputs({tree: originTree, revision: baseline.baseSha, action, runtime: originRuntime});
+      const originalRuntime = runtimeForAction(action, originRuntime.runtime, originRuntime.actionRuntimes);
+      assert(unchanged(receipt.inputs.inputs.runtime, originalRuntime), 'Receipt runtime differs from authenticated observation');
+      const reconstructed = actionInputs({tree: originTree, revision: baseline.baseSha, action, runtime: originalRuntime});
       assert(unchanged(reconstructed, receipt.inputs), 'Original carried inputs do not match actual Git');
-      const current = actionInputs({tree, revision: context.candidateRevision, action, runtime});
+      const current = actionInputs({tree, revision: context.candidateRevision, action, runtime: runtimeForAction(action, runtime, actionRuntimes)});
       const comparison = compareInputs(reconstructed, current);
       entry.status = comparison.eligible ? 'closed-inputs-match' : comparison.equal ? 'same-inputs-open' : 'candidate-inputs-changed';
       entry.equal = comparison.equal; entry.closed = comparison.eligible; entry.unresolved = comparison.reasons;
@@ -160,7 +162,7 @@ export async function comparisonPlan({root, context, runtime, directory, token, 
   return finish();
 }
 
-export function compareFreshObservations({plan, context, runtime, tree, receipts}) {
+export function compareFreshObservations({plan, context, runtime, actionRuntimes = {}, tree, receipts}) {
   assert.equal(plan.version, comparisonVersion); assert.equal(plan.mode, 'comparison');
   assert.equal(plan.reuseAuthorized, false, 'Comparison cannot authorize skip');
   assert(unchanged(plan.context, context), 'Different comparison owner');
@@ -172,7 +174,7 @@ export function compareFreshObservations({plan, context, runtime, tree, receipts
     const entry = plan.actions[index], receipt = receipts[index];
     assert.equal(entry.acquisition, 'execute');
     assert(unchanged(receipt.action, action) && receipt.origin.testedRevision === context.candidateRevision);
-    const current = actionInputs({tree, revision: context.candidateRevision, action, runtime});
+    const current = actionInputs({tree, revision: context.candidateRevision, action, runtime: runtimeForAction(action, runtime, actionRuntimes)});
     assert.equal(entry.candidateActionKey, current.key, 'Changed candidate comparison inputs');
     assert(unchanged(receipt.inputs, current), 'Fresh receipt does not match comparison candidate');
     const comparable = entry.equal && entry.origin !== null;
