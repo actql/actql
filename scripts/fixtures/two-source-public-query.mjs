@@ -179,10 +179,13 @@ export async function exerciseTwoSourcePublicQuery({connect, openInstalledRemote
     try {
       const checker = await running.connect();
       const check = await checker.check('SELECT 1 AS value', {format: 'sql'});
-      assert.equal(check.outcome, 'unavailable');
-      assert.deepEqual(Object.keys(check).sort(),
-        ['correlation_ref', 'outcome', 'problem', 'version']);
-      assert.equal(check.problem.code, 'check_unavailable');
+      assert.equal(check.outcome, 'completed');
+      assert.match(check.report.context_ref, /^ctx:[0-9a-f]{64}$/u);
+      assert.deepEqual({...check, report: {...check.report, context_ref: '<ctx>'}},
+        {version: 'actql-check-outcome/0.1', outcome: 'completed',
+          report: {context_ref: '<ctx>', scope: {kind: 'bound_input'},
+            verdict: 'verified', reasons: [],
+            coverage: {limits: [], unresolved: []}}});
       assert.deepEqual(provider.snapshot(), before, 'plural check performs no provider I/O');
       await exercisePublicQueryInput(connect, running.options, {
         requestPrefix: `${mode}-${variant}`, observe, refusals: [],
