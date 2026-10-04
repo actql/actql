@@ -40,7 +40,8 @@ fn expression(
     match visible.get(occurrence.name) {
       None => unknown_reference(source, occurrence)
       Some((contract, target)) => {
-        if presence_schema is Some(schema) &&
+        if target is InputField(_) &&
+          presence_schema is Some(schema) &&
           @schema.lookup_reference(schema, occurrence.name) is Some(field) &&
           field.presence == @schema.Conditional {
           fail(source, PresenceRequired(occurrence.name))
@@ -129,7 +130,7 @@ fn check_impl(
   schema_preflight(b, body, input)
   // Only implemented preservation kernels may consume conditional rows.
   if !@schema.all_fields_required(input) &&
-    !(operation is Select || operation is Filter) {
+    !(operation is Select || operation is Filter || operation is Derive) {
     fail(body, ConditionalInputNotImplemented)
   }
   let parameter_types : Map[String, @contract.Contract] = Map([])
@@ -541,7 +542,14 @@ fn check_impl(
         if !sequential && visible.contains(name) {
           fail(source, InputCollision(name))
         }
-        let checked = expression(b, source, Some(name), visible, parameters)
+        let checked = expression(
+          b,
+          source,
+          Some(name),
+          visible,
+          parameters,
+          presence_schema=Some(input_schema),
+        )
         if sequential {
           visible[name] = (
             @typing.result_type(checked.expression),
@@ -559,12 +567,35 @@ fn check_impl(
           )
         }
       }
-      let fields : Array[(@schema.FieldName, @contract.Contract)] = []
+      let fields : Array[
+        (@schema.FieldName, @contract.Contract, @schema.Presence),
+      ] = []
       spend(b, body, count=visible.length())
       for name, value in visible {
-        fields.push((reference_target(name, value.1), value.0))
+        let presence = match value.1 {
+          InputField(field) =>
+            @schema.lookup_reference(
+              input_schema,
+              @schema.reference_name(field),
+            ).unwrap().presence
+          PriorSlot(_) => @schema.Required
+        }
+        fields.push((reference_target(name, value.1), value.0, presence))
       }
-      output = schema_type(b, body, fields)
+      let bytes = b.text
+      spend(b, body, count=fields.length())
+      for (name, _, _) in fields {
+        charge(b, body, @schema.reference_name(name))
+      }
+      output = match
+        @schema.from_presence_fields(
+          fields,
+          max_fields=fields.length(),
+          max_name_bytes=bytes,
+        ) {
+        Ok(schema) => schema
+        Err(_) => fail(body, InvalidBody)
+      }
       if sequential {
         DeriveArray
       } else {

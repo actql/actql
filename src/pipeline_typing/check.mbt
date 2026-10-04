@@ -610,10 +610,10 @@ fn check_impl(
     if meta is Some(cursor) {
       metadata(b, cursor)
     }
-    // Projection and guaranteed-column filter preserve conditional rows.
+    // Projection and guaranteed-column filter/derive preserve conditional rows.
     // This checked boundary also covers consumers using Knowledge directly,
     // rather than letting them infer dense rows from known field types.
-    if key != "select" && key != "filter" {
+    if key != "select" && key != "filter" && key != "derive" {
       if carrier(input, inputs, steps) is @carrier.Relation(rows) {
         if !@carrier.all_fields_required(rows) {
           fail(
@@ -1605,7 +1605,9 @@ fn check_impl(
           input,
           inputs,
           steps,
-          allow_conditional=key == "select" || key == "filter",
+          allow_conditional=key == "select" ||
+            key == "filter" ||
+            key == "derive",
         )
         let operation_limits : @relation.Limits = {
           max_work: b.work,

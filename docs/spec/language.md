@@ -763,7 +763,7 @@ without including physical presence bitmap/layout choices.
 In the initial presence profile, ordinary references and public Result columns
 MUST be schema-guaranteed present. Conditional references MUST fail during
 checking; sample values, an empty Relation and `IS NOT NULL` do not prove
-presence. Projection of guaranteed columns and filtering by expressions that
+presence. Projection of guaranteed columns and filter/derive expressions that
 reference only guaranteed columns are supported. Filter MUST preserve the exact
 input schema, ordered surviving rows and each cell's presence; it MUST admit and
 charge all input rows before evaluating the predicate, including rejected rows.
@@ -771,6 +771,20 @@ All syntactic references require presence, including unevaluated branches.
 Other consumers of a conditional schema remain explicitly unsupported until their preservation or
 refinement rules are implemented; they MUST NOT fill omission with NULL or
 silently drop presence. This does not make ordinary object properties optional.
+
+<!-- requirement-block: value-contracts.relation-derive-preservation -->
+Derive MUST preserve untouched fields' presence, values and row correspondence
+through execution, retention and reload, without filling omission with NULL.
+
+<!-- requirement-block: value-contracts.relation-derived-binding-presence -->
+A computed derive binding MUST be Required with its checked type and nullable
+contract; ordered replacement refers to the new binding rather than proving the
+replaced input column present.
+
+<!-- requirement-block: value-contracts.relation-derive-reference-presence -->
+Derive MUST reject every reference to an unguaranteed input column during
+checking, including unevaluated branches; references to a proven earlier binding
+in ordered derive retain the existing value-version semantics.
 
 <!-- requirement-block: value-contracts.empty-object-contracts -->
 Both authored and checked object contracts MUST permit `fields: {}`. This closed

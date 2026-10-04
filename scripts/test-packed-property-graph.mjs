@@ -9,6 +9,10 @@ import {CLIENT_PACKAGES, checkoutState, packedClientPackage, packedNpmCache} fro
 import {certificates} from '../adapters/site-node/https-agent-harness.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
+const selectorDeriveOnly = process.argv.includes('--selector-derive-only');
+if (process.argv.slice(2).some(argument=>argument !== '--selector-derive-only')) {
+  throw new Error('Unknown packed Property Graph selection');
+}
 const source = checkoutState(repository);
 const scratch = await createOwnedScratch({
   parent:join(repository, '..', '.codex-scratch'),
@@ -37,12 +41,15 @@ for (const name of ['property-graph-public-host.test.mjs','check-canonical-json.
   'fixtures/property-graph-presence.program.json',
   'fixtures/property-graph-definition-rows.program.json',
   'fixtures/property-graph-label-rows.program.json',
+  'fixtures/property-graph-selector-derive.program.json',
   'fixtures/property-graph-traverse-nodes.expected.json']) await copyFile(join(repository,'scripts',name),join(root,name));
 await copyFile(join(repository,'docs/reviews/2026-09-19-sga-veca-tea-local-coverage.json'),
   join(root,'local-family-coverage.json'));
 await mkdir(join(root,'tls'));
 await certificates(join(root,'tls'));
-const output = await run(process.execPath,['--test','property-graph-public-host.test.mjs'],root,
+const output = await run(process.execPath,['--test',
+  ...(selectorDeriveOnly ? ['--test-name-pattern','selector property derive'] : []),
+  'property-graph-public-host.test.mjs'],root,
   {...environment,ACTQL_PROPERTY_GRAPH_PACKED:'1',
     PATH:[dirname(process.execPath),'/usr/bin','/bin'].join(':')});
 const digests = {};
@@ -54,12 +61,19 @@ const acceptance = {
   version:'property-graph-packed-acceptance/0.1',node:process.version,
   source,
   packages:digests,paths:['embedded-local','remote-https'],
+  selection:selectorDeriveOnly ? 'selector-derive' : 'all',
   independentFixture:'fixtures/property-graph-parallel.program.json',
   presenceFixture:'fixtures/property-graph-presence.program.json',
   definitionFixture:'fixtures/property-graph-definition-rows.program.json',
   labelFixture:'fixtures/property-graph-label-rows.program.json',
+  selectorDeriveFixture:'fixtures/property-graph-selector-derive.program.json',
   traversalFixture:'fixtures/property-graph-traverse-nodes.expected.json',
-  assertions:['typed MATCH Named Result','independent-key TRAIL identities',
+  assertions:selectorDeriveOnly ? [
+    'definition and all-candidate label declaration-derived schema and empty/nullability contracts',
+    'guaranteed property filter derive projection and independently ordered public read/reattach',
+    'sparse intermediate Store save source denial verified reload and temporary body cleanup',
+    'unguaranteed derive input rejected before Run admission including empty input',
+  ] : ['typed MATCH Named Result','independent-key TRAIL identities',
     'inventory-driven unsupported consumer refusal before Run admission and physical work',
     'composite keys and label sets','independent snapshot bytes and CID',
     'physical save, source revocation and verified reload',
@@ -73,6 +87,7 @@ const acceptance = {
     'conditional property refusal before Run admission',
     'declaration-derived definition selection with empty and nullable Results',
     'selected property filter and alias projection after Relation Store reload',
+    'guaranteed selector property filter derive and projection with sparse intermediate Store reload',
     'declaration-derived all-candidate label selection with nullable and empty Results',
     'label selected typed identities raw aliases and Conditional fields survive Relation Store reload',
     'conditional label reference and mixed unknown wrong-kind selector refusal before Run admission',
