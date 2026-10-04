@@ -10,7 +10,7 @@ import {openArtifactZip} from '../../scripts/ci-artifact-reader.mjs';
 import {catalogPath, validateCatalog, compareCatalogs} from './actions.mjs';
 import {actionInputs, gitTree, compareInputs, hash} from './inputs.mjs';
 import {policyUnchanged} from './applications.mjs';
-import {readOriginReceipt} from './receipts.mjs';
+import {readOriginReceipts} from './receipts.mjs';
 import {downloadArtifact, ArtifactUnavailable, unavailableTransport} from './transport.mjs';
 import {checkRuntimeObservation} from './runtime.mjs';
 import {runtimeForAction, readActionRuntimes} from './isolated-runtime.mjs';
@@ -67,8 +67,8 @@ async function readRuntime({archive, artifact, baseline, context, tree}) {
 export async function comparisonPlan({root, context, runtime, actionRuntimes = {}, directory, token, request,
   recordedRunId = null, treeAt = revision => gitTree(root, revision),
   git = args => execFileSync('git', args, {cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024}),
-  resolveBaseline = resolveMainBaseline, download = downloadArtifact, read = readOriginReceipt,
-  loadRuntime = readRuntime}) {
+  resolveBaseline = resolveMainBaseline, download = downloadArtifact, read = null,
+  loadRuntime = readRuntime, onArchive = null, readGroup = readOriginReceipts}) {
   assert(sha(context.candidateRevision) && positive(context.repositoryId) && positive(context.workflowId));
   assert(recordedRunId === null || positive(recordedRunId));
   const start = performance.now(), tree = treeAt(context.candidateRevision);
@@ -129,12 +129,24 @@ export async function comparisonPlan({root, context, runtime, actionRuntimes = {
   }
   plan.costs.transferMilliseconds = Math.round(performance.now() - transferStart);
   const inspectionStart = performance.now();
+  const matched = catalog.actions.filter(action => {
+    const registered = originalCatalog.actions.find(value => value.id === action.id);
+    return registered && unchanged(registered, action);
+  });
+  let originals = null, groupFailure;
+  if (read === null && matched.length > 0) {
+    try {
+      originals = await readGroup({archive, artifactId: artifact.id, actions: matched,
+        acquisition: 'reused', request, expected: {...context, ancestors: [baseline.baseSha]}});
+    } catch (error) { groupFailure = error; }
+  }
   for (const [index, action] of catalog.actions.entries()) {
     const entry = actions[index], registered = originalCatalog.actions.find(value => value.id === action.id);
     if (!registered || !unchanged(registered, action)) { entry.status = 'registration-changed'; continue; }
     try {
-      const original = await read({archive, artifactId: artifact.id, action, acquisition: 'reused', request,
-        expected: {...context, ancestors: [baseline.baseSha]}});
+      if (groupFailure) throw groupFailure;
+      const original = read === null ? originals.get(action.id) : await read({archive, artifactId: artifact.id, action,
+        acquisition: 'reused', request, expected: {...context, ancestors: [baseline.baseSha]}});
       const receipt = original.receipt;
       assert(unchanged(receipt.action, action), 'Wrong origin action/target/scope');
       assert.equal(receipt.origin.testedRevision, baseline.baseSha);
@@ -160,11 +172,15 @@ export async function comparisonPlan({root, context, runtime, actionRuntimes = {
       entry.status = unavailableTransport(error) ? 'origin-receipt-unavailable' : 'origin-rejected';
     }
   }
+  // A private transport handle, never serialized in scientific evidence. It
+  // lets the execution selector retain exactly the already inspected archive.
+  onArchive?.({archive, artifact, baseline});
   plan.costs.inspectionMilliseconds = Math.round(performance.now() - inspectionStart);
   return finish();
 }
 
-export function compareFreshObservations({plan, context, runtime, actionRuntimes = {}, tree, receipts, mutationResult = null}) {
+export function compareFreshObservations({plan, context, runtime, actionRuntimes = {}, tree, receipts, mutationResult = null,
+  acquisitions = null}) {
   assert.equal(plan.version, comparisonVersion); assert.equal(plan.mode, 'comparison');
   assert.equal(plan.reuseAuthorized, false, 'Comparison cannot authorize skip');
   assert(unchanged(plan.context, context), 'Different comparison owner');
@@ -175,9 +191,20 @@ export function compareFreshObservations({plan, context, runtime, actionRuntimes
   return catalog.actions.map((action, index) => {
     const entry = plan.actions[index], receipt = receipts[index];
     assert.equal(entry.acquisition, 'execute');
-    assert(unchanged(receipt.action, action) && receipt.origin.testedRevision === context.candidateRevision);
+    assert(unchanged(receipt.action, action));
     const current = actionInputs({tree, revision: context.candidateRevision, action, runtime: runtimeForAction(action, runtime, actionRuntimes)});
     assert.equal(entry.candidateActionKey, current.key, 'Changed candidate comparison inputs');
+    const acquisition = acquisitions?.find(value => value.actionId === action.id);
+    if (acquisition?.acquisition === 'reused') {
+      assert.equal(action.id, 'mutations-js');
+      assert.equal(receipt.origin.testedRevision, acquisition.origin.revision);
+      assert.equal(receipt.inputs.key, current.key);
+      assert.equal(hash(Buffer.from(`${encode(receipt)}\n`)), acquisition.origin.receiptDigest);
+      return {actionId: action.id, status: 'reused-not-executed', freshUnits: null, originUnits: receipt.execution.units,
+        freshMilliseconds: null, originMilliseconds: receipt.execution.milliseconds,
+        scientificDigest: null, originScientificDigest: acquisition.origin.scientificDigest};
+    }
+    assert.equal(receipt.origin.testedRevision, context.candidateRevision);
     assert(unchanged(receipt.inputs, current), 'Fresh receipt does not match comparison candidate');
     const comparable = entry.equal && entry.origin !== null;
     const scientificDigest = action.id === 'mutations-js' ? mutationObservation(mutationResult).digest : null;

@@ -166,8 +166,17 @@ export function checkIsolatedResult({payload, manifest, before}) {
 
 // Called only after opening an API-digest-bound immutable artifact. The input
 // inventory and execution observation are independently checked against Git.
-export async function readActionRuntimes({zip, state, tree}) {
+export async function readCandidateActionRuntimes({zip, state, tree}) {
   assert.deepEqual(Object.keys(state.actionRuntimes), ['mutations-js'], 'Missing/unreviewed isolated action scope');
+  const manifest = await zip.json('isolated-inputs.json');
+  checkIsolatedInputs({runtime: state.actionRuntimes['mutations-js'], manifest, tree});
+  // Input preparation alone does not certify an execution. A reused action
+  // must separately authenticate the original execution and its final owner.
+  return state.actionRuntimes;
+}
+
+export async function readActionRuntimes({zip, state, tree}) {
+  await readCandidateActionRuntimes({zip, state, tree});
   const manifest = await zip.json('isolated-inputs.json'), payload = await zip.json('isolated-observation.json');
   const execution = await zip.json('isolated-execution.json');
   checkIsolatedInputs({runtime: state.actionRuntimes['mutations-js'], manifest, tree});
