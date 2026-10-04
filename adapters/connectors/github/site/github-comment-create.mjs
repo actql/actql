@@ -6,7 +6,6 @@
 // This module never resends, never infers success from content, and never
 // reads a comment back to decide an unknown send.
 import {createHash} from 'node:crypto';
-import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {callHttpsCredentialResource} from
   '../../../site-node/https-credential-resource.mjs';
 import {invokeScopedCredentialOperation} from
@@ -21,8 +20,8 @@ const fail = code => {
 };
 const count = value => Number.isSafeInteger(value) && value > 0;
 
-// The exact request one comment row sends, and its canonical identity for
-// the Effect Ledger claim. Nothing in it is secret.
+// The exact request one comment row sends, and the identity of its exact
+// bytes for the Effect Ledger claim. Nothing in it is secret.
 export function prepareGitHubCommentRequest({origin, owner, repo,
   issueNumber, body, maxBodyBytes = 65_536}) {
   if (typeof origin !== 'string' || !origin.startsWith('https://') ||
@@ -32,11 +31,22 @@ export function prepareGitHubCommentRequest({origin, owner, repo,
   }
   const path = `${githubIssueListPath(owner, repo)}/${issueNumber}/comments`;
   const wire = JSON.stringify({body});
-  const identity = {version: REQUEST_VERSION, origin, method: 'POST', path,
-    body: wire};
-  return Object.freeze({...identity,
-    requestCid: `sha256:${createHash('sha256')
-      .update(canonicalJson(identity)).digest('hex')}`});
+  return Object.freeze({version: REQUEST_VERSION, origin, method: 'POST',
+    path, body: wire,
+    requestCid: exactRequestCid([REQUEST_VERSION, origin, 'POST', path, wire])});
+}
+
+// The identity of the exact request: each part's exact UTF-8 bytes, length
+// prefixed, with no logical canonicalization. Two requests whose sent bytes
+// differ in any way (NFC/NFD, CRLF/LF, escaping) never share a CID.
+function exactRequestCid(parts) {
+  const hash = createHash('sha256');
+  for (const part of parts) {
+    const bytes = Buffer.from(part, 'utf8');
+    hash.update(`${bytes.byteLength}:`);
+    hash.update(bytes);
+  }
+  return `sha256:${hash.digest('hex')}`;
 }
 
 // Send exactly once. The caller is the common Effect owner's `execute`; it

@@ -36,7 +36,7 @@ const created = {id: 42, node_id: 'IC_42', body: 'hello',
 const limits = {maxRequestBytes: 65_536, maxResponseBytes: 100_000};
 
 async function setup(t, {reply = () => ({status: 201, body: created}),
-  faults = []} = {}) {
+  faults = [], body = 'hello'} = {}) {
   const fixture = await openHttpsExchangeFixture(t, {faults,
     routes: [{method: 'POST', pathname: path, handle: reply}]});
   const root = await mkdtemp(join(tmpdir(), 'actql-github-comment-'));
@@ -63,17 +63,19 @@ async function setup(t, {reply = () => ({status: 201, body: created}),
   const grant = control.prepare(scope);
   journal.acceptGrant(signRemoteCredentialGrant(grant, control,
     {keyId: 'key-a', privateKey: authority.privateKey}), control);
-  const request = prepareGitHubCommentRequest({origin: fixture.origin,
-    owner: 'octo', repo: 'hello', issueNumber: 7, body: 'hello'});
+  const prepare = text => prepareGitHubCommentRequest({origin: fixture.origin,
+    owner: 'octo', repo: 'hello', issueNumber: 7, body: text});
+  const request = prepare(body);
   const logical = effects.logicalRequestScope(cid('9'), 'request-1', 32);
   const key = effects.dispatchKey(logical, cid('b'), '"row-1"', 32, 8, 3);
   const locator = effects.logicalItemLocator(logical, 'program-1', 'node-1',
     'CommentOne', '{"issue":7}', 64, 128, 8, 3);
-  const claim = {scope: logical, locator, key,
+  // The claim of one row for one exact request.
+  const claimFor = requestCid => ({scope: logical, locator, key,
     basis: effects.ledgerBasis(logical, locator, key, cid('c'), cid('d'),
-      cid('e'), request.requestCid, cid('0'), 'unavailable', cid('1'),
-      cid('2')),
-    intentFingerprintCid: cid('e'), canonicalRequestCid: request.requestCid};
+      cid('e'), requestCid, cid('0'), 'unavailable', cid('1'), cid('2')),
+    intentFingerprintCid: cid('e'), canonicalRequestCid: requestCid});
+  const claim = claimFor(request.requestCid);
   const openLedger = () => {
     const ledger = openEffectLedger({moon: commonMoon, root,
       authorityScopeCid: cid('9'), callerRequestId: 'request-1',
@@ -82,11 +84,13 @@ async function setup(t, {reply = () => ({status: 201, body: created}),
     return ledger;
   };
   let live;
-  const dispatch = ledger => captureClaimedEffectResponse({ledger, claim,
-    requestCid: request.requestCid,
+  let uses = 0;
+  const dispatch = (ledger, {sending = request, claimed = claim} = {}) =>
+    captureClaimedEffectResponse({ledger, claim: claimed,
+    requestCid: sending.requestCid,
     execute: async () => {
-      const sent = await sendGitHubIssueComment({moon, request,
-        authorization: {grant, scope, useId: 'comment-1'},
+      const sent = await sendGitHubIssueComment({moon, request: sending,
+        authorization: {grant, scope, useId: `comment-${uses++}`},
         credential: {control, journal, resolveSecret: async () => 'token-a',
           ca: fixture.ca, now: () => 1_999_999_999_999}, limits});
       live = sent.headers;
@@ -94,8 +98,8 @@ async function setup(t, {reply = () => ({status: 201, body: created}),
     }});
   const project = (observation, headers) => projectGitHubCommentObservation({
     moon, observation, headers, maxResponseBytes: limits.maxResponseBytes});
-  return {fixture, journal, request, openLedger, dispatch, project,
-    live: () => live};
+  return {fixture, journal, request, prepare, claimFor, openLedger, dispatch,
+    project, live: () => live};
 }
 
 const posts = fixture => fixture.seen().filter(entry => entry.method === 'POST');
@@ -176,3 +180,46 @@ test('a recovered 403 without its headers stays unknown', async t => {
     statusCode: 201, body: Buffer.from(JSON.stringify(created))}, undefined)
     .kind, 'typed-success-response');
 });
+
+test('the request CID binds the exact sent bytes: NFC/NFD and CRLF/LF differ', () => {
+  const base = {origin: 'https://api.github.com', owner: 'octo',
+    repo: 'hello', issueNumber: 7};
+  for (const [left, right] of [['caf\u00e9', 'cafe\u0301'],
+    ['line\r\nnext', 'line\nnext'], ['a\u00a0b', 'a b']]) {
+    const a = prepareGitHubCommentRequest({...base, body: left});
+    const b = prepareGitHubCommentRequest({...base, body: right});
+    assert.notDeepEqual(Buffer.from(a.body, 'utf8'), Buffer.from(b.body, 'utf8'));
+    assert.notEqual(a.requestCid, b.requestCid, JSON.stringify([left, right]));
+  }
+  // The same body always yields the same identity.
+  assert.equal(prepareGitHubCommentRequest({...base, body: 'cafe\u0301'})
+    .requestCid, prepareGitHubCommentRequest({...base, body: 'cafe\u0301'})
+    .requestCid);
+});
+
+test('a different body is refused for an existing claim and nothing is sent',
+  async t => {
+    const context = await setup(t, {body: 'caf\u00e9'});
+    const other = context.prepare('cafe\u0301');
+    // Presenting another body under this row's claim is refused before any
+    // credential use or request.
+    await assert.rejects(context.dispatch(context.openLedger(),
+      {sending: other}), {code: 'InvalidEffectPhysicalDispatch'});
+    assert.equal(posts(context.fixture).length, 0);
+    // The row's own body is sent once.
+    const sent = await context.dispatch(context.openLedger());
+    assert.equal(sent.claimed, true);
+    assert.equal(posts(context.fixture).length, 1);
+    assert.equal(posts(context.fixture)[0].body,
+      JSON.stringify({body: 'caf\u00e9'}));
+    // A claim of the same row for the other body cannot take its place in
+    // the Ledger, and sends nothing.
+    await assert.rejects(context.dispatch(context.openLedger(),
+      {sending: other, claimed: context.claimFor(other.requestCid)}),
+    {code: 'EffectLedgerIntentConflict'});
+    assert.equal(posts(context.fixture).length, 1);
+    // Re-presenting the same body is the same request: no second send.
+    const again = await context.dispatch(context.openLedger());
+    assert.equal(again.claimed, false);
+    assert.equal(posts(context.fixture).length, 1);
+  });
