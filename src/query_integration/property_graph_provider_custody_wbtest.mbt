@@ -1,4 +1,307 @@
 ///|
+test "selected normalize_graph copies a keyed Graph in bounded steps and keeps its input live" {
+  let nodes = keyed_node_source()
+  let edges = keyed_edge_source()
+  let owner = keyed_bridge_owner(nodes, edges)
+  let construction_step = @execution.select_generated_sequence_step(
+    task_test_generated(owner),
+    0,
+  ).unwrap()
+  let limits = dispatch_test_limits()
+  let create = @local_sga_provider.provider(
+    carrier_graph_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      construction_step,
+      limits.local_execution,
+      limits.guards,
+    ).unwrap(),
+  )
+  let construction = @local_connector.start_managed_provider_with_inputs(
+    create,
+    construction_step,
+    keyed_bridge_inputs(owner, nodes, edges).map(
+      @local_connector.managed_provider_relation_input,
+    ),
+    10,
+    1000,
+  ).unwrap()
+  let mut original = None
+  for _ in 0..<1000 {
+    match @local_connector.advance_managed_provider(construction, 1).unwrap() {
+      @local_connector.Continue(..) => ()
+      @local_connector.CarrierComplete(output, ..) => {
+        original = Some(output)
+        break
+      }
+      _ => fail("constructor failed")
+    }
+  }
+  let original = original.unwrap()
+  assert_true(@local_connector.cleanup_managed_provider(construction).unwrap())
+  let receiver = keyed_graph_receiver(
+    owner,
+    body="[{\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"}]",
+  )
+  let selected = @execution.select_generated_sequence_step(
+    task_test_generated(receiver),
+    0,
+  ).unwrap()
+  let provider = @local_sga_provider.provider(
+    carrier_graph_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      selected,
+      limits.local_execution,
+      limits.guards,
+    ).unwrap(),
+  )
+  assert_true(@local_connector.managed_provider_accepts(provider, selected))
+  let view = @carrier_runtime.material_prepare_view(
+    original, receiver, 0, owner,
+  ).unwrap()
+  let run = @local_connector.start_managed_provider_with_inputs(
+    provider,
+    selected,
+    [@local_connector.managed_provider_carrier_input(view)],
+    10,
+    1000,
+  ).unwrap()
+  let mut normalized = None
+  let mut advances = 0
+  for _ in 0..<1000 {
+    advances += 1
+    match @local_connector.advance_managed_provider(run, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work <= 1L)
+      @local_connector.CarrierComplete(output, ..) => {
+        normalized = Some(output)
+        break
+      }
+      _ => fail("normalization failed")
+    }
+  }
+  let normalized = normalized.unwrap()
+  assert_true(advances > 1)
+  assert_true(@local_connector.cleanup_managed_provider(run).unwrap())
+  assert_true(@carrier_runtime.material_available(original))
+  assert_true(@carrier_runtime.material_available(normalized))
+  let consumer = keyed_graph_receiver(receiver)
+  let copied = @carrier_runtime.material_prepare_view(
+    normalized, consumer, 0, receiver,
+  ).unwrap()
+  assert_eq(@carrier_runtime.producer_view_node_count(copied), Some(1))
+  assert_eq(@carrier_runtime.producer_view_edge_count(copied), Some(2))
+  assert_true(
+    @carrier_runtime.producer_view_node_key(copied, 0, 0).unwrap().value
+    is @admitted.Text("a"),
+  )
+  assert_true(
+    @carrier_runtime.producer_view_node_key(copied, 0, 1).unwrap().value
+    is @admitted.Number(1.0),
+  )
+  assert_true(
+    @carrier_runtime.producer_view_edge_key(copied, 0, 0).unwrap().value
+    is @admitted.Number(10.0),
+  )
+  assert_true(
+    @carrier_runtime.producer_view_edge_key(copied, 1, 0).unwrap().value
+    is @admitted.Number(11.0),
+  )
+  assert_eq(
+    @carrier_runtime.producer_view_edge_endpoints(copied, 0),
+    Ok((0, 0)),
+  )
+  let cancel_view = @carrier_runtime.material_prepare_view(
+    original, receiver, 0, owner,
+  ).unwrap()
+  let cancelling = @local_connector.start_managed_provider_with_inputs(
+    provider,
+    selected,
+    [@local_connector.managed_provider_carrier_input(cancel_view)],
+    10,
+    1000,
+  ).unwrap()
+  let mut partial_output = false
+  for _ in 0..<1000 {
+    match @local_connector.advance_managed_provider(cancelling, 1).unwrap() {
+      @local_connector.Continue(progress~, ..) =>
+        if progress > 0L {
+          partial_output = true
+          break
+        }
+      _ => fail("normalization completed before partial-output cancellation")
+    }
+  }
+  assert_true(partial_output)
+  assert_true(@local_connector.cancel_managed_provider(cancelling))
+  assert_true(
+    @local_connector.advance_managed_provider(cancelling, 1).unwrap()
+    is @local_connector.Stopped(..),
+  )
+  assert_true(@local_connector.cleanup_managed_provider(cancelling).unwrap())
+  assert_true(@carrier_runtime.material_available(original))
+  assert_true(@carrier_runtime.material_available(normalized))
+  // The fixture has one node (8 retained slots), two edges (10 each), and
+  // four live arrays plus five edge fields of private scratch: 37 slots.
+  for (slots, succeeds) in [(37, true), (36, false)] {
+    let bounded_view = @carrier_runtime.material_prepare_view(
+      original, receiver, 0, owner,
+    ).unwrap()
+    let active = @local_sga.start_normalize_view(
+      @bounded.control(),
+      prepared_sequence(receiver),
+      0,
+      bounded_view,
+      { ..carrier_graph_storage_limits(), max_workspace_slots: slots, },
+      4096L,
+      () => true,
+    ).unwrap()
+    let mut terminal = false
+    let mut prior_work = 0L
+    for _ in 0..<1000 {
+      match @local_sga.advance_normalize(active, 1).unwrap() {
+        @local_sga.NormalizeContinue(work~, ..) => {
+          assert_true(work > prior_work && work - prior_work <= 1L)
+          prior_work = work
+        }
+        @local_sga.NormalizeComplete(output, ..) => {
+          assert_true(succeeds)
+          assert_true(@graphs.discard_completed(output))
+          terminal = true
+          break
+        }
+        @local_sga.NormalizeFailed(
+          @local_sga.NormalizeOutput(
+            @graphs.Storage(@graph_storage.WorkspaceLimit)
+          ),
+          ..
+        ) => {
+          assert_false(succeeds)
+          terminal = true
+          break
+        }
+        _ => fail("unexpected normalization boundary result")
+      }
+    }
+    assert_true(terminal)
+    assert_true(@local_sga.cleanup_normalize(active).unwrap())
+  }
+  // One node and one edge definition take four scan steps. Preparation takes
+  // one. The node takes Begin(2), two keys plus transition(3), one property
+  // plus transition(2), and Commit(1). Two edges take Begin(3) and, each,
+  // key(2), source keys(3), target keys(3), property transition(1), Commit(1).
+  // Finish adds one: 4 + 1 + 8 + 23 + 1 = 37 control-work units.
+  let exact_work = 37
+  for quantum in [1, 7] {
+    for allowed in [exact_work - 1, exact_work] {
+      let bounded_view = @carrier_runtime.material_prepare_view(
+        original, receiver, 0, owner,
+      ).unwrap()
+      let active = @local_sga.start_normalize_view(
+        @bounded.control(),
+        prepared_sequence(receiver),
+        0,
+        bounded_view,
+        carrier_graph_storage_limits(),
+        4096L,
+        () => true,
+        control_work_limit=Some(allowed),
+      ).unwrap()
+      let mut terminal = false
+      let mut observed_work = 0L
+      for _ in 0..<100 {
+        match @local_sga.advance_normalize(active, quantum).unwrap() {
+          @local_sga.NormalizeContinue(work~, ..) => {
+            assert_true(work >= observed_work)
+            observed_work = work
+          }
+          @local_sga.NormalizeComplete(output, work~, ..) => {
+            assert_eq(allowed, exact_work)
+            assert_true(work >= observed_work)
+            observed_work = work
+            assert_true(@graphs.discard_completed(output))
+            terminal = true
+            break
+          }
+          @local_sga.NormalizeFailed(
+            @local_sga.NormalizeControlWorkLimit,
+            work~,
+            ..
+          ) => {
+            assert_eq(allowed, exact_work - 1)
+            assert_true(work >= observed_work)
+            observed_work = work
+            terminal = true
+            break
+          }
+          _ => fail("normalize control-work boundary returned another result")
+        }
+      }
+      assert_true(terminal)
+      assert_eq(observed_work, allowed.to_int64())
+      assert_true(@local_sga.cleanup_normalize(active).unwrap())
+      assert_false(@local_sga.normalize_cleanup_pending(active))
+      assert_true(@local_sga.advance_normalize(active, 1) is Err(_))
+    }
+  }
+  for
+    (node_limit, edge_limit, expected) in [
+      (1, 2, "complete"),
+      (0, 2, "node_limit"),
+      (1, 1, "edge_limit"),
+    ] {
+    let bounded_view = @carrier_runtime.material_prepare_view(
+      original, receiver, 0, owner,
+    ).unwrap()
+    let active = @local_sga.start_normalize_view(
+      @bounded.control(),
+      prepared_sequence(receiver),
+      0,
+      bounded_view,
+      {
+        ..carrier_graph_storage_limits(),
+        max_nodes: node_limit,
+        max_edges: edge_limit,
+      },
+      4096L,
+      () => true,
+    ).unwrap()
+    let mut terminal = false
+    for _ in 0..<100 {
+      match @local_sga.advance_normalize(active, 1).unwrap() {
+        @local_sga.NormalizeContinue(..) => ()
+        @local_sga.NormalizeComplete(output, ..) => {
+          assert_eq(expected, "complete")
+          assert_true(@graphs.discard_completed(output))
+          terminal = true
+          break
+        }
+        @local_sga.NormalizeFailed(
+          @local_sga.NormalizeOutput(@graphs.Storage(issue)),
+          ..
+        ) => {
+          if expected == "node_limit" {
+            assert_true(issue is @graph_storage.NodeLimit)
+          } else if expected == "edge_limit" {
+            assert_true(issue is @graph_storage.EdgeLimit)
+          } else {
+            fail("exact node and edge capacity rejected normalization")
+          }
+          terminal = true
+          break
+        }
+        _ => fail("normalize capacity returned another result")
+      }
+    }
+    assert_true(terminal)
+    assert_true(@local_sga.cleanup_normalize(active).unwrap())
+    assert_true(@carrier_runtime.material_available(original))
+  }
+  assert_true(@carrier_runtime.reclaim_material(normalized))
+  assert_true(@carrier_runtime.reclaim_material(original))
+}
+
+///|
 test "current Graph material remains owned across two MATCH consumers cancellation and final reclaim" {
   let nodes = keyed_node_source()
   let edges = keyed_edge_source()

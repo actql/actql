@@ -3,10 +3,6 @@ test "unconnected structural Graph operations refuse before Result publication" 
   for
     (operation, expected) in [
       (
-        "\"normalize_graph\":true",
-        @pipeline.Graph(@graph.UnsupportedGraphOperation),
-      ),
-      (
         "\"reach\":{\"start\":1,\"direction\":\"both\",\"max_depth\":2}",
         @pipeline.Graph(@graph.UnsupportedGraphOperation),
       ),
@@ -22,6 +18,35 @@ test "unconnected structural Graph operations refuse before Result publication" 
       expected,
     )
   }
+}
+
+///|
+test "normalized Graph projects through node rows to a checked Result" {
+  let pipeline = @pipeline.check_carriers(
+    cursor(
+      "[{\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"}," +
+      "{\"from\":\"normalized\",\"node_rows\":true,\"as\":\"rows\"}]",
+    ),
+    [("g", property_query_graph())],
+    None,
+    None,
+    ranking_limits(),
+  ).unwrap()
+  let result = @relation_results.check(
+    pipeline,
+    cursor("{\"main\":{\"from\":\"rows\",\"fields\":[\"id\"]}}"),
+    limits(),
+  ).unwrap()
+  assert_eq(@relation_results.count(result), 1)
+  assert_eq(@relation_results.publication_strategy(resolve(result)), Inherited)
+  assert_true(
+    @relation_results.check(
+      pipeline,
+      cursor("{\"main\":{\"from\":\"normalized\",\"fields\":[\"id\"]}}"),
+      limits(),
+    )
+    is Err({ kind: WrongCarrier(GraphKind), .. }),
+  )
 }
 
 ///|

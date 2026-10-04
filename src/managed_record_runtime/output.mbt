@@ -178,17 +178,24 @@ pub fn finish_output(output : OutputBuilder) -> Result[Completed, Issue] {
   let records = match @storage.finish(output.records) {
     Ok(value) => value
     Err(issue) => {
+      @storage.cancel(output.records) |> ignore
       @lifecycle.cancel_retention_port(output.retention) |> ignore
       return Err(Storage(issue))
     }
   }
   let retained = match @lifecycle.retain(output.retention, records) {
     Ok(value) => value
-    Err(issue) => return Err(Lifecycle(issue))
+    Err(issue) => {
+      @storage.discard(records)
+      return Err(Lifecycle(issue))
+    }
   }
   match @lifecycle.complete(retained) {
     Ok(value) => Ok({ core: value, })
-    Err(issue) => Err(Lifecycle(issue))
+    Err(issue) => {
+      @storage.discard(records)
+      Err(Lifecycle(issue))
+    }
   }
 }
 

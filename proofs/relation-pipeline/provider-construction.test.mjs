@@ -85,9 +85,12 @@ test('reviewed Graph rejection branches and traversal ledger preserve Relation c
     '      | @lower.GraphMatchStep(_)',
     '      | @lower.GraphTraverseStep(_)',
     '      | @lower.GraphDiagnosticStep(_)',
+    '      | @lower.GraphNormalizeStep(_)',
     '      | @lower.PropertyGraphConstructionStep(_)',
   ].join('\n');
   assert.equal(before.toString().split(oldBranch).length,2);
+  // GraphNormalizeStep only joins the row-kernel exclusion branch; it does
+  // not change the candidate factory count, callback shape or live captures.
   // Compare the entire original source outside these exact reviewed changes.
   // The new ledger belongs to the prepared configuration, not to the eleven
   // candidate factories or the retained parent-core component. Its allocation

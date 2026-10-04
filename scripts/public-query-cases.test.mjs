@@ -8,12 +8,12 @@ test('shared Relation controls and Graph source cases have one request each', ()
   const selected = uniquePublicQueryCases([
     ...relationDataSuccesses, ...propertyGraphSourceSuccesses,
   ]);
-  assert.equal(selected.length, 28);
+  assert.equal(selected.length, 29);
   assert.deepEqual(selected.slice(0, 3).map(item => item.name), [
     'data-set-order-reuses-hidden-slot', 'data-quoted-set-order',
     'data-retained-results',
   ]);
-  assert.equal(selected.filter(item => item.name.startsWith('keyed-')).length, 25);
+  assert.equal(selected.filter(item => item.name.startsWith('keyed-')).length, 26);
   assert.deepEqual(selected, propertyGraphSourceSuccesses);
 });
 
