@@ -119,6 +119,32 @@ export async function installedGitHubSourceIdentityParts(profile,
   ];
 }
 
+// The published repository binding of a checked profile, without provider
+// I/O. A publication for another connector or another owner/repo is refused.
+export async function readGitHubPublication(checkedProfile, site) {
+  let publication;
+  try {
+    publication = JSON.parse(await readFile(checkedProfile.publicationPath,
+      'utf8'));
+  } catch (cause) {
+    fail('GitHubPublicationMissing', cause);
+  }
+  if (publication?.version !== PUBLICATION_VERSION ||
+      publication.connectorId !== checkedProfile.connectorId) {
+    fail('InvalidGitHubPublication');
+  }
+  if (publication.apiOrigin !== site.apiOrigin ||
+      publication.owner !== site.owner || publication.repo !== site.repo) {
+    fail('GitHubRepositoryBindingChanged');
+  }
+  return publication;
+}
+
+// The Site, its opening and the declaration are shared with the GitHub
+// Effect installation; there is no second copy of any of them.
+export {readSite as readGitHubSite, openSite as openGitHubSite,
+  restore as restoreGitHubDeclaration};
+
 async function restore(moon, connectorId, expectedCatalogCid) {
   const views = await readFile(viewsUrl, 'utf8');
   const declaration = checked(moon.clientProgramRowSourceRestoreDeclaration(
@@ -158,10 +184,16 @@ async function openSite(checkedProfile, site, {root, principalId, moon,
 // The explicit publication step: observe the repository's stable identity
 // under the installed read decision and the credential resource, and record
 // it with the declaration's Catalog CID. A Host start never runs it.
-export async function publishInstalledGitHubSource(profile, {root,
+export async function publishInstalledGitHubSource(profile, options) {
+  return publishGitHubRepository(checkInstalledGitHubSourceProfile(profile),
+    options);
+}
+
+// The publication step of a checked GitHub source or Effect profile: both
+// bind the same repository the same way.
+export async function publishGitHubRepository(checkedProfile, {root,
   principalId, moon, providerMoon, runtimeBundleCid, resolveSecret, signal,
   installation}) {
-  const checkedProfile = checkInstalledGitHubSourceProfile(profile);
   const site = await readSite(checkedProfile.siteProfilePath);
   const {declared} = await restore(moon, checkedProfile.connectorId, undefined);
   const opened = await openSite(checkedProfile, site, {root, principalId,
@@ -229,21 +261,7 @@ export async function loadInstalledGitHubSource(profile, {root, principalId,
   installation}) {
   const checkedProfile = checkInstalledGitHubSourceProfile(profile);
   const site = await readSite(checkedProfile.siteProfilePath);
-  let publication;
-  try {
-    publication = JSON.parse(await readFile(checkedProfile.publicationPath,
-      'utf8'));
-  } catch (cause) {
-    fail('GitHubPublicationMissing', cause);
-  }
-  if (publication?.version !== PUBLICATION_VERSION ||
-      publication.connectorId !== checkedProfile.connectorId) {
-    fail('InvalidGitHubPublication');
-  }
-  if (publication.apiOrigin !== site.apiOrigin ||
-      publication.owner !== site.owner || publication.repo !== site.repo) {
-    fail('GitHubRepositoryBindingChanged');
-  }
+  const publication = await readGitHubPublication(checkedProfile, site);
   const {declaration, declared} = await restore(moon,
     checkedProfile.connectorId, publication.catalogCid);
   const environment = rowSourceCheckEnvironment(baseEnvironmentWire, declared);

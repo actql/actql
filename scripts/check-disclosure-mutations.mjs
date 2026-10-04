@@ -25,6 +25,7 @@ const mutations = [
     '      | LexicalViolation(_, _)\n' +
     '      | QueryViolation(_, _)\n' +
     '      | TypeViolation(_, _, _, _)\n      | SuppliedViolation(_)\n' +
+    '      | DeclarationViolation(_)\n' +
     '      | ConstraintViolation(_, _, _)\n' +
     '      | UndeclaredParameter(_, _))\n    }) {\n' +
     '    "invalid"',
@@ -76,6 +77,12 @@ const mutations = [
   ['a lexical violation loses its typed explanation',
     'LexicalViolation(_, _) => Some("query_lexical_invalid")',
     'LexicalViolation(_, _) => Some("query_syntax_invalid")'],
+  ['an invalid declaration loses its owned location',
+    'findings.push(DeclarationViolation(pointer))',
+    'findings.push(DeclarationViolation(None))'],
+  ['an invalid declaration points at the root instead of its failing member',
+    'writer, "parameter_declarations", revision, pointer,',
+    'writer, "parameter_declarations", revision, "",'],
 ];
 
 const strict = id => ({id, operator: 'strictEqual'});
@@ -109,6 +116,10 @@ const targets = [
   ...Array.from({length: 3}, () =>
     ['typed lexical explanations retain the submitted token position',
       [strict('lexical-outcome'), strict('lexical-verdict'), deep('lexical-reason')]]),
+  ['invalid declarations retain only their owned submitted locations',
+    [strict('declaration-outcome'), deep('declaration-location')]],
+  ['invalid declarations retain only their owned submitted locations',
+    [strict('declaration-outcome'), deep('declaration-location')]],
 ];
 
 // Reuse the common reporter and nonzero-execution evidence. A process failure
