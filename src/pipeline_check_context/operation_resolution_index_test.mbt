@@ -54,9 +54,9 @@ fn check_resolution_index(
         assert_true(physical_equal(check.site, site))
       }
       Execution(GraphEqualityExecution(check)) => {
-          execution += 1
-          assert_true(physical_equal(check.site, site))
-        }
+        execution += 1
+        assert_true(physical_equal(check.site, site))
+      }
       Execution(GraphNormalizeExecution(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))
