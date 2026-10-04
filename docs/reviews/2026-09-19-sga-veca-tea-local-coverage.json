@@ -81,7 +81,7 @@
       "graft_graph": "blocked",
       "union_graphs": "blocked",
       "subtract_graphs": "blocked",
-      "subgraph": "blocked",
+      "subgraph": "partial",
       "graphs_equal": "blocked",
       "apply_graph_delta": "blocked",
       "mean_graphs": "blocked",
@@ -90,7 +90,7 @@
       "node_rows": "partial",
       "edge_rows": "partial"
     },
-    "completion_rule": "Historical tuple-profile suites do not discharge current Graph coverage. Partial evidence is limited to the current constructor, definition-selected MATCH/TRAIL, bounds, degree and components paths recorded below; it does not establish all normative variants or all SGA execution. Blocked means typed refusal before Run admission, acquisition I/O and dispatch."
+    "completion_rule": "Historical tuple-profile suites do not discharge current Graph coverage. Partial evidence is limited to the current constructor, definition-selected MATCH/TRAIL, bounds, degree, components and subgraph paths recorded below; it does not establish all normative variants or all SGA execution. Blocked means typed refusal before Run admission, acquisition I/O and dispatch."
   },
   "operations": [
     {
@@ -1722,10 +1722,23 @@
       "output": "graph",
       "canonical": ["SGA.subgraph"],
       "variants": ["selector forms", "edge predicate absent/present", "induced structure"],
-      "status": "blocked",
+      "status": "partial",
       "owner": "local-sga",
-      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
-      "completed_layers": ["contract"],
+      "current_gap": "The keyed Property Graph checker, bounded kernel and selected provider now admit explicit and Relation selectors with induced independent edge identities. Focused JS/Wasm/native tests cover exact owner resolution, snapshot save/reload, a Relation-selected same-Stage chain, two managed Host consumers, and exact/one-short work and workspace limits. Real retained Store standard Host cases cover Named Result publication and cancellation delivered after positive Subgraph progress. Predicate node selection and Store fault cleanup remain open; historical tuple-profile evidence does not discharge these gaps.",
+      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed"],
+      "layer_evidence": [
+        {
+          "scope": "current_keyed_graph_subgraph_selection_and_handoff",
+          "layers": ["checker", "lowering", "kernel", "managed"],
+          "targets": ["js"],
+          "evidence": [
+            "src/pipeline_check_context/subgraph_execution_wbtest.mbt",
+            "src/query_integration/property_graph_subgraph_wbtest.mbt",
+            "src/query_integration/property_graph_host_custody_wbtest.mbt"
+          ],
+          "verification": "Exact checked body owner and input ports, independent parallel edge identities, nullable property retention, snapshot reload and a selected Graph/Relation/Graph/Relation chain with two managed Host consumers."
+        }
+      ],
       "historical_implementation_evidence": [
         {
           "scope": "literal_identity_induced_subgraph",

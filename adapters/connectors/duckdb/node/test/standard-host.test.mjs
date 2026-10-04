@@ -1794,6 +1794,18 @@ async function exerciseStrategyGraph(
     fields:['id','node_name'], secondFields:['node_name'],
     expected:[{id:1,node_name:'first'},{id:2,node_name:'second'}],
   }, {
+    name:'retained-relation-selected-subgraph',
+    retainedOutput:true, selectedStructural:true,
+    steps:[
+      {from:'g',match_nodes:{definition:'N',bindings:{identity:'element'},
+        where:'true',fields:['element']},as:'selected'},
+      {from:'g',subgraph:{nodes:{from:'selected',id:'element'}},as:'slice'},
+      {from:'slice',match_nodes:{definition:'N',where:'true',
+        fields:['id','node_name']},as:'out'},
+    ],
+    fields:['id','node_name'],secondFields:['node_name'],
+    expected:[{id:1,node_name:'first'},{id:2,node_name:'second'}],
+  }, {
     name: 'retained-graph-bounds', retainedOutput:true,
     selectedStructural:true,
     step:{from:'g',graph_bounds:{max_nodes:1,max_edges:1},as:'out'},
@@ -4674,6 +4686,21 @@ async function exerciseStrategyGraph(
       fields:['src','dst','weight']},as:'out'},
     fields:['src','dst','weight'],
   }, {
+    name:'retained-relation-selected-subgraph-in-flight',
+    selectedStructural:true,
+    retainedOutput:true,rows:40,advanceQuantum:1,
+    constructionProgress:80,constructionStarts:[1],
+    cancelOnManagedStart:3,managedStarts:3,cancelTask:4,
+    minimumCompletedRows:1,completedTasks:[1,2,3],
+    steps:[
+      {from:'g',match_nodes:{definition:'N',bindings:{identity:'element'},
+        where:'true',fields:['element']},as:'selected'},
+      {from:'g',subgraph:{nodes:{from:'selected',id:'element'}},as:'slice'},
+      {from:'slice',match_nodes:{definition:'N',where:'true',
+        fields:['id','node_name']},as:'out'},
+    ],
+    fields:['id','node_name'],
+  }, {
     name: 'current-graph-bounds-fused-in-flight',
     retainedOutput:true,rows:40,advanceQuantum:1,
     constructionProgress:80,constructionStarts:[1],
@@ -5211,7 +5238,16 @@ async function exerciseStrategyGraph(
     completedTasks: [1, 2, 3, 4],
     fields: ['query_id', 'candidate_id', 'score', 'rank'],
   }];
+  const focusedCancellationCase =
+    process.env.ACTQL_STANDARD_HOST_CANCEL_CASE;
+  if (focusedCancellationCase !== undefined) {
+    assert(graphCancellationCases.some(value =>
+      value.name === focusedCancellationCase),
+    `Unknown focused cancellation case: ${focusedCancellationCase}`);
+  }
   for (const cancellationCase of graphCancellationCases) {
+    if (focusedCancellationCase !== undefined &&
+        cancellationCase.name !== focusedCancellationCase) continue;
     const teaFamily = cancellationCase.family === 'tea' ||
       cancellationCase.family === 'time-series' ||
       cancellationCase.family === 'interval' ||

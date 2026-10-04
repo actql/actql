@@ -2710,10 +2710,10 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | Coverage state | Count |
 |---|---:|
 | `contract` | 40/40 |
-| `checker` | 24/40 |
-| `lowering` | 24/40 |
-| `kernel` | 24/40 |
-| `managed` | 24/40 |
+| `checker` | 25/40 |
+| `lowering` | 25/40 |
+| `kernel` | 25/40 |
+| `managed` | 25/40 |
 | `standard_host` | 24/40 |
 | `consumer_lifetime` | 24/40 |
 | `resources` | 28/40 |
@@ -4541,6 +4541,21 @@ The focused portable subgraph tests passed on JS, Wasm, and native, and the
 full Node standard-Host test passed locally. Same-SHA Linux CI remains
 unverified; these cases do not establish every Graph selector variant or every
 mixed Carrier failure mode.
+
+The current definition-keyed Property Graph subgraph path now binds a selected
+Graph and a Relation selector to their exact operation ports. Its bounded
+kernel preserves distinct edge keys even when endpoints coincide, copies
+declared properties, and retains only induced edges passing the optional edge
+predicate. JS integration fixtures cover snapshot save/reload, a downstream
+edge consumer, a same-Stage Relation-selected chain, independent managed Host
+consumers, cancellation after positive progress, and independently calculated
+exact/one-short control-work and workspace boundaries. The focused subgraph
+fixtures passed on JS, Wasm, and native. A standard Node Host
+case also publishes the resulting Relation to a real retained Store and reads
+the Named Result. A second real Store case delivers cancellation after the
+selected subgraph has made positive progress, confirms physical stop before
+cleanup, and leaves the producer and consumers unpublished. This does not yet
+prove predicate node selection or Store fault cleanup for the keyed path.
 
 Selected Graph bounds, degree, and weak/strong components now accept an exact
 managed Graph view when a later Relation operation splits the authored Stage.
