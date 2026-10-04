@@ -722,6 +722,20 @@ export function openSqliteCheckpointJournal(root, {
     return {checkpoint, decided};
   }
 
+  function modelHasEnteredLocked(checkpoint, intent) {
+    if (checkpoint === undefined) fail('CheckpointJournalCorrupt');
+    if (JSON.parse(checkpoint.checkpoint_wire).kind !== 'model_invocation') return false;
+    return modelCalls.hasEnteredLocked({checkpointCid: checkpoint.checkpoint_cid,
+      intentId: intent.intent_id, runId: intent.run_id,
+      resolutionCid: intent.resolution_cid});
+  }
+
+  function hasStartedLocked(intent) {
+    const checkpoint = statements.checkpoint.get(intent.checkpoint_cid);
+    return modelHasEnteredLocked(checkpoint, intent) ||
+      statements.startedAdmission.get(intent.intent_id) !== undefined;
+  }
+
   function refuseUnsentRunResume(reference, runDefinitionCid, expectedKind, expectedClaim) {
       alive();
       const at = iso(now());
@@ -1030,7 +1044,7 @@ export function openSqliteCheckpointJournal(root, {
             intent.state === 'completed') {
           return Object.freeze({outcome: 'not_resuming'});
         }
-        if (statements.startedAdmission.get(intent.intent_id) !== undefined) {
+        if (hasStartedLocked(intent)) {
           return Object.freeze({outcome: 'admitted'});
         }
         transitionAllowed('resuming', 'cancelled');
@@ -1515,11 +1529,10 @@ export function openSqliteCheckpointJournal(root, {
             intent.checkpoint_cid !== expectedCheckpointCid) {
           return Object.freeze({action: 'changed'});
         }
-        // Source continuation has no external idempotent dispatch identity.
-        // Keep an earlier entered unit unresolved, atomically with the claim
-        // decision and before changed-binding invalidation can end it.
+        // Keep an earlier protected start unresolved when the caller requests
+        // preservation, before changed-binding invalidation can end it.
         if (preserveStarted && intent.state !== 'completed' &&
-            statements.startedAdmission.get(intent.intent_id) !== undefined) {
+            hasStartedLocked(intent)) {
           return Object.freeze({action: 'admitted'});
         }
         const {checkpoint, decided} = claimLocked(intent, claimant, at,
@@ -1530,6 +1543,12 @@ export function openSqliteCheckpointJournal(root, {
         const run = statements.run.get(runId);
         if (run?.status !== 'resuming') fail('RunStateConflict');
         if (decided.action === 'invalidated') {
+          // Entered Model calls cannot be reduced to an unsent failed Run.
+          // Valid replacement claims still recover later proven-unsent slots;
+          // aggregate completion remains the Model continuation owner's job.
+          if (modelHasEnteredLocked(checkpoint, intent)) {
+            return Object.freeze({action: 'admitted'});
+          }
           const failed = core(runtime.revalidationFailedState(runId, iso(at),
             run.declared_results_json, unknown), 'InvalidResumeClaim');
           transitionAllowed('resuming', failed.run_status);
@@ -1678,9 +1697,11 @@ export function openSqliteCheckpointJournal(root, {
     hasStartedResume(checkpointCid) {
       alive();
       if (!text(checkpointCid)) fail('InvalidCheckpointReference');
-      const intent = statements.intentByCheckpoint.get(checkpointCid);
-      return intent !== undefined && intent.state !== 'completed' &&
-        statements.startedAdmission.get(intent.intent_id) !== undefined;
+      return transaction.run(() => {
+        const intent = statements.intentByCheckpoint.get(checkpointCid);
+        return intent !== undefined && intent.state !== 'completed' &&
+          hasStartedLocked(intent);
+      });
     },
 
     // Trusted Host observation of this exact Run's committed publication or

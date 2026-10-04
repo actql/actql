@@ -318,6 +318,25 @@ export function createModelResumeState(database, {
     })),
   });
   return Object.freeze({prepare, registerLocked,
+    // Read under the parent transaction before a generic unsent transition.
+    // Every entered attempt counts, including saved outcomes; this establishes
+    // a physical-start fact, never an aggregate Model completion decision.
+    hasEnteredLocked({checkpointCid, intentId, runId, resolutionCid}) {
+      const row = q.scope.get(checkpointCid);
+      if (row === undefined) fail('ModelResumeInventoryCorrupt');
+      let identity;
+      try { identity = JSON.parse(row.inventory_json); }
+      catch (error) { fail('ModelResumeInventoryCorrupt', error); }
+      if (!scopeValid(identity)) fail('ModelResumeInventoryCorrupt');
+      const state = checked(identity);
+      if (state.inventory.checkpointCid !== checkpointCid ||
+          state.inventory.runId !== runId || !text(intentId) || !cid(resolutionCid) ||
+          state.attempts.some(attempt => {
+            const entry = JSON.parse(attempt.entry_json);
+            return entry.intentId !== intentId || entry.resolutionCid !== resolutionCid;
+          })) fail('ModelResumeInventoryCorrupt');
+      return state.attempts.length > 0;
+    },
     // Only used under the parent journal's transaction. These checked originals
     // select the compiled Core's Model-specific Resolution admission; no public
     // summary or caller-supplied CID can replace the retained request.

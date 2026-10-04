@@ -5,7 +5,15 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {Worker} from 'node:worker_threads';
+import {loadCheckpointRuntime} from './sqlite-checkpoint-journal.mjs';
 import {C, input, open, identity, seedApproval, replaceClaim, reference, saved, runtime as fixtureRuntime} from './model-resume-state.fixture.mjs';
+
+// Public claim regressions use the retained compiled Core decision ports.
+// Model admission, input custody and Store outcomes remain explicit doubles.
+const claimRuntime = await loadCheckpointRuntime();
+const claimPorts = {resumeClaimDecide: claimRuntime.resumeClaimDecide,
+  revalidationFailedState: claimRuntime.revalidationFailedState,
+  runStateAdmit: claimRuntime.runStateAdmit};
 
 function fixture(t, options = {}, count = 3, maxAttempts = 1) {
   const root = mkdtempSync(join(tmpdir(), 'model-resume-state-'));
@@ -19,6 +27,161 @@ function fixture(t, options = {}, count = 3, maxAttempts = 1) {
 }
 const throwsCode = (fn, code) => assert.throws(fn, error => error.code === code);
 const mutate = (path, fn) => {const db = new DatabaseSync(path); try {fn(db);} finally {db.close();}};
+const storedResume = path => {
+  const db = new DatabaseSync(path);
+  try {
+    return Object.fromEntries(['runs', 'resume_intents', 'resume_model_scopes',
+      'resume_model_slots', 'resume_model_attempts', 'resume_admissions'].map(table =>
+      [table, db.prepare(`SELECT * FROM ${table}`).all()]));
+  } finally {db.close();}
+};
+
+test('public unsent cancellation and invalidating claims preserve an entered Model scope', t => {
+  const f = fixture(t, {runtimeOverrides: claimPorts}); const claim = f.start();
+  f.journal.renewResume(claim, 10);
+  assert.equal(f.journal.hasStartedResume(identity.checkpointCid), false);
+  f.journal.enterResumedCall(claim, reference(0));
+  assert.equal(f.journal.hasStartedResume(identity.checkpointCid), true);
+  f.clock.value += 11;
+  const before = storedResume(f.journal.path);
+  assert.equal(before.resume_admissions.length, 0);
+  const options = {claimant: 'replacement', leaseMs: 1000,
+    binding: {...f.registration.binding, environmentBindingCid: C('changed')}};
+  assert.equal(f.journal.claimResume(identity.runId, {...options,
+    preserveStarted: true, expectedCheckpointCid: C('other')}).action, 'changed');
+  for (const preserveStarted of [false, true]) {
+    assert.deepEqual(f.journal.claimResume(identity.runId, {...options, preserveStarted}),
+      {action: 'admitted'});
+  }
+  assert.deepEqual(f.journal.cancelUnsentResume(identity.checkpointCid), {outcome: 'admitted'});
+  assert.equal(f.journal.getRunState(identity.runId).status, 'resuming');
+  assert.deepEqual(storedResume(f.journal.path), before);
+});
+
+test('a public same-binding replacement claim can enter only later proven-unsent Model slots', async t => {
+  const f = fixture(t, {runtimeOverrides: claimPorts}); const claim = f.start();
+  f.journal.renewResume(claim, 10);
+  const first = f.journal.enterResumedCall(claim, reference(0));
+  f.settlements.set(first.attemptCid, saved(first));
+  await f.journal.observeResumedCall(first);
+  const unknown = f.journal.enterResumedCall(claim, reference(1));
+  f.clock.value += 11;
+  const options = {claimant: 'replacement', leaseMs: 1000, binding: f.registration.binding};
+  assert.deepEqual(f.journal.claimResume(identity.runId, {...options, preserveStarted: true}),
+    {action: 'admitted'});
+  const next = f.journal.claimResume(identity.runId, options);
+  assert.equal(next.action, 'claimed');
+  assert.equal(next.claim.generation, claim.generation + 1);
+  throwsCode(() => f.journal.enterResumedCall(next.claim, reference(0)), 'ModelResumeCallSettled');
+  throwsCode(() => f.journal.enterResumedCall(next.claim, reference(1)), 'ModelResumeAttemptUnknown');
+  assert.equal(f.journal.enterResumedCall(next.claim, reference(2)).generation, next.claim.generation);
+  f.settlements.set(unknown.attemptCid, saved(unknown));
+  assert.equal((await f.journal.observeResumedCall(unknown)).state, 'SavedSuccess');
+});
+
+test('settled Model starts remain protected after reopen and grant expiry', async t => {
+  for (const state of ['SavedSuccess', 'SavedFailure']) {
+    const f = fixture(t, {runtimeOverrides: claimPorts}); const claim = f.start();
+    const entry = f.journal.enterResumedCall(claim, reference(0));
+    f.settlements.set(entry.attemptCid, saved(entry, state));
+    await f.journal.observeResumedCall(entry);
+    f.journal.close(); f.clock.value = 1000010;
+    const reopened = open(f.root, {clock: f.clock, runtimeOverrides: claimPorts}).journal;
+    t.after(() => reopened.close());
+    const before = storedResume(reopened.path);
+    assert.equal(reopened.hasStartedResume(identity.checkpointCid), true);
+    assert.deepEqual(reopened.cancelUnsentResume(identity.checkpointCid), {outcome: 'admitted'});
+    assert.deepEqual(reopened.claimResume(identity.runId, {claimant: 'replacement', leaseMs: 1000,
+      binding: {...f.registration.binding, authorizationContextCid: C('changed')}}), {action: 'admitted'});
+    assert.equal(reopened.readResumeCalls(identity).slots[0].state, state);
+    assert.deepEqual(storedResume(reopened.path), before);
+  }
+});
+
+test('generic Model start guards reject missing, substituted or incoherent retained inventory', t => {
+  const corruptions = [
+    db => {
+      // Deliberately simulate a damaged inventory; normal SQL FK enforcement
+      // prevents deleting this parent while its durable attempts exist.
+      db.exec('PRAGMA foreign_keys = OFF');
+      db.prepare('DELETE FROM resume_model_scopes').run();
+    },
+    db => db.prepare('DELETE FROM resume_model_slots WHERE ordinal = 2').run(),
+    db => db.prepare("UPDATE resume_model_scopes SET inventory_json = '{}'").run(),
+    db => db.prepare(`UPDATE resume_model_scopes SET originals_json = json_set(originals_json,
+      '$.preparedInvocationWire', ?)`)
+      .run(JSON.stringify({cid: C('foreign-prepared')})),
+    db => db.prepare(`UPDATE resume_model_attempts SET entry_json = json_set(entry_json,
+      '$.intentId', 'foreign-intent', '$.admission.intentId', 'foreign-intent')`).run(),
+    db => db.prepare(`UPDATE resume_model_attempts SET entry_json = json_set(entry_json,
+      '$.resolutionCid', ?, '$.admission.resolutionCid', ?)`)
+      .run(C('foreign-resolution'), C('foreign-resolution')),
+  ];
+  for (const corrupt of corruptions) {
+    const f = fixture(t, {runtimeOverrides: claimPorts}); const claim = f.start();
+    f.journal.renewResume(claim, 10);
+    f.journal.enterResumedCall(claim, reference(0));
+    f.clock.value += 11;
+    mutate(f.journal.path, corrupt);
+    const before = storedResume(f.journal.path);
+    throwsCode(() => f.journal.hasStartedResume(identity.checkpointCid), 'ModelResumeInventoryCorrupt');
+    throwsCode(() => f.journal.cancelUnsentResume(identity.checkpointCid), 'ModelResumeInventoryCorrupt');
+    for (const preserveStarted of [false, true]) {
+      throwsCode(() => f.journal.claimResume(identity.runId, {claimant: 'replacement', leaseMs: 1000,
+        binding: {...f.registration.binding, environmentBindingCid: C('changed')}, preserveStarted}),
+      'ModelResumeInventoryCorrupt');
+    }
+    assert.deepEqual(storedResume(f.journal.path), before);
+  }
+});
+
+test('cancellation committed before Model entry prevents any attempt row', t => {
+  for (const fenceFirst of [false, true]) {
+    const f = fixture(t); const claim = f.start();
+    if (fenceFirst) f.journal.fenceRunCancellation({originalRunWire: f.registration.modelCallSet.originalRunWire});
+    assert.equal(f.journal.cancelUnsentResume(identity.checkpointCid).outcome, 'cancelled');
+    assert.equal(f.journal.getRunState(identity.runId).status, 'cancelled');
+    const before = storedResume(f.journal.path);
+    throwsCode(() => f.journal.enterResumedCall(claim, reference(0)),
+      fenceFirst ? 'ModelRunCancelled' : 'ResumeClaimStale');
+    assert.equal(before.resume_model_attempts.length, 0);
+    assert.deepEqual(storedResume(f.journal.path), before);
+  }
+});
+
+test('Model entry committed before cancellation preserves observation and fences the next call', async t => {
+  const f = fixture(t); const claim = f.start();
+  const entry = f.journal.enterResumedCall(claim, reference(0));
+  f.journal.fenceRunCancellation({originalRunWire: f.registration.modelCallSet.originalRunWire});
+  const before = storedResume(f.journal.path);
+  assert.deepEqual(f.journal.cancelUnsentResume(identity.checkpointCid), {outcome: 'admitted'});
+  throwsCode(() => f.journal.enterResumedCall(claim, reference(1)), 'ModelRunCancelled');
+  assert.deepEqual(storedResume(f.journal.path), before);
+  f.settlements.set(entry.attemptCid, saved(entry));
+  assert.equal((await f.journal.observeResumedCall(entry)).state, 'SavedSuccess');
+  assert.equal(f.journal.hasStartedResume(identity.checkpointCid), true);
+});
+
+test('legacy starts retain their existing optional-preservation and invalidation behavior', t => {
+  for (const kind of ['read_access', 'effect_set']) {
+    const f = fixture(t, {runtimeOverrides: claimPorts});
+    f.registration.body.kind = kind; delete f.registration.modelCallSet;
+    f.journal.persistCheckpoint(f.registration); const claim = seedApproval(f.journal.path);
+    f.journal.renewResume(claim, 10);
+    assert.equal(f.journal.hasStartedResume(identity.checkpointCid), false);
+    f.journal.enterResumedDispatch(claim, {checkpointCid: identity.checkpointCid});
+    f.clock.value += 11;
+    assert.equal(f.journal.hasStartedResume(identity.checkpointCid), true);
+    assert.deepEqual(f.journal.cancelUnsentResume(identity.checkpointCid), {outcome: 'admitted'});
+    const options = {claimant: 'replacement', leaseMs: 1000,
+      binding: {...f.registration.binding, environmentBindingCid: C('changed')}};
+    assert.deepEqual(f.journal.claimResume(identity.runId, {...options, preserveStarted: true}),
+      {action: 'admitted'});
+    assert.equal(f.journal.claimResume(identity.runId, options).action, 'invalidated');
+    assert.equal(f.journal.getRunState(identity.runId).status, 'failed');
+    assert.equal(f.journal.hasStartedResume(identity.checkpointCid), false);
+  }
+});
 
 test('three slots retain saved, unknown and unsent across a claim replacement', async t => {
   const f = fixture(t); const claim = f.start();
