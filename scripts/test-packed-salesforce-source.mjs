@@ -20,7 +20,7 @@ import {compositionExpectations, databaseRows, expectedUpdates, expectedWrites, 
 import {canonicalJson} from '../adapters/host-node/local-account-config.mjs';
 import {packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
 import {readTwoSourceJournal} from './fixtures/two-source-public-query.mjs';
-import {graphCompositionExpectations} from './fixtures/graph-infer-effect-input.mjs';
+import {graphCompositionExpectations, graphResultDataPolicy} from './fixtures/graph-infer-effect-input.mjs';
 import {optionalEffectCases, optionalEffectFixtureFiles, optionalEffectExpectations} from
   './fixtures/two-source-optional-effect.mjs';
 
@@ -492,7 +492,7 @@ import {compositionProgram, compositionText, twoSourceEffectProgram, modelConfig
   compositionExpectations} from
   './composed-infer-effect-input.mjs';
 import {graphCompositionProgram, graphCompositionExpectations,
-  graphCompositionRefusalProgram} from './graph-infer-effect-input.mjs';
+  graphCompositionRefusalProgram, graphResultDataPolicy} from './graph-infer-effect-input.mjs';
 const composed = process.env.PACKED_COMPOSED_INFER === '1';
 const twoSourceEffect = process.env.PACKED_TWO_SOURCE_EFFECT === '1';
 const composedText = process.env.PACKED_COMPOSED_TEXT === '1';
@@ -553,6 +553,9 @@ if (composed) {
     // This acceptance must work without any installed Source whose Policy
     // could accidentally substitute for the explicitly bound Result Policy.
     assert.equal(process.env.ACTQL_LOCAL_SOURCE_PROFILE, undefined);
+    if (process.env.PACKED_GRAPH_POLICY !== 'absent') {
+      installation.resultDataPolicy = graphResultDataPolicy;
+    }
   } else {
     installation.sourceProfilePaths = JSON.parse(readFileSync(
       process.env.PACKED_COMPOSITION_PROFILES ?? 'composition-profiles.json', 'utf8'));
@@ -677,6 +680,20 @@ try {
     assert.deepEqual(lookup, {kind: 'not_found'});
     console.log(JSON.stringify({code: 'ClientProgramUnsupported', lookup,
       programSha256: process.argv[3]}));
+  } else if (step === 'policy-refusal') {
+    assert.ok(graphFamily);
+    assert.equal(installation.resultDataPolicy, undefined);
+    const generation = JSON.parse(readFileSync('effect-publication.json', 'utf8'));
+    const mapping = generation.mappings.find(entry => entry.write.resource === 'Test_Record__c');
+    const document = JSON.stringify(graphCompositionProgram(mapping.mapping_ref, graphFamily));
+    const requestId = 'missing-graph-result-policy';
+    await assert.rejects(client.aql(document, {format: 'json', requestId}),
+      {code: 'ClientHostFailure'});
+    const lookup = await client.lookupRequest(requestId);
+    assert.deepEqual(lookup, {kind: 'not_found'});
+    assert.deepEqual((await client.checkpoints()).items, []);
+    console.log(JSON.stringify({code: 'ClientHostFailure', requestId, lookup,
+      programSha256: createHash('sha256').update(document).digest('hex')}));
   } else if (step === 'assertion-refusal') {
     const variant = process.argv[3];
     const generation = JSON.parse(readFileSync('effect-publication.json', 'utf8'));
@@ -921,14 +938,16 @@ try {
       'composition-custody.jsonl'), 'utf8')).trim().split('\n').filter(Boolean).length : 0;
     let normalResult;
     await rce(async () => {
+      const recoveryEnvironment = graphFamily ? {...rceEnvironment,
+        PACKED_GRAPH_POLICY: 'absent'} : rceEnvironment;
       effectWriteCounts.push(patches().length);
       assert.equal(patches().length, 0);
-      assert.equal((await runChild('effect-run.mjs', rceEnvironment,
+      assert.equal((await runChild('effect-run.mjs', recoveryEnvironment,
         ['answer'], composed ? 77 : 0)).trim(), 'approved');
       effectWriteCounts.push(patches().length);
       assert.equal(patches().length, 0);
       const done = JSON.parse((await runChild('effect-run.mjs',
-        rceEnvironment, ['rce-resume', 'resubmit'])).trim());
+        recoveryEnvironment, ['rce-resume', 'resubmit'])).trim());
       normalResult = done;
       effectWriteCounts.push(patches().length);
       assert.equal(done.status, 'succeeded');
@@ -946,7 +965,7 @@ try {
         ['a00000000000003', '{"Name":"key-3-processed"}']]);
       }
       assert.equal(JSON.parse((await runChild('effect-run.mjs',
-        rceEnvironment, ['rce-resume', 'resubmit'])).trim()).status, 'succeeded');
+        recoveryEnvironment, ['rce-resume', 'resubmit'])).trim()).status, 'succeeded');
       effectWriteCounts.push(patches().length);
       assert.equal(patches().length, composed ? 1 : 2);
     }, 'success');
@@ -997,10 +1016,37 @@ try {
         observation.temporaryRetention = {cleanupConfirmed:true, resourceUsage:released.resourceUsage};
         observation.namedResultRetention = normalResult.retainedNamedResults;
         observation.installedSourceProfiles = submission.installedSourceProfiles;
+        const retained = readTwoSourceJournal(rceEnvironment.ACTQL_LOCAL_STATE_DIR)
+          .find(row => row.run_definition_cid === ref.runDefinitionCid);
+        assert.ok(retained, 'the same Run retains its accepted Policy dependency');
+        const evidence = JSON.parse(retained.run_admission_evidence_json);
+        assert.deepEqual(evidence.resultPolicyOriginal, graphResultDataPolicy,
+          'restart uses the exact accepted Policy original, without a current Host binding');
+        observation.resultPolicyOriginal = evidence.resultPolicyOriginal;
+        observation.recoveryHostPolicy = 'absent';
       }
       await appendFile(join(root, 'composition-acceptance.jsonl'),
         JSON.stringify(observation) + '\n');
       console.log('packed composition acceptance ' + JSON.stringify(observation));
+    }
+    if (graphFamily === 'node') {
+      const environment = {...rceEnvironment, PACKED_GRAPH_POLICY: 'absent',
+        ACTQL_LOCAL_STATE_DIR: join(root, 'missing-graph-policy-' + transport)};
+      const modelsBefore = await readFile(join(root, 'model-calls.jsonl'), 'utf8');
+      const sourcesBefore = (await readFile(join(root, 'source-calls.jsonl'), 'utf8'))
+        .trim().split('\n').filter(Boolean).length;
+      const writesBefore = server.seen.filter(item => item.method === 'PATCH').length;
+      const refusal = JSON.parse((await runChild('effect-run.mjs', environment,
+        ['policy-refusal'])).trim());
+      assert.equal(await readFile(join(root, 'model-calls.jsonl'), 'utf8'), modelsBefore);
+      assert.equal(server.seen.filter(item => item.method === 'PATCH').length, writesBefore);
+      assert.deepEqual(readTwoSourceJournal(environment.ACTQL_LOCAL_STATE_DIR), [],
+        'missing Host Policy refuses preparation before accepted Run/dispatch custody');
+      const sources = (await readFile(join(root, 'source-calls.jsonl'), 'utf8'))
+        .trim().split('\n').filter(Boolean).slice(sourcesBefore).map(line => JSON.parse(line));
+      assert.deepEqual(sources.map(item => item.sourceReadSessions), [0]);
+      console.log('packed Graph policy refusal ' + JSON.stringify({sourceRevision,
+        transport, ...refusal, modelCalls: 0, sourceReadSessions: 0, writes: 0}));
     }
     if (compositionKind === 'infer-text' || graphFamily === 'node') {
       // Positive execution above must pass first: a missing Result Policy is

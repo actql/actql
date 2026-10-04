@@ -103,6 +103,10 @@ test('installed Host admits only an exact Result policy original', async t => {
     authenticate: () => userInfo().username,
     resultDataPolicy: {...original, cid: `sha256:${'a'.repeat(64)}`}}),
   {code: 'MoonBitHostFailure'});
+  await assert.rejects(openInstalledRemoteHttpHost({directory,
+    authenticate: () => userInfo().username,
+    resultDataPolicy: {kind: original.kind, cid: original.cid}}),
+  {name: 'TypeError', message: 'InvalidHostResultDataPolicy'});
   const host = await openInstalledRemoteHttpHost({directory,
     authenticate: () => userInfo().username, resultDataPolicy: original});
   t.after(async () => host.close());

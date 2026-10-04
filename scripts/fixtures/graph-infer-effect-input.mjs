@@ -4,6 +4,14 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 
+// Explicit Host Result Policy admitted by #339's common owner. This original
+// records unknown provenance; it is separate from the Model egress contract.
+export const graphResultDataPolicy = Object.freeze({
+  kind: 'data_policy',
+  cid: 'sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563',
+  wire: '{"classification":"unknown","source_data_policy_cids":[],"source_response_policy_cids":[],"unknown_provenance":true,"version":"actql-effective-data-policy/0.1"}',
+});
+
 const fixture = name => JSON.parse(readFileSync(new URL(name, import.meta.url), 'utf8'));
 const templates = Object.fromEntries(['node','edge'].map(family => [family,
   fixture(`./graph-${family}-infer-effect.program.template.json`)]));

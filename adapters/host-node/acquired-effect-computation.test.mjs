@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {graphResultDataPolicy} from '../../scripts/fixtures/graph-infer-effect-input.mjs';
 import {acquisitionEndHandoff, acquisitionFailure} from
   '../host-common/acquisition-outcome.mjs';
 import {openAcquiredEffectComputation as openEffectComputation} from './acquired-effect-computation.mjs';
@@ -14,15 +15,20 @@ test('source-free composed Model admission retains custody without opening an in
   const failure = new Error('ModelOwnerUnavailable');
   let custody;
   let sourceCalls = 0;
+  const resultPolicy = graphResultDataPolicy;
+  const policyLimits = Object.freeze({maxWireBytes: 1024, maxNodes: 100, maxDepth: 8});
   await assert.rejects(openEffectComputation({
     moon: {clientProgramEffectAcquisitionCount(actual) {
       assert.equal(actual, prepared);
       return 0;
     }},
-    acquired: {prepared, control: {adoptCheckedClientEffectInferRun() {
-      assert.ok(custody);
-      throw failure;
-    }}},
+    acquired: {prepared, resultDataPolicy: resultPolicy, resultDataPolicyLimits: policyLimits,
+      control: {adoptCheckedClientEffectInferRun(allowed, definition, policy, limits) {
+        assert.equal(policy, resultPolicy);
+        assert.equal(limits, policyLimits);
+        assert.ok(custody);
+        throw failure;
+      }}},
     infer: {occurrence: {}}, now: () => '2026-10-04T00:00:00.000Z',
     retainComputationOwner(value) { custody = value; },
     sourceProfile: {
