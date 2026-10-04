@@ -11,6 +11,7 @@ import {hash} from './inputs.mjs';
 import {isolatedEnvironment, mutationSourcePaths, scratchDockerfile} from './isolation.mjs';
 import {mutationIds} from './mutation-inventory.mjs';
 import {isolatedRunArguments, mutationSnapshotExtras, checkImageDefinition} from './isolation.mjs';
+import {isolatedContract, matchesIsolatedContract} from './isolated-contract.mjs';
 
 export const isolatedProfile = 'isolated-session-mutations-linux';
 export const isolatedResidual = 'isolated comparison only: reviewed action/kernel/CPU closure and acceptance remain required';
@@ -53,13 +54,18 @@ export function imageRuntime(manifest) {
     environment: isolatedEnvironment, platformInputs: manifest.platformInputs,
     rootDigest: hash(encode({entries: runtimeEntries, links: manifest.root.links.filter(link => !link.path.startsWith('source/')),
       unresolved: manifest.root.unresolved.filter(reason => !reason.startsWith('source: '))})),
-    specificationDigest: hash(manifest.dockerfile), unresolved: [isolatedResidual]};
+    specificationDigest: hash(manifest.dockerfile),
+    contract: matchesIsolatedContract(manifest) ? isolatedContract : null,
+    unresolved: matchesIsolatedContract(manifest) ? [] : [isolatedResidual]};
 }
 
 export function checkIsolatedInputs({runtime, manifest, tree}) {
   assert.equal(encode(runtime), encode(imageRuntime(manifest)), 'Wrong isolated runtime inputs or erased residual');
   assert.equal(encode(manifest.environment), encode(isolatedEnvironment), 'Changed isolated environment');
   assert.equal(manifest.dockerfile, scratchDockerfile(), 'Changed isolated executor definition');
+  assert.equal(manifest.sourceSnapshotDigest, snapshotFromGit(tree).digest, 'Wrong reviewed source cohort');
+  assert.equal(manifest.toolchainDigest, hash(tree.read('toolchain.json')), 'Wrong reviewed toolchain pin');
+  assert(typeof manifest.hostImage === 'string' && /^[A-Za-z0-9_.-]+$/u.test(manifest.hostImage), 'Invalid host image identity');
   assert.equal(manifest.platformInputs.platform, 'linux'); assert.equal(manifest.platformInputs.architecture, 'x64');
   const byPath = new Map(manifest.root.entries.map(entry => [entry.path, entry]));
   assert.equal(byPath.size, manifest.root.entries.length, 'Duplicate image input');
@@ -125,7 +131,6 @@ export function checkIsolatedInputs({runtime, manifest, tree}) {
     assert(loader.static ? loader.paths.length === 0 : loader.paths.length > 0);
     for (const path of loader.paths) assert(/^\/(?:usr\/)?lib(?:64)?\/[A-Za-z0-9_./+-]+$/u.test(path) && !path.split('/').includes('..') && byPath.get(path.slice(1))?.kind === 'file', 'Missing copied ELF input');
   }
-  assert(runtime.unresolved.includes(isolatedResidual), 'Comparison cannot authorize isolated reuse');
   return true;
 }
 
@@ -186,7 +191,10 @@ export function runtimeForAction(action, fallback, actionRuntimes = {}) {
     'Unreviewed isolated runtime registration');
   if (action.id === 'mutations-js' && Object.hasOwn(actionRuntimes, action.id)) {
     assert.equal(actionRuntimes[action.id].profile, isolatedProfile, 'Wrong isolated action scope');
-    assert.deepEqual(actionRuntimes[action.id].unresolved, [isolatedResidual], 'Isolation preparation cannot authorize reuse');
+    assert.deepEqual(actionRuntimes[action.id].unresolved, actionRuntimes[action.id].contract ? [] : [isolatedResidual],
+      'Wrong isolated contract coverage');
+    if (actionRuntimes[action.id].contract) assert.equal(encode(actionRuntimes[action.id].contract), encode(isolatedContract),
+      'Unreviewed isolated contract');
     return actionRuntimes[action.id];
   }
   return fallback;

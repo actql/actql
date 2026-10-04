@@ -8,6 +8,7 @@ import {mutationIds} from './receipts.mjs';
 import {stageMutationSource, isolatedSourceFiles, mutationSnapshotExtras, isolatedEnvironment, scratchDockerfile, isolatedRunArguments} from './isolation.mjs';
 import {observeImageRoot, imageRuntime, checkIsolatedInputs, checkIsolatedResult, snapshotFromGit, runtimeForAction, readActionRuntimes} from './isolated-runtime.mjs';
 import {staticElf} from './isolated-execution.mjs';
+import {isolatedContract, matchesIsolatedContract} from './isolated-contract.mjs';
 
 function fixture(t) {
   const root = mkdtempSync(join(tmpdir(), 'actql-image-correspondence-'));
@@ -27,7 +28,8 @@ function fixture(t) {
   const manifest = {version: 'actql-isolated-mutation-inputs/0.1', environment: isolatedEnvironment,
     dockerfile: scratchDockerfile(), root: observeImageRoot(root),
     platformInputs: {platform: 'linux', architecture: 'x64', kernelRelease: 'fixture'},
-    loaderObservations: executables.map(executable => ({executable, digest: hash(executable), static: false, paths: ['/lib/libstdc++.so.6']}))};
+    loaderObservations: executables.map(executable => ({executable, digest: hash(executable), static: false, paths: ['/lib/libstdc++.so.6']})),
+    sourceSnapshotDigest: snapshotFromGit(tree).digest, toolchainDigest: hash(tree.read('toolchain.json')), hostImage: 'fixture'};
   const runtime = imageRuntime(manifest), before = snapshotFromGit(tree);
   const report = {source: before, results: mutationIds.map(id => ({id, killed: true, target: 'js', failureCount: 1}))};
   const payload = {version: 'actql-isolated-mutation-observation/0.1', root: manifest.root,
@@ -113,4 +115,24 @@ test('static classification reads ELF program headers rather than trusting an ld
   elf.writeUInt32LE(1, 64); assert(staticElf(elf));
   for (const type of [2, 3]) { const changed = Buffer.from(elf); changed.writeUInt32LE(type, 64); assert.equal(staticElf(changed), false); }
   assert.equal(staticElf(elf.subarray(0, 100)), false); assert.equal(staticElf(Buffer.from('statically linked')), false);
+});
+
+test('conditional source/environment contract cannot be widened or copied onto independent image inputs', t => {
+  const f = fixture(t);
+  assert.equal(matchesIsolatedContract(f.manifest), false);
+  const purported = {...f.manifest, sourceSnapshotDigest: isolatedContract.snapshotDigest,
+    toolchainDigest: isolatedContract.toolchainDigest, hostImage: isolatedContract.hostImage,
+    platformInputs: {...f.manifest.platformInputs, kernelRelease: isolatedContract.kernelRelease}};
+  assert(matchesIsolatedContract(purported));
+  const runtime = imageRuntime(purported);
+  assert.throws(() => checkIsolatedInputs({runtime, manifest: purported, tree: f.tree}), /source cohort/u);
+  for (const changed of [
+    {...purported, sourceSnapshotDigest: 'f'.repeat(64)},
+    {...purported, toolchainDigest: 'f'.repeat(64)},
+    {...purported, hostImage: 'unknown'},
+    {...purported, platformInputs: {...purported.platformInputs, kernelRelease: 'unknown'}},
+  ]) {
+    assert.equal(matchesIsolatedContract(changed), false);
+    assert.equal(imageRuntime(changed).unresolved.length, 1);
+  }
 });
