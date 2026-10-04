@@ -232,6 +232,7 @@ const protectedSource = [{boundary: 'source_resolution',
 for (const [entrance, open] of Object.entries(entrances)) {
   test(`${entrance}: unresolved column expressions retain authored source positions`, async t => {
     const client = await open(t, configurations.denied);
+    const visible = await open(t, configurations.allowed);
     for (const format of ['sql', 'aql-text']) {
       for (const [text, start, end, token] of [
         ['SELECT missing AS n', 7, 14, 'missing'],
@@ -266,8 +267,23 @@ for (const [entrance, open] of Object.entries(entrances)) {
       assert.equal(protectedInput.report.verdict, 'undetermined');
       assert.deepEqual(protectedInput.report.reasons, []);
       assert.deepEqual(protectedInput.report.coverage, {limits: [], unresolved: protectedSource});
+      for (const [text, start, end, token] of [
+        ['SELECT missing AS n FROM records', 7, 14, 'missing'],
+        ['SELECT records.missing AS n FROM records', 7, 22, 'records.missing'],
+      ]) {
+        const outcome = await visible.check(text, {format});
+        assert.equal(outcome.outcome, 'completed', '[check-mutation:column-outcome]');
+        assert.equal(outcome.report.verdict, 'invalid', '[check-mutation:column-verdict]');
+        const original = getCheckInput(outcome, 'source');
+        assert.deepEqual(outcome.report.reasons, [{code: 'query_invalid',
+          location: {document_id: 'source', revision: original.revision,
+            kind: 'text', start_byte: start, end_byte: end, precision: 'exact'}}],
+        '[check-mutation:column-location]');
+        assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location).text, token);
+      }
     }
     client.assertNoExecution();
+    visible.assertNoExecution();
   });
 
   test(`${entrance}: nested supplied type facts follow the submitted contract and path`, async t => {
