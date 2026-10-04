@@ -1135,6 +1135,104 @@ for (const entrance of ['local', 'http']) {
     }
   });
 
+  test(`${entrance}: absent declarations still bind independently supplied input`, async t => {
+    const absent = await contextClient(t, entrance, absentEnvironment);
+    const hidden = [
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'deny'}),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'delegate'}),
+      await contextClient(t, entrance,
+        withPolicy(rightEnvironment, sourceEnvironment.host_policy_profile),
+        {aliases: [rightAlias], readOutcome: 'deny'}),
+    ];
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of ['SELECT id FROM records', 'SELECT 1 AS n']) {
+        const unresolved = text === 'SELECT id FROM records' ? protectedSource : [];
+        for (const [parameters, pointer] of [
+          [{'a/~e\u0301😀': 'private-undeclared-value'}, '/a~1~0e\u0301😀'],
+          [{unexpected: 'private-undeclared-value'}, '/unexpected'],
+          [{'line\r\n~/': 'private-undeclared-value'}, '/line\r\n~0~1'],
+        ]) {
+          const outcome = await absent.check(text, {format, parameters});
+          assert.equal(outcome.outcome, 'completed');
+          assert.equal(outcome.report.verdict, 'invalid', '[check-mutation:absent-binding-verdict]');
+          const original = getCheckInput(outcome, 'parameters');
+          assert.deepEqual(outcome.report.reasons, [{code: 'supplied_value_invalid',
+            location: {document_id: 'parameters', revision: original.revision,
+              kind: 'structured', pointer}}], '[check-mutation:absent-binding-location]');
+          assert.deepEqual(outcome.report.coverage, {limits: [], unresolved});
+          assert.deepEqual(outcome.report.requirements, []);
+          assert.deepEqual(outcome.report.scope, {kind: 'bound_input'});
+          assert.deepEqual(original.value, parameters);
+          assert.equal(getCheckInput(outcome, 'parameter_declarations'), undefined);
+          assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location).input, original);
+          assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location,
+            {...original, revision: 'rev:' + 'f'.repeat(64)}), undefined);
+          assert.equal(resolveCheckLocation(JSON.parse(JSON.stringify(outcome)),
+            outcome.report.reasons[0].location), undefined);
+          assert.equal(explainCheckReason(outcome.report.reasons[0]).kind, 'known');
+          assert.equal(JSON.stringify(outcome).includes('private-undeclared-value'), false);
+          for (const client of hidden) {
+            assert.deepEqual(await client.check(text, {format, parameters}), outcome,
+              '[check-mutation:absent-binding-disclosure]');
+          }
+        }
+        const oversizedKey = await absent.check(text, {format,
+          parameters: {['x'.repeat(4096)]: 'private-undeclared-value'}});
+        assert.equal(oversizedKey.report.verdict, 'invalid');
+        assert.deepEqual(oversizedKey.report.reasons, [{code: 'supplied_value_invalid'}]);
+        assert.deepEqual(oversizedKey.report.coverage, {limits: [], unresolved});
+        // Omission and an empty supplied map bind the empty declaration set;
+        // an authored empty declaration document is a different invalid input.
+        for (const parameters of [undefined, {}]) {
+          const options = {format, ...(parameters === undefined ? {} : {parameters})};
+          const outcome = await absent.check(text, options);
+          assert.equal(outcome.report.verdict, unresolved.length ? 'undetermined' : 'verified');
+          assert.deepEqual(outcome.report.reasons, []);
+          assert.deepEqual(outcome.report.requirements, []);
+          assert.deepEqual(outcome.report.coverage, {limits: [], unresolved});
+          for (const client of hidden) assert.deepEqual(await client.check(text, options), outcome);
+        }
+        const empty = await absent.check(text, {format, parameterDeclarations: {}});
+        assert.equal(empty.report.verdict, 'invalid');
+        const original = getCheckInput(empty, 'parameter_declarations');
+        assert.deepEqual(empty.report.reasons, [{code: 'parameter_declarations_invalid',
+          location: {document_id: 'parameter_declarations', revision: original.revision,
+            kind: 'structured', pointer: ''}}]);
+        for (const client of hidden) {
+          assert.deepEqual(await client.check(text, {format, parameterDeclarations: {}}), empty);
+        }
+      }
+    }
+  });
+
+  test(`${entrance}: structured locations keep original key spellings after admission`, async t => {
+    const client = await contextClient(t, entrance, absentEnvironment);
+    for (const [name, pointer] of [
+      ['a/~e\u0301😀', '/options/a~1~0e\u0301😀'],
+      ['line\r\n~/', '/options/line\r\n~0~1'],
+      ['quote"\\', '/options/quote"\\'],
+    ]) {
+      const parameters = {options: {[name]: 'private-original-value'}};
+      const outcome = await client.check('SELECT id FROM records', {format: 'sql',
+        parameterDeclarations: {options: {type: 'object', fields: {[name]: {type: 'number'}}}},
+        parameters});
+      const original = getCheckInput(outcome, 'parameters');
+      assert.equal(outcome.report.verdict, 'invalid');
+      assert.deepEqual(outcome.report.reasons, [{code: 'supplied_value_type_mismatch',
+        facts: {parameter: 'options', expected_type: 'number', actual_type: 'string'},
+        location: {document_id: 'parameters', revision: original.revision,
+          kind: 'structured', pointer}}], '[check-mutation:original-key-location]');
+      assert.deepEqual(original.value, parameters);
+      assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location).input, original);
+    }
+    const declaration = await client.check('SELECT id FROM records', {format: 'sql',
+      parameterDeclarations: {'e\u0301': {type: 'number'}}});
+    const original = getCheckInput(declaration, 'parameter_declarations');
+    assert.deepEqual(declaration.report.reasons, [{code: 'parameter_declarations_invalid',
+      location: {document_id: 'parameter_declarations', revision: original.revision,
+        kind: 'structured', pointer: '/e\u0301'}}]);
+  });
+
   test(`${entrance}: public context references retain policy profiles and visible contracts`, async t => {
     const original = await contextClient(t, entrance, absentEnvironment);
     const changedPolicy = await contextClient(t, entrance, emptyEnvironment);
