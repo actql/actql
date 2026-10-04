@@ -82,8 +82,31 @@ and zero provider I/O.
 - Changed MoonBit formatting, three JavaScript syntax checks and diff checks
   pass. The initial test helper lacked the declaration decoder and failed to
   compile; it was corrected before publication, not counted as an execution pass.
-- Fresh packed Local/HTTP execution is pending. Authored rows and successful
-  checker tests do not establish public execution acceptance.
+- Fresh packed source `02e3e54ddd7fffc34b088d4d742001128c6fd402`:
+  **seven positives and five pre-admission refusals per Embedded Local and
+  authenticated HTTP transport passed** (`public-query-evidence-jXcXDD`). The
+  real public SDK/Host compared independent rows and full ordered column
+  contracts, checked stream completion, same-Run resubmit/lookup/attach with
+  no extra acquisition, and no hidden output columns. Refusals had zero Run
+  admission and zero provider I/O. The README quickstart and missing-runtime
+  asset control also passed, separately from these seven positives.
+
+The acceptance command was `node scripts/test-packed-public-query.mjs
+--order-property-only` using the repository-pinned MoonBit and Node toolchains.
+Five packages were produced by normal `npm pack`/prepack and installed outside
+the checkout with consumer scripts disabled. The receipt records a clean source
+tree, completed zero exit status and no evidence errors. Disposable tarballs,
+installation and Host Store were removed after saving logs and identity/digest
+records. Subsequent evidence documentation does not change tested product code;
+submitted-HEAD CI is recorded separately in the PR.
+
+| Tarball | SHA-256 |
+|---|---|
+| `actql-client-wire-0.0.0-development.tgz` | `6b448edf6ff246e1865858e9ed654e6f973c602e60b65447bcd7bbdd0afaefde` |
+| `actql-sdk-0.0.0-development.tgz` | `feeed615674aaa5f179cb4d5feabdb6713f9e986c8d08cc38f1513338730b8c2` |
+| `actql-run-host-core-0.0.0-development.tgz` | `1c81124d1abef56cab7d76a72498f113e5ffcc33d4a0288830a2a18e224a1275` |
+| `actql-local-node-0.0.0-development.tgz` | `4f80fbd9cdd06068b6cabf9ddc6d323c9d98cbe9bbbb592dd358c3c0c9c1ba1d` |
+| `actql-node-0.0.0-development.tgz` | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
 
 The first fresh packed attempt at `67c4f517532d08bd1348954eef10d3b9bd5d42fc`
 (`public-query-evidence-QMBuda`) passed the first four Local positives. The
