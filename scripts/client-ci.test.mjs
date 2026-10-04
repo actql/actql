@@ -83,6 +83,26 @@ test('packed Source approval keeps independent read and Effect restart counters'
     'source-approval-committed', 'capture-waiting', 'approval-committed']);
 });
 
+test('packed Source approval preserves the credential Site account identity', () => {
+  const script = readFileSync(new URL('./test-packed-salesforce-source.mjs', import.meta.url), 'utf8');
+  const accountConfiguration = JSON.stringify({
+    version: 'actql-execution-account-config/0.1', account_id: 'shared-site-account',
+    entries: [{entry_id: 'a-fixture-model', outcome: 'allow',
+      principal: {all: true}, connection: {any_of: ['unused-model']},
+      resource: {any_of: ['unused-task']}, operation: {any_of: ['infer']}, exclusions: []}],
+  });
+  const setup = script.slice(script.indexOf('const authorization = JSON.parse(readFileSync'),
+    script.indexOf('const pendingScratch ='));
+  const actual = JSON.parse(runInNewContext(setup + '\nJSON.stringify(authorization)', {
+    readFileSync: () => JSON.stringify({accountConfiguration}),
+    sourceReadApproval: true, process: {env: {}},
+  }));
+  assert.equal(actual.accountConfiguration, accountConfiguration,
+    'an unused Model rule must not make Host and Site configuration CIDs diverge');
+  assert(script.includes('if (!sourceReadApproval) {\n    const model = await modelConfiguration'),
+    'Source approval case still installs no Model');
+});
+
 test('each Client group retains its acceptance commands exactly once', () => {
   assert.deepEqual(runs('client-distribution'), ['npm run check:distribution-client']);
   assert.deepEqual(runs('client-packed'), [

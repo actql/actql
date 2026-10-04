@@ -488,11 +488,9 @@ const sourceReadApprovalExpected = JSON.parse(readFileSync(
   'two-source-read-approval.expected.json', 'utf8'));
 const composedText = process.env.PACKED_COMPOSED_TEXT === '1';
 const authorization = JSON.parse(readFileSync('authorization.json', 'utf8'));
-if (sourceReadApproval) {
-  const account = JSON.parse(authorization.accountConfiguration);
-  account.entries = account.entries.filter(entry => entry.entry_id !== 'a-fixture-model');
-  authorization.accountConfiguration = JSON.stringify(account);
-}
+// The Host and credential Site must retain the same account configuration
+// identity. The read-only case installs no Model, but removing an unused
+// Model rule only here would invalidate the later Effect commit grant.
 if (process.env.PACKED_CHECKPOINT_TTL_MS !== undefined) {
   authorization.checkpointTtlMs = Number(process.env.PACKED_CHECKPOINT_TTL_MS);
 }
@@ -504,7 +502,12 @@ if (process.env.PACKED_DENY_EFFECT === '1') {
 }
 const pendingScratch = process.argv[2] === 'rce-submit-pending';
 let scratchReleased = !pendingScratch;
+const resumeFailures = [];
 authorization.observe = (name, detail) => {
+  if (name === 'effect_resume_failed' || name === 'source_resume_failed') {
+    resumeFailures.push({name, code: detail.code, detail: detail.detail, cause: detail.cause});
+    if (resumeFailures.length > 16) resumeFailures.shift();
+  }
   if (name.startsWith('effect_computation_')) {
     appendFileSync('composition-custody.jsonl', JSON.stringify({name, ...detail,
       pendingScratch}) + '\\n');
@@ -574,7 +577,7 @@ async function waitFor(check) {
     if (value) return value;
     await pause();
   }
-  throw new Error('PackedEffectTimeout');
+  throw new Error('PackedEffectTimeout: ' + JSON.stringify(resumeFailures));
 }
 try {
   const step = process.argv[2];
