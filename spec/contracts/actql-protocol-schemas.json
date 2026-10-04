@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:0614c326160404ec69c270688dbb62f6bafa37966838e8625ccf8ce946636674",
+  "artifact_registry_cid": "sha256:e9b3795b6219876e1ce90165f0d52118f367b5f42a608da341ddb1a485d55a36",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10713,7 +10713,7 @@
     "model_prompt": "sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204",
     "model_retry_policy": "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c",
     "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55",
-    "check_outcome": "sha256:ff612b7f5719b92623d6432f200cd6f28f994db79e6443f9a78a16345d34ec50",
+    "check_outcome": "sha256:95092b03825a6a3ca9b6d206dd158c410d73457ccb827afe52fc2c3bb34de94c",
     "check_reason": "sha256:6ef2aefaf03e046fcfa830ce1b0648c6b04701162755ba869a9996cd69ade8ef"
   },
   "artifact_schemas": {
@@ -75939,7 +75939,7 @@
                       "byte_length": {
                         "type": "integer",
                         "minimum": 0,
-                        "maximum": 1048576
+                        "maximum": 9007199254740991
                       }
                     }
                   }
@@ -76752,7 +76752,7 @@
                       "byte_length": {
                         "type": "integer",
                         "minimum": 0,
-                        "maximum": 1048576
+                        "maximum": 9007199254740991
                       }
                     }
                   }

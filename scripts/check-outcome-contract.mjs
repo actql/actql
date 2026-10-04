@@ -13,6 +13,8 @@ const opaqueRef = {type: 'string', minLength: 1, maxLength: 128,
 const documentId = {enum: ['source', 'parameter_declarations', 'parameters']};
 const revision = {type: 'string', pattern: '^rev:[0-9a-f]{64}$'};
 const integer = {type: 'integer', minimum: 0, maximum: 1048576};
+// This is the submitted size, including inputs rejected by admission budgets.
+const submittedBytes = {type: 'integer', minimum: 0, maximum: Number.MAX_SAFE_INTEGER};
 const location = {oneOf: [
   {type: 'object', additionalProperties: false,
     required: ['kind', 'document_id', 'revision', 'start_byte', 'end_byte', 'precision'],
@@ -77,7 +79,7 @@ function report(verdicts) {
       inputs: {type: 'array', minItems: 1, maxItems: 3, items: {
         type: 'object', additionalProperties: false,
         required: ['document_id', 'revision', 'kind', 'byte_length'],
-        properties: {document_id: documentId, revision, kind: {enum: ['text', 'structured']}, byte_length: integer}}},
+        properties: {document_id: documentId, revision, kind: {enum: ['text', 'structured']}, byte_length: submittedBytes}}},
       coverage: {
         type: 'object', additionalProperties: false,
         required: ['limits', 'unresolved'],

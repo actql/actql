@@ -622,6 +622,10 @@ UTF-16 source code units at request validation and 65,536 original source bytes
 at frontend admission; an input beyond an analysis budget is not an invalidity
 proof. Structured admission keeps its existing bounded JSON/decode/binding
 budgets. Report construction reserves a separate 65,536-byte, 4,096-node budget.
+The submitted `byte_length` is a safe integer measurement, not evidence of
+successful admission or an extra input limit; exhausted inputs still retain
+their actual size. Installed HTTPS additionally retains its existing 65,536-byte
+request-envelope limit and can refuse a request before checking.
 The Host's request/analysis data becomes eligible for collection after processing
 and response completion; neither deterministic immediate erasure nor a retention
 interval is promised. The SDK association becomes eligible for collection when

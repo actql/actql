@@ -608,6 +608,10 @@ for (const [entrance, open] of Object.entries(entrances)) {
       if (entrance === 'local') {
         assert.deepEqual(await run('SELECT @s AS v', {s: {type: 'string'}},
           {s: 'a'.repeat(70000)}), expected('undetermined', [], budget, []));
+        // The submitted byte measurement can exceed admission's budget;
+        // publishing that measurement must not turn a limit into failure.
+        assert.deepEqual(await run('SELECT @s AS v', {s: {type: 'string'}},
+          {s: 'a'.repeat(1048577)}), expected('undetermined', [], budget, []));
         // Binding budget: a declared default and a supplied value that are
         // each admissible, but not together.
         const pair = {a: {type: 'string', default: 'a'.repeat(40000)},

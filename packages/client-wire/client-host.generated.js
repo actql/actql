@@ -1629,7 +1629,7 @@ const schemas = {
                     "byte_length": {
                       "type": "integer",
                       "minimum": 0,
-                      "maximum": 1048576
+                      "maximum": 9007199254740991
                     }
                   }
                 }
@@ -2436,7 +2436,7 @@ const schemas = {
                     "byte_length": {
                       "type": "integer",
                       "minimum": 0,
-                      "maximum": 1048576
+                      "maximum": 9007199254740991
                     }
                   }
                 }
