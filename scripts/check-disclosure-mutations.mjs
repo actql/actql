@@ -85,6 +85,14 @@ const mutations = [
   ['an invalid declaration points at the root instead of its failing member',
     'writer, "parameter_declarations", revision, pointer,',
     'writer, "parameter_declarations", revision, "",'],
+  ['a source byte budget is treated as a syntax violation',
+    'issue is (Limit(_) | Source(@source_origin.InputLimit))',
+    'issue is Limit(_)'],
+  ['a source byte budget becomes invalid after declaration exhaustion',
+    'Err(QuerySyntax(diagnostic)) =>\n' +
+    '              if check_syntax_budget(diagnostic.issue) {',
+    'Err(QuerySyntax(diagnostic)) =>\n' +
+    '              if diagnostic.issue is Limit(_) {'],
   ['absent declarations skip independently supplied binding',
     '  if supplied_admitted {',
     '  if supplied_admitted && context.parameter_declarations is Some(_) {'],
@@ -158,6 +166,10 @@ const targets = [
     [strict('declaration-outcome'), deep('declaration-location')]],
   ['invalid declarations retain only their owned submitted locations',
     [strict('declaration-outcome'), deep('declaration-location')]],
+  ...Array.from({length: 2}, () =>
+    ['source byte exhaustion is a limit of the original bound check',
+      [strict('source-byte-outcome'), strict('source-byte-verdict'),
+        deep('source-byte-reasons'), deep('source-byte-coverage')]]),
   ['absent declarations still bind independently supplied input',
     [strict('absent-binding-verdict')]],
   ['absent declarations still bind independently supplied input',

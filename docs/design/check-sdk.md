@@ -678,7 +678,13 @@ The Host adds no document database, persistent input store, history or re-fetch
 API for checking. The existing request envelope/source limit is retained: 65,536
 UTF-16 source code units at request validation and 65,536 original source bytes
 at frontend admission; an input beyond an analysis budget is not an invalidity
-proof. Structured admission keeps its existing bounded JSON/decode/binding
+proof. The parser's source-byte admission limit is reported as
+`analysis_budget_exhausted`, including when declaration admission has already
+exhausted its budget and only independent bounded syntax checking remains.
+Source admission precedes token scanning; a location or syntax violation is not
+invented for input that was not scanned. Independent supplied-value violations
+and known missing bindings remain in the original bound-input report.
+Structured admission keeps its existing bounded JSON/decode/binding
 budgets. Report construction reserves a separate 65,536-byte, 4,096-node budget.
 The submitted `byte_length` is a safe integer measurement, not evidence of
 successful admission or an extra input limit; exhausted inputs still retain
