@@ -28,6 +28,8 @@ pub fn check_match(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, @
 
 pub fn check_mean_options(@decode_core.Cursor, Limits) -> Result[CheckedMeanOptions, Issue]
 
+pub fn check_normalize(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedNormalize, Issue]
+
 pub fn check_path_contract(PathOutput, @decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedPathContract, Issue]
 
 pub fn check_property_construction(@decode_core.Cursor, Array[(String, @carrier_contract.Carrier)], String, Limits) -> Result[CheckedPropertyConstruction, Issue]
@@ -168,6 +170,16 @@ pub fn mean_weight_at(CheckedMeanOptions, Int) -> Double?
 
 pub fn mean_weights(CheckedMeanOptions) -> Array[Double]
 
+pub fn normalize_output(CheckedNormalize) -> @carrier_contract.Carrier
+
+pub fn normalize_pending_at(CheckedNormalize, Int) -> NormalizeObligation?
+
+pub fn normalize_pending_count(CheckedNormalize) -> Int
+
+pub fn normalize_source(CheckedNormalize) -> @decode_core.Cursor
+
+pub fn normalize_usage(CheckedNormalize) -> Usage
+
 pub fn path_output(CheckedPathContract) -> @carrier_contract.Carrier
 
 pub fn path_usage(CheckedPathContract) -> Usage
@@ -276,6 +288,8 @@ type CheckedGraphBounds
 type CheckedMatch
 
 type CheckedMeanOptions
+
+type CheckedNormalize
 
 type CheckedPathContract
 
@@ -424,6 +438,11 @@ pub(all) enum MeanStrategy {
 pub(all) enum MissingMeanValue {
   ExcludeMissing
   ZeroMissing
+} derive(Eq, @debug.Debug)
+
+pub(all) enum NormalizeObligation {
+  AdmitNormalizeGraph
+  ResolveNormalizeResources
 } derive(Eq, @debug.Debug)
 
 pub(all) enum NullMeanValue {

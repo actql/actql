@@ -13,6 +13,16 @@
         "publish": "publishInstalledGitHubSource",
         "load": "loadInstalledGitHubSource"
       }
+    },
+    "effect": {
+      "profileVersion": "actql-installed-github-effect/0.1",
+      "module": "adapters/connectors/github/host/installed-github-effect.mjs",
+      "exports": {
+        "check": "checkInstalledGitHubEffectProfile",
+        "identityParts": "installedGitHubEffectIdentityParts",
+        "publish": "publishInstalledGitHubEffect",
+        "load": "loadInstalledGitHubEffect"
+      }
     }
   }
 }

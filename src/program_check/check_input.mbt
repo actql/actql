@@ -64,6 +64,42 @@ pub fn checking_environment_cid(value : CheckEnvironment) -> String {
 }
 
 ///|
+/// Observe checker selections independently of the private wire inventory.
+/// These declarations identify checking semantics, not execution authority.
+pub(all) struct CheckProfileSelection {
+  expressions : @context.ExpressionProfiles
+  operations : @context.PureOperationProfiles
+  property_graph : Bool
+  model_tasks : Bool
+  numeric_profile_cid : String?
+  calendar_profile_cid : String?
+  text_rank_profile_cid : String?
+}
+
+///|
+pub fn checking_environment_profile_selection(
+  value : CheckEnvironment,
+) -> CheckProfileSelection {
+  {
+    expressions: value.expressions,
+    operations: value.operations,
+    property_graph: value.property_graph,
+    model_tasks: value.model_tasks is Some(_),
+    numeric_profile_cid: value.numeric.map(profile => @numeric.cid(profile)),
+    calendar_profile_cid: value.calendar.map(selected => {
+      @environment.calendar_selection_cid(
+        @environment.selected_calendar_selection(selected),
+      )
+    }),
+    text_rank_profile_cid: value.text_rank.map(selected => {
+      @environment.text_rank_selection_cid(
+        @environment.selected_text_rank_selection(selected),
+      )
+    }),
+  }
+}
+
+///|
 /// Observe the exact admitted wire owner configured for a check. A later
 /// checked Program must retain this owner before any downstream Effect closure
 /// can use its Catalog and Mapping evidence.

@@ -6,14 +6,14 @@ import {spawnSync} from 'node:child_process';
 import {runInNewContext} from 'node:vm';
 import test from 'node:test';
 import {parse} from 'yaml';
-import {readChanges, selectTargets, validateSelection, verifyGate, maintenanceFiles, gateJobs} from './ci-targets.mjs';
+import {pullRequestDraft, readChanges, selectTargets, validateSelection, verifyGate, maintenanceFiles, gateJobs} from './ci-targets.mjs';
 import {policyPaths} from './ci-main-base.mjs';
 import {occurrences} from './check-owned-contract-versions.mjs';
 const all = ['js', 'wasm', 'native'];
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const {jobs} = workflow;
 
-test('main keeps full core and macOS, manual keeps explicit macOS opt-in', () => {
+test('manual integration keeps full core and explicit macOS opt-in', () => {
   assert.deepEqual(selectTargets(['README.md'], {event: 'push'}).targets, all);
   assert.equal(selectTargets(['README.md'], {event: 'push'}).macos, true);
   assert.deepEqual(selectTargets([], {event: 'workflow_dispatch'}).targets, all);
@@ -24,7 +24,7 @@ test('portable PR paths choose JS and explain deferred macOS coverage', () => {
   for (const path of ['README.md', 'src/source_span/span.mbt', 'scripts/worktree-inventory.mjs']) {
     const result = validateSelection(selectTargets([path]));
     assert.deepEqual(result.targets, ['js'], path); assert.equal(result.macos, false, path);
-    assert.match(result.reason, /full targets and macOS selected on main/u);
+    assert.match(result.reason, /full targets and optional macOS require a manual integration checkpoint/u);
   }
 });
 test('platform, per-file target, runtime ownership, identities and build retain every target', () => {
@@ -76,35 +76,38 @@ test('ordinary filename cannot hide target-specific syntax changes', () => {
     assert.equal(result.targetSensitiveDiff, true, line);
   }
 });
-test('push+PR duplication is removed without workflow-level path filtering', () => {
-  assert.deepEqual(workflow.on.push.branches, ['main']);
-  assert(Object.hasOwn(workflow.on, 'pull_request'));
-  assert.equal(workflow.on.pull_request, null);
-  assert.equal(workflow.on.push.paths, undefined);
-  assert.equal(workflow.on.push['paths-ignore'], undefined);
-  assert.equal(workflow.concurrency['cancel-in-progress'], "${{ !inputs.performance_matrix && !(github.event_name == 'push' && github.ref == 'refs/heads/main') }}");
+test('only PR updates and explicit dispatch trigger CI; main advance starts no run', () => {
+  assert.deepEqual(Object.keys(workflow.on).sort(), ['pull_request', 'workflow_dispatch']);
+  assert.deepEqual(workflow.on.pull_request.types, ['opened', 'synchronize', 'reopened', 'ready_for_review', 'converted_to_draft']);
+  assert.equal(workflow.on.push, undefined);
+  assert.equal(workflow.on.schedule, undefined);
+  assert.equal(workflow.on.workflow_run, undefined);
+  assert.equal(workflow.on.merge_group, undefined);
+  assert.equal(workflow.concurrency['cancel-in-progress'], "${{ !inputs.performance_matrix }}");
 });
-test('automatic main checkpoints finish while PR updates retain cancellation', () => {
+test('manual normal dispatch retains all full-family obligations, separate from probes', () => {
+  const inputs = workflow.on.workflow_dispatch.inputs;
+  assert.equal(inputs.performance_matrix.default, false);
+  assert.equal(inputs.packed_query_evidence_probe.default, false);
+  const selection = validateSelection(selectTargets([], {event: 'workflow_dispatch'}));
+  assert.equal(selection.profile, 'full');
+  assert.deepEqual(selection.targets, all);
+  assert.equal(selection.mainBaseline, null);
+  const results = Object.fromEntries(gateJobs.map(name => [name, {result: 'success'}]));
+  results['focused-tests'] = {result: 'skipped'};
+  results['native-macos'] = {result: 'skipped'};
+  verifyGate({sourceRevision: 'a'.repeat(40), selection}, results, {event: 'workflow_dispatch', sourceRevision: 'a'.repeat(40)});
+  for (const status of ['failure', 'skipped', undefined]) {
+    assert.throws(() => verifyGate({sourceRevision: 'a'.repeat(40), selection},
+      {...results, core: {result: status}}, {event: 'workflow_dispatch', sourceRevision: 'a'.repeat(40)}));
+  }
+});
+test('PR updates and normal manual runs retain cancellation; performance remains separate', () => {
   assert.equal(workflow.concurrency.group, "${{ github.workflow }}-${{ github.ref }}-${{ inputs.packed_query_evidence_probe && 'evidence-probe' || inputs.performance_matrix && 'performance' || 'normal' }}");
-  assert.equal(workflow.concurrency.queue, undefined); // GitHub's default single pending run remains unchanged.
+  assert.equal(workflow.concurrency.queue, undefined);
   const expression = workflow.concurrency['cancel-in-progress'].slice(3, -2);
-  // Evaluate the actual checked-in boolean/string expression, not a second
-  // implementation of the decision. This is not a hosted scheduler test.
-  for (const [event, ref, performance, expected] of [
-    ['push', 'refs/heads/main', false, false],
-    ['push', 'refs/heads/main', undefined, false],
-    ['pull_request', 'refs/pull/333/merge', false, true],
-    ['pull_request', 'refs/pull/333/merge', undefined, true],
-    ['push', 'refs/heads/feature', false, true],
-    ['push', 'refs/heads/main-copy', false, true],
-    ['workflow_dispatch', 'refs/heads/main', false, true],
-    ['workflow_dispatch', 'refs/heads/feature', false, true],
-    ['workflow_dispatch', 'refs/heads/main', true, false],
-    ['workflow_dispatch', 'refs/heads/feature', true, false],
-  ]) {
-    const actual = runInNewContext(expression, {github: {event_name: event, ref},
-      inputs: {performance_matrix: performance}}, {timeout: 100});
-    assert.equal(actual, expected, `${event}:${ref}:${performance}`);
+  for (const [performance, expected] of [[false, true], [undefined, true], [true, false]]) {
+    assert.equal(runInNewContext(expression, {inputs: {performance_matrix: performance}}, {timeout: 100}), expected);
   }
 });
 test('whole-family scheduling retains the core matrix and complete selected proof campaigns', () => {
@@ -364,7 +367,7 @@ test('every heavy primitive is selected as one complete job and lint/spec always
     assert.equal(scheduled(name, {'select-targets': {outputs: {profile: '', macos: 'true'}}}), false);
   }
   assert.deepEqual(jobs.check.needs, gateJobs);
-  for (const name of ['lint', 'spec']) assert.deepEqual(jobs[name].needs, ['preflight']);
+  for (const name of ['lint', 'spec']) assert.deepEqual(jobs[name].needs, ['select-targets', 'preflight']);
   const lint = jobs.lint.steps.map(step => step.run ?? '');
   assert(lint.includes('node --test scripts/ci-evidence.test.mjs'));
   assert(lint.includes('node --test scripts/worktree-inventory.test.mjs'));
@@ -375,15 +378,25 @@ test('every heavy primitive is selected as one complete job and lint/spec always
   assert(jobs.spec.steps.some(step => step.run?.includes('npm run check:spec')));
 });
 
-test('actual final gate command fails closed for missing or corrupted plans', () => {
+test('actual final gate command fails closed for missing or corrupted plans', t => {
+  const dir = mkdtempSync(join(tmpdir(), 'actql-pr-event-'));
+  t.after(() => rmSync(dir, {recursive: true, force: true}));
+  const eventPath = join(dir, 'event.json');
+  writeFileSync(eventPath, JSON.stringify({action: 'synchronize', pull_request: {draft: false}}));
   const selection = maintenanceSelection(['docs/development.md']);
   const script = jobs.check.steps.find(step => step.run).run;
   const run = value => spawnSync('bash', ['-eo', 'pipefail', '-c', script], {cwd: new URL('../', import.meta.url),
     encoding: 'utf8', env: {...process.env, CI_PLAN: value, RESULTS: JSON.stringify(results(selection)),
-      GITHUB_SHA: head, GITHUB_EVENT_NAME: 'pull_request', GITHUB_STEP_SUMMARY: ''}});
+      GITHUB_SHA: head, GITHUB_EVENT_NAME: 'pull_request', GITHUB_EVENT_PATH: eventPath, GITHUB_STEP_SUMMARY: ''}});
   const good = run(JSON.stringify(plan(selection)));
   assert.equal(good.status, 0, good.stderr);
   assert.match(good.stdout, /NOT APPLICABLE pipeline-evidence/u);
+  writeFileSync(eventPath, JSON.stringify({action: 'converted_to_draft', pull_request: {draft: true}}));
+  const draftAttempt = run(JSON.stringify(plan(selection)));
+  assert.notEqual(draftAttempt.status, 0);
+  assert.match(draftAttempt.stderr, /awaiting ready_for_review/u);
+  writeFileSync(eventPath, JSON.stringify({action: 'ready_for_review', pull_request: {draft: false}}));
+  assert.equal(run(JSON.stringify(plan(selection))).status, 0);
   for (const value of ['', 'undefined', '{}', JSON.stringify({...plan(selection), sourceRevision: 'a'.repeat(40)})]) {
     assert.notEqual(run(value).status, 0);
   }
@@ -705,5 +718,80 @@ test('real Git composed delta rejects old records, missing canonical form, renam
   }
   for (const body of [JSON.stringify(JSON.parse(declarationBody)), declarationBody.replace('example-change', 'wrong-id')]) {
     prepare(); put(declarationFile, body); assert.throws(inspect);
+  }
+});
+
+test('PR lifecycle uses current event Draft state; ready and later heads retain normal coverage', () => {
+  const product = ['src/execution_relation/product.mbt'];
+  for (const action of ['opened', 'synchronize', 'reopened', 'converted_to_draft']) {
+    const draft = pullRequestDraft('pull_request', {action, pull_request: {draft: true}});
+    const selection = validateSelection(selectTargets(product, {draft}));
+    assert.equal(selection.profile, 'draft', action);
+    assert.equal(selection.macos, false);
+    assert.throws(() => verifyGate(plan(selection), results(selection), {...context, draft}), /awaiting ready_for_review/u);
+  }
+  for (const action of ['opened', 'synchronize', 'reopened', 'ready_for_review']) {
+    const draft = pullRequestDraft('pull_request', {action, pull_request: {draft: false}});
+    const selection = validateSelection(selectTargets(product, {draft}));
+    assert.equal(selection.profile, 'full', action);
+    assert.deepEqual(selection.targets, all);
+    assert.equal(verifyGate(plan(selection), results(selection), {...context, draft}).length, gateJobs.length);
+    assert.throws(() => verifyGate(plan(selection), results(selection), {...context, sourceRevision: 'a'.repeat(40), draft}), /another checkout/u);
+  }
+  for (const payload of [{}, {action: 'synchronize', pull_request: {draft: 'false'}},
+    {action: 'ready_for_review', pull_request: {draft: true}},
+    {action: 'converted_to_draft', pull_request: {draft: false}}]) {
+    assert.throws(() => pullRequestDraft('pull_request', payload));
+  }
+  const ready = maintenanceSelection(['docs/development.md']);
+  assert.equal(selectTargets(ready.paths, {draft: false, maintenanceChanges: ready.maintenanceChanges}).profile, 'maintenance');
+  assert.throws(() => verifyGate(plan(ready), results(ready), {...context, draft: true}), /awaiting ready_for_review/u);
+  assert.equal(pullRequestDraft('workflow_dispatch', {pull_request: {draft: true}}), null);
+  assert.equal(selectTargets(product, {event: 'workflow_dispatch', draft: true}).profile, 'full');
+});
+
+test('Draft cannot start product, packed, proof or backend jobs; final gate still runs', () => {
+  const heavy = ['core', 'host', 'client-packages', 'client-distribution', 'client-packed', 'client-salesforce',
+    'native', 'session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity',
+    'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'native-separated-network',
+    'workers', 'connector-addition', 'duckdb-node'];
+  for (const profile of ['draft', 'draft-focused']) {
+    const needs = {'select-targets': {outputs: {profile, macos: 'false'}}};
+    for (const name of heavy) assert.equal(scheduled(name, needs), false, `${profile}/${name}`);
+    assert.equal(scheduled('focused-tests', needs), profile === 'draft-focused');
+    for (const name of ['preflight', 'lint', 'spec', 'check']) assert.equal(scheduled(name, needs), true, name);
+  }
+  // Converted-to-draft and ready events have the same PR ref/group. The existing
+  // cancel-in-progress expression supersedes prior preparation/full attempts.
+  assert(workflow.concurrency.group.includes('${{ github.ref }}'));
+  assert.equal(workflow.concurrency['cancel-in-progress'], '${{ !inputs.performance_matrix }}');
+});
+
+function draftStepEnabled(step, profile) {
+  if (!step.if) return true;
+  const expression = step.if.replace(/^\$\{\{\s*|\s*\}\}$/gu, '')
+    .replace(/needs\.([a-z][a-z0-9-]*)/gu, (_, name) => `needs[${JSON.stringify(name)}]`);
+  return Function('needs', 'startsWith', `return (${expression});`)(
+    {'select-targets': {outputs: {profile}}}, (value, prefix) => value.startsWith(prefix));
+}
+test('Draft cheap command inventory excludes compiler API generation and compound suites', () => {
+  const commands = name => jobs[name].steps.filter(step => step.run && draftStepEnabled(step, 'draft')).map(step => step.run);
+  const preflight = commands('preflight');
+  assert.deepEqual(preflight.filter(command => !command.includes('setup-moonbit')), [
+    'node proofs/relation-pipeline/history.mjs --write', 'node --test scripts/pure-operation-inventory.test.mjs',
+    'npm ci', 'node --test proofs/relation-pipeline/ci-artifacts.test.mjs', 'npm run check:contract-versions',
+    'npm run check:metadata', 'moon fmt --check', 'git diff --exit-code', 'node scripts/ci-preflight.mjs']);
+  assert.deepEqual(commands('lint'), ['npm ci', 'npm run check:client-types',
+    'node --test scripts/ci-preflight.test.mjs', 'node --test scripts/ci-focused-tests.test.mjs',
+    'node --test scripts/ci-targets.test.mjs scripts/ci-main-base.test.mjs']);
+  assert.deepEqual(commands('spec'), ['npm ci', 'npm run check:links',
+    'npm run check:local-resource-completion', 'npm run check:execution-authorization-vectors', 'git diff --exit-code']);
+  for (const name of ['lint', 'spec']) {
+    assert(!jobs[name].steps.some(step => draftStepEnabled(step, 'draft') &&
+      (step.uses === './.github/actions/setup-toolchain' || step.uses?.startsWith('actions/setup-python@'))));
+  }
+  for (const profile of ['full', 'maintenance', 'declaration', 'focused-tests']) {
+    assert(jobs.preflight.steps.filter(step => step.run === 'node scripts/check-moonbit-api.mjs').every(step => draftStepEnabled(step, profile)));
+    assert(jobs.spec.steps.filter(step => step.run === 'npm run check:spec-after-preflight').every(step => draftStepEnabled(step, profile)));
   }
 });

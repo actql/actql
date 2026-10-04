@@ -357,6 +357,47 @@ hooks: `environmentWire`, `connectorBindings`, the self-reported registration
 and revision, `prepareCaptured`, `prepareRecovered` and `close`. The Host's
 Run, Checkpoint, dispatch, Ledger and publication owners do not change.
 
+A connector whose writes create one provider object per row does not need its
+own Effect code in the common runtime either. The connector declares its
+writable Resources in its own JSON, for example
+`src/connectors/github/writes.json`. Each declaration states:
+- the target fields;
+- the primary identity;
+- the create fields and the required fields;
+- the permission;
+- `approval`, which is `required` or `none`.
+
+The common package generates the `actql.mapping_contract/0.1` body
+(`clientProgramRowSourcePrepareMapping`). The whole declaration is validated,
+and a repeated Resource or field refuses it.
+
+`adapters/host-node/installed-row-effect.mjs` runs these common steps:
+- capture;
+- the Effect Set Preview, which states each created row as its exact mapped
+  value;
+- the Effect Ledger claims, keyed by the exact request CID;
+- apply, the Receipt, publication and recovery.
+
+Recovery rebuilds each request from its approved Preview row and refuses it
+unless it is exactly the request the durable claim names. A Mapping that
+requires approval is written only under a commit the Host resumed from a
+resolved Checkpoint; an account `allow` alone sends nothing.
+
+The connector supplies a write driver:
+- `prepareRequest`, which is pure;
+- an optional pre-send `checkRequest`, decided as a read on the
+  installation's gate before the Preview and again before the approved Set
+  is applied;
+- `send`, called only inside a fresh durable claim;
+- `project`, the typed outcome, where only a typed success or failure
+  settles a row;
+- `footprint`.
+
+A refusal that a driver decides from an observed reply is marked with
+`refusedEffectPreparation`, so the Run fails without a send. A transport
+failure or rate limit is not marked. GitHub's Issue comment
+(`installed-github-effect.mjs`) is the first user.
+
 Acquisition still uses the shared `CapabilityRegistry` and checked request/evidence
 SDK, with mock/DuckDB preparation, issuer, retention and capture in their owning
 packages. Those existing source Host entrypoints are not generated Compute

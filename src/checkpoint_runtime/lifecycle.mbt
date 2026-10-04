@@ -1,4 +1,15 @@
 ///|
+/// Classify the immutable Run outcome only. Terminality neither confirms
+/// physical cleanup nor releases reservations or retained Result custody.
+pub fn run_outcome_terminal(status : @publication.RunOutcomeStatus) -> Bool {
+  match status {
+    Succeeded | Failed | Cancelled => true
+    Preparing | Running | WaitingCheckpoint | Resuming | NeedsReconciliation =>
+      false
+  }
+}
+
+///|
 /// Public Run state transition table of the Execution specification.
 pub fn run_transition_allowed(
   from : @publication.RunOutcomeStatus,
