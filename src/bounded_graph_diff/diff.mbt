@@ -55,6 +55,7 @@ priv enum Phase {
   Nodes
   Edges
   Assemble
+  ValidateOutput
   Finished
 } derive(Eq)
 
@@ -77,6 +78,11 @@ struct Preparation {
   mut left_cursor : Int
   mut right_cursor : Int
   mut comparison : @value.CompleteEquality?
+  mut comparison_recheck : @value.RecheckCursor?
+  mut checked_before : @value.CheckedValue?
+  mut checked_after : @value.CheckedValue?
+  mut action : PendingAction?
+  mut output_recheck : @value.RecheckCursor?
   mut node_add : @value.ArrayBuilder?
   mut node_remove : @value.ArrayBuilder?
   mut node_update : @value.ArrayBuilder?
@@ -85,6 +91,16 @@ struct Preparation {
   mut edge_update : @value.ArrayBuilder?
   mut output_nodes : Int
   mut output_text : Int
+}
+
+///|
+/// Admission and append are separate resumable steps. Failed admission leaves
+/// the construction array unchanged, with all work charged in its actual poll.
+priv struct PendingAction {
+  item : @value.Value
+  destination : @value.ArrayBuilder
+  checker : @value.RecheckCursor
+  mut usage : (Int, Int)?
 }
 
 ///|
@@ -292,11 +308,18 @@ fn prepare_source(
     checked_add(four_body, twice_body) is Some(body_slots) &&
     checked_add(body_slots, snapshot_slots) is Some(with_snapshots) &&
     checked_add(with_snapshots, action_slots) is Some(with_actions) &&
-    checked_add(with_actions, 16) is Some(required) else {
+    checked_add(limits.max_output_depth.max(limits.value_limits.max_depth), 1)
+    is Some(recheck_depth) &&
+    checked_add(recheck_depth, recheck_depth) is Some(recheck_frames) &&
+    checked_add(with_actions, recheck_frames) is Some(with_recheck) &&
+    checked_add(with_recheck, 32) is Some(required) else {
     return Err(WorkspaceLimit)
   }
   // Both snapshot indexes, decoded bodies, six bounded action arrays and
-  // framing state coexist. Input storage remains borrowed, not copied.
+  // framing state coexist. One resumable recheck is active at a time: each
+  // nested container retains its continuation and one child frame. Immutable
+  // checked records and pending append state retain references, not copies.
+  // Input storage remains borrowed, not copied.
   if required > limits.max_workspace_slots {
     return Err(WorkspaceLimit)
   }
@@ -347,6 +370,11 @@ fn prepare_source(
     left_cursor: 0,
     right_cursor: 0,
     comparison: None,
+    comparison_recheck: None,
+    checked_before: None,
+    checked_after: None,
+    action: None,
+    output_recheck: None,
     node_add: Some(node_add),
     node_remove: Some(node_remove),
     node_update: Some(node_update),
@@ -405,23 +433,20 @@ fn record(body : @value.Value?, index : Int, edge : Bool) -> @value.Value? {
 }
 
 ///|
-fn append_action(
+fn prepare_action(
   value : Preparation,
   item : @value.Value,
   array : @value.ArrayBuilder,
-) -> Int? {
-  guard @value.recheck_runtime_value_usage(item, json_contract(), {
+) -> PendingAction? {
+  guard @value.start_recheck_runtime_value(item, json_contract(), {
       max_nodes: value.limits.max_output_nodes - value.output_nodes,
       max_depth: value.limits.max_output_depth,
       max_text_bytes: value.limits.max_output_text_bytes - value.output_text,
     })
-    is Some((_, nodes, text)) &&
-    @value.append_array_item(array, item) else {
+    is Some(checker) else {
     return None
   }
-  value.output_nodes += nodes
-  value.output_text += text
-  Some(nodes)
+  Some({ item, destination: array, checker, usage: None, })
 }
 
 ///|
@@ -460,6 +485,27 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
   let mut used = 0L
   let mut progress = 0L
   while used < quantum.to_int64() {
+    if value.action is Some(action) {
+      used += 1
+      if action.usage is Some((nodes, text)) {
+        if !@value.append_array_item(action.destination, action.item) {
+          return Ok(failed(value, OutputLimit, progress, used))
+        }
+        value.output_nodes += nodes
+        value.output_text += text
+        value.action = None
+        progress += 1
+      } else {
+        match @value.advance_recheck_runtime_value(action.checker) {
+          @value.RecheckContinue => ()
+          @value.RecheckComplete(_, nodes, text) =>
+            action.usage = Some((nodes, text))
+          @value.RecheckFailed =>
+            return Ok(failed(value, OutputLimit, progress, used))
+        }
+      }
+      continue
+    }
     match value.phase {
       SnapshotLeft | SnapshotRight => {
         guard value.snapshot_preparation is Some(preparation) else {
@@ -580,56 +626,76 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
         }
         if ordering < 0 {
           guard left_record is Some(item) &&
-            append_action(value, item, remove) is Some(work) else {
+            prepare_action(value, item, remove) is Some(action) else {
             return Ok(failed(value, OutputLimit, progress, used + 1))
           }
+          value.action = Some(action)
           value.left_cursor += 1
-          used += work.to_int64()
-          progress += 1
+          used += 1
         } else if ordering > 0 {
           guard right_record is Some(item) &&
-            append_action(value, item, add) is Some(work) else {
+            prepare_action(value, item, add) is Some(action) else {
             return Ok(failed(value, OutputLimit, progress, used + 1))
           }
+          value.action = Some(action)
           value.right_cursor += 1
-          used += work.to_int64()
-          progress += 1
+          used += 1
         } else {
           guard left_record is Some(before) && right_record is Some(after) else {
             return Err(InvalidGraph)
           }
-          let comparison = match value.comparison {
-            Some(comparison) => comparison
-            None => {
-              guard @value.recheck_runtime_value_usage(
-                  before,
-                  json_contract(),
-                  value.limits.value_limits,
-                )
-                is Some((a, a_nodes, _)) &&
-                @value.recheck_runtime_value_usage(
-                  after,
-                  json_contract(),
-                  value.limits.value_limits,
-                )
-                is Some((b, b_nodes, _)) else {
-                return Ok(failed(value, OutputLimit, progress, used))
-              }
-              match
-                @value.start_complete_equality(a, b, value.limits.value_limits) {
-                Ok(comparison) => {
-                  value.comparison = Some(comparison)
-                  used += a_nodes.to_int64() + b_nodes.to_int64()
-                  comparison
+          if value.checked_before is None || value.checked_after is None {
+            let checking_before = value.checked_before is None
+            let checker = match value.comparison_recheck {
+              Some(checker) => checker
+              None => {
+                guard @value.start_recheck_runtime_value(
+                    if checking_before {
+                      before
+                    } else {
+                      after
+                    },
+                    json_contract(),
+                    value.limits.value_limits,
+                  )
+                  is Some(checker) else {
+                  return Ok(failed(value, OutputLimit, progress, used))
                 }
-                Err(issue) =>
-                  return Ok(failed(value, Comparison(issue), progress, used))
+                value.comparison_recheck = Some(checker)
+                checker
               }
             }
-          }
-          if used >= quantum.to_int64() {
+            used += 1
+            match @value.advance_recheck_runtime_value(checker) {
+              @value.RecheckContinue => ()
+              @value.RecheckComplete(checked, _, _) => {
+                if checking_before {
+                  value.checked_before = Some(checked)
+                } else {
+                  value.checked_after = Some(checked)
+                }
+                value.comparison_recheck = None
+              }
+              @value.RecheckFailed =>
+                return Ok(failed(value, OutputLimit, progress, used))
+            }
             continue
           }
+          if value.comparison is None {
+            value.comparison = match
+              @value.start_complete_equality(
+                value.checked_before.unwrap(),
+                value.checked_after.unwrap(),
+                value.limits.value_limits,
+              ) {
+              Ok(comparison) => Some(comparison)
+              Err(issue) =>
+                return Ok(failed(value, Comparison(issue), progress, used))
+            }
+            used += 1
+            continue
+          }
+          let comparison = value.comparison.unwrap()
           match
             @value.advance_complete_equality(
               comparison,
@@ -639,17 +705,20 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
             @value.EqualityComplete(equal~, work~) => {
               used += work.to_int64()
               value.comparison = None
+              value.checked_before = None
+              value.checked_after = None
               if !equal {
                 guard @value.object_value([("after", after), ("before", before)])
                   is Some(item) &&
-                  append_action(value, item, update) is Some(append_work) else {
+                  prepare_action(value, item, update) is Some(action) else {
                   return Ok(failed(value, OutputLimit, progress, used))
                 }
-                used += append_work.to_int64()
+                value.action = Some(action)
+              } else {
+                progress += 1
               }
               value.left_cursor += 1
               value.right_cursor += 1
-              progress += 1
             }
             @value.EqualityFailed(issue, work~) =>
               return Ok(
@@ -687,14 +756,12 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
             value.limits.max_output_text_bytes,
           )
           is Some(raw) &&
-          @value.recheck_runtime_value_usage(raw, value.delta_contract, {
+          @value.start_recheck_runtime_value(raw, value.delta_contract, {
             max_nodes: value.limits.max_output_nodes,
             max_depth: value.limits.max_output_depth,
             max_text_bytes: value.limits.max_output_text_bytes,
           })
-          is Some((checked, nodes, text)) &&
-          nodes == value.output_nodes &&
-          text == value.output_text else {
+          is Some(checker) else {
           return Ok(failed(value, OutputLimit, progress, used + 1))
         }
         // Drop construction handles; the immutable Delta owns their frozen arrays.
@@ -704,18 +771,40 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
         value.edge_add = None
         value.edge_remove = None
         value.edge_update = None
-        value.phase = Finished
-        return Ok(
-          Complete(
-            {
-              value: checked,
-              base_cid: @snapshot.cid(left),
-              target_cid: @snapshot.cid(right),
-            },
-            progress=progress + 1,
-            work=used + nodes.to_int64() + 1,
-          ),
-        )
+        value.output_recheck = Some(checker)
+        value.phase = ValidateOutput
+        used += 1
+      }
+      ValidateOutput => {
+        guard value.output_recheck is Some(checker) &&
+          value.left_snapshot is Some(left) &&
+          value.right_snapshot is Some(right) else {
+          return Err(Terminal)
+        }
+        used += 1
+        match @value.advance_recheck_runtime_value(checker) {
+          @value.RecheckContinue => ()
+          @value.RecheckFailed =>
+            return Ok(failed(value, OutputLimit, progress, used))
+          @value.RecheckComplete(checked, nodes, text) => {
+            value.output_recheck = None
+            if nodes != value.output_nodes || text != value.output_text {
+              return Ok(failed(value, OutputLimit, progress, used))
+            }
+            value.phase = Finished
+            return Ok(
+              Complete(
+                {
+                  value: checked,
+                  base_cid: @snapshot.cid(left),
+                  target_cid: @snapshot.cid(right),
+                },
+                progress=progress + 1,
+                work=used,
+              ),
+            )
+          }
+        }
       }
       Finished => return Err(Terminal)
     }
@@ -756,6 +845,19 @@ pub fn cleanup(value : Preparation) -> Bool {
   value.left_body = None
   value.right_body = None
   value.comparison = None
+  for checker in [value.comparison_recheck, value.output_recheck] {
+    if checker is Some(checker) {
+      @value.cancel_recheck_runtime_value(checker)
+    }
+  }
+  if value.action is Some(action) {
+    @value.cancel_recheck_runtime_value(action.checker)
+  }
+  value.comparison_recheck = None
+  value.checked_before = None
+  value.checked_after = None
+  value.action = None
+  value.output_recheck = None
   for
     builder in [
       value.node_add,

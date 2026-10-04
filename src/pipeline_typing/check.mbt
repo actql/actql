@@ -791,12 +791,97 @@ fn check_impl(
       current = Some(target)
       continue
     }
+    if key == "graph_diff" || key == "apply_graph_delta" {
+      let object = match
+        @decode.closed_object(
+          operation_body,
+          if key == "graph_diff" {
+            ["with"]
+          } else {
+            ["with", "field"]
+          },
+        ) {
+        Ok(object) => object
+        Err(_) => fail(operation_body, InvalidBody)
+      }
+      let with_at = match @decode.required(object, "with") {
+        Ok(at) => at
+        Err(_) => fail(operation_body, InvalidBody)
+      }
+      let right = resolve_target(b, with_at, names)
+      let graph_limits : @graph.Limits = {
+        max_work: b.work,
+        max_nodes: b.nodes,
+        max_depth: limits.max_depth,
+        max_text_bytes: b.text,
+      }
+      let result = if key == "graph_diff" {
+        @graph.check_graph_diff(
+          operation_body,
+          carrier(input, inputs, steps),
+          carrier(right, inputs, steps),
+          graph_limits,
+        )
+      } else {
+        let field = match @decode.required(object, "field") {
+          Ok(field) => field
+          Err(_) => fail(operation_body, InvalidBody)
+        }
+        let field_name = read_name(b, field)
+        let expectation = delta_at(right, delta_inputs, delta_steps).fields.get(
+          field_name,
+        )
+        // Read-name charges precede the nested checker; do not grant it the
+        // earlier, larger budget after spending on this occurrence.
+        @graph.check_apply_graph_delta(
+          operation_body,
+          carrier(input, inputs, steps),
+          carrier(right, inputs, steps),
+          expectation,
+          { ..graph_limits, max_work: b.work, max_text_bytes: b.text, },
+        )
+      }
+      let checked = match result {
+        Ok(checked) => checked
+        Err(issue) =>
+          raise Stop({
+            kind: Graph(issue.kind),
+            source: operation_body,
+            path: issue.path.copy(),
+            span: issue.span,
+            range: None,
+          })
+      }
+      let used = @graph.delta_usage(checked)
+      b.work -= used.work
+      b.nodes -= used.nodes
+      b.text -= used.text_bytes
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation: GraphDelta(right~, checked~),
+        output: @graph.delta_output(checked),
+        connections: {
+          entries: [
+            { role: Left, target: input, },
+            { role: Right, target: right, },
+          ],
+        },
+        window: None,
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
+    }
     if key == "graphs_equal" ||
-      key == "graph_diff" ||
       key == "graft_graph" ||
       key == "union_graphs" ||
-      key == "subtract_graphs" ||
-      key == "apply_graph_delta" {
+      key == "subtract_graphs" {
       let object = match
         @decode.closed_object(
           operation_body,
@@ -2012,6 +2097,8 @@ fn check_impl(
         | CrossJoin(right~, ..)
         | IntervalJoin(right~, ..)
         | AsOfJoin(right~, ..) =>
+          [{ role: Left, target: input, }, { role: Right, target: right, }]
+        GraphDelta(right~, ..) =>
           [{ role: Left, target: input, }, { role: Right, target: right, }]
       },
     }

@@ -353,7 +353,6 @@ test "unconnected current Graph consumers cannot manufacture a legacy checked pi
       ),
       ("subgraph", "{\"nodes\":{\"where\":\"active\"},\"edges\":\"active\"}"),
       ("graphs_equal", "{\"with\":\"peer\"}"),
-      ("graph_diff", "{\"with\":\"peer\"}"),
       ("graft_graph", "{\"with\":\"peer\"}"),
       ("subtract_graphs", "{\"with\":\"peer\"}"),
       ("union_graphs", "{\"with\":[\"peer\",\"g\",\"peer\"]}"),
@@ -468,14 +467,14 @@ test "unsupported mean validates authored options without issuing Graph work" {
 }
 
 ///|
-test "current Graph refuses Delta application without issuing a tuple output or permission" {
+test "current Graph checks Delta application while retaining runtime admission obligations" {
   let graph = graph_property_scope_input()
   let contract = @graph_contract.admit(graph, {
     max_bytes: 10000,
     max_nodes: 1000,
     max_depth: 100,
   }).unwrap()
-  let issue = @pipeline_typing.check_carriers(
+  let checked = @pipeline_typing.check_carriers(
     cursor(
       "[{\"apply_graph_delta\":{\"with\":\"d\",\"field\":\"delta\"},\"from\":\"g\"}]",
     ),
@@ -484,7 +483,23 @@ test "current Graph refuses Delta application without issuing a tuple output or 
     None,
     limits(),
     delta_contracts=[("d", Unqualified("delta"), contract)],
-  ).unwrap_err()
-  assert_eq(issue.kind, Graph(@graph.UnsupportedGraphOperation))
-  assert_eq(issue.path, [Index(0), Key("apply_graph_delta")])
+  ).unwrap()
+  let step = @pipeline_typing.step_at(checked, 0).unwrap()
+  guard step.operation is @pipeline_typing.GraphDelta(right~, checked=operation) else {
+    fail("missing checked Delta application")
+  }
+  assert_eq(right, @pipeline_typing.Input(1))
+  assert_eq(
+    @graph.delta_operation(operation),
+    @graph.Application(Unqualified("delta")),
+  )
+  assert_true(physical_equal(step.output, graph))
+  let group = @pipeline_typing.operation_obligation_group_at(step.operation, 0).unwrap()
+  assert_eq(@pipeline_typing.operation_obligations_count(group), 5)
+  assert_true(
+    @pipeline_typing.operation_obligations_at(group, 4)
+    is Some(
+      @pipeline_typing.DeltaRequirement(@graph.VerifyDeltaBaseBeforeTarget)
+    ),
+  )
 }

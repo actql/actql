@@ -545,6 +545,7 @@ fn lower_expression_measured(
       | GraphBoundsRows(_)
       | GraphDegreeRows(_)
       | GraphNormalizeValue(_)
+      | GraphDeltaValue(_)
       | GraphComponentsRows(_)
       | PropertyGraphConstructionValue(_)
       | VectorValue(_)

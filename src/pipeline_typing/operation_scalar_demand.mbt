@@ -174,6 +174,7 @@ pub fn operation_scalar_demand(
       }
     AppendRequirement(_)
     | NormalizeRequirement(_)
+    | DeltaRequirement(_)
     | SetRequirement(_)
     | ValuesRequirement(_)
     | MatchRequirement(_)

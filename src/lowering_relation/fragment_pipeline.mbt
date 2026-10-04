@@ -34,6 +34,7 @@ pub fn prepare_fragment_pipeline(
     | GraphMatchStep(_)
     | GraphDiagnosticStep(_)
     | GraphNormalizeStep(_)
+    | GraphDeltaStep(_)
     | GraphTraverseStep(_)
     | PropertyGraphConstructionStep(_)
     | VectorStep(_)

@@ -65,6 +65,7 @@ pub enum Payload {
   GraphBoundsRows(@graph.CheckedGraphBounds)
   GraphDegreeRows(@graph.CheckedDegree)
   GraphNormalizeValue(@graph.CheckedNormalize)
+  GraphDeltaValue(@graph.CheckedDelta)
   GraphComponentsRows(@graph.CheckedComponents)
   GraphTraverseRows(@graph.CheckedTraverse)
   PropertyGraphConstructionValue(@graph.CheckedPropertyConstruction)
@@ -221,6 +222,11 @@ pub fn operation(value : PreparedNode) -> String {
     GraphBoundsRows(_) => "SGA.bounds_check"
     GraphDegreeRows(_) => "SGA.degree_metrics"
     GraphNormalizeValue(_) => "SGA.normalize"
+    GraphDeltaValue(value) =>
+      match @graph.delta_operation(value) {
+        Difference => "SGA.diff"
+        Application(_) => "SGA.apply_delta"
+      }
     GraphComponentsRows(_) => "SGA.components"
     GraphTraverseRows(_) => "SGA.traverse"
     PropertyGraphConstructionValue(_) => "BRIDGE.rows.to_property_graph"
@@ -298,6 +304,7 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     GraphBounds(value) => Some(GraphBoundsRows(value))
     GraphDegree(value) => Some(GraphDegreeRows(value))
     GraphNormalize(value) => Some(GraphNormalizeValue(value))
+    GraphDelta(checked~, ..) => Some(GraphDeltaValue(checked))
     GraphComponents(value) => Some(GraphComponentsRows(value))
     Traverse(checked~, ..) => Some(GraphTraverseRows(checked))
     Pool(value) => Some(PoolValue(value))
@@ -427,6 +434,15 @@ pub fn prepare(
       GraphBoundsRows(_) => ("graph_bounds", 1)
       GraphDegreeRows(_) => ("degree", 1)
       GraphNormalizeValue(_) => ("normalize_graph", 1)
+      GraphDeltaValue(value) =>
+        (
+          if @graph.delta_operation(value) is Difference {
+            "graph_diff"
+          } else {
+            "apply_graph_delta"
+          },
+          2,
+        )
       GraphComponentsRows(_) => ("components", 1)
       GraphTraverseRows(checked) =>
         (
@@ -636,6 +652,7 @@ pub fn prepare(
       GraphMatchRows(_) => None
       GraphBoundsRows(_) | GraphDegreeRows(_) | GraphComponentsRows(_) => None
       GraphNormalizeValue(_) => None
+      GraphDeltaValue(_) => None
       GraphTraverseRows(_) => None
       PropertyGraphConstructionValue(_) => None
       VectorValue(_) => None

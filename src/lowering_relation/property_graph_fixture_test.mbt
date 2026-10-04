@@ -64,7 +64,6 @@ test "unconnected lowering consumers cannot issue retired Graph kernels for a cu
       ),
       ("subgraph", "{\"nodes\":{\"where\":\"active\"},\"edges\":\"active\"}"),
       ("graphs_equal", "{\"with\":\"peer\"}"),
-      ("graph_diff", "{\"with\":\"peer\"}"),
       ("graft_graph", "{\"with\":\"peer\"}"),
       ("subtract_graphs", "{\"with\":\"peer\"}"),
       ("union_graphs", "{\"with\":[\"peer\",\"g\",\"peer\"]}"),
