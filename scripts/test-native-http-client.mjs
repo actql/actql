@@ -1187,6 +1187,7 @@ try {
     'src/platform_native/remote_transfer_journal',
     'src/platform_native/remote_transfer_client',
     'src/platform_native/remote_client',
+    'src/platform_native/remote_resident_source_compute_tests',
     'src/platform_native/credential_resource',
     'src/query_integration',
   ]) {
