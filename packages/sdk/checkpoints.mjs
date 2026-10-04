@@ -2,6 +2,7 @@
 // signer. The Host authenticates the caller, verifies each signature against
 // its trusted reviewer keys and admits every answer on its own; the Client
 // never evaluates accounts or holds a key.
+import {validCheckpointPage} from '@actql/client-wire';
 const encoder = new TextEncoder();
 
 function wellFormed(value) {
@@ -116,7 +117,16 @@ export async function signedAnswer(summary, decision, signer, decidedAt) {
   const effect = summary?.kind === 'effect_set' &&
     summary.phase === 'commit' && summary.subject?.kind === 'run_unit' &&
     summary.requiredArtifact?.type === 'effect_set_preview';
-  if (!preparation && !acquiredRead && !effect) {
+  const model = summary?.kind === 'model_invocation' &&
+    validCheckpointPage({items: [summary]}, 1) &&
+    summary.phase === 'preflight' && summary.subject?.kind === 'run_unit' &&
+    summary.requiredArtifact?.type === 'model_invocation_scope' &&
+    /^sha256:[0-9a-f]{64}$/u.test(summary.preparedInvocationCid ?? '') &&
+    Array.isArray(summary.requirements) &&
+    summary.requirements.length === 1 &&
+    summary.requirements[0] === 'invocation_scope_approved';
+  if ((!preparation && !acquiredRead && !effect && !model) ||
+      (!model && summary.preparedInvocationCid !== undefined)) {
     // Run acceptance and a held Source read before or within its Run
     // share the invocation-scope approval profile. Other kinds carry their own
     // evidence profiles (for example an Effect Set attestation).
@@ -143,7 +153,10 @@ export async function signedAnswer(summary, decision, signer, decidedAt) {
       approver: signer.reviewerId, approved_at: decidedAt,
     } : {
       version: 'actql-run-scope-approval/0.1',
-      prepared_invocation_cid: summary.requiredArtifact.cid,
+      // A Model scope is not a PreparedInvocation. The Host independently
+      // checks this original against retained Run admission and review bytes.
+      prepared_invocation_cid: model ? summary.preparedInvocationCid :
+        summary.requiredArtifact.cid,
       review_projection_cid: summary.reviewProjectionCid,
       claim: 'invocation_scope_approved',
       approver: signer.reviewerId,
@@ -167,7 +180,7 @@ export async function signedAnswer(summary, decision, signer, decidedAt) {
     resolution_id: `resolution-${summary.checkpointId}-${decision}`,
     checkpoint_id: summary.checkpointId,
     checkpoint_cid: summary.checkpointCid,
-    ...(effect || acquiredRead ? {run_id: summary.subject.runId,
+    ...(effect || acquiredRead || model ? {run_id: summary.subject.runId,
       run_definition_cid: summary.subject.runDefinitionCid} :
       {prepare_attempt_id: summary.subject.prepareAttemptId}),
     decision,

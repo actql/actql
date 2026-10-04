@@ -6,6 +6,8 @@ pkgtype(kind: "foreign_library")
 
 import {
   "actql/actql/checkpoint_runtime" @checkpoint,
+  "actql/actql/run_publication" @publication,
+  "actql/actql/source_value" @source,
   "moonbitlang/core/debug",
   "moonbitlang/core/json" @core_json,
 }

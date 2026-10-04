@@ -167,6 +167,13 @@ distribution[3] = distribution[3].replace(
   'adapters/host-node/in-process-client.test.mjs adapters/host-node/client-read-progress.test.mjs ',
 );
 
+// Model Checkpoint signing reuses the prepared SDK/Host distribution gate.
+// Preserve the independently fixed command inventory and every existing test.
+distribution[3] = distribution[3].replace(
+  'packages/sdk/checkpoints.test.mjs ',
+  'packages/sdk/checkpoints.test.mjs packages/sdk/model-checkpoints.test.mjs ',
+);
+
 test('runtime preparation preserves physical cwd and output through a symlinked temporary parent', t => {
   const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'runtime-build-alias-')));
   // Both the link and its target belong to this test. Recursive removal of

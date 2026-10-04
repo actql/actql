@@ -401,6 +401,7 @@ fn admit_resolution(
   authentication_json : String,
   authorities_json : String,
   verified_at : String,
+  model_binding? : @checkpoint.ModelCheckpointBinding,
 ) -> Result[
   (@checkpoint.SealedCheckpoint, @checkpoint.AdmittedResolution),
   BridgeFailure,
@@ -435,6 +436,7 @@ fn admit_resolution(
       allowed,
       verified_at,
       limits(),
+      model_binding?,
     ) {
     Ok(admitted) => Ok((checkpoint, admitted))
     Err(issue) =>
@@ -747,6 +749,7 @@ fn admit_immediate(
   authentication_json : String,
   authorities_json : String,
   verified_at : String,
+  model_binding? : @checkpoint.ModelCheckpointBinding,
 ) -> Result[@checkpoint.ImmediateAdmittedResolution, BridgeFailure] {
   let subject = match @checkpoint.seal_checkpoint_body(body_wire, limits()) {
     Ok(value) => value
@@ -777,6 +780,7 @@ fn admit_immediate(
       allowed,
       verified_at,
       limits(),
+      model_binding?,
     ) {
     Ok(admitted) => Ok(admitted)
     Err(issue) =>

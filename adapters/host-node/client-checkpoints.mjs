@@ -25,6 +25,7 @@ import {loadCheckpointRuntime, openSqliteCheckpointJournal} from
   './sqlite-checkpoint-journal.mjs';
 import {retainInstalledHostInitializationFailure} from
   './installed-host-cleanup.mjs';
+import {modelCheckpointMetadata} from './model-checkpoint-metadata.mjs';
 
 const IDENTIFIER = /^[A-Za-z0-9._:-]{1,128}$/u;
 const MAX_REVIEW_BYTES = 256 * 1024;
@@ -1108,7 +1109,8 @@ export async function installRemoteCheckpoints({root, namespaceId,
         cid: view.requiredArtifact.cid},
       reviewProjectionCid: view.reviewProjectionCid,
       requirements: [...view.requirements], createdAt: view.createdAt,
-      expiresAt: view.expiresAt, humanSummary: view.humanSummary});
+      expiresAt: view.expiresAt, humanSummary: view.humanSummary,
+      ...modelCheckpointMetadata(journal, view)});
   };
 
   return Object.freeze({

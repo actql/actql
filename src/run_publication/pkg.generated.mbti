@@ -76,6 +76,8 @@ pub fn begin_result_delivery(ResultDeliverySerializer) -> Result[String, Deliver
 
 pub fn begin_result_material_holds(String, String) -> Result[ResultMaterialHolds, ResultMaterialHoldIssue]
 
+pub fn bind_model_invocation_scope(RunPublicationAdmission, PublicationContract, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, Array[RunEvidenceValue], ModelInvocationBoundary) -> Result[BoundModelInvocationScope, RunEvidenceValueIssue]
+
 pub fn bind_model_slot_attempt_evidence(BoundModelSlotCapture, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunPublicationAdmission, PublicationContract) -> Result[BoundModelAttemptEvidence, RunEvidenceValueIssue]
 
 pub fn bind_model_slot_capture(RunEvidenceValue, RunEvidenceValue) -> Result[BoundModelSlotCapture, RunEvidenceValueIssue]
@@ -114,9 +116,15 @@ pub fn check_effect_preview_row_outcome(EffectPreviewIdentity, Int, Int, String,
 
 pub fn check_effect_preview_run_binding(RunPublicationAdmission, PublicationContract, PublicationContract, EffectPreviewIdentity) -> Result[Unit, EffectPreviewRunBindingIssue]
 
+pub fn check_model_invocation_attempt(BoundModelInvocationScope, Int, RunEvidenceValue, RunEvidenceValue, Int64) -> Result[Unit, RunEvidenceValueIssue]
+
 pub fn check_model_invocation_binding(RunEvidenceValue, RunEvidenceValue, PublicationContract, RunEvidenceValue, String, source? : ModelSourceObservation?, sources? : Array[ModelSourceObservation]) -> Result[Unit, RunEvidenceValueIssue]
 
+pub fn check_model_invocation_review(BoundModelInvocationScope, RunEvidenceValue) -> Result[Unit, RunEvidenceValueIssue]
+
 pub fn check_model_observation_binding(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, String, source? : ModelSourceObservation?, sources? : Array[ModelSourceObservation]) -> Result[Unit, RunEvidenceValueIssue]
+
+pub fn check_model_original_run_binding(RunPublicationAdmission, PublicationContract) -> Result[Unit, RunEvidenceValueIssue]
 
 pub fn check_model_slot_capture_policy(BoundModelSlotCapture, String) -> Result[Unit, RunEvidenceValueIssue]
 
@@ -377,6 +385,26 @@ pub fn model_capture_record_response(ModelCaptureRecordRead) -> @canonical_json.
 pub fn model_capture_record_text(ModelCaptureRecordRead, String) -> String?
 
 pub fn model_capture_record_tokens(ModelCaptureRecordRead) -> (Int64, Int64)?
+
+pub fn model_invocation_review_expires_at(RunEvidenceValue) -> String?
+
+pub fn model_invocation_scope_boundary(BoundModelInvocationScope) -> ModelInvocationBoundary
+
+pub fn model_invocation_scope_cid(BoundModelInvocationScope) -> String
+
+pub fn model_invocation_scope_input_cid(BoundModelInvocationScope) -> String
+
+pub fn model_invocation_scope_prepared_cid(BoundModelInvocationScope) -> String
+
+pub fn model_invocation_scope_provider_cid(BoundModelInvocationScope) -> String
+
+pub fn model_invocation_scope_run(BoundModelInvocationScope) -> (String, String, String)
+
+pub fn model_invocation_scope_slot(BoundModelInvocationScope, Int) -> (String, String, String)?
+
+pub fn model_invocation_scope_slots(BoundModelInvocationScope) -> Array[String]
+
+pub fn model_invocation_scope_valid_until(BoundModelInvocationScope) -> String
 
 pub fn model_observation_slot_at(RunEvidenceValue, Int) -> String?
 
@@ -659,6 +687,10 @@ pub struct BoundModelAttemptEvidence {
   accounting : RunEvidenceValue
   outcome : RunEvidenceValue
   authority : RunEvidenceValue
+}
+
+pub struct BoundModelInvocationScope {
+  // private fields
 }
 
 pub struct BoundModelSlotCapture {
@@ -1066,6 +1098,23 @@ pub struct ModelCaptureRecordRead {
 }
 
 type ModelCaptureStorage
+
+pub(all) struct ModelInvocationBoundary {
+  unit_id : String
+  task_index : Int64
+  strategy_revision : Int64
+  inference_barrier_cid : String
+  account_id : String
+  configuration_cid : String
+  entry_id : String
+  principal : String
+  connection : String
+  resource : String
+  context_cid : String
+  installation_revision_cid : String
+  configuration_contract_cid : String
+  provider_configuration_cid : String
+} derive(Eq, @debug.Debug)
 
 pub struct ModelSourceObservation {
   source : RunEvidenceValue

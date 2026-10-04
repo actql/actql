@@ -12,6 +12,24 @@ pub fn checkpoint_seal_body(String) -> String
 
 pub fn checkpoint_waiting_state(String, String, String, String) -> String
 
+pub fn model_call_attempt_admit(String, Int, String, String, Double) -> String
+
+pub fn model_call_set_admit(String) -> String
+
+pub fn model_immediate_invocation_grant_at(String, String, String, String) -> String
+
+pub fn model_invocation_grant_at(String, String, String, String) -> String
+
+pub fn model_original_run_admit(String) -> String
+
+pub fn model_resolution_admit(String, String, String, String, String, String, String) -> String
+
+pub fn model_resolution_admit_immediate(String, String, String, String, String, String, String) -> String
+
+pub fn model_resolution_decide(String, String, String, String, String, String, String, String, String, String, String, String) -> String
+
+pub fn model_resolution_seal_immediate(String, String, String, String, String, String, String, String, String) -> String
+
 pub fn resolution_admit(String, String, String, String, String, String) -> String
 
 pub fn resolution_admit_immediate(String, String, String, String, String, String) -> String
