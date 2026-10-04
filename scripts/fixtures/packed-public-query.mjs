@@ -27,6 +27,7 @@ if (process.env.ACTQL_TEST_TWO_SOURCE_ONLY === '1') {
 } else {
 const propertyGraphOnly = process.env.ACTQL_TEST_PROPERTY_GRAPH_SOURCE_ONLY === "1";
 const graphRowsOnly = process.env.ACTQL_TEST_GRAPH_ROWS_ONLY === '1';
+const scopedOrderOnly = process.env.ACTQL_TEST_SCOPED_ORDER_ONLY === '1';
 const sourceFreeOnly = process.env.ACTQL_TEST_SOURCE_FREE_ONLY === '1';
 const inferOnly = process.env.ACTQL_TEST_INFER_REFUSAL_ONLY === '1';
 const joinOnly = process.env.ACTQL_TEST_JOIN_ORDER_ONLY === '1';
@@ -35,7 +36,7 @@ const resultOnly = process.env.ACTQL_TEST_PIPE_RESULT_ONLY === '1';
 const dataOnly = process.env.ACTQL_TEST_RELATION_DATA_ONLY === '1';
 const acquiredDataOnly = process.env.ACTQL_TEST_ACQUIRED_DATA_ONLY === '1';
 const dataSetStrategyOnly = process.env.ACTQL_TEST_DATA_SET_STRATEGY_ONLY === '1';
-const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || inferOnly || joinOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly;
+const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const joinChain = JSON.parse(await readFile('join-chain-cases.json', 'utf8'));
 const scope = JSON.parse(await readFile('pipe-scope-cases.json', 'utf8'));
@@ -52,7 +53,10 @@ const dataSetStrategyInputs = {
   refusals: [],
 };
 const scopeInputs = graphRowsOnly ? {successes: graphRowSourceSuccesses, refusals: graphRowSourceRefusals}
-  : propertyGraphOnly ? {successes: [...propertyGraphSourceSuccesses, ...graphRowSourceSuccesses],
+  : scopedOrderOnly ? {
+  successes: scope.successes.filter(item => item.name.startsWith('scoped-order-')),
+  refusals: scope.refusals.filter(item => item.name.startsWith('scoped-order-')),
+} : propertyGraphOnly ? {successes: [...propertyGraphSourceSuccesses, ...graphRowSourceSuccesses],
   executionFailures: propertyGraphSourceExecutionFailures, refusals: [...propertyGraphSourceRefusals, ...graphRowSourceRefusals]}
   : acquiredDataOnly ? {successes: [...acquiredDataSuccesses, ...acquiredGraphSourceSuccesses],
     refusals: acquiredDataRefusals}
@@ -77,6 +81,10 @@ if (!scopeOnly) {
   scopeInputs.refusals.push(...joinChain.refusals);
 }
 scopeInputs.successes = uniquePublicQueryCases(scopeInputs.successes);
+if (scopedOrderOnly) {
+  assert.equal(scopeInputs.successes.length, 4);
+  assert.equal(scopeInputs.refusals.length, 1);
+}
 const expectedQueryRuns = scopeInputs.successes.length + (scopeInputs.executionFailures?.length ?? 0);
 const expectedSourceReads = [...scopeInputs.successes, ...(scopeInputs.executionFailures ?? [])]
   .reduce((count, item) => count + (item.sourceReadCount ?? item.sourceReadSessionCount ?? 1), 0);

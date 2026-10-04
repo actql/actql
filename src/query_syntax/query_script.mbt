@@ -119,3 +119,9 @@ pub fn parse_query_script(
       })
   }
 }
+
+///|
+// Preserve the original parsed query and source owner, without reparsing text.
+pub fn single_query_script(query : Query) -> QueryScript {
+  { source: query.source, declarations: [], query, work: query.work, }
+}

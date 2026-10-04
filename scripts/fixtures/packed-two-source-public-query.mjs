@@ -70,9 +70,9 @@ try {
   }
 
   const first = await runChild('public-success');
-  assert.equal(first.cases, 6);
+  assert.equal(first.cases, 8);
   const retained = await runChild('retained');
-  assert.equal(retained.cases, 6);
+  assert.equal(retained.cases, 8);
   assert.deepEqual(retained.provider.sourceProviderOpens, []);
   for (const [name, action] of [['exact-inventory', 'recover-exact'],
     ['changed-second-binding', 'recover-changed-binding'],
@@ -101,11 +101,12 @@ try {
   }
   for (const action of ['failure-second', 'cancel-second-boundary', 'cleanup-retry']) {
     await runChild(action);
+    await runChild(action, `broad-${action}`);
   }
   summary.status = 'passed';
-  summary.publicSuccessCases = 6;
-  summary.freshRetainedCases = 6;
-  summary.recoveryAndFailureScenarios = 9;
+  summary.publicSuccessCases = 8;
+  summary.freshRetainedCases = 8;
+  summary.recoveryAndFailureScenarios = 12;
   console.log('Packed two-source Local/HTTPS success, retained recovery, refusal, failure and cleanup acceptance passed');
 } catch (error) {
   summary.status = 'failed';

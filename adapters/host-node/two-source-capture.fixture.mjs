@@ -11,7 +11,7 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {loadInstalledSource} from './installed-source.mjs';
-import {capturedDuckDBNativeConfiguration, capturedDuckDBPhysicalCapacity} from
+import {capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity} from
   './captured-duckdb-source.mjs';
 import {acquiredTaskRunAdmission, acquiredMultiTaskPublicationPlan} from
   './local-values-plan.mjs';
@@ -41,7 +41,7 @@ export function observeDuckDBCalls(t) {
   return () => ({...calls});
 }
 
-export async function twoSourceCaptureFixture(t, {equalContent = false} = {}) {
+export async function twoSourceCaptureFixture(t, {equalContent = false, priority = ['nativeQuery', 'broadQuery']} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-two-capture-boundary-'));
   const adapters = [];
   const opened = new Set();
@@ -98,7 +98,7 @@ export async function twoSourceCaptureFixture(t, {equalContent = false} = {}) {
         resource: {any_of: [database]}, operation: {any_of: ['read']}, exclusions: []}],
     });
     await writeFile(profilePath, JSON.stringify({
-      acquisitionPlanning: {policy: 'priority', priority: ['nativeQuery', 'broadQuery']},
+      acquisitionPlanning: {policy: 'priority', priority},
     version: 'actql-installed-duckdb-source/0.1', database,
       schema: 'main', table: 'records', sourceRef, accountConfigurationWire,
       checkEnvironmentWire: canonicalJson(JSON.parse(await read(`${side}.environment.json`))),
@@ -117,12 +117,12 @@ export async function twoSourceCaptureFixture(t, {equalContent = false} = {}) {
   const preparedSources = await prepareSources();
   const ledgerFor = (sources, owner = prepared) => {
     const capacities = sources.map(source => capturedDuckDBPhysicalCapacity(source.prepared));
-    const ledger = moon.clientProgramPrepareMultiCapturedLocalLedger(owner,
-      sources.map(source => capturedDuckDBNativeConfiguration(source.prepared)),
+    const ledger = moon.clientProgramPrepareMultiCapturedLocalAcquisitionLedger(owner,
+      sources.map(source => capturedDuckDBConfiguration(source.prepared)),
       capacities.map(value => value.transferBytes),
       capacities.map(value => value.executionBytes), common.registry, common.values,
       common.fragment, common.ordered);
-    assert.ok(ledger, 'both native capacities use the standard shared Run ledger');
+    assert.ok(ledger, 'both selected capacities use the standard shared Run ledger');
     return ledger;
   };
   const openOne = async (source, ledger, owner = prepared, overrides = {}) => {

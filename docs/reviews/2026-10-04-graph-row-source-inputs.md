@@ -111,3 +111,18 @@ Exact submitted-HEAD CI is separate from this selected evidence. This does not
 claim completion of traversal, remaining SGA consumers, snapshot acceptance or
 Frontend r1. #287 remains separately blocked on #295's main integration and
 remaining packed acceptance; neither its 512 MiB limit nor expectations change.
+
+## Main integration follow-up
+
+Main `5caeccc79dacc758afa5d87c2cee6be024e32565` includes #273's Effect
+continuation loop, #286's scoped-order selector and #295's selected-fragment
+capacity repair. The Graph-row dispatch is integrated into the current-query
+branch of that loop; D's continuation and Effect ownership remain unchanged.
+Both packed selectors are preserved. The merged normative source regenerates
+all dependent pins, retaining independent vectors for both parents:
+
+- Integrated grammar: `sha256:bd3b6c7767656a531df52628453cbff90762a8d6013af432ced62d241d8fdb0a`.
+- Integrated independent Values Run: `sha256:cb619661631f118d81c0ae5fdfe60240ccde214ca7dd0b6f8c50719adbec95b1`.
+
+The packed evidence above still belongs to `8074f08e...`, not this integrated
+source. Integration checks and exact-HEAD CI must be reported separately.

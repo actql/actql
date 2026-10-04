@@ -28,16 +28,18 @@ test('composed Local start retains the original Model before Run and dispatch bi
   let start;
   let project;
   let complete;
+  let allowCleanup;
   let retained;
   const port = {};
   const ok = {$tag: 1, _0: undefined};
   const assertActive = value => assert.equal(value, active);
   const moon = {
-    clientProgramComposedInferLocalProvider(owner, open, issue, retain) {
+    clientProgramComposedInferLocalProvider(owner, open, issue, retain, cleanup) {
       assert.equal(owner, occurrence);
       start = open;
       project = issue;
       complete = retain;
+      allowCleanup = cleanup;
       return port;
     },
     clientProgramStartComposedInferExecution(...actual) {
@@ -64,6 +66,8 @@ test('composed Local start retains the original Model before Run and dispatch bi
       assertActive(value); assert.equal(actual, egress); events.push('egress'); return ok;
     },
     clientProgramAdvanceInferExecution() { assert.fail('Local alone must advance the Model component'); },
+    clientProgramInferExecutionStopped(value) { assertActive(value); return true; },
+    clientProgramCleanupInferExecution(value) { assertActive(value); return {$tag: 1, _0: true}; },
   };
   const control = {
     bindCheckedClientInferRun(actual, value, definition) {
@@ -88,12 +92,17 @@ test('composed Local start retains the original Model before Run and dispatch bi
   assert.equal(start(inputs), active);
   assert.deepEqual(events, ['start', 'quantity', 'suffix', 'preflight', 'egress', 'retain', 'run', 'dispatch']);
   assert.equal(opened.operation(), retained);
+  assert.equal(allowCleanup(active), false, 'Local cannot discard pending Host evidence');
+  assert.equal(allowCleanup({}), false, 'another component cannot grant cleanup');
   await assert.rejects(retained.run(), {message: 'InferComponentDrivenByLocal'});
   assert.equal(complete(active), true);
   assert.equal(events.at(-1), 'capture');
   const cause = {componentIssue: 'InputBudget'};
   project(cause);
   assert.equal(opened.failure().cause, cause);
+  assert.equal(allowCleanup(active), false, 'a failed component still owns stopped evidence');
+  assert.equal(retained.cleanup(), true);
+  assert.equal(allowCleanup(active), true, 'only the original reclaimed owner releases Local custody');
   assert.equal(start(inputs), undefined);
   assert.equal(events.filter(value => value === 'start').length, 1);
 });

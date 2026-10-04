@@ -321,10 +321,21 @@ test('baseline preimages and changed normative pins independently determine the 
     pin('5347f97a234b92717a8495614590b5e4b0a87a4b8bd796f051952ef164988663'));
   assert.equal(vector(rowPredecessor, cid(aoaContract), dependencies, barrierCid).run.run_definition_cid,
     pin('ac34b3b002f08db23c1a394241c6b2666379e27e17ffda269f20d025cbbba97a'));
-  assert.equal(vector(grammarCid, preRefreshContract, preRefreshDependencies, barrierCid).run.run_definition_cid,
+  // Keep both integrated parents' vectors with their own grammar pins.
+  const rowGrammar = pin('dc6a79192190098180af67a8726ecad1519d0c93037e43ad41d45cc288d0ef09');
+  const compositionGrammar = pin('cb357b785390fb3e581a6ece8e61d49d9d93676666df77dd18a2d7f72f381bff');
+  assert.equal(vector(rowGrammar, preRefreshContract, preRefreshDependencies, barrierCid).run.run_definition_cid,
     pin('7e2ae717cb6fa6b82328da3688ee0a4083dc3d78ad2793a4e02da135aceb14c7'));
-  assert.equal(current.run.run_definition_cid,
+  assert.equal(vector(rowGrammar, cid(aoaContract), dependencies, barrierCid).run.run_definition_cid,
     pin('97c4dacbf36c4d15cd0b936c07a24d75b1d033d92d587e376c2c50ee598ea918'));
+  assert.equal(vector(compositionGrammar, preRefreshContract, preRefreshDependencies, barrierCid).run.run_definition_cid,
+    pin('07ba9ca36c06c85c6fdc3e88aaed22d02dff38348fb1d7003aa6ab4108b3654e'));
+  assert.equal(vector(compositionGrammar, cid(aoaContract), dependencies, barrierCid).run.run_definition_cid,
+    pin('8e2f3659d83e5bdc7058fb2c1044879fea2fdf23bb1ab7266f8b07d544abf0b4'));
+  assert.equal(vector(grammarCid, preRefreshContract, preRefreshDependencies, barrierCid).run.run_definition_cid,
+    pin('fb0b9d9c1e2d0645859c0ce278205aa086b0f6daddf6f12ac2cb568d756b0ed8'));
+  assert.equal(current.run.run_definition_cid,
+    pin('cb619661631f118d81c0ae5fdfe60240ccde214ca7dd0b6f8c50719adbec95b1'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');
