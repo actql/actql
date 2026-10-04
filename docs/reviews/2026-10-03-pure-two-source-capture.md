@@ -215,3 +215,10 @@ This is the close of a public Result reader's consumer iterator. It does not
 prove physical producer-handle cleanup, active temporary-holder counts or
 reservation return; the approved common-owner inventory handoff to A remains.
 Graph Result Policy adoption and Graph approval/recovery stay with #304.
+
+Selected SDK read-progress and public-query fixture tests pass 12/12 before
+normal integration of main `605d42356c29ff926e046e73a87a54cf3a420f0a` (#333).
+Client CI registration checks pass 15/15 after that integration, with no
+conflict or declaration changes. Outer driver syntax and diff checks pass.
+These focused checks do not establish the new four public reader-close cases;
+their exact-source packed acceptance and automatic PR CI remain pending.
