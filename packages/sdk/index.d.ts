@@ -18,7 +18,7 @@ export declare function getCheckInput(outcome: CheckOutcome, documentId: string,
 export declare function resolveCheckLocation(outcome: CheckOutcome,
   location: WireCheckLocation, currentInput?: CheckInput):
   (WireCheckLocation & Readonly<{input: CheckInput; text?: string}>) | undefined;
-export declare function explainCheckReason(reason: Readonly<{code: string}>):
+export declare function explainCheckReason(reason: Readonly<{code: string; facts?: unknown}>):
   Readonly<{kind: 'known' | 'unknown'; summary: string; hint?: string}>;
 
 type ConnectedEndpoint = Readonly<{

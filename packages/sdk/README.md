@@ -317,7 +317,14 @@ are UTF-8 byte intervals; structured values/declarations have revision-bound
 pointers. There is no SDK parser, automatic fix or Host input re-fetch API.
 Nested object/array type failures identify the declared child type and the
 existing binder's path, with JSON pointer escaping for field names. Supplied
-constraint violations can carry that path with their safe generic reason.
+constraint violations with an owned binder cause expose
+`supplied_value_constraint_violation`, a safe parameter name and a typed family:
+`numeric`, `duration`, `array_length` or `array_size`. They can carry the same
+owned path. Numeric means the admitted integer/minimum/maximum constraints;
+the reason does not claim which one failed. `explainCheckReason` provides a
+family-specific hint. The declaration snapshot is available through
+`getCheckInput(outcome, 'parameter_declarations')`; actual values are not facts.
+Other violations remain safely generic rather than guessing a cause.
 Missing submitted nodes and pointers beyond the public bound have no location;
 invalid defaults never point into supplied values. Values remain in the local
 submitted snapshot, not in public diagnostic facts.
