@@ -63,7 +63,7 @@ refusal checks retain zero durable admission and zero provider I/O.
 
 ## Executed evidence and unverified boundaries
 
-Focused JS on the working implementation: Graph Program/checker tests 9/9.
+Pre-integration focused JS on the working implementation: Graph Program/checker tests 9/9.
 Independent Node grammar/Run preimage vectors 3/3. Read-only compilation
 manifest, normative metadata, canonical corpus (367 identities), Workers
 fixture and Node fixture freshness checks pass. Both integration parents'
@@ -85,3 +85,24 @@ are dependency evidence, not acceptance of these new authored sources.
 
 D's CTE predicate repair remains separate. This unit changes no CTE,
 assertion, Effect, shared capacity derivation, provider or remote protocol.
+
+## Submitted integration boundary
+
+Current integration source is
+`0e15166777886e5441c54fed615348df2138db6e`, retaining normal merge parents:
+
+- Current main `d5f0802c93e2863b092aa8f1a9e9a7cc97b12c5b`, including #287
+  and #299 as completed integrated units.
+- B's no-selection text dependency #303
+  `7bc0367339711cc85c80ce82a387a11e3f189ce3`.
+- C's label-selection dependency #307
+  `51764ed8846a0f3913d498d434154576d4b976dc`.
+
+The next submitted commit also adds direct text-to-common-checker edge selector
+regressions and this evidence record. Normal merge conflict resolution keeps
+both parents' independent preimages, then regenerates metadata and pins from
+combined normative source. In particular the #303 definition-only grammar/Run
+vector remains a predecessor; it is not rebound to the label-enabled contract.
+This Frontend unit remains Draft pending its new source's public packed
+Local/HTTP acceptance and required automatic CI. No dependency success is
+claimed as this source's execution result.

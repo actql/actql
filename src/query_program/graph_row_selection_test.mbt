@@ -114,3 +114,27 @@ test "Graph quoted element names remain string selectors" {
     NeedsInputs(_) => fail("Graph selection adds no acquisition")
   }
 }
+
+///|
+test "Graph edge selectors retain the existing typed Bridge" {
+  for selector in ["definition: 'e'", "label: 'r'"] {
+    let program = compile_data_set(
+      graph_rows_prefix() +
+      "FROM g |> edge_rows(" +
+      selector +
+      ") |> SELECT edge_key, labels |> ORDER BY edge_key",
+    )
+    match
+      @check.check_parsed_with_evidence(
+        program,
+        graph_rows_environment(),
+        None,
+        [],
+        graph_rows_check_limits(),
+      ) {
+      Checked(_) => ()
+      Rejected(diagnostic) => graph_rows_rejected(diagnostic)
+      NeedsInputs(_) => fail("Graph edge selection adds no acquisition")
+    }
+  }
+}
