@@ -522,3 +522,52 @@ record and public acceptance report for executed tests and remaining coverage.
 The later source-free INFER acceptance reuses the common owner already in main;
 no frontend executor is introduced. JSON composition in #246 does not establish
 equivalent authored-text composition or all Graph/VecA/TEA surfaces.
+
+
+### Fixed A Result Policy adoption for Graph acceptance
+
+A's public #339 candidate is
+`33c4af2f9995feb64948c808e94b9dee40f87af9`. D first adopted it in the isolated
+`integration/graph-result-policy-339` worktree through normal merge
+`cb695ca95ebc457796accc134fbcdedf5454432b`, with ordered parents
+`b65ff13f689985c5a82fc9c8e2d280913bf52cdd` and that exact A SHA.
+The four conflicts retain the Graph source-free admission/provenance while
+adopting A's retained Policy field and original-body validation. The temporary
+Model-egress-CID substitution for source-free Effect Results is removed.
+
+The existing acquired Effect computation forwards the saved Result Policy and
+limits to `adoptCheckedClientEffectInferRun`. The Graph Model publication plan
+retains `compiledInferSourceFreeResultPolicy` in its ordinary capture dependency
+bodies. There is no extra executor, fabricated Source declaration or dependency
+validation exception. Fixture commit
+`c3503d88935939de7db04c96595211439443bb17` explicitly configures A's admitted
+unknown-provenance original, CID
+`sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563`.
+Model egress remains a separate contract; all authored Programs, independent
+rows/types/order and call expectations remain unchanged.
+
+The existing node/edge Local/HTTPS consumer now omits current Host Policy
+configuration when restoring both capture-waiting and approval-committed runs,
+checks the original preserved in request admission, and retains Source calls 0,
+Model inputs [100,200], writes [0,0,1,1] and identical request/Run lookup.
+The positive case precedes the missing-Policy and duplicate/NULL refusals.
+Missing Policy must reject before accepting a Run or invoking a Model/Effect;
+missing original and CID mismatch are also checked at the installed Host entry.
+
+Focused JS composed-INFER tests pass 7/7 (`run-XOXtDl`), including A's separation
+of Model egress and Result Policy. The consuming Host runtime builds successfully
+(`run-Ir7wTx`). Selected bridge/journal/installed-Host/custody cases pass 4/4
+(`run-vU1UeX`), and the Graph fixture/acquisition custody selection passes 18/18
+(`run-VZCuYz`). Changed MoonBit formatting, outer/external driver syntax and diff
+checks pass. Complete retained-history validation succeeds at integration merge
+`cb695ca95ebc457796accc134fbcdedf5454432b` with 104 declarations and 2 supplements;
+no original record, introduction history, validator or gate is rewritten.
+These are focused preparation results, not fresh-packed Graph acceptance.
+
+#304 remains Draft, base main, dependent on #339. Final merge order is #339 then
+#304, both ordinary merges into main; no merge operation is requested. The failed
+public CI at `f90ba1b2f3f875becc2e58fe0cc24d30f88b2957` remains historical evidence.
+Fresh-packed node/edge Local/HTTPS approval, execution and both-process restart
+must pass on the new submitted source before Graph acceptance is claimed. Formal
+active temporary-holder inventory remains a separate common-owner observation
+handoff; zero bytes or cumulative allocation counts do not prove active count.
