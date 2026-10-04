@@ -979,3 +979,31 @@ The unstarted jobs establish neither a remaining Graph product failure nor
 complete required-CI success. No manual retry or duplicate workflow is started.
 #304 remains Draft pending required CI and renewed review; these recorded
 results must not be relabeled as acceptance of a later source or new scope.
+
+### Coordinator retry after the Actions budget update
+
+The coordinator retries failed jobs of the same public source
+`c988bae700a641c0ef968b4411cabbaf51cf4956`; D does not initiate a duplicate
+retry or change the public HEAD. Run `37200985055`, attempt 2, ends in failure.
+Packed job `111448074036`, distribution `111448074098`, Core JS
+`111448073047`, capacity mutants `111448073020`, separated network
+`111448073016`, Native `111448073038`, pipeline validation `111448073027`
+and pipeline evidence `111448082432` are independently inspected. All have
+runner_id 0 and zero execution steps. Each annotation reports that account
+payment/spending limits prevent the job from starting. These are not new
+product execution failures or successful acceptance.
+
+The producer success represented by job `111448090551` keeps its original
+12:11:25–12:12:22 UTC execution timestamps. Artifact `11303081237` remains
+the attempt-1 producer; no new pack or product check is inferred from inherited
+successful-job records. The pristine local four-case acceptance above retains
+its original tested source, runtime, artifact and receipt identities. Required
+hosted CI remains incomplete, and #304 stays Draft with merge target main.
+
+#388 changes future Draft execution to lightweight checks with an intentional
+`awaiting ready_for_review` final state. That future state must not be treated
+as a product failure or a reason to retry. The coordinator permits this old-run
+retry to use its original heavy workflow; D neither changes that workflow nor
+merges main solely to cause another run. The evidence-only local changes remain
+unpublished while the coordinator resolves billing. Any necessary publication
+will be shared before push so it does not invalidate an in-flight old run.
