@@ -16,11 +16,13 @@ Earlier checkpoints below retain their original source and package identities.
 
 ## Current public composition checkpoint (2026-10-04)
 
-The adopted main is `d5f0802c93e2863b092aa8f1a9e9a7cc97b12c5b`, including
+The adopted main is `3a7be90e681326fef04cf2c28fe11dbfee729e2b`, including
 #273, A #292, selected-fragment capacity, incremental Session CI, traversal
 nodes, durable Site cancellation, formal resident cleanup and installed
-connector manifests. D's latest ordinary integration is
-`4f323850097280978e5765a43f33ce650cde8a14`;
+connector manifests, plus B #303's Graph row source lowering. D's latest
+ordinary integration is `b5bf88385400f8c0b711f4c01a79bda2da77714e`.
+The previous integration `4f323850097280978e5765a43f33ce650cde8a14`
+adopted main `d5f0802c93e2863b092aa8f1a9e9a7cc97b12c5b`;
 the accepted two-Source packages
 below include main through `5caeccc79dacc758afa5d87c2cee6be024e32565` via
 `3bd65feb11770cd45819ef34dcd08fba2db03a3f`. This section
@@ -31,10 +33,11 @@ classification remains `2026-09-19-sga-veca-tea-local-coverage.json`.
 | Composition boundary | Current state and fixed evidence | Next acceptance or excluded scope |
 |---|---|---|
 | Two Sources → JOIN → multi-row INFER → KEEP/filter → approved Effect, JSON/text | Publicly accepted. #273 source `8a5195451195b7e4566b19bf7ba9fb5772b8f2d1`; [automatic CI 37163835916](https://github.com/actql/actql/actions/runs/37163835916) succeeded, including fresh-packed Local/HTTPS from tested merge `e90fea951f63cf0586f095c47521e29d18a4bf73`. Approval/restart/replay and the reused failure/cleanup cases passed. | This proves the authored full text and JSON fixture, not all syntax or Graph combinations. |
-| Pure two DuckDB Sources → selected Native/Broad → JOIN | A #292 `de96f1c5cd28154deea182a9a84743a016db81f0` is adopted via main merge `b48301401592c2e9f00a2ea9f1f82a283cb5a2a4`. The earlier JSON-only acceptance at `1f17eb56c88d0b63b99cf24b1ce4f6ad43355752` passed 8 normal and 8 retained cases. Draft #313 extends the existing harness with authored text: fresh-packed `27dc783a4c1b8dca34c496d21362c42866250513` passed 12 Local/HTTPS normal cases, 12 retained-Run cases and 12 existing recovery/failure scenarios. Independent Native/Broad JSON/text rows, types and order agree; binding/generation refusal, second acquisition failure, cancellation and cleanup retry use A's existing fixtures/owner. | The new submitted HEAD is `e210c920e6b05b21bb6f9216933717ea635dd0c2`, with [automatic PR CI 37170657090](https://github.com/actql/actql/actions/runs/37170657090) still running. The local packed success is fixed to `27dc783a…`, separate from current CI and from Graph/INFER/Effect acceptance. Formal active temporary-hold inventory remains a separate requirement. |
+| Pure two DuckDB Sources → selected Native/Broad → JOIN | A #292 `de96f1c5cd28154deea182a9a84743a016db81f0` is adopted via main merge `b48301401592c2e9f00a2ea9f1f82a283cb5a2a4`. The earlier JSON-only acceptance at `1f17eb56c88d0b63b99cf24b1ce4f6ad43355752` passed 8 normal and 8 retained cases. Draft #313 extends the existing harness with authored text: fresh-packed `27dc783a4c1b8dca34c496d21362c42866250513` passed 12 Local/HTTPS normal cases, 12 retained-Run cases and 12 existing recovery/failure scenarios. Independent Native/Broad JSON/text rows, types and order agree; binding/generation refusal, second acquisition failure, cancellation and cleanup retry use A's existing fixtures/owner. | Automatic CI at submitted `ee892e1155da1bbd287e8ffabc2407a8f8029a57` has passed the packed consumer from clean tested merge `d6176313d4a21c08497241fd8f3df5453cd72d00`; its retained public-query summary is complete/passed. Full CI was still running when inspected. This fixed evidence precedes the #303 main integration; formal active temporary-hold inventory remains a separate requirement. |
 | Graph → node_rows/edge_rows → guaranteed Relation columns → physical Store/reload → Named Result | Publicly accepted through C #275 (`fa615ff1d7b199b476c9673c613dcbcfb40d576d`), included in main. Selected clean packed acceptance is recorded at `9bc97334b1ec6afddef1b319fc48ac52f8ec7879`. | Nullable Required properties and original scalar key types remain supported; Conditional refinement is not inferred from samples. |
 | Graph rows → multi-row INFER → approved Effect | Source-free checked DAG compilation and original Model/capture/Effect owners are connected at `325eb381313a2d688043acb38d4e09b5ea61f61f`. Producer export/import provenance is connected at `d8a68550ead7fe326cb2d7922d8cec7a84b43e79`. Its fresh-packed Local node case reaches two Model calls `[100,200]`, zero Source calls and zero writes, then fails dependency preservation before approval. Typed diagnostic: `MissingDependency`, because the Result Policy CID has no retained original body. | A owns the common Result Policy binding, early refusal and durable restoration; D owns adoption and public composite acceptance. HTTPS, edge rows, approval and restart at this new source are not yet accepted. The earlier `ClientProgramUnsupported` and `NotSourceFree` reproductions remain historical evidence, not the current failure. |
-| Graph rows through text; conditional-property refinement; NEAREST/Cloud expansion | Outside this completion unit. Graph text and `compile_query_script` Graph→Relation transition are B-owned; no parallel transition is implemented by D. | Record as unconnected for this acceptance scope. D continues CTE/predicate/assert/Effect composition; additional shared input/return changes require a concrete boundary report. |
+| Graph rows through text → ordinary Relation → Named Result | B #303's `compile_query_script` Graph→Relation transition is now adopted from main; D has not implemented another transition. B's retained packed predecessor evidence covers five positives and five pre-admission refusals on Local/HTTP, with exact rows and descriptions. | This is an adopted implementation with fixed predecessor acceptance, not fresh full-composition acceptance of D's new integration. Graph rows text remains outside the first completion unit; D continues CTE/predicate/assert/Effect composition. See `2026-10-04-graph-row-source-inputs.md` for identities and restrictions. |
+| Conditional-property refinement; NEAREST/Cloud expansion | Outside this completion unit. No presence evidence is inferred from samples or a nullable guard. | Separate subsequent units and their existing owners; no fallback or duplicate execution mechanism. |
 
 The new Graph fixtures are
 `scripts/fixtures/graph-node-infer-effect.program.template.json` and
@@ -129,6 +132,21 @@ affected Node cases passed, as did complete retained-history validation.
 The packed Graph failure remains distinct: it reaches `needs_reconciliation`
 instead of `waiting_checkpoint` before approval. No Graph acceptance or Result
 Policy repair is claimed from the fixture corrections or main integration.
+
+Automatic CI [37172121681](https://github.com/actql/actql/actions/runs/37172121681)
+completed for submitted `add687a865b615be34989638b015905b457540b3`, tested
+merge `c46e9921e7c6d8e4ccff2f4c7f4fc751e3d6b2a9`. The three corrected
+fixture jobs, all Core targets and retained-history/pipeline evidence passed.
+The packed Graph approval assertion still failed (`needs_reconciliation`,
+expected `waiting_checkpoint`, `effect-run.mjs:243`); `client` and `check`
+aggregates failed consequently. No old run was retried.
+
+The new #303 main integration has no conflicts. The authored Graph fixture
+checks passed (4 cases), the public-query fixture checks passed (2 cases),
+complete retained-history validation passed, and `git diff --check` passed.
+These focused checks do not constitute fresh packed Graph acceptance or repair
+the Result Policy/active-holding observation dependencies. No local full Core,
+packed or performance campaign was added.
 
 ## Historical implemented versus execution evidence
 
