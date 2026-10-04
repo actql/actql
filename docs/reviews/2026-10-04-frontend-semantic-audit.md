@@ -149,9 +149,33 @@ Product source `c4c2d9b2f7a6b5425cbc14c9fe40ec64b10960bd` passed focused JS
 10/10; independent post-integration preimage checks passed 3/3. The submitted
 follow-up adds only two real-Git merge declarations and its report; retained
 history validation passes. [Its new automatic CI](https://github.com/actql/actql/actions/runs/37172844527)
-passed preflight. New public selector execution is still unverified, not
-inferred from #303's no-selection success. D's CTE source-capture repair and
-its post-fix acceptance remain separate; no parallel repair was made here.
+passed preflight. Fresh public selector execution subsequently passed in
+[artifact 11292428315](https://github.com/actql/actql/actions/runs/37172844527/artifacts/11292428315):
+clean CI merge `3d6787e9fe620fdb2f8b48adde0bea45d095a661`, whose actual
+parents are C `51764ed8846a0f3913d498d434154576d4b976dc` and submitted B
+HEAD. The summary is complete/passed with no evidence errors; command 007
+exits 0 with complete output. All 13 Graph-row positives and 11 refusals run
+on each of packed Embedded Local and HTTP, retaining independent JSON
+controls, ordered type descriptions, rows, stream completion, retry/attach
+reuse, and zero admission/provider I/O on refusal. This is fresh selector
+evidence, not inferred from #303's no-selection success. Required automatic
+CI is still completing its remaining jobs and final aggregate at this
+checkpoint; #316 remains Draft and retains its unmerged #307 base.
+
+| Package | SHA-256 at this selector execution |
+|---|---|
+| client-wire | `5da98d3edb615f960f0511be9d6e61431cd34d02304a8bd6b6e576f7775f91a0` |
+| sdk | `2fc910067348e421346945ced1e728e107bbe6fa455ee00f9d71da46e8123c5b` |
+| run-host-core | `b4aecd37bea2189f99d5f53b35fbaabe22130abe439a75b097a3a5c2fe62ea01` |
+| local-node | `dbb42565cd8ca6f9a4e6a6fab6e37c7e541f51132e1edb19afbb704da801524e` |
+| node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+D's CTE source-capture repair and its post-fix acceptance remain separate;
+no parallel repair was made here. The independent traversal text connection
+has begun from #303: three focused JS Program/checker cases pass for earlier
+DATA Relation selectors, preserving authored hop bounds, path mode and
+typed-identity output names. This working implementation has no packed
+execution evidence yet and does not establish all selector-source coverage.
 
 ## Historical repair follow-up before main capacity integration
 
