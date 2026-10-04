@@ -100,7 +100,8 @@ fn bounded_family_relation_chain(graph : CheckedDAG, stage : Int) -> Bool {
 ///|
 /// A checked binary Relation task may reuse a private intermediate in two
 /// later steps and join those branches. Keep only this bounded, single-root
-/// shape together; other nonlinear or Carrier paths retain per-edge tasks.
+/// shape together, including a bounded group on either branch; other nonlinear
+/// or Carrier paths retain per-edge tasks.
 fn bounded_branched_relation_chain(graph : CheckedDAG, stage : Int) -> Bool {
   let prepared = @lower.bound_preparation(graph.owners[stage])
   let count = @pipeline.step_count(@lower.pipeline(prepared))
@@ -124,7 +125,8 @@ fn bounded_branched_relation_chain(graph : CheckedDAG, stage : Int) -> Bool {
   let mut branched = false
   for step in 0..<count {
     guard @lower.node_at(prepared, step) is Some(node) &&
-      @carrier.kind(@lower.node_output_carrier(node)) == @carrier.RelationKind else {
+      @carrier.kind(@lower.node_output_carrier(node)) == @carrier.RelationKind &&
+      @lower.node_supports_selected_managed_execution(node) else {
       return false
     }
     match @lower.payload(node) {
@@ -133,7 +135,8 @@ fn bounded_branched_relation_chain(graph : CheckedDAG, stage : Int) -> Bool {
       | @lower.CrossJoinRows(_)
       | @lower.Where(_)
       | @lower.Derive(_)
-      | @lower.Select(_) => ()
+      | @lower.Select(_)
+      | @lower.CountGroup(_) => ()
       _ => return false
     }
     let mut internal_inputs = 0

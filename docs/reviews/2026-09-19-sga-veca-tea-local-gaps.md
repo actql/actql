@@ -745,6 +745,21 @@ also completes the identical authored Program through the same physical task
 shape. This does not admit arbitrary nonlinear operations or intermediate
 Result roots.
 
+The same bounded owner now retains a checked global `COUNT` on each branch:
+`append` → two filters → two independent groups → `append`. The splitter keeps
+the authored producer as one task when every child is eligible for selected
+managed execution and has exact Relation ports. The ordinary memory-output
+Host and real retained Store Host both run this shape; the latter reads the
+producer and two consumer Named Results against independently fixed ordered
+rows `[{n: 3}, {n: 2}]`. A mixed `MAX`/`COUNT` branch also completes as one
+selected task and publishes `[{n: 4}, {n: 2}]`; the existing whole-task
+provider, rather than the narrower split eligibility for `COUNT`, admits it.
+The chain owner supplies cumulative work, overlapping child capacity,
+stop-before-release and reverse cleanup for these selected children. The
+earlier fork-join fault cases exercise that owner; they are shared lifecycle
+evidence, not a claim that every group-specific failure or aggregate variant
+was separately tested. Arbitrary nonlinear shapes remain outside this admission.
+
 A disconnected producer that appends `l` and then filters `l` rather than the
 append result remains unsupported by the bounded selected provider. The
 ordinary retained-only Host rejects that Program during whole-graph selection:

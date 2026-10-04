@@ -7930,6 +7930,27 @@ async function exerciseStrategyGraph(
     {from: 'appended', filter: 'id < 3', as: 'less'},
     {from: 'greater', append: {with: 'less'}, as: 'out'},
   ];
+  const branchedGroupProgram = structuredClone(externalAppendProgram);
+  branchedGroupProgram.stages.find(stage => stage.id === 'crossed').steps = [
+    {from: 'l', append: {with: 'r'}, as: 'appended'},
+    {from: 'appended', filter: 'id > 1', as: 'greater'},
+    {from: 'appended', filter: 'id < 3', as: 'less'},
+    {from: 'greater', group: {by: [], aggregates: {n: {fn: 'count'}}},
+      as: 'greater_count'},
+    {from: 'less', group: {by: [], aggregates: {n: {fn: 'count'}}},
+      as: 'less_count'},
+    {from: 'greater_count', append: {with: 'less_count'}, as: 'out'},
+  ];
+  branchedGroupProgram.stages.find(stage => stage.id === 'crossed')
+    .results.r.fields = ['n'];
+  for (const consumer of branchedGroupProgram.stages.filter(stage =>
+    stage.id.startsWith('external_cross_consumer_'))) {
+    consumer.steps[0].select = ['n'];
+    consumer.results.r.fields = ['n'];
+  }
+  const branchedMixedAggregateProgram = structuredClone(branchedGroupProgram);
+  branchedMixedAggregateProgram.stages.find(stage => stage.id === 'crossed')
+    .steps[3].group.aggregates.n = {fn: 'max', field: 'id'};
   for (const [name, program, tasks] of [
     ['values', zeroInputProgram, [1, 2, 3]],
     ['captured Relation filter/select chain', capturedRelationChainProgram,
@@ -7966,6 +7987,10 @@ async function exerciseStrategyGraph(
     ['append', appendProgram, [1, 2, 3, 4, 5]],
     ['append filter chain', appendFilterProgram, [1, 2, 3, 4, 5]],
     ['external append fork-join', branchedRelationProgram, [1, 2, 3, 4, 5]],
+    ['external append fork-group-join', branchedGroupProgram,
+      [1, 2, 3, 4, 5]],
+    ['external append fork-mixed-group-join', branchedMixedAggregateProgram,
+      [1, 2, 3, 4, 5]],
     ['filter then append captured input', filterThenAppendProgram,
       [1, 2, 3, 4]],
     ['direct cross join', directCrossJoinProgram, [1, 2, 3, 4, 5]],
@@ -9358,6 +9383,10 @@ async function exerciseStrategyGraph(
     expected: [2, 3, 4, 3, 4].map(id => ({id})), fields: ['id']},
     {name: 'append-fork-join', source: branchedRelationProgram,
       expected: [2, 3, 4, 1, 2].map(id => ({id})), fields: ['id']},
+    {name: 'append-fork-group-join', source: branchedGroupProgram,
+      expected: [{n: 3}, {n: 2}], fields: ['n']},
+    {name: 'append-fork-mixed-group-join', source: branchedMixedAggregateProgram,
+      expected: [{n: 4}, {n: 2}], fields: ['n']},
     {name: 'except-all-filter', source: retainedBinaryChain(
       retainedSetProgram('except'), [{filter: 'id > 1'}], ['id']),
     expected: [{id: 2}], fields: ['id']},
