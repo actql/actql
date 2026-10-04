@@ -16,6 +16,7 @@ import {canonicalReceipt, parseReceipt, sealReceipt} from './receipts.mjs';
 import {leanRecords} from './applications.mjs';
 import {checkPlan} from './check.mjs';
 import {observeRuntime} from './runtime.mjs';
+import {comparisonPlan, compareFreshObservations} from './plan.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const directory = join(root, '.artifacts/session-actions');
@@ -57,6 +58,9 @@ export async function initialize() {
   write(join(directory, 'context.json'), {context, origin, runtime});
   write(join(directory, 'runtime-distributions.json'), distributionInputs);
   write(join(directory, 'runtime-measurement.json'), measurement);
+  const comparison = await comparisonPlan({root, context, runtime, directory,
+    token: process.env.ACTIONS_READ_TOKEN, request});
+  write(join(directory, 'comparison-plan.json'), comparison);
   console.log(`Comparison collection initialized for ${revision}; all actions still execute`);
 }
 
@@ -73,6 +77,8 @@ export function recordExistingAction({id, command, output, status, milliseconds,
   const distributionPath = 'runtime-distributions.json';
   const distributionBytes = readFileSync(join(directory, distributionPath));
   const artifacts = [{path: distributionPath, bytes: distributionBytes.length, digest: hash(distributionBytes)}];
+  const comparisonBytes = readFileSync(join(directory, 'comparison-plan.json'));
+  artifacts.push({path: 'comparison-plan.json', bytes: comparisonBytes.length, digest: hash(comparisonBytes)});
   if (result !== null) {
     const path = `results/${id}.json`, bytes = Buffer.from(`${encode(result)}\n`);
     writeFileSync(join(directory, path), bytes, {flag: 'wx'});
@@ -101,19 +107,26 @@ async function mutations() {
 export function finish() {
   const state = json(join(directory, 'context.json')), catalog = readCatalog();
   assert.equal(git(['diff', '--name-only', 'HEAD']), '', 'Unrestored final source');
-  const requirements = [], applications = [], receiptDigests = [];
+  const requirements = [], applications = [], receiptDigests = [], receipts = [];
   for (const action of catalog.actions) {
     const bytes = readFileSync(join(directory, `receipts/${action.id}.json`)), receipt = parseReceipt(bytes);
     assert.equal(encode(receipt.origin), encode(state.origin), 'Mixed collection owner');
     assert.equal(encode(receipt.action), encode(action), 'Wrong collected descriptor');
+    receipts.push(receipt);
     const records = leanRecords(action, receipt.inputs, {receipt}, state.context, 'fresh');
     requirements.push(records.required); applications.push(records.application);
     receiptDigests.push({actionId: action.id, digest: hash(bytes)});
   }
+  const comparison = json(join(directory, 'comparison-plan.json'));
+  const observations = compareFreshObservations({plan: comparison, context: state.context, runtime: state.runtime,
+    tree: gitTree(root, state.context.candidateRevision), receipts});
+  write(join(directory, 'comparison-observations.json'), observations);
   const start = performance.now();
   const lean = checkPlan(requirements, applications, {onOutput: output => writeFileSync(join(directory, 'lean-output.log'), output, {flag: 'wx'})});
   write(join(directory, 'checked.json'), {version: 'actql-verification-family-certificate/0.1',
     mode: 'comparison', context: state.context, catalogDigest: hash(encode(catalog)), receiptDigests,
+    comparisonDigest: hash(readFileSync(join(directory, 'comparison-plan.json'))),
+    comparisonObservationsDigest: hash(readFileSync(join(directory, 'comparison-observations.json'))),
     lean, milliseconds: Math.round(performance.now() - start)});
   console.log(`Checked ${receiptDigests.length} fresh actions; runtime closure and reuse remain pending`);
 }

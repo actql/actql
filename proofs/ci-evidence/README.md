@@ -107,3 +107,35 @@ registered action; no runner savings are claimed yet. Next, a reviewed isolated
 executor and protected-main comparison must establish an action-specific
 closed scope before activation. Actual Linux inventory cost and corpus
 correspondence are automatic-CI evidence, not the tiny local fixture tests.
+# Protected-main comparison
+
+`plan.mjs` connects the existing full-main checkpoint resolver to the original
+Session artifact transport and receipt authentication. Collection stores
+`comparison-plan.json` before normal execution. Every action still executes;
+each receipt binds that plan's original bytes. Completion stores the actual
+fresh unit counts/durations separately and binds both records in the executed
+Lean certificate. The final required check reconstructs candidate inputs,
+checks the fresh observations and authenticates the selected main origin again.
+
+The comparison uses the exact recorded SHA/run/attempt, not a newer main run
+that finishes during the candidate. Origin catalogs and source manifests come
+from actual Git, not the candidate's relabeled bindings. New registrations,
+changed policy/inputs, unavailable archives and rejected origins never satisfy
+an obligation from old evidence. A checkpoint/cache miss uses complete fresh
+execution without retroactive adoption if the cache becomes available later.
+
+Checkpoint lookup, archive transfer and original inspection costs are recorded
+separately at producer and consumer. Matching unit counts are only a finite
+comparison of ordinary executions, not output determinism or runtime closure.
+The current installed-runtime profile still has mandatory residuals; equal
+inputs with those gaps remain `same-inputs-open` and cannot authorize reuse.
+
+The preceding runtime unit (#296, `9058b626d4ebe8ac46c5482d46fc192b64b06d88`)
+measured 5,876 ms, 14,096 entries and 2,572,043,660 observed bytes in automatic
+run 37164996726. The authenticated archive digest is
+`a9393fcbfaba184255c601944ddca840e2bbe9bb3097d457521d5d3da168eaa4`.
+Lean's 2 GiB observation limit at `lib/lean/libLean.a` and MoonBit's
+`lib/core/lazy_list/README.md` symlink remained unresolved. Its Session producer
+checked 26 fresh receipts; this is an observation/correspondence unit, not a net
+savings result. Runtime isolation, scoped activation and measured net savings
+on ordinary PRs remain required for the overall task.
