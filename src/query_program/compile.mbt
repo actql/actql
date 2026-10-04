@@ -1368,6 +1368,7 @@ fn compile_steps(
   let mut active_fields = fields.copy()
   let mut grouped = false
   let mut sql_group_projection = false
+  let mut sql_group_select_scope : JoinChainScope? = None
   let mut sql_group_input_columns : Array[(String, String)] = []
   let grouped_keys : Array[(@query.Expression, String)] = []
   let mut first = true
@@ -1402,6 +1403,19 @@ fn compile_steps(
   let mut distinct_order_scope = false
   for i in start_at..<@query.operation_count(query) {
     let operation = @query.operation_at(query, i).unwrap()
+    if sql_group_projection &&
+      sql_group_select_scope is None &&
+      !(operation is Order(_) ||
+      operation is Limit(_, _) ||
+      operation is RetainResult(_)) {
+      // A Pipe tail consumes the completed SQL projection. Its expressions
+      // may now read aggregate output columns, but cannot recover the old
+      // input ranges or reuse GROUP expressions over different value slots.
+      sql_group_projection = false
+      grouped_keys.clear()
+      pipe_ranges = []
+      pipe_rebound = true
+    }
     // Graph occurrence slots are an implementation detail, not a public
     // Relation schema. An explicit projection establishes that schema.
     if operation is Select(projections, _) {
@@ -1888,6 +1902,17 @@ fn compile_steps(
           by.push(construction.text(name))
           grouped_keys.push((expression, name))
         }
+        if sql_group_projection {
+          // SELECT siblings resolve against retained GROUP input values.
+          // Newly declared aggregate aliases are visible to HAVING/ORDER,
+          // not to ordinary expressions in that same SELECT list.
+          sql_group_select_scope = Some({
+            visible: input_visible.filter(entry => key_names.contains(entry.1)),
+            ranges: input_ranges.map(range => {
+              (range.0, range.1.filter(entry => key_names.contains(entry.1)))
+            }),
+          })
+        }
         if sql_group_projection &&
           projections.any(projection => projection.star is Some(_)) &&
           sql_group_input_columns.any(column => !key_names.contains(column.1)) {
@@ -2100,6 +2125,11 @@ fn compile_steps(
         deferred = true
       }
       Select(projections, distinct) if pipe_changed || pipe_rebound => {
+        let expression_scope = if sql_group_projection {
+          sql_group_select_scope.unwrap()
+        } else {
+          { visible: pipe_visible, ranges: pipe_ranges, }
+        }
         let names : Array[String] = []
         let selected : Array[@builder.Node] = []
         let derives : Array[(String, @builder.Node)] = []
@@ -2173,7 +2203,12 @@ fn compile_steps(
                     @query.expression_root(expression),
                   ).unwrap().kind {
                   Reference(path) =>
-                    match pipe_slot(path, pipe_visible, pipe_ranges) {
+                    match
+                      pipe_slot(
+                        path,
+                        expression_scope.visible,
+                        expression_scope.ranges,
+                      ) {
                       Some(slot) => slot
                       None => {
                         let slot = pipe_physical_name(
@@ -2184,7 +2219,10 @@ fn compile_steps(
                           (
                             slot,
                             append_pipe_expression(
-                              construction, expression, pipe_visible, pipe_ranges,
+                              construction,
+                              expression,
+                              expression_scope.visible,
+                              expression_scope.ranges,
                               max_work,
                             ),
                           ),
@@ -2199,7 +2237,11 @@ fn compile_steps(
                       (
                         slot,
                         append_pipe_expression(
-                          construction, expression, pipe_visible, pipe_ranges, max_work,
+                          construction,
+                          expression,
+                          expression_scope.visible,
+                          expression_scope.ranges,
+                          max_work,
                         ),
                       ),
                     )
@@ -2349,7 +2391,13 @@ fn compile_steps(
                 Reference(path) =>
                   match grouped_slot {
                     Some(_) => grouped_slot
-                    None => resolve_column(path, query, input, active_fields)
+                    None =>
+                      if sql_group_projection {
+                        let scope = sql_group_select_scope.unwrap()
+                        pipe_slot(path, scope.visible, scope.ranges)
+                      } else {
+                        resolve_column(path, query, input, active_fields)
+                      }
                   }
                 _ => None
               }
@@ -2372,9 +2420,20 @@ fn compile_steps(
                 derives.push(
                   (
                     temporary,
-                    append_expression(
-                      construction, expression, query, input, active_fields, max_work,
-                    ),
+                    if sql_group_projection {
+                      let scope = sql_group_select_scope.unwrap()
+                      append_pipe_expression(
+                        construction,
+                        expression,
+                        scope.visible,
+                        scope.ranges,
+                        max_work,
+                      )
+                    } else {
+                      append_expression(
+                        construction, expression, query, input, active_fields, max_work,
+                      )
+                    },
                   ),
                 )
                 temporary
@@ -2757,6 +2816,9 @@ fn compile_steps(
     }
     if !deferred {
       step_entries.push(entries)
+    }
+    if operation is Select(_, _) && sql_group_projection {
+      sql_group_select_scope = None
     }
     if add_distinct {
       step_entries.push([
