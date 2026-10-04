@@ -32,6 +32,9 @@ export const distinctOrderSuccesses = [
   success('sql-limited', 'sql', sql + ' LIMIT 2 OFFSET 1', limitedRows),
   success('pipe-limited', 'aql-text', pipe + ' |> LIMIT 2 OFFSET 1', limitedRows),
   success('sql-null-duplicates', 'sql', sql, fullRows),
+  {...success('sql-selected-qualified', 'sql',
+    'SELECT DISTINCT id AS x FROM records WHERE id > 0 ORDER BY records.id + 1 DESC LIMIT 2',
+    [{x: 4}, {x: 3}]), columns: [{name: 'x', contract: {type: 'number', nullable: false}}]},
   success('sql-empty', 'sql', sql, [], []),
 ];
 export const distinctOrderRefusals = [

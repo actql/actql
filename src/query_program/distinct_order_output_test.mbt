@@ -64,3 +64,14 @@ test "SQL DISTINCT ORDER cannot read an unselected input expression" {
     )
   }
 }
+
+///|
+test "SQL DISTINCT ORDER retains selected input-column correspondence" {
+  for
+    source in [
+      "SELECT DISTINCT x FROM t ORDER BY t.x", "SELECT DISTINCT x AS score FROM t ORDER BY t.x + 1",
+    ] {
+    let body = checked_join_order(source)
+    assert_true(body.contains("\"distinct\":"))
+  }
+}

@@ -34,7 +34,11 @@ selected-expression reuse and unselected-input refusal controls pass.
 existing projected ORDER path. It retains the SELECT input scope only for exact
 selected-expression correspondence. Live range references are closed after
 DISTINCT, so an original physical name cannot masquerade as an overwritten
-public alias. The same closure applies to the existing scoped Pipe path.
+public alias. The same closure applies to the existing scoped Pipe path. Direct selected
+input columns retain correspondence to their evaluated output slot, including
+qualified references after an alias rename; arbitrary removed inputs do not.
+A focused follow-up catches the initially over-broad range closure before this
+correspondence is connected.
 
 The selected expression is evaluated once; equivalent ORDER occurrences share
 one helper. DISTINCT compares only public selected columns. The helper is
@@ -66,13 +70,14 @@ the expected result. No expected values are generated from the product lowerer.
 
 ## Evidence and remaining work
 
-Focused JS ORDER checks pass 31/31, including existing scoped Pipe, JOIN and CTE
+Focused JS ORDER checks pass 32/32, including existing scoped Pipe, JOIN and CTE
 ORDER regressions. Before-repair evidence is `run-UBzUTJ`; the repaired broad
-selection is `run-YNgxTw` (a final diagnostic-preservation follow-up is checked
-separately). Pinned Moon formatting and diff checks pass.
+selection is `run-2zd8OS`. Earlier 31/31 selections are predecessor evidence;
+`run-2NZbLt` fixes the selected-column correspondence counterexample before
+its follow-up repair. Public-case deduplication controls pass 2/2 in Node. Pinned Moon formatting and diff checks pass.
 
-The existing packed public-query runner includes five positive cases (machine
-control, SQL/Pipe limits, NULL/duplicates, empty) and three pre-admission refusals
+The existing packed public-query runner includes six positive cases (machine
+control, SQL/Pipe limits, NULL/duplicates, selected qualified columns, empty) and three pre-admission refusals
 on each of Embedded Local and authenticated HTTP. Its existing helper compares
 Result rows and descriptions, complete reads, one Source session and identical
 Run identity/counters on repeat read, attach and resubmit. Refusals require zero

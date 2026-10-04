@@ -2450,9 +2450,30 @@ fn compile_steps(
           // A materialized DISTINCT/SELECT cannot sort through a range slot
           // that its projection removed. An identical selected expression is
           // handled below using the evaluated output slot.
-          pipe_slot(path, pipe_visible, pipe_ranges).filter(slot => {
+          let current = pipe_slot(path, pipe_visible, pipe_ranges).filter(slot => {
             active_fields.contains(slot)
           })
+          if current is Some(_) {
+            return current
+          }
+          if distinct_order_scope {
+            // A selected input column remains available through its output
+            // slot even when aliased. This does not expose a removed input
+            // or confuse an overwritten alias with its original value.
+            if pipe_slot(
+                path,
+                selected_input_scope.visible,
+                selected_input_scope.ranges,
+              )
+              is Some(source) {
+              for binding in selected_output_slots {
+                if binding.1 == source {
+                  return Some(binding.0)
+                }
+              }
+            }
+          }
+          None
         }
         for term in terms {
           let expression = term.expression
