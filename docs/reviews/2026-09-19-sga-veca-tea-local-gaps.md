@@ -568,9 +568,9 @@ and checked by `check:local-resource-accounting`.
 | Executable production routes | 57 |
 | Typed pre-execution refusals (not execution success) | 12 |
 | Operation-specific boundary records | 57 |
-| Four-role lifecycle assurance | 56 |
-| Full route work/workspace assurance | 56 |
-| Path-scoped work/workspace assurance | 104 |
+| Four-role lifecycle assurance | 57 |
+| Full route work/workspace assurance | 57 |
+| Path-scoped work/workspace assurance | 106 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
