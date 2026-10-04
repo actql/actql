@@ -104,3 +104,37 @@ restart behavior. The final focused clean-source receipt and submitted-HEAD
 CI remain pending until recorded below. Full Core, all targets, native, proof
 and performance are not local checks for this unit. No PR merge or manual CI
 rerun is requested.
+
+## Final focused packed evidence
+
+Clean source `f086d100135d6be0f076414e967f245d417be107` passed
+`node scripts/test-packed-public-query.mjs --group-property-only`
+(`public-query-evidence-XXRbp7`). Its receipt is **passed, complete**, with
+`dirty:false`, no evidence errors and disposable artifacts removed.
+Eight positive cases and five preparation refusals passed **per Embedded Local
+and authenticated HTTP**. The JSON control and text produce the independently
+specified rows and complete ordered contracts. Empty Result descriptions retain
+the nullable key type. Same-request resubmission returns the same Run; rereading
+and attach do not add admission or acquisition. Refusals leave both counters
+unchanged and have no registered request. Hidden group slots appear in neither
+rows nor the public schema. README Local/HTTPS and missing-asset controls passed
+separately. No adapter overlay, local Program correction or substitute owner
+was used.
+
+Normal producer prepack built these external packages. Consumers ran without
+MoonBit on PATH. The initial failed campaign remains historical evidence and
+is not rewritten as success.
+
+| Package | SHA-256 |
+|---|---|
+| `actql-client-wire-0.0.0-development.tgz` | `52fe3218df346cfb9dae0adc248071563fe68918bded16f8d733415e65584fc0` |
+| `actql-sdk-0.0.0-development.tgz` | `f81bf27c3bb42a007bc16b6f89a15542a89c7fb844e2893870d1161a8e8abc6d` |
+| `actql-run-host-core-0.0.0-development.tgz` | `65b6408c2bb93597b8c92fc424b010b5e1d3e8b75ba414ad006bd30d57999a86` |
+| `actql-local-node-0.0.0-development.tgz` | `2894f05380e26bc7a6f935cd547b1bf1c0c0e1d04cacb81a9ef688296c130a34` |
+| `actql-node-0.0.0-development.tgz` | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+Only this evidence document changes after the clean packed source. Submitted
+HEAD and its automatic CI observation are recorded separately in the PR;
+the local focused result does not establish full required CI or Frontend
+completion. An Actions budget refusal is unexecuted coverage, not a product
+failure or successful validation. No manual rerun is requested.
