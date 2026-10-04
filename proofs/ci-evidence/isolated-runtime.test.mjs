@@ -3,7 +3,10 @@ import assert from 'node:assert/strict';
 import {mkdtempSync, mkdirSync, writeFileSync, chmodSync, rmSync, symlinkSync, existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join, dirname} from 'node:path';
-import {hash} from './inputs.mjs';
+import {fileURLToPath} from 'node:url';
+import {execFileSync} from 'node:child_process';
+import {hash, gitTree, actionInputs} from './inputs.mjs';
+import {readCatalog} from './actions.mjs';
 import {mutationIds} from './receipts.mjs';
 import {mutationContracts} from './mutation-inventory.mjs';
 import {stageMutationSource, isolatedSourceFiles, mutationSnapshotExtras, isolatedEnvironment, scratchDockerfile, isolatedRunArguments} from './isolation.mjs';
@@ -11,6 +14,37 @@ import {observeImageRoot, imageRuntime, checkIsolatedInputs, checkIsolatedResult
 import {staticElf} from './isolated-execution.mjs';
 import {isolatedContract, matchesIsolatedContract, isolatedExperimentDigest, isolatedExperimentPaths} from './isolated-contract.mjs';
 import {snapshot} from '../bounded-session/evidence.mjs';
+
+test('actual Git sources have the same keyed cohort, staged bytes/modes and original restoration snapshot', t => {
+  const repository = fileURLToPath(new URL('../../', import.meta.url));
+  const revision = execFileSync('git', ['rev-parse', 'HEAD'], {cwd: repository, encoding: 'utf8'}).trim();
+  const tree = gitTree(repository, revision), destination = mkdtempSync(join(tmpdir(), 'actql-actual-source-cohort-'));
+  t.after(() => rmSync(destination, {recursive: true, force: true}));
+  const staged = stageMutationSource({tree, destination});
+  const action = readCatalog().actions.find(value => value.id === 'mutations-js');
+  // This verifies physical source correspondence only, never a runtime claim.
+  const inputs = actionInputs({tree, revision, action,
+    runtime: {profile: 'source-correspondence-only', unresolved: ['runtime not executed']}});
+  const keyedSources = inputs.inputs.files.filter(entry => entry.path.startsWith('src/')).map(entry => entry.path).sort();
+  assert.deepEqual(staged.files.filter(entry => entry.path.startsWith('source/src/'))
+    .map(entry => entry.path.slice('source/'.length)).sort(), keyedSources);
+  const actualFiles = observeImageRoot(destination).entries.filter(entry => entry.kind === 'file');
+  assert.deepEqual(actualFiles.map(entry => entry.path).sort(), staged.files.map(entry => entry.path).sort());
+  const byPath = new Map(actualFiles.map(entry => [entry.path, entry]));
+  for (const entry of staged.files) {
+    const actual = byPath.get(entry.path);
+    assert.deepEqual({mode: actual.mode, bytes: actual.bytes, digest: actual.digest},
+      {mode: entry.mode, bytes: entry.bytes, digest: entry.digest});
+  }
+  const sourceRoot = join(destination, 'source'), expected = snapshotFromGit(tree);
+  assert.deepEqual(snapshot(sourceRoot), expected);
+  assert.deepEqual(checkMutationCheckout({root: sourceRoot, tree}), expected);
+  for (const path of tree.entries.keys()) if (path.startsWith('src/') && !Object.hasOwn(expected.sources, path))
+    assert.equal(existsSync(join(sourceRoot, path)), false);
+  assert(inputs.unresolved.includes('runtime not executed'));
+  t.diagnostic(JSON.stringify({revision, stagedFiles: staged.files.length, sourceFiles: keyedSources.length,
+    stagedBytes: staged.bytes, scope: 'Git/filesystem correspondence; no compiler, image execution or reuse'}));
+});
 
 function fixture(t, scoped = false) {
   const root = mkdtempSync(join(tmpdir(), 'actql-image-correspondence-'));
