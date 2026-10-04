@@ -46,6 +46,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/distinct-order-source-input.mjs', 'distinct-order-source-input.mjs'],
   ['scripts/fixtures/group-select-scope-source-input.mjs', 'group-select-scope-source-input.mjs'],
   ['scripts/fixtures/having-projection-source-input.mjs', 'having-projection-source-input.mjs'],
+  ['scripts/fixtures/group-property-source-input.mjs', 'group-property-source-input.mjs'],
   ['scripts/fixtures/acquired-data-source-input.mjs', 'acquired-data-source-input.mjs'],
   ['scripts/fixtures/property-graph-source-input.mjs', 'property-graph-source-input.mjs'],
   ['scripts/fixtures/property-graph-row-source-input.mjs', 'property-graph-row-source-input.mjs'],
@@ -149,6 +150,9 @@ if (process.argv.includes('--join-order-only')) {
 }
 if (process.argv.includes('--group-ordinal-only')) {
   runtimeEnvironment.ACTQL_TEST_GROUP_ORDINAL_ONLY = '1';
+}
+if (process.argv.includes('--group-property-only')) {
+  runtimeEnvironment.ACTQL_TEST_GROUP_PROPERTY_ONLY = '1';
 }
 if (process.argv.includes('--group-star-only')) {
   runtimeEnvironment.ACTQL_TEST_GROUP_STAR_ONLY = '1';
