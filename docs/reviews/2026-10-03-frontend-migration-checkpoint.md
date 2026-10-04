@@ -197,6 +197,22 @@ until A's Policy connection permits the positive composition. Focused authored
 fixture checks pass 8/8 (`run-uXQ3Za`); the outer harness and its generated
 external driver pass syntax checks. This does not establish runtime refusal.
 
+The prepared Graph acceptance also omits installed Source profiles entirely,
+including the environment fallback. Existing source-backed cases retain their
+two-profile installation. This uses the existing no-profile Host entry, rather
+than permitting an empty plural-profile setting (which that owner rejects).
+The captured submission records the actual configured Source profile count,
+and Graph acceptance requires zero. This prevents a later Policy connection
+from passing the source-free case by borrowing an unused installed Source's
+Policy. Positive rows, Model contract/input counts and approval/restart
+expectations are unchanged. Removing installed Source context can change Run
+identity; only the same request's resubmission/recovery identity is required.
+No public Graph execution with this prepared setting is claimed yet.
+The read-only `installedSourcePaths` boundary check confirms omitted profiles
+select none, the existing two-profile setting is retained, and an explicit
+empty plural setting is still rejected. Outer/generated driver syntax and
+diff checks pass; no runtime build or extra packed campaign was added.
+
 ## Historical implemented versus execution evidence
 
 | Surface or boundary | Implemented checkpoint | Acceptance still required |

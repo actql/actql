@@ -521,8 +521,14 @@ if (composed) {
       '@duckdb/node-api'), JSON.parse(readFileSync(
         process.env.PACKED_COMPOSITION_DATABASES ?? 'composition-databases.json', 'utf8')));
   delete installation.sourceProfilePath;
-  installation.sourceProfilePaths = JSON.parse(readFileSync(
-    process.env.PACKED_COMPOSITION_PROFILES ?? 'composition-profiles.json', 'utf8'));
+  if (graphFamily) {
+    // This acceptance must work without any installed Source whose Policy
+    // could accidentally substitute for the explicitly bound Result Policy.
+    assert.equal(process.env.ACTQL_LOCAL_SOURCE_PROFILE, undefined);
+  } else {
+    installation.sourceProfilePaths = JSON.parse(readFileSync(
+      process.env.PACKED_COMPOSITION_PROFILES ?? 'composition-profiles.json', 'utf8'));
+  }
   const model = await modelConfiguration(JSON.parse(readFileSync(
     'base-environment.json', 'utf8')));
   installation.modelInstallation = model.installation;
@@ -687,7 +693,9 @@ try {
     ], results: {updates: {from: {stage: 'compute', result: 'updates'}}}};
     const submission = {document: composedText ? compositionText(mapping.mapping_ref)
       : JSON.stringify(program), format: composedText ? 'aql-text' : 'json',
-      requestId: 'packed-rce-' + process.argv[3]};
+      requestId: 'packed-rce-' + process.argv[3],
+      installedSourceProfiles: installation.sourceProfilePaths?.length ??
+        (installation.sourceProfilePath === undefined ? 0 : 1)};
     let execution;
     try {
       execution = await client.aql(submission.document, {
@@ -933,6 +941,8 @@ try {
           body: JSON.parse(item.body)})), rows: normalResult.rows,
         restartBoundaries: boundaries};
       if (graphFamily) {
+        assert.equal(submission.installedSourceProfiles, 0,
+          'source-free Graph acceptance must not borrow an unused Source Policy');
         const custody = (await readFile(join(root, 'composition-custody.jsonl'), 'utf8'))
           .trim().split('\n').filter(Boolean).slice(custodyBefore).map(line => JSON.parse(line));
         const released = custody.find(item => item.name === 'effect_computation_cleanup_completed');
@@ -943,6 +953,7 @@ try {
           [{name:'classified', rows:2}, {name:'updates', rows:1}]);
         observation.temporaryRetention = {cleanupConfirmed:true, resourceUsage:released.resourceUsage};
         observation.namedResultRetention = normalResult.retainedNamedResults;
+        observation.installedSourceProfiles = submission.installedSourceProfiles;
       }
       await appendFile(join(root, 'composition-acceptance.jsonl'),
         JSON.stringify(observation) + '\n');
