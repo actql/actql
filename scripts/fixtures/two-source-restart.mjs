@@ -8,7 +8,7 @@ import {createRequire} from 'node:module';
 import {userInfo} from 'node:os';
 import {resolve} from 'node:path';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
-import {canonical, loadTwoSourceFixtures, observeTwoSourceProvider,
+import {canonical, expectedTwoSourceResults, loadTwoSourceFixtures, observeTwoSourceProvider,
   readTwoSourceJournal, openTwoSourcePublicHost, exerciseTwoSourcePublicQuery,
   verifyTwoSourceRetained} from './two-source-public-query.mjs';
 
@@ -81,6 +81,47 @@ if (action === 'public-success') {
   const readerClosures = await verifyTwoSourceRetained({connect, openInstalledRemoteHttpHost,
     fixture, retained, provider, tls, authorization: baseAuthorization});
   await report({cases: retained.length, readerClosures, provider: provider.snapshot()});
+} else if (action === 'retained-output-success' || action === 'retained-output-replay') {
+  const records = [];
+  for (const mode of ['local', 'https']) {
+    const directory = resolve(root, `retained-output-${mode}-state`);
+    const requestId = `two-source-retained-output-${mode}`;
+    const representations = [];
+    const authorization = {...baseAuthorization, observe(name, detail) {
+      if (name === 'computed') representations.push(...detail.outputRepresentations);
+    }};
+    const running = await openTwoSourcePublicHost({connect, openInstalledRemoteHttpHost,
+      mode, directory, sourceProfilePaths: [installation.profiles.left, installation.profiles.right],
+      tls, authorization, retainedRelationOutput: true});
+    let client;
+    try {
+      client = await running.connect();
+      const previous = action === 'retained-output-replay'
+        ? JSON.parse(await readFile(resolve(root, 'retained-output-success.retained-output-success.json'), 'utf8'))
+          .records.find(item => item.mode === mode)
+        : undefined;
+      const execution = previous === undefined
+        ? await client.aql(fixture.program, {format: 'json', requestId})
+        : await client.attach(previous.ref);
+      assert.equal((await execution.wait({signal: AbortSignal.timeout(30_000)})).status, 'succeeded');
+      const expected = expectedTwoSourceResults(fixture, 'distinct').joined;
+      assert.deepEqual(await execution.result('joined').all(), expected.rows);
+      assert.deepEqual((await execution.result('joined').describe()).columns, expected.columns);
+      if (previous === undefined) {
+        assert.ok(representations.some(value => value.representation === 'retained-file'));
+      } else {
+        noIo();
+      }
+      const before = provider.snapshot();
+      const attached = await client.attach(execution.ref);
+      assert.deepEqual(await attached.result('joined').all(), expected.rows);
+      const resent = await client.aql(fixture.program, {format: 'json', requestId});
+      assert.deepEqual(resent.ref, execution.ref);
+      assert.deepEqual(provider.snapshot(), before, 'Result reuse never reacquires either source');
+      records.push({mode, ref: execution.ref});
+    } finally { client?.close(); await running.close(); }
+  }
+  await report({records, provider: provider.snapshot()});
 } else {
   const directory = resolve(root, `${caseName}-state`), requestId = `two-source-${caseName}`;
   const mode = caseName.startsWith('local-') ? 'local' : 'https';

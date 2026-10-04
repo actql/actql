@@ -272,8 +272,55 @@ fn check_source_findings(
           | AmbiguousColumn
           | DuplicateOutput
         ) => findings.push(Violation("query_invalid"))
-        QueryLowering(Expression(_)) =>
-          findings.push(check_query_finding(issue))
+        // Expression lowering wraps the same construction owner and its
+        // budgets. The wrapper cannot turn its own limit into bad input.
+        QueryLowering(
+          Expression(
+            {
+              issue: WorkLimit
+              | Construction(
+                InputLimit
+                | NodeLimit
+                | DepthLimit
+                | StringLimit
+                | OriginLimit
+                | OutputLimit
+                | Admission({ kind: BudgetExceeded, .. })
+              )
+              | Admission(
+                {
+                  kind: BudgetExceeded
+                  | Decode(BudgetExceeded)
+                  | Text(
+                    CapacityExceeded
+                    | TreeAdmission(BudgetExceeded)
+                    | Lexical(ByteLimit | TokenLimit)
+                  ),
+                  ..
+                }
+              ),
+              ..
+            }
+          )
+        ) => findings.push(Limit("analysis_budget_exhausted"))
+        // Other failures of generated construction/admission and invalid
+        // lowering limits belong to the checker, not to the author.
+        QueryLowering(
+          Expression(
+            { issue: InvalidLimits | Construction(_) | Admission(_), .. }
+          )
+        ) => return Failed("check_internal")
+        QueryLowering(
+          Expression(
+            {
+              issue: UnknownReference
+              | UnsupportedFunction
+              | InvalidArguments
+              | InvalidNumber,
+              ..
+            }
+          )
+        ) => findings.push(check_query_finding(issue))
         // Host query context, not the caller's input.
         QueryLowering(InvalidContext) => return Failed("check_context_invalid")
         // A construction budget of this check: undetermined, never invalid.

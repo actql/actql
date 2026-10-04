@@ -5916,6 +5916,27 @@ test('two Effect members hold one completed Result independently', async () => {
   await verifySharedEffectSource({splitSource: true, expectedTask: 3});
 });
 
+test('source-free Effect dependency retains an empty scope and refuses imported Units', async () => {
+  const {document, environment} = await effectFixture({splitSource:true,
+    splitEffectSource:'consumer'});
+  const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
+    document, 'json', environment, undefined, []);
+  const prepared = moon.clientProgramEffectPreparationReady(outcome);
+  assert.ok(prepared);
+  const control = runtimeCore(moon).publicationControl;
+  const root = control.issueSourceFreeEffectEvidence(prepared, 0, publicationLimits);
+  assert.deepEqual(root.bodies.map(({kind,wire}) => ({kind,body:JSON.parse(wire)})),
+    [{kind:'acquisition_scope',body:{sources:[],version:'actql-acquisition-scope/0.1',
+      self_cid:'sha256:58aca71c9645edf63bfebadb8d0717cccebbc1a7092ad6f12ee9192304401bc3'}}]);
+  assert.equal(moon.clientProgramIssueSourceFreeLocalEffectInvocation(prepared,
+    1, 100000, 10000, 64).$tag, 0);
+  assert.throws(() => control.issueSourceFreeEffectEvidence(prepared, 1,
+    publicationLimits), {code:'MoonBitHostFailure'});
+  assert.throws(() => control.issueDependentLocalEffectResultArtifact(prepared,
+    undefined, undefined, {...root}, undefined, undefined, undefined, undefined,
+    publicationLimits), /Foreign local Effect dependency evidence/);
+});
+
 test('Effect sources retain exact physical producers across split Stages',
   async () => {
     for (const [splitEffectSource, expectedTask] of [

@@ -31,8 +31,10 @@ const mutations = [
     'if findings.iter().any(finding => !(finding is Limit(_))) {\n' +
     '    "invalid"'],
   ['an exhausted construction budget is reported as a failure',
-    '          )\n        ) => findings.push(Limit("analysis_budget_exhausted"))',
-    '          )\n        ) => return Failed("check_internal")'],
+    '        ) => findings.push(Limit("analysis_budget_exhausted"))\n' +
+    '        // The Program built from accepted source: never blamed on the author.',
+    '        ) => return Failed("check_internal")\n' +
+    '        // The Program built from accepted source: never blamed on the author.'],
   ['a supplied-value budget is reported as a violation',
     'Budget => findings.push(Limit("analysis_budget_exhausted"))',
     'Budget => findings.push(Violation("supplied_value_invalid"))'],
@@ -90,6 +92,26 @@ const mutations = [
   ['original structured keys are replaced by admitted spellings',
     'original.push(@source.Key(name))',
     'original.push(@source.Key(key))'],
+  ['an expression lowerer budget is reported as invalid input',
+    '        ) => findings.push(Limit("analysis_budget_exhausted"))\n' +
+    '        // Other failures of generated construction/admission and invalid',
+    '        ) => findings.push(Violation("query_invalid"))\n' +
+    '        // Other failures of generated construction/admission and invalid'],
+  ['an expression lowerer budget is reported as checker failure',
+    '        ) => findings.push(Limit("analysis_budget_exhausted"))\n' +
+    '        // Other failures of generated construction/admission and invalid',
+    '        ) => return Failed("check_internal")\n' +
+    '        // Other failures of generated construction/admission and invalid'],
+  ['an expression lowerer budget is silently verified',
+    '        ) => findings.push(Limit("analysis_budget_exhausted"))\n' +
+    '        // Other failures of generated construction/admission and invalid',
+    '        ) => ()\n' +
+    '        // Other failures of generated construction/admission and invalid'],
+  ['an expression lowerer budget hides independent input violations',
+    '        ) => findings.push(Limit("analysis_budget_exhausted"))\n' +
+    '        // Other failures of generated construction/admission and invalid',
+    '        ) => {\n          findings.clear()\n          findings.push(Limit("analysis_budget_exhausted"))\n        }\n' +
+    '        // Other failures of generated construction/admission and invalid'],
 ];
 
 const strict = id => ({id, operator: 'strictEqual'});
@@ -132,6 +154,10 @@ const targets = [
     [strict('absent-binding-verdict')]],
   ['structured locations keep original key spellings after admission',
     [deep('original-key-location')]],
+  ['expression construction limits remain undetermined', [strict('expression-budget-verdict')]],
+  ['expression construction limits remain undetermined', [strict('expression-budget-outcome')]],
+  ['expression construction limits remain undetermined', [strict('expression-budget-verdict')]],
+  ['expression construction limits remain undetermined', [strict('expression-budget-mixed')]],
 ];
 
 // Reuse the common reporter and nonzero-execution evidence. A process failure

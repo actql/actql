@@ -23,6 +23,8 @@ pub enum PreparedStep {
   NestStep(PreparedNestKernel)
   GraphMatchStep(PreparedGraphMatch)
   GraphDiagnosticStep(PreparedGraphDiagnostic)
+  GraphSubgraphStep(PreparedGraphSubgraph)
+  GraphEqualityStep(PreparedGraphEquality)
   GraphNormalizeStep(Int)
   GraphTraverseStep(PreparedGraphTraverse)
   PropertyGraphConstructionStep(PreparedPropertyGraphConstruction)
@@ -59,6 +61,8 @@ pub(all) enum SequenceIssue {
   NestFailure(Int, NestIssue)
   GraphMatchFailure(Int, GraphMatchIssue)
   GraphDiagnosticFailure(Int, GraphDiagnosticIssue)
+  GraphSubgraphFailure(Int, GraphSubgraphIssue)
+  GraphEqualityFailure(Int, GraphEqualityIssue)
   GraphTraverseFailure(Int, GraphTraverseIssue)
   GraphConstructionFailure(Int, GraphConstructionIssue)
   VectorFailure(Int, VectorIssue)
@@ -305,6 +309,31 @@ fn prepare_sequence_count(
         }
         GraphDiagnosticStep(prepared)
       }
+      GraphSubgraphValue(_) => {
+        let (prepared, used_entries, used_names, remaining) = match
+          prepare_graph_subgraph_node(
+            owner,
+            i,
+            max_entries=bindings,
+            max_name_bytes=names,
+            expressions~,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(GraphSubgraphFailure(i, issue))
+        }
+        bindings -= used_entries
+        names -= used_names
+        expressions = remaining
+        GraphSubgraphStep(prepared)
+      }
+      GraphEqualityRows(_) => {
+        let prepared = match
+          prepare_graph_equality_node(owner.prepared.nodes[i]) {
+          Ok(value) => value
+          Err(issue) => return Err(GraphEqualityFailure(i, issue))
+        }
+        GraphEqualityStep(prepared)
+      }
       GraphNormalizeValue(_) => GraphNormalizeStep(i)
       GraphTraverseRows(_) => {
         let (prepared, used_entries, used_names, remaining) = match
@@ -531,6 +560,8 @@ pub fn emit_sequence_step_range(
       NestStep(v) => emit_nest_kernel(v, out)
       GraphMatchStep(v) => emit_graph_match_node(v, out)
       GraphDiagnosticStep(v) => emit_graph_diagnostic_node(v, out)
+      GraphSubgraphStep(v) => emit_graph_subgraph_node(v, out)
+      GraphEqualityStep(v) => emit_graph_equality_node(v, out)
       GraphNormalizeStep(index) =>
         emit_graph_normalize_node(value.owner, index, out)
       GraphTraverseStep(v) => emit_graph_traverse_node(v, out)

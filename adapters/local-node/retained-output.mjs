@@ -18,7 +18,8 @@ export function prepareLocalRetainedOutput(output, createLease, checked, signal)
     async write() {
       signal?.throwIfAborted();
       checked(begin());
-      store = createLease(key, limits.wire.max_bytes, limits.max_batch_bytes, signal);
+      store = await createLease(key, limits.wire.max_bytes, limits.max_batch_bytes, signal);
+      signal?.throwIfAborted();
       const writer = store.reserve(limits.wire.max_bytes);
       await writer.start();
       signal?.throwIfAborted();
