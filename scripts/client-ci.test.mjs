@@ -7,6 +7,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
+import {runInNewContext} from 'node:vm';
 import {parse} from 'yaml';
 import {compositionProgram, compositionTemplate, compositionExpectations, compositionText, compositionTextTemplate} from
   './fixtures/composed-infer-effect-input.mjs';
@@ -51,7 +52,15 @@ test('the authored text fixture binds only its published MappingRef', () => {
 
 test('ordinary packed composition ships JSON and authored text with independent replay expectations', () => {
   const script = readFileSync(new URL('./test-packed-salesforce-source.mjs', import.meta.url), 'utf8');
-  assert(script.includes(": twoSourceEffect ? ['two-source'] : ['source', 'infer', 'infer-text']"));
+  const selection = flags => JSON.parse(runInNewContext(script.slice(
+    script.indexOf('const twoSourceEffect = process.argv'),
+    script.indexOf('const inferEnabled =')) + '\nJSON.stringify(compositionCases)',
+  {process: {argv: ['node', 'harness', ...flags]}}));
+  assert.deepEqual(selection([]), ['source', 'infer', 'infer-text', 'read-approval']);
+  assert.deepEqual(selection(['--two-source-effect']), ['two-source']);
+  assert.deepEqual(selection(['--composed-infer']), ['infer', 'infer-text']);
+  assert.deepEqual(selection(['--composed-text']), ['infer-text']);
+  assert.deepEqual(selection(['--two-source-read-approval']), ['read-approval']);
   for (const name of ['composed-infer-effect.program.template.json',
     'composed-infer-effect.expected.json', 'composed-infer-effect.aql.template']) {
     assert(script.includes("'" + name + "'"), 'isolated consumer must receive ' + name);
@@ -61,6 +70,17 @@ test('ordinary packed composition ships JSON and authored text with independent 
   assert.deepEqual(compositionExpectations.effectWriteCounts, [0, 0, 1, 1]);
   assert.deepEqual(compositionExpectations.restartBoundaries,
     ['capture-waiting', 'approval-committed']);
+});
+
+test('packed Source approval keeps independent read and Effect restart counters', () => {
+  const expected = JSON.parse(readFileSync(new URL(
+    './fixtures/two-source-read-approval.expected.json', import.meta.url), 'utf8'));
+  assert.deepEqual(expected.sourceProviderOpenCounts,
+    [[1, 0], [1, 0], [1, 1], [1, 1], [1, 1], [1, 1]]);
+  assert.deepEqual(expected.sourceReadSessions, [1, 0, 1, 0, 0, 0]);
+  assert.deepEqual(expected.effectWriteCounts, [0, 0, 0, 0, 1, 1]);
+  assert.deepEqual(expected.restartBoundaries, ['source-waiting',
+    'source-approval-committed', 'capture-waiting', 'approval-committed']);
 });
 
 test('each Client group retains its acceptance commands exactly once', () => {

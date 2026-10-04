@@ -1,6 +1,6 @@
 // Host connection of Source acquisition to the existing Run-unit Checkpoint
 // and encrypted continuation custody. This owns no scheduler or retry loop.
-import {canonicalJson} from '../../packages/sdk/checkpoints.mjs';
+import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {recordCheckpointApproval} from '../host-common/checkpoint-approval.mjs';
 import {ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';

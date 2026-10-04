@@ -16,7 +16,7 @@ import {installNodeClientEffectRun} from './client-effect-run.mjs';
 import {runCapturedEffectComputation} from './entry.mjs';
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
 import {acquiredEffectContinuation} from './acquired-effect-continuation.mjs';
-import {canonicalJson as canonicalValueJson} from '../../packages/sdk/checkpoints.mjs';
+import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {capturedDuckDBConfiguration} from './captured-duckdb-source.mjs';
 import {recoverAdmittedEffectRun} from './effect-run-recovery.mjs';
 import {retireCompletedEffectfulCapture} from
