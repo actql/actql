@@ -30,6 +30,19 @@ pub(all) enum Issue {
 }
 
 ///|
+/// Original authored origin for an unresolved column expression. This projects
+/// retained lowerer provenance without resolving names again. Bare column
+/// failures without provenance and unresolved Source names have no location.
+pub fn unknown_column_origin(issue : Issue) -> @origin.Origin? {
+  match issue {
+    QueryLowering(
+      Expression({ issue: UnknownReference, origin: Some(origin), })
+    ) if @origin.kind(origin) == @origin.Authored => Some(origin)
+    _ => None
+  }
+}
+
+///|
 /// The Host first verifies that each input comes from this exact published
 /// Check Environment and Source View generation. This in-process value only
 /// carries the already-admitted input into the common query lowerer.

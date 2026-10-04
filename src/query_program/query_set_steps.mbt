@@ -96,21 +96,14 @@ fn append_set_final_steps(
           while root.kind is Parenthesized(child) {
             root = @query.expression_node(term.expression, child).unwrap()
           }
-          let direct = match root.kind {
-            Reference(path) => pipe_slot(path, visible, [])
-            // A bare numeric ORDER term denotes a selected-column ordinal,
-            // not a constant sort key. That separate frontend gap must not
-            // be silently reinterpreted by expression lowering.
-            Number(_) | StringLiteral(_) | Boolean(_) | Null =>
-              raise Abort(UnsupportedOrdering)
-            Unary("-", child) => {
-              if @query.expression_node(term.expression, child).unwrap().kind
-                is Number(_) {
-                raise Abort(UnsupportedOrdering)
-              }
-              None
+          let ordinal = order_ordinal_column(term.expression, left_fields)
+          let direct = if ordinal is Some(_) {
+            ordinal
+          } else {
+            match root.kind {
+              Reference(path) => pipe_slot(path, visible, [])
+              _ => None
             }
-            _ => None
           }
           let field = match direct {
             Some(field) => field
