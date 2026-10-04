@@ -238,6 +238,37 @@ common connection. Node/edge Local/HTTPS approval, execution and both-process
 restoration remain unaccepted. Independent expected states, rows, call counts
 and assertion counterexamples are unchanged; no Policy body is fabricated.
 
+### Resumed Draft and accepted optional-Effect integration
+
+#304 was closed without merge and reopened as Draft, base main, under the
+explicit continuation instruction. Its public source remains
+`f90ba1b2f3f875becc2e58fe0cc24d30f88b2957`. A's Result Policy connection is
+still pending; #335's accepted Source-backed optional-Effect pairs do not
+establish Graph acceptance. Keep the same PR's counterexamples and history.
+
+Normal merge `1edb1560ceed004f275adb743e4efc80ce00ca71` has ordered parents
+`89536be07f5bc3e290890e644d575dc913ac55fd` and main
+`e51097122b949849ef2bb895dfb305bad1c3a248`. The `package.json` and shared
+packed driver conflicts retain Graph cases, accepted optional-Effect cases and
+the SDK/Host read-progress registrations. Focused Graph flags exclude unrelated
+optional-Effect pairs. Source-free installation, original expectations, custody
+diagnostics and retained Named Result observations are preserved.
+
+At `35d6895c07710884ce812475ea077f230d96d000`, selected Graph/CI/acquisition
+custody checks pass 33/33 (`run-vmGxMi`), and both outer and generated driver
+syntax checks pass. Complete actual-history validation succeeds with 102
+declarations and 2 supplements; the new exact-merge declaration binds all 44
+ancestral package source groups. No old record or validator was changed.
+The initial bounded wrapper could not inspect its owned process group inside
+the sandbox; the approved retry ran the same selected checks successfully.
+
+These local conflict resolutions are not yet public, so GitHub can still report
+conflicts on the old public HEAD. Combine them with A's fixed public Policy
+adoption before pushing. No new packed Graph execution or CI success is claimed;
+the original node/edge Local/HTTPS approval and same-Run restoration requirements
+remain unchanged. The final integration target is main through normal merge,
+never an A dependency branch; no merge action is requested.
+
 ## Historical pure two-Source JSON/text composition checkpoint (2026-10-04)
 
 The packed acceptance adopted main
