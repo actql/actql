@@ -839,6 +839,7 @@ const contextKey = new Uint8Array(32).fill(7);
 // different private inventories. No provider or Run handler is installed.
 async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
   closed = false, connectionAllowed = true,
+  sdkConnect = connect,
   profiles = [false, false, true, true, false, false, false]} = {}) {
   const admitted = moon.clientProgramCheckEnvironment(canonicalText(wire),
     wire.evidence_bundle_cid, ...profiles);
@@ -877,7 +878,7 @@ async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
     server.closeAllConnections();
     await new Promise(resolve => server.close(resolve));
   });
-  const client = await connect({mode,
+  const client = await sdkConnect({mode,
     endpoint: `https://127.0.0.1:${server.address().port}/`, token: 'owner-token'});
   t.after(() => client.close());
   return client;
@@ -1299,6 +1300,32 @@ for (const [name, [from, to]] of Object.entries(mutations)) {
   });
 }
 
+
+test('http: the pinned pre-extension SDK refuses the current Host contract', async t => {
+  // Load immutable historical consumers for this negative acceptance only.
+  // No historical implementation or compatibility adapter ships in the product.
+  const revision = 'ea67efe6c4adbb17353eea61f06a3fdfc52dd91b';
+  const historical = path => execFileSync('git', ['show', `${revision}:${path}`],
+    {cwd: repository, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024});
+  const moduleUrl = source => `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`;
+  const hostWire = moduleUrl(historical('packages/client-wire/client-host.generated.js'));
+  const publicationWire = moduleUrl(historical('packages/client-wire/publication.generated.js'));
+  const wire = moduleUrl(historical('packages/client-wire/index.mjs')
+    .replaceAll("'./client-host.generated.js'", JSON.stringify(hostWire))
+    .replaceAll("'./publication.generated.js'", JSON.stringify(publicationWire)));
+  const checkpoints = moduleUrl(historical('packages/sdk/checkpoints.mjs'));
+  const previous = await import(moduleUrl(historical('packages/sdk/index.mjs')
+    .replace("'@actql/client-wire'", JSON.stringify(wire))
+    .replace("'./checkpoints.mjs'", JSON.stringify(checkpoints))));
+  const oldWire = await import(wire);
+  assert.equal(oldWire.checkReasonSchemaCid,
+    'sha256:1565f0b7e8e32f70d97905797ccc37a872b08116c0ef3d9599e4e4509b568621');
+  const client = await contextClient(t, 'http', absentEnvironment,
+    {sdkConnect: previous.connect});
+  for (const text of ['SELECT 1 AS n', "SELECT '\\q' AS x"]) {
+    await assert.rejects(client.check(text, {format: 'sql'}), {code: 'InvalidHostCheckOutcome'});
+  }
+});
 
 test('http: SDK rejects malformed lexical facts from an actual check reply', async t => {
   let mutation = value => value;
