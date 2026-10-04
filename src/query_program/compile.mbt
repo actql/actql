@@ -1368,6 +1368,7 @@ fn compile_steps(
   let mut active_fields = fields.copy()
   let mut grouped = false
   let mut sql_group_projection = false
+  let mut sql_group_input_columns : Array[(String, String)] = []
   let grouped_keys : Array[(@query.Expression, String)] = []
   let mut first = true
   let mut input_from = input.name
@@ -1772,6 +1773,11 @@ fn compile_steps(
         let input_ranges = pipe_ranges.copy()
         grouped_keys.clear()
         sql_group_projection = grouping_scope == @query.SqlSelect
+        if sql_group_projection {
+          // SQL star names the input row, before grouping removes columns or
+          // adds aggregate slots. Every expanded value must still be grouped.
+          sql_group_input_columns = input_visible.copy()
+        }
         // A sole global DISTINCT ARRAY_AGG ordered by the same referenced
         // value can obtain its candidate key from ordinary row DISTINCT.
         // Project the value first so no unrelated column supplies a chosen
@@ -1879,6 +1885,13 @@ fn compile_steps(
           )
           by.push(construction.text(name))
           grouped_keys.push((expression, name))
+        }
+        if sql_group_projection &&
+          projections.any(projection => projection.star is Some(_)) &&
+          sql_group_input_columns.any(column => !key_names.contains(column.1)) {
+          // An aggregate with the same name cannot replace an ungrouped value
+          // in star expansion. Validate against keys, before aggregate slots.
+          raise Abort(UnsupportedGrouping)
         }
         if !derives.is_empty() {
           let derive_step : Array[(String, @builder.Node)] = []
@@ -2094,7 +2107,12 @@ fn compile_steps(
         for projection in projections {
           match projection.star {
             Some("*") =>
-              for visible in pipe_visible {
+              for
+                visible in (if sql_group_projection {
+                  sql_group_input_columns
+                } else {
+                  pipe_visible
+                }) {
                 names.push(visible.0)
                 selected.push(
                   if visible.0 == visible.1 {
@@ -2257,6 +2275,7 @@ fn compile_steps(
         }
       }
       Select(projections, distinct) if !preserve_identity_select &&
+        !sql_group_projection &&
         !distinct &&
         projections.length() == 1 &&
         projections[0].star == Some("*") => {
@@ -2277,10 +2296,21 @@ fn compile_steps(
         for projection in projections {
           match projection.star {
             Some(_) =>
-              for field in active_fields {
-                names.push(field)
-                selected.push(construction.text(field))
-                bindings.push((field, field))
+              for
+                (name, field) in (if sql_group_projection {
+                  sql_group_input_columns
+                } else {
+                  active_fields.map(field => (field, field))
+                }) {
+                names.push(name)
+                selected.push(
+                  if name == field {
+                    construction.text(field)
+                  } else {
+                    construction.object([(name, construction.text(field))])
+                  },
+                )
+                bindings.push((name, field))
               }
             None => {
               let name = output_name(projection, query, input, active_fields)
