@@ -4553,6 +4553,16 @@ test "contract spec/contracts/actql-remote-site-wire.json#/schemas/poll_dispatch
 }
 
 ///|
+test "contract spec/contracts/actql-remote-site-wire.json#/schemas/poll_cancel" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"dispatch_request_cid\",\"request_json\",\"version\"],\"properties\":{\"dispatch_request_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"request_json\":{\"type\":\"string\",\"minLength\":1},\"version\":{\"const\":\"actql-remote-poll-cancel/0.1\"}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 17, 3, 352)
+  assert_eq(@canonical_json.cid_value(value, 352, 17, 3), "sha256:53e69b8d3b2b27c7e90ef106f6b888b5267cce91a1145048c2ab5b46f32dd8fc")
+  assert_eq(@canonical_json.measure_value(value, 352, 17, 3), 352)
+}
+
+///|
 test "contract spec/contracts/actql-remote-site-wire.json#/schemas/output_report_reply" {
   let input = @json.parse([
     "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"dispatch_request_cid\",\"intent_cid\",\"outcome\",\"reason\",\"report_cid\",\"version\"],\"properties\":{\"dispatch_request_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"intent_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"outcome\":{\"type\":\"string\",\"enum\":[\"accepted\",\"refused\"]},\"reason\":{\"type\":\"string\",\"enum\":[\"\",\"authorization_denied\",\"scope_mismatch\",\"report_conflict\"]},\"report_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"version\":{\"const\":\"actql-remote-output-report-reply/0.1\"}}}",
