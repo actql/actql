@@ -171,6 +171,11 @@ distribution[3] = distribution[3].replace(
   'adapters/host-node/in-process-client.test.mjs adapters/host-node/client-read-progress.test.mjs ',
 );
 
+// The issued-retention original regression is part of the existing prepared
+// distribution gate. Pin its one intended addition independently of the
+// package command, retaining the exact inventory and duplicate rejection.
+distribution[3] += ' adapters/host-node/local-values-plan-policy.test.mjs';
+
 test('runtime preparation preserves physical cwd and output through a symlinked temporary parent', t => {
   const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'runtime-build-alias-')));
   // Both the link and its target belong to this test. Recursive removal of

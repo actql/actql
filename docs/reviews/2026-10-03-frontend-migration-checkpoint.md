@@ -722,3 +722,58 @@ merged result are pinned; current CI cost controls and all test registrations
 remain. Existing declarations, supplements and their introductions are retained
 unchanged. Complete history acceptance and pristine fresh-packed Graph coverage
 must be evaluated on the new submitted source and its automatic CI separately.
+
+### Post-preflight failures and the next main adoption
+
+Submitted `996d5aade5b60de7ba5190ddcf21a52e6d8123a3` automatic CI
+[37192092537](https://github.com/actql/actql/actions/runs/37192092537) tests
+merge `97b4a53f6d9a3ff1affdbbc0f6f3b6f9775a81bf`, with ordered parents
+main `4a897acc2687fcf63d2f5913acf999e1257bdb17` and that submitted source.
+Preflight, including actual retained history and public interfaces, succeeds.
+This is not inferred from the earlier local result. The generated grounds for
+`e3ecb26c952a045e8a4984a7b2e0a318c50a4cce` require both declared paths at
+base `5e22c522becb80477cb7ed4f4733a48a463d5bf2`; the other base contributes no
+required path but remains recorded in each obligation. The resolution's
+rationale concerns the combined union, not two independently required records.
+
+The `host` job fails at the independent exact command inventory in
+`scripts/build-runtime-packages.test.mjs`: the real distribution registration
+contains `local-values-plan-policy.test.mjs`, while that authored expected
+inventory omits it. Local selection `run-ipru2V` reproduces the same mismatch.
+The correction pins only this intended file addition, retaining exact command
+order and rejection of duplicate or unrelated additions. Runtime builder and
+CI selection regressions pass 48/48 (`run-D5r1K5`); their compiler fixtures do
+not establish a new product runtime build. No successful-row expectation,
+verdict, timeout, package registration or CI job is changed by this correction.
+
+The separate `lint` failure is the nonresistant direct-process TERM fixture:
+expected direct code 7, observed 0 after the interruption assertions passed.
+[Issue #366](https://github.com/actql/actql/issues/366) records the exact SHA,
+job and selected command for G. The fixture's reliance on the descendant for
+event-loop liveness is a candidate explanation, not a proven product guard
+failure. D does not skip the assertion, fabricate a direct exit code or label
+it as a Graph runtime failure.
+
+Latest main `7763fe148d80f4443b52f7428143ae325301fe9a`, including the selector
+derive/Store work and main full-profile checkpoint correction, is normally
+integrated through `2da6db903b9c43c0836fd45745480c742d22aec0`. It has a single
+maximal common ancestor `c26339bed484c1965da78f6a9540333c2583ea31`; no source
+conflicts were encountered. Existing declarations, supplements and originals
+remain. The checkpoint correction and the separate #366 observation must not
+be conflated.
+
+Fresh producer artifact `11299771882` binds the tested merge
+`97b4a53f6d9a3ff1affdbbc0f6f3b6f9775a81bf`; all five tarball digests are
+verified. Its public packed consumer is still running at this record's
+introduction. That source predates the latest main merge above and cannot be
+relabeled as fresh-packed success of the next submitted HEAD.
+
+The existing restart fixture places the installed Host and Run execution owner
+in one dedicated Node child, also hosting its HTTPS server when selected.
+At each durable boundary it exits without graceful close; the supervisor waits
+for child closure before starting the recovery process. No Host or Run-owner
+memory survives that child termination. This describes the actual existing
+fixture topology rather than claiming two distinct Host/worker PIDs. The
+fixture provider service remains available to observe calls; it is not the
+Run-custody owner. Formal active temporary-holder inventory remains separate
+from byte/reservation return and durable Named Result retention.
