@@ -311,10 +311,16 @@ share unresolved coverage; an independent public violation remains visible.
 
 Locations use the immutable original input snapshot, not the latest editor buffer.
 `resolveCheckLocation` returns `undefined` for a copied report, missing snapshot,
-stale revision, changed content or invalid byte boundary. Supplying its optional
+stale revision, changed content, invalid byte boundary or a structured pointer
+without a submitted JSON node. Supplying its optional
 current-input argument validates the same identity/revision/content. Text spans
 are UTF-8 byte intervals; structured values/declarations have revision-bound
-pointers. There is no SDK parser, automatic fix or Host input re-fetch API.
+pointers. Pointer resolution uses only owned object members and canonical array
+indices, preserving the submitted member spelling and RFC 6901 escape order.
+Inherited properties, array metadata, missing nodes and scalar descendants
+cannot identify submitted nodes. Invalid Host locations refuse the check with
+`InvalidHostCheckOutcome`, including locations in partial reports or Requirements.
+There is no SDK parser, automatic fix or Host input re-fetch API.
 Unresolved column expressions can carry the lowerer's original authored
 identifier range in `query_invalid`. The range is omitted when the existing
 failure has no authored origin, including unresolved Source names and current
