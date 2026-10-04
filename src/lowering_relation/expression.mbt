@@ -556,6 +556,7 @@ fn lower_expression_measured(
       | NestRows(_)
       | GraphBoundsRows(_)
       | GraphDegreeRows(_)
+      | GraphEqualityRows(_)
       | GraphNormalizeValue(_)
       | GraphComponentsRows(_)
       | PropertyGraphConstructionValue(_)

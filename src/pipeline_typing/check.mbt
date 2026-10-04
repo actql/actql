@@ -791,8 +791,65 @@ fn check_impl(
       current = Some(target)
       continue
     }
-    if key == "graphs_equal" ||
-      key == "graph_diff" ||
+    if key == "graphs_equal" {
+      let object = match @decode.closed_object(operation_body, ["with"]) {
+        Ok(object) => object
+        Err(_) => fail(operation_body, InvalidBody)
+      }
+      let with_at = match @decode.required(object, "with") {
+        Ok(at) => at
+        Err(_) => fail(operation_body, InvalidBody)
+      }
+      let right = resolve_target(b, with_at, names)
+      let checked = match
+        @graph.check_property_equality(
+          operation_body,
+          carrier(input, inputs, steps),
+          carrier(right, inputs, steps),
+          {
+            max_work: b.work,
+            max_nodes: b.nodes,
+            max_depth: limits.max_depth,
+            max_text_bytes: b.text,
+          },
+        ) {
+        Ok(value) => value
+        Err(issue) =>
+          raise Stop({
+            kind: Graph(issue.kind),
+            source: operation_body,
+            path: issue.path.copy(),
+            span: issue.span,
+            range: None,
+          })
+      }
+      let used = @graph.property_equality_usage(checked)
+      b.work -= used.work
+      b.nodes -= used.nodes
+      b.text -= used.text_bytes
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation: GraphEquality(right~, checked~),
+        output: @graph.property_equality_output(checked),
+        connections: {
+          entries: [
+            { role: Left, target: input, },
+            { role: Right, target: right, },
+          ],
+        },
+        window: None,
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
+    }
+    if key == "graph_diff" ||
       key == "graft_graph" ||
       key == "union_graphs" ||
       key == "subtract_graphs" ||
@@ -2041,6 +2098,7 @@ fn check_impl(
         | GraphMatch(_)
         | GraphBounds(_)
         | GraphDegree(_)
+        | GraphEquality(..)
         | GraphComponents(_)
         | Event(_)
         | Sequence(_)

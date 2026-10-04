@@ -262,6 +262,8 @@ pub fn operation_obligations_match(OperationObligations) -> @graph_typing.Checke
 
 pub fn operation_obligations_property_construction(OperationObligations) -> @graph_typing.CheckedPropertyConstruction?
 
+pub fn operation_obligations_property_equality(OperationObligations) -> @graph_typing.CheckedPropertyEquality?
+
 pub fn operation_obligations_scope(OperationObligations) -> OperationObligationScope
 
 pub fn operation_obligations_selector(OperationObligations) -> @graph_typing.CheckedSelector?
@@ -463,6 +465,7 @@ pub enum CheckedOperation {
   GraphMatch(@graph_typing.CheckedMatch)
   GraphBounds(@graph_typing.CheckedGraphBounds)
   GraphDegree(@graph_typing.CheckedDegree)
+  GraphEquality(right~ : Target, checked~ : @graph_typing.CheckedPropertyEquality)
   GraphNormalize(@graph_typing.CheckedNormalize)
   GraphComponents(@graph_typing.CheckedComponents)
   Subgraph(selector~ : Target?, checked~ : @graph_typing.CheckedSubgraph)
@@ -713,6 +716,7 @@ pub(all) enum OperationObligation {
   WindowRequirement(@temporal_window.Obligation)
   MatchRequirement(@graph_typing.MatchObligation)
   DiagnosticRequirement(@graph_typing.DiagnosticObligation)
+  PropertyEqualityRequirement(@graph_typing.PropertyEqualityObligation)
   NormalizeRequirement(@graph_typing.NormalizeObligation)
   ComponentsRequirement(@graph_typing.ComponentsObligation)
   SubgraphRequirement(@graph_typing.SubgraphObligation)

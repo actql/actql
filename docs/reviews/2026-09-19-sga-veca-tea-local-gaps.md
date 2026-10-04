@@ -580,12 +580,12 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Registered operations | 69 |
-| Executable production routes | 59 |
-| Typed pre-execution refusals (not execution success) | 10 |
-| Operation-specific boundary records | 59 |
-| Four-role lifecycle assurance | 58 |
-| Full route work/workspace assurance | 58 |
-| Path-scoped work/workspace assurance | 109 |
+| Executable production routes | 60 |
+| Typed pre-execution refusals (not execution success) | 9 |
+| Operation-specific boundary records | 60 |
+| Four-role lifecycle assurance | 59 |
+| Full route work/workspace assurance | 59 |
+| Path-scoped work/workspace assurance | 111 |
 | Selected-only assurance | 1 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -732,8 +732,21 @@ reclamation. The memory-output chain uses the same owner and remains a
 regression control. No synchronous fallback or new Host state machine was
 added.
 
-A nonlinear producer that appends `l` and then filters `l` rather than the
-append result is still unsupported by the bounded selected provider. The
+A checked binary Relation producer can now branch from a private intermediate
+and rejoin in the same task: `append` → two filters reading the appended rows
+→ `append` of the two filtered outputs. The planner retains this bounded,
+single-root shape as one task. The selected Relation owner keeps both earlier
+completions live, binds each later input to its exact step and port, and uses
+one cumulative work budget and overlapping child capacity. The retained Host
+reads the producer and two consumer Named Results against fixed ordered rows;
+the later-branch cancellation, arithmetic failure, Store append/finalize
+failure, and cleanup checks exercise the same owner. The memory-output Host
+also completes the identical authored Program through the same physical task
+shape. This does not admit arbitrary nonlinear operations or intermediate
+Result roots.
+
+A disconnected producer that appends `l` and then filters `l` rather than the
+append result remains unsupported by the bounded selected provider. The
 ordinary retained-only Host rejects that Program during whole-graph selection:
 no Compute dispatch, Store lease, or completed task is created. Another
 eligible implementation may provide a valid offer. The `unsupported-chain`
@@ -2710,16 +2723,16 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | Coverage state | Count |
 |---|---:|
 | `contract` | 40/40 |
-| `checker` | 25/40 |
-| `lowering` | 25/40 |
-| `kernel` | 25/40 |
-| `managed` | 25/40 |
-| `standard_host` | 24/40 |
-| `consumer_lifetime` | 24/40 |
-| `resources` | 30/40 |
-| `cancellation` | 30/40 |
-| `publication` | 24/40 |
-| `three_targets` | 19/40 |
+| `checker` | 26/40 |
+| `lowering` | 26/40 |
+| `kernel` | 26/40 |
+| `managed` | 26/40 |
+| `standard_host` | 25/40 |
+| `consumer_lifetime` | 25/40 |
+| `resources` | 31/40 |
+| `cancellation` | 31/40 |
+| `publication` | 25/40 |
+| `three_targets` | 20/40 |
 | complete operations | 19/40 |
 | open operations | 21/40 |
 <!-- local-family-coverage-summary:end -->
@@ -4583,6 +4596,21 @@ that it does not infer order from an unrelated publication representation.
 Selected Host-delivered cancellation cases are registered for all three
 diagnostics. Other retained Graph Relation-producing operations remain separate
 completion units; this change does not waive their route or resource proofs.
+
+Current Property Graph equality now checks two exact, ordered Graph operands
+against compatible closed definitions and runs the selected bounded provider.
+The retained Node Host constructs both Graphs in one Stage, compares them,
+passes the Boolean Relation through a later filter, publishes the Named Result,
+and reads two consumers from the real Store. Its timer cancellation begins
+after both Graphs are constructed and stops the selected equality kernel
+without publishing partial output. The quantum-one kernel fixture admits the
+independently derived three-step count mismatch at the exact work ceiling,
+rejects two steps, admits one workspace slot, rejects zero, and preserves both
+borrowed inputs after cleanup. A separate 512-character property fixture
+rejects insufficient nested comparison work and stops during a yielded value
+comparison. The focused equality suite passed on JS, Wasm, and native.
+Broader representation variants and same-SHA CI remain open, so current
+equality is partial.
 
 Selected `SGA.match_nodes` and `SGA.match_edges` now read an exact managed
 Graph view through their existing bounded match kernels. The Node standard

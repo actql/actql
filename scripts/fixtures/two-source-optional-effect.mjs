@@ -30,7 +30,8 @@ export function optionalEffectSubmission(kind, enabled, mappingRef) {
 }
 
 export function optionalEffectCases(argv) {
-  const focused = ['--composed-text', '--composed-infer', '--two-source-effect'];
+  const focused = ['--composed-text', '--composed-infer', '--two-source-effect',
+    '--composed-graph', '--composed-graph-node', '--composed-graph-edge'];
   return argv.includes('--optional-effect-only') || !focused.some(flag => argv.includes(flag))
     ? ['native-json', 'broad-text'] : [];
 }

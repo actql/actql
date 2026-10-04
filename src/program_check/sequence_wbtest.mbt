@@ -154,7 +154,10 @@ test "formal sequence closes temporal input matching and atomic limits through a
             assert_true(
               @wire.limit_cid(claim) !=
               @wire.limit_cid(
-                @sequence.limit(sequence_limit_selection(bound).limits, scope),
+                @sequence.host_limit(
+                  sequence_limit_selection(bound).limits,
+                  scope,
+                ),
               ),
             )
             assert_true(

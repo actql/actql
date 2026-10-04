@@ -24,6 +24,7 @@ pub enum PreparedStep {
   GraphMatchStep(PreparedGraphMatch)
   GraphDiagnosticStep(PreparedGraphDiagnostic)
   GraphSubgraphStep(PreparedGraphSubgraph)
+  GraphEqualityStep(PreparedGraphEquality)
   GraphNormalizeStep(Int)
   GraphTraverseStep(PreparedGraphTraverse)
   PropertyGraphConstructionStep(PreparedPropertyGraphConstruction)
@@ -61,6 +62,7 @@ pub(all) enum SequenceIssue {
   GraphMatchFailure(Int, GraphMatchIssue)
   GraphDiagnosticFailure(Int, GraphDiagnosticIssue)
   GraphSubgraphFailure(Int, GraphSubgraphIssue)
+  GraphEqualityFailure(Int, GraphEqualityIssue)
   GraphTraverseFailure(Int, GraphTraverseIssue)
   GraphConstructionFailure(Int, GraphConstructionIssue)
   VectorFailure(Int, VectorIssue)
@@ -324,6 +326,14 @@ fn prepare_sequence_count(
         expressions = remaining
         GraphSubgraphStep(prepared)
       }
+      GraphEqualityRows(_) => {
+        let prepared = match
+          prepare_graph_equality_node(owner.prepared.nodes[i]) {
+          Ok(value) => value
+          Err(issue) => return Err(GraphEqualityFailure(i, issue))
+        }
+        GraphEqualityStep(prepared)
+      }
       GraphNormalizeValue(_) => GraphNormalizeStep(i)
       GraphTraverseRows(_) => {
         let (prepared, used_entries, used_names, remaining) = match
@@ -551,6 +561,7 @@ pub fn emit_sequence_step_range(
       GraphMatchStep(v) => emit_graph_match_node(v, out)
       GraphDiagnosticStep(v) => emit_graph_diagnostic_node(v, out)
       GraphSubgraphStep(v) => emit_graph_subgraph_node(v, out)
+      GraphEqualityStep(v) => emit_graph_equality_node(v, out)
       GraphNormalizeStep(index) =>
         emit_graph_normalize_node(value.owner, index, out)
       GraphTraverseStep(v) => emit_graph_traverse_node(v, out)

@@ -1595,6 +1595,21 @@ pub(all) enum GraphDiagnosticRule {
   EnforceDiagnosticRows
 } derive(Eq, @debug.Debug)
 
+pub struct GraphEqualityCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  left : @pipeline_typing.Target
+  right : @pipeline_typing.Target
+  operation : @graph_typing.CheckedPropertyEquality
+  rule : GraphEqualityRule
+  policy : @capacity_policy.Policy
+}
+
+pub(all) enum GraphEqualityRule {
+  CompareGraphValues
+  RequireEqualityResources
+} derive(Eq, @debug.Debug)
+
 pub struct GraphMatchCheck {
   site : OperationRequirementSite
   step : @pipeline_typing.CheckedStep
@@ -2160,6 +2175,7 @@ pub(all) enum OperationExecutionCheck {
   NestExecution(NestExecutionCheck)
   GraphSelectorExecution(GraphSelectorCheck)
   GraphMatchExecution(GraphMatchCheck)
+  GraphEqualityExecution(GraphEqualityCheck)
   GraphDiagnosticExecution(GraphDiagnosticCheck)
   SubgraphExecution(SubgraphExecutionCheck)
   GraphNormalizeExecution(GraphNormalizeCheck)

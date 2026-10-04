@@ -27,6 +27,7 @@ pub(all) enum OperationObligation {
   WindowRequirement(@window.Obligation)
   MatchRequirement(@graph.MatchObligation)
   DiagnosticRequirement(@graph.DiagnosticObligation)
+  PropertyEqualityRequirement(@graph.PropertyEqualityObligation)
   NormalizeRequirement(@graph.NormalizeObligation)
   ComponentsRequirement(@graph.ComponentsObligation)
   SubgraphRequirement(@graph.SubgraphObligation)
@@ -60,6 +61,7 @@ priv enum ObligationOwner {
   MatchOwner(@graph.CheckedMatch)
   BoundsOwner(@graph.CheckedGraphBounds)
   DegreeOwner(@graph.CheckedDegree)
+  PropertyEqualityOwner(@graph.CheckedPropertyEquality)
   NormalizeOwner(@graph.CheckedNormalize)
   ComponentsOwner(@graph.CheckedComponents)
   SubgraphOwner(@graph.CheckedSubgraph)
@@ -108,6 +110,7 @@ pub fn operation_obligations_source(v : OperationObligations) -> @decode.Cursor 
     MatchOwner(c) => @graph.match_source(c)
     BoundsOwner(c) => @graph.graph_bounds_source(c)
     DegreeOwner(c) => @graph.degree_source(c)
+    PropertyEqualityOwner(c) => @graph.property_equality_source(c)
     NormalizeOwner(c) => @graph.normalize_source(c)
     ComponentsOwner(c) => @graph.components_source(c)
     SubgraphOwner(c) => @graph.subgraph_source(c)
@@ -198,6 +201,17 @@ pub fn operation_obligations_graph_degree(
 }
 
 ///|
+/// Retain the exact checked equality owner for its two Graph input ports.
+pub fn operation_obligations_property_equality(
+  v : OperationObligations,
+) -> @graph.CheckedPropertyEquality? {
+  match v.owner {
+    PropertyEqualityOwner(operation) => Some(operation)
+    _ => None
+  }
+}
+
+///|
 pub fn operation_obligations_graph_normalize(
   v : OperationObligations,
 ) -> @graph.CheckedNormalize? {
@@ -248,6 +262,7 @@ pub fn operation_obligations_count(v : OperationObligations) -> Int {
     MatchOwner(c) => @graph.match_pending_count(c)
     BoundsOwner(c) => @graph.graph_bounds_pending_count(c)
     DegreeOwner(c) => @graph.degree_pending_count(c)
+    PropertyEqualityOwner(c) => @graph.property_equality_pending_count(c)
     NormalizeOwner(c) => @graph.normalize_pending_count(c)
     ComponentsOwner(c) => @graph.components_pending_count(c)
     SubgraphOwner(c) => @graph.subgraph_pending_count(c)
@@ -310,6 +325,10 @@ pub fn operation_obligations_at(
       @graph.graph_bounds_pending_at(c, index).map(x => DiagnosticRequirement(x))
     DegreeOwner(c) =>
       @graph.degree_pending_at(c, index).map(x => DiagnosticRequirement(x))
+    PropertyEqualityOwner(c) =>
+      @graph.property_equality_pending_at(c, index).map(x => {
+        PropertyEqualityRequirement(x)
+      })
     NormalizeOwner(c) =>
       @graph.normalize_pending_at(c, index).map(x => NormalizeRequirement(x))
     ComponentsOwner(c) =>
@@ -363,6 +382,7 @@ pub fn operation_obligation_group_count(operation : CheckedOperation) -> Int {
     | GraphMatch(_)
     | GraphBounds(_)
     | GraphDegree(_)
+    | GraphEquality(..)
     | GraphNormalize(_)
     | GraphComponents(_)
     | PropertyGraphConstruction(..)
@@ -402,6 +422,8 @@ pub fn operation_obligation_group_at(
       GraphMatch(c) => { scope: Body, owner: MatchOwner(c), }
       GraphBounds(c) => { scope: Body, owner: BoundsOwner(c), }
       GraphDegree(c) => { scope: Body, owner: DegreeOwner(c), }
+      GraphEquality(checked=c, ..) =>
+        { scope: Body, owner: PropertyEqualityOwner(c), }
       GraphNormalize(c) => { scope: Body, owner: NormalizeOwner(c), }
       GraphComponents(c) => { scope: Body, owner: ComponentsOwner(c), }
       Subgraph(checked=c, ..) =>

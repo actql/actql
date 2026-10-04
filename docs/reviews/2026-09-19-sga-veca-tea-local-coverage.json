@@ -82,7 +82,7 @@
       "union_graphs": "blocked",
       "subtract_graphs": "blocked",
       "subgraph": "partial",
-      "graphs_equal": "blocked",
+      "graphs_equal": "partial",
       "apply_graph_delta": "blocked",
       "mean_graphs": "blocked",
       "property_graph": "partial",
@@ -90,7 +90,7 @@
       "node_rows": "partial",
       "edge_rows": "partial"
     },
-    "completion_rule": "Historical tuple-profile suites do not discharge current Graph coverage. Partial evidence is limited to the current constructor, definition-selected MATCH/TRAIL, bounds, degree, components and subgraph paths recorded below; it does not establish all normative variants or all SGA execution. Blocked means typed refusal before Run admission, acquisition I/O and dispatch."
+    "completion_rule": "Historical tuple-profile suites do not discharge current Graph coverage. Partial evidence is limited to the current constructor, definition-selected MATCH/TRAIL, bounds, degree, components, subgraph and equality paths recorded below; it does not establish all normative variants or all SGA execution. Blocked means typed refusal before Run admission, acquisition I/O and dispatch."
   },
   "operations": [
     {
@@ -1871,11 +1871,32 @@
       "output": "relation",
       "canonical": ["SGA.equal"],
       "variants": ["equal", "not equal", "representation difference"],
-      "status": "blocked",
+      "status": "partial",
       "owner": "local-sga",
-      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
-      "completed_layers": ["contract"],
-      "layer_evidence": [],
+      "current_gap": "The current definition-keyed Property Graph checker accepts compatible closed domains and the selected bounded equality provider executes two positioned Graph inputs. Focused JS, Wasm and native tests cover equal and unequal values, producer-domain differences, three/two charged work steps, one/zero workspace slots, nested long-text comparison and stop cleanup. The retained Node Host publishes the one-row result to two consumers and delivers in-flight cancellation after both Graphs are built. Broader representation differences and final CI remain unverified.",
+      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "publication", "three_targets"],
+      "layer_evidence": [
+        {
+          "scope": "current_property_graph_equality_bounded_execution",
+          "layers": ["checker", "lowering", "kernel", "managed", "resources", "cancellation", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "evidence": [
+            "src/graph_typing/property_equality_test.mbt",
+            "src/pipeline_typing/property_graph_equality_test.mbt",
+            "src/query_integration/property_graph_equal_wbtest.mbt"
+          ],
+          "verification": "Two exact Graph ports and compatible closed definitions reach the selected provider on JS, Wasm and native. The independently derived three-step count mismatch succeeds at the exact work limit and fails one short; one workspace slot succeeds and zero fails. Long text comparison remains resumable and stops mid-value. Cancellation after charged progress keeps both input reads available and cleans the private result."
+        },
+        {
+          "scope": "current_property_graph_equality_retained_host",
+          "layers": ["standard_host", "consumer_lifetime", "cancellation", "publication"],
+          "targets": ["node"],
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ],
+          "verification": "The ordinary retained Host constructs both Graph operands in one Stage, selects bounded equality, publishes the exact Boolean Named Result to two consumers, and delivers timer cancellation after construction without publishing a partial result."
+        }
+      ],
       "historical_implementation_evidence": [
         {
           "scope": "equal_representation_consumers_and_publication",

@@ -19,6 +19,7 @@ priv enum RelationExecution {
   GraphRowsExecution(@bridge.EventsToRowsExecution)
   GraphBoundsExecution(@sga.GraphBoundsExecution)
   GraphDegreeExecution(@sga.GraphDegreeExecution)
+  PropertyEqualityExecution(@sga.PropertyEqualityExecution)
   ComponentsExecution(@sga.ComponentsExecution)
 }
 
@@ -247,6 +248,17 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
           @lower.WeakComponentsDiagnostic | @lower.StrongComponentsDiagnostic =>
             "SGA.components"
         })
+      }
+      @lower.GraphEqualityStep(_) => {
+        guard @lower.node_input_target(node, 0) is Some(left) &&
+          @lower.node_input_target(node, 1) is Some(right) &&
+          @lower.preparation_carrier_at(prepared, left) is Some(left_carrier) &&
+          @lower.preparation_carrier_at(prepared, right) is Some(right_carrier) else {
+          return false
+        }
+        current_graph(left_carrier) &&
+        current_graph(right_carrier) &&
+        @lower.operation(node) == "SGA.equal"
       }
       @lower.GraphNormalizeStep(_) =>
         @lower.operation(node) == "SGA.normalize" &&
@@ -753,13 +765,19 @@ fn advance_execution(
         }
       }
       StartProjection => {
+        let equality_views = match
+          @lower.sequence_step(value.sequence, value.projection_step) {
+          Some(@lower.GraphEqualityStep(_)) if value.graph is None &&
+            value.carrier_inputs.length() == 2 => true
+          _ => false
+        }
         let direct_view = if value.graph is None &&
           value.carrier_inputs.length() == 1 {
           Some(value.carrier_inputs[0])
         } else {
           None
         }
-        let input = if direct_view is Some(_) {
+        let input = if direct_view is Some(_) || equality_views {
           None
         } else {
           guard value.graph is Some(output) else {
@@ -1108,6 +1126,34 @@ fn advance_execution(
               }
             }
           }
+          Some(@lower.GraphEqualityStep(_)) => {
+            guard equality_views && value.inputs.is_empty() else {
+              return fail_execution(value)
+            }
+            match
+              @sga.start_property_equality_views(
+                value.control,
+                @execution.generated_completion_preparation(value.generated),
+                value.sequence,
+                value.projection_step,
+                value.carrier_inputs[0],
+                value.carrier_inputs[1],
+                value.max_rows,
+                {
+                  max_nodes: value.limits.max_value_nodes,
+                  max_text_bytes: value.max_value_bytes,
+                  max_depth: value.limits.max_value_depth,
+                  max_work: value.limits.max_work,
+                },
+                value.limits.max_workspace_slots,
+                value.limits.max_value_bytes,
+                value.limits.max_value_bytes,
+                value.limits.max_work,
+              ) {
+              Ok(execution) => PropertyEqualityExecution(execution)
+              Err(_) => return fail_execution(value)
+            }
+          }
           _ => return fail_execution(value)
         }
         value.relation = Some(started)
@@ -1188,6 +1234,18 @@ fn advance_execution(
               Ok(@sga.GraphDegreeFailed(_, progress~, work~)) =>
                 Ok(RelationFailed(progress, work))
               Ok(@sga.GraphDegreeStopped(_, progress~, work~)) =>
+                Ok(RelationStopped(progress, work))
+              Err(_) => Err(issue())
+            }
+          PropertyEqualityExecution(execution) =>
+            match @sga.advance_property_equality(execution, quantum) {
+              Ok(@sga.PropertyEqualityContinue(progress~, work~)) =>
+                Ok(RelationContinue(progress, work))
+              Ok(@sga.PropertyEqualityComplete(output, progress~, work~)) =>
+                Ok(RelationComplete(output, progress, work))
+              Ok(@sga.PropertyEqualityFailed(_, progress~, work~)) =>
+                Ok(RelationFailed(progress, work))
+              Ok(@sga.PropertyEqualityStopped(_, progress~, work~)) =>
                 Ok(RelationStopped(progress, work))
               Err(_) => Err(issue())
             }
@@ -1302,6 +1360,11 @@ fn cleanup_execution(
           Ok(_) => ()
           Err(_) => failed = true
         }
+      PropertyEqualityExecution(execution) =>
+        match @sga.cleanup_property_equality(execution) {
+          Ok(_) => ()
+          Err(_) => failed = true
+        }
       ComponentsExecution(execution) =>
         match @sga.cleanup_components(execution) {
           Ok(_) => ()
@@ -1335,6 +1398,8 @@ fn cleanup_execution(
       @sga.graph_bounds_cleanup_pending(active)
     Some(GraphDegreeExecution(active)) =>
       @sga.graph_degree_cleanup_pending(active)
+    Some(PropertyEqualityExecution(active)) =>
+      @sga.property_equality_cleanup_pending(active)
     Some(ComponentsExecution(active)) => @sga.components_cleanup_pending(active)
     None => false
   }
@@ -1467,6 +1532,14 @@ pub fn provider(
         Some(@lower.GraphDiagnosticStep(_)) => selected_step is Some(_)
         _ => false
       }
+      let direct_equality = match
+        @lower.sequence_step(
+          @execution.generated_prepared_sequence(sequence),
+          selected_step.unwrap_or(0),
+        ) {
+        Some(@lower.GraphEqualityStep(_)) => selected_step is Some(_)
+        _ => false
+      }
       let direct_normalize = match
         @lower.sequence_step(
           @execution.generated_prepared_sequence(sequence),
@@ -1508,8 +1581,9 @@ pub fn provider(
         direct_traverse ||
         direct_subgraph ||
         direct_diagnostic ||
+        direct_equality ||
         direct_normalize {
-        if carriers.length() != 1 ||
+        if carriers.length() != (if direct_equality { 2 } else { 1 }) ||
           relations.length() !=
           (if direct_traverse {
             direct_traverse_relation_count

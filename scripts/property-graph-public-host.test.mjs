@@ -434,14 +434,28 @@ function presenceKeyedDistinctScenario(empty) {
   return {document,before,expected};
 }
 
-for (const mode of ['local','remote']) for (const profile of ['graph','presence-filter','presence-selection','selector-derive','relation-subgraph','presence-keyed-distinct']) {
+function presenceWholeDistinctScenario(empty) {
+  const {document,before} = presenceKeyedDistinctScenario(empty);
+  document.id = `presence-whole-distinct-${empty ? 'empty' : 'values'}`;
+  const steps = document.stages[0].steps;
+  steps[5] = {distinct:true,as:'unique'};
+  steps.push({select:['person_key'],as:'projected'});
+  // M:1 and N:1 have different typed identities and optional p presence.
+  // They remain separate complete rows even though their final keys coincide.
+  const expected = empty ? [] : [{person_key:1},{person_key:1},{person_key:2},{person_key:4}];
+  return {document,before,expected};
+}
+
+for (const mode of ['local','remote']) for (const profile of ['graph','presence-filter','presence-selection','selector-derive','relation-subgraph','presence-keyed-distinct','presence-whole-distinct']) {
   const name = profile === 'graph'
     ? `keyed constructor and TRAIL reach public Named Results through ${mode}`
     : profile === 'relation-subgraph'
       ? `external Relation-selected subgraph survives Store reload and public Named Results through ${mode}`
-      : profile === 'presence-keyed-distinct'
-        ? `presence keyed distinct survives Relation Store and public Named Results through ${mode}`
-        : profile === 'selector-derive'
+    : profile === 'presence-keyed-distinct'
+      ? `presence keyed distinct survives Relation Store and public Named Results through ${mode}`
+    : profile === 'presence-whole-distinct'
+      ? `presence whole-row distinct survives Relation Store and public Named Results through ${mode}`
+    : profile === 'selector-derive'
       ? `selector property derive survives Relation Store and public Named Results through ${mode}`
       : `presence ${profile === 'presence-filter' ? 'filter' : 'selection sort and take'} survives Relation Store and public Named Results through ${mode}`;
   test(name, {timeout:60_000}, async t => {
@@ -533,9 +547,11 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
       }
       return;
     }
-    if (profile === 'presence-keyed-distinct') {
+    if (profile === 'presence-keyed-distinct' || profile === 'presence-whole-distinct') {
+      const whole = profile === 'presence-whole-distinct';
       for (const empty of [false,true]) {
-        const {document,before,expected} = presenceKeyedDistinctScenario(empty);
+        const {document,before,expected} = whole
+          ? presenceWholeDistinctScenario(empty) : presenceKeyedDistinctScenario(empty);
         const run = await client.aql(canonicalText(document),
           {format:'json',requestId:`${document.id}-${mode}`});
         const state = await run.wait();
@@ -545,7 +561,7 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
         assert.deepEqual((await run.result('answer').describe()).columns,
           [{name:'person_key',contract:number}]);
         assert.deepEqual(relationSnapshots.get(run.ref.runDefinitionCid),
-          [[4,before],[5,expected]].map(([task,rows])=>{
+          [[4,before],[5,whole ? before : expected]].map(([task,rows])=>{
             const bytes = canonicalText(rows);
             return {task,cid:cid(rows),bytes:Buffer.byteLength(bytes),
               verifiedReadBytes:Buffer.byteLength(bytes),rows:rows.length,
@@ -553,10 +569,21 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
           }));
         assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
       }
-      for (const distinct of [['p'],true]) {
+      for (const distinct of [['p']]) {
         const {document} = presenceKeyedDistinctScenario(false);
         document.stages[0].steps[5].distinct = distinct;
         const requestId = `conditional-distinct-${mode}-${String(distinct)}`;
+        const before = physicalSteps.length;
+        await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+          error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
+        assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+        assert.deepEqual(physicalSteps.slice(before),[]);
+      }
+      if (whole) for (const operation of [{select:['p']},{filter:'p IS NOT NULL'},
+        {filter:'true OR p > 0'}]) {
+        const {document} = presenceWholeDistinctScenario(false);
+        document.stages[0].steps[6] = operation;
+        const requestId = `whole-conditional-ref-${mode}-${Object.keys(operation)[0]}-${Object.values(operation)[0]}`;
         const before = physicalSteps.length;
         await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
           error=>error instanceof ClientError && error.code === 'ClientProgramRejected');

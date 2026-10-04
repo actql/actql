@@ -305,6 +305,10 @@ pub fn graph_diagnostic_kind(PreparedGraphDiagnostic) -> GraphDiagnosticKind
 
 pub fn graph_diagnostic_output_schema(PreparedGraphDiagnostic) -> @relation_schema.Schema
 
+pub fn graph_equality_checked(PreparedGraphEquality) -> @graph_typing.CheckedPropertyEquality
+
+pub fn graph_equality_output_schema(PreparedGraphEquality) -> @relation_schema.Schema
+
 pub fn graph_match_field_at(PreparedGraphMatch, Int) -> @relation_schema.FieldName?
 
 pub fn graph_match_field_count(PreparedGraphMatch) -> Int
@@ -1239,6 +1243,10 @@ pub(all) enum GraphDiagnosticKind {
   StrongComponentsDiagnostic
 } derive(Eq, @debug.Debug)
 
+pub(all) enum GraphEqualityIssue {
+  InvalidGraphEqualityWiring
+} derive(Eq, @debug.Debug)
+
 pub(all) enum GraphMatchIssue {
   InvalidGraphMatchLimits
   InvalidGraphMatchWiring
@@ -1452,6 +1460,7 @@ pub enum Payload {
   GraphMatchRows(@graph_typing.CheckedMatch)
   GraphBoundsRows(@graph_typing.CheckedGraphBounds)
   GraphDegreeRows(@graph_typing.CheckedDegree)
+  GraphEqualityRows(@graph_typing.CheckedPropertyEquality)
   GraphNormalizeValue(@graph_typing.CheckedNormalize)
   GraphComponentsRows(@graph_typing.CheckedComponents)
   GraphSubgraphValue(@graph_typing.CheckedSubgraph)
@@ -1527,6 +1536,8 @@ pub(all) enum PreparedFrameBoundary {
 } derive(Eq, @debug.Debug)
 
 type PreparedGraphDiagnostic
+
+type PreparedGraphEquality
 
 type PreparedGraphMatch
 
@@ -1606,6 +1617,7 @@ pub enum PreparedStep {
   GraphMatchStep(PreparedGraphMatch)
   GraphDiagnosticStep(PreparedGraphDiagnostic)
   GraphSubgraphStep(PreparedGraphSubgraph)
+  GraphEqualityStep(PreparedGraphEquality)
   GraphNormalizeStep(Int)
   GraphTraverseStep(PreparedGraphTraverse)
   PropertyGraphConstructionStep(PreparedPropertyGraphConstruction)
@@ -1698,6 +1710,7 @@ pub(all) enum SequenceIssue {
   GraphMatchFailure(Int, GraphMatchIssue)
   GraphDiagnosticFailure(Int, GraphDiagnosticIssue)
   GraphSubgraphFailure(Int, GraphSubgraphIssue)
+  GraphEqualityFailure(Int, GraphEqualityIssue)
   GraphTraverseFailure(Int, GraphTraverseIssue)
   GraphConstructionFailure(Int, GraphConstructionIssue)
   VectorFailure(Int, VectorIssue)

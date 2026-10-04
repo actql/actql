@@ -300,6 +300,7 @@ pub fn collect_expression_slots(
         | Projection(_)
         | GraphBounds(_)
         | GraphDegree(_)
+        | GraphEquality(..)
         | GraphNormalize(_)
         | GraphComponents(_)
         | PropertyGraphConstruction(..)

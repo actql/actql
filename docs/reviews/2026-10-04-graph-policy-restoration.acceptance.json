@@ -1,0 +1,537 @@
+{
+  "purpose": "Recorded pristine Graph composition execution evidence; not expected-value fixtures",
+  "submittedSource": "c988bae700a641c0ef968b4411cabbaf51cf4956",
+  "testedMerge": "37352c7e3de6ec5f82905d269cc6b1ee94415e05",
+  "orderedParents": [
+    "3c443c5bf3483170aa941feac767650a76b532f2",
+    "c988bae700a641c0ef968b4411cabbaf51cf4956"
+  ],
+  "ci": {
+    "runId": 37200985055,
+    "attempt": 1,
+    "url": "https://github.com/actql/actql/actions/runs/37200985055",
+    "producerJobId": 111433135472,
+    "producerArtifactId": 11303081237,
+    "terminalConclusion": "failure",
+    "requiredCIComplete": false,
+    "unstartedConsumerIds": [
+      111433381751,
+      111433381715
+    ],
+    "reason": "Account payment/spending limits; pipeline-evidence reports Actions budget refusal"
+  },
+  "producerManifest": {
+    "revision": "37352c7e3de6ec5f82905d269cc6b1ee94415e05",
+    "tarballs": {
+      "client-wire": "52fe3218df346cfb9dae0adc248071563fe68918bded16f8d733415e65584fc0",
+      "sdk": "f81bf27c3bb42a007bc16b6f89a15542a89c7fb844e2893870d1161a8e8abc6d",
+      "run-host-core": "65b6408c2bb93597b8c92fc424b010b5e1d3e8b75ba414ad006bd30d57999a86",
+      "local-node": "05989df670317018001aaae6a77115894e61b9c30ddfeaca63506ab26fba4b2c",
+      "node": "89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64"
+    }
+  },
+  "localExecution": {
+    "runtime": "macOS Node 22.23.2",
+    "invocation": "run-myTGCk",
+    "command": [
+      "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+      "scripts/test-packed-salesforce-source.mjs",
+      "--composed-graph",
+      "--keep-artifacts"
+    ],
+    "startedAt": "2026-10-04T12:32:20.387Z",
+    "endedAt": "2026-10-04T12:36:30.463Z",
+    "exitCode": 0,
+    "complete": true,
+    "outputComplete": true,
+    "callerOutputComplete": true,
+    "guardLocksReleased": true,
+    "cleanSourceBeforeAndAfter": true,
+    "adapterOverlay": false,
+    "newBuild": false
+  },
+  "recordDigests": {
+    "summary.json": "987bc7d9f77ce97b3c08dc8a1a6819f74d339ce14b3572e049863698a4a56182",
+    "output.log": "02761c25c84f88276b4651d470d88ab299419edffe0bfc8f01c0a387ac8261b5",
+    "composition-acceptance.jsonl": "341bb175ff60979a5ed2dfd3b5cf56886cc1f2000399a48ee9c400db76d71461",
+    "restart-boundaries.jsonl": "1e6a39f9e78f8696b28bdce53096de67dac155b3bc90100b5aac243759cf2127",
+    "packed-client-packages.json": "50086f3f0aa03af343f0bf7a3633602c8f80ee138d1065beffc8ac7269b9aeab"
+  },
+  "observations": [
+    {
+      "sourceRevision": "37352c7e3de6ec5f82905d269cc6b1ee94415e05",
+      "transport": "local",
+      "case": "infer-graph-node",
+      "requestId": "packed-rce-success",
+      "ref": {
+        "namespaceId": "local",
+        "authorityScopeCid": "sha256:00ca3b8034710b044afc540d547cf1d6da17b50b5b8953a1ad024635fefc69bf",
+        "runDefinitionCid": "sha256:a808d84675ba50b8c992a1ff2e70bcb4f59c22ed2e92a132a09a5b66b70db123"
+      },
+      "submittedFormat": "json",
+      "submittedProgramSha256": "c38e0bda110063ca1f0d199127b3d7579c2599315abf14714bf9912c5a554107",
+      "sourceReadSessions": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "modelInputs": [
+        100,
+        200
+      ],
+      "effectWriteCounts": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "writes": [
+        {
+          "id": "a00000000000002",
+          "body": {
+            "Name": "review-required"
+          }
+        }
+      ],
+      "rows": [
+        {
+          "id": 2,
+          "graph_identity": {
+            "definition": "N",
+            "domain": "sha256:e10869cfed10b18fbe00f13ddd456f4a4b5241199d16a3f31a08b4a53c026437",
+            "key": [
+              "a",
+              2
+            ],
+            "key_types": [
+              {
+                "kind": "string"
+              },
+              {
+                "kind": "number"
+              }
+            ]
+          },
+          "tenant_key": "a",
+          "note": null,
+          "left_amount": 20,
+          "right_amount": 200,
+          "risk": "high",
+          "target_id": "a00000000000002",
+          "next_name": "review-required"
+        }
+      ],
+      "restartBoundaries": [
+        {
+          "boundary": "capture-waiting",
+          "ref": {
+            "namespaceId": "local",
+            "authorityScopeCid": "sha256:00ca3b8034710b044afc540d547cf1d6da17b50b5b8953a1ad024635fefc69bf",
+            "runDefinitionCid": "sha256:a808d84675ba50b8c992a1ff2e70bcb4f59c22ed2e92a132a09a5b66b70db123"
+          },
+          "transport": "local"
+        },
+        {
+          "boundary": "approval-committed",
+          "ref": {
+            "namespaceId": "local",
+            "authorityScopeCid": "sha256:00ca3b8034710b044afc540d547cf1d6da17b50b5b8953a1ad024635fefc69bf",
+            "runDefinitionCid": "sha256:a808d84675ba50b8c992a1ff2e70bcb4f59c22ed2e92a132a09a5b66b70db123"
+          },
+          "transport": "local"
+        }
+      ],
+      "temporaryRetention": {
+        "cleanupConfirmed": true,
+        "resourceUsage": {
+          "planningWork": "0",
+          "attempts": "9",
+          "holdings": "9",
+          "transferredBytes": "2451",
+          "reservedTransferBytes": "0",
+          "heldBytes": "0",
+          "reservedRetentionBytes": "0",
+          "reservedExecutionBytes": "0"
+        }
+      },
+      "namedResultRetention": [
+        {
+          "name": "classified",
+          "artifactCid": "sha256:e69376f0673ee1bd17ed8c8d0e444de2d5c688b9a1b86cc1768bd1dbc2f236dc",
+          "rows": 2
+        },
+        {
+          "name": "updates",
+          "artifactCid": "sha256:d0e645225dda1618d0cd2a7ce96aedfea91b4170e0b960ccdd3fff54f1788c39",
+          "rows": 1
+        }
+      ],
+      "installedSourceProfiles": 0,
+      "resultPolicyOriginal": {
+        "kind": "data_policy",
+        "cid": "sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563",
+        "wire": "{\"classification\":\"unknown\",\"source_data_policy_cids\":[],\"source_response_policy_cids\":[],\"unknown_provenance\":true,\"version\":\"actql-effective-data-policy/0.1\"}"
+      },
+      "recoveryHostPolicy": "absent"
+    },
+    {
+      "sourceRevision": "37352c7e3de6ec5f82905d269cc6b1ee94415e05",
+      "transport": "https",
+      "case": "infer-graph-node",
+      "requestId": "packed-rce-success",
+      "ref": {
+        "namespaceId": "local",
+        "authorityScopeCid": "sha256:24d0a5c518e3da804ee5fe79cb35730adb26e267f6056d0b6005a029e45beb41",
+        "runDefinitionCid": "sha256:cf4db9675b6e2920cdc754b3a4947ccacbb3a62d3a826dc4f2d785be43ad6194"
+      },
+      "submittedFormat": "json",
+      "submittedProgramSha256": "c38e0bda110063ca1f0d199127b3d7579c2599315abf14714bf9912c5a554107",
+      "sourceReadSessions": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "modelInputs": [
+        100,
+        200
+      ],
+      "effectWriteCounts": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "writes": [
+        {
+          "id": "a00000000000002",
+          "body": {
+            "Name": "review-required"
+          }
+        }
+      ],
+      "rows": [
+        {
+          "id": 2,
+          "graph_identity": {
+            "definition": "N",
+            "domain": "sha256:e10869cfed10b18fbe00f13ddd456f4a4b5241199d16a3f31a08b4a53c026437",
+            "key": [
+              "a",
+              2
+            ],
+            "key_types": [
+              {
+                "kind": "string"
+              },
+              {
+                "kind": "number"
+              }
+            ]
+          },
+          "tenant_key": "a",
+          "note": null,
+          "left_amount": 20,
+          "right_amount": 200,
+          "risk": "high",
+          "target_id": "a00000000000002",
+          "next_name": "review-required"
+        }
+      ],
+      "restartBoundaries": [
+        {
+          "boundary": "capture-waiting",
+          "ref": {
+            "namespaceId": "local",
+            "authorityScopeCid": "sha256:24d0a5c518e3da804ee5fe79cb35730adb26e267f6056d0b6005a029e45beb41",
+            "runDefinitionCid": "sha256:cf4db9675b6e2920cdc754b3a4947ccacbb3a62d3a826dc4f2d785be43ad6194"
+          },
+          "transport": "https"
+        },
+        {
+          "boundary": "approval-committed",
+          "ref": {
+            "namespaceId": "local",
+            "authorityScopeCid": "sha256:24d0a5c518e3da804ee5fe79cb35730adb26e267f6056d0b6005a029e45beb41",
+            "runDefinitionCid": "sha256:cf4db9675b6e2920cdc754b3a4947ccacbb3a62d3a826dc4f2d785be43ad6194"
+          },
+          "transport": "https"
+        }
+      ],
+      "temporaryRetention": {
+        "cleanupConfirmed": true,
+        "resourceUsage": {
+          "planningWork": "0",
+          "attempts": "9",
+          "holdings": "9",
+          "transferredBytes": "2451",
+          "reservedTransferBytes": "0",
+          "heldBytes": "0",
+          "reservedRetentionBytes": "0",
+          "reservedExecutionBytes": "0"
+        }
+      },
+      "namedResultRetention": [
+        {
+          "name": "classified",
+          "artifactCid": "sha256:86715f58149441040a6938e789db37c5efd5b649fec1b788e015e036b80be946",
+          "rows": 2
+        },
+        {
+          "name": "updates",
+          "artifactCid": "sha256:20a8e6717c0b8f07756aac9e0587d86fb05d846abc6c874ae29713ef30313212",
+          "rows": 1
+        }
+      ],
+      "installedSourceProfiles": 0,
+      "resultPolicyOriginal": {
+        "kind": "data_policy",
+        "cid": "sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563",
+        "wire": "{\"classification\":\"unknown\",\"source_data_policy_cids\":[],\"source_response_policy_cids\":[],\"unknown_provenance\":true,\"version\":\"actql-effective-data-policy/0.1\"}"
+      },
+      "recoveryHostPolicy": "absent"
+    },
+    {
+      "sourceRevision": "37352c7e3de6ec5f82905d269cc6b1ee94415e05",
+      "transport": "local",
+      "case": "infer-graph-edge",
+      "requestId": "packed-rce-success",
+      "ref": {
+        "namespaceId": "local",
+        "authorityScopeCid": "sha256:cb3a420c82f8ebcd8083a4a4aeea679e7241e86424dabbd763413da3ebc9f989",
+        "runDefinitionCid": "sha256:1339525d5be613f5d56a1b449e96e3760de0a6152129e2f258f1b39d570801c9"
+      },
+      "submittedFormat": "json",
+      "submittedProgramSha256": "2d449d00719faaebb6d70dca024be2ffe221fa28689a85aa8c48e0884a263f52",
+      "sourceReadSessions": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "modelInputs": [
+        100,
+        200
+      ],
+      "effectWriteCounts": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "writes": [
+        {
+          "id": "a00000000000002",
+          "body": {
+            "Name": "review-required"
+          }
+        }
+      ],
+      "rows": [
+        {
+          "id": 2,
+          "graph_identity": {
+            "definition": "E",
+            "domain": "sha256:e10869cfed10b18fbe00f13ddd456f4a4b5241199d16a3f31a08b4a53c026437",
+            "key": [
+              "a",
+              2
+            ],
+            "key_types": [
+              {
+                "kind": "string"
+              },
+              {
+                "kind": "number"
+              }
+            ]
+          },
+          "tenant_key": "a",
+          "note": null,
+          "left_amount": 20,
+          "right_amount": 200,
+          "risk": "high",
+          "target_id": "a00000000000002",
+          "next_name": "review-required"
+        }
+      ],
+      "restartBoundaries": [
+        {
+          "boundary": "capture-waiting",
+          "ref": {
+            "namespaceId": "local",
+            "authorityScopeCid": "sha256:cb3a420c82f8ebcd8083a4a4aeea679e7241e86424dabbd763413da3ebc9f989",
+            "runDefinitionCid": "sha256:1339525d5be613f5d56a1b449e96e3760de0a6152129e2f258f1b39d570801c9"
+          },
+          "transport": "local"
+        },
+        {
+          "boundary": "approval-committed",
+          "ref": {
+            "namespaceId": "local",
+            "authorityScopeCid": "sha256:cb3a420c82f8ebcd8083a4a4aeea679e7241e86424dabbd763413da3ebc9f989",
+            "runDefinitionCid": "sha256:1339525d5be613f5d56a1b449e96e3760de0a6152129e2f258f1b39d570801c9"
+          },
+          "transport": "local"
+        }
+      ],
+      "temporaryRetention": {
+        "cleanupConfirmed": true,
+        "resourceUsage": {
+          "planningWork": "0",
+          "attempts": "9",
+          "holdings": "9",
+          "transferredBytes": "3131",
+          "reservedTransferBytes": "0",
+          "heldBytes": "0",
+          "reservedRetentionBytes": "0",
+          "reservedExecutionBytes": "0"
+        }
+      },
+      "namedResultRetention": [
+        {
+          "name": "classified",
+          "artifactCid": "sha256:8299209e0b9d07facf08e25b88e316a09c3f2ef6c6a21ec9faaad5b022912fe9",
+          "rows": 2
+        },
+        {
+          "name": "updates",
+          "artifactCid": "sha256:f9500906091a8638563dcdbdc0ff00e8def9b9b8f144789b36f72b287d243bd9",
+          "rows": 1
+        }
+      ],
+      "installedSourceProfiles": 0,
+      "resultPolicyOriginal": {
+        "kind": "data_policy",
+        "cid": "sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563",
+        "wire": "{\"classification\":\"unknown\",\"source_data_policy_cids\":[],\"source_response_policy_cids\":[],\"unknown_provenance\":true,\"version\":\"actql-effective-data-policy/0.1\"}"
+      },
+      "recoveryHostPolicy": "absent"
+    },
+    {
+      "sourceRevision": "37352c7e3de6ec5f82905d269cc6b1ee94415e05",
+      "transport": "https",
+      "case": "infer-graph-edge",
+      "requestId": "packed-rce-success",
+      "ref": {
+        "namespaceId": "local",
+        "authorityScopeCid": "sha256:71eead20c3a027d9b9eefc5edd5483af7b4a65b7cc55d5c7236981728afb92be",
+        "runDefinitionCid": "sha256:1d3ca170e4bfefde5b547d5776dcef3243d5ec9ec993ab6a5001c2eaf1f18595"
+      },
+      "submittedFormat": "json",
+      "submittedProgramSha256": "2d449d00719faaebb6d70dca024be2ffe221fa28689a85aa8c48e0884a263f52",
+      "sourceReadSessions": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "modelInputs": [
+        100,
+        200
+      ],
+      "effectWriteCounts": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "writes": [
+        {
+          "id": "a00000000000002",
+          "body": {
+            "Name": "review-required"
+          }
+        }
+      ],
+      "rows": [
+        {
+          "id": 2,
+          "graph_identity": {
+            "definition": "E",
+            "domain": "sha256:e10869cfed10b18fbe00f13ddd456f4a4b5241199d16a3f31a08b4a53c026437",
+            "key": [
+              "a",
+              2
+            ],
+            "key_types": [
+              {
+                "kind": "string"
+              },
+              {
+                "kind": "number"
+              }
+            ]
+          },
+          "tenant_key": "a",
+          "note": null,
+          "left_amount": 20,
+          "right_amount": 200,
+          "risk": "high",
+          "target_id": "a00000000000002",
+          "next_name": "review-required"
+        }
+      ],
+      "restartBoundaries": [
+        {
+          "boundary": "capture-waiting",
+          "ref": {
+            "namespaceId": "local",
+            "authorityScopeCid": "sha256:71eead20c3a027d9b9eefc5edd5483af7b4a65b7cc55d5c7236981728afb92be",
+            "runDefinitionCid": "sha256:1d3ca170e4bfefde5b547d5776dcef3243d5ec9ec993ab6a5001c2eaf1f18595"
+          },
+          "transport": "https"
+        },
+        {
+          "boundary": "approval-committed",
+          "ref": {
+            "namespaceId": "local",
+            "authorityScopeCid": "sha256:71eead20c3a027d9b9eefc5edd5483af7b4a65b7cc55d5c7236981728afb92be",
+            "runDefinitionCid": "sha256:1d3ca170e4bfefde5b547d5776dcef3243d5ec9ec993ab6a5001c2eaf1f18595"
+          },
+          "transport": "https"
+        }
+      ],
+      "temporaryRetention": {
+        "cleanupConfirmed": true,
+        "resourceUsage": {
+          "planningWork": "0",
+          "attempts": "9",
+          "holdings": "9",
+          "transferredBytes": "3131",
+          "reservedTransferBytes": "0",
+          "heldBytes": "0",
+          "reservedRetentionBytes": "0",
+          "reservedExecutionBytes": "0"
+        }
+      },
+      "namedResultRetention": [
+        {
+          "name": "classified",
+          "artifactCid": "sha256:fc26324614676fcfb6e4507656253813b71c1fda02d956a5d8f6365f6169e2b6",
+          "rows": 2
+        },
+        {
+          "name": "updates",
+          "artifactCid": "sha256:8ce1b6205c9848c39477263fcb14573c853352d54583257bb6c4bdebb04fa850",
+          "rows": 1
+        }
+      ],
+      "installedSourceProfiles": 0,
+      "resultPolicyOriginal": {
+        "kind": "data_policy",
+        "cid": "sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563",
+        "wire": "{\"classification\":\"unknown\",\"source_data_policy_cids\":[],\"source_response_policy_cids\":[],\"unknown_provenance\":true,\"version\":\"actql-effective-data-policy/0.1\"}"
+      },
+      "recoveryHostPolicy": "absent"
+    }
+  ],
+  "limits": {
+    "activeTemporaryHolderCount": "Not proved; separate completion unit",
+    "restartTopology": "one dedicated process co-locates Host and Run owner; neither memory survives each exit",
+    "hostedGraphConsumer": "Not executed",
+    "GraphText": "Not included",
+    "otherOperations": "Not included"
+  }
+}
