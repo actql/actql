@@ -82,6 +82,26 @@ impl RowValues for Array[Value] with fn value_at(self, column) {
 }
 
 ///|
+// Private row view over the existing admitted presence cells. Absence is not
+// a scalar value and is never read by logical or physical value traversal.
+impl RowValues for Ref[Array[@admitted.Value?]] with fn value_count(self) {
+  self.val.length()
+}
+
+///|
+impl RowValues for Ref[Array[@admitted.Value?]] with fn value_present(
+  self,
+  column,
+) {
+  self.val[column] is Some(_)
+}
+
+///|
+impl RowValues for Ref[Array[@admitted.Value?]] with fn value_at(self, column) {
+  capture(self.val[column].unwrap())
+}
+
+///|
 /// A bounded coordinate, not a reconstructed row object or copied array.
 priv struct IndexedRow[T] {
   table : T

@@ -14,7 +14,7 @@ import {join} from 'node:path';
 import test, {after} from 'node:test';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import {connect, getCheckInput, resolveCheckLocation, explainCheckReason} from '../../packages/sdk/index.mjs';
+import {connect, getCheckInput, resolveCheckLocation, resolveCheckTextRange, explainCheckReason} from '../../packages/sdk/index.mjs';
 import {validCheckOutcome, checkReasonSchemaCid} from '../../packages/client-wire/index.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {createNodeAuthorizationGate} from './authorization.mjs';
@@ -230,6 +230,62 @@ const protectedSource = [{boundary: 'source_resolution',
   reason: 'unresolved_protected'}];
 
 for (const [entrance, open] of Object.entries(entrances)) {
+  test(`${entrance}: unresolved column expressions retain authored source positions`, async t => {
+    const client = await open(t, configurations.denied);
+    const visible = await open(t, configurations.allowed);
+    for (const format of ['sql', 'aql-text']) {
+      for (const [text, start, end, token] of [
+        ['SELECT missing AS n', 7, 14, 'missing'],
+        ['/*😀*/\r\nSELECT missing AS n', 17, 24, 'missing'],
+        ['/* missing */ SELECT missing AS n', 21, 28, 'missing'],
+        ['SELECT missing AS n, missing AS m', 7, 14, 'missing'],
+        ['SELECT `é😀` AS n', 7, 15, '`é😀`'],
+      ]) {
+        const outcome = await client.check(text, {format});
+        assert.equal(outcome.outcome, 'completed', '[check-mutation:column-outcome]');
+        assert.equal(outcome.report.verdict, 'invalid', '[check-mutation:column-verdict]');
+        const original = getCheckInput(outcome, 'source');
+        assert.deepEqual(outcome.report.reasons, [{code: 'query_invalid',
+          location: {document_id: 'source', revision: original.revision,
+            kind: 'text', start_byte: start, end_byte: end, precision: 'exact'}}],
+        '[check-mutation:column-location]');
+        assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+        const location = outcome.report.reasons[0].location;
+        assert.equal(resolveCheckLocation(outcome, location).text, token);
+        assert.equal(resolveCheckLocation(outcome, location,
+          {...original, text: 'SELECT id AS n'}), undefined);
+        assert.equal(resolveCheckLocation(JSON.parse(JSON.stringify(outcome)), location), undefined);
+        assert.equal(explainCheckReason(outcome.report.reasons[0]).kind, 'known');
+      }
+      // Double quotes are string literals; backticks quote identifiers.
+      const literal = await client.check('SELECT "é😀" AS n', {format});
+      assert.equal(literal.report.verdict, 'verified');
+      assert.deepEqual(literal.report.reasons, []);
+      const bare = await client.check('SELECT missing', {format});
+      assert.deepEqual(bare.report.reasons, [{code: 'query_invalid'}]);
+      const protectedInput = await client.check('SELECT missing AS n FROM records', {format});
+      assert.equal(protectedInput.report.verdict, 'undetermined');
+      assert.deepEqual(protectedInput.report.reasons, []);
+      assert.deepEqual(protectedInput.report.coverage, {limits: [], unresolved: protectedSource});
+      for (const [text, start, end, token] of [
+        ['SELECT missing AS n FROM records', 7, 14, 'missing'],
+        ['SELECT records.missing AS n FROM records', 7, 22, 'records.missing'],
+      ]) {
+        const outcome = await visible.check(text, {format});
+        assert.equal(outcome.outcome, 'completed', '[check-mutation:column-outcome]');
+        assert.equal(outcome.report.verdict, 'invalid', '[check-mutation:column-verdict]');
+        const original = getCheckInput(outcome, 'source');
+        assert.deepEqual(outcome.report.reasons, [{code: 'query_invalid',
+          location: {document_id: 'source', revision: original.revision,
+            kind: 'text', start_byte: start, end_byte: end, precision: 'exact'}}],
+        '[check-mutation:column-location]');
+        assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location).text, token);
+      }
+    }
+    client.assertNoExecution();
+    visible.assertNoExecution();
+  });
+
   test(`${entrance}: nested supplied type facts follow the submitted contract and path`, async t => {
     const client = await open(t, configurations.denied);
     const cases = [
@@ -372,12 +428,13 @@ for (const [entrance, open] of Object.entries(entrances)) {
     const client = await open(t, configurations.denied);
     // Fixed byte expectations, hand-counted independently of parser output.
     const cases = [
-      ['SELECT', 6, 6],
-      ['SELECT 1 AS n,\r\n', 16, 16],
-      ["\ufeffSELECT 'é😀e\u0301' AS x,\r\n", 29, 29],
+      ['SELECT', 6, 6, {line: 0, character: 6}],
+      ["SELECT 'é😀e\u0301' AS x,", 24, 24, {line: 0, character: 20}],
+      ['SELECT 1 AS n,\r\n', 16, 16, {line: 1, character: 0}],
+      ["\ufeffSELECT 'é😀e\u0301' AS x,\r\n", 29, 29, {line: 1, character: 0}],
     ];
     const revisions = [];
-    for (const [text, start, end] of cases) {
+    for (const [text, start, end, position] of cases) {
       const outcome = await client.check(text, {format: 'sql'});
       assert.equal(outcome.outcome, 'completed', '[check-mutation:syntax-outcome]');
       assert.equal(outcome.report.verdict, 'invalid');
@@ -396,6 +453,13 @@ for (const [entrance, open] of Object.entries(entrances)) {
       const resolved = resolveCheckLocation(outcome, reason.location);
       assert.equal(resolved.text, '');
       assert.equal(resolved.input.text, text);
+      const editor = resolveCheckTextRange(outcome, reason.location);
+      assert.deepEqual(editor?.range, {start: position, end: position},
+        '[check-mutation:editor-coordinates]');
+      assert.equal(editor.input, input);
+      assert.equal(editor.positionEncoding, 'utf-16');
+      assert.equal(resolveCheckTextRange(outcome, reason.location,
+        {...input, text: 'SELECT 1 AS n'}), undefined, '[check-mutation:editor-revision]');
       assert.equal(explainCheckReason(reason).kind, 'known');
       assert.equal(resolveCheckLocation(outcome, reason.location, {...input, text: 'SELECT 1 AS n'}), undefined);
       assert.equal(resolveCheckLocation(outcome, reason.location, {...input, revision: 'rev:' + '0'.repeat(64)}), undefined);

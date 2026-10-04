@@ -598,6 +598,14 @@ bind the exact JSON serialization supplied to the common admission owner. An
 unavailable original position is omitted, including lowerer semantic failures
 without owned source provenance. No generated JSON path is displayed as SQL.
 
+An unresolved column expression can retain its existing lowerer's authored
+identifier range in a `query_invalid` reason, for both SQL and text input.
+The projection reads the existing typed failure and origin; it does not resolve
+names again or search the submitted string. Backtick-quoted names, repeated
+tokens, Unicode and CRLF retain their original byte ranges. Unaliased column
+failures currently lacking an origin omit the range. Unresolved Source names
+and generated origins do not acquire a public location.
+
 Document IDs (`source`, `parameter_declarations`, `parameters`) are roles within
 one report, not private file paths. Each Host issues a keyed, domain-separated
 revision over that role's exact bytes. These revisions are not public content
@@ -613,6 +621,17 @@ that exact response. `getCheckInput` retrieves that call's snapshot;
 content and byte boundaries. A copied/externally parsed report has no association.
 Unavailable input, another revision or edited text yields no resolved location;
 the reason's safe code/explanation remains usable. The API applies no edits.
+`resolveCheckTextRange` converts a resolved source location to zero-based UTF-16
+line/character coordinates on that same revision. It counts original BOM and
+combining code units, counts non-BMP scalars as two code units, and treats CRLF
+as one line break with no representable interior position. Lone CR/LF break
+lines; EOF and zero-width boundaries remain valid. Malformed original Unicode,
+structured pointers and CRLF-interior boundaries have no editor range. This
+adapter preserves exact/approximate precision and never normalizes the input.
+Editor session/version custody remains with the editor integration: it associates
+the submitted snapshot with its open buffer and compares current identity,
+revision and text before rendering there. A reopened session cannot replace that
+association. The helper is explicitly UTF-16, not an LSP server or edit applicator.
 `explainCheckReason` provides safe English summaries/hints; unknown codes have an
 explicit generic explanation and confer no retry or execution permission.
 

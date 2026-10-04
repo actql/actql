@@ -315,6 +315,24 @@ stale revision, changed content or invalid byte boundary. Supplying its optional
 current-input argument validates the same identity/revision/content. Text spans
 are UTF-8 byte intervals; structured values/declarations have revision-bound
 pointers. There is no SDK parser, automatic fix or Host input re-fetch API.
+Unresolved column expressions can carry the lowerer's original authored
+identifier range in `query_invalid`. The range is omitted when the existing
+failure has no authored origin, including unresolved Source names and current
+unaliased-column failures. The SDK uses the same submitted snapshot for both
+syntax and name-resolution ranges.
+`resolveCheckTextRange(outcome, location, currentInput?)` additionally returns
+zero-based `range.start`/`range.end` line and character coordinates with
+`positionEncoding: 'utf-16'`. It reads that same immutable source snapshot and
+preserves the location's `precision`. BOM and combining marks count as UTF-16
+code units, non-BMP characters count as two, and CRLF is one line break; lone CR
+and LF also start a line. EOF and zero-width locations are supported. A boundary
+inside CRLF or malformed original Unicode has no exact editor range and is
+omitted. Structured locations remain pointers, without fabricated text ranges.
+An editor must associate its open-document session/version with the submitted
+snapshot and pass the current identity/revision/text when displaying against
+the current buffer. Reopening or editing does not rebind an old response.
+This helper provides UTF-16 coordinates, not a negotiated LSP server or an edit
+operation; approximate ranges retain their label and do not grant edit permission.
 Nested object/array type failures identify the declared child type and the
 existing binder's path, with JSON pointer escaping for field names. Supplied
 constraint violations can carry that path with their safe generic reason.
