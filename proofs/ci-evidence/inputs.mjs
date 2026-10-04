@@ -11,6 +11,7 @@ const validPath = value => typeof value === 'string' && /^[A-Za-z0-9_.\/-]+$/u.t
 export const sharedFiles = ['proofs/ci-evidence/actions.mjs', 'proofs/ci-evidence/inputs.mjs',
   'proofs/ci-evidence/receipts.mjs', 'proofs/ci-evidence/check.mjs',
   'proofs/ci-evidence/applications.mjs',
+  'proofs/ci-evidence/plan.mjs',
   'proofs/ci-evidence/runtime.mjs', 'proofs/ci-evidence/collect.mjs', 'proofs/ci-evidence/transport.mjs', 'proofs/ci-evidence/final.mjs',
   'proofs/ci-evidence/cli.mjs',
   'proofs/ci-evidence/Reuse.lean', 'proofs/ci-evidence/Claims.lean',
