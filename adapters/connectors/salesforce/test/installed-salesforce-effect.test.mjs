@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import test from 'node:test';
+import './effect-target-read-inventory.test.mjs';
 import {accountConfiguration, effectHost, effectProgram, installedEffect,
   recordEntry, salesforceMoon} from './installed-salesforce-effect.fixture.mjs';
 import {closeFailingJournal} from './salesforce-effect-site.fixture.mjs';
