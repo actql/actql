@@ -106,3 +106,16 @@ vector remains a predecessor; it is not rebound to the label-enabled contract.
 This Frontend unit remains Draft pending its new source's public packed
 Local/HTTP acceptance and required automatic CI. No dependency success is
 claimed as this source's execution result.
+
+Focused JS at submitted source
+`c4c2d9b2f7a6b5425cbc14c9fe40ec64b10960bd` passed 10/10 Graph tests.
+Its automatic [CI run](https://github.com/actql/actql/actions/runs/37172067735)
+stopped in history preflight before product jobs ran: the two normal dependency
+merges `5fa4bc547a44198777c02ed1ed21411dadfcffe8` and
+`0e15166777886e5441c54fed615348df2138db6e` lacked their protected
+`package.json` resolution records. Each merge has two actual maximal bases;
+both parents changed that path relative to one base even though the parent
+and result blobs agree. New source-bound declarations retain all bases,
+ordered parents, blob digests and ancestral declaration groups. Existing
+records and the validator are unchanged. This repairs provenance, not a
+product execution failure, and does not establish public selector acceptance.
