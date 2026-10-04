@@ -126,3 +126,26 @@ all dependent pins, retaining independent vectors for both parents:
 
 The packed evidence above still belongs to `8074f08e...`, not this integrated
 source. Integration checks and exact-HEAD CI must be reported separately.
+
+### Executed after main integration
+
+Clean source `025045daa851f0ac231f81a1dca55e9b93b64846` passed the same
+5 normal / 5 refusal cases on **both packed Embedded Local and HTTP**.
+This supersedes the earlier parent's packed evidence for integration purposes.
+The scoped tests also passed: Graph-row Program/checker 5/5, independent
+normative/Run vectors 3/3, and fixed Values Run issuer 1/1. Compilation manifest,
+spec-family, canonical JSON and Workers/Node fixture freshness checks passed.
+No full local campaign was added.
+
+Evidence invocation `public-query-evidence-CbMt40` completed/passed; the owned
+installation was removed after evidence preservation. Integrated tarball digests:
+
+| Package | SHA-256 |
+|---|---|
+| actql-client-wire-0.0.0-development.tgz | `5da98d3edb615f960f0511be9d6e61431cd34d02304a8bd6b6e576f7775f91a0` |
+| actql-sdk-0.0.0-development.tgz | `2fc910067348e421346945ced1e728e107bbe6fa455ee00f9d71da46e8123c5b` |
+| actql-run-host-core-0.0.0-development.tgz | `7ff0e10b6e15a9fb44a484cd533ed065bacfba41a7519f72bbcbf0017195656a` |
+| actql-local-node-0.0.0-development.tgz | `c9c98f993f64aeef8c1c73be5eba6732a9b3e20be4fc1b45fe4fc1cda2d58659` |
+| actql-node-0.0.0-development.tgz | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+A following report-only commit is not a new packed source verification.
