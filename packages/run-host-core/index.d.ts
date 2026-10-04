@@ -282,6 +282,12 @@ export interface ProfileSelection {
   readonly textRank?: boolean;
 }
 
+/** Validate the closed profile selection contract and normalize omitted values
+ * to false. Returns a detached frozen value suitable for retained Run input;
+ * it does not admit a Check Environment or grant execution authority. */
+export function admitProfileSelection(profiles: unknown):
+  Readonly<Required<ProfileSelection>>;
+
 export interface PrivateCompilationWires {
   readonly executablePlan: string;
   readonly factManifest: string;

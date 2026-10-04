@@ -37,6 +37,7 @@ fn operation_count_contract(
     @pipeline.GraphMatch(_)
     | @pipeline.GraphBounds(_)
     | @pipeline.GraphDegree(_)
+    | @pipeline.GraphNormalize(_)
     | @pipeline.GraphComponents(_)
     | @pipeline.Traverse(..) => PropertyGraph
     @pipeline.Projection(_) => ClassificationOnly

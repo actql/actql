@@ -105,10 +105,15 @@ async function fixture(t, { outcome = 'delegate' } = {}) {
   const evidence = async attempt => {
     const moon = await import(join(root,
       '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js'));
-    const port = openContinuationEvidence({ stateDirectory: state,
-      ...await loadPrivateEvidenceKey(state),
-      contractControl: runtimeCore(moon).publicationControl, preparation: () => undefined });
-    try { return await port.open(attempt); } finally { await port.close(); }
+    const host = await openLocalHost(config);
+    try {
+      const port = openContinuationEvidence({ stateDirectory: state,
+        ...await loadPrivateEvidenceKey(state),
+        contractControl: runtimeCore(moon).publicationControl,
+        isTerminalRunOutcome: host.journal.isTerminalRunOutcome,
+        preparation: () => undefined });
+      try { return await port.open(attempt); } finally { await port.close(); }
+    } finally { await host.close(); }
   };
   const onlyAttempt = () => {
     const sqlite = new DatabaseSync(journalPath, { readOnly: true });
@@ -701,3 +706,4 @@ test('an earlier approval of the attempt that lapsed resumes no provider session
   assert.equal(current.resumed.status, 'succeeded', JSON.stringify(current.resumed));
   assert.equal(current.resumed.counters.provider_sessions, 1);
 });
+
