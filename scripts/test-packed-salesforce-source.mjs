@@ -388,6 +388,8 @@ console.log(JSON.stringify(published.mappings.map(mapping =>
     'graph-infer-effect-input.mjs',
     'graph-node-infer-effect.program.template.json',
     'graph-edge-infer-effect.program.template.json',
+    'graph-node-infer-effect-duplicate-key.program.template.json',
+    'graph-node-infer-effect-null-property.program.template.json',
     'installed-infer-fixture.mjs', 'two-source-public-query.mjs',
     'public-query-input.mjs']) {
     await writeFile(join(root, name), await readFile(join(repository,
@@ -468,7 +470,8 @@ import {connect} from '@actql/node';
 import {compositionProgram, compositionText, twoSourceEffectProgram, modelConfiguration, registerCompositionModel,
   compositionExpectations} from
   './composed-infer-effect-input.mjs';
-import {graphCompositionProgram, graphCompositionExpectations} from './graph-infer-effect-input.mjs';
+import {graphCompositionProgram, graphCompositionExpectations,
+  graphCompositionRefusalProgram} from './graph-infer-effect-input.mjs';
 const composed = process.env.PACKED_COMPOSED_INFER === '1';
 const twoSourceEffect = process.env.PACKED_TWO_SOURCE_EFFECT === '1';
 const composedText = process.env.PACKED_COMPOSED_TEXT === '1';
@@ -644,13 +647,16 @@ try {
     const variant = process.argv[3];
     const generation = JSON.parse(readFileSync('effect-publication.json', 'utf8'));
     const mapping = generation.mappings.find(entry => entry.write.resource === 'Test_Record__c');
-    const document = compositionText(mapping.mapping_ref, variant);
-    const execution = await client.aql(document, {format: 'aql-text',
+    const document = graphFamily
+      ? JSON.stringify(graphCompositionRefusalProgram(mapping.mapping_ref, variant))
+      : compositionText(mapping.mapping_ref, variant);
+    const format = graphFamily ? 'json' : 'aql-text';
+    const execution = await client.aql(document, {format,
       requestId: 'assertion-' + variant});
     const state = await execution.wait();
     assert.equal(state.status, 'failed', 'assertion failure precedes INFER and Effect');
     assert.deepEqual((await client.checkpoints()).items, []);
-    console.log(JSON.stringify({variant, state, ref: execution.ref,
+    console.log(JSON.stringify({variant, state, ref: execution.ref, submittedFormat: format,
       submittedProgramSha256: createHash('sha256').update(document).digest('hex')}));
   } else if (step === 'rce-submit' || step === 'rce-submit-pending') {
     // Read→Compute→Effect: acquire Test_Record__c, keep every record but
@@ -942,22 +948,31 @@ try {
         JSON.stringify(observation) + '\n');
       console.log('packed composition acceptance ' + JSON.stringify(observation));
     }
-    if (compositionKind === 'infer-text') {
-      for (const variant of ['duplicate', 'null']) {
+    if (compositionKind === 'infer-text' || graphFamily === 'node') {
+      // Positive execution above must pass first: a missing Result Policy is
+      // not evidence that a row assertion refused the independent bad input.
+      const variants = graphFamily ? ['duplicate-key', 'null-property'] : ['duplicate', 'null'];
+      for (const variant of variants) {
         const modelBefore = await readFile(join(root, 'model-calls.jsonl'), 'utf8');
+        const sourceBefore = graphFamily ? await readFile(join(root, 'source-calls.jsonl'), 'utf8') : undefined;
         const writeBefore = server.seen.filter(item => item.method === 'PATCH').length;
         const refusal = JSON.parse((await runChild('effect-run.mjs', {
           ...rceEnvironment,
           ACTQL_LOCAL_STATE_DIR: join(root, 'assertion-' + variant + '-' + transport),
-          PACKED_COMPOSITION_PROFILES: 'composition-' + variant + '-profiles.json',
-          PACKED_COMPOSITION_DATABASES: 'composition-' + variant + '-databases.json',
+          ...(graphFamily ? {} : {
+            PACKED_COMPOSITION_PROFILES: 'composition-' + variant + '-profiles.json',
+            PACKED_COMPOSITION_DATABASES: 'composition-' + variant + '-databases.json',
+          }),
         }, ['assertion-refusal', variant])).trim());
         assert.equal(refusal.state.status, 'failed');
         assert.equal(await readFile(join(root, 'model-calls.jsonl'), 'utf8'), modelBefore,
           'bad assertion rows must be rejected before any Model call');
         assert.equal(server.seen.filter(item => item.method === 'PATCH').length, writeBefore);
+        if (graphFamily) assert.equal(await readFile(join(root, 'source-calls.jsonl'), 'utf8'),
+          sourceBefore, 'source-free assertion failure must not acquire an installed Source');
         const observation = {sourceRevision, transport, ...refusal,
-          modelCalls: 0, writes: 0, checkpoints: 0};
+          modelCalls: 0, writes: 0, checkpoints: 0,
+          ...(graphFamily ? {sourceReadSessions: 0, case: compositionKind} : {})};
         await appendFile(join(root, 'composition-assertion-refusals.jsonl'),
           JSON.stringify(observation) + '\n');
         console.log('packed composition assertion refusal ' + JSON.stringify(observation));

@@ -7,6 +7,9 @@ import {readFileSync} from 'node:fs';
 const fixture = name => JSON.parse(readFileSync(new URL(name, import.meta.url), 'utf8'));
 const templates = Object.fromEntries(['node','edge'].map(family => [family,
   fixture(`./graph-${family}-infer-effect.program.template.json`)]));
+const refusalTemplates = Object.fromEntries(['duplicate-key','null-property']
+  .map(variant => [variant,
+    fixture(`./graph-node-infer-effect-${variant}.program.template.json`)]));
 const normalize = value => Array.isArray(value) ? value.map(normalize)
   : value && typeof value === 'object' ? Object.fromEntries(Object.keys(value)
     .sort().map(key => [key, normalize(value[key])])) : value;
@@ -56,12 +59,20 @@ export function graphCompositionExpectations(family) {
 }
 export function graphCompositionProgram(mappingRef, family) {
   assert.ok(['node','edge'].includes(family));
+  return bindMapping(templates[family], mappingRef);
+}
+function bindMapping(template, mappingRef) {
   assert.equal(typeof mappingRef,'string');
   assert.ok(mappingRef.length > 0);
-  const document = structuredClone(templates[family]);
+  const document = structuredClone(template);
   const update = document.stages[2].effects.save.update;
   assert.equal(update.mapping,'__PUBLICATION_MAPPING_REF__');
   update.mapping = mappingRef;
   return document;
 }
+export function graphCompositionRefusalProgram(mappingRef, variant) {
+  assert.ok(Object.hasOwn(refusalTemplates, variant));
+  return bindMapping(refusalTemplates[variant], mappingRef);
+}
 export const graphCompositionTemplates = templates;
+export const graphCompositionRefusalTemplates = refusalTemplates;

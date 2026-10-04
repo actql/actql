@@ -148,6 +148,55 @@ These focused checks do not constitute fresh packed Graph acceptance or repair
 the Result Policy/active-holding observation dependencies. No local full Core,
 packed or performance campaign was added.
 
+The newer automatic run
+[37174699329](https://github.com/actql/actql/actions/runs/37174699329) completed
+for submitted `f90ba1b2f3f875becc2e58fe0cc24d30f88b2957`, tested merge
+`ffd38b33156c8772adb920a38153a860a78e84a4` against main
+`3a7be90e681326fef04cf2c28fe11dbfee729e2b`. Its packed Graph case stops at
+the same first public state assertion: `needs_reconciliation`, expected
+`waiting_checkpoint`, external `effect-run.mjs:243`. Only that packed job and
+its downstream `client`/`check` aggregates failed. The log does not expose a
+typed cause; the earlier diagnostic-only `MissingDependency` reproduction
+remains separate evidence. Graph approval and restart are still incomplete.
+
+The independent two-Source JSON/text comparison's current automatic run
+[37174701220](https://github.com/actql/actql/actions/runs/37174701220) passed all
+required checks for `f4d92d89dc9e55caeb6cc5f0c94fae98efcb91c8`. The producer
+and packed consumer tested merge `f8babc08f177595c92d9e15450d9eda42cfe84e3`
+against the same `3a7be90` main. Its new packed log confirms all 12 normal
+Local/HTTPS cases, including four Native/Broad text cases, retained restoration,
+second-input failure, cancellation and cleanup retry. The
+[public-query artifact](https://github.com/actql/actql/actions/runs/37174701220/artifacts/11293870226)
+records a clean source, complete/passed status and all 40 commands with expected
+verification status. This is distinct from old-SHA successes and does not close
+the formal active-temporary-hold inventory gap.
+
+### Prepared Graph assertion counterexamples
+
+Two complete, independently authored node-row JSON Programs extend the existing
+assertion phase, without adding a job or a separate execution path:
+
+- `graph-node-infer-effect-duplicate-key.program.template.json` constructs
+  distinct Graph keys `['a',1]` and `['b',1]`, then projects scalar INFER keys
+  `[1,1]`. Graph identity uniqueness does not establish uniqueness of that
+  projection. The existing explicit `assert_rows.unique_by: ['id']` must fail
+  before Model execution; no row is implicitly removed.
+- `graph-node-infer-effect-null-property.program.template.json` preserves the
+  positive Graph, non-NULL Graph/Model keys and guaranteed nullable `note`
+  column. An additional explicit `unique_by: ['note']` precedes the existing
+  id assertion/INFER and must refuse its NULL. This tests a nullable-property
+  assertion, not a NULL Graph identity or a NULL Model key.
+
+The consumer binds only the actual installation's MappingRef. Each negative
+case requires failed execution, no checkpoints, zero Model calls, zero Source
+acquisition and zero writes. Positive full composition must complete first so
+that missing Result Policy cannot count as assertion acceptance. The existing
+normal node case runs these two refusals on Local/HTTPS; the edge case and
+recovery/failure matrix are not multiplied. Both public refusals remain unverified
+until A's Policy connection permits the positive composition. Focused authored
+fixture checks pass 8/8 (`run-uXQ3Za`); the outer harness and its generated
+external driver pass syntax checks. This does not establish runtime refusal.
+
 ## Historical implemented versus execution evidence
 
 | Surface or boundary | Implemented checkpoint | Acceptance still required |
