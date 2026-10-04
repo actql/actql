@@ -109,3 +109,69 @@ test "graph row role property key collisions reject instead of overwrite" {
     is Err({ kind: OutputCollision(_), .. }),
   )
 }
+
+///|
+test "definition row selection derives presence from declarations not data" {
+  let graph = @carrier.property_graph(
+    "sha256:" + "0".repeat(64),
+    [
+      graph_row_definition("Person", "person_key", "p"),
+      graph_row_definition("Company", "company_key", "q", label="Company"),
+    ],
+    [],
+    max_definitions=2,
+    max_contract_work=1000,
+  ).unwrap()
+  let checked = check(
+    NodeRows,
+    cursor("{\"definition\":\"pErSoN\"}"),
+    graph,
+    limits(),
+  ).unwrap()
+  let schema = @carrier.complete_schema(
+    @carrier.relation_rows(output(checked)).unwrap(),
+  ).unwrap()
+  assert_eq(selected_definition(checked), Some("Person"))
+  assert_eq(@row.field_count(schema), 4)
+  assert_eq(@row.lookup_reference(schema, "p").unwrap().presence, @row.Required)
+  assert_true(@row.lookup(schema, @row.Unqualified("p")).unwrap().nullable)
+  assert_eq(
+    @row.lookup_reference(schema, "person_key").unwrap().presence,
+    @row.Required,
+  )
+  assert_true(@row.lookup_reference(schema, "q") is None)
+  assert_true(@row.lookup_reference(schema, "company_key") is None)
+  for
+    body in [
+      "{\"definition\":\"Unknown\"}", "{\"definition\":\"Person\",\"label\":\"Person\"}",
+      "{}", "false",
+    ] {
+    assert_true(check(NodeRows, cursor(body), graph, limits()) is Err(_))
+  }
+  assert_true(
+    check(EdgeRows, cursor("{\"definition\":\"Person\"}"), graph, limits())
+    is Err(_),
+  )
+  let all = check(NodeRows, cursor("true"), graph, limits()).unwrap()
+  let all_schema = @carrier.complete_schema(
+    @carrier.relation_rows(output(all)).unwrap(),
+  ).unwrap()
+  assert_eq(
+    @row.lookup_reference(all_schema, "p").unwrap().presence,
+    @row.Conditional,
+  )
+  assert_true(
+    check(NodeRows, cursor("{\"definition\":\"Person\"}"), graph, {
+      ..limits(),
+      max_nodes: 3,
+    })
+    is Err({ kind: BudgetExceeded, .. }),
+  )
+  assert_true(
+    check(NodeRows, cursor("{\"definition\":\"Person\"}"), graph, {
+      ..limits(),
+      max_work: 2,
+    })
+    is Err({ kind: BudgetExceeded, .. }),
+  )
+}

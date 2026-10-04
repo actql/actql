@@ -40,6 +40,14 @@ Task-wide cumulative work, remaining formal variants, and final-source CI
 are not yet current-profile completion evidence; the old tuple diagnostics
 records below remain historical.
 
+The retained Node Host now also exercises combined node, edge and degree
+threshold violations, zero thresholds on an empty Graph, and `degree` in all
+three directions plus empty output. Each case reads the producer and both
+consumer Named Results from the real Store against fixed rows. The asymmetric
+three-node fixture makes incoming degree and report order observable. The
+single affected Host test passes, but this does not establish task-wide
+cumulative work or every typed-edge definition variant.
+
 The current retained-Store traversal route is exercised for WALK, TRAIL, and
 ACYCLIC `emit: paths` followed by a Relation filter in the same Stage. The
 standard Node Host test reads the producer and two consumer Named Results from

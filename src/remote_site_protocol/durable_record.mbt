@@ -223,10 +223,22 @@ pub fn dispatch_admission_durable_json(
 ) -> Result[String, DispatchIssue] {
   emit_durable_dispatch_record(
     admission.request,
+    if admission.cancel_before_start {
+      1
+    } else {
+      0
+    },
+    if admission.cancel_before_start {
+      execution_state_code(ExecutionCancelled)
+    } else {
+      0
+    },
     0,
-    0,
-    0,
-    0,
+    if admission.cancel_before_start {
+      cleanup_state_code(CleanupReleased)
+    } else {
+      0
+    },
     false,
     false,
     "",

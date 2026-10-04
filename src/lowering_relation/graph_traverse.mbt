@@ -395,7 +395,14 @@ fn emit_graph_traverse_node(
     @encode.number_value(out, maximum)
   }
   @encode.key(out, "emit")
-  @encode.string_value(out, "paths")
+  @encode.string_value(
+    out,
+    if graph_traverse_emits_paths(prepared) {
+      "paths"
+    } else {
+      "nodes"
+    },
+  )
   if prepared.output_guard is Some(value) {
     @encode.key(out, "max_output_rows")
     @encode.number_value(out, value.to_double())

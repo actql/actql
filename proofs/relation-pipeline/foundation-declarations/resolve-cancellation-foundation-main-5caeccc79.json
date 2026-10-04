@@ -1,0 +1,61 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-cancellation-foundation-main-5caeccc79",
+  "kind": "resolution",
+  "revision": "5f2539d48932dd4d1b26c641de4a2641dd120f10",
+  "parents": [
+    "31d14a53d1b713fa28615c17ba9cf43439b13297",
+    "5caeccc79dacc758afa5d87c2cee6be024e32565"
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-3877b637406b",
+    "adopt-63b114ad524b",
+    "adopt-678626b010b4",
+    "adopt-7427f7f09276",
+    "adopt-9a7c592a8ed9",
+    "adopt-b480cffb6e6d",
+    "adopt-bf2d058c21c1",
+    "adopt-f24288853c19",
+    "adopt-sga-query-contract",
+    "ci-mandatory-preflight",
+    "frontend-sga-main-integration",
+    "frontend-unified-graph-source-integration",
+    "main-pr233-package-resolution",
+    "packed-composed-infer-effect-acceptance",
+    "pr164-main-a32-verification-resolution",
+    "pr164-main4f-runtime-check-resolution",
+    "pr164-property-graph-source",
+    "public-text-computation-bridge-ci",
+    "remove-duplicate-runtime-package-checks",
+    "resident-cancellation-issuer-registration",
+    "resident-source-native-registration",
+    "resolve-composition-custody-main-maximal-bases",
+    "resolve-composition-frontend-latest-main",
+    "resolve-composition-infer-main-maximal-bases",
+    "resolve-composition-resident-source-main",
+    "resolve-composition-reviewed-supplements-main",
+    "resolve-resident-source-latest-main",
+    "sdk-cancel-response-loss-registration"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "31d14a53d1b713fa28615c17ba9cf43439b13297",
+          "digest": "b95c11ddb4883617c1e95d78449a4f0c4e6b6d879e60845045020d1f512d7ff4",
+          "mode": "100644"
+        },
+        {
+          "revision": "5caeccc79dacc758afa5d87c2cee6be024e32565",
+          "digest": "77a4596be8d5412aced51cb97408d63d53839da6e7679725109d922c9623dcf8",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "6b86f29a66da78ef94db188f81770e8b442ffcff27714c6c785cca9d3473568e",
+      "afterMode": "100644",
+      "reason": "Normally merge main into the cancellation foundation, retaining the public Cancel issuer test and main verification registrations. Preserve all original declarations and supplements; no validator, workflow or acceptance relaxation."
+    }
+  ]
+}

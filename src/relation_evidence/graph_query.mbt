@@ -43,7 +43,11 @@ pub fn graph_query_keys(
           }
         // Path rows have no scalar identity key. A start/end pair is not
         // unique across independently keyed parallel edges.
-        TraverseOperation(_) => ()
+        TraverseOperation(op) =>
+          if @graph.traverse_emission(op) == @graph.TraversedNodes {
+            names.push(Unqualified("start_id"))
+            names.push(Unqualified("node_id"))
+          }
       }
     }
     let fields : Array[KeyField] = []

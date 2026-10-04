@@ -81,7 +81,11 @@ test('graph bodies preserve literal options and optional positive component guar
 test('keyed schemas are explicit closed alternatives and preserve complete legacy branches', () => {
   const legacy = legacyGraphSchemas(), current = graphSchemas();
   for (const name of Object.keys(legacy)) {
-    if (['match_nodes','match_edges','traverse'].includes(name)) {
+    if (['node_rows','edge_rows'].includes(name)) {
+      assert.deepEqual(current[name].oneOf[0], legacy[name]);
+      assert.deepEqual(current[name].oneOf[1], {type:'object',additionalProperties:false,
+        required:['definition'],properties:{definition:{type:'string',minLength:1}}});
+    } else if (['match_nodes','match_edges','traverse'].includes(name)) {
       assert.equal(current[name].oneOf.length, 2);
       assert.deepEqual(current[name].oneOf[0], legacy[name]);
       const keyed = current[name].oneOf[1];
@@ -111,10 +115,15 @@ test('keyed schemas are explicit closed alternatives and preserve complete legac
     assert.equal(c.properties.edges.items.properties[role].additionalProperties, false);
     assert.deepEqual(c.properties.edges.items.properties[role].required, ['definition','key']);
   }
-  const paths = current.traverse.oneOf[1];
-  assert.deepEqual(paths.properties.path_mode.enum, ['walk','trail','acyclic']);
-  assert.deepEqual(paths.properties.emit, {const:'paths'});
-  assert.deepEqual(paths.oneOf, legacy.traverse.oneOf);
+  const traversal = current.traverse.oneOf[1];
+  assert.deepEqual(traversal.properties.path_mode.enum, ['walk','trail','acyclic']);
+  assert.deepEqual(traversal.properties.emit, {enum:['nodes','paths']});
+  for (const filter of ['edge_where','node_where']) {
+    assert.deepEqual(traversal.properties[filter],
+      legacy.traverse.properties.hops.items.properties[filter]);
+    assert.ok(traversal.oneOf[0].not.anyOf.some(term=>term.required[0]===filter));
+  }
+  assert.deepEqual(traversal.oneOf[1], legacy.traverse.oneOf[1]);
 });
 
 test('embedded graph schemas and pins reject drift', () => {

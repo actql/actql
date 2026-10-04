@@ -988,29 +988,56 @@ fn recover_stopped_release(
     Err(_) => return false
   }
   let codes = @remote.dispatch_record_state_codes(record)
-  // Do not infer execution success or cancellation from process death.
-  if codes[0] != 3 ||
+  let cancelled = match owner.journal.cancellation_requested(request) {
+    Ok(value) => value
+    Err(_) => return false
+  }
+  // The saved cancellation selects disposition, never process death alone.
+  // Physical stop is independently established by this owner's exclusive slot.
+  if (
+      codes[0] != 3 &&
+      !(cancelled &&
+      (
+        codes[0] == 1 ||
+        codes[0] == 2 ||
+        codes[0] == 4 ||
+        codes[0] == 5 ||
+        codes[0] == 6
+      ))
+    ) ||
     (codes[2] != 0 && codes[2] != 1 && codes[2] != 2 && codes[2] != 3) {
     return false
   }
   let claimant = match owner.journal.start_claimant(request) {
-    Ok(Some(value)) => value
-    _ => return false
+    Ok(value) => value
+    Err(_) => return false
+  }
+  // Without a saved claim no process holding may be guessed or deleted.
+  // Only a cancelled pre-start record may reconcile absence; all bundle
+  // holdings must then be independently absent after the exact dispatch hold.
+  if claimant is None && !(cancelled && codes[0] == 5) {
+    return false
   }
   match owner.journal.pending_output_intents() {
     Ok(values) if values.is_empty() => ()
     _ => return false
   }
   if !owner.bundle_closed {
-    for
-      hold in [
-        "dispatch:" + identity,
-        "runtime-process:resident-holder:" + claimant,
-      ] {
+    let holds = ["dispatch:" + identity]
+    if claimant is Some(value) {
+      holds.push("runtime-process:resident-holder:" + value)
+    }
+    for hold in holds {
       match owner.bundles.release(hold) {
         Ok(_) => () // Absence of this exact holding is idempotent.
         Err(_) => return false
       }
+    }
+  }
+  if claimant is None && !owner.bundle_closed {
+    match owner.bundles.list() {
+      Ok(values) if values.all(value => value.state[2] == "0") => ()
+      _ => return false
     }
   }
   if !close_recovery_bundle(owner, close_failures) {
@@ -1020,6 +1047,14 @@ fn recover_stopped_release(
   // are gone. The caller confirmed Store-owned orphan cleanup; exact
   // persistent runtime holdings have now also been discharged.
   let custody = @remote.create_remote_runtime_custody()
+  if cancelled {
+    if !@remote.remote_runtime_custody_record_failure(
+        custody, true, true, false,
+      ) ||
+      !@remote.remote_runtime_custody_confirm_stop(custody) {
+      return false
+    }
+  }
   for step_index = 0; step_index < 4; step_index = step_index + 1 {
     let step = match
       @remote.prepare_owned_remote_runtime_cleanup(record, custody) {
@@ -1037,7 +1072,9 @@ fn recover_stopped_release(
         retained.val = None
         return true
       }
-      1 => {
+      1 | 2 => {
+        // SettleThenPersist is valid here only because the exact physical
+        // stop and reclamation were already confirmed before owner progression.
         let transition = match @remote.remote_runtime_step_transition(step) {
           Ok(value) => value
           Err(_) => return false
@@ -1210,6 +1247,77 @@ fn replay_output_reports(
 }
 
 ///|
+/// One existing journal record per control pass. Cancellation intent is
+/// resumed after a lost reply or control-process restart, without a new queue
+/// or execution attempt. The current physical recovery owner keeps the slot
+/// while any bundle/store close or durable transition is still pending.
+fn reconcile_saved_cancellation(
+  matches : @argparse.Matches,
+  environment : ControlEnvironment,
+  client : @http.Client,
+  url : String,
+  cursor : Ref[String],
+  next : Map[String, UInt64],
+  backoff_ms : Int,
+  delegation : @resident.ResidentSiteDelegation,
+  recovery : Ref[StoppedReleaseRecovery?],
+  close_failures : Ref[Int],
+) -> Unit raise CommandStop {
+  guard fresh_journal(environment) is Some(journal) else { return }
+  let recovered = journal.recover_after(cursor.val)
+  match recovered {
+    Ok(Some((key, record))) => {
+      cursor.val = key
+      let request = @remote.dispatch_record_request(record)
+      let pending = journal.cancellation_requested(request)
+      let already_released = @remote.remote_runtime_record_released(record)
+      ignore(journal.close())
+      guard pending is Ok(true) else { return }
+      let identity = @remote.dispatch_request_identity(request)
+      if @resident.check_resident_dispatch_delegation(
+          delegation,
+          request,
+          environment.site_generation,
+        )
+        is Err(_) {
+        report("cancel-recovery-pending", [
+          ("request_cid", identity),
+          ("reason", "scope-mismatch"),
+        ])
+        return
+      }
+      if next.get(identity) is Some(deadline) && @env.now() < deadline {
+        return
+      }
+      next.set(identity, @env.now() + backoff_ms.to_uint64())
+      if !already_released &&
+        !recover_stopped_release(matches, request, recovery, close_failures) {
+        report("cancel-cleanup-pending", [("request_cid", identity)])
+        return
+      }
+      guard fresh_journal(environment) is Some(current) else { return }
+      match @client.acknowledge_status(current, client, url, request) {
+        Ok(_) => report("cancel-reconciled", [("request_cid", identity)])
+        Err(issue) =>
+          report("cancel-unreported", [
+            ("request_cid", identity),
+            ("reason", client_code(issue)),
+          ])
+      }
+      ignore(current.close())
+    }
+    Ok(None) => {
+      cursor.val = ""
+      ignore(journal.close())
+    }
+    Err(_) => {
+      ignore(journal.close())
+      report("cancel-recovery-pending", [("reason", "journal-read")])
+    }
+  }
+}
+
+///|
 fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
   if !@slot.install_native_termination_request() {
     stop("termination handling could not be installed")
@@ -1268,6 +1376,8 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
   let reclaim_failures : Ref[Int] = {
     val: required_int(matches, "control-reclaim-failures"),
   }
+  let cancel_cursor : Ref[String] = { val: "", }
+  let next_cancel_report : Map[String, UInt64] = Map([])
   let mut polls = 0
   let mut holders = 0
   let next_output_report : Map[String, UInt64] = Map([])
@@ -1364,9 +1474,21 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
         }
       }
     }
+    if holder is None &&
+      orphan_store is None &&
+      !reclaim_due &&
+      !orphan_reconciliation {
+      reconcile_saved_cancellation(
+        matches, environment, client, observation_url, cancel_cursor, next_cancel_report,
+        max_backoff_ms, site_delegation, recovery, recovery_close_failures,
+      )
+    }
     // No holder starts while this process still has the slot for a Store
     // it could not close yet.
-    if holder is None && orphan_store is None && @env.now() >= next_start_ms {
+    if holder is None &&
+      orphan_store is None &&
+      recovery.val is None &&
+      @env.now() >= next_start_ms {
       if !slot.is_open() {
         slot = match @slot.open_native_executor_slot(slot_path) {
           Ok(value) => value
@@ -1472,6 +1594,69 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
           Ok(AlreadyStarted(attempt)) =>
             report("already-started", [("attempt", attempt)])
           Err(issue) => report("accept-failed", [("reason", host_code(issue))])
+        }
+      }
+      Ok(Some(@remote.Cancel(request))) => {
+        backoff_ms = 0
+        let identity = @remote.dispatch_request_identity(request)
+        match
+          @resident.check_resident_dispatch_delegation(
+            site_delegation, request, generation,
+          ) {
+          Err(refusal) =>
+            report("cancel-refused", [("reason", refusal_code(refusal))])
+          Ok(_) =>
+            match journal.request_cancellation(request) {
+              Err(_) =>
+                report("cancel-pending", [
+                  ("reason", "journal"),
+                  ("request_cid", identity),
+                ])
+              Ok(record) => {
+                if required(matches, "control-cancel-kill-at") == "after-save" {
+                  report("control-cancel-killed", [("request_cid", identity)])
+                  @slot.native_kill_self()
+                }
+                match @remote.dispatch_request_attempt_identity(request) {
+                  Ok(attempt) => ignore(queue.remove(attempt))
+                  Err(_) => ()
+                }
+                let codes = @remote.dispatch_record_state_codes(record)
+                if holder is Some(current) &&
+                  @remote.dispatch_request_identity(current.request) == identity {
+                  if codes[0] == 1 || codes[0] == 2 {
+                    // Sending SIGTERM is not stop evidence. The existing slot
+                    // and physical cleanup recovery establish that later.
+                    report("cancel-stop-requested", [
+                      ("request_cid", identity),
+                      ("sent", current.child.terminate().to_string()),
+                    ])
+                  } else if codes[0] == 3 {
+                    // Preserve completed execution and its evidence; release
+                    // the exact retained output through its live owner.
+                    report("cancel-release-relayed", [
+                      ("request_cid", identity),
+                      ("sent", current.channel.send("release").to_string()),
+                    ])
+                  }
+                }
+                // Accepted cancellation stays nonstartable. A holder that is
+                // already setting up will lose its claim and close its owners.
+                // Absent cancellation already has a formal no-resource record.
+                match
+                  @client.acknowledge_status(
+                    journal, client, observation_url, request,
+                  ) {
+                  Ok(_) =>
+                    report("cancel-observed", [("request_cid", identity)])
+                  Err(issue) =>
+                    report("cancel-unreported", [
+                      ("request_cid", identity),
+                      ("reason", client_code(issue)),
+                    ])
+                }
+              }
+            }
         }
       }
       Ok(Some(@remote.Query(request))) => {
@@ -2557,6 +2742,7 @@ fn command() -> @argparse.Command {
       defaulted("holder-result-report-failures", "0"),
       defaulted("holder-kill-at", "none"),
       defaulted("control-report-kill-at", "none"),
+      defaulted("control-cancel-kill-at", "none"),
       defaulted("holder-pause-at", "none"),
       defaulted("control-reclaim-failures", "0"),
       defaulted("control-envelope-read-failures", "0"),

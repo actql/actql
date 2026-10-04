@@ -58,6 +58,8 @@ export function pollDispatchMaterialsJson(request: DispatchRequest,
 export function pollQueryJson(request: DispatchRequest): string;
 /** Release request for the exact retained dispatch output; never executes. */
 export function pollReleaseJson(request: DispatchRequest): string;
+/** Exact cancellation request; persistence is not physical-stop evidence. */
+export function pollCancelJson(request: DispatchRequest): string;
 /** Admits a Site's not-seen answer for exactly this request; throws otherwise. */
 export function admitPollNotSeen(body: string, request: DispatchRequest): true;
 /** Admit exact canonical poll delivery bytes. Site/Run owners separately

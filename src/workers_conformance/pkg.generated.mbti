@@ -888,6 +888,8 @@ pub fn async_strategy_remote_output_result_prepare(@remote_site_protocol.RemoteP
 
 pub fn async_strategy_remote_output_result_projection(@remote_site_protocol.RemoteOutputResult, @remote_transfer.RemoteTransferRequest) -> Array[String] raise AsyncHostFailure
 
+pub fn async_strategy_remote_poll_cancel_json(@remote_site_protocol.DispatchRequest) -> String raise AsyncHostFailure
+
 pub fn async_strategy_remote_poll_dispatch_admit(String) -> @remote_site_protocol.RemotePollDispatch raise AsyncHostFailure
 
 pub fn async_strategy_remote_poll_dispatch_binding_body(@remote_site_protocol.RemotePollDispatch) -> String
@@ -2193,6 +2195,8 @@ pub fn strategy_remote_output_result_json(@remote_site_protocol.RemoteOutputResu
 pub fn strategy_remote_output_result_prepare(@remote_site_protocol.RemotePollOutput, @publication_payload.PublicationPayloadRequest, String, @remote_transfer.RemoteTransferRecord) -> @remote_site_protocol.RemoteOutputResult raise NodeHostFailure
 
 pub fn strategy_remote_output_result_projection(@remote_site_protocol.RemoteOutputResult, @remote_transfer.RemoteTransferRequest) -> Array[String] raise NodeHostFailure
+
+pub fn strategy_remote_poll_cancel_json(@remote_site_protocol.DispatchRequest) -> String raise NodeHostFailure
 
 pub fn strategy_remote_poll_dispatch_admit(String) -> @remote_site_protocol.RemotePollDispatch raise NodeHostFailure
 

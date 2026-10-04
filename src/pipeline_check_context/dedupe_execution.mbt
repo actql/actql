@@ -183,6 +183,7 @@ pub fn operation_execution_phase(
         | FilterAuthoredLabels
         | EnumeratePropertyPaths
         | DeduplicatePathIdentities
+        | SelectMinimumEligibleNodeDepth
         | OrderTraversalRows => BeforeOperationOutput
       }
     PropertyGraphConstructionExecution(v) =>
