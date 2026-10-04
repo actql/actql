@@ -8,6 +8,7 @@ priv enum CheckFinding {
   // A disclosable proven violation of the caller's own input.
   Violation(String)
   SyntaxViolation(Int, Int)
+  QueryViolation(Int, Int)
   TypeViolation(String, String, String, String?)
   SuppliedViolation(String?)
   ConstraintViolation(String, String, String?)
@@ -257,8 +258,9 @@ fn check_source_findings(
           | UnknownColumn
           | AmbiguousColumn
           | DuplicateOutput
-          | Expression(_)
         ) => findings.push(Violation("query_invalid"))
+        QueryLowering(Expression(_)) =>
+          findings.push(check_query_finding(issue))
         // Host query context, not the caller's input.
         QueryLowering(InvalidContext) => return Failed("check_context_invalid")
         // A construction budget of this check: undetermined, never invalid.
@@ -293,6 +295,7 @@ fn check_source_findings(
       finding
       is (Violation(_)
       | SyntaxViolation(_, _)
+      | QueryViolation(_, _)
       | TypeViolation(_, _, _, _)
       | SuppliedViolation(_)
       | ConstraintViolation(_, _, _)
@@ -439,6 +442,7 @@ fn check_verdict(findings : Array[CheckFinding]) -> String {
       finding
       is (Violation(_)
       | SyntaxViolation(_, _)
+      | QueryViolation(_, _)
       | TypeViolation(_, _, _, _)
       | SuppliedViolation(_)
       | ConstraintViolation(_, _, _)
@@ -480,6 +484,7 @@ fn write_check_report(
     match finding {
       Violation(code) => Some(code)
       SyntaxViolation(_, _) => Some("query_syntax_invalid")
+      QueryViolation(_, _) => Some("query_invalid")
       TypeViolation(_, _, _, _) => Some("supplied_value_type_mismatch")
       SuppliedViolation(_) => Some("supplied_value_invalid")
       ConstraintViolation(_, _, _) =>
@@ -648,6 +653,19 @@ fn write_check_report(
         }
       }
     }
+    if code == "query_invalid" {
+      for finding in findings {
+        if finding is QueryViolation(start, end) {
+          write_check_text_location(
+            writer,
+            documents.source_revision,
+            start,
+            end,
+          )
+          break
+        }
+      }
+    }
     @encode.end_object(writer)
   }
   @encode.end_array(writer)
@@ -760,6 +778,20 @@ fn check_syntax_finding(diagnostic : @query_syntax.Diagnostic) -> CheckFinding {
   match diagnostic.span {
     Some(span) => SyntaxViolation(span.start_byte, span.end_byte)
     None => Violation("query_syntax_invalid")
+  }
+}
+
+///|
+/// Project only the existing lowerer's owned authored origin. Unresolved Source
+/// names and lowerer failures lacking provenance cannot acquire a location.
+fn check_query_finding(issue : @source_frontend.Issue) -> CheckFinding {
+  match @source_frontend.unknown_column_origin(issue) {
+    Some(origin) =>
+      QueryViolation(
+        @source_origin.start(origin).byte_offset,
+        @source_origin.end(origin).byte_offset,
+      )
+    None => Violation("query_invalid")
   }
 }
 

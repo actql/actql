@@ -16,11 +16,14 @@ pub struct ClientCompiledRun {
   prepared : @publication.RunEvidenceValue
   authorization : @publication.RunEvidenceValue
   admission : @publication.RunPublicationAdmission
+  source_free_result_policy : @publication.CapturedEffectDependencyBody?
 }
 
 ///|
 pub(all) enum ClientCompiledRunIssue {
   ForeignOwner
+  MissingResultPolicy
+  InvalidResultPolicy
   Policy(ClientAllowedRunEvidenceIssue)
   Admission(@publication.RunPublicationAdmissionIssue)
   Contract(@publication.PublicationContractIssue)
@@ -68,17 +71,27 @@ pub fn client_compiled_run_matches_effect(
 
 ///|
 /// Model egress and the enclosing Run's Result policy are different owners.
-/// Pure INFER retains its existing policy; an Effect Run keeps the checked
-/// publication policy of its original Source closure.
+/// Source-backed Results retain their checked policy; source-free Effect
+/// Results use the Host's explicit unknown-provenance policy original.
 pub fn client_compiled_run_infer_observation_policy(
   value : ClientCompiledRun,
 ) -> String? {
   guard client_compiled_run_infer(value) is Some(plan) else { return None }
   match value.compilation {
     Effects(allowed) =>
-      prepared_client_effect_publication_data_policy_cid(
-        allowed.compilation.owner,
-      )
+      if @strategy.graph_source_free_inputs_complete(
+          @strategy.checked_effect_computation_graph(
+            allowed.compilation.owner.graph,
+          ),
+        ) {
+        value.source_free_result_policy.map(
+          @publication.captured_effect_dependency_body_cid,
+        )
+      } else {
+        prepared_client_effect_publication_data_policy_cid(
+          allowed.compilation.owner,
+        )
+      }
     Tasks(_) =>
       Some(
         @environment.model_task_data_handling_cid(
@@ -87,6 +100,15 @@ pub fn client_compiled_run_infer_observation_policy(
       )
     Values(_) => None
   }
+}
+
+///|
+/// The exact original admitted by the common Host owner. Its CID alone is not
+/// sufficient for saved Effect dependency admission or restart.
+pub fn client_compiled_run_source_free_result_policy_body(
+  value : ClientCompiledRun,
+) -> @publication.CapturedEffectDependencyBody? {
+  value.source_free_result_policy
 }
 
 ///|
@@ -182,7 +204,16 @@ fn issue_client_compiled_run(
     Ok(value) => value
     Err(issue) => return Err(Admission(issue))
   }
-  Ok({ owner, compilation, template, plan, prepared, authorization, admission, })
+  Ok({
+    owner,
+    compilation,
+    template,
+    plan,
+    prepared,
+    authorization,
+    admission,
+    source_free_result_policy: None,
+  })
 }
 
 ///|
