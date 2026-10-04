@@ -50,6 +50,37 @@ export function resolveCheckLocation(outcome, location, currentInput) {
       .decode(bytes.subarray(location.start_byte, location.end_byte))});
 }
 
+// Coordinates describe this submitted revision, never a newer editor buffer.
+export function resolveCheckTextRange(outcome, location, currentInput) {
+  const resolved = resolveCheckLocation(outcome, location, currentInput);
+  if (resolved?.kind !== 'text' || !resolved.input.text.isWellFormed()) return undefined;
+  const text = resolved.input.text;
+  let byte = 0, line = 0, character = 0, start, end;
+  for (let at = 0; ; ) {
+    if (byte === resolved.start_byte) start = Object.freeze({line, character});
+    if (byte === resolved.end_byte) {
+      end = Object.freeze({line, character});
+      break;
+    }
+    if (at === text.length) return undefined;
+    const scalar = text.codePointAt(at);
+    const units = scalar > 0xffff ? 2 : 1;
+    let width = scalar <= 0x7f ? 1 : scalar <= 0x7ff ? 2 : scalar <= 0xffff ? 3 : 4;
+    if (scalar === 13 && text[at + 1] === '\n') {
+      // There is no exact editor position between the two CRLF bytes.
+      if (resolved.start_byte === byte + 1 || resolved.end_byte === byte + 1) return undefined;
+      at++;
+      width++;
+    }
+    if (scalar === 13 || scalar === 10) { line++; character = 0; }
+    else character += units;
+    byte += width;
+    at += units;
+  }
+  return start && Object.freeze({...resolved, positionEncoding: 'utf-16',
+    range: Object.freeze({start, end})});
+}
+
 // Presentation never participates in verdicts, admission or retry decisions.
 export function explainCheckReason(reason) {
   const explanations = {

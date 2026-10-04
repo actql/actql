@@ -30,6 +30,60 @@ pub(all) enum ResidentSourceIssue {
 }
 
 ///|
+/// Prepare the acquisition requirement from the same checked Effect owner.
+/// Trusted Site identity is checked before selection or physical I/O. This
+/// grants neither Source read authority nor Effect approval; the executor must
+/// still recheck current authority/lifetime and hold its exclusive start claim.
+pub fn prepare_resident_effect_source_requirement(
+  prepared : @host.PreparedClientEffectComputation,
+  task : Int,
+  source_index : Int,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  source_ref : String,
+  source_contract_cid : String,
+) -> Result[@planning.QueryRequirement, ResidentSourceIssue] {
+  let requirement = match
+    @local.prepare_effect_local_query_requirement(
+      prepared,
+      task,
+      source_index,
+      registry_body,
+      values_body,
+      fragment_body,
+      None,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Query(issue))
+  }
+  match
+    require_resident_source_identity(
+      requirement, source_ref, source_contract_cid,
+    ) {
+    Ok(_) => Ok(requirement)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+fn require_resident_source_identity(
+  requirement : @planning.QueryRequirement,
+  source_ref : String,
+  source_contract_cid : String,
+) -> Result[Unit, ResidentSourceIssue] {
+  guard @planning.query_requirement_source_evidence_facts(requirement)
+    is Some(facts) else {
+    return Err(UnsupportedSource)
+  }
+  let values = @planning.query_source_evidence_fact_values(facts)
+  if values[0] != source_ref || values[1] != source_contract_cid {
+    return Err(ForeignInput)
+  }
+  Ok(())
+}
+
+///|
 fn install_resident_source_executor(
   materials : @host.ClientRunMaterials,
   compilation : @host.ClientTaskCompilation,
@@ -79,6 +133,15 @@ fn install_resident_source_executor(
     ) {
     Ok(value) => value
     Err(issue) => return Err(Query(issue))
+  }
+  match
+    require_resident_source_identity(
+      requirement,
+      source.source_ref,
+      source.source_contract_cid,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   let setup = match
     @local.prepare_client_duckdb_acquisition(
