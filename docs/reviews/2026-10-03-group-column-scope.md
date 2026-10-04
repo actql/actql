@@ -1,5 +1,46 @@
 # Aggregation column scope: Frontend connection
 
+## Current integrated acceptance
+
+Main `5caeccc79dacc758afa5d87c2cee6be024e32565` was normally merged, including
+A's #295 selected-fragment capacity repair and D's #273 composition connection.
+The only merge conflict was the packed consumer selector; both the existing
+scoped-order selector and this grouping selector were preserved. The grouping
+flag now also skips unrelated planner, two-source, String restart and native
+campaigns. No expected Program/row, Source predicate or 512 MiB ceiling changed.
+
+Verified clean packed source:
+`508cbeccc8826c24eb0c8efc74c0d64168c64a35`.
+`node scripts/test-packed-public-query.mjs --group-scope-only` passed all
+**8 normal cases and 4 refusals on both Embedded Local and HTTP**. The original
+key/current key cases now succeed. Computed SQL grouping alias, Pipe JOIN scope,
+typed empty input and acquired shared producer also succeed; no later CTE
+failure was observed in this selected corpus. Shared Source acquisition remains
+one session, and duplicate id=3 produces count 8. The existing harness verifies
+Named Result rows, describe column types/nullability/order, stream completion,
+same-request Run reuse and refusal before Run admission/provider I/O.
+
+The independent SQL/Pipe Program correction and the former common capacity
+refusal remain separate historical findings. #295 resolves the latter for these
+fixtures without changing their expectations. The focused JS grouping selection
+also passed 5/5 on this integrated source. Full Core/all-target/proof/performance
+and full packed suites were not rerun locally. Exact submitted-HEAD automatic CI
+remains separate; earlier failed CI is not relabelled as success.
+
+Evidence invocation `public-query-evidence-e1c6Be` completed/passed and records
+SHA, command statuses, logs and digests. Its owned installation was cleaned after
+preserving evidence (`artifactsRemoved: true`). These are current tarballs;
+previous tables below retain their historical source identities:
+
+| Package | SHA-256 |
+|---|---|
+| actql-client-wire-0.0.0-development.tgz | `5da98d3edb615f960f0511be9d6e61431cd34d02304a8bd6b6e576f7775f91a0` |
+| actql-sdk-0.0.0-development.tgz | `2fc910067348e421346945ced1e728e107bbe6fa455ee00f9d71da46e8123c5b` |
+| actql-run-host-core-0.0.0-development.tgz | `58b020ac54fab05b0ef6336111cf85f6311b243195d1862d8bf46cd62fa77daf` |
+| actql-local-node-0.0.0-development.tgz | `dee3b5f53d1192a3b737a4f6cd41d657edef9051a8fe0cc57733c8557a01edbe` |
+| actql-node-0.0.0-development.tgz | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+
 ## Baseline and dependency
 
 This repair now starts from main
@@ -77,12 +118,12 @@ the normal package producer and common Host:
 node scripts/test-packed-public-query.mjs --group-scope-only
 ```
 
-The entire eight-positive/four-refusal corpus has **not passed**. The original
+Before the #295 integration above, the entire eight-positive/four-refusal corpus had **not passed**. The original
 Local run passed the two SUM cases, then stopped at
 `group-snapshot-original-key`; HTTPS was not reached in that run. No prior
 #246 JSON composition result is used as text execution evidence.
 
-## Current-baseline evidence
+## Historical pre-capacity-fix evidence
 
 On the current baseline with the reapplied repair, the selected Group, JOIN
 ORDER and query parser tests passed 28/28 on JS before adding the two global
@@ -185,7 +226,7 @@ Run and rows. This older-package control establishes common execution of
 that expected IR only, not fresh-source Local/HTTP acceptance or CI success
 for this branch.
 
-Complete public Local/HTTP acceptance and same-source PR CI remain unfinished. FULL JOIN,
+At that historical baseline, complete public Local/HTTP acceptance and same-source PR CI were unfinished. FULL JOIN,
 wider collection/frame combinations, NEAREST's installed Host connection and
 the full language migration remain separate obligations. No full local Core,
 packed suite, proof campaign or new native runtime build was requested here.
