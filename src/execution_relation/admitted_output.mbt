@@ -66,6 +66,19 @@ pub fn append_admitted_output(
 }
 
 ///|
+/// Charge surrounding kernel control work against the same finite output
+/// budget without including it in the retained value-usage observation.
+pub fn admitted_output_charge_control_work(
+  output : AdmittedOutput,
+  units : Int,
+) -> Bool {
+  let buffer = output.buffer
+  buffer.open &&
+  !buffer.reading &&
+  charge_external_value_work(buffer.budget, units)
+}
+
+///|
 /// For retained column/chunk readers: checks capacity before reading any cell
 /// and avoids allocating a second temporary row. The callback supplies already
 /// checked immutable values; it is not an execution-success verifier.

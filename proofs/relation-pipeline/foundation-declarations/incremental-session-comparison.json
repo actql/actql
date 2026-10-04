@@ -1,0 +1,37 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "incremental-session-comparison",
+  "kind": "change",
+  "revision": "843eec6d9df1985126c00640218a04d8f4eea5bd",
+  "parents": [
+    "c35c28021531c8445c95a45ffcfcc1760d02e819"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "c35c28021531c8445c95a45ffcfcc1760d02e819",
+          "digest": "f7d317b9da185705e2449030d4ef6b2599bff2f039e18008df77b9ba04c3c827",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "6a1e8d7f2ea1518511911ef94f6828d7c6450775ad1f206987ddb8ba375ace5f",
+      "afterMode": "100644",
+      "reason": "Collect all 26 existing bounded Session actions from their normal executions without enabling skip. Preserve all chain, capacity, mutation and three-target restoration campaigns. Upload immutable receipts bound to the actual tested revision and run/attempt. Add read-only Actions permissions only to the Session producer and final check, and authenticate the actual successful producer ZIP and executed Lean plan certificate in the required check. Keep dot's pipeline partitions and current job selection unchanged."
+    },
+    {
+      "path": "proofs/bounded-session/run.mjs",
+      "before": [
+        {
+          "revision": "c35c28021531c8445c95a45ffcfcc1760d02e819",
+          "digest": "8e7f98a7a0c9674ac0ad8917c117e99c93d5cb525ba2c7ceb2a9a0f63984190c",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "aaf8d2f9f39f4a2e688fe6d60512c1486ac79238a1043357c0ffc2f841daf502",
+      "afterMode": "100644",
+      "reason": "Retain every original action, count guard, source/artifact snapshot, independent connection coverage and derived-claim validation. When explicitly requested by the comparison workflow, record the actual subprocess command, output, duration and result as immutable receipts. Normalize the executable identity to the registered node/moon command while binding the observed executable bytes separately. No reuse or reduced correspondence execution is enabled."
+    }
+  ]
+}

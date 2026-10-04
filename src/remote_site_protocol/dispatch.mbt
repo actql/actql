@@ -235,6 +235,7 @@ struct DispatchAdmission {
   journal : SiteDispatchJournal
   request : DispatchRequest
   acceptance : DispatchAcceptance
+  cancel_before_start : Bool
   mut consumed : Bool
 }
 
@@ -1517,7 +1518,13 @@ pub fn prepare_dispatch_acceptance(
   match journal.dispatches.get(key) {
     Some(record) =>
       if record.request.dispatch_request_cid == request.dispatch_request_cid {
-        Ok({ journal, request, acceptance: ExistingDispatch, consumed: false, })
+        Ok({
+          journal,
+          request,
+          acceptance: ExistingDispatch,
+          cancel_before_start: false,
+          consumed: false,
+        })
       } else {
         Err(DispatchCollision)
       }
@@ -1526,9 +1533,31 @@ pub fn prepare_dispatch_acceptance(
       if journal.attempts.contains(occurrence) {
         return Err(AttemptAlreadyDispatched)
       }
-      Ok({ journal, request, acceptance: NewDispatch, consumed: false, })
+      Ok({
+        journal,
+        request,
+        acceptance: NewDispatch,
+        cancel_before_start: false,
+        consumed: false,
+      })
     }
   }
+}
+
+///|
+/// Prepare a cancellation of an exact attempt that has never been admitted.
+/// The physical journal must decide absence and install this body in the same
+/// transaction as its start-claim exclusion. Existing records are unchanged;
+/// their stop and cleanup obligations must be handled by their current owner.
+pub fn prepare_dispatch_cancellation(
+  journal : SiteDispatchJournal,
+  request : DispatchRequest,
+) -> Result[DispatchAdmission, DispatchIssue] {
+  let admission = match prepare_dispatch_acceptance(journal, request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok({ ..admission, cancel_before_start: true, })
 }
 
 ///|
@@ -1566,10 +1595,22 @@ pub fn commit_dispatch_acceptance(
       }
       let record = {
         request,
-        revision: 0,
-        execution: Accepted,
+        revision: if admission.cancel_before_start {
+          1
+        } else {
+          0
+        },
+        execution: if admission.cancel_before_start {
+          ExecutionCancelled
+        } else {
+          Accepted
+        },
         evidence: NoEvidence,
-        cleanup: CleanupActive,
+        cleanup: if admission.cancel_before_start {
+          CleanupReleased
+        } else {
+          CleanupActive
+        },
         material_available: false,
         quarantined_capacity: false,
       }
@@ -2573,4 +2614,10 @@ pub fn dispatch_request_journal_key(request : DispatchRequest) -> Array[String] 
     request.task_key,
     request.task_attempt.to_string(),
   ]
+}
+
+///|
+/// The original typed request, without issuing another attempt or authority.
+pub fn dispatch_record_request(record : DispatchRecord) -> DispatchRequest {
+  record.request
 }

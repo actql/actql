@@ -41,6 +41,7 @@ priv struct ValueBudget {
   mut nodes : Int
   mut text : Int
   mut work : Int
+  mut external_work : Int
 }
 
 ///|
@@ -51,15 +52,29 @@ fn value_budget(limits : ValueLimits) -> Result[ValueBudget, CaptureIssue] {
     limits.max_work < 0 {
     Err(InvalidCaptureLimits)
   } else {
-    Ok({ limits, nodes: 0, text: 0, work: 0, })
+    Ok({ limits, nodes: 0, text: 0, work: 0, external_work: 0, })
   }
+}
+
+///|
+fn remaining_value_work(b : ValueBudget) -> Int {
+  b.limits.max_work - b.work - b.external_work
+}
+
+///|
+fn charge_external_value_work(b : ValueBudget, units : Int) -> Bool {
+  if units < 0 || units > remaining_value_work(b) {
+    return false
+  }
+  b.external_work += units
+  true
 }
 
 ///|
 fn charge_node(b : ValueBudget, depth : Int) -> Bool {
   if depth > b.limits.max_depth ||
     b.nodes >= b.limits.max_nodes ||
-    b.work >= b.limits.max_work {
+    remaining_value_work(b) < 1 {
     return false
   }
   b.nodes += 1
@@ -71,7 +86,7 @@ fn charge_node(b : ValueBudget, depth : Int) -> Bool {
 fn charge_text(b : ValueBudget, text : String) -> Bool {
   let available = Int::min(
     b.limits.max_text_bytes - b.text,
-    b.limits.max_work - b.work,
+    remaining_value_work(b),
   )
   match @scalar.admit_utf8_length(text, available) {
     Ok(size) => {
@@ -136,7 +151,7 @@ fn measure(value : @admitted.Value, depth : Int, b : ValueBudget) -> Bool {
           @admitted.Vector(items) => {
             let count = @admitted.element_count(items)
             if count > b.limits.max_nodes - b.nodes ||
-              count > b.limits.max_work - b.work ||
+              count > remaining_value_work(b) ||
               (count > 0 && depth >= b.limits.max_depth) {
               return false
             }
@@ -264,7 +279,7 @@ fn step_stepped_measure_text(
       3
     }
     if width > budget.limits.max_text_bytes - budget.text ||
-      width > budget.limits.max_work - budget.work {
+      width > remaining_value_work(budget) {
       return false
     }
     budget.text += width
@@ -283,7 +298,7 @@ fn step_stepped_measure_text_start(
 ) -> Bool {
   let available = Int::min(
     budget.limits.max_text_bytes - budget.text,
-    budget.limits.max_work - budget.work,
+    remaining_value_work(budget),
   )
   if text.length() > available {
     return false
@@ -354,7 +369,7 @@ fn advance_stepped_measure_result(
         @admitted.Vector(items) => {
           let count = @admitted.element_count(items)
           if count > budget.limits.max_nodes - budget.nodes ||
-            count > budget.limits.max_work - budget.work ||
+            count > remaining_value_work(budget) ||
             (count > 0 && depth >= budget.limits.max_depth) {
             false
           } else {

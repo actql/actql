@@ -312,6 +312,43 @@ fn local_task_session_output_ceilings(
 }
 
 ///|
+/// Read the two exact traversal envelopes from the existing captured owner.
+/// Duplicate resource obligations do not create independent execution limits.
+fn local_task_constrain_traversal(
+  run : @strategy.CapturedDAG,
+  task : Int,
+  sequence : @execution.GeneratedSequence,
+) -> @execution.GeneratedSequence? {
+  let graph = @strategy.captured_dag_graph(run)
+  guard @strategy.graph_task_operation_count(graph, task) is Some(count) else {
+    return None
+  }
+  let mut constrained = sequence
+  for index in 0..<count {
+    let requirement = @strategy.graph_task_operation_at(graph, task, index).unwrap()
+    if requirement.disposition is ExecutionCheck(TraversalLimits(check)) {
+      constrained = match
+        @execution.constrain_generated_traversal(
+          constrained,
+          requirement.site.step,
+          @traversal_limits.traversal_limit_effective_maximum(
+            check.limits,
+            SearchPaths,
+          ),
+          @traversal_limits.traversal_limit_effective_maximum(
+            check.limits,
+            OutputRows,
+          ),
+        ) {
+        Ok(value) => value
+        Err(_) => return None
+      }
+    }
+  }
+  Some(constrained)
+}
+
+///|
 /// A row-only retained-output offer requires the file-capable implementation.
 /// A Carrier path can instead retain its typed managed generations, including
 /// Relation views produced by a formal Bridge. Policy ineligibility is never

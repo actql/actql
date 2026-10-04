@@ -6674,6 +6674,17 @@
           ],
           "path": "src/query_integration/property_graph_trail_resource_wbtest.mbt",
           "fixture": "current path variants retain independent exact work workspace and every private stop boundary"
+        },
+        {
+          "role": "node_emit_exact_work_workspace_rows_paths_and_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_traverse_nodes_wbtest.mbt",
+          "fixture": "keyed node traversal has independent exact budgets and every zero-hop stop boundary"
         }
       ],
       "environment_tests": [
@@ -6694,6 +6705,15 @@
           ],
           "path": "scripts/property-graph-surface-checker.test.mjs",
           "fixture": "current-trail"
+        },
+        {
+          "role": "traverse_nodes_host_in_flight_cancel",
+          "suite": "node:property_graph_surface_checker",
+          "targets": [
+            "node"
+          ],
+          "path": "scripts/property-graph-surface-checker.test.mjs",
+          "fixture": "current-traverse-nodes"
         }
       ],
       "path_assurance": {
@@ -6715,7 +6735,8 @@
             "one_short_limit": "traverse_variant_workspace_exact_one_short"
           }
         }
-      }
+      },
+      "notes": "Node emission reuses the same bounded path owner and checked independent search/output envelopes. The node fixture adds exact/one-short work and workspace, independent row/search refusal, and every charged zero-hop stop boundary. The installed Host fixture covers two ordinary consumers, in-flight node cancellation and subsequent Relation cancellation; no alternate traversal owner is introduced."
     },
     {
       "inventory": "families",
@@ -6759,6 +6780,20 @@
       "boundary_tests": [
         {
           "role": "graph_bounds_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+          "fixture": "Graph bounds yields during typed identity ordering and rejects partial output"
+        },
+        {
+          "role": "graph_bounds_cumulative_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+          "fixture": "Graph bounds yields during typed identity ordering and rejects partial output"
+        },
+        {
+          "role": "graph_bounds_view_cumulative_work_exact_one_short",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
@@ -6826,8 +6861,8 @@
       "resource_assurance": {
         "entrypoint": {
           "work": {
-            "exact_limit": "graph_bounds_work_exact_one_short",
-            "one_short_limit": "graph_bounds_work_exact_one_short"
+            "exact_limit": "graph_bounds_cumulative_work_exact_one_short",
+            "one_short_limit": "graph_bounds_cumulative_work_exact_one_short"
           },
           "workspace": {
             "exact_limit": "graph_bounds_stored_workspace_exact_one_short",
@@ -6836,8 +6871,8 @@
         },
         "selected_entrypoint": {
           "work": {
-            "exact_limit": "graph_bounds_view_work_workspace_exact_one_short",
-            "one_short_limit": "graph_bounds_view_work_workspace_exact_one_short"
+            "exact_limit": "graph_bounds_view_cumulative_work_exact_one_short",
+            "one_short_limit": "graph_bounds_view_cumulative_work_exact_one_short"
           },
           "workspace": {
             "exact_limit": "graph_bounds_view_work_workspace_exact_one_short",
@@ -6870,6 +6905,20 @@
       "boundary_tests": [
         {
           "role": "degree_control_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+          "fixture": "Graph bounds yields during typed identity ordering and rejects partial output"
+        },
+        {
+          "role": "degree_cumulative_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+          "fixture": "Graph bounds yields during typed identity ordering and rejects partial output"
+        },
+        {
+          "role": "degree_view_cumulative_work_exact_one_short",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
@@ -6930,8 +6979,8 @@
       "resource_assurance": {
         "entrypoint": {
           "work": {
-            "exact_limit": "degree_control_work_exact_one_short",
-            "one_short_limit": "degree_control_work_exact_one_short"
+            "exact_limit": "degree_cumulative_work_exact_one_short",
+            "one_short_limit": "degree_cumulative_work_exact_one_short"
           },
           "workspace": {
             "exact_limit": "degree_stored_workspace_exact_one_short",
@@ -6940,8 +6989,8 @@
         },
         "selected_entrypoint": {
           "work": {
-            "exact_limit": "degree_view_work_workspace_exact_one_short",
-            "one_short_limit": "degree_view_work_workspace_exact_one_short"
+            "exact_limit": "degree_view_cumulative_work_exact_one_short",
+            "one_short_limit": "degree_view_cumulative_work_exact_one_short"
           },
           "workspace": {
             "exact_limit": "degree_view_work_workspace_exact_one_short",

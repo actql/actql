@@ -42,6 +42,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/public-query-cases.mjs', 'public-query-cases.mjs'],
   ['scripts/fixtures/acquired-data-source-input.mjs', 'acquired-data-source-input.mjs'],
   ['scripts/fixtures/property-graph-source-input.mjs', 'property-graph-source-input.mjs'],
+  ['scripts/fixtures/property-graph-row-source-input.mjs', 'property-graph-row-source-input.mjs'],
   ['scripts/fixtures/string-values-restart.mjs', 'string-values-restart.mjs'],
   ['scripts/fixtures/installed-infer-fixture.mjs', 'installed-infer-fixture.mjs'],
   ['scripts/fixtures/infer-source-expectation.mjs', 'infer-source-expectation.mjs'],
@@ -58,6 +59,7 @@ for (const [source, destination] of [
   ['spec/frontend/fixtures/pipe-scope/cases.json', 'pipe-scope-cases.json'],
   ['spec/frontend/fixtures/join-order/cases.json', 'join-order-cases.json'],
   ['spec/frontend/fixtures/join-chain/cases.json', 'join-chain-cases.json'],
+  ['spec/frontend/fixtures/group-scope/cases.json', 'group-scope-cases.json'],
   ['spec/frontend/fixtures/data-set-strategy/repro-program.json', 'data-set-strategy-program.json'],
   ['scripts/fixtures/packed-sga-cancellation.mjs', 'sga-cancellation.mjs'],
   ['scripts/property-graph-public-host.test.mjs', 'property-graph-public-host.test.mjs'],
@@ -68,7 +70,7 @@ for (const [source, destination] of [
   await writeFile(join(root, destination), await readFile(join(repository, source)));
 }
 await mkdir(join(root, 'two-source-fixtures'));
-for (const name of ['database-rows.json', 'two-source-join.program.json',
+for (const name of ['database-rows.json', 'two-source-join.program.json', 'two-source-join.aql',
   'two-source-join.expected.json', 'equal-content-join.expected.json',
   'left-only.program.json', 'left.environment.json', 'right.environment.json']) {
   await writeFile(join(root, 'two-source-fixtures', name), await readFile(join(repository,
@@ -86,6 +88,12 @@ await writeFile(join(root, 'fixtures/property-graph-parallel.program.json'),
   await readFile(join(repository, 'scripts/fixtures/property-graph-parallel.program.json')));
 await writeFile(join(root, 'fixtures/property-graph-presence.program.json'),
   await readFile(join(repository, 'scripts/fixtures/property-graph-presence.program.json')));
+await writeFile(join(root, 'fixtures/property-graph-definition-rows.program.json'),
+  await readFile(join(repository, 'scripts/fixtures/property-graph-definition-rows.program.json')));
+await writeFile(join(root, 'fixtures/property-graph-label-rows.program.json'),
+  await readFile(join(repository, 'scripts/fixtures/property-graph-label-rows.program.json')));
+await writeFile(join(root, 'fixtures/property-graph-traverse-nodes.expected.json'),
+  await readFile(join(repository, 'scripts/fixtures/property-graph-traverse-nodes.expected.json')));
 run('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
   '-keyout', 'remote.key', '-out', 'remote.crt', '-days', '1',
   '-subj', '/CN=localhost',
@@ -99,6 +107,9 @@ const runtimeEnvironment = {...environment,
   NODE_EXTRA_CA_CERTS: join(root, 'remote.crt')};
 if (process.argv.includes('--property-graph-source-only')) {
   runtimeEnvironment.ACTQL_TEST_PROPERTY_GRAPH_SOURCE_ONLY = '1';
+}
+if (process.argv.includes('--graph-rows-only')) {
+  runtimeEnvironment.ACTQL_TEST_GRAPH_ROWS_ONLY = '1';
 }
 if (process.argv.includes('--source-free-only')) {
   runtimeEnvironment.ACTQL_TEST_SOURCE_FREE_ONLY = '1';
@@ -120,6 +131,9 @@ if (process.argv.includes('--acquired-data-only')) {
 }
 if (process.argv.includes('--join-order-only')) {
   runtimeEnvironment.ACTQL_TEST_JOIN_ORDER_ONLY = '1';
+}
+if (process.argv.includes('--group-scope-only')) {
+  runtimeEnvironment.ACTQL_TEST_GROUP_SCOPE_ONLY = '1';
 }
 if (process.argv.includes('--alias-scope-only')) {
   runtimeEnvironment.ACTQL_TEST_PIPE_SCOPE_ONLY = '1';
@@ -189,10 +203,10 @@ if (process.argv.includes('--cancellation-only')) {
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
 const narrowPublicQuery = process.argv.some(flag => ['--source-free-only',
-  '--query-composition-only', '--pipe-result-only', '--join-order-only',
+  '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only',
   '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only', '--two-source-only',
   '--relation-data-only', '--acquired-data-only',
-  '--data-set-strategy-only', '--property-graph-source-only'].includes(flag));
+  '--data-set-strategy-only', '--property-graph-source-only', '--graph-rows-only'].includes(flag));
 try {
   if (!plannerSelectionOnly && !twoSourceExampleOnly) {
     const output = run(process.execPath, ['acceptance.mjs'], root,
@@ -234,9 +248,9 @@ if (plannerSelectionOnly || twoSourceExampleOnly) return;
 // Narrow selections without the String fixture have no retained String Run.
 // Keep restart acceptance for full/source-free selections that create it.
 if (!process.argv.some(flag => ['--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
-  '--join-order-only', '--query-composition-only', '--pipe-result-only',
+  '--join-order-only', '--group-scope-only', '--query-composition-only', '--pipe-result-only',
   '--relation-data-only', '--acquired-data-only', '--data-set-strategy-only', '--two-source-only',
-  '--property-graph-source-only'].includes(flag))) {
+  '--property-graph-source-only', '--graph-rows-only'].includes(flag))) {
   console.log(run(process.execPath, ['string-values-restart.mjs'], root,
     runtimeEnvironment, 120000).trimEnd());
 }
@@ -250,7 +264,9 @@ if (process.argv.includes('--source-free-only') ||
   process.argv.includes('--scoped-order-only') ||
   process.argv.includes('--infer-refusal-only') ||
   process.argv.includes('--two-source-only') ||
-  process.argv.includes('--join-order-only')) return;
+  process.argv.includes('--join-order-only') ||
+  process.argv.includes('--graph-rows-only') ||
+  process.argv.includes('--group-scope-only')) return;
 if (!process.argv.includes('--property-graph-source-only')) {
   console.log(run(process.execPath, ['sga-cancellation.mjs'], root,
     runtimeEnvironment, 120000).trimEnd());
