@@ -128,7 +128,8 @@ acquisition. The same submitted-HEAD automatic run subsequently completed
 successfully: 27 successful jobs, including Client/pipeline evidence
 aggregation and the final check, plus the three conditional skips
 `performance-matrix`, `packed-query-evidence-probe`, and `focused-tests`.
-This closes #303's submitted integration verification; it does not close
+The user subsequently integrated #303 by main merge
+`3a7be90e681326fef04cf2c28fe11dbfee729e2b`. This closes #303's submitted integration verification; it does not close
 the separately owned CTE counterexample or the new selectors below.
 
 | Package | SHA-256 at this integrated public execution |
@@ -139,7 +140,7 @@ the separately owned CTE counterexample or the new selectors below.
 | local-node | `d9309c8940021a5d834e984c11bcb8381c79c81e764d65802f17019a79de6359` |
 | node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
 
-The next independent unit is now [Draft #316](https://github.com/actql/actql/pull/316),
+The next independent unit is now [#316](https://github.com/actql/actql/pull/316),
 submitted `a08ccd794e9889671548acb2f6685cc87333d6e2`. Existing string-valued
 `definition`/`label` named arguments lower to C's common selector objects;
 the common checker still owns presence, type, raw key and typed identity.
@@ -158,9 +159,13 @@ exits 0 with complete output. All 13 Graph-row positives and 11 refusals run
 on each of packed Embedded Local and HTTP, retaining independent JSON
 controls, ordered type descriptions, rows, stream completion, retry/attach
 reuse, and zero admission/provider I/O on refusal. This is fresh selector
-evidence, not inferred from #303's no-selection success. Required automatic
-CI is still completing its remaining jobs and final aggregate at this
-checkpoint; #316 remains Draft and retains its unmerged #307 base.
+evidence, not inferred from #303's no-selection success. The submitted-HEAD
+automatic run subsequently completed successfully: 27 successful jobs,
+including the final check, and only the three configured conditional skips
+`performance-matrix`, `packed-query-evidence-probe`, and `focused-tests`.
+#316 is ready for content review and retains its unmerged #307 base. The
+execution above remains bound to C's stated dependency SHA, not to subsequent
+parent updates. B performed no merge or manual CI rerun.
 
 | Package | SHA-256 at this selector execution |
 |---|---|
