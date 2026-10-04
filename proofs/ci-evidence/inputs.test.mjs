@@ -78,3 +78,13 @@ test('literal normal, test and whitebox imports are tracked; arbitrary expressio
     ['actql/actql/a', 'moonbitlang/core/json']);
   assert.throws(() => packageImports('import { dynamic_dependency() }'), /unknown package import/u);
 });
+
+test('literal formatter exclusions remain bound; dynamic configuration stays open', () => {
+  assert.equal(packageImports('formatter(ignore: [ "fixture.generated_wbtest.mbt", ])').unknown, null);
+  assert.throws(() => packageImports('formatter(ignore: [ discover_files() ])'), /formatter ignore/u);
+  assert(packageImports('formatter(ignore: [ "fixture.mbt" ], build: "external")').unknown);
+  const changed = new Map(base);
+  changed.set('src/bounded_execution/moon.pkg', 'formatter(ignore: [ "session_contract_wbtest.mbt" ])');
+  assert.equal(inventory(changed).unresolved.length, 0);
+  assert.equal(compareInputs(inventory(), inventory(changed)).eligible, false);
+});

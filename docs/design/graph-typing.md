@@ -244,6 +244,20 @@ shared. The builder does not prove path existence, simple-path constraints,
 cardinality, ordering, weights or execution bounds. It is not yet a complete
 traversal checker or pipeline operation.
 
+The current Property Graph node emission uses the same bounded traversal owner
+as path emission, not the retired reach implementation. It enumerates paths
+under their authored mode and conditions before collecting the minimum eligible
+depth per typed start/node pair. A visited node does not prune path states.
+Node output is ordered by typed start identity and typed node identity and uses
+required `start_id`, `node_id`, `depth` fields. The checked search-path and
+output-row envelopes are bound to the generated occurrence separately; private
+path enumeration cannot borrow the deduplicated node output ceiling. The Local
+driver retains the completed node Relation through the existing export/Store/
+source-revocation/import owner before ordinary projection and publication.
+Literal and Relation start selectors, homogeneous bounds and authored hop
+patterns are supported. Predicate start selectors remain explicitly unsupported;
+this does not change the language's admitted selector meaning.
+
 `check_traverse` now composes that builder with shared start selectors and either
 homogeneous bounds or an ordered nonempty pattern. The closed modes are mutually
 exclusive. All source/predicate/output work shares one cumulative budget, including
@@ -302,12 +316,12 @@ The mode and empty-filter rules are now explicit in Language and the machine
 schema. Unlike the pinned reference decoder, no max_paths source option or
 default output ceiling is admitted. A present edge-type filter requires semantic
 label evidence even when empty; a mere property or closed domain is insufficient.
-Minimum node depth, simple paths, exact path deduplication, canonical order,
+Minimum eligible node depth, path-mode-aware enumeration, exact path deduplication, canonical order,
 binding checks and execution resources remain separate obligations. No evaluator
 or lowering is included.
 
 `TraversalCheck` binds graph admission, authored-hop enforcement, hop predicate
-evaluation, node minimum-depth selection or simple-path enumeration and exact
+evaluation, node minimum-eligible-depth selection or path-mode-aware enumeration and exact
 path deduplication, and canonical output ordering to the same checked operation.
 It retains the primary Graph and optional selector Relation with their input
 roles. Indexed hop/predicate readers consume the retained operation; they do not

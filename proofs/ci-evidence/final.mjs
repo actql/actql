@@ -15,6 +15,7 @@ import {hash} from './inputs.mjs';
 import {checkApplications} from './applications.mjs';
 import {leanInput} from './check.mjs';
 import {downloadArtifact} from './transport.mjs';
+import {checkRuntimeObservation} from './runtime.mjs';
 
 export function checkCertificate({certificate, output, context, catalog, required, applications, receiptDigests}) {
   assert.equal(certificate.version, 'actql-verification-family-certificate/0.1');
@@ -40,12 +41,13 @@ export async function verifyCurrentFamily({root, artifactId, expectedDigest, con
   assert.equal(metadata.digest, `sha256:${expectedDigest.replace(/^sha256:/u, '')}`, 'Job output/API archive digest mismatch');
   const zip = await openArtifactZip(archive, {expectedSha256: metadata.digest,
     limits: {maxCompressedBytes: 64 * 1024 * 1024, maxTotalBytes: 256 * 1024 * 1024, maxEntries: 2000}});
-  let state, certificate, output;
+  let state, certificate, output, distributionInputs;
   try {
+    distributionInputs = await zip.json('runtime-distributions.json');
     state = await zip.json('context.json'); certificate = await zip.json('checked.json'); output = await zip.read('lean-output.log');
   } finally { await zip.close(); }
   assert.equal(encode(state.context), encode(context), 'Wrong collection candidate/run/attempt');
-  assert.equal(state.runtime.profile, 'comparison-linux-runtime');
+  checkRuntimeObservation(state.runtime, distributionInputs);
   assert(state.runtime.unresolved.includes('comparison only: distribution/core, loader, runtime configuration and external dependencies require reviewed closure'),
     'Comparison cannot silently claim a closed runtime');
   const catalog = readCatalog(join(root, 'proofs/ci-evidence/bounded-session-actions.json'));

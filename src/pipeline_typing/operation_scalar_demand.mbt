@@ -150,6 +150,7 @@ pub fn operation_scalar_demand(
         | FilterTraversalLabels
         | EnumeratePropertyPaths
         | DeduplicateExactPaths
+        | MinimumEligibleNodeDepth
         | CanonicalTraversalOrder
         | EnforceTraversalOutputGuard
         | ResolveTraversalResources
