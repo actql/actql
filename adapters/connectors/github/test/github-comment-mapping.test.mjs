@@ -64,6 +64,7 @@ test('the declared GitHub comment write yields a Mapping a Program can target',
     assert.deepEqual(body.permission_rules, [{effect_kind: 'create',
       selector_class: 'none', write_fields: ['body', 'subject_id'],
       permissions: ['github:issues:comment:create']}]);
+    assert.equal(body.minimum_approval, 'required');
     assert.deepEqual(body.row_mapping, {
       subject_id: {field: 'node_id', null_behavior: 'reject'},
       body: {field: 'comment', null_behavior: 'reject'}});

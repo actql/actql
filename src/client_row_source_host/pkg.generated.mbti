@@ -234,6 +234,7 @@ pub(all) struct RowWriteSpec {
   create_fields : Array[String]
   required_fields : Array[String]
   permission : String
+  approval : String
 } derive(Eq, @debug.Debug)
 
 // Type aliases

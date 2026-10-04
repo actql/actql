@@ -15,6 +15,7 @@ pub(all) struct RowWriteSpec {
   create_fields : Array[String]
   required_fields : Array[String]
   permission : String
+  approval : String
 } derive(Eq, Debug)
 
 ///|
@@ -62,7 +63,9 @@ fn spec_strings(value : Json?) -> Array[String]? {
 ///|
 /// Parse a connector's write specification:
 /// `{"writes":[{"resource","resource_kind","primary_identity","fields":[...],
-/// "create":{"fields":[...],"required":[...],"permission":"..."}}]}`.
+/// "create":{"fields":[...],"required":[...],"permission":"...",
+/// "approval":"required"|"none"}}]}`. `approval` is the Mapping's existing
+/// `minimum_approval` requirement, stated by the connector for each write.
 fn parse_row_writes(text : String) -> Array[RowWriteSpec]? {
   let parsed = @json.parse(text) catch { _ => return None }
   guard parsed is Object(root) &&
@@ -79,10 +82,11 @@ fn parse_row_writes(text : String) -> Array[RowWriteSpec]? {
       spec_text(write, "primary_identity") is Some(primary_identity) &&
       entries.get("fields") is Some(Array(fields)) &&
       entries.get("create") is Some(Object(create)) &&
-      create.length() == 3 &&
+      create.length() == 4 &&
       spec_strings(create.get("fields")) is Some(create_fields) &&
       spec_strings(create.get("required")) is Some(required_fields) &&
-      create.get("permission") is Some(String(permission)) else {
+      create.get("permission") is Some(String(permission)) &&
+      create.get("approval") is Some(String(approval)) else {
       return None
     }
     let declared = []
@@ -109,9 +113,31 @@ fn parse_row_writes(text : String) -> Array[RowWriteSpec]? {
       create_fields,
       required_fields,
       permission,
+      approval,
     })
   }
   Some(specs)
+}
+
+///|
+fn distinct(names : Array[String]) -> Bool {
+  let seen = []
+  for name in names {
+    if seen.contains(name) {
+      return false
+    }
+    seen.push(name)
+  }
+  true
+}
+
+///|
+/// Every declared write is checked, not only the one a Mapping is asked for,
+/// so a conflicting declaration is never selected by its position.
+fn check_write_specs(specs : Array[RowWriteSpec]) -> Bool {
+  !specs.is_empty() &&
+  distinct(specs.map(spec => spec.resource)) &&
+  specs.all(check_write_spec)
 }
 
 ///|
@@ -123,16 +149,9 @@ fn check_write_spec(spec : RowWriteSpec) -> Bool {
   spec.fields.all(field => {
     valid_name(field.name, 255) && supported_type(field.value_type)
   }) &&
-  names.length() ==
-  ({
-    let unique = []
-    for name in names {
-      if !unique.contains(name) {
-        unique.push(name)
-      }
-    }
-    unique.length()
-  }) &&
+  distinct(names) &&
+  distinct(spec.create_fields) &&
+  distinct(spec.required_fields) &&
   spec.fields.any(field => {
     field.name == spec.primary_identity && !field.nullable
   }) &&
@@ -142,7 +161,8 @@ fn check_write_spec(spec : RowWriteSpec) -> Bool {
   }) &&
   spec.required_fields.all(name => spec.create_fields.contains(name)) &&
   !spec.permission.is_empty() &&
-  spec.permission.length() <= 128
+  spec.permission.length() <= 128 &&
+  (spec.approval == "required" || spec.approval == "none")
 }
 
 ///|
@@ -157,13 +177,13 @@ pub fn prepare_row_mapping(
   guard parse_row_writes(writes_json) is Some(specs) else {
     return Err(InvalidSpecification)
   }
+  if !check_write_specs(specs) {
+    return Err(InvalidSpecification)
+  }
   guard specs.search_by(spec => spec.resource == resource) is Some(index) else {
     return Err(NotWritable(resource))
   }
   let spec = specs[index]
-  if !check_write_spec(spec) {
-    return Err(InvalidSpecification)
-  }
   if sources.is_empty() {
     return Err(EmptyWrite)
   }
@@ -305,7 +325,7 @@ pub fn prepare_row_mapping(
           ]),
         ),
         ("required_permissions", Json::array([])),
-        ("minimum_approval", "none".to_json()),
+        ("minimum_approval", spec.approval.to_json()),
         ("row_mapping", object(row_mapping)),
       ],
       "mapping_contract_cid",
