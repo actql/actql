@@ -7,6 +7,10 @@ the language profile or introduce a new evaluation owner.
 
 - Integrated baseline: `00818e501900cbd001fd8cf4929f373713fb3cb4`.
 - Main integration: `7763fe148d80f4443b52f7428143ae325301fe9a`.
+- Subsequent normal main integration: `c9b3fe2aa9c127d7f7c4173d6404ec36d162af87`,
+  including the completed GROUP star repair and deferred Effect checkpoint work.
+  Three conflict resolutions preserve both grouped input-scope snapshots and
+  all packed acceptance corpus registrations.
 - Dependency: [#362](https://github.com/actql/actql/pull/362),
   `3bc8cee765409b39696aed746ca2f10f407001a6`, which retains grouped SELECT's
   input scope independently of output aliases.
@@ -95,6 +99,10 @@ them for bounded local diagnosis and does not replace normal CI registration.
   not Host execution evidence.
 - Changed MoonBit formatting, three changed/new JavaScript syntax checks and
   `git diff --check` passed.
+- After the subsequent main integration: JS GROUP **13/13**
+  (`run-6UQLaX`, `focused-test-CqJ6VA`), HAVING **8/8**
+  (`run-9SsFj7`, `focused-test-DjRQto`), Node controls **2/2**
+  (`run-rZbngv`, `focused-test-eBpRBX`). These counts overlap earlier runs.
 - Packed Local/HTTP acceptance is pending. Authored expectations and focused
   checker tests do not establish public execution success.
 
