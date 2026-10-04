@@ -1366,6 +1366,10 @@ pub fn cleanup(active : Execution) -> Result[Bool, Issue] {
     @relation.cancel_completed_relation_identity_scan(identity) |> ignore
     active.identity = None
   }
+  if active.call_scope is Some(scope) {
+    @publication_host.release_client_infer_call_scope(scope)
+    active.call_scope = None
+  }
   match @input.cleanup_client_infer_input(active.input) {
     Ok(true) => {
       if active.source is Replay(capture) {

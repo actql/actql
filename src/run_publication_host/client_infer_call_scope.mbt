@@ -5,6 +5,7 @@ pub struct ClientInferCallScope {
   owner : PreparedClientProgram
   plan : ClientInferPlanGraph
   input : @execution.CompletedOutput
+  receipt : @execution.CompletedRelationExportReceipt
   artifact : @publication.RunEvidenceValue
   effective : @publication.RunEvidenceValue
   source : @publication.ModelSourceObservation?
@@ -192,6 +193,7 @@ pub fn issue_client_infer_occurrence_call_scope(
     owner,
     plan,
     input,
+    receipt,
     artifact,
     effective,
     source: captured.map(value => value.observation),
@@ -211,7 +213,8 @@ pub fn client_infer_call_scope_matches(
 ) -> Bool {
   physical_equal(value.owner, owner) &&
   @execution.completed_output_available(input) &&
-  @execution.completed_output_same_occurrence(value.input, input)
+  @execution.completed_output_same_occurrence(value.input, input) &&
+  @execution.completed_relation_export_matches_output(value.receipt, input)
 }
 
 ///|
@@ -219,6 +222,21 @@ pub fn client_infer_call_scope_artifact(
   value : ClientInferCallScope,
 ) -> @publication.RunEvidenceValue {
   value.artifact
+}
+
+///|
+/// The exact bounded export receipt remains with the prepared call scope.
+/// Its CIDs alone do not prove that the fixed input is held or replayable.
+pub fn client_infer_call_scope_fixed_input_receipt(
+  value : ClientInferCallScope,
+) -> @execution.CompletedRelationExportReceipt {
+  value.receipt
+}
+
+///|
+/// Release the receipt's reference to its source after the call owner stops.
+pub fn release_client_infer_call_scope(value : ClientInferCallScope) -> Unit {
+  @execution.cancel_completed_relation_export_receipt(value.receipt)
 }
 
 ///|
@@ -263,6 +281,10 @@ pub fn client_infer_call_scope_matches_rows(
   fixed_request_cid : String,
 ) -> Bool {
   fixed_request_cid == value.plan.request_cid &&
+  @execution.completed_relation_export_matches_output(
+    value.receipt,
+    value.input,
+  ) &&
   @execution.prepared_infer_rows_matches_completed_input(rows, value.input) &&
   physical_equal(
     @infer.model_task(@execution.prepared_infer_rows_owner(rows)),
