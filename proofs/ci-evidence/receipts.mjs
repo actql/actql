@@ -4,6 +4,10 @@ import {parseTestExecution} from '../../scripts/test-execution.mjs';
 import {openArtifactZip} from '../../scripts/ci-artifact-reader.mjs';
 import {compareInputs, hash, inputVersion} from './inputs.mjs';
 import {validateCatalog, version as catalogVersion} from './actions.mjs';
+import {ArtifactUnavailable} from './transport.mjs';
+import {mutationIds} from './mutation-inventory.mjs';
+export {mutationIds} from './mutation-inventory.mjs';
+import {isolatedProfile} from './isolated-runtime.mjs';
 
 export const receiptVersion = 'actql-verification-action-receipt/0.1';
 const positive = value => Number.isSafeInteger(value) && value > 0;
@@ -60,6 +64,11 @@ export function validateReceipt(receipt) {
   }
   const observation = receipt.artifacts.find(entry => entry.path === `observations/${receipt.action.id}.log`);
   assert(observation && observation.digest === execution.observationDigest, 'Missing bound execution observation');
+  if (receipt.inputs.inputs.runtime.profile === isolatedProfile) {
+    assert.equal(receipt.action.id, 'mutations-js', 'Isolated profile applied to another action');
+    assert(['isolated-inputs.json', 'isolated-observation.json', 'isolated-execution.json'].every(path =>
+      receipt.artifacts.some(entry => entry.path === path)), 'Missing bound isolated correspondence');
+  }
   return receipt;
 }
 
@@ -89,10 +98,7 @@ export function observationUnits(action, output, status) {
   throw new Error('Unreviewed action observation');
 }
 
-export const mutationIds = Object.freeze(['stale-token-reuse', 'zero-quantum', 'terminal-resume',
-  'cleanup-changed-as-complete', 'cumulative-as-delta', 'reset-budget-history', 'accept-backward-work',
-  'adapter-terminal-resume', 'premature-cleanup-success', 'cleanup-retry-reruns-callback',
-  'actual-set-path-reaches-adapter', 'actual-nest-path-reaches-adapter', 'nest-parent-child-ports-swapped']);
+
 
 export function sealReceipt({origin, action, inputs, output, status, milliseconds, artifacts = []}) {
   const observation = Buffer.from(output);
@@ -140,7 +146,7 @@ export async function authenticateOrigin({receipt, artifactId, expected, request
   assert.equal(job.head_sha, origin.runHeadRevision);
   assert.equal(job.status, 'completed'); assert.equal(job.conclusion, 'success');
   const artifact = await request(`/actions/artifacts/${artifactId}`);
-  assert.equal(artifact.id, artifactId); assert.equal(artifact.expired, false);
+  assert.equal(artifact.id, artifactId); assert(typeof artifact.expired === 'boolean');
   assert.equal(artifact.workflow_run?.id, origin.runId);
   assert.equal(artifact.workflow_run?.head_sha, origin.runHeadRevision);
   assert.equal(artifact.workflow_run?.repository_id, origin.repositoryId);
@@ -148,7 +154,8 @@ export async function authenticateOrigin({receipt, artifactId, expected, request
   assert.equal(artifact.name, `session-actions-${origin.runId}-${origin.runAttempt}-${origin.testedRevision}`);
   assert(/^sha256:[a-f0-9]{64}$/u.test(artifact.digest ?? ''), 'Missing authenticated archive digest');
   assert(positive(artifact.size_in_bytes));
-  assert(Number.isFinite(Date.parse(artifact.expires_at)) && Date.parse(artifact.expires_at) > Date.now(), 'Expired archive');
+  assert(Number.isFinite(Date.parse(artifact.expires_at)), 'Invalid archive expiry');
+  if (artifact.expired || Date.parse(artifact.expires_at) <= Date.now()) throw new ArtifactUnavailable();
   // Re-read after inspection: a rerun must not change the attempt underneath us.
   const current = await request(`/actions/runs/${origin.runId}`);
   assert.equal(current.run_attempt, origin.runAttempt);
