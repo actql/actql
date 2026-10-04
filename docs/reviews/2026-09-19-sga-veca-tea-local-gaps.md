@@ -81,6 +81,11 @@ filter. The public Host reads the windowed Result and its consumer after two
 acquisition completions, observes both row-file and managed representations,
 and reopens the committed Result without another source request. This proves
 that particular two-source-to-Carrier chain, not every Join or TEA variant.
+The same Program shape with a failing post-Bridge Relation filter also leaves
+the Result unavailable. An injected first-input cleanup failure retains its
+holding until Host cleanup retry succeeds, with neither source reacquired.
+The public Host reports `CapturedRunPublicationFailed`; this fixture does not
+inspect the inner arithmetic issue or prove Compute entrypoint non-reexecution.
 For a row connector with multiple declared views, the two-installation Host
 now carries each view's source reference and read tuple into Check disclosure
 and pre-acquisition Checkpoint selection. The installed source still prepares

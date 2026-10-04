@@ -444,6 +444,28 @@ const twoRowSourceProgram = () =>
         consumed_a: {from: {stage: 'consumer_a', result: 'r'}},
         consumed_b: {from: {stage: 'consumer_b', result: 'r'}}}});
 
+const twoSourceEventsWindowProgram = () => {
+  const document = twoRowSourceProgram();
+  document.id = 'github-two-source-events-window';
+  document.stages.length = 3;
+  document.stages.push({id: 'events',
+    inputs: {rows: {result: {stage: 'join', result: 'r'}}},
+    steps: [
+      {from: 'rows', to_events: {id: 'number', time: 'number'}, as: 'source'},
+      {from: 'source', window_events: {kind: 'fixed', size: 2},
+        as: 'windowed'},
+      {from: 'windowed', events: true, as: 'bridged'},
+      {from: 'bridged', filter: 'number > 0', as: 'out'},
+    ], results: {r: {from: 'out', fields: ['number', 'left_title',
+      'right_title', 'window_start_ms', 'window_end_ms']}}},
+  {id: 'consumer', inputs: {x: {result: {stage: 'events', result: 'r'}}},
+    steps: [{select: ['number', 'window_start_ms'], as: 'out'}],
+    results: {r: {from: 'out', fields: ['number', 'window_start_ms']}}});
+  document.results = {windowed: {from: {stage: 'events', result: 'r'}},
+    consumed: {from: {stage: 'consumer', result: 'r'}}};
+  return document;
+};
+
 test('two installed row sources retain a joined public Named Result',
   async t => {
     let outputRepresentations;
@@ -509,24 +531,7 @@ test('retained two-source Join feeds an Events window and consumer', async t => 
     secondSource: true,
     observe(name, detail) { observations.push([name, detail]); }});
   await setup.publish();
-  const document = twoRowSourceProgram();
-  document.id = 'github-two-source-events-window';
-  document.stages.length = 3;
-  document.stages.push({id: 'events',
-    inputs: {rows: {result: {stage: 'join', result: 'r'}}},
-    steps: [
-      {from: 'rows', to_events: {id: 'number', time: 'number'}, as: 'source'},
-      {from: 'source', window_events: {kind: 'fixed', size: 2},
-        as: 'windowed'},
-      {from: 'windowed', events: true, as: 'bridged'},
-      {from: 'bridged', filter: 'number > 0', as: 'out'},
-    ], results: {r: {from: 'out', fields: ['number', 'left_title',
-      'right_title', 'window_start_ms', 'window_end_ms']}}},
-  {id: 'consumer', inputs: {x: {result: {stage: 'events', result: 'r'}}},
-    steps: [{select: ['number', 'window_start_ms'], as: 'out'}],
-    results: {r: {from: 'out', fields: ['number', 'window_start_ms']}}});
-  document.results = {windowed: {from: {stage: 'events', result: 'r'}},
-    consumed: {from: {stage: 'consumer', result: 'r'}}};
+  const document = twoSourceEventsWindowProgram();
   const {client, close} = await setup.open();
   const run = await client.aql(JSON.stringify(document), {format: 'json',
     requestId: 'github-two-source-events-window'});
@@ -558,6 +563,63 @@ test('retained two-source Join feeds an Events window and consumer', async t => 
   const reopened = await setup.open();
   const attached = await reopened.client.attach(run.ref);
   assert.deepEqual(await attached.result('windowed').all(), expected);
+  assert.equal(listings(setup.api).length, reads);
+});
+
+test('retained two-source Events failure keeps cleanup for retry', async t => {
+  let failClose = true;
+  let reachedClose;
+  const firstClose = new Promise(resolve => { reachedClose = resolve; });
+  const observations = [];
+  const setup = await installation(t, {retainedRelationOutput: true,
+    secondSource: true,
+    observe(name, detail) { observations.push([name, detail]); },
+    faultInjection(name, detail) {
+      if (name === 'acquisition_cleanup_started' && detail.task === 0) {
+        reachedClose();
+        if (failClose) throw new Error('FixtureEventsInputCloseFailed');
+      }
+    }});
+  await setup.publish();
+  const document = twoSourceEventsWindowProgram();
+  document.id = 'github-two-source-events-failure';
+  document.stages[3].steps[3].filter =
+    'number / (number - number) > 0';
+  const {client, host} = await setup.open();
+  const run = await client.aql(JSON.stringify(document), {format: 'json',
+    requestId: 'github-two-source-events-failure'});
+  await firstClose;
+  assert.ok(observations.some(([name, detail]) =>
+    name === 'dispatch_failed' && detail.code === 'CapturedRunPublicationFailed'),
+  JSON.stringify(observations));
+  const reads = listings(setup.api).length;
+  await assert.rejects(host.close(), error => {
+    assert.equal(error.code, 'ClientDispatchCleanupPending');
+    assert.ok(error.failures?.some(failure =>
+      failure.cleanup?.errors?.some(cause =>
+        cause.message === 'FixtureEventsInputCloseFailed')));
+    return true;
+  });
+  const pending = observations.filter(([name, detail]) =>
+    name === 'acquisition_cleanup_started' && detail.task === 0);
+  assert.ok(pending.length >= 2);
+  assert.ok(pending.every(([, detail]) =>
+    BigInt(detail.resourceUsage.heldBytes) > 0n));
+  failClose = false;
+  await host.close();
+  assert.equal(listings(setup.api).length, reads);
+  assert.equal(observations.filter(([name]) =>
+    name === 'acquisition_started').length, 2);
+  assertAcquisitionReleased(observations);
+  assert.deepEqual(await readdir(join(setup.root, 'state',
+    'carrier-snapshots')), []);
+  const reopened = await setup.open();
+  const attached = await reopened.client.attach(run.ref);
+  const state = await attached.status();
+  assert.equal(state.status, 'failed', JSON.stringify(state));
+  assert.equal(state.result_available, false);
+  await assert.rejects(attached.result('windowed').all(),
+    {code: 'ResultAccessDenied'});
   assert.equal(listings(setup.api).length, reads);
 });
 
