@@ -4,6 +4,7 @@ import {catalogPath, compareCatalogs, validateCatalog} from './actions.mjs';
 import {actionInputs, compareInputs, gitTree, hash, sharedFiles} from './inputs.mjs';
 import {readOriginReceipt} from './receipts.mjs';
 import {checkPlan} from './check.mjs';
+import {runtimeForAction} from './isolated-runtime.mjs';
 
 export const applicationVersion = 'actql-verification-action-application/0.1';
 const identity = value => hash(encode(value));
@@ -54,7 +55,7 @@ export function leanRecords(action, manifest, original, context, acquisition) {
 
 // The complete inventory is reconstructed, never taken from the requested
 // applications. A missing origin is not converted to a successful application.
-export async function checkApplications({root, context, runtime, protectedRevision, entries, request,
+export async function checkApplications({root, context, runtime, actionRuntimes = {}, protectedRevision, entries, request,
   treeAt = revision => gitTree(root, revision), read = readOriginReceipt, prove = checkPlan}) {
   const trees = new Map();
   const tree = revision => {
@@ -85,7 +86,7 @@ export async function checkApplications({root, context, runtime, protectedRevisi
     const original = await read({...entry, action, expected: context, request});
     const manifest = applicability({action, receipt: original.receipt,
       originTree: tree(original.receipt.origin.testedRevision), candidateTree,
-      candidateRevision: context.candidateRevision, runtime, acquisition: entry.acquisition});
+      candidateRevision: context.candidateRevision, runtime: runtimeForAction(action, runtime, actionRuntimes), acquisition: entry.acquisition});
     const records = leanRecords(action, manifest, original, context, entry.acquisition);
     requirements.push(records.required); checked.push(records.application);
     applications.push({version: applicationVersion, candidateRevision: context.candidateRevision, actionId: action.id,

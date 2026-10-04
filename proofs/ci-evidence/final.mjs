@@ -19,6 +19,7 @@ import {checkRuntimeObservation} from './runtime.mjs';
 import {gitTree} from './inputs.mjs';
 import {parseReceipt} from './receipts.mjs';
 import {compareFreshObservations, verifyComparison} from './plan.mjs';
+import {readActionRuntimes} from './isolated-runtime.mjs';
 
 export function checkCertificate({certificate, output, context, catalog, required, applications, receiptDigests}) {
   assert.equal(certificate.version, 'actql-verification-family-certificate/0.1');
@@ -44,10 +45,11 @@ export async function verifyCurrentFamily({root, artifactId, expectedDigest, con
   assert.equal(metadata.digest, `sha256:${expectedDigest.replace(/^sha256:/u, '')}`, 'Job output/API archive digest mismatch');
   const zip = await openArtifactZip(archive, {expectedSha256: metadata.digest,
     limits: {maxCompressedBytes: 64 * 1024 * 1024, maxTotalBytes: 256 * 1024 * 1024, maxEntries: 2000}});
-  let state, certificate, output, distributionInputs, comparison, comparisonObservations, receipts;
+  let state, certificate, output, distributionInputs, comparison, comparisonObservations, receipts, actionRuntimes;
   try {
     distributionInputs = await zip.json('runtime-distributions.json');
     state = await zip.json('context.json'); certificate = await zip.json('checked.json'); output = await zip.read('lean-output.log');
+    actionRuntimes = await readActionRuntimes({zip, state, tree: gitTree(root, context.candidateRevision)});
     const planBytes = await zip.read('comparison-plan.json'), observationsBytes = await zip.read('comparison-observations.json');
     assert.equal(certificate.comparisonDigest, hash(planBytes), 'Changed comparison plan');
     assert.equal(certificate.comparisonObservationsDigest, hash(observationsBytes), 'Changed fresh comparison observations');
@@ -61,7 +63,7 @@ export async function verifyCurrentFamily({root, artifactId, expectedDigest, con
     'Comparison cannot silently claim a closed runtime');
   const catalog = readCatalog(join(root, 'proofs/ci-evidence/bounded-session-actions.json'));
   const entries = catalog.actions.map(action => ({actionId: action.id, acquisition: 'fresh', archive, artifactId}));
-  const result = await checkApplications({root, context, runtime: state.runtime,
+  const result = await checkApplications({root, context, runtime: state.runtime, actionRuntimes,
     // Independent published inventory for bootstrap, not the candidate's own
     // edited inventory. Activation will use the verified main checkpoint.
     protectedRevision: initialRegistrationRevision, entries, request,
@@ -72,8 +74,8 @@ export async function verifyCurrentFamily({root, artifactId, expectedDigest, con
   assert.deepEqual(result.applications.map(entry => ({actionId: entry.actionId, digest: entry.originReceiptDigest})), certificate.receiptDigests);
   assert(result.applications.every(entry => entry.acquisition === 'fresh'));
   assert.equal(encode(comparisonObservations), encode(compareFreshObservations({plan: comparison, context,
-    runtime: state.runtime, tree: gitTree(root, context.candidateRevision), receipts})), 'Wrong comparison of actual fresh executions');
-  const confirmation = await verifyComparison({plan: comparison, root, context, runtime: state.runtime, request, token, directory});
+    runtime: state.runtime, actionRuntimes, tree: gitTree(root, context.candidateRevision), receipts})), 'Wrong comparison of actual fresh executions');
+  const confirmation = await verifyComparison({plan: comparison, root, context, runtime: state.runtime, actionRuntimes, request, token, directory});
   result.comparison = {baseline: comparison.baseline, recordedStatuses: comparison.actions.map(entry => ({actionId: entry.actionId, status: entry.status})),
     producerCosts: comparison.costs, confirmation, reuseAuthorized: false};
   return result;
