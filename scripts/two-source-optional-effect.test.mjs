@@ -7,7 +7,8 @@ import {optionalEffectSubmission, optionalEffectExpectations, optionalEffectFixt
 test('ordinary packed acceptance includes both optional Effect pairs', () => {
   assert.deepEqual(optionalEffectCases([]), ['native-json', 'broad-text']);
   assert.deepEqual(optionalEffectCases(['--optional-effect-only']), ['native-json', 'broad-text']);
-  for (const flag of ['--composed-text', '--composed-infer', '--two-source-effect']) {
+  for (const flag of ['--composed-text', '--composed-infer', '--two-source-effect',
+    '--composed-graph', '--composed-graph-node', '--composed-graph-edge']) {
     assert.deepEqual(optionalEffectCases([flag]), []);
   }
   const script = readFileSync(new URL('./test-packed-salesforce-source.mjs', import.meta.url), 'utf8');

@@ -507,6 +507,7 @@ fn resident_compute_open(
         Capacity(RetentionLimit) => "Source retention limit"
         Capacity(ExecutionLimit) => "Source execution limit"
         Capacity(_) => "capacity"
+        ObservationUnrecorded(_) => "observation"
       }
       fail("resident Source Compute preparation failed: " + label)
     }

@@ -36,7 +36,7 @@ pub fn deliver_resident_output(ResidentExecuted, @remote_journal.Journal, String
 
 pub fn execute_resident_attempt(@remote_journal.Journal, ResidentExecution, ResidentRunAdmission, String, String, () -> String, ((String) -> Bool)?) -> Result[ResidentExecuted, ResidentExecutionFailure]
 
-pub fn open_resident_source_compute(@run_publication_host.PreparedClientProgram, ResidentSourceComputeConfiguration, String) -> Result[ResidentSourceCompute, (ResidentSourceComputeIssue, @remote_standard_host.NativeRemoteStandardInputFailure)]
+pub fn open_resident_source_compute(@run_publication_host.PreparedClientProgram, ResidentSourceComputeConfiguration, String, observe? : (ResidentSourceComputeEvent) -> Bool) -> Result[ResidentSourceCompute, (ResidentSourceComputeIssue, @remote_standard_host.NativeRemoteStandardInputFailure)]
 
 pub fn plan_resident_output(ResidentExecuted, @remote_journal.Journal, String, String, Int, @remote_site_protocol.RemotePollOutput) -> Result[@remote_site_protocol.RemoteOutputPlan, ResidentOutputIssue]
 
@@ -150,6 +150,15 @@ pub(all) struct ResidentSourceComputeConfiguration {
   retained : @host_native.NativeStrategyRetainedOutputProfile?
 }
 
+pub(all) enum ResidentSourceComputeEvent {
+  AcquisitionEntered
+  ProducerCaptured
+  ConsumerEntered(Int)
+  ConsumerCompleted(Int)
+  CleanupPending
+  CleanupCompleted
+}
+
 pub(all) enum ResidentSourceComputeIssue {
   UnsupportedGraph
   Unavailable
@@ -162,6 +171,7 @@ pub(all) enum ResidentSourceComputeIssue {
   Compute(@host_native.NativeStandardStrategyRunIssue)
   Export(@run_publication_host.PublicationOutputExportIssue)
   Capacity(@physical_resources.LedgerIssue)
+  ObservationUnrecorded(ResidentSourceComputeEvent)
 }
 
 pub(all) struct ResidentSourceConfiguration {

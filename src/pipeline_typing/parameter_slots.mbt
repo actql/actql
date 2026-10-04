@@ -215,6 +215,7 @@ pub fn collect_parameter_slots(
         | Projection(_)
         | GraphMatch(_)
         | GraphDegree(_)
+        | GraphEquality(..)
         | GraphNormalize(_)
         | PropertyGraphConstruction(..)
         | Nearest(..)

@@ -34,6 +34,8 @@ pub fn check_path_contract(PathOutput, @decode_core.Cursor, @carrier_contract.Ca
 
 pub fn check_property_construction(@decode_core.Cursor, Array[(String, @carrier_contract.Carrier)], String, Limits) -> Result[CheckedPropertyConstruction, Issue]
 
+pub fn check_property_equality(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedPropertyEquality, Issue]
+
 pub fn check_selector(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedSelector, MatchIssue]
 
 pub fn check_traverse(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedTraverse, MatchIssue]
@@ -226,6 +228,18 @@ pub fn property_element_keys(PropertyElement) -> Array[@relation_schema.FieldNam
 
 pub fn property_element_properties(PropertyElement) -> Array[(@relation_schema.FieldName, @relation_schema.FieldName)]
 
+pub fn property_equality_input(CheckedPropertyEquality, right~ : Bool) -> @carrier_contract.Carrier
+
+pub fn property_equality_output(CheckedPropertyEquality) -> @carrier_contract.Carrier
+
+pub fn property_equality_pending_at(CheckedPropertyEquality, Int) -> PropertyEqualityObligation?
+
+pub fn property_equality_pending_count(CheckedPropertyEquality) -> Int
+
+pub fn property_equality_source(CheckedPropertyEquality) -> @decode_core.Cursor
+
+pub fn property_equality_usage(CheckedPropertyEquality) -> Usage
+
 pub fn selector_form(CheckedSelector) -> SelectorForm
 
 pub fn selector_id_at(CheckedSelector, Int) -> @value_admission.CheckedValue?
@@ -297,6 +311,8 @@ type CheckedPredicate
 
 type CheckedPropertyConstruction
 
+type CheckedPropertyEquality
+
 type CheckedSelector
 
 type CheckedTraverse
@@ -362,6 +378,7 @@ pub(all) enum IssueKind {
   IncompleteGraph
   UnsupportedGraphProfile
   UnsupportedGraphOperation
+  IncompatibleGraphDomains
   UnknownDeltaField(String)
   UntypedDeltaField(String)
   InvalidDeltaType
@@ -483,6 +500,12 @@ pub(all) struct PredicateUsage {
 type PropertyEdge
 
 type PropertyElement
+
+pub(all) enum PropertyEqualityObligation {
+  AdmitBothPropertyGraphs
+  CompareCompleteGraphValues
+  ResolvePropertyEqualityResources
+} derive(Eq, @debug.Debug)
 
 pub(all) enum PropertyPathMode {
   Walk

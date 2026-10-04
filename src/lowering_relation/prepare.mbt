@@ -64,6 +64,7 @@ pub enum Payload {
   GraphMatchRows(@graph.CheckedMatch)
   GraphBoundsRows(@graph.CheckedGraphBounds)
   GraphDegreeRows(@graph.CheckedDegree)
+  GraphEqualityRows(@graph.CheckedPropertyEquality)
   GraphNormalizeValue(@graph.CheckedNormalize)
   GraphComponentsRows(@graph.CheckedComponents)
   GraphTraverseRows(@graph.CheckedTraverse)
@@ -220,6 +221,7 @@ pub fn operation(value : PreparedNode) -> String {
       }
     GraphBoundsRows(_) => "SGA.bounds_check"
     GraphDegreeRows(_) => "SGA.degree_metrics"
+    GraphEqualityRows(_) => "SGA.equal"
     GraphNormalizeValue(_) => "SGA.normalize"
     GraphComponentsRows(_) => "SGA.components"
     GraphTraverseRows(_) => "SGA.traverse"
@@ -297,6 +299,7 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     GraphMatch(value) => Some(GraphMatchRows(value))
     GraphBounds(value) => Some(GraphBoundsRows(value))
     GraphDegree(value) => Some(GraphDegreeRows(value))
+    GraphEquality(checked~, ..) => Some(GraphEqualityRows(checked))
     GraphNormalize(value) => Some(GraphNormalizeValue(value))
     GraphComponents(value) => Some(GraphComponentsRows(value))
     Traverse(checked~, ..) => Some(GraphTraverseRows(checked))
@@ -426,6 +429,7 @@ pub fn prepare(
         )
       GraphBoundsRows(_) => ("graph_bounds", 1)
       GraphDegreeRows(_) => ("degree", 1)
+      GraphEqualityRows(_) => ("graphs_equal", 2)
       GraphNormalizeValue(_) => ("normalize_graph", 1)
       GraphComponentsRows(_) => ("components", 1)
       GraphTraverseRows(checked) =>
@@ -634,7 +638,10 @@ pub fn prepare(
       CrossJoinRows(_) => None
       NestRows(_) => None
       GraphMatchRows(_) => None
-      GraphBoundsRows(_) | GraphDegreeRows(_) | GraphComponentsRows(_) => None
+      GraphBoundsRows(_)
+      | GraphDegreeRows(_)
+      | GraphEqualityRows(_)
+      | GraphComponentsRows(_) => None
       GraphNormalizeValue(_) => None
       GraphTraverseRows(_) => None
       PropertyGraphConstructionValue(_) => None
