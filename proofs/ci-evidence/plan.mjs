@@ -150,8 +150,10 @@ export async function comparisonPlan({root, context, runtime, directory, token, 
         revision: receipt.origin.testedRevision, runId: receipt.origin.runId, runAttempt: receipt.origin.runAttempt,
         units: receipt.execution.units, milliseconds: receipt.execution.milliseconds};
     } catch (error) {
-      if (unavailableTransport(error)) throw error;
-      entry.status = 'origin-rejected';
+      // Optional origin authentication must not prevent any fresh action from
+      // running. Keep authenticated earlier entries; this entry has no origin
+      // or equality claim and cannot authorize reuse.
+      entry.status = unavailableTransport(error) ? 'origin-receipt-unavailable' : 'origin-rejected';
     }
   }
   plan.costs.inspectionMilliseconds = Math.round(performance.now() - inspectionStart);
@@ -231,8 +233,31 @@ export async function verifyComparison({plan, ...options}) {
   if (replay.artifact === null && replay.actions.every(entry => entry.status === 'origin-archive-unavailable')) {
     return {status: 'unconfirmed', reason: 'origin-unavailable', reuseAuthorized: false, costs: replay.costs};
   }
-  for (const field of ['version', 'mode', 'reuseAuthorized', 'context', 'catalogDigest', 'baseline', 'artifact', 'actions']) {
+  for (const field of ['version', 'mode', 'reuseAuthorized', 'context', 'catalogDigest', 'baseline', 'artifact']) {
     assert(unchanged(plan[field], replay[field]), `Changed/invalid comparison ${field}`);
   }
+  assert.equal(plan.actions.length, replay.actions.length, 'Changed/invalid comparison actions');
+  let receiptUnavailable = false;
+  for (const [index, entry] of plan.actions.entries()) {
+    const current = replay.actions[index];
+    for (const value of [entry, current]) exact(value,
+      ['actionId', 'acquisition', 'candidateActionKey', 'status', 'origin', 'equal', 'closed', 'unresolved']);
+    for (const field of ['actionId', 'acquisition', 'candidateActionKey']) {
+      assert(unchanged(entry[field], current[field]), `Changed/invalid comparison ${field}`);
+    }
+    if ([entry, current].some(value => value.status === 'origin-receipt-unavailable')) {
+      for (const value of [entry, current].filter(value => value.status === 'origin-receipt-unavailable')) {
+        assert(value.origin === null && value.equal === false && value.closed === false && value.acquisition === 'execute' &&
+          unchanged(value.unresolved, []), 'Unavailable receipt carried a successful original');
+      }
+      // A completed but inconsistent authentication is never a transport miss.
+      assert(![entry, current].some(value => value.status === 'origin-rejected'), 'Rejected origin receipt');
+      receiptUnavailable = true;
+    } else assert(unchanged(entry, current), 'Changed/invalid comparison actions');
+  }
+  // Initial partial comparisons stay partial even when the final read recovers.
+  // Do not rewrite the recorded plan or retroactively adopt recovered receipts.
+  if (receiptUnavailable) return {status: 'unconfirmed', reason: 'origin-receipt-unavailable',
+    reuseAuthorized: false, costs: replay.costs};
   return {status: 'confirmed', reuseAuthorized: false, costs: replay.costs};
 }

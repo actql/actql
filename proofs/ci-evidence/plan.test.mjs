@@ -169,6 +169,68 @@ test('start succeeds, all fresh actions pass, final origin transfer is unavailab
   assert.equal(result.reuseAuthorized, false); assert.equal(encode(plan), original);
 });
 
+for (const index of [0, 1]) for (const failure of ['503', 'timeout']) {
+  test(`archive succeeds but receipt ${index + 1} authentication ${failure} preserves all fresh obligations`, async () => {
+    const {state, options} = fixture(), read = options.read;
+    options.read = async args => {
+      if (args.action.id === catalog.actions[index].id) {
+        if (failure === '503') assert.fail('Actions history unavailable (HTTP 503)');
+        throw new DOMException('timeout', 'TimeoutError');
+      }
+      return read(args);
+    };
+    const plan = await comparisonPlan(options), original = encode(plan);
+    assert.equal(state.downloadCount, 1); assert.deepEqual(plan.artifact, {id: 6, digest: artifact.digest, bytes: 100});
+    assert(plan.actions.every(entry => entry.acquisition === 'execute'));
+    const unavailable = plan.actions[index];
+    assert.equal(unavailable.status, 'origin-receipt-unavailable');
+    assert.equal(unavailable.origin, null); assert.equal(unavailable.equal, false); assert.equal(unavailable.closed, false);
+    assert.equal(plan.actions[1 - index].status, 'closed-inputs-match');
+    const fresh = catalog.actions.map(action => receipt(action, current));
+    const observations = compareFreshObservations({plan, context, runtime, tree: tree(), receipts: fresh});
+    assert.equal(observations.length, catalog.actions.length);
+    assert.equal(observations[index].status, 'not-comparable');
+    assert.equal(observations[1 - index].status, 'counts-match');
+    for (const recovered of [false, true]) {
+      if (recovered) options.read = read;
+      const result = await verifyComparison({plan, ...options});
+      assert.equal(result.status, 'unconfirmed'); assert.equal(result.reason, 'origin-receipt-unavailable');
+      assert.equal(result.reuseAuthorized, false); assert.equal(encode(plan), original);
+    }
+    const forged = structuredClone(plan); forged.actions[index].equal = true;
+    await assert.rejects(verifyComparison({plan: forged, ...options}), /Unavailable receipt/u);
+    state.transform = value => ({...value, origin: {...value.origin, runAttempt: 2}});
+    await assert.rejects(verifyComparison({plan, ...options}), /Rejected origin|Changed\/invalid/u);
+  });
+}
+
+test('initial receipt digest, run, attempt and input inconsistencies are rejected rather than unavailable', async () => {
+  for (const mutate of [
+    value => ({...value, archiveDigest: 'f'.repeat(64)}),
+    value => ({...value, receipt: {...value.receipt, origin: {...value.receipt.origin, runId: 99}}}),
+    value => ({...value, receipt: {...value.receipt, origin: {...value.receipt.origin, runAttempt: 2}}}),
+    value => ({...value, receipt: {...value.receipt, inputs: {...value.receipt.inputs, key: 'f'.repeat(64)}}}),
+  ]) {
+    const {options} = fixture(), read = options.read;
+    options.read = async args => mutate(await read(args));
+    const plan = await comparisonPlan(options);
+    assert(plan.actions.every(entry => entry.status === 'origin-rejected' && entry.origin === null && !entry.equal && !entry.closed));
+  }
+});
+
+test('late receipt authentication unavailability does not invalidate complete fresh observations', async () => {
+  const {options} = fixture(), plan = await comparisonPlan(options), original = encode(plan);
+  const fresh = catalog.actions.map(action => receipt(action, current));
+  assert(compareFreshObservations({plan, context, runtime, tree: tree(), receipts: fresh}).every(entry => entry.status === 'counts-match'));
+  const read = options.read;
+  options.read = async args => {
+    if (args.action.id === catalog.actions[1].id) throw new ArtifactUnavailable();
+    return read(args);
+  };
+  assert.equal((await verifyComparison({plan, ...options})).status, 'unconfirmed');
+  assert.equal(encode(plan), original);
+});
+
 test('final API timeout is unconfirmed while digest, run, attempt and repository mismatches reject', async () => {
   const missing = fixture(), plan = await comparisonPlan(missing.options);
   missing.options.request = async () => { throw new DOMException('timeout', 'TimeoutError'); };

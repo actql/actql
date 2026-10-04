@@ -122,6 +122,15 @@ the original becomes unavailable after collection, the consumer records
 attempt, repository, digest and completed-archive inconsistencies still reject;
 they are not downgraded to a transport/cache miss.
 
+Receipt authentication outages during initial collection also leave every
+action scheduled for fresh execution. Authenticated comparisons already made
+remain recorded; each unavailable action is `origin-receipt-unavailable`, with
+no origin, equality or closed-input claim. The final consumer validates that
+partial state and reports `unconfirmed` even if the unavailable receipts later
+recover. It neither rewrites the initial plan nor retroactively claims a full
+comparison. Completed inconsistent receipt authentication remains
+`origin-rejected`, distinct from transport unavailability.
+
 The comparison uses the exact recorded SHA/run/attempt, not a newer main run
 that finishes during the candidate. Origin catalogs and source manifests come
 from actual Git, not the candidate's relabeled bindings. New registrations,
