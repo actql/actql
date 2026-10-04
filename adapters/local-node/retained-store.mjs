@@ -2,18 +2,25 @@
 // Pure factories construct a lease; I/O starts only through that lease after the
 // exact Local attempt has installed its retention-release predicate.
 const configurations = new WeakMap();
-export function installLocalRetainedStore(createLease) {
+export function installLocalRetainedStore(createLease, faultInjection) {
   if (typeof createLease !== 'function') throw new TypeError('MissingLocalStore');
+  if (faultInjection !== undefined && typeof faultInjection !== 'function') {
+    throw new TypeError('InvalidLocalFaultInjection');
+  }
   const configuration = Object.freeze({});
-  configurations.set(configuration, {retained:createLease,snapshot:createLease});
+  configurations.set(configuration, {retained:createLease,snapshot:createLease,
+    faultInjection});
   return configuration;
 }
 // An installed Host can persist a Carrier without switching its Relation
 // tasks to file output. Both routes still use the existing physical Store.
-export function installLocalSnapshotStore(createLease) {
+export function installLocalSnapshotStore(createLease, faultInjection) {
   if (typeof createLease !== 'function') throw new TypeError('MissingLocalStore');
+  if (faultInjection !== undefined && typeof faultInjection !== 'function') {
+    throw new TypeError('InvalidLocalFaultInjection');
+  }
   const configuration = Object.freeze({});
-  configurations.set(configuration, {snapshot:createLease});
+  configurations.set(configuration, {snapshot:createLease,faultInjection});
   return configuration;
 }
 export function localRetainedStore(configuration) {
@@ -27,4 +34,10 @@ export function localSnapshotStore(configuration) {
   const installed = configurations.get(configuration);
   if (!installed) throw new TypeError('InvalidLocalStoreConfiguration');
   return installed.snapshot;
+}
+export function localComputeFaultInjection(configuration) {
+  if (configuration === undefined) return undefined;
+  const installed = configurations.get(configuration);
+  if (!installed) throw new TypeError('InvalidLocalStoreConfiguration');
+  return installed.faultInjection;
 }

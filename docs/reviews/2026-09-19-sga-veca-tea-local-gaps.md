@@ -35,6 +35,15 @@ the Join and two downstream consumer Named Results to the real retained Store,
 and reads them again after Host reopen without provider I/O. Later-source
 failure, cancellation after the first capture, and a failed cleanup followed
 by retry leave no partial Result or lost holding and do not reacquire a source.
+An awaited Host test hook at the bounded Join advance also delivers
+cancellation after positive Compute progress with both captures live. Neither
+input cleanup starts before that advance is released; the cancelled Run
+confirms physical stop, publishes no Result, releases both captures, and
+does not reacquire on same-request resend.
+This selected row-file task uses the same `localStrategyContribution.run` and
+`prepareLocalRetainedOutput` writer as the retained binary-chain append and
+finalize fault harness. That shared writer proof does not by itself show a
+connector-specific writer failure at the public HTTPS ingress.
 The existing two-DuckDB-source retained route remains covered separately.
 The same public HTTPS fixture now combines a GitHub row source and a DuckDB
 source in both Program acquisition orders. Each run reads its independent
@@ -90,7 +99,7 @@ The same retained Join-to-Events route also accepts a GitHub capture paired
 with a DuckDB capture. Its fixed-window and consumer Results match independent
 ordered rows after Host reopen, without another read from either provider.
 This adds mixed-provider Carrier evidence, not a Store writer fault or
-post-progress Compute cancellation for an externally acquired input.
+post-progress Compute cancellation for the mixed-provider variant.
 For a row connector with multiple declared views, the two-installation Host
 now carries each view's source reference and read tuple into Check disclosure
 and pre-acquisition Checkpoint selection. The installed source still prepares

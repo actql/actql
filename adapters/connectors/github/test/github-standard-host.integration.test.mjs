@@ -891,6 +891,72 @@ test('two-source cancellation retains the first row capture until stop and clean
     assert.equal(listings(setup.api).length, 2);
   });
 
+test('two-source Join cancellation waits for Compute stop before input cleanup',
+  {timeout: 30000}, async t => {
+    let reachedAdvance;
+    const advanced = new Promise(resolve => { reachedAdvance = resolve; });
+    let releaseAdvance;
+    const pause = new Promise(resolve => { releaseAdvance = resolve; });
+    let paused = false;
+    const observations = [];
+    const setup = await installation(t, {retainedRelationOutput: true,
+      secondSource: true,
+      observe(name, detail) { observations.push([name, detail]); },
+      faultInjection(name, detail) {
+        if (name === 'local_compute_advanced' && detail.task === 2 &&
+            BigInt(detail.progress) > 0n && !paused) {
+          paused = true;
+          reachedAdvance(detail);
+          return pause;
+        }
+      }});
+    t.after(() => releaseAdvance());
+    const rows = Array.from({length: 100}, (_, index) =>
+      ({number: index + 1}));
+    setup.state.repositories.get('R_hello').issues = rows;
+    setup.state.repositories.get('R_copy').issues = rows.map(({number}) =>
+      ({number, title: `Copy ${number}`}));
+    setup.state.pageSize = 100;
+    await setup.publish();
+    const {client} = await setup.open();
+    const document = JSON.stringify(twoRowSourceProgram());
+    const run = await client.aql(document, {format: 'json',
+      requestId: 'github-two-source-join-in-flight-cancel'});
+    const first = await Promise.race([
+      advanced.then(detail => ({kind: 'advance', detail})),
+      run.wait().then(state => ({kind: 'terminal', state})),
+    ]);
+    assert.equal(first.kind, 'advance', JSON.stringify({first,
+      observationNames: observations.map(([name]) => name)}));
+    const advance = first.detail;
+    assert.ok(BigInt(advance.work) > 0n);
+    assert.equal(observations.filter(([name]) =>
+      name === 'acquisition_completed').length, 2);
+    const reads = listings(setup.api).length;
+    await client.cancelRequest('github-two-source-join-in-flight-cancel');
+    assert.equal(observations.filter(([name]) =>
+      name === 'acquisition_cleanup_started').length, 0);
+    releaseAdvance();
+    const state = await run.wait();
+    assert.equal(state.status, 'cancelled', JSON.stringify(state));
+    assert.equal(state.control.physical_stop, 'confirmed');
+    assert.equal(state.result_available, false);
+    for (const name of ['joined', 'consumed_a', 'consumed_b']) {
+      assert.equal(state.result_availability[name].state, 'unavailable');
+      await assert.rejects(run.result(name).all(),
+        {code: 'ResultAccessDenied'});
+    }
+    assert.equal(observations.filter(([name]) =>
+      name === 'acquisition_cleanup_completed').length, 2);
+    assertAcquisitionReleased(observations);
+    assert.deepEqual(await readdir(join(setup.root, 'state',
+      'carrier-snapshots')), []);
+    const resent = await client.aql(document, {format: 'json',
+      requestId: 'github-two-source-join-in-flight-cancel'});
+    assert.deepEqual(resent.ref, run.ref);
+    assert.equal(listings(setup.api).length, reads);
+  });
+
 test('retained row source does not publish after a later page fails',
   async t => {
     const setup = await installation(t, {retainedRelationOutput: true,
