@@ -184,8 +184,11 @@ the shared integration worktree at published
 has the same product/contracts/CI tree and only an additional review record;
 its non-fast-forward push was rejected. No force push, duplicate publication
 or replacement CI run was made. [Automatic CI 37175353412](https://github.com/actql/actql/actions/runs/37175353412)
-is still in progress for the published integration HEAD. The preceding 27-job
-and packed successes are not relabelled as this new Git revision's evidence.
+has now completed successfully for the published integration HEAD: 27
+successful jobs, including aggregation and final check, and only the three
+configured conditional skips (performance-matrix, packed-query-evidence-probe,
+focused-tests). The preceding successes remain bound to their original SHA;
+this result independently closes the new integration's CI.
 
 Fresh packed execution is now confirmed for that published `7ee4c774...` HEAD
 in [artifact 11293569005](https://github.com/actql/actql/actions/runs/37175353412/artifacts/11293569005).
@@ -201,7 +204,8 @@ The helper compares independent rows and ordered Result descriptions and
 checks attach/resubmit/read reuse without further acceptance or acquisition.
 All five tarball digests match the selector package table above, verified from
 this new artifact rather than assumed from the predecessor. Required automatic
-CI remains unfinished; this is public execution evidence, not a final CI GO.
+CI has subsequently completed as recorded above; #316 is ready for review,
+retaining its unmerged #307 base. B performed no merge.
 The downloaded evidence archive is
 `/private/tmp/actql-pr316-packed-public-query-11293569005.zip`; it contains
 logs and summaries, without a new local runtime build or install. This selector
@@ -223,7 +227,29 @@ The follow-up independently binds the added traverse rule bytes and retains
 earlier grammar closures with their original rules; product code and packed
 expectations are unchanged. The affected bounded Node tests pass 6/6.
 [New automatic CI 37176192146](https://github.com/actql/actql/actions/runs/37176192146)
-and fresh packed Local/HTTP remain pending. Direct installed selector Sources
+has no final result yet, but fresh public execution has now passed in
+[artifact 11294091020](https://github.com/actql/actql/actions/runs/37176192146/artifacts/11294091020).
+It records clean synthetic merge `e02465fc0e72d7453f98345fb1f4f826172b9a3c`
+with actual parents main `67f2b659c25db21fd4188ffaab295439c0bda401` and
+submitted B `898d6ddff9aa1b97557bf3972237e764ebcc57d6`. Summary is
+passed/complete, source is clean, evidence errors are empty and command 007
+exits 0 with null signal and complete output. All five traversal positives
+are logged on each transport, and the exact-source refusal loop completes all
+seven refusals on each with unchanged Run/I/O counters and missing request
+lookup. Independent typed identities, empty-result descriptions, column order,
+rows, complete reads and same-request/attach reuse pass through the real Host.
+The following package digests are read from that artifact, not inherited from
+the separate selector run. No local packed campaign was added.
+
+| Traversal package | SHA-256 at the fresh public execution |
+|---|---|
+| client-wire | `5da98d3edb615f960f0511be9d6e61431cd34d02304a8bd6b6e576f7775f91a0` |
+| sdk | `2fc910067348e421346945ced1e728e107bbe6fa455ee00f9d71da46e8123c5b` |
+| run-host-core | `c7e4512a57e54ee00c08deddf2528013e46ff282955fe4de0737f661a6496cbb` |
+| local-node | `dff0dfddc9ee99dd454b1da966d254e4ee880bf9b77ab67842d71e9e59bc0c98` |
+| node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+Direct installed selector Sources
 and path emission remain source-connection gaps, not permanent language limits
 or completed execution coverage. The B-owned Graph-call branch and D-owned
 capture/CTE boundary were [shared with D](https://github.com/actql/actql/pull/273#issuecomment-5976330639);
