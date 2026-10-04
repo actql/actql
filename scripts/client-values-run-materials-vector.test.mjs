@@ -325,10 +325,20 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('24f53c1f64028206dbc01f6c3d0c11d991c8c9d512581fdfd007a250315f8bbd'),
     preRefreshContract, preRefreshDependencies, barrierCid).run.run_definition_cid,
     pin('5347f97a234b92717a8495614590b5e4b0a87a4b8bd796f051952ef164988663'));
-  assert.equal(vector(grammarCid, preRefreshContract, preRefreshDependencies, barrierCid).run.run_definition_cid,
+  assert.equal(vector(pin('b631f06f2ad3b4972d2ac2211819a55d40b1ffd4c5ff6e56b726a20f512c106d'), preRefreshContract, preRefreshDependencies, barrierCid).run.run_definition_cid,
     pin('b37addde56c74a96dcf6ba4161c6c36a8d66f8bf6d77cc476ed753c29d123042'));
-  assert.equal(current.run.run_definition_cid,
+  // Preserve both parents' independent vectors with their original grammar and dependencies.
+  assert.equal(vector(pin('b631f06f2ad3b4972d2ac2211819a55d40b1ffd4c5ff6e56b726a20f512c106d'),
+    cid(aoaContract), dependencies, barrierCid).run.run_definition_cid,
     pin('33cfcb3f25ea4ace4092ddc986cf36501136c845caa6dc7d6453ed5bf3931fbf'));
+  assert.equal(vector(pin('cb357b785390fb3e581a6ece8e61d49d9d93676666df77dd18a2d7f72f381bff'),
+    preRefreshContract, preRefreshDependencies, barrierCid).run.run_definition_cid,
+    pin('07ba9ca36c06c85c6fdc3e88aaed22d02dff38348fb1d7003aa6ab4108b3654e'));
+  assert.equal(vector(pin('cb357b785390fb3e581a6ece8e61d49d9d93676666df77dd18a2d7f72f381bff'),
+    cid(aoaContract), graphRowsDependencies, barrierCid).run.run_definition_cid,
+    pin('8e2f3659d83e5bdc7058fb2c1044879fea2fdf23bb1ab7266f8b07d544abf0b4'));
+  assert.equal(current.run.run_definition_cid,
+    pin('81d0f20687086a3a17a81541a6042c1f4c6afb3d4a9a09fceca1f69236e374d2'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');
