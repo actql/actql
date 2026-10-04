@@ -378,12 +378,21 @@ DATA rows = FROM g |> node_rows() |> SELECT node_key, labels;
 FROM rows |> ORDER BY node_key |> RESULT nodes
 ```
 
-These calls accept no named options in the current connection. Definition
-selection is a separate common-contract dependency, not an inferred filter.
+Each call accepts either no arguments, `definition: "N"`, or `label: "Person"`.
+Exactly one string-valued selector is permitted; these names are Graph element
+names, not producer references or property predicates. Resolution uses the
+common Graph name identity and retains declared spelling. Definition selection
+chooses one same-kind definition; label selection chooses all same-kind
+definitions declaring that label, including properties exposed by their other
+labels. Unknown names, wrong element kinds, mixed selectors and non-string
+selectors are explicit pre-admission refusals. The selector is lowered to the
+existing closed `node_rows` / `edge_rows` object, without inferred filtering.
 The common Bridge owns the finite schema, typed element identities, retained
 key columns, label sets and property presence. Conditional presence is not
 nullable: an ordinary reference to a Conditional field is rejected by the
-common checker, even after `IS NOT NULL`. The remaining Relation operations
+common checker, even after `IS NOT NULL`. Project guaranteed columns before
+ordinary filtering if the selected schema still contains Conditional fields.
+The remaining Relation operations
 use normal scope, expression, order and Result lowering. DATA adds no copy,
 acquisition or execution owner. A Graph-preserving normalize call still needs
 an adapted common consumer; source lowering alone does not authorize it.
