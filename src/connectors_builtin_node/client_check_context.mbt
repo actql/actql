@@ -12,7 +12,9 @@ pub fn client_program_check_context_identity(
     environment,
   )
   try {
-    let writer = @encode.writer(65536, 4096, 64)
+    // The admitted wire is bounded to 65,536 bytes and 4,096 nodes. Reserve
+    // separate output overhead for the selected profiles and context wrapper.
+    let writer = @encode.writer(131072, 8192, 64)
     @encode.begin_object(writer)
     @encode.key(writer, "host_policy_profile")
     @check_environment.emit_host_policy(wire, writer)

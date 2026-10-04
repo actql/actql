@@ -913,6 +913,17 @@ test('the admitted checker exposes exact selections without private Source inven
       calendar: false, text_rank: false, property_graph: true,
       property_graph_law_cid: propertyCid, model_tasks: true,
       numeric_profile_cid: numericCid, calendar_profile_cid: null, text_rank_profile_cid: null});
+  const paddedPolicy = {capacity: sourceEnvironment.host_policy_profile.capacity,
+    padding: ''};
+  const initialWire = withPolicy(emptyEnvironment, paddedPolicy);
+  paddedPolicy.padding = 'x'.repeat(65536 - Buffer.byteLength(canonicalText(initialWire)));
+  const paddedWire = withPolicy(emptyEnvironment, paddedPolicy);
+  assert.equal(Buffer.byteLength(canonicalText(paddedWire)), 65536);
+  const padded = moon.clientProgramCheckEnvironment(canonicalText(paddedWire),
+    paddedWire.evidence_bundle_cid, false, false, true, true, false, false, false);
+  assert.notEqual(padded, undefined, 'maximum-size wire fixture must be admitted');
+  assert.deepEqual(JSON.parse(moon.clientProgramCheckContextIdentity(padded))
+    .host_policy_profile, paddedPolicy, 'projection reserves its own metadata overhead');
 });
 
 for (const entrance of ['local', 'http']) {
