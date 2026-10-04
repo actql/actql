@@ -7,7 +7,6 @@ import {mkdirSync, readFileSync, writeFileSync, existsSync} from 'node:fs';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {performance} from 'node:perf_hooks';
-import {release} from 'node:os';
 import {actionsReader} from '../../scripts/ci-main-base.mjs';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {snapshot} from '../bounded-session/evidence.mjs';
@@ -16,6 +15,7 @@ import {actionInputs, gitTree, hash} from './inputs.mjs';
 import {canonicalReceipt, parseReceipt, sealReceipt} from './receipts.mjs';
 import {leanRecords} from './applications.mjs';
 import {checkPlan} from './check.mjs';
+import {observeRuntime} from './runtime.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const directory = join(root, '.artifacts/session-actions');
@@ -51,16 +51,12 @@ export async function initialize() {
   // This first collection reports the open boundary honestly. It does not turn
   // the earlier report-only runtime inventory into a closure witness. Reviewed
   // runtime capture and comparison must precede the later activation commit.
-  const pin = json(join(root, 'toolchain.json'));
-  const home = process.env.MOON_HOME ?? join(root, '.toolchains', `moonbit-${pin.version}`);
-  const runtime = {profile: 'comparison-linux-runtime', platform: process.platform, architecture: process.arch,
-    osRelease: release(), nodeVersion: process.version, image: process.env.ImageVersion ?? 'unrecorded',
-    executables: Object.fromEntries([['node', process.execPath], ['moon', join(home, 'bin/moon')],
-      ['moonc', join(home, 'bin/moonc')], ['moonrun', join(home, 'bin/moonrun')]].map(([id, path]) => [id, hash(readFileSync(path))])),
-    unresolved: ['comparison only: distribution/core, loader, runtime configuration and external dependencies require reviewed closure']};
+  const {runtime, distributionInputs, measurement} = observeRuntime({root});
   assert(!existsSync(directory), 'Another collection already owns this directory');
   for (const path of ['receipts', 'observations', 'results']) mkdirSync(join(directory, path), {recursive: true});
   write(join(directory, 'context.json'), {context, origin, runtime});
+  write(join(directory, 'runtime-distributions.json'), distributionInputs);
+  write(join(directory, 'runtime-measurement.json'), measurement);
   console.log(`Comparison collection initialized for ${revision}; all actions still execute`);
 }
 
@@ -74,7 +70,9 @@ export function recordExistingAction({id, command, output, status, milliseconds,
   assert.equal(encode(action.command), encode(command), 'Executed command differs from registration');
   tree ??= gitTree(root, state.context.candidateRevision);
   const inputs = actionInputs({tree, revision: state.context.candidateRevision, action, runtime: state.runtime});
-  const artifacts = [];
+  const distributionPath = 'runtime-distributions.json';
+  const distributionBytes = readFileSync(join(directory, distributionPath));
+  const artifacts = [{path: distributionPath, bytes: distributionBytes.length, digest: hash(distributionBytes)}];
   if (result !== null) {
     const path = `results/${id}.json`, bytes = Buffer.from(`${encode(result)}\n`);
     writeFileSync(join(directory, path), bytes, {flag: 'wx'});
