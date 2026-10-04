@@ -5,6 +5,7 @@ import {
   "actql/actql/connectors/salesforce/catalog",
   "actql/actql/connectors/salesforce/host",
   "actql/actql/execution_query",
+  "actql/actql/physical_resources",
   "actql/actql/query_planning",
   "actql/actql/run_publication",
 }
@@ -15,6 +16,8 @@ pub fn capture_client_salesforce_source(@host.SalesforceBroadHostRun) -> Result[
 pub fn client_salesforce_acquisition_plan(ClientSalesforceAcquisition) -> @catalog.ReadProjection
 
 pub fn client_salesforce_declaration_catalog_cid(ClientSalesforceDeclaration) -> String
+
+pub fn client_salesforce_prepared_capacity(@query_planning.QueryRequirement) -> (@query_planning.QueryRequirement, Int64, Int64)
 
 pub fn client_salesforce_site(String, String, String, String, String, String, Int, String) -> Result[ClientSalesforceSite, ClientSalesforceIssue]
 
@@ -27,6 +30,8 @@ pub fn prepare_client_salesforce_acquisition(ClientSalesforceDeclaration, @query
 pub fn recover_client_salesforce_observation(ClientSalesforceSite, String, String, String, String, Array[String], Array[Bytes?], Array[Int], Array[String?], Array[String?], @catalog.DescribeLimits, Int, String?) -> Result[@catalog.CatalogObservation, ClientSalesforceIssue]
 
 pub fn restore_client_salesforce_declaration(ClientSalesforceSite, @catalog.CatalogObservation, String, String, @catalog.DeclarationLimits) -> Result[ClientSalesforceDeclaration, ClientSalesforceIssue]
+
+pub fn start_accounted_client_salesforce_acquisition(ClientSalesforceAcquisition, String, (@host.SalesforceBroadAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[@host.SalesforceBroadHostRun, ClientSalesforceIssue]
 
 pub fn start_client_salesforce_acquisition(ClientSalesforceAcquisition, String, (@host.SalesforceBroadAttempt) -> Bool) -> Result[@host.SalesforceBroadHostRun, ClientSalesforceIssue]
 

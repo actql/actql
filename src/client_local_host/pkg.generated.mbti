@@ -89,6 +89,8 @@ pub fn installed_duckdb_capture_capacity(@host.CaptureConfiguration) -> ClientIn
 
 pub fn installed_row_capture_capacity(@client_row_source_host.RowAcquisition) -> ClientInstalledCaptureCapacity?
 
+pub fn installed_salesforce_capture_capacity(@query_planning.QueryRequirement) -> ClientInstalledCaptureCapacity?
+
 pub fn local_values_execution_failure_cleanup_pending(LocalValuesExecutionFailure) -> Bool
 
 pub fn local_values_execution_failure_issue(LocalValuesExecutionFailure) -> LocalValuesExecutionIssue

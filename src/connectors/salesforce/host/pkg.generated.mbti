@@ -10,6 +10,8 @@ import {
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
   "actql/actql/physical_cost",
+  "actql/actql/physical_resources",
+  "actql/actql/physical_strategy",
   "actql/actql/query_planning",
   "actql/actql/run_publication",
   "moonbitlang/core/debug",
@@ -41,6 +43,10 @@ pub fn cancel_salesforce_broad_query(SalesforceBroadQuery) -> Bool
 pub fn capture_salesforce_broad_host_source(SalesforceBroadHostRun, SalesforceBroadObservation) -> Result[SalesforceBroadSourceCapture, SalesforceBroadHostIssue]
 
 pub fn capture_salesforce_broad_query(SalesforceBroadIssuer, SalesforceBroadAttempt, SalesforceBroadRecords, @query_planning.QueryEvidenceLimits) -> Result[SalesforceBroadObservation, SalesforceEvidenceIssue]
+
+pub fn charge_salesforce_broad_page(SalesforceBroadHostRun, Int64) -> Result[Unit, SalesforceBroadHostIssue]
+
+pub fn close_accounted_salesforce_broad_host(SalesforceBroadHostRun) -> Result[Unit, SalesforceBroadHostIssue]
 
 pub fn close_salesforce_broad_host(SalesforceBroadHostRun) -> Unit
 
@@ -84,6 +90,10 @@ pub fn prepare_salesforce_source_evidence_context(@query_planning.QueryRequireme
 
 pub fn retain_salesforce_broad_attempt(SalesforceBroadAttempt, @query_planning.QueryRetentionLimits) -> Result[Unit, SalesforceBroadAttemptIssue]
 
+pub fn retain_salesforce_broad_capture(SalesforceBroadSourceCapture) -> Result[Unit, SalesforceBroadHostIssue]
+
+pub fn retain_salesforce_broad_capture_task(SalesforceBroadSourceCapture, @physical_strategy.CapturedDAG, Int) -> Result[Unit, SalesforceBroadHostIssue]
+
 pub fn salesforce_broad_attempt_identity(SalesforceBroadAttempt) -> (String, String)
 
 pub fn salesforce_broad_attempt_next_path(SalesforceBroadAttempt) -> Result[String?, SalesforceBroadAttemptIssue]
@@ -102,6 +112,8 @@ pub fn salesforce_broad_captured_source(SalesforceBroadIssuer, SalesforceBroadAt
 
 pub fn salesforce_broad_complete(SalesforceBroadQuery) -> Bool
 
+pub fn salesforce_broad_execution_capacity(SalesforceBroadHostConfiguration) -> Int64
+
 pub fn salesforce_broad_host_attempt(SalesforceBroadHostRun) -> SalesforceBroadAttempt
 
 pub fn salesforce_broad_host_source(SalesforceBroadHostRun, SalesforceBroadObservation) -> Result[@execution_query.CapturedInputSource, SalesforceBroadHostIssue]
@@ -118,6 +130,8 @@ pub fn salesforce_broad_record_at(SalesforceBroadRecords, Int) -> (@encode_core.
 
 pub fn salesforce_broad_requirement(SalesforceBroadPreparation) -> @query_planning.QueryRequirement
 
+pub fn salesforce_broad_retained_capacity(SalesforceBroadHostConfiguration) -> Int64
+
 pub fn salesforce_broad_row_count(SalesforceBroadQuery) -> Int64
 
 pub fn salesforce_broad_source_capture_source(SalesforceBroadSourceCapture) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]
@@ -127,6 +141,8 @@ pub fn salesforce_broad_work_at(Int) -> SalesforceBroadWork?
 pub fn salesforce_source_evidence_members(@catalog.StaticDeclaration) -> (Array[String], Array[String]) raise @encode_core.EncodeFailure
 
 pub fn settle_salesforce_broad_transport(SalesforceBroadAttempt) -> Result[Unit, SalesforceBroadAttemptIssue]
+
+pub fn start_accounted_salesforce_broad_host(SalesforceBroadHostConfiguration, String, (SalesforceBroadAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[SalesforceBroadHostRun, SalesforceBroadHostIssue]
 
 pub fn start_salesforce_broad_host(SalesforceBroadHostConfiguration, String, (SalesforceBroadAttempt) -> Bool) -> Result[SalesforceBroadHostRun, SalesforceBroadHostIssue]
 
@@ -168,6 +184,7 @@ type SalesforceBroadHostConfiguration
 
 pub(all) enum SalesforceBroadHostIssue {
   InvalidState
+  Physical(@physical_resources.LedgerIssue)
   Evidence(SalesforceEvidenceIssue)
   Consumer(@execution_query.CapturedSourceIssue)
   Binding(SalesforceEvidenceIssue)
