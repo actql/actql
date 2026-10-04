@@ -1,8 +1,10 @@
 # Incremental bounded Session evidence
 
-This first implementation collects 26 existing actions in the selected
+The implementation accounts for 26 existing actions in the selected
 `session-evidence` job and authenticates the resulting immutable ZIP in the
-required `check` job. Every existing action still executes. It changes neither
+required `check` job. Main executes all actions fresh. A PR may reuse only
+`mutations-js`, after a successful full-main comparison and independent final
+acceptance, with equal reviewed source/runtime inputs. It changes neither
 the pipeline partitioning nor the chain/capacity campaigns. The artifact reader
 is now a semantic verification input and is no longer maintenance-only.
 
@@ -14,14 +16,15 @@ The initial plan returns `execute` for every registered action and explicitly
 does not authorize reuse. `seal` interprets command output; it is not a trust
 witness without authentication of the actual successful Actions producer.
 
-The current workflow uses the existing executions directly:
+The workflow uses the existing executions directly:
 
 1. `collect.mjs init` resolves the live Session job, actual checkout revision,
    run HEAD, run/attempt and repository through the read-only Actions API.
-2. The existing mutation runner executes once. Its source restoration is
+2. The existing mutation runner executes once unless its independently verified
+   acquisition plan selects a qualified main original. Fresh source restoration is
    checked before a receipt is recorded. The final existing bounded Session
    runner records its actual model and three-target test executions.
-3. `collect.mjs finish` runs the executable Lean checker over all 26 fresh
+3. `collect.mjs finish` runs the executable Lean checker over the complete registered
    applications and records the exact Lean input/output digests.
 4. Upload the original receipts, observations, results and certificate as
    `session-actions-<run>-<attempt>-<tested-revision>`.
@@ -31,6 +34,11 @@ The current workflow uses the existing executions directly:
    source inputs and certificate binding. Missing or inconsistent evidence
    fails the required check. The final consumer validates the trusted producer's
    executed Lean certificate rather than installing Lean and repeating its run.
+6. The final check uploads `verified-family.json` separately as
+   `session-applicability-<run>-<attempt>-<tested-revision>`. A later PR requires
+   its actual successful `check` owner, whole successful main run, source ZIP
+   digest, complete fresh inventory and confirmed scientific comparison. A
+   producer success or matching counts cannot substitute for this acceptance.
 
 The receipt distinguishes the actual tested PR merge revision from the run's
 head revision. Fresh fork PR observations may satisfy their own current run;
@@ -73,6 +81,47 @@ deletion, open runtime boundaries, whole target/profile replacement, incomplete
 obligations, mixed attempts, failed/cancelled origins, missing/changed ZIP
 members, certificate input/output changes and token isolation during transport.
 Full correspondence and physical tests remain in their existing CI jobs.
+
+## Adding a local obligation through the ordinary PR
+
+The published initial 26 descriptors remain protected requirements. An added
+local obligation no longer fails initialization merely because the catalog is
+larger. Initialization, the actual runner, producer finish and final consumer
+all check the catalog against the same finite execution recipes. A registration
+without an executable recipe is refused before collection; a recipe without a
+registered requirement is refused too. The new recipe and its runner/fixture
+registry are verification inputs, including their bytes and modes.
+
+For an existing numeric/NULL Relation operation:
+
+1. Keep independent expected values and operation-specific boundaries in its
+   existing MoonBit fixture. Reuse the common Session/adapter evidence only for
+   the already established premises. Do not widen a connection profile by
+   relabeling a receipt or inferred result.
+2. Add the finite fixture selection, package, optional literal filter, minimum
+   test count, reviewed profile, remaining premises and dependency IDs to
+   `localExecutionSuites` in `execution-recipes.mjs`. `{target}` in dependency
+   IDs expands to the actual JS/Wasm/native selection. The existing Nest entries
+   are concrete examples; no execution callback or runner branch is needed.
+3. Register the corresponding three action descriptors in
+   `bounded-session-actions.json`. The recipe checker compares command, target,
+   package, minimum, profile, premises and dependencies, rather than just names.
+   Keep every published original descriptor unchanged. New derived connection
+   claims additionally require independently reviewed fixture coverage and
+   binding checks; adding a local test action does not issue such claims.
+4. Use the repository's bounded Node wrapper for the changed recipe/application
+   tests. Submit the ordinary PR and use its automatic CI. The existing runner
+   executes the actual fixture, records its subprocess output and artifacts,
+   and adds its current receipt to the complete executed Lean requirement input.
+   Missing or substituted new receipts fail final acceptance.
+
+Added local actions execute fresh. Only the previously qualified isolated
+`mutations-js` action can currently reuse a protected-main original. New
+registrations are not automatically runtime-closed or reusable. Changes to the
+execution recipes/runner are policy changes and invalidate old policy inputs;
+they do not authorize borrowing an old experiment's evidence. This registration
+connection removes a development restriction; it is not measured CI savings or
+completion of the whole incremental verification objective.
 
 ## Runtime input observation (dependent unit)
 
@@ -183,18 +232,66 @@ Only this action receives the isolated runtime profile. The other 25 action
 runtimes, final three-target validation, chain/capacity campaigns and required
 checks are unchanged. Image preparation, build, execution, inspection and owned
 container/image closure costs are recorded separately. No registry base, host
-installation cache, workflow change or parallel receipt ledger is introduced.
+installation cache or parallel receipt ledger is introduced.
 The actual built image definition is also checked and retained: fixed ENV,
 entrypoint, user and workdir; no extra command, startup hook, volume or health
 check. The final consumer verifies this inspected definition independently of
 the intended Dockerfile. Staged Dockerfile/control bytes are checked again
 before build, and unexpected environment values are not printed.
 
-**This executor remains comparison-only.** Its kernel/CPU and action closure
-still require acceptance; Docker isolation is not a proof of OS determinism.
+The first execution unit was comparison-only. The subsequent scoped policy
+uses an explicit conditional action/runtime contract; Docker isolation is not
+a proof of OS determinism.
 In particular, `/proc`, virtual devices, clock/entropy, compiler behavior and
 complete dynamic dependency discovery are not established merely by copying
-the ELF dependencies. The mandatory isolated residual cannot be removed by a
+the ELF dependencies. An unreviewed isolated residual cannot be removed by a
 carried runtime label. Actual CI execution, main comparison, scoped activation
 and net savings remain required. No local Docker or mutation campaign is needed
 to submit this bounded executor change; use its natural PR CI.
+
+## Reviewed JS package configuration
+
+The initial mutation input walk encountered fourteen literal package options
+that the general limited parser deliberately leaves unknown. The finite policy
+in `package-configurations.mjs` records independently reviewed package paths,
+full configuration digests and the exact toolchain pin for JS only. These
+configurations contain native stub/link options and native/not-native file
+predicates; they do not launch native build tools in this JS action. The pinned
+Moon [conditional compilation implementation](https://github.com/moonbitlang/moon/blob/94521db/crates/moonbuild-rupes-recta/src/cond_comp.rs)
+selects file predicates before build lowering, while native stub/link options
+belong to the [native backend contract](https://docs.moonbitlang.com/en/latest/toolchain/moon/package.html#native-backend).
+
+All configuration and source bytes, modes and directory memberships still
+participate in the input key, including native sources read by the restoration
+snapshot. Accepted records carry the review path, digest, target and toolchain
+in the manifest. A changed configuration, toolchain, target, unreviewed package
+or option stays unresolved and executes fresh; no general configuration parser
+or target-name override grants acceptance. Native/Wasm input closures and the
+isolated runtime residual remain separate unfinished obligations. This policy
+does not prove Moon's implementation or OS determinism and does not itself
+authorize reuse.
+
+## Scoped acquisition and final applicability
+
+See [the scoped acceptance/effects review](../../docs/reviews/2026-10-04-scoped-session-evidence-reuse.md)
+for the current conditional runtime contract, ordinary development procedure,
+explicit main comparison period and unfinished real-PR savings acceptance.
+`acquisition-plan.json` is independent of the submitted receipt list. Main
+always executes fresh; only a qualified `mutations-js` original may be adopted
+on a PR. Unavailable acceptance before execution selects fresh work. Once
+adopted, its retained original ZIP and final-check applicability ZIP are
+mandatory and independently authenticated again at final check.
+
+Original receipts are not rewritten; the actual Lean checker consumes the
+mixed fresh/reused candidate applications. Reused observations are explicitly
+`reused-not-executed`, with no current execution count or duration. The final
+applicability artifact records all obligations and is qualified only after its
+actual main run/check owner succeeds and its comparison is confirmed.
+
+Production same-owner receipt authentication is atomic: a transport outage
+during that group leaves every group member unconfirmed, with no partial
+success label. Per-action comparisons from an independently completed group
+are retained. The earlier first/later receipt outage regression remains; final
+availability never promotes an incomplete comparison or invalid origin into
+reuse permission. Optional comparison ZIPs live outside the uploaded receipts;
+only actually adopted originals are retained inside the candidate archive.

@@ -270,3 +270,21 @@ pub fn input_request_origin(value : InputRequest) -> DiagnosticOrigin {
     | CalendarProfileArtifact(_) => CheckEnvironment
   }
 }
+
+///|
+/// A proven undeclared parameter, retained by the existing semantic checker.
+/// This is not a missing-value request or a search through rendered messages.
+pub fn diagnostic_undeclared_parameter(value : CheckDiagnostic) -> String? {
+  match diagnostic_pipeline_issue(value) {
+    Some(
+      {
+        kind: Operation(
+          Expression(UnknownParameter(name))
+          | UnknownParameter(name)
+        ),
+        ..
+      }
+    ) => Some(name)
+    _ => None
+  }
+}

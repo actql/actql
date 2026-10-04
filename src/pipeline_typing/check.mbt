@@ -1137,7 +1137,51 @@ fn check_impl(
       current = Some(target)
       continue
     }
-    if key == "normalize_graph" || key == "components" {
+    if key == "components" {
+      let checked = match
+        @graph.check_components(
+          operation_body,
+          carrier(input, inputs, steps),
+          parameters,
+          {
+            max_work: b.work,
+            max_nodes: b.nodes,
+            max_depth: limits.max_depth,
+            max_text_bytes: b.text,
+          },
+        ) {
+        Ok(value) => value
+        Err(issue) =>
+          raise Stop({
+            kind: Graph(issue.kind),
+            source: operation_body,
+            path: issue.path.copy(),
+            span: issue.span,
+            range: None,
+          })
+      }
+      let used = @graph.components_usage(checked)
+      b.work -= used.work
+      b.nodes -= used.nodes
+      b.text -= used.text_bytes
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation: GraphComponents(checked),
+        output: @graph.components_output(checked),
+        connections: { entries: [{ role: Primary, target: input, }], },
+        window: None,
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
+    }
+    if key == "normalize_graph" {
       match carrier(input, inputs, steps) {
         @carrier.GraphValue(_) =>
           fail(operation_body, Graph(@graph.UnsupportedGraphOperation))
@@ -1913,6 +1957,7 @@ fn check_impl(
         | GraphMatch(_)
         | GraphBounds(_)
         | GraphDegree(_)
+        | GraphComponents(_)
         | Event(_)
         | Sequence(_)
         | Vector(_) => [{ role: Primary, target: input, }]

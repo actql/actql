@@ -28,7 +28,9 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.packed_query_evidence_probe && 'evidence-probe' || inputs.performance_matrix && 'performance' || 'normal' }}
-  cancel-in-progress: ${{ !inputs.performance_matrix }}
+  # Let an automatic main checkpoint finish; only its pending successor is replaced.
+  # PR updates and non-performance manual runs retain the existing cancellation policy.
+  cancel-in-progress: ${{ !inputs.performance_matrix && !(github.event_name == 'push' && github.ref == 'refs/heads/main') }}
 
 jobs:
   select-targets:
@@ -255,13 +257,13 @@ jobs:
         run: node --test proofs/bounded-session/evidence.test.mjs proofs/bounded-session/proof-check.test.mjs
       - name: Reject invalid incremental action inputs and origins
         run: node --test proofs/ci-evidence/*.test.mjs
-      - name: Initialize comparison from this live run and attempt
+      - name: Select fresh or verified-main acquisition for this live run and attempt
         env:
           ACTIONS_READ_TOKEN: ${{ github.token }}
         run: node proofs/ci-evidence/collect.mjs init
       - name: Produce conditional common-mechanism evidence beside existing gates
         run: node proofs/bounded-session/run.mjs all
-      - name: Detect representative production mutations with replacement tests
+      - name: Execute or authenticate the registered JS mutation obligation
         env:
           ACTQL_SESSION_COLLECT: 'true'
         run: node proofs/ci-evidence/collect.mjs mutations
@@ -285,7 +287,7 @@ jobs:
         run: node proofs/relation-chain/run.mjs all
       - name: Produce conditional allocation capacity evidence on all targets
         run: node proofs/relation-capacity/run.mjs all
-      - name: Check complete fresh action inventory with Lean
+      - name: Check complete fresh and reused action inventory with Lean
         run: node proofs/ci-evidence/collect.mjs finish
       - name: Retain immutable action receipts for comparison and final check
         id: session-actions
@@ -951,13 +953,21 @@ jobs:
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 22.22.0
-      - name: Authenticate fresh action receipts and the executed Lean certificate
+      - name: Authenticate all action receipts and the executed Lean certificate
+        id: session-acceptance-check
         if: ${{ needs.session-evidence.result == 'success' }}
         env:
           ACTIONS_READ_TOKEN: ${{ github.token }}
           SESSION_ARTIFACT_ID: ${{ needs.session-evidence.outputs.artifact-id }}
           SESSION_ARTIFACT_DIGEST: ${{ needs.session-evidence.outputs.artifact-digest }}
         run: node proofs/ci-evidence/final.mjs
+      - name: Retain the final applicability observation separately from original receipts
+        if: ${{ needs.session-evidence.result == 'success' && steps.session-acceptance-check.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: session-applicability-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: .artifacts/session-applicability/verified-family.json
+          if-no-files-found: error
   spec:
     needs: [preflight]
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}

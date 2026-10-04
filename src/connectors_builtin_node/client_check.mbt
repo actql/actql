@@ -7,6 +7,11 @@
 priv enum CheckFinding {
   // A disclosable proven violation of the caller's own input.
   Violation(String)
+  SyntaxViolation(Int, Int)
+  TypeViolation(String, String, String, String?)
+  SuppliedViolation(String?)
+  UndeclaredParameter(String, (Int, Int)?)
+  RequiredValue(String, String)
   // An obligation that cannot be discharged from disclosable evidence.
   Unresolved(String)
   // An allowed construct or budget the checker could not close.
@@ -35,12 +40,26 @@ pub fn client_program_check_source(
   declarations : String?,
   parameters : String?,
   context_ref : String,
+  source_revision : String,
+  declarations_revision : String?,
+  parameters_revision : String?,
 ) -> String {
   let findings : Array[CheckFinding] = []
   let stop = check_source_findings(
     findings, document, format, environment, visible_publication, declarations, parameters,
   )
-  check_outcome_json(findings, stop, context_ref)
+  check_outcome_json(findings, stop, context_ref, {
+    source_revision,
+    source_bytes: @utf8.encode(document).length(),
+    declarations_revision,
+    declarations_bytes: declarations
+    .map(body => @utf8.encode(body).length())
+    .unwrap_or(0),
+    parameters_revision,
+    parameters_bytes: parameters
+    .map(body => @utf8.encode(body).length())
+    .unwrap_or(0),
+  })
 }
 
 ///|
@@ -60,6 +79,8 @@ pub fn client_program_check_unavailable(correlation_ref : String) -> String {
     @encode.key(writer, "code")
     @encode.string_value(writer, "check_unavailable")
     @encode.end_object(writer)
+    @encode.key(writer, "reason_schema_cid")
+    @encode.string_value(writer, check_reason_schema_cid)
     @encode.key(writer, "version")
     @encode.string_value(writer, check_outcome_version)
     @encode.end_object(writer)
@@ -113,7 +134,9 @@ fn check_source_findings(
           match @source_frontend.parse_query(document, selected) {
             Ok(_) => ()
             Err(QuerySyntax({ issue: Limit(_), .. })) => ()
-            Err(QuerySyntax(_) | WrongQueryForm) =>
+            Err(QuerySyntax(diagnostic)) =>
+              findings.push(check_syntax_finding(diagnostic))
+            Err(WrongQueryForm) =>
               findings.push(Violation("query_syntax_invalid"))
             Err(_) => return Failed("check_internal")
           }
@@ -139,44 +162,63 @@ fn check_source_findings(
   // independently of relation resolution: an inaccessible source must not
   // hide a definite supplied-value violation. A budget of this check is a
   // limit, never a violation of the caller's input.
-  match context.parameter_declarations {
-    Some(declared) =>
-      match client_program_input("json", parameters) {
-        Err(SuppliedSyntax({ issue, .. })) =>
-          findings.push(
-            if check_parse_budget(issue) {
-              Limit("analysis_budget_exhausted")
-            } else {
-              Violation("supplied_parameters_invalid")
-            },
-          )
-        Err(SuppliedAdmission(issue)) =>
-          findings.push(
-            if issue.kind is BudgetExceeded {
-              Limit("analysis_budget_exhausted")
-            } else {
-              Violation("supplied_parameters_invalid")
-            },
-          )
-        Err(_) => return Failed("check_internal")
-        Ok((_, supplied)) =>
-          match
-            @parameter_binding.bind(declared, supplied, {
-              max_nodes: 8192,
-              max_depth: 64,
-              max_text_bytes: 65536,
-            }) {
-            Ok(NeedsBindings(_)) => findings.push(Limit("bound_values_missing"))
-            Ok(Ready(_)) => ()
-            Err(issue) =>
-              match check_binding_fault(issue) {
-                Budget => findings.push(Limit("analysis_budget_exhausted"))
-                Invalid => findings.push(Violation("supplied_value_invalid"))
-                Internal => return Failed("check_internal")
+  let (supplied, supplied_admitted) = match
+    client_program_input("json", parameters) {
+    Ok((_, supplied)) => (supplied, true)
+    Err(SuppliedSyntax({ issue, .. })) => {
+      findings.push(
+        if check_parse_budget(issue) {
+          Limit("analysis_budget_exhausted")
+        } else {
+          Violation("supplied_parameters_invalid")
+        },
+      )
+      (None, false)
+    }
+    Err(SuppliedAdmission(issue)) => {
+      findings.push(
+        if issue.kind is BudgetExceeded {
+          Limit("analysis_budget_exhausted")
+        } else {
+          Violation("supplied_parameters_invalid")
+        },
+      )
+      (None, false)
+    }
+    Err(_) => return Failed("check_internal")
+  }
+  if supplied_admitted {
+    match context.parameter_declarations {
+      Some(declared) =>
+        match
+          @parameter_binding.bind(declared, supplied, {
+            max_nodes: 8192,
+            max_depth: 64,
+            max_text_bytes: 65536,
+          }) {
+          Ok(NeedsBindings(missing)) => {
+            findings.push(Limit("bound_values_missing"))
+            for index in 0..<@parameter_binding.missing_count(missing) {
+              let declaration = @parameter_binding.missing_at(missing, index).unwrap()
+              if declaration.name.length() <= 256 &&
+                check_declaration_type(declaration) is Some(expected) {
+                findings.push(RequiredValue(declaration.name, expected))
               }
+            }
           }
-      }
-    None => ()
+          Ok(Ready(_)) => ()
+          Err(issue) =>
+            match check_binding_fault(issue) {
+              Budget => findings.push(Limit("analysis_budget_exhausted"))
+              Invalid =>
+                findings.push(
+                  check_supplied_type_finding(issue, declared, supplied),
+                )
+              Internal => return Failed("check_internal")
+            }
+        }
+      None => ()
+    }
   }
   let lowered = match
     @source_frontend.lower(document, selected, Some(context)) {
@@ -185,8 +227,9 @@ fn check_source_findings(
       match issue {
         QuerySyntax({ issue: Limit(_), .. }) =>
           findings.push(Limit("analysis_budget_exhausted"))
-        QuerySyntax(_) | WrongQueryForm =>
-          findings.push(Violation("query_syntax_invalid"))
+        QuerySyntax(diagnostic) =>
+          findings.push(check_syntax_finding(diagnostic))
+        WrongQueryForm => findings.push(Violation("query_syntax_invalid"))
         // Absent and inaccessible relations are both missing from the
         // audience-visible publication; neither is a proven violation.
         QueryLowering(UnknownRelation) =>
@@ -243,64 +286,62 @@ fn check_source_findings(
       return Report
     }
   }
-  if findings.iter().any(finding => finding is Violation(_)) {
+  if findings
+    .iter()
+    .any(finding => {
+      finding
+      is (Violation(_)
+      | SyntaxViolation(_, _)
+      | TypeViolation(_, _, _, _)
+      | SuppliedViolation(_)
+      | UndeclaredParameter(_, _))
+    }) {
     return Report
   }
-  let outcome = client_program_prepare_effect_free_with_parameters(
-    lowered.document,
-    "json",
-    environment,
-    parameters,
-  )
-  match outcome {
-    Prepared(_) => ()
-    Rejected(SuppliedSyntax({ issue, .. })) =>
-      findings.push(
-        if check_parse_budget(issue) {
-          Limit("analysis_budget_exhausted")
-        } else {
-          Violation("supplied_parameters_invalid")
-        },
-      )
-    Rejected(SuppliedAdmission(issue)) =>
-      findings.push(
-        if issue.kind is BudgetExceeded {
-          Limit("analysis_budget_exhausted")
-        } else {
-          Violation("supplied_parameters_invalid")
-        },
-      )
-    Rejected(Preparation(NeedsInputs(_))) =>
-      findings.push(Limit("bound_values_missing"))
-    Rejected(Preparation(EffectNotSupported(_))) =>
-      findings.push(Limit("implementation_limit"))
-    Rejected(Preparation(Check(diagnostic))) =>
+  // Syntax/lowering still contributed independent findings, but an
+  // unadmitted supplied map cannot be replaced by absent values to narrow scope.
+  if !supplied_admitted {
+    return Report
+  }
+  guard lowered.program is Some(program) else {
+    return Failed("check_internal")
+  }
+  // Use the same admitted checker owner without serializing and reparsing
+  // generated JSON. Authored provenance stays owned by the submitted input.
+  match
+    @program_check.check_parsed(
+      program,
+      environment,
+      supplied,
+      client_program_standard_limits().checking,
+    ) {
+    Checked(_) => ()
+    NeedsInputs(_) => findings.push(Limit("bound_values_missing"))
+    Rejected(diagnostic) =>
       match @program_check.diagnostic_category(diagnostic) {
-        InvalidInput => findings.push(Violation("program_invalid"))
+        InvalidInput =>
+          if @program_check.diagnostic_undeclared_parameter(diagnostic)
+            is Some(name) &&
+            name.length() <= 256 {
+            let range = match @program_check.diagnostic_location(diagnostic) {
+              Some(location) =>
+                match @program_check.diagnostic_location_position(location) {
+                  Source(span) => Some((span.start_byte, span.end_byte))
+                  _ => None
+                }
+              None => None
+            }
+            findings.push(UndeclaredParameter(name, range))
+          } else {
+            findings.push(Violation("program_invalid"))
+          }
         MissingInput => findings.push(Limit("bound_values_missing"))
         UnsupportedImplementation =>
           findings.push(Limit("implementation_limit"))
         CompileLimit => findings.push(Limit("analysis_budget_exhausted"))
-        // The checker makes no claim about the input or configuration.
         UnclassifiedFailure => findings.push(Limit("check_unclassified"))
         InvalidConfiguration => return Failed("check_context_invalid")
       }
-    Rejected(Preparation(Binding({ kind: BindingBudgetExceeded, .. }))) =>
-      findings.push(Limit("analysis_budget_exhausted"))
-    Rejected(Preparation(Binding({ kind: MissingBindings, .. }))) =>
-      findings.push(Limit("bound_values_missing"))
-    Rejected(
-      Preparation(
-        Binding(_)
-        | Syntax(_)
-        | MissingCheckedStage(_)
-        | MissingStageIdentity(_)
-        | Lowering(_)
-        | Graph(_)
-      )
-      | InvalidFormat
-      | SourcePreparation(_)
-    ) => return Failed("check_internal")
   }
   Report
 }
@@ -390,7 +431,16 @@ fn check_declarations(
 ///|
 /// Public verdict from disclosable evidence only.
 fn check_verdict(findings : Array[CheckFinding]) -> String {
-  if findings.iter().any(finding => finding is Violation(_)) {
+  if findings
+    .iter()
+    .any(finding => {
+      finding
+      is (Violation(_)
+      | SyntaxViolation(_, _)
+      | TypeViolation(_, _, _, _)
+      | SuppliedViolation(_)
+      | UndeclaredParameter(_, _))
+    }) {
     "invalid"
   } else if findings.is_empty() {
     "verified"
@@ -421,10 +471,15 @@ fn write_check_report(
   findings : Array[CheckFinding],
   context_ref : String,
   verdict : String,
+  documents : CheckDocuments,
 ) -> Unit raise @encode.EncodeFailure {
   let violations = check_codes(findings, finding => {
     match finding {
       Violation(code) => Some(code)
+      SyntaxViolation(_, _) => Some("query_syntax_invalid")
+      TypeViolation(_, _, _, _) => Some("supplied_value_type_mismatch")
+      SuppliedViolation(_) => Some("supplied_value_invalid")
+      UndeclaredParameter(_, _) => Some("parameter_undeclared")
       _ => None
     }
   })
@@ -466,13 +521,135 @@ fn write_check_report(
   }
   @encode.end_array(writer)
   @encode.end_object(writer)
+  @encode.key(writer, "inputs")
+  @encode.begin_array(writer)
+  write_check_document(
+    writer,
+    "source",
+    documents.source_revision,
+    "text",
+    documents.source_bytes,
+  )
+  if documents.declarations_revision is Some(revision) {
+    write_check_document(
+      writer,
+      "parameter_declarations",
+      revision,
+      "structured",
+      documents.declarations_bytes,
+    )
+  }
+  if documents.parameters_revision is Some(revision) {
+    write_check_document(
+      writer,
+      "parameters",
+      revision,
+      "structured",
+      documents.parameters_bytes,
+    )
+  }
+  @encode.end_array(writer)
   @encode.key(writer, "reasons")
   @encode.begin_array(writer)
   for code in violations {
     @encode.begin_object(writer)
     @encode.key(writer, "code")
     @encode.string_value(writer, code)
+    if code == "parameter_undeclared" {
+      for finding in findings {
+        if finding is UndeclaredParameter(name, range) {
+          @encode.key(writer, "facts")
+          @encode.begin_object(writer)
+          @encode.key(writer, "parameter")
+          @encode.string_value(writer, name)
+          @encode.end_object(writer)
+          if range is Some((start, end)) {
+            write_check_text_location(
+              writer,
+              documents.source_revision,
+              start,
+              end,
+            )
+          }
+          break
+        }
+      }
+    }
+    if code == "supplied_value_type_mismatch" {
+      for finding in findings {
+        if finding is TypeViolation(name, expected, actual, pointer) {
+          @encode.key(writer, "facts")
+          @encode.begin_object(writer)
+          @encode.key(writer, "actual_type")
+          @encode.string_value(writer, actual)
+          @encode.key(writer, "expected_type")
+          @encode.string_value(writer, expected)
+          @encode.key(writer, "parameter")
+          @encode.string_value(writer, name)
+          @encode.end_object(writer)
+          if documents.parameters_revision is Some(revision) &&
+            pointer is Some(pointer) {
+            write_check_structured_location(
+              writer, "parameters", revision, pointer,
+            )
+          }
+          break
+        }
+      }
+    }
+    if code == "supplied_value_invalid" {
+      for finding in findings {
+        if finding is SuppliedViolation(pointer) {
+          if documents.parameters_revision is Some(revision) &&
+            pointer is Some(pointer) {
+            write_check_structured_location(
+              writer, "parameters", revision, pointer,
+            )
+          }
+          break
+        }
+      }
+    }
+    if code == "query_syntax_invalid" {
+      for finding in findings {
+        if finding is SyntaxViolation(start, end) {
+          write_check_text_location(
+            writer,
+            documents.source_revision,
+            start,
+            end,
+          )
+          break
+        }
+      }
+    }
     @encode.end_object(writer)
+  }
+  @encode.end_array(writer)
+  @encode.key(writer, "requirements")
+  @encode.begin_array(writer)
+  for finding in findings {
+    if finding is RequiredValue(name, expected) {
+      @encode.begin_object(writer)
+      @encode.key(writer, "code")
+      @encode.string_value(writer, "parameter_value_required")
+      @encode.key(writer, "facts")
+      @encode.begin_object(writer)
+      @encode.key(writer, "expected_type")
+      @encode.string_value(writer, expected)
+      @encode.key(writer, "parameter")
+      @encode.string_value(writer, name)
+      @encode.end_object(writer)
+      if documents.declarations_revision is Some(revision) {
+        write_check_structured_location(
+          writer,
+          "parameter_declarations",
+          revision,
+          "/" + name,
+        )
+      }
+      @encode.end_object(writer)
+    }
   }
   @encode.end_array(writer)
   @encode.key(writer, "scope")
@@ -492,6 +669,7 @@ fn check_outcome_json(
   findings : Array[CheckFinding],
   stop : CheckStop,
   context_ref : String,
+  documents : CheckDocuments,
 ) -> String {
   try {
     let writer = @encode.writer(65536, 4096, 16)
@@ -506,6 +684,7 @@ fn check_outcome_json(
           findings,
           context_ref,
           check_verdict(findings),
+          documents,
         )
       }
       Failed(problem) => {
@@ -514,7 +693,9 @@ fn check_outcome_json(
         // A partial report is only ever invalid, never verified or a guess.
         if check_verdict(findings) == "invalid" {
           @encode.key(writer, "partial_report")
-          write_check_report(writer, findings, context_ref, "invalid")
+          write_check_report(
+            writer, findings, context_ref, "invalid", documents,
+          )
         }
         @encode.key(writer, "problem")
         @encode.begin_object(writer)
@@ -523,14 +704,266 @@ fn check_outcome_json(
         @encode.end_object(writer)
       }
     }
+    @encode.key(writer, "reason_schema_cid")
+    @encode.string_value(writer, check_reason_schema_cid)
     @encode.key(writer, "version")
     @encode.string_value(writer, check_outcome_version)
     @encode.end_object(writer)
     @encode.finish(writer)
   } catch {
     _ =>
-      "{\"outcome\":\"failed\",\"problem\":{\"code\":\"check_report_unbounded\"},\"version\":\"" +
+      "{\"outcome\":\"failed\",\"problem\":{\"code\":\"check_report_unbounded\"},\"reason_schema_cid\":\"" +
+      check_reason_schema_cid +
+      "\",\"version\":\"" +
       check_outcome_version +
       "\"}"
   }
+}
+
+///|
+priv struct CheckDocuments {
+  source_revision : String
+  source_bytes : Int
+  declarations_revision : String?
+  declarations_bytes : Int
+  parameters_revision : String?
+  parameters_bytes : Int
+}
+
+///|
+fn check_syntax_finding(diagnostic : @query_syntax.Diagnostic) -> CheckFinding {
+  match diagnostic.span {
+    Some(span) => SyntaxViolation(span.start_byte, span.end_byte)
+    None => Violation("query_syntax_invalid")
+  }
+}
+
+///|
+fn write_check_document(
+  writer : @encode.Writer,
+  document_id : String,
+  revision : String,
+  kind : String,
+  bytes : Int,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  @encode.key(writer, "byte_length")
+  @encode.number_value(writer, bytes.to_double())
+  @encode.key(writer, "document_id")
+  @encode.string_value(writer, document_id)
+  @encode.key(writer, "kind")
+  @encode.string_value(writer, kind)
+  @encode.key(writer, "revision")
+  @encode.string_value(writer, revision)
+  @encode.end_object(writer)
+}
+
+///|
+fn check_declaration_type(
+  declaration : @parameter_binding.Declaration,
+) -> String? {
+  check_type_name(@parameter_binding.declaration_source(declaration))
+}
+
+///|
+fn check_type_name(source : @decode.Cursor) -> String? {
+  match @decode.open_object(source) {
+    Ok(object) =>
+      match @decode.lookup(object, "type") {
+        Some(cursor) =>
+          match @decode.text(cursor) {
+            Ok(kind) => Some(kind)
+            Err(_) => None
+          }
+        None => None
+      }
+    Err(_) => None
+  }
+}
+
+///|
+/// RFC 6901 encoding of an owned input path. Oversized paths are omitted rather
+/// than truncated; no source spelling is normalized to construct a location.
+fn check_supplied_pointer(path : Array[@decode.PathSegment]) -> String? {
+  guard path.length() <= 65 else { return None }
+  let mut pointer = ""
+  for segment in path {
+    let token = match segment {
+      @source.Key(name) =>
+        name.replace_all(old="~", new="~0").replace_all(old="/", new="~1")
+      @source.Index(index) => {
+        guard index >= 0 else { return None }
+        index.to_string()
+      }
+    }
+    guard pointer.length() + token.length() + 1 <= 4096 else { return None }
+    pointer += "/" + token
+  }
+  Some(pointer)
+}
+
+///|
+/// Missing members have no submitted node to locate. Use only the supplied
+/// cursor's existing children; declaration-only paths are not input locations.
+fn check_supplied_cursor(
+  root : @decode.Cursor,
+  path : Array[@decode.PathSegment],
+) -> @decode.Cursor? {
+  guard path.length() <= 65 else { return None }
+  let mut cursor = root
+  for segment in path {
+    match segment {
+      @source.Key(key) => {
+        guard @decode.open_object(cursor) is Ok(object) &&
+          @decode.lookup(object, key) is Some(child) else {
+          return None
+        }
+        cursor = child
+      }
+      @source.Index(index) => {
+        guard @decode.elements(cursor) is Ok(elements) &&
+          elements.get(index) is Some(child) else {
+          return None
+        }
+        cursor = child
+      }
+    }
+  }
+  Some(cursor)
+}
+
+///|
+/// Explain an already proven mismatch using its supplied-input origin and path.
+/// Walking admitted declaration/value cursors reads explanation facts only;
+/// it does not admit values again or infer a new nested contract.
+fn check_supplied_type_finding(
+  issue : @parameter_binding.Issue,
+  declarations : @parameter_binding.Declarations,
+  supplied : @decode.Cursor?,
+) -> CheckFinding {
+  let path = match issue {
+    BindingInput(Supplied, Value(ValueIssue(_, path~, ..))) => path
+    BindingInput(Supplied, Value(Decode({ path, .. })))
+    | BindingInput(Supplied, Decode({ path, .. })) => path
+    BindingInput(Supplied, ParameterIssue(_, path~, ..)) => path
+    _ => return Violation("supplied_value_invalid")
+  }
+  let pointer = if supplied is Some(cursor) &&
+    check_supplied_cursor(cursor, path) is Some(_) {
+    check_supplied_pointer(path)
+  } else {
+    None
+  }
+  let fallback = SuppliedViolation(pointer)
+  guard issue
+    is (BindingInput(
+      Supplied,
+      Value(ValueIssue(WrongType | UnexpectedNull, ..))
+    )
+    | BindingInput(
+      Supplied,
+      Value(Decode({ kind: WrongType | UnexpectedNull, .. }))
+    )) else {
+    return fallback
+  }
+  guard !path.is_empty() &&
+    path[0] is @source.Key(name) &&
+    name.length() <= 256 &&
+    supplied is Some(cursor) &&
+    @decode.open_object(cursor) is Ok(object) &&
+    @decode.lookup(object, name) is Some(root) else {
+    return fallback
+  }
+  let mut value = root
+  let mut source = None
+  for index in 0..<@parameter_binding.declaration_count(declarations) {
+    let declaration = @parameter_binding.declaration_at(declarations, index).unwrap()
+    if declaration.name == name {
+      source = Some(@parameter_binding.declaration_source(declaration))
+      break
+    }
+  }
+  guard source is Some(root_source) else { return fallback }
+  let mut source = root_source
+  for index in 1..<path.length() {
+    guard @decode.open_object(source) is Ok(type_object) else {
+      return fallback
+    }
+    match path[index] {
+      @source.Key(key) => {
+        guard @decode.lookup(type_object, "fields") is Some(fields) &&
+          @decode.open_object(fields) is Ok(fields) &&
+          @decode.lookup(fields, key) is Some(child_type) &&
+          @decode.open_object(value) is Ok(object) &&
+          @decode.lookup(object, key) is Some(child) else {
+          return fallback
+        }
+        source = child_type
+        value = child
+      }
+      @source.Index(at) => {
+        guard @decode.lookup(type_object, "items") is Some(child_type) &&
+          @decode.elements(value) is Ok(elements) &&
+          elements.get(at) is Some(child) else {
+          return fallback
+        }
+        source = child_type
+        value = child
+      }
+    }
+  }
+  guard check_type_name(source) is Some(expected) else { return fallback }
+  let actual = match @decode.view(value) {
+    NullValue => "null"
+    BoolValue(_) => "boolean"
+    NumberValue(_) => "number"
+    TextValue(_) => "string"
+    ArrayValue(_) => "array"
+    ObjectValue(_) => "object"
+  }
+  TypeViolation(name, expected, actual, pointer)
+}
+
+///|
+fn write_check_structured_location(
+  writer : @encode.Writer,
+  document_id : String,
+  revision : String,
+  pointer : String,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.key(writer, "location")
+  @encode.begin_object(writer)
+  @encode.key(writer, "document_id")
+  @encode.string_value(writer, document_id)
+  @encode.key(writer, "kind")
+  @encode.string_value(writer, "structured")
+  @encode.key(writer, "pointer")
+  @encode.string_value(writer, pointer)
+  @encode.key(writer, "revision")
+  @encode.string_value(writer, revision)
+  @encode.end_object(writer)
+}
+
+///|
+fn write_check_text_location(
+  writer : @encode.Writer,
+  revision : String,
+  start : Int,
+  end : Int,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.key(writer, "location")
+  @encode.begin_object(writer)
+  @encode.key(writer, "document_id")
+  @encode.string_value(writer, "source")
+  @encode.key(writer, "end_byte")
+  @encode.number_value(writer, end.to_double())
+  @encode.key(writer, "kind")
+  @encode.string_value(writer, "text")
+  @encode.key(writer, "precision")
+  @encode.string_value(writer, "exact")
+  @encode.key(writer, "revision")
+  @encode.string_value(writer, revision)
+  @encode.key(writer, "start_byte")
+  @encode.number_value(writer, start.to_double())
+  @encode.end_object(writer)
 }

@@ -4,7 +4,9 @@ fn script_has_graph_rows(query : @query.Query) -> Bool {
     guard @query.operation_at(query, index) is Some(GraphCall(call)) else {
       break
     }
-    if call.operation == "node_rows" || call.operation == "edge_rows" {
+    if call.operation == "node_rows" ||
+      call.operation == "edge_rows" ||
+      call.operation == "traverse" {
       return true
     }
   }
@@ -19,6 +21,7 @@ fn script_has_graph_rows(query : @query.Query) -> Bool {
 fn script_graph_row_columns(
   graph : ScriptGraph,
   edges : Bool,
+  selection? : (String, String)? = None,
 ) -> Array[String] raise Abort {
   let definitions = if edges {
     graph.mapping.edges.map(edge => {
@@ -29,6 +32,23 @@ fn script_graph_row_columns(
       (node.name.value, node.producer, node.key, node.labels)
     })
   }
+  let definitions = match selection {
+    None => definitions
+    Some((kind, name)) => {
+      let identity = @carrier.property_name_identity(name)
+      let selected = definitions.filter(definition => {
+        if kind == "definition" {
+          @carrier.property_name_identity(definition.0) == identity
+        } else {
+          definition.3.any(label => {
+            @carrier.property_name_identity(label.name.value) == identity
+          })
+        }
+      })
+      guard !selected.is_empty() else { raise Abort(UnsupportedGraph) }
+      selected
+    }
+  }
   // Match the common owner's canonical definition order for display spelling.
   definitions.sort_by((a, b) => @canonical.compare_utf16(a.0, b.0))
   let fields = if edges {
@@ -38,7 +58,7 @@ fn script_graph_row_columns(
   }
   let seen : Map[String, Bool] = Map([])
   for field in fields {
-    seen[ascii_upper(field)] = true
+    seen[@carrier.property_name_identity(field)] = true
   }
   for (_, producer, keys, labels) in definitions {
     let input = property_mapping_input(producer, graph.inputs)
@@ -62,7 +82,7 @@ fn script_graph_row_columns(
       names.append(properties)
     }
     for name in names {
-      let folded = ascii_upper(name)
+      let folded = @carrier.property_name_identity(name)
       if !seen.contains(folded) {
         seen[folded] = true
         fields.push(name)
@@ -74,6 +94,24 @@ fn script_graph_row_columns(
 }
 
 ///|
+// These are string-valued selectors, not producer references or property
+// predicates. The common Bridge still decides presence and type guarantees.
+fn script_graph_row_selection(
+  call : @query.SgaCall,
+) -> (String, String)? raise Abort {
+  if call.arguments.is_empty() {
+    return None
+  }
+  guard call.arguments.length() == 1 else { raise Abort(UnsupportedGraph) }
+  let (kind, argument) = call.arguments[0]
+  guard kind == "definition" || kind == "label" else {
+    raise Abort(UnsupportedGraph)
+  }
+  guard argument is TextValue(name) else { raise Abort(UnsupportedGraph) }
+  Some((kind, name))
+}
+
+///|
 fn lower_script_graph_rows(
   construction : Construction,
   query : @query.Query,
@@ -82,6 +120,7 @@ fn lower_script_graph_rows(
   steps : Array[@builder.Node],
   reserved : Array[String],
   output : String,
+  known? : Array[Input] = [],
   retained? : Array[RetainedResult]? = None,
 ) -> Input raise Abort {
   if @query.cte_count(query) > 0 ||
@@ -98,8 +137,28 @@ fn lower_script_graph_rows(
     guard @query.operation_at(query, index) is Some(GraphCall(call)) else {
       break
     }
-    if row_input is Some(_) || !call.arguments.is_empty() {
+    if row_input is Some(_) {
       raise Abort(UnsupportedGraph)
+    }
+    if call.operation == "traverse" {
+      row_input = Some(
+        lower_script_traversal_nodes(
+          construction, query, call, current, known, limits, steps, reserved,
+        ),
+      )
+      current = row_input.unwrap().name
+      continue
+    }
+    let selection = if call.operation == "normalize_graph" {
+      guard call.arguments.is_empty() else { raise Abort(UnsupportedGraph) }
+      None
+    } else {
+      script_graph_row_selection(call)
+    }
+    let body = match selection {
+      None => construction.add(Bool(true))
+      Some((kind, name)) =>
+        construction.object([(kind, construction.text(name))])
     }
     if call.operation != "normalize_graph" &&
       call.operation != "node_rows" &&
@@ -111,7 +170,7 @@ fn lower_script_graph_rows(
     steps.push(
       construction.object([
         ("from", construction.text(current)),
-        (call.operation, construction.add(Bool(true))),
+        (call.operation, body),
         ("as", construction.text(name)),
       ]),
     )
@@ -124,6 +183,7 @@ fn lower_script_graph_rows(
         visible_fields: script_graph_row_columns(
           graph,
           call.operation == "edge_rows",
+          selection~,
         ),
         graph_bindings: [],
       })

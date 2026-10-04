@@ -17,8 +17,8 @@ function tree(source = files) {
   return {entries: new Map([...source].map(([path]) => [path, {mode: '100644', kind: 'blob'}])),
     read: path => Buffer.from(source.get(path))};
 }
-function receipt(action = selected, revision = old) {
-  const inputs = actionInputs({tree: tree(), revision, action, runtime});
+function receipt(action = selected, revision = old, source = files) {
+  const inputs = actionInputs({tree: tree(source), revision, action, runtime});
   return sealReceipt({origin: {repository: 'actql/actql', repositoryId: 1, workflowId: 2,
     workflowPath: '.github/workflows/ci.yml', runId: 3, runAttempt: 1, jobId: 4,
     testedRevision: revision, runHeadRevision: revision, branch: 'main', event: 'push'},
@@ -100,4 +100,41 @@ test('a wholly consistent wrong-target receipt is refused before plan proof', as
   await assert.rejects(checkApplications({...gateRequest(), read: async () => ({receipt: receipt({...selected, target: 'native',
     command: ['moon', 'test', 'src/bounded_execution', '--target', 'native', '--deny-warn']}),
     receiptDigest: 'e'.repeat(64), artifactId: 6, archiveDigest: 'd'.repeat(64)})}), /Wrong action/u);
+});
+
+function addedRequest() {
+  const extra = {...selected, id: 'additional-session-js', profile: 'independent added fixture obligation'};
+  const candidate = {...catalog, actions: [...catalog.actions, extra]};
+  const source = new Map(files); source.set(catalogPath, encode(candidate));
+  const request = gateRequest();
+  request.treeAt = revision => revision === old ? tree() : tree(source);
+  request.entries.push({actionId: extra.id, acquisition: 'fresh', archive: '/candidate.zip', artifactId: 7});
+  request.read = async ({action}) => {
+    const fresh = action.id === extra.id, value = receipt(action, fresh ? current : old, fresh ? source : files);
+    return {receipt: value, receiptDigest: hash(canonicalReceipt(value)), artifactId: fresh ? 7 : 6,
+      archiveDigest: 'd'.repeat(64)};
+  };
+  request.prove = (required, applications) => {
+    assert.deepEqual(required.map(entry => entry.action), candidate.actions.map(action => action.id));
+    assert.equal(applications.find(entry => entry.action === extra.id).reused, false);
+    return {accepted: true, inputDigest: hash(encode({required, applications}))};
+  };
+  return request;
+}
+
+test('an added obligation requires its own candidate receipt and enters the complete Lean requirement input', async () => {
+  const result = await checkApplications(addedRequest());
+  assert.deepEqual(result.requiredActions, ['model', 'session-js', 'additional-session-js']);
+  assert.equal(result.applications[2].acquisition, 'fresh');
+  assert.equal(result.applications[2].originRevision, current);
+});
+
+test('added obligation cannot disappear, borrow an old receipt or relabel itself as reusable', async () => {
+  const missing = addedRequest(); missing.entries.pop();
+  await assert.rejects(checkApplications(missing), /Incomplete required applications/u);
+  const reused = addedRequest(); reused.entries[2].acquisition = 'reused';
+  await assert.rejects(checkApplications(reused), /Unreviewed\/changed reusable registration/u);
+  const wrong = addedRequest(), read = wrong.read;
+  wrong.read = args => read({...args, action: args.action.id === 'additional-session-js' ? selected : args.action});
+  await assert.rejects(checkApplications(wrong), /Wrong action descriptor/u);
 });

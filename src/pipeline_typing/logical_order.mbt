@@ -213,7 +213,11 @@ fn derive_logical_orders(
       | TextRank(..)
       | AsOfJoin(..) => true
       Pool(_) => true
-      GraphMatch(_) | GraphBounds(_) | GraphDegree(_) | Traverse(..) => true
+      GraphMatch(_)
+      | GraphBounds(_)
+      | GraphDegree(_)
+      | GraphComponents(_)
+      | Traverse(..) => true
       // The typed Graph row Bridge must complete the existing bounded sort
       // by admitted Graph identity before it can complete its Relation.
       Projection(op) =>

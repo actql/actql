@@ -9,6 +9,7 @@ import {
   "actql/actql/decode_core" @wire,
   "actql/actql/stage_syntax" @program,
   "actql/actql/parameter_binding" @parameters,
+  "actql/actql/carrier_contract" @carrier,
 }
 
 import {
@@ -22,7 +23,6 @@ import {
   "actql/actql/lowering_relation" @lower,
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/relation_evidence" @evidence,
-  "actql/actql/carrier_contract" @carrier,
   "actql/actql/value_contract" @contract,
 } for "test"
 

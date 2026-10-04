@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import {encode} from '../bounded-session/action-inputs.mjs';
-import {catalogPath, compareCatalogs, validateCatalog} from './actions.mjs';
+import {catalogPath, preserveProtectedActions, validateCatalog} from './actions.mjs';
 import {actionInputs, compareInputs, gitTree, hash, sharedFiles} from './inputs.mjs';
-import {readOriginReceipt} from './receipts.mjs';
+import {readOriginReceipts} from './receipts.mjs';
 import {checkPlan} from './check.mjs';
 import {runtimeForAction} from './isolated-runtime.mjs';
 
@@ -56,7 +56,7 @@ export function leanRecords(action, manifest, original, context, acquisition) {
 // The complete inventory is reconstructed, never taken from the requested
 // applications. A missing origin is not converted to a successful application.
 export async function checkApplications({root, context, runtime, actionRuntimes = {}, protectedRevision, entries, request,
-  treeAt = revision => gitTree(root, revision), read = readOriginReceipt, prove = checkPlan}) {
+  treeAt = revision => gitTree(root, revision), read = null, prove = checkPlan}) {
   const trees = new Map();
   const tree = revision => {
     if (!trees.has(revision)) trees.set(revision, treeAt(revision));
@@ -65,11 +65,7 @@ export async function checkApplications({root, context, runtime, actionRuntimes 
   const candidateTree = tree(context.candidateRevision), protectedTree = tree(protectedRevision);
   const catalog = validateCatalog(JSON.parse(candidateTree.read(catalogPath).toString('utf8')));
   const protectedCatalog = validateCatalog(JSON.parse(protectedTree.read(catalogPath).toString('utf8')));
-  compareCatalogs(protectedCatalog, catalog);
-  for (const original of protectedCatalog.actions) {
-    assert.equal(encode(catalog.actions.find(action => action.id === original.id)), encode(original),
-      'Changed protected registration requires a reviewed policy update');
-  }
+  preserveProtectedActions(protectedCatalog, catalog);
   assert(Array.isArray(entries) && entries.length === catalog.actions.length, 'Incomplete required applications');
   const byId = new Map();
   for (const entry of entries) {
@@ -80,10 +76,23 @@ export async function checkApplications({root, context, runtime, actionRuntimes 
       protectedCatalog.actions.some(original => encode(original) === encode(action))), 'Unreviewed/changed reusable registration');
     byId.set(entry.actionId, entry);
   }
+  const origins = new Map();
+  if (read === null) {
+    const groups = new Map();
+    for (const action of catalog.actions) {
+      const entry = byId.get(action.id), key = encode([entry.archive, entry.artifactId, entry.acquisition]);
+      if (!groups.has(key)) groups.set(key, {entry, actions: []});
+      groups.get(key).actions.push(action);
+    }
+    for (const {entry, actions} of groups.values()) {
+      const originals = await readOriginReceipts({...entry, actions, expected: context, request});
+      for (const [id, original] of originals) origins.set(id, original);
+    }
+  } else assert.equal(typeof read, 'function', 'Invalid internal receipt test seam');
   const requirements = [], checked = [], applications = [];
   for (const action of catalog.actions) {
     const entry = byId.get(action.id);
-    const original = await read({...entry, action, expected: context, request});
+    const original = read === null ? origins.get(action.id) : await read({...entry, action, expected: context, request});
     const manifest = applicability({action, receipt: original.receipt,
       originTree: tree(original.receipt.origin.testedRevision), candidateTree,
       candidateRevision: context.candidateRevision, runtime: runtimeForAction(action, runtime, actionRuntimes), acquisition: entry.acquisition});

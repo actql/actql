@@ -134,6 +134,8 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
     const evidence = [];
     for (const source of sources) {
       signal?.throwIfAborted();
+      diagnostic('acquisition_started', {task: source.occurrence.task,
+        selection: source.preparedSource.selection});
       const acquisition = acquisitionEndHandoff();
       let captured;
       const admission = await sourceContinuation?.beforeRead(source);
@@ -162,6 +164,8 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
         throw error;
       }
       captures.push(captured);
+      diagnostic('acquisition_completed', {task: source.occurrence.task,
+        acquisition: captured.acquisition});
       const sourceEvidenceWire = await captured.issueSourceEvidence({
         authorityScopeCid: acquired.authorityScopeCid,
         effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid});

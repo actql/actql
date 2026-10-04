@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "sdk-read-progress-registration",
+  "kind": "change",
+  "revision": "d69effece176f503d911fea3cf6c5027c9b22f2e",
+  "parents": [
+    "33aeb1dc74339197c6971657696ede8cd261112e"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "33aeb1dc74339197c6971657696ede8cd261112e",
+          "digest": "a8aa14b274cf49398d074b81b3de6ba701a40d2707a610109078d76c019a2a05",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "a47233f87b4947ff42437b04c4337619472684612cd6aba6edc3413154f5e259",
+      "afterMode": "100644",
+      "reason": "Register bounded SDK yielded-row regressions and real Local/TLS HTTPS delivery-owner acceptance in the existing Client distribution gate. Retain all existing commands, proof gates, corpus, mutations and frozen declarations."
+    }
+  ]
+}

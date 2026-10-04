@@ -1,0 +1,101 @@
+{
+  "resultName": "updates",
+  "rows": [
+    {
+      "id": 1,
+      "left_amount": null,
+      "right_amount": 100,
+      "risk": "high",
+      "target_id": "a00000000000002",
+      "next_name": "review-required"
+    }
+  ],
+  "columns": [
+    {
+      "name": "id",
+      "contract": {
+        "type": "number",
+        "nullable": false
+      }
+    },
+    {
+      "name": "left_amount",
+      "contract": {
+        "type": "number",
+        "nullable": true
+      }
+    },
+    {
+      "name": "right_amount",
+      "contract": {
+        "type": "number",
+        "nullable": true
+      }
+    },
+    {
+      "name": "risk",
+      "contract": {
+        "type": "string",
+        "nullable": false,
+        "max_utf8_bytes": 4
+      }
+    },
+    {
+      "name": "target_id",
+      "contract": {
+        "type": "string",
+        "nullable": false,
+        "max_utf8_bytes": 15
+      }
+    },
+    {
+      "name": "next_name",
+      "contract": {
+        "type": "string",
+        "nullable": false,
+        "max_utf8_bytes": 15
+      }
+    }
+  ],
+  "writes": [
+    {
+      "id": "a00000000000002",
+      "body": {
+        "Name": "review-required"
+      }
+    }
+  ],
+  "withoutEffect": {
+    "sourceReadSessions": [
+      2,
+      0,
+      0
+    ],
+    "writeCounts": [
+      0,
+      0,
+      0
+    ],
+    "restartBoundaries": [
+      "completed"
+    ]
+  },
+  "withEffect": {
+    "sourceReadSessions": [
+      2,
+      0,
+      0,
+      0
+    ],
+    "writeCounts": [
+      0,
+      0,
+      1,
+      1
+    ],
+    "restartBoundaries": [
+      "capture-waiting",
+      "approval-committed"
+    ]
+  }
+}

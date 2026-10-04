@@ -27,10 +27,13 @@ for (const outcome of ['not_started', 'stopped', 'unknown']) {
       let prepares = 0;
       const failure = new Error('ReadUnavailable');
       const prepared = {};
-      const preparedSource = {};
+      const selection = {status: 'selected', selectedCandidate: 'nativeQuery'};
+      const preparedSource = {selection};
+      const observations = [];
       await assert.rejects(openAcquiredEffectComputation({
         acquired: {prepared}, now: () => '2026-09-29T00:00:00.000Z',
         retainComputationOwner(owner) { retained = owner; },
+        observe(name, detail) { observations.push({name, detail}); },
         sourceProfile: {
           async prepare({preparedEffect, preparedProgram}) {
             prepares++;
@@ -51,6 +54,8 @@ for (const outcome of ['not_started', 'stopped', 'unknown']) {
       assert.equal(retained.cleanupPending(), outcome === 'unknown');
       assert.equal(prepares, 1);
       assert.equal(reads, 1);
+      assert.deepEqual(observations, [{name: 'acquisition_started', detail: {task: 0, selection}}],
+        'a failed physical acquisition must not emit a completed selection');
     });
 }
 
@@ -159,16 +164,20 @@ test('source evidence failure retains capture cleanup until release succeeds',
     let retained;
     let reads = 0;
     let closes = 0;
+    const selection = {status: 'selected', selectedCandidate: 'broadQuery'};
+    const observations = [];
     const primary = new Error('SourceEvidenceUnavailable');
     const cleanupFailure = new Error('SourceReleaseUnavailable');
     await assert.rejects(openAcquiredEffectComputation({
       acquired: {prepared: {}, authorityScopeCid: 'scope'},
       now: () => '2026-09-29T00:00:00.000Z',
       retainComputationOwner(owner) { retained = owner; },
-      sourceProfile: {prepare() { return {}; }, open() {
+      observe(name, detail) { observations.push({name, detail}); },
+      sourceProfile: {prepare() { return {selection}; }, open() {
         reads++;
         return {
           checkedSource: {sourceDataPolicyCid: 'policy'},
+          acquisition: {selection},
           issueSourceEvidence() { throw primary; },
           close() {
             closes++;
@@ -186,6 +195,10 @@ test('source evidence failure retains capture cleanup until release succeeds',
     assert.equal(await retained.cleanup(), true);
     assert.equal(reads, 1);
     assert.equal(closes, 2);
+    assert.deepEqual(observations, [
+      {name: 'acquisition_started', detail: {task: 0, selection}},
+      {name: 'acquisition_completed', detail: {task: 0, acquisition: {selection}}},
+    ], 'cleanup retries do not emit another physical acquisition');
   });
 
 test('plural Effect preparation retains custody before either read can start', async () => {
