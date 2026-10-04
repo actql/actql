@@ -154,3 +154,31 @@ A following report-only commit is not a new packed source verification.
 After #295 was integrated, #287's unchanged eight-normal/four-refusal corpus
 also passed packed Local and HTTP at `508cbeccc8826c24eb0c8efc74c0d64168c64a35`.
 That is a separate unit; #287's submitted-HEAD CI and review remain pending.
+
+## Completed predecessor CI and subsequent main integration
+
+Automatic run [37168925792](https://github.com/actql/actql/actions/runs/37168925792)
+completed all required checks successfully for submitted
+`bd05a93a5729b9ac6d24c949b72f7066f259c896`. Public artifact `11291126032`
+records clean merge tree `01c978b43b4e6b5afd50ee5fc1922bb31d0fd85a`, a
+complete passed summary, no evidence errors, and command 007 exit 0. Its
+unchanged public application passes all five Graph-row positives and five
+pre-admission refusals on each of Embedded Local and HTTP. Recorded package
+digests are:
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | `5da98d3edb615f960f0511be9d6e61431cd34d02304a8bd6b6e576f7775f91a0` |
+| sdk | `2fc910067348e421346945ced1e728e107bbe6fa455ee00f9d71da46e8123c5b` |
+| run-host-core | `69499bd14c2638de7986253112374243d5056c6b4ead9e7d4a088745a328d51e` |
+| local-node | `6d0f0e2549f3da981d24228f4f75246cf32cddd0814556a72ecbed804d516ccf` |
+| node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+The subsequent normal main merge is
+`d1d06b45b74c61aff7fed6c8f9aaf1e8b57a4ea8`, including main
+`b6c69a7e5bdbf25dc3bc5cf5224b980536efb3ec`. This is a different tree;
+predecessor success is not evidence of its own submitted-HEAD CI. This record
+adds no runtime change and does not repeat a local packed or whole-Core
+campaign. Current automatic CI remains separate. Definition/label selection
+belongs to a subsequent unit depending on #299/#307; D's saved CTE predicate
+counterexample remains separately owned and does not block Graph work.
