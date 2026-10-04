@@ -8,6 +8,10 @@ that SELECT siblings resolve against the input snapshot. HAVING and final
 ORDER BY use SELECT aliases; a subsequent Pipe operation consumes the completed
 SELECT output. This repair adds no language contract or execution owner.
 
+Main `c26339bed484c1965da78f6a9540333c2583ea31` is normally integrated at
+`3e4a8c18341d22f4a4d8ea20e1d05c2bde9d23a6`. Two packed-runner registration
+conflicts retain both the new scope corpus and main's ORDER-position corpus.
+
 ```sql
 SELECT COUNT(*) AS n, n + 1 AS next FROM t
 ```
@@ -64,8 +68,31 @@ a local execution selection. No Program is corrected after lowering.
   their counts are separate executions, not a unique-case total.
 - After adding WHERE/SET/AS Pipe-scope controls, focused JS `*GROUP*` remains
   **7/7** (`run-dIOLub`). Node public-case controls pass **2/2** (`run-CLqmOH`).
-- Pinned Moon formatting, Node syntax and diff checks pass. Fresh packed
-  Local/authenticated HTTP evidence is pending below.
+- Focused JS `*GROUP*` after main integration: **7/7** (`run-LDDY3j`).
+- Pinned Moon formatting, Node syntax and diff checks pass.
+- Fresh normal tarballs from clean product SHA
+  `3e4a8c18341d22f4a4d8ea20e1d05c2bde9d23a6`: **8 positives and 5
+  pre-admission refusals per Embedded Local/authenticated HTTP transport pass**.
+  The complete `public-query-evidence-XmyN0K` receipt has no evidence errors.
+  Acceptance exits 0, signal null, with complete output (42.6s). The consumer
+  runs outside the checkout without MoonBit or a test-side Program overlay.
+  SHA, tarball digests and logs remain; its disposable installation is removed.
+- Final submitted-HEAD automatic CI remains pending. The following evidence
+  documentation commit does not relabel the packed product's verified SHA.
 - Full local Core, all-target, proof and performance suites are not run.
+
+Reproduce with the pinned toolchain:
+
+```sh
+node scripts/test-packed-public-query.mjs --group-select-scope-only
+```
+
+| Normally packed package | SHA-256 |
+|---|---|
+| actql-client-wire-0.0.0-development.tgz | `6b448edf6ff246e1865858e9ed654e6f973c602e60b65447bcd7bbdd0afaefde` |
+| actql-sdk-0.0.0-development.tgz | `f3eeed5879e324f366d6da1c01ec58d27e1e5bda72e7963288c8f0046970fda4` |
+| actql-run-host-core-0.0.0-development.tgz | `9ae236c22d7bc32bbd9e6751eee0686cf7f6e2f65735ce90b5cab30c8b80f919` |
+| actql-local-node-0.0.0-development.tgz | `ead7f6cb9cb985a5a5f1ef20d9192cdf62c138664520a828f78e548515b71485` |
+| actql-node-0.0.0-development.tgz | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
 
 This is a SELECT-scope defect repair, not completion of the full Frontend profile.
