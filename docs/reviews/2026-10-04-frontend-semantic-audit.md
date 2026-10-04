@@ -62,7 +62,9 @@ CI artifact SHA-256 (`-0.0.0-development.tgz`):
 
 [Group CI 37162983732](https://github.com/actql/actql/actions/runs/37162983732)
 passes client-distribution with independent complete SQL/Pipe Programs;
-client-packed and its Client aggregate fail, while other jobs remain running.
+it completed unsuccessfully for submitted
+`d1d98c5414872bca35a6f3ec5182c211f269f81e`. The failed jobs are
+client-packed, its Client aggregate and final `check`; no job remains running.
 The first packed failure is still `group-snapshot-original-key` on merge tree
 `6011bb1fcc48305e7351ea8dbf3cf86df542f8bc`; later Group cases and HTTP are
 not reached. No previous failed HEAD is relabeled as a success. The local
