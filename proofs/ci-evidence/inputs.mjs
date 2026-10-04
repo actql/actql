@@ -17,6 +17,8 @@ const validSha = value => typeof value === 'string' && /^[a-f0-9]{40}$/u.test(va
 const validPath = value => typeof value === 'string' && /^[A-Za-z0-9_.\/-]+$/u.test(value) &&
   !value.startsWith('/') && !value.split('/').some(part => ['', '.', '..'].includes(part));
 export const sharedFiles = ['proofs/ci-evidence/actions.mjs', 'proofs/ci-evidence/inputs.mjs',
+  'proofs/ci-evidence/execution-recipes.mjs',
+  'proofs/bounded-session/evidence.mjs', 'proofs/bounded-session/run.mjs',
   'proofs/ci-evidence/package-configurations.mjs',
   'proofs/ci-evidence/isolated-contract.mjs',
   'proofs/ci-evidence/receipts.mjs', 'proofs/ci-evidence/check.mjs',

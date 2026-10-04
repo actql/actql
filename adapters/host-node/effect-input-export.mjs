@@ -742,6 +742,8 @@ async function preparePinnedEffectSourcePayloadOwned({
         ...local.dependency.bodies,
         ...local.staticBodies,
         ...localEvidenceContext.retentionDependencies,
+        ...(localEvidenceContext.resultDataPolicy === undefined ? [] :
+          [localEvidenceContext.resultDataPolicy]),
         ...(localEvidenceContext.acquisitionDependencies ?? []),
         ...(localEvidenceContext.acquiredCatalogBodies
           ?? localEvidenceContext.acquiredEvidence?.catalogBodies ?? []),

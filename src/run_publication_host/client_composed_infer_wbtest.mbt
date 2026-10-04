@@ -387,7 +387,30 @@ test "Effect compiler keeps the original Model barrier and KEEP in one Plan" {
   let definition = issue_client_effect_run_definition(
     allowed, "composed-scope", "composed-run", "2026-10-03T00:00:00.000Z", "2099-01-01T00:00:00.000Z",
   ).unwrap()
-  let model_run = client_effect_allowed_infer_run(allowed).unwrap()
+  let host_policy_wire = "{\"classification\":\"unknown\",\"source_data_policy_cids\":[],\"source_response_policy_cids\":[],\"unknown_provenance\":true,\"version\":\"actql-effective-data-policy/0.1\"}"
+  let host_policy_cid = "sha256:" + @sha.hex(@utf8.encode(host_policy_wire))
+  assert_true(
+    client_effect_allowed_infer_run(allowed) is Err(MissingResultPolicy),
+  )
+  let model_run = client_effect_allowed_infer_run_with_policy_body(
+    allowed,
+    Some(host_policy_cid),
+    Some(host_policy_wire),
+    1024,
+    100,
+    8,
+  ).unwrap()
+  assert_true(
+    client_effect_allowed_infer_run_with_policy_body(
+      allowed,
+      Some("sha256:" + "a".repeat(64)),
+      Some(host_policy_wire),
+      1024,
+      100,
+      8,
+    )
+    is Err(InvalidResultPolicy),
+  )
   assert_true(client_compiled_run_matches_effect(model_run, owner, compilation))
   // Identical compilation bodies do not substitute their physical owner.
   let other_compilation = issue_prepared_client_effect_compilation(
@@ -404,13 +427,32 @@ test "Effect compiler keeps the original Model barrier and KEEP in one Plan" {
   assert_false(
     client_compiled_run_matches_effect(model_run, owner, other_compilation),
   )
+  let original = client_compiled_run_source_free_result_policy_body(model_run).unwrap()
+  let result_policy = @publication.captured_effect_dependency_body_cid(original)
+  assert_true(
+    result_policy !=
+    @environment.model_task_data_handling_cid(
+      @environment.model_execution_task(component.execution),
+    ),
+  )
   assert_eq(
     client_compiled_run_infer_observation_policy(model_run),
-    Some(
-      @environment.model_task_data_handling_cid(
-        @environment.model_execution_task(component.execution),
-      ),
-    ),
+    Some(result_policy),
+  )
+  assert_eq(
+    @publication.captured_effect_dependency_body_json(original),
+    host_policy_wire,
+  )
+  assert_true(
+    @publication.admit_captured_effect_dependency_body(
+      "data_policy",
+      Some(result_policy),
+      @publication.captured_effect_dependency_body_json(original),
+      1024,
+      100,
+      8,
+    )
+    is Ok(_),
   )
   assert_true(
     check_client_compiled_run_definition(model_run, definition) is Ok(_),
@@ -599,6 +641,22 @@ test "two acquired roots JOIN INFER KEEP and downstream Effect compile together"
   let model_run = client_effect_allowed_infer_run(allowed).unwrap()
   let source_policy = prepared_client_effect_publication_data_policy_cid(owner)
   assert_true(source_policy is Some(_))
+  assert_true(
+    client_effect_allowed_infer_run_with_policy_body(
+      allowed,
+      source_policy,
+      Some(
+        "{\"classification\":\"unknown\",\"source_data_policy_cids\":[],\"source_response_policy_cids\":[],\"unknown_provenance\":true,\"version\":\"actql-effective-data-policy/0.1\"}",
+      ),
+      1024,
+      100,
+      8,
+    )
+    is Err(InvalidResultPolicy),
+  )
+  assert_true(
+    client_compiled_run_source_free_result_policy_body(model_run) is None,
+  )
   assert_eq(
     client_compiled_run_infer_observation_policy(model_run),
     source_policy,

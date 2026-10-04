@@ -110,6 +110,8 @@ async function embeddedInstallationIdentity(root, installation) {
     source, effect, accountIdentity, ordinary,
     ...(installation?.modelInstallation === undefined ? {} : {
       modelEnvironment: installation.modelInstallation}),
+    ...(installation?.resultDataPolicy === undefined ? {} : {
+      resultDataPolicy: installation.resultDataPolicy}),
     hostKey: authorization?.hostKey === undefined ? null : {
       keyId: authorization.hostKey.keyId,
       publicKeyCid: publicKeyCid(authorization.hostKey.privateKey)},
@@ -147,7 +149,7 @@ const REALIZATION_KEY = 'source-free-values';
 async function openInstalledHost({root, mode = 'local', beforeDispatch,
   authorization, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
   effectProfilePath, resolveEffectSecret, effectInstallation,
-  modelInstallation, registerModelProviders}) {
+  modelInstallation, registerModelProviders, resultDataPolicy}) {
   const selectedSourcePaths = installedSourcePaths({sourceProfilePath, sourceProfilePaths});
   const selectedEffectPath = effectProfilePath ??
     process.env.ACTQL_LOCAL_EFFECT_PROFILE;
@@ -157,6 +159,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   await admitHostRootFormat(root);
   const moon = await import(runtimeUrl.href);
   const control = runtimeCore(moon).publicationControl;
+  const installedResultDataPolicy = resultDataPolicy === undefined ? undefined :
+    control.admitSourceFreeResultPolicy(resultDataPolicy, localContractLimits);
   const modelProviders = installModelProviders(moon, registerModelProviders);
   const inferSelections = new WeakMap();
   const principalId = userInfo().username;
@@ -883,6 +887,16 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   const effectRun = effectInstallation === undefined ? undefined :
     installNodeClientEffectRun({moon, publicationControl: control, journal,
       now, inferPlanFor: prepared => inferSelections.get(prepared)?.graph,
+      resultPolicyOriginalFor: prepared => {
+        if (!inferSelections.has(prepared) ||
+            moon.clientProgramEffectAcquisitionCount(prepared) !== 0) {
+          return undefined;
+        }
+        if (installedResultDataPolicy === undefined) {
+          throw new TypeError('MissingHostResultDataPolicyOriginal');
+        }
+        return installedResultDataPolicy;
+      },
       authorizeRequest: async ({principalId: actual, connection}) => {
         if (!hostConnection({principalId: actual, connection})) return null;
         const createdAt = now();
@@ -898,10 +912,17 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       },
       authorizeRunStart: ({principalId: actual, connection, ref}) =>
         hostConnection({principalId: actual, connection, ref}),
-      prepareExecution: ({prepared, compilation, allowed, definition}) => {
+      prepareExecution: ({prepared, compilation, allowed, definition,
+        resultPolicyOriginal}) => {
+        const sourceFreeInfer = inferSelections.has(prepared) &&
+          moon.clientProgramEffectAcquisitionCount(prepared) === 0;
+        const retainedResultDataPolicy = sourceFreeInfer
+          ? control.admitSourceFreeResultPolicy(
+            resultPolicyOriginal, localContractLimits)
+          : undefined;
         const options = {moon, control, prepared,
           compilation, allowed, definition, authorityScopeCid, namespaceId,
-          storeAuthorityCid, now};
+          storeAuthorityCid, now, resultDataPolicy: retainedResultDataPolicy};
         return inferSelections.has(prepared) ||
           moon.clientProgramEffectPrepareQueryAcquisition(prepared,
           0, 0)?.$tag === 1
@@ -1636,7 +1657,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
 export async function openInstalledRemoteHttpHost({directory,
   authenticate, beforeDispatch, authorization, sourceProfilePath, sourceProfilePaths,
   resolveSourceSecret, effectProfilePath, resolveEffectSecret,
-  effectInstallation, modelInstallation, registerModelProviders}) {
+  effectInstallation, modelInstallation, registerModelProviders,
+  resultDataPolicy}) {
   if (typeof directory !== 'string' || !directory ||
       typeof authenticate !== 'function' ||
       beforeDispatch !== undefined && typeof beforeDispatch !== 'function') {
@@ -1645,7 +1667,7 @@ export async function openInstalledRemoteHttpHost({directory,
   const host = await openInstalledHost({root: resolve(directory), mode: 'remote',
     beforeDispatch, authorization, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
     effectProfilePath, resolveEffectSecret, effectInstallation,
-    modelInstallation, registerModelProviders});
+    modelInstallation, registerModelProviders, resultDataPolicy});
   const handle = createClientHttpHandler({
     ...host.hostOperations, authenticate, maxRequestBytes: 65536,
   });
@@ -1749,7 +1771,8 @@ export async function connectEmbeddedLocal(options) {
         effectProfilePath: installation?.effectProfilePath,
         resolveEffectSecret: installation?.resolveEffectSecret,
         modelInstallation: installation?.modelInstallation,
-        registerModelProviders: installation?.registerModelProviders})});
+        registerModelProviders: installation?.registerModelProviders,
+        resultDataPolicy: installation?.resultDataPolicy})});
     profiles.set(root, opened);
     opened.host.catch(() => {
       if (profiles.get(root) === opened) profiles.delete(root);

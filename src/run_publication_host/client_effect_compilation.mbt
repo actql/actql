@@ -406,10 +406,55 @@ pub fn client_effect_allowed_run_admission(
 pub fn client_effect_allowed_infer_run(
   value : ClientEffectAllowedRun,
 ) -> Result[ClientCompiledRun, ClientCompiledRunIssue] {
+  client_effect_allowed_infer_run_with_policy_body(
+    value,
+    None,
+    None,
+    1024,
+    100,
+    8,
+  )
+}
+
+///|
+/// Bind the Host-selected Result Policy original before Model dispatch.
+/// This does not replace the separate Model egress admission.
+pub fn client_effect_allowed_infer_run_with_policy_body(
+  value : ClientEffectAllowedRun,
+  policy_cid : String?,
+  policy_wire : String?,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientCompiledRun, ClientCompiledRunIssue] {
   let compilation = value.compilation
   guard compilation.compiled.infer is Some(plan) &&
     physical_equal(plan.owner, compilation.compiled.owner) else {
     return Err(ForeignOwner)
+  }
+  let graph = @strategy.checked_effect_computation_graph(
+    compilation.owner.graph,
+  )
+  let source_free_result_policy = if @strategy.graph_source_free_inputs_complete(
+      graph,
+    ) {
+    // No checked Source closure can authorize a lower classification. The
+    // selected Host original is required, not synthesized from Model egress.
+    guard policy_cid is Some(cid) && policy_wire is Some(wire) else {
+      return Err(MissingResultPolicy)
+    }
+    match
+      admit_source_free_result_policy_body(
+        cid, wire, max_bytes, max_nodes, max_depth,
+      ) {
+      Ok(policy) => Some(policy)
+      Err(issue) => return Err(issue)
+    }
+  } else {
+    if policy_cid is Some(_) || policy_wire is Some(_) {
+      return Err(InvalidResultPolicy)
+    }
+    None
   }
   Ok({
     owner: compilation.compiled.owner,
@@ -419,7 +464,37 @@ pub fn client_effect_allowed_infer_run(
     prepared: value.prepared,
     authorization: value.authorization,
     admission: value.admission,
+    source_free_result_policy,
   })
+}
+
+///|
+/// Admission of the Host's explicit source-free Result Policy original can
+/// precede Run creation. This is an unknown-provenance policy, never a grant
+/// to Model egress or a replacement for checked Source-derived constraints.
+pub fn admit_source_free_result_policy_body(
+  cid : String,
+  wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.CapturedEffectDependencyBody, ClientCompiledRunIssue] {
+  if wire !=
+    "{\"classification\":\"unknown\",\"source_data_policy_cids\":[],\"source_response_policy_cids\":[],\"unknown_provenance\":true,\"version\":\"actql-effective-data-policy/0.1\"}" {
+    return Err(InvalidResultPolicy)
+  }
+  match
+    @publication.admit_captured_effect_dependency_body(
+      "data_policy",
+      Some(cid),
+      wire,
+      max_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(body) => Ok(body)
+    Err(_) => Err(InvalidResultPolicy)
+  }
 }
 
 ///|

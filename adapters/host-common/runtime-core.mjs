@@ -1943,8 +1943,36 @@ function publicationControl(moon) {
       compiledRunTokens.set(result, value);
       return result;
     },
-    adoptCheckedClientEffectInferRun(allowed, definition) {
-      const value = checked(moon.clientProgramEffectAllowedInferRun(allowed));
+    admitSourceFreeResultPolicy(resultPolicy, limits) {
+      if (resultPolicy?.kind !== 'data_policy' ||
+          typeof resultPolicy.cid !== 'string' ||
+          typeof resultPolicy.wire !== 'string' ||
+          !Number.isSafeInteger(limits?.maxWireBytes) ||
+          !Number.isSafeInteger(limits?.maxNodes) ||
+          !Number.isSafeInteger(limits?.maxDepth)) {
+        throw new TypeError('InvalidHostResultDataPolicy');
+      }
+      const original = checked(moon.clientProgramAdmitSourceFreeResultPolicyBody(
+        resultPolicy.cid, resultPolicy.wire,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      return Object.freeze({kind: original._0, cid: original._1,
+        wire: original._2});
+    },
+    adoptCheckedClientEffectInferRun(allowed, definition, resultPolicy, limits) {
+      if (resultPolicy !== undefined &&
+          (resultPolicy?.kind !== 'data_policy' ||
+           typeof resultPolicy.cid !== 'string' ||
+           typeof resultPolicy.wire !== 'string' ||
+           !Number.isSafeInteger(limits?.maxWireBytes) ||
+           !Number.isSafeInteger(limits?.maxNodes) ||
+           !Number.isSafeInteger(limits?.maxDepth))) {
+        throw new TypeError('InvalidHostResultDataPolicy');
+      }
+      const value = checked(resultPolicy === undefined
+        ? moon.clientProgramEffectAllowedInferRun(allowed)
+        : moon.clientProgramEffectAllowedInferRunWithPolicyBody(
+          allowed, resultPolicy.cid, resultPolicy.wire,
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
       if (!moon.clientProgramCheckCompiledRunDefinition(value, token(definition))) {
         throw new TypeError('Effect Infer Run Definition differs from admission');
       }
@@ -1956,6 +1984,13 @@ function publicationControl(moon) {
         admission: inspectAdmission(moon.clientProgramCompiledRunAdmission(value))});
       compiledRunTokens.set(result, value);
       return result;
+    },
+    compiledInferSourceFreeResultPolicy(compiled) {
+      const original = moon.clientProgramCompiledRunSourceFreeResultPolicy(
+        token(compiled));
+      return original === undefined ? undefined : Object.freeze({
+        kind: original._0, cid: original._1, wire: original._2,
+      });
     },
     checkClientCompiledRunOwner(compiled, checkedProgram) {
       const value = compiledRunTokens.get(compiled);

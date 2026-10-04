@@ -171,7 +171,8 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
         evidence.map(value => value.sourceEvidenceWire), acquired.authorityScopeCid,
         captureStartedAt, captureCompletedAt));
       const compiled = acquired.control.adoptCheckedClientEffectInferRun(
-        acquired.allowed, acquired.runDefinition);
+        acquired.allowed, acquired.runDefinition, acquired.resultDataPolicy,
+        acquired.resultDataPolicyLimits);
       const plan = {compiled, runDefinition: acquired.runDefinition};
       component = openNodeComposedInferProvider({moon, selected: infer, sources,
         control: acquired.control, plan, principalId, signal, now,

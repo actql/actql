@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "session-additive-execution-recipes",
+  "kind": "change",
+  "revision": "ada2e59163ad1b125b6d101494c1155b2c9e2050",
+  "parents": [
+    "3a83cd0570197db7a59ab257974e3a0401f92e62"
+  ],
+  "changes": [
+    {
+      "path": "proofs/bounded-session/run.mjs",
+      "before": [
+        {
+          "revision": "3a83cd0570197db7a59ab257974e3a0401f92e62",
+          "digest": "aaf8d2f9f39f4a2e688fe6d60512c1486ac79238a1043357c0ffc2f841daf502",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "49de54ea58b7ac26ac746d33faaee339b4e436cd08922dd5dad2b6c49a67b961",
+      "afterMode": "100644",
+      "reason": "Retain all existing model, Session, adapter, connection and local fixture executions, counts, independent coverage and source/artifact validation. Use a shared finite recipe registry in the actual runner and collector so additive local obligations have real executions. Preserve every initial protected descriptor, explicit target/minimum checks and complete final receipt/Lean requirements. Do not add campaigns or authorize a new runtime reuse scope."
+    }
+  ]
+}

@@ -6136,8 +6136,10 @@ test('checked INFER barrier compiles within the original Effect Run', async () =
   const definition = checked(moon.clientProgramIssueEffectRunDefinition(allowed,
     'composition-scope', 'original-effect-run', '2026-10-03T00:00:00.000Z',
     '2099-01-01T00:00:00.000Z'));
-  const modelRun = checked(moon.clientProgramEffectAllowedInferRun(allowed));
-  assert.equal(moon.clientProgramCheckCompiledRunDefinition(modelRun, definition), true);
+  // Source-free Effect INFER needs the selected Host Result Policy original.
+  // The Model egress contract alone cannot satisfy Result dependency custody.
+  assert.throws(() => checked(moon.clientProgramEffectAllowedInferRun(allowed)),
+    {code: 'MoonBitHostFailure'});
   const foreign = moon.clientProgramEffectPreparationReady(
     moon.clientProgramPrepareEffectComputationWithParameters(JSON.stringify(document),
       'json', environment, undefined, []));

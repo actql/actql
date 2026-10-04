@@ -134,6 +134,76 @@ pub fn client_program_effect_allowed_infer_run(
 }
 
 ///|
+#export_name("clientProgramEffectAllowedInferRunWithPolicyBody")
+pub fn client_program_effect_allowed_infer_run_with_policy_body(
+  allowed : @publication_host.ClientEffectAllowedRun,
+  policy_cid : String,
+  policy_wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientCompiledRun,
+  @publication_host.ClientCompiledRunIssue,
+] {
+  @publication_host.client_effect_allowed_infer_run_with_policy_body(
+    allowed,
+    Some(policy_cid),
+    Some(policy_wire),
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramAdmitSourceFreeResultPolicyBody")
+pub fn client_program_admit_source_free_result_policy_body(
+  cid : String,
+  wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[(String, String, String), @publication_host.ClientCompiledRunIssue] {
+  match
+    @publication_host.admit_source_free_result_policy_body(
+      cid, wire, max_bytes, max_nodes, max_depth,
+    ) {
+    Ok(body) =>
+      Ok(
+        (
+          @publication.captured_effect_dependency_body_kind(body),
+          @publication.captured_effect_dependency_body_cid(body),
+          @publication.captured_effect_dependency_body_json(body),
+        ),
+      )
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Retain the actual source-free Result Policy original with the admitted
+/// INFER Run. The Effect inventory must use this body, not Model egress.
+#export_name("clientProgramCompiledRunSourceFreeResultPolicy")
+pub fn client_program_compiled_run_source_free_result_policy(
+  compiled : @publication_host.ClientCompiledRun,
+) -> (String, String, String)? {
+  guard @publication_host.client_compiled_run_source_free_result_policy_body(
+      compiled,
+    )
+    is Some(body) else {
+    return None
+  }
+  Some(
+    (
+      @publication.captured_effect_dependency_body_kind(body),
+      @publication.captured_effect_dependency_body_cid(body),
+      @publication.captured_effect_dependency_body_json(body),
+    ),
+  )
+}
+
+///|
 #export_name("clientProgramCompiledRunEffectMatches")
 pub fn client_program_compiled_run_effect_matches(
   compiled : @publication_host.ClientCompiledRun,
