@@ -640,23 +640,28 @@ pub fn model_invocation_grant_handle(
     }
     if immediate {
       @checkpoint.confirm_immediate_model_invocation_grant_wire(
-        binding, verified_wire, at, limits(),
+        binding,
+        verified_wire,
+        at,
+        limits(),
       ).map_err(@debug.to_string)
     } else {
-      let checkpoint = match @checkpoint.admit_checkpoint_wire(
-        checkpoint_wire, limits(),
-      ) {
+      let checkpoint = match
+        @checkpoint.admit_checkpoint_wire(checkpoint_wire, limits()) {
         Ok(value) => value
         Err(issue) => raise ModelBridgeFailed(@debug.to_string(issue))
       }
-      let persisted = match @checkpoint.confirm_checkpoint_persisted(
-        checkpoint, checkpoint_wire,
-      ) {
+      let persisted = match
+        @checkpoint.confirm_checkpoint_persisted(checkpoint, checkpoint_wire) {
         Ok(value) => value
         Err(issue) => raise ModelBridgeFailed(@debug.to_string(issue))
       }
       @checkpoint.confirm_model_invocation_grant_wire(
-        binding, persisted, verified_wire, at, limits(),
+        binding,
+        persisted,
+        verified_wire,
+        at,
+        limits(),
       ).map_err(@debug.to_string)
     }
   } catch {
