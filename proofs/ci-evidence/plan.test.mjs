@@ -51,7 +51,7 @@ function fixture() {
       assert.equal(path, '/actions/runs/3/artifacts?per_page=100');
       return {total_count: 1, artifacts: [state.artifact]};
     }, download: async () => { state.downloadCount++; return '/unit-fixture/origin.zip'; },
-    loadRuntime: async () => state.originRuntime,
+    loadRuntime: async () => ({runtime: state.originRuntime, actionRuntimes: {}}),
     read: async ({action, expected, acquisition}) => {
       assert.equal(acquisition, 'reused'); assert.deepEqual(expected.ancestors, [base]);
       state.readCount++;

@@ -13,14 +13,18 @@ export {mutationSnapshotExtras} from './inputs.mjs';
 export const isolatedEnvironment = Object.freeze({HOME: '/tmp/home', TMPDIR: '/tmp',
   PATH: '/runtime/moonbit/bin:/runtime', MOON_HOME: '/runtime/moonbit',
   LANG: 'C', LC_ALL: 'C', TZ: 'UTC'});
-const child = 'proofs/ci-evidence/isolated-mutations.mjs';
+export const isolatedSourceFiles = Object.freeze(['proofs/ci-evidence/isolated-mutations.mjs',
+  'proofs/ci-evidence/isolation.mjs', 'proofs/ci-evidence/isolated-runtime.mjs',
+  'proofs/ci-evidence/runtime.mjs', 'proofs/ci-evidence/inputs.mjs',
+  'proofs/ci-evidence/mutation-inventory.mjs']);
+const child = isolatedSourceFiles[0];
 const safe = path => typeof path === 'string' && /^[A-Za-z0-9_.\/-]+$/u.test(path) &&
   !isAbsolute(path) && !path.split('/').some(part => ['', '.', '..'].includes(part));
 const stable = (a, b) => ['dev', 'ino', 'mode', 'size', 'mtimeNs', 'ctimeNs'].every(key => a[key] === b[key]);
 
 export function mutationSourcePaths(tree) {
   const paths = [...new Set([...tree.entries.keys()].filter(path => path.startsWith('src/') ||
-    path.startsWith('proofs/bounded-session/')).concat(mutationSnapshotExtras, child))].sort();
+    path.startsWith('proofs/bounded-session/')).concat(mutationSnapshotExtras, isolatedSourceFiles))].sort();
   assert(paths.includes('proofs/bounded-session/mutations.mjs'), 'Missing original mutation executor');
   for (const path of paths) {
     const entry = tree.entries.get(path);
@@ -133,12 +137,13 @@ export function loaderPaths(output) {
   return [...paths].sort();
 }
 
-export function isolatedRunArguments({imageId, cidFile}) {
+export function isolatedRunArguments({imageId, cidFile, owner}) {
   assert(/^sha256:[a-f0-9]{64}$/u.test(imageId), 'Use an inspected immutable image ID');
   assert(typeof cidFile === 'string' && isAbsolute(cidFile), 'Use an owned absolute CID file');
+  assert(typeof owner === 'string' && /^[0-9]+:[0-9]+:[0-9]+$/u.test(owner), 'Use the actual run/attempt/job owner');
   return ['run', '--rm', '--pull=never', '--read-only', '--network=none', '--cap-drop=ALL',
     '--security-opt=no-new-privileges', '--user=1000:1000', '--hostname=actql-session',
-    '--cidfile', cidFile, '--tmpfs', '/tmp:rw,nosuid,nodev,mode=1777',
+    '--label', `org.actql.ci.owner=${owner}`, '--cidfile', cidFile, '--tmpfs', '/tmp:rw,nosuid,nodev,mode=1777',
     '--tmpfs', '/workspace:rw,nosuid,nodev,mode=1777', '--workdir=/workspace',
     '--entrypoint=/runtime/node', imageId, `/source/${child}`];
 }

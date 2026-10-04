@@ -2,14 +2,13 @@
 // proof/test campaign. Receipts are not reusable until the Actions job/run is
 // independently authenticated as successful by the artifact consumer.
 import assert from 'node:assert/strict';
-import {execFileSync, spawnSync} from 'node:child_process';
+import {execFileSync} from 'node:child_process';
 import {mkdirSync, readFileSync, writeFileSync, existsSync} from 'node:fs';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {performance} from 'node:perf_hooks';
 import {actionsReader} from '../../scripts/ci-main-base.mjs';
 import {encode} from '../bounded-session/action-inputs.mjs';
-import {snapshot} from '../bounded-session/evidence.mjs';
 import {readCatalog, catalogPath, initialRegistrationRevision, compareCatalogs} from './actions.mjs';
 import {actionInputs, gitTree, hash} from './inputs.mjs';
 import {canonicalReceipt, parseReceipt, sealReceipt} from './receipts.mjs';
@@ -17,9 +16,12 @@ import {leanRecords} from './applications.mjs';
 import {checkPlan} from './check.mjs';
 import {observeRuntime} from './runtime.mjs';
 import {comparisonPlan, compareFreshObservations} from './plan.mjs';
+import {prepareIsolatedMutation, executeIsolatedMutation} from './isolated-execution.mjs';
+import {runtimeForAction} from './isolated-runtime.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const directory = join(root, '.artifacts/session-actions');
+const isolatedDirectory = join(root, '.artifacts/session-isolated-build');
 const git = args => execFileSync('git', args, {cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024}).trim();
 const json = path => JSON.parse(readFileSync(path, 'utf8'));
 const write = (path, value) => writeFileSync(path, `${encode(value)}\n`, {flag: 'wx'});
@@ -55,16 +57,22 @@ export async function initialize() {
   const {runtime, distributionInputs, measurement} = observeRuntime({root});
   assert(!existsSync(directory), 'Another collection already owns this directory');
   for (const path of ['receipts', 'observations', 'results']) mkdirSync(join(directory, path), {recursive: true});
-  write(join(directory, 'context.json'), {context, origin, runtime});
+  assert(!existsSync(isolatedDirectory), 'Another isolated executor owns the build directory');
+  mkdirSync(isolatedDirectory);
+  const prepared = prepareIsolatedMutation({root, tree: gitTree(root, revision), origin, directory: isolatedDirectory});
+  write(join(isolatedDirectory, 'prepared.json'), prepared);
+  write(join(directory, 'isolated-inputs.json'), prepared.manifest);
+  const actionRuntimes = {'mutations-js': prepared.runtime};
+  write(join(directory, 'context.json'), {context, origin, runtime, actionRuntimes});
   write(join(directory, 'runtime-distributions.json'), distributionInputs);
   write(join(directory, 'runtime-measurement.json'), measurement);
-  const comparison = await comparisonPlan({root, context, runtime, directory,
+  const comparison = await comparisonPlan({root, context, runtime, actionRuntimes, directory,
     token: process.env.ACTIONS_READ_TOKEN, request});
   write(join(directory, 'comparison-plan.json'), comparison);
   console.log(`Comparison collection initialized for ${revision}; all actions still execute`);
 }
 
-export function recordExistingAction({id, command, output, status, milliseconds, result = null}) {
+export function recordExistingAction({id, command, output, status, milliseconds, result = null, extraArtifacts = []}) {
   if (process.env.ACTQL_SESSION_COLLECT !== 'true') return;
   const state = json(join(directory, 'context.json'));
   assert.equal(git(['rev-parse', 'HEAD']), state.context.candidateRevision);
@@ -73,10 +81,16 @@ export function recordExistingAction({id, command, output, status, milliseconds,
   assert(action, `Unregistered execution: ${id}`);
   assert.equal(encode(action.command), encode(command), 'Executed command differs from registration');
   tree ??= gitTree(root, state.context.candidateRevision);
-  const inputs = actionInputs({tree, revision: state.context.candidateRevision, action, runtime: state.runtime});
+  const inputs = actionInputs({tree, revision: state.context.candidateRevision, action,
+    runtime: runtimeForAction(action, state.runtime, state.actionRuntimes)});
   const distributionPath = 'runtime-distributions.json';
   const distributionBytes = readFileSync(join(directory, distributionPath));
   const artifacts = [{path: distributionPath, bytes: distributionBytes.length, digest: hash(distributionBytes)}];
+  if (id === 'mutations-js') {
+    for (const path of ['isolated-inputs.json', ...extraArtifacts]) {
+      const bytes = readFileSync(join(directory, path)); artifacts.push({path, bytes: bytes.length, digest: hash(bytes)});
+    }
+  } else assert.equal(extraArtifacts.length, 0, 'Only the actual isolated action may acquire isolated artifacts');
   const comparisonBytes = readFileSync(join(directory, 'comparison-plan.json'));
   artifacts.push({path: 'comparison-plan.json', bytes: comparisonBytes.length, digest: hash(comparisonBytes)});
   if (result !== null) {
@@ -90,18 +104,22 @@ export function recordExistingAction({id, command, output, status, milliseconds,
 }
 
 async function mutations() {
-  const before = snapshot(root), start = performance.now();
-  const result = spawnSync(process.execPath, ['proofs/bounded-session/mutations.mjs'],
-    {cwd: root, env: process.env, encoding: 'utf8', timeout: 10 * 60 * 1000, maxBuffer: 16 * 1024 * 1024});
-  const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
-  process.stdout.write(output);
-  if (result.error || result.status !== 0) throw result.error ?? new Error('Existing Session mutations failed');
-  assert.equal(snapshot(root).digest, before.digest, 'Mutation source bytes were not restored');
-  const report = json(join(root, '.artifacts/bounded-session/mutations.json'));
-  assert.equal(report.source.digest, before.digest);
-  recordExistingAction({id: 'mutations-js', command: ['node', 'proofs/bounded-session/mutations.mjs'], output,
-    status: result.status, milliseconds: Math.round(performance.now() - start),
-    result: {...report, sourceRestored: true, revision: git(['rev-parse', 'HEAD'])}});
+  const state = json(join(directory, 'context.json')), prepared = json(join(isolatedDirectory, 'prepared.json'));
+  const revision = git(['rev-parse', 'HEAD']); assert.equal(revision, state.context.candidateRevision);
+  assert.equal(prepared.owner, `${state.origin.runId}:${state.origin.runAttempt}:${state.origin.jobId}`);
+  const result = executeIsolatedMutation({root, tree: gitTree(root, revision), prepared});
+  process.stdout.write(result.output);
+  // Preserve the original mutation artifacts at the existing upload boundary.
+  const originalDirectory = join(root, '.artifacts/bounded-session');
+  mkdirSync(originalDirectory, {recursive: true});
+  writeFileSync(join(originalDirectory, 'mutations.json'), `${JSON.stringify(result.payload.report, null, 2)}\n`, {flag: 'wx'});
+  for (const [id, output] of Object.entries(result.payload.logs)) writeFileSync(join(originalDirectory, `mutation-${id}.log`), output, {flag: 'wx'});
+  write(join(directory, 'isolated-observation.json'), result.payload);
+  write(join(directory, 'isolated-execution.json'), {imageId: result.imageId, owner: result.owner, arguments: result.arguments, costs: result.costs});
+  recordExistingAction({id: 'mutations-js', command: ['node', 'proofs/bounded-session/mutations.mjs'], output: result.output,
+    status: 0, milliseconds: Object.values(result.costs).reduce((sum, value) => sum + value, 0),
+    extraArtifacts: ['isolated-observation.json', 'isolated-execution.json'],
+    result: {...result.payload.report, sourceRestored: true, revision}});
 }
 
 export function finish() {
@@ -119,6 +137,7 @@ export function finish() {
   }
   const comparison = json(join(directory, 'comparison-plan.json'));
   const observations = compareFreshObservations({plan: comparison, context: state.context, runtime: state.runtime,
+    actionRuntimes: state.actionRuntimes,
     tree: gitTree(root, state.context.candidateRevision), receipts});
   write(join(directory, 'comparison-observations.json'), observations);
   const start = performance.now();

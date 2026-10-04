@@ -4,7 +4,7 @@ import {mkdtempSync, mkdirSync, readFileSync, writeFileSync, chmodSync, lstatSyn
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {mutationSourcePaths, stageMutationSource, copyRegular, stageDistribution, loaderPaths,
-  isolatedRunArguments, scratchDockerfile, mutationSnapshotExtras, isolatedEnvironment} from './isolation.mjs';
+  isolatedRunArguments, scratchDockerfile, mutationSnapshotExtras, isolatedEnvironment, isolatedSourceFiles} from './isolation.mjs';
 
 const temporary = t => {
   const path = mkdtempSync(join(tmpdir(), 'actql-isolated-input-test-'));
@@ -16,7 +16,7 @@ function sources() {
     ['src/connectors/local/provider.mbt', 'production'],
     ['proofs/bounded-session/mutations.mjs', 'original mutation action'],
     ['proofs/bounded-session/evidence.mjs', 'original snapshot'],
-    ['proofs/ci-evidence/isolated-mutations.mjs', 'isolated runner'],
+    ...isolatedSourceFiles.map(path => [path, path]),
     ...mutationSnapshotExtras.map(path => [path, path]),
     ['unrelated/private.txt', 'must not enter the image'],
   ]);
@@ -95,7 +95,7 @@ test('loader extraction retains actual standard paths and refuses unknown or mis
 });
 
 test('the action uses an immutable image, no host mount/network/secret environment, and fresh tmpfs', () => {
-  const args = isolatedRunArguments({imageId: `sha256:${'a'.repeat(64)}`, cidFile: '/owned/container.id'});
+  const args = isolatedRunArguments({imageId: `sha256:${'a'.repeat(64)}`, cidFile: '/owned/container.id', owner: '1:2:3'});
   for (const value of ['--read-only', '--network=none', '--cap-drop=ALL', '--security-opt=no-new-privileges', '--pull=never'])
     assert(args.includes(value));
   assert(!args.includes('--mount') && !args.includes('-v') && !args.includes('--env') && !args.includes('--env-file'));
