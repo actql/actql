@@ -448,6 +448,22 @@ pub fn client_program_resume_approved_infer_execution(
 }
 
 ///|
+/// The retained journal readback is re-admitted in this runtime so the
+/// execution owner receives a typed grant, not an adapter-created summary.
+#export_name("clientProgramModelInvocationGrantHandle")
+pub fn client_program_model_invocation_grant_handle(
+  request_wire : String,
+  checkpoint_wire : String,
+  verified_wire : String,
+  at : String,
+  immediate : Bool,
+) -> Result[@checkpoint.ModelInvocationGrant, String] {
+  @checkpoint_node.model_invocation_grant_handle(
+    request_wire, checkpoint_wire, verified_wire, at, immediate,
+  )
+}
+
+///|
 #export_name("clientProgramInferCallEntryOriginals")
 pub fn client_program_infer_call_entry_originals(
   value : @model.ModelCallEntry,

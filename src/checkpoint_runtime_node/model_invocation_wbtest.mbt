@@ -192,6 +192,18 @@ test "Model live grant checks minimum review and Run expiry for deferred and imm
       let answer = model_test_ok(
         live(request, checkpoint, verified, "2026-09-26T11:29:59.999Z"),
       )
+      let handle = model_invocation_grant_handle(
+        request, checkpoint, verified, "2026-09-26T11:29:59.999Z",
+        immediate,
+      ).unwrap()
+      assert_eq(
+        @checkpoint.model_invocation_grant_expires_at(handle),
+        expiry,
+      )
+      assert_eq(
+        @checkpoint.model_invocation_grant_checkpoint_cid(handle),
+        text_member(answer, "checkpointCid").unwrap(),
+      )
       assert_eq(text_member(answer, "expiresAt"), Some(expiry))
       assert_eq(text_member(answer, "runId"), Some("run-model"))
       assert_eq(
@@ -216,6 +228,11 @@ test "Model live grant checks minimum review and Run expiry for deferred and imm
           expiry, "2026-09-26T12:00:00.001Z", "2026-09-25T12:00:00.999Z", "invalid",
         ] {
         model_test_refuses(live(request, checkpoint, verified, at))
+        assert_true(
+          model_invocation_grant_handle(
+            request, checkpoint, verified, at, immediate,
+          ) is Err(_),
+        )
       }
       // Immutable custody/original observation stays legal after live expiry.
       ignore(model_test_ok(model_call_set_admit(request)))

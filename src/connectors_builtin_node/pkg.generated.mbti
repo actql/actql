@@ -879,6 +879,8 @@ pub fn client_program_model_capture(@model_execution.ModelObservation) -> @model
 
 pub fn client_program_model_capture_json(@model_execution.ModelCaptureBundle) -> String?
 
+pub fn client_program_model_invocation_grant_handle(String, String, String, String, Bool) -> Result[@checkpoint_runtime.ModelInvocationGrant, String]
+
 pub fn client_program_model_physical_request_plan(@model_execution.ModelRequest, Int64, Int64, Int64, Int64, () -> @model_execution.ModelResponse?) -> Result[@model_execution.ModelPhysicalRequestPlan, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_model_private_holding_cid(@run_publication.PublicationContract, String, String, Int) -> String?

@@ -622,6 +622,49 @@ fn model_invocation_grant_at_impl(
 }
 
 ///|
+/// Reconstruct a typed grant inside the execution runtime from the journal's
+/// exact retained originals and authenticated resolution readback. The Host
+/// must still verify current authority and enter each call durably before I/O.
+pub fn model_invocation_grant_handle(
+  request_wire : String,
+  checkpoint_wire : String,
+  verified_wire : String,
+  at : String,
+  immediate : Bool,
+) -> Result[@checkpoint.ModelInvocationGrant, String] {
+  try {
+    let (_, binding) = model_call_set(request_wire)
+    let request = model_parse(request_wire)
+    if model_member(request, "checkpointWire") != checkpoint_wire {
+      raise ModelBridgeFailed("ModelCheckpointReadbackMismatch")
+    }
+    if immediate {
+      @checkpoint.confirm_immediate_model_invocation_grant_wire(
+        binding, verified_wire, at, limits(),
+      ).map_err(@debug.to_string)
+    } else {
+      let checkpoint = match @checkpoint.admit_checkpoint_wire(
+        checkpoint_wire, limits(),
+      ) {
+        Ok(value) => value
+        Err(issue) => raise ModelBridgeFailed(@debug.to_string(issue))
+      }
+      let persisted = match @checkpoint.confirm_checkpoint_persisted(
+        checkpoint, checkpoint_wire,
+      ) {
+        Ok(value) => value
+        Err(issue) => raise ModelBridgeFailed(@debug.to_string(issue))
+      }
+      @checkpoint.confirm_model_invocation_grant_wire(
+        binding, persisted, verified_wire, at, limits(),
+      ).map_err(@debug.to_string)
+    }
+  } catch {
+    ModelBridgeFailed(issue) => Err(issue)
+  }
+}
+
+///|
 /// Live approval-scope check at Host-trusted time. Inputs must be the journal's
 /// exact originals and wrapper from its trusted authenticated atomic commit.
 /// Canonical reconstruction is linkage validation, not signature verification.
