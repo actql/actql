@@ -1,0 +1,69 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-incremental-session-main-e9718942",
+  "kind": "resolution",
+  "revision": "0834d3f5cc2a1169148302b5bf4a3be7fc44b89b",
+  "parents": [
+    "d9e9d93c114a8ca810579d8daef13e5f9ac082e3",
+    "e9718942f8956519cc214c7237c53970a783f556"
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-343a5565c1ac",
+    "adopt-985dbbba2789",
+    "adopt-dafff1a1aeea",
+    "bounded-local-execution-guard",
+    "ci-artifact-preflight-fixtures",
+    "ci-declaration-profile",
+    "ci-focused-fixed-requests",
+    "ci-main-carryforward",
+    "ci-maintenance-pr-profile",
+    "ci-mandatory-preflight",
+    "ci-native-query-partition",
+    "ci-operation-evidence-admission",
+    "ci-portable-pr-targets",
+    "client-ci-runner-context",
+    "client-ci-split",
+    "four-owned-pipeline-producers",
+    "incremental-session-comparison",
+    "issue-180-foundation-composition",
+    "main-json-composition-246-resolution",
+    "main-pr225-ci-resolution",
+    "packed-acquired-infer-acceptance",
+    "packed-composed-infer-effect-acceptance",
+    "parallel-pipeline-evidence",
+    "resolve-acquired-infer-client-ci",
+    "resolve-ci-main-carryforward-artifact-preflight",
+    "resolve-composition-current-ci-main",
+    "resolve-composition-custody-main-maximal-bases",
+    "resolve-composition-infer-main-maximal-bases",
+    "resolve-composition-maintenance-ci-main",
+    "resolve-composition-reviewed-supplements-main",
+    "resolve-four-producers-current-main",
+    "resolve-host-owner-main-7081dedfd",
+    "resolve-local-guard-acquired-infer-ci",
+    "resolve-local-guard-pipeline-ci",
+    "resolve-main-model-backing",
+    "resolve-parallel-pipeline-main-infer"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "d9e9d93c114a8ca810579d8daef13e5f9ac082e3",
+          "digest": "6a1e8d7f2ea1518511911ef94f6828d7c6450775ad1f206987ddb8ba375ace5f",
+          "mode": "100644"
+        },
+        {
+          "revision": "e9718942f8956519cc214c7237c53970a783f556",
+          "digest": "fdc1857811c45519e44cb439e4f626f3bcf363039c02cd7699c80faf7809c05c",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "5e537afd4786c0c42333d0977fea82bef819ba4d3328bf1f861ee397bfd43c00",
+      "afterMode": "100644",
+      "reason": "Normally merge main e9718942 into the incremental bounded Session evidence branch. Preserve main operation-evidence admission before fan-out and all existing job-selection and cost-reduction settings. Retain branch collection, immutable receipt upload and required final authentication. Keep all original declarations, supplements and introduction history; no evidence reuse or reduced correspondence execution is enabled."
+    }
+  ]
+}

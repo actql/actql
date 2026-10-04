@@ -36,7 +36,8 @@ for (const name of ['property-graph-public-host.test.mjs','check-canonical-json.
   'fixtures/property-graph-parallel.program.json',
   'fixtures/property-graph-presence.program.json',
   'fixtures/property-graph-definition-rows.program.json',
-  'fixtures/property-graph-label-rows.program.json']) await copyFile(join(repository,'scripts',name),join(root,name));
+  'fixtures/property-graph-label-rows.program.json',
+  'fixtures/property-graph-traverse-nodes.expected.json']) await copyFile(join(repository,'scripts',name),join(root,name));
 await copyFile(join(repository,'docs/reviews/2026-09-19-sga-veca-tea-local-coverage.json'),
   join(root,'local-family-coverage.json'));
 await mkdir(join(root,'tls'));
@@ -57,6 +58,7 @@ const acceptance = {
   presenceFixture:'fixtures/property-graph-presence.program.json',
   definitionFixture:'fixtures/property-graph-definition-rows.program.json',
   labelFixture:'fixtures/property-graph-label-rows.program.json',
+  traversalFixture:'fixtures/property-graph-traverse-nodes.expected.json',
   assertions:['typed MATCH Named Result','independent-key TRAIL identities',
     'inventory-driven unsupported consumer refusal before Run admission and physical work',
     'composite keys and label sets','independent snapshot bytes and CID',
@@ -72,7 +74,9 @@ const acceptance = {
     'declaration-derived all-candidate label selection with nullable and empty Results',
     'label selected typed identities raw aliases and Conditional fields survive Relation Store reload',
     'conditional label reference and mixed unknown wrong-kind selector refusal before Run admission',
-    'unknown wrong-kind extra-field and selected-column collision refusal before Run admission'],
+    'unknown wrong-kind extra-field and selected-column collision refusal before Run admission',
+    'path-mode-aware node output with independently ordered minimum eligible depth',
+    'node traversal Relation Store retention, source denial and verified reload'],
 };
 await writeFile(join(root,'acceptance.json'),JSON.stringify(acceptance,null,2)+'\n');
 console.log(output);

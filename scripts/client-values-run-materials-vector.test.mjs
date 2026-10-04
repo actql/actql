@@ -251,11 +251,11 @@ test('baseline preimages and changed normative pins independently determine the 
   // Label selection changes the Program schema in the current closure.
   // These values are independently assembled, not copied from compiler output.
   assert.equal(dependencies.unit,
-    pin('d33e17249369d1cfa53e387b80ec7eaa5fd46b985625b64bd81fd0d9e81b04b1'));
+    pin('35a56f0af27269b982e10c93b1afbfaffb4d626ee13ec0eb9692dbbeb0410163'));
   assert.equal(dependencies.proof,
-    pin('80e66b1b397cf1a0204403c35b46baa56f1873e07da44f5d6a29580f19450d63'));
+    pin('969de0c587309bab81fe2ec1f77ad3924b5d5a5e08b093c97528401e6455f238'));
   assert.equal(dependencies.resultPlan,
-    pin('01ee6af54d54f1a2db63d43f07d6d930d253c5f54c271172964241ab761f9ed1'));
+    pin('00db7ecd331e76ca9cd5bc590e3ce59f747ee697b9ea783e82578cf282899d6e'));
   const constructorGrammar = pin('2bf8ef0846b81f91fec96548d10dddd8c7e5a82b7db05444b38eefa316779c11');
   assert.equal(vector(constructorGrammar, preRefreshContract, preRefreshDependencies).run.run_definition_cid,
     pin('3e86d58da98d5af468f0cd07aaef40562c46117c099dfa1cb41a2de052f983f3'));
@@ -345,8 +345,38 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('2422e7815a6d6f6cbc2dd4289da3ba5d98eeb58545c356d45e897627e7ac3a8e'),
     cid(aoaContract), definitionDependencies, barrierCid).run.run_definition_cid,
     pin('33063a0c0762a010768e79c8d6de94682c4dddf66657b3681d9ae57e71630e4e'));
-  assert.equal(current.run.run_definition_cid,
+  const labelPredecessorDependencies = {
+    unit:pin('d33e17249369d1cfa53e387b80ec7eaa5fd46b985625b64bd81fd0d9e81b04b1'),
+    proof:pin('80e66b1b397cf1a0204403c35b46baa56f1873e07da44f5d6a29580f19450d63'),
+    resultPlan:pin('01ee6af54d54f1a2db63d43f07d6d930d253c5f54c271172964241ab761f9ed1'),
+  };
+  assert.equal(vector(pin('b17d94092c747a21caea0eb25ea01d48160d3ed3cacafc0e5a6e1de79307325c'),
+    cid(aoaContract), labelPredecessorDependencies, barrierCid).run.run_definition_cid,
     pin('9b4c99b1a37ed73ebb95b51a470c490a15b950740dcc4773f92b8dab979ade6f'));
+  const traversalDependencies = {
+    unit:pin('18dc8e9fc34fa63d1e5973243b019bda7446f2247c1ed2c5f945366bea8a520a'),
+    proof:pin('54124219997d78cedc627fd7f05f4cc236deb36700ab4942f710a1524e3bcc0e'),
+    resultPlan:pin('b073b5030c6a53eca1062d6acfeac9d6b8c41efbddc6b7d4d192fc7e3308e366'),
+  };
+  assert.equal(vector(pin('b631f06f2ad3b4972d2ac2211819a55d40b1ffd4c5ff6e56b726a20f512c106d'),
+    preRefreshContract, preRefreshDependencies, barrierCid).run.run_definition_cid,
+    pin('b37addde56c74a96dcf6ba4161c6c36a8d66f8bf6d77cc476ed753c29d123042'));
+  assert.equal(vector(pin('b631f06f2ad3b4972d2ac2211819a55d40b1ffd4c5ff6e56b726a20f512c106d'),
+    cid(aoaContract), traversalDependencies, barrierCid).run.run_definition_cid,
+    pin('33cfcb3f25ea4ace4092ddc986cf36501136c845caa6dc7d6453ed5bf3931fbf'));
+  assert.equal(vector(pin('ae383655950a9e0f2d292ffd546e6bf9eb5cb1e9a9d72e86f6086bb917f681b6'),
+    cid(aoaContract), traversalDependencies, barrierCid).run.run_definition_cid,
+    pin('81d0f20687086a3a17a81541a6042c1f4c6afb3d4a9a09fceca1f69236e374d2'));
+  const mergedDefinitionDependencies = {
+    unit:pin('56ea51419a5f42a23d41b6e6e58d0496fabe58da6d6bea1be555bfd0cbbe00fa'),
+    proof:pin('c71b51eff535dc79152ac6458b4e3d21758aa3bb0335d143ad5a0899220524d2'),
+    resultPlan:pin('4bee979f2e9c5b6bed478ba9df66c3cc677a3af0d3609c0a2d415770d4badd1a'),
+  };
+  assert.equal(vector(pin('caad49cf67bec4b67c2cb6beed69e7c9f71a80b19f2e8e04535d0d7f1c12cd90'),
+    cid(aoaContract), mergedDefinitionDependencies, barrierCid).run.run_definition_cid,
+    pin('4ac75ab91130a87f439df5621d673c5aec12fbe67f3ccc033691d4af5e4abc3b'));
+  assert.equal(current.run.run_definition_cid,
+    pin('15eabd454afdd1ca560cfef0c575de3207187c972570ce62472afa54dc7593f0'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');

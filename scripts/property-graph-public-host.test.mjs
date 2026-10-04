@@ -19,6 +19,7 @@ const fixture = JSON.parse(await readFile(new URL('./fixtures/property-graph-par
 const presenceFixture = JSON.parse(await readFile(new URL('./fixtures/property-graph-presence.program.json', import.meta.url), 'utf8'));
 const definitionFixture = JSON.parse(await readFile(new URL('./fixtures/property-graph-definition-rows.program.json', import.meta.url), 'utf8'));
 const labelFixture = JSON.parse(await readFile(new URL('./fixtures/property-graph-label-rows.program.json', import.meta.url), 'utf8'));
+const traversalFixture = JSON.parse(await readFile(new URL('./fixtures/property-graph-traverse-nodes.expected.json', import.meta.url), 'utf8'));
 // Use the existing authoritative inventory, not a second supported-operation
 // list or hand-authored per-consumer request fixtures. The common checker
 // refuses unsupported operation keys before interpreting their payloads.
@@ -163,6 +164,24 @@ function definitionScenario(projection, empty, alternate = false) {
   const expected = retained.map(row=>({id:row.id,[key]:row[key],value:row[property]}));
   return {document,retained,expected,snapshot,property,key};
 }
+const traversalProgram = structuredClone(fixture);
+traversalProgram.stages[0].steps[0].values.rows = traversalFixture.node_keys.map(id=>({id,tenant:'a'}));
+traversalProgram.stages[0].steps[1].values.rows = traversalFixture.edges.map(edge=>({...edge,tenant:'a'}));
+const traversalDomain = cid({constructor,
+  producer_definitions:traversalProgram.stages[0].steps.slice(0,2)
+    .map(step=>({body:{values:step.values},dependencies:[]})),
+  version:'actql-property-graph-definition/0.1'});
+const traversalIdentity = (definition,key)=>({definition,domain:traversalDomain,
+  key:['a',key],key_types:[{kind:'string'},{kind:'number'}]});
+const traversalContract = {...graphContract,domain:traversalDomain};
+// Explicitly canonical expected order, independent of descending source input.
+const traversalSnapshot = canonicalText(['actql-property-graph-snapshot/0.1',cid(traversalContract),traversalContract,
+  [1,2,3].map(id=>({id:traversalIdentity('N',id),key:['a',id],props:{id,tenant:'a'}})),
+  [10,11,12,13,14].map(key=>{
+    const edge=traversalFixture.edges.find(edge=>edge.key===key);
+    return {id:traversalIdentity('E',key),key:['a',key],props:{...edge,tenant:'a'},
+      src:traversalIdentity('N',edge.src),dst:traversalIdentity('N',edge.dst)};
+  })]);
 
 // Independent label candidate oracle: two definitions declare the label and
 // a third does not. Extra properties/raw aliases remain Conditional, including
@@ -498,5 +517,40 @@ for (const mode of ['local','remote']) {
     assert.deepEqual(await labelMinimal.result('answer').all(),[{value:9},{value:7},{value:null}]);
     assert.deepEqual((await labelMinimal.result('answer').describe()).columns,
       [{name:'value',contract:{type:'number',nullable:true}}]);
+    for (const [index,scenario] of traversalFixture.cases.entries()) {
+      const document = structuredClone(traversalProgram);
+      document.id = `property-traverse-nodes-${index}`;
+      const start = scenario.relation_start ? {from:'seeds',id:'element'}
+        : {ids:scenario.start_keys.map(key=>traversalIdentity('N',key))};
+      const body = scenario.hops ? {hops:scenario.hops}
+        : {direction:'out',min_hops:scenario.min_hops,max_hops:scenario.max_hops,...scenario.conditions};
+      document.stages[0].steps[3] = {from:'g',traverse:{start,...body,path_mode:scenario.path_mode,emit:'nodes'},as:'visited'};
+      if (scenario.relation_start) document.stages[0].steps.splice(3,0,
+        {from:'g',match_nodes:{definition:'N',label:'Node',bindings:{identity:'element'},
+          where:'id = 1',fields:['element']},as:'seeds'});
+      document.stages[0].steps.push({from:'visited',select:['start_id','node_id','depth'],as:'projected'});
+      document.stages[0].results.out = {from:'projected',fields:['start_id','node_id','depth']};
+      let traversed;
+      try {
+        traversed = await client.aql(canonicalText(document),
+          {format:'json',requestId:`traverse-nodes-${index}-${mode}`});
+      } catch (cause) {
+        throw new Error(`Traversal submission failed: ${scenario.name}; ${String(cause.cause?.cause ?? cause.code)}`,{cause});
+      }
+      const state = await traversed.wait();
+      assert.equal(state.status,'succeeded',JSON.stringify(state));
+      const expected = scenario.rows.map(({start_key,node_key,depth})=>({
+        start_id:traversalIdentity('N',start_key),node_id:traversalIdentity('N',node_key),depth}));
+      assert.deepEqual(await traversed.result('answer').all(),expected,scenario.name);
+      assert.deepEqual((await traversed.result('answer').describe()).columns.map(column=>column.name),
+        ['start_id','node_id','depth']);
+      await assertSnapshot(traversed,2,cid(JSON.parse(traversalSnapshot)),traversalSnapshot);
+      const stream=canonicalText(expected);
+      assert.deepEqual(relationSnapshots.get(traversed.ref.runDefinitionCid),[
+        {task:scenario.relation_start ? 4 : 3,cid:cid(expected),bytes:Buffer.byteLength(stream),verifiedReadBytes:Buffer.byteLength(stream),
+          rows:expected.length,sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true},
+      ]);
+      assert.deepEqual(await (await client.attach(traversed.ref)).result('answer').all(),expected,scenario.name);
+    }
   });
 }

@@ -11,6 +11,7 @@ struct GeneratedSequence {
   join_ceilings : Array[(Int, Int64)]
   expansion_ceilings : Array[(Int, Int64)]
   session_output_ceilings : Array[(Int, Int64)]
+  traversal_ceilings : Array[(Int, Int64, Int64)]
   interval_search_ceilings : Array[(Int, Int64)]
   asof_search_ceilings : Array[(Int, Int64)]
   sequence_match_ceilings : Array[(Int, Int64, Int64)]
@@ -105,6 +106,7 @@ pub fn prepare_generated_sequence(
         join_ceilings: [],
         expansion_ceilings: [],
         session_output_ceilings: [],
+        traversal_ceilings: [],
         interval_search_ceilings: [],
         asof_search_ceilings: [],
         sequence_match_ceilings: [],
@@ -131,7 +133,8 @@ pub fn execute_generated_sequence(
   if generated.selected_steps is Some(_) ||
     generated.selected_prefix_end is Some(_) ||
     !generated.sequence_match_ceilings.is_empty() ||
-    !generated.session_output_ceilings.is_empty() {
+    !generated.session_output_ceilings.is_empty() ||
+    !generated.traversal_ceilings.is_empty() {
     return Err(InputSet)
   }
   evaluate_sequence_components(
@@ -355,6 +358,50 @@ pub fn generated_session_output_ceiling(
   step : Int,
 ) -> Int64? {
   selected_step_ceiling(generated.session_output_ceilings, step)
+}
+
+///|
+/// Bind independent search-path and output-row envelopes to the checked
+/// traversal occurrence. Neither quantity is inferred from the other.
+pub fn constrain_generated_traversal(
+  generated : GeneratedSequence,
+  step : Int,
+  paths : Int64,
+  rows : Int64,
+) -> Result[GeneratedSequence, SequenceRunIssue] {
+  if paths < 0L || rows < 0L {
+    return Err(InvalidLimits)
+  }
+  guard @lower.sequence_step(generated.sequence, step)
+    is Some(@lower.GraphTraverseStep(_)) else {
+    return Err(InputSet)
+  }
+  let ceilings = generated.traversal_ceilings.copy()
+  for index, (prior_step, prior_paths, prior_rows) in ceilings {
+    if prior_step == step {
+      ceilings[index] = (
+        step,
+        Int64::min(paths, prior_paths),
+        Int64::min(rows, prior_rows),
+      )
+      return Ok({ ..generated, traversal_ceilings: ceilings, })
+    }
+  }
+  ceilings.push((step, paths, rows))
+  Ok({ ..generated, traversal_ceilings: ceilings, })
+}
+
+///|
+pub fn generated_traversal_ceilings(
+  generated : GeneratedSequence,
+  step : Int,
+) -> (Int64, Int64)? {
+  for (candidate, paths, rows) in generated.traversal_ceilings {
+    if candidate == step {
+      return Some((paths, rows))
+    }
+  }
+  None
 }
 
 ///|

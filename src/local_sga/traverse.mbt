@@ -18,7 +18,7 @@ pub(all) enum TraverseIssue {
 } derive(Eq, Debug)
 
 ///|
-/// Run only the current keyed path contract. The shared path owner validates
+/// Run the current keyed traversal contract. The shared path owner validates
 /// the exact input, completion owner, hop bounds and resources before use;
 /// node emission must never select the retired homogeneous reach kernel.
 pub fn start_traverse(
@@ -33,15 +33,25 @@ pub fn start_traverse(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
+  max_paths? : Int = max_workspace_slots,
 ) -> Result[TraverseExecution, TraverseIssue] {
   guard @lower.sequence_step(sequence, step)
-    is Some(@lower.GraphTraverseStep(prepared)) &&
-    @lower.graph_traverse_emits_paths(prepared) else {
+    is Some(@lower.GraphTraverseStep(_)) else {
     return Err(UnsupportedTraverseKernel)
   }
   start_traverse_paths(
-    control, preparation, sequence, step, input, max_rows, limits, max_workspace_slots,
-    max_entries, max_name_bytes, inputs,
+    control,
+    preparation,
+    sequence,
+    step,
+    input,
+    max_rows,
+    limits,
+    max_workspace_slots,
+    max_entries,
+    max_name_bytes,
+    inputs,
+    max_paths~,
   )
   .map(paths => ({ kernel: paths, } : TraverseExecution))
   .map_err(issue => TraversePathIssue(issue))
@@ -61,11 +71,11 @@ pub fn start_traverse_view(
   max_entries : Int,
   max_name_bytes : Int,
   inputs : Array[@execution.ProducerRead],
+  max_paths? : Int = max_workspace_slots,
 ) -> Result[TraverseExecution, TraverseIssue] {
   let owner = @lower.sequence_owner(sequence)
   guard @lower.sequence_step(sequence, step)
-    is Some(@lower.GraphTraverseStep(prepared)) &&
-    @lower.graph_traverse_emits_paths(prepared) &&
+    is Some(@lower.GraphTraverseStep(_)) &&
     @lifecycle.producer_view_kind(view) == @carrier.GraphKind &&
     @lifecycle.producer_read_reference_matches_operation_input(
       @lifecycle.producer_view_read_reference(view),
@@ -87,6 +97,7 @@ pub fn start_traverse_view(
     max_entries,
     max_name_bytes,
     inputs,
+    max_paths~,
   )
   .map(paths => ({ kernel: paths, } : TraverseExecution))
   .map_err(issue => TraversePathIssue(issue))
