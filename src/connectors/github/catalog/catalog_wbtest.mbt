@@ -333,8 +333,8 @@ test "issue pages exclude pull requests and keep null distinct from omission" {
     body: None,
     author: Some("octo"),
     comments: 2L,
-    created_at: "2026-10-01T00:00:00Z",
-    updated_at: "2026-10-02T00:00:00Z",
+    created_at: "2026-10-01T00:00:00.000Z",
+    updated_at: "2026-10-02T00:00:00.000Z",
     closed_at: None,
   })
   // An empty page is a page.
@@ -492,5 +492,30 @@ test "non-ASCII query values decode as exact UTF-8, without normalization" {
       100000,
     ),
     Err(MalformedLink),
+  )
+}
+
+///|
+test "GitHub timestamps become the same instant in ActQL spelling" {
+  assert_eq(
+    canonical_timestamp("2026-10-01T12:34:56Z"),
+    Some("2026-10-01T12:34:56.000Z"),
+  )
+  for
+    invalid in [
+      "2026-10-01T12:34:56.000Z", "2026-10-01T12:34:56+00:00", "2026-10-01 12:34:56Z",
+      "2026-1a-01T12:34:56Z", "", "2026-10-01",
+    ] {
+    assert_eq(canonical_timestamp(invalid), None)
+  }
+  let body = "[" +
+    issue_json(1, "").replace(
+      old="\"created_at\":\"2026-10-01T00:00:00Z\"",
+      new="\"created_at\":\"2026-10-01T00:00:00+00:00\"",
+    ) +
+    "]"
+  assert_eq(
+    project_issue_page(@utf8.encode(body), limits()),
+    Err(InvalidField("created_at")),
   )
 }

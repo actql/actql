@@ -1,0 +1,18 @@
+{
+  "installation": {
+    "registration": "github",
+    "revision": "github/0.1",
+    "providerBundle": "connectors/github/host_node",
+    "responseHeaders": ["link", "retry-after", "x-ratelimit-limit", "x-ratelimit-remaining", "x-ratelimit-reset", "x-ratelimit-resource"],
+    "source": {
+      "profileVersion": "actql-installed-github-source/0.1",
+      "module": "adapters/connectors/github/host/installed-github-source.mjs",
+      "exports": {
+        "check": "checkInstalledGitHubSourceProfile",
+        "identityParts": "installedGitHubSourceIdentityParts",
+        "publish": "publishInstalledGitHubSource",
+        "load": "loadInstalledGitHubSource"
+      }
+    }
+  }
+}
