@@ -6,6 +6,8 @@ import {join} from 'node:path';
 import {readCatalog, catalogPath} from './actions.mjs';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {checkApplications} from './applications.mjs';
+import {checkPlan} from './check.mjs';
+import {checkCertificate} from './final.mjs';
 import {actionInputs, hash, sharedFiles} from './inputs.mjs';
 import {sealReceipt, canonicalReceipt, parseReceipt, authenticateOrigin, readOriginReceipt, readOriginReceipts, observationUnits, mutationIds} from './receipts.mjs';
 
@@ -238,4 +240,42 @@ test('the actual family application path consumes one authenticated archive with
   assert.equal(result.applications.length, 3);
   assert.equal(calls.filter(path => path.includes('/jobs?')).length, 1);
   assert.equal(calls.filter(path => path === '/actions/artifacts/6').length, 1);
+});
+
+for (const event of ['push', 'workflow_dispatch']) test(`authenticated ${event}/main reuse reaches the executed Lean checker and final certificate`, async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-main-application-final-'));
+  t.after(() => rm(directory, {recursive: true}));
+  const archive = join(directory, 'origin.zip'), catalog = readCatalog();
+  catalog.actions = [action];
+  const original = sealReceipt({origin: {...origin, event}, action, inputs: inputs(), output, status: 0, milliseconds: 15});
+  const originalBytes = canonicalReceipt(original);
+  const bytes = zip([['receipts/session-js.json', originalBytes], ['observations/session-js.log', output]]);
+  await writeFile(archive, bytes);
+  const request = api(hash(bytes), ({run}) => { run.event = event; });
+  const options = {root: directory, context: expected, runtime: {profile: 'controlled-test-runtime', unresolved: []},
+    protectedRevision: revision, entries: [{actionId: action.id, acquisition: 'reused', archive, artifactId: 6}],
+    treeAt: () => sourceTree(catalog), request};
+  let leanOutput, submitted;
+  const produced = await checkApplications({...options, prove: (required, applications, {receiptDigests}) => {
+    submitted = {required, applications, receiptDigests};
+    assert.equal(applications[0].mainOrigin, true);
+    return checkPlan(required, applications, {onOutput: value => { leanOutput = Buffer.from(value); }});
+  }});
+  const certificate = {version: 'actql-verification-family-certificate/0.1', mode: 'scoped-execution', context: expected,
+    catalogDigest: hash(encode(catalog)), receiptDigests: submitted.receiptDigests, lean: produced.lean};
+  const verified = await checkApplications({...options, prove: (required, applications, {receiptDigests}) =>
+    checkCertificate({certificate, output: leanOutput, context: expected, catalog, required, applications, receiptDigests})});
+  assert.equal(verified.lean.accepted, true);
+  assert.equal(verified.lean.inputDigest, produced.lean.inputDigest);
+  assert.equal(verified.applications[0].originReceiptDigest, hash(originalBytes));
+  assert(canonicalReceipt(parseReceipt(originalBytes)).equals(originalBytes));
+
+  for (const denied of [{event: 'workflow_dispatch', branch: 'feature'}, {event: 'pull_request', branch: 'main'}]) {
+    const invalid = sealReceipt({origin: {...origin, ...denied}, action, inputs: inputs(), output, status: 0, milliseconds: 15});
+    const invalidBytes = zip([['receipts/session-js.json', canonicalReceipt(invalid)], ['observations/session-js.log', output]]);
+    await writeFile(archive, invalidBytes);
+    await assert.rejects(checkApplications({...options,
+      request: api(hash(invalidBytes), ({run}) => { run.event = denied.event; run.head_branch = denied.branch; })}),
+    /protected main integration/u);
+  }
 });
