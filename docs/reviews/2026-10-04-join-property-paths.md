@@ -164,7 +164,8 @@ fixture or satisfy its acceptance obligation.
 
 The [saved ten-step generated Program](../../scripts/fixtures/join-property-shared-seed.repro.program.json)
 is a reproduction, **not** a lowering oracle, saved from the ordinarily prepared
-source. Minimal JSON preparation/execution is not yet an executed assertion. The larger
+source. Minimal JSON preparation/execution was not executed at that earlier SHA;
+the integrated-source diagnosis below now executes this unchanged document. The larger
 first source's generated JSON reproduction above was executed. Use the fixture's
 `parameters` for JSON; its declarations are already in the Program and must not
 be added externally. For source, supply both `parameterDeclarations` and
@@ -187,3 +188,92 @@ No grammar, wire, schema, saved-data or contract-version changes. Corrected
 sources produce their normal Program identities. Full Core, all targets, native,
 proof, performance and a Google service differential run are not local checks
 for this bounded unit. No merge is performed.
+
+## Main integration and current capacity handoff (2026-10-05)
+
+Main `82d3e85e0150157ab2a3beedcf9e1e476f565b58` was normally merged at
+`d6879fc4a0064a6d478d3f40a900f5b16513a036`. This includes #403's retained
+Relation branches and #399's public retained-output connection. The two
+conflicts were packed fixture routing/selection registrations. Both sides'
+cases and focused flags were retained. No common implementation or workflow
+was edited. The unmerged #374 dependency and stacked PR base are retained.
+
+At this clean integrated source, the bounded JS command
+`node scripts/local-checks.mjs test moon -- --target js src/query_program/join_property_paths_test.mbt`
+passed **9/9** (`run-IqSBJK`, `focused-test-8vAp7h`). Both conflicted
+JavaScript files passed syntax checks, and `git diff --check` passed.
+Full Core/all-target checks were not added.
+
+The ordinary external pack command was
+`node scripts/test-packed-public-query.mjs --join-property-only --keep-artifacts`,
+under the existing serial heavy-check guard (`run-jb116k`). Receipt
+`public-query-evidence-WuPTbp/summary.json` records the clean source above,
+normal prepack, all tarball digests, complete child logs and no evidence errors.
+The independent JSON control passed Named Result rows and ordered type contracts
+on Local. The first SQL case was admitted and failed unpublished. The other
+eight text positives, five refusals and all JOIN HTTP cases were not reached.
+README Local/HTTPS success is separate. This remains an incomplete campaign.
+
+| Package | Normal prepack SHA-256 |
+|---|---|
+| client-wire | `52fe3218df346cfb9dae0adc248071563fe68918bded16f8d733415e65584fc0` |
+| sdk | `f81bf27c3bb42a007bc16b6f89a15542a89c7fb844e2893870d1161a8e8abc6d` |
+| run-host-core | `1b476f0905929248c53c9d36e98cafeefbd7a278f7ecd0a9aaa3500a8312fc14` |
+| local-node | `81ac587c4104ef4ca36f5741e97868a00c7f9226941f4f9f54c31d16d921818b` |
+| node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+Two small follow-up diagnostics reused this retained private installation.
+Temporary logging in its `runtime-result.mjs` and `strategy-bundle.mjs` was
+restored byte-for-byte afterwards. No tarball, repository runtime, Program,
+parameter, predicate, JOIN bound or package manifest was changed. These are
+diagnostic overlays, **not** pristine acceptance passes. Captured command
+records are `join-diagnostic-command-d1Su5v` and
+`join-diagnostic-command-vNal1g` below that receipt; guard attempts are
+`run-uG0dL5` and `run-17ou7P`.
+
+Both the minimum authored shared-seed source above and the saved ten-step
+Program submitted unchanged through JSON now reach this common start boundary:
+
+```text
+strategyModule_local_ManagedStart
+NodeHostFailure.LocalManagedStart(
+  LocalDispatchIssue.Execution(RunIssue.Physical(LedgerIssue.ExecutionLimit)))
+```
+
+The minified raised representation was mapped against the same build's bridge,
+`connectors/local/driver/dispatch.mbt`, `physical_strategy/captured_dag.mbt`
+and `physical_resources/ledger.mbt`; it was not inferred from the terminal
+unpublished error. The selected task is **0**, with no external inputs. For
+both source and unchanged JSON the selected managed envelope is:
+
+| Quantity | Bytes |
+|---|---|
+| Transfer | 0 |
+| Retained output | 14,240,000 |
+| Scratch | 601,096,960 |
+| Execution | 601,096,960 |
+| Standard Host execution limit (unchanged) | 536,870,912 |
+
+All eight reported ledger usage counters were zero before this start. Zero
+prior reservation does not imply this new reservation fits. The immediate
+failure is in `start_local_managed_dispatch` calling
+`start_captured_managed_execution`, after managed strategy selection. Thus the
+old minimal task-0 `NoStrategy` finding is superseded at this integrated source;
+it must not be reported as an unresolved candidate failure here. This does not
+prove every full fixture's strategy or capacity is now correct.
+
+The independently seeded control still succeeds through Named Result rows
+`[{"score":10}]` and the complete nullable numeric `score` column contract.
+Its separate tasks advertise execution envelopes between 46,771,200 and
+98,462,464 bytes. It is a diagnostic contrast, not a replacement for the shared
+producer case. No accepted scope or expected row/order/schema was weakened.
+
+The next common-owner investigation is the fused shared-branch provider's
+capacity derivation and lifetime model, with the exact source, ten-step JSON,
+parameters and independent result already linked above. Determine whether the
+bound is necessary or overcounts before proposing any common change. B does
+not raise 512 MiB, split/duplicate the logical seed to bypass the refusal, reduce
+an unsupported coefficient, or implement a private provider. After that boundary
+is resolved, resume the original ten positives and five refusals on both
+transports. CI for a later evidence-only HEAD remains separate from this clean
+packed source; no manual rerun or PR merge is requested.
