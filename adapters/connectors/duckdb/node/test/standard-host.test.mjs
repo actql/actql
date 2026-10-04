@@ -561,6 +561,14 @@ test('standard native and broad Node Hosts own verification through real capture
           : 'INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
       } finally { connection.closeSync(); db.closeSync(); }
       const grant = await authorizeLocalDatabase(path, fixtureSourceAccess);
+      if (process.env.ACTQL_STANDARD_HOST_GRAPH_CASE !== undefined ||
+          process.env.ACTQL_STANDARD_HOST_CANCEL_CASE !== undefined) {
+        if (kind === 'valid') await exerciseStrategyGraph(
+          fixture, args, analyticArgs, path, grant, suppliedLimits,
+          orderedContract,
+        );
+        continue;
+      }
       for (const strategy of ['native', 'broad']) {
         const native = strategy === 'native';
         const create = count => native ? fixture.issuedNativeCreate(...args, count, () => true)
@@ -1776,6 +1784,10 @@ async function exerciseStrategyGraph(
     }],
     results: {published: {from: {stage: 'graph', result: 'r'}}},
   };
+  const focusedCancelCase = process.env.ACTQL_STANDARD_HOST_CANCEL_CASE;
+  // A focused cancellation probe avoids the independent publication and fault
+  // corpus; the default test still executes both corpora in their original order.
+  if (focusedCancelCase === undefined) {
   // Current Graph execution positives use the sole typed-key constructor.
   // Unsupported algorithm acceptance belongs to the shared public refusal
   // test, not to historical tuple fixtures in this execution/custody matrix.
@@ -1855,6 +1867,12 @@ async function exerciseStrategyGraph(
     step:{from:'g',graph_bounds:{max_nodes:0,max_edges:0,max_degree:0},as:'out'},
     fields:['kind','node_id','actual','max'],secondFields:['kind'],
     expected:[],
+  }, {
+    name: 'retained-graph-equality',retainedOutput:true,
+    selectedStructural:true,duplicateGraph:true,
+    step:{from:'g',graphs_equal:{with:'peer'},as:'out'},
+    fields:['equal'],secondFields:['equal'],
+    expected:[{equal:true}],
   }, {
     name: 'retained-degree-metrics', retainedOutput:true,
     selectedStructural:true,
@@ -2092,6 +2110,11 @@ async function exerciseStrategyGraph(
       1,
       ...(publicationCase.steps ?? [publicationCase.step]),
     );
+    if (publicationCase.duplicateGraph) {
+      graphStage.steps.splice(1,0,{
+        ...structuredClone(graphStage.steps[0]),as:'peer',
+      });
+    }
     if (publicationCase.selectedStructural) {
       graphStage.steps.at(-1).as = 'projected';
       graphStage.steps.push({
@@ -4650,6 +4673,7 @@ async function exerciseStrategyGraph(
       force: true,
     });
   }
+  } // End the unrelated publication and fault corpus for a focused probe.
   const stressSortKeys = Array.from(
     {length: 5}, (_, index) => `sort_key_${index + 1}`,
   );
@@ -4671,6 +4695,21 @@ async function exerciseStrategyGraph(
     step:{from:'g',match_nodes:{definition:'N',where:'true',
       fields:['id','node_name']},as:'out'},
     fields:['id','node_name'],
+  }, {
+    name: 'retained-graph-equality-in-flight',
+    selectedStructural: true,
+    duplicateGraph: true,
+    retainedOutput: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 160,
+    constructionStarts: [1, 2],
+    cancelOnManagedStart: 3,
+    managedStarts: 3,
+    cancelTask: 4,
+    completedTasks: [1, 2, 3],
+    step: {from: 'g', graphs_equal: {with: 'peer'}, as: 'out'},
+    fields: ['equal'],
   }, {
     name:'current-match-nodes-predicate-in-flight',
     selectedStructural:true,
@@ -6074,6 +6113,12 @@ async function exerciseStrategyGraph(
         1,
         ...(cancellationCase.steps ?? [cancellationCase.step]),
       );
+      if (cancellationCase.duplicateGraph) {
+        const graphStage = graphCancellationProgram.stages[graphStageIndex];
+        graphStage.steps.splice(1, 0, {
+          ...structuredClone(graphStage.steps[0]), as: 'peer',
+        });
+      }
       if (cancellationCase.selectedStructural) {
         const graphStage = graphCancellationProgram.stages[graphStageIndex];
         graphStage.steps.at(-1).as = 'projected';
@@ -6090,7 +6135,8 @@ async function exerciseStrategyGraph(
         graphFields;
       graphCancellationProgram.stages[graphStageIndex + 1].results.r.fields =
         graphFields;
-      const graphSecondFields = graphFields.slice(1);
+      const graphSecondFields = graphFields.length === 1
+        ? graphFields : graphFields.slice(1);
       graphCancellationProgram.stages[graphStageIndex + 2].steps[0].select =
         graphSecondFields;
       graphCancellationProgram.stages[graphStageIndex + 2].results.r.fields =
@@ -6161,7 +6207,7 @@ async function exerciseStrategyGraph(
           : []),
       );
     } catch (error) {
-      throw new Error(`Graph cancellation fixture ${cancellationCase.name} failed to check`,
+      throw new Error(`Graph cancellation fixture ${cancellationCase.name} failed to check: ${error.message}`,
         {cause: error});
     }
     const cancellationCapture = await runNativeHostQuery(
@@ -6530,6 +6576,7 @@ async function exerciseStrategyGraph(
       await cancellationRetained?.close();
     }
   }
+  if (focusedCancelCase !== undefined) return;
   const rejectedPublicationFixture = fixture.strategyFixtureCreate(
     ...args,
     JSON.stringify(numericProgram),

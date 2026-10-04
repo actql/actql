@@ -48,8 +48,6 @@ pub fn guard_value(SequenceLimits, Scope) -> Int64?
 
 pub fn host_limit(SequenceLimits, Scope) -> @capacity_witness.LimitClaim
 
-pub fn limit(SequenceLimits, Scope) -> @capacity_witness.LimitClaim
-
 pub fn limit_index(SequenceLimits, Scope) -> Int
 
 pub fn selected_policy(SequenceLimits) -> @capacity_policy.Policy
