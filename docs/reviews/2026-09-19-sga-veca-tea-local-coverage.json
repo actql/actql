@@ -68,7 +68,7 @@
     "source_sha": "5b317a6ee111e5b4ea3694e3db7da9d2042a4160",
     "historical_inventory": "portability/historical/local-family-coverage-pre-property-graph.json.txt",
     "classification": {
-      "normalize_graph": "blocked",
+      "normalize_graph": "partial",
       "match_nodes": "partial",
       "match_edges": "partial",
       "traverse": "partial",
@@ -100,11 +100,33 @@
       "output": "graph",
       "canonical": ["SGA.normalize"],
       "variants": ["duplicate policy", "dangling edge policy", "property admission"],
-      "status": "blocked",
+      "status": "partial",
       "owner": "local-sga",
-      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
-      "completed_layers": ["contract"],
-      "layer_evidence": [],
+      "current_gap": "Current typed Graph normalization has checker, bounded provider, keyed-copy custody, control-work, workspace and entity-count exact/one-short boundaries on JS/Wasm/native, plus focused retained-Store Host publication, failure and in-flight cancellation cases. Opaque external Graph normalization permitted by the language contract remains unconnected; Graph storage encoded-value work, long-value cancellation, the full Host failure matrix, and final-source CI are also not yet current-profile evidence.",
+      "completed_layers": ["contract", "resources", "cancellation"],
+      "layer_evidence": [
+        {
+          "scope": "current_typed_graph_checked_program",
+          "layers": ["checker", "lowering"],
+          "targets": ["js"],
+          "evidence": ["src/program_check/property_graph_public_test.mbt"],
+          "verification": "The focused JS Program check passed for constructor, normalize, MATCH and derive."
+        },
+        {
+          "scope": "current_typed_graph_selected_provider",
+          "layers": ["kernel", "managed", "consumer_lifetime", "resources", "cancellation"],
+          "targets": ["js", "wasm", "native"],
+          "evidence": ["src/query_integration/property_graph_provider_custody_wbtest.mbt"],
+          "verification": "The focused selected-provider fixture passed on JS, Wasm and native. It checks independently calculated control-work exact/one-short under quanta 1 and 7, workspace and node/edge capacity exact/one-short, and partial-output cancellation."
+        },
+        {
+          "scope": "current_typed_graph_retained_host_publication",
+          "layers": ["standard_host", "consumer_lifetime", "publication", "cancellation"],
+          "targets": ["node"],
+          "evidence": ["adapters/connectors/duckdb/node/test/standard-host.test.mjs"],
+          "verification": "Focused postmerge standard Host retained-Store cases passed for three independent Named Results, cleanup failure with held responsibility followed by successful retry, a later filter arithmetic failure after normalization, and cancellation delivered after positive normalized-task work. The filter failure retains its typed cause and publishes no Result; cancellation observes physical stop before cleanup, and both paths release resources. This does not claim the full Host failure matrix or resource closure."
+        }
+      ],
       "historical_implementation_evidence": [
         {
           "scope": "shared_graph_generation_carrier_and_bridge_consumers",

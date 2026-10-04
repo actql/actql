@@ -22,6 +22,11 @@ pub fn operation_profile_requirement(
         | EnforceDiagnosticRelationRows
         | BindDiagnosticThreshold(_) => None
       }
+    NormalizeRequirement(o) =>
+      match o {
+        AdmitNormalizeGraph => Some(PropertyGraph)
+        ResolveNormalizeResources => None
+      }
     ComponentsRequirement(o) =>
       match o {
         AdmitComponentGraph => Some(PropertyGraph)

@@ -764,7 +764,8 @@ In the initial presence profile, ordinary references and public Result columns
 MUST be schema-guaranteed present. Conditional references MUST fail during
 checking; sample values, an empty Relation and `IS NOT NULL` do not prove
 presence. Projection of guaranteed columns and filter/derive expressions that
-reference only guaranteed columns, Required-key sort and proven-order take are
+reference only guaranteed columns, Required-key sort, proven-order take and
+keyed DISTINCT over guaranteed columns are
 supported. Filter MUST preserve the exact
 input schema, ordered surviving rows and each cell's presence; it MUST admit and
 charge all input rows before evaluating the predicate, including rejected rows.
@@ -794,6 +795,16 @@ identity rules through retention and reload. Authored sort keys MUST be
 schema-guaranteed present, while ordering completion, take determinacy, complete
 input admission and resource accounting retain their existing obligations;
 neither observed samples nor an empty result establish order or presence.
+
+<!-- requirement-block: value-contracts.relation-keyed-distinct-projection value-contracts.relation-keyed-distinct-unselected-presence value-contracts.relation-keyed-distinct-input-admission value-contracts.relation-keyed-distinct-reference-presence value-contracts.relation-sparse-whole-row-distinct-refusal -->
+Keyed DISTINCT on conditional Relation inputs MUST project only its specified,
+schema-guaranteed columns before deduplication, preserving their checked value
+types and nullability and the existing first-occurrence ordering. Unspecified
+conditional columns MUST NOT survive the projection or participate in equality.
+The complete sparse input MUST still be admitted and charged, including omitted
+cells' presence slots and values not selected for output. An unguaranteed key
+MUST fail during checking. Sparse whole-row `distinct: true` remains unsupported
+in this profile and MUST NOT be reinterpreted as guaranteed-key DISTINCT.
 
 <!-- requirement-block: value-contracts.empty-object-contracts -->
 Both authored and checked object contracts MUST permit `fields: {}`. This closed

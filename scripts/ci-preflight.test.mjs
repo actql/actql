@@ -18,6 +18,14 @@ test('PR admission compares current head with event head, not the synthetic test
   }), {ref: 'pull/123/head', revision: head});
   await assert.rejects(assertCurrentRevision(env, payload, async () => newer), /superseded/u);
 });
+test('main-only advance does not invalidate an unchanged PR head', async () => {
+  const calls = [];
+  const result = await assertCurrentRevision(env,
+    {...payload, pull_request: {...payload.pull_request, base: {sha: newer}}},
+    async (repo, ref) => { calls.push(ref); return head; });
+  assert.equal(result.revision, head);
+  assert.deepEqual(calls, ['pull/123/head']);
+});
 test('push and dispatch admission compare the exact ref with tested SHA', async () => {
   for (const event of ['push', 'workflow_dispatch']) {
     const context = {...env, GITHUB_EVENT_NAME: event, GITHUB_REF: 'refs/heads/main'};

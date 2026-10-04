@@ -108,6 +108,7 @@ fn check_supported_source(
               | "subgraph"
               | "degree"
               | "graph_bounds"
+              | "normalize_graph"
               | "components"
               | "to_vectors"
               | "normalize_vectors"

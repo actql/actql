@@ -580,12 +580,12 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Registered operations | 69 |
-| Executable production routes | 58 |
-| Typed pre-execution refusals (not execution success) | 11 |
-| Operation-specific boundary records | 58 |
-| Four-role lifecycle assurance | 57 |
-| Full route work/workspace assurance | 57 |
-| Path-scoped work/workspace assurance | 107 |
+| Executable production routes | 59 |
+| Typed pre-execution refusals (not execution success) | 10 |
+| Operation-specific boundary records | 59 |
+| Four-role lifecycle assurance | 58 |
+| Full route work/workspace assurance | 58 |
+| Path-scoped work/workspace assurance | 109 |
 | Selected-only assurance | 1 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -2716,8 +2716,8 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | `managed` | 25/40 |
 | `standard_host` | 24/40 |
 | `consumer_lifetime` | 24/40 |
-| `resources` | 29/40 |
-| `cancellation` | 29/40 |
+| `resources` | 30/40 |
+| `cancellation` | 30/40 |
 | `publication` | 24/40 |
 | `three_targets` | 19/40 |
 | complete operations | 19/40 |
@@ -4706,3 +4706,30 @@ Bridges, reject publication, and retain cleanup responsibility through one
 injected cleanup failure before a successful retry. They do not cover later
 Relation operations beyond the filter shape or every mixed-Carrier failure
 boundary.
+
+Current Property Graph normalization is now partially connected to the typed
+profile. The checker admits `normalize_graph: true` only for a typed Graph,
+lowering retains its exact input edge, and the selected provider copies keys,
+properties, endpoints, and definitions into a new bounded Graph generation.
+A focused JS fixture verifies the copied keyed nodes and parallel edges,
+quantum-one progress, cancellation after a partial output before handoff, and
+a literal workspace exact/one-short boundary. A source Program passes public
+checking; one focused postmerge standard Host case retained the normalized
+Graph, published MATCH rows and two consumer Named Results, and retained
+cleanup responsibility across an injected failure before reclaiming its
+resources. A second focused Host case reached the later filter, preserved its
+typed arithmetic failure, published no Result, and reclaimed its resources.
+The shared task splitter
+now separates a selected Carrier-to-Carrier normalization before a later
+Relation consumer without changing the fused preference of other families.
+The copy now enforces an independently calculated 37-step control-work
+boundary at quantum one and seven; 36 fails without publishing output. The
+selected-provider fixture passes on JS, Wasm and native and checks exact/one-
+short node, edge and workspace capacity. A focused retained-Store Host case
+also cancels after positive normalize-task work and confirms stop before final
+cleanup. This is not current-profile completion: Graph storage's encoded-value
+work and large-value noninterruptible sections, broader Host failures, and
+final-source CI still need evidence. The language contract also permits
+normalization of an external opaque Graph while preserving its evidence level;
+the current checker and managed storage accept only typed Property Graphs, so
+that separate route remains unconnected rather than silently falling back.

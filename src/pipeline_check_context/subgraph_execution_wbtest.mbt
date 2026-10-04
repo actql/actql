@@ -8,8 +8,8 @@ test "subgraph execution binds each body obligation to its checked owner" {
   let pipeline = @pipeline.check_carriers(
     asof_test_cursor(
       "[{\"from\":\"g\",\"subgraph\":{\"nodes\":{\"ids\":[{\"definition\":\"N\",\"domain\":\"" +
-        domain +
-        "\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]}]}}}]",
+      domain +
+      "\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]}]}}}]",
     ),
     [("g", graph)],
     None,
@@ -36,7 +36,10 @@ test "subgraph execution binds each body obligation to its checked owner" {
     Some(EnforceSubgraphResources),
     None,
   ]
-  assert_eq(@pipeline.operation_obligations_count(obligations), expected.length())
+  assert_eq(
+    @pipeline.operation_obligations_count(obligations),
+    expected.length(),
+  )
   let policy = property_execution_policy()
   for index, rule in expected {
     let site : OperationRequirementSite = {
@@ -82,11 +85,12 @@ test "subgraph execution binds each body obligation to its checked owner" {
           direct_execution_candidate(site, policy, Ok(None), Ok(None))
           is Ok(Some(SubgraphExecution(_))),
         )
-        for bad in [
-          { ..site, index: 99, },
-          { ..site, step: 99, },
-          { ..site, group: 1, },
-        ] {
+        for
+          bad in [
+            { ..site, index: 99, },
+            { ..site, step: 99, },
+            { ..site, group: 1, },
+          ] {
           assert_true(
             subgraph_execution_check(bad, policy) is Err(ForeignOccurrence(_)),
           )

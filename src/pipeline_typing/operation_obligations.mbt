@@ -27,6 +27,7 @@ pub(all) enum OperationObligation {
   WindowRequirement(@window.Obligation)
   MatchRequirement(@graph.MatchObligation)
   DiagnosticRequirement(@graph.DiagnosticObligation)
+  NormalizeRequirement(@graph.NormalizeObligation)
   ComponentsRequirement(@graph.ComponentsObligation)
   SubgraphRequirement(@graph.SubgraphObligation)
   TraverseRequirement(@graph.TraverseObligation)
@@ -59,6 +60,7 @@ priv enum ObligationOwner {
   MatchOwner(@graph.CheckedMatch)
   BoundsOwner(@graph.CheckedGraphBounds)
   DegreeOwner(@graph.CheckedDegree)
+  NormalizeOwner(@graph.CheckedNormalize)
   ComponentsOwner(@graph.CheckedComponents)
   SubgraphOwner(@graph.CheckedSubgraph)
   TraverseOwner(@graph.CheckedTraverse)
@@ -106,6 +108,7 @@ pub fn operation_obligations_source(v : OperationObligations) -> @decode.Cursor 
     MatchOwner(c) => @graph.match_source(c)
     BoundsOwner(c) => @graph.graph_bounds_source(c)
     DegreeOwner(c) => @graph.degree_source(c)
+    NormalizeOwner(c) => @graph.normalize_source(c)
     ComponentsOwner(c) => @graph.components_source(c)
     SubgraphOwner(c) => @graph.subgraph_source(c)
     TraverseOwner(c) => @graph.traverse_source(c)
@@ -195,6 +198,16 @@ pub fn operation_obligations_graph_degree(
 }
 
 ///|
+pub fn operation_obligations_graph_normalize(
+  v : OperationObligations,
+) -> @graph.CheckedNormalize? {
+  match v.owner {
+    NormalizeOwner(operation) => Some(operation)
+    _ => None
+  }
+}
+
+///|
 pub fn operation_obligations_graph_components(
   v : OperationObligations,
 ) -> @graph.CheckedComponents? {
@@ -235,6 +248,7 @@ pub fn operation_obligations_count(v : OperationObligations) -> Int {
     MatchOwner(c) => @graph.match_pending_count(c)
     BoundsOwner(c) => @graph.graph_bounds_pending_count(c)
     DegreeOwner(c) => @graph.degree_pending_count(c)
+    NormalizeOwner(c) => @graph.normalize_pending_count(c)
     ComponentsOwner(c) => @graph.components_pending_count(c)
     SubgraphOwner(c) => @graph.subgraph_pending_count(c)
     TraverseOwner(c) => @graph.traverse_pending_count(c)
@@ -296,6 +310,8 @@ pub fn operation_obligations_at(
       @graph.graph_bounds_pending_at(c, index).map(x => DiagnosticRequirement(x))
     DegreeOwner(c) =>
       @graph.degree_pending_at(c, index).map(x => DiagnosticRequirement(x))
+    NormalizeOwner(c) =>
+      @graph.normalize_pending_at(c, index).map(x => NormalizeRequirement(x))
     ComponentsOwner(c) =>
       @graph.components_pending_at(c, index).map(x => ComponentsRequirement(x))
     SubgraphOwner(c) =>
@@ -347,6 +363,7 @@ pub fn operation_obligation_group_count(operation : CheckedOperation) -> Int {
     | GraphMatch(_)
     | GraphBounds(_)
     | GraphDegree(_)
+    | GraphNormalize(_)
     | GraphComponents(_)
     | PropertyGraphConstruction(..)
     | Vector(_)
@@ -385,6 +402,7 @@ pub fn operation_obligation_group_at(
       GraphMatch(c) => { scope: Body, owner: MatchOwner(c), }
       GraphBounds(c) => { scope: Body, owner: BoundsOwner(c), }
       GraphDegree(c) => { scope: Body, owner: DegreeOwner(c), }
+      GraphNormalize(c) => { scope: Body, owner: NormalizeOwner(c), }
       GraphComponents(c) => { scope: Body, owner: ComponentsOwner(c), }
       Subgraph(checked=c, ..) =>
         if index == 0 {

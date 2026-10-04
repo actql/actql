@@ -173,6 +173,7 @@ pub fn operation_scalar_demand(
         | EnforceComponentAuthorGuard => None
       }
     AppendRequirement(_)
+    | NormalizeRequirement(_)
     | SetRequirement(_)
     | ValuesRequirement(_)
     | MatchRequirement(_)

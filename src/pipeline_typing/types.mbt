@@ -154,6 +154,7 @@ pub enum CheckedOperation {
   GraphMatch(@graph.CheckedMatch)
   GraphBounds(@graph.CheckedGraphBounds)
   GraphDegree(@graph.CheckedDegree)
+  GraphNormalize(@graph.CheckedNormalize)
   GraphComponents(@graph.CheckedComponents)
   Subgraph(selector~ : Target?, checked~ : @graph.CheckedSubgraph)
   Traverse(selector~ : Target?, checked~ : @graph.CheckedTraverse)

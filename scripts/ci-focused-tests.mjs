@@ -224,7 +224,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const plan = JSON.parse(process.env.CI_PLAN ?? 'null');
   assert.equal(plan?.sourceRevision, gitDefault(['rev-parse', 'HEAD']).trim(), 'Focused plan belongs to another checkout');
   const selection = plan?.selection;
-  assert.equal(selection?.profile, 'focused-tests');
+  assert(['focused-tests', 'draft-focused'].includes(selection?.profile), 'Invalid focused execution profile');
   validateFocusedTests(selection.paths, selection.focusedChanges, selection.focusedTests);
   assert.deepEqual(readFocusedTests(selection.paths, selection.focusedChanges), selection.focusedTests,
     'Focused inputs or fixture contract changed');

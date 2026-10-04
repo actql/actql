@@ -627,6 +627,8 @@ pub fn node_accepts_managed_relation_view(PreparedNode, Int) -> Bool
 
 pub fn node_at(Prepared, Int) -> PreparedNode?
 
+pub fn node_can_split_carrier_transform(PreparedNode) -> Bool
+
 pub fn node_count(Prepared) -> Int
 
 pub fn node_id(PreparedNode) -> String
@@ -1450,6 +1452,7 @@ pub enum Payload {
   GraphMatchRows(@graph_typing.CheckedMatch)
   GraphBoundsRows(@graph_typing.CheckedGraphBounds)
   GraphDegreeRows(@graph_typing.CheckedDegree)
+  GraphNormalizeValue(@graph_typing.CheckedNormalize)
   GraphComponentsRows(@graph_typing.CheckedComponents)
   GraphSubgraphValue(@graph_typing.CheckedSubgraph)
   GraphTraverseRows(@graph_typing.CheckedTraverse)
@@ -1603,6 +1606,7 @@ pub enum PreparedStep {
   GraphMatchStep(PreparedGraphMatch)
   GraphDiagnosticStep(PreparedGraphDiagnostic)
   GraphSubgraphStep(PreparedGraphSubgraph)
+  GraphNormalizeStep(Int)
   GraphTraverseStep(PreparedGraphTraverse)
   PropertyGraphConstructionStep(PreparedPropertyGraphConstruction)
   VectorStep(PreparedVector)
