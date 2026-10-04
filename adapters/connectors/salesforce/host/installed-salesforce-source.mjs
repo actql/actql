@@ -23,7 +23,7 @@ import {loadSalesforceGeneration, publishSalesforceGeneration,
   salesforceCheckEnvironment} from './salesforce-publication.mjs';
 import {installSalesforceResourceService} from
   './salesforce-resource-service.mjs';
-import {readSalesforceIssuedBroad} from '../site/salesforce-query-read.mjs';
+import {readSalesforceQuery} from '../site/salesforce-query-read.mjs';
 
 export const INSTALLED_SALESFORCE_SOURCE_VERSION =
   'actql-installed-salesforce-source/0.1';
@@ -35,10 +35,6 @@ const contractRoot = new URL('../../../../spec/contracts/', import.meta.url);
 const readLimits = Object.freeze({maxBytes: 4_000_000, maxNodes: 400_000,
   maxDepth: 32, maxRows: 2000, maxLocatorUnits: 2048, maxPages: 10,
   maxTotalRows: 100});
-// One acquisition captures at most 500 KB of text: what the standard Host's
-// Local compute evaluates at once. Larger reads are refused while capturing.
-const captureLimits = Object.freeze({maxNodes: 100_000,
-  maxTextBytes: 500_000, maxDepth: 100, maxWork: 20_000_000});
 const declarationLimits = Object.freeze({maxBytes: 4_000_000,
   maxNodes: 400_000, maxDepth: 64});
 
@@ -130,30 +126,23 @@ function recoveryArguments(evidence) {
     limits.maxNameUnits, evidence.maxObservationBytes];
 }
 
-// The standard runtime's issued broad read entries, under the names the
-// Site driver calls. Every entry is required: a runtime missing one is not
-// this installation's runtime, and is refused before any provider I/O.
-function issuedBroadRuntime(moon) {
+// Provider codecs run in the checked Program's runtime. Only their typed
+// page values are handed to the neutral row owner; no provider execution
+// or capture state crosses runtimes.
+function queryRuntime(moon) {
   const runtime = {
-    salesforceBroadHostAttempt: moon.clientProgramSalesforceBroadAttempt,
-    salesforceIssuedBroadPlan: moon.clientProgramSalesforceBroadPlan,
-    salesforceIssuedBroadBegin: moon.clientProgramSalesforceBroadBegin,
-    salesforceIssuedBroadNextPath: moon.clientProgramSalesforceBroadNextPath,
-    salesforceIssuedBroadAcceptPage:
-      moon.clientProgramSalesforceBroadAcceptPage,
-    salesforceIssuedBroadValueViolation:
-      moon.clientProgramSalesforceBroadValueViolation,
-    salesforceIssuedBroadComplete: moon.clientProgramSalesforceBroadComplete,
-    salesforceIssuedBroadRowCount: moon.clientProgramSalesforceBroadRowCount,
-    salesforceIssuedBroadFinish: moon.clientProgramSalesforceBroadFinish,
-    salesforceBroadHostAbort: moon.clientProgramSalesforceBroadAbort,
-    salesforceQueryPageResponseSha256:
-      moon.clientProgramSalesforceQueryPageResponseSha256,
+    salesforceBeginQueryRead: moon.clientProgramSalesforceBeginQueryRead,
+    salesforceQueryReadNextPath: moon.clientProgramSalesforceQueryReadNextPath,
+    salesforceQueryReadAcceptPage: moon.clientProgramSalesforceQueryReadAcceptPage,
+    salesforceQueryReadAcknowledgePage: moon.clientProgramSalesforceQueryReadAcknowledgePage,
+    salesforceQueryReadInterrupt: moon.clientProgramSalesforceQueryReadInterrupt,
+    salesforceQueryReadComplete: moon.clientProgramSalesforceQueryReadComplete,
+    salesforceQueryReadRowCount: moon.clientProgramSalesforceQueryReadRowCount,
+    salesforceQueryPageResponseSha256: moon.clientProgramSalesforceQueryPageResponseSha256,
     salesforceQueryPageRowCount: moon.clientProgramSalesforceQueryPageRowCount,
-    salesforceRecheckReadProjection:
-      moon.clientProgramSalesforceRecheckReadProjection,
-    salesforceReadProjectionScopeMatches:
-      moon.clientProgramSalesforceReadProjectionScopeMatches,
+    salesforceRecheckReadProjection: moon.clientProgramSalesforceRecheckReadProjection,
+    salesforceReadProjectionScopeMatches: moon.clientProgramSalesforceReadProjectionScopeMatches,
+    salesforceQueryReadValueViolation: moon.clientProgramSalesforceQueryReadValueViolation,
   };
   if (Object.values(runtime).some(entry => typeof entry !== 'function')) {
     fail('InvalidSalesforceSourceRuntime');
@@ -168,7 +157,7 @@ export async function loadInstalledSalesforceSource(profile, {root,
   principalId, moon, providerMoon: salesforceMoon, baseEnvironmentWire,
   runtimeBundleCid, resolveSecret, openCredentialJournal}) {
   const checkedProfile = checkInstalledSalesforceSourceProfile(profile);
-  const broadMoon = issuedBroadRuntime(moon);
+  const queryMoon = queryRuntime(moon);
   const {authorization, site} = await openSite(checkedProfile, {root,
     principalId, moon, providerMoon: salesforceMoon, runtimeBundleCid,
     resolveSecret, openCredentialJournal});
@@ -201,7 +190,7 @@ export async function loadInstalledSalesforceSource(profile, {root,
     const [queryContract, evidenceContract] = await Promise.all([
       'actql-query-acquisition.json', 'actql-query-process-evidence.json',
     ].map(name => readFile(new URL(name, contractRoot), 'utf8')));
-    return installedSalesforceAdapter({moon, broadMoon, site, authorization,
+    return installedSalesforceAdapter({moon, queryMoon, site, authorization,
       declaration, recover, discovery, queryContract, evidenceContract,
       environment, generationCid: loaded.generationCid,
       catalogCid: loaded.declared.catalog_cid,
@@ -215,7 +204,7 @@ export async function loadInstalledSalesforceSource(profile, {root,
   }
 }
 
-function installedSalesforceAdapter({moon, broadMoon, site, authorization,
+function installedSalesforceAdapter({moon, queryMoon, site, authorization,
   declaration, recover, discovery, queryContract, evidenceContract,
   environment, generationCid, catalogCid, connectorId, sourceRefs}) {
   // Checked preparations this adapter issued; only these can be opened.
@@ -368,26 +357,31 @@ function installedSalesforceAdapter({moon, broadMoon, site, authorization,
     };
     state.started = true;
     const current = await describe('plan');
-    const acquisition = checked(moon.clientProgramPrepareSalesforceAcquisition(
+    const {_0: plan, _1: acquisition} = checked(moon.clientProgramPrepareSalesforceRowAcquisition(
       declaration, owner.requirement, current.observation, queryContract,
       evidenceContract, 4096));
     const settled = new Set();
-    const run = checked(moon.clientProgramSalesforceAcquisitionStart(
+    const run = checked(moon.clientProgramRowSourceStart(
       acquisition, nonce, attempt => settled.has(attempt)));
     let closed = false;
     const close = () => {
       if (closed) return;
       closed = true;
-      moon.clientProgramSalesforceBroadClose(run);
+      moon.clientProgramRowSourceClose(run);
     };
     try {
       const grant = site.issueGrant({operation: 'salesforce:query:read',
         decision: approval ?? decision, resource: owner.resource,
         runInvocationCid,
         dispatchRequestCid, maxUses: readLimits.maxPages});
-      await readSalesforceIssuedBroad({moon: broadMoon, hostRun: run,
+      checked(moon.clientProgramRowSourceBegin(run, readLimits.maxBytes,
+        readLimits.maxRows, readLimits.maxTotalRows));
+      await readSalesforceQuery({moon: queryMoon, plan,
         apiVersion: site.apiVersion, limits: readLimits,
-        maxCaptureRows: readLimits.maxTotalRows, captureLimits,
+        consumePage: page => {
+          const {_0: columns, _1: rows} = moon.clientProgramSalesforceQueryPageValues(page);
+          checked(moon.clientProgramRowSourceAcceptValues(run, columns, rows));
+        },
         initialAuthorization: {...grant, useId: `${nonce}-query-0`},
         authorizationForPage: async (_path, index) => ({...grant,
           useId: `${nonce}-query-${index}`}),
@@ -395,10 +389,11 @@ function installedSalesforceAdapter({moon, broadMoon, site, authorization,
         signal});
       // The Site transport for this attempt has returned: its physical
       // read is settled.
-      settled.add(moon.clientProgramSalesforceBroadAttempt(run));
-      const capture = checked(moon.clientProgramSalesforceCapture(run));
+      checked(moon.clientProgramRowSourceFinish(run));
+      settled.add(moon.clientProgramRowSourceAttempt(run));
+      const capture = checked(moon.clientProgramRowSourceCapture(run));
       const source = () => checked(
-        moon.clientProgramSalesforceCaptureSource(capture));
+        moon.clientProgramRowSourceCaptureSource(capture));
       const {checkedOwner, effectful} = owner;
       if ((effectful
         ? moon.clientProgramEffectCapturedSourceMatches(checkedOwner,
@@ -433,7 +428,7 @@ function installedSalesforceAdapter({moon, broadMoon, site, authorization,
         issueSourceEvidence: async ({authorityScopeCid,
           effectiveDataPolicyCid}) => {
           await currentRead(prepared, access, signal);
-          return checked(moon.clientProgramSalesforceIssueSourceEvidence(
+          return checked(moon.clientProgramRowSourceIssueSourceEvidence(
             acquisition, capture, identity, logicalInput, authorityScopeCid,
             effectiveDataPolicyCid, new Date().toISOString()));
         },

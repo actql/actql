@@ -100,11 +100,11 @@ const program = JSON.stringify({version: 'actql/0.1', id: 'salesforce-read',
 
 async function installation(t, {readable = ['Test_Record__c'],
   sourceResources = ['Test_Record__c'], extraObjects = [],
-  queryFailureStatus, storedRecords, temporalFields = false,
+  queryFailureStatus, storedRecords, queryPageSize, queryResponse, temporalFields = false,
   numberFields = false} = {}) {
   const org = await openSalesforceEffectSiteFixture(t, {commonMoon,
     salesforceMoon, runInvocationCid: cid('1'), dispatchRequestCid: cid('2'),
-    queryFailureStatus, storedRecords, extraObjects, temporalFields,
+    queryFailureStatus, storedRecords, queryPageSize, queryResponse, extraObjects, temporalFields,
     numberFields,
     optionalText: storedRecords !== undefined});
   const root = await mkdtemp(join(scratch, 'host-'));
@@ -572,22 +572,22 @@ test('a publication of another connection or Site generation is refused',
 // The installed source adapter the standard Host loads, and the prepared
 // `source` Program's acquisition inputs, for asserting how an acquisition
 // ended.
-async function installedAdapter(setup, source) {
+async function installedAdapter(setup, source, runtime = commonMoon) {
   const {loadInstalledSource} = await import(
     '../../../host-node/installed-source.mjs');
   const spec = name => readFile(join(repository, name), 'utf8');
   const base = (await spec('spec/local-check-environment.json')).trimEnd();
   const adapter = await loadInstalledSource(setup.profilePath, {
     root: join(setup.root, 'adapter-state'), principalId: owner,
-    moon: commonMoon, runtimeUrl: new URL(
+    moon: runtime, runtimeUrl: new URL(
       '../../../../_build/js/release/build/connectors_builtin_node/' +
       'connectors_builtin_node.js', import.meta.url),
     baseEnvironmentWire: base, resolveSecret: secret});
-  const environment = commonMoon.clientProgramCheckEnvironment(
+  const environment = runtime.clientProgramCheckEnvironment(
     adapter.environmentWire, JSON.parse(adapter.environmentWire)
       .evidence_bundle_cid, false, false, true, false, false, false, false);
-  const preparedProgram = commonMoon.clientProgramPreparationReady(
-    commonMoon.clientProgramPrepareEffectFreeWithParameters(source, 'json',
+  const preparedProgram = runtime.clientProgramPreparationReady(
+    runtime.clientProgramPrepareEffectFreeWithParameters(source, 'json',
       environment, undefined));
   const aoa = JSON.parse(await spec('spec/contracts/actql-aoa.json'));
   const common = {preparedProgram,
@@ -935,7 +935,7 @@ test('a runtime without the value violation entry is refused before provider I/O
     const setup = await installation(t);
     await setup.publish();
     const before = setup.org.seen.length;
-    const {clientProgramSalesforceBroadValueViolation: _omitted, ...moon} =
+    const {clientProgramSalesforceQueryReadValueViolation: _omitted, ...moon} =
       commonMoon;
     await assert.rejects(loadInstalledSalesforceSource(setup.profile, {
       root: join(setup.root, 'runtime-check'), principalId: owner, moon,
@@ -1018,3 +1018,147 @@ test('a Number beyond its declared scale fails the acquisition, typed',
       adapter.close();
     }
   });
+
+
+test('installed Salesforce Read has only the neutral capture owner', async t => {
+  for (const name of ['clientProgramSalesforceBroadAttempt',
+    'clientProgramSalesforceAcquisitionStart', 'clientProgramSalesforceCapture',
+    'clientProgramSalesforceIssueSourceEvidence']) {
+    assert.equal(name in commonMoon, false, name);
+  }
+  const setup = await installation(t);
+  await setup.publish();
+  let pages = 0;
+  const acquisitions = [], captures = [];
+  const runtime = {...commonMoon,
+    clientProgramPrepareSalesforceRowAcquisition(...args) {
+      const result = commonMoon.clientProgramPrepareSalesforceRowAcquisition(...args);
+      acquisitions.push(result._0._1);
+      return result;
+    },
+    clientProgramRowSourceAcceptValues(...args) {
+      pages++;
+      return commonMoon.clientProgramRowSourceAcceptValues(...args);
+    },
+    clientProgramRowSourceBegin(...args) {
+      const result = commonMoon.clientProgramRowSourceBegin(...args);
+      assert.equal(commonMoon.clientProgramRowSourceBegin(...args).$tag, 0);
+      return result;
+    },
+    clientProgramRowSourceCapture(...args) {
+      const result = commonMoon.clientProgramRowSourceCapture(...args);
+      captures.push(result._0);
+      assert.equal(commonMoon.clientProgramRowSourceCapture(...args).$tag, 0);
+      return result;
+    }};
+  const {adapter, common} = await installedAdapter(setup, program, runtime);
+  const first = await adapter.open(common);
+  const second = await adapter.open(common);
+  try {
+    assert.equal(pages, 2);
+    assert.equal(typeof await first.issueSourceEvidence({authorityScopeCid: cid('a'),
+      effectiveDataPolicyCid: first.checkedSource.sourceDataPolicyCid}), 'string');
+    const foreign = commonMoon.clientProgramRowSourceIssueSourceEvidence(
+      acquisitions[0], captures[1], second.identity, second.logicalInput, cid('a'),
+      second.checkedSource.sourceDataPolicyCid, new Date().toISOString());
+    assert.equal(foreign.$tag, 0);
+    first.close();
+    assert.throws(() => first.capture.source());
+    assert.ok(second.capture.source());
+  } finally {
+    first.close(); second.close(); adapter.close();
+  }
+});
+
+test('typed row handoff rejects a foreign field map or contract before capture',
+  async t => {
+    const setup = await installation(t, {numberFields: true});
+    await setup.publish();
+    for (const fault of ['field', 'contract']) {
+      let captures = 0;
+      const runtime = {...commonMoon,
+        clientProgramRowSourceCapture(...args) {
+          captures++;
+          return commonMoon.clientProgramRowSourceCapture(...args);
+        },
+        clientProgramRowSourceAcceptValues(run, columns, rows) {
+          if (fault === 'field') columns = columns.map(() => 'foreign');
+          else rows = rows.map(row => row.map(() => row[0]));
+          return commonMoon.clientProgramRowSourceAcceptValues(run, columns, rows);
+        }};
+      const {adapter, common} = await installedAdapter(setup, numberProgram, runtime);
+      try {
+        await assert.rejects(adapter.open(common), error => error.outcome === 'stopped');
+        assert.equal(captures, 0);
+      } finally { adapter.close(); }
+    }
+});
+
+test('a complete typed read cannot capture before its exact transport settles',
+  async t => {
+    const setup = await installation(t);
+    await setup.publish();
+    const runtime = {...commonMoon,
+      clientProgramRowSourceStart(acquisition, nonce) {
+        return commonMoon.clientProgramRowSourceStart(acquisition, nonce, () => false);
+      }};
+    const {adapter, common} = await installedAdapter(setup, program, runtime);
+    try {
+      await assert.rejects(adapter.open(common), error => error.outcome === 'stopped');
+      assert.equal(setup.queries().length, 1);
+    } finally { adapter.close(); }
+});
+
+test('the neutral Salesforce capture spans the complete locator chain', async t => {
+  const setup = await installation(t, {queryPageSize: 2});
+  await setup.publish();
+  const {client, close} = await setup.open();
+  const execution = await client.aql(program, {format: 'json', requestId: 'paged-read'});
+  assert.equal((await execution.wait()).status, 'succeeded');
+  assert.deepEqual(await execution.result('records').all(), [
+    {External_Key__c: 'key-1', Name: 'record-1'},
+    {External_Key__c: 'key-3', Name: 'record-3'}]);
+  assert.ok(setup.org.seen.some(item => item.path.includes('/query/01gFIXTURE2')));
+  await close();
+});
+
+test('missing and null required fields remain distinct typed read failures', async t => {
+  for (const kind of ['missing', 'null']) {
+    const setup = await installation(t, {queryResponse: body => {
+      if (kind === 'missing') delete body.records[0].Id;
+      else body.records[0].Id = null;
+      return body;
+    }});
+    await setup.publish();
+    const {adapter, common} = await installedAdapter(setup, program);
+    try {
+      await assert.rejects(adapter.open(common), error => {
+        assert.equal(error.code, 'SalesforceValueViolation');
+        assert.equal(error.outcome, 'stopped');
+        assert.equal(error.cause.violation.kind, kind);
+        assert.equal(error.cause.violation.field, 'Id');
+        return true;
+      });
+    } finally { adapter.close(); }
+  }
+});
+
+test('a refused later page cancels the already-admitted rows without replay', async t => {
+  const setup = await installation(t, {queryPageSize: 2,
+    queryResponse: body => {
+      if (body.done) delete body.records[0].Id;
+      return body;
+    }});
+  await setup.publish();
+  const {client, close} = await setup.open();
+  const execution = await client.aql(program, {format: 'json', requestId: 'bad-later-page'});
+  assert.equal((await execution.wait()).status, 'failed');
+  await assert.rejects(execution.result('records').all());
+  const reads = setup.org.seen.length;
+  assert.equal((await client.lookupRequest('bad-later-page')).kind, 'found');
+  assert.equal((await execution.wait()).status, 'failed');
+  assert.equal(setup.org.seen.length, reads);
+  assert.equal(setup.queries().length, 2);
+  assert.ok(setup.org.seen.some(item => item.path.includes('/query/01gFIXTURE2')));
+  await close();
+});

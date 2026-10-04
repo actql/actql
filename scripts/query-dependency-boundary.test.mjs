@@ -366,9 +366,12 @@ test('Salesforce semantics do not own acquisition custody', () => {
   assert.ok(!existsSync('src/connectors/salesforce/acquisition/moon.pkg'));
   const hostApi = readFileSync(
     'src/connectors/salesforce/host/pkg.generated.mbti', 'utf8');
-  assert.match(hostApi, /pub fn salesforce_broad_candidate\(/);
-  assert.match(hostApi, /pub fn complete_salesforce_broad_capture\(/);
-  assert.match(hostApi, /pub fn bind_captured_salesforce_broad_input\(/);
+  assert.match(hostApi, /pub fn prepare_installed_salesforce_row_acquisition\(/);
+  assert.doesNotMatch(hostApi, /SalesforceBroad|salesforce_broad/);
+  assert.ok(!existsSync('src/client_salesforce_host/moon.pkg'));
+  const neutral = readFileSync('src/client_row_source_host/pkg.generated.mbti', 'utf8');
+  assert.match(neutral, /pub fn accept_row_run_values\(/);
+  assert.match(neutral, /pub fn capture_row_run\(/);
   assert.match(hostApi, /^type ManagedQuery$/m);
   assert.doesNotMatch(hostApi, /^pub struct ManagedQuery/m);
 });

@@ -6093,10 +6093,8 @@ pub fn client_program_prepare_duckdb_source_evidence_context(
   @duckdb_host.prepare_native_source_evidence_context(requirement)
 }
 
-// Salesforce acquisition for the installed Host. Planning, capture and Source
-// Evidence are owned here, by the runtime that checked the Program; the
-// Salesforce Site adapter supplies only provider bytes and grants. Nothing
-// crosses from another compiled runtime except strings and bytes.
+// Salesforce Site/declaration/projection codecs. Execution and capture use
+// the neutral RowSource owner below. Only strings and bytes cross runtimes.
 
 ///|
 #export_name("clientProgramSalesforceSite")
@@ -6110,10 +6108,10 @@ pub fn client_program_salesforce_site(
   site_generation : Int,
   resource_origin : String,
 ) -> Result[
-  @client_salesforce_host.ClientSalesforceSite,
-  @client_salesforce_host.ClientSalesforceIssue,
+  @salesforce_host.InstalledSalesforceSite,
+  @salesforce_host.InstalledSalesforceIssue,
 ] {
-  @client_salesforce_host.client_salesforce_site(
+  @salesforce_host.installed_salesforce_site(
     namespace_id, principal, environment, connection_revision, org_id, site_key,
     site_generation, resource_origin,
   )
@@ -6122,7 +6120,7 @@ pub fn client_program_salesforce_site(
 ///|
 #export_name("clientProgramSalesforceRecoverObservation")
 pub fn client_program_salesforce_recover_observation(
-  site : @client_salesforce_host.ClientSalesforceSite,
+  site : @salesforce_host.InstalledSalesforceSite,
   observation_json : String,
   run_invocation_cid : String,
   dispatch_request_cid : String,
@@ -6141,9 +6139,9 @@ pub fn client_program_salesforce_recover_observation(
   expected_run_invocation_cid : String?,
 ) -> Result[
   @salesforce_catalog.CatalogObservation,
-  @client_salesforce_host.ClientSalesforceIssue,
+  @salesforce_host.InstalledSalesforceIssue,
 ] {
-  @client_salesforce_host.recover_client_salesforce_observation(
+  @salesforce_host.recover_installed_salesforce_observation(
     site,
     observation_json,
     run_invocation_cid,
@@ -6161,17 +6159,9 @@ pub fn client_program_salesforce_recover_observation(
 }
 
 ///|
-#export_name("clientProgramSalesforceObservationCid")
-pub fn client_program_salesforce_observation_cid(
-  observation : @salesforce_catalog.CatalogObservation,
-) -> String {
-  observation.cid
-}
-
-///|
 #export_name("clientProgramSalesforceRestoreDeclaration")
 pub fn client_program_salesforce_restore_declaration(
-  site : @client_salesforce_host.ClientSalesforceSite,
+  site : @salesforce_host.InstalledSalesforceSite,
   observation : @salesforce_catalog.CatalogObservation,
   connector_id : String,
   catalog_cid : String,
@@ -6179,10 +6169,10 @@ pub fn client_program_salesforce_restore_declaration(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[
-  @client_salesforce_host.ClientSalesforceDeclaration,
-  @client_salesforce_host.ClientSalesforceIssue,
+  @salesforce_host.InstalledSalesforceDeclaration,
+  @salesforce_host.InstalledSalesforceIssue,
 ] {
-  @client_salesforce_host.restore_client_salesforce_declaration(
+  @salesforce_host.restore_installed_salesforce_declaration(
     site,
     observation,
     connector_id,
@@ -6192,80 +6182,85 @@ pub fn client_program_salesforce_restore_declaration(
 }
 
 ///|
-#export_name("clientProgramSalesforceDeclarationCatalogCid")
-pub fn client_program_salesforce_declaration_catalog_cid(
-  declaration : @client_salesforce_host.ClientSalesforceDeclaration,
-) -> String {
-  @client_salesforce_host.client_salesforce_declaration_catalog_cid(declaration)
-}
-
-///|
 /// The declared Resource and fields the checked source reads, as
 /// `[resource, ...fields]`.
 #export_name("clientProgramSalesforceSourceTarget")
 pub fn client_program_salesforce_source_target(
-  declaration : @client_salesforce_host.ClientSalesforceDeclaration,
+  declaration : @salesforce_host.InstalledSalesforceDeclaration,
   requirement : @planning.QueryRequirement,
-) -> Result[Array[String], @client_salesforce_host.ClientSalesforceIssue] {
-  @client_salesforce_host.client_salesforce_source_target(
-    declaration, requirement,
-  ).map(target => [target.0, ..target.1])
+) -> Result[Array[String], @salesforce_host.InstalledSalesforceIssue] {
+  @salesforce_host.installed_salesforce_source_target(declaration, requirement).map(target => {
+      [target.0, ..target.1]
+    },
+  )
 }
 
 ///|
-#export_name("clientProgramPrepareSalesforceAcquisition")
-pub fn client_program_prepare_salesforce_acquisition(
-  declaration : @client_salesforce_host.ClientSalesforceDeclaration,
+#export_name("clientProgramPrepareSalesforceRowAcquisition")
+pub fn client_program_prepare_salesforce_row_acquisition(
+  declaration : @salesforce_host.InstalledSalesforceDeclaration,
   requirement : @planning.QueryRequirement,
   current : @salesforce_catalog.CatalogObservation,
-  query_contract_body : String,
-  evidence_contract_body : String,
+  query_contract : String,
+  evidence_contract : String,
   max_soql_bytes : Int,
 ) -> Result[
-  @client_salesforce_host.ClientSalesforceAcquisition,
-  @client_salesforce_host.ClientSalesforceIssue,
+  (@salesforce_catalog.ReadProjection, @client_row_source_host.RowAcquisition),
+  @salesforce_host.InstalledSalesforceIssue,
 ] {
-  @client_salesforce_host.prepare_client_salesforce_acquisition(
-    declaration, requirement, current, query_contract_body, evidence_contract_body,
-    max_soql_bytes,
+  @salesforce_host.prepare_installed_salesforce_row_acquisition(
+    declaration, requirement, current, query_contract, evidence_contract, max_soql_bytes,
   )
 }
 
 ///|
-#export_name("clientProgramSalesforceAcquisitionStart")
-pub fn client_program_salesforce_acquisition_start(
-  acquisition : @client_salesforce_host.ClientSalesforceAcquisition,
-  nonce : String,
-  verify : (@salesforce_host.SalesforceBroadAttempt) -> Bool,
-) -> Result[
-  @salesforce_host.SalesforceBroadHostRun,
-  @client_salesforce_host.ClientSalesforceIssue,
-] {
-  @client_salesforce_host.start_client_salesforce_acquisition(
-    acquisition, nonce, verify,
-  )
+#export_name("clientProgramSalesforceQueryPageValues")
+pub fn client_program_salesforce_query_page_values(
+  page : @salesforce_catalog.QueryPage,
+) -> (Array[String], Array[Array[@admitted.CheckedValue]]) {
+  let columns = @salesforce_catalog.query_page_field_names(page)
+  let rows = []
+  for index in 0..<@salesforce_catalog.query_page_row_count(page) {
+    let row = []
+    for column in 0..<columns.length() {
+      row.push(
+        @salesforce_catalog.query_page_cell(page, index, column).unwrap(),
+      )
+    }
+    rows.push(row)
+  }
+  (columns, rows)
 }
 
 ///|
-#export_name("clientProgramSalesforceBroadAttempt")
-pub fn client_program_salesforce_broad_attempt(
-  run : @salesforce_host.SalesforceBroadHostRun,
-) -> @salesforce_host.SalesforceBroadAttempt {
-  @salesforce_host.salesforce_broad_host_attempt(run)
+#export_name("clientProgramSalesforceQueryReadValueViolation")
+pub fn client_program_salesforce_query_read_value_violation(
+  plan : @salesforce_catalog.ReadProjection,
+  issue : @salesforce_catalog.QueryReadIssue,
+) -> String? {
+  match issue {
+    Page(issue) =>
+      @salesforce_catalog.query_page_value_violation(issue, plan).map(value => {
+        @salesforce_catalog.query_value_violation_json(value)
+      })
+    _ => None
+  }
 }
 
 ///|
-#export_name("clientProgramSalesforceBroadPlan")
-pub fn client_program_salesforce_broad_plan(
-  attempt : @salesforce_host.SalesforceBroadAttempt,
-) -> @salesforce_catalog.ReadProjection {
-  @salesforce_host.salesforce_broad_attempt_plan(attempt)
+#export_name("clientProgramRowSourceAcceptValues")
+pub fn client_program_row_source_accept_values(
+  run : @client_row_source_host.RowRun,
+  columns : Array[String],
+  rows : Array[Array[@admitted.CheckedValue]],
+) -> Result[Int, @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.accept_row_run_values(run, columns, rows)
 }
 
 ///|
-#export_name("clientProgramSalesforceBroadBegin")
-pub fn client_program_salesforce_broad_begin(
-  attempt : @salesforce_host.SalesforceBroadAttempt,
+#export_name("clientProgramSalesforceBeginQueryRead")
+pub fn client_program_salesforce_begin_query_read(
+  plan : @salesforce_catalog.ReadProjection,
   api_version : String,
   max_bytes : Int,
   max_nodes : Int,
@@ -6274,98 +6269,78 @@ pub fn client_program_salesforce_broad_begin(
   max_locator_units : Int,
   max_pages : Int,
   max_total_rows : Int64,
-  max_capture_rows : Int,
-  max_capture_nodes : Int,
-  max_capture_text_bytes : Int,
-  max_capture_depth : Int,
-  max_capture_work : Int,
-) -> Result[Bool, @salesforce_host.SalesforceBroadAttemptIssue] {
-  @salesforce_host.begin_issued_salesforce_broad_read(
-    attempt,
-    api_version,
-    { max_bytes, max_nodes, max_depth, max_rows, max_locator_units, },
-    max_pages,
-    max_total_rows,
-    max_capture_rows,
-    {
-      max_nodes: max_capture_nodes,
-      max_text_bytes: max_capture_text_bytes,
-      max_depth: max_capture_depth,
-      max_work: max_capture_work,
-    },
-  ).map(_ => true)
+) -> Result[@salesforce_catalog.QueryRead, @salesforce_catalog.QueryReadIssue] {
+  match
+    @salesforce_catalog.begin_query_read(
+      plan,
+      api_version,
+      { max_bytes, max_nodes, max_depth, max_rows, max_locator_units, },
+      max_pages,
+      max_total_rows,
+    ) {
+    Ok(value) => Ok(value)
+    Err(issue) => Err(issue)
+  }
 }
 
 ///|
-#export_name("clientProgramSalesforceBroadNextPath")
-pub fn client_program_salesforce_broad_next_path(
-  attempt : @salesforce_host.SalesforceBroadAttempt,
-) -> Result[String?, @salesforce_host.SalesforceBroadAttemptIssue] {
-  @salesforce_host.salesforce_broad_attempt_next_path(attempt)
+#export_name("clientProgramSalesforceQueryReadNextPath")
+pub fn client_program_salesforce_query_read_next_path(
+  read : @salesforce_catalog.QueryRead,
+) -> Result[String?, @salesforce_catalog.QueryReadIssue] {
+  match @salesforce_catalog.query_read_next_path(read) {
+    Ok(path) => Ok(path)
+    Err(issue) => Err(issue)
+  }
 }
 
 ///|
-#export_name("clientProgramSalesforceBroadAcceptPage")
-pub fn client_program_salesforce_broad_accept_page(
-  attempt : @salesforce_host.SalesforceBroadAttempt,
+#export_name("clientProgramSalesforceQueryReadAcceptPage")
+pub fn client_program_salesforce_query_read_accept_page(
+  read : @salesforce_catalog.QueryRead,
   path : String,
   body : Bytes,
-) -> Result[
-  @salesforce_catalog.QueryPage,
-  @salesforce_host.SalesforceBroadAttemptIssue,
-] {
-  @salesforce_host.accept_issued_salesforce_broad_page(attempt, path, body)
+) -> Result[@salesforce_catalog.QueryPage, @salesforce_catalog.QueryReadIssue] {
+  match @salesforce_catalog.query_read_accept_page(read, path, body) {
+    Ok(value) => Ok(value)
+    Err(issue) => Err(issue)
+  }
 }
 
 ///|
-/// The value violation behind a failed page of this attempt, as canonical
-/// JSON, or none for any other failure.
-#export_name("clientProgramSalesforceBroadValueViolation")
-pub fn client_program_salesforce_broad_value_violation(
-  attempt : @salesforce_host.SalesforceBroadAttempt,
-  issue : @salesforce_host.SalesforceBroadAttemptIssue,
-) -> String? {
-  @salesforce_host.salesforce_broad_attempt_value_violation(attempt, issue)
+#export_name("clientProgramSalesforceQueryReadAcknowledgePage")
+pub fn client_program_salesforce_query_read_acknowledge_page(
+  read : @salesforce_catalog.QueryRead,
+  page : @salesforce_catalog.QueryPage,
+) -> Result[Unit, @salesforce_catalog.QueryReadIssue] {
+  match @salesforce_catalog.acknowledge_query_page(read, page) {
+    Ok(_) => Ok(())
+    Err(issue) => Err(issue)
+  }
 }
 
 ///|
-#export_name("clientProgramSalesforceBroadComplete")
-pub fn client_program_salesforce_broad_complete(
-  attempt : @salesforce_host.SalesforceBroadAttempt,
+#export_name("clientProgramSalesforceQueryReadInterrupt")
+pub fn client_program_salesforce_query_read_interrupt(
+  read : @salesforce_catalog.QueryRead,
 ) -> Bool {
-  @salesforce_host.salesforce_broad_attempt_read_complete(attempt)
+  @salesforce_catalog.interrupt_query_read(read)
 }
 
 ///|
-#export_name("clientProgramSalesforceBroadRowCount")
-pub fn client_program_salesforce_broad_row_count(
-  attempt : @salesforce_host.SalesforceBroadAttempt,
-) -> Result[Int64, @salesforce_host.SalesforceBroadAttemptIssue] {
-  @salesforce_host.salesforce_broad_attempt_read_row_count(attempt)
+#export_name("clientProgramSalesforceQueryReadComplete")
+pub fn client_program_salesforce_query_read_complete(
+  read : @salesforce_catalog.QueryRead,
+) -> Bool {
+  @salesforce_catalog.query_read_complete(read)
 }
 
 ///|
-#export_name("clientProgramSalesforceBroadFinish")
-pub fn client_program_salesforce_broad_finish(
-  attempt : @salesforce_host.SalesforceBroadAttempt,
-) -> Result[Bool, @salesforce_host.SalesforceBroadAttemptIssue] {
-  @salesforce_host.finish_issued_salesforce_broad_read(attempt).map(_ => true)
-}
-
-///|
-#export_name("clientProgramSalesforceBroadAbort")
-pub fn client_program_salesforce_broad_abort(
-  run : @salesforce_host.SalesforceBroadHostRun,
-) -> Unit {
-  @salesforce_host.abort_salesforce_broad_host(run)
-}
-
-///|
-#export_name("clientProgramSalesforceBroadClose")
-pub fn client_program_salesforce_broad_close(
-  run : @salesforce_host.SalesforceBroadHostRun,
-) -> Unit {
-  @salesforce_host.close_salesforce_broad_host(run)
+#export_name("clientProgramSalesforceQueryReadRowCount")
+pub fn client_program_salesforce_query_read_row_count(
+  read : @salesforce_catalog.QueryRead,
+) -> Int64 {
+  @salesforce_catalog.query_read_row_count(read)
 }
 
 ///|
@@ -6391,42 +6366,6 @@ pub fn client_program_salesforce_recheck_read_projection(
   current : @salesforce_catalog.CatalogObservation,
 ) -> Result[Bool, @salesforce_catalog.ReadProjectionIssue] {
   @salesforce_catalog.recheck_read_projection(plan, current).map(_ => true)
-}
-
-///|
-#export_name("clientProgramSalesforceCapture")
-pub fn client_program_salesforce_capture(
-  run : @salesforce_host.SalesforceBroadHostRun,
-) -> Result[
-  @salesforce_host.SalesforceBroadSourceCapture,
-  @client_salesforce_host.ClientSalesforceIssue,
-] {
-  @client_salesforce_host.capture_client_salesforce_source(run)
-}
-
-///|
-#export_name("clientProgramSalesforceCaptureSource")
-pub fn client_program_salesforce_capture_source(
-  capture : @salesforce_host.SalesforceBroadSourceCapture,
-) -> Result[@query.CapturedInputSource, @query.CapturedSourceIssue] {
-  @salesforce_host.salesforce_broad_source_capture_source(capture)
-}
-
-///|
-#export_name("clientProgramSalesforceIssueSourceEvidence")
-pub fn client_program_salesforce_issue_source_evidence(
-  acquisition : @client_salesforce_host.ClientSalesforceAcquisition,
-  capture : @salesforce_host.SalesforceBroadSourceCapture,
-  identity : @query.CapturedSourceRelationIdentity,
-  logical_input : @publication.RunEvidenceValue,
-  authority_scope_cid : String,
-  effective_data_policy_cid : String,
-  observed_at : String,
-) -> Result[String, @client_salesforce_host.ClientSalesforceIssue] {
-  @client_salesforce_host.issue_client_salesforce_source_evidence(
-    acquisition, capture, identity, logical_input, authority_scope_cid, effective_data_policy_cid,
-    observed_at,
-  ).map(value => @publication.run_evidence_value_json(value))
 }
 
 ///|

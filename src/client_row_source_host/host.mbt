@@ -163,6 +163,24 @@ pub fn prepare_row_acquisition(
     Ok(value) => value
     Err(issue) => return Err(Source(issue))
   }
+  prepare_declared_row_acquisition(
+    preparation,
+    declaration.connector_registration,
+    query_contract_body,
+    evidence_contract_body,
+  )
+}
+
+///|
+/// The common selection/custody owner for either a generated neutral view or
+/// an existing provider declaration already bound to the checked requirement.
+pub fn prepare_declared_row_acquisition(
+  preparation : RowSourcePreparation,
+  connector_registration : String,
+  query_contract_body : String,
+  evidence_contract_body : String,
+) -> Result[RowAcquisition, RowHostIssue] {
+  let requirement = preparation.requirement
   guard admit_contract(query_contract_body) is Some(query_contract) &&
     admit_contract(evidence_contract_body) is Some(evidence_contract) &&
     @planning.admit_query_evidence_contracts(
@@ -176,7 +194,7 @@ pub fn prepare_row_acquisition(
   guard @connector.prepare_capability_registry(
       [
         {
-          name: declaration.connector_registration,
+          name: connector_registration,
           acquisition: true,
           fixed_compute: false,
           effect: false,
@@ -466,4 +484,23 @@ pub fn row_capture_source(
     return Err(Unavailable)
   }
   Ok(capture.source)
+}
+
+///|
+/// Typed page handoff; completion and settlement are separate operations.
+pub fn accept_row_run_values(
+  run : RowRun,
+  columns : Array[String],
+  rows : Array[Array[@admitted.CheckedValue]],
+) -> Result[Int, RowHostIssue] {
+  guard !run.closed && run.attempt.state is Reading(read) else {
+    return Err(InvalidState)
+  }
+  match accept_row_source_values(read, columns, rows) {
+    Ok(count) => Ok(count)
+    Err(issue) => {
+      abort_row_attempt(run.attempt)
+      Err(Source(issue))
+    }
+  }
 }

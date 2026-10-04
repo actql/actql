@@ -42,7 +42,7 @@ import {recoverRetainedSalesforceCatalog} from
 import {accountEntry, fixtureAuthorization} from
   '../../../host-node/authorization-fixture.mjs';
 import {createSalesforceCliSecretResolver} from '../site/salesforce-cli-secret.mjs';
-import {readSalesforceIssuedBroad, readSalesforceManagedQuery,
+import {readSalesforceManagedQuery,
   readSalesforceQuery} from
   '../site/salesforce-query-read.mjs';
 import {writeSalesforceSingleRecord} from '../site/salesforce-single-write.mjs';
@@ -3102,99 +3102,6 @@ test('managed physical driver rejects a wrong typed value before receipt',
       .length, 1);
   });
 
-test('issued broad Site driver leaves completion to the Host verifier',
-  async t => {
-    const setup = await fixture(t);
-    const plan = await queryProjection(setup);
-    const attempt = Object.freeze({selected: true});
-    const hostRun = Object.freeze({owned: true});
-    let read;
-    let state = 'pending';
-    let aborts = 0;
-    const moon = {
-      ...salesforceMoon,
-      salesforceBroadHostAttempt: selected => {
-        assert.equal(selected, hostRun);
-        return attempt;
-      },
-      salesforceBroadHostAbort: selected => {
-        assert.equal(selected, hostRun);
-        aborts += 1;
-        state = 'aborted';
-      },
-      salesforceIssuedBroadPlan: selected => {
-        assert.equal(selected, attempt);
-        return plan;
-      },
-      salesforceIssuedBroadBegin(selected, ...args) {
-        assert.equal(selected, attempt);
-        if (state !== 'pending') {
-          return {$tag: 0, _0: new Error('InvalidState')};
-        }
-        read = checked(salesforceMoon.salesforceBeginQueryRead(
-          plan, ...args.slice(0, 8)));
-        state = 'reading';
-        return {$tag: 1, _0: true};
-      },
-      salesforceIssuedBroadNextPath: () =>
-        salesforceMoon.salesforceQueryReadNextPath(read),
-      salesforceIssuedBroadAcceptPage(_selected, path, body) {
-        const page = checked(salesforceMoon.salesforceQueryReadAcceptPage(
-          read, path, body));
-        checked(salesforceMoon.salesforceQueryReadAcknowledgePage(read, page));
-        return {$tag: 1, _0: page};
-      },
-      // This driver reads admitted pages only; no page fails here.
-      salesforceIssuedBroadValueViolation: () => undefined,
-      salesforceIssuedBroadComplete: () =>
-        salesforceMoon.salesforceQueryReadComplete(read),
-      salesforceIssuedBroadRowCount: () =>
-        salesforceMoon.salesforceQueryReadRowCount(read),
-      salesforceIssuedBroadFinish: () => {
-        assert.equal(state, 'reading');
-        state = 'awaiting-cleanup';
-        return {$tag: 1, _0: true};
-      },
-    };
-    let enteredDescribe;
-    const describeStarted = new Promise(resolve => { enteredDescribe = resolve; });
-    let releaseDescribe;
-    const describeGate = new Promise(resolve => { releaseDescribe = resolve; });
-    const options = queryRequest(setup, plan, {
-      moon, hostRun, maxCaptureRows: 3,
-      captureLimits: {maxNodes: 100, maxTextBytes: 1000,
-        maxDepth: 10, maxWork: 1000},
-    });
-    const refresh = options.refreshCatalog;
-    options.refreshCatalog = {
-      ...refresh,
-      async authorizationForDescribe(name) {
-        enteredDescribe();
-        await describeGate;
-        return refresh.authorizationForDescribe(name);
-      },
-    };
-    const first = readSalesforceIssuedBroad(options);
-    try {
-      await describeStarted;
-      const physicalRequests = setup.seen.length;
-      await assert.rejects(readSalesforceIssuedBroad(options),
-        {code: 'MoonBitHostFailure'});
-      assert.equal(setup.seen.length, physicalRequests);
-      assert.equal(state, 'reading');
-      assert.equal(aborts, 0);
-    } finally {
-      releaseDescribe();
-    }
-    const result = await first;
-    assert.equal(state, 'awaiting-cleanup');
-    assert.equal(result.hostRun, hostRun);
-    assert.equal(result.rowCount, 2n);
-    assert.equal(result.pages.length, 2);
-    assert.equal(Object.hasOwn(result, 'receipt'), false);
-    assert.equal(Object.hasOwn(result, 'observation'), false);
-  });
-
 test('invalid physical caller is rejected before a query owner or HTTP use',
   async t => {
     const setup = await fixture(t);
@@ -3204,20 +3111,4 @@ test('invalid physical caller is rejected before a query owner or HTTP use',
     })), {code: 'InvalidSalesforceQueryRead'});
     assert.equal(setup.seen.filter(entry => entry.path?.includes('/query'))
       .length, 0);
-  });
-
-test('an issued broad read without the value violation entry is refused before I/O',
-  async t => {
-    const setup = await fixture(t);
-    const plan = await queryProjection(setup);
-    const before = setup.seen.length;
-    const moon = {...salesforceMoon,
-      salesforceBroadHostAttempt: () => Object.freeze({selected: true}),
-      salesforceIssuedBroadPlan: () => plan};
-    delete moon.salesforceIssuedBroadValueViolation;
-    await assert.rejects(readSalesforceIssuedBroad(queryRequest(setup, plan, {
-      moon, hostRun: Object.freeze({owned: true}), maxCaptureRows: 3,
-      captureLimits: {maxNodes: 100, maxTextBytes: 1000, maxDepth: 10,
-        maxWork: 1000}})), {code: 'InvalidSalesforceIssuedBroadRead'});
-    assert.equal(setup.seen.length, before);
   });

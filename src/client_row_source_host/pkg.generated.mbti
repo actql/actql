@@ -8,6 +8,7 @@ import {
   "actql/actql/execution_relation",
   "actql/actql/query_planning",
   "actql/actql/run_publication",
+  "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
 
@@ -16,17 +17,25 @@ pub fn abort_row_run(RowRun) -> Unit
 
 pub fn accept_row_run_page(RowRun, Bytes) -> Result[Int, RowHostIssue]
 
+pub fn accept_row_run_values(RowRun, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, RowHostIssue]
+
 pub fn begin_row_run(RowRun, Int, Int, Int) -> Result[Unit, RowHostIssue]
 
 pub fn capture_row_run(RowRun) -> Result[RowSourceCapture, RowHostIssue]
 
 pub fn close_row_run(RowRun) -> Unit
 
+pub fn declared_row_view(String, String, String, Array[String], String, String) -> RowDeclaredView
+
 pub fn finish_row_run(RowRun) -> Result[Unit, RowHostIssue]
 
 pub fn generate_row_declaration(String, String, String, Array[RowViewSpec], RowDeclarationLimits) -> Result[RowDeclaration, RowDeclarationIssue]
 
 pub fn issue_row_source_evidence(RowAcquisition, RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, RowHostIssue]
+
+pub fn prepare_declared_row_acquisition(RowSourcePreparation, String, String, String) -> Result[RowAcquisition, RowHostIssue]
+
+pub fn prepare_declared_row_source(@query_planning.QueryRequirement, String, RowDeclaredView) -> Result[RowSourcePreparation, RowSourceIssue]
 
 pub fn prepare_row_acquisition(RowDeclaration, @query_planning.QueryRequirement, String, String) -> Result[RowAcquisition, RowHostIssue]
 

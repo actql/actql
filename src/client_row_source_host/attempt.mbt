@@ -34,13 +34,26 @@ pub fn prepare_row_source(
   requirement : @planning.QueryRequirement,
   declaration : RowDeclaration,
 ) -> Result[RowSourcePreparation, RowSourceIssue] {
-  let (source_ref, source_contract_cid) = @planning.query_requirement_source(
-    requirement,
-  )
+  let source_ref = @planning.query_requirement_source(requirement).0
   guard row_declaration_view(declaration, source_ref) is Some(view) else {
     return Err(UndeclaredSource)
   }
-  if view.view_cid != source_contract_cid {
+  prepare_declared_row_source(requirement, declaration.connector_id, view)
+}
+
+///|
+/// Bind a provider's regenerated declared view to the exact checked input.
+/// This is preparation only: it grants no I/O or capture authority and never
+/// substitutes a caller-supplied schema for the checked contracts.
+pub fn prepare_declared_row_source(
+  requirement : @planning.QueryRequirement,
+  connector_id : String,
+  view : RowDeclaredView,
+) -> Result[RowSourcePreparation, RowSourceIssue] {
+  let (source_ref, source_contract_cid) = @planning.query_requirement_source(
+    requirement,
+  )
+  if view.source_ref != source_ref || view.view_cid != source_contract_cid {
     return Err(UndeclaredSource)
   }
   let sequence = @planning.query_material_owner(
@@ -58,7 +71,7 @@ pub fn prepare_row_source(
   let input_declaration = @sourcequery.declaration(
     @sourcequery.mode_input(mode),
   )
-  if input_declaration.connector != declaration.connector_id ||
+  if input_declaration.connector != connector_id ||
     input_declaration.resource != view.resource {
     return Err(ForeignSource)
   }
@@ -282,4 +295,67 @@ fn execute_row_source_residual(
     max_value_bytes=guards.max_value_bytes,
     measurement,
   )
+}
+
+///|
+/// Preserve a declared view's existing identity; provider adapters obtain
+/// these facts from their regenerated declaration, never from returned rows.
+pub fn declared_row_view(
+  resource : String,
+  source_ref : String,
+  view_cid : String,
+  fields : Array[String],
+  carrier_schema_cid : String,
+  data_policy_cid : String,
+) -> RowDeclaredView {
+  {
+    resource,
+    source_ref,
+    view_cid,
+    fields: fields.copy(),
+    carrier_schema_cid,
+    data_policy_cid,
+  }
+}
+
+///|
+/// Admit already-typed provider values into the same input owner as JSON
+/// pages. append_admitted_input checks exact contract identity (including
+/// decimal precision/scale), width and retention limits before retaining a row.
+fn accept_row_source_values(
+  read : RowSourceRead,
+  columns : Array[String],
+  rows : Array[Array[@admitted.CheckedValue]],
+) -> Result[Int, RowSourceIssue] {
+  if !read.open {
+    return Err(Closed)
+  }
+  if columns.length() != read.preparation.columns.length() ||
+    rows.length() > read.page_limits.max_rows {
+    return fail_read(read, InvalidPage)
+  }
+  let indices = []
+  for name in read.preparation.columns {
+    let found = columns.search(name)
+    guard found is Some(index) && !indices.contains(index) else {
+      return fail_read(read, InvalidPage)
+    }
+    indices.push(index)
+  }
+  for row in rows {
+    if row.length() != columns.length() {
+      return fail_read(read, InvalidPage)
+    }
+    match
+      @execution.append_admitted_input(
+        read.input,
+        indices.map(index => row[index]),
+      ) {
+      Ok(_) => ()
+      Err(issue) => return fail_read(read, Capture(issue))
+    }
+  }
+  read.pages += 1
+  read.rows += rows.length()
+  Ok(rows.length())
 }
