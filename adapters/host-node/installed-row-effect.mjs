@@ -425,10 +425,29 @@ export async function createInstalledRowEffect({moon, mappings,
       effect_id: member.effectId, mapping_cid: member.mapping.mappingCid,
       dispatch_request_cid: dispatches[index]}))});
 
+  // A member's rows in the common canonical create order, each with its
+  // target row identity. This order is settled once, before any identity is
+  // derived from the rows: the capability, the Preview, the claims, apply
+  // and recovery all use the same ordered requests.
+  const canonicalRows = rows => {
+    const {maxWireBytes, maxNodes, maxDepth} = limits.preview;
+    const inventory = checked(moon.clientProgramEffectCreateRowInventory(
+      rows.map(entry => JSON.stringify({state: 'present',
+        value: entry.value})), rows.length, maxWireBytes, maxNodes,
+      maxDepth));
+    if (inventory.length !== rows.length ||
+        new Set(inventory.map(item => item._0)).size !== rows.length) {
+      fail('InvalidInstalledRowEffectInventory');
+    }
+    return Object.freeze(inventory.map(item => Object.freeze({
+      entry: rows[item._0], identity: parseExactJson(item._1)})));
+  };
+
   // The Preview of the Effect Unit: the common draft with each member's
-  // created rows stated as their exact mapped values.
+  // created rows, already in canonical order, stated as their exact mapped
+  // values.
   function authorPreview({control, prepared, inputs, context, requestScope,
-    members, requests, capabilities, payloads}) {
+    members, ordered, capabilities, payloads}) {
     const {maxWireBytes, maxNodes, maxDepth} = limits.preview;
     const requestAuthority = moon.clientProgramEffectRequestAuthority(
       requestScope);
@@ -439,7 +458,6 @@ export async function createInstalledRowEffect({moon, mappings,
         program_definition_cid: definitionCid, annotations: []}),
       maxWireBytes, maxNodes, maxDepth));
     const identities = [];
-    const requestOrder = [];
     let rowCount = 0;
     const effects = members.map((member, index) => {
       const descriptor = checked(moon.clientProgramEffectMemberDescriptor(
@@ -458,14 +476,9 @@ export async function createInstalledRowEffect({moon, mappings,
           !/^sha256:[0-9a-f]{64}$/u.test(footprint.boundaryCid ?? '')) {
         fail('InvalidInstalledRowEffectDriver');
       }
-      const rows = requests[index];
+      const rows = ordered[index];
       rowCount += rows.length;
       if (rowCount > limits.maxRows) fail('InstalledRowEffectRowLimit');
-      const afterWires = rows.map(entry => JSON.stringify({state: 'present',
-        value: entry.value}));
-      const inventory = checked(moon.clientProgramEffectCreateRowInventory(
-        afterWires, rows.length, maxWireBytes, maxNodes, maxDepth));
-      requestOrder.push(Object.freeze(inventory.map(item => item._0)));
       const planCid = checked(moon.clientProgramEffectPlanCid(prepared,
         descriptor._0, limits.maxFields, limits.planWork, maxWireBytes,
         maxNodes, maxDepth));
@@ -495,12 +508,12 @@ export async function createInstalledRowEffect({moon, mappings,
         required_permissions: [...member.mapping.requiredPermissions],
         approval: member.mapping.approval,
         on_item_failure: descriptor._7,
-        changes: inventory.map(item => ({
-          target_row_identity: parseExactJson(item._1),
+        changes: rows.map(row => ({
+          target_row_identity: row.identity,
           target_guard: {state: 'not_applicable'},
           before: {state: 'absent'},
-          after: {state: 'present', value: rows[item._0].value},
-          intended_changes: {state: 'present', value: rows[item._0].value},
+          after: {state: 'present', value: row.entry.value},
+          intended_changes: {state: 'present', value: row.entry.value},
           row_preview_cid: pendingCid, row_idempotency_key: pendingCid})),
         row_order: [], effect_member_preview_cid: pendingCid,
         executed: false,
@@ -539,7 +552,7 @@ export async function createInstalledRowEffect({moon, mappings,
       authored._0, draft.run_identity_cid, authoringCid, identities,
       {maxWireBytes, maxNodes, maxDepth});
     return Object.freeze({wire: authored._0, authoringCid,
-      keys: authored._1, requestOrder: Object.freeze(requestOrder)});
+      keys: authored._1});
   }
 
   // The Ledger claims of every row of the admitted Preview.
@@ -601,11 +614,14 @@ export async function createInstalledRowEffect({moon, mappings,
       },
       signal});
     own(sourceSet);
-    let requests = members.map((member, index) => {
+    // Rows are put in canonical order before anything is derived from them.
+    const ordered = members.map((member, index) => {
       if (proposals[index].length === 0) fail('InstalledRowEffectEmptyMember');
-      return requestsOf(member, proposals[index].map(proposal =>
-        JSON.parse(proposal.changesWire).value));
+      return canonicalRows(requestsOf(member, proposals[index].map(proposal =>
+        JSON.parse(proposal.changesWire).value)));
     });
+    const requests = Object.freeze(ordered.map(rows =>
+      Object.freeze(rows.map(row => row.entry))));
     // Every row passes the provider check before a Preview is authored.
     await checkRows({members, requests, runInvocationCid, dispatches,
       subjectCid: cid({version: 'actql-installed-row-effect-check/0.1',
@@ -620,13 +636,18 @@ export async function createInstalledRowEffect({moon, mappings,
         runInvocation: previewContext.runInvocation,
         compiledPlan: previewContext.compiledPlan,
         storeAuthorityCid: store.storeAuthorityCid},
-      requestScope, members, requests,
+      requestScope, members, ordered,
       capabilities: members.map((member, index) =>
         capabilityOf(member, requests[index])), payloads});
-    // Created rows are applied in the Preview's canonical row order.
-    requests = requests.map((rows, index) =>
-      Object.freeze(preview.requestOrder[index].map(row => rows[row])));
     const body = JSON.parse(preview.wire);
+    // The admitted Preview must state exactly the ordered rows.
+    body.effects.forEach((member, index) => {
+      if (member.changes.length !== requests[index].length ||
+          member.changes.some((change, row) => canonicalJson(
+            change.after?.value) !== canonicalJson(requests[index][row].value))) {
+        fail('InstalledRowEffectPreviewOrderMismatch');
+      }
+    });
     const authoringContext = control.admitRunEvidence('authoring_context',
       canonicalJson(body.authoring_context), plan.contractLimits);
     const admittedPreview = control.admitEffectComputationPreview(

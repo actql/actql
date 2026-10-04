@@ -365,3 +365,43 @@ test('an Effect input altered after approval is refused before any send',
     assert.equal(commentSends(setup.api).length, 0);
     assert.equal(setup.state.comments.length, 0);
   });
+
+// Several rows of one member: their canonical order may differ from the
+// input order, and equal rows stay separate operations.
+for (const [name, rows, bodies] of [
+  ['two rows whose canonical order reverses the input',
+    [{node_id: 'I_7', comment: 'first'}, {node_id: 'I_7', comment: 'second'}],
+    ['first', 'second']],
+  ['two equal rows',
+    [{node_id: 'I_7', comment: 'same'}, {node_id: 'I_7', comment: 'same'}],
+    ['same', 'same']],
+]) {
+  test(`${name}: held, restarted, approved, sent exactly once each`,
+    async t => {
+      const setup = await installation(t);
+      const first = await setup.openHost();
+      const {execution, state} = await submitted(setup, first,
+        `comment-rows-${bodies.join('-')}`, rows);
+      assert.equal(state.status, 'waiting_checkpoint', JSON.stringify(state));
+      assert.equal(commentSends(setup.api).length, 0);
+      await first.close();
+      const second = await setup.openHost();
+      await approve(second, execution);
+      await second.close();
+      const {host: third, state: done} = await resumed(setup, execution);
+      assert.equal(done.status, 'succeeded', JSON.stringify(done));
+      const sent = () => commentSends(setup.api).map(request =>
+        request.variables.body).sort();
+      assert.deepEqual(sent(), bodies);
+      assert.deepEqual(setup.state.comments.map(comment =>
+        [comment.subjectId, comment.body]).sort(),
+      bodies.map(body => ['I_7', body]));
+      await third.close();
+      // A further restart sends nothing more.
+      const fourth = await setup.openHost();
+      const again = await (await fourth.as('owner-token'))
+        .attach(execution.ref);
+      assert.equal((await again.status()).status, 'succeeded');
+      assert.deepEqual(sent(), bodies);
+    });
+}
