@@ -193,7 +193,11 @@ export function createNodeInProcessClientHost({
         }
         return answer;
       }
-      if (operation === 'reconcile') return await invoke(reconcile);
+      if (operation === 'reconcile') {
+        const state = await invoke(reconcile);
+        if (!validRunState(state)) fail('InvalidClientHostRunState');
+        return state;
+      }
       if (operation === 'delivery-attempt') {
         const found = await inspectAuthorizedDeliveryAttempt(resultService, {
           indexKey: ref, principalId, purpose: 'download',
