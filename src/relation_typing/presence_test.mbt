@@ -97,6 +97,94 @@ test "filter preserves conditional schema and checks every syntactic reference" 
 }
 
 ///|
+test "presence derive keeps untouched columns and gives computed bindings Required presence" {
+  for body in ["{\"z\":\"id + 1\"}", "[{\"z\":\"id + 1\"}]"] {
+    let checked = @relation_typing.check(
+      Derive,
+      cursor(body),
+      presence_schema(),
+      None,
+      limits(),
+    ).unwrap()
+    let schema = @relation_typing.output_schema(checked)
+    assert_eq(
+      @schema.lookup_reference(schema, "p").unwrap().presence,
+      @schema.Conditional,
+    )
+    assert_true(
+      @schema.lookup_reference(schema, "p").unwrap().contract.nullable,
+    )
+    assert_eq(
+      @schema.lookup_reference(schema, "z").unwrap().presence,
+      @schema.Required,
+    )
+    assert_false(
+      @schema.lookup_reference(schema, "z").unwrap().contract.nullable,
+    )
+  }
+  for expr in ["p", "if(false, p, id)", "if(p IS NOT NULL, id, 0)"] {
+    assert_eq(
+      @relation_typing.check(
+        Derive,
+        cursor("{\"z\":\"" + expr + "\"}"),
+        presence_schema(),
+        None,
+        limits(),
+      ).unwrap_err().kind,
+      PresenceRequired("p"),
+    )
+  }
+  // Explicit ordered replacement creates a new proven binding, not a proof
+  // inferred from the old optional column's data or a NULL predicate.
+  let checked = @relation_typing.check(
+    Derive,
+    cursor("[{\"p\":\"id + 1\"},{\"z\":\"p + 1\"}]"),
+    presence_schema(),
+    None,
+    limits(),
+  ).unwrap()
+  assert_true(
+    @schema.all_fields_required(@relation_typing.output_schema(checked)),
+  )
+  assert_eq(
+    @relation_typing.references(
+      @relation_typing.binding_at(checked, 1).unwrap(),
+    )[0].target,
+    PriorSlot(0),
+  )
+}
+
+///|
+test "presence derive regression keeps untouched Conditional fields" {
+  let result = @relation_typing.check(
+    Derive,
+    cursor("{\"z\":\"id + 1\"}"),
+    presence_schema(),
+    None,
+    limits(),
+  )
+  match result {
+    Err(issue) => {
+      assert_eq(issue.kind, @relation_typing.ConditionalInputNotImplemented)
+      fail(
+        "ConditionalInputNotImplemented: Required-only derive was rejected on sparse input",
+      )
+    }
+    Ok(checked) => {
+      let schema = @relation_typing.output_schema(checked)
+      assert_eq(
+        @schema.lookup_reference(schema, "p").unwrap().presence,
+        @schema.Conditional,
+      )
+      assert_eq(
+        @schema.lookup_reference(schema, "z").unwrap().presence,
+        @schema.Required,
+      )
+    }
+  }
+}
+
+///|
 test "presence sort accepts Required keys and take preserves the schema" {
   let input = presence_schema()
   for

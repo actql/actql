@@ -6,6 +6,8 @@ import {generateKeyPairSync, sign} from 'node:crypto';
 import {mkdir, mkdtemp, rm} from 'node:fs/promises';
 import {join} from 'node:path';
 import test from 'node:test';
+import './client-effect-target-checkpoints.test.mjs';
+import './effect-target-read-continuation.test.mjs';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';

@@ -18,6 +18,7 @@ import {
   "actql/actql/platform_native/remote_values_host",
   "actql/actql/platform_native/runtime_bundle",
   "actql/actql/publication_payload",
+  "actql/actql/query_planning",
   "actql/actql/remote_resident_site",
   "actql/actql/remote_site_protocol",
   "actql/actql/run_publication",
@@ -34,6 +35,8 @@ pub fn deliver_resident_output(ResidentExecuted, @remote_journal.Journal, String
 pub fn execute_resident_attempt(@remote_journal.Journal, ResidentExecution, ResidentRunAdmission, String, String, () -> String, ((String) -> Bool)?) -> Result[ResidentExecuted, ResidentExecutionFailure]
 
 pub fn plan_resident_output(ResidentExecuted, @remote_journal.Journal, String, String, Int, @remote_site_protocol.RemotePollOutput) -> Result[@remote_site_protocol.RemoteOutputPlan, ResidentOutputIssue]
+
+pub fn prepare_resident_effect_source_requirement(@run_publication_host.PreparedClientEffectComputation, Int, Int, String, String, String?, String, String) -> Result[@query_planning.QueryRequirement, ResidentSourceIssue]
 
 pub fn reclaim_resident_output_intents(@remote_journal.Journal, @publication_store.Store) -> Result[Int, ResidentOutputIssue]
 
