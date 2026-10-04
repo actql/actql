@@ -16,17 +16,19 @@ Earlier checkpoints below retain their original source and package identities.
 
 ## Current public composition checkpoint (2026-10-04)
 
-The current inspected main is `bbb9b935b912148b7e399cc23f213e72bb7bc9a8`,
-including #273. This section supersedes status statements in the historical
+The adopted main is `5caeccc79dacc758afa5d87c2cee6be024e32565`, including
+#273, A #292, selected-fragment capacity and incremental Session CI. D's
+integration is `3bd65feb11770cd45819ef34dcd08fba2db03a3f`. This section
+supersedes status statements in the historical
 table below without rewriting their evidence. The sole operation-family
 classification remains `2026-09-19-sga-veca-tea-local-coverage.json`.
 
 | Composition boundary | Current state and fixed evidence | Next acceptance or excluded scope |
 |---|---|---|
 | Two Sources → JOIN → multi-row INFER → KEEP/filter → approved Effect, JSON/text | Publicly accepted. #273 source `8a5195451195b7e4566b19bf7ba9fb5772b8f2d1`; [automatic CI 37163835916](https://github.com/actql/actql/actions/runs/37163835916) succeeded, including fresh-packed Local/HTTPS from tested merge `e90fea951f63cf0586f095c47521e29d18a4bf73`. Approval/restart/replay and the reused failure/cleanup cases passed. | This proves the authored full text and JSON fixture, not all syntax or Graph combinations. |
-| Pure two DuckDB Sources → selected Native/Broad → JOIN | Native is already publicly accepted. Broad is connected in A #292 candidate `de96f1c5cd28154deea182a9a84743a016db81f0`; its [automatic CI 37163208595](https://github.com/actql/actql/actions/runs/37163208595) succeeded, including both public transports and second-failure/cancellation/cleanup cases. | Candidate adoption and D's combined-main acceptance remain separate from A's successful tested merge `603bec16d544aef70af845cc58a552003dca78eb`. Reuse A's fixtures and capacity owner; no duplicated repair. |
+| Pure two DuckDB Sources → selected Native/Broad → JOIN | A #292 `de96f1c5cd28154deea182a9a84743a016db81f0` is adopted via main merge `b48301401592c2e9f00a2ea9f1f82a283cb5a2a4`. D's external fresh-packed acceptance at `1f17eb56c88d0b63b99cf24b1ce4f6ad43355752` passed 8 Local/HTTPS normal cases, 8 retained-Run cases and 12 recovery/failure scenarios. Independent Native/Broad rows, types and order agree; binding/generation refusal, second acquisition failure, cancellation and cleanup retry use A's existing fixtures/owner. | This is fixed-SHA local packed evidence, separate from A's [successful automatic CI 37163208595](https://github.com/actql/actql/actions/runs/37163208595). JSON/text equivalence for this pure JOIN group remains unverified. |
 | Graph → node_rows/edge_rows → guaranteed Relation columns → physical Store/reload → Named Result | Publicly accepted through C #275 (`fa615ff1d7b199b476c9673c613dcbcfb40d576d`), included in main. Selected clean packed acceptance is recorded at `9bc97334b1ec6afddef1b319fc48ac52f8ec7879`. | Nullable Required properties and original scalar key types remain supported; Conditional refinement is not inferred from samples. |
-| Graph rows → multi-row INFER → approved Effect | Connection gap reproduced. Complete independently authored node/edge Programs using guaranteed columns both returned `ClientProgramUnsupported` before Run admission and Model calls on immutable CI runtime `e90fea951f63cf0586f095c47521e29d18a4bf73`. Typed diagnosis: prepared owner and INFER occurrence exist, acquisition count 0, Effect compilation `unsupported_program`. | D is connecting the original source-free checked DAG to the existing Model component, capture custody and Effect owner. New-source packed acceptance remains pending; JSON may not be repaired by the harness. |
+| Graph rows → multi-row INFER → approved Effect | Source-free checked DAG compilation and original Model/capture/Effect owners are connected at `325eb381313a2d688043acb38d4e09b5ea61f61f`. Producer export/import provenance is connected at `d8a68550ead7fe326cb2d7922d8cec7a84b43e79`. Its fresh-packed Local node case reaches two Model calls `[100,200]`, zero Source calls and zero writes, then fails dependency preservation before approval. Typed diagnostic: `MissingDependency`, because the Result Policy CID has no retained original body. | A owns the common Result Policy binding, early refusal and durable restoration; D owns adoption and public composite acceptance. HTTPS, edge rows, approval and restart at this new source are not yet accepted. The earlier `ClientProgramUnsupported` and `NotSourceFree` reproductions remain historical evidence, not the current failure. |
 | Graph rows through text; conditional-property refinement; NEAREST/Cloud expansion | Outside this completion unit. Graph text and `compile_query_script` Graph→Relation transition are B-owned; no parallel transition is implemented by D. | Record as unconnected for this acceptance scope. D continues CTE/predicate/assert/Effect composition; additional shared input/return changes require a concrete boundary report. |
 
 The new Graph fixtures are
@@ -39,6 +41,57 @@ Both expect Model inputs `[100,200]`, Source sessions `[0,0,0,0]`, writes
 The constructor identity is independently derived from its normative authored
 preimage, not observed Graph output.
 
+### Source-free Result Data Policy handoff to A
+
+The public reproduction is the complete node fixture above, submitted with only
+its published MappingRef bound. At `d8a68550ead7fe326cb2d7922d8cec7a84b43e79`,
+normal fresh-packed execution with
+`node scripts/test-packed-salesforce-source.mjs --composed-graph` fails after
+Model calls and before Effect preview/approval. An explicitly instrumented
+diagnostic identifies the existing dependency inventory's `MissingDependency`;
+the diagnostic overlay is not pristine packed acceptance. The fixture's Model
+`data_handling.contract_cid` is `sha256:` followed by 64 `a` characters.
+It is an egress contract, not a Result Data Policy body.
+
+The connection points are
+`client_compiled_run_infer_observation_policy` in `client_compiled_run.mbt`,
+`sourceFreeInferEffectPublicationPlan` in `local-values-plan.mjs`, and the
+existing `prepareLocalEffectDependencyInventory` call in `effect-input-export.mjs`.
+The source-free observation currently borrows that Model CID. The checked
+inventory correctly refuses its absent Data Policy original. The temporary
+Model-CID choice in `eb0bf193d47997b4eddaf4291bb6072c8a22ded1` and its test
+are not the agreed Result Policy contract and must be replaced by A's connection.
+
+The Source-backed reference is `acquiredMultiEffectPublicationPlan`: the common
+owner supplies its effective policy CID and
+`clientProgramEffectPublicationPolicyBodies` supplies retained originals. The
+installed source-free profile currently supplies an opaque
+`policyCid('local-result-data')`, not this original-body connection. The earlier
+source-free INFER handoff `d9501d023cadff6e345533c4b267d2d880039814` carries
+Model fragment contracts; it does not resolve this Result Policy boundary.
+
+The agreed split is A for the common preparation/Run/capture connection and D
+for public Local/HTTPS acceptance. Reuse an existing Result Policy setting and
+original-body source if available. Otherwise bind an explicit Host Policy and
+its original through the existing owner. No unused Source policy, invented
+original, weakened dependency check or Model contract substitution is permitted.
+Source-derived constraints must survive any Host binding.
+
+| Acceptance condition after A's connection | Independent observation required |
+|---|---|
+| Policy unconfigured, original missing or CID/body mismatch | Preparation refuses before Run execution, Model calls and Effect writes; Model calls 0 and writes 0. |
+| Valid, Result-applicable Policy distinct from Model egress | Full authored Program returns the fixed fixture rows, types and order; Model inputs `[100,200]`, Source calls 0, writes 0 before approval and 1 after it. |
+| Capture-waiting and approval-committed restart | Stop both dedicated processes; restore the same request/Run with the original Policy binding and required bodies as dependencies, even if current Host settings change. No saved Source/Model replay, redundant approval or confirmed Effect replay. |
+| Source-backed control | Original effective Source constraints and bodies remain enforced; Host Policy cannot downgrade them. |
+
+The successful pure-Source evidence is retained in
+`public-query-evidence-1LEidN/two-source-acceptance.json`. Failed normal Graph
+evidence is retained in `actql-packed-salesforce-Zfx0ss`; typed-cause-only
+diagnostic evidence is in `actql-packed-salesforce-S3VT6J` and
+`actql-packed-salesforce-kuWp6x`. These are local evidence directories under
+the workspace's `.codex-scratch`, not portable repository fixtures. Reproduction
+uses the checked-in Programs, expectations and existing packed consumer.
+
 Resource acceptance distinguishes original temporary task/consumer, Graph,
 Source and Model holdings from durable Named Result retention. Logical close,
 physical cleanup and reservation return are separate observations. A false
@@ -47,6 +100,11 @@ last-holder cleanup permits return. Named Results remain rereadable without
 Source/Model replay or confirmed Effect duplication. `wait(): succeeded` and
 `client.close()` alone establish no release claim. Final Run deletion and
 physical deletion of another consumer's data are outside this unit.
+The Graph attempt confirmed temporary physical cleanup and zero held bytes and
+reservations. The ledger's `holdings` counter records cumulative created holds
+(9 in this attempt), not active remaining holds; it cannot establish an active
+hold count of zero. Named Result retention and an explicit active-hold inventory
+remain separate acceptance observations, and are not claimed complete here.
 
 ## Historical implemented versus execution evidence
 
