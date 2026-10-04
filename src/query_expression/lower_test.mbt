@@ -221,3 +221,21 @@ test "property lowering resolves a scope prefix without flattening names" {
   )
   @builder.discard(bounded)
 }
+
+///|
+test "Named numeric arguments share query literal admission" {
+  for
+    (token, expected) in [
+      (".5", 0.5),
+      ("1.", 1.0),
+      ("1.e1", 10.0),
+      ("0002", 2.0),
+      ("-.5", -0.5),
+      ("9007199254740991", 9007199254740991.0),
+    ] {
+    assert_eq(numeric_literal(token).unwrap(), expected)
+  }
+  for token in ["-0", "9007199254740993", "1e999"] {
+    assert_true(numeric_literal(token) is Err(InvalidNumber), msg=token)
+  }
+}

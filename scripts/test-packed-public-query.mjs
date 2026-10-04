@@ -43,6 +43,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/acquired-data-source-input.mjs', 'acquired-data-source-input.mjs'],
   ['scripts/fixtures/property-graph-source-input.mjs', 'property-graph-source-input.mjs'],
   ['scripts/fixtures/property-graph-row-source-input.mjs', 'property-graph-row-source-input.mjs'],
+  ['scripts/fixtures/property-graph-traverse-source-input.mjs', 'property-graph-traverse-source-input.mjs'],
   ['scripts/fixtures/string-values-restart.mjs', 'string-values-restart.mjs'],
   ['scripts/fixtures/installed-infer-fixture.mjs', 'installed-infer-fixture.mjs'],
   ['scripts/fixtures/infer-source-expectation.mjs', 'infer-source-expectation.mjs'],
@@ -265,8 +266,8 @@ if (process.argv.includes('--source-free-only') ||
   process.argv.includes('--infer-refusal-only') ||
   process.argv.includes('--two-source-only') ||
   process.argv.includes('--join-order-only') ||
-  process.argv.includes('--graph-rows-only') ||
-  process.argv.includes('--group-scope-only')) return;
+  process.argv.includes('--group-scope-only') ||
+  process.argv.includes('--graph-rows-only')) return;
 if (!process.argv.includes('--property-graph-source-only')) {
   console.log(run(process.execPath, ['sga-cancellation.mjs'], root,
     runtimeEnvironment, 120000).trimEnd());

@@ -13,6 +13,10 @@ pub(all) enum Format {
 pub(all) struct Lowered {
   document : String
   format : @program.Format
+  // Query forms retain their admitted Program with authored expression spans.
+  // Checking the serialized document would replace them with generated JSON
+  // coordinates. Machine input is admitted by the ordinary document checker.
+  program : @program.Program?
 }
 
 ///|
@@ -194,7 +198,7 @@ fn emit(program : @program.Program) -> Result[Lowered, Issue] {
   } catch {
     _ => return Err(Encoding)
   }
-  Ok({ document, format: @program.Json, })
+  Ok({ document, format: @program.Json, program: Some(program), })
 }
 
 ///|
@@ -241,8 +245,8 @@ pub fn lower(
   source_path? : String = "<source>",
 ) -> Result[Lowered, Issue] {
   match format {
-    Json => Ok({ document, format: @program.Json, })
-    Yaml => Ok({ document, format: @program.Yaml, })
+    Json => Ok({ document, format: @program.Json, program: None, })
+    Yaml => Ok({ document, format: @program.Yaml, program: None, })
     Text => {
       match
         @syntax.starts_query(document, syntax_limits().lexical, source_path~) {

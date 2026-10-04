@@ -157,6 +157,26 @@ fn number(text : String) -> Double raise Abort {
 }
 
 ///|
+/// Admit a numeric token already classified by the query lexer. Named
+/// operation arguments share SELECT's precision, finite-value and signed-zero
+/// rules; they do not interpret the token as a second expression language.
+pub fn numeric_literal(text : String) -> Result[Double, Issue] {
+  try {
+    if text.has_prefix("-") {
+      let value = number(text[1:].to_owned())
+      if value == 0.0 {
+        raise Abort(InvalidNumber)
+      }
+      Ok(-value)
+    } else {
+      Ok(number(text))
+    }
+  } catch {
+    Abort(issue) => Err(issue)
+  }
+}
+
+///|
 fn scalar_call(path : Array[@query.NamePart]) -> (String, Int, Int) raise Abort {
   if path.any(part => part.quoted) {
     raise Abort(UnsupportedFunction)

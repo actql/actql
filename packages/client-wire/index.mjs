@@ -1,3 +1,4 @@
+export {checkReasonSchemaCid} from './client-host.generated.js';
 // Structural Client–Host wire admission only. The Host's MoonBit owners decide
 // identities, authorization, state transitions, publication and retry.
 import {validDeliveryAttempt, validDeliveryRecord,
@@ -120,7 +121,21 @@ export function validRunState(value) {
 // The registered contract and generated validator enforce verdict/coverage
 // consistency as well as shape, without enumerating reason codes.
 export function validCheckOutcome(value) {
-  return validCheckOutcomeShape(value);
+  if (!validCheckOutcomeShape(value)) return false;
+  const report = value.report ?? value.partial_report;
+  if (!report) return true;
+  const documents = new Map(report.inputs.map(input => [input.document_id, input]));
+  if (documents.size !== report.inputs.length || documents.get('source')?.kind !== 'text' ||
+      report.inputs.some(input => input.document_id !== 'source' && input.kind !== 'structured')) return false;
+  for (const reason of [...report.reasons, ...(report.requirements ?? [])]) {
+    const location = reason.location;
+    if (!location) continue;
+    const input = documents.get(location.document_id);
+    if (!input || input.revision !== location.revision || input.kind !== location.kind) return false;
+    if (location.kind === 'text' && (location.start_byte > location.end_byte ||
+        location.end_byte > input.byte_length)) return false;
+  }
+  return true;
 }
 
 export function validSubmitPreparationError(value) {
@@ -171,6 +186,7 @@ export function validClientBody(operation, body) {
         exact(body.input, ['text', 'format', 'parameterDeclarations'])) &&
       typeof body.input.text === 'string' &&
       body.input.text.length > 0 && body.input.text.length <= 65536 &&
+      body.input.text.isWellFormed() &&
       !body.input.text.includes('\u0000') &&
       ['aql-text', 'sql'].includes(body.input.format) &&
       (body.input.parameterDeclarations === undefined ||

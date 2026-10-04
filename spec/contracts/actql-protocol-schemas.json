@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:7ba2acd2c6978e686a3d97f1a7e4edac63c659229854eefdb32fe45d63498898",
+  "artifact_registry_cid": "sha256:3560b00e99a2bc63ae2bde019d5261e2b08e7171377686718e85f847b1425c43",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10713,7 +10713,8 @@
     "model_prompt": "sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204",
     "model_retry_policy": "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c",
     "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55",
-    "check_outcome": "sha256:cb331c9b0f67e49072f0dbcd677e60bd4ecfb522e354346ab7cc61678b0eec66"
+    "check_outcome": "sha256:95092b03825a6a3ca9b6d206dd158c410d73457ccb827afe52fc2c3bb34de94c",
+    "check_reason": "sha256:6ef2aefaf03e046fcfa830ce1b0648c6b04701162755ba869a9996cd69ade8ef"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -75839,7 +75840,8 @@
           "required": [
             "outcome",
             "report",
-            "version"
+            "version",
+            "reason_schema_cid"
           ],
           "properties": {
             "outcome": {
@@ -75858,6 +75860,11 @@
                   "then": {
                     "properties": {
                       "reasons": {
+                        "type": "array",
+                        "items": {},
+                        "maxItems": 0
+                      },
+                      "requirements": {
                         "type": "array",
                         "items": {},
                         "maxItems": 0
@@ -75937,7 +75944,9 @@
               "required": [
                 "context_ref",
                 "coverage",
+                "inputs",
                 "reasons",
+                "requirements",
                 "scope",
                 "verdict"
               ],
@@ -75947,6 +75956,45 @@
                   "minLength": 1,
                   "maxLength": 128,
                   "pattern": "^[A-Za-z0-9:_-]+$"
+                },
+                "inputs": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 3,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "document_id",
+                      "revision",
+                      "kind",
+                      "byte_length"
+                    ],
+                    "properties": {
+                      "document_id": {
+                        "enum": [
+                          "source",
+                          "parameter_declarations",
+                          "parameters"
+                        ]
+                      },
+                      "revision": {
+                        "type": "string",
+                        "pattern": "^rev:[0-9a-f]{64}$"
+                      },
+                      "kind": {
+                        "enum": [
+                          "text",
+                          "structured"
+                        ]
+                      },
+                      "byte_length": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    }
+                  }
                 },
                 "coverage": {
                   "type": "object",
@@ -75996,7 +76044,11 @@
                 },
                 "reasons": {
                   "type": "array",
+                  "maxItems": 1024,
                   "items": {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "$id": "https://smooth.dev/schemas/actql-check-reason-0.1.json",
+                    "title": "actql-check-reason-0.1",
                     "type": "object",
                     "additionalProperties": false,
                     "required": [
@@ -76006,8 +76058,564 @@
                       "code": {
                         "type": "string",
                         "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                      },
+                      "location": {
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "kind",
+                              "document_id",
+                              "revision",
+                              "start_byte",
+                              "end_byte",
+                              "precision"
+                            ],
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              },
+                              "revision": {
+                                "type": "string",
+                                "pattern": "^rev:[0-9a-f]{64}$"
+                              },
+                              "start_byte": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 1048576
+                              },
+                              "end_byte": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 1048576
+                              },
+                              "precision": {
+                                "enum": [
+                                  "exact",
+                                  "approximate"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "kind",
+                              "document_id",
+                              "revision",
+                              "pointer"
+                            ],
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "parameter_declarations",
+                                  "parameters"
+                                ]
+                              },
+                              "revision": {
+                                "type": "string",
+                                "pattern": "^rev:[0-9a-f]{64}$"
+                              },
+                              "pointer": {
+                                "type": "string",
+                                "maxLength": 4096,
+                                "pattern": "^(?:/(?:[^~]|~[01])*)*$"
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      "facts": {
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "parameter"
+                            ],
+                            "properties": {
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "parameter",
+                              "expected_type",
+                              "actual_type"
+                            ],
+                            "properties": {
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "expected_type": {
+                                "enum": [
+                                  "null",
+                                  "boolean",
+                                  "number",
+                                  "string",
+                                  "array",
+                                  "object",
+                                  "date",
+                                  "timestamp",
+                                  "decimal",
+                                  "json",
+                                  "vector",
+                                  "resource_ref",
+                                  "artifact_ref"
+                                ]
+                              },
+                              "actual_type": {
+                                "enum": [
+                                  "null",
+                                  "boolean",
+                                  "number",
+                                  "string",
+                                  "array",
+                                  "object",
+                                  "date",
+                                  "timestamp",
+                                  "decimal",
+                                  "json",
+                                  "vector",
+                                  "resource_ref",
+                                  "artifact_ref"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "parameter",
+                              "expected_type"
+                            ],
+                            "properties": {
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "expected_type": {
+                                "enum": [
+                                  "null",
+                                  "boolean",
+                                  "number",
+                                  "string",
+                                  "array",
+                                  "object",
+                                  "date",
+                                  "timestamp",
+                                  "decimal",
+                                  "json",
+                                  "vector",
+                                  "resource_ref",
+                                  "artifact_ref"
+                                ]
+                              }
+                            }
+                          }
+                        ]
                       }
-                    }
+                    },
+                    "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "supplied_value_type_mismatch"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "actual_type"
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "parameter_undeclared"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "not": {
+                                "required": [
+                                  "expected_type"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "parameter_value_required"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "expected_type"
+                              ],
+                              "not": {
+                                "required": [
+                                  "actual_type"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "not": {
+                                "enum": [
+                                  "supplied_value_type_mismatch",
+                                  "parameter_value_required",
+                                  "parameter_undeclared"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "then": {
+                          "not": {
+                            "required": [
+                              "facts"
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "requirements": {
+                  "type": "array",
+                  "maxItems": 1024,
+                  "items": {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "$id": "https://smooth.dev/schemas/actql-check-reason-0.1.json",
+                    "title": "actql-check-reason-0.1",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "code",
+                      "facts"
+                    ],
+                    "properties": {
+                      "code": {
+                        "const": "parameter_value_required"
+                      },
+                      "location": {
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "kind",
+                              "document_id",
+                              "revision",
+                              "start_byte",
+                              "end_byte",
+                              "precision"
+                            ],
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              },
+                              "revision": {
+                                "type": "string",
+                                "pattern": "^rev:[0-9a-f]{64}$"
+                              },
+                              "start_byte": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 1048576
+                              },
+                              "end_byte": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 1048576
+                              },
+                              "precision": {
+                                "enum": [
+                                  "exact",
+                                  "approximate"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "kind",
+                              "document_id",
+                              "revision",
+                              "pointer"
+                            ],
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "parameter_declarations",
+                                  "parameters"
+                                ]
+                              },
+                              "revision": {
+                                "type": "string",
+                                "pattern": "^rev:[0-9a-f]{64}$"
+                              },
+                              "pointer": {
+                                "type": "string",
+                                "maxLength": 4096,
+                                "pattern": "^(?:/(?:[^~]|~[01])*)*$"
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      "facts": {
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "parameter"
+                            ],
+                            "properties": {
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "parameter",
+                              "expected_type",
+                              "actual_type"
+                            ],
+                            "properties": {
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "expected_type": {
+                                "enum": [
+                                  "null",
+                                  "boolean",
+                                  "number",
+                                  "string",
+                                  "array",
+                                  "object",
+                                  "date",
+                                  "timestamp",
+                                  "decimal",
+                                  "json",
+                                  "vector",
+                                  "resource_ref",
+                                  "artifact_ref"
+                                ]
+                              },
+                              "actual_type": {
+                                "enum": [
+                                  "null",
+                                  "boolean",
+                                  "number",
+                                  "string",
+                                  "array",
+                                  "object",
+                                  "date",
+                                  "timestamp",
+                                  "decimal",
+                                  "json",
+                                  "vector",
+                                  "resource_ref",
+                                  "artifact_ref"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "parameter",
+                              "expected_type"
+                            ],
+                            "properties": {
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "expected_type": {
+                                "enum": [
+                                  "null",
+                                  "boolean",
+                                  "number",
+                                  "string",
+                                  "array",
+                                  "object",
+                                  "date",
+                                  "timestamp",
+                                  "decimal",
+                                  "json",
+                                  "vector",
+                                  "resource_ref",
+                                  "artifact_ref"
+                                ]
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "supplied_value_type_mismatch"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "actual_type"
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "parameter_undeclared"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "not": {
+                                "required": [
+                                  "expected_type"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "parameter_value_required"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "expected_type"
+                              ],
+                              "not": {
+                                "required": [
+                                  "actual_type"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "not": {
+                                "enum": [
+                                  "supplied_value_type_mismatch",
+                                  "parameter_value_required",
+                                  "parameter_undeclared"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "then": {
+                          "not": {
+                            "required": [
+                              "facts"
+                            ]
+                          }
+                        }
+                      }
+                    ]
                   }
                 },
                 "scope": {
@@ -76031,6 +76639,9 @@
                 }
               }
             },
+            "reason_schema_cid": {
+              "const": "sha256:6ef2aefaf03e046fcfa830ce1b0648c6b04701162755ba869a9996cd69ade8ef"
+            },
             "version": {
               "const": "actql-check-outcome/0.1"
             }
@@ -76042,7 +76653,8 @@
           "required": [
             "outcome",
             "problem",
-            "version"
+            "version",
+            "reason_schema_cid"
           ],
           "properties": {
             "outcome": {
@@ -76061,6 +76673,11 @@
                   "then": {
                     "properties": {
                       "reasons": {
+                        "type": "array",
+                        "items": {},
+                        "maxItems": 0
+                      },
+                      "requirements": {
                         "type": "array",
                         "items": {},
                         "maxItems": 0
@@ -76140,7 +76757,9 @@
               "required": [
                 "context_ref",
                 "coverage",
+                "inputs",
                 "reasons",
+                "requirements",
                 "scope",
                 "verdict"
               ],
@@ -76150,6 +76769,45 @@
                   "minLength": 1,
                   "maxLength": 128,
                   "pattern": "^[A-Za-z0-9:_-]+$"
+                },
+                "inputs": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 3,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "document_id",
+                      "revision",
+                      "kind",
+                      "byte_length"
+                    ],
+                    "properties": {
+                      "document_id": {
+                        "enum": [
+                          "source",
+                          "parameter_declarations",
+                          "parameters"
+                        ]
+                      },
+                      "revision": {
+                        "type": "string",
+                        "pattern": "^rev:[0-9a-f]{64}$"
+                      },
+                      "kind": {
+                        "enum": [
+                          "text",
+                          "structured"
+                        ]
+                      },
+                      "byte_length": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    }
+                  }
                 },
                 "coverage": {
                   "type": "object",
@@ -76199,7 +76857,11 @@
                 },
                 "reasons": {
                   "type": "array",
+                  "maxItems": 1024,
                   "items": {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "$id": "https://smooth.dev/schemas/actql-check-reason-0.1.json",
+                    "title": "actql-check-reason-0.1",
                     "type": "object",
                     "additionalProperties": false,
                     "required": [
@@ -76209,8 +76871,564 @@
                       "code": {
                         "type": "string",
                         "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                      },
+                      "location": {
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "kind",
+                              "document_id",
+                              "revision",
+                              "start_byte",
+                              "end_byte",
+                              "precision"
+                            ],
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              },
+                              "revision": {
+                                "type": "string",
+                                "pattern": "^rev:[0-9a-f]{64}$"
+                              },
+                              "start_byte": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 1048576
+                              },
+                              "end_byte": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 1048576
+                              },
+                              "precision": {
+                                "enum": [
+                                  "exact",
+                                  "approximate"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "kind",
+                              "document_id",
+                              "revision",
+                              "pointer"
+                            ],
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "parameter_declarations",
+                                  "parameters"
+                                ]
+                              },
+                              "revision": {
+                                "type": "string",
+                                "pattern": "^rev:[0-9a-f]{64}$"
+                              },
+                              "pointer": {
+                                "type": "string",
+                                "maxLength": 4096,
+                                "pattern": "^(?:/(?:[^~]|~[01])*)*$"
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      "facts": {
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "parameter"
+                            ],
+                            "properties": {
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "parameter",
+                              "expected_type",
+                              "actual_type"
+                            ],
+                            "properties": {
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "expected_type": {
+                                "enum": [
+                                  "null",
+                                  "boolean",
+                                  "number",
+                                  "string",
+                                  "array",
+                                  "object",
+                                  "date",
+                                  "timestamp",
+                                  "decimal",
+                                  "json",
+                                  "vector",
+                                  "resource_ref",
+                                  "artifact_ref"
+                                ]
+                              },
+                              "actual_type": {
+                                "enum": [
+                                  "null",
+                                  "boolean",
+                                  "number",
+                                  "string",
+                                  "array",
+                                  "object",
+                                  "date",
+                                  "timestamp",
+                                  "decimal",
+                                  "json",
+                                  "vector",
+                                  "resource_ref",
+                                  "artifact_ref"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "parameter",
+                              "expected_type"
+                            ],
+                            "properties": {
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "expected_type": {
+                                "enum": [
+                                  "null",
+                                  "boolean",
+                                  "number",
+                                  "string",
+                                  "array",
+                                  "object",
+                                  "date",
+                                  "timestamp",
+                                  "decimal",
+                                  "json",
+                                  "vector",
+                                  "resource_ref",
+                                  "artifact_ref"
+                                ]
+                              }
+                            }
+                          }
+                        ]
                       }
-                    }
+                    },
+                    "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "supplied_value_type_mismatch"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "actual_type"
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "parameter_undeclared"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "not": {
+                                "required": [
+                                  "expected_type"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "parameter_value_required"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "expected_type"
+                              ],
+                              "not": {
+                                "required": [
+                                  "actual_type"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "not": {
+                                "enum": [
+                                  "supplied_value_type_mismatch",
+                                  "parameter_value_required",
+                                  "parameter_undeclared"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "then": {
+                          "not": {
+                            "required": [
+                              "facts"
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "requirements": {
+                  "type": "array",
+                  "maxItems": 1024,
+                  "items": {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "$id": "https://smooth.dev/schemas/actql-check-reason-0.1.json",
+                    "title": "actql-check-reason-0.1",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "code",
+                      "facts"
+                    ],
+                    "properties": {
+                      "code": {
+                        "const": "parameter_value_required"
+                      },
+                      "location": {
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "kind",
+                              "document_id",
+                              "revision",
+                              "start_byte",
+                              "end_byte",
+                              "precision"
+                            ],
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              },
+                              "revision": {
+                                "type": "string",
+                                "pattern": "^rev:[0-9a-f]{64}$"
+                              },
+                              "start_byte": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 1048576
+                              },
+                              "end_byte": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 1048576
+                              },
+                              "precision": {
+                                "enum": [
+                                  "exact",
+                                  "approximate"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "kind",
+                              "document_id",
+                              "revision",
+                              "pointer"
+                            ],
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "parameter_declarations",
+                                  "parameters"
+                                ]
+                              },
+                              "revision": {
+                                "type": "string",
+                                "pattern": "^rev:[0-9a-f]{64}$"
+                              },
+                              "pointer": {
+                                "type": "string",
+                                "maxLength": 4096,
+                                "pattern": "^(?:/(?:[^~]|~[01])*)*$"
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      "facts": {
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "parameter"
+                            ],
+                            "properties": {
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "parameter",
+                              "expected_type",
+                              "actual_type"
+                            ],
+                            "properties": {
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "expected_type": {
+                                "enum": [
+                                  "null",
+                                  "boolean",
+                                  "number",
+                                  "string",
+                                  "array",
+                                  "object",
+                                  "date",
+                                  "timestamp",
+                                  "decimal",
+                                  "json",
+                                  "vector",
+                                  "resource_ref",
+                                  "artifact_ref"
+                                ]
+                              },
+                              "actual_type": {
+                                "enum": [
+                                  "null",
+                                  "boolean",
+                                  "number",
+                                  "string",
+                                  "array",
+                                  "object",
+                                  "date",
+                                  "timestamp",
+                                  "decimal",
+                                  "json",
+                                  "vector",
+                                  "resource_ref",
+                                  "artifact_ref"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "parameter",
+                              "expected_type"
+                            ],
+                            "properties": {
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "expected_type": {
+                                "enum": [
+                                  "null",
+                                  "boolean",
+                                  "number",
+                                  "string",
+                                  "array",
+                                  "object",
+                                  "date",
+                                  "timestamp",
+                                  "decimal",
+                                  "json",
+                                  "vector",
+                                  "resource_ref",
+                                  "artifact_ref"
+                                ]
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "supplied_value_type_mismatch"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "actual_type"
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "parameter_undeclared"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "not": {
+                                "required": [
+                                  "expected_type"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "parameter_value_required"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "expected_type"
+                              ],
+                              "not": {
+                                "required": [
+                                  "actual_type"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "not": {
+                                "enum": [
+                                  "supplied_value_type_mismatch",
+                                  "parameter_value_required",
+                                  "parameter_undeclared"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "then": {
+                          "not": {
+                            "required": [
+                              "facts"
+                            ]
+                          }
+                        }
+                      }
+                    ]
                   }
                 },
                 "scope": {
@@ -76246,6 +77464,9 @@
                 }
               }
             },
+            "reason_schema_cid": {
+              "const": "sha256:6ef2aefaf03e046fcfa830ce1b0648c6b04701162755ba869a9996cd69ade8ef"
+            },
             "version": {
               "const": "actql-check-outcome/0.1"
             }
@@ -76258,7 +77479,8 @@
             "correlation_ref",
             "outcome",
             "problem",
-            "version"
+            "version",
+            "reason_schema_cid"
           ],
           "properties": {
             "correlation_ref": {
@@ -76283,8 +77505,295 @@
                 }
               }
             },
+            "reason_schema_cid": {
+              "const": "sha256:6ef2aefaf03e046fcfa830ce1b0648c6b04701162755ba869a9996cd69ade8ef"
+            },
             "version": {
               "const": "actql-check-outcome/0.1"
+            }
+          }
+        }
+      ]
+    },
+    "check_reason": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-check-reason-0.1.json",
+      "title": "actql-check-reason-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+        },
+        "location": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "document_id",
+                "revision",
+                "start_byte",
+                "end_byte",
+                "precision"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "text"
+                },
+                "document_id": {
+                  "const": "source"
+                },
+                "revision": {
+                  "type": "string",
+                  "pattern": "^rev:[0-9a-f]{64}$"
+                },
+                "start_byte": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1048576
+                },
+                "end_byte": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1048576
+                },
+                "precision": {
+                  "enum": [
+                    "exact",
+                    "approximate"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "document_id",
+                "revision",
+                "pointer"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "structured"
+                },
+                "document_id": {
+                  "enum": [
+                    "parameter_declarations",
+                    "parameters"
+                  ]
+                },
+                "revision": {
+                  "type": "string",
+                  "pattern": "^rev:[0-9a-f]{64}$"
+                },
+                "pointer": {
+                  "type": "string",
+                  "maxLength": 4096,
+                  "pattern": "^(?:/(?:[^~]|~[01])*)*$"
+                }
+              }
+            }
+          ]
+        },
+        "facts": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "parameter"
+              ],
+              "properties": {
+                "parameter": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "parameter",
+                "expected_type",
+                "actual_type"
+              ],
+              "properties": {
+                "parameter": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "expected_type": {
+                  "enum": [
+                    "null",
+                    "boolean",
+                    "number",
+                    "string",
+                    "array",
+                    "object",
+                    "date",
+                    "timestamp",
+                    "decimal",
+                    "json",
+                    "vector",
+                    "resource_ref",
+                    "artifact_ref"
+                  ]
+                },
+                "actual_type": {
+                  "enum": [
+                    "null",
+                    "boolean",
+                    "number",
+                    "string",
+                    "array",
+                    "object",
+                    "date",
+                    "timestamp",
+                    "decimal",
+                    "json",
+                    "vector",
+                    "resource_ref",
+                    "artifact_ref"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "parameter",
+                "expected_type"
+              ],
+              "properties": {
+                "parameter": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "expected_type": {
+                  "enum": [
+                    "null",
+                    "boolean",
+                    "number",
+                    "string",
+                    "array",
+                    "object",
+                    "date",
+                    "timestamp",
+                    "decimal",
+                    "json",
+                    "vector",
+                    "resource_ref",
+                    "artifact_ref"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "supplied_value_type_mismatch"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "facts"
+            ],
+            "properties": {
+              "facts": {
+                "required": [
+                  "actual_type"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "parameter_undeclared"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "facts"
+            ],
+            "properties": {
+              "facts": {
+                "not": {
+                  "required": [
+                    "expected_type"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "parameter_value_required"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "facts"
+            ],
+            "properties": {
+              "facts": {
+                "required": [
+                  "expected_type"
+                ],
+                "not": {
+                  "required": [
+                    "actual_type"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "not": {
+                  "enum": [
+                    "supplied_value_type_mismatch",
+                    "parameter_value_required",
+                    "parameter_undeclared"
+                  ]
+                }
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "required": [
+                "facts"
+              ]
             }
           }
         }
