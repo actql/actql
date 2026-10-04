@@ -13,7 +13,7 @@ const all = ['js', 'wasm', 'native'];
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const {jobs} = workflow;
 
-test('main keeps full core and macOS, manual keeps explicit macOS opt-in', () => {
+test('manual integration keeps full core and explicit macOS opt-in', () => {
   assert.deepEqual(selectTargets(['README.md'], {event: 'push'}).targets, all);
   assert.equal(selectTargets(['README.md'], {event: 'push'}).macos, true);
   assert.deepEqual(selectTargets([], {event: 'workflow_dispatch'}).targets, all);
@@ -24,7 +24,7 @@ test('portable PR paths choose JS and explain deferred macOS coverage', () => {
   for (const path of ['README.md', 'src/source_span/span.mbt', 'scripts/worktree-inventory.mjs']) {
     const result = validateSelection(selectTargets([path]));
     assert.deepEqual(result.targets, ['js'], path); assert.equal(result.macos, false, path);
-    assert.match(result.reason, /full targets and macOS selected on main/u);
+    assert.match(result.reason, /full targets and optional macOS require a manual integration checkpoint/u);
   }
 });
 test('platform, per-file target, runtime ownership, identities and build retain every target', () => {
@@ -76,35 +76,38 @@ test('ordinary filename cannot hide target-specific syntax changes', () => {
     assert.equal(result.targetSensitiveDiff, true, line);
   }
 });
-test('push+PR duplication is removed without workflow-level path filtering', () => {
-  assert.deepEqual(workflow.on.push.branches, ['main']);
-  assert(Object.hasOwn(workflow.on, 'pull_request'));
-  assert.equal(workflow.on.pull_request, null);
-  assert.equal(workflow.on.push.paths, undefined);
-  assert.equal(workflow.on.push['paths-ignore'], undefined);
-  assert.equal(workflow.concurrency['cancel-in-progress'], "${{ !inputs.performance_matrix && !(github.event_name == 'push' && github.ref == 'refs/heads/main') }}");
+test('only PR updates and explicit dispatch trigger CI; main advance starts no run', () => {
+  assert.deepEqual(Object.keys(workflow.on).sort(), ['pull_request', 'workflow_dispatch']);
+  assert.equal(workflow.on.pull_request, null); // Default opened/synchronize/reopened only.
+  assert.equal(workflow.on.push, undefined);
+  assert.equal(workflow.on.schedule, undefined);
+  assert.equal(workflow.on.workflow_run, undefined);
+  assert.equal(workflow.on.merge_group, undefined);
+  assert.equal(workflow.concurrency['cancel-in-progress'], "${{ !inputs.performance_matrix }}");
 });
-test('automatic main checkpoints finish while PR updates retain cancellation', () => {
+test('manual normal dispatch retains all full-family obligations, separate from probes', () => {
+  const inputs = workflow.on.workflow_dispatch.inputs;
+  assert.equal(inputs.performance_matrix.default, false);
+  assert.equal(inputs.packed_query_evidence_probe.default, false);
+  const selection = validateSelection(selectTargets([], {event: 'workflow_dispatch'}));
+  assert.equal(selection.profile, 'full');
+  assert.deepEqual(selection.targets, all);
+  assert.equal(selection.mainBaseline, null);
+  const results = Object.fromEntries(gateJobs.map(name => [name, {result: 'success'}]));
+  results['focused-tests'] = {result: 'skipped'};
+  results['native-macos'] = {result: 'skipped'};
+  verifyGate({sourceRevision: 'a'.repeat(40), selection}, results, {event: 'workflow_dispatch', sourceRevision: 'a'.repeat(40)});
+  for (const status of ['failure', 'skipped', undefined]) {
+    assert.throws(() => verifyGate({sourceRevision: 'a'.repeat(40), selection},
+      {...results, core: {result: status}}, {event: 'workflow_dispatch', sourceRevision: 'a'.repeat(40)}));
+  }
+});
+test('PR updates and normal manual runs retain cancellation; performance remains separate', () => {
   assert.equal(workflow.concurrency.group, "${{ github.workflow }}-${{ github.ref }}-${{ inputs.packed_query_evidence_probe && 'evidence-probe' || inputs.performance_matrix && 'performance' || 'normal' }}");
-  assert.equal(workflow.concurrency.queue, undefined); // GitHub's default single pending run remains unchanged.
+  assert.equal(workflow.concurrency.queue, undefined);
   const expression = workflow.concurrency['cancel-in-progress'].slice(3, -2);
-  // Evaluate the actual checked-in boolean/string expression, not a second
-  // implementation of the decision. This is not a hosted scheduler test.
-  for (const [event, ref, performance, expected] of [
-    ['push', 'refs/heads/main', false, false],
-    ['push', 'refs/heads/main', undefined, false],
-    ['pull_request', 'refs/pull/333/merge', false, true],
-    ['pull_request', 'refs/pull/333/merge', undefined, true],
-    ['push', 'refs/heads/feature', false, true],
-    ['push', 'refs/heads/main-copy', false, true],
-    ['workflow_dispatch', 'refs/heads/main', false, true],
-    ['workflow_dispatch', 'refs/heads/feature', false, true],
-    ['workflow_dispatch', 'refs/heads/main', true, false],
-    ['workflow_dispatch', 'refs/heads/feature', true, false],
-  ]) {
-    const actual = runInNewContext(expression, {github: {event_name: event, ref},
-      inputs: {performance_matrix: performance}}, {timeout: 100});
-    assert.equal(actual, expected, `${event}:${ref}:${performance}`);
+  for (const [performance, expected] of [[false, true], [undefined, true], [true, false]]) {
+    assert.equal(runInNewContext(expression, {inputs: {performance_matrix: performance}}, {timeout: 100}), expected);
   }
 });
 test('whole-family scheduling retains the core matrix and complete selected proof campaigns', () => {

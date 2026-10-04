@@ -1,12 +1,9 @@
 name: CI
 
-# Run once per PR update; main uses cumulative applicability after a verified full checkpoint.
+# Run once per PR update. Main integration is manual at release/milestone boundaries.
 # Integration branches use their PR; a working branch is checked on demand:
 #   gh workflow run CI --ref <branch> [-f native_macos=true]
 on:
-  push:
-    branches:
-      - main
   pull_request:
   workflow_dispatch:
     inputs:
@@ -28,9 +25,7 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.packed_query_evidence_probe && 'evidence-probe' || inputs.performance_matrix && 'performance' || 'normal' }}
-  # Let an automatic main checkpoint finish; only its pending successor is replaced.
-  # PR updates and non-performance manual runs retain the existing cancellation policy.
-  cancel-in-progress: ${{ !inputs.performance_matrix && !(github.event_name == 'push' && github.ref == 'refs/heads/main') }}
+  cancel-in-progress: ${{ !inputs.performance_matrix }}
 
 jobs:
   select-targets:
@@ -1181,3 +1176,4 @@ jobs:
         run: node --test adapters/connectors/duckdb/node/bench/matched-equivalent-pair.test.mjs
       - name: Build fixture-independent acquisition Host entries
         run: npm run build:host --prefix adapters/connectors/duckdb/node
+

@@ -107,7 +107,7 @@ export function selectTargets(paths, {event = 'pull_request', nativeMacos = fals
   const path = paths.find(path => sensitive.test(path) || !reviewedPortableFiles.has(path));
   if (path) return full(`Target-sensitive or unclassified input: ${path}`);
   return {...full(''), targets: ['js'], macos: false,
-    reason: 'Reviewed portable paths: PR core uses JS; full targets and macOS selected on main'};
+    reason: 'Reviewed portable paths: PR core uses JS; full targets and optional macOS require a manual integration checkpoint'};
 }
 function eligibleMaintenance(paths, changes) {
   return paths.length > 0 && paths.every(path => maintenance.has(path))

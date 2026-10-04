@@ -46,8 +46,8 @@ Open that file directly if the client does not discover repository skills.
   packages, and targeted Node tests for SDK, adapters and scripts. Native-only
   or FFI changes need an explicitly selected matching-target diagnostic.
 - Do not default to full Core, all-target, proof, packed acceptance or performance
-  suites. Main CI retains full verification; local and PR results establish only
-  the checks actually executed.
+  suites. Manual integration CI retains full verification; local and PR results
+  establish only the checks actually executed.
 - Use the existing bounded/nonzero-test wrappers. Preserve incremental `_build`;
   do not edit, merge or switch a worktree while its gate runs, or run competing
   gates there. `--allow-heavy` is not human approval.
