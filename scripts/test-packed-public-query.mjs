@@ -51,6 +51,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/acquired-data-source-input.mjs', 'acquired-data-source-input.mjs'],
   ['scripts/fixtures/property-graph-source-input.mjs', 'property-graph-source-input.mjs'],
   ['scripts/fixtures/property-graph-row-source-input.mjs', 'property-graph-row-source-input.mjs'],
+  ['scripts/fixtures/graph-property-predicate-source-input.mjs', 'graph-property-predicate-source-input.mjs'],
   ['scripts/fixtures/property-graph-traverse-source-input.mjs', 'property-graph-traverse-source-input.mjs'],
   ['scripts/fixtures/string-values-restart.mjs', 'string-values-restart.mjs'],
   ['scripts/fixtures/installed-infer-fixture.mjs', 'installed-infer-fixture.mjs'],
@@ -118,6 +119,9 @@ const runtimeEnvironment = {...environment,
   NODE_EXTRA_CA_CERTS: join(root, 'remote.crt')};
 if (process.argv.includes('--property-graph-source-only')) {
   runtimeEnvironment.ACTQL_TEST_PROPERTY_GRAPH_SOURCE_ONLY = '1';
+}
+if (process.argv.includes('--graph-property-predicate-only')) {
+  runtimeEnvironment.ACTQL_TEST_GRAPH_PROPERTY_PREDICATE_ONLY = '1';
 }
 if (process.argv.includes('--distinct-order-only')) {
   runtimeEnvironment.ACTQL_TEST_DISTINCT_ORDER_ONLY = '1';
@@ -238,6 +242,7 @@ if (process.argv.includes('--cancellation-only')) {
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
 const narrowPublicQuery = process.argv.some(flag => ['--source-free-only',
+  '--graph-property-predicate-only',
   '--group-property-only',
   '--order-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--group-star-only', '--group-ordinal-only',
   '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only', '--two-source-only',
@@ -284,6 +289,7 @@ if (plannerSelectionOnly || twoSourceExampleOnly) return;
 // Narrow selections without the String fixture have no retained String Run.
 // Keep restart acceptance for full/source-free selections that create it.
 if (!process.argv.some(flag => ['--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
+  '--graph-property-predicate-only',
   '--group-property-only',
   '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only',
   '--relation-data-only', '--acquired-data-only', '--data-set-strategy-only', '--two-source-only',
@@ -292,6 +298,7 @@ if (!process.argv.some(flag => ['--alias-scope-only', '--scoped-order-only', '--
     runtimeEnvironment, 120000).trimEnd());
 }
 if (process.argv.includes('--order-ordinal-only') ||
+    process.argv.includes('--graph-property-predicate-only') ||
     process.argv.includes('--group-property-only') ||
     process.argv.includes('--distinct-order-only') ||
     process.argv.includes('--implicit-property-only') ||

@@ -35,6 +35,8 @@ import {orderOrdinalSuccesses, orderOrdinalRefusals}
   from './order-ordinal-source-input.mjs';
 import {graphRowSourceSuccesses, graphRowSourceRefusals}
   from './property-graph-row-source-input.mjs';
+import {graphPropertyPredicateSuccesses, graphPropertyPredicateRefusals}
+  from './graph-property-predicate-source-input.mjs';
 import {graphTraverseSourceSuccesses, graphTraverseSourceRefusals}
   from './property-graph-traverse-source-input.mjs';
 import {acquiredDataSuccesses, acquiredGraphSourceSuccesses, acquiredDataRefusals}
@@ -44,6 +46,7 @@ if (process.env.ACTQL_TEST_TWO_SOURCE_ONLY === '1') {
   await import('./packed-two-source-public-query.mjs');
 } else {
 const propertyGraphOnly = process.env.ACTQL_TEST_PROPERTY_GRAPH_SOURCE_ONLY === "1";
+const graphPropertyPredicateOnly = process.env.ACTQL_TEST_GRAPH_PROPERTY_PREDICATE_ONLY === '1';
 const graphRowsOnly = process.env.ACTQL_TEST_GRAPH_ROWS_ONLY === '1';
 const orderOrdinalOnly = process.env.ACTQL_TEST_ORDER_ORDINAL_ONLY === '1';
 const distinctOrderOnly = process.env.ACTQL_TEST_DISTINCT_ORDER_ONLY === '1';
@@ -64,7 +67,7 @@ const resultOnly = process.env.ACTQL_TEST_PIPE_RESULT_ONLY === '1';
 const dataOnly = process.env.ACTQL_TEST_RELATION_DATA_ONLY === '1';
 const acquiredDataOnly = process.env.ACTQL_TEST_ACQUIRED_DATA_ONLY === '1';
 const dataSetStrategyOnly = process.env.ACTQL_TEST_DATA_SET_STRATEGY_ONLY === '1';
-const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly;
+const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const joinChain = JSON.parse(await readFile('join-chain-cases.json', 'utf8'));
 const groupScope = JSON.parse(await readFile('group-scope-cases.json', 'utf8'));
@@ -81,7 +84,8 @@ const dataSetStrategyInputs = {
     ]}}}],
   refusals: [],
 };
-const scopeInputs = implicitPropertyOnly ? {successes: implicitPropertySuccesses, refusals: implicitPropertyRefusals}
+const scopeInputs = graphPropertyPredicateOnly ? {successes: graphPropertyPredicateSuccesses, refusals: graphPropertyPredicateRefusals}
+  : implicitPropertyOnly ? {successes: implicitPropertySuccesses, refusals: implicitPropertyRefusals}
   : groupOrdinalOnly ? {successes: groupOrdinalSuccesses, refusals: groupOrdinalRefusals}
   : groupPropertyOnly ? {successes: groupPropertySuccesses, refusals: groupPropertyRefusals}
   : havingProjectionOnly ? {successes: havingProjectionSuccesses, refusals: havingProjectionRefusals}
@@ -111,6 +115,8 @@ const scopeInputs = implicitPropertyOnly ? {successes: implicitPropertySuccesses
   refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...relationDataRefusals, ...acquiredDataRefusals, ...propertyGraphSourceRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals, ...groupStarRefusals, ...groupOrdinalRefusals],
   executionFailures: [...pipeResultExecutionFailures, ...propertyGraphSourceExecutionFailures]};
 if (!scopeOnly) {
+  scopeInputs.successes.push(...graphPropertyPredicateSuccesses);
+  scopeInputs.refusals.push(...graphPropertyPredicateRefusals);
   scopeInputs.successes.push(...implicitPropertySuccesses);
   scopeInputs.refusals.push(...implicitPropertyRefusals);
   scopeInputs.successes.push(...groupPropertySuccesses);
