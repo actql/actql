@@ -496,6 +496,40 @@ test('admit-or-lookup skips issuance after ACK loss and rejects changed intent',
     assert.equal(issued, 1);
   });
 
+test('accepted Result policy original survives restart without reissuing a Run',
+  async t => {
+    const path = await directory(t);
+    const wire = canonicalJson({classification: 'unknown',
+      source_data_policy_cids: [], source_response_policy_cids: [],
+      unknown_provenance: true, version: 'actql-effective-data-policy/0.1'});
+    const original = publicationControl.admitSourceFreeResultPolicy({
+      kind: 'data_policy',
+      cid: `sha256:${createHash('sha256').update(wire).digest('hex')}`,
+      wire,
+    }, contractLimits);
+    const first = openClientRequestJournal(path);
+    const accepted = await first.admitOrLookupDefinition(identity(), {
+      namespaceId: 'namespace-a', lookupExpiresAt: expires,
+      issueDefinition: () => ({...runDefinition(),
+        runAdmissionEvidence: {prepared: 'prepared-owner-wire',
+          authorization: 'authorization-owner-wire',
+          resultPolicyOriginal: original}}),
+    }, moon, publicationControl);
+    assert.deepEqual(accepted.runAdmissionEvidence.resultPolicyOriginal,
+      original);
+    first.close();
+    const restarted = openClientRequestJournal(path);
+    t.after(() => restarted.close());
+    let reissued = false;
+    const repeated = await restarted.admitOrLookupDefinition(identity(), {
+      namespaceId: 'namespace-a', lookupExpiresAt: expires,
+      issueDefinition: () => { reissued = true; return runDefinition('foreign'); },
+    }, moon, publicationControl);
+    assert.equal(reissued, false);
+    assert.deepEqual(repeated.runAdmissionEvidence.resultPolicyOriginal,
+      original);
+  });
+
 test('racing issuers return one atomic Run acceptance', async t => {
   const path = await directory(t);
   const left = openClientRequestJournal(path);

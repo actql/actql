@@ -21,13 +21,15 @@ const unsupported = () => Object.assign(new Error('ClientProgramUnsupported'),
 export function installNodeClientEffectRun({moon,
   publicationControl: control = runtimeCore(moon).publicationControl,
   journal, authorizeRequest, authorizeRunStart, prepareExecution, execute,
-  inferPlanFor,
+  inferPlanFor, resultPolicyOriginalFor,
   now = () => new Date().toISOString()}) {
   if (typeof moon?.clientProgramEffectCompilationIssueCode !== 'function' ||
       typeof authorizeRequest !== 'function' ||
       (prepareExecution !== undefined &&
         typeof prepareExecution !== 'function') ||
       (inferPlanFor !== undefined && typeof inferPlanFor !== 'function') ||
+      (resultPolicyOriginalFor !== undefined &&
+        typeof resultPolicyOriginalFor !== 'function') ||
       typeof execute !== 'function' ||
       typeof journal?.reservePhysicalStart !== 'function' ||
       typeof now !== 'function' ||
@@ -102,6 +104,9 @@ export function installNodeClientEffectRun({moon,
       const accepted = await journal.admitOrLookupDefinition(identity, {
         namespaceId, lookupExpiresAt,
         issueDefinition() {
+          // The installed Host selects an actual Result policy original before
+          // this new Run is recorded. A retained Run reuses its saved original.
+          const resultPolicyOriginal = resultPolicyOriginalFor?.(prepared);
           const allowed = checked(moon.clientProgramIssueAllowedEffectRun(
             compiled(), policy.executionContextCid, policy.hostPolicyCid,
             policy.expiresAt));
@@ -119,6 +124,8 @@ export function installNodeClientEffectRun({moon,
                 moon.clientProgramAllowedEffectRunPrepared(allowed)),
               authorization: moon.strategyRunEvidenceJson(
                 moon.clientProgramAllowedEffectRunAuthorization(allowed)),
+              ...(resultPolicyOriginal === undefined ? {} :
+                {resultPolicyOriginal}),
             },
           };
         },
@@ -187,7 +194,8 @@ export function installNodeClientEffectRun({moon,
         try {
           preparedExecution = prepareExecution(Object.freeze({ref: start.ref,
             identity, owner, prepared, compilation, allowed, definition,
-            runDefinition: retained.runDefinition}));
+            runDefinition: retained.runDefinition,
+            resultPolicyOriginal: evidence.resultPolicyOriginal}));
           if (typeof preparedExecution?.then === 'function') {
             // A misinstalled asynchronous preparer is not a physical-start
             // permit. Consume its eventual rejection without accepting it
