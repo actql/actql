@@ -13,5 +13,10 @@ export const installedConnectors = Object.freeze([
       load: () => import("../connectors/salesforce/host/installed-salesforce-source.mjs")
         .then(module => Object.freeze({check: module.checkInstalledSalesforceSourceProfile, identityParts: module.installedSalesforceSourceIdentityParts, publish: module.publishInstalledSalesforceSource, load: module.loadInstalledSalesforceSource})),
     }),
+    effect: Object.freeze({
+      profileVersion: "actql-installed-salesforce-effect/0.1",
+      load: () => import("../connectors/salesforce/host/installed-salesforce-effect-installation.mjs")
+        .then(module => Object.freeze({check: module.checkInstalledSalesforceEffectInstallation, identityParts: module.installedSalesforceEffectIdentityParts, publish: module.publishInstalledSalesforceEffectInstallation, load: module.loadInstalledSalesforceEffectInstallation})),
+    }),
   }),
 ]);

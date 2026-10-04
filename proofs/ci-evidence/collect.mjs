@@ -2,23 +2,29 @@
 // proof/test campaign. Receipts are not reusable until the Actions job/run is
 // independently authenticated as successful by the artifact consumer.
 import assert from 'node:assert/strict';
-import {execFileSync, spawnSync} from 'node:child_process';
-import {mkdirSync, readFileSync, writeFileSync, existsSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
+import {mkdirSync, readFileSync, writeFileSync, existsSync, copyFileSync, constants} from 'node:fs';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {performance} from 'node:perf_hooks';
 import {actionsReader} from '../../scripts/ci-main-base.mjs';
 import {encode} from '../bounded-session/action-inputs.mjs';
-import {snapshot} from '../bounded-session/evidence.mjs';
 import {readCatalog, catalogPath, initialRegistrationRevision, compareCatalogs} from './actions.mjs';
 import {actionInputs, gitTree, hash} from './inputs.mjs';
 import {canonicalReceipt, parseReceipt, sealReceipt} from './receipts.mjs';
 import {leanRecords} from './applications.mjs';
 import {checkPlan} from './check.mjs';
 import {observeRuntime} from './runtime.mjs';
+import {comparisonPlan, compareFreshObservations} from './plan.mjs';
+import {prepareIsolatedMutation, executeIsolatedMutation} from './isolated-execution.mjs';
+import {runtimeForAction} from './isolated-runtime.mjs';
+import {acquisitionPlan} from './acquisition.mjs';
+import {readReadyOrigin} from './acceptance.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const directory = join(root, '.artifacts/session-actions');
+const isolatedDirectory = join(root, '.artifacts/session-isolated-build');
+const comparisonDirectory = join(root, '.artifacts/session-comparison-cache');
 const git = args => execFileSync('git', args, {cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024}).trim();
 const json = path => JSON.parse(readFileSync(path, 'utf8'));
 const write = (path, value) => writeFileSync(path, `${encode(value)}\n`, {flag: 'wx'});
@@ -54,13 +60,46 @@ export async function initialize() {
   const {runtime, distributionInputs, measurement} = observeRuntime({root});
   assert(!existsSync(directory), 'Another collection already owns this directory');
   for (const path of ['receipts', 'observations', 'results']) mkdirSync(join(directory, path), {recursive: true});
-  write(join(directory, 'context.json'), {context, origin, runtime});
+  assert(!existsSync(isolatedDirectory), 'Another isolated executor owns the build directory');
+  mkdirSync(isolatedDirectory);
+  const prepared = prepareIsolatedMutation({root, tree: gitTree(root, revision), origin, directory: isolatedDirectory});
+  write(join(isolatedDirectory, 'prepared.json'), prepared);
+  write(join(directory, 'isolated-inputs.json'), prepared.manifest);
+  const actionRuntimes = {'mutations-js': prepared.runtime};
+  write(join(directory, 'context.json'), {context, origin, runtime, actionRuntimes});
   write(join(directory, 'runtime-distributions.json'), distributionInputs);
   write(join(directory, 'runtime-measurement.json'), measurement);
-  console.log(`Comparison collection initialized for ${revision}; all actions still execute`);
+  assert(!existsSync(comparisonDirectory), 'Another comparison owns this cache directory');
+  mkdirSync(comparisonDirectory);
+  let transport, accepted;
+  const comparison = await comparisonPlan({root, context, runtime, actionRuntimes, directory: comparisonDirectory,
+    token: process.env.ACTIONS_READ_TOKEN, request, onArchive: value => { transport = value; }});
+  write(join(directory, 'comparison-plan.json'), comparison);
+  const acquisition = await acquisitionPlan({context, catalog: readCatalog(), comparison, event: origin.event,
+    readReady: async () => {
+      assert(transport, 'Missing authenticated comparison transport');
+      accepted = await readReadyOrigin({root, catalog: readCatalog(), sourceArchive: transport.archive,
+        sourceArtifact: {id: transport.artifact.id, digest: transport.artifact.digest.slice('sha256:'.length)},
+        baseline: comparison.baseline, candidateContext: context, treeAt: value => gitTree(root, value), request,
+        token: process.env.ACTIONS_READ_TOKEN, directory: comparisonDirectory});
+      return accepted;
+    }});
+  write(join(directory, 'acquisition-plan.json'), acquisition);
+  write(join(directory, 'collection-costs.json'), {runtimeObservation: measurement,
+    isolatedPreparationMilliseconds: prepared.preparationMilliseconds, stagedSourceBytes: prepared.sourceBytes,
+    comparison: comparison.costs, acquisitionMilliseconds: acquisition.milliseconds});
+  if (acquisition.actions.some(entry => entry.acquisition === 'reused')) {
+    mkdirSync(join(directory, 'reused'));
+    copyFileSync(transport.archive, join(directory, 'reused/session-origin.zip'), constants.COPYFILE_EXCL);
+    copyFileSync(accepted.archive, join(directory, 'reused/session-applicability.zip'), constants.COPYFILE_EXCL);
+    // Original canonical bytes, not a relabeled candidate receipt.
+    writeFileSync(join(directory, 'receipts/mutations-js.json'), canonicalReceipt(accepted.original.receipt), {flag: 'wx'});
+  }
+  console.log(`Collection initialized for ${revision}: ${acquisition.actions.filter(entry => entry.acquisition === 'fresh').length} fresh, ` +
+    `${acquisition.actions.filter(entry => entry.acquisition === 'reused').length} reused`);
 }
 
-export function recordExistingAction({id, command, output, status, milliseconds, result = null}) {
+export function recordExistingAction({id, command, output, status, milliseconds, result = null, extraArtifacts = []}) {
   if (process.env.ACTQL_SESSION_COLLECT !== 'true') return;
   const state = json(join(directory, 'context.json'));
   assert.equal(git(['rev-parse', 'HEAD']), state.context.candidateRevision);
@@ -69,10 +108,18 @@ export function recordExistingAction({id, command, output, status, milliseconds,
   assert(action, `Unregistered execution: ${id}`);
   assert.equal(encode(action.command), encode(command), 'Executed command differs from registration');
   tree ??= gitTree(root, state.context.candidateRevision);
-  const inputs = actionInputs({tree, revision: state.context.candidateRevision, action, runtime: state.runtime});
+  const inputs = actionInputs({tree, revision: state.context.candidateRevision, action,
+    runtime: runtimeForAction(action, state.runtime, state.actionRuntimes)});
   const distributionPath = 'runtime-distributions.json';
   const distributionBytes = readFileSync(join(directory, distributionPath));
   const artifacts = [{path: distributionPath, bytes: distributionBytes.length, digest: hash(distributionBytes)}];
+  if (id === 'mutations-js') {
+    for (const path of ['isolated-inputs.json', ...extraArtifacts]) {
+      const bytes = readFileSync(join(directory, path)); artifacts.push({path, bytes: bytes.length, digest: hash(bytes)});
+    }
+  } else assert.equal(extraArtifacts.length, 0, 'Only the actual isolated action may acquire isolated artifacts');
+  const comparisonBytes = readFileSync(join(directory, 'comparison-plan.json'));
+  artifacts.push({path: 'comparison-plan.json', bytes: comparisonBytes.length, digest: hash(comparisonBytes)});
   if (result !== null) {
     const path = `results/${id}.json`, bytes = Buffer.from(`${encode(result)}\n`);
     writeFileSync(join(directory, path), bytes, {flag: 'wx'});
@@ -84,38 +131,75 @@ export function recordExistingAction({id, command, output, status, milliseconds,
 }
 
 async function mutations() {
-  const before = snapshot(root), start = performance.now();
-  const result = spawnSync(process.execPath, ['proofs/bounded-session/mutations.mjs'],
-    {cwd: root, env: process.env, encoding: 'utf8', timeout: 10 * 60 * 1000, maxBuffer: 16 * 1024 * 1024});
-  const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
-  process.stdout.write(output);
-  if (result.error || result.status !== 0) throw result.error ?? new Error('Existing Session mutations failed');
-  assert.equal(snapshot(root).digest, before.digest, 'Mutation source bytes were not restored');
-  const report = json(join(root, '.artifacts/bounded-session/mutations.json'));
-  assert.equal(report.source.digest, before.digest);
-  recordExistingAction({id: 'mutations-js', command: ['node', 'proofs/bounded-session/mutations.mjs'], output,
-    status: result.status, milliseconds: Math.round(performance.now() - start),
-    result: {...report, sourceRestored: true, revision: git(['rev-parse', 'HEAD'])}});
+  const state = json(join(directory, 'context.json')), prepared = json(join(isolatedDirectory, 'prepared.json'));
+  const revision = git(['rev-parse', 'HEAD']); assert.equal(revision, state.context.candidateRevision);
+  const acquisition = json(join(directory, 'acquisition-plan.json')).actions.find(entry => entry.actionId === 'mutations-js');
+  assert(acquisition, 'Missing independent mutation execution obligation');
+  if (acquisition.acquisition === 'reused') {
+    assert.equal(acquisition.reason, 'verified-main-comparison');
+    console.log(`REUSED mutations-js from main ${acquisition.origin.revision}, run ${acquisition.origin.runId}/${acquisition.origin.runAttempt}; not executed on candidate`);
+    return;
+  }
+  assert.equal(acquisition.acquisition, 'fresh');
+  assert.equal(prepared.owner, `${state.origin.runId}:${state.origin.runAttempt}:${state.origin.jobId}`);
+  const result = executeIsolatedMutation({root, tree: gitTree(root, revision), prepared});
+  process.stdout.write(result.output);
+  // Preserve the original mutation artifacts at the existing upload boundary.
+  const originalDirectory = join(root, '.artifacts/bounded-session');
+  mkdirSync(originalDirectory, {recursive: true});
+  writeFileSync(join(originalDirectory, 'mutations.json'), `${JSON.stringify(result.payload.report, null, 2)}\n`, {flag: 'wx'});
+  for (const [id, output] of Object.entries(result.payload.logs)) writeFileSync(join(originalDirectory, `mutation-${id}.log`), output, {flag: 'wx'});
+  write(join(directory, 'isolated-observation.json'), result.payload);
+  write(join(directory, 'isolated-execution.json'), {imageId: result.imageId, imageDefinition: result.imageDefinition,
+    owner: result.owner, arguments: result.arguments, costs: result.costs});
+  recordExistingAction({id: 'mutations-js', command: ['node', 'proofs/bounded-session/mutations.mjs'], output: result.output,
+    status: 0, milliseconds: Object.values(result.costs).reduce((sum, value) => sum + value, 0),
+    extraArtifacts: ['isolated-observation.json', 'isolated-execution.json'],
+    result: {...result.payload.report, sourceRestored: true, revision}});
 }
 
 export function finish() {
   const state = json(join(directory, 'context.json')), catalog = readCatalog();
+  const acquisition = json(join(directory, 'acquisition-plan.json'));
+  assert.deepEqual(acquisition.actions.map(entry => entry.actionId), catalog.actions.map(action => action.id));
+  assert.equal(encode(acquisition.context), encode(state.context));
   assert.equal(git(['diff', '--name-only', 'HEAD']), '', 'Unrestored final source');
-  const requirements = [], applications = [], receiptDigests = [];
+  const requirements = [], applications = [], receiptDigests = [], receipts = [];
+  const candidateTree = gitTree(root, state.context.candidateRevision);
   for (const action of catalog.actions) {
     const bytes = readFileSync(join(directory, `receipts/${action.id}.json`)), receipt = parseReceipt(bytes);
-    assert.equal(encode(receipt.origin), encode(state.origin), 'Mixed collection owner');
+    const entry = acquisition.actions.find(value => value.actionId === action.id);
+    if (entry.acquisition === 'fresh') assert.equal(encode(receipt.origin), encode(state.origin), 'Mixed fresh collection owner');
+    else {
+      assert.equal(entry.actionId, 'mutations-js'); assert.equal(entry.acquisition, 'reused');
+      assert.equal(receipt.origin.testedRevision, entry.origin.revision); assert.equal(hash(bytes), entry.origin.receiptDigest);
+    }
     assert.equal(encode(receipt.action), encode(action), 'Wrong collected descriptor');
-    const records = leanRecords(action, receipt.inputs, {receipt}, state.context, 'fresh');
+    receipts.push(receipt);
+    const manifest = actionInputs({tree: candidateTree, revision: state.context.candidateRevision,
+      action, runtime: runtimeForAction(action, state.runtime, state.actionRuntimes)});
+    assert.equal(manifest.key, entry.candidateActionKey, 'Changed execution-plan inputs');
+    const records = leanRecords(action, manifest, {receipt}, state.context, entry.acquisition);
     requirements.push(records.required); applications.push(records.application);
     receiptDigests.push({actionId: action.id, digest: hash(bytes)});
   }
+  const comparison = json(join(directory, 'comparison-plan.json'));
+  const observations = compareFreshObservations({plan: comparison, context: state.context, runtime: state.runtime,
+    actionRuntimes: state.actionRuntimes,
+    tree: candidateTree, receipts,
+    acquisitions: acquisition.actions,
+    mutationResult: existsSync(join(directory, 'results/mutations-js.json')) ? json(join(directory, 'results/mutations-js.json')) : null});
+  write(join(directory, 'comparison-observations.json'), observations);
   const start = performance.now();
   const lean = checkPlan(requirements, applications, {onOutput: output => writeFileSync(join(directory, 'lean-output.log'), output, {flag: 'wx'})});
   write(join(directory, 'checked.json'), {version: 'actql-verification-family-certificate/0.1',
-    mode: 'comparison', context: state.context, catalogDigest: hash(encode(catalog)), receiptDigests,
+    mode: 'scoped-execution', context: state.context, catalogDigest: hash(encode(catalog)), receiptDigests,
+    acquisitionDigest: hash(readFileSync(join(directory, 'acquisition-plan.json'))),
+    comparisonDigest: hash(readFileSync(join(directory, 'comparison-plan.json'))),
+    comparisonObservationsDigest: hash(readFileSync(join(directory, 'comparison-observations.json'))),
     lean, milliseconds: Math.round(performance.now() - start)});
-  console.log(`Checked ${receiptDigests.length} fresh actions; runtime closure and reuse remain pending`);
+  console.log(`Checked ${receiptDigests.length} obligations: ${acquisition.actions.filter(entry => entry.acquisition === 'fresh').length} fresh, ` +
+    `${acquisition.actions.filter(entry => entry.acquisition === 'reused').length} reused`);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

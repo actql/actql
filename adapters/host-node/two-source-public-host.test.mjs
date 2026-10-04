@@ -68,12 +68,12 @@ test('two installed sources use normal public Local/HTTPS execution and owned re
     const report = async (caseName, action) => JSON.parse(await readFile(
       resolve(root, `${caseName}.${action}.json`), 'utf8'));
 
-    await t.test('Local and HTTPS: distinct, equal-content, unused source, then fresh retained attach/lookup/resend', async () => {
+    await t.test('Local and HTTPS: JSON/text Native/Broad, equal-content, unused source and fresh retained attach/lookup/resend', async () => {
       await runChild(configuration, 'public-success');
       await runChild(configuration, 'retained');
-      assert.equal((await report('public-success', 'public-success')).cases, 8);
+      assert.equal((await report('public-success', 'public-success')).cases, 12);
       const restarted = await report('retained', 'retained');
-      assert.equal(restarted.cases, 8);
+      assert.equal(restarted.cases, 12);
       assert.deepEqual(restarted.provider.sourceProviderOpens, []);
     });
     for (const [name, action] of [['exact-inventory', 'recover-exact'],

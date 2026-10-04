@@ -2,14 +2,15 @@ import assert from 'node:assert/strict';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {catalogPath, compareCatalogs, validateCatalog} from './actions.mjs';
 import {actionInputs, compareInputs, gitTree, hash, sharedFiles} from './inputs.mjs';
-import {readOriginReceipt} from './receipts.mjs';
+import {readOriginReceipts} from './receipts.mjs';
 import {checkPlan} from './check.mjs';
+import {runtimeForAction} from './isolated-runtime.mjs';
 
 export const applicationVersion = 'actql-verification-action-application/0.1';
 const identity = value => hash(encode(value));
 const exact = (value, fields) => assert.deepEqual(Object.keys(value ?? {}).sort(), [...fields].sort(), 'Missing/extra application field');
 
-function policyUnchanged(originTree, candidateTree) {
+export function policyUnchanged(originTree, candidateTree) {
   return sharedFiles.every(path => {
     const a = originTree.entries.get(path), b = candidateTree.entries.get(path);
     return a?.kind === 'blob' && b?.kind === 'blob' && a.mode === b.mode &&
@@ -54,8 +55,8 @@ export function leanRecords(action, manifest, original, context, acquisition) {
 
 // The complete inventory is reconstructed, never taken from the requested
 // applications. A missing origin is not converted to a successful application.
-export async function checkApplications({root, context, runtime, protectedRevision, entries, request,
-  treeAt = revision => gitTree(root, revision), read = readOriginReceipt, prove = checkPlan}) {
+export async function checkApplications({root, context, runtime, actionRuntimes = {}, protectedRevision, entries, request,
+  treeAt = revision => gitTree(root, revision), read = null, prove = checkPlan}) {
   const trees = new Map();
   const tree = revision => {
     if (!trees.has(revision)) trees.set(revision, treeAt(revision));
@@ -79,13 +80,26 @@ export async function checkApplications({root, context, runtime, protectedRevisi
       protectedCatalog.actions.some(original => encode(original) === encode(action))), 'Unreviewed/changed reusable registration');
     byId.set(entry.actionId, entry);
   }
+  const origins = new Map();
+  if (read === null) {
+    const groups = new Map();
+    for (const action of catalog.actions) {
+      const entry = byId.get(action.id), key = encode([entry.archive, entry.artifactId, entry.acquisition]);
+      if (!groups.has(key)) groups.set(key, {entry, actions: []});
+      groups.get(key).actions.push(action);
+    }
+    for (const {entry, actions} of groups.values()) {
+      const originals = await readOriginReceipts({...entry, actions, expected: context, request});
+      for (const [id, original] of originals) origins.set(id, original);
+    }
+  } else assert.equal(typeof read, 'function', 'Invalid internal receipt test seam');
   const requirements = [], checked = [], applications = [];
   for (const action of catalog.actions) {
     const entry = byId.get(action.id);
-    const original = await read({...entry, action, expected: context, request});
+    const original = read === null ? origins.get(action.id) : await read({...entry, action, expected: context, request});
     const manifest = applicability({action, receipt: original.receipt,
       originTree: tree(original.receipt.origin.testedRevision), candidateTree,
-      candidateRevision: context.candidateRevision, runtime, acquisition: entry.acquisition});
+      candidateRevision: context.candidateRevision, runtime: runtimeForAction(action, runtime, actionRuntimes), acquisition: entry.acquisition});
     const records = leanRecords(action, manifest, original, context, entry.acquisition);
     requirements.push(records.required); checked.push(records.application);
     applications.push({version: applicationVersion, candidateRevision: context.candidateRevision, actionId: action.id,

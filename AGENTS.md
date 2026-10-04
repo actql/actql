@@ -1,5 +1,11 @@
 # Repository conventions
 
+- Write all code comments, documentation, and GitHub communication in English.
+  This includes issue and pull request titles, bodies, comments, and reviews.
+- Follow Conventional Commits for commit messages and pull request titles:
+  `<type>[optional scope][!]: <description>`. Write descriptions and commit
+  bodies in English, and use the appropriate type and scope for the change.
+
 - Keep `docs/design` focused on architecture, semantic decisions and contract
   boundaries. Do not put branch handoffs, cherry-pick instructions, delivery
   status or test-run reports there. Report those in the working conversation

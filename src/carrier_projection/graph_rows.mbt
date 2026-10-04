@@ -33,16 +33,24 @@ fn check_graph_rows(
   }
   let mut work = limits.max_work - 1 - family.length()
   let mut text = limits.max_text_bytes
-  let selected = if @decode.boolean(source) == Ok(true) {
-    None
+  let (definitions, selected_definition, selected_label) = if @decode.boolean(
+      source,
+    ) ==
+    Ok(true) {
+    (family, None, None)
   } else {
-    let object = match @decode.closed_object(source, ["definition"]) {
+    let object = match @decode.closed_object(source, ["definition", "label"]) {
       Ok(object) => object
       Err(_) => return Err(issue(source, InvalidBody))
     }
-    let at = match @decode.required(object, "definition") {
-      Ok(at) => at
-      Err(_) => return Err(issue(source, InvalidBody))
+    let definition_at = @decode.lookup(object, "definition")
+    let label_at = @decode.lookup(object, "label")
+    if (definition_at is Some(_)) == (label_at is Some(_)) {
+      return Err(issue(source, InvalidBody))
+    }
+    let at = match definition_at {
+      Some(at) => at
+      None => label_at.unwrap()
     }
     let name = match @decode.text(at) {
       Ok(name) => name
@@ -53,23 +61,55 @@ fn check_graph_rows(
       Err(_) => return Err(issue(at, BudgetExceeded))
     }
     let folded_name = @carrier.property_name_identity(name)
-    let mut found = None
-    for definition in family {
-      if @carrier.property_name_identity(
-          @carrier.property_definition_name(definition),
-        ) ==
-        folded_name {
-        found = Some(definition)
+    if definition_at is Some(_) {
+      let mut found = None
+      for definition in family {
+        if @carrier.property_name_identity(
+            @carrier.property_definition_name(definition),
+          ) ==
+          folded_name {
+          found = Some(definition)
+        }
       }
+      guard found is Some(definition) else {
+        return Err(issue(at, UnknownDefinition(name)))
+      }
+      ([definition], Some(@carrier.property_definition_name(definition)), None)
+    } else {
+      let candidates = []
+      let mut resolved : String? = None
+      for definition in family {
+        for index in 0..<@carrier.property_definition_label_count(definition) {
+          if work == 0 {
+            return Err(issue(at, BudgetExceeded))
+          }
+          work -= 1
+          let (candidate, _) = @carrier.property_definition_label_at(
+            definition, index,
+          ).unwrap()
+          if @carrier.property_name_identity(candidate) == folded_name {
+            candidates.push(definition)
+            match resolved {
+              None => resolved = Some(candidate)
+              Some(previous) => {
+                if work == 0 {
+                  return Err(issue(at, BudgetExceeded))
+                }
+                work -= 1
+                if @canonical.compare_utf16(candidate, previous) < 0 {
+                  resolved = Some(candidate)
+                }
+              }
+            }
+            break
+          }
+        }
+      }
+      guard resolved is Some(label) else {
+        return Err(issue(at, UnknownLabel(name)))
+      }
+      (candidates, None, Some(label))
     }
-    guard found is Some(definition) else {
-      return Err(issue(at, UnknownDefinition(name)))
-    }
-    Some(definition)
-  }
-  let definitions = match selected {
-    Some(definition) => [definition]
-    None => family
   }
   // Spelling selection needs deterministic order, but sorting is not free work.
   // Stop as soon as the existing check budget cannot cover another comparison.
@@ -101,11 +141,11 @@ fn check_graph_rows(
   let known : Map[String, GraphRowField] = Map([])
   // Selection narrows the output schema, not the family already enumerated.
   let mut nodes = limits.max_nodes - 1 - family.length()
-  if selected is Some(_) {
-    if nodes == 0 {
+  if selected_definition is Some(_) || selected_label is Some(_) {
+    if definitions.length() > nodes {
       return Err(issue(source, BudgetExceeded))
     }
-    nodes -= 1
+    nodes -= definitions.length()
   }
   for definition in definitions {
     let definition_names : Map[String, Bool] = Map([])
@@ -117,18 +157,23 @@ fn check_graph_rows(
     }
     for index in 0..<(key_count + field_count) {
       work -= 1
-      let (name, contract) = if index < key_count {
+      let (name, contract, guaranteed) = if index < key_count {
         match @carrier.property_definition_key_column_at(definition, index) {
           None => continue
           Some(name) =>
             (
               name,
               @carrier.property_definition_key_at(definition, index).unwrap(),
+              true,
             )
         }
       } else {
         let field = @carrier.field_at(properties, index - key_count).unwrap()
-        (@row.reference_name(field.name), field.contract.unwrap())
+        (
+          @row.reference_name(field.name),
+          field.contract.unwrap(),
+          field.presence == @row.Required,
+        )
       }
       let folded = @carrier.property_name_identity(name)
       if roles.contains(folded) || definition_names.contains(folded) {
@@ -148,7 +193,11 @@ fn check_graph_rows(
           known[folded] = {
             name,
             contract,
-            definitions: 1,
+            definitions: if guaranteed {
+              1
+            } else {
+              0
+            },
             key_alias: index < key_count,
           }
         }
@@ -169,7 +218,9 @@ fn check_graph_rows(
               )
             }
             previous.contract = joined
-            previous.definitions += 1
+            if guaranteed {
+              previous.definitions += 1
+            }
           } catch {
             _ => return Err(issue(source, BudgetExceeded))
           }
@@ -229,6 +280,7 @@ fn check_graph_rows(
       nodes: limits.max_nodes - nodes,
       text_bytes: limits.max_text_bytes - text,
     },
-    definition: selected.map(@carrier.property_definition_name),
+    definition: selected_definition,
+    label: selected_label,
   })
 }

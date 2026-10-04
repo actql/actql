@@ -1812,6 +1812,29 @@ async function exerciseStrategyGraph(
       {kind:'edges',node_id:null,actual:2,max:1},
     ],
   }, {
+    name:'retained-graph-bounds-typed-self-loop', retainedOutput:true,
+    selectedStructural:true,
+    inputRows:[
+      {id:1,src:1,dst:1,node_name:'first',weight:10},
+      {id:2,src:2,dst:1,node_name:'second',weight:20},
+    ],
+    edgeDefinitions:[
+      {name:'E',from:'rows',key:['id'],
+        source:{definition:'N',key:['src']},
+        target:{definition:'N',key:['dst']},
+        labels:[{name:'Link',properties:{mode:'all_columns'}}]},
+      {name:'F',from:'edges_alt',key:['id'],
+        source:{definition:'N',key:['src']},
+        target:{definition:'N',key:['dst']},
+        labels:[{name:'Alternate',properties:{mode:'all_columns'}}]},
+    ],
+    step:{from:'g',graph_bounds:{max_edges:3,max_degree:3},as:'out'},
+    fields:['kind','actual','max'],secondFields:['kind'],
+    expected:[
+      {kind:'edges',actual:4,max:3},
+      {kind:'degree',actual:6,max:3},
+    ],
+  }, {
     name: 'retained-graph-bounds-all-thresholds', retainedOutput:true,
     selectedStructural:true,
     inputRows:[
@@ -1838,6 +1861,26 @@ async function exerciseStrategyGraph(
     step:{from:'g',degree:{direction:'both'},as:'out'},
     fields:['degree'],secondFields:['degree'],
     expected:[{degree:2},{degree:2}],
+  }, {
+    name:'retained-degree-typed-self-loop', retainedOutput:true,
+    selectedStructural:true,
+    inputRows:[
+      {id:1,src:1,dst:1,node_name:'first',weight:10},
+      {id:2,src:2,dst:1,node_name:'second',weight:20},
+    ],
+    edgeDefinitions:[
+      {name:'E',from:'rows',key:['id'],
+        source:{definition:'N',key:['src']},
+        target:{definition:'N',key:['dst']},
+        labels:[{name:'Link',properties:{mode:'all_columns'}}]},
+      {name:'F',from:'edges_alt',key:['id'],
+        source:{definition:'N',key:['src']},
+        target:{definition:'N',key:['dst']},
+        labels:[{name:'Alternate',properties:{mode:'all_columns'}}]},
+    ],
+    step:{from:'g',degree:{direction:'both'},as:'out'},
+    fields:['degree'],secondFields:['degree'],
+    expected:[{degree:6},{degree:2}],
   }, {
     name: 'retained-degree-in', retainedOutput:true,
     selectedStructural:true,
@@ -2001,6 +2044,12 @@ async function exerciseStrategyGraph(
         .steps[0].values.rows = publicationCase.inputRows;
     }
     const graphStage = graphProgram.stages.find(stage => stage.id === 'graph');
+    if (publicationCase.edgeDefinitions !== undefined) {
+      graphStage.inputs.edges_alt =
+        {result:{stage:'values',result:'r'}};
+      graphStage.steps[0].property_graph.edges =
+        publicationCase.edgeDefinitions;
+    }
     const consumerA = graphProgram.stages.find(stage => stage.id === 'consumer_a');
     const consumerB = graphProgram.stages.find(stage => stage.id === 'consumer_b');
     const tail = graphProgram.stages.find(stage => stage.id === 'tail');

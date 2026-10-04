@@ -2,13 +2,24 @@ import type {ClientSourceFormat, WireCancellation, WireCheckpointSummary, WireCl
   WireRequestCancellation,
   WireDeliveryAttemptLookup, WireHeldRequest, WireRequestLookup,
   WireResolveItem, WireResolveResult, WireRunRef,
-  WireRunState, WireResultDescription, WireCheckOutcome} from
+  WireRunState, WireResultDescription, WireCheckOutcome, WireCheckLocation} from
   '@actql/client-wire';
 
 export type Durability = 'volatile' | 'durable';
 export type RunReference = WireRunRef;
 /** actql-check-outcome/0.1. */
 export type CheckOutcome = WireCheckOutcome;
+export type CheckInput = Readonly<{documentId: string; revision: string}> & (
+  Readonly<{kind: 'text'; text: string}> | Readonly<{kind: 'structured'; value: unknown}>);
+/** Available only for the exact response of this SDK check call. */
+export declare function getCheckInput(outcome: CheckOutcome, documentId: string,
+  revision?: string): CheckInput | undefined;
+/** Omitted when original input is unavailable, stale or mismatched. No edits are applied. */
+export declare function resolveCheckLocation(outcome: CheckOutcome,
+  location: WireCheckLocation, currentInput?: CheckInput):
+  (WireCheckLocation & Readonly<{input: CheckInput; text?: string}>) | undefined;
+export declare function explainCheckReason(reason: Readonly<{code: string}>):
+  Readonly<{kind: 'known' | 'unknown'; summary: string; hint?: string}>;
 
 type ConnectedEndpoint = Readonly<{
   endpoint: string;
@@ -62,6 +73,8 @@ export declare class ClientError extends Error {
   readonly hint?: string;
   readonly requestId?: string;
   readonly attemptId?: string;
+  /** Complete rows returned by the failed call; aggregate calls return none. */
+  readonly rowsYielded?: number;
   readonly cleanupError?: unknown;
   readonly lookupContext?: Readonly<{endpoint: string; scopeRef: string}>;
   readonly status?: number;
@@ -90,6 +103,8 @@ export type ReadOptions = {
 export interface Reader<T> extends AsyncIterable<T> {
   readonly attemptId: string;
   state(): 'not_started' | 'prefix' | 'complete';
+  /** Complete rows yielded to this reader's caller, excluding buffered rows. */
+  rowsYielded(): number;
 }
 
 export type ResultDescription = WireResultDescription;

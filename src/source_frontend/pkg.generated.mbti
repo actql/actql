@@ -54,6 +54,7 @@ pub(all) enum Issue {
 pub(all) struct Lowered {
   document : String
   format : @stage_syntax.Format
+  program : @stage_syntax.Program?
 }
 
 pub(all) struct PublishedAlias {

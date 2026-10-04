@@ -81,8 +81,10 @@ export function authorizedLocalResultFrames(service, request, signal,
           throw new Error('IncompleteLocalResultFrames');
         }
         complete = true;
-        // The Client's normal end is independent of durable Host receipt.
-        await outcome;
+        // Normal wire termination cannot hide a failure of the delivery
+        // owner's terminal record or receipt custody transition.
+        const settled = await outcome;
+        if (!settled.ok) throw settled.error;
       } finally {
         signal?.removeEventListener('abort', abort);
         if (!complete) controller.abort();
