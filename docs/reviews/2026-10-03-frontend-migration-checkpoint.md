@@ -777,3 +777,43 @@ fixture topology rather than claiming two distinct Host/worker PIDs. The
 fixture provider service remains available to observe calls; it is not the
 Run-custody owner. Formal active temporary-holder inventory remains separate
 from byte/reservation return and durable Named Result retention.
+
+### Pristine node Local success and cleanup observation isolation
+
+The fresh producer at tested `97b4a53f6d9a3ff1affdbbc0f6f3b6f9775a81bf`
+and ordinary public consumer now pass Graph node Local through the unchanged
+`waiting_checkpoint`, approval, one confirmed write and both durable restart
+boundaries. The emitted record has Source sessions [0,0,0,0], Model inputs
+[100,200], writes [0,0,1,1], the expected typed identity and NULL property,
+and the exact accepted Policy original restored without a current Host binding.
+Missing Policy, duplicate Model keys and NULL arguments refuse before Model
+dispatch. Source-backed JSON/text Local/HTTPS positive and shared fault cases
+also pass before this Graph case. These are results of the pristine producer,
+not the earlier JS adapter overlay.
+
+The next actual failure in job `111409282355` is at consumer line 1352,
+comparing `released.resourceUsage.transferredBytes` to
+`completed.resourceUsage.transferredBytes`: Graph release reports 2451, but
+`completed` was selected from the first prior Source pending-cleanup Run and
+reports 1029. There is no hardcoded 1029 expectation to update. The consumer
+filtered the entire cumulative custody log by `pendingScratch`, then combined
+its first completed event with its final release event. This crossed unrelated
+execution windows. It is distinct from the repaired missing-original rejection.
+
+The shared cleanup consumer now records its append-only custody offset
+immediately before the single pending-cleanup child and selects only subsequent
+observations. An independent fixture with different prior/current counters
+rejects the predecessor selection (`run-gIz3VO`), then passes with the window
+bound (`run-ycCghd`: 27/27 selected tests). The existing exact before/after
+transfer and planning invariants, pending execution reservation, confirmed
+release and replay assertions remain. Expected rows, the 512 MiB limit and
+physical owners are unchanged. The new regression is in the already registered
+Graph fixture test, with no additional job, pack or execution mechanism.
+
+The old fresh run stops before Graph node HTTPS and both edge cases; their
+success is not inferred from node Local or the retained-package overlay.
+Complete history at `beeead8aaa893f101f60573e915ba88d1b2782d0` passes
+112 declarations/2 supplements after the latest main adoption. The final source
+including this consumer isolation must separately retain that history result
+and finish its new automatic CI and all four pristine Graph cases. #304 remains
+Draft, and the independent #366 guard fixture failure remains tracked for G.

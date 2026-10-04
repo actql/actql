@@ -2,8 +2,24 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {graphCompositionProgram, graphCompositionTemplates,
   graphCompositionExpectations, graphDefinitionCid,
-  graphCompositionRefusalProgram, graphCompositionRefusalTemplates} from
+  graphCompositionRefusalProgram, graphCompositionRefusalTemplates,
+  computationCustodySince} from
   './fixtures/graph-infer-effect-input.mjs';
+
+test('cleanup accounting compares the current execution window without borrowing prior Run counters', () => {
+  const observation = (name, transferredBytes) => ({name, pendingScratch: true,
+    resourceUsage: {transferredBytes}});
+  const previous = [observation('effect_computation_completed', '11'),
+    observation('effect_computation_cleanup_completed', '11')];
+  const current = [observation('effect_computation_completed', '29'),
+    observation('effect_computation_cleanup_pending', '29'),
+    observation('effect_computation_cleanup_completed', '29')];
+  const unrelated = {name: 'effect_computation_completed', pendingScratch: false,
+    resourceUsage: {transferredBytes: '43'}};
+  const contents = [...previous, unrelated, ...current].map(record => JSON.stringify(record)).join('\n') + '\n';
+  assert.deepEqual(computationCustodySince(contents, previous.length + 1), current);
+  assert.deepEqual(computationCustodySince(contents, previous.length + 1 + current.length), []);
+});
 
 for (const family of ['node', 'edge']) {
   test(`${family} composition is a complete authored Program with only a MappingRef binding`, () => {

@@ -84,3 +84,11 @@ export function graphCompositionRefusalProgram(mappingRef, variant) {
 }
 export const graphCompositionTemplates = templates;
 export const graphCompositionRefusalTemplates = refusalTemplates;
+
+// The acceptance supervisor runs one dedicated execution child at a time.
+// Select its append-only observation window before comparing cleanup counters.
+export function computationCustodySince(contents, offset) {
+  assert.ok(Number.isSafeInteger(offset) && offset >= 0);
+  return contents.trim().split('\n').filter(Boolean).slice(offset).map(line => JSON.parse(line))
+    .filter(record => record.pendingScratch);
+}

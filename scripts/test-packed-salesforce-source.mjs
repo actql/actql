@@ -20,7 +20,8 @@ import {compositionExpectations, databaseRows, expectedUpdates, expectedWrites, 
 import {canonicalJson} from '../adapters/host-node/local-account-config.mjs';
 import {packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
 import {readTwoSourceJournal} from './fixtures/two-source-public-query.mjs';
-import {graphCompositionExpectations, graphResultDataPolicy} from './fixtures/graph-infer-effect-input.mjs';
+import {graphCompositionExpectations, graphResultDataPolicy,
+  computationCustodySince} from './fixtures/graph-infer-effect-input.mjs';
 import {optionalEffectCases, optionalEffectFixtureFiles, optionalEffectExpectations} from
   './fixtures/two-source-optional-effect.mjs';
 
@@ -1333,12 +1334,14 @@ try {
         'utf8')).trim().split('\n').filter(Boolean).length;
       const sourceCallsBeforePending = (await readFile(join(root, 'source-calls.jsonl'),
         'utf8')).trim().split('\n').filter(Boolean).length;
+      const custodyBeforePending = (await readFile(join(root, 'composition-custody.jsonl'),
+        'utf8')).trim().split('\n').filter(Boolean).length;
       assert.equal((await runChild('effect-run.mjs', rceEnvironment,
         ['rce-submit-pending', 'pending'])).trim(), 'held');
       assert.equal(patches().length, writesBeforePending,
         'cleanup retry cannot send an unapproved Effect');
-      const custody = (await readFile(join(root, 'composition-custody.jsonl'), 'utf8'))
-        .trim().split('\n').map(line => JSON.parse(line)).filter(item => item.pendingScratch);
+      const custody = computationCustodySince(await readFile(join(root,
+        'composition-custody.jsonl'), 'utf8'), custodyBeforePending);
       const completed = custody.find(item => item.name === 'effect_computation_completed');
       const pending = custody.find(item => item.name === 'effect_computation_cleanup_pending');
       const released = custody.filter(item => item.name === 'effect_computation_cleanup_completed').at(-1);
