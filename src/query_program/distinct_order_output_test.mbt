@@ -60,7 +60,8 @@ test "SQL DISTINCT ORDER cannot read an unselected input expression" {
         join_order_context(),
         construction_limits(),
       )
-      is Err(_),
+      is Err(UnsupportedOrdering),
+      msg=source,
     )
   }
 }

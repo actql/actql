@@ -76,6 +76,12 @@ selection is `run-2zd8OS`. Earlier 31/31 selections are predecessor evidence;
 `run-2NZbLt` fixes the selected-column correspondence counterexample before
 its follow-up repair. Public-case deduplication controls pass 2/2 in Node. Pinned Moon formatting and diff checks pass.
 
+The review follow-up asserts `UnsupportedOrdering` for all four unselected-input
+refusals, rather than accepting any error. The focused SQL DISTINCT ORDER
+selection passes 5/5 (`run-kGZhCW`); no product implementation or public fixture
+changes accompany this test-only strengthening. The submitted HEAD changes, so
+its automatic CI is recorded separately from the reviewed predecessor.
+
 The existing packed public-query runner includes six positive cases (machine
 control, SQL/Pipe limits, NULL/duplicates, selected qualified columns, empty) and three pre-admission refusals
 on each of Embedded Local and authenticated HTTP. Its existing helper compares
