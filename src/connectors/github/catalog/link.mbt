@@ -20,19 +20,6 @@ pub(all) struct NextPage {
 } derive(Eq, Debug)
 
 ///|
-fn trim(text : String) -> String {
-  let mut start = 0
-  let mut end = text.length()
-  while start < end && (text[start] == ' ' || text[start] == '\t') {
-    start = start + 1
-  }
-  while end > start && (text[end - 1] == ' ' || text[end - 1] == '\t') {
-    end = end - 1
-  }
-  text.view(start_offset=start, end_offset=end).to_owned()
-}
-
-///|
 fn split_on(text : String, separator : Char) -> Array[String] {
   let parts = []
   let mut start = 0
@@ -47,34 +34,202 @@ fn split_on(text : String, separator : Char) -> Array[String] {
 }
 
 ///|
-/// The `rel="next"` target of an RFC 8288 header value, or None when the
-/// header has no next relation. Any malformed entry refuses the whole value.
-fn next_target(link : String) -> Result[String?, LinkIssue] {
-  let mut found = None
-  for entry in split_on(link, ',') {
-    let parts = split_on(entry, ';')
-    let target = trim(parts[0])
-    if target.length() < 2 ||
-      target[0] != '<' ||
-      target[target.length() - 1] != '>' {
+fn is_ows(unit : Int) -> Bool {
+  unit == 32 || unit == 9
+}
+
+///|
+/// RFC 9110 `tchar`.
+fn is_tchar(unit : Int) -> Bool {
+  (unit >= 48 && unit <= 57) ||
+  (unit >= 65 && unit <= 90) ||
+  (unit >= 97 && unit <= 122) ||
+  [33, 35, 36, 37, 38, 39, 42, 43, 45, 46, 94, 95, 96, 124, 126].contains(unit)
+}
+
+///|
+fn skip_ows(text : String, start : Int) -> Int {
+  let mut index = start
+  while index < text.length() && is_ows(text[index].to_int()) {
+    index = index + 1
+  }
+  index
+}
+
+///|
+/// One RFC 8288 `link-value`: its target and the relation types of its first
+/// `rel` parameter (later `rel` occurrences are ignored, as §3.3 requires;
+/// a value without any `rel` is refused).
+priv struct LinkValue {
+  target : String
+  relations : Array[String]
+}
+
+///|
+fn lowercase_ascii(text : String) -> String {
+  let out = StringBuilder()
+  for index = 0; index < text.length(); index = index + 1 {
+    let unit = text[index].to_int()
+    out.write_char(
+      Int::unsafe_to_char(
+        if unit >= 65 && unit <= 90 {
+          unit + 32
+        } else {
+          unit
+        },
+      ),
+    )
+  }
+  out.to_string()
+}
+
+///|
+/// Parse a whole `Link` field value (RFC 8288 §3, RFC 9110 list syntax).
+/// Commas and semicolons inside `<...>` or a quoted string are data, not
+/// delimiters. Any syntax error refuses the whole value.
+fn parse_link_values(text : String) -> Result[Array[LinkValue], LinkIssue] {
+  let values = []
+  let mut index = 0
+  let length = text.length()
+  while true {
+    index = skip_ows(text, index)
+    if index >= length {
+      break
+    }
+    // Empty list elements are allowed by the list syntax.
+    if text[index] == ',' {
+      index = index + 1
+      continue
+    }
+    if text[index] != '<' {
       return Err(MalformedLink)
     }
-    let mut next = false
-    for index = 1; index < parts.length(); index = index + 1 {
-      let parameter = trim(parts[index])
-      if parameter == "rel=\"next\"" || parameter == "rel=next" {
-        next = true
-      } else if !parameter.has_prefix("rel=") {
+    let target_start = index + 1
+    index = target_start
+    while index < length && text[index] != '>' {
+      let unit = text[index].to_int()
+      if unit <= 32 || unit == 127 || unit == 60 {
         return Err(MalformedLink)
       }
+      index = index + 1
     }
-    if next {
+    if index >= length || index == target_start {
+      return Err(MalformedLink)
+    }
+    let target = text
+      .view(start_offset=target_start, end_offset=index)
+      .to_owned()
+    index = index + 1
+    let mut relations : Array[String]? = None
+    while true {
+      index = skip_ows(text, index)
+      if index >= length || text[index] == ',' {
+        break
+      }
+      if text[index] != ';' {
+        return Err(MalformedLink)
+      }
+      index = skip_ows(text, index + 1)
+      let name_start = index
+      while index < length && is_tchar(text[index].to_int()) {
+        index = index + 1
+      }
+      if index == name_start {
+        return Err(MalformedLink)
+      }
+      let name = lowercase_ascii(
+        text.view(start_offset=name_start, end_offset=index).to_owned(),
+      )
+      index = skip_ows(text, index)
+      let mut value : String? = None
+      if index < length && text[index] == '=' {
+        index = skip_ows(text, index + 1)
+        if index < length && text[index] == '"' {
+          let quoted = StringBuilder()
+          index = index + 1
+          let mut closed = false
+          while index < length {
+            let unit = text[index].to_int()
+            if unit == 34 {
+              closed = true
+              index = index + 1
+              break
+            }
+            if unit == 92 {
+              if index + 1 >= length {
+                return Err(MalformedLink)
+              }
+              index = index + 1
+            }
+            let escaped = text[index].to_int()
+            if (escaped < 32 && escaped != 9) || escaped == 127 {
+              return Err(MalformedLink)
+            }
+            quoted.write_char(Int::unsafe_to_char(escaped))
+            index = index + 1
+          }
+          if !closed {
+            return Err(MalformedLink)
+          }
+          value = Some(quoted.to_string())
+        } else {
+          let value_start = index
+          while index < length && is_tchar(text[index].to_int()) {
+            index = index + 1
+          }
+          if index == value_start {
+            return Err(MalformedLink)
+          }
+          value = Some(
+            text.view(start_offset=value_start, end_offset=index).to_owned(),
+          )
+        }
+      }
+      if name == "rel" && relations is None {
+        guard value is Some(types) else { return Err(MalformedLink) }
+        let parsed = []
+        let mut start = 0
+        for position = 0; position <= types.length(); position = position + 1 {
+          if position == types.length() || is_ows(types[position].to_int()) {
+            if position > start {
+              parsed.push(
+                lowercase_ascii(
+                  types.view(start_offset=start, end_offset=position).to_owned(),
+                ),
+              )
+            }
+            start = position + 1
+          }
+        }
+        if parsed.is_empty() {
+          return Err(MalformedLink)
+        }
+        relations = Some(parsed)
+      }
+    }
+    // RFC 8288 §3.3: every link-value carries a `rel` parameter.
+    guard relations is Some(types) else { return Err(MalformedLink) }
+    values.push({ target, relations: types, })
+  }
+  Ok(values)
+}
+
+///|
+/// The `next` target of an RFC 8288 header value. `Ok(None)` only when the
+/// whole value parsed and no link-value carries the `next` relation; a
+/// malformed value, or more than one `next` target, refuses the observation.
+fn next_target(link : String) -> Result[String?, LinkIssue] {
+  let values = match parse_link_values(link) {
+    Ok(values) => values
+    Err(issue) => return Err(issue)
+  }
+  let mut found = None
+  for value in values {
+    if value.relations.contains("next") {
       if found is Some(_) {
         return Err(MalformedLink)
       }
-      found = Some(
-        target.view(start_offset=1, end_offset=target.length() - 1).to_owned(),
-      )
+      found = Some(value.target)
     }
   }
   Ok(found)

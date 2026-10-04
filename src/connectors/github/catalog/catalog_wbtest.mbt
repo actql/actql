@@ -170,6 +170,87 @@ test "next page stays on the listing, advances, and refuses malformed links" {
 }
 
 ///|
+test "Link values are parsed by RFC 8288 syntax, never guessed as the last page" {
+  let origin = "https://api.github.com"
+  let path = "/repos/o/r/issues"
+  let page2 = Ok(Some({ path, query: [("page", "2")], page: 2, }))
+  let target = "<https://api.github.com/repos/o/r/issues?page=2>"
+  // A relation list may name several types; `next` among them is next.
+  assert_eq(
+    next_page(Some(target + "; rel=\"next last\""), origin, path, 1, 2048),
+    page2,
+  )
+  assert_eq(
+    next_page(Some(target + ";rel=\"last  next\""), origin, path, 1, 2048),
+    page2,
+  )
+  // Unquoted token form, relation types are case-insensitive.
+  assert_eq(
+    next_page(Some(target + "; rel=next"), origin, path, 1, 2048),
+    page2,
+  )
+  assert_eq(
+    next_page(Some(target + "; REL=NEXT"), origin, path, 1, 2048),
+    page2,
+  )
+  // Other parameters, and commas or semicolons inside quotes, are data.
+  assert_eq(
+    next_page(
+      Some(
+        target +
+        "; title=\"a, b; c\"; rel=\"next\", <https://x.example/>; rel=prev",
+      ),
+      origin,
+      path,
+      1,
+      2048,
+    ),
+    page2,
+  )
+  // Only the first rel parameter of a link-value counts.
+  assert_eq(
+    next_page(Some(target + "; rel=prev; rel=next"), origin, path, 1, 2048),
+    Ok(None),
+  )
+  // A well-formed value without a next relation is the provider's "no next".
+  assert_eq(
+    next_page(
+      Some(
+        "<https://api.github.com/repos/o/r/issues?page=1>; rel=\"prev first\"",
+      ),
+      origin,
+      path,
+      2,
+      2048,
+    ),
+    Ok(None),
+  )
+  assert_eq(next_page(Some(""), origin, path, 1, 2048), Ok(None))
+  // Malformed values are refused, never read as "no next page".
+  for
+    malformed in [
+      target + "; rel=\"next",
+      target + "; rel=\"next\\",
+      target + "; rel=",
+      target + "; rel=\"\"",
+      target + ";",
+      target + "; =next",
+      target + " rel=next",
+      "<>; rel=next",
+      "<https://api.github.com/a b>; rel=next",
+      target + "; rel=next x",
+      "https://api.github.com/repos/o/r/issues?page=2; rel=next",
+      target + "; title=\"next\"",
+      target + "; rel=next, <https://api.github.com/x>",
+    ] {
+    assert_eq(
+      next_page(Some(malformed), origin, path, 1, 2048),
+      Err(MalformedLink),
+    )
+  }
+}
+
+///|
 test "a since-filtered continuation decodes its query once and keeps the date" {
   let origin = "https://api.github.com"
   let path = "/repos/o/r/issues"
