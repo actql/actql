@@ -1,17 +1,55 @@
 ///|
+priv suberror CarrierWorkStop {
+  CarrierWorkStop
+}
+
+///|
+/// Spend the existing preparation balance before visiting an entry. Exhaustion
+/// unwinds classification or remapping without publishing a partial graph.
+fn carrier_work(
+  work : Ref[Int],
+  amount? : Int = 1,
+) -> Unit raise CarrierWorkStop {
+  if amount > work.val {
+    raise CarrierWorkStop
+  }
+  work.val -= amount
+}
+
+///|
+fn carrier_node_supports_selected_execution(
+  node : @lower.PreparedNode,
+  work : Ref[Int],
+) -> Bool raise CarrierWorkStop {
+  // The lowering capability query scans aggregate descriptors. Reserve its
+  // bounded scan before entering it, including unsupported count profiles.
+  if @lower.payload(node) is @lower.CountGroup(checked) &&
+    @relation.group(checked) is Some(group) {
+    carrier_work(work, amount=@relation.aggregate_count(group))
+  }
+  @lower.node_supports_selected_managed_execution(node)
+}
+
+///|
 /// Follow checked source edges to a bounded zero-input source or a typed
 /// Carrier boundary. Ordinary remote Relation chains keep their native
 /// whole-Stage realization until that realization supports selected Steps.
-fn segmentable_relation_source(graph : CheckedDAG, start : Int) -> Bool {
+fn segmentable_relation_source(
+  graph : CheckedDAG,
+  start : Int,
+  work : Ref[Int],
+) -> Bool raise CarrierWorkStop {
   let mut stage = start
   let mut visited = 0
   while stage >= 0 &&
         stage < graph.owners.length() &&
         visited < graph.owners.length() {
+    carrier_work(work)
     visited += 1
     let prepared = @lower.bound_preparation(graph.owners[stage])
     let count = @pipeline.step_count(@lower.pipeline(prepared))
     for step in 0..<count {
+      carrier_work(work)
       guard @lower.preparation_carrier_at(prepared, @pipeline.Step(step))
         is Some(carrier) else {
         return false
@@ -25,7 +63,7 @@ fn segmentable_relation_source(graph : CheckedDAG, start : Int) -> Bool {
     }
     if @lower.preparation_input_count(prepared) == 0 &&
       @lower.node_input_count(first) == 0 {
-      return @lower.node_supports_selected_managed_execution(first)
+      return carrier_node_supports_selected_execution(first, work)
     }
     guard @lower.node_input_count(first) == 1 &&
       @lower.node_input_target(first, 0) is Some(@pipeline.Input(source)) else {
@@ -33,6 +71,7 @@ fn segmentable_relation_source(graph : CheckedDAG, start : Int) -> Bool {
     }
     let mut predecessor = -1
     for edge in graph.data {
+      carrier_work(work)
       if edge.consumer == stage && edge.input == source {
         predecessor = edge.producer
         break
@@ -46,7 +85,11 @@ fn segmentable_relation_source(graph : CheckedDAG, start : Int) -> Bool {
 ///|
 /// Keep a Relation family child and its linear bounded suffix under one owner.
 /// This is a shape decision, not provider registration or execution authority.
-fn bounded_family_relation_chain(graph : CheckedDAG, stage : Int) -> Bool {
+fn bounded_family_relation_chain(
+  graph : CheckedDAG,
+  stage : Int,
+  work : Ref[Int],
+) -> Bool raise CarrierWorkStop {
   let prepared = @lower.bound_preparation(graph.owners[stage])
   let count = @pipeline.step_count(@lower.pipeline(prepared))
   guard count > 1 && @lower.node_at(prepared, 0) is Some(first) else {
@@ -63,19 +106,21 @@ fn bounded_family_relation_chain(graph : CheckedDAG, stage : Int) -> Bool {
     _ => return false
   }
   for step in 0..<count {
+    carrier_work(work)
     guard @lower.node_at(prepared, step) is Some(node) &&
       @carrier.kind(@lower.node_output_carrier(node)) == @carrier.RelationKind else {
       return false
     }
     if step > 0 &&
       (
-        !@lower.node_supports_selected_managed_execution(node) ||
+        !carrier_node_supports_selected_execution(node, work) ||
         @lower.node_input_count(node) != 1 ||
         @lower.node_input_target(node, 0) != Some(@pipeline.Step(step - 1))
       ) {
       return false
     }
     for port in 0..<@lower.node_input_count(node) {
+      carrier_work(work)
       guard @lower.node_accepts_managed_relation_view(node, port) &&
         @lower.node_input_target(node, port) is Some(target) &&
         @lower.preparation_carrier_at(prepared, target) is Some(input) &&
@@ -86,6 +131,7 @@ fn bounded_family_relation_chain(graph : CheckedDAG, stage : Int) -> Bool {
   }
   // Intermediate Result roots need independently owned task outputs.
   for result in graph.results {
+    carrier_work(work)
     if result.task == stage &&
       @ports.port_target(
         @execution.managed_result_occurrence_port(result.occurrence),
@@ -102,7 +148,11 @@ fn bounded_family_relation_chain(graph : CheckedDAG, stage : Int) -> Bool {
 /// standalone providers remains one fused task through its Relation bridge;
 /// later row operations use their own selected tasks.
 /// -1 means that every step can be selected independently.
-fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
+fn carrier_segment_prefix_end(
+  graph : CheckedDAG,
+  stage : Int,
+  work : Ref[Int],
+) -> Int? raise CarrierWorkStop {
   if stage < 0 || stage >= graph.owners.length() {
     return None
   }
@@ -118,6 +168,7 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
   let count = @pipeline.step_count(pipeline)
   let mut intermediate_result = false
   for result in graph.results {
+    carrier_work(work)
     if result.task == stage &&
       @ports.port_target(
         @execution.managed_result_occurrence_port(result.occurrence),
@@ -137,6 +188,7 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
     let mut relation_only = true
     let mut values_roots = 0
     for step in 0..<count {
+      carrier_work(work)
       guard @lower.node_at(prepared, step) is Some(node) else { return None }
       match @lower.operation(node) {
         "REL.values" => {
@@ -151,6 +203,7 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
         @carrier.RelationKind {
         relation_only = false
         for input in 0..<@lower.node_input_count(node) {
+          carrier_work(work)
           if @lower.node_input_target(node, input)
             is Some(@pipeline.Step(producer)) &&
             @lower.preparation_carrier_at(prepared, @pipeline.Step(producer))
@@ -164,6 +217,7 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
         is Some(output) &&
         @carrier.kind(output) == @carrier.RelationKind {
         for input in 0..<@lower.node_input_count(node) {
+          carrier_work(work)
           match @lower.node_input_target(node, input) {
             Some(@pipeline.Step(producer)) =>
               if @lower.preparation_carrier_at(
@@ -202,7 +256,7 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
   }
   // The registered family child and bounded row suffix share one chain owner.
   // Carrier-valued inputs and intermediate Result roots still use segmentation.
-  if bounded_family_relation_chain(graph, stage) {
+  if bounded_family_relation_chain(graph, stage, work) {
     return None
   }
   let mut found_carrier = false
@@ -216,8 +270,9 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
   let mut prefer_fused_without_relation = false
   let mut all_selected = true
   for step in 0..<count {
+    carrier_work(work)
     guard @lower.node_at(prepared, step) is Some(node) else { return None }
-    if !@lower.node_supports_selected_managed_execution(node) {
+    if !carrier_node_supports_selected_execution(node, work) {
       all_selected = false
       break
     }
@@ -234,12 +289,14 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
         return None
       }
       for input in 1..<@lower.node_input_count(node) {
+        carrier_work(work)
         if @lower.node_input_target(node, input) != Some(first) {
           return None
         }
       }
     }
     for input in 0..<@lower.node_input_count(node) {
+      carrier_work(work)
       match @lower.node_input_target(node, input) {
         Some(@pipeline.Step(producer)) => {
           guard producer >= 0 &&
@@ -309,8 +366,10 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
     found_relation &&
     !found_carrier {
     for step in 0..<count {
+      carrier_work(work)
       let node = @lower.node_at(prepared, step).unwrap()
       for input in 0..<@lower.node_input_count(node) {
+        carrier_work(work)
         if @lower.node_input_target(node, input)
           is Some(@pipeline.Input(source)) {
           if !@lower.node_accepts_managed_relation_view(node, input) {
@@ -318,6 +377,7 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
           }
           let mut retained_relation = false
           for edge in graph.data {
+            carrier_work(work)
             if edge.consumer == stage &&
               edge.input == source &&
               edge.producer >= 0 &&
@@ -357,6 +417,7 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
     if input_count == 1 || input_count == 2 {
       let mut complete_inputs = true
       for input in 0..<input_count {
+        carrier_work(work)
         if !@lower.node_accepts_managed_relation_view(first, input) {
           complete_inputs = false
           break
@@ -368,6 +429,7 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
         }
         let mut retained_relation = false
         for edge in graph.data {
+          carrier_work(work)
           if edge.consumer == stage &&
             edge.input == source &&
             edge.producer >= 0 &&
@@ -412,17 +474,18 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
     if @lower.node_accepts_managed_relation_view(first, 0) &&
       @lower.node_input_count(first) == 1 &&
       @lower.node_input_target(first, 0) is Some(@pipeline.Input(source)) {
-      if original_supplied_slot(graph, stage, source) is Some(_) {
+      if original_supplied_slot(graph, stage, source, work) is Some(_) {
         return Some(-1)
       }
       for edge in graph.data {
+        carrier_work(work)
         if edge.consumer != stage ||
           edge.input != source ||
           edge.producer < 0 ||
           edge.producer >= graph.owners.length() {
           continue
         }
-        if segmentable_relation_source(graph, edge.producer) {
+        if segmentable_relation_source(graph, edge.producer, work) {
           return Some(-1)
         }
       }
@@ -432,9 +495,10 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
   // is the exact output retained by the fused prefix.
   let mut suffix_start = count
   while suffix_start > 1 {
+    carrier_work(work)
     let step = suffix_start - 1
     guard @lower.node_at(prepared, step) is Some(node) else { return None }
-    if !@lower.node_supports_selected_managed_execution(node) ||
+    if !carrier_node_supports_selected_execution(node, work) ||
       @lower.node_input_count(node) != 1 ||
       !@lower.node_accepts_managed_relation_view(node, 0) ||
       @lower.node_input_target(node, 0) != Some(@pipeline.Step(step - 1)) {
@@ -465,6 +529,7 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
     if @lower.payload(prefix) is @lower.CrossJoinRows(_) {
       let mut row_suffix = true
       for step in 1..<count {
+        carrier_work(work)
         guard @lower.node_at(prepared, step) is Some(node) else { return None }
         match @lower.payload(node) {
           @lower.Where(_) | @lower.Derive(_) | @lower.Select(_) => ()
@@ -478,6 +543,7 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
   } else {
     let mut carrier_prefix = false
     for step in 0..<terminal {
+      carrier_work(work)
       guard @lower.preparation_carrier_at(prepared, @pipeline.Step(step))
         is Some(input_carrier) else {
         return None
@@ -491,6 +557,7 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
     }
   }
   for result in graph.results {
+    carrier_work(work)
     if result.task == stage {
       match
         @ports.port_target(
@@ -527,8 +594,10 @@ fn original_data_edge(
   graph : CheckedDAG,
   stage : Int,
   input : Int,
-) -> DataEdge? {
+  work : Ref[Int],
+) -> DataEdge? raise CarrierWorkStop {
   for edge in graph.data {
+    carrier_work(work)
     if edge.consumer == stage && edge.input == input {
       return Some(edge)
     }
@@ -541,8 +610,10 @@ fn original_supplied_slot(
   graph : CheckedDAG,
   stage : Int,
   input : Int,
-) -> LocalInputSlot? {
+  work : Ref[Int],
+) -> LocalInputSlot? raise CarrierWorkStop {
   for slot in graph.supplied_slots {
+    carrier_work(work)
     if slot.consumer == stage && slot.input == input {
       return Some(slot)
     }
@@ -562,18 +633,32 @@ pub fn expand_internal_carrier_tasks(
   if max_tasks < 0 || max_work < 0 {
     return Err(InvalidLimits)
   }
+  let work = Ref(max_work)
+  expand_internal_carrier_tasks_with_work(graph, max_tasks, work) catch {
+    CarrierWorkStop => Err(WorkLimit)
+  }
+}
+
+///|
+fn expand_internal_carrier_tasks_with_work(
+  graph : CheckedDAG,
+  max_tasks : Int,
+  work : Ref[Int],
+) -> Result[CheckedDAG, GraphIssue] raise CarrierWorkStop {
   let stages = graph.owners.length()
   let mut any_segmentable = false
+  let split_boundaries : Array[Int?] = []
   for stage in 0..<stages {
-    if carrier_segment_prefix_end(graph, stage) is Some(_) {
+    carrier_work(work)
+    let boundary = carrier_segment_prefix_end(graph, stage, work)
+    split_boundaries.push(boundary)
+    if boundary is Some(_) {
       any_segmentable = true
-      break
     }
   }
   if !any_segmentable {
     return Ok(graph)
   }
-  let mut work = max_work
   let stage_tasks : Array[Array[Int]] = Array::makei(stages, _ => [])
   let expanded = Array::make(stages, false)
   let owners = []
@@ -585,11 +670,8 @@ pub fn expand_internal_carrier_tasks(
   let numeric : Array[Array[TaskNumericObservation]] = []
 
   for stage in 0..<stages {
-    if work == 0 {
-      return Err(WorkLimit)
-    }
-    work -= 1
-    let split_boundary = carrier_segment_prefix_end(graph, stage)
+    carrier_work(work)
+    let split_boundary = split_boundaries[stage]
     let split = split_boundary is Some(_)
     expanded[stage] = split
     let step_count = @pipeline.step_count(
@@ -603,21 +685,15 @@ pub fn expand_internal_carrier_tasks(
     } else {
       step_count - prefix_end
     }
-    let mapping_work = if split { step_count } else { 1 }
-    if owners.length() + task_count > max_tasks || mapping_work > work {
-      return Err(
-        if owners.length() + task_count > max_tasks {
-          TaskLimit
-        } else {
-          WorkLimit
-        },
-      )
+    if task_count > max_tasks - owners.length() {
+      return Err(TaskLimit)
     }
-    work -= mapping_work
     for position in 0..<task_count {
+      carrier_work(work)
       let task = owners.length()
       if split && position == 0 && prefix_end >= 0 {
         for _ in 0..<(prefix_end + 1) {
+          carrier_work(work)
           stage_tasks[stage].push(task)
         }
       } else {
@@ -658,9 +734,11 @@ pub fn expand_internal_carrier_tasks(
   let data : Array[DataEdge] = []
   let supplied_slots : Array[LocalInputSlot] = []
   for stage in 0..<stages {
+    carrier_work(work)
     if !expanded[stage] {
       let consumer = stage_tasks[stage][0]
       for edge in graph.data {
+        carrier_work(work)
         if edge.consumer == stage {
           guard mapped_stage_target(stage_tasks, edge.producer, edge.target)
             is Some(producer) else {
@@ -670,6 +748,7 @@ pub fn expand_internal_carrier_tasks(
         }
       }
       for slot in graph.supplied_slots {
+        carrier_work(work)
         if slot.consumer == stage {
           supplied_slots.push({ ..slot, consumer, })
         }
@@ -677,10 +756,11 @@ pub fn expand_internal_carrier_tasks(
       continue
     }
     let prepared = @lower.bound_preparation(graph.owners[stage])
-    let prefix_end = carrier_segment_prefix_end(graph, stage).unwrap_or(-1)
+    let prefix_end = split_boundaries[stage].unwrap_or(-1)
     if prefix_end >= 0 {
       let prefix_task = stage_tasks[stage][0]
       for edge in graph.data {
+        carrier_work(work)
         if edge.consumer == stage {
           guard mapped_stage_target(stage_tasks, edge.producer, edge.target)
             is Some(producer) else {
@@ -690,17 +770,20 @@ pub fn expand_internal_carrier_tasks(
         }
       }
       for slot in graph.supplied_slots {
+        carrier_work(work)
         if slot.consumer == stage {
           supplied_slots.push({ ..slot, consumer: prefix_task, })
         }
       }
     }
     for step, consumer in stage_tasks[stage] {
+      carrier_work(work)
       if step <= prefix_end {
         continue
       }
       let node = @lower.node_at(prepared, step).unwrap()
       for operation_input in 0..<@lower.node_input_count(node) {
+        carrier_work(work)
         match @lower.node_input_target(node, operation_input) {
           Some(@pipeline.Step(producer_step)) =>
             data.push({
@@ -712,7 +795,7 @@ pub fn expand_internal_carrier_tasks(
               operation_input: Some((step, operation_input)),
             })
           Some(@pipeline.Input(source_input)) =>
-            match original_data_edge(graph, stage, source_input) {
+            match original_data_edge(graph, stage, source_input, work) {
               Some(edge) => {
                 guard mapped_stage_target(
                     stage_tasks,
@@ -732,7 +815,7 @@ pub fn expand_internal_carrier_tasks(
                 })
               }
               None =>
-                match original_supplied_slot(graph, stage, source_input) {
+                match original_supplied_slot(graph, stage, source_input, work) {
                   Some(slot) =>
                     supplied_slots.push({
                       consumer,
@@ -751,6 +834,7 @@ pub fn expand_internal_carrier_tasks(
 
   let control = []
   for edge in graph.control {
+    carrier_work(work)
     let predecessor_tasks = stage_tasks[edge.predecessor]
     let consumer_tasks = stage_tasks[edge.consumer]
     control.push({
@@ -760,7 +844,9 @@ pub fn expand_internal_carrier_tasks(
     })
   }
   for stage in 0..<stages {
+    carrier_work(work)
     for requirement in graph.operations[stage] {
+      carrier_work(work)
       let task = if expanded[stage] {
         stage_tasks[stage][requirement.site.step]
       } else {
@@ -769,6 +855,7 @@ pub fn expand_internal_carrier_tasks(
       operations[task].push(requirement)
     }
     for observation in graph.numeric[stage] {
+      carrier_work(work)
       let task = if expanded[stage] {
         stage_tasks[stage][observation.step]
       } else {
@@ -779,6 +866,7 @@ pub fn expand_internal_carrier_tasks(
   }
   let results = []
   for result in graph.results {
+    carrier_work(work)
     let target = @ports.port_target(
       @execution.managed_result_occurrence_port(result.occurrence),
     )
