@@ -145,6 +145,21 @@ export function snapshotFromGit(tree) {
   return {digest: hash(JSON.stringify(sources)), sources};
 }
 
+// Check only the action's selected physical source inputs. Collection retains
+// its separate full-checkout clean/HEAD checks for every candidate action.
+// Reading unrelated blob bytes here would put them back into this action's
+// dependency boundary even when they are absent from the isolated image.
+export function checkMutationCheckout({root, tree}) {
+  const expected = snapshotFromGit(tree);
+  for (const [path, digest] of Object.entries(expected.sources)) {
+    const entry = tree.entries.get(path), file = join(root, path), state = lstatSync(file);
+    assert(state.isFile() && !state.isSymbolicLink(), 'Nonregular mutation checkout input');
+    assert.equal(state.mode & 0o777, Number.parseInt(entry.mode.slice(-3), 8), 'Mutation checkout mode differs from Git');
+    assert.equal(hash(readFileSync(file)), digest, 'Mutation checkout bytes differ from Git');
+  }
+  return expected;
+}
+
 export function checkIsolatedResult({payload, manifest, before}) {
   assert.equal(payload.version, 'actql-isolated-mutation-observation/0.1');
   assert.equal(encode(payload.root), encode(manifest.root), 'Actual immutable image differs from staged inputs');

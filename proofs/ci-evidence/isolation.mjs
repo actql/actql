@@ -7,7 +7,7 @@ import {constants, openSync, closeSync, readSync, fstatSync, lstatSync, mkdirSyn
 import {join, dirname, resolve, relative, isAbsolute} from 'node:path';
 import {createHash} from 'node:crypto';
 import {encode} from '../bounded-session/action-inputs.mjs';
-import {hash, mutationSnapshotExtras} from './inputs.mjs';
+import {hash, mutationSnapshotExtras, mutationSourceInputs} from './inputs.mjs';
 export {mutationSnapshotExtras} from './inputs.mjs';
 
 export const isolatedEnvironment = Object.freeze({HOME: '/tmp/home', TMPDIR: '/tmp',
@@ -33,8 +33,9 @@ const safe = path => typeof path === 'string' && /^[A-Za-z0-9_.\/-]+$/u.test(pat
 const stable = (a, b) => ['dev', 'ino', 'mode', 'size', 'mtimeNs', 'ctimeNs'].every(key => a[key] === b[key]);
 
 export function mutationSourcePaths(tree) {
-  const paths = [...new Set([...tree.entries.keys()].filter(path => path.startsWith('src/') ||
-    path.startsWith('proofs/bounded-session/')).concat(mutationSnapshotExtras, isolatedSourceFiles))].sort();
+  const paths = [...new Set(mutationSourceInputs(tree).paths.concat(
+    [...tree.entries.keys()].filter(path => path.startsWith('proofs/bounded-session/')),
+    mutationSnapshotExtras, isolatedSourceFiles))].sort();
   assert(paths.includes('proofs/bounded-session/mutations.mjs'), 'Missing original mutation executor');
   for (const path of paths) {
     const entry = tree.entries.get(path);

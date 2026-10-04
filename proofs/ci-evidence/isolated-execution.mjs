@@ -7,11 +7,10 @@ import {mkdirSync, mkdtempSync, readFileSync, writeFileSync, chmodSync, existsSy
 import {join} from 'node:path';
 import {performance} from 'node:perf_hooks';
 import {encode} from '../bounded-session/action-inputs.mjs';
-import {snapshot} from '../bounded-session/evidence.mjs';
 import {hash} from './inputs.mjs';
 import {copyRegular, stageDistribution, stageMutationSource, loaderPaths, isolatedEnvironment,
   isolatedRunArguments, scratchDockerfile, checkImageDefinition, isolatedCoreBuildMetadata} from './isolation.mjs';
-import {observeImageRoot, platformInputs, imageRuntime, checkIsolatedInputs, checkIsolatedResult, snapshotFromGit} from './isolated-runtime.mjs';
+import {observeImageRoot, platformInputs, imageRuntime, checkIsolatedInputs, checkIsolatedResult, snapshotFromGit, checkMutationCheckout} from './isolated-runtime.mjs';
 import {isolatedExperimentDigest} from './isolated-contract.mjs';
 
 const jsonBytes = value => Buffer.from(`${encode(value)}\n`);
@@ -88,7 +87,9 @@ export function prepareIsolatedMutation({root, tree, origin, directory}) {
 export function executeIsolatedMutation({root, tree, prepared}) {
   assert.equal(process.env.GITHUB_ACTIONS, 'true', 'Isolated execution is CI-only');
   checkIsolatedInputs({runtime: prepared.runtime, manifest: prepared.manifest, tree});
-  const before = snapshot(root), tag = `actql-session-${prepared.owner.replaceAll(':', '-')}:latest`;
+  // Both observations cover the physically staged cohort. The existing
+  // collector checks the full tracked checkout independently on every action.
+  const before = checkMutationCheckout({root, tree}), tag = `actql-session-${prepared.owner.replaceAll(':', '-')}:latest`;
   const cidFile = join(prepared.context, 'container.id'), iidFile = join(prepared.context, 'image.id');
   const costs = {preparationMilliseconds: prepared.preparationMilliseconds, buildMilliseconds: 0, executionMilliseconds: 0,
     inspectionMilliseconds: 0, closeMilliseconds: 0};
@@ -116,7 +117,7 @@ export function executeIsolatedMutation({root, tree, prepared}) {
     const records = lines.filter(line => line.startsWith(prefix)); assert.equal(records.length, 1, 'Missing/duplicate actual isolation observation');
     const payload = JSON.parse(records[0].slice(prefix.length));
     checkIsolatedResult({payload, manifest: prepared.manifest, before});
-    assert.equal(snapshot(root).digest, before.digest, 'Host source changed during isolation');
+    assert.equal(checkMutationCheckout({root, tree}).digest, before.digest, 'Host source changed during isolation');
     const output = `${lines.filter(line => !line.startsWith(prefix)).join('\n')}${result.stderr ?? ''}`;
     costs.inspectionMilliseconds = Math.round(performance.now() - start);
     answer = {output, payload, imageId, imageDefinition: image[0], owner: prepared.owner, arguments: args, costs};

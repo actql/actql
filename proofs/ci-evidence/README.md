@@ -267,6 +267,39 @@ to submit this bounded executor change; use its natural PR CI.
 
 ## Reviewed JS package configuration
 
+### Physical source cohort
+
+The isolated `mutations-js` action stages the three existing mutation packages
+(`src/bounded_execution`, `src/connectors/local`, `src/query_integration`) and
+their literal transitive production/test/white-box imports. Every immediate
+member of a selected package remains bound, including unselected tests,
+generated interfaces and native sources. The existing bounded-session proof
+directory, snapshot audit files and isolated child modules remain present.
+The action key and physical image staging use the same package selection.
+Excluded packages are absent from the image and the child's writable copy;
+their bytes are not merely removed from a label while remaining readable.
+
+Unknown dependency syntax/configuration or nested unmodelled data expands fresh
+execution back to the complete source tree and retains the unresolved reasons.
+It cannot qualify narrowed reuse. Selected package additions, deletions, renames,
+imports, bytes and modes remain inputs. The existing finite configuration review
+and its exact JS/toolchain pins are unchanged.
+
+The child's original restoration snapshot and the independent Git snapshot
+cover the staged cohort. The parent checks selected checkout bytes and modes
+before and after isolation; family collection separately retains full tracked
+checkout clean/HEAD and per-action/final restoration checks. Image directory
+membership, extra files, regular-file modes and bytes are checked independently.
+No host mount or additional inherited environment is introduced.
+
+Changing the extractor/executor bytes invalidates earlier action keys. A
+successful old full-source mutation run does not establish this new execution
+boundary. Actual isolated execution of all thirteen mutations, restoration and
+final consumer verification are still required, followed by compatible fresh
+main comparisons and ordinary PR reuse. CPU identity is retained. Source file
+counts are not measured runner savings; capture, image, transfer and final-check
+costs remain part of the unfinished net-savings acceptance.
+
 The initial mutation input walk encountered fourteen literal package options
 that the general limited parser deliberately leaves unknown. The finite policy
 in `package-configurations.mjs` records independently reviewed package paths,

@@ -1,22 +1,29 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtempSync, mkdirSync, writeFileSync, chmodSync, rmSync, symlinkSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, writeFileSync, chmodSync, rmSync, symlinkSync, existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join, dirname} from 'node:path';
 import {hash} from './inputs.mjs';
 import {mutationIds} from './receipts.mjs';
 import {mutationContracts} from './mutation-inventory.mjs';
 import {stageMutationSource, isolatedSourceFiles, mutationSnapshotExtras, isolatedEnvironment, scratchDockerfile, isolatedRunArguments} from './isolation.mjs';
-import {observeImageRoot, imageRuntime, checkIsolatedInputs, checkIsolatedResult, snapshotFromGit, runtimeForAction, readActionRuntimes} from './isolated-runtime.mjs';
+import {observeImageRoot, imageRuntime, checkIsolatedInputs, checkIsolatedResult, snapshotFromGit, checkMutationCheckout, runtimeForAction, readActionRuntimes} from './isolated-runtime.mjs';
 import {staticElf} from './isolated-execution.mjs';
 import {isolatedContract, matchesIsolatedContract, isolatedExperimentDigest, isolatedExperimentPaths} from './isolated-contract.mjs';
+import {snapshot} from '../bounded-session/evidence.mjs';
 
-function fixture(t) {
+function fixture(t, scoped = false) {
   const root = mkdtempSync(join(tmpdir(), 'actql-image-correspondence-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));
   const bodies = new Map([...isolatedSourceFiles, ...mutationSnapshotExtras, ...isolatedExperimentPaths,
     'proofs/bounded-session/mutations.mjs', 'proofs/bounded-session/evidence.mjs', 'src/example/moon.pkg', 'src/example/source.mbt']
     .map(path => [path, Buffer.from(path)]));
+  if (scoped) {
+    for (const path of ['src/bounded_execution', 'src/connectors/local', 'src/query_integration'])
+      bodies.set(`${path}/moon.pkg`, Buffer.from('import { "actql/actql/example" }'));
+    bodies.set('src/example/moon.pkg', Buffer.from(''));
+    bodies.set('src/unrelated/value.mbt', Buffer.from('outside physical scope'));
+  }
   const tree = {entries: new Map([...bodies.keys()].map(path => [path, {mode: '100644', kind: 'blob'}])), read: path => bodies.get(path)};
   stageMutationSource({tree, destination: root});
   const executables = ['runtime/node', ...['moon', 'moonc', 'moonrun'].map(name => `runtime/moonbit/bin/${name}`), 'bin/sh'];
@@ -47,8 +54,30 @@ function fixture(t) {
   const files = {'isolated-inputs.json': manifest, 'isolated-observation.json': payload, 'isolated-execution.json': execution,
     'receipts/mutations-js.json': {origin: state.origin, inputs: {inputs: {runtime}}, execution: {milliseconds: 15}},
     'results/mutations-js.json': {...report, sourceRestored: true, revision: state.context.candidateRevision}};
-  return {tree, manifest, runtime, before, payload, state, execution, files, zip: {json: async path => files[path]}};
+  return {root, tree, manifest, runtime, before, payload, state, execution, files, zip: {json: async path => files[path]}};
 }
+
+test('the child snapshot and independent Git snapshot bind the same physically narrowed cohort', t => {
+  const f = fixture(t, true);
+  assert.equal(existsSync(join(f.root, 'source/src/unrelated/value.mbt')), false);
+  assert.deepEqual(snapshot(join(f.root, 'source')), f.before);
+  assert.deepEqual(checkMutationCheckout({root: join(f.root, 'source'), tree: f.tree}), f.before);
+  assert(checkIsolatedInputs(f)); assert(checkIsolatedResult(f));
+  mkdirSync(join(f.root, 'source/src/unrelated')); writeFileSync(join(f.root, 'source/src/unrelated/value.mbt'), 'unexpected image input');
+  const manifest = {...f.manifest, root: observeImageRoot(f.root)};
+  assert.throws(() => checkIsolatedInputs({runtime: imageRuntime(manifest), manifest, tree: f.tree}), /source directory|source inputs/u);
+  const input = join(f.root, 'source/src/example/source.mbt');
+  writeFileSync(input, 'unrestored selected source');
+  assert.throws(() => checkMutationCheckout({root: join(f.root, 'source'), tree: f.tree}), /bytes differ/u);
+});
+
+test('selected host source modes and links cannot substitute for actual Git inputs', t => {
+  const f = fixture(t, true), input = join(f.root, 'source/src/example/source.mbt');
+  chmodSync(input, 0o755);
+  assert.throws(() => checkMutationCheckout({root: join(f.root, 'source'), tree: f.tree}), /mode differs/u);
+  rmSync(input); symlinkSync('moon.pkg', input);
+  assert.throws(() => checkMutationCheckout({root: join(f.root, 'source'), tree: f.tree}), /Nonregular/u);
+});
 
 test('actual staged bytes, internal link targets, Git source and original assertion logs correspond', async t => {
   const f = fixture(t);

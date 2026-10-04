@@ -6,8 +6,7 @@ import {reviewedPackageConfiguration, packageConfigurationReview} from './packag
 
 export const inputVersion = 'actql-verification-action-inputs/0.1';
 export const hash = value => createHash('sha256').update(value).digest('hex');
-// The existing mutation executor's restoration snapshot reads these files as
-// well as all src and proofs/bounded-session members, independently of imports.
+// The mutation executor also reads these audit inputs during restoration.
 export const mutationSnapshotExtras = Object.freeze([
   'toolchain.json', 'moon.mod',
   'docs/reviews/2026-09-23-local-resource-production-routes.json',
@@ -126,12 +125,77 @@ export function packageImports(source) {
   return {imports: [...new Set(imports)].sort(), unknown: remainder.trim() ? 'Unreviewed package configuration' : null};
 }
 
+// Bind the selected compiler packages and their literal transitive imports.
+// Package members include tests and non-Moon files; nested unmodelled data and
+// configuration never become an inferred closed boundary.
+export function packageSourceInputs({tree, packages, target}) {
+  const paths = new Set(), listings = new Map(), external = new Set(), unresolved = new Set(), configurations = [];
+  const visited = new Set();
+  const toolchainDigest = tree.entries.get('toolchain.json')?.kind === 'blob' ? hash(tree.read('toolchain.json')) : null;
+  function add(path) {
+    if (!tree.entries.has(path)) { unresolved.add(`missing source input: ${path}`); return; }
+    paths.add(path);
+    const entry = tree.entries.get(path);
+    if (!validPath(path)) unresolved.add(`unmodelled source path: ${path}`);
+    if (!['100644', '100755'].includes(entry.mode) || entry.kind !== 'blob') unresolved.add(`unsupported source kind/mode: ${path}`);
+  }
+  function visit(directory) {
+    if (visited.has(directory)) return;
+    visited.add(directory);
+    const members = [...tree.entries.keys()].filter(path => path.startsWith(`${directory}/`) &&
+      !path.slice(directory.length + 1).includes('/')).sort();
+    listings.set(`${directory}/*`, members); members.forEach(add);
+    const manifest = `${directory}/moon.pkg`; add(manifest);
+    if (tree.entries.get(manifest)?.kind !== 'blob') return;
+    let result;
+    try { result = packageImports(tree.read(manifest).toString('utf8')); }
+    catch { unresolved.add(`unmodelled import syntax: ${manifest}`); return; }
+    if (result.unknown) {
+      const digest = hash(tree.read(manifest));
+      if (reviewedPackageConfiguration({path: manifest, digest, target, toolchainDigest}))
+        configurations.push({path: manifest, digest, target, toolchainDigest, review: packageConfigurationReview});
+      else unresolved.add(`${result.unknown}: ${manifest}`);
+    }
+    for (const dependency of result.imports) {
+      if (dependency.startsWith('actql/actql/')) {
+        const child = `src/${dependency.slice('actql/actql/'.length)}`;
+        if (!validPath(child)) { unresolved.add(`invalid local dependency: ${manifest}`); continue; }
+        visit(child);
+      } else if (dependency.startsWith('moonbitlang/core/')) external.add(dependency);
+      else unresolved.add(`unmodelled external dependency: ${dependency}`);
+    }
+    for (const path of tree.entries.keys()) {
+      if (path.startsWith(`${directory}/`) && path.slice(directory.length + 1).includes('/')) {
+        const first = `${directory}/${path.slice(directory.length + 1).split('/')[0]}`;
+        if (!tree.entries.has(`${first}/moon.pkg`)) { add(path); unresolved.add(`nested package input requires review: ${path}`); }
+      }
+    }
+  }
+  packages.forEach(visit);
+  return {paths: [...paths].sort(), directories: [...listings].sort(([a], [b]) => a.localeCompare(b))
+    .map(([path, members]) => ({path, members})), externalPackages: [...external].sort(),
+    packageConfigurations: configurations.sort((a, b) => a.path.localeCompare(b.path)), unresolved: [...unresolved].sort()};
+}
+
+export const mutationPackages = Object.freeze(['src/bounded_execution', 'src/connectors/local', 'src/query_integration']);
+export function mutationSourceInputs(tree) {
+  const selected = packageSourceInputs({tree, packages: mutationPackages, target: 'js'});
+  if (selected.unresolved.length) {
+    // Unknown dependency syntax prevents narrowing. Keep fresh execution's
+    // complete source tree, and preserve the reasons that forbid reuse.
+    const members = [...tree.entries.keys()].filter(path => path.startsWith('src/')).sort();
+    selected.paths = [...new Set([...selected.paths, ...members])].sort();
+    selected.directories.push({path: 'src/**', members});
+    selected.directories.sort((a, b) => a.path.localeCompare(b.path));
+  }
+  return selected;
+}
+
 export function actionInputs({tree, revision, action, runtime}) {
   assert(validSha(revision));
   assert(runtime && typeof runtime === 'object' && Array.isArray(runtime.unresolved), 'Missing runtime boundary');
   const included = new Set(), listings = new Map(), external = new Set(), unresolved = new Set(runtime.unresolved);
   const configurations = [];
-  const toolchainDigest = tree.entries.get('toolchain.json')?.kind === 'blob' ? hash(tree.read('toolchain.json')) : null;
   function add(path) {
     if (!tree.entries.has(path)) { unresolved.add(`missing source input: ${path}`); return; }
     included.add(path);
@@ -152,49 +216,20 @@ export function actionInputs({tree, revision, action, runtime}) {
     for (const file of ['check.mjs', 'Session.lean', 'Claims.lean', 'lean-toolchain', 'setup-lean.mjs']) add(`proofs/bounded-session/${file}`);
   } else {
     listing('proofs/bounded-session', true);
-    const visited = new Set();
-    function visit(directory) {
-      if (visited.has(directory)) return;
-      visited.add(directory);
-      listing(directory, false);
-      const manifest = `${directory}/moon.pkg`;
-      add(manifest);
-      if (!tree.entries.has(manifest)) return;
-      let result;
-      try { result = packageImports(tree.read(manifest).toString('utf8')); }
-      catch { unresolved.add(`unmodelled import syntax: ${manifest}`); return; }
-      if (result.unknown) {
-        const digest = hash(tree.read(manifest));
-        if (reviewedPackageConfiguration({path: manifest, digest, target: action.target, toolchainDigest})) {
-          configurations.push({path: manifest, digest, target: action.target, toolchainDigest,
-            review: packageConfigurationReview});
-        } else unresolved.add(`${result.unknown}: ${manifest}`);
-      }
-      for (const dependency of result.imports) {
-        if (dependency.startsWith('actql/actql/')) {
-          const child = `src/${dependency.slice('actql/actql/'.length)}`;
-          if (!validPath(child)) { unresolved.add(`invalid local dependency: ${manifest}`); continue; }
-          visit(child);
-        } else if (dependency.startsWith('moonbitlang/core/')) external.add(dependency);
-        else unresolved.add(`unmodelled external dependency: ${dependency}`);
-      }
-      // Nested non-package files can be include/data/native inputs. This initial
-      // package boundary does not guess that such files are irrelevant.
-      for (const path of tree.entries.keys()) {
-        if (path.startsWith(`${directory}/`) && path.slice(directory.length + 1).includes('/')) {
-          const first = `${directory}/${path.slice(directory.length + 1).split('/')[0]}`;
-          if (!tree.entries.has(`${first}/moon.pkg`)) { add(path); unresolved.add(`nested package input requires review: ${path}`); }
-        }
-      }
+    const packageInputs = action.package ? packageSourceInputs({tree, packages: [action.package], target: action.target}) :
+      action.id === 'mutations-js' ? mutationSourceInputs(tree) : null;
+    if (packageInputs) {
+      packageInputs.paths.forEach(add);
+      packageInputs.directories.forEach(({path, members}) => listings.set(path, members));
+      packageInputs.externalPackages.forEach(path => external.add(path));
+      packageInputs.unresolved.forEach(reason => unresolved.add(reason));
+      configurations.push(...packageInputs.packageConfigurations);
     }
-    if (action.package) visit(action.package);
-    else if (action.id === 'mutations-js') {
-      listing('src', true);
+    if (action.id === 'mutations-js') {
       mutationSnapshotExtras.forEach(add);
       add('proofs/bounded-session/mutations.mjs');
       add('proofs/bounded-session/evidence.mjs');
-      for (const path of ['src/bounded_execution', 'src/connectors/local', 'src/query_integration']) visit(path);
-    } else unresolved.add(`unreviewed executor: ${action.id}`);
+    } else if (!action.package) unresolved.add(`unreviewed executor: ${action.id}`);
   }
   const paths = [...included].sort();
   tree.prefetch?.(paths.filter(path => tree.entries.get(path).kind === 'blob'));
