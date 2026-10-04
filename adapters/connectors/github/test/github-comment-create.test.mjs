@@ -168,7 +168,7 @@ test('only an Issue of the published repository passes the subject check',
     for (const [subject, code] of [
       ['PR_A8', 'GitHubCommentSubjectNotIssue'],
       ['I_B1', 'GitHubCommentForeignRepository'],
-      ['I_GONE', 'GitHubCommentSubjectRefused'],
+      ['I_GONE', 'GitHubCommentSubjectUnavailable'],
     ]) {
       await assert.rejects(context.check(subject), {code}, subject);
     }
