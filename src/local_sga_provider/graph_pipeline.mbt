@@ -2,6 +2,8 @@
 priv enum Phase {
   StartConstruction
   Construction
+  StartTransform
+  Transform
   StartProjection
   Projection
   Terminal
@@ -44,6 +46,7 @@ priv struct Execution {
   mut phase : Phase
   constructions : Array[@bridge.RowsToGraphExecution]
   mut graph : @graph.Completed?
+  mut transform : @sga.SubgraphExecution?
   mut relation : RelationExecution?
   mut stage_progress : Int64
   mut stage_work : Int64
@@ -96,6 +99,21 @@ fn constructor_material(sequence : @execution.GeneratedSequence) -> Bool {
     selected.unwrap_or(0),
   )
   is Some(@lower.PropertyGraphConstructionStep(_))
+}
+
+///|
+fn graph_material(sequence : @execution.GeneratedSequence) -> Bool {
+  if constructor_material(sequence) {
+    return true
+  }
+  let selected = @execution.completion_preparation_selected_step(
+    @execution.generated_completion_preparation(sequence),
+  )
+  let step = selected.unwrap_or(
+    @execution.generated_sequence_step_count(sequence) - 1,
+  )
+  @lower.sequence_step(@execution.generated_prepared_sequence(sequence), step)
+  is Some(@lower.GraphSubgraphStep(_))
 }
 
 ///|
@@ -182,6 +200,22 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         @lower.operation(node) == "SGA.traverse" &&
         accepts_traverse(traverse)
       }
+      @lower.GraphSubgraphStep(subgraph) => {
+        guard @lower.node_input_target(node, 0) is Some(input) &&
+          @lower.preparation_carrier_at(prepared, input) is Some(carrier) else {
+          return false
+        }
+        current_graph(carrier) &&
+        @lower.operation(node) == "SGA.subgraph" &&
+        (
+          @lower.graph_subgraph_literal_id_count(subgraph) is Some(_) ||
+          @lower.graph_subgraph_relation_selector_field(subgraph) is Some(_)
+        ) &&
+        (
+          @lower.graph_subgraph_literal_edge_predicate(subgraph) is Some(_) ||
+          @lower.graph_subgraph_edge_predicate(subgraph) is Some(_)
+        )
+      }
       @lower.CarrierProjectionStep(_) =>
         (
           @lower.operation(node) == "BRIDGE.graph.to_node_rows" ||
@@ -247,6 +281,7 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
       @lower.sequence_step(@execution.generated_prepared_sequence(sequence), 1) {
       Some(@lower.GraphMatchStep(_))
       | Some(@lower.GraphTraverseStep(_))
+      | Some(@lower.GraphSubgraphStep(_))
       | Some(@lower.GraphDiagnosticStep(_)) => ()
       _ => return false
     }
@@ -465,7 +500,15 @@ fn advance_execution(
               return fail_execution(value)
             }
             value.graph = Some(output)
-            value.phase = StartProjection
+            value.phase = if @lower.sequence_step(
+                value.sequence,
+                value.projection_step,
+              )
+              is Some(@lower.GraphSubgraphStep(_)) {
+              StartTransform
+            } else {
+              StartProjection
+            }
             if poll is @local.Continue(work=work_delta, ..) && work_delta > 0L {
               return Ok(poll)
             }
@@ -477,6 +520,132 @@ fn advance_execution(
             return Ok(poll)
           }
           Ok(@bridge.Stopped(_, progress~, work~)) => {
+            guard terminal_poll(value, progress, work, true) is Some(poll) else {
+              return fail_execution(value)
+            }
+            return Ok(poll)
+          }
+        }
+      }
+      StartTransform => {
+        let direct_view = if value.graph is None &&
+          value.carrier_inputs.length() == 1 {
+          Some(value.carrier_inputs[0])
+        } else {
+          None
+        }
+        let selector = match
+          @lower.sequence_step(value.sequence, value.projection_step) {
+          Some(@lower.GraphSubgraphStep(subgraph)) =>
+            if @lower.graph_subgraph_relation_selector_field(subgraph)
+              is Some(_) {
+              input_at(value, value.projection_step, 1)
+            } else {
+              None
+            }
+          _ => return fail_execution(value)
+        }
+        let started = if direct_view is Some(view) {
+          @sga.start_subgraph_view(
+            value.control,
+            value.sequence,
+            value.projection_step,
+            view,
+            selector,
+            value.limits,
+            value.storage_bytes,
+            fn() { true },
+            control_work_limit=Some(value.limits.max_work),
+          )
+        } else {
+          guard value.graph is Some(graph) &&
+            @graph.prepare_step_read(
+              @execution.generated_sequence_owner(value.generated),
+              value.projection_step,
+              0,
+              graph,
+            )
+            is Ok(read) else {
+            return fail_execution(value)
+          }
+          @sga.start_subgraph(
+            value.control,
+            value.sequence,
+            value.projection_step,
+            read,
+            selector,
+            value.limits,
+            value.storage_bytes,
+            fn() { true },
+            control_work_limit=Some(value.limits.max_work),
+          )
+        }
+        value.transform = match started {
+          Ok(execution) => Some(execution)
+          Err(_) => return fail_execution(value)
+        }
+        value.phase = Transform
+        reset_stage(value)
+      }
+      Transform => {
+        guard value.transform is Some(active) else {
+          return fail_execution(value)
+        }
+        match @sga.advance_subgraph(active, quantum) {
+          Err(_) => return fail_execution(value)
+          Ok(@sga.SubgraphContinue(progress~, work~)) => {
+            guard continue_poll(value, progress, work) is Some(poll) else {
+              return fail_execution(value)
+            }
+            return Ok(poll)
+          }
+          Ok(@sga.SubgraphComplete(output, progress~, work~)) => {
+            guard delta(progress, value.stage_progress) is Some(progress_delta) &&
+              delta(work, value.stage_work) is Some(work_delta) else {
+              @graph.discard_completed(output) |> ignore
+              return fail_execution(value)
+            }
+            let material = match value.snapshot_policy {
+              None => @graph.completed_material(output).map_err(_ => issue())
+              Some(policy) =>
+                @bridge.completed_property_snapshot_material(
+                  value.control,
+                  @execution.generated_sequence_owner(value.generated),
+                  @pipeline.Step(value.projection_step),
+                  output,
+                  value.limits,
+                  policy.serialization,
+                  policy.read,
+                  policy.maximum_bytes,
+                  policy.maximum_frame_bytes,
+                  policy.workspace_bytes,
+                  fn() { true },
+                ).map_err(_ => issue())
+            }
+            let material = match material {
+              Ok(material) => material
+              Err(_) => {
+                @graph.discard_completed(output) |> ignore
+                return fail_execution(value)
+              }
+            }
+            discard(value.graph) |> ignore
+            value.graph = None
+            value.terminal = true
+            value.phase = Terminal
+            return Ok(
+              @local.managed_provider_carrier_complete(
+                material, progress_delta, work_delta,
+              ),
+            )
+          }
+          Ok(@sga.SubgraphFailed(_, progress~, work~)) => {
+            guard terminal_poll(value, progress, work, false) is Some(poll) else {
+              return fail_execution(value)
+            }
+            return Ok(poll)
+          }
+          Ok(@sga.SubgraphStopped(_, progress~, work~)) => {
             guard terminal_poll(value, progress, work, true) is Some(poll) else {
               return fail_execution(value)
             }
@@ -1035,6 +1204,12 @@ fn cleanup_execution(
         }
     }
   }
+  if value.transform is Some(active) {
+    match @sga.cleanup_subgraph(active) {
+      Ok(_) => ()
+      Err(_) => failed = true
+    }
+  }
   discard(value.graph) |> ignore
   value.graph = None
   let mut construction_pending = false
@@ -1058,10 +1233,14 @@ fn cleanup_execution(
     Some(ComponentsExecution(active)) => @sga.components_cleanup_pending(active)
     None => false
   }
+  let transform_pending = match value.transform {
+    Some(active) => @sga.subgraph_cleanup_pending(active)
+    None => false
+  }
   if failed {
     return Err(issue())
   }
-  if construction_pending || projection_pending {
+  if construction_pending || projection_pending || transform_pending {
     return Ok(false)
   }
   value.reclaimed = true
@@ -1089,7 +1268,7 @@ pub fn provider(
           @lower.sequence_count(
             @execution.generated_prepared_sequence(sequence),
           ),
-          if constructor_material(sequence) {
+          if graph_material(sequence) {
             snapshot_policy.map(policy => policy.workspace_bytes).unwrap_or(0L)
           } else {
             0L
@@ -1125,6 +1304,27 @@ pub fn provider(
         ) {
         Some(@lower.GraphTraverseStep(_)) => selected_step is Some(_)
         _ => false
+      }
+      let direct_subgraph = match
+        @lower.sequence_step(
+          @execution.generated_prepared_sequence(sequence),
+          selected_step.unwrap_or(0),
+        ) {
+        Some(@lower.GraphSubgraphStep(_)) => selected_step is Some(_)
+        _ => false
+      }
+      let direct_subgraph_relation_count = match
+        @lower.sequence_step(
+          @execution.generated_prepared_sequence(sequence),
+          selected_step.unwrap_or(0),
+        ) {
+        Some(@lower.GraphSubgraphStep(subgraph)) =>
+          if @lower.graph_subgraph_relation_selector_field(subgraph) is Some(_) {
+            1
+          } else {
+            0
+          }
+        _ => 0
       }
       let direct_traverse_relation_count = match
         @lower.sequence_step(
@@ -1185,10 +1385,19 @@ pub fn provider(
         if relations.length() != expected || !carriers.is_empty() {
           return Err(@connector.Execution(@execution.InputSet))
         }
-      } else if direct_match || direct_traverse || direct_diagnostic {
+      } else if direct_match ||
+        direct_traverse ||
+        direct_subgraph ||
+        direct_diagnostic {
         if carriers.length() != 1 ||
           relations.length() !=
-          (if direct_traverse { direct_traverse_relation_count } else { 0 }) {
+          (if direct_traverse {
+            direct_traverse_relation_count
+          } else if direct_subgraph {
+            direct_subgraph_relation_count
+          } else {
+            0
+          }) {
           return Err(@connector.Execution(@execution.InputSet))
         }
       } else if !carriers.is_empty() {
@@ -1203,7 +1412,7 @@ pub fn provider(
         control: @bounded.control(),
         limits,
         storage_bytes,
-        snapshot_policy: if constructor_material(sequence) {
+        snapshot_policy: if graph_material(sequence) {
           snapshot_policy
         } else {
           None
@@ -1217,11 +1426,14 @@ pub fn provider(
         construction_steps,
         phase: if construction_steps == 1 {
           StartConstruction
+        } else if direct_subgraph {
+          StartTransform
         } else {
           StartProjection
         },
         constructions: [],
         graph: None,
+        transform: None,
         relation: None,
         stage_progress: 0L,
         stage_work: 0L,

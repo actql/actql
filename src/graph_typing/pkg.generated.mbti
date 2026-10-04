@@ -248,6 +248,10 @@ pub fn subgraph_output(CheckedSubgraph) -> @carrier_contract.Carrier
 
 pub fn subgraph_pending(CheckedSubgraph) -> Array[SubgraphObligation]
 
+pub fn subgraph_pending_at(CheckedSubgraph, Int) -> SubgraphObligation?
+
+pub fn subgraph_pending_count(CheckedSubgraph) -> Int
+
 pub fn subgraph_source(CheckedSubgraph) -> @decode_core.Cursor
 
 pub fn subgraph_usage(CheckedSubgraph) -> PredicateUsage

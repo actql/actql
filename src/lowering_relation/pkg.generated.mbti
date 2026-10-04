@@ -335,6 +335,20 @@ pub fn graph_match_type_at(PreparedGraphMatch, Int) -> String?
 
 pub fn graph_match_type_count(PreparedGraphMatch) -> Int?
 
+pub fn graph_subgraph_edge_fields(PreparedGraphSubgraph) -> @carrier_contract.Knowledge
+
+pub fn graph_subgraph_edge_predicate(PreparedGraphSubgraph) -> Expression?
+
+pub fn graph_subgraph_edge_property_position(PreparedGraphSubgraph, Int, Int) -> Int?
+
+pub fn graph_subgraph_literal_edge_predicate(PreparedGraphSubgraph) -> Bool?
+
+pub fn graph_subgraph_literal_id_at(PreparedGraphSubgraph, Int) -> @value_admission.CheckedValue?
+
+pub fn graph_subgraph_literal_id_count(PreparedGraphSubgraph) -> Int?
+
+pub fn graph_subgraph_relation_selector_field(PreparedGraphSubgraph) -> @relation_schema.FieldName?
+
 pub fn graph_traverse_bounds(PreparedGraphTraverse) -> (Int64, Int64)?
 
 pub fn graph_traverse_emits_paths(PreparedGraphTraverse) -> Bool
@@ -1236,6 +1250,13 @@ pub(all) enum GraphMatchLiteralSelection {
   SelectAllEntities
 } derive(Eq, @debug.Debug)
 
+pub(all) enum GraphSubgraphIssue {
+  InvalidGraphSubgraphLimits
+  InvalidGraphSubgraphWiring
+  GraphSubgraphPreparationLimit
+  GraphSubgraphExpression(ExpressionIssue)
+}
+
 pub(all) enum GraphTraverseIssue {
   InvalidGraphTraverseLimits
   InvalidGraphTraverseWiring
@@ -1430,6 +1451,7 @@ pub enum Payload {
   GraphBoundsRows(@graph_typing.CheckedGraphBounds)
   GraphDegreeRows(@graph_typing.CheckedDegree)
   GraphComponentsRows(@graph_typing.CheckedComponents)
+  GraphSubgraphValue(@graph_typing.CheckedSubgraph)
   GraphTraverseRows(@graph_typing.CheckedTraverse)
   PropertyGraphConstructionValue(@graph_typing.CheckedPropertyConstruction)
   VectorValue(@vector_typing.CheckedVector)
@@ -1505,6 +1527,8 @@ type PreparedGraphDiagnostic
 
 type PreparedGraphMatch
 
+type PreparedGraphSubgraph
+
 type PreparedGraphTraverse
 
 type PreparedGroup
@@ -1578,6 +1602,7 @@ pub enum PreparedStep {
   NestStep(PreparedNestKernel)
   GraphMatchStep(PreparedGraphMatch)
   GraphDiagnosticStep(PreparedGraphDiagnostic)
+  GraphSubgraphStep(PreparedGraphSubgraph)
   GraphTraverseStep(PreparedGraphTraverse)
   PropertyGraphConstructionStep(PreparedPropertyGraphConstruction)
   VectorStep(PreparedVector)
@@ -1668,6 +1693,7 @@ pub(all) enum SequenceIssue {
   NestFailure(Int, NestIssue)
   GraphMatchFailure(Int, GraphMatchIssue)
   GraphDiagnosticFailure(Int, GraphDiagnosticIssue)
+  GraphSubgraphFailure(Int, GraphSubgraphIssue)
   GraphTraverseFailure(Int, GraphTraverseIssue)
   GraphConstructionFailure(Int, GraphConstructionIssue)
   VectorFailure(Int, VectorIssue)

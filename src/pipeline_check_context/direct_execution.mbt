@@ -88,6 +88,10 @@ fn direct_execution_candidate(
     Ok(None) => ()
     other => return other
   }
+  match subgraph_execution_check(site, policy) {
+    Ok(None) => ()
+    other => return other
+  }
   match graph_selector_execution_check(site, policy) {
     Ok(None) => ()
     other => return other

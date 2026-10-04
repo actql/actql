@@ -17,6 +17,7 @@ pub(all) enum OperationExecutionCheck {
   GraphSelectorExecution(GraphSelectorCheck)
   GraphMatchExecution(GraphMatchCheck)
   GraphDiagnosticExecution(GraphDiagnosticCheck)
+  SubgraphExecution(SubgraphExecutionCheck)
   VectorExecution(VectorCheck)
   NearestExecution(NearestCheck)
   PoolExecution(PoolCheck)
@@ -99,6 +100,14 @@ pub fn operation_execution_phase(
       match v.rule {
         RequireDiagnosticResources => BeforeOperationInputUse
         EnforceDiagnosticRows => BeforeOperationOutput
+      }
+    SubgraphExecution(v) =>
+      match v.rule {
+        AdmitSubgraphGraph | EnforceSubgraphResources => BeforeOperationInputUse
+        InduceSubgraphEndpoints
+        | FilterSubgraphEdges
+        | PreserveSubgraphIdentities
+        | PreserveSubgraphPolicy => BeforeOperationOutput
       }
     VectorExecution(v) =>
       match v.rule {
@@ -287,6 +296,7 @@ pub fn operation_execution_failure(
     GraphSelectorExecution(_)
     | GraphMatchExecution(_)
     | GraphDiagnosticExecution(_)
+    | SubgraphExecution(_)
     | VectorExecution(_)
     | NearestExecution(_)
     | PoolExecution(_)

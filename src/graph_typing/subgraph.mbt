@@ -195,3 +195,34 @@ pub fn subgraph_pending(checked : CheckedSubgraph) -> Array[SubgraphObligation] 
   out.push(ResolveSubgraphProfile)
   out
 }
+
+///|
+pub fn subgraph_pending_count(checked : CheckedSubgraph) -> Int {
+  if checked.edges is Some(_) {
+    7
+  } else {
+    6
+  }
+}
+
+///|
+pub fn subgraph_pending_at(
+  checked : CheckedSubgraph,
+  index : Int,
+) -> SubgraphObligation? {
+  match index {
+    0 => Some(AdmitSubgraphInput)
+    1 => Some(InduceSelectedEndpoints)
+    2 if checked.edges is Some(_) => Some(FilterInducedEdges)
+    _ => {
+      let offset = if checked.edges is Some(_) { 3 } else { 2 }
+      match index - offset {
+        0 => Some(PreserveSubgraphIdentitiesAndProperties)
+        1 => Some(PreserveSubgraphPolicyAndScope)
+        2 => Some(ResolveSubgraphResources)
+        3 => Some(ResolveSubgraphProfile)
+        _ => None
+      }
+    }
+  }
+}

@@ -813,6 +813,7 @@ pub fn generated_sequence_all_row_kernels(
       | @lower.SetStep(_)
       | @lower.NestStep(_)
       | @lower.GraphMatchStep(_)
+      | @lower.GraphSubgraphStep(_)
       | @lower.GraphTraverseStep(_)
       | @lower.GraphDiagnosticStep(_)
       | @lower.PropertyGraphConstructionStep(_)
