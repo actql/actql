@@ -329,7 +329,9 @@ if (existsSync(join(root, 'src', bridgePackage, 'authorization_bridge.mbt'))) {
 if (hasClientProgramBridge) {
   dependencies.set('actql/actql/stage_results', 'effect_results');
   dependencies.set('actql/actql/source_frontend', 'source_frontend');
-  dependencies.set('actql/actql/frontend_source_map', 'source_origin');
+  if (existsSync(join(root, 'src', bridgePackage, 'client_check.mbt'))) {
+    dependencies.set('actql/actql/frontend_source_map', 'source_origin');
+  }
   dependencies.set('actql/actql/query_program', 'query_program');
   dependencies.set('actql/actql/query_syntax', 'query_syntax');
   dependencies.set('actql/actql/parameter_binding', 'parameter_binding');
