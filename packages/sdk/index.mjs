@@ -9,6 +9,70 @@ import {checkpointLimits, clientSourceFormats, isClientSubmitRejection, validCan
   validResultDescription, validCheckOutcome} from
   '@actql/client-wire';
 import {bytesCid, contentCid, checkedSigner, signedAnswer} from './checkpoints.mjs';
+// The response owns only a weak association to this call's immutable inputs.
+// A parsed/copied report has no such association and cannot resolve a location.
+const checkInputs = new WeakMap();
+const utf8 = new TextEncoder();
+const freezeInput = value => {
+  if (value !== null && typeof value === 'object') {
+    for (const child of Object.values(value)) freezeInput(child);
+    Object.freeze(value);
+  }
+  return value;
+};
+
+export function getCheckInput(outcome, documentId, revision) {
+  const input = checkInputs.get(outcome)?.get(documentId);
+  return input && (revision === undefined || input.revision === revision)
+    ? input : undefined;
+}
+
+// Reading original bytes and converting offsets is not parsing the language.
+export function resolveCheckLocation(outcome, location, currentInput) {
+  const original = getCheckInput(outcome, location?.document_id, location?.revision);
+  const input = currentInput ?? original;
+  if (!original || !input || location.revision !== original.revision ||
+      input.documentId !== original.documentId ||
+      input.revision !== original.revision || input.kind !== original.kind ||
+      location.kind !== original.kind ||
+      (input.kind === 'text' ? input.text !== original.text :
+        JSON.stringify(input.value) !== JSON.stringify(original.value))) return undefined;
+  if (location.kind === 'structured') {
+    return Object.freeze({...location, input});
+  }
+  const bytes = utf8.encode(original.text);
+  const boundary = at => Number.isSafeInteger(at) && at >= 0 && at <= bytes.length &&
+    (at === bytes.length || (bytes[at] & 0xc0) !== 0x80);
+  if (!boundary(location.start_byte) || !boundary(location.end_byte) ||
+      location.start_byte > location.end_byte) return undefined;
+  return Object.freeze({...location, input,
+    text: new TextDecoder('utf-8', {fatal: true, ignoreBOM: true})
+      .decode(bytes.subarray(location.start_byte, location.end_byte))});
+}
+
+// Presentation never participates in verdicts, admission or retry decisions.
+export function explainCheckReason(reason) {
+  const explanations = {
+    query_syntax_invalid: ['The query syntax is invalid.', 'Correct the query syntax at the reported location when available.'],
+    parameter_undeclared: ['The query refers to an undeclared parameter.', 'Declare the parameter or correct its reference; a value alone cannot declare it.'],
+    query_invalid: ['The query violates its language or name-resolution contract.', 'Correct the query using its declared names and visible context.'],
+    parameter_declarations_invalid: ['The parameter declarations are invalid.', 'Correct the supplied declarations.'],
+    supplied_parameters_invalid: ['The supplied parameter input is invalid.', 'Correct the supplied parameter map.'],
+    supplied_value_invalid: ['A supplied value violates its declaration.', 'Correct the value to satisfy its declared contract.'],
+    supplied_value_type_mismatch: ['A supplied value has the wrong type.', 'Supply a value of the declared type.'],
+    parameter_value_required: ['A declared parameter value is missing.', 'Supply the declared value and check the complete bound input again.'],
+    program_invalid: ['The input violates the checked Program contract.', 'Correct the input under the selected contract.'],
+    bound_values_missing: ['Required bound inputs are missing.', 'Supply the declared inputs and check again.'],
+    implementation_limit: ['This checking implementation cannot discharge an obligation.', 'Use a checking implementation that supports the allowed construct.'],
+    analysis_budget_exhausted: ['The analysis budget was exhausted.', 'Ask the checking-context owner to review the analysis budget.'],
+    check_unclassified: ['The checker could not establish a classified conclusion.', 'Ask the checking-context owner to investigate.'],
+    unresolved_protected: ['Source resolution cannot be established from the disclosed context.', 'Ask the Source or checking-context owner to review the published context.'],
+  };
+  const known = Object.hasOwn(explanations, reason?.code) ? explanations[reason.code] : undefined;
+  return Object.freeze(known ? {kind: 'known', summary: known[0], hint: known[1]}
+    : {kind: 'unknown', summary: 'No supported explanation is available for this reason.'});
+}
+
 const positive = value => Number.isSafeInteger(value) && value > 0;
 const maxControlResponseBytes = 1024 * 1024;
 
@@ -620,22 +684,53 @@ async function connectSelected(selected, port) {
     // Host's actql-check-outcome/0.1 value: a report bound to its scope and
     // context, a failure, or unavailable. None of them is a thrown error.
     check: async (text, options = {}) => {
-      const input = {text, format: options.format,
-        ...(options.parameterDeclarations === undefined ? {} :
-          {parameterDeclarations: options.parameterDeclarations})};
-      const body = {input, parameters: options.parameters ?? null};
+      if (typeof text !== 'string') fail('InvalidCheckRequest');
+      const signal = options.signal;
+      let body;
+      try {
+        // Detach caller-owned objects synchronously, before credentials or I/O.
+        body = freezeInput(JSON.parse(JSON.stringify({input: {text, format: options.format,
+          ...(options.parameterDeclarations === undefined ? {} :
+            {parameterDeclarations: options.parameterDeclarations})},
+          parameters: options.parameters ?? null})));
+      } catch { fail('InvalidCheckRequest'); }
       if (!validClientBody('check', {connection: selected.wire, ...body})) {
         fail('InvalidCheckRequest');
       }
       let outcome;
       try { outcome = await controlValue(await exchange('check', body,
-        options.signal)); }
+        signal)); }
       catch (cause) {
         if (cause instanceof ClientError) throw cause;
         throw new ClientError('InvalidHostCheckOutcome', {cause});
       }
       if (!validCheckOutcome(outcome)) fail('InvalidHostCheckOutcome');
-      return outcome;
+      const report = outcome.report ?? outcome.partial_report;
+      if (report) {
+        const received = new Map([['source', {kind: 'text', text: body.input.text}]]);
+        if (body.input.parameterDeclarations !== undefined) received.set('parameter_declarations',
+          {kind: 'structured', value: body.input.parameterDeclarations});
+        if (body.parameters !== null) received.set('parameters', {kind: 'structured', value: body.parameters});
+        if (report.inputs.length !== received.size) fail('InvalidHostCheckOutcome');
+        const snapshots = new Map();
+        for (const document of report.inputs) {
+          const original = received.get(document.document_id);
+          if (!original || document.kind !== original.kind || document.byte_length !==
+              utf8.encode(original.kind === 'text' ? original.text : JSON.stringify(original.value)).length) {
+            fail('InvalidHostCheckOutcome');
+          }
+          snapshots.set(document.document_id, Object.freeze({...original,
+            documentId: document.document_id, revision: document.revision}));
+        }
+        checkInputs.set(outcome, snapshots);
+        for (const reason of [...report.reasons, ...(report.requirements ?? [])]) {
+          if (reason.location && !resolveCheckLocation(outcome, reason.location)) {
+            checkInputs.delete(outcome);
+            fail('InvalidHostCheckOutcome');
+          }
+        }
+      }
+      return freezeInput(outcome);
     },
     start: (program, options = {}) => {
       if (program === null || typeof program !== 'object' ||

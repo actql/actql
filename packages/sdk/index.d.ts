@@ -2,13 +2,24 @@ import type {ClientSourceFormat, WireCancellation, WireCheckpointSummary, WireCl
   WireRequestCancellation,
   WireDeliveryAttemptLookup, WireHeldRequest, WireRequestLookup,
   WireResolveItem, WireResolveResult, WireRunRef,
-  WireRunState, WireResultDescription, WireCheckOutcome} from
+  WireRunState, WireResultDescription, WireCheckOutcome, WireCheckLocation} from
   '@actql/client-wire';
 
 export type Durability = 'volatile' | 'durable';
 export type RunReference = WireRunRef;
 /** actql-check-outcome/0.1. */
 export type CheckOutcome = WireCheckOutcome;
+export type CheckInput = Readonly<{documentId: string; revision: string}> & (
+  Readonly<{kind: 'text'; text: string}> | Readonly<{kind: 'structured'; value: unknown}>);
+/** Available only for the exact response of this SDK check call. */
+export declare function getCheckInput(outcome: CheckOutcome, documentId: string,
+  revision?: string): CheckInput | undefined;
+/** Omitted when original input is unavailable, stale or mismatched. No edits are applied. */
+export declare function resolveCheckLocation(outcome: CheckOutcome,
+  location: WireCheckLocation, currentInput?: CheckInput):
+  (WireCheckLocation & Readonly<{input: CheckInput; text?: string}>) | undefined;
+export declare function explainCheckReason(reason: Readonly<{code: string}>):
+  Readonly<{kind: 'known' | 'unknown'; summary: string; hint?: string}>;
 
 type ConnectedEndpoint = Readonly<{
   endpoint: string;
