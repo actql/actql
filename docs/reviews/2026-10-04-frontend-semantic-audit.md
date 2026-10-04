@@ -124,7 +124,12 @@ submitted HEAD. Summary is complete/passed with no evidence errors; command
 007 exits 0 with complete output. The unchanged application verifies all
 five Graph-row positives and five refusals on each transport, full ordered
 type contracts, stream completion, same-request Run reuse and no additional
-acquisition. Required-job/final aggregation is a separate CI result.
+acquisition. The same submitted-HEAD automatic run subsequently completed
+successfully: 27 successful jobs, including Client/pipeline evidence
+aggregation and the final check, plus the three conditional skips
+`performance-matrix`, `packed-query-evidence-probe`, and `focused-tests`.
+This closes #303's submitted integration verification; it does not close
+the separately owned CTE counterexample or the new selectors below.
 
 | Package | SHA-256 at this integrated public execution |
 |---|---|
