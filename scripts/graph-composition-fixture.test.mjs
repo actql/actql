@@ -1,10 +1,93 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {installNodeClientEffectRun} from '../adapters/host-node/client-effect-run.mjs';
 import {graphCompositionProgram, graphCompositionTemplates,
   graphCompositionExpectations, graphDefinitionCid,
   graphCompositionRefusalProgram, graphCompositionRefusalTemplates,
   computationCustodySince} from
   './fixtures/graph-infer-effect-input.mjs';
+
+const savedResultPolicy = Object.freeze({kind: 'data_policy',
+  cid: 'sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563',
+  wire: '{"classification":"unknown","source_data_policy_cids":[],"source_response_policy_cids":[],"unknown_provenance":true,"version":"actql-effective-data-policy/0.1"}'});
+
+async function restoreStartedEffect(resultPolicyOriginal, prepareExecution) {
+  // Stub only the opaque checked Program/Run tokens. The actual Host adapter
+  // must retrieve saved admission, recheck current authority and prepare it
+  // without selecting today's Policy or issuing another physical-start claim.
+  const prepared = {}, compilation = {}, allowed = {}, definition = {}, owner = {};
+  const identity = {requestId: 'graph-policy-restoration'};
+  const ref = {namespaceId: 'local', authorityScopeCid: 'sha256:' + '1'.repeat(64),
+    runDefinitionCid: 'sha256:' + '2'.repeat(64)};
+  const retained = JSON.parse(JSON.stringify({ref,
+    runDefinition: {wire: '{"run_id":"retained-graph-run"}'},
+    physicalStartReserved: true, preDispatchFailureConfirmed: false,
+    cancellationRequested: false, observedTerminalOutcome: null,
+    runAdmissionEvidence: {prepared: 'saved-prepared', authorization: 'saved-authorization',
+      ...(resultPolicyOriginal === undefined ? {} : {resultPolicyOriginal})}}));
+  const ok = value => ({$tag: 1, _0: value});
+  const forbidden = () => assert.fail('restoration must not start or redispatch physical work');
+  const moon = {
+    clientProgramEffectCompilationIssueCode: () => undefined,
+    clientProgramCompileLocalEffectsWithInfer: value => {
+      assert.equal(value, prepared); return ok(compilation);
+    },
+    clientProgramEffectRequestIdentity: value => {
+      assert.equal(value, prepared); return identity;
+    },
+    clientProgramSourceFreeInputIntentCid: () => 'source-free-intent',
+    strategyRunEvidenceAdmit: (kind, wire) => ok({kind, wire}),
+    strategyPublicationAdmit: (kind, wire) => {
+      assert.equal(kind, 'run_definition'); assert.equal(wire, retained.runDefinition.wire);
+      return ok(definition);
+    },
+    clientProgramAdmitAllowedEffectRun: (value, admission, authorization) => {
+      assert.equal(value, compilation); assert.equal(admission.wire, 'saved-prepared');
+      assert.equal(authorization.wire, 'saved-authorization'); return ok(allowed);
+    },
+    clientProgramBindCompiledEffectRun: (value, permission, run) => {
+      assert.equal(value, prepared); assert.equal(permission, allowed);
+      assert.equal(run, definition); return ok(owner);
+    },
+    clientProgramEffectRunStartCurrent: (permission, run) =>
+      permission === allowed && run === definition,
+    clientRunStartAction: forbidden,
+    clientRequestAuthorityScopeCid: () => ref.authorityScopeCid,
+    clientRequestCallerId: () => identity.requestId,
+  };
+  const journal = {
+    lookupDefinition: () => retained, reserveDispatch: forbidden,
+    reservePhysicalStart: forbidden,
+    async admitOrLookupDefinition(value, options) {
+      assert.equal(value, identity); assert.equal(options.namespaceId, 'local');
+      return retained;
+    },
+    resolveDefinition(value) { assert.equal(value, identity); return retained; },
+  };
+  const effectRun = installNodeClientEffectRun({moon, journal,
+    publicationControl: {admit: forbidden}, inferPlanFor: () => ({}),
+    resultPolicyOriginalFor: () => assert.fail('restoration must not select a current Host Policy'),
+    authorizeRequest: async () => ({}), authorizeRunStart: async () => true,
+    prepareExecution, execute: forbidden, now: () => '2026-10-04T00:00:00.000Z'});
+  const handle = await effectRun.accept({prepared, ...ref, requestId: identity.requestId,
+    principalId: 'owner', connection: {mode: 'local'}, lookupExpiresAt: '2026-10-05T00:00:00.000Z'});
+  return effectRun.restoreComputation(handle);
+}
+
+test('started Graph Effect restoration revalidates the saved Result Policy original without a new start', async () => {
+  const restored = await restoreStartedEffect(savedResultPolicy, facts => {
+    assert.deepEqual(facts.resultPolicyOriginal, savedResultPolicy);
+    return {retainedOriginal: facts.resultPolicyOriginal};
+  });
+  assert.deepEqual(restored.preparedExecution.retainedOriginal, savedResultPolicy);
+});
+
+test('started Graph Effect restoration cannot replace a missing saved Policy with current configuration', async () => {
+  await assert.rejects(restoreStartedEffect(undefined, facts => {
+    assert.equal(facts.resultPolicyOriginal, undefined);
+    throw new TypeError('InvalidHostResultDataPolicy');
+  }), {name: 'TypeError', message: 'InvalidHostResultDataPolicy'});
+});
 
 test('cleanup accounting compares the current execution window without borrowing prior Run counters', () => {
   const observation = (name, transferredBytes) => ({name, pendingScratch: true,

@@ -836,3 +836,49 @@ The Graph fixture, Client selection and target-read owner selections then pass
 33/33 (`run-WUe8ff`). Host/consumer syntax and whitespace checks pass. These
 focused checks do not establish fresh-packed execution of the integrated source;
 the complete four-case public Graph matrix and automatic PR CI remain required.
+
+### Saved Result Policy restoration at the target-read boundary
+
+Automatic run [37196944495](https://github.com/actql/actql/actions/runs/37196944495)
+tests merge `f1460dcc4f0509a62e1aff6a98751c6b39ecc1b3` for submitted
+`bf05c785a869f9d38b732b59613c403042c13533`. The tested tree equals the
+submitted tree. Producer artifact `11301856265` binds that merge; all five
+downloaded package digests match the manifest. Preflight, Host, lint and package
+distribution pass. The ordinary packed consumer `111424478016` fails; its
+dependent Client and Check aggregates fail as a consequence.
+
+The first Graph failure is `PackedEffectTimeout` with diagnostic
+`effect_resume_failed / InvalidHostResultDataPolicy`, before a Graph acceptance
+record is emitted. This differs from the historical typed MissingDependency
+failure. Main's target-read preparation restores the already started Effect
+computation through `client-effect-run.mjs:restoreComputation`. That adapter
+retrieves retained admission but omits its `resultPolicyOriginal` from the facts
+passed to `prepareExecution`. The source-free preparation calls
+`runtime-core.mjs:admitSourceFreeResultPolicy`; its Host original-shape guard
+rejects the missing value before body/CID admission. The failed runner's saved
+journals were not downloadable, so this record does not claim direct inspection
+of their bodies. The omitted adapter handoff is independently reproduced with
+a JSON-roundtripped retained admission containing the fixed, valid original.
+
+The product correction forwards the saved original, as initial execution already
+does. Restoration still rechecks current authority, does not select today's
+Host Policy, and neither reserves a new physical start nor dispatches work.
+An independent regression fails before the correction (`run-O3c4oQ`); the
+missing-original counterpart continues to reject. After correction, the Graph
+fixture, Client selection and target-read continuation tests pass 35/35
+(`run-pCwVID`, focused evidence `focused-test-Hvlxm2`). These are targeted Host
+adapter tests with opaque core tokens stubbed, not pristine Graph acceptance.
+No successful-state expectation, timeout, original body, provider count or
+resource limit changes.
+
+Before the Graph failure, the pristine consumer passes Source-backed JSON/text
+Local/HTTPS composition and their shared fault cases. The separate pristine
+public-query artifact `11301906464` contains 40 complete successful commands,
+all bound to clean tested source `f1460dcc4f0509a62e1aff6a98751c6b39ecc1b3`.
+Its twelve two-Source cases cover Native/Broad, JSON/text, equal-content and
+unused-Source variants in Local/HTTPS; four reader-close observations preserve
+the continuing reader's five rows. Second-input failure/cancellation and cleanup
+retry are also covered. These prove their recorded scope at that tested source,
+not the pending restored Graph matrix or active temporary-holder inventory.
+All four Graph node/edge Local/HTTPS cases and the new automatic CI remain
+required after this correction and the next main adoption. #304 remains Draft.
