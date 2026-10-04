@@ -193,7 +193,7 @@ if (process.argv.includes('--cancellation-only')) {
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
 const narrowPublicQuery = process.argv.some(flag => ['--source-free-only',
-  '--query-composition-only', '--pipe-result-only', '--join-order-only',
+  '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only',
   '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only', '--two-source-only',
   '--relation-data-only', '--acquired-data-only',
   '--data-set-strategy-only', '--property-graph-source-only'].includes(flag));
@@ -238,7 +238,7 @@ if (plannerSelectionOnly || twoSourceExampleOnly) return;
 // Narrow selections without the String fixture have no retained String Run.
 // Keep restart acceptance for full/source-free selections that create it.
 if (!process.argv.some(flag => ['--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
-  '--join-order-only', '--query-composition-only', '--pipe-result-only',
+  '--join-order-only', '--group-scope-only', '--query-composition-only', '--pipe-result-only',
   '--relation-data-only', '--acquired-data-only', '--data-set-strategy-only', '--two-source-only',
   '--property-graph-source-only'].includes(flag))) {
   console.log(run(process.execPath, ['string-values-restart.mjs'], root,
@@ -254,7 +254,8 @@ if (process.argv.includes('--source-free-only') ||
   process.argv.includes('--scoped-order-only') ||
   process.argv.includes('--infer-refusal-only') ||
   process.argv.includes('--two-source-only') ||
-  process.argv.includes('--join-order-only')) return;
+  process.argv.includes('--join-order-only') ||
+  process.argv.includes('--group-scope-only')) return;
 if (!process.argv.includes('--property-graph-source-only')) {
   console.log(run(process.execPath, ['sga-cancellation.mjs'], root,
     runtimeEnvironment, 120000).trimEnd());
