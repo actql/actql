@@ -18,6 +18,16 @@ const data = 'DATA objects = SELECT 2 AS id, @a AS payload, @oa AS other '
   + 'UNION ALL SELECT 3 AS id, @c AS payload, @oc AS other; ';
 const inputOrder = [{id: 2}, {id: 1}, {id: 3}];
 const aliasOrder = [{id: 1}, {id: 3}, {id: 2}];
+// Explicit expectations distinguish SELECT's original input from ORDER's
+// output alias. A syntactically identical path does not imply slot identity.
+const receiverAliasRows = [
+  {id: 1, original_score: 20, payload: {score: 5}},
+  {id: 3, original_score: null, payload: {score: 15}},
+  {id: 2, original_score: 10, payload: {score: 30}},
+];
+const receiverInputRows = [receiverAliasRows[2], receiverAliasRows[0], receiverAliasRows[1]];
+const receiverColumns = [columns[0],
+  {name: 'original_score', contract: {...number, nullable: true}}, otherColumn];
 const textCase = (name, tail, expected = inputOrder, extra = {}) => ({
   name: 'order-property-' + name, format: 'aql-text', text: data + tail,
   parameterDeclarations, parameters, expected, columns, sourceReadCount: 0,
@@ -43,6 +53,12 @@ export const orderPropertySuccesses = [
   textCase('qualified-collision', 'SELECT id, other AS payload FROM objects ORDER BY objects.payload.score NULLS LAST',
     inputOrder.map(row => ({...row, payload: rows.find(value => value.id === row.id).other})),
     {columns: [...columns, otherColumn]}),
+  textCase('selected-property-receiver-collision',
+    'SELECT id, payload.score AS original_score, other AS payload FROM objects ORDER BY payload.score NULLS LAST',
+    receiverAliasRows, {columns: receiverColumns}),
+  textCase('selected-property-qualified-control',
+    'SELECT id, payload.score AS original_score, other AS payload FROM objects ORDER BY objects.payload.score NULLS LAST',
+    receiverInputRows, {columns: receiverColumns}),
   textCase('pipe-control', 'FROM objects |> SELECT id, payload |> ORDER BY payload.score NULLS LAST |> SELECT id'),
 ];
 export const orderPropertyRefusals = [

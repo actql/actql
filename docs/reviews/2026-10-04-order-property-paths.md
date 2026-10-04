@@ -64,7 +64,7 @@ and scalar receivers remain rejected at their existing ownership boundaries.
 An object-parameter DATA case checks ordinary declaration/value binding.
 
 The [public fixtures](../../scripts/fixtures/order-property-source-input.mjs)
-contain **seven positives and five preparation refusals**. A handwritten JSON
+now contain **nine positives and five preparation refusals**. A handwritten JSON
 control uses Values, while authored text builds the same typed rows from bound
 object parameters and ordinary SELECT/UNION ALL DATA. The normal packed corpus
 includes these cases. Tests never patch the lowered Program or infer a schema
@@ -73,7 +73,40 @@ column contracts, no private sort columns, stream completion, same-Run resubmit
 and attach, and zero Source acquisition. Refusals must have zero Run admission
 and zero provider I/O.
 
-## Executed evidence
+## Review counterexample: selected-property receiver identity
+
+The first submitted HEAD `df438a9f0e023b38410e8022f271f5964886bfb9`
+still reused a SELECT expression when an ORDER alias changed its receiver:
+
+```sql
+SELECT id, payload.score AS original_score, other AS payload
+FROM objects ORDER BY payload.score NULLS LAST;
+```
+
+SELECT reads the input `payload`, whereas ORDER reads the evaluated alias
+`payload = other`. The independent expected ID order is **1,3,2**, with
+`original_score` values **20,NULL,10**. The qualified control orders by
+`objects.payload.score` and must return **2,1,3**, with scores **10,20,NULL**.
+Both publish columns `id, original_score, payload`, in that order; the score
+is nullable and the aliased object is not. These two public cases are registered
+in the normal packed corpus, not just the focused command.
+
+The added baseline regression failed **0/1** (`run-sztr4w`,
+`focused-test-qrRzwO`). It also checks computed and quoted property paths.
+The repair compares the longest resolved receiver prefix in SELECT and ORDER,
+using the same prefix order as `append_with_properties`. Slot identity and the
+property suffix must both agree. Unknown or changed receivers prevent reuse;
+the existing ORDER lowerer then evaluates the alias slot, without reevaluating
+the SELECT expression. Qualified inputs and identical resolved receivers retain
+their existing meaning. No owner, checker, type or execution changes are needed.
+
+After the repair, the focused JS ORDER selection passed **44/44**
+(`run-vkpDIX`, `focused-test-FQC3xh`), including the new receiver regression
+and existing JOIN/DISTINCT callers. MoonBit formatting, fixture syntax and diff
+checks pass. The new packed cases are unverified at this commit; prior success
+below does not establish this receiver repair.
+
+## Original executed evidence (before the receiver repair)
 
 - New focused cases: **5/5** (`run-825mwA`, `focused-test-HHZE5t`).
 - Affected existing/new ORDER callers: **42/42** (`run-0eiJ9T`,

@@ -24,6 +24,36 @@ fn order_property_context() -> Context {
 }
 
 ///|
+test "SQL ORDER property paths only reuse matching receiver slots" {
+  for suffix in ["payload.score", "payload.score + 1", "`payload`.`score`"] {
+    let program = compile(
+      @query.parse_query(
+        "SELECT id, " +
+        suffix +
+        " AS original_score, other AS payload FROM objects ORDER BY " +
+        suffix +
+        " NULLS LAST",
+        syntax_limits(),
+      ).unwrap(),
+      order_property_context(),
+      construction_limits(),
+    ).unwrap()
+    assert_true(
+      semantic(program).contains(
+        "\"property\":{\"name\":\"score\",\"value\":{\"field\":\"other\"}}",
+      ),
+      msg="ORDER reads the evaluated output receiver, not SELECT's input receiver",
+    )
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      Rejected(error) => raise @check.diagnostic_cause(error)
+      _ => fail("receiver rebinding uses ordinary checking")
+    }
+  }
+}
+
+///|
 test "SQL ORDER property paths use the common nullable object expression" {
   for
     text in [
