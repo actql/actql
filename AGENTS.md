@@ -47,7 +47,8 @@ Open that file directly if the client does not discover repository skills.
   or FFI changes need an explicitly selected matching-target diagnostic.
 - Do not default to full Core, all-target, proof, packed acceptance or performance
   suites. Manual integration CI retains full verification; local and PR results
-  establish only the checks actually executed.
+  establish only the checks actually executed. Draft CI is preparation only; its
+  final check remains incomplete until Ready triggers normal required coverage.
 - Use the existing bounded/nonzero-test wrappers. Preserve incremental `_build`;
   do not edit, merge or switch a worktree while its gate runs, or run competing
   gates there. `--allow-heavy` is not human approval.
