@@ -118,6 +118,8 @@ pub fn prepared_model_call_set_count(PreparedModelCallSet) -> Int?
 
 pub fn prepared_model_call_set_input(PreparedModelCallSet) -> @run_publication.RunEvidenceValue?
 
+pub fn prepared_model_call_set_input_receipt(PreparedModelCallSet) -> @execution_relation.CompletedRelationExportReceipt?
+
 pub fn prepared_model_call_set_slot(PreparedModelCallSet, Int) -> @run_publication.RunEvidenceValue?
 
 pub fn read_model_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Int, Int) -> Result[ModelSlotReplayRead, ModelExecutionIssue]

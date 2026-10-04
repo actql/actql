@@ -84,6 +84,11 @@ test "deferred call inventory waits without dispatch and retains input until sto
     ),
   )
   assert_true(@model.prepared_model_call_set_input(set) is Some(_))
+  let receipt = @model.prepared_model_call_set_input_receipt(set).unwrap()
+  let completed = @input.client_infer_completed_input(active.input).unwrap()
+  assert_true(
+    @relation.completed_relation_export_matches_output(receipt, completed),
+  )
   assert_true(@model.prepared_model_call_set_slot(set, 0) is Some(_))
   assert_true(acquire_output(active) is None)
   assert_true(!@input.cleanup_client_infer_input(active.input).unwrap())
@@ -100,7 +105,14 @@ test "deferred call inventory waits without dispatch and retains input until sto
   assert_true(stopped)
   assert_true(prepared_model_call_set(active) is None)
   assert_true(@model.prepared_model_call_set_binding(set) is None)
+  assert_true(@model.prepared_model_call_set_input_receipt(set) is None)
+  assert_true(
+    @relation.completed_relation_export_matches_output(receipt, completed),
+  )
   assert_true(cleanup(active).unwrap())
+  assert_true(
+    !@relation.completed_relation_export_matches_output(receipt, completed),
+  )
   assert_eq(calls.val, 0)
 }
 

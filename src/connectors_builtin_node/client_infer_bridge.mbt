@@ -429,6 +429,17 @@ pub fn client_program_infer_prepared_input_wire(
 }
 
 ///|
+/// Live fixed-input owner for physical Store custody before a call-set
+/// journal registration. This opaque handle must never be serialized as a
+/// substitute for a durable input receipt.
+#export_name("clientProgramInferPreparedInputReceipt")
+pub fn client_program_infer_prepared_input_receipt(
+  set : @model.PreparedModelCallSet,
+) -> @execution.CompletedRelationExportReceipt? {
+  @model.prepared_model_call_set_input_receipt(set)
+}
+
+///|
 #export_name("clientProgramInferPreparedSlotWire")
 pub fn client_program_infer_prepared_slot_wire(
   set : @model.PreparedModelCallSet,

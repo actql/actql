@@ -7,6 +7,7 @@ const ok = value => ({$tag: 1, _0: value});
 function fixture({count = 1, onSlot} = {}) {
   const active = {};
   const set = {};
+  const inputReceipt = {};
   const calls = {starts: 0, advances: 0, resumes: 0, entries: 0,
     cancelled: 0, cleaned: 0};
   let waiting = true;
@@ -34,6 +35,8 @@ function fixture({count = 1, onSlot} = {}) {
     clientProgramInferPreparedCallBinding: value => value === set ?
       {_0: 'models/fixture', _1: 'task-cid', _2: 'request-cid'} : undefined,
     clientProgramInferPreparedInputWire: value => value === set ? 'input' : undefined,
+    clientProgramInferPreparedInputReceipt: value => value === set ?
+      inputReceipt : undefined,
     clientProgramInferPreparedSlotWire: (value, index) => {
       onSlot?.(index);
       return value === set && index >= 0 && index < count
@@ -74,11 +77,11 @@ function fixture({count = 1, onSlot} = {}) {
       return ok(true);
     },
   };
-  return {moon, calls};
+  return {moon, calls, inputReceipt};
 }
 
 test('deferred Model operation waits once and resumes the same owner', async () => {
-  const {moon, calls} = fixture();
+  const {moon, calls, inputReceipt} = fixture();
   const operation = openNodeInferOperation({moon, preparedProgram: {}, step: 2,
     graph: {}, registry: 'registry', values: 'values', fragment: 'fragment',
     ordered: 'ordered', provider: {}, deferDispatch: true,
@@ -86,6 +89,7 @@ test('deferred Model operation waits once and resumes the same owner', async () 
   const waiting = await operation.run();
   assert.equal(waiting.kind, 'waiting');
   assert.equal(waiting.callSet.inputWire, 'input');
+  assert.equal(waiting.callSet.inputReceipt, inputReceipt);
   assert.equal(waiting.callSet.count, 1);
   assert.deepEqual(waiting.callSet.binding, {providerId: 'models/fixture',
     taskCid: 'task-cid', fixedRequestCid: 'request-cid'});

@@ -863,6 +863,20 @@ pub fn prepared_model_call_set_input(
 }
 
 ///|
+/// The receipt is an opaque live reference to the exact completed prefix.
+/// It is not itself proof that the input has reached durable Store custody.
+pub fn prepared_model_call_set_input_receipt(
+  set : PreparedModelCallSet,
+) -> @relation.CompletedRelationExportReceipt? {
+  if model_execution_prepared_call_set(set.owner) is None {
+    return None
+  }
+  set.owner.state.call_scope.map(
+    @publication_host.client_infer_call_scope_fixed_input_receipt,
+  )
+}
+
+///|
 pub fn prepared_model_call_set_count(set : PreparedModelCallSet) -> Int? {
   if model_execution_prepared_call_set(set.owner) is None {
     return None

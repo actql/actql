@@ -659,6 +659,8 @@ pub fn client_program_infer_prepared_call_count(@model_execution.PreparedModelCa
 
 pub fn client_program_infer_prepared_call_set(@client_infer_host.Execution) -> @model_execution.PreparedModelCallSet?
 
+pub fn client_program_infer_prepared_input_receipt(@model_execution.PreparedModelCallSet) -> @execution_relation.CompletedRelationExportReceipt?
+
 pub fn client_program_infer_prepared_input_wire(@model_execution.PreparedModelCallSet) -> String?
 
 pub fn client_program_infer_prepared_slot_wire(@model_execution.PreparedModelCallSet, Int) -> String?

@@ -165,13 +165,14 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       throw new Error('InferPreparedCallSetUnavailable');
     }
     const inputWire = moon.clientProgramInferPreparedInputWire(set);
+    const inputReceipt = moon.clientProgramInferPreparedInputReceipt(set);
     const binding = moon.clientProgramInferPreparedCallBinding(set);
-    if (typeof inputWire !== 'string' ||
+    if (typeof inputWire !== 'string' || inputReceipt === undefined ||
         [binding?._0, binding?._1, binding?._2].some(value =>
           typeof value !== 'string' || value.length === 0)) {
       throw new Error('InferPreparedCallSetUnavailable');
     }
-    retainedCallSet = Object.freeze({inputWire, count,
+    retainedCallSet = Object.freeze({inputWire, inputReceipt, count,
       binding: Object.freeze({providerId: binding._0, taskCid: binding._1,
         fixedRequestCid: binding._2}),
       slotWire(index) {
