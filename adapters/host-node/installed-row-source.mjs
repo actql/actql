@@ -278,9 +278,11 @@ export async function createInstalledRowSource({moon, declaration,
   ].map(name => readFile(new URL(name, contractRoot), 'utf8')));
   const sourceRefs = new Set(declared.views.map(view => view.source_ref));
   if (!['maxPages', 'maxPageBytes', 'maxPageRows', 'maxCaptureRows']
-    .every(key => Number.isSafeInteger(limits?.[key]) && limits[key] > 0)) {
+    .every(key => Number.isSafeInteger(limits?.[key]) && limits[key] > 0 &&
+      limits[key] <= 2_147_483_647)) {
     fail('InvalidInstalledRowSourceLimits');
   }
+  const maxTransferBytes = BigInt(limits.maxPages) * BigInt(limits.maxPageBytes);
   const preparations = new WeakMap();
   const sourceAccess = Object.freeze({authorization,
     connection: site.connection,
@@ -402,7 +404,7 @@ export async function createInstalledRowSource({moon, declaration,
       version: 'actql-row-source-acquisition-dispatch/0.1', runInvocationCid});
     const settled = new Set();
     const capacity = ledger === undefined ? undefined :
-      {transferBytes: BigInt(limits.maxPages) * BigInt(limits.maxPageBytes),
+      {transferBytes: maxTransferBytes,
         executionBytes: BigInt(limits.maxPageBytes)};
     const run = checked(ledger === undefined
       ? moon.clientProgramRowSourceStart(acquisition, nonce,
@@ -518,7 +520,7 @@ export async function createInstalledRowSource({moon, declaration,
       if (capacity === undefined) fail('InstalledSourceCapacityUnavailable');
       return Object.freeze({
         capacity,
-        transferBytes: BigInt(limits.maxPages) * BigInt(limits.maxPageBytes),
+        transferBytes: maxTransferBytes,
         executionBytes: BigInt(limits.maxPageBytes),
       });
     },

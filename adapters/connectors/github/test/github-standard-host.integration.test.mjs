@@ -353,6 +353,10 @@ test('two installed row sources retain a joined public Named Result',
         {task: 4, representation: 'retained-file'}]);
     assert.equal(observations.filter(([name]) => name === 'acquisition_completed').length, 2);
     assert.equal(observations.filter(([name]) => name === 'acquisition_cleanup_completed').length, 2);
+    const capturedUsage = observations.filter(([name]) =>
+      name === 'acquisition_completed').map(([, detail]) => detail.resourceUsage);
+    assert.ok(capturedUsage.every(usage => BigInt(usage.transferredBytes) > 0n));
+    assert.equal(capturedUsage.at(-1).holdings, '2');
     assertAcquisitionReleased(observations);
     assert.deepEqual(listings(setup.api).map(request => request.variables.id),
       ['R_hello', 'R_hello', 'R_copy']);
