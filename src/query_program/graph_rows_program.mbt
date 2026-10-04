@@ -142,7 +142,7 @@ fn lower_script_graph_rows(
     }
     if call.operation == "traverse" {
       row_input = Some(
-        lower_script_traversal_nodes(
+        lower_script_traversal_rows(
           construction, query, call, current, known, limits, steps, reserved,
         ),
       )
