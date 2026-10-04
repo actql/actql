@@ -61,6 +61,14 @@ the typed `GitHubReadRowLimit`, publishes nothing, and a same-request resend
 does not fetch again. This proves the connector's total-row ceiling through
 the public route; it does not isolate the downstream row-capture ceiling,
 which is also 100 in this installation.
+The same installed source now feeds a selected bounded Relation group followed
+by a filter and sort in one Compute task. The public HTTPS Host reads numeric
+COUNT, SUM, and AVG groups and two distinct consumer Results from the real
+retained Store against literal expectations. A second Program filters all
+acquired rows before a global group and observes count zero with null SUM/AVG.
+Both committed Results remain readable after Host reopen without another
+source read. This is a source-to-numeric-group connection proof, not an
+independent Host-wide exact/one-short budget or capture ceiling proof.
 The checked Program-to-RowAcquisition owner has a separate 2/1 capture-row
 boundary test: the same two-row page passes with capacity two and yields a
 capture, while capacity one gives typed `CaptureLimit` and cannot finish or

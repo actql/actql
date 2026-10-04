@@ -325,6 +325,94 @@ test('installed row source retains public output across Host reopen',
     assert.equal(listings(setup.api).length, reads);
   });
 
+test('retained acquired rows feed numeric group slots and two consumers',
+  async t => {
+    const observations = [];
+    const setup = await installation(t, {retainedRelationOutput: true,
+      observe(name, detail) { observations.push([name, detail]); }});
+    setup.state.repositories.get('R_hello').issues[2].author = {login: 'zed'};
+    await setup.publish();
+    const document = JSON.parse(program);
+    document.id = 'github-retained-group';
+    document.stages[1].steps = [
+      {from: 'x', group: {by: ['author'], aggregates: {
+        n: {fn: 'count'}, total: {fn: 'sum', field: 'number'},
+        mean: {fn: 'avg', field: 'number'}}}, as: 'grouped'},
+      {from: 'grouped', filter: 'n > 0', as: 'nonempty'},
+      {from: 'nonempty', sort: [{author: 'asc'}], as: 'out'},
+    ];
+    document.stages[1].results.r.fields = ['author', 'n', 'total', 'mean'];
+    document.stages.push({id: 'consumer_a',
+      inputs: {x: {result: {stage: 'compute', result: 'r'}}},
+      steps: [{select: ['author'], as: 'out'}],
+      results: {r: {from: 'out', fields: ['author']}}},
+    {id: 'consumer_b',
+      inputs: {x: {result: {stage: 'compute', result: 'r'}}},
+      steps: [{select: ['n', 'total', 'mean'], as: 'out'}],
+      results: {r: {from: 'out', fields: ['n', 'total', 'mean']}}});
+    document.results = {
+      grouped: {from: {stage: 'compute', result: 'r'}},
+      consumed_a: {from: {stage: 'consumer_a', result: 'r'}},
+      consumed_b: {from: {stage: 'consumer_b', result: 'r'}},
+    };
+    const {client, close} = await setup.open();
+    const run = await client.aql(JSON.stringify(document), {format: 'json',
+      requestId: 'github-retained-group'});
+    const state = await run.wait();
+    assert.equal(state.status, 'succeeded', JSON.stringify(state));
+    assert.deepEqual(await run.result('grouped').all(), [
+      {author: 'octocat', n: 2, total: 6, mean: 3},
+      {author: 'zed', n: 1, total: 4, mean: 4},
+    ]);
+    assert.deepEqual(await run.result('consumed_a').all(), [
+      {author: 'octocat'}, {author: 'zed'},
+    ]);
+    assert.deepEqual(await run.result('consumed_b').all(), [
+      {n: 2, total: 6, mean: 3}, {n: 1, total: 4, mean: 4},
+    ]);
+    assert.deepEqual(observations.filter(([name]) => name === 'computed')
+      .at(-1)?.[1].outputRepresentations,
+    [{task: 1, representation: 'retained-file'},
+      {task: 2, representation: 'retained-file'},
+      {task: 3, representation: 'retained-file'}]);
+    const empty = structuredClone(document);
+    empty.id = 'github-retained-empty-numeric-group';
+    empty.stages[1].steps = [
+      {from: 'x', filter: 'number < 0', as: 'empty'},
+      {from: 'empty', group: {by: [], aggregates: {
+        n: {fn: 'count'}, total: {fn: 'sum', field: 'number'},
+        mean: {fn: 'avg', field: 'number'}}}, as: 'out'},
+    ];
+    empty.stages[1].results.r.fields = ['n', 'total', 'mean'];
+    empty.stages[2].steps = [{select: ['n'], as: 'out'}];
+    empty.stages[2].results.r.fields = ['n'];
+    empty.stages[3].steps = [{select: ['total', 'mean'], as: 'out'}];
+    empty.stages[3].results.r.fields = ['total', 'mean'];
+    const emptyRun = await client.aql(JSON.stringify(empty), {format: 'json',
+      requestId: 'github-retained-empty-numeric-group'});
+    const emptyState = await emptyRun.wait();
+    assert.equal(emptyState.status, 'succeeded', JSON.stringify(emptyState));
+    assert.deepEqual(await emptyRun.result('grouped').all(),
+      [{n: 0, total: null, mean: null}]);
+    assert.deepEqual(await emptyRun.result('consumed_a').all(), [{n: 0}]);
+    assert.deepEqual(await emptyRun.result('consumed_b').all(),
+      [{total: null, mean: null}]);
+    const reads = listings(setup.api).length;
+    await close();
+    assert.deepEqual(await readdir(join(setup.root, 'state',
+      'carrier-snapshots')), []);
+    const reopened = await setup.open();
+    const attached = await reopened.client.attach(run.ref);
+    assert.deepEqual(await attached.result('grouped').all(), [
+      {author: 'octocat', n: 2, total: 6, mean: 3},
+      {author: 'zed', n: 1, total: 4, mean: 4},
+    ]);
+    const emptyAttached = await reopened.client.attach(emptyRun.ref);
+    assert.deepEqual(await emptyAttached.result('grouped').all(),
+      [{n: 0, total: null, mean: null}]);
+    assert.equal(listings(setup.api).length, reads);
+  });
+
 test('retained GitHub rows keep Event times through a fixed window', async t => {
   const setup = await installation(t, {retainedRelationOutput: true});
   await setup.publish();
