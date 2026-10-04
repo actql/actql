@@ -14,6 +14,61 @@ passed at clean `a6675aa5945389e66aa15978c9ed0ae66cbe69a1`, as recorded in
 That result does not establish all Graph consumers or completion of the migration.
 Earlier checkpoints below retain their original source and package identities.
 
+## Pure two-Source JSON/text composition checkpoint (2026-10-04)
+
+The adopted main for this independent acceptance change is
+`7dee31c1cc61b081f0feb12761b2bd5c2f41c12c`, including A #292 Native/Broad
+acquisition and the formal cancellation/cleanup foundation. Fresh packs from
+clean `27dc783a4c1b8dca34c496d21362c42866250513` passed
+`node scripts/test-packed-public-query.mjs --two-source-only` through external
+Local and authenticated HTTPS installations with no runtime MoonBit toolchain.
+This is fixed-SHA local packed evidence; automatic PR CI is a separate check.
+
+The submitted text is retained verbatim in
+`adapters/host-node/fixtures/two-source/two-source-join.aql`. Both independent
+JSON and text inputs specify Source predicates `id >= 0`, the same id equality
+JOIN, `max_output_rows`/`MAX_OUTPUT_ROWS` 100, result column order
+`id,left_amount,right_amount` and ascending order on those fields. Existing
+expected rows/types/nullability remain unchanged. Matching negative Source keys
+are deliberately present in both inputs' databases so losing either predicate
+can change the joined output; duplicate rows and NULL amounts are preserved.
+This does not introduce deduplication, a different lowerer or a new executor.
+
+The existing harness now covers 12 normal cases (the previous 8 and 4 text
+Native/Broad Local/HTTPS cases), 12 fresh-process retained cases and the same
+12 recovery/failure scenarios. Each used Source has exactly one physical read
+session. Unused Source installation opens no unused provider. Fresh attach,
+row/description/stream reading, request lookup and resubmission of the exact
+stored document/format return the same Run with zero provider opens or SQL I/O.
+JSON and text Program/Run CIDs need not agree across different submissions;
+generated Stage structure is allowed to differ without changing these semantic
+and physical observations.
+
+Second-input failure, cancellation, started-unknown recovery and cleanup retry
+reuse the original owner/harness. A generation-drift fixture republishes its
+alias against the deliberately changed valid SourceView, allowing the existing
+Run dependency refusal to execute before I/O. An initial failed attempt at
+`d7d8f7d7f238142e8ee81a2c3dc2ff28aa257f30` reached all normal/retained cases
+but failed this fixture's Host alias initialization; it is not counted as a
+complete acceptance pass. No product check was relaxed to repair that fixture.
+
+Successful evidence is retained locally in
+`public-query-evidence-DxoLOl/two-source-acceptance.json` (21 child command
+records, zero unexpected failures); the earlier failed attempt is retained in
+`public-query-evidence-B1bvYj`. Both live under the workspace `.codex-scratch`.
+The packed local-node SHA-256 is
+`f09bf206ecb80841375d93f3a56956c7aa61a4df3ac3b63bb42814ef0e9ea06c`;
+run-host-core is
+`ae96f379933ec3199cd02c4d2dac7b373815a37bb6d0345cf0f836b096209d2e`.
+The pack manifest binds all five distributions to the fixed source above.
+
+This closes the selected pure JOIN JSON/text comparison. Temporary confirmed
+cleanup and zero byte/reservation observations remain distinct from an explicit
+active-hold inventory and durable Named Result retention. The cumulative ledger
+`holdings` count is not an active count. Graph→INFER→Effect Result Policy binding
+and public acceptance remain D/A work in Draft #304; this pure JOIN acceptance
+does not establish that Graph composition or its approval/restart boundaries.
+
 ## Implemented versus execution evidence
 
 | Surface or boundary | Implemented checkpoint | Acceptance still required |
