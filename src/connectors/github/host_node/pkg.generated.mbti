@@ -14,6 +14,8 @@ pub fn github_next_page_json(Bool, String, String, String, Int, Int) -> String
 
 pub fn github_rate_limit_basis_json(Array[String], Array[String]) -> String
 
+pub fn github_repository_json(Bytes, Int) -> String
+
 pub fn github_request_headers_json() -> String
 
 pub fn github_response_headers_json() -> String

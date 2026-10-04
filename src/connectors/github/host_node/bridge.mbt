@@ -232,3 +232,20 @@ pub fn github_comment_outcome_json(
   }
   json.stringify()
 }
+
+///|
+/// The repository identity of a `GET /repos/{owner}/{repo}` body, or `null`.
+#export_name("githubRepositoryJson")
+pub fn github_repository_json(body : Bytes, max_bytes : Int) -> String {
+  match @catalog.project_repository(body, max_bytes) {
+    Some(identity) =>
+      (
+        {
+          "id": Json::number(identity.id.to_double()),
+          "node_id": identity.node_id.to_json(),
+          "owner": identity.owner.to_json(),
+          "name": identity.name.to_json(),
+        } : Json).stringify()
+    None => "null"
+  }
+}

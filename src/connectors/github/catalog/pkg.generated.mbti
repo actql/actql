@@ -8,6 +8,8 @@ import {
 // Values
 pub let api_version : String
 
+pub fn canonical_timestamp(String) -> String?
+
 pub fn classify_comment_response(Int, HeaderObservation, Bytes, Int) -> CommentOutcome
 
 pub fn classify_failure(Int, HeaderObservation) -> ExchangeFailure
@@ -17,6 +19,8 @@ pub fn header_value(HeaderObservation, String) -> String?
 pub fn next_page(String?, String, String, Int, Int) -> Result[NextPage?, LinkIssue]
 
 pub fn project_issue_page(Bytes, PageLimits) -> Result[IssuePage, IssuePageIssue]
+
+pub fn project_repository(Bytes, Int) -> RepositoryIdentity?
 
 pub fn rate_limit_basis(HeaderObservation) -> RateLimitBasis
 
@@ -103,6 +107,13 @@ pub(all) struct RateLimitBasis {
   reset_epoch_seconds : Int64?
   remaining : Int64?
   resource : String?
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RepositoryIdentity {
+  id : Int64
+  node_id : String
+  owner : String
+  name : String
 } derive(Eq, @debug.Debug)
 
 // Type aliases

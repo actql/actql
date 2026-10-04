@@ -496,6 +496,32 @@ test "non-ASCII query values decode as exact UTF-8, without normalization" {
 }
 
 ///|
+test "a repository identity needs id, node id, name and owner login" {
+  assert_eq(
+    project_repository(
+      @utf8.encode(
+        "{\"id\":1296269,\"node_id\":\"MDEwOlJlcG9zaXRvcnkxMjk2MjY5\",\"name\":\"Hello-World\"," +
+        "\"full_name\":\"octocat/Hello-World\",\"owner\":{\"login\":\"octocat\",\"id\":1}}",
+      ),
+      10000,
+    ),
+    Some({
+      id: 1296269L,
+      node_id: "MDEwOlJlcG9zaXRvcnkxMjk2MjY5",
+      owner: "octocat",
+      name: "Hello-World",
+    }),
+  )
+  for
+    invalid in [
+      "{\"id\":1,\"node_id\":\"R\",\"name\":\"x\"}", "{\"id\":0,\"node_id\":\"R\",\"name\":\"x\",\"owner\":{\"login\":\"o\"}}",
+      "{\"id\":1,\"node_id\":\"\",\"name\":\"x\",\"owner\":{\"login\":\"o\"}}", "[]",
+    ] {
+    assert_eq(project_repository(@utf8.encode(invalid), 10000), None)
+  }
+}
+
+///|
 test "GitHub timestamps become the same instant in ActQL spelling" {
   assert_eq(
     canonical_timestamp("2026-10-01T12:34:56Z"),
