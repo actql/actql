@@ -30,8 +30,8 @@ JSON and text inputs specify Source predicates `id >= 0`, the same id equality
 JOIN, `max_output_rows`/`MAX_OUTPUT_ROWS` 100, result column order
 `id,left_amount,right_amount` and ascending order on those fields. Existing
 expected rows/types/nullability remain unchanged. Matching negative Source keys
-are deliberately present in both inputs' databases so losing either predicate
-can change the joined output; duplicate rows and NULL amounts are preserved.
+are deliberately present in both inputs' databases so losing the Source
+predicates changes the joined output; duplicate rows and NULL amounts are preserved.
 This does not introduce deduplication, a different lowerer or a new executor.
 
 The existing harness now covers 12 normal cases (the previous 8 and 4 text
