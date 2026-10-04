@@ -615,3 +615,86 @@ This verifies public consumer iterator independence, not physical producer
 cleanup, remaining active-holder inventory or formal reservation return.
 The overall exact-HEAD CI is still running; this artifact predates later Effect
 composition and is not evidence for that phase or for source-free Graph.
+
+
+### Current packed Graph failure: missing issued retention original
+
+Automatic #304 CI [37186660530](https://github.com/actql/actql/actions/runs/37186660530)
+failed at submitted `8207fd14b0eca7a1771435e0300428f61b19ed17`, tested merge
+`5c417e7d7cc148f90edd67e29cd160869ca60527`. The first Graph node Local
+wait returned `needs_reconciliation`, not the unchanged `waiting_checkpoint`.
+The token accessor correction did not close this failure.
+
+A retained-package reproduction verified producer artifact `11297605317`,
+its exact tested-source manifest and all five tarball digests. An explicit
+fixture-only diagnostic overlay preserved the public Program and captured
+`MoonBitHostFailure` with typed cause 6 (`CapturedEffectDependencyIssue.MissingDependency`).
+The rejecting owner is `run_publication.issue_captured_effect_dependency_inventory`,
+called by `prepareLocalEffectDependencyInventory` before capture custody commit.
+Graph/Relation/Model computation had completed and its cleanup owner had returned
+the temporary byte reservations. This was not a Model invocation failure.
+
+The failed request journal retained the actual Host Result Data Policy original
+with CID `sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563`.
+The 66 submitted dependency bodies included that exact admitted original.
+Their admitted typed reference graph instead lacked the Result retention policy
+`sha256:8f96af4d8e1aa7cf573375c9ce07297127440c98d94d1a75f0873ed1381d60f5`,
+named by three Result artifacts and two upstream acquisition relations.
+No missing Model-egress Policy original was invented, and no dependency check
+was relaxed. Failure logs, admitted body/reference observations and Run journals
+remain preserved outside the checkout.
+
+Product correction `42ebb01daef57fd41ba4bcf00611047c4f9fa926` passes the already
+issued retention original from the source-free publication plan into its normal
+Effect dependency inventory. The focused fixed-time original-body regression
+failed before correction (`run-N8nEl5`, missing original), then passes with the
+actual common seal and body admission (`run-cZcLDJ`: 12/12 selected tests).
+Its first draft incorrectly named the identity field `retention_policy_cid`;
+the authoritative publication contract uses `effective_retention_policy_cid`.
+The expectation was corrected to that contract field, with times, policy, CID
+preimage and required original unchanged. CI registration/Graph fixtures and
+the original-body selection pass 27/27 (`run-QNHou2`). These selections overlap
+and their counts are not summed. The existing distribution job includes the new
+regression; there is no extra package installation or CI job.
+
+The same immutable package set with the declared JS retention connection overlay
+passes node_rows and edge_rows on Local and HTTPS (`run-8WFxFg`, four records).
+Each keeps Source sessions [0,0,0,0], Model inputs [100,200], writes [0,0,1,1],
+the independent typed rows and both capture-waiting/approval-committed crash
+boundaries. The same request and Run restore while current Host Policy is absent;
+the saved original and Model response are reused and confirmed Effects are not
+resent. Node duplicate/NULL assertions refuse before Model dispatch. The limited
+retained-package diagnostic omits the long shared cleanup/deadline fault block;
+the ordinary fresh-packed CI consumer retains it unchanged. This is explicitly
+an adapter-overlay diagnostic, not pristine new-HEAD packed acceptance.
+
+Two dormant fixture assertions exposed after the positive path were corrected:
+the SDK wraps Host 500 submit errors as `SubmissionUnknown` (cause
+`ClientHostFailure`), so the missing-Policy case also requires lookup not_found,
+an empty request journal and Source/Model/write counts zero. A separate refusal
+process writes a zero-I/O observer snapshot; the bad-row case checks every
+physical call count and command/open list rather than requiring the log file to
+remain byte-identical. No expected successful Run state or timeout changes.
+The first failed public wait now reports its Ref, state and operator diagnostics;
+internal Effect-start diagnostics preserve the typed cause separately from the
+public wire response.
+
+Main merges preserve the Source approval continuation and source-free Graph
+INFER through the same Effect dispatch owner. Resolution `13c0d39d24051048ecfa025b504cb6fa1f731ded`
+keeps all four conflicting connection/fixture changes, and its package resolution
+lists all 47 required ancestral source groups. Ordinary registration and both
+real parents/blobs/modes are separately declared. Complete history validation at
+`f1505f07858c8f371b808b59cdcc5b90a70b83a9` passes 110 declarations/2 supplements;
+existing declarations, supplements and introduction histories are unchanged.
+
+A's corrected #339 SHA `5e22c522becb80477cb7ed4f4733a48a463d5bf2` is now merged
+into main (`6da81257a`); D first adopted it through normal merge `2ad13cb290c31a47fd9e208f667dfb2b84e455c2`.
+Latest main `c26339bed484c1965da78f6a9540333c2583ea31` is integrated through
+`e3ecb26c952a045e8a4984a7b2e0a318c50a4cce`. #304 remains Draft pending
+fresh-packed acceptance and all mandatory CI on the submitted new HEAD.
+The final merge destination remains main; D does not merge this PR.
+
+#342's full automatic CI `37184275679` subsequently completed successfully;
+its reader-close unit is merged into main as `6c2c65742`. That accepted consumer
+iterator boundary still does not prove the formal active temporary-holder
+inventory, which remains an A-owned observation dependency.
