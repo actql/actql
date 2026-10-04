@@ -268,6 +268,7 @@ export async function openLocalHost(configPath, {now = () => Date.now(),
   // private evidence in the Local Store, held per continuation.
   const evidence = openContinuationEvidence({
     stateDirectory: state,
+    isTerminalRunOutcome: journal.isTerminalRunOutcome,
     ...privateKey,
     contractControl: runtimeCore(await import(storeRuntimeUrl.href))
       .publicationControl,

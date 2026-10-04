@@ -34,6 +34,8 @@ pub fn resumed_approval_at(String, String) -> String
 
 pub fn revalidation_failed_state(String, String, String, String) -> String
 
+pub fn run_outcome_terminal(String) -> Bool
+
 pub fn run_state_admit(String) -> String
 
 pub fn run_transition_allowed(String, String) -> Bool
