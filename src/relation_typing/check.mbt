@@ -134,7 +134,8 @@ fn check_impl(
     operation is Filter ||
     operation is Derive ||
     operation is Sort ||
-    operation is Take) {
+    operation is Take ||
+    operation is Distinct) {
     fail(body, ConditionalInputNotImplemented)
   }
   let parameter_types : Map[String, @contract.Contract] = Map([])
@@ -464,6 +465,11 @@ fn check_impl(
                 }
                 let fields : Array[(@schema.FieldName, @contract.Contract)] = []
                 for key in keys {
+                  let name = @schema.reference_name(key.field)
+                  if @schema.lookup_reference(input, name) is Some(field) &&
+                    field.presence == @schema.Conditional {
+                    fail(key.source, PresenceRequired(name))
+                  }
                   projection.push({ output: key.field, input: key.field, })
                   fields.push(
                     (

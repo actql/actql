@@ -108,13 +108,13 @@ const presenceRows = {
 assert.deepEqual(presenceFixture.stages[0].steps[0].values.rows.map(row=>row.person_key),[2,1]);
 assert.deepEqual(presenceFixture.stages[0].steps[2].values.rows.map(row=>row.edge_key),[11,10]);
 
-function presenceFilterScenario(empty, selection = false) {
+function presenceFilterScenario(empty, selection = false, companyKey = 3) {
   const document = structuredClone(presenceFixture);
   document.id = `presence-${selection ? 'selection' : 'filter'}-${empty ? 'empty' : 'values'}`;
   const steps = document.stages[0].steps;
   steps[0].values.rows.unshift({person_key:4,tenant_key:'a',p:8});
   steps[1].values = {schema:{person_key:number,tenant_key:string},
-    rows:[{person_key:3,tenant_key:'a'}]};
+    rows:[{person_key:companyKey,tenant_key:'a'}]};
   steps[3].property_graph.nodes[1].key = ['person_key','tenant_key'];
   if (empty) for (const step of steps.slice(0,3)) step.values.rows = [];
   steps[5] = {filter:selection ? 'person_key > 0' : 'person_key < 4',as:'filtered'};
@@ -136,7 +136,7 @@ function presenceFilterScenario(empty, selection = false) {
   // Independently authored canonical order and presence states. The fourth
   // row is removed without removing any of omission, explicit NULL or value.
   const before = empty ? [] : [
-    {id:identity('M',3),labels:[],person_key:3,tenant_key:'a'},
+    {id:identity('M',companyKey),labels:[],person_key:companyKey,tenant_key:'a'},
     {id:identity('N',1),labels:['Owner','Person'],p:7,person_key:1,tenant_key:'a'},
     {id:identity('N',2),labels:['Owner','Person'],p:null,person_key:2,tenant_key:'a'},
     {id:identity('N',4),labels:['Owner','Person'],p:8,person_key:4,tenant_key:'a'},
@@ -336,9 +336,40 @@ function minimalSelectorDeriveScenario() {
   return {document,retained,derived,snapshot,expected:derived.map(({id,z})=>({id,z}))};
 }
 
-for (const mode of ['local','remote']) for (const profile of ['graph','presence-filter','presence-selection','selector-derive']) {
+function presenceKeyedDistinctScenario(empty) {
+  const scenario = presenceFilterScenario(empty, false, 1);
+  const {document,before} = scenario;
+  document.id = `presence-keyed-distinct-${empty ? 'empty' : 'values'}`;
+  // Two definitions share a raw key value, but not their typed Graph id.
+  // The chosen key projection alone determines DISTINCT equality.
+  const steps = document.stages[0].steps;
+  steps.splice(5,steps.length-5,{distinct:['person_key'],as:'projected'});
+  document.stages[0].results.out.fields = ['person_key'];
+  // Input canonical order is M:1, N:1, N:2, N:4. DISTINCT retains the
+  // first complete projected occurrence; optional p never participates.
+  const expected = empty ? [] : [{person_key:1},{person_key:2},{person_key:4}];
+  return {document,before,expected};
+}
+
+function presenceWholeDistinctScenario(empty) {
+  const {document,before} = presenceKeyedDistinctScenario(empty);
+  document.id = `presence-whole-distinct-${empty ? 'empty' : 'values'}`;
+  const steps = document.stages[0].steps;
+  steps[5] = {distinct:true,as:'unique'};
+  steps.push({select:['person_key'],as:'projected'});
+  // M:1 and N:1 have different typed identities and optional p presence.
+  // They remain separate complete rows even though their final keys coincide.
+  const expected = empty ? [] : [{person_key:1},{person_key:1},{person_key:2},{person_key:4}];
+  return {document,before,expected};
+}
+
+for (const mode of ['local','remote']) for (const profile of ['graph','presence-filter','presence-selection','selector-derive','presence-keyed-distinct','presence-whole-distinct']) {
   const name = profile === 'graph'
     ? `keyed constructor and TRAIL reach public Named Results through ${mode}`
+    : profile === 'presence-keyed-distinct'
+      ? `presence keyed distinct survives Relation Store and public Named Results through ${mode}`
+    : profile === 'presence-whole-distinct'
+      ? `presence whole-row distinct survives Relation Store and public Named Results through ${mode}`
     : profile === 'selector-derive'
       ? `selector property derive survives Relation Store and public Named Results through ${mode}`
       : `presence ${profile === 'presence-filter' ? 'filter' : 'selection sort and take'} survives Relation Store and public Named Results through ${mode}`;
@@ -406,6 +437,51 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
       client = await connect({mode,endpoint:`https://127.0.0.1:${server.address().port}/`,token:'synthetic-test-token'});
     }
     t.after(() => client.close());
+    if (profile === 'presence-keyed-distinct' || profile === 'presence-whole-distinct') {
+      const whole = profile === 'presence-whole-distinct';
+      for (const empty of [false,true]) {
+        const {document,before,expected} = whole
+          ? presenceWholeDistinctScenario(empty) : presenceKeyedDistinctScenario(empty);
+        const run = await client.aql(canonicalText(document),
+          {format:'json',requestId:`${document.id}-${mode}`});
+        const state = await run.wait();
+        assert.equal(state.status,'succeeded',JSON.stringify(state));
+        assert.deepEqual(await run.result('answer').all(),expected);
+        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
+        assert.deepEqual((await run.result('answer').describe()).columns,
+          [{name:'person_key',contract:number}]);
+        assert.deepEqual(relationSnapshots.get(run.ref.runDefinitionCid),
+          [[4,before],[5,whole ? before : expected]].map(([task,rows])=>{
+            const bytes = canonicalText(rows);
+            return {task,cid:cid(rows),bytes:Buffer.byteLength(bytes),
+              verifiedReadBytes:Buffer.byteLength(bytes),rows:rows.length,
+              sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true};
+          }));
+        assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
+      }
+      for (const distinct of [['p']]) {
+        const {document} = presenceKeyedDistinctScenario(false);
+        document.stages[0].steps[5].distinct = distinct;
+        const requestId = `conditional-distinct-${mode}-${String(distinct)}`;
+        const before = physicalSteps.length;
+        await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+          error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
+        assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+        assert.deepEqual(physicalSteps.slice(before),[]);
+      }
+      if (whole) for (const operation of [{select:['p']},{filter:'p IS NOT NULL'},
+        {filter:'true OR p > 0'}]) {
+        const {document} = presenceWholeDistinctScenario(false);
+        document.stages[0].steps[6] = operation;
+        const requestId = `whole-conditional-ref-${mode}-${Object.keys(operation)[0]}-${Object.values(operation)[0]}`;
+        const before = physicalSteps.length;
+        await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+          error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
+        assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+        assert.deepEqual(physicalSteps.slice(before),[]);
+      }
+      return;
+    }
     if (profile === 'selector-derive') {
       for (const [selector,projection,empty] of [
         ['definition','node_rows',false], ['definition','edge_rows',false], ['definition','edge_rows',true],

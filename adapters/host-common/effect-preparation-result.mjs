@@ -16,3 +16,16 @@ export function checkedEffectPreparation(result) {
     throw error;
   }
 }
+
+// Mark `error` as a definitive preparation refusal: a provider's refusal of a
+// row that it decided from an observed reply before any send (for example a
+// pre-send check that found the target is not what the Mapping writes).
+// Transport failures, rate limits and other unobserved outcomes must not be
+// marked. Like `checkedEffectPreparation`, this grants nothing.
+export function refusedEffectPreparation(error) {
+  if (error === null || typeof error !== 'object') {
+    throw new TypeError('InvalidEffectPreparationRefusal');
+  }
+  refusals.add(error);
+  return error;
+}

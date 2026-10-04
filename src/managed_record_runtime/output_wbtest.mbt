@@ -438,6 +438,38 @@ test "managed record output cancels before publishing partial material" {
 }
 
 ///|
+test "managed Vectors completion failure discards unhanded storage" {
+  let owner = producer_owner()
+  let output = prepare_output(owner, @pipeline.Step(0), limits(), 2048L, fn() {
+    false
+  }).unwrap()
+  append_record(output, [
+    (@schema.Unqualified("id"), number(1.0)),
+    (@schema.Unqualified("embedding"), vector("[3,4]")),
+  ]).unwrap()
+  assert_eq(@storage.builder_record_count(output.records), 1)
+  assert_true(finish_output(output) is Err(Lifecycle(@lifecycle.Unavailable)))
+  assert_eq(@storage.builder_record_count(output.records), 0)
+}
+
+///|
+test "managed Events late completion failure discards unhanded storage" {
+  let owner = event_producer_owner()
+  let checks = Ref(0)
+  let output = prepare_output(owner, @pipeline.Step(0), limits(), 1024L, fn() {
+    checks.val += 1
+    checks.val == 1
+  }).unwrap()
+  append_record(output, [
+    (@schema.Unqualified("event_id"), number(7.0)),
+    (@schema.Unqualified("occurred_at"), number(12.0)),
+  ]).unwrap()
+  assert_true(finish_output(output) is Err(Lifecycle(@lifecycle.Unavailable)))
+  assert_eq(checks.val, 2)
+  assert_eq(@storage.builder_record_count(output.records), 0)
+}
+
+///|
 test "failed managed record output remains reclaimable" {
   let owner = event_producer_owner()
   let output = prepare_output(owner, @pipeline.Step(0), limits(), 1024L, fn() {

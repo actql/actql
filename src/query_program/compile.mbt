@@ -1857,10 +1857,22 @@ fn compile_steps(
         let key_display_names : Array[String] = []
         let by : Array[@builder.Node] = []
         for index in 0..<keys.length() {
-          let expression = if sql_group_projection {
-            group_key_expression(keys[index], projections)
-          } else {
-            keys[index]
+          let expression = match
+            resolved_group_key(
+              keys[index],
+              projections,
+              input_visible,
+              sql_group_projection,
+            ) {
+            Expression(expression) => expression
+            StarColumn(column) => {
+              key_names.push(column.1)
+              key_display_names.push(column.0)
+              by.push(construction.text(column.1))
+              // A positional reference is not the literal expression at that
+              // position. Never add it to SELECT-expression reuse evidence.
+              continue
+            }
           }
           let mut root_index = @query.expression_root(expression)
           while @query.expression_node(expression, root_index).unwrap().kind

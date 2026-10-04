@@ -580,12 +580,12 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Registered operations | 69 |
-| Executable production routes | 57 |
-| Typed pre-execution refusals (not execution success) | 12 |
-| Operation-specific boundary records | 57 |
-| Four-role lifecycle assurance | 57 |
-| Full route work/workspace assurance | 57 |
-| Path-scoped work/workspace assurance | 106 |
+| Executable production routes | 59 |
+| Typed pre-execution refusals (not execution success) | 10 |
+| Operation-specific boundary records | 59 |
+| Four-role lifecycle assurance | 59 |
+| Full route work/workspace assurance | 59 |
+| Path-scoped work/workspace assurance | 110 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -2710,16 +2710,16 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | Coverage state | Count |
 |---|---:|
 | `contract` | 40/40 |
-| `checker` | 24/40 |
-| `lowering` | 24/40 |
-| `kernel` | 24/40 |
-| `managed` | 24/40 |
-| `standard_host` | 24/40 |
-| `consumer_lifetime` | 24/40 |
-| `resources` | 28/40 |
-| `cancellation` | 28/40 |
-| `publication` | 24/40 |
-| `three_targets` | 19/40 |
+| `checker` | 25/40 |
+| `lowering` | 25/40 |
+| `kernel` | 25/40 |
+| `managed` | 25/40 |
+| `standard_host` | 25/40 |
+| `consumer_lifetime` | 25/40 |
+| `resources` | 30/40 |
+| `cancellation` | 30/40 |
+| `publication` | 25/40 |
+| `three_targets` | 20/40 |
 | complete operations | 19/40 |
 | open operations | 21/40 |
 <!-- local-family-coverage-summary:end -->
@@ -4558,6 +4558,21 @@ Selected Host-delivered cancellation cases are registered for all three
 diagnostics. Other retained Graph Relation-producing operations remain separate
 completion units; this change does not waive their route or resource proofs.
 
+Current Property Graph equality now checks two exact, ordered Graph operands
+against compatible closed definitions and runs the selected bounded provider.
+The retained Node Host constructs both Graphs in one Stage, compares them,
+passes the Boolean Relation through a later filter, publishes the Named Result,
+and reads two consumers from the real Store. Its timer cancellation begins
+after both Graphs are constructed and stops the selected equality kernel
+without publishing partial output. The quantum-one kernel fixture admits the
+independently derived three-step count mismatch at the exact work ceiling,
+rejects two steps, admits one workspace slot, rejects zero, and preserves both
+borrowed inputs after cleanup. A separate 512-character property fixture
+rejects insufficient nested comparison work and stops during a yielded value
+comparison. The focused equality suite passed on JS, Wasm, and native.
+Broader representation variants and same-SHA CI remain open, so current
+equality is partial.
+
 Selected `SGA.match_nodes` and `SGA.match_edges` now read an exact managed
 Graph view through their existing bounded match kernels. The Node standard
 Host retains and publishes each match-then-filter Relation in a real Store,
@@ -4680,3 +4695,30 @@ Bridges, reject publication, and retain cleanup responsibility through one
 injected cleanup failure before a successful retry. They do not cover later
 Relation operations beyond the filter shape or every mixed-Carrier failure
 boundary.
+
+Current Property Graph normalization is now partially connected to the typed
+profile. The checker admits `normalize_graph: true` only for a typed Graph,
+lowering retains its exact input edge, and the selected provider copies keys,
+properties, endpoints, and definitions into a new bounded Graph generation.
+A focused JS fixture verifies the copied keyed nodes and parallel edges,
+quantum-one progress, cancellation after a partial output before handoff, and
+a literal workspace exact/one-short boundary. A source Program passes public
+checking; one focused postmerge standard Host case retained the normalized
+Graph, published MATCH rows and two consumer Named Results, and retained
+cleanup responsibility across an injected failure before reclaiming its
+resources. A second focused Host case reached the later filter, preserved its
+typed arithmetic failure, published no Result, and reclaimed its resources.
+The shared task splitter
+now separates a selected Carrier-to-Carrier normalization before a later
+Relation consumer without changing the fused preference of other families.
+The copy now enforces an independently calculated 37-step control-work
+boundary at quantum one and seven; 36 fails without publishing output. The
+selected-provider fixture passes on JS, Wasm and native and checks exact/one-
+short node, edge and workspace capacity. A focused retained-Store Host case
+also cancels after positive normalize-task work and confirms stop before final
+cleanup. This is not current-profile completion: Graph storage's encoded-value
+work and large-value noninterruptible sections, broader Host failures, and
+final-source CI still need evidence. The language contract also permits
+normalization of an external opaque Graph while preserving its evidence level;
+the current checker and managed storage accept only typed Property Graphs, so
+that separate route remains unconnected rather than silently falling back.

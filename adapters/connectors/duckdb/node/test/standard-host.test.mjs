@@ -561,6 +561,14 @@ test('standard native and broad Node Hosts own verification through real capture
           : 'INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
       } finally { connection.closeSync(); db.closeSync(); }
       const grant = await authorizeLocalDatabase(path, fixtureSourceAccess);
+      if (process.env.ACTQL_STANDARD_HOST_GRAPH_CASE !== undefined ||
+          process.env.ACTQL_STANDARD_HOST_CANCEL_CASE !== undefined) {
+        if (kind === 'valid') await exerciseStrategyGraph(
+          fixture, args, analyticArgs, path, grant, suppliedLimits,
+          orderedContract,
+        );
+        continue;
+      }
       for (const strategy of ['native', 'broad']) {
         const native = strategy === 'native';
         const create = count => native ? fixture.issuedNativeCreate(...args, count, () => true)
@@ -1776,6 +1784,10 @@ async function exerciseStrategyGraph(
     }],
     results: {published: {from: {stage: 'graph', result: 'r'}}},
   };
+  const focusedCancelCase = process.env.ACTQL_STANDARD_HOST_CANCEL_CASE;
+  // A focused cancellation probe avoids the independent publication and fault
+  // corpus; the default test still executes both corpora in their original order.
+  if (focusedCancelCase === undefined) {
   // Current Graph execution positives use the sole typed-key constructor.
   // Unsupported algorithm acceptance belongs to the shared public refusal
   // test, not to historical tuple fixtures in this execution/custody matrix.
@@ -1791,6 +1803,15 @@ async function exerciseStrategyGraph(
     name:'retained-node-match', retainedOutput:true, selectedStructural:true,
     step:{from:'g', match_nodes:{definition:'N', where:'true',
       fields:['id','node_name']}, as:'out'},
+    fields:['id','node_name'], secondFields:['node_name'],
+    expected:[{id:1,node_name:'first'},{id:2,node_name:'second'}],
+  }, {
+    name: 'retained-normalized-node-match', retainedOutput:true,
+    steps:[
+      {from:'g',normalize_graph:true,as:'normalized'},
+      {from:'normalized',match_nodes:{definition:'N',where:'true',
+        fields:['id','node_name']},as:'out'},
+    ],
     fields:['id','node_name'], secondFields:['node_name'],
     expected:[{id:1,node_name:'first'},{id:2,node_name:'second'}],
   }, {
@@ -1846,6 +1867,12 @@ async function exerciseStrategyGraph(
     step:{from:'g',graph_bounds:{max_nodes:0,max_edges:0,max_degree:0},as:'out'},
     fields:['kind','node_id','actual','max'],secondFields:['kind'],
     expected:[],
+  }, {
+    name: 'retained-graph-equality',retainedOutput:true,
+    selectedStructural:true,duplicateGraph:true,
+    step:{from:'g',graphs_equal:{with:'peer'},as:'out'},
+    fields:['equal'],secondFields:['equal'],
+    expected:[{equal:true}],
   }, {
     name: 'retained-degree-metrics', retainedOutput:true,
     selectedStructural:true,
@@ -2036,9 +2063,14 @@ async function exerciseStrategyGraph(
     fields:['src','dst','weight'],secondFields:['weight','src'],
     expected:[{src:1,dst:2,weight:10},{src:2,dst:1,weight:20}],
   }];
+  const graphFailureCases = [
+    'construction-capacity', 'consumer-filter', 'following-relation-filter',
+    'match-predicate', 'normalize-following-filter',
+  ];
   const focusedGraphCase = process.env.ACTQL_STANDARD_HOST_GRAPH_CASE;
   if (focusedGraphCase !== undefined) {
-    assert(graphPublicationCases.some(value => value.name === focusedGraphCase),
+    assert(graphPublicationCases.some(value => value.name === focusedGraphCase) ||
+      graphFailureCases.includes(focusedGraphCase),
       `Unknown focused Graph case: ${focusedGraphCase}`);
   }
   for (const publicationCase of graphPublicationCases) {
@@ -2078,6 +2110,11 @@ async function exerciseStrategyGraph(
       1,
       ...(publicationCase.steps ?? [publicationCase.step]),
     );
+    if (publicationCase.duplicateGraph) {
+      graphStage.steps.splice(1,0,{
+        ...structuredClone(graphStage.steps[0]),as:'peer',
+      });
+    }
     if (publicationCase.selectedStructural) {
       graphStage.steps.at(-1).as = 'projected';
       graphStage.steps.push({
@@ -2135,6 +2172,7 @@ async function exerciseStrategyGraph(
     const sgaRetained = publicationCase.retainedOutput
       ? await createCarrierRetainedStore('sga', {
         failCleanupLease: publicationCase.name === 'retained-node-match'
+          || publicationCase.name === 'retained-normalized-node-match'
           ? 1 : undefined,
       })
       : undefined;
@@ -2263,7 +2301,8 @@ async function exerciseStrategyGraph(
         assert.equal(failedGraphExecution.usage().reservedExecutionBytes, 0n);
       }
       if (sgaPublicationOwner !== undefined) {
-        if (publicationCase.name === 'retained-node-match') {
+        if (publicationCase.name === 'retained-node-match' ||
+            publicationCase.name === 'retained-normalized-node-match') {
           assert.equal(sgaRetained.leases.length, 1);
           await assert.rejects(
             async () => sgaPublicationOwner.close(),
@@ -2289,21 +2328,24 @@ async function exerciseStrategyGraph(
       await sgaRetained?.close();
     }
   }
-  for (const failureCase of [
-    'construction-capacity', 'consumer-filter', 'following-relation-filter',
-    'match-predicate',
-  ]) {
-    if (focusedGraphCase !== undefined) continue;
+  if (focusedGraphCase !== undefined &&
+      !graphFailureCases.includes(focusedGraphCase)) return;
+  for (const failureCase of graphFailureCases) {
+    if (focusedGraphCase !== undefined && failureCase !== focusedGraphCase) {
+      continue;
+    }
     const failureProgram = structuredClone(graphProgramBase);
-    failureProgram.stages[2].steps.splice(1,1,{
-      from:'g', match_nodes:{definition:'N',
+    const normalizeFirst = failureCase === 'normalize-following-filter';
+    failureProgram.stages[2].steps.splice(1,1,
+      ...(normalizeFirst ? [{from:'g',normalize_graph:true,as:'normalized'}] : []),
+      {from:normalizeFirst ? 'normalized' : 'g', match_nodes:{definition:'N',
         where:failureCase === 'match-predicate' ? '1 / (id - id) > 0' : 'true',
       fields:['id','node_name']}, as:'out',
-    });
+      });
     failureProgram.stages[2].steps.at(-1).as = 'projected';
     failureProgram.stages[2].steps.push({
       from:'projected',
-      filter:failureCase === 'following-relation-filter'
+      filter:failureCase === 'following-relation-filter' || normalizeFirst
         ? '1 / (id - id) > 0' : 'true',
       as:'out',
     });
@@ -2382,9 +2424,9 @@ async function exerciseStrategyGraph(
           failureCase === 'match-predicate'
         ? fixture.strategyFixtureSgaConstructionLimitFailure(
           failureExecution.failure.cause)
-        : failureCase === 'following-relation-filter'
+        : failureCase === 'following-relation-filter' || normalizeFirst
           ? fixture.strategyFixtureManagedFilterArithmetic(
-            failureExecution.failure.cause, 2)
+            failureExecution.failure.cause, normalizeFirst ? 3 : 2)
         : fixture.strategyFixtureSgaConsumerFilterArithmetic(
           failureExecution.failure.cause), true,
       `${failureCase}: preserve the selected typed failure; ` +
@@ -2409,6 +2451,7 @@ async function exerciseStrategyGraph(
       await failureRetained.close();
     }
   }
+  if (focusedGraphCase !== undefined) return;
   const vectorExpressionProgram = {
     version: 'actql/0.1',
     id: 'p',
@@ -4630,6 +4673,7 @@ async function exerciseStrategyGraph(
       force: true,
     });
   }
+  } // End the unrelated publication and fault corpus for a focused probe.
   const stressSortKeys = Array.from(
     {length: 5}, (_, index) => `sort_key_${index + 1}`,
   );
@@ -4652,6 +4696,21 @@ async function exerciseStrategyGraph(
       fields:['id','node_name']},as:'out'},
     fields:['id','node_name'],
   }, {
+    name: 'retained-graph-equality-in-flight',
+    selectedStructural: true,
+    duplicateGraph: true,
+    retainedOutput: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 160,
+    constructionStarts: [1, 2],
+    cancelOnManagedStart: 3,
+    managedStarts: 3,
+    cancelTask: 4,
+    completedTasks: [1, 2, 3],
+    step: {from: 'g', graphs_equal: {with: 'peer'}, as: 'out'},
+    fields: ['equal'],
+  }, {
     name:'current-match-nodes-predicate-in-flight',
     selectedStructural:true,
     rows:40,advanceQuantum:1,
@@ -4673,6 +4732,24 @@ async function exerciseStrategyGraph(
     step:{from:'g',match_edges:{definition:'E',where:'weight > 10',
       fields:['src','dst','weight']},as:'out'},
     fields:['src','dst','weight'],
+  }, {
+    name: 'retained-graph-normalize-in-flight',
+    retainedOutput: true,
+    selectedStructural: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 80,
+    constructionStarts: [1],
+    cancelOnManagedStart: 2,
+    managedStarts: 2,
+    cancelTask: 3,
+    completedTasks: [1, 2],
+    steps: [
+      {from: 'g', normalize_graph: true, as: 'normalized'},
+      {from: 'normalized', match_nodes: {definition: 'N', where: 'true',
+        fields: ['id', 'node_name']}, as: 'out'},
+    ],
+    fields: ['id', 'node_name'],
   }, {
     name: 'current-graph-bounds-fused-in-flight',
     retainedOutput:true,rows:40,advanceQuantum:1,
@@ -5211,7 +5288,16 @@ async function exerciseStrategyGraph(
     completedTasks: [1, 2, 3, 4],
     fields: ['query_id', 'candidate_id', 'score', 'rank'],
   }];
+  const focusedCancellationCase =
+    process.env.ACTQL_STANDARD_HOST_CANCEL_CASE;
+  if (focusedCancellationCase !== undefined) {
+    assert(graphCancellationCases.some(value =>
+      value.name === focusedCancellationCase),
+    `Unknown focused cancellation case: ${focusedCancellationCase}`);
+  }
   for (const cancellationCase of graphCancellationCases) {
+    if (focusedCancellationCase !== undefined &&
+        cancellationCase.name !== focusedCancellationCase) continue;
     const teaFamily = cancellationCase.family === 'tea' ||
       cancellationCase.family === 'time-series' ||
       cancellationCase.family === 'interval' ||
@@ -6027,6 +6113,12 @@ async function exerciseStrategyGraph(
         1,
         ...(cancellationCase.steps ?? [cancellationCase.step]),
       );
+      if (cancellationCase.duplicateGraph) {
+        const graphStage = graphCancellationProgram.stages[graphStageIndex];
+        graphStage.steps.splice(1, 0, {
+          ...structuredClone(graphStage.steps[0]), as: 'peer',
+        });
+      }
       if (cancellationCase.selectedStructural) {
         const graphStage = graphCancellationProgram.stages[graphStageIndex];
         graphStage.steps.at(-1).as = 'projected';
@@ -6043,7 +6135,8 @@ async function exerciseStrategyGraph(
         graphFields;
       graphCancellationProgram.stages[graphStageIndex + 1].results.r.fields =
         graphFields;
-      const graphSecondFields = graphFields.slice(1);
+      const graphSecondFields = graphFields.length === 1
+        ? graphFields : graphFields.slice(1);
       graphCancellationProgram.stages[graphStageIndex + 2].steps[0].select =
         graphSecondFields;
       graphCancellationProgram.stages[graphStageIndex + 2].results.r.fields =
@@ -6114,7 +6207,7 @@ async function exerciseStrategyGraph(
           : []),
       );
     } catch (error) {
-      throw new Error(`Graph cancellation fixture ${cancellationCase.name} failed to check`,
+      throw new Error(`Graph cancellation fixture ${cancellationCase.name} failed to check: ${error.message}`,
         {cause: error});
     }
     const cancellationCapture = await runNativeHostQuery(
@@ -6483,6 +6576,7 @@ async function exerciseStrategyGraph(
       await cancellationRetained?.close();
     }
   }
+  if (focusedCancelCase !== undefined) return;
   const rejectedPublicationFixture = fixture.strategyFixtureCreate(
     ...args,
     JSON.stringify(numericProgram),

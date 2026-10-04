@@ -15,6 +15,8 @@ import {callHttpsCredentialResource} from
   '../../../site-node/https-credential-resource.mjs';
 import {invokeScopedCredentialOperation} from
   '../../../host-common/owned-invocation-context.mjs';
+import {refusedEffectPreparation} from
+  '../../../host-common/effect-preparation-result.mjs';
 import {GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION} from
   './github-issue-graphql-read.mjs';
 
@@ -114,19 +116,37 @@ export async function checkGitHubCommentSubject({moon, subjectId, repository,
   const response = await exchange({moon, authorization, credential,
     callResource, operation: GITHUB_GRAPHQL_READ_OPERATION,
     body: request.body, limits: owned, signal});
+  // A refusal decided from an observed reply is definitive for the row; a
+  // rate limit or an unclassified failure is not.
+  const refuse = (code, details) => {
+    const error = Object.assign(new Error(code), {code, ...details});
+    throw ['GitHubRateLimited', 'GitHubCommentSubjectRefused']
+      .includes(code) ? error : refusedEffectPreparation(error);
+  };
   if (!response.accepted || response.statusCode !== 200) {
     const [names, values] = pairs(response.headers);
     const failure = JSON.parse(moon.githubClassifyFailureJson(
       response.statusCode, names, values));
-    fail(failure.kind === 'RateLimited' ? 'GitHubRateLimited'
-      : 'GitHubCommentSubjectRejected', {failure});
+    if (failure.kind === 'RateLimited') {
+      fail('GitHubRateLimited', {failure});
+    }
+    // Only a documented refusal (permission, not found, gone) is decided.
+    if (!['PermissionDenied', 'NotFound', 'Gone'].includes(failure.kind)) {
+      fail('GitHubCommentSubjectUnverified', {failure});
+    }
+    refuse('GitHubCommentSubjectRejected', {failure});
   }
   const projected = JSON.parse(moon.githubCommentSubjectJson(response.body,
     owned.maxResponseBytes, owned.maxNodes, owned.maxDepth, subjectId,
     repository.nodeId, repository.databaseId, repository.nameWithOwner));
   if (projected.refused !== undefined) {
-    fail(subjectRefusals[projected.refused.kind] ??
-      'GitHubCommentSubjectRefused', {refusal: projected.refused});
+    const {kind, type} = projected.refused;
+    // A typed GraphQL NOT_FOUND or FORBIDDEN is an observed answer that the
+    // node is not readable here; other error types are not decided.
+    refuse(kind === 'Errors' && ['NOT_FOUND', 'FORBIDDEN'].includes(type)
+      ? 'GitHubCommentSubjectUnavailable'
+      : subjectRefusals[kind] ?? 'GitHubCommentSubjectRefused',
+    {refusal: projected.refused});
   }
   return Object.freeze({nodeId: projected.subject.node_id,
     number: projected.subject.number});

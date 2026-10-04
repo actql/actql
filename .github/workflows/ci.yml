@@ -1,13 +1,12 @@
 name: CI
 
-# Run once per PR update; main uses cumulative applicability after a verified full checkpoint.
+# Draft PRs run preparation; Ready PRs run normal required coverage.
+# Main integration is manual at release/milestone boundaries.
 # Integration branches use their PR; a working branch is checked on demand:
 #   gh workflow run CI --ref <branch> [-f native_macos=true]
 on:
-  push:
-    branches:
-      - main
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
   workflow_dispatch:
     inputs:
       packed_query_evidence_probe:
@@ -28,9 +27,7 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.packed_query_evidence_probe && 'evidence-probe' || inputs.performance_matrix && 'performance' || 'normal' }}
-  # Let an automatic main checkpoint finish; only its pending successor is replaced.
-  # PR updates and non-performance manual runs retain the existing cancellation policy.
-  cancel-in-progress: ${{ !inputs.performance_matrix && !(github.event_name == 'push' && github.ref == 'refs/heads/main') }}
+  cancel-in-progress: ${{ !inputs.performance_matrix }}
 
 jobs:
   select-targets:
@@ -116,6 +113,7 @@ jobs:
           echo "$toolchain/bin" >> "$GITHUB_PATH"
       - run: moon fmt --check
       - name: Check public interfaces
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node scripts/check-moonbit-api.mjs
       - name: Verify admission checks did not change tracked files
         run: git diff --exit-code
@@ -125,7 +123,7 @@ jobs:
         run: node scripts/ci-preflight.mjs
   # Remaining independent lint diagnostics run after mandatory admission.
   lint:
-    needs: [preflight]
+    needs: [select-targets, preflight]
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -134,19 +132,32 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-toolchain
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         with:
           python: 'true'
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        if: ${{ startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        with:
+          node-version: 22.22.0
+          cache: npm
+      - run: npm ci
+        if: ${{ startsWith(needs.select-targets.outputs.profile, 'draft') }}
       - name: Type-check public SDK and Client wire declarations
         run: npm run check:client-types
       - name: Test read-only worktree inventory fixtures
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/worktree-inventory.test.mjs
       - name: Test nonzero execution guards
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/test-execution.test.mjs
       - name: Test bounded local execution and optional hook adapters
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/local-checks.test.mjs scripts/local-checks-guard.test.mjs scripts/local-checks-policy.test.mjs scripts/local-checks-hook.test.mjs
       - name: Test environment guards
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/moonbit-environment.test.mjs
       - name: Test native SQLite namespace ownership
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/test-native-core.test.mjs scripts/native-query-coverage.test.mjs
       - name: Test preflight admission and latest-revision guard
         run: node --test scripts/ci-preflight.test.mjs
@@ -155,18 +166,23 @@ jobs:
       - name: Test conservative CI target selection
         run: node --test scripts/ci-targets.test.mjs scripts/ci-main-base.test.mjs
       - name: Test Client CI partition and aggregate requirements
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/client-ci.test.mjs
       - name: Test read-only CI evidence reporting
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/ci-evidence.test.mjs
       - name: Test portable dependency inspection and injected violations
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/portable-core.test.mjs
       - name: Test dependency isolation scratch ownership
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/owned-scratch.test.mjs scripts/dependency-isolation-scratch.test.mjs
       - name: Execute standard module subsets without DuckDB dependencies
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node scripts/check-node-without-duckdb.mjs
   focused-tests:
     needs: [select-targets, preflight]
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'focused-tests' }}
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && (needs.select-targets.outputs.profile == 'focused-tests' || needs.select-targets.outputs.profile == 'draft-focused') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -943,7 +959,7 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
-      - name: Require selected jobs and explicit not-applicable families
+      - name: Require merge verification (Draft awaits ready_for_review)
         env:
           RESULTS: ${{ toJSON(needs) }}
           CI_PLAN: ${{ needs.select-targets.outputs.plan }}
@@ -969,7 +985,7 @@ jobs:
           path: .artifacts/session-applicability/verified-family.json
           if-no-files-found: error
   spec:
-    needs: [preflight]
+    needs: [select-targets, preflight]
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -981,24 +997,30 @@ jobs:
         with:
           node-version: 22.22.0
           cache: npm
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: '3.12'
       - run: npm ci
       - name: Install pinned MoonBit
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: |
           node scripts/setup-moonbit.mjs
           toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
           echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
           echo "$toolchain/bin" >> "$GITHUB_PATH"
       - run: npm run check:spec-after-preflight
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+      - name: Check document links during Draft preparation
+        if: ${{ startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        run: npm run check:links
       - name: Check strict Local resource boundary evidence
         run: npm run check:local-resource-completion
       - name: Check independently pinned execution authorization vectors
         run: npm run check:execution-authorization-vectors
       - name: Verify specification checks did not change tracked files
         run: git diff --exit-code
-  # Full main coverage; PRs keep macOS for target/runtime-sensitive or unknown
+  # Ready PRs keep macOS for target/runtime-sensitive or unknown
   # inputs. The selector records why a portable PR omits this job.
   native-macos:
     needs: [select-targets, preflight]
@@ -1181,3 +1203,4 @@ jobs:
         run: node --test adapters/connectors/duckdb/node/bench/matched-equivalent-pair.test.mjs
       - name: Build fixture-independent acquisition Host entries
         run: npm run build:host --prefix adapters/connectors/duckdb/node
+

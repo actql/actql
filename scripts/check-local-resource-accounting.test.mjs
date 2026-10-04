@@ -106,7 +106,7 @@ test('resource audit fixtures are reclaimed on success, rejection, and setup fai
 });
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /69 operations, 5 implementation profiles, 57 production routes mapped, 12 typed pre-execution refusals \(not execution success\), 57 with operation-specific boundary records, 57 with four-role boundary evidence, 57 with full work\/workspace assurance, 106 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /69 operations, 5 implementation profiles, 59 production routes mapped, 10 typed pre-execution refusals \(not execution success\), 59 with operation-specific boundary records, 59 with four-role boundary evidence, 59 with full work\/workspace assurance, 110 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('unsupported Graph routes require one shared public refusal boundary and cannot claim execution', () => {
@@ -149,6 +149,41 @@ test('current Graph diagnostics require their own bounded and Host stop fixtures
       new RegExp(`SGA ${operation}:`));
     }
   }
+});
+
+test('current Graph equality requires its selected value, resource, and Host evidence', () => {
+  for (const role of [
+    'property_equality_work_exact_one_short',
+    'property_equality_workspace_exact_one_short',
+    'property_equality_cancel_cleanup',
+    'property_equality_nested_value_work_ceiling',
+    'property_equality_long_text_quantum_cancel_cleanup',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'SGA' &&
+        entry.operation === 'graphs_equal');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }, ['--require-boundary-complete']),
+    /SGA graphs_equal: Graph equality control-work evidence is missing/u);
+  }
+  for (const role of [
+    'property_equality_retained_named_results',
+    'property_equality_host_in_flight_cancel',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'SGA' &&
+        entry.operation === 'graphs_equal');
+      route.environment_tests = route.environment_tests.filter(item =>
+        item.role !== role);
+    }, ['--require-boundary-complete']),
+    /SGA graphs_equal: Graph equality control-work evidence is missing/u);
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'SGA' &&
+      entry.operation === 'graphs_equal');
+    route.selected_entrypoint.symbol = 'start_graphs_equal_view';
+  }, ['--require-boundary-complete']),
+  /SGA graphs_equal: selected Graph operation does not reach its view kernel/u);
 });
 
 test('keyed property constructor cannot borrow legacy boundary or cancellation evidence', () => {
@@ -1014,7 +1049,7 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
-    '| Path-scoped work/workspace assurance | 106 |',
+    '| Path-scoped work/workspace assurance | 110 |',
     '| Path-scoped work/workspace assurance | 54 |',
   );
   assert.notEqual(stale, gaps);
@@ -2163,7 +2198,7 @@ test('resource completion rejects every unassured operation', () => {
 
 test('strict resource completion accepts every assured route', () => {
   assert.match(run(undefined, undefined, ['--require-boundary-complete']),
-    /57 with four-role boundary evidence, 57 with full work\/workspace assurance/);
+    /59 with four-role boundary evidence, 59 with full work\/workspace assurance/);
 });
 
 test('whole-sequence take owes both keyed and unkeyed resource branches', () => {

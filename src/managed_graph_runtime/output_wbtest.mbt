@@ -265,6 +265,45 @@ test "managed Graph material owns final reclamation" {
 }
 
 ///|
+test "managed Graph completion failure discards unhanded storage" {
+  let owner = producer_owner()
+  let live = Ref(false)
+  let output = prepare_output(
+    owner,
+    @pipeline.Input(0),
+    @storage.DeclaredNodes,
+    graph_limits(),
+    4096L,
+    fn() { live.val },
+  ).unwrap()
+  append_property_node(output, 0, [number(1.0)], [text("a")]).unwrap()
+  assert_eq(@storage.builder_node_count(output.graph), 1)
+  assert_true(finish_output(output) is Err(Lifecycle(@lifecycle.Unavailable)))
+  assert_eq(@storage.builder_node_count(output.graph), 0)
+}
+
+///|
+test "managed Graph late completion failure discards unhanded storage" {
+  let owner = producer_owner()
+  let checks = Ref(0)
+  let output = prepare_output(
+    owner,
+    @pipeline.Input(0),
+    @storage.DeclaredNodes,
+    graph_limits(),
+    4096L,
+    fn() {
+      checks.val += 1
+      checks.val == 1
+    },
+  ).unwrap()
+  append_property_node(output, 0, [number(1.0)], [text("a")]).unwrap()
+  assert_true(finish_output(output) is Err(Lifecycle(@lifecycle.Unavailable)))
+  assert_eq(checks.val, 2)
+  assert_eq(@storage.builder_node_count(output.graph), 0)
+}
+
+///|
 test "managed Graph material issues exact internal operation views" {
   let owner = sequence_owner()
   let output = prepare_output(

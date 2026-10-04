@@ -28,9 +28,13 @@ pub fn check_match(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, @
 
 pub fn check_mean_options(@decode_core.Cursor, Limits) -> Result[CheckedMeanOptions, Issue]
 
+pub fn check_normalize(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedNormalize, Issue]
+
 pub fn check_path_contract(PathOutput, @decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedPathContract, Issue]
 
 pub fn check_property_construction(@decode_core.Cursor, Array[(String, @carrier_contract.Carrier)], String, Limits) -> Result[CheckedPropertyConstruction, Issue]
+
+pub fn check_property_equality(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedPropertyEquality, Issue]
 
 pub fn check_selector(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedSelector, MatchIssue]
 
@@ -168,6 +172,16 @@ pub fn mean_weight_at(CheckedMeanOptions, Int) -> Double?
 
 pub fn mean_weights(CheckedMeanOptions) -> Array[Double]
 
+pub fn normalize_output(CheckedNormalize) -> @carrier_contract.Carrier
+
+pub fn normalize_pending_at(CheckedNormalize, Int) -> NormalizeObligation?
+
+pub fn normalize_pending_count(CheckedNormalize) -> Int
+
+pub fn normalize_source(CheckedNormalize) -> @decode_core.Cursor
+
+pub fn normalize_usage(CheckedNormalize) -> Usage
+
 pub fn path_output(CheckedPathContract) -> @carrier_contract.Carrier
 
 pub fn path_usage(CheckedPathContract) -> Usage
@@ -213,6 +227,18 @@ pub fn property_element_input(PropertyElement) -> String
 pub fn property_element_keys(PropertyElement) -> Array[@relation_schema.FieldName]
 
 pub fn property_element_properties(PropertyElement) -> Array[(@relation_schema.FieldName, @relation_schema.FieldName)]
+
+pub fn property_equality_input(CheckedPropertyEquality, right~ : Bool) -> @carrier_contract.Carrier
+
+pub fn property_equality_output(CheckedPropertyEquality) -> @carrier_contract.Carrier
+
+pub fn property_equality_pending_at(CheckedPropertyEquality, Int) -> PropertyEqualityObligation?
+
+pub fn property_equality_pending_count(CheckedPropertyEquality) -> Int
+
+pub fn property_equality_source(CheckedPropertyEquality) -> @decode_core.Cursor
+
+pub fn property_equality_usage(CheckedPropertyEquality) -> Usage
 
 pub fn selector_form(CheckedSelector) -> SelectorForm
 
@@ -277,11 +303,15 @@ type CheckedMatch
 
 type CheckedMeanOptions
 
+type CheckedNormalize
+
 type CheckedPathContract
 
 type CheckedPredicate
 
 type CheckedPropertyConstruction
+
+type CheckedPropertyEquality
 
 type CheckedSelector
 
@@ -348,6 +378,7 @@ pub(all) enum IssueKind {
   IncompleteGraph
   UnsupportedGraphProfile
   UnsupportedGraphOperation
+  IncompatibleGraphDomains
   UnknownDeltaField(String)
   UntypedDeltaField(String)
   InvalidDeltaType
@@ -426,6 +457,11 @@ pub(all) enum MissingMeanValue {
   ZeroMissing
 } derive(Eq, @debug.Debug)
 
+pub(all) enum NormalizeObligation {
+  AdmitNormalizeGraph
+  ResolveNormalizeResources
+} derive(Eq, @debug.Debug)
+
 pub(all) enum NullMeanValue {
   ExcludeNull
   ZeroNull
@@ -464,6 +500,12 @@ pub(all) struct PredicateUsage {
 type PropertyEdge
 
 type PropertyElement
+
+pub(all) enum PropertyEqualityObligation {
+  AdmitBothPropertyGraphs
+  CompareCompleteGraphValues
+  ResolvePropertyEqualityResources
+} derive(Eq, @debug.Debug)
 
 pub(all) enum PropertyPathMode {
   Walk

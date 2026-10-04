@@ -1475,3 +1475,64 @@ test "a resumed approval reports only evidence claims and its own lifetime" {
     Some(ResolutionIdentityMismatch),
   )
 }
+
+///|
+test "terminal outcome classification covers every Run state independently of custody" {
+  assert_eq(run_outcome_terminal(Preparing), false)
+  assert_eq(run_outcome_terminal(Running), false)
+  assert_eq(run_outcome_terminal(WaitingCheckpoint), false)
+  assert_eq(run_outcome_terminal(Resuming), false)
+  assert_eq(run_outcome_terminal(NeedsReconciliation), false)
+  assert_eq(run_outcome_terminal(Succeeded), true)
+  assert_eq(run_outcome_terminal(Failed), true)
+  assert_eq(run_outcome_terminal(Cancelled), true)
+}
+
+///|
+test "terminal outcome never supplies Result read authority" {
+  assert_true(run_outcome_terminal(Succeeded))
+  assert_eq(
+    @publication.validate_run_state(
+      Succeeded,
+      ["answer"],
+      [{ name: "answer", state: Available, reason: ConfirmedPresent, }],
+      true,
+      ReadResult(["answer"]),
+      false,
+    ),
+    Ok(()),
+  )
+  assert_eq(
+    @publication.validate_run_state(
+      Succeeded,
+      ["answer"],
+      [{ name: "answer", state: Unavailable, reason: RetentionExpired, }],
+      false,
+      ReadResult(["answer"]),
+      false,
+    ),
+    Err(ResultNotAvailable("answer")),
+  )
+  assert_eq(
+    @publication.validate_run_state(
+      Succeeded,
+      ["answer"],
+      [{ name: "answer", state: Unknown, reason: StoreQueryFailed, }],
+      false,
+      ReadResult(["answer"]),
+      false,
+    ),
+    Err(ResultNotAvailable("answer")),
+  )
+  assert_eq(
+    @publication.validate_run_state(
+      Succeeded,
+      ["answer"],
+      [{ name: "answer", state: Unknown, reason: StoreQueryFailed, }],
+      false,
+      RefreshAvailability(["answer"]),
+      false,
+    ),
+    Ok(()),
+  )
+}

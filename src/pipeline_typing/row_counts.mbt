@@ -360,6 +360,7 @@ fn derive_row_counts(
     let input = step.input.bind(t => count_at(t, result))
     let graph_input = step.input.bind(t => graph_count_at(t, graphs))
     let graph_output = match step.operation {
+      GraphNormalize(_) => graph_input
       PropertyGraphConstruction(inputs~, checked~) => {
         let node_count = @graph.property_construction_node_count(checked)
         let mut nodes = Some(count(0L, true))

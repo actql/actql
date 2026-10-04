@@ -5,6 +5,7 @@ fn presence_filter_fixture(
   input_limits? : ValueLimits = run_limits().input_values,
   workspace_limit? : Int = 10000,
   operations? : String? = None,
+  wires? : Array[String]? = None,
 ) -> (@bounded.Control, BoundedBindingRowsExecution, ProducerRead) raise {
   let source_owner = presence_output_owner()
   let supplied = prepare_admitted_output(
@@ -15,9 +16,9 @@ fn presence_filter_fixture(
   ).unwrap()
   if !empty {
     for
-      wire in [
+      wire in wires.unwrap_or([
         "{\"id\":1,\"p\":7}", "{\"id\":2,\"p\":null}", "{\"id\":3}", "{\"id\":4,\"p\":8}",
-      ] {
+      ]) {
       append_admitted_output_presence(
         supplied,
         read_retained_relation_row(
@@ -52,15 +53,24 @@ fn presence_filter_fixture(
   let generated = prepare_generated_sequence(
     registered_relation_contracts(),
     sequence,
+    if @lower.sequence_step(sequence, 0) is Some(@lower.RowStep(kernel)) &&
+      @lower.kernel_is_distinct(kernel) {
+      []
+    } else {
+      [
+        if @lower.sequence_step(sequence, 0) is Some(@lower.RowStep(kernel)) &&
+          @lower.kernel_body(kernel) is @lower.OrderedBindings(_) {
+          bounded_binding_rows_ordered_context(sequence, rows=4L)
+        } else {
+          sequence_fragment_context(sequence, 0, 4L)
+        },
+      ]
+    },
     [
-      if @lower.sequence_step(sequence, 0) is Some(@lower.RowStep(kernel)) &&
-        @lower.kernel_body(kernel) is @lower.OrderedBindings(_) {
-        bounded_binding_rows_ordered_context(sequence, rows=4L)
-      } else {
-        sequence_fragment_context(sequence, 0, 4L)
-      },
+      @lower.node_id(
+        @lower.node_at(@lower.bound_preparation(owner), 0).unwrap(),
+      ),
     ],
-    [if operations is Some(_) { "derive_0" } else { "where_0" }],
     100000,
     10000,
   ).unwrap()
