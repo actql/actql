@@ -24,6 +24,7 @@ pub fn advance_match_edges(MatchEdgesExecution, Int) -> Result[MatchEdgesPoll, M
 pub fn advance_match_nodes(MatchNodesExecution, Int) -> Result[MatchNodesPoll, MatchNodesIssue]
 
 pub fn advance_normalize(NormalizeExecution, Int) -> Result[NormalizePoll, NormalizeIssue]
+
 pub fn advance_property_equality(PropertyEqualityExecution, Int) -> Result[PropertyEqualityPoll, PropertyEqualityIssue]
 
 pub fn advance_traverse(TraverseExecution, Int) -> Result[TraversePoll, TraverseIssue]
@@ -39,6 +40,7 @@ pub fn cleanup_match_edges(MatchEdgesExecution) -> Result[Bool, MatchEdgesIssue]
 pub fn cleanup_match_nodes(MatchNodesExecution) -> Result[Bool, MatchNodesIssue]
 
 pub fn cleanup_normalize(NormalizeExecution) -> Result[Bool, NormalizeIssue]
+
 pub fn cleanup_property_equality(PropertyEqualityExecution) -> Result[Bool, PropertyEqualityIssue]
 
 pub fn cleanup_traverse(TraverseExecution) -> Result[Bool, TraverseIssue]
@@ -84,6 +86,7 @@ pub fn match_nodes_scratch_slots(MatchNodesExecution) -> Int
 pub fn match_nodes_stopped(MatchNodesExecution) -> Bool
 
 pub fn normalize_cleanup_pending(NormalizeExecution) -> Bool
+
 pub fn property_equality_cleanup_pending(PropertyEqualityExecution) -> Bool
 
 pub fn start_components(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[ComponentsExecution, ComponentsIssue]
@@ -107,6 +110,7 @@ pub fn start_match_nodes(@bounded_execution.Control, @execution_relation.Complet
 pub fn start_match_nodes_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[MatchNodesExecution, MatchNodesIssue]
 
 pub fn start_normalize_view(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @managed_graph_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[NormalizeExecution, NormalizeIssue]
+
 pub fn start_property_equality_views(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, Int) -> Result[PropertyEqualityExecution, PropertyEqualityIssue]
 
 pub fn start_traverse(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], max_paths? : Int) -> Result[TraverseExecution, TraverseIssue]
