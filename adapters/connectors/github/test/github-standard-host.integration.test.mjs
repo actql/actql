@@ -77,13 +77,19 @@ const program = JSON.stringify({version: 'actql/0.1', id: 'github-read',
   results: {issues: {from: {stage: 'compute', result: 'r'}}}});
 
 async function installation(t, {faults = [], retainedRelationOutput = false,
-  observe} = {}) {
+  observe, faultInjection, secondSource = false} = {}) {
   // The provider's current state; tests change it after publication while
   // the local Site profile stays fixed.
   const state = {
     repositories: new Map([['R_hello', {databaseId: repositoryId,
       nameWithOwner: 'octocat/hello', issues: storedA}]]),
     names: new Map([['octocat/hello', 'R_hello']]), pageSize: 2};
+  if (secondSource) {
+    state.repositories.set('R_copy', {databaseId: 1296270,
+      nameWithOwner: 'octocat/copy', issues: [
+        {number: 1, title: 'Copy 1'}, {number: 5, title: 'Copy 5'}]});
+    state.names.set('octocat/copy', 'R_copy');
+  }
   const api = await openHttpsExchangeFixture(t, {faults,
     routes: [graphqlRoute(() => state)]});
   const root = await mkdtemp(join(scratch, 'host-'));
@@ -113,6 +119,20 @@ async function installation(t, {faults = [], retainedRelationOutput = false,
     accountConfigurationWire: accountConfiguration(connection)};
   const profilePath = join(root, 'source-profile.json');
   await writeFile(profilePath, JSON.stringify(profile));
+  const secondProfilePath = join(root, 'source-profile-copy.json');
+  if (secondSource) {
+    const secondSitePath = join(root, 'github-site-copy.json');
+    await writeFile(secondSitePath, JSON.stringify({...site,
+      repo: 'copy',
+      siteKey: 'github-site-copy',
+      journalRoot: join(root, 'credential-journal-copy')}));
+    await writeFile(secondProfilePath, JSON.stringify({...profile,
+      siteProfilePath: secondSitePath,
+      publicationPath: join(root, 'github-publication-copy.json'),
+      connectorId: 'gh-copy',
+      accountConfigurationWire: accountConfiguration(
+        `github:${new URL(api.origin).host}/octocat/copy`)}));
+  }
   const hostRoot = join(root, 'state');
   const hostKeys = observe === undefined ? undefined :
     generateKeyPairSync('ed25519');
@@ -128,15 +148,23 @@ async function installation(t, {faults = [], retainedRelationOutput = false,
     reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer',
       principalId: owner, publicKey: hostKeys.publicKey.export({
         type: 'spki', format: 'pem'})}],
-    observe,
+    observe, faultInjection,
   };
-  const publish = () => publishInstalledSourceProfile(profilePath, {
-    root: hostRoot, principalId: owner, moon: commonMoon, runtimeUrl,
-    resolveSecret: secret});
+  const publish = async () => {
+    const first = await publishInstalledSourceProfile(profilePath, {
+      root: hostRoot, principalId: owner, moon: commonMoon, runtimeUrl,
+      resolveSecret: secret});
+    if (secondSource) await publishInstalledSourceProfile(secondProfilePath, {
+      root: hostRoot, principalId: owner, moon: commonMoon, runtimeUrl,
+      resolveSecret: secret});
+    return first;
+  };
   const open = async () => {
     const host = await openInstalledRemoteHttpHost({directory: hostRoot,
       authenticate: header => tokens.get(header?.replace(/^Bearer /u, '')),
-      sourceProfilePath: profilePath, resolveSourceSecret: secret,
+      ...(secondSource ? {sourceProfilePaths: [profilePath, secondProfilePath]}
+        : {sourceProfilePath: profilePath}),
+      resolveSourceSecret: secret,
       retainedRelationOutput, authorization: hostAuthorization});
     const server = createServer({key: tlsKey, cert: tlsCertificate},
       host.handler);
@@ -154,13 +182,22 @@ async function installation(t, {faults = [], retainedRelationOutput = false,
       endpoint: `https://127.0.0.1:${server.address().port}/`,
       token: 'owner-token', durability: 'durable'});
     closers.push(() => client.close());
-    return {client, close};
+    return {client, close, host};
   };
   return {api, state, root, site, sitePath, profile, publish, open,
     connection};
 }
 
 const listings = api => issueReads(api);
+const assertAcquisitionReleased = observations => {
+  const finished = observations.filter(([name]) =>
+    name === 'dispatch_cleanup_completed');
+  assert.ok(finished.length > 0, 'the shared acquisition owner completed cleanup');
+  const usage = finished.at(-1)[1].resourceUsage;
+  for (const key of ['reservedTransferBytes', 'heldBytes',
+    'reservedRetentionBytes', 'reservedExecutionBytes',
+    'uncertainTransferBytes']) assert.equal(usage[key], '0', key);
+};
 // Every provider request is the GraphQL endpoint: no name-addressed REST.
 const onlyGraphql = api => api.seen().every(entry =>
   entry.method === 'POST' && entry.pathname === '/graphql');
@@ -247,6 +284,228 @@ test('installed row source retains public output across Host reopen',
     assert.deepEqual(await attached.result('issues').all(), expected);
     assert.deepEqual(await attached.result('audit').all(), audit);
     assert.equal(listings(setup.api).length, reads);
+  });
+
+const twoRowSourceProgram = () =>
+  ({version: 'actql/0.1', id: 'github-two-source-join',
+      stages: [
+        {id: 'left', inputs: {remote: {connector: 'gh-hello', resource: 'issues'}},
+          steps: [{filter: "state = 'open'", as: 'open'},
+            {select: ['number', 'title'], as: 'rows'}],
+          results: {r: {from: 'rows', fields: ['number', 'title']}}},
+        {id: 'right', inputs: {remote: {connector: 'gh-copy', resource: 'issues'}},
+          steps: [{filter: "state = 'open'", as: 'open'},
+            {select: ['number', 'title'], as: 'rows'}],
+          results: {r: {from: 'rows', fields: ['number', 'title']}}},
+        {id: 'join', inputs: {
+          l: {result: {stage: 'left', result: 'r'}},
+          r: {result: {stage: 'right', result: 'r'}}},
+        steps: [{from: 'l', join: {with: 'r', kind: 'inner',
+          on: [{left: 'number', right: 'number'}], max_output_rows: 100,
+          select: {number: 'left.number', left_title: 'left.title',
+            right_title: 'right.title'}}},
+        {sort: [{number: 'asc'}], as: 'ordered'}],
+        results: {r: {from: 'ordered', fields: ['number', 'left_title',
+          'right_title']}}},
+        {id: 'consumer_a', inputs: {x: {result: {stage: 'join', result: 'r'}}},
+          steps: [{select: ['number', 'left_title'], as: 'rows'}],
+          results: {r: {from: 'rows', fields: ['number', 'left_title']}}},
+        {id: 'consumer_b', inputs: {x: {result: {stage: 'join', result: 'r'}}},
+          steps: [{select: ['number', 'right_title'], as: 'rows'}],
+          results: {r: {from: 'rows', fields: ['number', 'right_title']}}}],
+      results: {joined: {from: {stage: 'join', result: 'r'}},
+        consumed_a: {from: {stage: 'consumer_a', result: 'r'}},
+        consumed_b: {from: {stage: 'consumer_b', result: 'r'}}}});
+
+test('two installed row sources retain a joined public Named Result',
+  async t => {
+    let outputRepresentations;
+    const observations = [];
+    const setup = await installation(t, {retainedRelationOutput: true,
+      secondSource: true,
+      observe(name, detail) {
+        observations.push([name, detail]);
+        if (name === 'computed') outputRepresentations = detail.outputRepresentations;
+      }});
+    await setup.publish();
+    const document = twoRowSourceProgram();
+    const {client, close} = await setup.open();
+    const run = await client.aql(JSON.stringify(document), {format: 'json',
+      requestId: 'github-two-source-join'}).catch(error => {
+        assert.fail(`${error.stack}\n${error.cause?.stack ?? ''}\n${JSON.stringify(observations)}`);
+      });
+    const state = await run.wait();
+    assert.equal(state.status, 'succeeded', JSON.stringify(state));
+    const joined = [
+      {number: 1, left_title: 'Issue 1', right_title: 'Copy 1'},
+      {number: 5, left_title: 'Issue 5', right_title: 'Copy 5'},
+    ];
+    const consumedA = joined.map(({number, left_title}) =>
+      ({number, left_title}));
+    const consumedB = joined.map(({number, right_title}) =>
+      ({number, right_title}));
+    assert.deepEqual(await run.result('joined').all(), joined);
+    assert.deepEqual(await run.result('consumed_a').all(), consumedA);
+    assert.deepEqual(await run.result('consumed_b').all(), consumedB);
+    assert.deepEqual(outputRepresentations,
+      [{task: 2, representation: 'retained-file'},
+        {task: 3, representation: 'retained-file'},
+        {task: 4, representation: 'retained-file'}]);
+    assert.equal(observations.filter(([name]) => name === 'acquisition_completed').length, 2);
+    assert.equal(observations.filter(([name]) => name === 'acquisition_cleanup_completed').length, 2);
+    assertAcquisitionReleased(observations);
+    assert.deepEqual(listings(setup.api).map(request => request.variables.id),
+      ['R_hello', 'R_hello', 'R_copy']);
+    assert.deepEqual(await readdir(join(setup.root, 'state',
+      'carrier-snapshots')), []);
+    const resent = await client.aql(JSON.stringify(document), {format: 'json',
+      requestId: 'github-two-source-join'});
+    assert.deepEqual(resent.ref, run.ref);
+    assert.equal(listings(setup.api).length, 3);
+    await client.close();
+    await close();
+    const reopened = await setup.open();
+    const attached = await reopened.client.attach(run.ref);
+    assert.deepEqual(await attached.result('joined').all(), joined);
+    assert.deepEqual(await attached.result('consumed_a').all(), consumedA);
+    assert.deepEqual(await attached.result('consumed_b').all(), consumedB);
+    assert.equal(listings(setup.api).length, 3);
+  });
+
+test('a failed second row source preserves first-input cleanup without publication',
+  async t => {
+    const observations = [];
+    const setup = await installation(t, {retainedRelationOutput: true,
+      secondSource: true,
+      observe(name, detail) { observations.push([name, detail]); }});
+    await setup.publish();
+    const normal = graphqlRoute(() => ({...setup.state, answer: undefined}));
+    let page = 0;
+    setup.state.answer = variables => ++page <= 2
+      ? normal.handle({body: JSON.stringify({query: 'query ActqlIssues(',
+        variables})})
+      : {headers: {'x-ratelimit-remaining': '0',
+        'x-ratelimit-reset': '1790000000'},
+        body: {data: null, errors: [{type: 'RATE_LIMITED',
+          message: 'API rate limit exceeded'}]}};
+    const {client} = await setup.open();
+    const document = JSON.stringify(twoRowSourceProgram());
+    const run = await client.aql(document, {format: 'json',
+      requestId: 'github-two-source-second-fails'});
+    const state = await run.wait();
+    assert.equal(state.status, 'failed', JSON.stringify(state));
+    assert.equal(state.result_available, false);
+    assert.equal(state.result_availability.joined.state, 'unavailable');
+    await assert.rejects(run.result('joined').all(), {code: 'ResultAccessDenied'});
+    assert.equal(observations.filter(([name]) => name === 'acquisition_completed').length, 1);
+    assert.equal(observations.filter(([name]) => name === 'acquisition_cleanup_completed').length, 1);
+    assertAcquisitionReleased(observations);
+    assert.deepEqual(await readdir(join(setup.root, 'state',
+      'carrier-snapshots')), []);
+    const reads = listings(setup.api).length;
+    assert.equal(reads, 3);
+    const resent = await client.aql(document, {format: 'json',
+      requestId: 'github-two-source-second-fails'});
+    assert.deepEqual(resent.ref, run.ref);
+    assert.equal(listings(setup.api).length, reads);
+  });
+
+test('two-source row cleanup retries without reacquisition after a later failure',
+  async t => {
+    let failClose = true;
+    let reachedClose;
+    const firstClose = new Promise(resolve => { reachedClose = resolve; });
+    const observations = [];
+    const setup = await installation(t, {retainedRelationOutput: true,
+      secondSource: true,
+      observe(name, detail) { observations.push([name, detail]); },
+      faultInjection(name, detail) {
+        if (name === 'acquisition_cleanup_started' && detail.task === 0) {
+          reachedClose();
+          if (failClose) throw new Error('FixtureRowCaptureCloseFailed');
+        }
+      }});
+    await setup.publish();
+    const normal = graphqlRoute(() => ({...setup.state, answer: undefined}));
+    let page = 0;
+    setup.state.answer = variables => ++page <= 2
+      ? normal.handle({body: JSON.stringify({query: 'query ActqlIssues(',
+        variables})})
+      : {headers: {'x-ratelimit-remaining': '0',
+        'x-ratelimit-reset': '1790000000'},
+        body: {data: null, errors: [{type: 'RATE_LIMITED',
+          message: 'API rate limit exceeded'}]}};
+    const {client, host} = await setup.open();
+    const run = await client.aql(JSON.stringify(twoRowSourceProgram()),
+      {format: 'json', requestId: 'github-two-source-cleanup-retry'});
+    await firstClose;
+    const beforeRetry = listings(setup.api).length;
+    await assert.rejects(host.close(), error => {
+      assert.equal(error.code, 'ClientDispatchCleanupPending');
+      assert.ok(error.failures?.some(failure =>
+        failure.cleanup?.errors?.some(cause =>
+          cause.message === 'FixtureRowCaptureCloseFailed')));
+      return true;
+    });
+    const pending = observations.filter(([name, detail]) =>
+      name === 'acquisition_cleanup_started' && detail.task === 0);
+    assert.ok(pending.length >= 2);
+    assert.ok(pending.every(([, detail]) => BigInt(detail.resourceUsage.heldBytes) > 0n));
+    failClose = false;
+    await host.close();
+    assert.equal(listings(setup.api).length, beforeRetry);
+    const completed = observations.filter(([name, detail]) =>
+      name === 'acquisition_cleanup_completed' && detail.task === 0);
+    assert.equal(completed.length, 1);
+    for (const key of ['reservedTransferBytes', 'heldBytes',
+      'reservedRetentionBytes', 'reservedExecutionBytes']) {
+      assert.equal(completed[0][1].resourceUsage[key], '0', key);
+    }
+    assert.equal(observations.filter(([name]) => name === 'acquisition_started').length, 2);
+    assertAcquisitionReleased(observations);
+    const reopened = await setup.open();
+    const state = await (await reopened.client.attach(run.ref)).status();
+    assert.equal(state.status, 'failed', JSON.stringify(state));
+    assert.equal(state.result_available, false);
+  });
+
+test('two-source cancellation retains the first row capture until stop and cleanup',
+  async t => {
+    let reachedFirst;
+    const firstCompleted = new Promise(resolve => { reachedFirst = resolve; });
+    let releaseFirst;
+    const pause = new Promise(resolve => { releaseFirst = resolve; });
+    const observations = [];
+    const setup = await installation(t, {retainedRelationOutput: true,
+      secondSource: true,
+      observe(name, detail) { observations.push([name, detail]); },
+      faultInjection(name, detail) {
+        if (name === 'acquisition_completed' && detail.task === 0) {
+          reachedFirst();
+          return pause;
+        }
+      }});
+    t.after(() => releaseFirst());
+    await setup.publish();
+    const {client} = await setup.open();
+    const document = JSON.stringify(twoRowSourceProgram());
+    const run = await client.aql(document, {format: 'json',
+      requestId: 'github-two-source-cancel'});
+    await firstCompleted;
+    const firstUsage = observations.find(([name, detail]) =>
+      name === 'acquisition_completed' && detail.task === 0)?.[1].resourceUsage;
+    assert.equal(firstUsage?.holdings, '1');
+    assert.notEqual(firstUsage?.heldBytes, '0');
+    await client.cancelRequest('github-two-source-cancel');
+    releaseFirst();
+    const state = await run.wait();
+    assert.equal(state.status, 'cancelled', JSON.stringify(state));
+    assert.equal(state.result_available, false);
+    await assert.rejects(run.result('joined').all(), {code: 'ResultAccessDenied'});
+    assert.equal(observations.filter(([name]) => name === 'acquisition_started').length, 1);
+    assert.equal(observations.filter(([name]) => name === 'acquisition_cleanup_completed').length, 1);
+    assertAcquisitionReleased(observations);
+    assert.equal(listings(setup.api).length, 2);
   });
 
 test('retained row source does not publish after a later page fails',

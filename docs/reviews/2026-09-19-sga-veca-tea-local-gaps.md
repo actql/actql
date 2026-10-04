@@ -26,6 +26,20 @@ establish the public configuration connection, not retained output for every
 installed source or two-source Program variant. Full CI and Native Host cancellation
 remain separate verification units.
 
+Two independently installed GitHub row sources can now occupy the two checked
+captured input tasks of one retained-output Program. The Host prepares each
+source at its own occurrence, checks both capacities against one Local ledger,
+charges the page transfer, and transfers each captured holding to its exact
+task before Join. A public HTTPS Program joins distinct repositories, publishes
+the Join and two downstream consumer Named Results to the real retained Store,
+and reads them again after Host reopen without provider I/O. Later-source
+failure, cancellation after the first capture, and a failed cleanup followed
+by retry leave no partial Result or lost holding and do not reacquire a source.
+The existing two-DuckDB-source retained route remains covered separately.
+This is evidence for the installed GitHub row-source pair and shared two-input
+owner, not all provider combinations, all Join variants, or exact/one-short
+physical limits for the row capture.
+
 The installed full-family Host now declares TEA and VecA to the common checker,
 matching its already registered bounded providers. This does not make a
 checker declaration an execution offer: the exact selected task and its
