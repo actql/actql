@@ -16,6 +16,9 @@ import {checkApplications} from './applications.mjs';
 import {leanInput} from './check.mjs';
 import {downloadArtifact} from './transport.mjs';
 import {checkRuntimeObservation} from './runtime.mjs';
+import {gitTree} from './inputs.mjs';
+import {parseReceipt} from './receipts.mjs';
+import {compareFreshObservations, verifyComparison} from './plan.mjs';
 
 export function checkCertificate({certificate, output, context, catalog, required, applications, receiptDigests}) {
   assert.equal(certificate.version, 'actql-verification-family-certificate/0.1');
@@ -32,7 +35,7 @@ export function checkCertificate({certificate, output, context, catalog, require
   return certificate.lean;
 }
 
-export async function verifyCurrentFamily({root, artifactId, expectedDigest, context, request, archive}) {
+export async function verifyCurrentFamily({root, artifactId, expectedDigest, context, request, archive, token, directory}) {
   // Independently validate the API metadata again for each receipt below. This
   // first open only reads data needed to reconstruct the current obligation.
   const metadata = await request(`/actions/artifacts/${artifactId}`);
@@ -41,10 +44,16 @@ export async function verifyCurrentFamily({root, artifactId, expectedDigest, con
   assert.equal(metadata.digest, `sha256:${expectedDigest.replace(/^sha256:/u, '')}`, 'Job output/API archive digest mismatch');
   const zip = await openArtifactZip(archive, {expectedSha256: metadata.digest,
     limits: {maxCompressedBytes: 64 * 1024 * 1024, maxTotalBytes: 256 * 1024 * 1024, maxEntries: 2000}});
-  let state, certificate, output, distributionInputs;
+  let state, certificate, output, distributionInputs, comparison, comparisonObservations, receipts;
   try {
     distributionInputs = await zip.json('runtime-distributions.json');
     state = await zip.json('context.json'); certificate = await zip.json('checked.json'); output = await zip.read('lean-output.log');
+    const planBytes = await zip.read('comparison-plan.json'), observationsBytes = await zip.read('comparison-observations.json');
+    assert.equal(certificate.comparisonDigest, hash(planBytes), 'Changed comparison plan');
+    assert.equal(certificate.comparisonObservationsDigest, hash(observationsBytes), 'Changed fresh comparison observations');
+    comparison = JSON.parse(planBytes); comparisonObservations = JSON.parse(observationsBytes);
+    const catalog = readCatalog(join(root, 'proofs/ci-evidence/bounded-session-actions.json'));
+    receipts = await Promise.all(catalog.actions.map(async action => parseReceipt(await zip.read(`receipts/${action.id}.json`))));
   } finally { await zip.close(); }
   assert.equal(encode(state.context), encode(context), 'Wrong collection candidate/run/attempt');
   checkRuntimeObservation(state.runtime, distributionInputs);
@@ -62,6 +71,11 @@ export async function verifyCurrentFamily({root, artifactId, expectedDigest, con
   // rather than checking a certificate's hashes against itself.
   assert.deepEqual(result.applications.map(entry => ({actionId: entry.actionId, digest: entry.originReceiptDigest})), certificate.receiptDigests);
   assert(result.applications.every(entry => entry.acquisition === 'fresh'));
+  assert.equal(encode(comparisonObservations), encode(compareFreshObservations({plan: comparison, context,
+    runtime: state.runtime, tree: gitTree(root, context.candidateRevision), receipts})), 'Wrong comparison of actual fresh executions');
+  const confirmation = await verifyComparison({plan: comparison, root, context, runtime: state.runtime, request, token, directory});
+  result.comparison = {baseline: comparison.baseline, recordedStatuses: comparison.actions.map(entry => ({actionId: entry.actionId, status: entry.status})),
+    producerCosts: comparison.costs, confirmation, reuseAuthorized: false};
   return result;
 }
 
@@ -83,6 +97,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   await mkdir(directory, {recursive: true});
   const archive = await downloadArtifact({repository, artifactId, token, directory});
   const checked = await verifyCurrentFamily({root, artifactId, expectedDigest: process.env.SESSION_ARTIFACT_DIGEST,
-    context, request, archive});
+    context, request, archive, token, directory});
   console.log(`PASS bounded-session: ${checked.applications.length} current fresh actions, exact run/attempt and executed Lean certificate`);
+  console.log(`Main comparison: ${checked.comparison.confirmation.status}; reuse is not authorized`);
 }

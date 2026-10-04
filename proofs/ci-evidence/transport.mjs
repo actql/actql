@@ -2,6 +2,15 @@ import assert from 'node:assert/strict';
 import {open, mkdtemp, unlink} from 'node:fs/promises';
 import {join} from 'node:path';
 
+export class ArtifactUnavailable extends Error {
+  constructor() { super('Original artifact is unavailable'); this.name = 'ArtifactUnavailable'; }
+}
+export function unavailableTransport(error) {
+  return error instanceof ArtifactUnavailable || ['AbortError', 'TimeoutError'].includes(error?.name) ||
+    error instanceof TypeError && error.message === 'fetch failed' ||
+    error instanceof assert.AssertionError && /^Actions history unavailable \(HTTP \d+\)$/u.test(error.message);
+}
+
 // Reuse the existing bounded ZIP reader after transport. Never extract or
 // execute an archive, forward the Actions token to blob storage, or include
 // presigned URLs/HTTP bodies in errors. The directory belongs to this call.
@@ -10,10 +19,11 @@ export async function downloadArtifact({repository, artifactId, token, directory
   assert(Number.isSafeInteger(artifactId) && artifactId > 0);
   assert(typeof token === 'string' && token.length > 0);
   const signal = AbortSignal.timeout(60000);
-  const response = await fetchImpl(`https://api.github.com/repos/${repository}/actions/artifacts/${artifactId}/zip`, {
+  let response;
+  try { response = await fetchImpl(`https://api.github.com/repos/${repository}/actions/artifacts/${artifactId}/zip`, {
     headers: {accept: 'application/vnd.github+json', authorization: `Bearer ${token}`, 'X-GitHub-Api-Version': '2022-11-28'},
-    redirect: 'manual', signal});
-  assert.equal(response.status, 302, 'Artifact download is unavailable');
+    redirect: 'manual', signal}); } catch { throw new ArtifactUnavailable(); }
+  if (response.status !== 302) throw new ArtifactUnavailable();
   let location;
   try { location = new URL(response.headers.get('location')); }
   catch { throw new Error('Invalid artifact storage redirect'); }
@@ -23,8 +33,9 @@ export async function downloadArtifact({repository, artifactId, token, directory
   // The second fetch deliberately has no Authorization header and no follow.
   let blob;
   try { blob = await fetchImpl(location.href, {redirect: 'error', signal}); }
-  catch { throw new Error('Artifact blob download is unavailable'); }
-  assert(blob.ok && blob.body, 'Artifact blob download is unavailable');
+  catch { throw new ArtifactUnavailable(); }
+  if (!blob.ok) throw new ArtifactUnavailable();
+  assert(blob.body, 'Missing artifact response body');
   const owned = await mkdtemp(join(directory, 'session-origin-')), filename = join(owned, 'artifact.zip');
   const file = await open(filename, 'wx', 0o600);
   let size = 0, complete = false;
@@ -37,8 +48,10 @@ export async function downloadArtifact({repository, artifactId, token, directory
     assert(size > 0, 'Empty artifact download');
     complete = true;
     return filename;
-  } catch {
-    throw new Error('Artifact blob transfer failed');
+  } catch (error) {
+    // A completed but invalid/oversized archive is not an availability miss.
+    if (error instanceof assert.AssertionError) throw error;
+    throw new ArtifactUnavailable();
   } finally {
     await file.close();
     if (!complete) await unlink(filename); // Only this call's exclusive file.
