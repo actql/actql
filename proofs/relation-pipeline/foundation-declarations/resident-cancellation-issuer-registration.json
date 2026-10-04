@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resident-cancellation-issuer-registration",
+  "kind": "change",
+  "revision": "58e25c03aef41a6f2ab99b75ed14114c05d3fa2f",
+  "parents": [
+    "adf43ce95eb833630140f619c0aefba266b056bd"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "adf43ce95eb833630140f619c0aefba266b056bd",
+          "digest": "7ddae67a24261dacd8d65f4875afbf06b260939c9464fb5c81476cfb6ae15424",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "b95c11ddb4883617c1e95d78449a4f0c4e6b6d879e60845045020d1f512d7ff4",
+      "afterMode": "100644",
+      "reason": "Register the public cancellation issuer canonical-wire regression in the existing remote Site runtime gate; retain all existing checks, proof campaigns and pipeline execution commands."
+    }
+  ]
+}

@@ -1171,6 +1171,98 @@ test('exact query is delivered and answered ahead of an unresolved dispatch',
     }
   });
 
+for (const boundary of ['before poll', 'after poll', 'after lost saved-cancellation reply']) {
+  test(`Cancel delivery survives old status ${boundary}`, {timeout: 15_000}, async t => {
+    await mkdir(scratch, {recursive: true});
+    const root = await mkdtemp(join(scratch, 'cancel-status-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const material = await certificates(root);
+    const siteMaterial = {ca: material.ca, cert: material.siteCertificate,
+      key: material.siteKey};
+    const store = openSqliteCoordinatorDispatchJournal(join(root, 'coordinator'),
+      {coordinatorAuthority: 'coordinator-a'});
+    t.after(() => store.close());
+    let coordinator;
+    let observations = 0;
+    const gateway = await startHttpsOutboundSiteGateway({
+      key: material.serverKey, cert: material.serverCertificate, ca: material.ca,
+      siteAuthorities: new Map([[material.siteFingerprint,
+        {siteKey: 'site-a', siteGeneration: 1}]]), control,
+      receiveObservation: async value => {
+        const receipt = await coordinator.receiveObservation(value);
+        observations++;
+        return receipt;
+      },
+    });
+    t.after(() => gateway.close());
+    coordinator = createRemoteSiteCoordinator({authorization: remoteAuthorization,
+      control, journal: control.createCoordinatorJournal('coordinator-a'), store,
+      send: async () => ({revision: 0, state: [0, 0, 0, 0, 0]})});
+    const request = dispatch({dispatchId: `cancel-old-status-${boundary}`});
+    await coordinator.dispatch({dispatch: request});
+    const site = runtime.siteControl.create({key: 'site-a', generation: 1,
+      runtimeRevision: cid('a'), maxConcurrentOperations: 4,
+      maxConcurrentTransfers: 4, maxRetainedBytes: 1_048_576n,
+      maxExecutionBytes: 1_048_576n});
+    const journal = control.createJournal(site);
+    const siteStore = openSqliteDispatchJournal(join(root, 'site'),
+      {siteKey: 'site-a', siteGeneration: 1, runtimeRevision: cid('a')});
+    t.after(() => siteStore.close());
+    const record = siteStore.accept(control.prepareAdmission(journal, request), request, control);
+    siteStore.advance(control.prepareProvisioning(record,
+      control.registerExecutionCapability({site, runtimeBundleCid: cid('a'),
+        connectorRegistration: 'local', connectorRevision: 'local/1',
+        strategyRevision: 'strategy/1', operationCapabilityCid: cid('4')})), record, control);
+    siteStore.advance(control.prepareExecution(record), record, control);
+    const oldRunning = control.statusJson(record, undefined, undefined, undefined);
+    let completed = false;
+    const cancellation = gateway.cancel({dispatch: request}).then(value => {
+      completed = true; return value;
+    }).catch(error => error);
+    const path = '/v1/sites/site-a/generations/1/outbound';
+    const expectedEnvelope = control.pollCancelJson(request);
+    const poll = () => post(gateway.origin, `${path}/poll`, siteMaterial);
+    if (boundary !== 'before poll') {
+      assert.equal((await poll()).body, expectedEnvelope);
+    }
+    assert.equal((await post(gateway.origin, `${path}/observations`,
+      siteMaterial, oldRunning)).status, 200);
+    assert.equal(observations, 1, 'ordinary status is still durably admitted');
+    assert.equal(completed, false, 'old running status cannot complete cancellation');
+    assert.equal(gateway.pending(), 1);
+    assert.equal((await poll()).body, expectedEnvelope,
+      'the exact original Cancel remains available even after a previous offer');
+
+    // The common journal persists a cancellation disposition, but cleanup
+    // is still active. Losing this reply cannot discharge delivery custody.
+    siteStore.advance(control.prepareCancelled(record), record, control);
+    const savedCancellation = control.statusJson(record, undefined, undefined, undefined);
+    if (boundary === 'after lost saved-cancellation reply') {
+      const lost = await postWithLostAck(gateway.origin, `${path}/observations`,
+        siteMaterial, savedCancellation).catch(error => error);
+      assert.equal(lost.code, 'ACK_LOST');
+    } else {
+      assert.equal((await post(gateway.origin, `${path}/observations`,
+        siteMaterial, savedCancellation)).status, 200);
+    }
+    assert.equal(completed, false, 'cancellation persistence is not cleanup completion');
+    assert.equal(gateway.pending(), 1);
+    assert.equal((await poll()).body, expectedEnvelope);
+    const cancelledRevision = control.revision(record);
+    assert.equal((await post(gateway.origin, `${path}/observations`,
+      siteMaterial, savedCancellation)).status, 200);
+    assert.equal(control.revision(record), cancelledRevision);
+    assert.equal(completed, false);
+    siteStore.advance(control.prepareRelease(record), record, control);
+    siteStore.advance(control.prepareReleased(record), record, control);
+    const terminal = control.statusJson(record, undefined, undefined, undefined);
+    assert.equal((await post(gateway.origin, `${path}/observations`, siteMaterial, terminal)).status, 200);
+    assert.deepEqual((await cancellation).state, [5, 0, 2, 0, 0]);
+    assert.equal(gateway.pending(), 0);
+    assert.equal((await poll()).status, 204);
+  });
+}
+
 test('outbound cancellation cannot admit work before dispatch', async t => {
   await mkdir(scratch, {recursive: true});
   const root = await mkdtemp(join(scratch, 'outbound-cancel-'));

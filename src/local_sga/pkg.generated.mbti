@@ -82,9 +82,9 @@ pub fn start_match_nodes(@bounded_execution.Control, @execution_relation.Complet
 
 pub fn start_match_nodes_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[MatchNodesExecution, MatchNodesIssue]
 
-pub fn start_traverse(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[TraverseExecution, TraverseIssue]
+pub fn start_traverse(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], max_paths? : Int) -> Result[TraverseExecution, TraverseIssue]
 
-pub fn start_traverse_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[TraverseExecution, TraverseIssue]
+pub fn start_traverse_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], max_paths? : Int) -> Result[TraverseExecution, TraverseIssue]
 
 pub fn traverse_cleanup_pending(TraverseExecution) -> Bool
 
@@ -183,6 +183,7 @@ pub(all) enum TraverseIssue {
 } derive(Eq, @debug.Debug)
 
 pub(all) enum TraversePathsIssue {
+  TraversePathsSearchLimit
   InvalidTraversePathsKernel
   TraversePathsInputUnavailable
   TraversePathsStartMissing

@@ -5,6 +5,7 @@ pub(all) enum TraversalRule {
   FilterAuthoredLabels
   EnumeratePropertyPaths
   DeduplicatePathIdentities
+  SelectMinimumEligibleNodeDepth
   OrderTraversalRows
 } derive(Eq, Debug)
 
@@ -33,6 +34,7 @@ fn traversal_execution_check(
     FilterTraversalLabels => FilterAuthoredLabels
     EnumeratePropertyPaths => EnumeratePropertyPaths
     DeduplicateExactPaths => DeduplicatePathIdentities
+    MinimumEligibleNodeDepth => SelectMinimumEligibleNodeDepth
     CanonicalTraversalOrder => OrderTraversalRows
     ResolveTraversalResources
     | ResolvePropertyGraphTraversalProfile

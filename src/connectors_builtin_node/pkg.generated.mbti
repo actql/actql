@@ -2105,6 +2105,8 @@ pub fn strategy_remote_output_result_prepare(@remote_site_protocol.RemotePollOut
 
 pub fn strategy_remote_output_result_projection(@remote_site_protocol.RemoteOutputResult, @remote_transfer.RemoteTransferRequest) -> Array[String] raise NodeHostFailure
 
+pub fn strategy_remote_poll_cancel_json(@remote_site_protocol.DispatchRequest) -> String raise NodeHostFailure
+
 pub fn strategy_remote_poll_dispatch_admit(String) -> @remote_site_protocol.RemotePollDispatch raise NodeHostFailure
 
 pub fn strategy_remote_poll_dispatch_binding_body(@remote_site_protocol.RemotePollDispatch) -> String

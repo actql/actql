@@ -24,13 +24,16 @@ test('Remote Site fixed preimages and transitive identities are independent', ()
   assert.equal(byName.managed_subject.body.dispatch_request_cid, byName.dispatch.cid);
   assert.equal(byName.managed_subject.body.holding_evidence_cid, byName.holding.cid);
   assert.equal(byName.managed_evidence.body.evidence_subject_cid, byName.managed_subject.cid);
-  assert.equal(hash(byName.poll_dispatch.body.request_json),
-    byName.poll_dispatch.body.dispatch_request_cid);
+  for (const name of ['poll_dispatch', 'poll_cancel']) {
+    assert.equal(hash(byName[name].body.request_json), byName[name].body.dispatch_request_cid);
+    if (name === 'poll_cancel') assert.equal(byName[name].body.dispatch_request_cid, byName.dispatch.cid);
+  }
 });
 
 test('Remote Site schema pins retain full current fields without aliases', () => {
   const names = {dispatch_request: 'dispatch',
-    managed_output_subject: 'managed_subject', poll_dispatch: 'poll_dispatch'};
+    managed_output_subject: 'managed_subject', poll_dispatch: 'poll_dispatch',
+    poll_cancel: 'poll_cancel'};
   for (const [name, vectorName] of Object.entries(names)) {
     const schema = registry.schemas[name];
     assert.equal(hash(canonical(schema)), registry.schema_cids[name]);

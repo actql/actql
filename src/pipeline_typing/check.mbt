@@ -940,7 +940,7 @@ fn check_impl(
       let root = match
         @decode.closed_object(operation_body, [
           "start", "hops", "direction", "edge_types", "min_hops", "max_hops", "emit",
-          "max_output_rows", "path_mode",
+          "max_output_rows", "path_mode", "edge_where", "node_where",
         ]) {
         Ok(o) => o
         Err(_) => fail(operation_body, InvalidBody)
