@@ -10,10 +10,8 @@ import {resolve} from 'node:path';
 import test from 'node:test';
 import {fileURLToPath} from 'node:url';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
-import {canonical, expectedTwoSourceResults, loadTwoSourceFixtures,
-  installTwoSourceFixtures, observeTwoSourceProvider, openTwoSourcePublicHost}
+import {canonical, loadTwoSourceFixtures, installTwoSourceFixtures}
   from '../../scripts/fixtures/two-source-public-query.mjs';
-import {connectEmbeddedLocal} from './embedded-local.mjs';
 
 const repository = fileURLToPath(new URL('../../', import.meta.url));
 const driver = fileURLToPath(new URL('../../scripts/fixtures/two-source-restart.mjs', import.meta.url));
@@ -127,7 +125,7 @@ test('two installed sources use normal public Local/HTTPS execution and owned re
     scratch.passed();
   });
 
-test('public two-source join retains its output through the installed Store',
+test('public two-source join retains its output across Local and HTTPS restart',
   {timeout: 120_000}, async () => {
     const scratch = await createOwnedScratch({parent: resolve(repository, '_build'),
       prefix: 'two-source-retained-output-', label: 'public two-source retained output',
@@ -135,36 +133,26 @@ test('public two-source join retains its output through the installed Store',
     const root = scratch.path;
     const fixture = await loadTwoSourceFixtures(fixtureDirectory);
     const installation = await installTwoSourceFixtures({root, fixture, duckdb});
-    const provider = observeTwoSourceProvider(duckdb, installation.databases);
-    const directory = resolve(root, 'retained-output-state');
-    let outputRepresentations;
-    const authorization = hostAuthorization((name, detail) => {
-      if (name === 'computed') outputRepresentations = detail.outputRepresentations;
-    });
-    let running, client;
-    try {
-      running = await openTwoSourcePublicHost({
-        connect: connectEmbeddedLocal, mode: 'local', directory,
-        sourceProfilePaths: [installation.profiles.left, installation.profiles.right],
-        authorization, retainedRelationOutput: true});
-      client = await running.connect();
-      const requestId = 'two-source-retained-output';
-      const execution = await client.aql(fixture.program, {format: 'json', requestId});
-      const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
-      assert.equal(state.status, 'succeeded', JSON.stringify(state));
-      const expected = expectedTwoSourceResults(fixture, 'distinct').joined;
-      assert.deepEqual(await execution.result('joined').all(), expected.rows);
-      assert.deepEqual((await execution.result('joined').describe()).columns,
-        expected.columns);
-      assert.ok(outputRepresentations?.some(value =>
-        value.representation === 'retained-file'));
-      const before = provider.snapshot();
-      const attached = await client.attach(execution.ref);
-      assert.deepEqual(await attached.result('joined').all(), expected.rows);
-      const resent = await client.aql(fixture.program, {format: 'json', requestId});
-      assert.deepEqual(resent.ref, execution.ref);
-      assert.deepEqual(provider.snapshot(), before,
-        'Result reuse never repeats either physical source');
-    } finally { client?.close(); await running?.close(); provider.restore(); }
+    execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
+      '-keyout', 'remote.key', '-out', 'remote.crt', '-days', '1',
+      '-subj', '/CN=localhost', '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'],
+    {cwd: root, stdio: 'ignore'});
+    const configuration = resolve(root, 'two-source-configuration.json');
+    await writeFile(configuration, JSON.stringify({root, fixtureDirectory, installation,
+      authorization: hostAuthorization(), runtime: {
+        sdk: new URL('../../packages/sdk/index.mjs', import.meta.url).href,
+        local: new URL('./embedded-local.mjs', import.meta.url).href,
+        embeddedLocal: true, duckdbPackage,
+      }}, null, 2) + '\n');
+    await runChild(configuration, 'retained-output-success');
+    const success = JSON.parse(await readFile(resolve(root,
+      'retained-output-success.retained-output-success.json'), 'utf8'));
+    assert.deepEqual(success.records.map(item => item.mode), ['local', 'https']);
+    await runChild(configuration, 'retained-output-replay');
+    const replay = JSON.parse(await readFile(resolve(root,
+      'retained-output-replay.retained-output-replay.json'), 'utf8'));
+    assert.deepEqual(replay.records, success.records);
+    assert.deepEqual(replay.provider.sourceProviderOpens, []);
+    assert.equal(replay.provider.sourceIo, 0);
     scratch.passed();
   });

@@ -14,11 +14,12 @@ Effect and INFER dispatch keep their separate
 existing owners.
 
 The public source-free Values/sort, single-source DuckDB-acquired filter/sort,
-and two-source DuckDB-acquired Join Programs
-read independently expected Named Result rows. The acquired case also checks
-description, attach, and idempotent resend, and the Host observes the actual
-`retained-file` output representation before cleanup. The unchanged public
-Local/HTTPS acquisition-selection fixture passes in the default mode. A
+and two-source DuckDB-acquired Join Programs read independently expected
+Named Result rows. The acquired cases also check description, attach, and
+idempotent resend, and the Host observes the actual `retained-file` output
+representation before cleanup. The two-source case repeats those reads in
+fresh Local and HTTPS processes without reopening either source. The unchanged
+public Local/HTTPS acquisition-selection fixture passes in the default mode. A
 separate writer regression cancels while the Store lease is being acquired;
 it checks zero reservations, nonpublication, and cleanup retry. These tests
 establish the public configuration connection, not retained output for every
@@ -1227,8 +1228,9 @@ factory when explicitly configured, for source-free Programs and one or two
 DuckDB-captured sources. The two-source factory keeps the checked input
 positions and the existing acquisition ledger; a public two-source Join
 reaches the real row Store and publishes its independently expected Named
-Result. Attached and repeated requests do not reacquire either source. This
-public test does not establish retained output for other connector sources,
+Result. Fresh-process Local and HTTPS attach and repeated requests do not
+reacquire either source. This public test does not establish retained output
+for other connector sources,
 all multi-source variants, or two-consumer and failure recovery for the
 two-source route. Linux CI and Native Host in-flight cancellation are separate
 evidence and completion units.
