@@ -4677,7 +4677,11 @@ Relation consumer without changing the fused preference of other families.
 The copy now enforces an independently calculated 37-step control-work
 boundary at quantum one and seven; 36 fails without publishing output. The
 selected-provider fixture passes on JS, Wasm and native and checks exact/one-
-short node, edge and workspace capacity. This is not current-profile
-completion: Graph storage's encoded-value work and large-value
-noninterruptible sections, broader Host failures, and final-source CI still
-need evidence.
+short node, edge and workspace capacity. A focused retained-Store Host case
+also cancels after positive normalize-task work and confirms stop before final
+cleanup. This is not current-profile completion: Graph storage's encoded-value
+work and large-value noninterruptible sections, broader Host failures, and
+final-source CI still need evidence. The language contract also permits
+normalization of an external opaque Graph while preserving its evidence level;
+the current checker and managed storage accept only typed Property Graphs, so
+that separate route remains unconnected rather than silently falling back.

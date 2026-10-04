@@ -4625,6 +4625,24 @@ async function exerciseStrategyGraph(
       fields:['src','dst','weight']},as:'out'},
     fields:['src','dst','weight'],
   }, {
+    name: 'retained-graph-normalize-in-flight',
+    retainedOutput: true,
+    selectedStructural: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 80,
+    constructionStarts: [1],
+    cancelOnManagedStart: 2,
+    managedStarts: 2,
+    cancelTask: 3,
+    completedTasks: [1, 2],
+    steps: [
+      {from: 'g', normalize_graph: true, as: 'normalized'},
+      {from: 'normalized', match_nodes: {definition: 'N', where: 'true',
+        fields: ['id', 'node_name']}, as: 'out'},
+    ],
+    fields: ['id', 'node_name'],
+  }, {
     name: 'current-graph-bounds-fused-in-flight',
     retainedOutput:true,rows:40,advanceQuantum:1,
     constructionProgress:80,constructionStarts:[1],
@@ -5146,7 +5164,16 @@ async function exerciseStrategyGraph(
     completedTasks: [1, 2, 3, 4],
     fields: ['query_id', 'candidate_id', 'score', 'rank'],
   }];
+  const focusedCancellationCase =
+    process.env.ACTQL_STANDARD_HOST_CANCEL_CASE;
+  if (focusedCancellationCase !== undefined) {
+    assert(graphCancellationCases.some(value =>
+      value.name === focusedCancellationCase),
+    `Unknown focused cancellation case: ${focusedCancellationCase}`);
+  }
   for (const cancellationCase of graphCancellationCases) {
+    if (focusedCancellationCase !== undefined &&
+        cancellationCase.name !== focusedCancellationCase) continue;
     const teaFamily = cancellationCase.family === 'tea' ||
       cancellationCase.family === 'time-series' ||
       cancellationCase.family === 'interval' ||
