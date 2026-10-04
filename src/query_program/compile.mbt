@@ -767,6 +767,7 @@ fn append_expression(
       },
       construction.builder,
       max_work,
+      resolve_properties=true,
     )
   }
   match lowered {
