@@ -330,7 +330,9 @@ test('retained acquired rows feed numeric group slots and two consumers',
     const observations = [];
     const setup = await installation(t, {retainedRelationOutput: true,
       observe(name, detail) { observations.push([name, detail]); }});
-    setup.state.repositories.get('R_hello').issues[2].author = {login: 'zed'};
+    const repository = setup.state.repositories.get('R_hello');
+    repository.issues = repository.issues.map((issue, index) => index === 2
+      ? {...issue, author: {login: 'zed'}} : issue);
     await setup.publish();
     const document = JSON.parse(program);
     document.id = 'github-retained-group';
