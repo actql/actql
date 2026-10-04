@@ -489,24 +489,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       return false;
     }
     const runId = control.runDefinitionRunId(retained.runDefinition);
-    const state = checkpoints.journal.getRunState(runId);
-    const view = state?.runState.checkpoint === undefined
-      ? [`${runId}-effect-commit`, `${runId}-source-1`, `${runId}-source-0`]
-        .map(id => checkpoints.journal.inspect(id)).find(item => item !== undefined &&
-          checkpoints.journal.currentResume(item.checkpointCid)?.state !== 'completed')
-      : checkpoints.journal.inspect(state.runState.checkpoint.checkpoint_cid);
-    if (!['effect_set', 'read_access'].includes(view?.kind) || view.runId !== runId ||
-        view.runDefinitionCid !== ref.runDefinitionCid ||
-        view.prepareAttemptId !== null) return false;
-    if (state?.status === 'waiting_checkpoint') {
-      return checkpoints.journal.cancelCheckpoint(view.checkpointCid)
-        .outcome === 'cancelled';
-    }
-    if (state?.status === 'resuming') {
-      return checkpoints.journal.cancelUnsentResume(view.checkpointCid)
-        .outcome === 'cancelled';
-    }
-    return false;
+    return checkpoints.cancelEffectContinuation(runId, ref.runDefinitionCid);
   };
   const cancel = async ({ref, principalId: actual, connection}) => {
     if (!hostConnection({principalId: actual, connection, ref})) {
@@ -951,11 +934,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
             store, storeAuthorityCid, authorityScopeCid,
             observeRun: ({ref}) => observeRun({ref, principalId}),
             openComputation: ({retainComputationOwner} = {}) => {
-              if (moon.clientProgramEffectPrepareQueryAcquisition(
+              if (inferSelections.has(facts.prepared) ||
+                  moon.clientProgramEffectPrepareQueryAcquisition(
                 facts.prepared, 0, 0)?.$tag === 1) {
                 const sourceContinuation = acquiredEffectContinuation({
                   checkpoints: inferSelections.has(facts.prepared) ||
-                    sourceProfile.realizationKey !== 'duckdb-acquired' ? undefined : sourceCheckpoints,
+                    sourceProfile?.realizationKey !== 'duckdb-acquired' ? undefined : sourceCheckpoints,
                   moon, acquired: facts.preparedExecution,
                   submission: effectSubmissions.get(facts.prepared),
                   declaredResults: moon.clientProgramEffectCompilationResultNames(facts.compilation),
@@ -966,8 +950,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
                 return openAcquiredEffectComputation({moon,
                   owner: facts.owner, acquired: facts.preparedExecution,
                   sourceProfile, registry, values, fragment, ordered,
-                  sourceAccess: sourceProfile.sourceAccess, signal, now,
+                  sourceAccess: sourceProfile?.sourceAccess, signal, now,
                   retainComputationOwner, infer: inferSelections.get(facts.prepared),
+                  computeConfigurations: {local: localSnapshotConfiguration},
                   store, principalId, faultInjection: authorization?.faultInjection,
                   observe: authorization?.observe, sourceContinuation});
               }
@@ -1033,7 +1018,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
         const options = {moon, control, prepared,
           compilation, allowed, definition, authorityScopeCid, namespaceId,
           storeAuthorityCid, now, resultDataPolicy: retainedResultDataPolicy};
-        return moon.clientProgramEffectPrepareQueryAcquisition(prepared,
+        return inferSelections.has(prepared) ||
+          moon.clientProgramEffectPrepareQueryAcquisition(prepared,
           0, 0)?.$tag === 1
           ? acquiredEffectPublicationAdmission(options)
           : sourceFreeEffectPublicationPlan(options);
@@ -1102,7 +1088,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     // Its start claim cannot be reset by a lost response or a second submit.
     void effectRun.start(accepted).catch(error => {
       diagnostic('effect_start_failed', {ref: accepted.ref,
-        code: error?.code ?? error?.message});
+        code: error?.code ?? error?.message, cause: error?.cause});
     }).finally(() => settleHeldRun(accepted, runIdOf(accepted)))
       .catch(error => diagnostic('effect_settlement_failed', {
         ref: accepted.ref, code: error?.code ?? error?.message}));
@@ -1415,7 +1401,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       }, error => {
         if (!startObserved) settle({refused: error});
         diagnostic('effect_start_failed', {ref: accepted.ref,
-          code: error?.code ?? error?.message});
+          code: error?.code ?? error?.message, cause: error?.cause});
       }).finally(() => settleHeldRun(accepted, runId))
         .catch(error => diagnostic('effect_settlement_failed', {
           ref: accepted.ref, code: error?.code ?? error?.message}));
@@ -1554,8 +1540,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           // Durable custody still exists only before transfer to a Checkpoint
           // or physical dispatch. A complete private record is not sufficient
           // to establish that transfer. The original unknown Run stays intact.
-          if ([`${runId}-effect-commit`, `${runId}-source-0`, `${runId}-source-1`]
-            .some(id => checkpoints.journal.inspect(id) !== undefined)) continue;
+          if (checkpoints.effectRunState(runId, ref.runDefinitionCid) !== undefined) {
+            continue;
+          }
           await retireEffectCapture(ref);
         } catch (error) { failures.push(error); }
       }

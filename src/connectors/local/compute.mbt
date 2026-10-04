@@ -302,6 +302,7 @@ pub fn local_managed_sequence_supported(
       @lower.GraphMatchStep(_) => false
       @lower.GraphTraverseStep(_) => false
       @lower.GraphDiagnosticStep(_) => false
+      @lower.GraphEqualityStep(_) => false
       @lower.GraphNormalizeStep(_) => false
       @lower.PropertyGraphConstructionStep(_) => false
       @lower.VectorStep(_) => false

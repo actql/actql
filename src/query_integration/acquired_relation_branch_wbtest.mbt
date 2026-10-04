@@ -51,6 +51,29 @@ test "bounded binary Relation branch remains one checked physical task" {
     assert_eq((edge.producer, edge.consumer, edge.input), (0, 1, index))
   }
   assert_true(@strategy.graph_ordered_inputs_complete(graph))
+  // Reclassification keeps this already bounded branch under the same owner.
+  // Two discovery visits + the outer Result visit = 3. The branch helper
+  // adds one Result visit, four bitmap slots reserved before allocation,
+  // four Steps, six input ports and three reachability visits = 18 more.
+  // Exact total 21; task ceiling zero stays valid because nothing is expanded.
+  // 3 refuses before the helper's Result; 7 cannot reserve the bitmap;
+  // 8 refuses before its first Step; 20 refuses before its last reachability.
+  for work in [0, 2, 3, 4, 7, 8, 18, 20] {
+    assert_true(
+      @strategy.expand_internal_carrier_tasks(graph, 0, work) is Err(WorkLimit),
+    )
+  }
+  let same = @strategy.expand_internal_carrier_tasks(graph, 0, 21).unwrap()
+  assert_true(physical_equal(same, graph))
+  assert_true(physical_equal(@strategy.graph_program(same), checked))
+  for task in 0..<2 {
+    assert_true(
+      physical_equal(
+        @strategy.graph_task_owner(same, task).unwrap(),
+        owners[task],
+      ),
+    )
+  }
 }
 
 ///|
