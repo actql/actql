@@ -48,7 +48,12 @@ export function prepareIsolatedMutation({root, tree, origin, directory}) {
   const budget = {remaining: 1024 ** 3};
   copyRegular({source: realpathSync(process.execPath), target: join(imageRoot, 'runtime/node'), budget});
   stageDistribution({source: moonHome, destination: join(imageRoot, 'runtime/moonbit'), budget});
-  const executables = [process.execPath, ...['moon', 'moonc', 'moonrun'].map(name => join(moonHome, 'bin', name))];
+  // The pinned Moon build executor (n2) invokes /bin/sh -c, even for JS
+  // compilation. Stage its real bytes and inspect its own ELF dependencies;
+  // do not borrow a host mount or silently substitute another shell.
+  copyRegular({source: realpathSync('/bin/sh'), target: join(imageRoot, 'bin/sh'), budget});
+  const executables = [process.execPath, ...['moon', 'moonc', 'moonrun'].map(name => join(moonHome, 'bin', name)), '/bin/sh'];
+  const imageExecutables = ['runtime/node', ...['moon', 'moonc', 'moonrun'].map(name => `runtime/moonbit/bin/${name}`), 'bin/sh'];
   const loaderObservations = [], libraries = new Set();
   for (const [index, path] of executables.entries()) {
     const inspected = realpathSync(path), bytes = readFileSync(inspected);
@@ -61,7 +66,7 @@ export function prepareIsolatedMutation({root, tree, origin, directory}) {
       'Unsupported executable loader inspection');
     const paths = staticallyLinked ? [] : loaderPaths(output);
     paths.forEach(path => libraries.add(path));
-    loaderObservations.push({executable: index === 0 ? 'runtime/node' : `runtime/moonbit/bin/${['moon', 'moonc', 'moonrun'][index - 1]}`,
+    loaderObservations.push({executable: imageExecutables[index],
       digest: hash(bytes), static: staticallyLinked, paths});
   }
   for (const library of [...libraries].sort()) copyRegular({source: realpathSync(library), target: join(imageRoot, library.slice(1)), budget});

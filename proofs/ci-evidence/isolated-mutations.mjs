@@ -24,6 +24,8 @@ assert.equal(process.env.HOSTNAME, 'actql-session');
 // This assertion is an actual write attempt, not a copied isolation label.
 assert.throws(() => writeFileSync('/runtime/actql-write-probe', 'must fail', {flag: 'a'}),
   error => error.code === 'EROFS', 'Runtime must be immutable during execution');
+const shell = spawnSync('/bin/sh', ['-c', ':'], {env: process.env, encoding: 'utf8', timeout: 1000});
+assert(!shell.error && shell.status === 0, 'Pinned Moon build executor requires a working /bin/sh');
 cpSync('/source', '/workspace', {recursive: true, preserveTimestamps: true, errorOnExist: true, force: false});
 mkdirSync('/tmp/home', {recursive: true});
 const before = snapshot('/workspace');
@@ -44,4 +46,4 @@ const logs = Object.fromEntries(report.results.map(entry => {
 // The host seals the normal receipt and independently checks its required IDs
 // and nonzero assertion failures. No CI token/credentials exist in this process.
 console.log(`ACTQL_ISOLATED_MUTATIONS ${JSON.stringify({version: 'actql-isolated-mutation-observation/0.1',
-  report, logs, restored: true, readOnlyConfirmed: true, root: observed, platformInputs: platform, environment})}`);
+  report, logs, restored: true, readOnlyConfirmed: true, shellStartupConfirmed: true, root: observed, platformInputs: platform, environment})}`);

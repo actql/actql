@@ -159,8 +159,13 @@ on ordinary PRs remain required for the overall task.
 The first controlled executor is the unchanged `mutations-js` action: all 13
 required mutations, running assertion failures, byte-exact restoration and raw
 logs remain required. The collector stages its actual Git snapshot inputs,
-the installed pinned Node executable, MoonBit/core installation and inspected
-ELF loader/library bytes into a `FROM scratch` image. This action does not
+the installed pinned Node executable, MoonBit/core installation, required build
+shell and inspected ELF loader/library bytes into a `FROM scratch` image. The
+pinned Moon build executor invokes `/bin/sh -c` ([n2 source at its pinned
+revision](https://github.com/moonbitlang/n2/blob/79d275ef051cf0d4864ae3b4f4947e3f3f035899/src/process_posix.rs));
+stage the resolved shell as a regular `/bin/sh`, bind its bytes and loader
+inputs, and require its actual startup before the unchanged mutation executor.
+This shell startup is not counted as a mutation kill. This action does not
 execute Lean, so the Lean installation is excluded by its execution path,
 without raising the earlier inventory limit or clearing its residuals.
 

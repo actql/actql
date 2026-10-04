@@ -14,7 +14,7 @@ import {isolatedRunArguments, mutationSnapshotExtras, checkImageDefinition} from
 
 export const isolatedProfile = 'isolated-session-mutations-linux';
 export const isolatedResidual = 'isolated comparison only: reviewed action/kernel/CPU closure and acceptance remain required';
-export const imageRoots = Object.freeze(['lib', 'lib64', 'runtime', 'source', 'usr']);
+export const imageRoots = Object.freeze(['bin', 'lib', 'lib64', 'runtime', 'source', 'usr']);
 
 export function platformInputs() {
   assert.equal(process.platform, 'linux'); assert.equal(process.arch, 'x64');
@@ -84,7 +84,7 @@ export function checkIsolatedInputs({runtime, manifest, tree}) {
       assert.deepEqual(entry.members, actual, 'Incomplete image directory membership');
     }
   }
-  for (const path of ['runtime/node', 'runtime/moonbit/bin/moon', 'runtime/moonbit/bin/moonc', 'runtime/moonbit/bin/moonrun']) {
+  for (const path of ['runtime/node', 'runtime/moonbit/bin/moon', 'runtime/moonbit/bin/moonc', 'runtime/moonbit/bin/moonrun', 'bin/sh']) {
     const entry = byPath.get(path);
     assert(entry?.kind === 'file' && (entry.mode & 0o111) && entry.bytes > 0, 'Missing isolated executable');
   }
@@ -116,8 +116,8 @@ export function checkIsolatedInputs({runtime, manifest, tree}) {
     assert.equal(entry.kind, 'file'); assert.equal(entry.mode, Number.parseInt(source.mode.slice(-3), 8));
     assert.equal(entry.bytes, bytes.length); assert.equal(entry.digest, hash(bytes), 'Image source differs from actual Git');
   }
-  assert(Array.isArray(manifest.loaderObservations) && manifest.loaderObservations.length === 4, 'Missing executable loader observations');
-  const executablePaths = ['runtime/node', ...['moon', 'moonc', 'moonrun'].map(name => `runtime/moonbit/bin/${name}`)];
+  assert(Array.isArray(manifest.loaderObservations) && manifest.loaderObservations.length === 5, 'Missing executable loader observations');
+  const executablePaths = ['runtime/node', ...['moon', 'moonc', 'moonrun'].map(name => `runtime/moonbit/bin/${name}`), 'bin/sh'];
   assert.deepEqual(manifest.loaderObservations.map(value => value.executable), executablePaths);
   for (const loader of manifest.loaderObservations) {
     assert.equal(loader.digest, byPath.get(loader.executable).digest, 'Wrong inspected executable');
@@ -142,6 +142,7 @@ export function checkIsolatedResult({payload, manifest, before}) {
   assert.equal(encode(payload.platformInputs), encode(manifest.platformInputs), 'Changed kernel/CPU execution profile');
   assert.equal(encode(payload.environment), encode(manifest.environment), 'Inherited or changed execution environment');
   assert.equal(payload.readOnlyConfirmed, true); assert.equal(payload.restored, true);
+  assert.equal(payload.shellStartupConfirmed, true, 'Required build shell did not start');
   assert.equal(encode(payload.report.source), encode(before), 'Isolated action did not execute the selected actual source');
   assert.deepEqual(payload.report.results.map(entry => entry.id).sort(), [...mutationIds].sort());
   assert.deepEqual(Object.keys(payload.logs).sort(), [...mutationIds].sort(), 'Missing/extra original mutation logs');

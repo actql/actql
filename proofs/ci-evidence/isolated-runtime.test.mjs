@@ -17,7 +17,7 @@ function fixture(t) {
     .map(path => [path, Buffer.from(path)]));
   const tree = {entries: new Map([...bodies.keys()].map(path => [path, {mode: '100644', kind: 'blob'}])), read: path => bodies.get(path)};
   stageMutationSource({tree, destination: root});
-  const executables = ['runtime/node', ...['moon', 'moonc', 'moonrun'].map(name => `runtime/moonbit/bin/${name}`)];
+  const executables = ['runtime/node', ...['moon', 'moonc', 'moonrun'].map(name => `runtime/moonbit/bin/${name}`), 'bin/sh'];
   for (const path of [...executables, 'lib/libstdc++.so.6', 'runtime/moonbit/lib/core/README.md']) {
     mkdirSync(dirname(join(root, path)), {recursive: true}); writeFileSync(join(root, path), path);
     chmodSync(join(root, path), executables.includes(path) ? 0o755 : 0o644);
@@ -31,7 +31,7 @@ function fixture(t) {
   const runtime = imageRuntime(manifest), before = snapshotFromGit(tree);
   const report = {source: before, results: mutationIds.map(id => ({id, killed: true, target: 'js', failureCount: 1}))};
   const payload = {version: 'actql-isolated-mutation-observation/0.1', root: manifest.root,
-    platformInputs: manifest.platformInputs, environment: isolatedEnvironment, readOnlyConfirmed: true, restored: true, report,
+    platformInputs: manifest.platformInputs, environment: isolatedEnvironment, readOnlyConfirmed: true, shellStartupConfirmed: true, restored: true, report,
     logs: Object.fromEntries(mutationIds.map(id => [id, 'Total tests: 1, passed: 0, failed: 1.\n']))};
   const state = {context: {candidateRevision: 'a'.repeat(40)}, origin: {runId: 1, runAttempt: 2, jobId: 3}, actionRuntimes: {'mutations-js': runtime}};
   const imageId = `sha256:${'b'.repeat(64)}`, owner = '1:2:3';
@@ -61,6 +61,9 @@ test('missing source, false directory membership, changed environment/definition
     manifest => manifest.root.entries.find(entry => entry.path === 'source/src/example/source.mbt').digest = 'f'.repeat(64),
     manifest => manifest.root.entries.find(entry => entry.path === 'source/src/example').members = [],
     manifest => manifest.root.entries = manifest.root.entries.filter(entry => entry.path !== 'runtime/node'),
+    manifest => manifest.root.entries = manifest.root.entries.filter(entry => entry.path !== 'bin/sh'),
+    manifest => manifest.loaderObservations.pop(),
+    manifest => manifest.loaderObservations.at(-1).digest = 'f'.repeat(64),
     manifest => manifest.root.links[0].destination = 'absent',
     manifest => manifest.environment = {...manifest.environment, SECRET: 'must not enter'},
     manifest => manifest.dockerfile += 'ENV UNREVIEWED=true\n',
@@ -78,6 +81,7 @@ test('restoration, runtime/kernel mismatch, missing mutation logs and compiler-o
   for (const alter of [
     payload => payload.restored = false,
     payload => payload.readOnlyConfirmed = false,
+    payload => payload.shellStartupConfirmed = false,
     payload => payload.platformInputs.kernelRelease = 'changed',
     payload => payload.root.entries[0].mode = 0,
     payload => payload.report.source.digest = 'f'.repeat(64),
