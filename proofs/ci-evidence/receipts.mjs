@@ -4,6 +4,7 @@ import {parseTestExecution} from '../../scripts/test-execution.mjs';
 import {openArtifactZip} from '../../scripts/ci-artifact-reader.mjs';
 import {compareInputs, hash, inputVersion} from './inputs.mjs';
 import {validateCatalog, version as catalogVersion} from './actions.mjs';
+import {ArtifactUnavailable} from './transport.mjs';
 
 export const receiptVersion = 'actql-verification-action-receipt/0.1';
 const positive = value => Number.isSafeInteger(value) && value > 0;
@@ -140,7 +141,7 @@ export async function authenticateOrigin({receipt, artifactId, expected, request
   assert.equal(job.head_sha, origin.runHeadRevision);
   assert.equal(job.status, 'completed'); assert.equal(job.conclusion, 'success');
   const artifact = await request(`/actions/artifacts/${artifactId}`);
-  assert.equal(artifact.id, artifactId); assert.equal(artifact.expired, false);
+  assert.equal(artifact.id, artifactId); assert(typeof artifact.expired === 'boolean');
   assert.equal(artifact.workflow_run?.id, origin.runId);
   assert.equal(artifact.workflow_run?.head_sha, origin.runHeadRevision);
   assert.equal(artifact.workflow_run?.repository_id, origin.repositoryId);
@@ -148,7 +149,8 @@ export async function authenticateOrigin({receipt, artifactId, expected, request
   assert.equal(artifact.name, `session-actions-${origin.runId}-${origin.runAttempt}-${origin.testedRevision}`);
   assert(/^sha256:[a-f0-9]{64}$/u.test(artifact.digest ?? ''), 'Missing authenticated archive digest');
   assert(positive(artifact.size_in_bytes));
-  assert(Number.isFinite(Date.parse(artifact.expires_at)) && Date.parse(artifact.expires_at) > Date.now(), 'Expired archive');
+  assert(Number.isFinite(Date.parse(artifact.expires_at)), 'Invalid archive expiry');
+  if (artifact.expired || Date.parse(artifact.expires_at) <= Date.now()) throw new ArtifactUnavailable();
   // Re-read after inspection: a rerun must not change the attempt underneath us.
   const current = await request(`/actions/runs/${origin.runId}`);
   assert.equal(current.run_attempt, origin.runAttempt);

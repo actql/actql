@@ -210,8 +210,9 @@ const entrances = Object.freeze({local: localClient, http: httpClient});
 const contextRef = /^ctx:[0-9a-f]{64}$/u;
 // Context references are keyed per Host installation: they are compared
 // within one Host here, and across Hosts by the fixed-key tests below.
-const withoutContext = outcome => {
-  assert.equal(outcome.outcome, 'completed');
+const withoutContext = (outcome, expectedAssertion) => {
+  assert.equal(outcome.outcome, 'completed', expectedAssertion === undefined
+    ? undefined : `[check-mutation:${expectedAssertion}]`);
   assert.match(outcome.report.context_ref, contextRef);
   assert.equal(outcome.reason_schema_cid, checkReasonSchemaCid);
   assert.equal(outcome.report.inputs[0].document_id, 'source');
@@ -274,7 +275,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
         hidden === 'allowed' ? [] : protectedSource);
       const missing = await check(client, 'missing');
       const declared = getCheckInput(missing, 'parameter_declarations');
-      assert.equal(missing.report.verdict, 'undetermined');
+      assert.equal(missing.report.verdict, 'undetermined', '[check-mutation:missing-value]');
       assert.deepEqual(missing.report.reasons, []);
       assert.deepEqual(missing.report.requirements, [{code: 'parameter_value_required',
         facts: {parameter: 'minimum', expected_type: 'number'},
@@ -298,7 +299,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
     const revisions = [];
     for (const [text, start, end] of cases) {
       const outcome = await client.check(text, {format: 'sql'});
-      assert.equal(outcome.outcome, 'completed');
+      assert.equal(outcome.outcome, 'completed', '[check-mutation:syntax-outcome]');
       assert.equal(outcome.report.verdict, 'invalid');
       assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
       assert.deepEqual(outcome.report.requirements, []);
@@ -311,7 +312,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
         kind: 'text', byte_length: end}]);
       assert.deepEqual(reason, {code: 'query_syntax_invalid', location: {
         kind: 'text', document_id: 'source', revision: input.revision,
-        start_byte: start, end_byte: end, precision: 'exact'}});
+        start_byte: start, end_byte: end, precision: 'exact'}}, '[check-mutation:syntax-location]');
       const resolved = resolveCheckLocation(outcome, reason.location);
       assert.equal(resolved.text, '');
       assert.equal(resolved.input.text, text);
@@ -378,14 +379,14 @@ for (const [entrance, open] of Object.entries(entrances)) {
         outcome: 'completed', version: 'actql-check-outcome/0.1',
         report: {context_ref: '<ctx>', scope: {kind: 'bound_input'},
           verdict: 'invalid', reasons: [{code: 'supplied_value_invalid'}],
-          coverage: {limits: [], unresolved: protectedSource}}}, name);
+          coverage: {limits: [], unresolved: protectedSource}}}, '[check-mutation:public-violation]');
       // Without the violation the protected source leaves it undetermined,
       // never invalid and never verified.
-      assert.deepEqual(withoutContext(await check(client, 'satisfied')), {
+      assert.deepEqual(withoutContext(await check(client, 'satisfied'), 'protected-unresolved'), {
         outcome: 'completed', version: 'actql-check-outcome/0.1',
         report: {context_ref: '<ctx>', scope: {kind: 'bound_input'},
           verdict: 'undetermined', reasons: [],
-          coverage: {limits: [], unresolved: protectedSource}}}, name);
+          coverage: {limits: [], unresolved: protectedSource}}}, '[check-mutation:protected-unresolved]');
       // A missing value is a limit: undetermined, never invalid.
       assert.deepEqual(withoutContext(await check(client, 'missing')), {
         outcome: 'completed', version: 'actql-check-outcome/0.1',
@@ -468,10 +469,10 @@ for (const [entrance, open] of Object.entries(entrances)) {
     const client = await open(t, configurations.allowed);
     const outcome = await client.check('SELECT id FROM records' +
       ' UNION ALL SELECT id FROM records'.repeat(50), {format: 'sql'});
-    assert.deepEqual(withoutContext(outcome).report, {context_ref: '<ctx>',
+    assert.deepEqual(withoutContext(outcome, 'construction-budget').report, {context_ref: '<ctx>',
       scope: {kind: 'bound_input'}, verdict: 'undetermined', reasons: [],
       coverage: {limits: [{code: 'analysis_budget_exhausted'}],
-        unresolved: []}});
+        unresolved: []}}, '[check-mutation:construction-budget]');
   });
 
   test(`${entrance}: an undecided source is hidden exactly like an absent ` +
@@ -517,6 +518,30 @@ for (const [entrance, open] of Object.entries(entrances)) {
         await ref('SELECT 1 AS n', 'aql-text'), await ref('SELECT 1 AS n\n'),
         await ref('SELECT 1 AS n\r\n')];
       assert.equal(new Set(refs).size, refs.length);
+    });
+
+  test(`${entrance}: Unicode source spelling survives ordinary and fallback binding`,
+    async t => {
+      const client = await open(t, configurations.allowed);
+      const texts = ["SELECT 'caf\u00e9' AS label", "SELECT 'cafe\u0301' AS label"];
+      // Canonically colliding declaration names force the received-input
+      // fallback. They are invalid declarations, not a second valid Program.
+      for (const parameterDeclarations of [undefined,
+        {'\u00e9': {type: 'string'}, 'e\u0301': {type: 'string'}}]) {
+        const run = text => client.check(text, {format: 'sql', parameterDeclarations});
+        const outcomes = await Promise.all(texts.map(run));
+        const invalid = parameterDeclarations !== undefined;
+        for (let index = 0; index < texts.length; index++) {
+          assert.deepEqual(withoutContext(outcomes[index]).report, {
+            context_ref: '<ctx>', scope: {kind: 'bound_input'},
+            verdict: invalid ? 'invalid' : 'verified',
+            reasons: invalid ? [{code: 'parameter_declarations_invalid'}] : [],
+            coverage: {limits: [], unresolved: []}});
+          assert.deepEqual(await run(texts[index]), outcomes[index]);
+        }
+        assert.notEqual(outcomes[0].report.context_ref, outcomes[1].report.context_ref);
+      }
+      client.assertNoExecution();
     });
 
   test(`${entrance}: distinct supplied values give distinct contexts`,
@@ -617,7 +642,8 @@ for (const [entrance, open] of Object.entries(entrances)) {
         const pair = {a: {type: 'string', default: 'a'.repeat(40000)},
           b: {type: 'string'}};
         assert.deepEqual(await run('SELECT @a AS a, @b AS b', pair,
-          {b: 'b'.repeat(40000)}), expected('undetermined', [], budget, []));
+          {b: 'b'.repeat(40000)}), expected('undetermined', [], budget, []),
+        '[check-mutation:binding-budget]');
         assert.deepEqual(await run('SELECT @a AS a, @b AS b', pair,
           {b: 'b'.repeat(20000)}), expected('verified', [], [], []));
       }
