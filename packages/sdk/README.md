@@ -60,6 +60,8 @@ received or saved every value. A reader reaches `complete` only after the
 normal wire terminator; values yielded before a failure are a prefix.
 Installed Local delivery also propagates its owner's terminal-record or
 receipt failure after a normal terminator, retaining the failed attempt.
+Installed Local Host errors use the same public code policy as HTTP; private
+provider causes, stacks and internal cleanup handles are not public diagnostics.
 `rowsYielded()` counts complete rows returned to that reader's caller. For
 `batches()` it counts rows in batches already yielded, excluding a pending
 batch. Read-stream errors retain the same `attemptId` and `rowsYielded`; these

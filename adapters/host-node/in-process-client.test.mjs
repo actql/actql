@@ -7,6 +7,7 @@ import {createClientHttpHandler} from './client-http.mjs';
 import {mkdtemp, rmdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {inspect} from 'node:util';
 import {setImmediate} from 'node:timers/promises';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
@@ -26,6 +27,25 @@ const profile = {version: 'actql-client-host/0.1', mode: 'local',
     maxRowWireBytes: 1024, maxRowRetainedValueBytes: 1024,
     maxRetainedValueBytes: 4096, maxRows: 10, maxBatchRows: 10,
     maxBatchRetainedValueBytes: 2048}};
+
+test('Local public ingress excludes private handler causes and stacks', async t => {
+  const privateFailure = Object.assign(new Error('private-handler-secret'), {
+    code: 'PrivateStorageFailure', cause: new Error('private-handler-secret'),
+    stack: 'private-handler-secret', sourceLocator: 'connector://private-handler-secret',
+  });
+  const client = await connectInProcess({mode: 'local', owner: 'local'},
+    createNodeInProcessClientHost({authenticate: () => 'local-principal',
+      authorizeConnection: () => true, negotiate: () => profile,
+      attach() { throw privateFailure; }, maxRowBytes: 1024}));
+  t.after(() => client.close());
+  let failure;
+  try { await client.attach(ref); }
+  catch (error) { failure = error; }
+  assert.equal(failure?.code, 'ClientHostFailure');
+  assert.equal(failure.cause, undefined, '[check-mutation:local-disclosure]');
+  assert.equal(failure.stack, undefined);
+  assert.doesNotMatch(inspect(failure, {showHidden: true, depth: 8}), /private-handler-secret/u);
+});
 
 test('in-process Host checks current scope and exact attach reference',
   async () => {
@@ -163,6 +183,38 @@ test('aborting a paused Local read releases backpressured physical capacity',
     await f.body.consume(async () => {});
     await assert.rejects(f.iterator.next(), error => error === reason);
   });
+
+test('public SDK abort releases a paused Local physical reader without another next call', async t => {
+  const f = await localDelivery(t);
+  const boundRef = {namespaceId: 'namespace', authorityScopeCid: cid('a'),
+    runDefinitionCid: cid('9')};
+  const client = await connectInProcess({mode: 'local', owner: 'local'},
+    createNodeInProcessClientHost({authenticate: () => 'principal',
+      authorizeConnection: () => true, negotiate: () => profile,
+      attach: () => ({ref: boundRef, durability: 'volatile', revision: 1}),
+      resultService: f.service, maxRowBytes: 1024}));
+  t.after(() => client.close());
+  const controller = new AbortController();
+  const reader = (await client.attach(boundRef)).result('answer')
+    .rows({signal: controller.signal});
+  const iterator = reader[Symbol.asyncIterator]();
+  assert.deepEqual((await iterator.next()).value, {value: 7});
+  await f.backpressured;
+  assert.equal(f.physical.status().activeReaders, 1);
+  controller.abort();
+  await within(f.settled);
+  await setImmediate();
+  assert.equal(f.physical.status().activeReaders, 0);
+  assert.equal(f.physical.status().reservedReadBufferBytes, 0);
+  assert.equal(JSON.parse(f.state.record.wire).state, 'cancelled');
+  assert.equal(reader.rowsYielded(), 1);
+  assert.equal(reader.state(), 'prefix');
+  assert.equal(f.state.admissions, 1);
+  assert.equal(f.state.grantUses, 1);
+  await assert.rejects(iterator.next(), error => error.attemptId === reader.attemptId &&
+    error.rowsYielded === 1);
+  assert.equal(f.body.available(), true);
+});
 
 test('pre-aborted Local read never admits a delivery or physical reader',
   async t => {

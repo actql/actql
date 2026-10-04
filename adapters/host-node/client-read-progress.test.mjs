@@ -4,6 +4,7 @@ import {execFileSync} from 'node:child_process';
 import {mkdtemp, readFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {inspect} from 'node:util';
 import {createServer} from 'node:https';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {connect, ClientError} from '../../packages/sdk/index.mjs';
@@ -136,7 +137,10 @@ for (const entrance of ['local', 'https']) {
 
 for (const operation of ['rows', 'all']) {
   test(`local: ${operation} preserves a terminal record failure after all 121 rows`, async t => {
-    const unavailable = new Error('terminal record unavailable');
+    const unavailable = Object.assign(new Error('private-delivery-secret'), {
+      stack: 'private-delivery-secret', cause: new Error('private-delivery-secret'),
+      sourceLocator: 'connector://private-delivery-secret',
+    });
     const rows = Array.from({length: 121}, (_, index) => `{"value":${index + 1}}`);
     const fixture = createResultDeliveryFixture(resultAccess, openResultDeliveryControl(), {
       rows, maxBytes: 16384, async beforeAppend(record) {
@@ -154,14 +158,16 @@ for (const operation of ['rows', 'all']) {
         returned.push(...await f.result.all());
       }
     } catch (error) { failure = error; }
-    assert.equal(failure?.code, 'ResultDeliveryDurabilityPending', '[check-mutation:local-outcome]');
+    assert.equal(failure?.code, 'ClientHostFailure', '[check-mutation:local-outcome]');
     assert.ok(failure instanceof ClientError);
     assert.equal(failure.rowsYielded, reader ? 121 : 0);
     assert.equal(failure.attemptId,
       reader?.attemptId ?? JSON.parse(fixture.state.selected.wire).attempt_id);
-    const ownerFailure = reader ? failure.cause : failure.cause.cause;
-    assert.equal(ownerFailure.primaryFailure, unavailable);
-    assert.equal(ownerFailure.cleanupPending, true);
+    assert.doesNotMatch(inspect(failure, {showHidden: true, depth: 8}), /private-delivery-secret/u);
+    const publicCause = reader ? failure.cause : failure.cause.cause;
+    assert.equal(publicCause.cause, undefined);
+    assert.equal(publicCause.stack, undefined);
+    assert.equal(publicCause.cleanupHandle, undefined);
     assert.equal(returned.length, reader ? 121 : 0);
     if (reader) {
       assert.equal(reader.state(), 'prefix');
