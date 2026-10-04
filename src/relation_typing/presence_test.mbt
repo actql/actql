@@ -95,3 +95,35 @@ test "filter preserves conditional schema and checks every syntactic reference" 
     )
   }
 }
+
+///|
+test "presence sort accepts Required keys and take preserves the schema" {
+  let input = presence_schema()
+  for
+    (op, body) in [
+      (@relation_typing.Sort, "[{\"id\":\"desc\"}]"),
+      (@relation_typing.Take, "{\"count\":3,\"offset\":1}"),
+    ] {
+    let checked = @relation_typing.check(
+      op,
+      cursor(body),
+      input,
+      None,
+      limits(),
+    ).unwrap()
+    assert_eq(
+      @schema.lookup_reference(@relation_typing.output_schema(checked), "p").unwrap().presence,
+      Conditional,
+    )
+  }
+  assert_eq(
+    @relation_typing.check(
+      Sort,
+      cursor("[{\"p\":\"asc\"}]"),
+      input,
+      None,
+      limits(),
+    ).unwrap_err().kind,
+    PresenceRequired("p"),
+  )
+}
