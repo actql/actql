@@ -7,10 +7,6 @@ test "unconnected structural Graph operations refuse before Result publication" 
         @pipeline.Graph(@graph.UnsupportedGraphOperation),
       ),
       (
-        "\"components\":{\"kind\":\"weak\"}",
-        @pipeline.Graph(@graph.UnsupportedGraphOperation),
-      ),
-      (
         "\"reach\":{\"start\":1,\"direction\":\"both\",\"max_depth\":2}",
         @pipeline.Graph(@graph.UnsupportedGraphOperation),
       ),
@@ -24,6 +20,39 @@ test "unconnected structural Graph operations refuse before Result publication" 
         ranking_limits(),
       ).unwrap_err().kind,
       expected,
+    )
+  }
+}
+
+///|
+test "Graph components publish typed rows through their node identity" {
+  for kind in ["weak", "strong"] {
+    let checked = @pipeline.check_carriers(
+      cursor(
+        "[{\"from\":\"g\",\"components\":{\"kind\":\"" +
+        kind +
+        "\"},\"as\":\"rows\"}]",
+      ),
+      [("g", property_query_graph())],
+      None,
+      None,
+      ranking_limits(),
+    ).unwrap()
+    let result = @relation_results.check(
+      checked,
+      cursor(
+        "{\"out\":{\"from\":\"rows\",\"fields\":[\"node_id\",\"component_id\",\"component_size\"]}}",
+      ),
+      limits(),
+    ).unwrap()
+    assert_eq(@relation_results.count(result), 1)
+    let publication = resolve(result)
+    assert_eq(@relation_results.publication_strategy(publication), Inherited)
+    assert_eq(
+      @pipeline.order_origin(
+        @relation_results.publication_inherited_order(publication).unwrap(),
+      ),
+      Step(0),
     )
   }
 }
