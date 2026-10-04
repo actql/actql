@@ -209,6 +209,22 @@ or completed execution coverage. The B-owned Graph-call branch and D-owned
 capture/CTE boundary were [shared with D](https://github.com/actql/actql/pull/273#issuecomment-5976330639);
 no common execution owner or parallel CTE repair was added.
 
+### Current parameter boundary check
+
+At clean submitted source `898d6ddff9aa1b97557bf3972237e764ebcc57d6`,
+the existing focused JS parameter test passes **1/1** using `local-checks`.
+Inspection of its assertions establishes the retained number declaration and
+ordinary `WHERE amount = @p` checking with a missing value (`NeedsInputs`),
+a valid value (`Checked`), a wrong type and an undeclared reference (`Rejected`).
+It also checks retained declarations and successful ordinary checking for one
+CTE and one UNION ALL query. This is three inspected query forms, not every
+Program path merely because the test title says so. Evidence is retained in
+`_build/local-checks/attempts/run-bH85r3` and
+`_build/focused-evidence/focused-test-bBQrMK` in the traversal worktree.
+No public execution, nullable-parameter coverage, Source acquisition count or
+resolution of the separate shared-CTE predicate defect is inferred from this
+check. The historical independent public controls retain their original SHA.
+
 ## Historical repair follow-up before main capacity integration
 
 Repair baseline: `a4132d64f9cd83022d38bcb9c4e79d981fb2f803`.
