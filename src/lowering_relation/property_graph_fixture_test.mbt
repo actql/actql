@@ -48,7 +48,6 @@ fn graph_current_owner(
 test "unconnected lowering consumers cannot issue retired Graph kernels for a current definition" {
   for
     (name, body) in [
-      ("components", "{\"kind\":\"strong\"}"),
       (
         "reach",
         "{\"start\":{\"ids\":[" +
@@ -122,6 +121,9 @@ test "current Graph diagnostics lower to their registered typed operations" {
       ("normalize_graph", "true", "SGA.normalize"),
       ("degree", "{\"direction\":\"both\"}", "SGA.degree_metrics"),
       ("graph_bounds", "{\"max_nodes\":1}", "SGA.bounds_check"),
+      (
+        "components", "{\"kind\":\"strong\",\"max_output_rows\":2}", "SGA.components",
+      ),
     ] {
     let prepared = graph_current_owner(
       "[{\"from\":\"g\",\"" + name + "\":" + body + "}]",

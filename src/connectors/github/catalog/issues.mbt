@@ -152,15 +152,15 @@ fn issue_row(object : @decode.ObjectView) -> Result[IssueRow, IssuePageIssue] {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let created_at = match required_text(object, "created_at") {
+  let created_at = match required_timestamp(object, "created_at") {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let updated_at = match required_text(object, "updated_at") {
+  let updated_at = match required_timestamp(object, "updated_at") {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let closed_at = match nullable_text(object, "closed_at") {
+  let closed_at = match nullable_timestamp(object, "closed_at") {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -176,6 +176,60 @@ fn issue_row(object : @decode.ObjectView) -> Result[IssueRow, IssuePageIssue] {
     updated_at,
     closed_at,
   })
+}
+
+///|
+/// GitHub states timestamps as whole-second UTC `YYYY-MM-DDTHH:MM:SSZ`. The
+/// ActQL timestamp spelling carries milliseconds, so the exact same instant
+/// is `YYYY-MM-DDTHH:MM:SS.000Z`. Any other spelling is not converted.
+pub fn canonical_timestamp(text : String) -> String? {
+  if text.length() != 20 ||
+    text[4] != '-' ||
+    text[7] != '-' ||
+    text[10] != 'T' ||
+    text[13] != ':' ||
+    text[16] != ':' ||
+    text[19] != 'Z' {
+    return None
+  }
+  for index in [0, 1, 2, 3, 5, 6, 8, 9, 11, 12, 14, 15, 17, 18] {
+    let unit = text[index].to_int()
+    if unit < 48 || unit > 57 {
+      return None
+    }
+  }
+  Some(text.view(start_offset=0, end_offset=19).to_owned() + ".000Z")
+}
+
+///|
+fn required_timestamp(
+  object : @decode.ObjectView,
+  name : String,
+) -> Result[String, IssuePageIssue] {
+  match required_text(object, name) {
+    Ok(value) =>
+      match canonical_timestamp(value) {
+        Some(canonical) => Ok(canonical)
+        None => Err(InvalidField(name))
+      }
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+fn nullable_timestamp(
+  object : @decode.ObjectView,
+  name : String,
+) -> Result[String?, IssuePageIssue] {
+  match nullable_text(object, name) {
+    Ok(Some(value)) =>
+      match canonical_timestamp(value) {
+        Some(canonical) => Ok(Some(canonical))
+        None => Err(InvalidField(name))
+      }
+    Ok(None) => Ok(None)
+    Err(issue) => Err(issue)
+  }
 }
 
 ///|

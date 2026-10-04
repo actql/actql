@@ -6,8 +6,9 @@ The new definition-keyed Property Graph is the sole executable Graph contract.
 The previous tuple-profile coverage inventory is retained as inert historical
 text in `portability/historical/local-family-coverage-pre-property-graph.json.txt`.
 Its completed SGA/Graph-bridge claims do not apply to the new representation.
-The current manifest records six partial operations (constructor, two MATCH
-forms, explicit TRAIL, bounds and degree) and fifteen blocked old/unconnected routes. These
+The current manifest records seven partial operations (constructor, two MATCH
+forms, explicit TRAIL, bounds, degree and components) and fourteen blocked
+old/unconnected routes. These
 are implementation gaps, not permanent language exclusions. Existing non-Graph
 coverage is unchanged. Current-source snapshot, fresh packed and aggregate
 acceptance remain open; three-target focused tests do not certify full coverage.
@@ -54,6 +55,20 @@ consumer Named Results from the real Store against fixed rows. The asymmetric
 three-node fixture makes incoming degree and report order observable. The
 single affected Host test passes, but this does not establish task-wide
 cumulative work or every typed-edge definition variant.
+
+Current definition-keyed weak and strong `components` use the bounded Graph
+provider and typed identity comparison. A directed cycle with a one-way feeder
+and an isolated node has independently fixed component identities, sizes and
+order. The empty
+Graph accepts one output-control-work unit and rejects zero on both stored
+and viewed paths, separately from the kernel control limit. A two-node case
+checks workspace 90/89 and quantum-one cancellation with input custody through
+cleanup on both paths. The ordinary Node Host has passed selected weak and
+strong routes through a same-Stage filter, retained Store, producer Named
+Result and two consumer Named Results. Fused and selected strong cases deliver
+Host cancellation after Graph construction. Cross-target execution, other
+formal branches and submitted-SHA CI remain open; the old tuple-profile
+completion claim below is historical.
 
 The current retained-Store traversal route is exercised for WALK, TRAIL, and
 ACYCLIC `emit: paths` followed by a Relation filter in the same Stage. The
@@ -2695,15 +2710,15 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | Coverage state | Count |
 |---|---:|
 | `contract` | 40/40 |
-| `checker` | 23/40 |
-| `lowering` | 23/40 |
-| `kernel` | 23/40 |
-| `managed` | 23/40 |
-| `standard_host` | 23/40 |
-| `consumer_lifetime` | 23/40 |
-| `resources` | 28/40 |
-| `cancellation` | 28/40 |
-| `publication` | 23/40 |
+| `checker` | 24/40 |
+| `lowering` | 24/40 |
+| `kernel` | 24/40 |
+| `managed` | 24/40 |
+| `standard_host` | 24/40 |
+| `consumer_lifetime` | 24/40 |
+| `resources` | 29/40 |
+| `cancellation` | 29/40 |
+| `publication` | 24/40 |
 | `three_targets` | 19/40 |
 | complete operations | 19/40 |
 | open operations | 21/40 |

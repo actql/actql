@@ -1120,7 +1120,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
     // authority. The read boundary has no deferral port in this profile:
     // a deferred target read is unsupported before any provider I/O.
     async effectAuthorization({runId, runDefinitionCid, unitId,
-      declaredResults, reviewWire, continuationWire, beforeDefer}) {
+      declaredResults, reviewWire, continuationWire, beforeDefer, journalPort = journal}) {
       if (!IDENTIFIER.test(runId ?? '') || !IDENTIFIER.test(unitId ?? '') ||
           typeof beforeDefer !== 'function' ||
           typeof reviewWire !== 'string' ||
@@ -1139,7 +1139,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
       try {
         commit = await createLocalAuthorizationGate({...common,
           requiredClaims: effectClaims,
-          deferral: {journal, authorities, binding,
+          deferral: {journal: journalPort, authorities, binding,
             async describe(view) {
               if (view.boundary !== 'effect_commit' &&
                   view.subject.boundary !== 'effect_commit') {
@@ -1183,6 +1183,129 @@ export async function installRemoteCheckpoints({root, namespaceId,
         throw error;
       }
     },
+    // A Source read inside an admitted Effect Run uses the same durable
+    // Run-unit owner as Effect commit, but its own Source account and exact
+    // acquisition occurrence. An Effect answer is never a read permit.
+    async computationSourceAuthorization({runId, runDefinitionCid, unitId,
+      occurrence, declaredResults, continuation, beforeDefer, journalPort = journal}) {
+      if (!IDENTIFIER.test(runId ?? '') || !IDENTIFIER.test(unitId ?? '') ||
+          typeof runDefinitionCid !== 'string' ||
+          typeof continuation !== 'function' || typeof beforeDefer !== 'function' ||
+          !Array.isArray(declaredResults) ||
+          ![occurrence?.stage, occurrence?.input, occurrence?.task]
+            .every(Number.isSafeInteger) ||
+          occurrence.input !== 0 || occurrence.task !== occurrence.stage ||
+          occurrence.stage < 0 || occurrence.stage > 1) {
+        fail('InvalidComputationSourceContinuation');
+      }
+      occurrence = JSON.parse(JSON.stringify(occurrence));
+      const freeze = value => {
+        if (value !== null && typeof value === 'object') {
+          for (const item of Object.values(value)) freeze(item);
+          Object.freeze(value);
+        }
+        return value;
+      };
+      freeze(occurrence);
+      declaredResults = Object.freeze([...declaredResults]);
+      const {configuration, gate: current} = installedSource(occurrence);
+      const scope = Object.freeze({version: 'actql-effect-source-read-scope/0.1',
+        run_definition_cid: runDefinitionCid, unit_id: unitId,
+        authority_scope_cid: authorityScopeCid,
+        principal_id: ownerPrincipal, occurrence});
+      const scopeCid = contentCid(scope);
+      const read = await createLocalAuthorizationGate({
+        accountConfiguration: configuration.accountConfiguration,
+        context: configuration.context, ...decisionOptions, decide,
+        answeringAuthorities: answeringAuthorities ?? authorities.map(item => item.reviewerId),
+        deferral: {journal: journalPort, authorities, binding,
+          async describe(view) {
+            if (view.boundary !== 'acquisition' ||
+                view.subject.subject_cid !== scopeCid) {
+              fail('InvalidComputationSourceCheckpointBoundary');
+            }
+            // The acquisition owner confirms durable custody before the
+            // continuation may refer to any earlier completed Source.
+            await beforeDefer();
+            const wire = await continuation();
+            if (typeof wire !== 'string') fail('InvalidComputationSourceContinuation');
+            const reviewWire = JSON.stringify({scope,
+              configuration_cid: current.configurationCid,
+              context_cid: current.contextCid});
+            if (Buffer.byteLength(reviewWire) > maxReviewBytes) fail('CheckpointReviewTooLarge');
+            const refs = await evidence.hold(`effect-${runId}`, runDefinitionCid, [
+              {name: 'review_projection', wire: reviewWire},
+              {name: 'continuation_record', wire},
+            ]);
+            const created = now();
+            return {priorStatus: 'running', declaredResults, body: {
+              checkpoint_id: `${runId}-source-${occurrence.stage}`,
+              run_id: runId, run_definition_cid: runDefinitionCid,
+              continuation_state_cid: refs[1],
+              subject: {kind: 'run_unit', run_id: runId, unit_id: unitId,
+                continuation: 'resume_unit'},
+              kind: 'read_access',
+              required_artifact: {artifact_type: 'read_scope', artifact_cid: scopeCid},
+              review_projection_cid: refs[0],
+              human_summary: `Read ${occurrence.checkedSource.sourceRef} for Run ${runId}`,
+              created_at: new Date(created).toISOString(),
+              expires_at: new Date(created + checkpointTtlMs).toISOString(),
+            }};
+          },
+        }});
+      if (read.configurationCid !== current.configurationCid ||
+          read.contextCid !== current.contextCid) {
+        read.close();
+        fail('SourceCheckpointConfigurationChanged');
+      }
+      return Object.freeze({scopeCid,
+        authorize: options => read.authorize('acquisition', occurrence.readTuple,
+          {...options, subjectCid: scopeCid}),
+        resume: options => read.resume('acquisition', occurrence.readTuple,
+          {...options, subjectCid: scopeCid}),
+        close: () => read.close(),
+      });
+    },
+    async retainComputationSource(runId, runDefinitionCid, wire) {
+      if (!IDENTIFIER.test(runId ?? '') || typeof runDefinitionCid !== 'string') {
+        fail('InvalidComputationSourceContinuation');
+      }
+      const [semanticCid] = await evidence.hold(`effect-${runId}`, runDefinitionCid,
+        [{name: 'source_capture', wire}]);
+      return semanticCid;
+    },
+    // Called only by the acquisition custody owner after confirmed physical
+    // close. A durable waiting/resuming Run still owns its evidence; a failed
+    // pre-Checkpoint persistence has no Run row and can now retire safely.
+    async retireComputationSources(runId) {
+      if (!IDENTIFIER.test(runId ?? '')) fail('InvalidComputationSourceContinuation');
+      await evidence.abandon(`effect-${runId}`);
+      return evidence.settle();
+    },
+    async readComputationSource(view, semanticCid, maxBytes) {
+      if (view?.prepareAttemptId !== null || view.kind !== 'read_access') {
+        fail('InvalidComputationSourceContinuation');
+      }
+      const held = await evidence.open(`effect-${view.runId}`);
+      if (held.requestCid !== view.runDefinitionCid) fail('EffectContinuationRunMismatch');
+      return held.bytes('source_capture', semanticCid, {maxBytes});
+    },
+    async computationSourceReferences(view) {
+      if (view?.prepareAttemptId !== null || view.kind !== 'read_access') {
+        fail('InvalidComputationSourceContinuation');
+      }
+      const held = await evidence.open(`effect-${view.runId}`);
+      if (held.requestCid !== view.runDefinitionCid) fail('EffectContinuationRunMismatch');
+      return held.held('source_capture');
+    },
+    async computationContinuation(view) {
+      if (view?.kind !== 'read_access' || view.prepareAttemptId !== null) {
+        fail('InvalidComputationSourceContinuation');
+      }
+      const held = await evidence.open(`effect-${view.runId}`);
+      if (held.requestCid !== view.runDefinitionCid) fail('EffectContinuationRunMismatch');
+      return held.record('continuation_record', view.continuationStateCid);
+    },
     async effectContinuation(view) {
       if (view?.kind !== 'effect_set' || view.prepareAttemptId !== null) {
         fail('InvalidEffectContinuation');
@@ -1198,14 +1321,24 @@ export async function installRemoteCheckpoints({root, namespaceId,
           typeof runDefinitionCid !== 'string') {
         fail('InvalidEffectContinuation');
       }
-      const view = journal.inspect(`${runId}-effect-commit`);
+      const view = journal.inspect(`${runId}-effect-commit`) ??
+        journal.inspect(`${runId}-source-1`) ??
+        journal.inspect(`${runId}-source-0`);
       if (view === undefined) return undefined;
-      if (view.kind !== 'effect_set' || view.runId !== runId ||
+      if (!['effect_set', 'read_access'].includes(view.kind) || view.runId !== runId ||
           view.runDefinitionCid !== runDefinitionCid ||
           view.prepareAttemptId !== null) {
         fail('EffectContinuationRunMismatch');
       }
       return journal.getRunState(runId);
+    },
+    hasUnresolvedSourceStart(runId, runDefinitionCid) {
+      return [0, 1].some(task => {
+        const view = journal.inspect(`${runId}-source-${task}`);
+        return view?.kind === 'read_access' && view.runId === runId &&
+          view.runDefinitionCid === runDefinitionCid &&
+          journal.hasStartedResume(view.checkpointCid);
+      });
     },
     // Principals admitted to the Checkpoint operations at all. Each
     // operation still applies its own authorization.
@@ -1425,7 +1558,8 @@ export async function installRemoteCheckpoints({root, namespaceId,
       // Only a Checkpoint of this Host scope, named by its exact CID, and
       // only its own review projection; never an arbitrary Store CID.
       if (view === undefined || view.checkpointCid !== checkpointCid ||
-          view.prepareAttemptId === null && view.kind !== 'effect_set') {
+          view.prepareAttemptId === null &&
+            !['effect_set', 'read_access'].includes(view.kind)) {
         fail('CheckpointReviewDenied');
       }
       if (view.closure === 'expired' || view.closure === 'cancelled') {

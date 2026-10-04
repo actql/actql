@@ -24,7 +24,10 @@ test "unary Graph consumers distinguish supported contracts opaque evidence and 
       None,
       limits(),
     )
-    if name == "normalize_graph" || name == "degree" || name == "graph_bounds" {
+    if name == "normalize_graph" ||
+      name == "degree" ||
+      name == "graph_bounds" ||
+      name == "components" {
       assert_true(checked is Ok(_))
     } else {
       let issue = checked.unwrap_err()

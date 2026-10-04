@@ -924,7 +924,9 @@ fn prepare_target_source_policy(
             unknown = unknown || missing
             1
           }
-          @pipeline.GraphBounds(_) | @pipeline.GraphDegree(_) => {
+          @pipeline.GraphBounds(_)
+          | @pipeline.GraphDegree(_)
+          | @pipeline.GraphComponents(_) => {
             identity_charge(budget, 1)
             carrier_steps.push({
               step: index,

@@ -17,6 +17,7 @@ priv enum RelationExecution {
   GraphRowsExecution(@bridge.EventsToRowsExecution)
   GraphBoundsExecution(@sga.GraphBoundsExecution)
   GraphDegreeExecution(@sga.GraphDegreeExecution)
+  ComponentsExecution(@sga.ComponentsExecution)
 }
 
 ///|
@@ -204,10 +205,13 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         }
         current_graph(carrier) &&
         @lower.operation(node) ==
-        (if @lower.graph_diagnostic_kind(diagnostic) == @lower.BoundsDiagnostic {
-          "SGA.bounds_check"
-        } else {
-          "SGA.degree_metrics"
+        (match @lower.graph_diagnostic_kind(diagnostic) {
+          @lower.BoundsDiagnostic => "SGA.bounds_check"
+          @lower.IncomingDegreeDiagnostic
+          | @lower.OutgoingDegreeDiagnostic
+          | @lower.TotalDegreeDiagnostic => "SGA.degree_metrics"
+          @lower.WeakComponentsDiagnostic | @lower.StrongComponentsDiagnostic =>
+            "SGA.components"
         })
       }
       @lower.GraphNormalizeStep(_) =>
@@ -856,6 +860,46 @@ fn advance_execution(
                 Ok(execution) => GraphBoundsExecution(execution)
                 Err(_) => return fail_execution(value)
               }
+            } else if @lower.graph_diagnostic_kind(diagnostic) ==
+              @lower.WeakComponentsDiagnostic ||
+              @lower.graph_diagnostic_kind(diagnostic) ==
+              @lower.StrongComponentsDiagnostic {
+              let started = if direct_view is Some(view) {
+                @sga.start_components_view(
+                  value.control,
+                  @execution.generated_completion_preparation(value.generated),
+                  value.sequence,
+                  value.projection_step,
+                  view,
+                  value.max_rows,
+                  limits,
+                  value.limits.max_workspace_slots,
+                  value.limits.max_value_bytes,
+                  value.limits.max_value_bytes,
+                  value.inputs,
+                  control_work_limit=Some(value.limits.max_work),
+                )
+              } else {
+                guard input is Some(read) else { return fail_execution(value) }
+                @sga.start_components(
+                  value.control,
+                  @execution.generated_completion_preparation(value.generated),
+                  value.sequence,
+                  value.projection_step,
+                  read,
+                  value.max_rows,
+                  limits,
+                  value.limits.max_workspace_slots,
+                  value.limits.max_value_bytes,
+                  value.limits.max_value_bytes,
+                  value.inputs,
+                  control_work_limit=Some(value.limits.max_work),
+                )
+              }
+              match started {
+                Ok(execution) => ComponentsExecution(execution)
+                Err(_) => return fail_execution(value)
+              }
             } else {
               let started = if direct_view is Some(view) {
                 @sga.start_graph_degree_view(
@@ -978,6 +1022,18 @@ fn advance_execution(
                 Ok(RelationStopped(progress, work))
               Err(_) => Err(issue())
             }
+          ComponentsExecution(execution) =>
+            match @sga.advance_components(execution, quantum) {
+              Ok(@sga.ComponentsContinue(progress~, work~)) =>
+                Ok(RelationContinue(progress, work))
+              Ok(@sga.ComponentsComplete(output, progress~, work~)) =>
+                Ok(RelationComplete(output, progress, work))
+              Ok(@sga.ComponentsFailed(_, progress~, work~)) =>
+                Ok(RelationFailed(progress, work))
+              Ok(@sga.ComponentsStopped(_, progress~, work~)) =>
+                Ok(RelationStopped(progress, work))
+              Err(_) => Err(issue())
+            }
         }
         match poll {
           Err(_) => return fail_execution(value)
@@ -1077,6 +1133,11 @@ fn cleanup_execution(
           Ok(_) => ()
           Err(_) => failed = true
         }
+      ComponentsExecution(execution) =>
+        match @sga.cleanup_components(execution) {
+          Ok(_) => ()
+          Err(_) => failed = true
+        }
     }
   }
   discard(value.graph) |> ignore
@@ -1099,6 +1160,7 @@ fn cleanup_execution(
       @sga.graph_bounds_cleanup_pending(active)
     Some(GraphDegreeExecution(active)) =>
       @sga.graph_degree_cleanup_pending(active)
+    Some(ComponentsExecution(active)) => @sga.components_cleanup_pending(active)
     None => false
   }
   let normalization_pending = value.normalization

@@ -73,7 +73,7 @@
       "match_edges": "partial",
       "traverse": "partial",
       "shortest_path": "blocked",
-      "components": "blocked",
+      "components": "partial",
       "reach": "blocked",
       "graph_bounds": "partial",
       "degree": "partial",
@@ -90,7 +90,7 @@
       "node_rows": "partial",
       "edge_rows": "partial"
     },
-    "completion_rule": "Historical tuple-profile suites do not discharge current Graph coverage. Partial evidence is limited to the current constructor, definition-selected MATCH/TRAIL, bounds and degree paths recorded below; it does not establish all normative variants or all SGA execution. Blocked means typed refusal before Run admission, acquisition I/O and dispatch."
+    "completion_rule": "Historical tuple-profile suites do not discharge current Graph coverage. Partial evidence is limited to the current constructor, definition-selected MATCH/TRAIL, bounds, degree and components paths recorded below; it does not establish all normative variants or all SGA execution. Blocked means typed refusal before Run admission, acquisition I/O and dispatch."
   },
   "operations": [
     {
@@ -1191,11 +1191,32 @@
       "output": "relation",
       "canonical": ["SGA.components"],
       "variants": ["weak", "strong", "cycles", "disconnected nodes"],
-      "status": "blocked",
+      "status": "partial",
       "owner": "local-sga",
-      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
-      "completed_layers": ["contract"],
-      "layer_evidence": [],
+      "current_gap": "Current definition-keyed weak and strong components use a bounded provider, typed identity order and admitted output. JS fixtures cover a directed cycle, feeder and isolated node, stored and viewed workspace 90/89, empty-Graph output-work budget 1/0, quantum-one stop and cleanup. Both variants reach retained Store publication and two consumers through the standard Node Host; fused and selected strong cancellation cases also ran there. Cross-target execution, other formal branches and submitted-SHA CI are not yet complete evidence.",
+      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "publication"],
+      "layer_evidence": [
+        {
+          "scope": "current_property_graph_components_bounded_identity_and_budget",
+          "layers": ["checker", "lowering", "kernel", "managed", "resources", "cancellation"],
+          "targets": ["js"],
+          "evidence": [
+            "src/local_sga/components.mbt",
+            "src/query_integration/property_graph_components_wbtest.mbt"
+          ],
+          "verification": "Directed-cycle and feeder results use typed component identity. Stored and viewed empty output charge one control unit and reject zero; both input paths check workspace 90/89 and quantum-one stop with custody through cleanup."
+        },
+        {
+          "scope": "current_property_graph_components_retained_publication_and_stop",
+          "layers": ["standard_host", "consumer_lifetime", "publication", "cancellation"],
+          "targets": ["js"],
+          "evidence": [
+            "src/query_integration/property_graph_host_custody_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ],
+          "verification": "The selected weak and strong routes enter the ordinary Host, retain the same-Stage filter output in a real Store and read producer and two consumer Named Results against fixed component sizes. Fused and selected strong cases deliver cancellation after Graph construction."
+        }
+      ],
       "historical_implementation_evidence": [
         {
           "scope": "weak_components_named_result_publication_and_retrieval",

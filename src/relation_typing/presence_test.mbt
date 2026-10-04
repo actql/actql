@@ -57,11 +57,73 @@ test "row-preserving consumers cannot silently erase conditional presence" {
   let input = presence_schema()
   for
     (op, body) in [
-      (@relation_typing.Filter, "{\"is_not_null\":\"p\"}"),
-      (Drop, "[\"p\"]"),
+      (@relation_typing.Drop, "[\"p\"]"),
       (Rename, "{\"id\":\"key\"}"),
     ] {
     let issue = @relation_typing.check(op, cursor(body), input, None, limits()).unwrap_err()
     assert_eq(issue.kind, ConditionalInputNotImplemented)
   }
+}
+
+///|
+test "filter preserves conditional schema and checks every syntactic reference" {
+  let input = presence_schema()
+  let checked = @relation_typing.check(
+    Filter,
+    cursor("\"id < 4\""),
+    input,
+    None,
+    limits(),
+  ).unwrap()
+  assert_false(
+    @schema.all_fields_required(@relation_typing.output_schema(checked)),
+  )
+  assert_eq(
+    @schema.lookup_reference(@relation_typing.output_schema(checked), "p").unwrap().presence,
+    @schema.Conditional,
+  )
+  for body in ["p IS NOT NULL", "if(false, p > 0, id < 4)", "true OR p > 0"] {
+    assert_eq(
+      @relation_typing.check(
+        Filter,
+        cursor("\"" + body + "\""),
+        input,
+        None,
+        limits(),
+      ).unwrap_err().kind,
+      PresenceRequired("p"),
+    )
+  }
+}
+
+///|
+test "presence sort accepts Required keys and take preserves the schema" {
+  let input = presence_schema()
+  for
+    (op, body) in [
+      (@relation_typing.Sort, "[{\"id\":\"desc\"}]"),
+      (@relation_typing.Take, "{\"count\":3,\"offset\":1}"),
+    ] {
+    let checked = @relation_typing.check(
+      op,
+      cursor(body),
+      input,
+      None,
+      limits(),
+    ).unwrap()
+    assert_eq(
+      @schema.lookup_reference(@relation_typing.output_schema(checked), "p").unwrap().presence,
+      Conditional,
+    )
+  }
+  assert_eq(
+    @relation_typing.check(
+      Sort,
+      cursor("[{\"p\":\"asc\"}]"),
+      input,
+      None,
+      limits(),
+    ).unwrap_err().kind,
+    PresenceRequired("p"),
+  )
 }

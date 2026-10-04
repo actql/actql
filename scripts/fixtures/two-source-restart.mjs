@@ -78,8 +78,9 @@ if (action === 'public-success') {
   await report({cases: retained.length, provider: provider.snapshot()});
 } else if (action === 'retained') {
   const retained = JSON.parse(await readFile(resolve(root, 'retained-two-source.json'), 'utf8'));
-  await verifyTwoSourceRetained({connect, openInstalledRemoteHttpHost, fixture, retained, provider, tls, authorization: baseAuthorization});
-  await report({cases: retained.length, provider: provider.snapshot()});
+  const readerClosures = await verifyTwoSourceRetained({connect, openInstalledRemoteHttpHost,
+    fixture, retained, provider, tls, authorization: baseAuthorization});
+  await report({cases: retained.length, readerClosures, provider: provider.snapshot()});
 } else {
   const directory = resolve(root, `${caseName}-state`), requestId = `two-source-${caseName}`;
   const mode = caseName.startsWith('local-') ? 'local' : 'https';

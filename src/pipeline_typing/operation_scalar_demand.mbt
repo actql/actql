@@ -163,6 +163,15 @@ pub fn operation_scalar_demand(
         | ResolveDiagnosticResources
         | EnforceDiagnosticRelationRows => None
       }
+    ComponentsRequirement(v) =>
+      match v {
+        BindComponentAuthorGuard(name) => Some(SafeInteger(name, minimum=1L))
+        AdmitComponentGraph
+        | EnforceComponentInputNodes
+        | ResolveComponentResources
+        | EnforceComponentOutputRows
+        | EnforceComponentAuthorGuard => None
+      }
     AppendRequirement(_)
     | NormalizeRequirement(_)
     | SetRequirement(_)

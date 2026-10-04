@@ -293,6 +293,7 @@ pub fn collect_expression_slots(
         | GraphBounds(_)
         | GraphDegree(_)
         | GraphNormalize(_)
+        | GraphComponents(_)
         | PropertyGraphConstruction(..)
         | Vector(_)
         | Nearest(..)

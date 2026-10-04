@@ -193,6 +193,10 @@ pub fn collect_parameter_slots(
           operand_fields(c, step, @graph.graph_bounds_source(checked), [
             "max_nodes", "max_edges", "max_degree",
           ])
+        GraphComponents(checked) =>
+          operand_fields(c, step, @graph.components_source(checked), [
+            "max_output_rows",
+          ])
         Vector(op) => operand_fields(c, step, @vector.source(op), ["query"])
         Values(op) =>
           for i in 0..<@values.row_count(op) {

@@ -67,6 +67,7 @@ pub fn operation_order_demand(v : OperationObligation) -> OperationOrderDemand? 
     | MatchRequirement(_)
     | DiagnosticRequirement(_)
     | NormalizeRequirement(_)
+    | ComponentsRequirement(_)
     | TraverseRequirement(_)
     | SelectorRequirement(_)
     | ConstructionRequirement(_)

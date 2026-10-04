@@ -254,6 +254,8 @@ fn current_graph_relation_program(variant : String) -> String {
     "current_filter" | "current_edge_filter" => "\"filter\":\"true\""
     "current_degree" => "\"filter\":\"degree >= 0\""
     "current_bounds" => "\"filter\":\"actual >= 0\""
+    "current_components_weak" | "current_components_strong" =>
+      "\"filter\":\"component_size >= 1\""
     "current_filter_false" => "\"filter\":\"false\""
     "current_select" => "\"select\":[\"id\",\"node_name\"]"
     "current_derive" => "\"derive\":{\"copy\":\"id\"}"
@@ -267,6 +269,11 @@ fn current_graph_relation_program(variant : String) -> String {
     "{\"degree\":{\"direction\":\"both\"},\"as\":\"projected\"}"
   } else if variant == "current_bounds" {
     "{\"graph_bounds\":{\"max_nodes\":1,\"max_edges\":1},\"as\":\"projected\"}"
+  } else if variant == "current_components_weak" ||
+    variant == "current_components_strong" {
+    "{\"components\":{\"kind\":\"" +
+    (if variant == "current_components_weak" { "weak" } else { "strong" }) +
+    "\",\"max_output_rows\":2},\"as\":\"projected\"}"
   } else if variant == "current_edge_filter" {
     "{\"match_edges\":{\"definition\":\"E\",\"label\":\"Edge\",\"where\":\"true\",\"fields\":[\"src\",\"dst\",\"weight\"]},\"as\":\"projected\"}"
   } else {
@@ -276,6 +283,9 @@ fn current_graph_relation_program(variant : String) -> String {
     "\"node\",\"degree\""
   } else if variant == "current_bounds" {
     "\"kind\",\"node_id\",\"actual\",\"max\""
+  } else if variant == "current_components_weak" ||
+    variant == "current_components_strong" {
+    "\"node_id\",\"component_id\",\"component_size\""
   } else if variant == "current_edge_filter" {
     "\"src\",\"dst\",\"weight\""
   } else if variant == "current_derive" {
@@ -287,6 +297,9 @@ fn current_graph_relation_program(variant : String) -> String {
     "\"node\",\"degree\""
   } else if variant == "current_bounds" {
     "\"kind\",\"actual\""
+  } else if variant == "current_components_weak" ||
+    variant == "current_components_strong" {
+    "\"component_id\",\"component_size\""
   } else if variant == "current_edge_filter" {
     "\"src\",\"weight\""
   } else {
@@ -296,6 +309,9 @@ fn current_graph_relation_program(variant : String) -> String {
     "\"degree\""
   } else if variant == "current_bounds" {
     "\"kind\""
+  } else if variant == "current_components_weak" ||
+    variant == "current_components_strong" {
+    "\"component_size\""
   } else if variant == "current_edge_filter" {
     "\"weight\""
   } else {

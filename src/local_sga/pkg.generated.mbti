@@ -13,6 +13,8 @@ import {
 }
 
 // Values
+pub fn advance_components(ComponentsExecution, Int) -> Result[ComponentsPoll, ComponentsIssue]
+
 pub fn advance_graph_bounds(GraphBoundsExecution, Int) -> Result[GraphBoundsPoll, GraphBoundsIssue]
 
 pub fn advance_graph_degree(GraphDegreeExecution, Int) -> Result[GraphDegreePoll, GraphBoundsIssue]
@@ -25,6 +27,8 @@ pub fn advance_normalize(NormalizeExecution, Int) -> Result[NormalizePoll, Norma
 
 pub fn advance_traverse(TraverseExecution, Int) -> Result[TraversePoll, TraverseIssue]
 
+pub fn cleanup_components(ComponentsExecution) -> Result[Bool, ComponentsIssue]
+
 pub fn cleanup_graph_bounds(GraphBoundsExecution) -> Result[Bool, GraphBoundsIssue]
 
 pub fn cleanup_graph_degree(GraphDegreeExecution) -> Result[Bool, GraphBoundsIssue]
@@ -36,6 +40,12 @@ pub fn cleanup_match_nodes(MatchNodesExecution) -> Result[Bool, MatchNodesIssue]
 pub fn cleanup_normalize(NormalizeExecution) -> Result[Bool, NormalizeIssue]
 
 pub fn cleanup_traverse(TraverseExecution) -> Result[Bool, TraverseIssue]
+
+pub fn components_cleanup_pending(ComponentsExecution) -> Bool
+
+pub fn components_max_noninterruptible_value_bytes(ComponentsExecution) -> Int
+
+pub fn components_max_noninterruptible_value_nodes(ComponentsExecution) -> Int
 
 pub fn graph_bounds_cleanup_pending(GraphBoundsExecution) -> Bool
 
@@ -72,6 +82,10 @@ pub fn match_nodes_scratch_slots(MatchNodesExecution) -> Int
 pub fn match_nodes_stopped(MatchNodesExecution) -> Bool
 
 pub fn normalize_cleanup_pending(NormalizeExecution) -> Bool
+
+pub fn start_components(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[ComponentsExecution, ComponentsIssue]
+
+pub fn start_components_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[ComponentsExecution, ComponentsIssue]
 
 pub fn start_graph_bounds(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[GraphBoundsExecution, GraphBoundsIssue]
 
@@ -110,6 +124,27 @@ pub fn traverse_value_item_attempts(TraverseExecution) -> Int
 // Errors
 
 // Types and methods
+type ComponentsExecution
+
+pub(all) enum ComponentsIssue {
+  InvalidComponentsKernel
+  ComponentsInputUnavailable
+  ComponentsOutputLimit
+  ComponentsWorkLimit
+  ComponentsWorkspaceLimit
+  ComponentsKeyOrder(@value_admission.KeyOrderIssue)
+  ComponentsOutput(@execution_relation.CaptureIssue)
+  ComponentsCompletion(@execution_relation.TrustedOutputIssue)
+  ComponentsExecutionIssue(@bounded_execution.Issue)
+} derive(Eq, @debug.Debug)
+
+pub enum ComponentsPoll {
+  ComponentsContinue(progress~ : Int64, work~ : Int64)
+  ComponentsComplete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
+  ComponentsFailed(ComponentsIssue, progress~ : Int64, work~ : Int64)
+  ComponentsStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
 type GraphBoundsExecution
 
 pub(all) enum GraphBoundsIssue {

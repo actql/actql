@@ -94,6 +94,8 @@ pub fn admit_prepared_client_values_plan_graph(PreparedClientProgram, String, @l
 
 pub fn admit_source_free_client_request_identity_record(String, String, String, String, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
+pub fn admit_source_free_result_policy_body(String, String, Int, Int, Int) -> Result[@run_publication.CapturedEffectDependencyBody, ClientCompiledRunIssue]
+
 pub fn bind_client_effect_compiled_run(PreparedClientEffectComputation, ClientEffectAllowedRun, @run_publication.PublicationContract) -> Result[PreparedClientEffectRun, ClientEffectCompiledRunIssue]
 
 pub fn bind_client_task_run(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[ClientTaskRunBinding, ClientTaskRunBindingIssue]
@@ -138,6 +140,8 @@ pub fn client_compiled_run_prepared(ClientCompiledRun) -> @run_publication.RunEv
 
 pub fn client_compiled_run_result_transformation(ClientCompiledRun, PreparedClientProgram, Int) -> Result[ClientResultTransformation?, ClientCompiledRunIssue]
 
+pub fn client_compiled_run_source_free_result_policy_body(ClientCompiledRun) -> @run_publication.CapturedEffectDependencyBody?
+
 pub fn client_compiled_run_template(ClientCompiledRun) -> @run_publication.RunEvidenceValue
 
 pub fn client_direct_result_root_name(ClientDirectResultRoot) -> String
@@ -157,6 +161,8 @@ pub fn client_effect_acquired_invocation(ClientEffectAcquiredEvidence) -> Client
 pub fn client_effect_acquired_request_cid(ClientEffectAcquiredEvidence) -> String
 
 pub fn client_effect_allowed_infer_run(ClientEffectAllowedRun) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
+
+pub fn client_effect_allowed_infer_run_with_policy_body(ClientEffectAllowedRun, String?, String?, Int, Int, Int) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
 
 pub fn client_effect_allowed_run_admission(ClientEffectAllowedRun) -> @run_publication.RunPublicationAdmission
 
@@ -822,10 +828,13 @@ pub struct ClientCompiledRun {
   prepared : @run_publication.RunEvidenceValue
   authorization : @run_publication.RunEvidenceValue
   admission : @run_publication.RunPublicationAdmission
+  source_free_result_policy : @run_publication.CapturedEffectDependencyBody?
 }
 
 pub(all) enum ClientCompiledRunIssue {
   ForeignOwner
+  MissingResultPolicy
+  InvalidResultPolicy
   Policy(ClientAllowedRunEvidenceIssue)
   Admission(@run_publication.RunPublicationAdmissionIssue)
   Contract(@run_publication.PublicationContractIssue)

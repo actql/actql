@@ -6906,7 +6906,134 @@
       "inventory": "families",
       "family": "SGA",
       "operation": "components",
-      "profile": "sga_graph"
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_components("
+      },
+      "additional_dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_components_view("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/components.mbt",
+        "symbol": "start_components"
+      },
+      "selected_entrypoint": {
+        "path": "src/local_sga/components.mbt",
+        "symbol": "start_components_view"
+      },
+      "boundary_tests": [
+        {
+          "role": "components_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_components_wbtest.mbt",
+          "fixture": "current Graph components preserve typed order and bounded ownership"
+        },
+        {
+          "role": "components_output_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_components_wbtest.mbt",
+          "fixture": "empty components admit exact control work and reject one short"
+        },
+        {
+          "role": "components_kernel_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_components_wbtest.mbt",
+          "fixture": "current Graph components preserve typed order and bounded ownership"
+        },
+        {
+          "role": "components_long_text_typed_order",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_components_wbtest.mbt",
+          "fixture": "current Graph components preserve typed order and bounded ownership"
+        },
+        {
+          "role": "components_view_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_components_wbtest.mbt",
+          "fixture": "current Graph components preserve typed order and bounded ownership"
+        },
+        {
+          "role": "components_view_output_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_components_wbtest.mbt",
+          "fixture": "empty components admit exact control work and reject one short"
+        },
+        {
+          "role": "components_view_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_components_wbtest.mbt",
+          "fixture": "current Graph components preserve typed order and bounded ownership"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "components_weak_retained_named_results",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "retained-weak-components"
+        },
+        {
+          "role": "components_strong_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "current-components-strong-in-flight"
+        },
+        {
+          "role": "components_strong_fused_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "current-components-strong-fused-in-flight"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "components_output_work_exact_one_short",
+          "one_short_limit": "components_output_work_exact_one_short",
+          "in_flight_cancel": "components_strong_fused_host_in_flight_cancel",
+          "cleanup": "components_kernel_cancel_cleanup"
+        },
+        "selected_entrypoint": {
+          "exact_limit": "components_view_output_work_exact_one_short",
+          "one_short_limit": "components_view_output_work_exact_one_short",
+          "in_flight_cancel": "components_strong_host_in_flight_cancel",
+          "cleanup": "components_view_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "components_output_work_exact_one_short",
+            "one_short_limit": "components_output_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "components_workspace_exact_one_short",
+            "one_short_limit": "components_workspace_exact_one_short"
+          }
+        },
+        "selected_entrypoint": {
+          "work": {
+            "exact_limit": "components_view_output_work_exact_one_short",
+            "one_short_limit": "components_view_output_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "components_view_workspace_exact_one_short",
+            "one_short_limit": "components_view_workspace_exact_one_short"
+          }
+        }
+      },
+      "notes": "Current weak and strong typed Graph components share the stored and selected bounded kernel. Each input path has explicit work, workspace, cancellation and cleanup fixtures. The selected weak and strong Host paths publish retained Results to two consumers; fused and selected strong cancellation cases passed locally, with submitted-SHA verification still pending."
     },
     {
       "inventory": "families",

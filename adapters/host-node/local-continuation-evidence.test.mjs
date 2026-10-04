@@ -13,6 +13,40 @@ const moon = await import(new URL(
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',
   import.meta.url).href);
 
+test('a retained Source capture survives restart with exact bytes and terminal custody',
+  async t => {
+    const state = await mkdtemp(join(tmpdir(), 'actql-source-evidence-'));
+    t.after(() => rm(state, {recursive: true, force: true}));
+    await createPrivateEvidenceKey(state);
+    const key = await loadPrivateEvidenceKey(state);
+    let status = 'waiting_checkpoint';
+    const open = () => openContinuationEvidence({stateDirectory: state,
+      ...key, contractControl: runtimeCore(moon).publicationControl,
+      preparation: () => ({status: 'run_created', runStatus: status})});
+    let evidence = open();
+    t.after(() => evidence.close());
+    // Authored independently: source text preserves distinct Unicode bytes,
+    // a null scalar, and a typed integer representation through the Store.
+    const wire = '{"occurrence":0,"rows":[["é",null,"17"],["é",true,"-4"]]}';
+    const [captureCid] = await evidence.hold('effect-source-run',
+      `sha256:${'2'.repeat(64)}`, [{name: 'source_capture', wire}]);
+    await evidence.close();
+    evidence = open();
+    const opened = await evidence.open('effect-source-run');
+    assert.deepEqual(opened.held('source_capture'), [captureCid]);
+    assert.deepEqual(opened.held('captured_input'), []);
+    assert.equal((await opened.bytes('source_capture', captureCid,
+      {maxBytes: 4096})).toString('utf8'), wire);
+    for (status of ['waiting_checkpoint', 'resuming', 'needs_reconciliation']) {
+      await evidence.settle();
+      assert.equal((await opened.bytes('source_capture', captureCid)).toString('utf8'), wire);
+    }
+    status = 'cancelled';
+    await evidence.settle();
+    await assert.rejects(opened.bytes('source_capture', captureCid),
+      {code: 'ContinuationEvidenceRetired'});
+  });
+
 test('a bounded evidence read refuses by recorded size before loading bytes',
   async t => {
     const state = await mkdtemp(join(tmpdir(), 'actql-evidence-bound-'));
