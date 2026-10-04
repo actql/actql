@@ -2,7 +2,7 @@
 // computes. This does not retry acquisition, Compute, or an Effect dispatch.
 import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
 import {acquiredEffectPublicationPlan, acquiredMultiEffectPublicationPlan,
-  acquiredInferEffectPublicationPlan} from './local-values-plan.mjs';
+  acquiredInferEffectPublicationPlan, sourceFreeInferEffectPublicationPlan} from './local-values-plan.mjs';
 import {installedSourceFor} from './installed-source.mjs';
 import {capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity} from './captured-duckdb-source.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -14,9 +14,14 @@ import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 export async function openAcquiredEffectComputation({moon, owner, acquired,
   sourceProfile, registry, values, fragment, ordered, sourceAccess,
   signal, now, retainComputationOwner, infer, store, principalId, faultInjection,
-  observe}) {
-  const multiple = moon?.clientProgramEffectAcquisitionCount?.(acquired.prepared) === 2;
+  observe, computeConfigurations = {}}) {
+  const count = moon?.clientProgramEffectAcquisitionCount?.(acquired.prepared);
+  const sourceFree = count === 0;
+  const multiple = count === 2;
   if (typeof retainComputationOwner !== 'function' ||
+      ![0, 1, 2].includes(count) ||
+      sourceFree && infer === undefined ||
+      !sourceFree &&
       (multiple ? sourceProfile?.sources?.length !== 2 :
         typeof sourceProfile?.prepare !== 'function' ||
         typeof sourceProfile?.open !== 'function')) {
@@ -29,12 +34,12 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
   let inferCapture;
   let ledger;
   const diagnostic = diagnosticObserver(observe);
-  const observeUsage = name => {
+  const observeUsage = (name, facts = {}) => {
     const usage = ledger === undefined ? checkedHost === undefined ? undefined
       : moon.strategyHostUsage(moon.clientProgramLocalEffectHostRuntime(checkedHost))
       : moon.clientProgramMultiCapturedLedgerUsage(ledger);
     if (usage === undefined) return;
-    diagnostic(name, {resourceUsage: Object.fromEntries([
+    diagnostic(name, {...facts, resourceUsage: Object.fromEntries([
       'planningWork', 'attempts', 'holdings', 'transferredBytes',
       'reservedTransferBytes', 'heldBytes', 'reservedRetentionBytes',
       'reservedExecutionBytes', 'uncertainTransferBytes',
@@ -97,7 +102,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
   try {
     signal?.throwIfAborted();
     const sources = [];
-    for (let task = 0; task < (multiple ? 2 : 1); task++) {
+    for (let task = 0; task < count; task++) {
       const occurrence = {stage: task, input: 0, task};
       const requirement = multiple ? checked(
         moon.clientProgramEffectPrepareLocalQueryRequirement(acquired.prepared,
@@ -154,8 +159,8 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
         captureStartedAt, captureCompletedAt}) : undefined;
     let component;
     if (infer !== undefined) {
-      if (!multiple) throw new TypeError('UnsupportedComposedInferSourceClosure');
-      const sources = checked(moon.clientProgramAdmitComposedInferSources(
+      if (!multiple && !sourceFree) throw new TypeError('UnsupportedComposedInferSourceClosure');
+      const sources = sourceFree ? undefined : checked(moon.clientProgramAdmitComposedInferSources(
         infer.occurrence, captures.map(value => value.capture.source()),
         captures.map(value => value.identity), captures.map(value => value.requirement),
         captures.map(value => moon.strategyRunEvidenceJson(value.logicalInput)),
@@ -174,6 +179,8 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
               {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100})),
             faultInjection,
             publicationFor: ({issuance, modelEvidence}) =>
+              sourceFree ? sourceFreeInferEffectPublicationPlan({acquired,
+                compiled, operation, issuance, modelEvidence}) :
               acquiredInferEffectPublicationPlan({acquired, sources: evidence,
                 compiled, operation, issuance, modelEvidence,
                 captureStartedAt, captureCompletedAt})});
@@ -181,7 +188,10 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
         retainCompleted: () => inferCapture.retainCompleted()});
     }
     signal?.throwIfAborted();
-    checkedHost = multiple
+    checkedHost = sourceFree
+      ? moon.clientProgramOpenSourceFreeInferEffectHost(owner,
+        registry, values, fragment, ordered, component.provider)
+      : multiple
       ? component === undefined ? moon.clientProgramOpenMultiCapturedLocalEffectHost(owner,
         captures.map(value => value.capture.source()), ledger,
         registry, values, fragment, ordered) :
@@ -202,12 +212,20 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       for (const [task, captured] of captures.entries()) captured.capture.retainTask(dag, task);
     }
     execution = await runCapturedEffectComputation(checkedHost,
-      {authorization: multiple ? undefined : sourceAccess?.authorization}, signal);
+      {...computeConfigurations,
+        authorization: multiple ? undefined : sourceAccess?.authorization}, signal);
     unresolved = false;
     if (execution.status !== 'host-tasks-completed') {
       throw component?.failure() ?? execution.failure ?? new Error('InstalledEffectComputationFailed');
     }
-    observeUsage('effect_computation_completed');
+    observeUsage('effect_computation_completed', {
+      carrierSnapshots: (execution.completed ?? [])
+        .filter(task => task.snapshot !== undefined)
+        .map(task => ({task: task.task, ...task.snapshot})),
+      relationSnapshots: (execution.completed ?? [])
+        .filter(task => task.relationSnapshot !== undefined)
+        .map(task => ({task: task.task, ...task.relationSnapshot})),
+    });
     if (component !== undefined) {
       if (inferCapture === undefined) throw component.failure() ?? new Error('InstalledInferCaptureUnavailable');
       publicationPlan = (await inferCapture.persist()).plan;

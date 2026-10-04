@@ -20,6 +20,7 @@ import {compositionExpectations, databaseRows, expectedUpdates, expectedWrites, 
 import {canonicalJson} from '../adapters/host-node/local-account-config.mjs';
 import {packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
 import {readTwoSourceJournal} from './fixtures/two-source-public-query.mjs';
+import {graphCompositionExpectations} from './fixtures/graph-infer-effect-input.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const build = join(repository, '_build');
@@ -29,9 +30,12 @@ const externalScratch = join(repository, '..', '.codex-scratch');
 await mkdir(externalScratch, {recursive: true});
 const root = await mkdtemp(join(externalScratch, 'actql-packed-salesforce-'));
 const twoSourceEffect = process.argv.includes('--two-source-effect');
-const compositionCases = process.argv.includes('--composed-text') ? ['infer-text']
+const compositionCases = process.argv.includes('--composed-graph-node') ? ['infer-graph-node']
+  : process.argv.includes('--composed-graph-edge') ? ['infer-graph-edge']
+  : process.argv.includes('--composed-graph') ? ['infer-graph-node','infer-graph-edge']
+  : process.argv.includes('--composed-text') ? ['infer-text']
   : process.argv.includes('--composed-infer') ? ['infer', 'infer-text']
-  : twoSourceEffect ? ['two-source'] : ['source', 'infer', 'infer-text'];
+  : twoSourceEffect ? ['two-source'] : ['source', 'infer', 'infer-text', 'infer-graph-node', 'infer-graph-edge'];
 const inferEnabled = compositionCases.some(kind => kind.startsWith('infer'));
 const composed = compositionCases.some(kind => kind !== 'source');
 const orgId = '00D000000000001EAA';
@@ -381,6 +385,9 @@ console.log(JSON.stringify(published.mappings.map(mapping =>
     'composed-infer-effect.program.template.json', 'composed-infer-effect.expected.json',
     'composed-infer-effect.aql.template',
     'composed-infer-effect-null-assert.aql.template',
+    'graph-infer-effect-input.mjs',
+    'graph-node-infer-effect.program.template.json',
+    'graph-edge-infer-effect.program.template.json',
     'installed-infer-fixture.mjs', 'two-source-public-query.mjs',
     'public-query-input.mjs']) {
     await writeFile(join(root, name), await readFile(join(repository,
@@ -414,6 +421,7 @@ console.log(JSON.stringify(published.mappings.map(mapping =>
       installed.profiles.left, installed.profiles.right]));
     await writeFile(join(root, 'model-calls.jsonl'), '');
     await writeFile(join(root, 'source-calls.jsonl'), '');
+    await writeFile(join(root, 'composition-custody.jsonl'), '');
     await writeFile(join(root, 'composition-databases.json'),
       JSON.stringify(installed.databases));
     // Independent bad rows in separate databases: never alter the positive
@@ -458,11 +466,15 @@ import {userInfo} from 'node:os';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 import {connect} from '@actql/node';
 import {compositionProgram, compositionText, twoSourceEffectProgram, modelConfiguration, registerCompositionModel,
-  expectedClassified, classifiedColumns, expectedUpdates, updateColumns} from
+  compositionExpectations} from
   './composed-infer-effect-input.mjs';
+import {graphCompositionProgram, graphCompositionExpectations} from './graph-infer-effect-input.mjs';
 const composed = process.env.PACKED_COMPOSED_INFER === '1';
 const twoSourceEffect = process.env.PACKED_TWO_SOURCE_EFFECT === '1';
 const composedText = process.env.PACKED_COMPOSED_TEXT === '1';
+const graphFamily = process.env.PACKED_GRAPH_ROWS || undefined;
+const {classified:expectedClassified,classifiedColumns,updates:expectedUpdates,
+  updateColumns} = graphFamily ? graphCompositionExpectations(graphFamily) : compositionExpectations;
 const authorization = JSON.parse(readFileSync('authorization.json', 'utf8'));
 if (process.env.PACKED_CHECKPOINT_TTL_MS !== undefined) {
   authorization.checkpointTtlMs = Number(process.env.PACKED_CHECKPOINT_TTL_MS);
@@ -475,10 +487,12 @@ if (process.env.PACKED_DENY_EFFECT === '1') {
 }
 const pendingScratch = process.argv[2] === 'rce-submit-pending';
 let scratchReleased = !pendingScratch;
+let temporaryReleaseConfirmed = false;
 authorization.observe = (name, detail) => {
   if (name.startsWith('effect_computation_')) {
     appendFileSync('composition-custody.jsonl', JSON.stringify({name, ...detail,
       pendingScratch}) + '\\n');
+    if (name === 'effect_computation_cleanup_completed') temporaryReleaseConfirmed = true;
     if (pendingScratch && name === 'effect_computation_cleanup_pending') {
       assert.ok(BigInt(detail.resourceUsage.reservedExecutionBytes) > 0n,
         'false physical cleanup must retain the original execution reservation');
@@ -525,7 +539,10 @@ if (process.env.PACKED_RCE_TRANSPORT === 'https') {
     token: 'fixture-token'};
 }
 const client = await connect(connection);
-function terminate(boundary, ref) {
+async function terminate(boundary, ref) {
+  if (graphFamily && boundary === 'capture-waiting') {
+    await waitFor(() => temporaryReleaseConfirmed);
+  }
   appendFileSync('restart-boundaries.jsonl', JSON.stringify({boundary, ref,
     transport: process.env.PACKED_RCE_TRANSPORT}) + '\\n');
   // Stop the dedicated Host and its execution process without finally or
@@ -638,8 +655,9 @@ try {
       'utf8'));
     const mapping = generation.mappings.find(entry =>
       entry.write.resource === 'Test_Record__c');
-    const program = composed ? (twoSourceEffect ? twoSourceEffectProgram
-      : compositionProgram)(mapping.mapping_ref)
+    const program = composed ? graphFamily
+      ? graphCompositionProgram(mapping.mapping_ref,graphFamily)
+      : (twoSourceEffect ? twoSourceEffectProgram : compositionProgram)(mapping.mapping_ref)
       : {version: 'actql/0.1', id: 'packed-rce', stages: [
       {id: 'acquire',
         inputs: {remote: {connector: 'crm-main', resource: 'Test_Record__c'}},
@@ -711,6 +729,7 @@ try {
       return ['succeeded', 'failed', 'needs_reconciliation', 'cancelled']
         .includes(current.status) ? current : undefined;
     });
+    let retainedNamedResults;
     if (state.status === 'succeeded' && composed) {
       if (!twoSourceEffect) {
       assert.deepEqual(await execution.result('classified').all(), expectedClassified);
@@ -718,6 +737,10 @@ try {
         classifiedColumns);
       assert.deepEqual((await execution.result('updates').describe()).columns,
         updateColumns);
+      retainedNamedResults = await Promise.all(['classified', 'updates'].map(async name => ({
+        name, artifactCid: (await execution.result(name).describe()).resultArtifactCid,
+        rows: (await execution.result(name).all()).length,
+      })));
       }
       assert.deepEqual(await execution.result('updates').all(), expectedUpdates);
     } else if (state.status === 'succeeded') {
@@ -727,6 +750,7 @@ try {
       ]);
     }
     console.log(JSON.stringify({status: state.status,
+      retainedNamedResults,
       rows: state.status === 'succeeded'
         ? await execution.result('updates').all() : undefined}));
   } else if (step === 'resume' || step === 'recheck') {
@@ -793,6 +817,10 @@ try {
   const composed = compositionKind !== 'source';
   const inferEnabled = compositionKind.startsWith('infer');
   const twoSourceEffect = compositionKind === 'two-source';
+  const graphFamily = compositionKind.startsWith('infer-graph-')
+    ? compositionKind.slice('infer-graph-'.length) : undefined;
+  const expectations = graphFamily ? graphCompositionExpectations(graphFamily) : compositionExpectations;
+  const {updates:expectedUpdates,writes:expectedWrites,modelInputs:expectedModelInputs} = expectations;
   for (const transport of ['local', 'https']) {
     server.target.name = 'prior-name';
     const rceEnvironment = {...effectEnvironment,
@@ -800,6 +828,7 @@ try {
       PACKED_COMPOSED_INFER: composed ? '1' : '0',
       PACKED_TWO_SOURCE_EFFECT: twoSourceEffect ? '1' : '0',
       PACKED_COMPOSED_TEXT: compositionKind === 'infer-text' ? '1' : '0',
+      ...(graphFamily === undefined ? {} : {PACKED_GRAPH_ROWS:graphFamily}),
       NODE_EXTRA_CA_CERTS: join(root, 'org.crt'),
       ACTQL_LOCAL_STATE_DIR: join(root, 'rce-' + compositionKind + '-' + transport)};
     if (composed) delete rceEnvironment.ACTQL_LOCAL_SOURCE_PROFILE;
@@ -827,6 +856,8 @@ try {
     const modelCallsBefore = composed ? (await readFile(join(root,
       'model-calls.jsonl'), 'utf8')).trim().split('\n').filter(Boolean).length : 0;
     const effectWriteCounts = [];
+    const custodyBefore = inferEnabled ? (await readFile(join(root,
+      'composition-custody.jsonl'), 'utf8')).trim().split('\n').filter(Boolean).length : 0;
     let normalResult;
     await rce(async () => {
       effectWriteCounts.push(patches().length);
@@ -866,12 +897,12 @@ try {
       const sourceReadSessions = sourceCalls.slice(sourceCallsBefore).map(item =>
         item.sourceReadSessions);
       const modelInputs = calls.slice(modelCallsBefore).sort((a, b) => a - b);
-      assert.deepEqual(sourceReadSessions, compositionExpectations.sourceReadSessions,
+      assert.deepEqual(sourceReadSessions, expectations.sourceReadSessions,
       'only submission acquires the two Sources; recovery uses captured inputs');
       assert.deepEqual(modelInputs,
         inferEnabled ? expectedModelInputs : [],
         'saved Model results must not be replayed physically');
-      assert.deepEqual(effectWriteCounts, compositionExpectations.effectWriteCounts);
+      assert.deepEqual(effectWriteCounts, expectations.effectWriteCounts);
       const ref = JSON.parse(await readFile(join(root, 'effect-ref.json'), 'utf8'));
       const boundaries = (await readFile(join(root, 'restart-boundaries.jsonl'), 'utf8'))
         .trim().split('\n').filter(Boolean).map(line => JSON.parse(line))
@@ -879,7 +910,7 @@ try {
           item.ref.runDefinitionCid === ref.runDefinitionCid &&
           item.ref.authorityScopeCid === ref.authorityScopeCid);
       assert.deepEqual(boundaries.map(item => item.boundary),
-        compositionExpectations.restartBoundaries);
+        expectations.restartBoundaries);
       for (const boundary of boundaries) assert.deepEqual(boundary.ref, ref);
       const submission = JSON.parse(await readFile(join(root,
         'rce-submission.json'), 'utf8'));
@@ -891,6 +922,18 @@ try {
         writes: patches().map(item => ({id: item.path.split('/').at(-1),
           body: JSON.parse(item.body)})), rows: normalResult.rows,
         restartBoundaries: boundaries};
+      if (graphFamily) {
+        const custody = (await readFile(join(root, 'composition-custody.jsonl'), 'utf8'))
+          .trim().split('\n').filter(Boolean).slice(custodyBefore).map(line => JSON.parse(line));
+        const released = custody.find(item => item.name === 'effect_computation_cleanup_completed');
+        assert.ok(released, 'the original owner confirms cleanup before the capture-waiting crash');
+        for (const field of ['heldBytes', 'reservedTransferBytes',
+          'reservedRetentionBytes', 'reservedExecutionBytes']) assert.equal(released.resourceUsage[field], '0');
+        assert.deepEqual(normalResult.retainedNamedResults.map(({name, rows}) => ({name, rows})),
+          [{name:'classified', rows:2}, {name:'updates', rows:1}]);
+        observation.temporaryRetention = {cleanupConfirmed:true, resourceUsage:released.resourceUsage};
+        observation.namedResultRetention = normalResult.retainedNamedResults;
+      }
       await appendFile(join(root, 'composition-acceptance.jsonl'),
         JSON.stringify(observation) + '\n');
       console.log('packed composition acceptance ' + JSON.stringify(observation));
@@ -960,7 +1003,7 @@ try {
       assert.equal(done.status, 'failed');
       assert.equal(patches().length, composed ? 1 : 2);
     }, 'stale');
-    if (inferEnabled) {
+    if (inferEnabled && graphFamily !== 'edge') {
       server.target.name = 'prior-name';
       const writesBeforePending = patches().length;
       const modelsBeforePending = (await readFile(join(root, 'model-calls.jsonl'),
@@ -999,7 +1042,7 @@ try {
       const sourceCalls = (await readFile(join(root, 'source-calls.jsonl'), 'utf8'))
         .trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
       assert.deepEqual(sourceCalls.slice(sourceCallsBeforePending).map(item =>
-        item.sourceReadSessions), [2, 0, 0, 0]);
+        item.sourceReadSessions), expectations.sourceReadSessions);
       console.log('packed ' + transport + ' composed cleanup false → retained reservation → release passed');
       server.target.name = 'prior-name';
       const writesBeforeLost = patches().length;
@@ -1027,7 +1070,7 @@ try {
         .map(line => JSON.parse(line).score).sort((a, b) => a - b), expectedModelInputs);
       assert.deepEqual((await readFile(join(root, 'source-calls.jsonl'), 'utf8'))
         .trim().split('\n').filter(Boolean).slice(sourcesBeforeLost)
-        .map(line => JSON.parse(line).sourceReadSessions), [2, 0, 0, 0]);
+        .map(line => JSON.parse(line).sourceReadSessions), expectations.sourceReadSessions);
       console.log('packed ' + transport + ' composed lost Effect response → reconciliation without resend passed');
       for (const boundary of ['expired-checkpoint', 'current-denial',
         'valid-approval-after-answer-deadline']) {
@@ -1079,7 +1122,8 @@ try {
         assert.deepEqual((await readFile(join(root, 'source-calls.jsonl'), 'utf8'))
           .trim().split('\n').filter(Boolean).slice(sourcesBefore)
           .map(line => JSON.parse(line).sourceReadSessions),
-        boundary === 'expired-checkpoint' ? [2, 0, 0] : [2, 0, 0, 0]);
+        boundary === 'expired-checkpoint' ? expectations.sourceReadSessions.slice(0,3)
+          : expectations.sourceReadSessions);
         console.log('packed ' + transport + ' composed ' + boundary + ' → same Run with current authorization and no replay passed');
       }
     }

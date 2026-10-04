@@ -51,7 +51,7 @@ test('the authored text fixture binds only its published MappingRef', () => {
 
 test('ordinary packed composition ships JSON and authored text with independent replay expectations', () => {
   const script = readFileSync(new URL('./test-packed-salesforce-source.mjs', import.meta.url), 'utf8');
-  assert(script.includes(": twoSourceEffect ? ['two-source'] : ['source', 'infer', 'infer-text']"));
+  assert(script.includes(": twoSourceEffect ? ['two-source'] : ['source', 'infer', 'infer-text', 'infer-graph-node', 'infer-graph-edge']"));
   for (const name of ['composed-infer-effect.program.template.json',
     'composed-infer-effect.expected.json', 'composed-infer-effect.aql.template']) {
     assert(script.includes("'" + name + "'"), 'isolated consumer must receive ' + name);

@@ -306,6 +306,33 @@ pub fn client_program_open_multi_captured_infer_effect_host(
 }
 
 ///|
+/// Connect the existing Model component to the original source-free Effect
+/// DAG. Its input is the checked producer port; it is not a captured Source.
+#export_name("clientProgramOpenSourceFreeInferEffectHost")
+pub fn client_program_open_source_free_infer_effect_host(
+  prepared : @publication_host.PreparedClientEffectRun,
+  registry : String,
+  values : String,
+  fragment : String?,
+  ordered : String?,
+  provider : @local.ManagedProvider,
+) -> ClientLocalEffectHost? {
+  open_client_local_effect_host(
+    prepared,
+    None,
+    registry,
+    values,
+    1L,
+    0L,
+    0L,
+    0L,
+    fragment_body=fragment,
+    ordered_body=ordered,
+    component_providers=[provider],
+  )
+}
+
+///|
 /// Refresh the original acquired Effect DAG after installed output cleanup
 /// and both Source issuers have closed. This observes their release facts;
 /// revocation alone cannot return the ledger's retained bytes or scratch.

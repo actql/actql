@@ -903,7 +903,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
         const options = {moon, control, prepared,
           compilation, allowed, definition, authorityScopeCid, namespaceId,
           storeAuthorityCid, now};
-        return moon.clientProgramEffectPrepareQueryAcquisition(prepared,
+        return inferSelections.has(prepared) ||
+          moon.clientProgramEffectPrepareQueryAcquisition(prepared,
           0, 0)?.$tag === 1
           ? acquiredEffectPublicationAdmission(options)
           : sourceFreeEffectPublicationPlan(options);
@@ -918,7 +919,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
             store, storeAuthorityCid, authorityScopeCid,
             observeRun: ({ref}) => observeRun({ref, principalId}),
             openComputation: ({retainComputationOwner} = {}) => {
-              if (moon.clientProgramEffectPrepareQueryAcquisition(
+              if (inferSelections.has(facts.prepared) ||
+                  moon.clientProgramEffectPrepareQueryAcquisition(
                 facts.prepared, 0, 0)?.$tag === 1) {
                 // Read admission is the installed source's immediate gate.
                 // Do not borrow an Effect commit permit or create a read
@@ -926,8 +928,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
                 return openAcquiredEffectComputation({moon,
                   owner: facts.owner, acquired: facts.preparedExecution,
                   sourceProfile, registry, values, fragment, ordered,
-                  sourceAccess: sourceProfile.sourceAccess, signal, now,
+                  sourceAccess: sourceProfile?.sourceAccess, signal, now,
                   retainComputationOwner, infer: inferSelections.get(facts.prepared),
+                  computeConfigurations: {local: localSnapshotConfiguration},
                   store, principalId, faultInjection: authorization?.faultInjection,
                   observe: authorization?.observe});
               }
@@ -1759,4 +1762,3 @@ export async function connectEmbeddedLocal(options) {
   const {installation: _installation, ...clientOptions} = options;
   return connectInProcess(clientOptions, host.port);
 }
-

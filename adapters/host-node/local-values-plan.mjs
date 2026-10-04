@@ -170,6 +170,41 @@ export function acquiredEffectPublicationAdmission(options) {
   return effectPublicationAdmission(options);
 }
 
+// A source-free Model still issues its real Observation Set after dispatch.
+// Keep the original Effect admission and bind that exact Model issuer instead
+// of issuing a no-external-work observation during Run preparation.
+export function sourceFreeInferEffectPublicationPlan({acquired,
+  compiled, operation, issuance, modelEvidence}) {
+  const {moon, control, prepared, compilation, admission, runDefinition,
+    compiledPlan, authorityScopeCid, namespaceId, storeAuthorityCid, now} = acquired;
+  const issued = operation.bindIssuedInvocation(control, {
+    compiled, runDefinition, issued: issuance});
+  try {
+    const {observation, invocation, owner: invocationOwner} =
+      control.checkedClientEffectInferInvocation(prepared, compilation,
+        runDefinition, issued);
+    const run = JSON.parse(runDefinition.wire);
+    const {plan, retentionDependencies} = buildLocalPublicationPlan({
+      control, admission, runDefinition, invocation, observation,
+      compiledPlanCid: compiledPlan.identity,
+      programDefinitionCid: moon.clientProgramEffectDefinitionCid(prepared),
+      inputRelationCids: [], sourceEvidence: [], modelEvidence,
+      authorityScopeCid, namespaceId, storeAuthorityCid,
+      dataPolicyCid: JSON.parse(observation.wire).data_policy_cid,
+      createdAt: run.created_at, now,
+      resultCount: moon.clientProgramEffectCompilationResultNames(compilation).length,
+      retainUntil: run.valid_until,
+      moon, effectCompilation: compilation, preparedEffect: prepared});
+    return Object.freeze({...issued, plan: Object.freeze({...plan,
+      invocationOwner, localEvidenceContext: Object.freeze({admission,
+        runDefinition, retentionDependencies, runInvocation: invocation,
+        observation})})});
+  } catch (error) {
+    moon.clientProgramReleaseInferInvocationBinding(issued.binding);
+    throw error;
+  }
+}
+
 export function acquiredEffectPublicationPlan({acquired, captured,
   sourceEvidenceWire, captureStartedAt, captureCompletedAt}) {
   const {moon, control, prepared, compilation, definition, admission,

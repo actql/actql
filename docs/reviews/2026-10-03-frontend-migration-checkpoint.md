@@ -14,7 +14,41 @@ passed at clean `a6675aa5945389e66aa15978c9ed0ae66cbe69a1`, as recorded in
 That result does not establish all Graph consumers or completion of the migration.
 Earlier checkpoints below retain their original source and package identities.
 
-## Implemented versus execution evidence
+## Current public composition checkpoint (2026-10-04)
+
+The current inspected main is `bbb9b935b912148b7e399cc23f213e72bb7bc9a8`,
+including #273. This section supersedes status statements in the historical
+table below without rewriting their evidence. The sole operation-family
+classification remains `2026-09-19-sga-veca-tea-local-coverage.json`.
+
+| Composition boundary | Current state and fixed evidence | Next acceptance or excluded scope |
+|---|---|---|
+| Two Sources → JOIN → multi-row INFER → KEEP/filter → approved Effect, JSON/text | Publicly accepted. #273 source `8a5195451195b7e4566b19bf7ba9fb5772b8f2d1`; [automatic CI 37163835916](https://github.com/actql/actql/actions/runs/37163835916) succeeded, including fresh-packed Local/HTTPS from tested merge `e90fea951f63cf0586f095c47521e29d18a4bf73`. Approval/restart/replay and the reused failure/cleanup cases passed. | This proves the authored full text and JSON fixture, not all syntax or Graph combinations. |
+| Pure two DuckDB Sources → selected Native/Broad → JOIN | Native is already publicly accepted. Broad is connected in A #292 candidate `de96f1c5cd28154deea182a9a84743a016db81f0`; its [automatic CI 37163208595](https://github.com/actql/actql/actions/runs/37163208595) succeeded, including both public transports and second-failure/cancellation/cleanup cases. | Candidate adoption and D's combined-main acceptance remain separate from A's successful tested merge `603bec16d544aef70af845cc58a552003dca78eb`. Reuse A's fixtures and capacity owner; no duplicated repair. |
+| Graph → node_rows/edge_rows → guaranteed Relation columns → physical Store/reload → Named Result | Publicly accepted through C #275 (`fa615ff1d7b199b476c9673c613dcbcfb40d576d`), included in main. Selected clean packed acceptance is recorded at `9bc97334b1ec6afddef1b319fc48ac52f8ec7879`. | Nullable Required properties and original scalar key types remain supported; Conditional refinement is not inferred from samples. |
+| Graph rows → multi-row INFER → approved Effect | Connection gap reproduced. Complete independently authored node/edge Programs using guaranteed columns both returned `ClientProgramUnsupported` before Run admission and Model calls on immutable CI runtime `e90fea951f63cf0586f095c47521e29d18a4bf73`. Typed diagnosis: prepared owner and INFER occurrence exist, acquisition count 0, Effect compilation `unsupported_program`. | D is connecting the original source-free checked DAG to the existing Model component, capture custody and Effect owner. New-source packed acceptance remains pending; JSON may not be repaired by the harness. |
+| Graph rows through text; conditional-property refinement; NEAREST/Cloud expansion | Outside this completion unit. Graph text and `compile_query_script` Graph→Relation transition are B-owned; no parallel transition is implemented by D. | Record as unconnected for this acceptance scope. D continues CTE/predicate/assert/Effect composition; additional shared input/return changes require a concrete boundary report. |
+
+The new Graph fixtures are
+`scripts/fixtures/graph-node-infer-effect.program.template.json` and
+`graph-edge-infer-effect.program.template.json`. Each is one complete Program;
+the consumer binds only the published MappingRef. Expected rows, types, order,
+typed identities and calls are authored in `graph-infer-effect-input.mjs`.
+Both expect Model inputs `[100,200]`, Source sessions `[0,0,0,0]`, writes
+`[0,0,1,1]`, and the existing capture-waiting/approval-committed restart points.
+The constructor identity is independently derived from its normative authored
+preimage, not observed Graph output.
+
+Resource acceptance distinguishes original temporary task/consumer, Graph,
+Source and Model holdings from durable Named Result retention. Logical close,
+physical cleanup and reservation return are separate observations. A false
+cleanup retains original custody and required reservation; only confirmed
+last-holder cleanup permits return. Named Results remain rereadable without
+Source/Model replay or confirmed Effect duplication. `wait(): succeeded` and
+`client.close()` alone establish no release claim. Final Run deletion and
+physical deletion of another consumer's data are outside this unit.
+
+## Historical implemented versus execution evidence
 
 | Surface or boundary | Implemented checkpoint | Acceptance still required |
 |---|---|---|

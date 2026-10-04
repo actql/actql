@@ -112,7 +112,7 @@ pub fn issue_prepared_client_effect_compilation(
     @checked.unit_import_cid_count(checked, 0) == Some(0) else {
     return Err(UnsupportedProgram)
   }
-  let source_free = units == 1 &&
+  let source_free = @strategy.graph_source_free_inputs_complete(graph) &&
     @pipeline.input_count(pipeline) == 0 &&
     @pipeline.starts_with_values(
       @lower.pipeline(@lower.bound_preparation(first)),

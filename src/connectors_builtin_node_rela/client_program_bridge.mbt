@@ -5737,7 +5737,7 @@ fn open_client_local_effect_host(
   )
   let first_compute = if multiple { 2 } else if source is None { 0 } else { 1 }
   let generated = []
-  if first_compute > 0 {
+  if first_compute > 0 || !component_providers.is_empty() {
     let sequences = match
       @client_local_host.prepare_client_effect_local_sequences(
         computation, registry_body, values_body, fragment_body, ordered_body,
