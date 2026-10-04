@@ -147,6 +147,7 @@ function issuedBroadRuntime(moon) {
     salesforceIssuedBroadRowCount: moon.clientProgramSalesforceBroadRowCount,
     salesforceIssuedBroadFinish: moon.clientProgramSalesforceBroadFinish,
     salesforceBroadHostAbort: moon.clientProgramSalesforceBroadAbort,
+    salesforceBroadChargePage: moon.clientProgramSalesforceBroadChargePage,
     salesforceQueryPageResponseSha256:
       moon.clientProgramSalesforceQueryPageResponseSha256,
     salesforceQueryPageRowCount: moon.clientProgramSalesforceQueryPageRowCount,
@@ -206,6 +207,7 @@ export async function loadInstalledSalesforceSource(profile, {root,
       environment, generationCid: loaded.generationCid,
       catalogCid: loaded.declared.catalog_cid,
       connectorId: checkedProfile.connectorId,
+      views: loaded.declared.views,
       sourceRefs: new Set(loaded.declared.views.map(view =>
         view.source_ref))});
   } catch (error) {
@@ -217,11 +219,14 @@ export async function loadInstalledSalesforceSource(profile, {root,
 
 function installedSalesforceAdapter({moon, broadMoon, site, authorization,
   declaration, recover, discovery, queryContract, evidenceContract,
-  environment, generationCid, catalogCid, connectorId, sourceRefs}) {
+  environment, generationCid, catalogCid, connectorId, sourceRefs, views}) {
   // Checked preparations this adapter issued; only these can be opened.
   const preparations = new WeakMap();
   const sourceAccess = Object.freeze({authorization,
     connection: site.connection});
+  const sourceReadAccesses = Object.freeze(views.map(view =>
+    Object.freeze({authorization, connection: site.connection,
+      sourceRef: view.source_ref, resource: view.resource})));
 
   const decideRead = (prepared, access, signal) =>
     access.authorization.authorize('acquisition', prepared.readTuple, {
@@ -246,20 +251,29 @@ function installedSalesforceAdapter({moon, broadMoon, site, authorization,
   // (`preparedEffect`) through the common Effect entries; a read-only Run's
   // from its checked Program. Exactly one is given.
   async function prepare({preparedProgram, preparedEffect, registry, values,
-    fragment, ordered, sourceAccess: access = sourceAccess}) {
+    fragment, ordered, sourceAccess: access = sourceAccess,
+    occurrence = {stage: 0, input: 0, task: 0}}) {
     if ((preparedProgram === undefined) === (preparedEffect === undefined)) {
       fail('InvalidInstalledSourcePreparation');
     }
     const effectful = preparedEffect !== undefined;
     const checkedOwner = preparedEffect ?? preparedProgram;
+    if (![occurrence.stage, occurrence.input, occurrence.task]
+      .every(Number.isSafeInteger) || occurrence.stage < 0 ||
+      occurrence.stage > 1 || occurrence.input !== 0 ||
+      occurrence.task !== occurrence.stage) {
+      fail('InvalidAcquisitionOccurrence');
+    }
     checked(effectful
-      ? moon.clientProgramEffectPrepareQueryAcquisition(checkedOwner, 0, 0)
-      : moon.clientProgramPrepareQueryAcquisition(checkedOwner, 0, 0));
+      ? moon.clientProgramEffectPrepareQueryAcquisition(checkedOwner,
+        occurrence.stage, occurrence.input)
+      : moon.clientProgramPrepareQueryAcquisition(checkedOwner,
+        occurrence.stage, occurrence.input));
     const requirement = checked(effectful
-      ? moon.clientProgramEffectPrepareLocalQueryRequirement(checkedOwner, 0,
-        0, registry, values, fragment, ordered)
-      : moon.clientProgramPrepareLocalQueryRequirement(checkedOwner, 0, 0,
-        registry, values, fragment, ordered));
+      ? moon.clientProgramEffectPrepareLocalQueryRequirement(checkedOwner,
+        occurrence.stage, occurrence.input, registry, values, fragment, ordered)
+      : moon.clientProgramPrepareLocalQueryRequirement(checkedOwner,
+        occurrence.stage, occurrence.input, registry, values, fragment, ordered));
     const facts = checked(
       moon.clientProgramQueryRequirementSourceEvidenceFacts(requirement));
     if (!Array.isArray(facts) || facts.length !== 6 ||
@@ -305,7 +319,7 @@ function installedSalesforceAdapter({moon, broadMoon, site, authorization,
         authorization: decision});
     }
     preparations.set(prepared, Object.freeze({checkedOwner, effectful,
-      requirement, resource, access}));
+      requirement, resource, access, occurrence}));
     return prepared;
   }
 
@@ -318,26 +332,30 @@ function installedSalesforceAdapter({moon, broadMoon, site, authorization,
   // it, every provider request was awaited and the attempt closed, so it
   // has stopped, unless closing the attempt itself failed.
   async function open(options) {
-    const state = {started: false, closeFailed: false};
+    const state = {started: false, closeFailed: false, recovery: undefined};
     try {
       return await acquire(state, options);
     } catch (error) {
-      throw acquisitionFailure(error, !state.started ? 'not_started'
-        : state.closeFailed ? 'unknown' : 'stopped');
+      throw acquisitionFailure(error, state.closeFailed ? 'unknown'
+        : !state.started ? 'not_started' : 'stopped', state.recovery);
     }
   }
 
   async function acquire(state, {preparedProgram, preparedEffect, registry,
     values, fragment, ordered, sourceAccess: access = sourceAccess, signal,
-    preparedSource, retainedRelationOutput = false}) {
+    preparedSource, retainedRelationOutput = false,
+    occurrence = {stage: 0, input: 0, task: 0}, ledger}) {
     const prepared = preparedSource ?? await prepare({preparedProgram,
       preparedEffect, registry, values, fragment, ordered,
-      sourceAccess: access});
+      sourceAccess: access, occurrence});
     const owner = preparations.get(prepared);
     if (owner === undefined ||
         owner.checkedOwner !== (preparedEffect ?? preparedProgram) ||
         owner.effectful !== (preparedEffect !== undefined) ||
-        owner.access !== access) {
+        owner.access !== access ||
+        owner.occurrence.stage !== occurrence.stage ||
+        owner.occurrence.input !== occurrence.input ||
+        owner.occurrence.task !== occurrence.task) {
       fail('InstalledSourcePreparationMismatch');
     }
     const decision = await currentRead(prepared, access, signal);
@@ -372,13 +390,19 @@ function installedSalesforceAdapter({moon, broadMoon, site, authorization,
       declaration, owner.requirement, current.observation, queryContract,
       evidenceContract, 4096));
     const settled = new Set();
-    const run = checked(moon.clientProgramSalesforceAcquisitionStart(
-      acquisition, nonce, attempt => settled.has(attempt)));
+    const run = checked(ledger === undefined
+      ? moon.clientProgramSalesforceAcquisitionStart(
+        acquisition, nonce, attempt => settled.has(attempt))
+      : moon.clientProgramSalesforceAcquisitionStartAccounted(
+        acquisition, nonce, attempt => settled.has(attempt), ledger,
+        BigInt(readLimits.maxPages) * BigInt(readLimits.maxBytes),
+        BigInt(readLimits.maxBytes)));
     let closed = false;
     const close = () => {
       if (closed) return;
+      if (ledger === undefined) moon.clientProgramSalesforceBroadClose(run);
+      else checked(moon.clientProgramSalesforceBroadCloseAccounted(run));
       closed = true;
-      moon.clientProgramSalesforceBroadClose(run);
     };
     try {
       const grant = site.issueGrant({operation: 'salesforce:query:read',
@@ -397,14 +421,19 @@ function installedSalesforceAdapter({moon, broadMoon, site, authorization,
       // read is settled.
       settled.add(moon.clientProgramSalesforceBroadAttempt(run));
       const capture = checked(moon.clientProgramSalesforceCapture(run));
+      if (ledger !== undefined) checked(
+        moon.clientProgramSalesforceRetainCapture(capture));
       const source = () => checked(
         moon.clientProgramSalesforceCaptureSource(capture));
       const {checkedOwner, effectful} = owner;
       if ((effectful
-        ? moon.clientProgramEffectCapturedSourceMatches(checkedOwner,
-          source())
-        : moon.clientProgramCapturedSourceMatches(checkedOwner,
-          source())) !== true) {
+        ? occurrence.task === 0
+          ? moon.clientProgramEffectCapturedSourceMatches(checkedOwner,
+            source())
+          : moon.clientProgramEffectCapturedSourceMatchesAt(checkedOwner,
+            source(), occurrence.task)
+        : moon.clientProgramCapturedTaskSourceMatches(checkedOwner,
+          source(), occurrence.task)) !== true) {
         fail('InstalledSourceProgramMismatch');
       }
       // An Effect acquisition identifies its Relation through the common
@@ -413,23 +442,29 @@ function installedSalesforceAdapter({moon, broadMoon, site, authorization,
         ? moon.clientProgramIdentifyCapturedEffectSourceRelation(source())
         : moon.clientProgramIdentifyCapturedSourceRelation(source()));
       const logicalInput = checked(effectful
-        ? moon.clientProgramEffectIssueCapturedSourceLogical(checkedOwner,
-          source(), identity, owner.requirement)
-        : moon.clientProgramIssueCapturedSourceLogical(checkedOwner,
-          source(), identity, owner.requirement));
+        ? occurrence.task === 0
+          ? moon.clientProgramEffectIssueCapturedSourceLogical(checkedOwner,
+            source(), identity, owner.requirement)
+          : moon.clientProgramEffectIssueCapturedSourceLogicalAt(checkedOwner,
+            source(), identity, owner.requirement, occurrence.task)
+        : moon.clientProgramIssueCapturedTaskSourceLogical(checkedOwner,
+          source(), identity, owner.requirement, occurrence.task));
       // An Effect Run's computation is opened by the common Host only after
       // durable Run admission; the acquisition does not open it.
       const openHost = retainedRelationOutput
         ? moon.clientProgramOpenCapturedLocalRetainedHost
         : moon.clientProgramOpenCapturedLocalHost;
-      const setup = effectful ? undefined : openHost(checkedOwner, source(),
+      const setup = effectful || ledger !== undefined ? undefined : openHost(checkedOwner, source(),
         registry, values, 1n, 0n, 0n, 0n, fragment, ordered);
-      if (!effectful && setup === undefined) {
+      if (!effectful && ledger === undefined && setup === undefined) {
         fail('InstalledSourceHostUnavailable');
       }
       return Object.freeze({checkedSource: prepared.checkedSource, identity,
         logicalInput, requirement: owner.requirement, setup,
-        capture: Object.freeze({source}),
+        occurrence: owner.occurrence,
+        capture: Object.freeze({source,
+          ...(ledger === undefined ? {} : {retainTask: (dag, task) => checked(
+            moon.clientProgramSalesforceRetainCapturedTask(capture, dag, task))})}),
         // Evidence is issued only while the read is still currently
         // authorized.
         issueSourceEvidence: async ({authorityScopeCid,
@@ -442,7 +477,14 @@ function installedSalesforceAdapter({moon, broadMoon, site, authorization,
         close});
     } catch (error) {
       try { close(); }
-      catch { state.closeFailed = true; }
+      catch {
+        state.closeFailed = true;
+        state.recovery = Object.freeze({
+          close() {},
+          async cleanup() { close(); return true; },
+          cleanupPending: () => !closed,
+        });
+      }
       throw error;
     }
   }
@@ -463,7 +505,18 @@ function installedSalesforceAdapter({moon, broadMoon, site, authorization,
       accountConfiguration: authorization.accountConfiguration,
       context: authorization.context}),
     sourceAccess,
+    sourceReadAccesses,
     admitsSource: sourceRef => sourceRefs.has(sourceRef),
+    ledgerCapacity(prepared) {
+      const owner = preparations.get(prepared);
+      if (owner === undefined) fail('InstalledSourcePreparationMismatch');
+      const capacity = moon.clientProgramInstalledSalesforceCaptureCapacity(
+        owner.requirement);
+      if (capacity === undefined) fail('InstalledSourceCapacityUnavailable');
+      return Object.freeze({capacity,
+        transferBytes: BigInt(readLimits.maxPages) * BigInt(readLimits.maxBytes),
+        executionBytes: BigInt(readLimits.maxBytes)});
+    },
     prepare, open,
     discovery: Object.freeze({resources: discovery.resources,
       inspectResource: discovery.inspectResource,

@@ -9,5 +9,6 @@ import {
   "actql/actql/execution_query" @query,
   "actql/actql/execution_relation" @execution,
   "actql/actql/run_publication" @publication,
+  "actql/actql/physical_resources" @resources,
   "moonbitlang/core/json",
 }

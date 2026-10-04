@@ -328,6 +328,19 @@ pub fn installed_row_capture_capacity(
 }
 
 ///|
+pub fn installed_salesforce_capture_capacity(
+  requirement : @planning.QueryRequirement,
+) -> ClientInstalledCaptureCapacity? {
+  let (requirement, retained, execution) = @salesforce_source_host.client_salesforce_prepared_capacity(
+    requirement,
+  )
+  if retained < 0L || execution < retained {
+    return None
+  }
+  Some({ requirement, retained_bytes: retained, execution_bytes: execution, })
+}
+
+///|
 pub fn prepare_multi_captured_local_installed_ledger(
   prepared : @publication_host.PreparedClientProgram,
   capacities : Array[ClientInstalledCaptureCapacity],

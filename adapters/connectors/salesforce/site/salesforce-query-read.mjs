@@ -241,6 +241,7 @@ export async function readSalesforceIssuedBroad(options) {
     captureLimits} = options;
   if (!moon || !hostRun ||
       typeof moon.salesforceBroadHostAttempt !== 'function' ||
+      typeof moon.salesforceBroadChargePage !== 'function' ||
       typeof moon.salesforceIssuedBroadValueViolation !== 'function' ||
       typeof apiVersion !== 'string' ||
       !count(maxCaptureRows) || !captureLimits ||
@@ -279,6 +280,8 @@ export async function readSalesforceIssuedBroad(options) {
     }, context.scope, {
       nextPath: () => moon.salesforceIssuedBroadNextPath(attempt),
       acceptPage: (path, body) => {
+        checked(moon.salesforceBroadChargePage(hostRun,
+          BigInt(body.byteLength)));
         const result = moon.salesforceIssuedBroadAcceptPage(attempt, path,
           body);
         // A provider value that is not a value of its declared type fails

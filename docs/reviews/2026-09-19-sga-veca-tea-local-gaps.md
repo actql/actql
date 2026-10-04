@@ -67,9 +67,17 @@ Resend and reopened-Host attach do not issue another Salesforce query. This
 closes the selected multi-view capture route. A retained-mode provider error
 after the read starts publishes nothing and is not reread after resend or
 Host reopen. Cancellation at the captured-input handoff retains the source
-through stop and cleanup and publishes nothing. These tests do not establish
-two simultaneous Salesforce captures, a Store writer fault, or cancellation
-after positive Compute work.
+through stop and cleanup and publishes nothing. Two distinct views of the
+same installed Salesforce source can also fill the two checked input tasks
+of a retained Join. The Host selects both view bindings, reserves their
+physical capture capacities in the shared ledger, charges received pages,
+and transfers each captured holding to its exact task. The public HTTPS
+fixture checks the Join and two downstream consumer Named Results, resend
+without reacquisition, attach after Host reopen, and cancellation after the
+first capture but before the second read. Final dispatch cleanup releases
+the transfer reservation and all retained holdings. These tests do not
+establish a Store writer fault, cancellation after positive Join work, or
+every Salesforce acquisition variant.
 
 The installed full-family Host now declares TEA and VecA to the common checker,
 matching its already registered bounded providers. This does not make a

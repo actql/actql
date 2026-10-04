@@ -274,6 +274,151 @@ test('non-first Salesforce source view retains two public consumer Results',
     assert.equal(setup.queries().length, reads);
   });
 
+const twoViewJoinProgram = () => ({
+  version: 'actql/0.1', id: 'salesforce-two-view-join',
+  stages: [
+    {id: 'left', inputs: {remote: {connector: 'crm-main',
+      resource: 'Test_Record__c'}},
+    steps: [{filter: 'true', as: 'selected'},
+      {select: ['External_Key__c', 'Name'], as: 'rows'}],
+    results: {r: {from: 'rows', fields: ['External_Key__c', 'Name']}}},
+    {id: 'right', inputs: {remote: {connector: 'crm-main',
+      resource: 'Other_Record__c'}},
+    steps: [{filter: 'true', as: 'selected'},
+      {select: ['External_Key__c', 'Name'], as: 'rows'}],
+    results: {r: {from: 'rows', fields: ['External_Key__c', 'Name']}}},
+    {id: 'join', inputs: {
+      l: {result: {stage: 'left', result: 'r'}},
+      r: {result: {stage: 'right', result: 'r'}}},
+    steps: [{from: 'l', join: {with: 'r', kind: 'inner',
+      on: [{left: 'External_Key__c', right: 'External_Key__c'}],
+      max_output_rows: 100,
+      select: {key: 'left.External_Key__c', left_name: 'left.Name',
+        right_name: 'right.Name'}}},
+    {sort: [{key: 'asc'}], as: 'ordered'}],
+    results: {r: {from: 'ordered', fields: ['key', 'left_name',
+      'right_name']}}},
+    {id: 'consumer_a', inputs: {x: {result: {stage: 'join', result: 'r'}}},
+    steps: [{select: ['key', 'left_name'], as: 'rows'}],
+    results: {r: {from: 'rows', fields: ['key', 'left_name']}}},
+    {id: 'consumer_b', inputs: {x: {result: {stage: 'join', result: 'r'}}},
+    steps: [{select: ['key', 'right_name'], as: 'rows'}],
+    results: {r: {from: 'rows', fields: ['key', 'right_name']}}}],
+  results: {joined: {from: {stage: 'join', result: 'r'}},
+    consumed_a: {from: {stage: 'consumer_a', result: 'r'}},
+    consumed_b: {from: {stage: 'consumer_b', result: 'r'}}},
+});
+
+test('two Salesforce views retain a joined public Result', async t => {
+  const diagnostics = [];
+  const setup = await installation(t, {
+    readable: ['Test_Record__c', 'Other_Record__c'],
+    sourceResources: ['Test_Record__c', 'Other_Record__c'],
+    writableObjects: ['Other_Record__c'], retainedRelationOutput: true,
+  });
+  await setup.publish();
+  const {client, close} = await setup.open({authorization: checkpointAuthorization({
+    observe: (name, detail) => diagnostics.push({name, detail}),
+  })});
+  const document = twoViewJoinProgram();
+  const execution = await client.aql(JSON.stringify(document),
+    {format: 'json', requestId: 'salesforce-two-view-join'}).catch(error => {
+      assert.fail(`${error.stack}\n${error.cause?.stack ?? ''}\n${JSON.stringify(diagnostics)}`);
+    });
+  const state = await execution.wait();
+  assert.equal(state.status, 'succeeded', JSON.stringify(state));
+  assert.deepEqual(await execution.result('joined').all(), [
+    {key: 'key-1', left_name: 'record-1', right_name: 'record-1'},
+    {key: 'key-2', left_name: 'record-2', right_name: 'record-2'},
+    {key: 'key-3', left_name: 'record-3', right_name: 'record-3'},
+  ]);
+  assert.deepEqual(await execution.result('consumed_a').all(), [
+    {key: 'key-1', left_name: 'record-1'},
+    {key: 'key-2', left_name: 'record-2'},
+    {key: 'key-3', left_name: 'record-3'},
+  ]);
+  assert.deepEqual(await execution.result('consumed_b').all(), [
+    {key: 'key-1', right_name: 'record-1'},
+    {key: 'key-2', right_name: 'record-2'},
+    {key: 'key-3', right_name: 'record-3'},
+  ]);
+  const captured = diagnostics.filter(item => item.name ===
+    'acquisition_completed');
+  const released = diagnostics.filter(item => item.name ===
+    'acquisition_cleanup_completed');
+  assert.equal(captured.length, 2);
+  assert.equal(released.length, 2);
+  assert.ok(captured.every(item =>
+    BigInt(item.detail.resourceUsage.transferredBytes) > 0n));
+  assert.equal(captured.at(-1).detail.resourceUsage.holdings, '2');
+  const cleaned = diagnostics.filter(item => item.name ===
+    'dispatch_cleanup_completed');
+  assert.ok(cleaned.length > 0);
+  for (const key of ['reservedTransferBytes', 'heldBytes',
+    'reservedRetentionBytes', 'reservedExecutionBytes',
+    'uncertainTransferBytes']) {
+    assert.equal(cleaned.at(-1).detail.resourceUsage[key], '0', key);
+  }
+  assert.equal(setup.queries().length, 2);
+  const resent = await client.aql(JSON.stringify(document),
+    {format: 'json', requestId: 'salesforce-two-view-join'});
+  assert.deepEqual(resent.ref, execution.ref);
+  assert.equal(setup.queries().length, 2);
+  await close();
+  const reopened = await setup.open({authorization: checkpointAuthorization()});
+  const attached = await reopened.client.attach(execution.ref);
+  assert.deepEqual(await attached.result('joined').all(), [
+    {key: 'key-1', left_name: 'record-1', right_name: 'record-1'},
+    {key: 'key-2', left_name: 'record-2', right_name: 'record-2'},
+    {key: 'key-3', left_name: 'record-3', right_name: 'record-3'},
+  ]);
+  assert.equal(setup.queries().length, 2);
+});
+
+test('two-view capture stays owned when cancellation precedes the second read',
+  async t => {
+    let reachedFirst;
+    const firstCaptured = new Promise(resolve => { reachedFirst = resolve; });
+    let releaseFirst;
+    const pause = new Promise(resolve => { releaseFirst = resolve; });
+    t.after(() => releaseFirst());
+    const observations = [];
+    const setup = await installation(t, {
+      readable: ['Test_Record__c', 'Other_Record__c'],
+      sourceResources: ['Test_Record__c', 'Other_Record__c'],
+      writableObjects: ['Other_Record__c'], retainedRelationOutput: true,
+    });
+    await setup.publish();
+    const {client} = await setup.open({authorization: checkpointAuthorization({
+      observe(name, detail) { observations.push({name, detail}); },
+      faultInjection(name, detail) {
+        if (name === 'acquisition_completed' && detail.task === 0) {
+          reachedFirst();
+          return pause;
+        }
+      },
+    })});
+    const document = twoViewJoinProgram();
+    const requestId = 'salesforce-two-view-cancel';
+    const execution = await client.aql(JSON.stringify(document),
+      {format: 'json', requestId});
+    await firstCaptured;
+    assert.equal(setup.queries().length, 1);
+    assert.equal(observations.filter(item => item.name ===
+      'acquisition_cleanup_completed').length, 0);
+    await client.cancelRequest(requestId);
+    releaseFirst();
+    const state = await execution.wait();
+    assert.equal(state.status, 'cancelled', JSON.stringify(state));
+    assert.equal(state.result_available, false);
+    await assert.rejects(execution.result('joined').all());
+    assert.equal(setup.queries().length, 1);
+    assert.equal(observations.filter(item => item.name ===
+      'acquisition_cleanup_completed').length, 1);
+    assert.deepEqual(await readdir(join(setup.root, 'state',
+      'carrier-snapshots')), []);
+  });
+
 test('retained Salesforce acquisition failure publishes nothing or rereads',
   async t => {
     const setup = await installation(t, {retainedRelationOutput: true,

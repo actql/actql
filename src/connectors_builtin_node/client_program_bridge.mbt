@@ -6245,6 +6245,67 @@ pub fn client_program_salesforce_acquisition_start(
 }
 
 ///|
+#export_name("clientProgramInstalledSalesforceCaptureCapacity")
+pub fn client_program_installed_salesforce_capture_capacity(
+  requirement : @planning.QueryRequirement,
+) -> @client_local_host.ClientInstalledCaptureCapacity? {
+  @client_local_host.installed_salesforce_capture_capacity(requirement)
+}
+
+///|
+#export_name("clientProgramSalesforceAcquisitionStartAccounted")
+pub fn client_program_salesforce_acquisition_start_accounted(
+  acquisition : @client_salesforce_host.ClientSalesforceAcquisition,
+  nonce : String,
+  verify : (@salesforce_host.SalesforceBroadAttempt) -> Bool,
+  ledger : @resources.Ledger,
+  transfer_bytes : Int64,
+  execution_scratch : Int64,
+) -> Result[
+  @salesforce_host.SalesforceBroadHostRun,
+  @client_salesforce_host.ClientSalesforceIssue,
+] {
+  @client_salesforce_host.start_accounted_client_salesforce_acquisition(
+    acquisition, nonce, verify, ledger, transfer_bytes, execution_scratch,
+  )
+}
+
+///|
+#export_name("clientProgramSalesforceBroadChargePage")
+pub fn client_program_salesforce_broad_charge_page(
+  run : @salesforce_host.SalesforceBroadHostRun,
+  bytes : Int64,
+) -> Result[Unit, @salesforce_host.SalesforceBroadHostIssue] {
+  @salesforce_host.charge_salesforce_broad_page(run, bytes)
+}
+
+///|
+#export_name("clientProgramSalesforceRetainCapture")
+pub fn client_program_salesforce_retain_capture(
+  capture : @salesforce_host.SalesforceBroadSourceCapture,
+) -> Result[Unit, @salesforce_host.SalesforceBroadHostIssue] {
+  @salesforce_host.retain_salesforce_broad_capture(capture)
+}
+
+///|
+#export_name("clientProgramSalesforceRetainCapturedTask")
+pub fn client_program_salesforce_retain_captured_task(
+  capture : @salesforce_host.SalesforceBroadSourceCapture,
+  dag : @strategy.CapturedDAG,
+  task : Int,
+) -> Result[Unit, @salesforce_host.SalesforceBroadHostIssue] {
+  @salesforce_host.retain_salesforce_broad_capture_task(capture, dag, task)
+}
+
+///|
+#export_name("clientProgramSalesforceBroadCloseAccounted")
+pub fn client_program_salesforce_broad_close_accounted(
+  run : @salesforce_host.SalesforceBroadHostRun,
+) -> Result[Unit, @salesforce_host.SalesforceBroadHostIssue] {
+  @salesforce_host.close_accounted_salesforce_broad_host(run)
+}
+
+///|
 #export_name("clientProgramSalesforceBroadAttempt")
 pub fn client_program_salesforce_broad_attempt(
   run : @salesforce_host.SalesforceBroadHostRun,

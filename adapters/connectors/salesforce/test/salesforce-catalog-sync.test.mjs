@@ -3122,6 +3122,11 @@ test('issued broad Site driver leaves completion to the Host verifier',
         aborts += 1;
         state = 'aborted';
       },
+      salesforceBroadChargePage: (selected, bytes) => {
+        assert.equal(selected, hostRun);
+        assert.ok(bytes > 0n);
+        return {$tag: 1, _0: undefined};
+      },
       salesforceIssuedBroadPlan: selected => {
         assert.equal(selected, attempt);
         return plan;

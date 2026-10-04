@@ -232,6 +232,71 @@ fn admit_contract(body : String) -> @identity.CanonicalValue? {
 }
 
 ///|
+fn salesforce_capture_limits() -> @salesforce_host.SalesforceBroadCompletionLimits {
+  let values : @execution.ValueLimits = {
+    max_nodes: 100000,
+    max_text_bytes: 500000,
+    max_depth: 100,
+    max_work: 20000000,
+  }
+  {
+    execution: {
+      rows: {
+        max_rows: 100,
+        metadata_entries: 10000,
+        retained_entries: 10000,
+        operation_entries: 10000,
+        input_values: values,
+        output_values: values,
+      },
+      max_work: 50000000,
+      max_frames: 100,
+    },
+    guards: {
+      max_work: 50000000,
+      max_bytes: 1000000,
+      max_nodes: 100000,
+      max_depth: 100,
+    },
+    retention: {
+      received_wire_bytes: 4000000,
+      retained_wire_bytes: 4000000,
+      measurement: {
+        max_columns: 100,
+        max_order_work: 100000,
+        max_bytes: 4000000,
+        max_nodes: 100000,
+        max_depth: 100,
+      },
+    },
+    records: {
+      max_work: 1000000,
+      max_fields: 100,
+      max_parameters: 100,
+      max_bytes: 1000000,
+      max_nodes: 100000,
+      max_depth: 100,
+    },
+    capture: { max_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
+  }
+}
+
+///|
+pub fn client_salesforce_prepared_capacity(
+  requirement : @planning.QueryRequirement,
+) -> (@planning.QueryRequirement, Int64, Int64) {
+  let limits = salesforce_capture_limits()
+  (
+    requirement,
+    limits.retention.retained_wire_bytes.to_int64(),
+    (limits.retention.received_wire_bytes +
+    limits.retention.retained_wire_bytes +
+    limits.records.max_bytes +
+    limits.capture.max_bytes).to_int64(),
+  )
+}
+
+///|
 pub fn prepare_client_salesforce_acquisition(
   declaration : ClientSalesforceDeclaration,
   requirement : @planning.QueryRequirement,
@@ -324,57 +389,12 @@ pub fn prepare_client_salesforce_acquisition(
   // The residual filter and capture measure every captured value: their work
   // budgets cover the whole capture. The capture holds at most 500 KB of
   // text, what the standard Host's Local fragments can evaluate at once.
-  let values : @execution.ValueLimits = {
-    max_nodes: 100000,
-    max_text_bytes: 500000,
-    max_depth: 100,
-    max_work: 20000000,
-  }
   let configuration = @salesforce_host.configure_salesforce_broad_host(
     contracts,
     requirement,
     choice,
     candidate,
-    {
-      execution: {
-        rows: {
-          max_rows: 100,
-          metadata_entries: 10000,
-          retained_entries: 10000,
-          operation_entries: 10000,
-          input_values: values,
-          output_values: values,
-        },
-        max_work: 50000000,
-        max_frames: 100,
-      },
-      guards: {
-        max_work: 50000000,
-        max_bytes: 1000000,
-        max_nodes: 100000,
-        max_depth: 100,
-      },
-      retention: {
-        received_wire_bytes: 4000000,
-        retained_wire_bytes: 4000000,
-        measurement: {
-          max_columns: 100,
-          max_order_work: 100000,
-          max_bytes: 4000000,
-          max_nodes: 100000,
-          max_depth: 100,
-        },
-      },
-      records: {
-        max_work: 1000000,
-        max_fields: 100,
-        max_parameters: 100,
-        max_bytes: 1000000,
-        max_nodes: 100000,
-        max_depth: 100,
-      },
-      capture: { max_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
-    },
+    salesforce_capture_limits(),
   )
   Ok({ plan, configuration, context, })
 }
@@ -398,6 +418,25 @@ pub fn start_client_salesforce_acquisition(
     value.configuration,
     nonce,
     verify,
+  ).map_err(issue => Host(issue))
+}
+
+///|
+pub fn start_accounted_client_salesforce_acquisition(
+  value : ClientSalesforceAcquisition,
+  nonce : String,
+  verify : (@salesforce_host.SalesforceBroadAttempt) -> Bool,
+  ledger : @resources.Ledger,
+  transfer_bytes : Int64,
+  execution_scratch : Int64,
+) -> Result[@salesforce_host.SalesforceBroadHostRun, ClientSalesforceIssue] {
+  @salesforce_host.start_accounted_salesforce_broad_host(
+    value.configuration,
+    nonce,
+    verify,
+    ledger,
+    transfer_bytes,
+    execution_scratch,
   ).map_err(issue => Host(issue))
 }
 
