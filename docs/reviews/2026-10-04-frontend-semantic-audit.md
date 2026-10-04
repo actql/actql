@@ -189,14 +189,20 @@ and packed successes are not relabelled as this new Git revision's evidence.
 
 The independent traversal text connection is now
 [Draft #323](https://github.com/actql/actql/pull/323), submitted
-`1218b85be09e03ec9433a98e5264ed9e10c7563d`, normally integrated with the same
+`898d6ddff9aa1b97557bf3972237e764ebcc57d6`, normally integrated with the same
 main. Three traversal Program/checker cases plus five retained Graph-row cases
 pass (8/8); named numeric admission passes 1/1 and independent manifest/Run
 checks pass 7/7. Earlier DATA Relation selectors resolve to existing emitted
 producers, retaining authored hop bounds, path mode, empty label lists and
 typed-identity output names. Five public positives and seven refusals are
 connected to the existing external packed application, with independently
-authored JSON/definition/row/type expectations. [Automatic CI 37175418951](https://github.com/actql/actql/actions/runs/37175418951)
+authored JSON/definition/row/type expectations. The previous submitted HEAD
+`1218b85be09e03ec9433a98e5264ed9e10c7563d` failed the separate SGA normative
+preimage assertion in [run 37175418951](https://github.com/actql/actql/actions/runs/37175418951).
+The follow-up independently binds the added traverse rule bytes and retains
+earlier grammar closures with their original rules; product code and packed
+expectations are unchanged. The affected bounded Node tests pass 6/6.
+[New automatic CI 37176192146](https://github.com/actql/actql/actions/runs/37176192146)
 and fresh packed Local/HTTP remain pending. Direct installed selector Sources
 and path emission remain source-connection gaps, not permanent language limits
 or completed execution coverage. The B-owned Graph-call branch and D-owned
@@ -218,8 +224,10 @@ Each repair records its clean runtime source and normal tarball digests;
 subsequent submitted commits add evidence and tests without changing that
 verified runtime source. See each repair record for the exact source-to-artifact
 relationship.
-The narrow ORDER positive corpus is successful; the Group corpus remains
-incomplete and #287 stays Draft. Automatic
+At this historical checkpoint the narrow ORDER positive corpus was successful;
+the Group corpus was incomplete and #287 remained Draft. The integrated
+follow-up above supersedes that delivery state: #287 is now complete and merged.
+Automatic
 [ORDER CI 37162504341](https://github.com/actql/actql/actions/runs/37162504341)
 completed successfully for submitted `1c95aeda9c3c14c49062a1cf58af766346b0c609`,
 including final `pipeline-evidence` and `check`. Its ordinary client-packed
