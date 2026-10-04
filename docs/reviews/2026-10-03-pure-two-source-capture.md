@@ -118,7 +118,8 @@ full registered public acceptance, including restart and pending cleanup cases.
 ## Optional terminal Effect comparison prepared on 2026-10-04
 
 The next narrow acceptance unit starts from main
-`ab049bd4e0eec06b48186a957abf2af308d44716`. It compares Native JSON and
+`ab049bd4e0eec06b48186a957abf2af308d44716`, then normally merges main
+`fc3378ec65551edd7d5d52ca1d88ea15d6e690fa` (#325 included). It compares Native JSON and
 Broad authored text, each with and without a terminal Effect, on Local and
 HTTPS. These are two independent pairs, not a strategy/format cross product.
 The six files named by `scripts/fixtures/two-source-optional-effect.mjs`

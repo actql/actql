@@ -767,6 +767,8 @@ try {
       ]);
     }
     console.log(JSON.stringify({status: state.status,
+      ...(optionalKind && state.status === 'succeeded'
+        ? {columns: (await execution.result('updates').describe()).columns} : {}),
       rows: state.status === 'succeeded'
         ? await execution.result('updates').all() : undefined}));
   } else if (step === 'resume' || step === 'recheck') {
@@ -1163,6 +1165,7 @@ try {
           ['rce-resume', 'resubmit'])).trim());
         assert.equal(result.status, 'succeeded');
         assert.deepEqual(result.rows, optionalEffectExpectations.rows);
+        assert.deepEqual(result.columns, optionalEffectExpectations.columns);
         writeCounts.push(patches().length);
       }
       const expected = optionalEffectExpectations[enabled ? 'withEffect' : 'withoutEffect'];
@@ -1206,7 +1209,7 @@ try {
         submittedProgramSha256: createHash('sha256').update(submission.document).digest('hex'),
         sourceReadSessions: sourceCalls.map(item => item.sourceReadSessions),
         modelCalls: 0, writeCounts, writes, selections,
-        rows: result.rows, columns: optionalEffectExpectations.columns, restartBoundaries: boundaries};
+        rows: result.rows, columns: result.columns, restartBoundaries: boundaries};
       await appendFile(join(root, 'optional-effect-acceptance.jsonl'), JSON.stringify(observation) + '\n');
       console.log('packed optional Effect acceptance ' + JSON.stringify(observation));
       pair.push(observation);
