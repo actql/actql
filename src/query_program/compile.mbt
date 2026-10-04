@@ -763,16 +763,24 @@ fn output_name(
               expression,
               @query.expression_root(expression),
             ).unwrap().kind {
-            Reference(path) =>
-              match resolve_column(path, query, input, fields) {
-                Some(column) => column
-                None =>
-                  if ambiguous_column(path, query, input, fields) {
-                    raise Abort(AmbiguousColumn)
-                  } else {
-                    raise Abort(UnknownColumn)
-                  }
+            Reference(path) => {
+              // Naming a path and resolving its value are separate: its
+              // implicit alias is the authored final identifier, never a
+              // receiver's physical slot. Resolve the same longest prefix
+              // as property lowering; the common checker owns the suffix.
+              let mut length = path.length()
+              while length > 0 {
+                let prefix = path[:length].to_owned()
+                if resolve_column(prefix, query, input, fields) is Some(_) {
+                  return path.last().unwrap().value
+                }
+                if ambiguous_column(prefix, query, input, fields) {
+                  raise Abort(AmbiguousColumn)
+                }
+                length -= 1
               }
+              raise Abort(UnknownColumn)
+            }
             _ => raise Abort(UnsupportedProjection)
           }
         None => raise Abort(UnsupportedProjection)
