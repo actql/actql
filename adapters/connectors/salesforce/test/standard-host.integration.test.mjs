@@ -140,7 +140,8 @@ async function installation(t, {readable = ['Test_Record__c'],
   await writeFile(profilePath, JSON.stringify(profile));
   const hostRoot = join(root, 'state');
   const publish = () => publishInstalledSalesforceSource(profile, {
-    root: hostRoot, principalId: owner, moon: commonMoon, salesforceMoon,
+    root: hostRoot, principalId: owner, moon: commonMoon,
+    providerMoon: salesforceMoon,
     runtimeBundleCid, resolveSecret: secret});
   const open = async ({authenticate = header =>
     tokens.get(header?.replace(/^Bearer /u, '')), authorization} = {}) => {
@@ -938,7 +939,7 @@ test('a runtime without the value violation entry is refused before provider I/O
       commonMoon;
     await assert.rejects(loadInstalledSalesforceSource(setup.profile, {
       root: join(setup.root, 'runtime-check'), principalId: owner, moon,
-      salesforceMoon, runtimeBundleCid,
+      providerMoon: salesforceMoon, runtimeBundleCid,
       baseEnvironmentWire: (await readFile(join(repository,
         'spec/local-check-environment.json'), 'utf8')).trimEnd(),
       resolveSecret: secret}), {code: 'InvalidSalesforceSourceRuntime'});

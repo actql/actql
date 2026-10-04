@@ -281,6 +281,60 @@ standard installation; it is not a mandatory two-provider Host API. The old
 top-level packages and DuckDB-owned standard Node entry have been removed,
 without compatibility exports.
 
+## Installed Host bindings
+
+A connector the standard installed Host can bind as a source declares that
+binding in its own `src/connectors/<name>/host-bundle.json`:
+
+```json
+{
+  "installation": {
+    "registration": "salesforce",
+    "revision": "salesforce/0.1",
+    "providerBundle": "connectors/salesforce/host_node",
+    "responseHeaders": [],
+    "source": {
+      "profileVersion": "actql-installed-salesforce-source/0.1",
+      "module": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+      "exports": {"check": "...", "identityParts": "...", "publish": "...", "load": "..."}
+    }
+  }
+}
+```
+
+`connector-node-bundles.mjs` validates every manifest (registration equals the
+connector root, revision under it, a `js` `foreign_library` provider bundle in
+the connector tree, a `host/` module exporting the named entries, lowercase
+unique response header names) and generates
+`adapters/connectors-builtin/installations.generated.mjs`: the installed
+connector table. `adapters/host-node/installed-source.mjs` selects one entry by
+the installed Host profile's `version`, loads only that connector's module and
+provider bundle, and refuses an unknown version before any I/O. The common Host
+never branches on a provider name; DuckDB's built-in binding enters the same
+table from the Host itself, with its exact physical target as an identity part.
+
+The selected module's `check` checks the profile shape, `identityParts`
+supplies the installation identity's documents without a credential value,
+`load` returns the installed source adapter documented in
+`installed-source.mjs`, and the optional `publish` is the explicit publication
+step. A loaded adapter reports `connectorRegistration`/`connectorRevision`; the
+Host refuses the installation when they differ from the declaration, so a
+declared value is a verified claim, never authority.
+
+Provider drivers reach the network only through the typed exchange
+(`adapters/host-common/http-exchange.mjs`) and the credential resource: a
+request is `{method, path, query, headers, body}` with lowercase, non-secret,
+bounded request headers (`accept`, API version and `User-Agent` headers are
+declared by the provider's driver, never hidden in it), and the response
+observation carries only the header names the installation declared, under
+fixed caps. An over-long or malformed header observation is a typed refusal.
+`adapters/site-node/https-exchange-fixture.mjs` is the provider-neutral test
+server for that boundary; it answers HTTPS and replaces no owner.
+
+Effect installations are not yet declared this way: `installed-effect.mjs`
+still accepts one profile version. Their declaration follows with the Effect
+installer's own approval, execution and recovery acceptance.
+
 Acquisition still uses the shared `CapabilityRegistry` and checked request/evidence
 SDK, with mock/DuckDB preparation, issuer, retention and capture in their owning
 packages. Those existing source Host entrypoints are not generated Compute

@@ -378,7 +378,9 @@ test('a failed Salesforce loader keeps its cause and hands over the Site release
       publicationPath: join(installation.root, 'missing-source.json'),
       connectorId: 'salesforce', resources: ['Test_Record__c'],
       accountConfigurationWire: installation.profile.accountConfigurationWire,
-    }, {...installation.options, openCredentialJournal: sourceJournal.open})
+    }, {...installation.options,
+      providerMoon: installation.options.salesforceMoon,
+      openCredentialJournal: sourceJournal.open})
       .then(() => undefined, error => error);
     assert.equal(sourceFailure.code, 'SalesforcePublicationMissing');
     assert.equal(sourceFailure.cleanupPending, true);

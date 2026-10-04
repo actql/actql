@@ -12,6 +12,7 @@ import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 import {packedClientPackage} from './packed-client-packages.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
+import {groupedQueryCases} from './fixtures/grouped-query-programs.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const graphOnly = process.argv.includes('--graph-only');
@@ -777,7 +778,8 @@ const pipeGroupedQuery = queryFrontend.compileCapturedQueryJson(
   'records', 'remote',
   JSON.stringify({connector: 'crm/main', resource: 'r'}),
   JSON.stringify(['id', 'amount']), 'fixture.grouped_query');
-assert.deepEqual(JSON.parse(pipeGroupedQuery), JSON.parse(groupedQuery));
+assert.deepEqual(JSON.parse(groupedQuery), groupedQueryCases[0].expected);
+assert.deepEqual(JSON.parse(pipeGroupedQuery), groupedQueryCases[1].expected);
 await writeFile(join(root, 'grouped-query.json'), groupedQuery);
 const aliasGroupedQuery = queryFrontend.compileCapturedQueryJson(
   'SELECT amount AS id, COUNT(*) AS n FROM records WHERE id > 0 '

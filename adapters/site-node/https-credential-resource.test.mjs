@@ -6,6 +6,9 @@ import {createServer} from 'node:https';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+// The typed exchange and its HTTPS fixture run with this boundary's tests.
+import '../host-common/http-exchange.test.mjs';
+import './https-exchange-fixture.test.mjs';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
