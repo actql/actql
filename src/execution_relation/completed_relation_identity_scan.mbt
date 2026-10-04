@@ -205,6 +205,15 @@ fn advance_identity_scan_frame(
           SteppedMeasureComplete => {
             clear_stepped_measure(cursor)
             if value.phase is MeasureName(_) {
+              let column = stream.order.columns[value.column].1
+              if !IndexedRows::cell_present(stream.rows, stream.row, column) {
+                if !charge_node(stream.budget, 2) {
+                  return Err(Admission(CaptureLimit))
+                }
+                value.column += 1
+                value.phase = BeginColumn
+                return Ok(())
+              }
               guard start_stepped_measure_result(
                   identity_scan_cell(value),
                   value.workspace,

@@ -2,7 +2,7 @@
 // Independently authored canonical schema/records, not emitted product output.
 fn property_snapshot_schema() -> String {
   (
-    #|{"domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","edge_definitions":[{"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"R":[]},"name":"E","properties":{},"source_definition":"N","target_definition":"N"}],"identity_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","node_definitions":[{"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Node":["name"],"Person":[]},"name":"N","properties":{"name":{"nullable":true,"type":"string"}}}],"value_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","version":"actql-property-graph-contract/0.1"}
+    #|{"domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","edge_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"R":[]},"name":"E","properties":{},"source_definition":"N","target_definition":"N"}],"identity_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","node_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Node":["name"],"Person":[]},"name":"N","properties":{"name":{"nullable":true,"type":"string"}}}],"value_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","version":"actql-property-graph-contract/0.1"}
   )
 }
 
@@ -31,7 +31,7 @@ fn expected_property_snapshot() -> String {
     node +
     "}"
   })
-  "[\"actql-property-graph-snapshot/0.1\",\"sha256:3e06c160155f0542561eab6a31c31422a78e7a749490ff5b24fb0ce4c7ff3321\"," +
+  "[\"actql-property-graph-snapshot/0.1\",\"sha256:6a0fe1664c431e3b0835ccaf2fff3569e99492ae427eab4ccb65d34096ce604d\"," +
   property_snapshot_schema() +
   ",[{\"id\":" +
   node +
@@ -137,7 +137,7 @@ test "property snapshot preserves independent parallel edges schema labels and t
     // Node crypto SHA-256 of the independent preimage above, not product bytes.
     assert_eq(
       cid(snapshot),
-      "sha256:4d6e1221c4244ab1074b836a651e7b4522fcdfefa86414121b7529a715b60b1a",
+      "sha256:8d1360c290b9f6d48863bb6efb464b688506bae9751a10f257184723e9f69bd6",
     )
     assert_eq(node_count(snapshot), 1)
     assert_eq(edge_count(snapshot), 2)
@@ -170,14 +170,14 @@ test "snapshot entry points share the current contract and reject incomplete kno
   )
   let prepared = prepare(
     property_snapshot_storage(),
-    "sha256:3e06c160155f0542561eab6a31c31422a78e7a749490ff5b24fb0ce4c7ff3321",
+    "sha256:6a0fe1664c431e3b0835ccaf2fff3569e99492ae427eab4ccb65d34096ce604d",
     snapshot_limits(100),
   ).unwrap()
   let (snapshot, bytes) = finish_property_snapshot(prepared, 1)
   assert_eq(bytes, expected_property_snapshot())
   assert_eq(
     cid(snapshot),
-    "sha256:4d6e1221c4244ab1074b836a651e7b4522fcdfefa86414121b7529a715b60b1a",
+    "sha256:8d1360c290b9f6d48863bb6efb464b688506bae9751a10f257184723e9f69bd6",
   )
 }
 

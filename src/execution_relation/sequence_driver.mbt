@@ -52,6 +52,14 @@ fn selected_step_ceiling(ceilings : Array[(Int, Int64)], step : Int) -> Int64? {
 
 ///|
 fn charge_capture_rows(input : CapturedRows, budget : ValueBudget) -> Bool {
+  if !@schema.all_fields_required(input.schema) {
+    for row in input.presence_rows {
+      if !measure_relation_row(row, budget) {
+        return false
+      }
+    }
+    return true
+  }
   for row in input.rows {
     if !charge_node(budget, 1) {
       return false
@@ -101,13 +109,24 @@ fn evaluate_sequence_components(
 ) -> Result[CompletedSequence, SequenceRunIssue] {
   // Bounded representation selection, before execution and never as recovery
   // from a failed row invocation. Oversized metadata follows normal admission.
-  if produced.length() <= limits.metadata_entries &&
-    produced.any(bound => {
-      match bound.output.table {
-        Some(RowTable(_)) | None => false
-        Some(NumberTable(_) | AdmittedTable(_) | ColumnTable(_)) => true
-      }
-    }) {
+  if (
+      supplied.length() <= limits.metadata_entries &&
+      supplied.any(rows => !@schema.all_fields_required(rows.schema))
+    ) ||
+    (
+      produced.length() <= limits.metadata_entries &&
+      produced.any(bound => {
+        match bound.output.table {
+          Some(RowTable(_)) | None => false
+          Some(
+            NumberTable(_)
+            | AdmittedTable(_)
+            | ColumnTable(_)
+            | PresenceTable(_)
+          ) => true
+        }
+      })
+    ) {
     return evaluate_physical_sequence(
       contracts,
       sequence,
@@ -374,11 +393,11 @@ fn[T : RelationRows] prepare_sequence_with_importers(
       guard inputs[i] is Some(input) else { return Err(InputSet) }
       let table = match input {
         RawInput(captured) => {
-          if captured.rows.length() > limits.max_rows - input_rows ||
+          if captured_row_count(captured) > limits.max_rows - input_rows ||
             !charge_capture_rows(captured, input_budget) {
             return Err(InputLimit)
           }
-          input_rows += captured.rows.length()
+          input_rows += captured_row_count(captured)
           match
             validate_captured_keys(captured, control, {
               limit: limits.operation_entries,
@@ -755,7 +774,7 @@ fn[T : RelationRows] run_sequence_with_backend(
         Ok(v) => v
         Err(e) => return Err(Capture(i, e))
       }
-      input_rows += captured.rows.length()
+      input_rows += captured_row_count(captured)
       input_budget.nodes += captured.usage.nodes
       input_budget.text += captured.usage.text_bytes
       input_budget.work += captured.usage.work

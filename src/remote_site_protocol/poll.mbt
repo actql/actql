@@ -70,6 +70,7 @@ pub(all) enum RemotePollOperation {
   Plan(RemotePollOutput)
   Output(RemotePollOutput)
   Query(DispatchRequest)
+  Cancel(DispatchRequest)
   Release(DispatchRequest)
 }
 
@@ -260,6 +261,24 @@ pub fn remote_poll_release_json(
 }
 
 ///|
+/// Request cancellation of the exact original dispatch, including its scope,
+/// attempt, Site generation and registered runtime. This carries no Run
+/// materials and cannot authorize execution. The Site must persist the
+/// cancellation through its journal before returning cancellation evidence.
+pub fn remote_poll_cancel_json(
+  request : DispatchRequest,
+) -> Result[String, DispatchIssue] {
+  remote_poll_request_json(request, "actql-remote-poll-cancel/0.1")
+}
+
+///|
+pub fn admit_remote_poll_cancel_json(
+  body : String,
+) -> Result[DispatchRequest, DispatchIssue] {
+  admit_remote_poll_request_json(body, "actql-remote-poll-cancel/0.1")
+}
+
+///|
 fn admit_remote_poll_request_json(
   body : String,
   expected_version : String,
@@ -431,6 +450,10 @@ pub fn admit_remote_poll_operation_json(
     Ok(output) => return Ok(Output(output))
     Err(_) => ()
   }
+  match admit_remote_poll_cancel_json(body) {
+    Ok(request) => return Ok(Cancel(request))
+    Err(_) => ()
+  }
   match admit_remote_poll_request_json(body, "actql-remote-poll-query/0.1") {
     Ok(request) => Ok(Query(request))
     Err(_) =>
@@ -449,7 +472,7 @@ pub fn remote_poll_operation_request(
   match operation {
     Dispatch(dispatch) => dispatch.request
     Plan(output) | Output(output) => output.request
-    Query(request) | Release(request) => request
+    Query(request) | Cancel(request) | Release(request) => request
   }
 }
 
@@ -458,7 +481,7 @@ pub fn remote_poll_operation_is_query(operation : RemotePollOperation) -> Bool {
   match operation {
     Dispatch(_) | Plan(_) | Output(_) => false
     Query(_) => true
-    Release(_) => false
+    Release(_) | Cancel(_) => false
   }
 }
 
@@ -468,7 +491,7 @@ pub fn remote_poll_operation_is_release(
 ) -> Bool {
   match operation {
     Release(_) => true
-    Dispatch(_) | Plan(_) | Output(_) | Query(_) => false
+    Dispatch(_) | Plan(_) | Output(_) | Query(_) | Cancel(_) => false
   }
 }
 
@@ -476,7 +499,7 @@ pub fn remote_poll_operation_is_release(
 pub fn remote_poll_operation_is_output(operation : RemotePollOperation) -> Bool {
   match operation {
     Output(_) => true
-    Dispatch(_) | Plan(_) | Query(_) | Release(_) => false
+    Dispatch(_) | Plan(_) | Query(_) | Release(_) | Cancel(_) => false
   }
 }
 
@@ -486,7 +509,7 @@ pub fn remote_poll_operation_is_output_plan(
 ) -> Bool {
   match operation {
     Plan(_) => true
-    Dispatch(_) | Output(_) | Query(_) | Release(_) => false
+    Dispatch(_) | Output(_) | Query(_) | Release(_) | Cancel(_) => false
   }
 }
 
@@ -560,5 +583,13 @@ pub fn admit_remote_poll_not_seen_json(
     Ok(())
   } catch {
     EvidenceJsonStop => Err(InvalidDispatch)
+  }
+}
+
+///|
+pub fn remote_poll_operation_is_cancel(operation : RemotePollOperation) -> Bool {
+  match operation {
+    Cancel(_) => true
+    Dispatch(_) | Plan(_) | Output(_) | Query(_) | Release(_) => false
   }
 }

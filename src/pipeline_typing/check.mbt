@@ -610,6 +610,19 @@ fn check_impl(
     if meta is Some(cursor) {
       metadata(b, cursor)
     }
+    // Only guaranteed-column projection currently consumes conditional rows.
+    // This checked boundary also covers consumers using Knowledge directly,
+    // rather than letting them infer dense rows from known field types.
+    if key != "select" {
+      if carrier(input, inputs, steps) is @carrier.Relation(rows) {
+        if !@carrier.all_fields_required(rows) {
+          fail(
+            operation_body,
+            Operation(@relation.ConditionalInputNotImplemented),
+          )
+        }
+      }
+    }
     if key == "infer" {
       if binding_name is None {
         fail(body, InferRequiresAlias)
@@ -927,7 +940,7 @@ fn check_impl(
       let root = match
         @decode.closed_object(operation_body, [
           "start", "hops", "direction", "edge_types", "min_hops", "max_hops", "emit",
-          "max_output_rows", "path_mode",
+          "max_output_rows", "path_mode", "edge_where", "node_where",
         ]) {
         Ok(o) => o
         Err(_) => fail(operation_body, InvalidBody)
@@ -1523,28 +1536,14 @@ fn check_impl(
       current = Some(target)
       continue
     }
-    if key == "node_rows" || key == "edge_rows" {
-      if @decode.boolean(operation_body) != Ok(true) {
-        fail(operation_body, Projection(@projection.InvalidBody))
-      }
-      match carrier(input, inputs, steps) {
-        @carrier.GraphValue(_) =>
-          fail(
-            operation_body,
-            Projection(@projection.UnsupportedGraphOperation),
-          )
-        @carrier.Opaque(GraphKind) =>
-          fail(operation_body, Projection(@projection.IncompleteGraph))
-        other =>
-          fail(
-            operation_body,
-            Projection(@projection.WrongCarrier(@carrier.kind(other))),
-          )
-      }
-    }
-    if key == "events" || key == "vectors" {
+    if key == "events" ||
+      key == "vectors" ||
+      key == "node_rows" ||
+      key == "edge_rows" {
       let projection = match key {
         "events" => @projection.Events
+        "node_rows" => @projection.NodeRows
+        "edge_rows" => @projection.EdgeRows
         _ => @projection.Vectors
       }
       let checked = match
@@ -1645,7 +1644,13 @@ fn check_impl(
     }
     let (checked, output) = match op {
       Some(op) => {
-        let input_schema = schema(operation_body, input, inputs, steps)
+        let input_schema = schema(
+          operation_body,
+          input,
+          inputs,
+          steps,
+          allow_conditional=key == "select",
+        )
         let operation_limits : @relation.Limits = {
           max_work: b.work,
           max_text_bytes: b.text,

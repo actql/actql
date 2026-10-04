@@ -91,6 +91,15 @@ test "graph diagnostic checkers reject missing and invalid authored bounds" {
     )
     is Err({ kind: @graph_typing.IncompleteGraph, .. }),
   )
+  assert_true(
+    @graph_typing.check_graph_bounds(
+      cursor("{\"max_nodes\":1}"),
+      @carrier.unknown_carrier(@carrier.GraphKind),
+      None,
+      limits(),
+    )
+    is Err({ kind: @graph_typing.IncompleteGraph, .. }),
+  )
 }
 
 ///|

@@ -104,7 +104,9 @@ fn typed_role(
 ) -> Result[Field, Issue] {
   match lookup(records, name) {
     Present(field) =>
-      if field.contract is Some(_) {
+      if field.presence != @row.Required {
+        Err(InvalidRole(name))
+      } else if field.contract is Some(_) {
         Ok(field)
       } else {
         Err(UnknownRole(name))

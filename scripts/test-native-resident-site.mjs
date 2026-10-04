@@ -4,6 +4,7 @@
 // and runs it in a separate executor holder. The executor entry count is
 // read from a synced evidence file, never from transport logs.
 import assert from 'node:assert/strict';
+import test from 'node:test';
 import {execFileSync, spawn} from 'node:child_process';
 import {createHash, generateKeyPairSync, X509Certificate} from 'node:crypto';
 import {once} from 'node:events';
@@ -41,6 +42,10 @@ import {createLocalRetainedStore} from '../adapters/store-local/files.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const sourceMode = process.argv.includes('--source-only');
+const cancelMode = process.argv.includes('--cancel-only') ||
+  process.env.ACTQL_TEST_RESIDENT_CANCEL_ONLY === '1';
+const releaseMaintenanceMode = process.argv.includes('--release-maintenance-only') ||
+  process.env.ACTQL_TEST_RESIDENT_RELEASE_MAINTENANCE_ONLY === '1';
 const scratchRoot = process.env.ACTQL_TEST_SCRATCH_ROOT;
 if (typeof scratchRoot !== 'string' || scratchRoot.length === 0) {
   throw new Error('ACTQL_TEST_SCRATCH_ROOT is required');
@@ -88,6 +93,7 @@ let crashOutputReceiver;
 const observationBodies = [];
 const observationFailures = [];
 const running = new Set();
+async function runAcceptance() {
 try {
   // Build the resident Site and the portable owners the test drives.
   execFileSync(moon, ['build', '--target', 'native',
@@ -139,7 +145,7 @@ try {
   await chmod(tokenFile, 0o600);
   const siteKey = 'resident-site';
   const durableObservationMode = process.argv.includes('--observation-replay-only') ||
-    process.argv.includes('--redelivery-only') || process.argv.includes('--output-report-only');
+    process.argv.includes('--redelivery-only') || process.argv.includes('--output-report-only') || cancelMode;
   gateway = await startHttpsOutboundSiteGateway({
     key: await readFile(join(root, 'server.key')),
     cert: await readFile(join(root, 'server.crt')),
@@ -587,7 +593,177 @@ try {
   };
   let expectedEntries = 0;
 
-  if (sourceMode) {
+  if (cancelMode) {
+    const bundleHoldings = () => {
+      const database = new DatabaseSync(join(runtimeRoot,
+        '.actql-runtime-bundle.sqlite3'), {readOnly: true});
+      try {
+        database.exec('PRAGMA busy_timeout = 5000');
+        const catalog = database.prepare('SELECT body FROM actql_records ' +
+          'WHERE namespace=? AND record_key=?').get('runtime_bundle', 'catalog');
+        return JSON.parse(Buffer.from(catalog.body).toString('utf8'))
+          .entries.flatMap(entry => entry.holds);
+      } finally { database.close(); }
+    };
+    const cancellationRecord = dispatch => {
+      const database = new DatabaseSync(journalPath, {readOnly: true});
+      try {
+        database.exec('PRAGMA busy_timeout = 5000');
+        const rows = database.prepare('SELECT body FROM actql_records WHERE namespace=?')
+          .all('site_dispatch');
+        return rows.map(row => JSON.parse(Buffer.from(row.body).toString('utf8')))
+          .find(record => record.dispatch_request_cid === siteControl.identity(dispatch));
+      } finally { database.close(); }
+    };
+    let expectedEntries = 0;
+    // A valid envelope for the same Site is still not authorized when its
+    // exact operation grant differs from the installed delegation.
+    const foreign = dispatchFor('resident-cancel-foreign-grant', 399,
+      {grantCid: physicalCid('foreign-operation-grant')});
+    let rejected = startSite(); currentSite = rejected;
+    const refused = gateway.cancel({dispatch: foreign}).catch(error => error);
+    await waitFor(() => rejected.lines.some(line => line.kind === 'cancel-refused'),
+      'cancellation delegation refusal before mutation');
+    gateway.withdraw({dispatch: foreign});
+    assert.equal((await refused).code, 'RemoteDispatchWithdrawn');
+    rejected.child.kill('SIGTERM'); await rejected.exited;
+    const beforeJournal = new DatabaseSync(journalPath, {readOnly: true});
+    try {
+      assert.deepEqual(beforeJournal.prepare('SELECT record_key FROM actql_records ' +
+        'WHERE namespace IN (?,?)').all('site_dispatch', 'site_cancel_request'), []);
+    } finally { beforeJournal.close(); }
+    assert.deepEqual(await entries(), []);
+    assert.deepEqual(await readdir(publicationRoot), []);
+    console.log(JSON.stringify({kind: 'resident-cancel-refusal',
+      beforeMutation: true, executorEntries: 0, publicationEntries: 0}));
+    for (const [index, mode] of ['unseen-restart', 'before-claim', 'running', 'lost-reply', 'running-restart', 'running-lost-reply'].entries()) {
+      let lostReply = false;
+      const cancelOffers = [];
+      const dispatch = dispatchFor(`resident-cancel-${mode}`, 400 + index);
+      await ensureOutputReceiver(dispatch);
+      if (mode === 'lost-reply' || mode === 'running-lost-reply') {
+        ackLossProxy = await observationAckLossProxy({origin: gateway.origin,
+          key: await readFile(join(root, 'server.key')),
+          cert: await readFile(join(root, 'server.crt')),
+          ca: await readFile(join(root, 'ca.crt')),
+          loseAck: body => {
+            const value = JSON.parse(body);
+            return !lostReply && value.dispatch_request_cid === siteControl.identity(dispatch) &&
+              value.version === 'actql-remote-dispatch-status/0.1' &&
+              value.state[0] === (mode === 'running-lost-reply' ? 2 : 5);
+          }, allowDispatch: () => true, onAckLost: () => { lostReply = true; },
+          transformReply: (_body, upstream) => {
+            if (upstream.status === 200) {
+              const envelope = upstream.body.toString('utf8');
+              const value = JSON.parse(envelope);
+              if (value.version === 'actql-remote-poll-cancel/0.1' &&
+                  value.dispatch_request_cid === siteControl.identity(dispatch)) {
+                cancelOffers.push(envelope);
+              }
+            }
+            return upstream;
+          }});
+      }
+      let site = startSite(mode === 'before-claim' ?
+        ['--holder-pause-at', 'before-start', '--holder-pause-ms', '1500'] :
+        mode === 'running' || mode === 'running-lost-reply' ? ['--holder-pause-ms', '5000', '--release-recovery-close-failures', '2'] :
+        mode === 'running-restart' ? ['--holder-pause-ms', '2000', '--control-cancel-kill-at', 'after-save'] : [],
+      {controlOrigin: ackLossProxy?.origin ?? gateway.origin});
+      currentSite = site;
+      let dispatched;
+      if (mode === 'before-claim' || mode.startsWith('running')) {
+        dispatched = gateway.dispatch({dispatch, inputBindingBody: '{}',
+          dispatchEnvelope: materialsEnvelope(dispatch)}).catch(error => error);
+        if (mode === 'before-claim') {
+          await waitFor(() => site.lines.some(line => line.kind === 'holder-paused' &&
+            line.point === 'before-start'), 'cancel before exclusive claim');
+        } else {
+          expectedEntries++;
+          await waitFor(async () => (await entries()).length === expectedEntries, 'cancel during executor entry');
+        }
+      }
+      const cancelling = gateway.cancel({dispatch});
+      if (mode === 'running-restart') {
+        assert.deepEqual(await within(site.exited, 'control killed after durable cancellation'), [null, 'SIGKILL']);
+        assert.ok(site.lines.some(line => line.kind === 'control-cancel-killed'));
+        const saved = cancellationRecord(dispatch);
+        assert.equal(saved.execution_state, 2);
+        assert.equal(saved.cleanup_state, 0);
+        site = startSite(); currentSite = site;
+      }
+      const cancelled = await within(cancelling, `${mode} cancellation observation`);
+      assert.equal(cancelled.dispatchRequestCid, siteControl.identity(dispatch));
+      assert.equal(cancelled.state[2], 2, 'delivery custody ends only after formal cleanup release');
+      if (mode === 'running' || mode === 'running-lost-reply') {
+        const saved = observationBodies.map(body => JSON.parse(body)).find(value =>
+          value.dispatch_request_cid === siteControl.identity(dispatch) &&
+          value.version === 'actql-remote-dispatch-status/0.1' && value.state[0] === 2);
+        assert.ok(saved, 'the initial saved cancellation status is independently observed');
+        assert.equal(saved.state[2], 0, 'saving cancellation cannot release active resources');
+        await waitFor(() => site.lines.some(line => line.kind === 'cancel-cleanup-pending'),
+          'bundle close failure keeps cleanup responsibility');
+      }
+      if (mode === 'lost-reply' || mode === 'running-lost-reply') {
+        await waitFor(() => lostReply, 'cancellation observation ACK lost');
+        await waitFor(() => site.lines.some(line => line.kind === 'cancel-unreported'),
+          'Site reports unconfirmed cancellation reply');
+      }
+      if (mode === 'unseen-restart' || mode === 'lost-reply') {
+        site.child.kill('SIGTERM'); await site.exited;
+        site = startSite(); currentSite = site;
+      }
+      await waitFor(() => {
+        const saved = cancellationRecord(dispatch);
+        return (saved?.execution_state === 5 ||
+          (mode === 'running-restart' && saved?.execution_state === 3)) && saved.cleanup_state === 2;
+      }, `${mode} formal cancellation and release`);
+      // Redelivery after reconstruction uses the original envelope. No new
+      // attempt, source-free computation, or holder may be created.
+      if (dispatched) { gateway.withdraw({dispatch}); await dispatched; }
+      const late = await within(gateway.dispatch({dispatch, inputBindingBody: '{}',
+        dispatchEnvelope: materialsEnvelope(dispatch)}), `${mode} delayed dispatch`);
+      if (mode === 'running-restart') {
+        assert.equal(late.state[0], 3, 'a completed execution is not rewritten as unexecuted');
+        assert.equal(late.state[2], 2);
+      } else {
+        assert.deepEqual(late.state, [5, 0, 2, 0, 0]);
+      }
+      const revision = late.revision;
+      for (let retry = 0; retry < 2; retry++) {
+        const repeated = await within(gateway.cancel({dispatch}), `${mode} duplicate cancellation`);
+        assert.deepEqual(repeated.state, late.state);
+        assert.equal(repeated.revision, revision);
+      }
+      const coordinatorRecord = observationStore.recoverJournal(
+        siteControl.createCoordinatorJournal(coordinatorAuthority), siteControl)
+        .find(value => siteControl.identity(value.request) === siteControl.identity(dispatch)).record;
+      const coordinatorState = siteControl.coordinatorRecordStatus(coordinatorRecord);
+      assert.equal(coordinatorState[3], String(late.state[0]), 'the common Coordinator owner must admit the original execution disposition');
+      assert.equal(coordinatorState[5], '2', 'the common Coordinator owner must admit released cleanup');
+      site.child.kill('SIGTERM'); await site.exited;
+      assert.equal((await entries()).length, expectedEntries);
+      assert.equal(pendingIntents().length, 0);
+      if (mode === 'unseen-restart' && index === 0) {
+        assert.equal(existsSync(join(publicationRoot, '.actql-publication.sqlite3')), false,
+          'cancellation before dispatch must never open publication custody');
+        assert.deepEqual(await readdir(publicationRoot), [],
+          'cancellation before dispatch must acquire no payload resources');
+      } else {
+        assert.equal(reservedPayloadBytes(), 0);
+      }
+      assert.deepEqual(bundleHoldings(), []);
+      if (mode === 'running-lost-reply') {
+        assert.ok(cancelOffers.length >= 2, 'lost nonterminal response must cause exact Cancel redelivery');
+        assert.ok(cancelOffers.every(body => body === cancelOffers[0]));
+      }
+      console.log(JSON.stringify({kind: 'resident-cancel-case', mode,
+        dispatchCid: siteControl.identity(dispatch), revision,
+        executorEntries: mode.startsWith('running') ? 1 : 0,
+        execution: late.state[0], cleanup: 2,
+        pendingIntents: 0, reservedPayloadBytes: 0, bundleHoldings: 0}));
+      if (ackLossProxy) { await ackLossProxy.close(); ackLossProxy = undefined; }
+    }
+  } else if (sourceMode) {
     const duckdbLibrary = process.env.ACTQL_TEST_DUCKDB_LIBRARY ?? join(repository,
       'adapters/connectors/duckdb/node/node_modules/@duckdb',
       `node-bindings-${process.platform}-${process.arch}`,
@@ -690,6 +866,10 @@ try {
     assert.equal(reservedPayloadBytes(), 0);
     assert.equal(pendingIntents().length, 0);
     assert.equal((await entries()).length, 1);
+    // Physical release does not stop the control process's journal updates.
+    // Confirm its exit before inspecting the final durable Source proof.
+    site.child.kill('SIGTERM');
+    await within(site.exited, 'Source control shutdown');
     const database = new DatabaseSync(journalPath, {readOnly: true});
     try {
       const managed = database.prepare('SELECT CAST(body AS TEXT) AS body FROM actql_records WHERE namespace = ?')
@@ -717,8 +897,6 @@ try {
       dispatchRequestCid: issued.cid, checkedTasks: 1, executorEntries: 1, rows: sourceRows,
       outputDelivered: !!delivered, formalRelease: true, reservedPayloadBytes: 0, pendingIntents: 0,
       publicClientAcceptance: false}));
-    site.child.kill('SIGTERM');
-    await site.exited;
     // Missing physical table is an acquisition failure after the ordinary
     // exclusive start claim. Query/release never retry the provider.
     const failing = startSite(configured({'--source-table': 'not_created'}));
@@ -741,10 +919,10 @@ try {
       cleanupPendingRecovered: true, reservedPayloadBytes: 0, pendingIntents: 0}));
     failing.child.kill('SIGTERM');
     await failing.exited;
-  } else if (process.argv.includes('--release-recovery-only')) {
+  } else if (process.argv.includes('--release-recovery-only') || releaseMaintenanceMode) {
     // The same physical Site and journals must discharge release after a
     // bounded failure, a lost control reply, and loss of the live holder.
-    const releaseModes = process.argv.includes('--release-maintenance-only') ? ['maintenance'] :
+    const releaseModes = releaseMaintenanceMode ? ['maintenance'] :
       ['release-failure', 'lost-release', 'holder-exit', 'recovery-interrupted', 'maintenance'];
     for (const [index, mode] of releaseModes.entries()) {
       let lostRelease = false;
@@ -2471,7 +2649,14 @@ try {
   }
   throw error;
 } finally {
-  for (const child of running) child.kill('SIGKILL');
+  // Keep ownership until each tracked control process has actually stopped;
+  // resource close/removal must not race an unconfirmed child exit.
+  await Promise.all([...running].map(async child => {
+    if (child.exitCode !== null || child.signalCode !== null) return;
+    const closed = once(child, 'close');
+    child.kill('SIGKILL');
+    await closed;
+  }));
   if (ackLossProxy !== undefined) await ackLossProxy.close().catch(() => {});
   if (gateway !== undefined) await gateway.close().catch(() => {});
   if (receiver !== undefined) await receiver.close().catch(() => {});
@@ -2484,4 +2669,12 @@ try {
   } else {
     console.error(`native resident Site scratch kept: ${root}`);
   }
+}
+}
+
+if (process.env.NODE_TEST_CONTEXT) {
+  await test(cancelMode ? 'Native resident cancellation and reconstruction' :
+    'Native resident Site acceptance', runAcceptance);
+} else {
+  await runAcceptance();
 }

@@ -36,7 +36,7 @@ relational_body = [ with_clause ], ( relational_sql | cte_pipe ) ;
 relational_sql = sql_operand, { set_part }, [ order_clause ], [ limit_clause ],
                  { "|>", cte_pipe_item } ;
 sql_operand   = select_core | "(", relational_body, ")" ;
-(* CTE bodies exclude statement-level INFER and RESULT declarations. *)
+(* Declaration bodies exclude statement-level INFER, RESULT and EFFECT declarations. *)
 cte_pipe      = "FROM", source, { "|>", cte_pipe_item } ;
 cte_pipe_item = relation_pipe_item | nearest_operator | named_sga_call ;
 select_core   = "SELECT", [ "DISTINCT" ], select_list, [ "FROM", source, { join } ],
@@ -70,8 +70,10 @@ source_alias  = [ "AS" ], identifier ;
 join          = [ "INNER" | "LEFT", [ "OUTER" ]
                 | "FULL", [ "OUTER" ] ],
                 "JOIN", source, ( "ON", expression
-                | "USING", "(", identifier, { ",", identifier }, ")" )
-              | "CROSS", "JOIN", source ;
+                | "USING", "(", identifier, { ",", identifier }, ")" ),
+                [ join_bound ]
+              | "CROSS", "JOIN", source, [ join_bound ] ;
+join_bound    = "MAX_OUTPUT_ROWS", integer ;
 where_clause  = "WHERE", expression ;
 group_clause  = "GROUP", "BY", expression, { ",", expression } ;
 having_clause = "HAVING", expression ;
@@ -86,7 +88,7 @@ set_part      = ( "UNION", ( "ALL" | "DISTINCT" )
               | "INTERSECT", "DISTINCT" | "EXCEPT", "DISTINCT" ),
                 [ "BY", "NAME" ], sql_operand ;
 pipe_item     = relation_pipe_item | infer_operator | nearest_operator
-              | result_operator | named_sga_call ;
+              | result_operator | terminal_effect | named_sga_call ;
 (* Named SGA calls are ActQL extensions for existing logical Graph operators.
    Carrier transitions and implemented consumers are checked separately. *)
 named_sga_call = sga_operation, "(",
@@ -104,7 +106,11 @@ sga_value     = query_string | [ "-" ], numeric_token | "TRUE" | "FALSE"
               | "{", [ sga_argument, { ",", sga_argument } ], "}"
               | "[", [ sga_value, { ",", sga_value } ], "]" ;
 result_operator = "RESULT", identifier ;
-relation_pipe_item = where_clause | "SELECT", [ "DISTINCT" ], select_list
+assertion_operator = "ASSERT", "UNIQUE", "BY", "(", path, { ",", path }, ")" ;
+terminal_effect = "EFFECT", identifier, "UPDATE", "TARGET", query_string,
+                  "MAPPING", identifier, "FROM", "RESULT", identifier,
+                  "ID", identifier, "SET", "(", assignment, { ",", assignment }, ")" ;
+relation_pipe_item = assertion_operator | where_clause | "SELECT", [ "DISTINCT" ], select_list
               | "EXTEND", select_list
               | "SET", assignment, { ",", assignment }
               | "DROP", identifier, { ",", identifier }

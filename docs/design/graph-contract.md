@@ -70,7 +70,8 @@ or matching self-CID cannot manufacture those proofs.
 ## Definition-keyed Property Graph profile
 
 The separate `actql-property-graph-contract/0.1` profile retains its definition
-domain, ordered non-null key contracts, complete definition-local property
+domain, ordered non-null key contracts and key-column/component correspondence,
+complete definition-local property
 contracts, static label sets and each label's exposed property subset. Edge
 definitions bind their source and target node definitions. The distinct
 Property Graph law manifest binds its identity and value laws. Neither a new

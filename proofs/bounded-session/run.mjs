@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
 import { inventoryAction, serializeManifest } from './action-inputs.mjs';
 import { artifacts, checkBindings, checkRetirements, connectionSuites, executedConnectionCoverage, graph, nestLocalSuites, snapshot, targets, validate } from './evidence.mjs';
+import { recordExistingAction } from '../ci-evidence/collect.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const selected = process.argv[2] ?? 'all';
@@ -36,11 +37,15 @@ function run(id, command, args, target = 'model', packagePath = null) {
     throw result.error ?? new Error(`${id} failed or executed no tests`);
   }
   console.log(`${id}: passed${count ? ` ${count} tests` : ''} (${milliseconds} ms)`);
-  return {
+  const execution = {
     command: [command === moon ? 'moon' : command, ...args], target, exit: result.status,
     passed: true, count, milliseconds, sourceDigest: source.digest,
     artifacts: packagePath ? artifacts(root, target, packagePath) : {},
   };
+  recordExistingAction({id: id === 'lean' ? 'model' : id,
+    command: [command === moon ? 'moon' : command === process.execPath ? 'node' : command, ...args],
+    output, status: result.status, milliseconds, result: execution});
+  return execution;
 }
 
 // Fresh Stage B inventory of this exact launch. This report cannot skip or

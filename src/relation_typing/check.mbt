@@ -121,6 +121,11 @@ fn check_impl(
     limits,
   }
   schema_preflight(b, body, input)
+  // The first presence profile permits only projection of schema-guaranteed
+  // columns. Other kernels must not erase presence by rebuilding dense types.
+  if !@schema.all_fields_required(input) && !(operation is Select) {
+    fail(body, ConditionalInputNotImplemented)
+  }
   let parameter_types : Map[String, @contract.Contract] = Map([])
   if parameters is Some(params) {
     let count = @parameter.declaration_count(params)
@@ -134,6 +139,7 @@ fn check_impl(
   }
   let visible : Map[String, (@contract.Contract, ReferenceTarget)] = Map([])
   let count = @schema.field_count(input)
+  let input_schema = input
   spend(b, body, count~)
   for i in 0..<count {
     let field = @schema.field_at(input, i).unwrap()
@@ -583,6 +589,13 @@ fn check_impl(
               _ => fail(item, InvalidBody)
             }
             let output_name = @schema.reference_name(output)
+            let source_field = @schema.lookup_reference(
+              input_schema,
+              @schema.reference_name(input),
+            ).unwrap()
+            if source_field.presence == @schema.Conditional {
+              fail(item, PresenceRequired(@schema.reference_name(input)))
+            }
             if selected.contains(output_name) {
               fail(item, DuplicateOutput(output_name))
             }

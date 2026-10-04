@@ -218,6 +218,11 @@ fn derive_logical_orders(
       | GraphDegree(_)
       | GraphComponents(_)
       | Traverse(..) => true
+      // The typed Graph row Bridge must complete the existing bounded sort
+      // by admitted Graph identity before it can complete its Relation.
+      Projection(op) =>
+        @projection.operation(op) == @projection.NodeRows ||
+        @projection.operation(op) == @projection.EdgeRows
       Vector(op) => @vector.operation(op) == @vector.ScoreVectors
       Unary(op) | WindowGroup(op) =>
         match @relation.operation(op) {

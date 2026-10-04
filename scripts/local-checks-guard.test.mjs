@@ -50,7 +50,7 @@ function fixture(t) {
   mkdirSync(home); mkdirSync(root);
   const env = {...process.env, HOME: home};
   delete env.NODE_TEST_CONTEXT;
-  return {directory, home, root, env, runs};
+  return {directory, home, root, env, runs, diagnostic: message => t.diagnostic(message)};
 }
 function steps(source) {
   return [{name: 'fixture', command: process.execPath, args: ['-e', source]}];
@@ -103,8 +103,15 @@ function pipedRun(f, {exitCode = 0, failEvidence = false, stdout = 'drain',
   const ready = join(f.directory, 'output-ready'), done = join(f.directory, 'caller-done');
   const release = join(f.directory, 'release-handler'), handlerReady = join(f.directory, 'handler-ready');
   const events = join(f.directory, 'cancellation-events');
+  const lifecycle = join(f.directory, 'pipe-lifecycle.jsonl');
+  const traceSource = `const trace = (event, details = {}) => fs.appendFileSync(
+    ${JSON.stringify(lifecycle)}, JSON.stringify({event, pid: process.pid,
+      parentPid: process.ppid, at: Date.now(), ...details}) + '\\n');`;
   const eventSource = `const event = value => fs.appendFileSync(${JSON.stringify(events)}, JSON.stringify(value) + '\\n');`;
   const source = locateEvidence + `
+    ${traceSource}
+    trace('command-start');
+    process.on('exit', code => trace('command-exit', {code}));
     ${cancellation ? eventSource + `
       // Hold handler installation behind an explicit gate. The negative control
       // cancels at output readiness while this gate is still closed.
@@ -125,10 +132,13 @@ function pipedRun(f, {exitCode = 0, failEvidence = false, stdout = 'drain',
         ${failEvidence ? "const target = path.join(attempt, 'output.log'); fs.renameSync(target, target + '.saved'); fs.writeFileSync(target, 'replacement bytes');" : ''}
         ${cancellation ? "event({event: 'output-ready'});" : ''}
         fs.writeFileSync(${JSON.stringify(ready)}, 'ready'); process.exitCode = ${exitCode};
+        trace('command-output-ready');
       });
     });`;
   writeFileSync(caller, `import {runLocalCheck} from ${JSON.stringify(guard)};
     import fs, {existsSync, writeFileSync} from 'node:fs';
+    ${traceSource}
+    trace('caller-start');
     const abort = new AbortController();
     ${cancellation ? eventSource + `
       const poll = setInterval(() => {
@@ -146,13 +156,20 @@ function pipedRun(f, {exitCode = 0, failEvidence = false, stdout = 'drain',
       steps: steps(source)})};
     config.steps[0].name = 'd'.repeat(200000);
     process.exitCode = await runLocalCheck(config, {signal: abort.signal});
-    writeFileSync(${JSON.stringify(done)}, String(process.exitCode));`);
+    writeFileSync(${JSON.stringify(done)}, String(process.exitCode));
+    trace('caller-done', {code: process.exitCode});`);
   writeFileSync(receiver, `const fs = require('fs'), assert = require('assert');
+    ${traceSource}
     const [file, mode, ready, done] = process.argv.slice(2);
+    const stream = file.endsWith('caller.stdout') ? 'stdout' : 'stderr';
+    trace('receiver-start', {stream, mode});
+    process.on('exit', code => trace('receiver-exit', {stream, code}));
     assert(fs.fstatSync(0).isFIFO(), 'receiver must be a real pipe');
     fs.writeFileSync(file, '');
     if (mode === 'closed') process.exit(0);
-    const bound = setTimeout(() => process.exit(90), 12000);
+    const bound = setTimeout(() => {
+      trace('receiver-bound', {stream}); process.exit(90);
+    }, 12000);
     const poll = setInterval(() => {
       if (mode === 'stall') {
         if (fs.existsSync(done)) process.exit(0);
@@ -161,9 +178,14 @@ function pipedRun(f, {exitCode = 0, failEvidence = false, stdout = 'drain',
         // Do not read until the command has produced all its output. Both
         // pipes fill before the old supervisor reaches its immediate exit.
         setTimeout(() => {
+          trace('receiver-drain', {stream});
           const chunks = [];
           process.stdin.on('data', chunk => chunks.push(chunk));
-          process.stdin.on('end', () => { fs.writeFileSync(file, Buffer.concat(chunks)); clearTimeout(bound); });
+          process.stdin.on('end', () => {
+            const bytes = Buffer.concat(chunks);
+            fs.writeFileSync(file, bytes); clearTimeout(bound);
+            trace('receiver-end', {stream, bytes: bytes.length});
+          });
         }, 150);
       }
     }, 20);`);
@@ -190,6 +212,42 @@ function pipedRun(f, {exitCode = 0, failEvidence = false, stdout = 'drain',
     '{ "$1" "$2" 2>&1 1>&3 | "$1" "$3" "$5" "$9" "$6" "$7"; } 3>&1 | "$1" "$3" "$4" "$8" "$6" "$7"',
     'pipe-fixture', process.execPath, caller, receiver, out, err, ready, done, stdout, stderr],
   {env, encoding: 'utf8', timeout: 15000});
+  if (result.error || result.signal) {
+    // The shell's kill bound alone cannot identify which descendant stayed
+    // alive. Preserve its captured streams and report fixed-fixture lifecycle
+    // metadata even when spawnSync did not return a normal pipeline status.
+    writeFileSync(join(f.directory, 'pipe-shell.stdout'), result.stdout ?? '');
+    writeFileSync(join(f.directory, 'pipe-shell.stderr'), result.stderr ?? '');
+    const trace = existsSync(lifecycle) ? readFileSync(lifecycle, 'utf8').trim().split('\n').filter(Boolean).map(JSON.parse) : [];
+    const records = attempts(f).map(directory => {
+      try {
+        const record = summary(directory);
+        return {status: record.status, exitCode: record.exitCode,
+          supervisorPid: record.owner?.pid, locksReleased: record.locksReleased,
+          complete: record.complete, outputComplete: record.outputComplete,
+          callerOutputComplete: record.callerOutputComplete,
+          steps: record.steps.map(({status, code, signal, streamsComplete}) =>
+            ({status, code, signal, streamsComplete})), errors: record.errors};
+      } catch (error) { return {unreadable: error.code ?? error.name}; }
+    });
+    const state = {shellPid: result.pid, error: result.error?.code, status: result.status, signal: result.signal,
+      elapsed: performance.now() - started, outputReady: existsSync(ready),
+      callerDone: existsSync(done) ? readFileSync(done, 'utf8') : null,
+      capturedBytes: {shellStdout: Buffer.byteLength(result.stdout ?? ''),
+        shellStderr: Buffer.byteLength(result.stderr ?? ''),
+        stdout: existsSync(out) ? readFileSync(out).length : null,
+        stderr: existsSync(err) ? readFileSync(err).length : null}, trace, records};
+    const pids = [...new Set([result.pid, ...trace.map(item => item.pid),
+      ...trace.map(item => item.parentPid), ...records.map(item => item.supervisorPid)]
+      .filter(pid => Number.isInteger(pid) && pid > 0))];
+    const processes = spawnSync('ps', ['-p', pids.join(','), '-o', 'pid=',
+      '-o', 'ppid=', '-o', 'pgid=', '-o', 'stat='],
+    {encoding: 'utf8', timeout: 1000, maxBuffer: 16384});
+    state.processes = {status: processes.status, error: processes.error?.code,
+      rows: processes.stdout ?? ''};
+    writeFileSync(join(f.directory, 'pipe-failure.json'), JSON.stringify(state, null, 2) + '\n');
+    f.diagnostic(`Pipe fixture failure: ${JSON.stringify(state)}`);
+  }
   assert.equal(result.error, undefined, 'caller delivery must not need the external kill bound');
   assert.equal(result.signal, null);
   return {...result, elapsed: performance.now() - started,
@@ -660,11 +718,24 @@ for (const [exitCode, resistant] of [[0, false], [7, false], [7, true]]) {
 
 test('TERM-resistant descendants trigger owned-group KILL and retain locks', async t => {
   const f = fixture(t), pidFile = join(f.root, 'pid');
-  const source = `process.on('SIGTERM',()=>{}); require('fs').writeFileSync(${JSON.stringify(pidFile)},String(process.pid));console.log('resistant');setInterval(()=>{},1000);`;
-  const result = await start(f, {timeoutSeconds: 0.2, graceSeconds: 0.1, steps: steps(source)}).done;
-  assert.equal(result.code, 124, result.stderr);
+  // Cancellation must follow handler installation, rather than race Node startup
+  // against a 0.2s timeout. Delay readiness past the former timeout explicitly;
+  // timeout cancellation itself is covered by the inherited-pipe cases below.
+  const source = `setTimeout(() => {
+    process.on('SIGTERM',()=>{});
+    require('fs').writeFileSync(${JSON.stringify(pidFile)},String(process.pid));
+    console.log('resistant'); setInterval(()=>{},1000);
+  }, 350);`;
+  const run = start(f, {graceSeconds: 0.1, steps: steps(source)});
+  let result;
+  try {
+    await until(() => existsSync(pidFile));
+    run.child.kill('SIGINT');
+  } finally { result = await run.done; }
+  assert.equal(result.code, 130, result.stderr);
   assert.equal(Boolean(live(Number(readFileSync(pidFile)))), false);
   assert.equal(locks(f).length, 2);
+  assert.match(summary(attempts(f)[0]).status, /^interrupted/u);
   assert.match(summary(attempts(f)[0]).status, /SIGKILL escalation/u);
   assert.match(readFileSync(join(attempts(f)[0], 'output.log'), 'utf8'), /resistant/u);
   const next = await start(f).done;

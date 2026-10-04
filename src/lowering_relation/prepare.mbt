@@ -242,6 +242,8 @@ pub fn operation(value : PreparedNode) -> String {
       match @projection.operation(value) {
         @projection.Events => "BRIDGE.events.to_rows"
         @projection.Vectors => "BRIDGE.vectors.to_rows"
+        @projection.NodeRows => "BRIDGE.graph.to_node_rows"
+        @projection.EdgeRows => "BRIDGE.graph.to_edge_rows"
       }
     SetRows(checked) =>
       match @set.operation(checked) {
@@ -466,6 +468,8 @@ pub fn prepare(
           match @projection.operation(value) {
             @projection.Events => "events"
             @projection.Vectors => "vectors"
+            @projection.NodeRows => "node_rows"
+            @projection.EdgeRows => "edge_rows"
           },
           1,
         )

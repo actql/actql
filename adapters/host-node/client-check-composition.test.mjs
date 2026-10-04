@@ -1,0 +1,166 @@
+// Adapter-only checks: the common checker is a recording seam, not a second
+// checker. Public Local/HTTP verdict expectations live in client-check.test.
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {installNodeClientCheck} from './client-check.mjs';
+
+const environment = Object.freeze({});
+const environmentCid = `sha256:${'1'.repeat(64)}`;
+const aliases = ['A', 'B'].map(name => Object.freeze({name,
+  sourceRef: `connector://fixture/${name}/r#v`,
+  sourceViewContractCid: `sha256:${'2'.repeat(64)}`,
+  schemaContractCid: `sha256:${'3'.repeat(64)}`}));
+const request = (principalId = 'owner', text = 'SELECT 1 AS n') => ({
+  principalId, input: {text, format: 'sql'}, parameters: null});
+
+function fixture(states = [], publication = aliases) {
+  const calls = [], checked = [];
+  const moon = {
+    clientProgramCheckingEnvironmentCid: value => {
+      assert.equal(value, environment); return environmentCid;
+    },
+    clientProgramCheckCompilerIdentity: () => '{"compiler":"fixture"}',
+    clientProgramCheckUnavailable: correlation_ref => JSON.stringify({
+      version: 'actql-check-outcome/0.1', outcome: 'unavailable',
+      problem: {code: 'check_unavailable'}, correlation_ref}),
+    clientProgramCheckSource: (...args) => {
+      checked.push(args);
+      return JSON.stringify({version: 'actql-check-outcome/0.1',
+        outcome: 'completed', report: {context_ref: args[6],
+          scope: {kind: 'bound_input'}, verdict: 'verified', reasons: [],
+          coverage: {limits: [], unresolved: []}}});
+    },
+  };
+  const sourceAccesses = states.map(state => ({
+    sourceRef: aliases[state.index].sourceRef,
+    connection: `connection-${state.index}`, resource: state.noReadTuple ? undefined : `resource-${state.index}`,
+    authorization: {authorize: async (boundary, tuple, options) => {
+      calls.push(state.index);
+      assert.equal(boundary, 'acquisition');
+      assert.deepEqual(tuple, {connection: `connection-${state.index}`,
+        resource: state.noReadTuple ? undefined : `resource-${state.index}`, operation: 'read'});
+      assert.equal(options.subjectCid, environmentCid);
+      if (state.action === 'throw') throw new Error('private owner failure');
+      return {action: state.action};
+    }},
+  }));
+  const check = installNodeClientCheck({moon, environment, sourceAccesses,
+    publication: {environmentCid, aliases: publication},
+    contextKey: new Uint8Array(32).fill(7)});
+  return {check, calls, checked, visible: () =>
+    JSON.parse(checked.at(-1)[3]).aliases};
+}
+
+test('composition: zero, one and two owners check source-free input once', async () => {
+  for (const states of [[], [{index: 0, action: 'dispatch'}],
+    [{index: 0, action: 'dispatch'}, {index: 1, action: 'dispatch'}]]) {
+    const f = fixture(states);
+    assert.equal((await f.check(request())).outcome, 'completed');
+    assert.deepEqual(f.calls, states.map(state => state.index));
+    assert.equal(f.checked.length, 1);
+    assert.deepEqual(f.visible(), states.map(state => aliases[state.index]));
+  }
+});
+
+test('composition: each source uses its own decision in either order', async () => {
+  for (const action of ['deny', 'held', 'failed', undefined, 'throw']) {
+    for (const reverse of [false, true]) {
+      const states = [{index: 0, action: 'dispatch'}, {index: 1, action}];
+      if (reverse) states.reverse();
+      const f = fixture(states);
+      const outcome = await f.check(request('owner', 'SELECT id FROM A'));
+      assert.equal(outcome.outcome, 'completed');
+      assert.deepEqual(f.visible(), [aliases[0]]);
+      assert.deepEqual(f.calls, states.map(state => state.index));
+      const absent = fixture(states, [aliases[0]]);
+      assert.deepEqual(outcome, await absent.check(request('owner', 'SELECT id FROM A')));
+    }
+  }
+});
+
+test('composition: unusable owners withhold only an unestablishable whole context', async () => {
+  for (const states of [[{index: 0, action: 'throw'}],
+    [{index: 0, action: 'throw'}, {index: 1, action: 'throw'}]]) {
+    for (const publication of [[], aliases]) {
+      const f = fixture(states, publication);
+      assert.equal((await f.check(request())).outcome, 'unavailable');
+      assert.equal(f.checked.length, 0);
+      assert.deepEqual(f.calls, states.map(state => state.index));
+    }
+  }
+  for (const states of [[{index: 0, action: 'deny'}, {index: 1, action: 'throw'}],
+    [{index: 1, action: 'throw'}, {index: 0, action: 'held'}]]) {
+    const f = fixture(states);
+    assert.equal((await f.check(request())).outcome, 'completed');
+    assert.deepEqual(f.visible(), []);
+  }
+});
+
+test('composition: context follows current visibility, caller and exact input', async () => {
+  const states = [{index: 1, action: 'deny'}, {index: 0, action: 'dispatch'}];
+  const f = fixture(states);
+  const initial = await f.check(request());
+  assert.deepEqual(await f.check(request()), initial);
+  const same = fixture([...states].reverse());
+  assert.deepEqual(await same.check(request()), initial);
+  states[1].action = 'deny';
+  const hidden = await f.check(request());
+  assert.notEqual(hidden.report.context_ref, initial.report.context_ref);
+  states[0].action = 'dispatch';
+  const otherSource = await f.check(request());
+  assert.notEqual(otherSource.report.context_ref, initial.report.context_ref);
+  assert.notEqual((await f.check(request('other'))).report.context_ref,
+    otherSource.report.context_ref);
+  assert.notEqual((await f.check(request('owner', 'SELECT 2 AS n'))).report.context_ref,
+    otherSource.report.context_ref);
+  assert.deepEqual(f.visible(), [aliases[1]]);
+});
+
+test('composition: abort propagates without consulting later owners or checking', async () => {
+  const f = fixture([{index: 0, action: 'dispatch'}]);
+  const controller = new AbortController(); controller.abort();
+  await assert.rejects(f.check({...request(), signal: controller.signal}),
+    {name: 'AbortError'});
+  assert.deepEqual(f.calls, []);
+  assert.deepEqual(f.checked, []);
+});
+
+
+test('composition: only applicable read owners determine whole-context unavailability', async () => {
+  const absentTuple = {index: 0, action: 'throw', noReadTuple: true};
+  const none = fixture([absentTuple]);
+  assert.equal((await none.check(request())).outcome, 'completed');
+  assert.deepEqual(none.calls, []);
+  assert.deepEqual(none.visible(), []);
+  const unavailable = fixture([absentTuple, {index: 1, action: 'throw'}]);
+  assert.equal((await unavailable.check(request())).outcome, 'unavailable');
+  assert.deepEqual(unavailable.calls, [1]);
+});
+
+// Fixed HMAC vectors derived independently with Python's JSON serialization
+// and hmac/sha256, the fixture's 32 bytes of 0x07, and literal context fields.
+// No product canonicalizer or returned context is used to build expectations.
+test('composition: exact Unicode source and received-input fallback have fixed references',
+  async () => {
+    const texts = ["SELECT 'caf\u00e9' AS label", "SELECT 'cafe\u0301' AS label"];
+    const vectors = [{parameterDeclarations: undefined, refs: [
+      'ctx:4b6755788872e757048a05810b61e90dcc352832b1f0c78ad4033d478034bf42',
+      'ctx:442fd2a942b60dad93dbcf43ab1efc3ba9d929a1c42e9cb654408657b33b0517',
+    ]}, {parameterDeclarations: {'\u00e9': {type: 'string'}, 'e\u0301': {type: 'string'}},
+      refs: [
+        'ctx:118e42d8a2d5fb8546e1d5000176fd19d4e4f01ddb6668bc82061e5a28c8b544',
+        'ctx:053287c562affc231dfa25a3a0887669b1e7542780bf936e572304d2c4ccaa41',
+      ]}];
+    const f = fixture([], []);
+    for (const {parameterDeclarations, refs} of vectors) {
+      for (const [index, text] of texts.entries()) {
+        const input = {text, format: 'sql',
+          ...(parameterDeclarations === undefined ? {} : {parameterDeclarations})};
+        const call = {principalId: 'owner', input, parameters: null};
+        const outcome = await f.check(call);
+        assert.equal(outcome.report.context_ref, refs[index]);
+        assert.deepEqual(await f.check(call), outcome);
+        assert.equal(f.checked.at(-1)[0], text, 'checker receives the authored spelling');
+      }
+    }
+  });

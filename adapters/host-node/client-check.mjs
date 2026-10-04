@@ -21,7 +21,7 @@ const failed = code => Object.freeze({outcome: 'failed',
   problem: Object.freeze({code}), version});
 
 export function installNodeClientCheck({moon, environment, publication,
-  sourceAccess, contextKey = randomBytes(32)}) {
+  sourceAccesses = [], contextKey = randomBytes(32)}) {
   if (moon === null || typeof moon !== 'object' ||
       typeof moon.clientProgramCheckSource !== 'function' ||
       typeof moon.clientProgramCheckUnavailable !== 'function' ||
@@ -29,8 +29,8 @@ export function installNodeClientCheck({moon, environment, publication,
       typeof moon.clientProgramCheckingEnvironmentCid !== 'function' ||
       environment === undefined ||
       !(contextKey instanceof Uint8Array) || contextKey.byteLength !== 32 ||
-      sourceAccess !== undefined &&
-        typeof sourceAccess?.authorization?.authorize !== 'function') {
+      !Array.isArray(sourceAccesses) || sourceAccesses.some(access =>
+        typeof access?.authorization?.authorize !== 'function')) {
     throw new TypeError('InvalidClientCheckInstallation');
   }
   const environmentCid = moon.clientProgramCheckingEnvironmentCid(environment);
@@ -47,18 +47,17 @@ export function installNodeClientCheck({moon, environment, publication,
     return JSON.parse(moon.clientProgramCheckUnavailable(correlationRef));
   };
 
-  // The audience-visible names, or undefined when the Host cannot decide
-  // visibility at all. The installed source's read tuple is decided once per
-  // check, whatever names are published or mentioned, so neither the outcome
-  // kind nor the work done depends on them. Only a dispatch decision shows the
-  // source's names. A deny, a held or failed decision, or a name whose source
-  // has no single installed read tuple hides it exactly as an absent name is
-  // hidden, so one undecided source never withholds the rest of the check.
-  const readTuple = sourceAccess !== undefined &&
-    typeof sourceAccess.sourceRef === 'string' &&
-    typeof sourceAccess.resource === 'string';
-  const visibleAliases = async signal => {
-    if (!readTuple) return [];
+  // Consult each installed Source's own decision owner, once per check,
+  // independently of published or mentioned names. A usable decision (even
+  // deny/held/failed) establishes this portion of the audience's context.
+  // An unusable owner hides only its own names; only when every applicable
+  // owner is unusable is the whole context unavailable. Zero owners and
+  // installations without a single read tuple retain an empty publication.
+  const accesses = sourceAccesses.map(access => ({...access}));
+  const aliasesFor = async (sourceAccess, signal) => {
+    const readTuple = typeof sourceAccess.sourceRef === 'string' &&
+      typeof sourceAccess.resource === 'string';
+    if (!readTuple) return null;
     let decision;
     try {
       decision = await sourceAccess.authorization.authorize('acquisition', {
@@ -66,15 +65,24 @@ export function installNodeClientCheck({moon, environment, publication,
         resource: sourceAccess.resource, operation: 'read',
       }, {subjectCid: environmentCid, signal});
     } catch (cause) {
-      // The decision owner itself is unusable (for example closed): the
-      // audience's context cannot be established for any name.
       if (signal?.aborted) throw cause;
       return undefined;
     }
     if (decision?.action !== 'dispatch') return [];
-    return aliases.filter(alias => alias.sourceRef === sourceAccess.sourceRef)
-      .sort((left, right) =>
-        left.name < right.name ? -1 : left.name > right.name ? 1 : 0);
+    return aliases.filter(alias => alias.sourceRef === sourceAccess.sourceRef);
+  };
+  const visibleAliases = async signal => {
+    const portions = [];
+    for (const access of accesses) {
+      signal?.throwIfAborted();
+      portions.push(await aliasesFor(access, signal));
+    }
+    const applicable = portions.filter(value => value !== null);
+    if (applicable.length > 0 && applicable.every(value => value === undefined)) {
+      return undefined;
+    }
+    return portions.flatMap(value => value ?? []).sort((left, right) =>
+      left.name < right.name ? -1 : left.name > right.name ? 1 : 0);
   };
 
   // Keyed by this Host over everything the verdict is about: the audience
@@ -118,3 +126,4 @@ export function installNodeClientCheck({moon, environment, publication,
     return validCheckOutcome(outcome) ? outcome : failed('check_internal');
   };
 }
+

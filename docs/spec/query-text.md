@@ -294,7 +294,7 @@ bindings followed by a query; SQL format retains its query-only entry.
 DATA names reference producers and do not create acquisition, storage,
 placement or physical task boundaries. Bodies resolve before the declared
 name becomes visible. Duplicate, recursive and forward references are
-rejected. A Graph producer is not a Relation alias. RESULT and INFER are
+rejected. A Graph producer is not a Relation alias. RESULT, INFER and EFFECT are
 not permitted in a DATA query body; final queries retain explicit Results.
 
 `DATA g = PROPERTY GRAPH (...)` is an ActQL pure-value extension using the
@@ -369,10 +369,24 @@ reacquire its inputs, add a Result or request materialization/physical
 placement. The normalization has no named options; extra arguments are not
 discarded. Unconsumed Graph calls cannot pass through relational compilation.
 
-The independent Frontend lowering connects Graph-preserving normalize only.
-Public preparation refuses constructor-dependent queries until the unified
-common Graph owner is adopted. This is lowering evidence, not an executable
-normalize consumer or a public Result guarantee.
+The Frontend also connects the existing `node_rows()` and `edge_rows()`
+Bridge operations to ordinary Relation processing. Use a constructor-bound
+DATA producer, for example:
+
+```aql
+DATA rows = FROM g |> node_rows() |> SELECT node_key, labels;
+FROM rows |> ORDER BY node_key |> RESULT nodes
+```
+
+These calls accept no named options in the current connection. Definition
+selection is a separate common-contract dependency, not an inferred filter.
+The common Bridge owns the finite schema, typed element identities, retained
+key columns, label sets and property presence. Conditional presence is not
+nullable: an ordinary reference to a Conditional field is rejected by the
+common checker, even after `IS NOT NULL`. The remaining Relation operations
+use normal scope, expression, order and Result lowering. DATA adds no copy,
+acquisition or execution owner. A Graph-preserving normalize call still needs
+an adapted common consumer; source lowering alone does not authorize it.
 Other named calls parse but their output Carrier/schema is not yet connected
 to subsequent source operations; they return UnsupportedGraph before Run
 admission. Calls following a MATCH Relation are also explicitly unsupported
@@ -442,3 +456,55 @@ These identities describe the source form. They do not certify that a specific
 Run succeeded or that all r1 acceptance cases have been implemented. Changing
 either input changes the manifest CID and dependent compiled identities; the
 Program contract version remains 0.1.
+
+
+## Composition assertions, capture predicates and terminal updates
+
+`|> ASSERT UNIQUE BY (path, ...)` is an ActQL spelling of the existing
+`assert_rows.unique_by` operation. Paths resolve in the current Relation scope;
+ITEM KEY selects an INFER key and does not establish uniqueness. The ordinary
+checker and physical assertion owner validate non-null, present, unique tuples
+before a consumer can use their key evidence. Assertion success preserves every
+row and its order; it never deduplicates. An empty key tuple is rejected.
+
+An optional `MAX_OUTPUT_ROWS positive_integer` suffix on each JOIN retains its
+existing `max_output_rows` author guard. The integer must be exactly representable
+in the safe integer range. Lowering rejects a guard above its admitted frontend
+ceiling; it does not clamp it or replace it with a Host resource limit. Omitting
+this suffix retains the existing frontend default. Each JOIN occurrence keeps
+its own guard, including a JOIN chain and a JOIN inside DATA or a CTE.
+
+A leading ordinary WHERE on a single-use acquired DATA input is retained at the
+Host-selected capture boundary and removed from the downstream pipeline so that
+it runs once. This uses the same filter expression owner as standalone queries.
+If any other consumer refers to the installed input, its complete capture is
+shared and each WHERE remains downstream. Analysis is conservative across DATA,
+CTE, set, constructor and query references; it cannot narrow another consumer's
+capture or silently reacquire a shared Source. Projection remains downstream.
+There is no separate scan-predicate language.
+
+The terminal update spelling is:
+
+```aql
+|> EFFECT save UPDATE
+   TARGET 'connector://crm-main/Test_Record__c'
+   MAPPING `mapping:published-reference.v1`
+   FROM RESULT updates ID target_id SET (Name = next_name)
+```
+
+EFFECT is a declaration after the query's row operations, not another row
+operation. It must be terminal and is not admitted in DATA or CTE bodies. The
+explicit RESULT name resolves to its actual retained Stage Result port; a step
+alias or undeclared Result is rejected. A preceding terminal RESULT stays
+terminal and does not gain an implicit default export. This first update surface
+requires one nonempty SET list. Values are direct Result fields or scalar
+literals; computed values must be produced by an earlier EXTEND or SELECT.
+Duplicate target fields are rejected. Literal strings retain their original
+Unicode and CR/LF values through the ordinary string decoder.
+
+Lowering emits the existing Stage update Effect with the authored target,
+MappingRef, Result, ID field and SET values. Existing checker, Mapping, planner,
+preview, approval, capture and cleanup owners remain authoritative. No approval
+policy is authored in this surface, and syntax admission does not authorize
+execution. Other Effect kinds and complete Effect-language coverage remain
+separate implementation obligations.

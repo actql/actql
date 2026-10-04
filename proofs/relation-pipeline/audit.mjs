@@ -15,228 +15,283 @@ import { hash, snapshot, checkBaseline } from './inventory.mjs';
 import { validate, compareSemantics } from './evidence.mjs';
 import { auditFixture, payload, inputVariable } from './fixture.mjs';
 import { applyMutation } from './sites.mjs';
-const root = fileURLToPath(new URL('../../', import.meta.url));
-const directory = resolve(process.argv[2] ?? join(root, '.artifacts/relation-pipeline'));
-const artifact = path => {
-  assert(path.startsWith('.artifacts/relation-pipeline/'));
-  const relative = path.slice('.artifacts/relation-pipeline/'.length);
-  assert(!relative.split('/').includes('..'));
-  return join(directory, relative);
-};
-const read = path => JSON.parse(readFileSync(path, 'utf8'));
-checkBaseline(root);
-checkFoundation(root);
-const current = snapshot(root);
-const expectedImpact = decision(root);
-const receiptPaths = new Set(), observedIds = new Set();
-function auditExecution(execution, selected, expectedTarget = execution.receipt.target, workspace = null) {
-  assert(!receiptPaths.has(execution.path), 'Execution receipt reused across obligations');
-  receiptPaths.add(execution.path);
-  const run = execution.receipt;
-  assert(['js', 'wasm', 'native'].includes(expectedTarget));
-  assert.equal(run.target, expectedTarget, 'Receipt target differs from requested audit target');
-  assert.equal(run.exit, 0, 'Failed execution cannot be mutation evidence');
-  assert.equal(hash(JSON.stringify(read(artifact(execution.path)))), execution.digest);
-  assert.equal(hash(JSON.stringify(run)), execution.digest);
-  const source = read(artifact(run.sourcePath));
-  assert.equal(hash(JSON.stringify(source.sources)), source.digest);
-  assert.equal(source.digest, run.sourceDigest);
-  if (workspace) {
-    assert.equal(run.boundary.workspace, workspace.id, 'Execution workspace identity mismatch');
-    assert.equal(run.boundary.root, workspace.root, 'Execution workspace root mismatch');
-  } else assert.equal(run.boundary.role, 'normal');
-  run.cases.forEach(entry => {
-    assert(!observedIds.has(entry.id), 'Observation identity reused across executions');
-    observedIds.add(entry.id);
-    assert.deepEqual(entry.program, program(entry.testCase, selected));
-    assert.equal(entry.caseDigest, hash(JSON.stringify(entry.testCase)));
-    assert.equal(entry.observation.id, entry.id);
-    assert.equal(entry.observation.source, entry.program.source);
-    assert.equal(entry.observation.steps, entry.program.steps);
-    assert(entry.observation.checked && entry.observation.registered);
-    assert.equal(entry.observation.correspondence, run.correspondence);
+const defaultRoot = fileURLToPath(new URL('../../', import.meta.url));
+function freeze(value) {
+  if (value && typeof value === 'object') {
+    for (const child of Object.values(value)) freeze(child);
+    Object.freeze(value);
+  }
+  return value;
+}
+
+// One read-only invocation owns this preparation. The checkout, Git history and
+// environment must stay fixed while its alternate report directories are audited.
+// No report, receipt, observation identity or validation result is shared.
+export function createAudit(root = defaultRoot) {
+  let started = performance.now();
+  checkBaseline(root);
+  const preparation = { baselineMs: performance.now() - started };
+  started = performance.now();
+  checkFoundation(root);
+  preparation.foundationMs = performance.now() - started;
+  started = performance.now();
+  const current = freeze(structuredClone(snapshot(root)));
+  preparation.snapshotMs = performance.now() - started;
+  started = performance.now();
+  const expectedImpact = freeze(structuredClone(decision(root)));
+  preparation.decisionMs = performance.now() - started;
+  const audit = function audit(directory = join(root, '.artifacts/relation-pipeline'), log = console.log) {
+    directory = resolve(directory);
+    const artifact = path => {
+      assert(path.startsWith('.artifacts/relation-pipeline/'));
+      const relative = path.slice('.artifacts/relation-pipeline/'.length);
+      assert(!relative.split('/').includes('..'));
+      return join(directory, relative);
+    };
+    const read = path => JSON.parse(readFileSync(path, 'utf8'));
+    const receiptPaths = new Set(), observedIds = new Set();
+    function auditExecution(execution, selected, expectedTarget = execution.receipt.target, workspace = null) {
+      assert(!receiptPaths.has(execution.path), 'Execution receipt reused across obligations');
+      receiptPaths.add(execution.path);
+      const run = execution.receipt;
+      assert(['js', 'wasm', 'native'].includes(expectedTarget));
+      assert.equal(run.target, expectedTarget, 'Receipt target differs from requested audit target');
+      assert.equal(run.exit, 0, 'Failed execution cannot be mutation evidence');
+      assert.equal(hash(JSON.stringify(read(artifact(execution.path)))), execution.digest);
+      assert.equal(hash(JSON.stringify(run)), execution.digest);
+      const source = read(artifact(run.sourcePath));
+      assert.equal(hash(JSON.stringify(source.sources)), source.digest);
+      assert.equal(source.digest, run.sourceDigest);
+      if (workspace) {
+        assert.equal(run.boundary.workspace, workspace.id, 'Execution workspace identity mismatch');
+        assert.equal(run.boundary.root, workspace.root, 'Execution workspace root mismatch');
+      } else assert.equal(run.boundary.role, 'normal');
+      run.cases.forEach(entry => {
+        assert(!observedIds.has(entry.id), 'Observation identity reused across executions');
+        observedIds.add(entry.id);
+        assert.deepEqual(entry.program, program(entry.testCase, selected));
+        assert.equal(entry.caseDigest, hash(JSON.stringify(entry.testCase)));
+        assert.equal(entry.observation.id, entry.id);
+        assert.equal(entry.observation.source, entry.program.source);
+        assert.equal(entry.observation.steps, entry.program.steps);
+        assert(entry.observation.checked && entry.observation.registered);
+        assert.equal(entry.observation.correspondence, run.correspondence);
+      });
+      assert.equal(run.compiler, read(join(root, 'toolchain.json')).moonc);
+      assert.deepEqual(run.command, ['moon', 'test', 'src/query_integration/relation_pipeline_batch_wbtest.mbt', '--target', expectedTarget, '--deny-warn']);
+      assert(Object.keys(run.artifacts).length > 0);
+      for (const path of Object.keys(run.artifacts)) {
+        assert(path.startsWith(`_build/${expectedTarget}/debug/test/query_integration/`), 'Artifact target differs from requested audit target');
+      }
+      assert.equal(run.inputVariable, inputVariable);
+      const inputs = payload(run.cases, run.correspondence);
+      assert.equal(readFileSync(artifact(run.inputPath), 'utf8'), inputs);
+      assert.equal(hash(inputs), run.inputDigest);
+      const log = readFileSync(artifact(run.logPath), 'utf8');
+      assert.equal(hash(log), run.logDigest);
+      auditFixture(run, readFileSync(artifact(run.fixturePath)), log, expectedTarget);
+      let id; let faults = []; const observations = [];
+      for (const line of log.split('\n')) {
+        if (line.startsWith('ACTQL_PIPELINE_CASE:')) { id = JSON.parse(line.slice(20)); faults = []; }
+        if (line.startsWith('ACTQL_PIPELINE_FAULT:')) faults.push(JSON.parse(line.slice(21)));
+        if (line.startsWith('ACTQL_PIPELINE:')) {
+          const actual = JSON.parse(line.slice(15)); assert.equal(actual.id, id);
+          observations.push({ ...actual, tableRows: actual.rows,
+            rows: actual.wireRows.map(row => actual.columns.map(field => row[field])), faults });
+        }
+      }
+      assert.deepEqual(run.cases.map(c => c.observation), observations, 'Archived execution observations differ from log');
+      return source;
+    }
+    function auditModels(report) {
+      for (const [id, count] of [['session', 14], ['chain', 36]]) {
+        const model = report.models[id];
+        const log = readFileSync(artifact(model.logPath), 'utf8');
+        assert.equal(hash(log), model.logDigest);
+        assert(log.includes(`Checked ${count} theorems, expected claim types and axiom dependencies`));
+        assert(!log.includes('sorryAx'));
+      }
+    }
+    const fixedMutations = read(join(directory, 'fixed-mutations.json'));
+    // Both independently executed producer baselines remain original reports.
+    // There is deliberately no merged or relabelled baseline receipt.
+    for (const name of fixedMutations.partUnion
+      ? Object.keys(mutationNamesByPart).map(id => `base-js-${id}.json`) : ['base-js.json']) {
+      const baseReport = read(join(directory, name));
+      assert.equal(baseReport.target, 'js', 'Baseline report target differs from requested audit target js');
+      assert.equal(baseReport.revision, expectedImpact.revision);
+      validate(baseReport, current, baseRegistry);
+      assert.deepEqual(baseReport.executions.flatMap(e => e.receipt.cases.map(c => c.testCase)), fixedCorpus(baseRegistry, registrations));
+      baseReport.executions.forEach(e => auditExecution(e, baseRegistry, 'js'));
+      auditModels(baseReport);
+    }
+    for (const target of ['js', 'wasm', 'native']) {
+      const report = read(join(directory, `${target}.json`));
+      assert.equal(report.target, target, `Report target differs from requested audit target ${target}`);
+      assert.equal(report.revision, expectedImpact.revision);
+      validate(report, current, registry);
+      assert.deepEqual(report.obligations, coverage(fixedCorpus(registry, registrations), registry, registrations));
+      assert.equal(report.caseCount, fixedCorpus(registry, registrations).length);
+      assert.deepEqual(report.executions.flatMap(e => e.receipt.cases.map(c => c.testCase)), fixedCorpus(registry, registrations));
+      report.executions.forEach(e => auditExecution(e, registry, target));
+      auditModels(report);
+      for (const execution of report.executions) {
+        assert.deepEqual(Object.keys(execution.receipt.archives), Object.keys(execution.receipt.artifacts));
+        for (const [path, expected] of Object.entries(execution.receipt.artifacts)) {
+          assert.equal(hash(readFileSync(artifact(execution.receipt.archives[path]))), expected, 'Final normal artifact changed');
+        }
+      }
+      log(`${target}: exact normal corpus, source, fixtures and successful logs audited`);
+    }
+    const impact = read(join(directory, 'exploration-decision.json'));
+    assert.deepEqual(impact, expectedImpact);
+    for (const mode of impact.required ? ['fixed', 'explore'] : ['fixed']) {
+    const mutations = read(join(directory, mode === 'fixed' ? 'fixed-mutations.json' : 'mutations.json'));
+    if (mutations.partUnion) {
+      resolveMutationUnion(mutations, path => read(artifact(path)));
+      assert.deepEqual(mutations.workspaceOwners, fixedMutations.workspaceOwners, 'Fixed/fresh mutations changed owners');
+      assert.deepEqual(mutations.restorationOwners, fixedMutations.restorationOwners, 'Fixed/fresh restoration changed owners');
+      assert.deepEqual(mutations.partUnion.owners, fixedMutations.partUnion.owners, 'Fixed/fresh mutations changed assignments');
+    }
+    assert.equal(mutations.mode, mode);
+    assert.deepEqual(mutations.decision, impact);
+    assert.equal(mutations.revision, impact.revision);
+    assert.deepEqual(mutations.source, current);
+    if (!mutations.partUnion) {
+      assert.notEqual(mutations.workspaces.pristine.id, mutations.workspaces.mutable.id);
+      assert.notEqual(mutations.workspaces.pristine.root, mutations.workspaces.mutable.root);
+    }
+    assert.equal(mutations.explorationTarget, mode === 'explore' ? 'js' : null);
+    assert.equal(mutations.seed, mode === 'explore' ? 105106 : null);
+    assert.deepEqual(mutations.results.map(r => r.name), variants.map(v => v.name));
+    for (const result of mutations.results) {
+      const owner = mutations.partUnion?.owners[result.name];
+      const workspaces = owner ? mutations.workspaceOwners[owner] : mutations.workspaces;
+      const restorationOwner = owner ? mutations.restorationOwners[owner] : mutations.restorationOwner;
+      if (owner) assert.equal(result.owner, owner, 'Wrong mutation result owner');
+      const variant = variants.find(v => v.name === result.name);
+      const preserves = (c, o, a) => variant.eligible(c) && variant.preserves(c, o, a, registry);
+      const changed = Object.keys(current.sources).filter(path => current.sources[path] !== result.source.sources[path]);
+      assert.deepEqual(changed, [result.site], 'Mutation changed unrelated source');
+      assert.equal(result.originalDigest, current.sources[result.site]);
+      assert.equal(result.mutatedDigest, result.source.sources[result.site]);
+      const site = variant;
+      assert.equal(site.path, result.site);
+      assert.equal(hash(applyMutation(readFileSync(join(root, site.path), 'utf8'), site)), result.mutatedDigest);
+      assert.equal(result.source.digest, hash(JSON.stringify(result.source.sources)));
+      assert(result.killed);
+      if (mode === 'explore') {
+      assert(result.localMinimal && result.history.at(-1).accepted === -1);
+      assert.deepEqual(result.finalCandidates, candidates(result.minimal, registry));
+      assert.equal(result.finalCandidates.length, result.finalObservations.length);
+      assert(result.finalCandidates.every((c, i) => !preserves(c, result.finalObservations[i], result.anchor)), 'False local minimality');
+      assert.deepEqual(result.executions[0].receipt.cases.map(c => c.testCase), fixedCorpus(registry, registrations).filter(variant.eligible));
+      const original = result.executions[0].receipt.cases.find(c => JSON.stringify(c.testCase) === JSON.stringify(result.original));
+      assert(original && preserves(result.original, original.observation, result.anchor));
+      let intermediate = result.original;
+      let cursor = 1;
+      for (const history of result.history) {
+        const reductions = candidates(intermediate, registry);
+        const observations = reductions.length ? result.executions[cursor++].receipt.cases.map(c => c.observation) : [];
+        if (reductions.length) assert.deepEqual(result.executions[cursor - 1].receipt.cases.map(c => c.testCase), reductions);
+        assert.equal(history.attempted, reductions.length);
+        assert.equal(history.accepted, reductions.findIndex((c, i) => preserves(c, observations[i], result.anchor)));
+        if (history.accepted >= 0) intermediate = reductions[history.accepted];
+        else assert.deepEqual(observations, result.finalObservations);
+      }
+      assert.deepEqual(intermediate, result.minimal);
+      assert.equal(result.executions.length, cursor + 3);
+      } else {
+        const fixed = read(join(root, 'proofs/relation-pipeline/regressions.json')).find(r => r.name === result.name);
+        assert.deepEqual(result.minimal, fixed.testCase);
+        assert.deepEqual(result.anchor, fixed.anchor);
+        assert.equal(result.localMinimal, false);
+        assert.equal(result.executions.length, 3);
+      }
+      const recorded = new Map();
+      for (const execution of result.executions) {
+        assert.equal(execution.receipt.boundary.role, 'mutable');
+        assert.deepEqual(auditExecution(execution, registry, execution.receipt.target, workspaces.mutable), result.source);
+        for (const entry of execution.receipt.cases) recorded.set(JSON.stringify(entry.observation), entry.testCase);
+      }
+      for (const [i, actual] of (result.finalObservations ?? []).entries()) {
+        assert.deepEqual(recorded.get(JSON.stringify(actual)), result.finalCandidates[i]);
+      }
+      for (const target of ['js', 'wasm', 'native']) {
+        const actual = result.replay[target];
+        assert(preserves(result.minimal, actual, result.anchor));
+        const execution = result.executions.find(e => e.receipt.target === target && e.receipt.cases.some(c => JSON.stringify(c.observation) === JSON.stringify(actual)));
+        assert(execution); assert.deepEqual(recorded.get(JSON.stringify(actual)), result.minimal);
+      }
+      const healthy = new Map();
+      assert.equal(result.healthyExecutions.length, 3);
+      assert.deepEqual(result.healthyExecutions.map(e => e.receipt.target), ['js', 'wasm', 'native']);
+      for (const execution of result.healthyExecutions) {
+        assert.equal(execution.receipt.boundary.role, 'pristine');
+        assert.deepEqual(auditExecution(execution, registry, execution.receipt.target, workspaces.pristine), current);
+        assert(execution.receipt.correspondence);
+        execution.receipt.cases.forEach(c => healthy.set(JSON.stringify(c.observation), { target: execution.receipt.target, testCase: c.testCase }));
+      }
+      for (const target of ['js', 'wasm', 'native']) {
+        compareSemantics(result.minimal, result.healthy[target], registry);
+        assert(!preserves(result.minimal, result.healthy[target], result.anchor));
+        assert.deepEqual(healthy.get(JSON.stringify(result.healthy[target])), { target, testCase: result.minimal });
+      }
+      assert.equal(restorationOwner.root, workspaces.mutable.root, 'Recovery did not observe restored mutable root');
+      assert.notEqual(restorationOwner.id, workspaces.mutable.id, 'Recovery reused mutated executor');
+      assert.notEqual(restorationOwner.id, workspaces.pristine.id, 'Recovery reused pristine executor');
+      assert.equal(result.postRestore.executions.length, 3);
+      assert.deepEqual(result.postRestore.executions.map(e => e.receipt.target), ['js', 'wasm', 'native']);
+      assert.deepEqual(Object.keys(result.postRestore.observations).sort(), ['js', 'native', 'wasm']);
+      for (const execution of result.postRestore.executions) {
+        const target = execution.receipt.target;
+        assert.equal(execution.receipt.boundary.role, 'mutable');
+        assert.deepEqual(auditExecution(execution, registry, target, restorationOwner), current);
+        assert.equal(execution.receipt.correspondence, true);
+        assert.equal(execution.receipt.cases.length, 1, 'Recovery must contain exactly its assigned minimum');
+        const entry = execution.receipt.cases[0], actual = result.postRestore.observations[target];
+        assert.deepEqual(entry.testCase, result.minimal);
+        assert.deepEqual(entry.observation, actual);
+        compareSemantics(result.minimal, actual, registry);
+        assert(!preserves(result.minimal, actual, result.anchor));
+      }
+      log(`${result.name}: ${mode} evidence, pristine healthy and new-owner restored mutable finite replay audited`);
+    }
+    }
+    const extension = checkTakeHistory(root);
+    assert.equal(extension.handwrittenCombinationAdditions, 0);
+    log('Historical take measurement preserved; current foundation changes are counted separately');
+  };
+  return Object.freeze(Object.assign(audit, { preparation: Object.freeze(preparation) }));
+}
+
+// The regression CLI still fails on an admitted substitution, the wrong reason,
+// or preparation failure. Its caller receives per-case diagnostics, never a
+// reusable success certificate for evidence or another source revision.
+export function auditTargetRegressions(entries) {
+  assert(Array.isArray(entries) && entries.length > 0, 'Empty target regression batch');
+  const audit = createAudit();
+  const results = entries.map(entry => {
+    assert.equal(typeof entry.name, 'string');
+    assert.equal(typeof entry.directory, 'string');
+    assert.equal(typeof entry.expected, 'string');
+    assert(entry.expected.length > 0, 'Missing target regression rejection');
+    const lines = [];
+    let failure;
+    const started = performance.now();
+    try { audit(entry.directory, line => lines.push(line)); }
+    catch (error) { failure = error; }
+    const log = lines.map(line => `${line}\n`).join('') + (failure?.stack ?? '');
+    assert(failure, `Audit accepted ${entry.name}`);
+    assert(log.includes(entry.expected), `Wrong rejection for ${entry.name}: ${log}`);
+    return { name: entry.name, rejected: true, log, auditMs: performance.now() - started };
   });
-  assert.equal(run.compiler, read(join(root, 'toolchain.json')).moonc);
-  assert.deepEqual(run.command, ['moon', 'test', 'src/query_integration/relation_pipeline_batch_wbtest.mbt', '--target', expectedTarget, '--deny-warn']);
-  assert(Object.keys(run.artifacts).length > 0);
-  for (const path of Object.keys(run.artifacts)) {
-    assert(path.startsWith(`_build/${expectedTarget}/debug/test/query_integration/`), 'Artifact target differs from requested audit target');
-  }
-  assert.equal(run.inputVariable, inputVariable);
-  const inputs = payload(run.cases, run.correspondence);
-  assert.equal(readFileSync(artifact(run.inputPath), 'utf8'), inputs);
-  assert.equal(hash(inputs), run.inputDigest);
-  const log = readFileSync(artifact(run.logPath), 'utf8');
-  assert.equal(hash(log), run.logDigest);
-  auditFixture(run, readFileSync(artifact(run.fixturePath)), log, expectedTarget);
-  let id; let faults = []; const observations = [];
-  for (const line of log.split('\n')) {
-    if (line.startsWith('ACTQL_PIPELINE_CASE:')) { id = JSON.parse(line.slice(20)); faults = []; }
-    if (line.startsWith('ACTQL_PIPELINE_FAULT:')) faults.push(JSON.parse(line.slice(21)));
-    if (line.startsWith('ACTQL_PIPELINE:')) {
-      const actual = JSON.parse(line.slice(15)); assert.equal(actual.id, id);
-      observations.push({ ...actual, tableRows: actual.rows,
-        rows: actual.wireRows.map(row => actual.columns.map(field => row[field])), faults });
-    }
-  }
-  assert.deepEqual(run.cases.map(c => c.observation), observations, 'Archived execution observations differ from log');
-  return source;
+  return { preparation: audit.preparation, results };
 }
-function auditModels(report) {
-  for (const [id, count] of [['session', 14], ['chain', 36]]) {
-    const model = report.models[id];
-    const log = readFileSync(artifact(model.logPath), 'utf8');
-    assert.equal(hash(log), model.logDigest);
-    assert(log.includes(`Checked ${count} theorems, expected claim types and axiom dependencies`));
-    assert(!log.includes('sorryAx'));
-  }
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  if (process.argv[2] === '--target-regressions') {
+    const entries = JSON.parse(readFileSync(process.argv[3], 'utf8'));
+    console.log(JSON.stringify(auditTargetRegressions(entries)));
+  } else createAudit()(process.argv[2]);
 }
-const fixedMutations = read(join(directory, 'fixed-mutations.json'));
-// Both independently executed producer baselines remain original reports.
-// There is deliberately no merged or relabelled baseline receipt.
-for (const name of fixedMutations.partUnion
-  ? Object.keys(mutationNamesByPart).map(id => `base-js-${id}.json`) : ['base-js.json']) {
-  const baseReport = read(join(directory, name));
-  assert.equal(baseReport.target, 'js', 'Baseline report target differs from requested audit target js');
-  assert.equal(baseReport.revision, expectedImpact.revision);
-  validate(baseReport, current, baseRegistry);
-  assert.deepEqual(baseReport.executions.flatMap(e => e.receipt.cases.map(c => c.testCase)), fixedCorpus(baseRegistry, registrations));
-  baseReport.executions.forEach(e => auditExecution(e, baseRegistry, 'js'));
-  auditModels(baseReport);
-}
-for (const target of ['js', 'wasm', 'native']) {
-  const report = read(join(directory, `${target}.json`));
-  assert.equal(report.target, target, `Report target differs from requested audit target ${target}`);
-  assert.equal(report.revision, expectedImpact.revision);
-  validate(report, current, registry);
-  assert.deepEqual(report.obligations, coverage(fixedCorpus(registry, registrations), registry, registrations));
-  assert.equal(report.caseCount, fixedCorpus(registry, registrations).length);
-  assert.deepEqual(report.executions.flatMap(e => e.receipt.cases.map(c => c.testCase)), fixedCorpus(registry, registrations));
-  report.executions.forEach(e => auditExecution(e, registry, target));
-  auditModels(report);
-  for (const execution of report.executions) {
-    assert.deepEqual(Object.keys(execution.receipt.archives), Object.keys(execution.receipt.artifacts));
-    for (const [path, expected] of Object.entries(execution.receipt.artifacts)) {
-      assert.equal(hash(readFileSync(artifact(execution.receipt.archives[path]))), expected, 'Final normal artifact changed');
-    }
-  }
-  console.log(`${target}: exact normal corpus, source, fixtures and successful logs audited`);
-}
-const impact = read(join(directory, 'exploration-decision.json'));
-assert.deepEqual(impact, decision(root));
-for (const mode of impact.required ? ['fixed', 'explore'] : ['fixed']) {
-const mutations = read(join(directory, mode === 'fixed' ? 'fixed-mutations.json' : 'mutations.json'));
-if (mutations.partUnion) {
-  resolveMutationUnion(mutations, path => read(artifact(path)));
-  assert.deepEqual(mutations.workspaceOwners, fixedMutations.workspaceOwners, 'Fixed/fresh mutations changed owners');
-  assert.deepEqual(mutations.restorationOwners, fixedMutations.restorationOwners, 'Fixed/fresh restoration changed owners');
-  assert.deepEqual(mutations.partUnion.owners, fixedMutations.partUnion.owners, 'Fixed/fresh mutations changed assignments');
-}
-assert.equal(mutations.mode, mode);
-assert.deepEqual(mutations.decision, impact);
-assert.equal(mutations.revision, impact.revision);
-assert.deepEqual(mutations.source, current);
-if (!mutations.partUnion) {
-  assert.notEqual(mutations.workspaces.pristine.id, mutations.workspaces.mutable.id);
-  assert.notEqual(mutations.workspaces.pristine.root, mutations.workspaces.mutable.root);
-}
-assert.equal(mutations.explorationTarget, mode === 'explore' ? 'js' : null);
-assert.equal(mutations.seed, mode === 'explore' ? 105106 : null);
-assert.deepEqual(mutations.results.map(r => r.name), variants.map(v => v.name));
-for (const result of mutations.results) {
-  const owner = mutations.partUnion?.owners[result.name];
-  const workspaces = owner ? mutations.workspaceOwners[owner] : mutations.workspaces;
-  const restorationOwner = owner ? mutations.restorationOwners[owner] : mutations.restorationOwner;
-  if (owner) assert.equal(result.owner, owner, 'Wrong mutation result owner');
-  const variant = variants.find(v => v.name === result.name);
-  const preserves = (c, o, a) => variant.eligible(c) && variant.preserves(c, o, a, registry);
-  const changed = Object.keys(current.sources).filter(path => current.sources[path] !== result.source.sources[path]);
-  assert.deepEqual(changed, [result.site], 'Mutation changed unrelated source');
-  assert.equal(result.originalDigest, current.sources[result.site]);
-  assert.equal(result.mutatedDigest, result.source.sources[result.site]);
-  const site = variant;
-  assert.equal(site.path, result.site);
-  assert.equal(hash(applyMutation(readFileSync(join(root, site.path), 'utf8'), site)), result.mutatedDigest);
-  assert.equal(result.source.digest, hash(JSON.stringify(result.source.sources)));
-  assert(result.killed);
-  if (mode === 'explore') {
-  assert(result.localMinimal && result.history.at(-1).accepted === -1);
-  assert.deepEqual(result.finalCandidates, candidates(result.minimal, registry));
-  assert.equal(result.finalCandidates.length, result.finalObservations.length);
-  assert(result.finalCandidates.every((c, i) => !preserves(c, result.finalObservations[i], result.anchor)), 'False local minimality');
-  assert.deepEqual(result.executions[0].receipt.cases.map(c => c.testCase), fixedCorpus(registry, registrations).filter(variant.eligible));
-  const original = result.executions[0].receipt.cases.find(c => JSON.stringify(c.testCase) === JSON.stringify(result.original));
-  assert(original && preserves(result.original, original.observation, result.anchor));
-  let intermediate = result.original;
-  let cursor = 1;
-  for (const history of result.history) {
-    const reductions = candidates(intermediate, registry);
-    const observations = reductions.length ? result.executions[cursor++].receipt.cases.map(c => c.observation) : [];
-    if (reductions.length) assert.deepEqual(result.executions[cursor - 1].receipt.cases.map(c => c.testCase), reductions);
-    assert.equal(history.attempted, reductions.length);
-    assert.equal(history.accepted, reductions.findIndex((c, i) => preserves(c, observations[i], result.anchor)));
-    if (history.accepted >= 0) intermediate = reductions[history.accepted];
-    else assert.deepEqual(observations, result.finalObservations);
-  }
-  assert.deepEqual(intermediate, result.minimal);
-  assert.equal(result.executions.length, cursor + 3);
-  } else {
-    const fixed = read(join(root, 'proofs/relation-pipeline/regressions.json')).find(r => r.name === result.name);
-    assert.deepEqual(result.minimal, fixed.testCase);
-    assert.deepEqual(result.anchor, fixed.anchor);
-    assert.equal(result.localMinimal, false);
-    assert.equal(result.executions.length, 3);
-  }
-  const recorded = new Map();
-  for (const execution of result.executions) {
-    assert.equal(execution.receipt.boundary.role, 'mutable');
-    assert.deepEqual(auditExecution(execution, registry, execution.receipt.target, workspaces.mutable), result.source);
-    for (const entry of execution.receipt.cases) recorded.set(JSON.stringify(entry.observation), entry.testCase);
-  }
-  for (const [i, actual] of (result.finalObservations ?? []).entries()) {
-    assert.deepEqual(recorded.get(JSON.stringify(actual)), result.finalCandidates[i]);
-  }
-  for (const target of ['js', 'wasm', 'native']) {
-    const actual = result.replay[target];
-    assert(preserves(result.minimal, actual, result.anchor));
-    const execution = result.executions.find(e => e.receipt.target === target && e.receipt.cases.some(c => JSON.stringify(c.observation) === JSON.stringify(actual)));
-    assert(execution); assert.deepEqual(recorded.get(JSON.stringify(actual)), result.minimal);
-  }
-  const healthy = new Map();
-  assert.equal(result.healthyExecutions.length, 3);
-  assert.deepEqual(result.healthyExecutions.map(e => e.receipt.target), ['js', 'wasm', 'native']);
-  for (const execution of result.healthyExecutions) {
-    assert.equal(execution.receipt.boundary.role, 'pristine');
-    assert.deepEqual(auditExecution(execution, registry, execution.receipt.target, workspaces.pristine), current);
-    assert(execution.receipt.correspondence);
-    execution.receipt.cases.forEach(c => healthy.set(JSON.stringify(c.observation), { target: execution.receipt.target, testCase: c.testCase }));
-  }
-  for (const target of ['js', 'wasm', 'native']) {
-    compareSemantics(result.minimal, result.healthy[target], registry);
-    assert(!preserves(result.minimal, result.healthy[target], result.anchor));
-    assert.deepEqual(healthy.get(JSON.stringify(result.healthy[target])), { target, testCase: result.minimal });
-  }
-  assert.equal(restorationOwner.root, workspaces.mutable.root, 'Recovery did not observe restored mutable root');
-  assert.notEqual(restorationOwner.id, workspaces.mutable.id, 'Recovery reused mutated executor');
-  assert.notEqual(restorationOwner.id, workspaces.pristine.id, 'Recovery reused pristine executor');
-  assert.equal(result.postRestore.executions.length, 3);
-  assert.deepEqual(result.postRestore.executions.map(e => e.receipt.target), ['js', 'wasm', 'native']);
-  assert.deepEqual(Object.keys(result.postRestore.observations).sort(), ['js', 'native', 'wasm']);
-  for (const execution of result.postRestore.executions) {
-    const target = execution.receipt.target;
-    assert.equal(execution.receipt.boundary.role, 'mutable');
-    assert.deepEqual(auditExecution(execution, registry, target, restorationOwner), current);
-    assert.equal(execution.receipt.correspondence, true);
-    assert.equal(execution.receipt.cases.length, 1, 'Recovery must contain exactly its assigned minimum');
-    const entry = execution.receipt.cases[0], actual = result.postRestore.observations[target];
-    assert.deepEqual(entry.testCase, result.minimal);
-    assert.deepEqual(entry.observation, actual);
-    compareSemantics(result.minimal, actual, registry);
-    assert(!preserves(result.minimal, actual, result.anchor));
-  }
-  console.log(`${result.name}: ${mode} evidence, pristine healthy and new-owner restored mutable finite replay audited`);
-}
-}
-const extension = checkTakeHistory(root);
-assert.equal(extension.handwrittenCombinationAdditions, 0);
-console.log('Historical take measurement preserved; current foundation changes are counted separately');

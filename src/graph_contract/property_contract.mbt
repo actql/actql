@@ -24,6 +24,15 @@ fn emit_property_definition(
   out : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(out)
+  @encode.key(out, "key_columns")
+  @encode.begin_array(out)
+  for index in 0..<@carrier.property_definition_key_count(definition) {
+    match @carrier.property_definition_key_column_at(definition, index) {
+      Some(name) => @encode.string_value(out, name)
+      None => @encode.null_value(out)
+    }
+  }
+  @encode.end_array(out)
   @encode.key(out, "key_contracts")
   @encode.begin_array(out)
   for contract in @carrier.property_definition_keys(definition) {
@@ -197,7 +206,7 @@ fn read_property_definition(
   validation_work : Ref[Int],
 ) -> (@carrier.PropertyNodeDefinition, (String, String)?) raise ReadStop {
   charge_nodes(budget, 1)
-  let names = ["name", "key_contracts", "properties", "labels"]
+  let names = ["name", "key_columns", "key_contracts", "properties", "labels"]
   if edge {
     names.push("source_definition")
     names.push("target_definition")
@@ -228,6 +237,25 @@ fn read_property_definition(
       stop(InvalidStructure)
     }
     keys.push(key)
+  }
+  let columns_at = required(object, "key_columns")
+  charge_nodes(budget, 1)
+  if @decode.array_length(columns_at) != Some(keys.length()) {
+    stop(InvalidStructure)
+  }
+  let columns = []
+  let mut unnamed = 0
+  for index in 0..<keys.length() {
+    let at = @decode.element_at(columns_at, index).unwrap()
+    if @decode.view(at) is @decode.NullValue {
+      charge_nodes(budget, 1)
+      unnamed += 1
+    } else {
+      columns.push(read_property_text(at, budget))
+    }
+  }
+  if unnamed != 0 && unnamed != keys.length() {
+    stop(InvalidStructure)
   }
   let props = read_properties(required(object, "properties"), budget, limits)
   let labels_at = required(object, "labels")
@@ -294,6 +322,7 @@ fn read_property_definition(
       props,
       labels,
       label_properties=exposed,
+      key_columns=columns,
       max_fields=limits.max_nodes,
       max_name_bytes=limits.max_bytes,
       max_contract_work=validation_work.val,

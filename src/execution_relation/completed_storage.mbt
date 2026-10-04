@@ -26,6 +26,14 @@ priv struct CompletedAdmitted {
 }
 
 ///|
+priv struct CompletedPresence {
+  owner : @lower.BoundPrepared
+  id : String
+  names : Array[String]
+  rows : Array[AdmittedRelationRow]
+}
+
+///|
 // Sealed column storage for mixed scalar and admitted value domains. The
 // columns are invocation-local while building and are never exposed mutably
 // after completion.
@@ -45,6 +53,7 @@ priv enum CompletedTable {
   NumberTable(CompletedNumbers)
   AdmittedTable(CompletedAdmitted)
   ColumnTable(CompletedColumns)
+  PresenceTable(CompletedPresence)
 }
 
 ///|
@@ -54,6 +63,7 @@ impl IndexedRows for CompletedTable with fn row_count(self) {
     NumberTable(table) => table.count
     AdmittedTable(table) => table.rows.length()
     ColumnTable(table) => table.count
+    PresenceTable(table) => table.rows.length()
   }
 }
 
@@ -64,6 +74,7 @@ impl IndexedRows for CompletedTable with fn column_count(self) {
     NumberTable(table) => table.names.length()
     AdmittedTable(table) => table.names.length()
     ColumnTable(table) => table.names.length()
+    PresenceTable(table) => table.names.length()
   }
 }
 
@@ -74,6 +85,7 @@ impl IndexedRows for CompletedTable with fn row_width(self, row) {
     NumberTable(table) => table.names.length()
     AdmittedTable(table) => table.names.length()
     ColumnTable(table) => table.names.length()
+    PresenceTable(table) => table.names.length()
   }
 }
 
@@ -82,6 +94,10 @@ impl IndexedRows for CompletedTable with fn read_cell(self, row, column) {
   match self {
     RowTable(table) => table.rows[row][column]
     AdmittedTable(table) => capture(table.rows[row][column])
+    PresenceTable(table) =>
+      // Only a proven-present coordinate may enter an ordinary value reader.
+      // Absence is never synthesized as NULL or a Missing scalar.
+      capture(table.rows[row].cells[column].unwrap())
     ColumnTable(table) => {
       let index = match table.selection {
         Some(indices) => indices[row]
@@ -111,6 +127,15 @@ impl RelationRows for CompletedTable with fn checked_owner(self) {
     NumberTable(table) => table.owner
     AdmittedTable(table) => table.owner
     ColumnTable(table) => table.owner
+    PresenceTable(table) => table.owner
+  }
+}
+
+///|
+impl IndexedRows for CompletedTable with fn cell_present(self, row, column) {
+  match self {
+    PresenceTable(table) => table.rows[row].cells[column] is Some(_)
+    _ => true
   }
 }
 
@@ -121,6 +146,7 @@ impl RelationRows for CompletedTable with fn relation_id(self) {
     NumberTable(table) => table.id
     AdmittedTable(table) => table.id
     ColumnTable(table) => table.id
+    PresenceTable(table) => table.id
   }
 }
 
@@ -131,6 +157,7 @@ impl RelationRows for CompletedTable with fn field_names(self) {
     NumberTable(table) => table.names
     AdmittedTable(table) => table.names
     ColumnTable(table) => table.names
+    PresenceTable(table) => table.names
   }
 }
 
@@ -179,6 +206,18 @@ fn reserve_completed_storage(
 ) -> Bool {
   match table {
     RowTable(_) | AdmittedTable(_) => true
+    PresenceTable(table) => {
+      if !reserve_slots(workspace, table.rows.length()) {
+        return false
+      }
+      for row in table.rows {
+        if !spend_control(control, 1) ||
+          !reserve_slots(workspace, row.cells.length()) {
+          return false
+        }
+      }
+      true
+    }
     ColumnTable(table) => {
       if !reserve_slots(workspace, table.columns.length()) {
         return false

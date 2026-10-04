@@ -62,8 +62,15 @@ pub(all) struct SortTerm {
 }
 
 ///|
+pub(all) enum GroupingScope {
+  SqlSelect
+  PipeAggregate
+} derive(Eq)
+
+///|
 pub(all) enum QueryOperation {
   GraphCall(SgaCall)
+  AssertUnique(Array[Array[NamePart]])
   Infer(InferClause)
   Nearest(NearestClause)
   RetainResult(NamePart)
@@ -73,7 +80,7 @@ pub(all) enum QueryOperation {
   Drop(Array[NamePart])
   Rename(Array[(NamePart, NamePart)])
   Alias(NamePart)
-  Group(Array[Expression], Array[Projection])
+  Group(Array[Expression], Array[Projection], GroupingScope)
   Having(Expression)
   Analytic(Array[Projection])
   Select(Array[Projection], Bool)
@@ -86,6 +93,16 @@ pub(all) struct KeepItem {
   path : Array[NamePart]
   wildcard : Bool
   name : NamePart?
+}
+
+///|
+pub(all) struct UpdateEffectClause {
+  name : NamePart
+  target : String
+  mapping : NamePart
+  result : NamePart
+  id : NamePart
+  set : Array[(NamePart, Expression)]
 }
 
 ///|
@@ -127,6 +144,7 @@ pub(all) struct JoinPart {
   on : Expression?
   using_columns : Array[NamePart]
   pre_join_filter : Expression?
+  max_output_rows : Int64?
 }
 
 ///|
@@ -146,6 +164,7 @@ struct Query {
   operations : Array[QueryOperation]
   sets : Array[SetPart]
   final_operations : Array[QueryOperation]
+  effect : UpdateEffectClause?
   work : Int
 }
 
@@ -335,6 +354,7 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
   }
   match query.operations[index] {
     GraphCall(call) => Some(GraphCall(copy_sga_call(call)))
+    AssertUnique(keys) => Some(AssertUnique(keys.map(path => path.copy())))
     Nearest(clause) =>
       Some(
         Nearest({
@@ -361,7 +381,8 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
     Rename(xs) => Some(Rename(xs.copy()))
     Alias(name) => Some(Alias(name))
     RetainResult(name) => Some(RetainResult(name))
-    Group(keys, projections) => Some(Group(keys.copy(), projections.copy()))
+    Group(keys, projections, scope) =>
+      Some(Group(keys.copy(), projections.copy(), scope))
     Having(e) => Some(Having(e))
     Analytic(projections) => Some(Analytic(projections.copy()))
     Select(xs, distinct) => Some(Select(xs.copy(), distinct))
@@ -564,7 +585,7 @@ fn QueryParser::optional_source_alias(
   } else if self.peek().value is Word(value) &&
     ![
       "JOIN", "INNER", "LEFT", "RIGHT", "FULL", "CROSS", "WHERE", "GROUP", "HAVING",
-      "ORDER", "LIMIT", "UNION", "INTERSECT", "EXCEPT", "ON", "USING",
+      "ORDER", "LIMIT", "UNION", "INTERSECT", "EXCEPT", "ON", "USING", "MAX_OUTPUT_ROWS",
     ].contains(value.to_upper()) {
     Some(self.name())
   } else {
@@ -609,6 +630,7 @@ fn QueryParser::bind_query(
     operations: [],
     sets: [],
     final_operations: [],
+    effect: None,
     work: self.work,
   }
 }
@@ -702,6 +724,7 @@ fn QueryParser::join_part(
         on: None,
         using_columns: [],
         pre_join_filter: None,
+        max_output_rows: self.join_bound(),
       },
       ctes,
     )
@@ -717,6 +740,7 @@ fn QueryParser::join_part(
         on: Some(self.expression()),
         using_columns: [],
         pre_join_filter: None,
+        max_output_rows: self.join_bound(),
       },
       ctes,
     )
@@ -745,6 +769,7 @@ fn QueryParser::join_part(
       on: None,
       using_columns,
       pre_join_filter: None,
+      max_output_rows: self.join_bound(),
     },
     ctes,
   )
@@ -1106,9 +1131,9 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
   let grouped = self.has("GROUP") ||
     projections.any(projection => projection.aggregate is Some(_))
   if self.has("GROUP") {
-    operations.push(Group(self.group_keys(), projections))
+    operations.push(Group(self.group_keys(), projections, SqlSelect))
   } else if grouped {
-    operations.push(Group([], projections))
+    operations.push(Group([], projections, SqlSelect))
   }
   if self.has("HAVING") {
     if !grouped {
@@ -1131,6 +1156,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     operations,
     sets: [],
     final_operations: [],
+    effect: None,
     work: self.work,
   }
 }
@@ -1300,6 +1326,7 @@ fn QueryParser::pipe(
       operations: [],
       sets: [],
       final_operations: [],
+      effect: None,
       work: self.work,
     },
     cte_body~,
@@ -1321,7 +1348,11 @@ fn QueryParser::pipe_tail(
   let operations = input.operations.copy()
   let sets = input.sets.copy()
   let final_operations = input.final_operations.copy()
+  let mut effect = input.effect
   while self.peek().value == Pipe {
+    if effect is Some(_) {
+      raise QueryAbort("EFFECT must be terminal", self.peek().start)
+    }
     // Once a set is complete, a following relational operator consumes its
     // output scope. Bind that producer instead of pushing the operator into
     // the left operand or repeating either operand's computation.
@@ -1352,6 +1383,7 @@ fn QueryParser::pipe_tail(
         operations,
         sets,
         final_operations,
+        effect: None,
         work: self.work,
       }
       return self.pipe_tail(self.bind_query(producer), cte_body~)
@@ -1541,7 +1573,7 @@ fn QueryParser::pipe_tail(
         raise QueryAbort("AGGREGATE requires named calls", self.peek().start)
       }
       let keys = if self.has("GROUP") { self.group_keys() } else { [] }
-      operations.push(Group(keys, aggregates))
+      operations.push(Group(keys, aggregates, PipeAggregate))
     } else if self.has("SELECT") {
       self.keyword("SELECT")
       let distinct = self.has("DISTINCT")
@@ -1572,6 +1604,26 @@ fn QueryParser::pipe_tail(
     } else if self.has("RESULT") {
       self.keyword("RESULT")
       operations.push(RetainResult(self.name()))
+    } else if self.has("ASSERT") {
+      self.keyword("ASSERT")
+      self.keyword("UNIQUE")
+      self.keyword("BY")
+      self.symbol(40)
+      let keys = [self.path()]
+      while self.peek().value == Symbol(44) {
+        ignore(self.advance())
+        keys.push(self.path())
+      }
+      self.symbol(41)
+      operations.push(AssertUnique(keys))
+    } else if self.has("EFFECT") {
+      if cte_body {
+        raise QueryAbort(
+          "EFFECT is not allowed in a declaration body",
+          self.peek().start,
+        )
+      }
+      effect = Some(self.update_effect_clause())
     } else if self.has("INFER") {
       if cte_body {
         raise QueryAbort(
@@ -1607,6 +1659,7 @@ fn QueryParser::pipe_tail(
     operations,
     sets,
     final_operations,
+    effect,
     work: self.work,
   }
 }
@@ -1806,4 +1859,103 @@ pub fn parse_query(
         ),
       })
   }
+}
+
+///|
+pub fn terminal_effect(query : Query) -> UpdateEffectClause? {
+  query.effect.map(clause => { ..clause, set: clause.set.copy(), })
+}
+
+///|
+// Preserve the parsed source and expression origins when a checked Model
+// producer is retained before an Effect continuation. This is AST slicing,
+// not reparsing text or constructing another execution language.
+pub fn effect_result_continuation(
+  query : Query,
+  input : NamePart,
+) -> (Query, Query)? {
+  if query.effect is None ||
+    !query.sets.is_empty() ||
+    !query.final_operations.is_empty() {
+    return None
+  }
+  let mut has_infer = false
+  for index in 0..<query.operations.length() {
+    match query.operations[index] {
+      Infer(_) => has_infer = true
+      RetainResult(_) if has_infer && index + 1 < query.operations.length() => {
+        let prefix = {
+          ..query,
+          operations: Array::makei(index + 1, i => query.operations[i]),
+          effect: None,
+        }
+        let tail = {
+          ..query,
+          relation: [input],
+          source_alias: None,
+          graph: None,
+          joins: [],
+          ctes: [],
+          operations: Array::makei(query.operations.length() - index - 1, i => {
+            query.operations[index + 1 + i]
+          }),
+        }
+        return Some((prefix, tail))
+      }
+      _ => ()
+    }
+  }
+  None
+}
+
+///|
+fn QueryParser::join_bound(self : QueryParser) -> Int64? raise QueryAbort {
+  if self.has("MAX_OUTPUT_ROWS") {
+    self.keyword("MAX_OUTPUT_ROWS")
+    Some(self.safe_integer(false))
+  } else {
+    None
+  }
+}
+
+///|
+fn QueryParser::update_effect_clause(
+  self : QueryParser,
+) -> UpdateEffectClause raise QueryAbort {
+  self.keyword("EFFECT")
+  let name = self.name()
+  self.keyword("UPDATE")
+  self.keyword("TARGET")
+  let target = self.expression()
+  let target = match
+    expression_node(target, expression_root(target)).unwrap().kind {
+    StringLiteral(value) => value
+    _ =>
+      raise QueryAbort(
+        "Effect TARGET requires a string literal",
+        self.peek().start,
+      )
+  }
+  self.keyword("MAPPING")
+  let mapping = self.name()
+  self.keyword("FROM")
+  self.keyword("RESULT")
+  let result = self.name()
+  self.keyword("ID")
+  let id = self.name()
+  self.keyword("SET")
+  self.symbol(40)
+  let assignments : Array[(NamePart, Expression)] = []
+  while true {
+    self.node()
+    let field = self.name()
+    self.symbol(61)
+    assignments.push((field, self.expression()))
+    if self.peek().value != Symbol(44) {
+      break
+    }
+    ignore(self.advance())
+  }
+  self.symbol(41)
+  { name, target, mapping, result, id, set: assignments, }
 }

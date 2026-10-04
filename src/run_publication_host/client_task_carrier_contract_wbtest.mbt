@@ -1,7 +1,48 @@
 ///|
+test "conditional Relation task ports bind the shared presence schema identity" {
+  let number = @contract.primitive(@contract.NumberType, nullable=false)
+  let nullable = @contract.primitive(@contract.NumberType, nullable=true)
+  let schema = @schema.from_presence_fields(
+    [
+      (@schema.Unqualified("id"), number, @schema.Required),
+      (@schema.Unqualified("p"), nullable, @schema.Conditional),
+    ],
+    max_fields=2,
+    max_name_bytes=10,
+  ).unwrap()
+  let carrier = @carrier.relation(@carrier.typed_rows(schema))
+  // Independent SHA-256 of the 117-byte canonical schema field map. It is
+  // not an ordinary object contract and does not authorize Result exposure.
+  assert_eq(
+    client_task_carrier_contract(carrier, 117, 100, 20),
+    Some(
+      (
+        "relation", "sha256:10ce8369a6cadfefd6e712b9af9320c69915df75a0a9654c7d69788ef23a437c",
+      ),
+    ),
+  )
+  assert_eq(client_task_carrier_contract(carrier, 116, 100, 20), None)
+  assert_eq(client_task_carrier_contract(carrier, 117, 1, 20), None)
+  let dense = @schema.from_fields(
+    [(@schema.Unqualified("id"), number), (@schema.Unqualified("p"), nullable)],
+    max_fields=2,
+    max_name_bytes=10,
+  ).unwrap()
+  assert_false(
+    client_task_carrier_contract(
+      @carrier.relation(@carrier.typed_rows(dense)),
+      1000,
+      100,
+      20,
+    ) ==
+    client_task_carrier_contract(carrier, 1000, 100, 20),
+  )
+}
+
+///|
 fn keyed_task_contract_body() -> String {
   (
-    #|{"domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","edge_definitions":[{"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"R":[]},"name":"E","properties":{},"source_definition":"N","target_definition":"N"}],"identity_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","node_definitions":[{"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Node":["name"],"Person":[]},"name":"N","properties":{"name":{"nullable":true,"type":"string"}}}],"value_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","version":"actql-property-graph-contract/0.1"}
+    #|{"domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","edge_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"R":[]},"name":"E","properties":{},"source_definition":"N","target_definition":"N"}],"identity_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","node_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Node":["name"],"Person":[]},"name":"N","properties":{"name":{"nullable":true,"type":"string"}}}],"value_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","version":"actql-property-graph-contract/0.1"}
   )
 }
 
@@ -29,7 +70,7 @@ test "task Graph ports explicitly select the new complete property contract and 
     client_task_carrier_contract(carrier, body.length(), 1000, 100),
     Some(
       (
-        "graph", "sha256:3e06c160155f0542561eab6a31c31422a78e7a749490ff5b24fb0ce4c7ff3321",
+        "graph", "sha256:6a0fe1664c431e3b0835ccaf2fff3569e99492ae427eab4ccb65d34096ce604d",
       ),
     ),
   )

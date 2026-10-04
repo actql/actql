@@ -265,6 +265,30 @@ fn prepare_multi_captured_local_ledger_owned(
 ///|
 /// Admit capacities from the exact selected Native or Broad preparations.
 /// Broad's bounded residual remains under its original acquisition owner.
+pub fn prepare_multi_captured_local_acquisition_ledger(
+  prepared : @publication_host.PreparedClientProgram,
+  acquisitions : Array[@duckdb_host.CaptureConfiguration],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @resources.Ledger? {
+  prepare_multi_captured_local_ledger_owned(
+    Pure(prepared),
+    acquisitions,
+    transport_bytes,
+    transport_execution_bytes,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+  )
+}
+
+///|
+/// Effect computation uses the same selected-configuration capacity owner.
 pub fn prepare_multi_captured_effect_acquisition_ledger(
   prepared : @publication_host.PreparedClientEffectComputation,
   acquisitions : Array[@duckdb_host.CaptureConfiguration],

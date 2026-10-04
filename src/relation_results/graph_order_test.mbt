@@ -1,11 +1,13 @@
 ///|
-fn current_trail_query() -> String {
+fn current_trail_query(emit? : String = "paths") -> String {
   let identity = "{\"definition\":\"N\",\"domain\":\"sha256:" +
     "0".repeat(64) +
     "\",\"key\":[1,\"a\"],\"key_types\":[{\"kind\":\"number\"},{\"kind\":\"string\"}]}"
   "{\"traverse\":{\"start\":{\"ids\":[" +
   identity +
-  "]},\"hops\":[{\"direction\":\"out\"}],\"path_mode\":\"trail\",\"emit\":\"paths\"}}"
+  "]},\"hops\":[{\"direction\":\"out\"}],\"path_mode\":\"trail\",\"emit\":\"" +
+  emit +
+  "\"}}"
 }
 
 ///|
@@ -15,6 +17,7 @@ test "current MATCH and TRAIL orders retain their producer through take and stru
       (property_query_body(false, "[\"element\",\"score\"]"), "element"),
       (property_query_body(true, "[\"element\",\"src\",\"dst\"]"), "element"),
       (current_trail_query(), "edge_ids"),
+      (current_trail_query(emit="nodes"), "node_id"),
     ] {
     let p = @pipeline.check_carriers(
       cursor("[" + body + ",{\"take\":1,\"as\":\"rows\"}]"),
@@ -58,28 +61,70 @@ test "current MATCH and TRAIL orders retain their producer through take and stru
 }
 
 ///|
-test "retired row projections and degree cannot issue canonical order for a current Graph" {
+test "current Graph row Bridge retains canonical producer order through structured projection" {
   for operation in ["\"node_rows\":true", "\"edge_rows\":true"] {
-    assert_true(
-      @pipeline.check_carriers(
-        cursor("[{" + operation + "}]"),
-        [("g", property_query_graph())],
-        None,
-        None,
-        ranking_limits(),
-      )
-      is Err({ kind: Projection(UnsupportedGraphOperation), .. }),
-    )
-  }
-  assert_true(
-    @pipeline.check_carriers(
-      cursor("[{\"degree\":{\"direction\":\"out\"}}]"),
+    let checked = @pipeline.check_carriers(
+      cursor(
+        "[{" + operation + "},{\"select\":[\"id\",\"labels\"],\"as\":\"rows\"}]",
+      ),
       [("g", property_query_graph())],
       None,
       None,
       ranking_limits(),
+    ).unwrap()
+    assert_true(@pipeline.candidate_key(checked, Step(0)) is None)
+    assert_eq(
+      @pipeline.order_origin(@pipeline.logical_order(checked, Step(1)).unwrap()),
+      Step(0),
     )
-    is Err({ kind: Graph(@graph.UnsupportedGraphOperation), .. }),
+    let result = @relation_results.check(
+      checked,
+      cursor("{\"out\":{\"from\":\"rows\",\"fields\":[\"id\",\"labels\"]}}"),
+      limits(),
+    ).unwrap()
+    assert_eq(
+      @relation_results.publication_strategy(resolve(result)),
+      Inherited,
+    )
+    let bare = @pipeline.check_carriers(
+      cursor("[]"),
+      [("rows", @pipeline.output_carrier(checked).unwrap())],
+      None,
+      None,
+      ranking_limits(),
+    ).unwrap()
+    assert_true(@pipeline.logical_order(bare, Input(0)) is None)
+  }
+}
+
+///|
+test "current Graph bounds carries deterministic diagnostic order into Results" {
+  let checked = @pipeline.check_carriers(
+    cursor("[{\"graph_bounds\":{\"max_nodes\":0},\"as\":\"violations\"}]"),
+    [("g", property_query_graph())],
+    None,
+    None,
+    ranking_limits(),
+  ).unwrap()
+  assert_true(@pipeline.candidate_key(checked, Step(0)) is None)
+  assert_eq(
+    @pipeline.order_origin(@pipeline.logical_order(checked, Step(0)).unwrap()),
+    Step(0),
+  )
+  let result = @relation_results.check(
+    checked,
+    cursor(
+      "{\"out\":{\"from\":\"violations\",\"fields\":[\"kind\",\"node_id\",\"actual\",\"max\"]}}",
+    ),
+    limits(),
+  ).unwrap()
+  let publication = resolve(result)
+  assert_eq(@relation_results.publication_strategy(publication), Inherited)
+  assert_eq(
+    @pipeline.order_origin(
+      @relation_results.publication_inherited_order(publication).unwrap(),
+    ),
+    Step(0),
   )
 }
 

@@ -658,14 +658,18 @@ schemas, external Contracts, expressions, and Results.
 The graph structural contract has the closed canonical body
 `{version: "actql-property-graph-contract/0.1", domain, node_definitions,
 edge_definitions, identity_law_cid, value_law_cid}`. Each definition retains its
-name, nonempty ordered key contracts, complete property contracts and static
+name, nonempty ordered key contracts, matching ordered `key_columns`, complete property contracts and static
 label-to-property sets. Edge definitions additionally name their source and
 target node definitions. Element identity is the admitted definition domain,
 definition name and complete typed key, not an endpoint tuple. Independently
 keyed parallel edges are retained. Property types and shared label property
 sets obey the graph-wide rules in [Property Graph construction](#property-graph-construction).
 `graph_contract_cid` is the ordinary ActQL CID of exactly this body, without a
-self-CID member. Property-map enumeration, source aliases, observations, graph
+self-CID member. `key_columns` binds each retained constructor key-column name
+to its component position and type; an anonymous structural definition uses
+null entries at every position, never a partially named tuple. Snapshot reload
+retains this mapping without consulting a catalog. Property-map enumeration,
+observations, graph
 contents, row counts, policy and provider locators are not contract members.
 The retired `actql-graph-contract/0.1` body is not an alternate Graph profile:
 current admission rejects it without conversion. Historical bytes and evidence
@@ -745,6 +749,24 @@ present, it is complete: runtime rows MUST have exactly that field set and
 every value, nested array element, and declared object property MUST satisfy
 the declared type/nullability. `nullable: true` permits a present value to be
 `null`; it does not make the field or property optional.
+
+<!-- requirement-block: value-contracts.relation-required-presence value-contracts.relation-present-value-contract value-contracts.relation-schema-presence-identity value-contracts.relation-content-omission-identity -->
+Relation column presence is separate from these ordinary object value rules.
+A finite complete Relation schema MAY declare a column conditional: an absent
+row key is omission, not an explicit NULL. Required columns MUST occur in every
+row; every present cell MUST satisfy its declared value type and nullability.
+The existence guarantee MUST participate in schema identity and retained schema
+storage. Row content identity MUST distinguish omitted keys from explicit NULL,
+without including physical presence bitmap/layout choices.
+
+<!-- requirement-block: value-contracts.relation-reference-presence value-contracts.relation-conditional-reference-rejection value-contracts.relation-unsupported-consumers -->
+In the initial presence profile, ordinary references and public Result columns
+MUST be schema-guaranteed present. Conditional references MUST fail during
+checking; sample values, an empty Relation and `IS NOT NULL` do not prove
+presence. Projection of guaranteed columns is supported. Other consumers of a
+conditional schema remain explicitly unsupported until their preservation or
+refinement rules are implemented; they MUST NOT fill omission with NULL or
+silently drop presence. This does not make ordinary object properties optional.
 
 <!-- requirement-block: value-contracts.empty-object-contracts -->
 Both authored and checked object contracts MUST permit `fields: {}`. This closed
@@ -5307,7 +5329,7 @@ Definition-scoped `match_nodes` and `match_edges` select a required
 optional explicit `bindings` (`identity`, plus edge `source`/`target`). Binding
 names are ordinary caller-selected fields; collisions reject. Bounded keyed
 `traverse` requires explicit `path_mode` (`walk`, `trail` or `acyclic`) and
-`emit: "paths"`. TRAIL tracks independent edge identities, not endpoint tuples.
+`emit: "paths"` or `emit: "nodes"`. TRAIL tracks independent edge identities, not endpoint tuples.
 Unimplemented SGA consumers reject this profile; keyed construction and this
 vertical path are not a claim of complete SGA support.
 
@@ -5467,29 +5489,58 @@ dependency under the ordinary policy identity rules.
 
 #### `node_rows` and `edge_rows`
 
-These operations convert a graph to relation rows using the corresponding AoA
-bridge. Bare `to_rows` is not accepted for a graph because node rows and edge
+These operations convert the admitted Property Graph to the existing Relation
+using the corresponding registered bridge. Bare `to_rows` is not accepted for a graph because node rows and edge
 rows are distinct meanings.
 
-<!-- requirement-block: graph-rows.fields-and-aliases -->
-Graph row projection MUST retain the admitted identity types and property
-evidence. Node rows expose `id` and declared node properties; edge rows expose
-`src`, `dst`, nullable-string `rel` and declared edge properties. Absent edge
-labels are explicit null. No undeclared node display-label column is invented.
-Known authored identity/endpoint/label names are additional aliases of their
-corresponding bridge roles; an alias identical to its own role adds no column.
-Aliases retain their field provenance, not nested-property interpretation.
-These source-role names are not members of `graph_contract_cid`. Diff retains
-the base's names for its common contract metadata; Apply restores the base's
-names over the pinned output value contract.
+```json
+{"from":"g","node_rows":{"definition":"Person"},"as":"people"}
+```
 
-<!-- requirement-block: graph-rows.collisions-and-unknown-evidence -->
-Projection MUST reject collisions between distinct output roles, aliases and
-properties rather than silently overwrite a value. Unknown property sets remain
-open, and unknown identity/property types remain unknown rather than becoming
-string or json. Runtime graph admission rejects collisions that cannot be ruled
-out from partial evidence. Projection alone does not prove row order, unique
-keys, successful data admission or bounded execution.
+<!-- requirement-block: graph-rows.definition-selection graph-rows.definition-schema graph-rows.definition-identity -->
+The body MUST be either `true` (all definitions of the corresponding element
+kind) or a closed object containing only `definition` (one definition of that
+kind). Definition lookup MUST use the admitted Graph name identity and reject
+unknown names, a name of the wrong element kind, or additional fields at check
+time, rather than return an empty Relation. Output schema and presence MUST
+derive from the selected declarations even for zero rows; nullable remains
+independent of presence. Selection is part of the Program and emitted Plan
+meaning, not a runtime inference from data. Selected rows retain their original
+typed identities, domains, key components and node endpoint identities. The
+initial object form does not support label refinement.
+
+<!-- requirement-block: graph-rows.fields-and-aliases graph-rows.typed-identity-roles graph-rows.omission-is-not-null graph-rows.saved-key-correspondence -->
+Graph row projection MUST retain the admitted identity types and property
+evidence. Node rows expose required `id`, `labels`; edge rows expose required
+`id`, `src`, `dst`, `labels`. Identity roles retain domain, definition and typed
+key; endpoint tuples and strings MUST NOT replace them. `labels` is a non-null
+array of non-null strings, with `[]` for no labels, using the admitted Graph's
+existing label identity, duplicate rejection and deterministic canonical order.
+There is no nullable `rel` role or compatibility output.
+
+Declared properties retain their saved output names. A retained key-column name
+exposes its original typed key component, not an alias of `id`. Composite keys
+retain every column-to-position/type correspondence. The schema is the finite
+union of these declared columns across the selected node or edge definitions.
+A column is Required only if every such definition supplies it; otherwise it is
+Conditional, independently of nullable. Missing cells MUST remain omitted, not
+NULL. Save/reload MUST retain names, types, presence and component correspondence.
+
+<!-- requirement-block: graph-rows.collisions-and-unknown-evidence graph-rows.no-collision-repair graph-rows.complete-input-contract graph-rows.reference-requires-presence graph-rows.canonical-producer-enumeration -->
+Projection MUST reject collisions between output roles, retained key aliases and
+declared properties using the existing Graph case-insensitive name identity.
+It MUST NOT overwrite, rename or duplicate a colliding column. Compatible names
+across distinct definitions share a column, with deterministic declared spelling
+and joined nullability; incompatible value types reject. Unknown Graph contracts
+MUST reject rather than invent columns or string/json identity types. Ordinary
+references to Conditional columns MUST reject at check time until a static
+presence proof is supported; sample values, empty data and IS NOT NULL are not
+such proof. Initial public Results require projection to Required columns.
+The checked Bridge MUST complete bounded enumeration in the existing canonical
+Graph identity order before exposing its Relation. That retained producer order
+can pass through guaranteed-column projection to Result publication; a standalone
+output schema does not prove order or a global candidate key. Successful data
+admission, exact input ownership and bounded execution remain separate obligations.
 
 <!-- requirement-block: graph-rows.output-enforcement -->
 Graph row projection MUST enforce the selected Host
@@ -5678,7 +5729,7 @@ one traversal mode. Homogeneous mode requires literal finite integer-valued
 `min_hops` and `max_hops` in the stated ranges and explicit `direction`, with
 optional `edge_types`, `edge_where`, and `node_where`. Pattern mode instead
 requires a nonempty `hops` array
-and rejects all four homogeneous members. Each hop admits only `direction`,
+and rejects the homogeneous direction, bounds and filter members. Each hop admits only `direction`,
 optional `edge_types`, `edge_where`, and `node_where`. A pattern follows its
 entire ordered hop list. Predicates require nullable or non-null boolean and
 retain only true. Edge-type lists contain nonempty normalized strings; absence
@@ -5697,17 +5748,31 @@ check-time error, not an implicit NULL or a runtime fallback. A declared
 nullable property whose value is NULL retains the ordinary expression NULL
 rules. A statically empty edge selection still checks any authored predicate.
 
-`emit: nodes` returns `start_id`, `node_id`, and minimum `depth`, ordered by
-those fields. `emit: paths` additionally requires semantic edge identity and
+<!-- requirement-block: traverse.minimum-eligible-node-depth-and-order -->
+`emit: nodes` returns the required, non-null `start_id`, `node_id`, and minimum
+`depth` columns. Identity columns retain the complete admitted typed Graph
+identity, not an endpoint key, display string or provider locator. The output
+contains exactly one row per typed `(start_id, node_id)` pair and is ordered by
+start identity, then node identity, then depth, using the existing typed
+identity comparison. `emit: paths` additionally requires semantic edge identity and
 returns `start_id`, `end_id`, `hop_count`, `node_ids`, and `edge_ids`. Paths are
-simple (a node cannot repeat) and are ordered by start identity, hop count,
+eligible under the authored `path_mode` and are ordered by start identity, hop count,
 node-identity sequence, then edge-identity sequence using AoA canonical value
 order. Duplicate paths are removed by exact identity.
-For node emission, minimum depth is taken only over simple paths that satisfy
-the complete authored hop and predicate conditions. A shorter ineligible path
-does not suppress an eligible longer one. Node and path emission share this
-path eligibility rule; node emission collapses each start/end pair to its
-minimum eligible depth without changing the path tie order.
+For both emissions, `walk` permits repeated nodes and edges, `trail` forbids
+reusing an edge identity, and `acyclic` forbids revisiting a node identity.
+Finite authored hop bounds still apply to every mode. Node emission takes
+minimum depth only over paths satisfying the entire authored mode, hop range,
+label and predicate conditions. A shorter path below `min_hops` does not
+suppress an eligible longer path; an intermediate node visit MUST NOT prune
+other eligible path states. Parallel edges remain distinct during exploration,
+then node emission collapses their eligible endpoints to the same start/node
+pair. The zero-hop path participates exactly when homogeneous `min_hops` is
+zero. For example, distinct edges A→B and B→A with exactly two hops produce
+`(A, A, 2)` for `walk` and `trail`, but no row for `acyclic`.
+Node deduplication does not change path emission's exact-path identity or tie
+order. The search-path ceiling and the node-output row ceiling remain separate;
+multiple eligible paths to one node do not consume multiple node-output rows.
 
 <!-- requirement-block: traverse.typed-edge-identity-records -->
 In traversal and shortest-path output, each `edge_ids` element MUST be the
@@ -9762,7 +9827,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:b1b5ca9f0cbfee0ec8e9502e7b7eba33c0bddb31d6a0284076ec176ebb9cd73f
+../../spec/contracts/actql-aoa.json# sha256:5f1c2b3b1fc7fb76383ab1ac7cada0c1734bb5d8e21d37b42b6172938c09e951
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:7c14b2a994a8d2ff84e5bf42ee59f0ccfff728982d693426f210b4779d7dac23
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55

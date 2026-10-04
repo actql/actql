@@ -52,13 +52,21 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     query_text_grammar_sha256: fileDigest('spec/grammar/actql-query-0.1.ebnf'),
     query_text_rules_sha256: fileDigest('docs/spec/query-text.md'),
   };
-  // Literal expectations were independently computed with Python hashlib
-  // from the normative roles/files above, not read from generated pins.
+  // Literal expectations bind the independent normative preimage above, not
+  // generated runtime output. Definition selection changes the Program schema
+  // role; the merged branch retains the Graph-row text rules.
   assert.equal(body.query_text_grammar_sha256,
-    'dd90ea227eb23be7003d70d6ae78403576c972875c838c9cad88451563f7bcfc');
+    '7cd11ce7c1e58b585756ef3c8ac0eb078cf2bbb7003086263f665e26251b7f0e');
   assert.equal(body.query_text_rules_sha256,
-    '5bb6f784249ac4d0045be159779759a3e4c17fce84f3bb7f54c568a14199bbd8');
-  const expected = 'sha256:24f53c1f64028206dbc01f6c3d0c11d991c8c9d512581fdfd007a250315f8bbd';
+    '803a87b786e68fe64cc79a49abe359659dc32f5373168ae868b310d2dbb47927');
+  assert.equal(body.source_grammar_cid,
+    'sha256:e9b7efcdee0ef6c06bfb6cbc7805f595e030ecbd79e5afeb0ffa17b755710b7a');
+  assert.equal(cid({...body, query_text_rules_sha256: 'e4639cbce44c77135b0f162475ca653b9774ef593a4c02434f6ea30b34ff2eb2', source_grammar_cid:
+    'sha256:50527c1472e91aa673ad57bcd43141b0e679a2de24cc6bf19efb9e8e32c2607a'}),
+    'sha256:cb357b785390fb3e581a6ece8e61d49d9d93676666df77dd18a2d7f72f381bff');
+  assert.equal(cid({...body, query_text_rules_sha256: 'e4639cbce44c77135b0f162475ca653b9774ef593a4c02434f6ea30b34ff2eb2'}), 'sha256:caad49cf67bec4b67c2cb6beed69e7c9f71a80b19f2e8e04535d0d7f1c12cd90');
+  assert.equal(cid({...body, source_grammar_cid: 'sha256:5cfed3155edea075796e6be985026b6f3d5b59ecc6937540d86c6af7ffc77351'}), 'sha256:d825ab855369e92f2e4da5e9af19567cdc89e431784b09d19c3b57ef2e9f301a');
+  const expected = 'sha256:4ac81bd72c110d09c286a0f2d4c5d68d4340a2e6843d75deabd8dbbd9fb26b77';
   assert.equal(cid(body), expected);
   const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
   assert.deepEqual(pinned, body);

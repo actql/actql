@@ -44,6 +44,8 @@ export const pollDispatchMaterialsJson = (request, inputBindingBody,
     request, inputBindingBody, maxBindingBytes, runMaterials));
 export const pollQueryJson = request =>
   checked(owner.coordinatorPollQueryJson(request));
+export const pollCancelJson = request =>
+  checked(owner.coordinatorPollCancelJson(request));
 export const pollReleaseJson = request =>
   checked(owner.coordinatorPollReleaseJson(request));
 export const admitPollNotSeen = (body, request) =>

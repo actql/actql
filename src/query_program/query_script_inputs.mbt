@@ -3,6 +3,7 @@ priv struct ScriptSources {
   declarations : Array[(String, @builder.Node)]
   stages : Array[@builder.Node]
   bound : Map[String, Input]
+  unshared : Array[String]
 }
 
 ///|
@@ -16,6 +17,7 @@ fn bind_script_input(
   sources : ScriptSources,
   steps : Array[@builder.Node],
   reserved : Array[String],
+  predicate? : @builder.Node? = None,
 ) -> Input raise Abort {
   let fields = columns(input)
   match input.source {
@@ -48,7 +50,9 @@ fn bind_script_input(
             input.name,
             imported,
             fields,
-            construction.object([("literal", construction.add(Bool(true)))]),
+            predicate.unwrap_or_else(() => {
+              construction.object([("literal", construction.add(Bool(true)))])
+            }),
           )
           sources.stages.push(capture)
           reference
@@ -63,4 +67,62 @@ fn bind_script_input(
     // this refusal instead of manufacturing an undeclared Stage dependency.
     StageResult(_, _) => raise Abort(InvalidContext)
   }
+}
+
+///|
+// Conservatively count raw installed-input references before placing an
+// ordinary leading WHERE at the existing capture boundary. Any shared use
+// retains the complete source and applies each consumer's filter downstream.
+fn unshared_script_sources(
+  script : @query.QueryScript,
+  inputs : Array[Input],
+) -> Array[String] {
+  let counts : Map[String, Int] = Map([])
+  let pending = [@query.script_query(script)]
+  for index in 0..<@query.data_declaration_count(script) {
+    match @query.data_declaration_at(script, index).unwrap().value {
+      RelationQuery(query) => pending.push(query)
+      PropertyGraph(mapping) =>
+        for
+          path in mapping.nodes.map(node => node.producer) +
+          mapping.edges.map(edge => edge.producer) {
+          for input in inputs {
+            if input_relation_matches(path, input) {
+              counts[input.name] = counts.get(input.name).unwrap_or(0) + 1
+            }
+          }
+        }
+      NamedGraphCall(_) =>
+        for input in inputs {
+          counts[input.name] = 2
+        }
+    }
+  }
+  while pending.pop() is Some(query) {
+    for index in 0..<@query.cte_count(query) {
+      pending.push(@query.cte_at(query, index).unwrap().query)
+    }
+    for index in 0..<@query.set_part_count(query) {
+      pending.push(@query.set_part_at(query, index).unwrap().right)
+    }
+    let paths = [@query.relation(query)]
+    for index in 0..<@query.join_part_count(query) {
+      paths.push(@query.join_part_at(query, index).unwrap().relation)
+    }
+    for index in 0..<@query.operation_count(query) {
+      if @query.operation_at(query, index) is Some(Nearest(clause)) {
+        paths.push(clause.relation)
+      }
+    }
+    for path in paths {
+      for input in inputs {
+        if input_relation_matches(path, input) {
+          counts[input.name] = counts.get(input.name).unwrap_or(0) + 1
+        }
+      }
+    }
+  }
+  inputs
+  .filter(input => counts.get(input.name) == Some(1))
+  .map(input => input.name)
 }

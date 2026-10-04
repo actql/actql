@@ -40,6 +40,14 @@ Task-wide cumulative work, remaining formal variants, and final-source CI
 are not yet current-profile completion evidence; the old tuple diagnostics
 records below remain historical.
 
+The retained Node Host now also exercises combined node, edge and degree
+threshold violations, zero thresholds on an empty Graph, and `degree` in all
+three directions plus empty output. Each case reads the producer and both
+consumer Named Results from the real Store against fixed rows. The asymmetric
+three-node fixture makes incoming degree and report order observable. The
+single affected Host test passes, but this does not establish task-wide
+cumulative work or every typed-edge definition variant.
+
 The current retained-Store traversal route is exercised for WALK, TRAIL, and
 ACYCLIC `emit: paths` followed by a Relation filter in the same Stage. The
 standard Node Host test reads the producer and two consumer Named Results from
@@ -550,12 +558,12 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Registered operations | 69 |
-| Executable production routes | 54 |
-| Typed pre-execution refusals (not execution success) | 15 |
-| Operation-specific boundary records | 54 |
-| Four-role lifecycle assurance | 54 |
-| Full route work/workspace assurance | 54 |
-| Path-scoped work/workspace assurance | 102 |
+| Executable production routes | 56 |
+| Typed pre-execution refusals (not execution success) | 13 |
+| Operation-specific boundary records | 56 |
+| Four-role lifecycle assurance | 56 |
+| Full route work/workspace assurance | 56 |
+| Path-scoped work/workspace assurance | 104 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -2680,15 +2688,15 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | Coverage state | Count |
 |---|---:|
 | `contract` | 40/40 |
-| `checker` | 21/40 |
-| `lowering` | 21/40 |
-| `kernel` | 21/40 |
-| `managed` | 21/40 |
-| `standard_host` | 21/40 |
-| `consumer_lifetime` | 21/40 |
-| `resources` | 25/40 |
-| `cancellation` | 25/40 |
-| `publication` | 21/40 |
+| `checker` | 23/40 |
+| `lowering` | 23/40 |
+| `kernel` | 23/40 |
+| `managed` | 23/40 |
+| `standard_host` | 23/40 |
+| `consumer_lifetime` | 23/40 |
+| `resources` | 27/40 |
+| `cancellation` | 27/40 |
+| `publication` | 23/40 |
 | `three_targets` | 19/40 |
 | complete operations | 19/40 |
 | open operations | 21/40 |

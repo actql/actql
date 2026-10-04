@@ -120,6 +120,19 @@ fn completed_output_export_rows(
 }
 
 ///|
+impl IndexedRows for CompletedExportRows with fn cell_present(self, row, column) {
+  let source_row = match self.rows {
+    Some(rows) => rows[row]
+    None => row
+  }
+  let source_column = match self.columns {
+    Some(columns) => columns[column]
+    None => column
+  }
+  IndexedRows::cell_present(self.table, source_row, source_column)
+}
+
+///|
 fn spend_result_mapping(work : Ref[Int], amount : Int) -> Bool {
   if amount < 0 || amount > work.val {
     false

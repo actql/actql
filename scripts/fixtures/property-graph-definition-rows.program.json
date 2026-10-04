@@ -1,0 +1,22 @@
+{
+  "version": "actql/0.1",
+  "id": "property-graph-definition-rows",
+  "stages": [{
+    "id": "source",
+    "inputs": {},
+    "steps": [
+      {"values": {"schema": {"person_key": {"type": "number", "nullable": false}, "p": {"type": "number", "nullable": true}}, "rows": [{"person_key": 2, "p": null}, {"person_key": 1, "p": 7}]}, "as": "persons"},
+      {"values": {"schema": {"company_key": {"type": "number", "nullable": false}, "q": {"type": "string", "nullable": false}}, "rows": [{"company_key": 3, "q": "company"}]}, "as": "companies"},
+      {"property_graph": {"version": "actql-property-graph-constructor/0.1", "nodes": [
+        {"name": "Person", "from": "persons", "key": ["person_key"], "labels": [{"name": "Person", "properties": {"mode": "columns", "columns": [{"from": "p", "to": "p"}]}}]},
+        {"name": "Company", "from": "companies", "key": ["company_key"], "labels": [{"name": "Company", "properties": {"mode": "columns", "columns": [{"from": "q", "to": "q"}]}}]}
+      ], "edges": []}, "as": "g"},
+      {"from": "g", "node_rows": {"definition": "Person"}, "as": "people"},
+      {"filter": "p IS NULL OR p > 0", "as": "filtered"},
+      {"rename": {"p": "value"}, "as": "named"},
+      {"select": ["value"], "as": "projected"}
+    ],
+    "results": {"out": {"from": "projected", "fields": ["value"]}}
+  }],
+  "results": {"answer": {"from": {"stage": "source", "result": "out"}}}
+}

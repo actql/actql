@@ -71,11 +71,32 @@ fn valid_cid(value : String) -> Bool {
 }
 
 ///|
+fn emit_presence(
+  schema : @schema.Schema,
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  if @schema.all_fields_required(schema) {
+    return
+  }
+  @encode.key(writer, "column_presence")
+  @encode.begin_object(writer)
+  for index in 0..<@schema.field_count(schema) {
+    let field = @schema.field_at(schema, index).unwrap()
+    if field.presence == @schema.Conditional {
+      @encode.key(writer, @schema.reference_name(field.name))
+      @encode.string_value(writer, "conditional")
+    }
+  }
+  @encode.end_object(writer)
+}
+
+///|
 pub fn emit(
   v : Snapshot,
   writer : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(writer)
+  emit_presence(v.schema, writer)
   if v.materialization is Some(m) {
     @encode.key(writer, "completeness")
     @encode.string_value(
@@ -149,7 +170,7 @@ pub fn read(
     let object = match
       @decode.closed_object(cursor, [
         "version", "source_ref", "output_carrier", "schema", "input_cid", "completeness",
-        "integration_binding_cid", "score_contracts",
+        "integration_binding_cid", "score_contracts", "column_presence",
       ]) {
       Ok(v) => v
       Err(_) => raise Stop(InvalidSnapshot)
@@ -176,12 +197,55 @@ pub fn read(
       Ok(v) => v
       Err(e) => raise Stop(TypeContract(e))
     }
-    let schema = match @schema.from_object(contract) {
+    let dense_schema = match @schema.from_object(contract) {
       Ok(v) => v
       Err(_) => raise Stop(InvalidSnapshot)
     }
     if contract.nullable {
       raise Stop(InvalidSnapshot)
+    }
+    let schema = if @decode.lookup(object, "column_presence") is Some(presence) {
+      let conditional = match @decode.open_object(presence) {
+        Ok(v) => v
+        Err(_) => raise Stop(InvalidSnapshot)
+      }
+      let names = match @decode.object_field_names(presence) {
+        Ok(v) => v
+        Err(_) => raise Stop(InvalidSnapshot)
+      }
+      // Empty metadata is not canonical, and no undeclared column is inferred.
+      if names.is_empty() {
+        raise Stop(InvalidSnapshot)
+      }
+      for name in names {
+        if @schema.lookup_reference(dense_schema, name) is None ||
+          string(conditional, name) != "conditional" {
+          raise Stop(InvalidSnapshot)
+        }
+      }
+      let fields = @schema.fields(dense_schema).map(field => {
+        let presence = if @decode.lookup(
+            conditional,
+            @schema.reference_name(field.name),
+          )
+          is Some(_) {
+          @schema.Conditional
+        } else {
+          @schema.Required
+        }
+        (field.name, field.contract, presence)
+      })
+      match
+        @schema.from_presence_fields(
+          fields,
+          max_fields=limits.max_nodes,
+          max_name_bytes=limits.max_bytes,
+        ) {
+        Ok(v) => v
+        Err(_) => raise Stop(InvalidSnapshot)
+      }
+    } else {
+      dense_schema
     }
     let has_input = @decode.lookup(object, "input_cid") is Some(_)
     let has_complete = @decode.lookup(object, "completeness") is Some(_)

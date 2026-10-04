@@ -100,6 +100,8 @@ fn check_supported_source(
               | "sequence"
               | "events"
               | "property_graph"
+              | "node_rows"
+              | "edge_rows"
               | "match_nodes"
               | "match_edges"
               | "traverse"

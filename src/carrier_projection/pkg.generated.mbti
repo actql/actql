@@ -19,6 +19,8 @@ pub fn operation(CheckedProjection) -> Operation
 
 pub fn output(CheckedProjection) -> @carrier_contract.Carrier
 
+pub fn selected_definition(CheckedProjection) -> String?
+
 pub fn source(CheckedProjection) -> @decode_core.Cursor
 
 pub fn usage(CheckedProjection) -> Usage
@@ -42,6 +44,8 @@ pub(all) enum IssueKind {
   IncompleteGraph
   UnsupportedGraphOperation
   OutputCollision(@relation_schema.FieldName)
+  OutputTypeConflict(@relation_schema.FieldName)
+  UnknownDefinition(String)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Limits {
@@ -54,6 +58,8 @@ pub(all) struct Limits {
 pub(all) enum Operation {
   Events
   Vectors
+  NodeRows
+  EdgeRows
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Usage {

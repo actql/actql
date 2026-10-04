@@ -5,7 +5,7 @@ fn core_contract_local_type(
   index : Int,
   stage_name : String,
   input_name : String,
-  contract : @contract.Contract,
+  schema : @schema.Schema,
 ) -> Unit raise CoreContractStop {
   core_contract_charge(b)
   let remaining = b.limits.max_work - b.work
@@ -17,7 +17,7 @@ fn core_contract_local_type(
       input_name,
       max_bytes=if bytes < remaining { bytes } else { remaining },
     ) {
-    Ok(v) => @local_ref.stringify(v)
+    Ok(v) => v
     Err(@local_ref.LimitExceeded) => raise CoreContractStop(BudgetExceeded)
     Err(_) => raise CoreContractStop(LocalTypeEncoding(stage, index))
   }
@@ -35,16 +35,7 @@ fn core_contract_local_type(
       },
       b.hash_limits.max_depth,
     )
-    @encode.begin_object(writer)
-    @encode.key(writer, "output_carrier")
-    @encode.string_value(writer, "relation")
-    @encode.key(writer, "schema")
-    @contract.emit_checked(contract, writer)
-    @encode.key(writer, "source_ref")
-    @encode.string_value(writer, reference)
-    @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-local-input-schema/0.1")
-    @encode.end_object(writer)
+    @snapshot.emit_schema_type_projection(reference, schema, writer)
     @encode.finish_hash_usage(writer)
   } catch {
     @encode.OutputLimit => raise CoreContractStop(BudgetExceeded)

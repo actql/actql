@@ -82,6 +82,8 @@ pub fn node_accepts_managed_carrier_view(
     | "VEC.score_sort"
     | "VEC.pool"
     | "BRIDGE.events.to_rows"
+    | "BRIDGE.graph.to_node_rows"
+    | "BRIDGE.graph.to_edge_rows"
     | "BRIDGE.vectors.to_rows" => true
     "SGA.apply_delta" => index == 0
     "TEA.join.asof" => index == 0
@@ -105,8 +107,13 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
       operation(node) == "BRIDGE.rows.to_property_graph"
     GraphTraverseRows(checked) =>
       operation(node) == "SGA.traverse" &&
-      @graph.traverse_emission(checked) == @graph.TraversedPaths &&
-      node.input_targets.length() == 2
+      (
+        node.input_targets.length() == 2 ||
+        (
+          @graph.traverse_emission(checked) == @graph.TraversedNodes &&
+          node.input_targets.length() == 1
+        )
+      )
     GraphMatchRows(_) =>
       operation(node) == "SGA.match_nodes" ||
       operation(node) == "SGA.match_edges"
@@ -130,7 +137,9 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     RowWindow(_) => true
     CarrierProjection(_) =>
       operation(node) == "BRIDGE.events.to_rows" ||
-      operation(node) == "BRIDGE.vectors.to_rows"
+      operation(node) == "BRIDGE.vectors.to_rows" ||
+      operation(node) == "BRIDGE.graph.to_node_rows" ||
+      operation(node) == "BRIDGE.graph.to_edge_rows"
     Where(_)
     | Derive(_)
     | Select(_)

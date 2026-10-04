@@ -143,6 +143,23 @@ pub struct LocalManagedSnapshot {
 }
 
 ///|
+/// Representation conversion under the existing Relation completion and task
+/// owner. The installed Store owns bytes; the common exporter/importer owns
+/// presence, order, exact receipts and admission. No Compute is resumed here.
+pub struct LocalManagedRelationSnapshot {
+  key : String
+  frames : LocalInputFrames
+  next : () -> Result[String?, LocalDispatchIssue]
+  content : () -> Result[@carrier_runtime.SnapshotContent, LocalDispatchIssue]
+  release_source : (String, () -> Bool) -> Result[Unit, LocalDispatchIssue]
+  source_available : () -> Bool
+  begin_reload : () -> Result[Unit, LocalDispatchIssue]
+  append_reload : (String) -> Result[Unit, LocalDispatchIssue]
+  finish_reload : () -> Result[Unit, LocalDispatchIssue]
+  finish : () -> Result[Unit, LocalDispatchIssue]
+}
+
+///|
 priv enum SnapshotPhase {
   Saving
   Saved
@@ -188,6 +205,10 @@ pub struct LocalManagedDispatchOperations[T] {
   carrier_material : () -> @carrier_runtime.Material?
   prepare_carrier_snapshot : (() -> Bool) -> Result[
     LocalManagedSnapshot?,
+    LocalDispatchIssue,
+  ]
+  prepare_relation_snapshot : (() -> Bool) -> Result[
+    LocalManagedRelationSnapshot?,
     LocalDispatchIssue,
   ]
   storage_bytes : Int64
@@ -672,6 +693,7 @@ pub fn[T] start_local_managed_dispatch(
   let snapshot_attempted = Ref(false)
   let snapshot_ready = Ref(true)
   let snapshot_storage_released : Ref[(() -> Bool)?] = Ref(None)
+  let relation_snapshot_cancel : Ref[(() -> Unit)?] = Ref(None)
   let execution_finished = Ref(false)
   let execution_failure : Ref[LocalDispatchIssue?] = Ref(None)
   let request = @connector.managed_fixed_compute_candidate_request(
@@ -734,6 +756,10 @@ pub fn[T] start_local_managed_dispatch(
   }
   let cancel_finalization = fn() {
     finalization_cancelled.val = true
+    if relation_snapshot_cancel.val is Some(cancel) {
+      cancel()
+      relation_snapshot_cancel.val = None
+    }
     if finalization_completed.val is Some(completed) && !finalization_ready.val {
       @execution.revoke_unpublished_managed_completed_output(completed)
       |> ignore
@@ -1134,6 +1160,15 @@ pub fn[T] start_local_managed_dispatch(
                 return Err(Configuration(issue))
               }
             }
+            guard local_task_constrain_traversal(
+                setup.run,
+                setup.task,
+                constrained,
+              )
+              is Some(constrained) else {
+              execution_finished.val = true
+              return Err(Configuration(InputUnavailable))
+            }
             let started = match
               @local.start_managed_provider_with_inputs_and_execution(
                 provider,
@@ -1296,6 +1331,7 @@ pub fn[T] start_local_managed_dispatch(
     prepare_finalization: fn(payload, storage_bytes, available) {
       if finalization_started.val ||
         !execution_finished.val ||
+        !snapshot_ready.val ||
         finalization_cancelled.val {
         return Err(Configuration(InvalidLimits))
       }
@@ -1874,6 +1910,260 @@ pub fn[T] start_local_managed_dispatch(
     },
     material: fn() { retained.val },
     carrier_material: fn() { carrier.val },
+    prepare_relation_snapshot: fn(storage_released) {
+      // Retain checked Graph row bridges and node-emitting traversals. The
+      // operation keys come from the checked owner, not caller-supplied names.
+      let prepared = @lower.bound_preparation(
+        @execution.generated_sequence_owner(setup.sequence),
+      )
+      let mut graph_rows = false
+      for
+        position in 0..<@execution.generated_sequence_step_count(setup.sequence) {
+        if @execution.generated_sequence_step_index_at(setup.sequence, position).bind(index => {
+              @lower.node_at(prepared, index)
+            },
+          )
+          is Some(node) {
+          let key = @lower.operation(node)
+          if key == "BRIDGE.graph.to_node_rows" ||
+            key == "BRIDGE.graph.to_edge_rows" {
+            graph_rows = true
+          } else if @lower.sequence_step(
+              @execution.generated_prepared_sequence(setup.sequence),
+              @execution.generated_sequence_step_index_at(
+                setup.sequence,
+                position,
+              ).unwrap(),
+            )
+            is Some(@lower.GraphTraverseStep(traverse)) &&
+            !@lower.graph_traverse_emits_paths(traverse) {
+            graph_rows = true
+          }
+        }
+      }
+      if !graph_rows {
+        return Ok(None)
+      }
+      guard live.val &&
+        execution_finished.val &&
+        execution_failure.val is None &&
+        !snapshot_attempted.val &&
+        !finalization_started.val &&
+        ordinary.val is Some(output) &&
+        carrier.val is None &&
+        provider_execution.val is Some(active) else {
+        return Err(Configuration(InvalidLimits))
+      }
+      let maximum_bytes = Int::min(
+        setup.imports.wire.max_bytes,
+        if setup.capacity.retained_bytes > 2147483647L {
+          2147483647
+        } else {
+          setup.capacity.retained_bytes.to_int()
+        },
+      )
+      if maximum_bytes < 2 {
+        return Err(Configuration(InvalidLimits))
+      }
+      let wire = { ..setup.imports.wire, max_bytes: maximum_bytes, }
+      let frames : LocalInputFrames = {
+        maxBytes: maximum_bytes,
+        maxRows: setup.imports.max_rows,
+        maxRowBytes: setup.imports.row.max_bytes,
+        maxDepth: setup.imports.row.max_depth,
+        maxFrameBytes: Int::min(maximum_bytes, setup.imports.max_batch_bytes),
+      }
+      let exporting = match
+        @execution.prepare_completed_output_export(
+          output,
+          setup.imports.max_rows,
+          setup.imports.values,
+          wire,
+          frames.maxFrameBytes,
+        ) {
+        Ok(value) => value
+        Err(_) => return Err(Configuration(InputUnavailable))
+      }
+      let stream = Ref(Some(exporting))
+      let receipt : Ref[@execution.CompletedOutputExportReceipt?] = Ref(None)
+      let stored : Ref[@execution.CompletedOutput?] = Ref(None)
+      let importing : Ref[@execution.CompletedOutputImport?] = Ref(None)
+      let restored : Ref[@execution.CompletedOutput?] = Ref(None)
+      let phase = Ref(SnapshotPhase::Saving)
+      let remaining = Ref(0L)
+      match @local.managed_provider_cumulative_work(active) {
+        Ok(work) if work >= 0L && work <= setup.execution.max_work.to_int64() =>
+          remaining.val = setup.execution.max_work.to_int64() - work
+        _ => return Err(Configuration(InvalidLimits))
+      }
+      // Each conversion advance/row is charged once by this same task owner.
+      // Typed value traversal retains its existing admission/work limits too.
+      let charge = fn() -> Result[Unit, LocalDispatchIssue] {
+        if !live.val || execution_failure.val is Some(_) || remaining.val < 1L {
+          execution_failure.val = Some(Configuration(InvalidLimits))
+          return Err(Configuration(InvalidLimits))
+        }
+        remaining.val -= 1L
+        @local.managed_provider_record_handoff_work(active, 1L).map_err(_ => {
+          Configuration(InvalidLimits)
+        })
+      }
+      snapshot_attempted.val = true
+      snapshot_ready.val = false
+      snapshot_storage_released.val = Some(storage_released)
+      relation_snapshot_cancel.val = Some(fn() {
+        if stream.val is Some(value) {
+          @execution.cancel_completed_output_export(value)
+        }
+        if receipt.val is Some(value) {
+          @execution.cancel_completed_export_receipt(value)
+        }
+        if importing.val is Some(value) {
+          @execution.cancel_completed_output_import(value) |> ignore
+        }
+        stream.val = None
+        receipt.val = None
+        stored.val = None
+        importing.val = None
+        restored.val = None
+        phase.val = Failed
+      })
+      Ok(
+        Some({
+          key: "relation-task-" + setup.task.to_string(),
+          frames,
+          next: () => {
+            if phase.val == Saved {
+              return Ok(None)
+            }
+            guard phase.val == Saving && stream.val is Some(value) else {
+              return Err(Configuration(InvalidLimits))
+            }
+            if charge() is Err(issue) {
+              return Err(issue)
+            }
+            match @execution.next_completed_output_export(value) {
+              Ok(Some(part)) => Ok(Some(part))
+              Ok(None) => {
+                let (finished, tail) = match
+                  @execution.finish_completed_output_export(value) {
+                  Ok(result) => result
+                  Err(_) => return Err(Configuration(InputUnavailable))
+                }
+                receipt.val = Some(finished)
+                stream.val = None
+                phase.val = Saved
+                Ok(Some(tail))
+              }
+              Err(_) => Err(Configuration(InputUnavailable))
+            }
+          },
+          content: () => {
+            guard phase.val == Saved && receipt.val is Some(value) else {
+              return Err(Configuration(InvalidLimits))
+            }
+            let (cid, bytes, _, _) = @execution.output_stream_identity(
+              @execution.completed_export_content(value),
+            )
+            Ok({ cid, bytes, })
+          },
+          release_source: (cid, available) => {
+            guard live.val && phase.val == Saved && receipt.val is Some(value) else {
+              return Err(Configuration(InvalidLimits))
+            }
+            let content = @execution.completed_export_content(value)
+            let (expected, _, _, _) = @execution.output_stream_identity(content)
+            if cid != expected || !available() {
+              return Err(Configuration(InputUnavailable))
+            }
+            let handle = @execution.retain_admitted_output_stream(
+              content,
+              (),
+              available,
+            )
+            let retained = match
+              @execution.bind_completed_output_export(
+                value,
+                @execution.retained_output_material(handle),
+              ) {
+              Ok(result) => result
+              Err(_) => return Err(Configuration(InputUnavailable))
+            }
+            // The exporter consumed its exact receipt. Retire the driver's
+            // only cell output before the first reload byte can be admitted.
+            receipt.val = None
+            ordinary.val = None
+            stored.val = Some(retained)
+            phase.val = Released
+            Ok(())
+          },
+          source_available: () => ordinary.val is Some(_),
+          begin_reload: () => {
+            guard live.val && phase.val == Released && stored.val is Some(value) else {
+              return Err(Configuration(InvalidLimits))
+            }
+            let value = match
+              @execution.prepare_completed_output_import(
+                value,
+                setup.imports.max_rows,
+                setup.imports.values,
+                wire,
+                frames.maxFrameBytes,
+              ) {
+              Ok(result) => result
+              Err(_) => return Err(Configuration(InputUnavailable))
+            }
+            importing.val = Some(value)
+            phase.val = Reloading
+            Ok(())
+          },
+          append_reload: row => {
+            guard phase.val == Reloading && importing.val is Some(value) else {
+              return Err(Configuration(InvalidLimits))
+            }
+            if charge() is Err(issue) {
+              return Err(issue)
+            }
+            @execution.append_completed_output_import_wire(
+              value,
+              row,
+              setup.imports.row,
+            ).map_err(_ => Configuration(InputUnavailable))
+          },
+          finish_reload: () => {
+            guard phase.val == Reloading && importing.val is Some(value) else {
+              return Err(Configuration(InvalidLimits))
+            }
+            if charge() is Err(issue) {
+              return Err(issue)
+            }
+            let value = match @execution.finish_completed_output_import(value) {
+              Ok(result) => result
+              Err(_) => return Err(Configuration(InputUnavailable))
+            }
+            restored.val = Some(value)
+            importing.val = None
+            stored.val = None
+            phase.val = Restored
+            Ok(())
+          },
+          finish: () => {
+            guard live.val &&
+              phase.val == Restored &&
+              storage_released() &&
+              restored.val is Some(value) else {
+              return Err(Configuration(InvalidLimits))
+            }
+            ordinary.val = Some(value)
+            restored.val = None
+            relation_snapshot_cancel.val = None
+            phase.val = Finished
+            snapshot_ready.val = true
+            Ok(())
+          },
+        }),
+      )
+    },
     prepare_carrier_snapshot: fn(storage_released) {
       guard live.val &&
         execution_finished.val &&

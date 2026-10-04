@@ -2,6 +2,8 @@
 pub(all) enum Operation {
   Events
   Vectors
+  NodeRows
+  EdgeRows
 } derive(Eq, Debug)
 
 ///|
@@ -13,6 +15,8 @@ pub(all) enum IssueKind {
   IncompleteGraph
   UnsupportedGraphOperation
   OutputCollision(@row.FieldName)
+  OutputTypeConflict(@row.FieldName)
+  UnknownDefinition(String)
 } derive(Eq, Debug)
 
 ///|
@@ -44,6 +48,7 @@ struct CheckedProjection {
   input : @carrier.Carrier
   output : @carrier.Carrier
   usage : Usage
+  definition : String?
 }
 
 ///|
@@ -74,15 +79,21 @@ pub fn check(
   if limits.max_work == 0 || limits.max_nodes == 0 {
     return Err(issue(source, BudgetExceeded))
   }
-  if @decode.boolean(source) != Ok(true) {
+  if operation != NodeRows &&
+    operation != EdgeRows &&
+    @decode.boolean(source) != Ok(true) {
     return Err(issue(source, InvalidBody))
   }
   let expected = match operation {
     Events => @carrier.EventsKind
     Vectors => @carrier.VectorsKind
+    NodeRows | EdgeRows => @carrier.GraphKind
   }
   if @carrier.kind(input) != expected {
     return Err(issue(source, WrongCarrier(@carrier.kind(input))))
+  }
+  if operation == NodeRows || operation == EdgeRows {
+    return check_graph_rows(operation, source, input, limits)
   }
   let records = match input {
     @carrier.EventValue(e) => e.records
@@ -112,6 +123,7 @@ pub fn check(
       nodes: 1,
       text_bytes: limits.max_text_bytes - text,
     },
+    definition: None,
   })
 }
 
@@ -138,4 +150,10 @@ pub fn output(value : CheckedProjection) -> @carrier.Carrier {
 ///|
 pub fn usage(value : CheckedProjection) -> Usage {
   value.usage
+}
+
+///|
+/// Resolved admitted definition name; None retains the all-definition Bridge.
+pub fn selected_definition(value : CheckedProjection) -> String? {
+  value.definition
 }

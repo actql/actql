@@ -1803,11 +1803,59 @@ async function exerciseStrategyGraph(
       {kind:'edges',node_id:null,actual:2,max:1},
     ],
   }, {
+    name: 'retained-graph-bounds-all-thresholds', retainedOutput:true,
+    selectedStructural:true,
+    inputRows:[
+      {id:1,src:1,dst:2,node_name:'first',weight:10},
+      {id:2,src:2,dst:1,node_name:'second',weight:20},
+      {id:3,src:3,dst:1,node_name:'third',weight:30},
+    ],
+    step:{from:'g',graph_bounds:{max_nodes:2,max_edges:2,max_degree:2},as:'out'},
+    fields:['kind','actual','max'],secondFields:['kind'],
+    expected:[
+      {kind:'nodes',actual:3,max:2},
+      {kind:'edges',actual:3,max:2},
+      {kind:'degree',actual:3,max:2},
+    ],
+  }, {
+    name: 'retained-graph-bounds-empty', retainedOutput:true,
+    selectedStructural:true,inputRows:[],
+    step:{from:'g',graph_bounds:{max_nodes:0,max_edges:0,max_degree:0},as:'out'},
+    fields:['kind','node_id','actual','max'],secondFields:['kind'],
+    expected:[],
+  }, {
     name: 'retained-degree-metrics', retainedOutput:true,
     selectedStructural:true,
     step:{from:'g',degree:{direction:'both'},as:'out'},
     fields:['degree'],secondFields:['degree'],
     expected:[{degree:2},{degree:2}],
+  }, {
+    name: 'retained-degree-in', retainedOutput:true,
+    selectedStructural:true,
+    inputRows:[
+      {id:1,src:1,dst:2,node_name:'first',weight:10},
+      {id:2,src:2,dst:1,node_name:'second',weight:20},
+      {id:3,src:3,dst:1,node_name:'third',weight:30},
+    ],
+    step:{from:'g',degree:{direction:'in'},as:'out'},
+    fields:['degree'],secondFields:['degree'],
+    expected:[{degree:2},{degree:1},{degree:0}],
+  }, {
+    name: 'retained-degree-out', retainedOutput:true,
+    selectedStructural:true,
+    inputRows:[
+      {id:1,src:1,dst:2,node_name:'first',weight:10},
+      {id:2,src:2,dst:1,node_name:'second',weight:20},
+      {id:3,src:3,dst:1,node_name:'third',weight:30},
+    ],
+    step:{from:'g',degree:{direction:'out'},as:'out'},
+    fields:['degree'],secondFields:['degree'],
+    expected:[{degree:1},{degree:1},{degree:1}],
+  }, {
+    name: 'retained-degree-empty', retainedOutput:true,
+    selectedStructural:true,inputRows:[],
+    step:{from:'g',degree:{direction:'both'},as:'out'},
+    fields:['degree'],secondFields:['degree'],expected:[],
   }, {
     name:'retained-labelled-node-match', retainedOutput:true,
     selectedStructural:true,
@@ -1927,6 +1975,10 @@ async function exerciseStrategyGraph(
   }];
   for (const publicationCase of graphPublicationCases) {
     const graphProgram = structuredClone(graphProgramBase);
+    if (publicationCase.inputRows !== undefined) {
+      graphProgram.stages.find(stage => stage.id === 'values')
+        .steps[0].values.rows = publicationCase.inputRows;
+    }
     const graphStage = graphProgram.stages.find(stage => stage.id === 'graph');
     const consumerA = graphProgram.stages.find(stage => stage.id === 'consumer_a');
     const consumerB = graphProgram.stages.find(stage => stage.id === 'consumer_b');
