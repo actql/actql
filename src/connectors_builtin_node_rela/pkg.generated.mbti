@@ -4,6 +4,7 @@ package "actql/actql/connectors_builtin_node_rela"
 import {
   "actql/actql/canonical_json",
   "actql/actql/client_local_host",
+  "actql/actql/client_row_source_host",
   "actql/actql/client_salesforce_host",
   "actql/actql/connector_sdk",
   "actql/actql/connectors/reference_compute",
@@ -714,6 +715,34 @@ pub fn client_program_result_row_contract_name(@run_publication_host.ClientResul
 pub fn client_program_result_row_contract_unit_cid(@run_publication_host.ClientResultRowContractIdentity) -> String
 
 pub fn client_program_result_row_contract_wire(@run_publication_host.ClientResultRowContractIdentity) -> String
+
+pub fn client_program_row_source_accept_page(@client_row_source_host.RowRun, Bytes) -> Result[Int, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_attempt(@client_row_source_host.RowRun) -> @client_row_source_host.RowAttempt
+
+pub fn client_program_row_source_begin(@client_row_source_host.RowRun, Int, Int, Int) -> Result[Bool, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_capture(@client_row_source_host.RowRun) -> Result[@client_row_source_host.RowSourceCapture, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_capture_source(@client_row_source_host.RowSourceCapture) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]
+
+pub fn client_program_row_source_close(@client_row_source_host.RowRun) -> Unit
+
+pub fn client_program_row_source_columns(@client_row_source_host.RowAcquisition) -> Array[String]
+
+pub fn client_program_row_source_declaration_json(@client_row_source_host.RowDeclaration) -> String
+
+pub fn client_program_row_source_finish(@client_row_source_host.RowRun) -> Result[Bool, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_issue_source_evidence(@client_row_source_host.RowAcquisition, @client_row_source_host.RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[String, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_prepare_acquisition(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String) -> Result[@client_row_source_host.RowAcquisition, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_restore_declaration(String, String, String, String, String?) -> Result[@client_row_source_host.RowDeclaration, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_start(@client_row_source_host.RowAcquisition, String, (@client_row_source_host.RowAttempt) -> Bool) -> Result[@client_row_source_host.RowRun, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_target(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement) -> Result[Array[String], @client_row_source_host.RowHostIssue]
 
 pub fn client_program_salesforce_acquisition_start(@client_salesforce_host.ClientSalesforceAcquisition, String, (@actql/actql/connectors/salesforce/host.SalesforceBroadAttempt) -> Bool) -> Result[@actql/actql/connectors/salesforce/host.SalesforceBroadHostRun, @client_salesforce_host.ClientSalesforceIssue]
 
