@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "advisory-local-verification-guidance",
+  "kind": "change",
+  "revision": "c0b5e9170678b81106c73e8fc9e767e22593accc",
+  "parents": [
+    "e9718942f8956519cc214c7237c53970a783f556"
+  ],
+  "changes": [
+    {
+      "path": "scripts/local-checks.mjs",
+      "before": [
+        {
+          "revision": "e9718942f8956519cc214c7237c53970a783f556",
+          "digest": "c08cc71efdca36baa1d93f8cae1186a532331f6e160c58a439bc8d0d783829de",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "09393983e76ecbd9c61b4a0fb135734a14a0593a5bfb0f9076d01647bc43d685",
+      "afterMode": "100644",
+      "reason": "Correct changed-command guidance to match the existing focused local verification policy. Related CI jobs remain advisory; preserve every execution, classification, budget, lock and CI-only boundary. No selector, workflow, product or proof acceptance behavior changes."
+    }
+  ]
+}
