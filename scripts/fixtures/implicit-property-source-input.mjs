@@ -1,7 +1,9 @@
 // Authored expectations: public leaf names and common nullable property values.
 // Neither the Frontend nor observed Result rows generate this fixture.
 const number = {type: 'number', nullable: false};
-const risk = {type: 'string', nullable: true, max_utf8_bytes: 4};
+// String bounds come from admitted evidence, not author declarations. The
+// parameter type retains its declared unbounded string contract after binding.
+const risk = {type: 'string', nullable: true};
 const payload = {type: 'object', nullable: true, fields: {
   score: number, inner: {type: 'object', nullable: true, fields: {risk}},
 }};

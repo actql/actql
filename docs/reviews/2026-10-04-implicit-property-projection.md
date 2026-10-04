@@ -97,6 +97,15 @@ expected contracts from rows.
 - An intermediate ambiguity test altered only Context visibility and was
   correctly rejected as an inconsistent Context. Its fixture was corrected to
   include both actual case-colliding receiver fields; no product check was relaxed.
+- The first clean packed attempt at `96665feaa4c53cdc71588f0681935bf6ae3ab3fb`
+  (`public-query-evidence-naa0VV`) stopped before Run admission at the independent
+  JSON control. Its authored nested string declaration incorrectly included
+  checked-only `max_utf8_bytes`, forbidden by the existing
+  [Value contract declaration rules](../spec/language.md#value-contracts).
+  The fixture now uses the declared string contract, without inventing admitted
+  size evidence. Rows, order, NULL expectations and product code are unchanged.
+  Logs and the failure receipt were retained; disposable installation artifacts
+  were removed. Text positives, refusals and HTTP were not reached in that run.
 - Fresh packed Local/HTTP acceptance and submitted-HEAD CI are pending at this
   source commit. Full Core, all targets, native, proof and performance campaigns
   were not run locally. No Google service differential execution was performed.
