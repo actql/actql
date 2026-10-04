@@ -17,12 +17,27 @@ import {authorizedLocalResultFrames} from './in-process-result.mjs';
 import {publicClientErrorCode, publicClientErrorStatus} from './client-http.mjs';
 
 const localErrors = new WeakSet();
+const publicError = (code, status) => {
+  const error = new ClientError(code, {status});
+  delete error.stack;
+  return error;
+};
 const fail = code => {
-  const error = new ClientError(code,
-    {status: publicClientErrorStatus({code})});
+  const error = publicError(code, publicClientErrorStatus({code}));
   localErrors.add(error);
   throw error;
 };
+const publicFailure = error => localErrors.has(error) ? error
+  : publicError(publicClientErrorCode(error), publicClientErrorStatus(error));
+
+function publicResultRows(response) {
+  return Object.freeze({kind: 'rows', frames: Object.freeze({
+    async *[Symbol.asyncIterator]() {
+      try { yield* response.frames; }
+      catch (error) { throw publicFailure(error); }
+    },
+  })});
+}
 
 export function createNodeInProcessClientHost({
   authenticate, authorizeConnection, negotiate, prepareSubmit, submit,
@@ -192,19 +207,17 @@ export function createNodeInProcessClientHost({
         return found;
       }
       if (operation === 'read') {
-        return authorizedLocalResultFrames(resultService, {
+        return publicResultRows(authorizedLocalResultFrames(resultService, {
           indexKey: ref, principalId, purpose: 'download',
           resultName: body.resultName, attemptId: body.attemptId,
-        }, signal, {maxRowBytes});
+        }, signal, {maxRowBytes}));
       }
       fail('UnknownClientOperation');
     } catch (error) {
       // Input and reply diagnostics created by this ingress are already
       // public Client errors. A handler-supplied ClientError is not proof
       // that its code is public; classify it like any other Host failure.
-      if (localErrors.has(error)) throw error;
-      throw new ClientError(publicClientErrorCode(error),
-        {status: publicClientErrorStatus(error), cause: error});
+      throw publicFailure(error);
     }
   }});
 }
