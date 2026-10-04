@@ -10,8 +10,9 @@ pub(all) enum LinkIssue {
 } derive(Eq, Debug)
 
 ///|
-/// The next page of one listing: its exact request path and query pairs, on
-/// the listing's own origin and Resource path, at a strictly later page.
+/// The next page of one listing: its exact request path and decoded query
+/// pairs (to be encoded once by the common exchange), on the listing's own
+/// origin and Resource path, at a strictly later page.
 pub(all) struct NextPage {
   path : String
   query : Array[(String, String)]
@@ -80,6 +81,66 @@ fn next_target(link : String) -> Result[String?, LinkIssue] {
 }
 
 ///|
+fn hex_value(unit : Int) -> Int? {
+  if unit >= 48 && unit <= 57 {
+    Some(unit - 48)
+  } else if unit >= 65 && unit <= 70 {
+    Some(unit - 55)
+  } else if unit >= 97 && unit <= 102 {
+    Some(unit - 87)
+  } else {
+    None
+  }
+}
+
+///|
+/// Decode one query component of a provider locator. Unreserved characters
+/// stay as they are; `%XX` escapes decode to printable ASCII. Anything else,
+/// an invalid escape, or a decoded control or non-ASCII byte refuses the
+/// link. The decoded value is handed to the common request encoder, which
+/// encodes it exactly once.
+fn decode_component(text : String) -> String? {
+  let decoded = StringBuilder()
+  let mut index = 0
+  while index < text.length() {
+    let unit = text[index].to_int()
+    if unit == 37 {
+      if index + 2 >= text.length() {
+        return None
+      }
+      let value = match
+        (
+          hex_value(text[index + 1].to_int()),
+          hex_value(text[index + 2].to_int()),
+        ) {
+        (Some(high), Some(low)) => high * 16 + low
+        _ => return None
+      }
+      if value < 32 || value > 126 {
+        return None
+      }
+      decoded.write_char(Int::unsafe_to_char(value))
+      index = index + 3
+      continue
+    }
+    let unreserved = (unit >= 48 && unit <= 57) ||
+      (unit >= 65 && unit <= 90) ||
+      (unit >= 97 && unit <= 122) ||
+      unit == 45 ||
+      unit == 46 ||
+      unit == 95 ||
+      unit == 126 ||
+      unit == 44
+    if !unreserved {
+      return None
+    }
+    decoded.write_char(Int::unsafe_to_char(unit))
+    index = index + 1
+  }
+  Some(decoded.to_string())
+}
+
+///|
 fn query_pairs(query : String) -> Result[Array[(String, String)], LinkIssue] {
   let pairs = []
   if query.length() == 0 {
@@ -90,23 +151,10 @@ fn query_pairs(query : String) -> Result[Array[(String, String)], LinkIssue] {
     if pair.length() != 2 || pair[0].length() == 0 {
       return Err(MalformedLink)
     }
-    for part in pair {
-      for index = 0; index < part.length(); index = index + 1 {
-        let unit = part[index].to_int()
-        let unreserved = (unit >= 48 && unit <= 57) ||
-          (unit >= 65 && unit <= 90) ||
-          (unit >= 97 && unit <= 122) ||
-          unit == 45 ||
-          unit == 46 ||
-          unit == 95 ||
-          unit == 126 ||
-          unit == 44
-        if !unreserved {
-          return Err(MalformedLink)
-        }
-      }
+    match (decode_component(pair[0]), decode_component(pair[1])) {
+      (Some(name), Some(value)) => pairs.push((name, value))
+      _ => return Err(MalformedLink)
     }
-    pairs.push((pair[0], pair[1]))
   }
   Ok(pairs)
 }

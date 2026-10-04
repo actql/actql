@@ -157,14 +157,76 @@ test "next page stays on the listing, advances, and refuses malformed links" {
     malformed in [
       "https://api.github.com/repos/o/r/issues?page=2; rel=\"next\"", "<https://api.github.com/repos/o/r/issues?page=2>; title=\"x\"",
       "<https://api.github.com/repos/o/r/issues>; rel=\"next\"", "<https://api.github.com/repos/o/r/issues?page=x>; rel=\"next\"",
-      "<https://api.github.com/repos/o/r/issues?page=2&page=3>; rel=\"next\"", "<https://api.github.com/repos/o/r/issues?q=a%20b&page=2>; rel=\"next\"",
-      "<https://api.github.com/repos/o/r/issues?page=2>; rel=\"next\", <https://api.github.com/repos/o/r/issues?page=3>; rel=\"next\"",
+      "<https://api.github.com/repos/o/r/issues?page=2&page=3>; rel=\"next\"", "<https://api.github.com/repos/o/r/issues?q=a%2&page=2>; rel=\"next\"",
+      "<https://api.github.com/repos/o/r/issues?q=%zz&page=2>; rel=\"next\"", "<https://api.github.com/repos/o/r/issues?q=%0A&page=2>; rel=\"next\"",
+      "<https://api.github.com/repos/o/r/issues?q=%C3%A9&page=2>; rel=\"next\"",
+      "<https://api.github.com/repos/o/r/issues?q=a:b&page=2>; rel=\"next\"", "<https://api.github.com/repos/o/r/issues?page=2>; rel=\"next\", <https://api.github.com/repos/o/r/issues?page=3>; rel=\"next\"",
     ] {
     assert_eq(
       next_page(Some(malformed), origin, path, 1, 2048),
       Err(MalformedLink),
     )
   }
+}
+
+///|
+test "a since-filtered continuation decodes its query once and keeps the date" {
+  let origin = "https://api.github.com"
+  let path = "/repos/o/r/issues"
+  let link = "<https://api.github.com/repos/o/r/issues?state=all&since=2026-10-01T00%3A00%3A00Z&per_page=2&page=2>; rel=\"next\""
+  assert_eq(
+    next_page(Some(link), origin, path, 1, 2048),
+    Ok(
+      Some({
+        path,
+        query: [
+          ("state", "all"),
+          ("since", "2026-10-01T00:00:00Z"),
+          ("per_page", "2"),
+          ("page", "2"),
+        ],
+        page: 2,
+      }),
+    ),
+  )
+  // Lowercase escapes and a space escape decode to the same printable text.
+  assert_eq(
+    next_page(
+      Some(
+        "<https://api.github.com/repos/o/r/issues?labels=a%20b%2cc&page=3>; rel=\"next\"",
+      ),
+      origin,
+      path,
+      2,
+      2048,
+    ),
+    Ok(Some({ path, query: [("labels", "a b,c"), ("page", "3")], page: 3, })),
+  )
+  // Foreign origins and cycles stay refused with an escaped query.
+  assert_eq(
+    next_page(
+      Some(
+        "<https://evil.example/repos/o/r/issues?since=2026-10-01T00%3A00%3A00Z&page=2>; rel=\"next\"",
+      ),
+      origin,
+      path,
+      1,
+      2048,
+    ),
+    Err(ForeignOrigin),
+  )
+  assert_eq(
+    next_page(
+      Some(
+        "<https://api.github.com/repos/o/r/issues?since=2026-10-01T00%3A00%3A00Z&page=2>; rel=\"next\"",
+      ),
+      origin,
+      path,
+      2,
+      2048,
+    ),
+    Err(NonAdvancingPage),
+  )
 }
 
 ///|
