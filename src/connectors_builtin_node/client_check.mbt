@@ -137,9 +137,12 @@ fn check_source_findings(
           // or attempting name resolution against unadmitted declarations.
           match @source_frontend.parse_query(document, selected) {
             Ok(_) => ()
-            Err(QuerySyntax({ issue: Limit(_), .. })) => ()
             Err(QuerySyntax(diagnostic)) =>
-              findings.push(check_syntax_finding(diagnostic))
+              if check_syntax_budget(diagnostic.issue) {
+                ()
+              } else {
+                findings.push(check_syntax_finding(diagnostic))
+              }
             Err(WrongQueryForm) =>
               findings.push(Violation("query_syntax_invalid"))
             Err(_) => return Failed("check_internal")
@@ -229,10 +232,12 @@ fn check_source_findings(
     Ok(value) => value
     Err(issue) => {
       match issue {
-        QuerySyntax({ issue: Limit(_), .. }) =>
-          findings.push(Limit("analysis_budget_exhausted"))
         QuerySyntax(diagnostic) =>
-          findings.push(check_syntax_finding(diagnostic))
+          if check_syntax_budget(diagnostic.issue) {
+            findings.push(Limit("analysis_budget_exhausted"))
+          } else {
+            findings.push(check_syntax_finding(diagnostic))
+          }
         WrongQueryForm => findings.push(Violation("query_syntax_invalid"))
         // Absent and inaccessible relations are both missing from the
         // audience-visible publication; neither is a proven violation.
@@ -369,6 +374,13 @@ priv enum CheckInputFault {
 ///|
 fn check_parse_budget(issue : @source.ParseIssue) -> Bool {
   issue is (InputLimit | NodeLimit | DepthLimit)
+}
+
+///|
+/// Source admission has its own byte budget, before any token is scanned.
+/// Both parser paths use its typed failure, never a syntax message.
+fn check_syntax_budget(issue : @query_syntax.Issue) -> Bool {
+  issue is (Limit(_) | Source(@source_origin.InputLimit))
 }
 
 ///|

@@ -83,6 +83,14 @@ const mutations = [
   ['an invalid declaration points at the root instead of its failing member',
     'writer, "parameter_declarations", revision, pointer,',
     'writer, "parameter_declarations", revision, "",'],
+  ['a source byte budget is treated as a syntax violation',
+    'issue is (Limit(_) | Source(@source_origin.InputLimit))',
+    'issue is Limit(_)'],
+  ['a source byte budget becomes invalid after declaration exhaustion',
+    'Err(QuerySyntax(diagnostic)) =>\n' +
+    '              if check_syntax_budget(diagnostic.issue) {',
+    'Err(QuerySyntax(diagnostic)) =>\n' +
+    '              if diagnostic.issue is Limit(_) {'],
 ];
 
 const strict = id => ({id, operator: 'strictEqual'});
@@ -120,6 +128,10 @@ const targets = [
     [strict('declaration-outcome'), deep('declaration-location')]],
   ['invalid declarations retain only their owned submitted locations',
     [strict('declaration-outcome'), deep('declaration-location')]],
+  ...Array.from({length: 2}, () =>
+    ['source byte exhaustion is a limit of the original bound check',
+      [strict('source-byte-outcome'), strict('source-byte-verdict'),
+        deep('source-byte-reasons'), deep('source-byte-coverage')]]),
 ];
 
 // Reuse the common reporter and nonzero-execution evidence. A process failure
