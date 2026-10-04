@@ -159,7 +159,9 @@ test "next page stays on the listing, advances, and refuses malformed links" {
       "<https://api.github.com/repos/o/r/issues>; rel=\"next\"", "<https://api.github.com/repos/o/r/issues?page=x>; rel=\"next\"",
       "<https://api.github.com/repos/o/r/issues?page=2&page=3>; rel=\"next\"", "<https://api.github.com/repos/o/r/issues?q=a%2&page=2>; rel=\"next\"",
       "<https://api.github.com/repos/o/r/issues?q=%zz&page=2>; rel=\"next\"", "<https://api.github.com/repos/o/r/issues?q=%0A&page=2>; rel=\"next\"",
-      "<https://api.github.com/repos/o/r/issues?q=%C3%A9&page=2>; rel=\"next\"",
+      "<https://api.github.com/repos/o/r/issues?q=%C3%28&page=2>; rel=\"next\"",
+      "<https://api.github.com/repos/o/r/issues?q=%C2%85&page=2>; rel=\"next\"",
+      "<https://api.github.com/repos/o/r/issues?q=%7F&page=2>; rel=\"next\"", "<https://api.github.com/repos/o/r/issues?q=%ED%A0%80&page=2>; rel=\"next\"",
       "<https://api.github.com/repos/o/r/issues?q=a:b&page=2>; rel=\"next\"", "<https://api.github.com/repos/o/r/issues?page=2>; rel=\"next\", <https://api.github.com/repos/o/r/issues?page=3>; rel=\"next\"",
     ] {
     assert_eq(
@@ -422,5 +424,73 @@ test "comment creation settles only on documented outcomes" {
   assert_eq(
     classify_comment_response(200, headers([]), created, 10000),
     Unknown,
+  )
+}
+
+///|
+test "non-ASCII query values decode as exact UTF-8, without normalization" {
+  let origin = "https://api.github.com"
+  let path = "/repos/o/r/issues"
+  // labels=日本語 ラベル, as URLSearchParams spells it (space as %20 here).
+  let link = "<https://api.github.com/repos/o/r/issues?labels=%E6%97%A5%E6%9C%AC%E8%AA%9E%20%E3%83%A9%E3%83%99%E3%83%AB&page=2>; rel=\"next\""
+  assert_eq(
+    next_page(Some(link), origin, path, 1, 2048),
+    Ok(
+      Some({
+        path,
+        query: [
+          ("labels", "\u{65E5}\u{672C}\u{8A9E} \u{30E9}\u{30D9}\u{30EB}"),
+          ("page", "2"),
+        ],
+        page: 2,
+      }),
+    ),
+  )
+  // NFC and NFD spellings stay distinct values.
+  let nfc = next_page(
+    Some(
+      "<https://api.github.com/repos/o/r/issues?labels=caf%C3%A9&page=2>; rel=next",
+    ),
+    origin,
+    path,
+    1,
+    2048,
+  )
+  let nfd = next_page(
+    Some(
+      "<https://api.github.com/repos/o/r/issues?labels=cafe%CC%81&page=2>; rel=next",
+    ),
+    origin,
+    path,
+    1,
+    2048,
+  )
+  assert_eq(
+    nfc,
+    Ok(
+      Some({ path, query: [("labels", "caf\u{E9}"), ("page", "2")], page: 2, }),
+    ),
+  )
+  assert_eq(
+    nfd,
+    Ok(
+      Some({ path, query: [("labels", "cafe\u{301}"), ("page", "2")], page: 2, }),
+    ),
+  )
+  // A component beyond the byte bound is refused, not truncated.
+  let long = "%E3%81%82".repeat(400)
+  assert_eq(
+    next_page(
+      Some(
+        "<https://api.github.com/repos/o/r/issues?labels=" +
+        long +
+        "&page=2>; rel=next",
+      ),
+      origin,
+      path,
+      1,
+      100000,
+    ),
+    Err(MalformedLink),
   )
 }

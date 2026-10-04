@@ -249,13 +249,18 @@ fn hex_value(unit : Int) -> Int? {
 }
 
 ///|
+/// The decoded bytes of one query component may not exceed this bound.
+let max_component_bytes : Int = 1024
+
+///|
 /// Decode one query component of a provider locator. Unreserved characters
-/// stay as they are; `%XX` escapes decode to printable ASCII. Anything else,
-/// an invalid escape, or a decoded control or non-ASCII byte refuses the
-/// link. The decoded value is handed to the common request encoder, which
-/// encodes it exactly once.
+/// stand for themselves and `%XX` escapes are collected as bytes; the bytes
+/// must be valid UTF-8 (a byte-order mark is kept as a character) with no
+/// control character, within a fixed byte bound. Nothing is normalized: the
+/// decoded value is handed to the common request encoder, which encodes it
+/// exactly once.
 fn decode_component(text : String) -> String? {
-  let decoded = StringBuilder()
+  let bytes : Array[Byte] = []
   let mut index = 0
   while index < text.length() {
     let unit = text[index].to_int()
@@ -271,28 +276,37 @@ fn decode_component(text : String) -> String? {
         (Some(high), Some(low)) => high * 16 + low
         _ => return None
       }
-      if value < 32 || value > 126 {
+      bytes.push(value.to_byte())
+      index = index + 3
+    } else {
+      let unreserved = (unit >= 48 && unit <= 57) ||
+        (unit >= 65 && unit <= 90) ||
+        (unit >= 97 && unit <= 122) ||
+        unit == 45 ||
+        unit == 46 ||
+        unit == 95 ||
+        unit == 126 ||
+        unit == 44
+      if !unreserved {
         return None
       }
-      decoded.write_char(Int::unsafe_to_char(value))
-      index = index + 3
-      continue
+      bytes.push(unit.to_byte())
+      index = index + 1
     }
-    let unreserved = (unit >= 48 && unit <= 57) ||
-      (unit >= 65 && unit <= 90) ||
-      (unit >= 97 && unit <= 122) ||
-      unit == 45 ||
-      unit == 46 ||
-      unit == 95 ||
-      unit == 126 ||
-      unit == 44
-    if !unreserved {
+    if bytes.length() > max_component_bytes {
       return None
     }
-    decoded.write_char(Int::unsafe_to_char(unit))
-    index = index + 1
   }
-  Some(decoded.to_string())
+  let decoded = @utf8.decode(Bytes::from_array(bytes), ignore_bom=false) catch {
+    _ => return None
+  }
+  for character in decoded {
+    let code = character.to_int()
+    if code < 32 || (code >= 127 && code <= 159) {
+      return None
+    }
+  }
+  Some(decoded)
 }
 
 ///|
