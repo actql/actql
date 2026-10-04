@@ -93,8 +93,19 @@ correction or independent execution harness is used.
   assertion was corrected (`run-o2wlyG`). The preceding **6/7** result
   (`run-QZ1eBQ`) is preserved as the assertion correction's evidence.
 - Node public-case controls: **2/2** (`run-kb1zT0`).
+- After the current-parent integration, focused JS `*GROUP*` remains **16/16**
+  (`run-iRVN1E`).
 - Pinned Moon formatting, Node syntax and diff checks pass.
-- Fresh packed Local/HTTP and exact submitted-HEAD automatic CI: not yet run.
+- Fresh packed Embedded Local/authenticated HTTP at
+  `bf39d807dd5ad2253e9167727c61bad9b8d7970b`: **9 positives and 6
+  pre-admission refusals per transport pass**. The complete
+  `public-query-evidence-E7J4xm` receipt has no evidence errors. Acceptance
+  command 012 exits 0, signal null, with complete output (50.0s). The installed
+  consumer runs outside the checkout without a MoonBit runtime or fixture
+  overlay. Successful temporary installations are removed after retaining
+  SHA/digests, logs and complete receipts.
+- Exact submitted-HEAD automatic CI: pending. The following evidence-only
+  commit does not relabel the packed product's SHA as a different verified tree.
 - No full local Core, all-target, proof, performance or manual CI rerun.
 
 Reproduce the selected public corpus using the repository-pinned toolchain:
@@ -102,6 +113,16 @@ Reproduce the selected public corpus using the repository-pinned toolchain:
 ```sh
 node scripts/test-packed-public-query.mjs --group-ordinal-only
 ```
+
+Normally packed distributions at the product SHA above:
+
+| Package | SHA-256 |
+|---|---|
+| actql-client-wire-0.0.0-development.tgz | `6b448edf6ff246e1865858e9ed654e6f973c602e60b65447bcd7bbdd0afaefde` |
+| actql-sdk-0.0.0-development.tgz | `fe9a883871c2c506df607a21dc5431e9aa0e484bab9673dd44b32213a0ab074f` |
+| actql-run-host-core-0.0.0-development.tgz | `9ae236c22d7bc32bbd9e6751eee0686cf7f6e2f65735ce90b5cab30c8b80f919` |
+| actql-local-node-0.0.0-development.tgz | `a279a4c0f4d0d752160238b037d5698b00fefa942235bc9a8c89c937f052791a` |
+| actql-node-0.0.0-development.tgz | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
 
 This is one existing-contract Frontend coverage repair, not completion of the
 entire GoogleSQL, Pipe or Frontend r1 profile.
