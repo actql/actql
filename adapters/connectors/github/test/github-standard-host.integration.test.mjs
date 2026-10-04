@@ -503,6 +503,64 @@ test('two installed row sources retain a joined public Named Result',
     assert.equal(listings(setup.api).length, 3);
   });
 
+test('retained two-source Join feeds an Events window and consumer', async t => {
+  const observations = [];
+  const setup = await installation(t, {retainedRelationOutput: true,
+    secondSource: true,
+    observe(name, detail) { observations.push([name, detail]); }});
+  await setup.publish();
+  const document = twoRowSourceProgram();
+  document.id = 'github-two-source-events-window';
+  document.stages.length = 3;
+  document.stages.push({id: 'events',
+    inputs: {rows: {result: {stage: 'join', result: 'r'}}},
+    steps: [
+      {from: 'rows', to_events: {id: 'number', time: 'number'}, as: 'source'},
+      {from: 'source', window_events: {kind: 'fixed', size: 2},
+        as: 'windowed'},
+      {from: 'windowed', events: true, as: 'bridged'},
+      {from: 'bridged', filter: 'number > 0', as: 'out'},
+    ], results: {r: {from: 'out', fields: ['number', 'left_title',
+      'right_title', 'window_start_ms', 'window_end_ms']}}},
+  {id: 'consumer', inputs: {x: {result: {stage: 'events', result: 'r'}}},
+    steps: [{select: ['number', 'window_start_ms'], as: 'out'}],
+    results: {r: {from: 'out', fields: ['number', 'window_start_ms']}}});
+  document.results = {windowed: {from: {stage: 'events', result: 'r'}},
+    consumed: {from: {stage: 'consumer', result: 'r'}}};
+  const {client, close} = await setup.open();
+  const run = await client.aql(JSON.stringify(document), {format: 'json',
+    requestId: 'github-two-source-events-window'});
+  const state = await run.wait();
+  assert.equal(state.status, 'succeeded', JSON.stringify(state));
+  const expected = [
+    {number: 1, left_title: 'Issue 1', right_title: 'Copy 1',
+      window_start_ms: 0, window_end_ms: 2},
+    {number: 5, left_title: 'Issue 5', right_title: 'Copy 5',
+      window_start_ms: 4, window_end_ms: 6},
+  ];
+  assert.deepEqual(await run.result('windowed').all(), expected);
+  assert.deepEqual(await run.result('consumed').all(), [
+    {number: 1, window_start_ms: 0},
+    {number: 5, window_start_ms: 4},
+  ]);
+  assert.equal(observations.filter(([name]) =>
+    name === 'acquisition_completed').length, 2);
+  assertAcquisitionReleased(observations);
+  const representations = observations.filter(([name]) =>
+    name === 'computed').at(-1)?.[1].outputRepresentations;
+  assert.ok(representations?.some(item => item.task === 2 &&
+    item.representation === 'retained-file'));
+  assert.ok(representations.some(item =>
+    item.representation === 'managed-local-memory'));
+  const reads = listings(setup.api).length;
+  assert.equal(reads, 3);
+  await close();
+  const reopened = await setup.open();
+  const attached = await reopened.client.attach(run.ref);
+  assert.deepEqual(await attached.result('windowed').all(), expected);
+  assert.equal(listings(setup.api).length, reads);
+});
+
 test('GitHub and DuckDB captures share one retained two-source owner',
   async t => {
     const observations = [];

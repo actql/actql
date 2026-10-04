@@ -75,6 +75,12 @@ Reading the committed Result after Host reopen does not repeat either source
 page. This is a fixed-window route with a genuine varying source clock, not
 evidence for other TEA window variants or in-kernel cancellation of an
 externally acquired input.
+Two separately captured GitHub sources also feed the retained-file Join task,
+then `to_events`, fixed windowing, the formal Bridge, and a same-Stage Relation
+filter. The public Host reads the windowed Result and its consumer after two
+acquisition completions, observes both row-file and managed representations,
+and reopens the committed Result without another source request. This proves
+that particular two-source-to-Carrier chain, not every Join or TEA variant.
 For a row connector with multiple declared views, the two-installation Host
 now carries each view's source reference and read tuple into Check disclosure
 and pre-acquisition Checkpoint selection. The installed source still prepares
