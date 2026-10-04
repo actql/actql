@@ -200,12 +200,20 @@ export async function openRowSourceCredentialSite({profile, principalId,
 
 // The installed source adapter of one row declaration (see
 // `installed-source.mjs`). `readPages({resource, columns, operation,
-// authorizationFor, consumePage, signal})` is the connector's Site driver;
-// `physicalTarget(resource, fields)` the exact target an approval covers.
+// authorizationFor, targetAuthorizationFor, consumePage, signal})` is the
+// connector's Site driver; `targetAuthorizationFor(operation, label)` grants
+// one use of a declared `targetOperations` entry (for example a target
+// identity check) under the same current read decision. `physicalTarget(
+// resource, fields)` is the exact target an approval covers.
 export async function createInstalledRowSource({moon, declaration,
   declared, environmentWire, connectorId, connectorRegistration,
   connectorRevision, site, authorization, readOperation, physicalTarget,
-  readPages, bindingCid, limits}) {
+  readPages, bindingCid, limits, targetOperations = []}) {
+  if (!Array.isArray(targetOperations) ||
+      targetOperations.some(operation => !text(operation) ||
+        operation === readOperation)) {
+    fail('InvalidRowSourceTargetOperations');
+  }
   const [queryContract, evidenceContract] = await Promise.all([
     'actql-query-acquisition.json', 'actql-query-process-evidence.json',
   ].map(name => readFile(new URL(name, contractRoot), 'utf8')));
@@ -329,8 +337,18 @@ export async function createInstalledRowSource({moon, declaration,
         decision: granted, resource: owner.resource, runInvocationCid,
         dispatchRequestCid, maxUses: limits.maxPages});
       state.started = true;
+      let targetUses = 0;
       await readPages({resource: owner.resource, columns,
         operation: readOperation, signal,
+        targetAuthorizationFor: async (operation, label) => {
+          if (!targetOperations.includes(operation) || !text(label)) {
+            fail('UndeclaredRowSourceTargetOperation');
+          }
+          await currentRead(prepared, access, signal);
+          return {...site.issueReadGrant({operation, decision: granted,
+            resource: owner.resource, runInvocationCid, dispatchRequestCid,
+            maxUses: 1}), useId: `${nonce}-target-${label}-${targetUses++}`};
+        },
         // The current read decision is taken again before every request.
         authorizationFor: async index => {
           if (index > 0) await currentRead(prepared, access, signal);

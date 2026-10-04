@@ -74,12 +74,16 @@ const program = JSON.stringify({version: 'actql/0.1', id: 'github-read',
     results: {r: {from: 'out', fields: ['number', 'title', 'author']}}}],
   results: {issues: {from: {stage: 'compute', result: 'r'}}}});
 
-async function installation(t, {routes: extraRoutes = [], faults = []} = {}) {
+async function installation(t, {routes: extraRoutes = [], faults = [],
+  repositoryAt = () => ({id: repositoryId, node_id: 'R_hello'})} = {}) {
   let api;
   const routes = [...extraRoutes];
   api = await openHttpsExchangeFixture(t, {routes, faults});
+  // The provider's answer for the access name, per observation (0 is the
+  // explicit publication); the Site profile never changes.
+  let repositoryReads = 0;
   routes.push({method: 'GET', pathname: '/repos/octocat/hello',
-    handle: () => ({body: {id: repositoryId, node_id: 'R_hello',
+    handle: () => ({body: {...repositoryAt(repositoryReads++),
       name: 'hello', full_name: 'octocat/hello',
       owner: {login: 'octocat', id: 1}}})});
   routes.push(pagedListing({items: stored, origin: api.origin,
@@ -156,6 +160,8 @@ test('public Client reads published GitHub Issues to a Named Result', async t =>
   const {client} = await setup.open();
   // The Host start restored the publication without provider I/O.
   assert.equal(setup.api.seen().length, 1);
+  const repositoryChecks = () => setup.api.seen().filter(entry =>
+    entry.pathname === '/repos/octocat/hello').length;
   const execution = await client.aql(program, {format: 'json',
     requestId: 'github-read-1'});
   const state = await execution.wait();
@@ -170,6 +176,12 @@ test('public Client reads published GitHub Issues to a Named Result', async t =>
   // declared headers, and the date-free state filter kept on every page.
   const pages = listings(setup.api);
   assert.deepEqual(pages.map(entry => entry.query.page ?? '1'), ['1', '2', '3']);
+  // The read was bracketed by two identity checks of the published
+  // repository (plus the publication's own observation).
+  assert.equal(repositoryChecks(), 3);
+  const order = setup.api.seen().slice(1).map(entry => entry.pathname);
+  assert.equal(order[0], '/repos/octocat/hello');
+  assert.equal(order.at(-1), '/repos/octocat/hello');
   for (const entry of pages) {
     assert.equal(entry.query.state, 'all');
     assert.equal(entry.headers['x-github-api-version'], '2026-03-10');
@@ -200,4 +212,39 @@ test('a rate-limited page stops the Run without a partial Result', async t => {
   const state = await execution.wait();
   assert.equal(state.status, 'failed', JSON.stringify(state));
   assert.equal(listings(setup.api).length, 1);
+});
+
+const replaced = {id: 424242, node_id: 'R_other'};
+
+test('another repository under the same name before the read issues nothing',
+  async t => {
+    // The local Site profile stays fixed; only the provider's repository
+    // behind owner/repo is replaced after publication.
+    const setup = await installation(t, {repositoryAt: read => read === 0
+      ? {id: repositoryId, node_id: 'R_hello'} : replaced});
+    await setup.publish();
+    const {client} = await setup.open();
+    const execution = await client.aql(program, {format: 'json',
+      requestId: 'github-read-replaced-before'});
+    const state = await execution.wait();
+    assert.equal(state.status, 'failed', JSON.stringify(state));
+    assert.equal(state.result_available, false);
+    assert.equal(state.result_availability.issues.state, 'unavailable');
+    // Nothing was listed under the old binding.
+    assert.equal(listings(setup.api).length, 0);
+  });
+
+test('a repository replaced during the read issues no Result', async t => {
+  const setup = await installation(t, {repositoryAt: read => read <= 1
+    ? {id: repositoryId, node_id: 'R_hello'} : replaced});
+  await setup.publish();
+  const {client} = await setup.open();
+  const execution = await client.aql(program, {format: 'json',
+    requestId: 'github-read-replaced-during'});
+  const state = await execution.wait();
+  assert.equal(state.status, 'failed', JSON.stringify(state));
+  assert.equal(state.result_available, false);
+  assert.equal(state.result_availability.issues.state, 'unavailable');
+  // The pages were read, but the closing check found another repository.
+  assert.equal(listings(setup.api).length, 3);
 });

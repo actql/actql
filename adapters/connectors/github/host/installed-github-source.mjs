@@ -259,11 +259,45 @@ export async function loadInstalledGitHubSource(profile, {root, principalId,
       credentialAuthorityId: site.credentialAuthorityId,
       credentialKeyId: site.credentialKeyId}),
     limits: rowLimits,
-    readPages: async ({resource, authorizationFor, consumePage, signal}) => {
+    targetOperations: [REPOSITORY_OPERATION],
+    // GitHub's documented Issue listing is addressed by owner/repo and its
+    // rows carry no repository id. The read is bound to the published
+    // repository by checking, under the current read decision, that the
+    // access name resolves to the published id and node id immediately
+    // before the first page and again after the last; any difference, or an
+    // unverifiable check, stops the acquisition before capture, so no Result
+    // or Source Evidence is issued under the old binding. A replacement that
+    // is reversed entirely within the read window is not observable through
+    // name-addressed listing and is not claimed to be detected.
+    readPages: async ({resource, authorizationFor, targetAuthorizationFor,
+      consumePage, signal}) => {
       if (resource !== 'issues') fail('UndeclaredGitHubResource');
-      return readGitHubIssues({moon: providerMoon, origin: site.apiOrigin,
-        owner: site.owner, repo: site.repo, filters: [['state', 'all']],
-        credential: opened.site.credential, authorizationFor,
-        limits: readLimits, consumePage, signal});
+      const verify = async label => {
+        const response = await invokeScopedCredentialOperation({
+          authorization: await targetAuthorizationFor(REPOSITORY_OPERATION,
+            label),
+          credential: opened.site.credential,
+          callResource: callHttpsCredentialResource,
+          operation: REPOSITORY_OPERATION, method: 'GET',
+          path: `/repos/${site.owner}/${site.repo}`,
+          headers: JSON.parse(providerMoon.githubRequestHeadersJson()),
+          maxResponseBytes: 1_000_000, signal});
+        const observed = response.accepted && response.statusCode === 200
+          ? JSON.parse(providerMoon.githubRepositoryJson(response.body,
+            1_000_000)) : null;
+        if (observed === null) fail('GitHubRepositoryUnverified');
+        if (observed.id !== publication.repository.id ||
+            observed.node_id !== publication.repository.node_id ||
+            observed.owner !== site.owner || observed.name !== site.repo) {
+          fail('GitHubRepositoryIdentityChanged');
+        }
+      };
+      await verify('before');
+      const read = await readGitHubIssues({moon: providerMoon,
+        origin: site.apiOrigin, owner: site.owner, repo: site.repo,
+        filters: [['state', 'all']], credential: opened.site.credential,
+        authorizationFor, limits: readLimits, consumePage, signal});
+      await verify('after');
+      return read;
     }});
 }
