@@ -102,6 +102,8 @@ pub fn prepare_multi_captured_effect_acquisition_ledger(@run_publication_host.Pr
 
 pub fn prepare_multi_captured_effect_local_ledger(@run_publication_host.PreparedClientEffectComputation, Array[@host.NativeHostConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 
+pub fn prepare_multi_captured_local_acquisition_ledger(@run_publication_host.PreparedClientProgram, Array[@host.CaptureConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
+
 pub fn prepare_multi_captured_local_ledger(@run_publication_host.PreparedClientProgram, Array[@host.NativeHostConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn retry_local_values_execution_failure_cleanup(LocalValuesExecutionFailure) -> Bool

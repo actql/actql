@@ -4942,6 +4942,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/traverse.minimum-eligible-node-depth-and-order",
+      "statement_sha256": "deb144df5813a884272ef4a35422f151d7550d4ee14ea78bcfb448d16747b24f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "traverse",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/traverse.typed-edge-identity-records",
       "statement_sha256": "78f5f88722e0d85ca448395c64ce70f5bc16ef236f6e207390d9cab604999e5b",
       "status": "pending",

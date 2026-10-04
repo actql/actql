@@ -115,10 +115,15 @@ test('keyed schemas are explicit closed alternatives and preserve complete legac
     assert.equal(c.properties.edges.items.properties[role].additionalProperties, false);
     assert.deepEqual(c.properties.edges.items.properties[role].required, ['definition','key']);
   }
-  const paths = current.traverse.oneOf[1];
-  assert.deepEqual(paths.properties.path_mode.enum, ['walk','trail','acyclic']);
-  assert.deepEqual(paths.properties.emit, {const:'paths'});
-  assert.deepEqual(paths.oneOf, legacy.traverse.oneOf);
+  const traversal = current.traverse.oneOf[1];
+  assert.deepEqual(traversal.properties.path_mode.enum, ['walk','trail','acyclic']);
+  assert.deepEqual(traversal.properties.emit, {enum:['nodes','paths']});
+  for (const filter of ['edge_where','node_where']) {
+    assert.deepEqual(traversal.properties[filter],
+      legacy.traverse.properties.hops.items.properties[filter]);
+    assert.ok(traversal.oneOf[0].not.anyOf.some(term=>term.required[0]===filter));
+  }
+  assert.deepEqual(traversal.oneOf[1], legacy.traverse.oneOf[1]);
 });
 
 test('embedded graph schemas and pins reject drift', () => {

@@ -40,6 +40,41 @@ For specification, canonical identity or generated-contract changes, select the
 relevant validators as well as affected tests. Preserve the specification and
 cross-target CI obligations in [AGENTS.md](../../../AGENTS.md).
 
+## Check affected consumers, not only the edited file
+
+Use the diff and imports to select applicable checks below; this is not a new
+unconditional suite or a complete dependency map.
+
+- Workflow/selector contracts: include their consuming artifact and aggregate
+  fixtures, even when those files were not edited. For example:
+  `node scripts/local-checks.mjs test node -- proofs/relation-pipeline/ci-artifacts.test.mjs scripts/ci-targets.test.mjs scripts/ci-preflight.test.mjs`.
+  Protected-source changes also need actual source/parent/blob/mode declarations
+  and retained-history validation; synthetic Git fixtures do not prove the
+  published repository's history.
+- Owned identifiers and schema pins: select their real occurrence/vector
+  validators, not only a test accepting the new spelling. For example, select
+  `scripts/owned-contract-versions.test.mjs` through the Node wrapper and run
+  the actual `scripts/check-owned-contract-versions.mjs` read-only scan.
+- Operation-support or evidence-index changes: select
+  `node scripts/local-checks.mjs test node -- scripts/pure-operation-inventory.test.mjs`.
+  This checks refusal versus execution evidence; it is not runtime acceptance.
+- Generated source and canonical inputs: inspect the relevant `package.json`
+  check command and generator's read-inputs. Run its existing read-only check
+  and affected fixed-vector tests; do not substitute a generator's unit tests
+  for output freshness or regenerate independent expectations from product
+  output. Select the affected subcommands rather than the whole `check:spec`.
+- Shared APIs: compile the affected consuming packages and select caller tests;
+  a mock connection test or handwritten interface is not compiler evidence.
+  Keep JS as the portable default and select Native/FFI diagnostics explicitly.
+- Public Host/SDK behavior: execute the changed real boundary cases as well as
+  mocks, including changed shared fixture expectations. Prepare only their
+  runtime dependencies. Existing verified retained package artifacts can support
+  a focused check when their source and tarball identities match the unchanged
+  compiled inputs; disclose any adapter overlay or mixed-source diagnostic.
+  Do not bypass packed consumers' clean-HEAD, manifest or digest checks for
+  such a diagnostic. It does not establish a pristine new-SHA packed campaign.
+  If the required runtime is unavailable, report that boundary as unverified.
+
 ## Prepare only the boundary being tested
 
 - Before directly importing changed runtime packages, read

@@ -251,11 +251,11 @@ test('baseline preimages and changed normative pins independently determine the 
   // Definition selection changes the Program schema in the current closure.
   // These values are independently assembled, not copied from compiler output.
   assert.equal(dependencies.unit,
-    pin('aef305d463bd57cdd2d84c0d89c5494dc3cea2773e1e8fb9dfd6a4dfc6bca115'));
+    pin('56ea51419a5f42a23d41b6e6e58d0496fabe58da6d6bea1be555bfd0cbbe00fa'));
   assert.equal(dependencies.proof,
-    pin('29635233b75d1ec087bfca5b2b706be26454d4322456b61d820dbf1310317bc4'));
+    pin('c71b51eff535dc79152ac6458b4e3d21758aa3bb0335d143ad5a0899220524d2'));
   assert.equal(dependencies.resultPlan,
-    pin('7bce35b89c9c21d1f9ecd506e7bf103009425557249abb641aab8e7150d5f3eb'));
+    pin('4bee979f2e9c5b6bed478ba9df66c3cc677a3af0d3609c0a2d415770d4badd1a'));
   const constructorGrammar = pin('2bf8ef0846b81f91fec96548d10dddd8c7e5a82b7db05444b38eefa316779c11');
   assert.equal(vector(constructorGrammar, preRefreshContract, preRefreshDependencies).run.run_definition_cid,
     pin('3e86d58da98d5af468f0cd07aaef40562c46117c099dfa1cb41a2de052f983f3'));
@@ -335,10 +335,12 @@ test('baseline preimages and changed normative pins independently determine the 
     barrierCid).run.run_definition_cid,
     pin('8e2f3659d83e5bdc7058fb2c1044879fea2fdf23bb1ab7266f8b07d544abf0b4'));
   assert.equal(vector(pin('7ecc0f8b6d170d5e3452b18912e03892c0e6ca68b5e640b2b03aeacd9dbbb612'),
-    cid(aoaContract), dependencies, barrierCid).run.run_definition_cid,
+    cid(aoaContract), {unit:pin("aef305d463bd57cdd2d84c0d89c5494dc3cea2773e1e8fb9dfd6a4dfc6bca115"),proof:pin("29635233b75d1ec087bfca5b2b706be26454d4322456b61d820dbf1310317bc4"),resultPlan:pin("7bce35b89c9c21d1f9ecd506e7bf103009425557249abb641aab8e7150d5f3eb")}, barrierCid).run.run_definition_cid,
     pin('6a5c24d7320c4edfcd61609c5490463b38df1f0c73b398f01b196f1feff35c80'));
+  assert.equal(vector("sha256:2422e7815a6d6f6cbc2dd4289da3ba5d98eeb58545c356d45e897627e7ac3a8e", cid(aoaContract), {unit:pin("aef305d463bd57cdd2d84c0d89c5494dc3cea2773e1e8fb9dfd6a4dfc6bca115"),proof:pin("29635233b75d1ec087bfca5b2b706be26454d4322456b61d820dbf1310317bc4"),resultPlan:pin("7bce35b89c9c21d1f9ecd506e7bf103009425557249abb641aab8e7150d5f3eb")}, barrierCid).run.run_definition_cid, pin("33063a0c0762a010768e79c8d6de94682c4dddf66657b3681d9ae57e71630e4e"));
+  assert.equal(vector("sha256:ae383655950a9e0f2d292ffd546e6bf9eb5cb1e9a9d72e86f6086bb917f681b6", cid(aoaContract), {unit:pin("18dc8e9fc34fa63d1e5973243b019bda7446f2247c1ed2c5f945366bea8a520a"),proof:pin("54124219997d78cedc627fd7f05f4cc236deb36700ab4942f710a1524e3bcc0e"),resultPlan:pin("b073b5030c6a53eca1062d6acfeac9d6b8c41efbddc6b7d4d192fc7e3308e366")}, barrierCid).run.run_definition_cid, pin("81d0f20687086a3a17a81541a6042c1f4c6afb3d4a9a09fceca1f69236e374d2"));
   assert.equal(current.run.run_definition_cid,
-    pin('33063a0c0762a010768e79c8d6de94682c4dddf66657b3681d9ae57e71630e4e'));
+    pin('4ac75ab91130a87f439df5621d673c5aec12fbe67f3ccc033691d4af5e4abc3b'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');

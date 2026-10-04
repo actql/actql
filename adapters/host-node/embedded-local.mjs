@@ -15,7 +15,7 @@ import {installNodeClientRunStart} from './client-run-start.mjs';
 import {installNodeClientEffectRun} from './client-effect-run.mjs';
 import {runCapturedEffectComputation} from './entry.mjs';
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
-import {capturedDuckDBNativeConfiguration} from './captured-duckdb-source.mjs';
+import {capturedDuckDBConfiguration} from './captured-duckdb-source.mjs';
 import {recoverAdmittedEffectRun} from './effect-run-recovery.mjs';
 import {retireCompletedEffectfulCapture} from
   '../host-common/completed-run-publication.mjs';
@@ -775,13 +775,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     for (let task = 0; task < moon.clientProgramAcquisitionCount(preparedProgram); task++) {
       const occurrence = Object.freeze({stage: task, input: 0, task});
       const prepared = await prepareAcquisition(preparedProgram, undefined, occurrence);
-      try {
-        capturedDuckDBNativeConfiguration(prepared);
-      } catch (cause) {
-        if (cause?.message === 'InstalledMultiSourceNativeAcquisitionRequired') {
-          throw clientOperationError('ClientProgramUnsupported', cause);
-        }
-        throw cause;
+      // A held read has no selection before approval. Once authorized, keep
+      // either typed acquisition owner; shared ledger admission happens before
+      // dispatch and the provider rechecks this exact occurrence's read gate.
+      if (prepared.selection !== undefined) {
+        try { capturedDuckDBConfiguration(prepared); }
+        catch (cause) { throw clientOperationError('ClientProgramUnsupported', cause); }
       }
       const adapter = installedSourceFor(sourceProfile, prepared.checkedSource.sourceRef);
       result.push(Object.freeze({occurrence, prepared, adapter, sourceAccess: adapter.sourceAccess}));
