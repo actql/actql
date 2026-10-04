@@ -529,6 +529,18 @@ export async function startHttpsOutboundSiteGateway({
         replyJson(response, 200, {accepted: true});
         return;
       }
+      if (matched.operation === 'cancel' &&
+          !([3, 4, 5].includes(projected.state[0]) &&
+            projected.state[2] === 2 && projected.state[3] === 0 &&
+            projected.state[4] === 0)) {
+        // Ordinary status (even after an offer) cannot prove that the Site
+        // saved Cancel. Admit the observation, but keep offering the exact
+        // cancellation until the common owner admits terminal execution and
+        // released cleanup with no retained material or quarantine obligation.
+        // Unknown execution is not terminal cancellation evidence.
+        replyJson(response, 200, {accepted: true});
+        return;
+      }
       settle(matched, 'resolve', projected);
       replyJson(response, 200, {accepted: true});
     } catch (error) {

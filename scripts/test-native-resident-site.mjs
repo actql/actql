@@ -636,11 +636,12 @@ try {
     assert.deepEqual(await readdir(publicationRoot), []);
     console.log(JSON.stringify({kind: 'resident-cancel-refusal',
       beforeMutation: true, executorEntries: 0, publicationEntries: 0}));
-    for (const [index, mode] of ['unseen-restart', 'before-claim', 'running', 'lost-reply', 'running-restart'].entries()) {
+    for (const [index, mode] of ['unseen-restart', 'before-claim', 'running', 'lost-reply', 'running-restart', 'running-lost-reply'].entries()) {
       let lostReply = false;
+      const cancelOffers = [];
       const dispatch = dispatchFor(`resident-cancel-${mode}`, 400 + index);
       await ensureOutputReceiver(dispatch);
-      if (mode === 'lost-reply') {
+      if (mode === 'lost-reply' || mode === 'running-lost-reply') {
         ackLossProxy = await observationAckLossProxy({origin: gateway.origin,
           key: await readFile(join(root, 'server.key')),
           cert: await readFile(join(root, 'server.crt')),
@@ -648,17 +649,29 @@ try {
           loseAck: body => {
             const value = JSON.parse(body);
             return !lostReply && value.dispatch_request_cid === siteControl.identity(dispatch) &&
-              value.version === 'actql-remote-dispatch-status/0.1' && value.state[0] === 5;
-          }, allowDispatch: () => true, onAckLost: () => { lostReply = true; }});
+              value.version === 'actql-remote-dispatch-status/0.1' &&
+              value.state[0] === (mode === 'running-lost-reply' ? 2 : 5);
+          }, allowDispatch: () => true, onAckLost: () => { lostReply = true; },
+          transformReply: (_body, upstream) => {
+            if (upstream.status === 200) {
+              const envelope = upstream.body.toString('utf8');
+              const value = JSON.parse(envelope);
+              if (value.version === 'actql-remote-poll-cancel/0.1' &&
+                  value.dispatch_request_cid === siteControl.identity(dispatch)) {
+                cancelOffers.push(envelope);
+              }
+            }
+            return upstream;
+          }});
       }
       let site = startSite(mode === 'before-claim' ?
         ['--holder-pause-at', 'before-start', '--holder-pause-ms', '1500'] :
-        mode === 'running' ? ['--holder-pause-ms', '5000', '--release-recovery-close-failures', '2'] :
+        mode === 'running' || mode === 'running-lost-reply' ? ['--holder-pause-ms', '5000', '--release-recovery-close-failures', '2'] :
         mode === 'running-restart' ? ['--holder-pause-ms', '2000', '--control-cancel-kill-at', 'after-save'] : [],
       {controlOrigin: ackLossProxy?.origin ?? gateway.origin});
       currentSite = site;
       let dispatched;
-      if (mode === 'before-claim' || mode === 'running' || mode === 'running-restart') {
+      if (mode === 'before-claim' || mode.startsWith('running')) {
         dispatched = gateway.dispatch({dispatch, inputBindingBody: '{}',
           dispatchEnvelope: materialsEnvelope(dispatch)}).catch(error => error);
         if (mode === 'before-claim') {
@@ -680,13 +693,17 @@ try {
       }
       const cancelled = await within(cancelling, `${mode} cancellation observation`);
       assert.equal(cancelled.dispatchRequestCid, siteControl.identity(dispatch));
-      if (mode === 'running') {
-        assert.equal(cancelled.state[0], 2, 'saving cancellation is not proof of physical stop');
-        assert.equal(cancelled.state[2], 0, 'saving cancellation cannot release active resources');
+      assert.equal(cancelled.state[2], 2, 'delivery custody ends only after formal cleanup release');
+      if (mode === 'running' || mode === 'running-lost-reply') {
+        const saved = observationBodies.map(body => JSON.parse(body)).find(value =>
+          value.dispatch_request_cid === siteControl.identity(dispatch) &&
+          value.version === 'actql-remote-dispatch-status/0.1' && value.state[0] === 2);
+        assert.ok(saved, 'the initial saved cancellation status is independently observed');
+        assert.equal(saved.state[2], 0, 'saving cancellation cannot release active resources');
         await waitFor(() => site.lines.some(line => line.kind === 'cancel-cleanup-pending'),
           'bundle close failure keeps cleanup responsibility');
       }
-      if (mode === 'lost-reply') {
+      if (mode === 'lost-reply' || mode === 'running-lost-reply') {
         await waitFor(() => lostReply, 'cancellation observation ACK lost');
         await waitFor(() => site.lines.some(line => line.kind === 'cancel-unreported'),
           'Site reports unconfirmed cancellation reply');
@@ -735,6 +752,10 @@ try {
         assert.equal(reservedPayloadBytes(), 0);
       }
       assert.deepEqual(bundleHoldings(), []);
+      if (mode === 'running-lost-reply') {
+        assert.ok(cancelOffers.length >= 2, 'lost nonterminal response must cause exact Cancel redelivery');
+        assert.ok(cancelOffers.every(body => body === cancelOffers[0]));
+      }
       console.log(JSON.stringify({kind: 'resident-cancel-case', mode,
         dispatchCid: siteControl.identity(dispatch), revision,
         executorEntries: mode.startsWith('running') ? 1 : 0,
