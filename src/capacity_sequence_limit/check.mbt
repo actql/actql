@@ -229,20 +229,13 @@ pub fn selected_policy(v : SequenceLimits) -> @policy.Policy {
 }
 
 ///|
-/// Original Host input claim, not the final minimum including authored guards.
-/// Retained for compatibility; host_limit explicitly names this boundary.
-pub fn limit(v : SequenceLimits, scope : Scope) -> @wire.LimitClaim {
+/// Original admitted Host-only input claim; use effective_maximum for enforcement.
+pub fn host_limit(v : SequenceLimits, scope : Scope) -> @wire.LimitClaim {
   if scope == MatchesPerKey {
     v.matches
   } else {
     v.output
   }
-}
-
-///|
-/// Original admitted Host-only input claim; use effective_maximum for enforcement.
-pub fn host_limit(v : SequenceLimits, scope : Scope) -> @wire.LimitClaim {
-  limit(v, scope)
 }
 
 ///|
@@ -269,7 +262,9 @@ pub fn guard_value(v : SequenceLimits, scope : Scope) -> Int64? {
 
 ///|
 pub fn effective_maximum(v : SequenceLimits, scope : Scope) -> Int64 {
-  let maximum = @arithmetic.minimum_value(@wire.limit_minimum(limit(v, scope)))
+  let maximum = @arithmetic.minimum_value(
+    @wire.limit_minimum(host_limit(v, scope)),
+  )
   match guard_value(v, scope) {
     Some(value) => if value < maximum { value } else { maximum }
     None => maximum

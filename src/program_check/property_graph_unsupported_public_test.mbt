@@ -12,7 +12,7 @@ test "current public Property Graph admission refuses unsupported SGA rather tha
   )
   for
     operation in [
-      "\"graphs_equal\":{\"other\":\"g\"}", "\"graph_diff\":{\"other\":\"g\"}", "\"apply_graph_delta\":{\"delta\":\"g\"}",
+      "\"graph_diff\":{\"other\":\"g\"}", "\"apply_graph_delta\":{\"delta\":\"g\"}",
       "\"subgraph\":{\"nodes\":[1]}", "\"reach\":{\"start\":{\"ids\":[1]},\"max_hops\":1}",
       "\"shortest_path\":{\"start\":{\"ids\":[1]},\"end\":{\"ids\":[1]}}", "\"graft_graph\":{\"other\":\"g\"}",
       "\"union_graphs\":{\"inputs\":[\"g\"]}", "\"subtract_graphs\":{\"other\":\"g\"}",
@@ -38,6 +38,31 @@ test "current public Property Graph admission refuses unsupported SGA rather tha
       is Units(UnsupportedStaticPath(_)),
     )
   }
+}
+
+///|
+test "public Property Graph equality admits a Boolean Named Result" {
+  let (_, _, base, _, limits) = public_input_fixture(
+    generated=true,
+    graph_policy=true,
+  )
+  let environment = @program_check.checking_environment(
+    @program_check.checking_environment_wire(base),
+    { text_time: false, veca: false, },
+    { rela: true, sga: true, tea: false, calendar: false, text_rank: false, },
+    property_graph=true,
+  )
+  let source = "{\"version\":\"actql/0.1\",\"id\":\"public-graph-equality\",\"stages\":[{\"id\":\"source\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1}]},\"as\":\"nodes\"},{\"property_graph\":{\"version\":\"actql-property-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"nodes\",\"key\":[\"id\"],\"labels\":[{\"name\":\"Node\"}]}],\"edges\":[]},\"as\":\"g\"},{\"from\":\"g\",\"graphs_equal\":{\"with\":\"g\"},\"as\":\"rows\"}],\"results\":{\"out\":{\"from\":\"rows\",\"fields\":[\"equal\"]}}}],\"results\":{\"answer\":{\"from\":{\"stage\":\"source\",\"result\":\"out\"}}}}"
+  let checked = public_checked(
+    @program_check.check_document(
+      source,
+      environment,
+      None,
+      limits,
+      format=Json,
+    ),
+  )
+  assert_eq(@program_check.unit_publication_count(checked, 0), Some(1))
 }
 
 ///|

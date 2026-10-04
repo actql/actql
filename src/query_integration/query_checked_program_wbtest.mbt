@@ -1,5 +1,6 @@
 ///|
 fn query_checked_program_fixture(
+  program_text? : String? = None,
   nullable? : Bool = false,
   catalog? : @environment.SourceRequestContracts? = None,
   dag? : Bool = false,
@@ -615,6 +616,7 @@ fn query_checked_program_fixture(
   } else {
     text
   }
+  let text = program_text.unwrap_or(text)
   let input_limits : @syntax.Limits = {
     source: { max_input_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
     tree: {
