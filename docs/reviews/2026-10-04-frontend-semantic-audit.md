@@ -37,10 +37,29 @@ Each repair records its clean runtime source and normal tarball digests;
 subsequent submitted commits add evidence and tests without changing that
 verified runtime source. See each repair record for the exact source-to-artifact
 relationship.
-Both are Draft. The narrow ORDER positive corpus is successful; the Group
-corpus remains incomplete. At this checkpoint, automatic
+The narrow ORDER positive corpus is successful; the Group corpus remains
+incomplete and #287 stays Draft. Automatic
 [ORDER CI 37162504341](https://github.com/actql/actql/actions/runs/37162504341)
-has no failed jobs and its final `pipeline-evidence` is still running.
+completed successfully for submitted `1c95aeda9c3c14c49062a1cf58af766346b0c609`,
+including final `pipeline-evidence` and `check`. Its ordinary client-packed
+artifact `11287879354` was built from clean merge tree
+`7c3fbc8742a2efc1ff89ba4a7d21300ba70bb059`. The unchanged rebound alias,
+DISTINCT alias, unchanged-expression and qualified-input cases each pass on
+Local and HTTPS. The acceptance helper also executes the displaced-range
+refusal with typed input rejection, unchanged Run/I/O counters and request
+lookup `not_found`; refusals do not print per-case success lines. The exact
+CI source and digests remain separate from the local packed revision.
+
+CI artifact SHA-256 (`-0.0.0-development.tgz`):
+
+| Package | SHA-256 |
+|---|---|
+| actql-client-wire | `5da98d3edb615f960f0511be9d6e61431cd34d02304a8bd6b6e576f7775f91a0` |
+| actql-sdk | `2fc910067348e421346945ced1e728e107bbe6fa455ee00f9d71da46e8123c5b` |
+| actql-run-host-core | `47f57353549cc0ac1b51e57d346e49ad8f2526fa9366e15c01752c567cea869f` |
+| actql-local-node | `ad03e5a534461469b6daf65ab4b7f2008694f7e273e895524abf587d940f5078` |
+| actql-node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
 [Group CI 37162983732](https://github.com/actql/actql/actions/runs/37162983732)
 passes client-distribution with independent complete SQL/Pipe Programs;
 client-packed and its Client aggregate fail, while other jobs remain running.
