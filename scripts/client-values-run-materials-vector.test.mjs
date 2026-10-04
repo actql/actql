@@ -314,10 +314,17 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('6f98988807520ccf18a96d72b418ca70dcf845bc1f3c1f35458b1adea18c6157'),
     preRefreshContract, preRefreshDependencies, barrierCid).run.run_definition_cid,
     pin('7b2561667a301294b394ce0d5b64e905b9e8fbd30c0d07f8969c4070de53fe72'));
-  assert.equal(vector(grammarCid, preRefreshContract, preRefreshDependencies, barrierCid).run.run_definition_cid,
+  // Preserve the Graph/definition-row predecessor. Connecting the existing
+  // row bridges changes the grammar pin, not the Values dependency closure.
+  const rowPredecessor = pin('24f53c1f64028206dbc01f6c3d0c11d991c8c9d512581fdfd007a250315f8bbd');
+  assert.equal(vector(rowPredecessor, preRefreshContract, preRefreshDependencies, barrierCid).run.run_definition_cid,
     pin('5347f97a234b92717a8495614590b5e4b0a87a4b8bd796f051952ef164988663'));
-  assert.equal(current.run.run_definition_cid,
+  assert.equal(vector(rowPredecessor, cid(aoaContract), dependencies, barrierCid).run.run_definition_cid,
     pin('ac34b3b002f08db23c1a394241c6b2666379e27e17ffda269f20d025cbbba97a'));
+  assert.equal(vector(grammarCid, preRefreshContract, preRefreshDependencies, barrierCid).run.run_definition_cid,
+    pin('7e2ae717cb6fa6b82328da3688ee0a4083dc3d78ad2793a4e02da135aceb14c7'));
+  assert.equal(current.run.run_definition_cid,
+    pin('97c4dacbf36c4d15cd0b936c07a24d75b1d033d92d587e376c2c50ee598ea918'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');

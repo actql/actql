@@ -57,8 +57,8 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.equal(body.query_text_grammar_sha256,
     'dd90ea227eb23be7003d70d6ae78403576c972875c838c9cad88451563f7bcfc');
   assert.equal(body.query_text_rules_sha256,
-    '5bb6f784249ac4d0045be159779759a3e4c17fce84f3bb7f54c568a14199bbd8');
-  const expected = 'sha256:24f53c1f64028206dbc01f6c3d0c11d991c8c9d512581fdfd007a250315f8bbd';
+    'b0ca951e3c7b7fca511db9ef0f38659129e083dcdf197b45aaa84b06fffc9cef');
+  const expected = 'sha256:dc6a79192190098180af67a8726ecad1519d0c93037e43ad41d45cc288d0ef09';
   assert.equal(cid(body), expected);
   const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
   assert.deepEqual(pinned, body);

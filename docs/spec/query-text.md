@@ -369,10 +369,24 @@ reacquire its inputs, add a Result or request materialization/physical
 placement. The normalization has no named options; extra arguments are not
 discarded. Unconsumed Graph calls cannot pass through relational compilation.
 
-The independent Frontend lowering connects Graph-preserving normalize only.
-Public preparation refuses constructor-dependent queries until the unified
-common Graph owner is adopted. This is lowering evidence, not an executable
-normalize consumer or a public Result guarantee.
+The Frontend also connects the existing `node_rows()` and `edge_rows()`
+Bridge operations to ordinary Relation processing. Use a constructor-bound
+DATA producer, for example:
+
+```aql
+DATA rows = FROM g |> node_rows() |> SELECT node_key, labels;
+FROM rows |> ORDER BY node_key |> RESULT nodes
+```
+
+These calls accept no named options in the current connection. Definition
+selection is a separate common-contract dependency, not an inferred filter.
+The common Bridge owns the finite schema, typed element identities, retained
+key columns, label sets and property presence. Conditional presence is not
+nullable: an ordinary reference to a Conditional field is rejected by the
+common checker, even after `IS NOT NULL`. The remaining Relation operations
+use normal scope, expression, order and Result lowering. DATA adds no copy,
+acquisition or execution owner. A Graph-preserving normalize call still needs
+an adapted common consumer; source lowering alone does not authorize it.
 Other named calls parse but their output Carrier/schema is not yet connected
 to subsequent source operations; they return UnsupportedGraph before Run
 admission. Calls following a MATCH Relation are also explicitly unsupported
