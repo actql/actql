@@ -89,6 +89,7 @@ pub fn node_accepts_managed_carrier_view(
     "TEA.join.asof" => index == 0
     "SGA.reachable" => index == 0
     "SGA.traverse" => index == 0
+    "SGA.subgraph" => index == 0
     "SGA.match_nodes" | "SGA.match_edges" => index == 0
     "VEC.knn_join" => true
     _ => false
@@ -114,6 +115,7 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
           node.input_targets.length() == 1
         )
       )
+    GraphSubgraphValue(_) => operation(node) == "SGA.subgraph"
     GraphMatchRows(_) =>
       operation(node) == "SGA.match_nodes" ||
       operation(node) == "SGA.match_edges"
@@ -287,6 +289,7 @@ pub fn node_accepts_managed_relation_view(
   if node.input_targets.length() == 2 && index >= 0 && index < 2 {
     return match node.payload {
       GraphTraverseRows(_) => index == 1 && operation(node) == "SGA.traverse"
+      GraphSubgraphValue(_) => index == 1 && operation(node) == "SGA.subgraph"
       InnerJoin(_)
       | CrossJoinRows(_)
       | AppendRows(_)

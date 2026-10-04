@@ -33,6 +33,7 @@ pub fn prepare_fragment_pipeline(
     | NestStep(_)
     | GraphMatchStep(_)
     | GraphDiagnosticStep(_)
+    | GraphSubgraphStep(_)
     | GraphEqualityStep(_)
     | GraphNormalizeStep(_)
     | GraphTraverseStep(_)
