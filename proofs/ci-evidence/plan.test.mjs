@@ -218,6 +218,24 @@ test('initial receipt digest, run, attempt and input inconsistencies are rejecte
   }
 });
 
+test('the production group path authenticates once and treats a mid-group outage as wholly unconfirmed', async () => {
+  const f = fixture(), individual = f.options.read; let groups = 0;
+  f.options.read = null;
+  f.options.readGroup = async ({actions, ...options}) => {
+    groups++;
+    return new Map(await Promise.all(actions.map(async action => [action.id, await individual({...options, action})])));
+  };
+  const plan = await comparisonPlan(f.options);
+  assert.equal(groups, 1); assert(plan.actions.every(entry => entry.equal && entry.closed));
+  f.options.readGroup = async ({actions, ...options}) => {
+    await individual({...options, action: actions[0]});
+    throw new DOMException('timeout', 'TimeoutError');
+  };
+  const partial = await comparisonPlan(f.options);
+  assert(partial.actions.every(entry => entry.status === 'origin-receipt-unavailable' && entry.origin === null && !entry.equal && !entry.closed));
+  assert.equal((await verifyComparison({plan: partial, ...f.options})).status, 'unconfirmed');
+});
+
 test('late receipt authentication unavailability does not invalidate complete fresh observations', async () => {
   const {options} = fixture(), plan = await comparisonPlan(options), original = encode(plan);
   const fresh = catalog.actions.map(action => receipt(action, current));

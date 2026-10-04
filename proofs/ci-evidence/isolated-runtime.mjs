@@ -11,6 +11,8 @@ import {hash} from './inputs.mjs';
 import {isolatedEnvironment, mutationSourcePaths, scratchDockerfile} from './isolation.mjs';
 import {mutationIds} from './mutation-inventory.mjs';
 import {isolatedRunArguments, mutationSnapshotExtras, checkImageDefinition} from './isolation.mjs';
+import {isolatedContract, matchesIsolatedContract, isolatedExperimentDigest} from './isolated-contract.mjs';
+import {mutationObservation} from './mutation-observation.mjs';
 
 export const isolatedProfile = 'isolated-session-mutations-linux';
 export const isolatedResidual = 'isolated comparison only: reviewed action/kernel/CPU closure and acceptance remain required';
@@ -53,16 +55,32 @@ export function imageRuntime(manifest) {
     environment: isolatedEnvironment, platformInputs: manifest.platformInputs,
     rootDigest: hash(encode({entries: runtimeEntries, links: manifest.root.links.filter(link => !link.path.startsWith('source/')),
       unresolved: manifest.root.unresolved.filter(reason => !reason.startsWith('source: '))})),
-    specificationDigest: hash(manifest.dockerfile), unresolved: [isolatedResidual]};
+    specificationDigest: hash(manifest.dockerfile),
+    contract: matchesIsolatedContract(manifest) ? isolatedContract : null,
+    unresolved: matchesIsolatedContract(manifest) ? [] : [isolatedResidual]};
 }
 
 export function checkIsolatedInputs({runtime, manifest, tree}) {
   assert.equal(encode(runtime), encode(imageRuntime(manifest)), 'Wrong isolated runtime inputs or erased residual');
   assert.equal(encode(manifest.environment), encode(isolatedEnvironment), 'Changed isolated environment');
   assert.equal(manifest.dockerfile, scratchDockerfile(), 'Changed isolated executor definition');
+  assert.equal(manifest.sourceSnapshotDigest, snapshotFromGit(tree).digest, 'Wrong reviewed source cohort');
+  assert.equal(manifest.experimentDigest, isolatedExperimentDigest(tree), 'Wrong reviewed finite experiment');
+  assert.equal(manifest.toolchainDigest, hash(tree.read('toolchain.json')), 'Wrong reviewed toolchain pin');
+  assert(typeof manifest.hostImage === 'string' && /^[A-Za-z0-9_.-]+$/u.test(manifest.hostImage), 'Invalid host image identity');
   assert.equal(manifest.platformInputs.platform, 'linux'); assert.equal(manifest.platformInputs.architecture, 'x64');
   const byPath = new Map(manifest.root.entries.map(entry => [entry.path, entry]));
   assert.equal(byPath.size, manifest.root.entries.length, 'Duplicate image input');
+  const children = new Map();
+  for (const entry of manifest.root.entries) {
+    assert(typeof entry.path === 'string', 'Invalid image path');
+    const offset = entry.path.lastIndexOf('/');
+    if (offset >= 0) {
+      const parent = entry.path.slice(0, offset);
+      if (!children.has(parent)) children.set(parent, []);
+      children.get(parent).push(entry.path.slice(offset + 1));
+    }
+  }
   for (const entry of manifest.root.entries) {
     assert(/^[A-Za-z0-9_.\/+\-]+$/u.test(entry.path) && !entry.path.split('/').some(part => ['', '.', '..'].includes(part)), 'Invalid image path');
     assert(imageRoots.includes(entry.path.split('/')[0]), 'Unreviewed image root');
@@ -70,8 +88,7 @@ export function checkIsolatedInputs({runtime, manifest, tree}) {
     if (entry.path.includes('/')) assert.equal(byPath.get(entry.path.slice(0, entry.path.lastIndexOf('/')))?.kind, 'directory', 'Missing image parent directory');
     if (entry.kind === 'file') assert(Number.isSafeInteger(entry.bytes) && entry.bytes >= 0 && /^[a-f0-9]{64}$/u.test(entry.digest), 'Incomplete image file');
     if (entry.kind === 'directory') {
-      const actual = manifest.root.entries.filter(child => child.path.startsWith(`${entry.path}/`) && !child.path.slice(entry.path.length + 1).includes('/'))
-        .map(child => child.path.slice(entry.path.length + 1)).sort();
+      const actual = (children.get(entry.path) ?? []).sort();
       assert.deepEqual(entry.members, actual, 'Incomplete image directory membership');
     }
   }
@@ -116,12 +133,12 @@ export function checkIsolatedInputs({runtime, manifest, tree}) {
     assert(loader.static ? loader.paths.length === 0 : loader.paths.length > 0);
     for (const path of loader.paths) assert(/^\/(?:usr\/)?lib(?:64)?\/[A-Za-z0-9_./+-]+$/u.test(path) && !path.split('/').includes('..') && byPath.get(path.slice(1))?.kind === 'file', 'Missing copied ELF input');
   }
-  assert(runtime.unresolved.includes(isolatedResidual), 'Comparison cannot authorize isolated reuse');
   return true;
 }
 
 export function snapshotFromGit(tree) {
   const paths = mutationSourcePaths(tree).filter(path => path.startsWith('src/') || path.startsWith('proofs/bounded-session/') || mutationSnapshotExtras.includes(path));
+  tree.prefetch?.(paths);
   const sources = Object.fromEntries(paths.sort().map(path => [path, hash(tree.read(path))]));
   return {digest: hash(JSON.stringify(sources)), sources};
 }
@@ -134,6 +151,7 @@ export function checkIsolatedResult({payload, manifest, before}) {
   assert.equal(payload.readOnlyConfirmed, true); assert.equal(payload.restored, true);
   assert.equal(payload.shellStartupConfirmed, true, 'Required build shell did not start');
   assert.equal(encode(payload.report.source), encode(before), 'Isolated action did not execute the selected actual source');
+  mutationObservation(payload.report);
   assert.deepEqual(payload.report.results.map(entry => entry.id).sort(), [...mutationIds].sort());
   assert.deepEqual(Object.keys(payload.logs).sort(), [...mutationIds].sort(), 'Missing/extra original mutation logs');
   for (const entry of payload.report.results) {
@@ -148,8 +166,17 @@ export function checkIsolatedResult({payload, manifest, before}) {
 
 // Called only after opening an API-digest-bound immutable artifact. The input
 // inventory and execution observation are independently checked against Git.
-export async function readActionRuntimes({zip, state, tree}) {
+export async function readCandidateActionRuntimes({zip, state, tree}) {
   assert.deepEqual(Object.keys(state.actionRuntimes), ['mutations-js'], 'Missing/unreviewed isolated action scope');
+  const manifest = await zip.json('isolated-inputs.json');
+  checkIsolatedInputs({runtime: state.actionRuntimes['mutations-js'], manifest, tree});
+  // Input preparation alone does not certify an execution. A reused action
+  // must separately authenticate the original execution and its final owner.
+  return state.actionRuntimes;
+}
+
+export async function readActionRuntimes({zip, state, tree}) {
+  await readCandidateActionRuntimes({zip, state, tree});
   const manifest = await zip.json('isolated-inputs.json'), payload = await zip.json('isolated-observation.json');
   const execution = await zip.json('isolated-execution.json');
   checkIsolatedInputs({runtime: state.actionRuntimes['mutations-js'], manifest, tree});
@@ -176,7 +203,10 @@ export function runtimeForAction(action, fallback, actionRuntimes = {}) {
     'Unreviewed isolated runtime registration');
   if (action.id === 'mutations-js' && Object.hasOwn(actionRuntimes, action.id)) {
     assert.equal(actionRuntimes[action.id].profile, isolatedProfile, 'Wrong isolated action scope');
-    assert.deepEqual(actionRuntimes[action.id].unresolved, [isolatedResidual], 'Isolation preparation cannot authorize reuse');
+    assert.deepEqual(actionRuntimes[action.id].unresolved, actionRuntimes[action.id].contract ? [] : [isolatedResidual],
+      'Wrong isolated contract coverage');
+    if (actionRuntimes[action.id].contract) assert.equal(encode(actionRuntimes[action.id].contract), encode(isolatedContract),
+      'Unreviewed isolated contract');
     return actionRuntimes[action.id];
   }
   return fallback;

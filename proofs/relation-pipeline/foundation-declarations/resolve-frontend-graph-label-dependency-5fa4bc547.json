@@ -1,0 +1,68 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-frontend-graph-label-dependency-5fa4bc547",
+  "kind": "resolution",
+  "revision": "5fa4bc547a44198777c02ed1ed21411dadfcffe8",
+  "parents": [
+    "7080a173b31c4a6c2a46d87aebef3c3b66f8d2c6",
+    "51764ed8846a0f3913d498d434154576d4b976dc"
+  ],
+  "mergeBases": [
+    "b6c69a7e5bdbf25dc3bc5cf5224b980536efb3ec",
+    "be4d39a6380685150b09847a6bc769f9eae36778"
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-3877b637406b",
+    "adopt-63b114ad524b",
+    "adopt-678626b010b4",
+    "adopt-7427f7f09276",
+    "adopt-9a7c592a8ed9",
+    "adopt-b480cffb6e6d",
+    "adopt-bf2d058c21c1",
+    "adopt-f24288853c19",
+    "adopt-sga-query-contract",
+    "ci-mandatory-preflight",
+    "frontend-sga-main-integration",
+    "frontend-unified-graph-source-integration",
+    "main-pr233-package-resolution",
+    "packed-composed-infer-effect-acceptance",
+    "pr164-main-a32-verification-resolution",
+    "pr164-main4f-runtime-check-resolution",
+    "pr164-property-graph-source",
+    "public-text-computation-bridge-ci",
+    "remove-duplicate-runtime-package-checks",
+    "resident-cancellation-issuer-registration",
+    "resident-cancellation-native-registration",
+    "resident-source-native-registration",
+    "resolve-cancellation-foundation-main-5caeccc79",
+    "resolve-composition-custody-main-maximal-bases",
+    "resolve-composition-frontend-latest-main",
+    "resolve-composition-infer-main-maximal-bases",
+    "resolve-composition-resident-source-main",
+    "resolve-composition-reviewed-supplements-main",
+    "resolve-resident-cancel-foundation-7b5a8048",
+    "resolve-resident-source-latest-main",
+    "sdk-cancel-response-loss-registration"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "7080a173b31c4a6c2a46d87aebef3c3b66f8d2c6",
+          "digest": "a8aa14b274cf49398d074b81b3de6ba701a40d2707a610109078d76c019a2a05",
+          "mode": "100644"
+        },
+        {
+          "revision": "51764ed8846a0f3913d498d434154576d4b976dc",
+          "digest": "a8aa14b274cf49398d074b81b3de6ba701a40d2707a610109078d76c019a2a05",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "a8aa14b274cf49398d074b81b3de6ba701a40d2707a610109078d76c019a2a05",
+      "afterMode": "100644",
+      "reason": "Retain the actual normal Graph-row dependency merge and all inherited verification registrations. Both parents changed this protected path relative to a maximal merge base, including equal parent/result bytes where applicable; preserve their complete source-binding history without changing the validator or product acceptance."
+    }
+  ]
+}

@@ -16,7 +16,9 @@ export const isolatedEnvironment = Object.freeze({HOME: '/tmp/home', TMPDIR: '/t
 export const isolatedSourceFiles = Object.freeze(['proofs/ci-evidence/isolated-mutations.mjs',
   'proofs/ci-evidence/isolation.mjs', 'proofs/ci-evidence/isolated-runtime.mjs',
   'proofs/ci-evidence/runtime.mjs', 'proofs/ci-evidence/inputs.mjs',
-  'proofs/ci-evidence/mutation-inventory.mjs']);
+  'proofs/ci-evidence/package-configurations.mjs',
+  'proofs/ci-evidence/isolated-contract.mjs',
+  'proofs/ci-evidence/mutation-inventory.mjs', 'proofs/ci-evidence/mutation-observation.mjs']);
 const child = isolatedSourceFiles[0];
 const safe = path => typeof path === 'string' && /^[A-Za-z0-9_.\/-]+$/u.test(path) &&
   !isAbsolute(path) && !path.split('/').some(part => ['', '.', '..'].includes(part));
@@ -36,6 +38,7 @@ export function mutationSourcePaths(tree) {
 export function stageMutationSource({tree, destination, maxBytes = 128 * 1024 * 1024}) {
   assert(Number.isSafeInteger(maxBytes) && maxBytes > 0, 'Invalid source byte bound');
   const paths = mutationSourcePaths(tree), files = [];
+  tree.prefetch?.(paths);
   let bytes = 0;
   for (const path of paths) {
     const data = tree.read(path), mode = Number.parseInt(tree.entries.get(path).mode.slice(-3), 8);

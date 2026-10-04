@@ -33,6 +33,8 @@ pub fn admit_relation_row(@relation_schema.Schema, Array[@value_admission.Checke
 
 pub fn admitted_output_cell(AdmittedOutputRows, Int, Int) -> @value_admission.Value?
 
+pub fn admitted_output_charge_control_work(AdmittedOutput, Int) -> Bool
+
 pub fn admitted_output_owner(AdmittedOutputRows) -> @lowering_relation.BoundPrepared
 
 pub fn admitted_output_preparation_rows(AdmittedOutputPreparation) -> AdmittedOutputRows?
