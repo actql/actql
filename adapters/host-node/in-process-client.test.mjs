@@ -196,6 +196,23 @@ test('Local normal exhaustion releases its reader and records success',
     assert.equal(f.body.available(), true);
   });
 
+test('Local terminal record failure survives a normal wire terminator', async t => {
+  const unavailable = new Error('terminal record unavailable');
+  const f = await localDelivery(t, {async beforeAppend(record) {
+    if (JSON.parse(record.wire).state === 'succeeded') throw unavailable;
+  }});
+  const seen = [];
+  await assert.rejects(async () => {
+    for await (const frame of f.iterator) seen.push(frame.value.value);
+  }, error => error.code === 'ResultDeliveryDurabilityPending' &&
+    error.primaryFailure === unavailable && error.cleanupPending === true);
+  assert.deepEqual(seen, [7, 8, 9, 10]);
+  assert.equal(f.physical.status().activeReaders, 0);
+  assert.equal(f.physical.status().reservedReadBufferBytes, 0);
+  assert.equal(JSON.parse(f.state.record.wire).state, 'streaming');
+  assert.equal(f.body.available(), true);
+});
+
 test('Local delivery keeps the upstream failure after channel cleanup',
   async t => {
     const reason = new Error('PhysicalReadFailed');

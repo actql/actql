@@ -58,6 +58,8 @@ Result or serialization contract, and invalid record/receipt combinations.
 A release receipt never proves that the Client
 received or saved every value. A reader reaches `complete` only after the
 normal wire terminator; values yielded before a failure are a prefix.
+Installed Local delivery also propagates its owner's terminal-record or
+receipt failure after a normal terminator, retaining the failed attempt.
 `rowsYielded()` counts complete rows returned to that reader's caller. For
 `batches()` it counts rows in batches already yielded, excluding a pending
 batch. Read-stream errors retain the same `attemptId` and `rowsYielded`; these
