@@ -3,6 +3,7 @@ package "actql/actql/client_infer_host"
 
 import {
   "actql/actql/bounded_execution",
+  "actql/actql/checkpoint_runtime",
   "actql/actql/client_local_host",
   "actql/actql/connector_sdk",
   "actql/actql/connectors/local",
@@ -95,6 +96,8 @@ pub fn poll_issue(Poll) -> Issue?
 
 pub fn poll_kind(Poll) -> String
 
+pub fn prepared_model_call_set(Execution) -> @model_execution.PreparedModelCallSet?
+
 pub fn release_invocation_binding(InvocationBinding) -> Bool
 
 pub fn release_output(OutputUse) -> Bool
@@ -107,13 +110,15 @@ pub fn restoring(Execution) -> Bool
 
 pub fn result_publication_selection(ResultPublication) -> @run_publication_host.ClientResultTransformation?
 
+pub fn resume_approved_model_call_set(Execution, @checkpoint_runtime.ModelInvocationGrant, @run_publication_host.ClientInferDispatchAdmission, () -> String, () -> Bool) -> Result[Unit, Issue]
+
 pub fn sealing_observation(Execution) -> Bool
 
 pub fn standard_limits() -> Limits
 
-pub fn start(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelProvider, String, Limits, plan? : @run_publication_host.ClientInferPlanGraph?, acquired_input? : @run_publication_host.ClientInferCapturedInput?, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
+pub fn start(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelProvider, String, Limits, plan? : @run_publication_host.ClientInferPlanGraph?, acquired_input? : @run_publication_host.ClientInferCapturedInput?, fragment_body? : String?, ordered_body? : String?, defer_dispatch? : Bool, enter_call? : ((@model_execution.ModelCallEntry) -> Bool)?) -> Result[Execution, Issue]
 
-pub fn start_composed(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @model_execution.ModelProvider, Limits, sources? : @run_publication_host.ClientInferComposedSources?) -> Result[Execution, Issue]
+pub fn start_composed(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @model_execution.ModelProvider, Limits, sources? : @run_publication_host.ClientInferComposedSources?, defer_dispatch? : Bool, enter_call? : ((@model_execution.ModelCallEntry) -> Bool)?) -> Result[Execution, Issue]
 
 pub fn start_observation_issuance(Execution, @physical_resources.Ledger, ObservationIssuanceLimits) -> Result[ObservationIssuance, Issue]
 
@@ -160,6 +165,8 @@ pub struct Execution {
   mut dispatch_admission : @run_publication_host.ClientInferDispatchAdmission?
   mut quantity_capacity : @model_execution.ModelQuantityCapacity?
   mut physical_preflight : ((@model_execution.ModelRequest) -> Result[@model_execution.ModelRequestPreflight, @model_execution.ModelExecutionIssue])?
+  approval_pending : Bool
+  enter_call : ((@model_execution.ModelCallEntry) -> Bool)?
   mut egress_admission : @run_publication_host.ClientInferEgressAdmission?
   mut final_quantity_usage : @physical_resources.QuantityUsage?
   mut acquired_input : @run_publication_host.ClientInferCapturedInput?
@@ -240,6 +247,7 @@ type Phase
 
 pub enum Poll {
   Continue(work~ : Int64)
+  Waiting(work~ : Int64)
   Complete(@execution_relation.CompletedOutput, work~ : Int64)
   Failed(Issue, work~ : Int64)
   Stopped(work~ : Int64)

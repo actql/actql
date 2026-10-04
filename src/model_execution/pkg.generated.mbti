@@ -4,6 +4,7 @@ package "actql/actql/model_execution"
 import {
   "actql/actql/bounded_execution",
   "actql/actql/check_environment",
+  "actql/actql/checkpoint_runtime",
   "actql/actql/execution_relation",
   "actql/actql/physical_resources",
   "actql/actql/run_publication",
@@ -57,6 +58,14 @@ pub fn model_attempt_identity(ModelAttemptEvidence) -> @run_publication.RunEvide
 
 pub fn model_attempt_outcome(ModelAttemptEvidence) -> @run_publication.RunEvidenceValue
 
+pub fn model_call_entry_attempt(ModelCallEntry) -> @run_publication.RunEvidenceValue
+
+pub fn model_call_entry_authority(ModelCallEntry) -> @run_publication.RunEvidenceValue
+
+pub fn model_call_entry_call(ModelCallEntry) -> @run_publication.RunEvidenceValue
+
+pub fn model_call_entry_slot(ModelCallEntry) -> Int
+
 pub fn model_capture_bundle_json(ModelCaptureBundle, Int, Int, Int) -> String?
 
 pub fn model_capture_export_identity(ModelCaptureExport) -> String?
@@ -72,6 +81,8 @@ pub fn model_execution_invocation_evidence(ModelExecution, Int) -> @run_publicat
 pub fn model_execution_issued_slot_capture(ModelExecution, Int) -> Result[@run_publication.RunEvidenceValue, ModelExecutionIssue]
 
 pub fn model_execution_preflighting(ModelExecution) -> Bool
+
+pub fn model_execution_prepared_call_set(ModelExecution) -> PreparedModelCallSet?
 
 pub fn model_execution_prepared_request_bytes(ModelExecution, Int) -> Int64?
 
@@ -101,6 +112,12 @@ pub fn model_physical_request_plan(ModelRequest, Int64, @physical_resources.Quan
 
 pub fn model_slot_replay_count(ModelSlotReplayRead) -> Int?
 
+pub fn prepared_model_call_set_count(PreparedModelCallSet) -> Int?
+
+pub fn prepared_model_call_set_input(PreparedModelCallSet) -> @run_publication.RunEvidenceValue?
+
+pub fn prepared_model_call_set_slot(PreparedModelCallSet, Int) -> @run_publication.RunEvidenceValue?
+
 pub fn read_model_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Int, Int) -> Result[ModelSlotReplayRead, ModelExecutionIssue]
 
 pub fn read_verified_model_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Array[ModelAttemptRecords], @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int) -> Result[ModelSlotReplayRead, ModelExecutionIssue]
@@ -117,6 +134,8 @@ pub fn replay_model_capture_rows(@execution_relation.PreparedInferRows, String, 
 
 pub fn request_model_cancel(ModelExecution) -> Bool
 
+pub fn resume_model_approved_call_set(PreparedModelCallSet, @checkpoint_runtime.ModelInvocationGrant, @run_publication_host.ClientInferDispatchAdmission, () -> String, () -> Bool) -> Result[Unit, ModelExecutionIssue]
+
 pub fn retain_model_outcomes(ModelOutcomeRead) -> ModelOutcomeRead?
 
 pub fn retain_model_slot_replay(ModelSlotReplayRead) -> ModelSlotReplayRead?
@@ -127,7 +146,7 @@ pub fn start_model_capture_export(VerifiedModelCapture, ModelCaptureExportLimits
 
 pub fn start_model_capture_replay(@execution_relation.PreparedInferRows, @run_publication_host.ClientInferCallScope, VerifiedModelCapture, ModelExecutionLimits) -> Result[ModelExecution, ModelExecutionIssue]
 
-pub fn start_model_execution(@execution_relation.PreparedInferRows, ModelProvider, String, ModelExecutionLimits, call_scope? : @run_publication_host.ClientInferCallScope?, dispatch_admission? : @run_publication_host.ClientInferDispatchAdmission?, quantity_capacity? : ModelQuantityCapacity?, physical_preflight? : ((ModelRequest) -> Result[ModelRequestPreflight, ModelExecutionIssue])?, egress_admission? : @run_publication_host.ClientInferEgressAdmission?) -> Result[ModelExecution, ModelExecutionIssue]
+pub fn start_model_execution(@execution_relation.PreparedInferRows, ModelProvider, String, ModelExecutionLimits, call_scope? : @run_publication_host.ClientInferCallScope?, dispatch_admission? : @run_publication_host.ClientInferDispatchAdmission?, quantity_capacity? : ModelQuantityCapacity?, physical_preflight? : ((ModelRequest) -> Result[ModelRequestPreflight, ModelExecutionIssue])?, egress_admission? : @run_publication_host.ClientInferEgressAdmission?, defer_dispatch? : Bool, enter_call? : ((ModelCallEntry) -> Bool)?) -> Result[ModelExecution, ModelExecutionIssue]
 
 pub fn start_model_observation_verification(VerifiedModelCapture, @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], ModelObservationVerificationLimits) -> Result[ModelObservationVerification, ModelExecutionIssue]
 
@@ -171,6 +190,13 @@ pub(all) struct ModelAttemptRecords {
   attempt : @run_publication.RunEvidenceValue
   accounting : @run_publication.RunEvidenceValue
   outcome : @run_publication.RunEvidenceValue
+  authority : @run_publication.RunEvidenceValue
+}
+
+pub struct ModelCallEntry {
+  slot : Int
+  call : @run_publication.RunEvidenceValue
+  attempt : @run_publication.RunEvidenceValue
   authority : @run_publication.RunEvidenceValue
 }
 
@@ -220,6 +246,8 @@ pub(all) enum ModelExecutionIssue {
   RequestLimit
   InvocationEvidence(@run_publication.RunEvidenceValueIssue)
   Authorization(@run_publication_host.ClientInferDispatchIssue)
+  ApprovalUnavailable
+  EntryUnavailable
   Egress(@run_publication_host.ClientInferEgressIssue)
 } derive(Eq, @debug.Debug)
 
@@ -234,6 +262,7 @@ pub(all) struct ModelExecutionLimits {
 
 pub(all) enum ModelObservation {
   Continue(Int64, Int64)
+  Waiting(Int64)
   Completed(ModelCaptureBundle, Int64, Int64)
   Failed(ModelExecutionIssue, Int64, Int64)
   Stopped(@bounded_execution.StopReason, Int64, Int64)
@@ -342,6 +371,10 @@ pub struct ModelSlotReplayRead {
 type ModelSlotReplayStorage
 
 type ModelState
+
+pub struct PreparedModelCallSet {
+  owner : ModelExecution
+}
 
 pub struct VerifiedModelCapture {
   owner : ModelExecution

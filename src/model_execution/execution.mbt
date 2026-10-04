@@ -87,6 +87,8 @@ pub(all) enum ModelExecutionIssue {
   RequestLimit
   InvocationEvidence(@publication.RunEvidenceValueIssue)
   Authorization(@publication_host.ClientInferDispatchIssue)
+  ApprovalUnavailable
+  EntryUnavailable
   Egress(@publication_host.ClientInferEgressIssue)
 } derive(Eq, Debug)
 
@@ -126,6 +128,7 @@ priv enum AdoptedModelSlot {
 ///|
 pub(all) enum ModelObservation {
   Continue(Int64, Int64)
+  Waiting(Int64)
   Completed(ModelCaptureBundle, Int64, Int64)
   Failed(ModelExecutionIssue, Int64, Int64)
   Stopped(@bounded.StopReason, Int64, Int64)
@@ -165,8 +168,12 @@ struct ModelState {
   limits : ModelExecutionLimits
   quantity_capacity : ModelQuantityCapacity?
   call_scope : @publication_host.ClientInferCallScope?
-  dispatch_admission : @publication_host.ClientInferDispatchAdmission?
+  mut dispatch_admission : @publication_host.ClientInferDispatchAdmission?
   egress_admission : @publication_host.ClientInferEgressAdmission?
+  mut approval_pending : Bool
+  mut approval_cancelled : Bool
+  mut approval_current : (() -> Bool)?
+  enter_call : ((ModelCallEntry) -> Bool)?
   attempts : Array[ModelAttemptTrace]
   ledger : @resources.Ledger
   reservations : Array[@resources.Reservation]
@@ -200,6 +207,50 @@ pub struct ModelExecution {
   mut token : @bounded.Token
   control : @bounded.Control
   state : ModelState
+}
+
+///|
+/// A read of the complete, still-retained physical call inventory. The
+/// request and provider plans remain owned by the execution; this handle
+/// cannot authorize a call or keep an execution alive after cleanup.
+pub struct PreparedModelCallSet {
+  owner : ModelExecution
+}
+
+///|
+/// Exact owner-issued originals for a physical send. A Host entry callback
+/// must durably record this attempt before returning true.
+pub struct ModelCallEntry {
+  slot : Int
+  call : @publication.RunEvidenceValue
+  attempt : @publication.RunEvidenceValue
+  authority : @publication.RunEvidenceValue
+}
+
+///|
+pub fn model_call_entry_slot(value : ModelCallEntry) -> Int {
+  value.slot
+}
+
+///|
+pub fn model_call_entry_call(
+  value : ModelCallEntry,
+) -> @publication.RunEvidenceValue {
+  value.call
+}
+
+///|
+pub fn model_call_entry_attempt(
+  value : ModelCallEntry,
+) -> @publication.RunEvidenceValue {
+  value.attempt
+}
+
+///|
+pub fn model_call_entry_authority(
+  value : ModelCallEntry,
+) -> @publication.RunEvidenceValue {
+  value.authority
 }
 
 ///|
@@ -301,7 +352,11 @@ fn advance_model(
           state.limits.max_request_bytes + state.limits.max_response_bytes,
           state.limits.max_request_bytes +
           state.limits.max_response_bytes +
-          (if state.dispatch_admission is Some(_) { 81920L } else { 0L }),
+          (if state.dispatch_admission is Some(_) || state.approval_pending {
+            81920L
+          } else {
+            0L
+          }),
           if state.physical_preflight is Some(_) {
             physical_preflight_metadata_bytes
           } else {
@@ -418,6 +473,9 @@ fn advance_model(
   guard state.source is Provider(provider) else {
     return @bounded.Failed(OutputIdentity, 1, 1)
   }
+  if state.approval_pending {
+    return @bounded.Failed(ApprovalUnavailable, 1, 1)
+  }
   let reservation = state.reservations[state.next_slot]
   let attempt = if state.dispatch_admission is Some(admission) {
     guard prepared.call is Some(call) else {
@@ -436,8 +494,28 @@ fn advance_model(
       Ok(_) => ()
     }
   }
+  if state.approval_current is Some(current) && !current() {
+    return @bounded.Failed(ApprovalUnavailable, 1, 1)
+  }
   if @bounded.stop_requested(reader) is Some(reason) {
     return @bounded.Stopped(reason, 1, 1)
+  }
+  // The entry callback may commit and then lose its acknowledgement. Retain
+  // the owner-issued attempt before that boundary so cleanup and inspection
+  // cannot mistake an ambiguous send for an untouched slot.
+  if attempt is Some(trace) {
+    state.attempts.push(trace)
+  }
+  if state.enter_call is Some(enter) {
+    guard attempt is Some(trace) &&
+      enter({
+        slot: state.next_slot,
+        call: trace.call,
+        attempt: trace.attempt,
+        authority: trace.authority,
+      }) else {
+      return @bounded.Failed(EntryUnavailable, 1, 1)
+    }
   }
   // ModelResponse contains typed content and token observations, not exact
   // transport bytes. Retain the dispatched envelope as uncertain usage before
@@ -451,9 +529,6 @@ fn advance_model(
     ) {
     Err(issue) => return @bounded.Failed(Ledger(issue), 1, 1)
     Ok(_) => ()
-  }
-  if attempt is Some(attempt) {
-    state.attempts.push(attempt)
   }
   if state.quantity_capacity is Some(_) {
     match @resources.mark_quantities_uncertain(state.ledger, reservation) {
@@ -548,6 +623,8 @@ pub fn start_model_execution(
   quantity_capacity? : ModelQuantityCapacity? = None,
   physical_preflight? : ModelPhysicalPreflight? = None,
   egress_admission? : @publication_host.ClientInferEgressAdmission? = None,
+  defer_dispatch? : Bool = false,
+  enter_call? : ((ModelCallEntry) -> Bool)? = None,
 ) -> Result[ModelExecution, ModelExecutionIssue] {
   start_model_owned(
     rows,
@@ -559,6 +636,8 @@ pub fn start_model_execution(
     quantity_capacity~,
     physical_preflight~,
     egress_admission~,
+    defer_dispatch~,
+    enter_call~,
   )
 }
 
@@ -573,7 +652,13 @@ fn start_model_owned(
   quantity_capacity? : ModelQuantityCapacity? = None,
   physical_preflight? : ModelPhysicalPreflight? = None,
   egress_admission? : @publication_host.ClientInferEgressAdmission? = None,
+  defer_dispatch? : Bool = false,
+  enter_call? : ((ModelCallEntry) -> Bool)? = None,
 ) -> Result[ModelExecution, ModelExecutionIssue] {
+  if defer_dispatch &&
+    (!(source is Provider(_)) || call_scope is None || enter_call is None) {
+    return Err(InvalidLimits)
+  }
   if egress_admission is Some(admission) &&
     !(call_scope is Some(scope) &&
     @publication_host.client_infer_egress_matches_scope(admission, scope)) {
@@ -594,7 +679,7 @@ fn start_model_owned(
     limits.value_limits.max_text_bytes < 0 {
     return Err(InvalidLimits)
   }
-  if dispatch_admission is Some(_) &&
+  if (dispatch_admission is Some(_) || defer_dispatch) &&
     limits.max_request_bytes + limits.max_response_bytes >
     9223372036854775807L - 81920L {
     return Err(InvalidLimits)
@@ -664,6 +749,10 @@ fn start_model_owned(
     call_scope,
     dispatch_admission,
     egress_admission,
+    approval_pending: defer_dispatch,
+    approval_cancelled: false,
+    approval_current: None,
+    enter_call,
     attempts: [],
     ledger,
     reservations,
@@ -702,6 +791,13 @@ pub fn advance_model_execution(
   execution : ModelExecution,
   quantum : Int,
 ) -> Result[ModelObservation, ModelExecutionIssue] {
+  if quantum <= 0 {
+    return Err(InvalidLimits)
+  }
+  if execution.state.approval_pending &&
+    model_execution_prepared_call_set(execution) is Some(_) {
+    return Ok(Waiting(execution.state.work.to_int64()))
+  }
   match @bounded.advance(execution.session, execution.token, quantum) {
     Err(issue) => Err(Session(issue))
     Ok(@bounded.ContinueWith(token, progress~, work~)) => {
@@ -724,8 +820,140 @@ pub fn advance_model_execution(
 }
 
 ///|
+/// The only point where all mapped requests, call originals, reservations and
+/// optional physical provider plans are complete before the first send.
+pub fn model_execution_prepared_call_set(
+  execution : ModelExecution,
+) -> PreparedModelCallSet? {
+  let state = execution.state
+  let count = @relation.prepared_infer_rows_count(state.rows)
+  if state.reclaimed ||
+    state.approval_cancelled ||
+    @bounded.session_stopped(execution.session) ||
+    !(state.phase is DispatchSlot) ||
+    state.next_slot != 0 ||
+    !(state.source is Provider(_)) ||
+    state.call_scope is None ||
+    (state.dispatch_admission is None && !state.approval_pending) ||
+    state.request is Some(_) ||
+    state.requests.length() != count ||
+    state.reservations.length() != count ||
+    !state.attempts.is_empty() ||
+    !state.outcomes.is_empty() ||
+    (
+      state.physical_preflight is Some(_) &&
+      state.physical_plans.length() != count
+    ) ||
+    state.requests.any(request => request.call is None) {
+    return None
+  }
+  Some({ owner: execution, })
+}
+
+///|
+pub fn prepared_model_call_set_input(
+  set : PreparedModelCallSet,
+) -> @publication.RunEvidenceValue? {
+  if model_execution_prepared_call_set(set.owner) is None {
+    return None
+  }
+  set.owner.state.call_scope.map(
+    @publication_host.client_infer_call_scope_artifact,
+  )
+}
+
+///|
+pub fn prepared_model_call_set_count(set : PreparedModelCallSet) -> Int? {
+  if model_execution_prepared_call_set(set.owner) is None {
+    return None
+  }
+  Some(set.owner.state.requests.length())
+}
+
+///|
+pub fn prepared_model_call_set_slot(
+  set : PreparedModelCallSet,
+  index : Int,
+) -> @publication.RunEvidenceValue? {
+  if model_execution_prepared_call_set(set.owner) is None {
+    return None
+  }
+  set.owner.state.requests.get(index).bind(request => request.call)
+}
+
+///|
+/// Resume only the same live prepared inventory under a checked committed
+/// approval. A current-time callback rechecks that grant at each physical
+/// entry; it may not manufacture a new scope or skip current dispatch checks.
+pub fn resume_model_approved_call_set(
+  set : PreparedModelCallSet,
+  grant : @checkpoint.ModelInvocationGrant,
+  admission : @publication_host.ClientInferDispatchAdmission,
+  now : () -> String,
+  current : () -> Bool,
+) -> Result[Unit, ModelExecutionIssue] {
+  let state = set.owner.state
+  guard state.approval_pending &&
+    model_execution_prepared_call_set(set.owner) is Some(_) &&
+    state.call_scope is Some(scope) &&
+    state.source is Provider(provider) else {
+    return Err(RequestIdentity)
+  }
+  if !@checkpoint.model_invocation_grant_current(grant, now()) || !current() {
+    return Err(ApprovalUnavailable)
+  }
+  let bound = @checkpoint.model_invocation_grant_scope(grant)
+  let (_, definition_cid, _) = @publication.model_invocation_scope_run(bound)
+  if definition_cid !=
+    @publication_host.client_infer_dispatch_run_cid(admission) ||
+    @publication.model_invocation_scope_input_cid(bound) !=
+    @publication.run_evidence_value_identity(
+      @publication_host.client_infer_call_scope_artifact(scope),
+    ) ||
+    @publication.model_invocation_scope_boundary(bound).connection !=
+    provider.provider_id {
+    return Err(RequestIdentity)
+  }
+  if @publication.model_invocation_scope_slots(bound).length() !=
+    state.requests.length() {
+    return Err(RequestIdentity)
+  }
+  for index, request in state.requests {
+    guard request.call is Some(call) &&
+      @publication.model_invocation_scope_slot(bound, index)
+      is Some((slot_cid, task_cid, fixed_request_cid)) else {
+      return Err(RequestIdentity)
+    }
+    if slot_cid != @publication.run_evidence_value_identity(call) ||
+      task_cid != @environment.model_task_identity(state.task).2 ||
+      fixed_request_cid != state.fixed_request_cid {
+      return Err(RequestIdentity)
+    }
+  }
+  if @publication_host.check_client_infer_dispatch_current(admission)
+    is Err(issue) {
+    return Err(Authorization(issue))
+  }
+  if !@publication_host.client_infer_dispatch_matches_scope(admission, scope) {
+    return Err(RequestIdentity)
+  }
+  state.dispatch_admission = Some(admission)
+  state.approval_current = Some(() => {
+    @checkpoint.model_invocation_grant_current(grant, now()) && current()
+  })
+  state.approval_pending = false
+  Ok(())
+}
+
+///|
 pub fn request_model_cancel(execution : ModelExecution) -> Bool {
-  @bounded.request_cancel(execution.control)
+  let requested = @bounded.request_cancel(execution.control)
+  if requested {
+    // Waiting must not mask a delivered stop request on subsequent advances.
+    execution.state.approval_pending = false
+    execution.state.approval_cancelled = true
+  }
+  requested
 }
 
 ///|

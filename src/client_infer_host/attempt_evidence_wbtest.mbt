@@ -37,6 +37,91 @@ fn evidence_authorize(active : Execution) -> Unit {
 }
 
 ///|
+test "deferred call inventory waits without dispatch and retains input until stop" {
+  let calls = Ref(0)
+  let active = failed_outcome_start(
+    @model.Timeout,
+    calls,
+    defer_dispatch=true,
+    enter_call=Some(_ => true),
+  )
+  invocation_fixture_compiled(active) |> ignore
+  let mut waiting = false
+  for _ in 0..<2000 {
+    let poll = advance(active, 1).unwrap()
+    if poll is Waiting(_) {
+      waiting = true
+      break
+    }
+    assert_true(poll is Continue(_))
+  }
+  assert_true(waiting)
+  assert_eq(calls.val, 0)
+  let set = prepared_model_call_set(active).unwrap()
+  assert_eq(@model.prepared_model_call_set_count(set), Some(1))
+  assert_true(@model.prepared_model_call_set_input(set) is Some(_))
+  assert_true(@model.prepared_model_call_set_slot(set, 0) is Some(_))
+  assert_true(acquire_output(active) is None)
+  assert_true(!@input.cleanup_client_infer_input(active.input).unwrap())
+  assert_true(cancel(active))
+  let mut stopped = false
+  for _ in 0..<2000 {
+    let poll = advance(active, 1).unwrap()
+    if poll is Stopped(_) {
+      stopped = true
+      break
+    }
+    assert_true(poll is Continue(_))
+  }
+  assert_true(stopped)
+  assert_true(prepared_model_call_set(active) is None)
+  assert_true(cleanup(active).unwrap())
+  assert_eq(calls.val, 0)
+}
+
+///|
+test "durable entry refusal prevents physical Model invocation" {
+  let calls = Ref(0)
+  let entries = Ref(0)
+  let slot = Ref(-1)
+  let distinct = Ref(false)
+  let active = failed_outcome_start(
+    @model.Timeout,
+    calls,
+    enter_call=Some(entry => {
+      entries.val += 1
+      slot.val = @model.model_call_entry_slot(entry)
+      distinct.val = @publication.run_evidence_value_identity(
+          @model.model_call_entry_attempt(entry),
+        ) !=
+        @publication.run_evidence_value_identity(
+          @model.model_call_entry_call(entry),
+        )
+      false
+    }),
+  )
+  evidence_authorize(active)
+  assert_true(
+    fixture_finish(active) is Failed(Model(@model.EntryUnavailable), ..),
+  )
+  assert_eq(entries.val, 1)
+  assert_eq(slot.val, 0)
+  assert_true(distinct.val)
+  assert_eq(calls.val, 0)
+  assert_true(acquire_output(active) is None)
+  let model = active.model.unwrap()
+  assert_eq(@model.stopped_model_attempt_count(model), Some(1))
+  let uncertain = @model.model_execution_attempt_evidence(model, 0).unwrap()
+  assert_true(
+    @publication.run_evidence_value_json(
+      @model.model_attempt_outcome(uncertain),
+    ).contains("result_unknown"),
+  )
+  assert_true(cleanup(active).unwrap())
+  assert_eq(calls.val, 0)
+}
+
+///|
 test "common model owner issues mixed slot attempt accounting and authority proofs" {
   let calls = Ref(0)
   let active = failed_outcome_start(

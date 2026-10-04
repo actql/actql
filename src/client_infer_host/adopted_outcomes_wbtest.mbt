@@ -8,6 +8,8 @@ fn failed_outcome_start(
   success_first? : Bool = false,
   cancel_after_failure? : Bool = false,
   limits? : Limits = standard_limits(),
+  defer_dispatch? : Bool = false,
+  enter_call? : ((@model.ModelCallEntry) -> Bool)? = None,
 ) -> Execution {
   let source = infer_fixture_program.replace(
     old="[{\"id\":\"a\",\"text\":\"hello\"}]",
@@ -54,6 +56,8 @@ fn failed_outcome_start(
     @publication_host.client_infer_plan_graph_request_cid(plan),
     limits,
     plan=Some(plan),
+    defer_dispatch~,
+    enter_call~,
   ).unwrap()
   reference.val = Some(active)
   active

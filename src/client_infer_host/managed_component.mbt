@@ -14,6 +14,7 @@ pub fn local_component(
     active.advancing ||
     !(active.phase is Input) ||
     active.work != 0L ||
+    active.approval_pending ||
     active.local_component_bound {
     return Err(InvalidAdvance)
   }
@@ -28,6 +29,7 @@ pub fn local_component(
         }
         let total = match poll {
           Continue(work~)
+          | Waiting(work~)
           | Complete(_, work~)
           | Failed(_, work~)
           | Stopped(work~) => work
@@ -39,6 +41,7 @@ pub fn local_component(
         charged.val = total
         match poll {
           Continue(_) => Ok(@local.managed_provider_continue(delta, delta))
+          Waiting(_) => Err(project_issue(InvalidAdvance))
           Complete(output, ..) => {
             // The Host can borrow the original accepted capture/output
             // before Local attempts scratch cleanup. Store custody may not
