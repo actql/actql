@@ -54,7 +54,8 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   };
   // Literal expectations bind the independent normative preimage above, not
   // generated runtime output. Label selection changes the Program schema
-  // role, while the main parent's text grammar/rule bytes remain unchanged.
+  // role, combined with the adopted Frontend text rules. Retain both
+  // parents' historical rule digests rather than rebinding their identities.
   assert.equal(body.query_text_grammar_sha256,
     '7cd11ce7c1e58b585756ef3c8ac0eb078cf2bbb7003086263f665e26251b7f0e');
   assert.equal(body.query_text_rules_sha256,
@@ -85,6 +86,12 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     source_grammar_cid: 'sha256:e9b7efcdee0ef6c06bfb6cbc7805f595e030ecbd79e5afeb0ffa17b755710b7a'}),
     'sha256:4ac81bd72c110d09c286a0f2d4c5d68d4340a2e6843d75deabd8dbbd9fb26b77');
   const expected = 'sha256:542afdc74f52bbb3d9fa721434c2ac54641e01995eb46abee1dbd44252898374';
+  assert.equal(cid(historicalBody),
+    'sha256:2a5854a264c13c65bf7c2ecbc6f59f9ec09e0c590aacc1c8aed6ec247da80067');
+  assert.equal(cid({...body, query_text_rules_sha256:
+    '803a87b786e68fe64cc79a49abe359659dc32f5373168ae868b310d2dbb47927',
+    source_grammar_cid: 'sha256:5cfed3155edea075796e6be985026b6f3d5b59ecc6937540d86c6af7ffc77351'}),
+    'sha256:d825ab855369e92f2e4da5e9af19567cdc89e431784b09d19c3b57ef2e9f301a');
   assert.equal(cid(body), expected);
   const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
   assert.deepEqual(pinned, body);

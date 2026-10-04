@@ -9,7 +9,7 @@ export const applicationVersion = 'actql-verification-action-application/0.1';
 const identity = value => hash(encode(value));
 const exact = (value, fields) => assert.deepEqual(Object.keys(value ?? {}).sort(), [...fields].sort(), 'Missing/extra application field');
 
-function policyUnchanged(originTree, candidateTree) {
+export function policyUnchanged(originTree, candidateTree) {
   return sharedFiles.every(path => {
     const a = originTree.entries.get(path), b = candidateTree.entries.get(path);
     return a?.kind === 'blob' && b?.kind === 'blob' && a.mode === b.mode &&
