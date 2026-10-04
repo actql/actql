@@ -8998,6 +8998,27 @@ async function exerciseStrategyGraph(
     }
     return program;
   };
+  const retainedBinaryFork = (source, fields) => {
+    const program = structuredClone(source);
+    const producer = program.stages.find(stage => stage.id === 'crossed');
+    producer.steps[0].as = 'binary';
+    producer.steps.push(
+      {from: 'binary', filter: 'id > 1', as: 'greater'},
+      {from: 'binary', filter: 'id < 2', as: 'less'},
+      {from: 'greater', append: {with: 'less'}, as: 'out'},
+    );
+    producer.results.r.fields = fields;
+    for (const consumer of program.stages.filter(stage =>
+      stage.id.startsWith('external_cross_consumer_'))) {
+      consumer.steps[0].select = fields;
+      consumer.results.r.fields = fields;
+    }
+    return program;
+  };
+  const retainedExceptFork = retainedBinaryFork(retainedSetProgram('except'),
+    ['id']);
+  const retainedCrossFork = retainedBinaryFork(externalCrossJoinProgram,
+    ['id', 'tag']);
   const retainedUnaryChain = (sourceSteps, suffix, fields, rows, schema) => {
     const program = structuredClone(externalAppendProgram);
     const left = program.stages.find(stage => stage.id === 'cross_left');
@@ -9423,6 +9444,11 @@ async function exerciseStrategyGraph(
       expected: [4, 3, 2, 2, 1, 2].map(id => ({id})), fields: ['id']},
     {name: 'append-fork-sort-take-distinct-join', source: branchedTakeProgram,
       expected: [4, 3, 1, 2].map(id => ({id})), fields: ['id']},
+    {name: 'except-all-fork-join', source: retainedExceptFork,
+      expected: [2, 1, 1].map(id => ({id})), fields: ['id']},
+    {name: 'cross-join-fork-join', source: retainedCrossFork,
+      expected: [2, 1].flatMap(id => ['a', 'b', 'c'].map(tag =>
+        ({id, tag}))), fields: ['id', 'tag']},
     {name: 'except-all-filter', source: retainedBinaryChain(
       retainedSetProgram('except'), [{filter: 'id > 1'}], ['id']),
     expected: [{id: 2}], fields: ['id']},

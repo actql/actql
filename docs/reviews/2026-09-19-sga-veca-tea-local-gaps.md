@@ -766,6 +766,12 @@ The selected `take` child can follow the sorted branch without splitting
 the task or resetting its cumulative budget. On the same duplicated input,
 the real Store publishes `[{id: 4}, {id: 3}, {id: 1}, {id: 2}]` to the
 producer and two consumers; the memory-output Host runs the same Program.
+The same retained Host also runs `EXCEPT ALL` and Cross Join as the first
+binary child of separate fork/join Programs. The former publishes the
+duplicate-sensitive rows `[{id: 2}, {id: 1}, {id: 1}]`; the latter publishes
+all six `id`/`tag` rows in branch order. Both producer and consumer Results
+are read from the real Store. These are route examples for the already
+selected Set and Cross Join kernels, not new set or join semantics.
 The chain owner supplies cumulative work, overlapping child capacity,
 stop-before-release and reverse cleanup for these selected children. The
 earlier fork-join fault cases exercise that owner; they are shared lifecycle
