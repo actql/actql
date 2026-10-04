@@ -327,7 +327,9 @@ request is `{method, path, query, headers, body}` with lowercase, non-secret,
 bounded request headers (`accept`, API version and `User-Agent` headers are
 declared by the provider's driver, never hidden in it), and the response
 observation carries only the header names the installation declared, under
-fixed caps. An over-long or malformed header observation is a typed refusal.
+fixed caps. For an installed row source, the Site's `callResource` refuses an
+operation that would observe a header outside the manifest's
+`responseHeaders` before any credential use. An over-long or malformed header observation is a typed refusal.
 `adapters/site-node/https-exchange-fixture.mjs` is the provider-neutral test
 server for that boundary; it answers HTTPS and replaces no owner.
 

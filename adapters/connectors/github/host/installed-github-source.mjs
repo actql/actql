@@ -25,8 +25,6 @@ import {createInstalledRowSource, installRowSourceAuthorization,
   '../../../host-node/installed-row-source.mjs';
 import {invokeScopedCredentialOperation} from
   '../../../host-common/owned-invocation-context.mjs';
-import {callHttpsCredentialResource} from
-  '../../../site-node/https-credential-resource.mjs';
 import {githubIssueListPath} from '../site/github-issue-read.mjs';
 import {GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION,
   readGitHubIssuesByNode} from '../site/github-issue-graphql-read.mjs';
@@ -132,7 +130,7 @@ async function restore(moon, connectorId, expectedCatalogCid) {
 }
 
 async function openSite(checkedProfile, site, {root, principalId, moon,
-  runtimeBundleCid, resolveSecret, publication}) {
+  runtimeBundleCid, resolveSecret, publication, installation}) {
   // The authorization tuple names the access target (API host and
   // owner/repo); the stable repository id is pinned by the physical binding
   // an approval covers and by the installation identity.
@@ -145,7 +143,7 @@ async function openSite(checkedProfile, site, {root, principalId, moon,
     authorization, connection, connectorRegistration: registration,
     connectorRevision: revision, runtimeBundleCid, commonMoon: moon,
     resolveSecret: resolveSecret ?? environmentSecret(site.tokenEnvironment),
-    ca: site.ca,
+    ca: site.ca, responseHeaders: installation?.responseHeaders ?? [],
     admitsApprovalTarget: (binding, resource) => publication !== undefined &&
       binding?.version === TARGET_VERSION &&
       binding.api_origin === site.apiOrigin &&
@@ -161,12 +159,13 @@ async function openSite(checkedProfile, site, {root, principalId, moon,
 // under the installed read decision and the credential resource, and record
 // it with the declaration's Catalog CID. A Host start never runs it.
 export async function publishInstalledGitHubSource(profile, {root,
-  principalId, moon, providerMoon, runtimeBundleCid, resolveSecret, signal}) {
+  principalId, moon, providerMoon, runtimeBundleCid, resolveSecret, signal,
+  installation}) {
   const checkedProfile = checkInstalledGitHubSourceProfile(profile);
   const site = await readSite(checkedProfile.siteProfilePath);
   const {declared} = await restore(moon, checkedProfile.connectorId, undefined);
   const opened = await openSite(checkedProfile, site, {root, principalId,
-    moon, runtimeBundleCid, resolveSecret});
+    moon, runtimeBundleCid, resolveSecret, installation});
   try {
     const decision = await opened.authorization.authorize('acquisition',
       {connection: opened.connection, resource: 'issues', operation: 'read'},
@@ -186,7 +185,7 @@ export async function publishInstalledGitHubSource(profile, {root,
     const response = await invokeScopedCredentialOperation({
       authorization: {...grant, useId: `${nonce}-repository`},
       credential: opened.site.credential,
-      callResource: callHttpsCredentialResource,
+      callResource: opened.site.callResource,
       operation: GITHUB_GRAPHQL_READ_OPERATION, method: 'POST',
       path: GITHUB_GRAPHQL_PATH,
       headers: JSON.parse(providerMoon.githubRequestHeadersJson()),
@@ -226,7 +225,8 @@ export async function publishInstalledGitHubSource(profile, {root,
 // Load one installed GitHub source: restore its declaration and repository
 // binding without provider I/O.
 export async function loadInstalledGitHubSource(profile, {root, principalId,
-  moon, providerMoon, baseEnvironmentWire, runtimeBundleCid, resolveSecret}) {
+  moon, providerMoon, baseEnvironmentWire, runtimeBundleCid, resolveSecret,
+  installation}) {
   const checkedProfile = checkInstalledGitHubSourceProfile(profile);
   const site = await readSite(checkedProfile.siteProfilePath);
   let publication;
@@ -248,7 +248,7 @@ export async function loadInstalledGitHubSource(profile, {root, principalId,
     checkedProfile.connectorId, publication.catalogCid);
   const environment = rowSourceCheckEnvironment(baseEnvironmentWire, declared);
   const opened = await openSite(checkedProfile, site, {root, principalId,
-    moon, runtimeBundleCid, resolveSecret, publication});
+    moon, runtimeBundleCid, resolveSecret, publication, installation});
   const physicalTarget = (resource, fields) => Object.freeze({
     version: TARGET_VERSION, api_origin: site.apiOrigin,
     repository_id: publication.repository.id,
@@ -279,7 +279,7 @@ export async function loadInstalledGitHubSource(profile, {root, principalId,
           nameWithOwner: `${site.owner}/${site.repo}`},
         filters: {state: 'all', labels: []},
         credential: opened.site.credential,
-        callResource: callHttpsCredentialResource, authorizationFor,
+        callResource: opened.site.callResource, authorizationFor,
         limits: readLimits, consumePage, signal});
     }});
 }
