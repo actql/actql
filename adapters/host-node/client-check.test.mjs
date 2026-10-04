@@ -944,6 +944,67 @@ test('the admitted checker exposes exact selections without private Source inven
 });
 
 for (const entrance of ['local', 'http']) {
+  test(`${entrance}: typed lexical explanations retain the submitted token position`, async t => {
+    const clients = [
+      await contextClient(t, entrance, absentEnvironment),
+      await contextClient(t, entrance, sourceEnvironment,
+        {aliases: [alias], readOutcome: 'deny'}),
+      await contextClient(t, entrance, sourceEnvironment,
+        {aliases: [alias], readOutcome: 'allow', closed: true}),
+    ];
+    // Original byte offsets and lexical families are literal expectations,
+    // independently counted from each submitted spelling and parser contract.
+    const cases = [
+      ["SELECT 'x", 'unexpected_end', 9, {line: 0, character: 9}],
+      ['SELECT !', 'unexpected_token', 7, {line: 0, character: 7}],
+      ["SELECT '\\q' AS x", 'invalid_escape', 9, {line: 0, character: 9}],
+      ["SELECT '\\uD800' AS x", 'invalid_scalar', 10, {line: 0, character: 10}],
+      ['SELECT `` AS x', 'empty_identifier', 7, {line: 0, character: 7}],
+      ['SELECT 1 /* comment', 'unterminated_comment', 9, {line: 0, character: 9}],
+      ['SELECT 1e+', 'invalid_number', 7, {line: 0, character: 7}],
+      ['SELECT @', 'invalid_parameter', 7, {line: 0, character: 7}],
+      ["/*😀é*/\r\nSELECT '\\q' AS x", 'invalid_escape', 21, {line: 1, character: 9}],
+      ["SELECT 'é😀e\u0301\\q' AS x", 'invalid_escape', 18, {line: 0, character: 14}],
+      ["\ufeffSELECT '\\q' AS x", 'invalid_escape', 12, {line: 0, character: 10}],
+    ];
+    for (const format of ['sql', 'aql-text']) {
+      for (const [text, issue, byte, position] of cases) {
+        let originalOutcome;
+        for (const client of clients) {
+          const outcome = await client.check(text, {format});
+          assert.equal(outcome.outcome, 'completed', '[check-mutation:lexical-outcome]');
+          assert.equal(outcome.report.verdict, 'invalid', '[check-mutation:lexical-verdict]');
+          assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+          assert.deepEqual(outcome.report.requirements, []);
+          const input = getCheckInput(outcome, 'source');
+          assert.equal(input.text, text);
+          assert.deepEqual(outcome.report.reasons, [{code: 'query_lexical_invalid',
+            facts: {issue}, location: {document_id: 'source', revision: input.revision,
+              kind: 'text', start_byte: byte, end_byte: byte, precision: 'exact'}}],
+          '[check-mutation:lexical-reason]');
+          const reason = outcome.report.reasons[0];
+          const range = resolveCheckTextRange(outcome, reason.location);
+          assert.deepEqual(range?.range, {start: position, end: position});
+          assert.equal(range.input, input);
+          assert.equal(resolveCheckTextRange(outcome, reason.location,
+            {...input, text: 'SELECT 1 AS n'}), undefined);
+          assert.equal(resolveCheckTextRange(JSON.parse(JSON.stringify(outcome)), reason.location), undefined);
+          assert.equal(explainCheckReason(reason).kind, 'known');
+          assert.ok(explainCheckReason(reason).hint);
+          if (issue === 'unterminated_comment') assert.equal(explainCheckReason(reason).hint,
+            'Add the closing block-comment delimiter.');
+          if (issue === 'invalid_parameter') assert.equal(explainCheckReason(reason).hint,
+            'Provide a valid parameter name after @.');
+          if (issue === 'invalid_escape') assert.equal(explainCheckReason(reason).hint,
+            'Use an escape allowed by the selected string or identifier syntax.');
+          if (originalOutcome) assert.deepEqual(outcome, originalOutcome,
+            '[check-mutation:lexical-disclosure]');
+          else originalOutcome = outcome;
+        }
+      }
+    }
+  });
+
   test(`${entrance}: failed Source read owners preserve the bound public check`, async t => {
     const absent = await contextClient(t, entrance, absentEnvironment);
     const hidden = [
@@ -1239,6 +1300,21 @@ for (const [name, [from, to]] of Object.entries(mutations)) {
 }
 
 
+test('http: SDK rejects malformed lexical facts from an actual check reply', async t => {
+  let mutation = value => value;
+  const client = await httpClient(t, configurations.denied, value => mutation(value));
+  const check = () => client.check("SELECT '\\q' AS x", {format: 'sql'});
+  const baseline = await check();
+  assert.deepEqual(baseline.report.reasons[0].facts, {issue: 'invalid_escape'});
+  for (const facts of [undefined, {}, {issue: 'future_issue'},
+    {issue: 'invalid_escape', token: 'private text'},
+    {parameter: 'minimum', expected_type: 'number', actual_type: 'string'}]) {
+    mutation = value => ({...value, report: {...value.report,
+      reasons: [{...value.report.reasons[0], facts}]}});
+    await assert.rejects(check(), {code: 'InvalidHostCheckOutcome'});
+  }
+});
+
 test('http: SDK rejects contradictory evidence injected into a real verified reply',
   async t => {
     let mutation = value => value;
@@ -1258,6 +1334,9 @@ test('http: SDK rejects contradictory evidence injected into a real verified rep
     };
     await assert.rejects(check(), {code: 'InvalidHostCheckOutcome'});
     mutation = value => ({...value, reason_schema_cid: 'sha256:' + '0'.repeat(64)});
+    await assert.rejects(check(), {code: 'InvalidHostCheckOutcome'});
+    mutation = value => ({...value,
+      reason_schema_cid: 'sha256:1565f0b7e8e32f70d97905797ccc37a872b08116c0ef3d9599e4e4509b568621'});
     await assert.rejects(check(), {code: 'InvalidHostCheckOutcome'});
     mutation = value => ({...value,
       reason_schema_cid: 'sha256:6ef2aefaf03e046fcfa830ce1b0648c6b04701162755ba869a9996cd69ade8ef'});

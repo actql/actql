@@ -8,6 +8,7 @@ priv enum CheckFinding {
   // A disclosable proven violation of the caller's own input.
   Violation(String)
   SyntaxViolation(Int, Int)
+  LexicalViolation(String, (Int, Int)?)
   QueryViolation(Int, Int)
   TypeViolation(String, String, String, String?)
   SuppliedViolation(String?)
@@ -295,6 +296,7 @@ fn check_source_findings(
       finding
       is (Violation(_)
       | SyntaxViolation(_, _)
+      | LexicalViolation(_, _)
       | QueryViolation(_, _)
       | TypeViolation(_, _, _, _)
       | SuppliedViolation(_)
@@ -442,6 +444,7 @@ fn check_verdict(findings : Array[CheckFinding]) -> String {
       finding
       is (Violation(_)
       | SyntaxViolation(_, _)
+      | LexicalViolation(_, _)
       | QueryViolation(_, _)
       | TypeViolation(_, _, _, _)
       | SuppliedViolation(_)
@@ -484,6 +487,7 @@ fn write_check_report(
     match finding {
       Violation(code) => Some(code)
       SyntaxViolation(_, _) => Some("query_syntax_invalid")
+      LexicalViolation(_, _) => Some("query_lexical_invalid")
       QueryViolation(_, _) => Some("query_invalid")
       TypeViolation(_, _, _, _) => Some("supplied_value_type_mismatch")
       SuppliedViolation(_) => Some("supplied_value_invalid")
@@ -565,6 +569,26 @@ fn write_check_report(
     @encode.begin_object(writer)
     @encode.key(writer, "code")
     @encode.string_value(writer, code)
+    if code == "query_lexical_invalid" {
+      for finding in findings {
+        if finding is LexicalViolation(issue, range) {
+          @encode.key(writer, "facts")
+          @encode.begin_object(writer)
+          @encode.key(writer, "issue")
+          @encode.string_value(writer, issue)
+          @encode.end_object(writer)
+          if range is Some((start, end)) {
+            write_check_text_location(
+              writer,
+              documents.source_revision,
+              start,
+              end,
+            )
+          }
+          break
+        }
+      }
+    }
     if code == "parameter_undeclared" {
       for finding in findings {
         if finding is UndeclaredParameter(name, range) {
@@ -775,6 +799,22 @@ priv struct CheckDocuments {
 
 ///|
 fn check_syntax_finding(diagnostic : @query_syntax.Diagnostic) -> CheckFinding {
+  // Only the parser's typed lexical issue is projected. Syntax(String) remains
+  // generic; messages are neither classification evidence nor public facts.
+  if diagnostic.issue is Lexical(issue) {
+    let code = match issue {
+      UnexpectedEnd => "unexpected_end"
+      UnexpectedToken => "unexpected_token"
+      InvalidEscape => "invalid_escape"
+      InvalidScalar => "invalid_scalar"
+      EmptyIdentifier => "empty_identifier"
+      UnterminatedComment => "unterminated_comment"
+      InvalidNumber => "invalid_number"
+      InvalidParameter => "invalid_parameter"
+    }
+    let range = diagnostic.span.map(span => (span.start_byte, span.end_byte))
+    return LexicalViolation(code, range)
+  }
   match diagnostic.span {
     Some(span) => SyntaxViolation(span.start_byte, span.end_byte)
     None => Violation("query_syntax_invalid")

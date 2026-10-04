@@ -22,6 +22,7 @@ const mutations = [
   ['an unresolved obligation is reported as a violation',
     'if findings\n    .iter()\n    .any(finding => {\n' +
     '      finding\n      is (Violation(_)\n      | SyntaxViolation(_, _)\n' +
+    '      | LexicalViolation(_, _)\n' +
     '      | QueryViolation(_, _)\n' +
     '      | TypeViolation(_, _, _, _)\n      | SuppliedViolation(_)\n' +
     '      | ConstraintViolation(_, _, _)\n' +
@@ -67,6 +68,14 @@ const mutations = [
   ['an unresolved column starts one byte after its authored token',
     '        @source_origin.start(origin).byte_offset,',
     '        @source_origin.start(origin).byte_offset + 1,'],
+  ['a lexical escape is assigned to another issue family',
+    'InvalidEscape => "invalid_escape"', 'InvalidEscape => "unexpected_end"'],
+  ['a lexical violation loses its owned source position',
+    'let range = diagnostic.span.map(span => (span.start_byte, span.end_byte))',
+    'let range : (Int, Int)? = None'],
+  ['a lexical violation loses its typed explanation',
+    'LexicalViolation(_, _) => Some("query_lexical_invalid")',
+    'LexicalViolation(_, _) => Some("query_syntax_invalid")'],
 ];
 
 const strict = id => ({id, operator: 'strictEqual'});
@@ -97,6 +106,9 @@ const targets = [
     [strict('column-outcome'), strict('column-verdict'), deep('column-location')]],
   ['unresolved column expressions retain authored source positions',
     [strict('column-outcome'), strict('column-verdict'), deep('column-location')]],
+  ...Array.from({length: 3}, () =>
+    ['typed lexical explanations retain the submitted token position',
+      [strict('lexical-outcome'), strict('lexical-verdict'), deep('lexical-reason')]]),
 ];
 
 // Reuse the common reporter and nonzero-execution evidence. A process failure
@@ -159,27 +171,34 @@ const accepted = target => {
   return mutationAcceptance(result, expected);
 };
 
-export function checkDisclosureMutations() {
+export function checkDisclosureMutations(match) {
+  const selected = mutations.map((mutation, index) => ({mutation, target: targets[index]}))
+    .filter(({mutation: [name]}) => match === undefined || name.includes(match));
+  if (selected.length === 0) throw new Error('No disclosure mutations selected');
   const original = readFileSync(path, 'utf8');
   const results = [];
   try {
-    for (const [index, [name, from, to]] of mutations.entries()) {
+    for (const {mutation: [name, from, to], target} of selected) {
       if (original.split(from).length !== 2) {
         throw new Error(`Mutation anchor not unique: ${name}`);
       }
       writeFileSync(path, original.replace(from, to));
       build();
-      results.push({name, rejected: !accepted(targets[index])});
+      results.push({name, rejected: !accepted(target)});
     }
   } finally {
     writeFileSync(path, original);
     build();
   }
-  const restored = targets.every(target => accepted(target));
+  const restored = selected.every(({target}) => accepted(target));
   console.log(JSON.stringify({mutations: results, restoredAccepted: restored}, null, 2));
   if (!restored || results.some(result => !result.rejected)) process.exitCode = 1;
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  checkDisclosureMutations();
+  const args = process.argv.slice(2);
+  if (args.length && (args.length !== 2 || args[0] !== '--match' || !args[1])) {
+    throw new Error('Usage: check-disclosure-mutations.mjs [--match name-substring]');
+  }
+  checkDisclosureMutations(args[1]);
 }

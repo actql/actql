@@ -598,6 +598,26 @@ bind the exact JSON serialization supplied to the common admission owner. An
 unavailable original position is omitted, including lowerer semantic failures
 without owned source provenance. No generated JSON path is displayed as SQL.
 
+The parser's typed lexical issues project as `query_lexical_invalid`, with
+closed `facts.issue`: `unexpected_end`, `unexpected_token`, `invalid_escape`,
+`invalid_scalar`, `empty_identifier`, `unterminated_comment`, `invalid_number`
+or `invalid_parameter`. These facts contain no token text, Source name, private
+cause or parser message. The parser's existing authored span supplies a source
+location when present, including an exact zero-width position; no token range
+is invented. Ordinary grammar `Syntax(String)` failures remain the generic
+`query_syntax_invalid` reason. Lexical limits still project as analysis-budget
+coverage, never as these invalid-input reasons. The SDK provides safe,
+issue-specific explanations and advisory hints without interpreting messages,
+reparsing source or applying an edit.
+
+Adding this closed facts alternative changes the registered check reason and
+outcome schema identities and their coordinated Host/SDK pins. Both consumers
+reject the previous identity, including an otherwise empty verified report.
+The `parameter_undeclared` condition explicitly retains its required parameter
+fact despite the expanded union. Unknown reason codes retain only their safe
+code-only shape. This does not change `actql-diagnostics/0.1`, its code/payload
+meanings or frozen historical identity evidence.
+
 An unresolved column expression can retain its existing lowerer's authored
 identifier range in a `query_invalid` reason, for both SQL and text input.
 The projection reads the existing typed failure and origin; it does not resolve
