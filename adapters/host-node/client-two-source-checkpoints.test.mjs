@@ -509,6 +509,22 @@ test('plural captures cannot borrow singular installed authorization', async t =
   assert.deepEqual(await f.list(checkpoints), []);
 });
 
+test('singular installation binds two distinct occurrences of its own view', async t => {
+  const f = await fixture(t, {runOutcome: 'allow',
+    single: source('left', 'allow')});
+  const checkpoints = await f.open();
+  const captured = submission();
+  captured.acquisitions[1].checkedSource.sourceRef = source('left').sourceRef;
+  assert.notEqual(captured.acquisitions[0].checkedSource.requirementCid,
+    captured.acquisitions[1].checkedSource.requirementCid);
+  assert.equal((await submit(checkpoints, captured)).kind, 'dispatch');
+  const foreign = structuredClone(captured);
+  foreign.acquisitions[1].checkedSource.sourceRef = source('right').sourceRef;
+  await assert.rejects(submit(checkpoints, foreign),
+    {code: 'HeldAcquisitionChanged'});
+  assert.deepEqual(await f.list(checkpoints), []);
+});
+
 
 for (const [observed, terminal] of [
   ['preparing', false], ['running', false], ['waiting_checkpoint', false],

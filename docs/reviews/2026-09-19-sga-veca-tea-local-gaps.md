@@ -83,6 +83,15 @@ read. Final dispatch cleanup releases
 the transfer reservation and all retained holdings. These tests do not
 establish a Store writer fault, cancellation after positive Join work, or
 every Salesforce acquisition variant.
+Two separately installed Salesforce sources also retain exact left and right
+input ports when their Resources return different rows. The public HTTPS
+fixture reads the Join and both consumer Results from the real Store, then
+resends and reopens the Host without another provider query. This validates
+the two-adapter Salesforce binding through the same owner; it does not turn
+other provider pairs into an implicit completion claim.
+The same published Salesforce SourceView may fill two separate acquisition
+slots in different Stages. Each slot retains its own checked requirement and
+occurrence identity, while both select the same installed read authority.
 
 The installed full-family Host now declares TEA and VecA to the common checker,
 matching its already registered bounded providers. This does not make a

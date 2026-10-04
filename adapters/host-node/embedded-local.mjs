@@ -410,7 +410,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       ...(sourceProfile?.sources === undefined &&
           (sourceProfile === undefined ||
             installedSourceReadAccesses(sourceProfile).length === 1)
-        ? {source: sourceProfile?.readAuthorization}
+        ? {source: sourceProfile === undefined ? undefined : {
+          ...sourceProfile.readAuthorization,
+          sourceRef: installedSourceReadAccesses(sourceProfile)[0].sourceRef}}
         : {sources: (sourceProfile?.sources ?? [sourceProfile]).flatMap(source =>
           installedSourceReadAccesses(source).map(access => ({
             sourceRef: access.sourceRef, ...source.readAuthorization})))})});
@@ -750,7 +752,6 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       if (acquisitionCount > 2) {
         throw clientOperationError('ClientProgramUnsupported');
       }
-      const selectedRefs = new Set();
       // Every occurrence is selected by its checked requirement before any I/O.
       for (let task = 0; task < acquisitionCount; task++) {
         try {
@@ -762,13 +763,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
               !installedSourceReadBindings(adapter).includes(sourceRef)) {
             throw new Error('InstalledMultiSourceUnsupported');
           }
-          selectedRefs.add(sourceRef);
         } catch (cause) {
           throw clientOperationError('ClientProgramUnsupported', cause);
         }
-      }
-      if (selectedRefs.size !== acquisitionCount) {
-        throw clientOperationError('ClientProgramUnsupported');
       }
     }
     // Static ModelTask admission cannot authorize a model call. Until the
