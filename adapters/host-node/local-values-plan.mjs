@@ -185,7 +185,7 @@ export function sourceFreeInferEffectPublicationPlan({acquired,
       control.checkedClientEffectInferInvocation(prepared, compilation,
         runDefinition, issued);
     const run = JSON.parse(runDefinition.wire);
-    const {plan, retentionDependencies} = buildLocalPublicationPlan({
+    const {plan, retention, retentionDependencies} = buildLocalPublicationPlan({
       control, admission, runDefinition, invocation, observation,
       compiledPlanCid: compiledPlan.identity,
       programDefinitionCid: moon.clientProgramEffectDefinitionCid(prepared),
@@ -199,7 +199,10 @@ export function sourceFreeInferEffectPublicationPlan({acquired,
       moon, effectCompilation: compilation, preparedEffect: prepared});
     return Object.freeze({...issued, plan: Object.freeze({...plan,
       invocationOwner, localEvidenceContext: Object.freeze({admission,
-        runDefinition, retentionDependencies, sourceFreeDependencyClosure:true,
+        runDefinition, retentionDependencies: Object.freeze([...retentionDependencies,
+          Object.freeze({kind: 'result_retention_policy',
+            cid: retention.identity, wire: retention.wire})]),
+        sourceFreeDependencyClosure:true,
         resultDataPolicy: control.compiledInferSourceFreeResultPolicy(compiled),
         runInvocation: invocation,
         observation})})});

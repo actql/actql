@@ -765,11 +765,12 @@ try {
     const document = JSON.stringify(graphCompositionProgram(mapping.mapping_ref, graphFamily));
     const requestId = 'missing-graph-result-policy';
     await assert.rejects(client.aql(document, {format: 'json', requestId}),
-      {code: 'ClientHostFailure'});
+      error => error.code === 'SubmissionUnknown' &&
+        error.requestId === requestId && error.cause?.code === 'ClientHostFailure');
     const lookup = await client.lookupRequest(requestId);
     assert.deepEqual(lookup, {kind: 'not_found'});
     assert.deepEqual((await client.checkpoints()).items, []);
-    console.log(JSON.stringify({code: 'ClientHostFailure', requestId, lookup,
+    console.log(JSON.stringify({code: 'SubmissionUnknown', cause: 'ClientHostFailure', requestId, lookup,
       programSha256: createHash('sha256').update(document).digest('hex')}));
   } else if (step === 'assertion-refusal') {
     const variant = process.argv[3];
@@ -835,8 +836,17 @@ try {
     if (pendingScratch) {
       await waitFor(async () => (await execution.status()).status === 'waiting_checkpoint');
     } else {
-      assert.equal((await execution.wait()).status,
-        optionalKind && !optionalEnabled ? 'succeeded' : 'waiting_checkpoint');
+      const state = await execution.wait();
+      const expectedStatus = optionalKind && !optionalEnabled ? 'succeeded' : 'waiting_checkpoint';
+      if (state.status !== expectedStatus) {
+        const failure = {boundary: 'initial-composition-wait', ref: execution.ref,
+          requestId: submission.requestId, state, expectedStatus,
+          diagnostics: readFileSync('composition-custody.jsonl', 'utf8')
+            .trim().split('\\n').filter(Boolean).slice(-16).map(line => JSON.parse(line))};
+        writeFileSync('composition-failure.json', JSON.stringify(failure));
+        console.error('packed composition failure ' + JSON.stringify(failure));
+      }
+      assert.equal(state.status, expectedStatus);
     }
     writeFileSync('effect-ref.json', JSON.stringify(execution.ref));
     writeFileSync('rce-submission.json', JSON.stringify(submission));
@@ -1257,8 +1267,13 @@ try {
         assert.equal(await readFile(join(root, 'model-calls.jsonl'), 'utf8'), modelBefore,
           'bad assertion rows must be rejected before any Model call');
         assert.equal(server.seen.filter(item => item.method === 'PATCH').length, writeBefore);
-        if (graphFamily) assert.equal(await readFile(join(root, 'source-calls.jsonl'), 'utf8'),
-          sourceBefore, 'source-free assertion failure must not acquire an installed Source');
+        if (graphFamily) {
+          const observations = (await readFile(join(root, 'source-calls.jsonl'), 'utf8'))
+            .slice(sourceBefore.length).trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
+          assert.deepEqual(observations, [{sourceIo: 0, sourceReads: 0,
+            sourceReadSessions: 0, sourceReadCommands: [], sourceProviderOpens: []}],
+          'the refusal process records a snapshot but performs no Source I/O');
+        }
         const observation = {sourceRevision, transport, ...refusal,
           modelCalls: 0, writes: 0, checkpoints: 0,
           ...(graphFamily ? {sourceReadSessions: 0, case: compositionKind} : {})};

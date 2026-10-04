@@ -1066,7 +1066,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     // Its start claim cannot be reset by a lost response or a second submit.
     void effectRun.start(accepted).catch(error => {
       diagnostic('effect_start_failed', {ref: accepted.ref,
-        code: error?.code ?? error?.message});
+        code: error?.code ?? error?.message, cause: error?.cause});
     }).finally(() => settleHeldRun(accepted, runIdOf(accepted)))
       .catch(error => diagnostic('effect_settlement_failed', {
         ref: accepted.ref, code: error?.code ?? error?.message}));
@@ -1379,7 +1379,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       }, error => {
         if (!startObserved) settle({refused: error});
         diagnostic('effect_start_failed', {ref: accepted.ref,
-          code: error?.code ?? error?.message});
+          code: error?.code ?? error?.message, cause: error?.cause});
       }).finally(() => settleHeldRun(accepted, runId))
         .catch(error => diagnostic('effect_settlement_failed', {
           ref: accepted.ref, code: error?.code ?? error?.message}));
