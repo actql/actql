@@ -22,6 +22,11 @@ pub fn operation_profile_requirement(
         | EnforceDiagnosticRelationRows
         | BindDiagnosticThreshold(_) => None
       }
+    NormalizeRequirement(o) =>
+      match o {
+        AdmitNormalizeGraph => Some(PropertyGraph)
+        ResolveNormalizeResources => None
+      }
     TraverseRequirement(o) =>
       match o {
         ResolvePropertyGraphTraversalProfile => Some(PropertyGraph)

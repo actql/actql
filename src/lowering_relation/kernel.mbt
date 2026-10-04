@@ -341,6 +341,7 @@ fn prepare_kernel_measured(
     | GraphMatchRows(_)
     | GraphBoundsRows(_)
     | GraphDegreeRows(_)
+    | GraphNormalizeValue(_)
     | GraphTraverseRows(_)
     | PropertyGraphConstructionValue(_)
     | VectorValue(_)

@@ -1614,6 +1614,14 @@ pub(all) enum GraphMatchRule {
   EnforceMatchResources
 } derive(Eq, @debug.Debug)
 
+pub struct GraphNormalizeCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  operation : @graph_typing.CheckedNormalize
+  policy : @capacity_policy.Policy
+}
+
 pub(all) enum GraphSelectionResource {
   SelectorWork
   SelectorBytes
@@ -2153,6 +2161,7 @@ pub(all) enum OperationExecutionCheck {
   GraphSelectorExecution(GraphSelectorCheck)
   GraphMatchExecution(GraphMatchCheck)
   GraphDiagnosticExecution(GraphDiagnosticCheck)
+  GraphNormalizeExecution(GraphNormalizeCheck)
   VectorExecution(VectorCheck)
   NearestExecution(NearestCheck)
   PoolExecution(PoolCheck)

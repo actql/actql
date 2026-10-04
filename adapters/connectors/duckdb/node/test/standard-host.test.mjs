@@ -1794,6 +1794,15 @@ async function exerciseStrategyGraph(
     fields:['id','node_name'], secondFields:['node_name'],
     expected:[{id:1,node_name:'first'},{id:2,node_name:'second'}],
   }, {
+    name:'retained-normalized-node-match', retainedOutput:true,
+    steps:[
+      {from:'g',normalize_graph:true,as:'normalized'},
+      {from:'normalized',match_nodes:{definition:'N',where:'true',
+        fields:['id','node_name']},as:'out'},
+    ],
+    fields:['id','node_name'], secondFields:['node_name'],
+    expected:[{id:1,node_name:'first'},{id:2,node_name:'second'}],
+  }, {
     name: 'retained-graph-bounds', retainedOutput:true,
     selectedStructural:true,
     step:{from:'g',graph_bounds:{max_nodes:1,max_edges:1},as:'out'},

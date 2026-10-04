@@ -68,7 +68,7 @@
     "source_sha": "5b317a6ee111e5b4ea3694e3db7da9d2042a4160",
     "historical_inventory": "portability/historical/local-family-coverage-pre-property-graph.json.txt",
     "classification": {
-      "normalize_graph": "blocked",
+      "normalize_graph": "partial",
       "match_nodes": "partial",
       "match_edges": "partial",
       "traverse": "partial",
@@ -100,11 +100,23 @@
       "output": "graph",
       "canonical": ["SGA.normalize"],
       "variants": ["duplicate policy", "dangling edge policy", "property admission"],
-      "status": "blocked",
+      "status": "partial",
       "owner": "local-sga",
-      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "current_gap": "Current typed Graph normalization has JS checker, bounded provider, keyed-copy custody, and one isolated retained-Store Host publication case. Exact/one-short resource boundaries, three-target verification, full Host matrix, and final-source CI are not yet current-profile evidence.",
       "completed_layers": ["contract"],
-      "layer_evidence": [],
+      "layer_evidence": [
+        {
+          "scope": "current_typed_graph_copy_and_retained_host_publication",
+          "layers": ["checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "cancellation", "publication"],
+          "targets": ["js"],
+          "evidence": [
+            "src/program_check/property_graph_public_test.mbt",
+            "src/query_integration/property_graph_provider_custody_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ],
+          "verification": "Focused JS Program and selected-provider tests passed. The isolated new standard Host retained-Store case passed with three independent Named Results. This does not claim the full Host matrix or three-target boundary closure."
+        }
+      ],
       "historical_implementation_evidence": [
         {
           "scope": "shared_graph_generation_carrier_and_bridge_consumers",

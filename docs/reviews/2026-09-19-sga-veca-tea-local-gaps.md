@@ -4650,3 +4650,19 @@ Bridges, reject publication, and retain cleanup responsibility through one
 injected cleanup failure before a successful retry. They do not cover later
 Relation operations beyond the filter shape or every mixed-Carrier failure
 boundary.
+
+Current Property Graph normalization is now partially connected to the typed
+profile. The checker admits `normalize_graph: true` only for a typed Graph,
+lowering retains its exact input edge, and the selected provider copies keys,
+properties, endpoints, and definitions into a new bounded Graph generation.
+A focused JS fixture verifies the copied keyed nodes and parallel edges,
+quantum-one progress, cancellation after a partial output before handoff, and
+a literal workspace exact/one-short boundary. A source Program passes public
+checking; one isolated standard Host case retained the normalized Graph,
+published MATCH rows and two consumer Named Results, and reclaimed its
+resources. The shared task splitter
+now separates a selected Carrier-to-Carrier normalization before a later
+Relation consumer without changing the fused preference of other families.
+This is not current-profile completion: work exact/one-short, large-value
+noninterruptible sections, all-target execution, broader Host failures, and
+final-source CI still need evidence.

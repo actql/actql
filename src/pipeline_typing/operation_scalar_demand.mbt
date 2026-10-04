@@ -163,6 +163,7 @@ pub fn operation_scalar_demand(
         | EnforceDiagnosticRelationRows => None
       }
     AppendRequirement(_)
+    | NormalizeRequirement(_)
     | SetRequirement(_)
     | ValuesRequirement(_)
     | MatchRequirement(_)

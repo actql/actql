@@ -934,6 +934,15 @@ fn prepare_target_source_policy(
             unknown = true
             1
           }
+          @pipeline.GraphNormalize(_) => {
+            identity_charge(budget, 1)
+            carrier_steps.push({
+              step: index,
+              operation: step.operation,
+              unknown_provenance: false,
+            })
+            1
+          }
           @pipeline.PropertyGraphConstruction(inputs~, ..) => {
             identity_charge(budget, 1)
             carrier_steps.push({
