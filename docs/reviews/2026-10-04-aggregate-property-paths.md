@@ -45,6 +45,12 @@ stays inside the aggregate; no preceding derive or independent evaluator changes
 its evaluation position. Common typing rejects a missing field, scalar receiver
 or non-boolean COUNTIF. A displaced Pipe range remains inaccessible.
 
+Property construction authors members in canonical `name,value` order. Aggregate
+emission retains the expression's source representation, so this ordering also
+lets generated arguments pass the existing canonical AoA issuance boundary.
+It does not change the property's receiver, name, value, type or canonical
+semantic identity, and it does not weaken that boundary's validation.
+
 There are no checker, planner, provider, Host, wire, grammar, schema, numeric-law
 or saved-data changes. Previously rejected valid text receives an ordinary
 Program and its normal identity. CTE/assert/Effect assembly is untouched.
@@ -86,11 +92,17 @@ selection. Common limited OVER argument handling has a separate public case.
 
 ## Executed and pending evidence
 
-- Focused JS aggregate selection: **12/12** (`run-LarSIj`,
-  `focused-test-HVSv0m`), comprising eight new and four existing tests.
+- Focused JS aggregate selection after canonical property construction:
+  **12/12** (`run-0o5FIw`, `focused-test-AlE0y8`), comprising eight new
+  and four existing tests. The preceding argument-only repair also passed
+  12/12 (`run-LarSIj`, `focused-test-HVSv0m`).
+- Affected shared query expression package: **8/8** (`run-zIjmj2`,
+  `focused-test-i9bo8D`) after canonical property construction.
 - Affected existing analytic callers: **3/3** (`run-56Pnht`,
   `focused-test-9OjQQP`). These counts are separate selections, not a claimed
-  combined coverage of all aggregate or analytic behavior.
+  combined coverage of all aggregate or analytic behavior; this earlier caller
+  selection preceded the member-order change. The new OVER property case is
+  also in the final aggregate selection.
 - Changed MoonBit formatting, three JavaScript syntax checks and diff checks
   pass. An initial test helper failed to compile before baseline reproduction;
   it was corrected and is not counted as a successful test execution.
@@ -132,3 +144,13 @@ the aggregate expression emitter called by `lowering_relation::emit_sequence_ste
 The independent acceptance control now authors its property members in canonical
 order; expressions, input rows, types, aggregate arguments and expected output
 are unchanged. This does not claim the separate member-order defect is repaired.
+
+The subsequent `53e6eaa21963352eefe593e2ace23dd2260cdbbb` probe
+(`public-query-evidence-qBOC1L`) passed the JSON control, then stopped on SQL.
+Temporary untracked bridge diagnostics made its tree dirty; it is a diagnostic,
+not pristine source acceptance. The source preparation bridge also prepared
+that SQL successfully, with one task; Values compilation hit the same member
+order failure. The Frontend property builder now writes canonical member order,
+while the arbitrary machine-JSON member-order issue remains a separate
+common-owner handoff. The temporary diagnostic files were moved outside the checkout
+before the next clean-source acceptance.
