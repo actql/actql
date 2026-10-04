@@ -80,8 +80,11 @@ fn primary_operation_profile(operation : CheckedOperation) -> OperationProfile? 
           NodeRows | EdgeRows => PropertyGraph
         }
       PropertyGraphConstruction(..) => PropertyGraph
-      GraphMatch(_) | GraphBounds(_) | GraphDegree(_) | GraphNormalize(_) | Traverse(..) =>
-        PropertyGraph
+      GraphMatch(_)
+      | GraphBounds(_)
+      | GraphDegree(_)
+      | GraphNormalize(_)
+      | Traverse(..) => PropertyGraph
       Vector(_) | Nearest(..) | Pool(_) | Ranking(_) => VecA
       TextRank(..) => TextRankProfile
     },
