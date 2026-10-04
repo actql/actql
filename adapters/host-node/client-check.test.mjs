@@ -14,7 +14,7 @@ import {join} from 'node:path';
 import test, {after} from 'node:test';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import {connect, getCheckInput, resolveCheckLocation, explainCheckReason} from '../../packages/sdk/index.mjs';
+import {connect, getCheckInput, resolveCheckLocation, resolveCheckTextRange, explainCheckReason} from '../../packages/sdk/index.mjs';
 import {validCheckOutcome, checkReasonSchemaCid} from '../../packages/client-wire/index.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {createNodeAuthorizationGate} from './authorization.mjs';
@@ -428,12 +428,13 @@ for (const [entrance, open] of Object.entries(entrances)) {
     const client = await open(t, configurations.denied);
     // Fixed byte expectations, hand-counted independently of parser output.
     const cases = [
-      ['SELECT', 6, 6],
-      ['SELECT 1 AS n,\r\n', 16, 16],
-      ["\ufeffSELECT 'é😀e\u0301' AS x,\r\n", 29, 29],
+      ['SELECT', 6, 6, {line: 0, character: 6}],
+      ["SELECT 'é😀e\u0301' AS x,", 24, 24, {line: 0, character: 20}],
+      ['SELECT 1 AS n,\r\n', 16, 16, {line: 1, character: 0}],
+      ["\ufeffSELECT 'é😀e\u0301' AS x,\r\n", 29, 29, {line: 1, character: 0}],
     ];
     const revisions = [];
-    for (const [text, start, end] of cases) {
+    for (const [text, start, end, position] of cases) {
       const outcome = await client.check(text, {format: 'sql'});
       assert.equal(outcome.outcome, 'completed', '[check-mutation:syntax-outcome]');
       assert.equal(outcome.report.verdict, 'invalid');
@@ -452,6 +453,13 @@ for (const [entrance, open] of Object.entries(entrances)) {
       const resolved = resolveCheckLocation(outcome, reason.location);
       assert.equal(resolved.text, '');
       assert.equal(resolved.input.text, text);
+      const editor = resolveCheckTextRange(outcome, reason.location);
+      assert.deepEqual(editor?.range, {start: position, end: position},
+        '[check-mutation:editor-coordinates]');
+      assert.equal(editor.input, input);
+      assert.equal(editor.positionEncoding, 'utf-16');
+      assert.equal(resolveCheckTextRange(outcome, reason.location,
+        {...input, text: 'SELECT 1 AS n'}), undefined, '[check-mutation:editor-revision]');
       assert.equal(explainCheckReason(reason).kind, 'known');
       assert.equal(resolveCheckLocation(outcome, reason.location, {...input, text: 'SELECT 1 AS n'}), undefined);
       assert.equal(resolveCheckLocation(outcome, reason.location, {...input, revision: 'rev:' + '0'.repeat(64)}), undefined);
