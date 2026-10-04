@@ -7,7 +7,7 @@ import {createHash, createPrivateKey, createPublicKey} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
-import {contentCid, createLocalAuthorizationGate} from
+import {canonicalJson, contentCid, createLocalAuthorizationGate} from
   '../../../host-node/local-account-config.mjs';
 import {openSqliteCredentialJournal} from
   '../../../site-node/sqlite-credential-journal.mjs';
@@ -254,10 +254,13 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     // query read of its own Resource.
     const approved = approvedReads.get(decision);
     if (approved !== undefined) {
-      if (operation !== 'salesforce:query:read' ||
+      if (operation !== (approved.kind === 'effect_target'
+          ? 'salesforce:record:observe' : 'salesforce:query:read') ||
           approved.resource !== resource) {
         fail('SalesforceCredentialGrantNotAuthorized');
       }
+      approved.assertCurrent?.();
+      approved.enter?.();
       return sign({operation, runInvocationCid, taskAttempt,
         dispatchRequestCid, maxUses});
     }
@@ -355,6 +358,37 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     return approval;
   }
 
+  // The provider supplies its independently resolved member binding. The
+  // common target owner must have approved that exact binding and tuple;
+  // this token covers record observation and its Catalog, never query or write.
+  function admitCheckpointEffectTargetRead(decision, physicalBinding) {
+    ensureOpen();
+    const facts = checkpointApprovalFacts(decision);
+    if (facts?.kind !== 'effect_target' || decision.action !== 'dispatch' ||
+        decision.boundary !== 'acquisition' || facts.principalId !== principalId ||
+        facts.configurationCid !== authorization.configurationCid ||
+        facts.contextCid !== context.contextCid ||
+        decision.tuple?.connection !== connection ||
+        decision.tuple?.operation !== 'read' ||
+        facts.readTuple?.connection !== connection || facts.readTuple?.operation !== 'read' ||
+        facts.readTuple?.resource !== decision.tuple.resource ||
+        physicalBinding?.version !== 'actql-installed-salesforce-effect-target-read/0.1' ||
+        physicalBinding.site_binding_cid !==
+          installedSalesforceSiteBinding(siteFacts, 'salesforce').bindingCid ||
+        physicalBinding.resource !== decision.tuple.resource ||
+        !Array.isArray(facts.physicalBindings) ||
+        !facts.physicalBindings.some(binding => canonicalJson(binding) === canonicalJson(physicalBinding)) ||
+        typeof facts.assertCurrent !== 'function' || typeof facts.enter !== 'function') {
+      fail('SalesforceEffectTargetReadApprovalNotAdmitted');
+    }
+    facts.assertCurrent();
+    const approval = Object.freeze({kind: 'effect_target',
+      resource: physicalBinding.resource, checkpointCid: facts.checkpointCid,
+      assertCurrent: facts.assertCurrent, enter: facts.enter});
+    approvedReads.set(approval, approval);
+    return approval;
+  }
+
   // Metadata read decisions: the installed gate's `read` dispatch at the
   // acquisition boundary for one Resource, under a describe subject (the
   // boundary kind is the subject, not the operation). They authorize only
@@ -424,6 +458,8 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
       describeLimits: limits.describe, retainEvidence, maxRetainedBytes,
       authorizationForDescribe: async name => {
         if (!decided.has(name)) fail('SalesforceCatalogDescribeNotAuthorized');
+        covered?.assertCurrent?.();
+        covered?.enter?.();
         return {...sign({operation: 'salesforce:catalog:describe',
           runInvocationCid, taskAttempt: 1, dispatchRequestCid, maxUses: 1}),
         useId: `${occurrence}-describe-${name}`};
@@ -628,7 +664,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   // projected from and rechecked against, with the retained describe
   // evidence that restores it after a restart.
   async function describeEffectCatalog({resources, runInvocationCid,
-    dispatchRequestCid, occurrence, signal} = {}) {
+    dispatchRequestCid, occurrence, approval, signal} = {}) {
     ensureOpen();
     if (!Array.isArray(resources) || resources.length === 0 ||
         !cidPattern.test(runInvocationCid ?? '') ||
@@ -638,7 +674,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     const catalog = await describeNamed({resources, occurrence,
       runInvocationCid, dispatchRequestCid, retainEvidence: true,
       maxRetainedBytes: DEFAULT_SALESFORCE_CATALOG_LIMITS.maxObservationBytes,
-      signal});
+      approval, signal});
     if (catalog.status === 'interrupted') {
       fail(catalog.interruptionCode === 'SalesforceCatalogCancelled'
         ? 'SalesforceCatalogCancelled' : 'SalesforceCatalogRefreshInterrupted');
@@ -755,7 +791,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     });
   }
 
-  return Object.freeze({
+  const siteFacts = Object.freeze({
     orgId: profile.orgId, connection, apiVersion: profile.apiVersion,
     instanceOrigin: profile.instanceOrigin, siteKey: profile.siteKey,
     siteGeneration: profile.siteGeneration, namespaceId: profile.namespaceId,
@@ -767,10 +803,13 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     credentialPrivateKeyPath: profile.credentialPrivateKeyPath,
     caPath: profile.caPath,
     connectorRegistration: 'salesforce', connectorRevision: 'salesforce/0.1',
-    principal: principalId, context, authorization, credential,
+    principal: principalId, context,
+  });
+  return Object.freeze({...siteFacts, authorization, credential,
     issueGrant, attestEffectCapability, refreshCatalog, declareCatalog,
     restoreDeclaration, describeForAcquisition, describeEffectCatalog,
     admitCheckpointReadApproval,
+    admitCheckpointEffectTargetRead,
     prepareExecutionMapping, peek,
     // Whether this Site generated `declaration`.
     ownsDeclaration: declaration => declarations.has(declaration),

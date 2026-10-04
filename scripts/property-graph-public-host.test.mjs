@@ -19,6 +19,7 @@ const fixture = JSON.parse(await readFile(new URL('./fixtures/property-graph-par
 const presenceFixture = JSON.parse(await readFile(new URL('./fixtures/property-graph-presence.program.json', import.meta.url), 'utf8'));
 const definitionFixture = JSON.parse(await readFile(new URL('./fixtures/property-graph-definition-rows.program.json', import.meta.url), 'utf8'));
 const labelFixture = JSON.parse(await readFile(new URL('./fixtures/property-graph-label-rows.program.json', import.meta.url), 'utf8'));
+const selectorDeriveFixture = JSON.parse(await readFile(new URL('./fixtures/property-graph-selector-derive.program.json', import.meta.url), 'utf8'));
 const traversalFixture = JSON.parse(await readFile(new URL('./fixtures/property-graph-traverse-nodes.expected.json', import.meta.url), 'utf8'));
 // Use the existing authoritative inventory, not a second supported-operation
 // list or hand-authored per-consumer request fixtures. The common checker
@@ -295,10 +296,52 @@ function labelScenario(projection, empty) {
   return {document,retained,snapshot,expected:retained.map(row=>({id:row.id,value:row[property]}))};
 }
 
-for (const mode of ['local','remote']) for (const profile of ['graph','presence-filter','presence-selection']) {
+// Reuse each selector's declaration oracle. Required derivation takes place
+// before projection so all unrelated Conditional columns cross the Store.
+function selectorDeriveScenario(selector, projection, empty) {
+  const scenario = selector === 'definition'
+    ? definitionScenario(projection,empty) : labelScenario(projection,empty);
+  const {document,retained} = scenario;
+  document.id = `selector-derive-${selector}-${projection}-${empty ? 'empty' : 'values'}`;
+  const property = projection === 'node_rows' ? 'p' : 'weight';
+  const steps = document.stages[0].steps;
+  steps.splice(5,steps.length - 5,
+    {filter:`${property} IS NULL OR ${property} > 0`,as:'filtered'},
+    {derive:{z:`${property} + 1`},as:'derived'},
+    {select:['id','z'],as:'projected'});
+  document.stages[0].results.out.fields = ['id','z'];
+  const derived = retained.map(row=>({...row,z:row[property] === null ? null : row[property] + 1}));
+  return {...scenario,derived,expected:derived.map(row=>({id:row.id,z:row.z}))};
+}
+
+function minimalSelectorDeriveScenario() {
+  const document=structuredClone(selectorDeriveFixture);
+  const ctor=structuredClone(document.stages[0].steps[2].property_graph);
+  const producers=document.stages[0].steps.slice(0,2).map(step=>({body:{values:step.values},dependencies:[]}));
+  for (const [index,node] of ctor.nodes.entries()) { delete node.from; node.input_occurrence=index; }
+  const domain=cid({constructor:ctor,producer_definitions:producers,version:'actql-property-graph-definition/0.1'});
+  const identity=(definition,key)=>({definition,domain,key:[key],key_types:[{kind:'number'}]});
+  const contract={version:'actql-property-graph-contract/0.1',domain,identity_law_cid:lawCid,value_law_cid:lawCid,
+    node_definitions:[
+      {name:'Company',key_columns:['company_key'],key_contracts:[number],labels:{Company:['q'],PERSON:['p']},properties:{p:number,q:string}},
+      {name:'Person',key_columns:['person_key'],key_contracts:[number],labels:{Person:['p']},properties:{p:{type:'number',nullable:true}}},
+    ],edge_definitions:[]};
+  const nodes=[{id:identity('Company',3),key:[3],props:{p:9,q:'company'}},
+    {id:identity('Person',1),key:[1],props:{p:7}},{id:identity('Person',2),key:[2],props:{p:null}}];
+  const snapshot=canonicalText(['actql-property-graph-snapshot/0.1',cid(contract),contract,nodes,[]]);
+  const retained=[{id:identity('Company',3),company_key:3,labels:['Company','PERSON'],p:9,q:'company'},
+    {id:identity('Person',1),person_key:1,labels:['Person'],p:7},
+    {id:identity('Person',2),person_key:2,labels:['Person'],p:null}];
+  const derived=retained.map(row=>({...row,z:row.p===null ? null : row.p+1}));
+  return {document,retained,derived,snapshot,expected:derived.map(({id,z})=>({id,z}))};
+}
+
+for (const mode of ['local','remote']) for (const profile of ['graph','presence-filter','presence-selection','selector-derive']) {
   const name = profile === 'graph'
     ? `keyed constructor and TRAIL reach public Named Results through ${mode}`
-    : `presence ${profile === 'presence-filter' ? 'filter' : 'selection sort and take'} survives Relation Store and public Named Results through ${mode}`;
+    : profile === 'selector-derive'
+      ? `selector property derive survives Relation Store and public Named Results through ${mode}`
+      : `presence ${profile === 'presence-filter' ? 'filter' : 'selection sort and take'} survives Relation Store and public Named Results through ${mode}`;
   test(name, {timeout:60_000}, async t => {
     const directory = await mkdtemp(new URL(`${mode}-`, scratch));
     t.diagnostic(`Retained Host regression evidence: ${directory}`);
@@ -363,6 +406,48 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
       client = await connect({mode,endpoint:`https://127.0.0.1:${server.address().port}/`,token:'synthetic-test-token'});
     }
     t.after(() => client.close());
+    if (profile === 'selector-derive') {
+      for (const [selector,projection,empty] of [
+        ['definition','node_rows',false], ['definition','edge_rows',false], ['definition','edge_rows',true],
+        ['label','node_rows',true], ['label','node_rows',false], ['label','edge_rows',false],
+        ['fixture','node_rows',false],
+      ]) {
+        const {document,retained,derived,expected,snapshot} = selector === 'fixture'
+          ? minimalSelectorDeriveScenario() : selectorDeriveScenario(selector,projection,empty);
+        const run = await client.aql(canonicalText(document),
+          {format:'json',requestId:`${document.id}-${mode}`});
+        const state = await run.wait();
+        assert.equal(state.status,'succeeded',JSON.stringify(state));
+        assert.deepEqual(await run.result('answer').all(),expected);
+        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
+        const columns = (await run.result('answer').describe()).columns;
+        assert.deepEqual(columns.map(column=>column.name),['id','z']);
+        assert.equal(columns[1].contract.nullable,projection === 'node_rows');
+        await assertSnapshot(run,selector === 'fixture' ? 2 : 3,'sha256:'+createHash('sha256').update(snapshot).digest('hex'),snapshot);
+        const stages = selector === 'label' ? [[4,retained],[5,retained],[6,derived]]
+          : selector === 'fixture' ? [[3,retained],[4,retained],[5,derived]]
+          : [[4,retained],[6,derived]];
+        assert.deepEqual(relationSnapshots.get(run.ref.runDefinitionCid),stages.map(([task,rows])=>{
+          const bytes=canonicalText(rows);
+          return {task,cid:cid(rows),bytes:Buffer.byteLength(bytes),verifiedReadBytes:Buffer.byteLength(bytes),
+            rows:rows.length,sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true};
+        }));
+      }
+      // A common label cannot prove a property belonging to just one candidate,
+      // not even when no rows exist or the branch would never be evaluated.
+      for (const empty of [false,true]) {
+        const {document} = selectorDeriveScenario('label','node_rows',empty);
+        document.stages[0].steps[6].derive.z = 'if(false, q, 0)';
+        const requestId=`conditional-derive-${mode}-${empty}`;
+        const before=physicalSteps.length;
+        await assert.rejects(client.aql(canonicalText(document),
+          {format:'json',requestId}),
+        error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
+        assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+        assert.deepEqual(physicalSteps.slice(before),[]);
+      }
+      return;
+    }
     if (profile !== 'graph') {
       for (const empty of [false,true]) {
         const {document,snapshots:expectedSnapshots,expected} = presenceFilterScenario(empty, profile === 'presence-selection');

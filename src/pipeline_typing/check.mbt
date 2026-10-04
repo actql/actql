@@ -610,11 +610,15 @@ fn check_impl(
     if meta is Some(cursor) {
       metadata(b, cursor)
     }
-    // Projection and the implemented filter/sort/take kernels preserve
+    // Projection and the implemented filter/derive/sort/take kernels preserve
     // conditional rows without making conditional fields ordinary values.
     // This checked boundary also covers consumers using Knowledge directly,
     // rather than letting them infer dense rows from known field types.
-    if key != "select" && key != "filter" && key != "sort" && key != "take" {
+    if key != "select" &&
+      key != "filter" &&
+      key != "derive" &&
+      key != "sort" &&
+      key != "take" {
       if carrier(input, inputs, steps) is @carrier.Relation(rows) {
         if !@carrier.all_fields_required(rows) {
           fail(
@@ -1681,6 +1685,7 @@ fn check_impl(
           steps,
           allow_conditional=key == "select" ||
             key == "filter" ||
+            key == "derive" ||
             key == "sort" ||
             key == "take",
         )

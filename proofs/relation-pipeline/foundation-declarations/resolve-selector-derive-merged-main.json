@@ -1,0 +1,42 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-selector-derive-merged-main",
+  "kind": "resolution",
+  "revision": "862273e770d59319eae6fa24796eabd55cd13d95",
+  "parents": [
+    "7c24b2decc406664f55eb0904910fa3f7dd51b2a",
+    "4e93e6a3451c1d3061db4d01d9e1d688bcd3b8f9"
+  ],
+  "mergeBases": [
+    "4cd79be2d720d60288c2816aee318aeb7bd2b3e6",
+    "7c5a2ee30f4d8a02c6b25021580047a1ad63f4d2"
+  ],
+  "inputs": [
+    "bounded-session-action-input-report",
+    "bounded-session-action-input-timing",
+    "incremental-session-comparison",
+    "resolve-composition-custody-main-maximal-bases",
+    "resolve-composition-infer-main-maximal-bases",
+    "session-additive-execution-recipes"
+  ],
+  "changes": [
+    {
+      "path": "proofs/bounded-session/run.mjs",
+      "before": [
+        {
+          "revision": "7c24b2decc406664f55eb0904910fa3f7dd51b2a",
+          "digest": "49de54ea58b7ac26ac746d33faaee339b4e436cd08922dd5dad2b6c49a67b961",
+          "mode": "100644"
+        },
+        {
+          "revision": "4e93e6a3451c1d3061db4d01d9e1d688bcd3b8f9",
+          "digest": "49de54ea58b7ac26ac746d33faaee339b4e436cd08922dd5dad2b6c49a67b961",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "49de54ea58b7ac26ac746d33faaee339b4e436cd08922dd5dad2b6c49a67b961",
+      "afterMode": "100644",
+      "reason": "Normally integrate merged sparse filter and selection support with current main. Both parents retain the same bounded-session runner bytes, but their two maximal merge bases have different runner identities; record the real multi-base convergence without changing the runner, historical declarations, campaign coverage or acceptance rules."
+    }
+  ]
+}
