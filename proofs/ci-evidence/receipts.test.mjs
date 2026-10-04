@@ -246,19 +246,24 @@ for (const event of ['push', 'workflow_dispatch']) test(`authenticated ${event}/
   const directory = await mkdtemp(join(tmpdir(), 'actql-main-application-final-'));
   t.after(() => rm(directory, {recursive: true}));
   const archive = join(directory, 'origin.zip'), catalog = readCatalog();
-  catalog.actions = [action];
-  const original = sealReceipt({origin: {...origin, event}, action, inputs: inputs(), output, status: 0, milliseconds: 15});
-  const originalBytes = canonicalReceipt(original);
-  const bytes = zip([['receipts/session-js.json', originalBytes], ['observations/session-js.log', output]]);
+  catalog.actions = catalog.actions.filter(value => ['model', 'session-js'].includes(value.id));
+  const bundle = metadata => catalog.actions.flatMap(action => {
+    const observation = action.id === 'model' ? 'Checked 14 theorems, expected claim types and axiom dependencies\n' : output;
+    const original = sealReceipt({origin: {...origin, ...metadata}, action, inputs: inputs(action),
+      output: observation, status: 0, milliseconds: 15});
+    return [[`receipts/${action.id}.json`, canonicalReceipt(original)], [`observations/${action.id}.log`, observation]];
+  });
+  const members = bundle({event}), originalBytes = members.find(([path]) => path === 'receipts/session-js.json')[1];
+  const bytes = zip(members);
   await writeFile(archive, bytes);
   const request = api(hash(bytes), ({run}) => { run.event = event; });
   const options = {root: directory, context: expected, runtime: {profile: 'controlled-test-runtime', unresolved: []},
-    protectedRevision: revision, entries: [{actionId: action.id, acquisition: 'reused', archive, artifactId: 6}],
+    protectedRevision: revision, entries: catalog.actions.map(action => ({actionId: action.id, acquisition: 'reused', archive, artifactId: 6})),
     treeAt: () => sourceTree(catalog), request};
   let leanOutput, submitted;
   const produced = await checkApplications({...options, prove: (required, applications, {receiptDigests}) => {
     submitted = {required, applications, receiptDigests};
-    assert.equal(applications[0].mainOrigin, true);
+    assert(applications.every(value => value.mainOrigin));
     return checkPlan(required, applications, {onOutput: value => { leanOutput = Buffer.from(value); }});
   }});
   const certificate = {version: 'actql-verification-family-certificate/0.1', mode: 'scoped-execution', context: expected,
@@ -267,12 +272,11 @@ for (const event of ['push', 'workflow_dispatch']) test(`authenticated ${event}/
     checkCertificate({certificate, output: leanOutput, context: expected, catalog, required, applications, receiptDigests})});
   assert.equal(verified.lean.accepted, true);
   assert.equal(verified.lean.inputDigest, produced.lean.inputDigest);
-  assert.equal(verified.applications[0].originReceiptDigest, hash(originalBytes));
+  assert.equal(verified.applications.find(value => value.actionId === 'session-js').originReceiptDigest, hash(originalBytes));
   assert(canonicalReceipt(parseReceipt(originalBytes)).equals(originalBytes));
 
   for (const denied of [{event: 'workflow_dispatch', branch: 'feature'}, {event: 'pull_request', branch: 'main'}]) {
-    const invalid = sealReceipt({origin: {...origin, ...denied}, action, inputs: inputs(), output, status: 0, milliseconds: 15});
-    const invalidBytes = zip([['receipts/session-js.json', canonicalReceipt(invalid)], ['observations/session-js.log', output]]);
+    const invalidBytes = zip(bundle(denied));
     await writeFile(archive, invalidBytes);
     await assert.rejects(checkApplications({...options,
       request: api(hash(invalidBytes), ({run}) => { run.event = denied.event; run.head_branch = denied.branch; })}),
