@@ -56,13 +56,16 @@ test('checked Infer dispatch retains its owner-issued admission', () => {
   const definition = control.admit('run_definition', '{}', {
     maxWireBytes: 128, maxNodes: 8, maxDepth: 4,
   });
-  const returned = control.bindCheckedClientInferDispatch(compiled, execution,
-    definition, {account, principalId: 'principal', at: 'now', delegated,
-      observeAccount, observeAt});
+  const observation = {account, principalId: 'principal', at: 'now', delegated,
+    observeAccount, observeAt};
+  const returned = control.issueCheckedClientInferDispatch(compiled,
+    definition, observation);
   assert.equal(returned, admission);
-  assert.deepEqual(calls, ['issue', 'bind']);
-  assert.throws(() => control.bindCheckedClientInferDispatch({}, execution,
-    definition, {account, principalId: 'principal', at: 'now', delegated,
-      observeAccount, observeAt}), {name: 'TypeError'});
-  assert.deepEqual(calls, ['issue', 'bind']);
+  assert.deepEqual(calls, ['issue']);
+  assert.equal(control.bindCheckedClientInferDispatch(compiled, execution,
+    definition, observation), undefined);
+  assert.deepEqual(calls, ['issue', 'issue', 'bind']);
+  assert.throws(() => control.issueCheckedClientInferDispatch({}, definition,
+    observation), {name: 'TypeError'});
+  assert.deepEqual(calls, ['issue', 'issue', 'bind']);
 });

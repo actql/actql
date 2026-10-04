@@ -339,6 +339,9 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     bindDispatch: (control, {compiled, runDefinition, ...observation}) =>
       control.bindCheckedClientInferDispatch(compiled, active, runDefinition,
         observation),
+    issueDispatch: (control, {compiled, runDefinition, ...observation}) =>
+      control.issueCheckedClientInferDispatch(compiled, runDefinition,
+        observation),
     attemptEvidence: slot => checked(moon.clientProgramInferAttemptEvidence(
       active, slot)),
     issuedSlotCapture: slot => checked(moon.clientProgramIssueInferSlotCapture(

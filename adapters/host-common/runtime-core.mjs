@@ -1833,6 +1833,20 @@ function publicationControl(moon) {
     }
     return limits;
   };
+  const issueInferDispatch = (compiled, definition,
+    {account, principalId, at, delegated, observeAccount, observeAt}) => {
+    const value = compiledRunTokens.get(compiled);
+    if (value === undefined || compiled.kind !== 'infer') {
+      throw new TypeError('Foreign Client compiled Infer Run');
+    }
+    if (typeof observeAccount !== 'function' ||
+        typeof observeAt !== 'function') {
+      throw new TypeError('Missing current Infer dispatch observations');
+    }
+    return checked(moon.clientProgramIssueInferDispatchAdmission(
+      value, token(definition), account, principalId, at, delegated,
+      observeAccount, observeAt));
+  };
   control = Object.freeze({
     seal(name, bodyWire, limits) {
       return inspect(checked(moon.strategyPublicationSeal(
@@ -2087,22 +2101,16 @@ function publicationControl(moon) {
       return checked(moon.clientProgramBindInferRun(execution,
         value, token(definition)));
     },
+    // A waiting execution has already advanced past the pre-start bind
+    // boundary. Its resume path verifies this exact opaque admission itself.
+    issueCheckedClientInferDispatch(compiled, definition, observation) {
+      return issueInferDispatch(compiled, definition, observation);
+    },
     bindCheckedClientInferDispatch(compiled, execution, definition,
-      {account, principalId, at, delegated, observeAccount, observeAt}) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
-        throw new TypeError('Foreign Client compiled Infer Run');
-      }
-      if (typeof observeAccount !== 'function' ||
-          typeof observeAt !== 'function') {
-        throw new TypeError('Missing current Infer dispatch observations');
-      }
-      const admitted = checked(moon.clientProgramIssueInferDispatchAdmission(
-        value, token(definition), account, principalId, at, delegated,
-        observeAccount, observeAt));
-      checked(moon.clientProgramBindInferDispatchAdmission(execution, admitted));
-      // Approval resume uses this same opaque MoonBit owner-issued handle.
-      return admitted;
+      observation) {
+      const admitted = issueInferDispatch(compiled, definition, observation);
+      return checked(moon.clientProgramBindInferDispatchAdmission(execution,
+        admitted));
     },
     bindCheckedClientInferInvocation(compiled, execution, definition,
       verified, invocation, dataPolicyCid) {
