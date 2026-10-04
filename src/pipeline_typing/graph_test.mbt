@@ -46,6 +46,43 @@ fn graph_property_scope_input() -> @carrier.Carrier {
 }
 
 ///|
+test "current traverse homogeneous predicates reach the typed expression owner" {
+  let graph = graph_property_scope_input()
+  let relation = @carrier.relation(
+    @carrier.rows(
+      [(Unqualified("id"), Some(@contract.primitive(JsonType, nullable=false)))],
+      field_set=Closed,
+      max_fields=1,
+      max_name_bytes=2,
+    ).unwrap(),
+  )
+  for emit in ["nodes", "paths"] {
+    let pipeline = check_carriers(
+      cursor(
+        "[{\"from\":\"g\",\"traverse\":{\"start\":{\"from\":\"r\",\"id\":\"id\"},\"direction\":\"out\",\"min_hops\":0,\"max_hops\":2,\"edge_where\":\"active\",\"node_where\":\"active\",\"path_mode\":\"trail\",\"emit\":\"" +
+        emit +
+        "\"}}]",
+      ),
+      [("g", graph), ("r", relation)],
+      None,
+      None,
+      limits(),
+    ).unwrap()
+    // A homogeneous hop owns one predicate pair, reused at every depth.
+    let slots = collect_expression_slots(pipeline, max_work=100, max_slots=2).unwrap()
+    assert_eq(expression_slot_count(slots), 2)
+    assert_eq(
+      expression_slot_at(slots, 0).unwrap().consumer,
+      GraphTraverseEdgePredicate(0),
+    )
+    assert_eq(
+      expression_slot_at(slots, 1).unwrap().consumer,
+      GraphTraverseNodePredicate(0),
+    )
+  }
+}
+
+///|
 test "TRAIL without predicates has no slots while MATCH keeps the common expression owner" {
   let graph = graph_property_scope_input()
   let relation = @carrier.relation(

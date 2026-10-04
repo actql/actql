@@ -104,7 +104,6 @@ test "current TRAIL rejects ambiguous modes and unconnected definition-free pred
       "\"hops\":[],\"emit\":\"paths\",\"path_mode\":\"trail\"}", "\"hops\":[{\"direction\":\"in\"}],\"direction\":\"out\",\"emit\":\"paths\",\"path_mode\":\"trail\"}",
       "\"min_hops\":0,\"max_hops\":3,\"emit\":\"paths\",\"path_mode\":\"trail\"}",
       "\"direction\":\"out\",\"min_hops\":4,\"max_hops\":3,\"emit\":\"paths\",\"path_mode\":\"trail\"}",
-      "\"hops\":[{\"direction\":\"in\"}],\"emit\":\"nodes\",\"path_mode\":\"trail\"}",
       "\"hops\":[{\"direction\":\"in\"}],\"emit\":\"paths\"}",
     ] {
     assert_true(
@@ -118,4 +117,27 @@ test "current TRAIL rejects ambiguous modes and unconnected definition-free pred
       is Err(_),
     )
   }
+}
+
+///|
+test "current node traversal has typed identity columns and minimum-depth obligation" {
+  let graph = current_scope_graph()
+  let checked = @graph_typing.check_traverse(
+    cursor(
+      "{\"start\":{\"ids\":[" +
+      current_node_identity(2) +
+      "]},\"direction\":\"out\",\"min_hops\":2,\"max_hops\":3,\"path_mode\":\"trail\",\"emit\":\"nodes\"}",
+    ),
+    graph,
+    None,
+    None,
+    predicate_limits(),
+  ).unwrap()
+  assert_eq(@graph_typing.traverse_emission(checked), TraversedNodes)
+  assert_true(
+    @graph_typing.traverse_pending(checked).contains(MinimumEligibleNodeDepth),
+  )
+  assert_false(
+    @graph_typing.traverse_pending(checked).contains(DeduplicateExactPaths),
+  )
 }

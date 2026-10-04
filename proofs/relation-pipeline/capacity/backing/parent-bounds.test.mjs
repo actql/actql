@@ -59,6 +59,11 @@ test('the source census includes transitive selection and unchanged retained con
   const inventory = checkParentCensus(read);
   assert.equal(inventory.providerConstructors.length, 11);
   assert(inventory.included.find(r => r.id === 'retirement-and-custody').phases.includes('retained-owner-after-cleanup'));
+  assert(inventory.included.find(r => r.id === 'selected-step-context').objects.includes('traversal ceilings'));
+  const generated = 'src/execution_relation/generated_sequence.mbt';
+  assert.throws(() => checkParentCensus(p => p === generated ? read(p).toString().replace(
+    'traversal_ceilings : Array[(Int, Int64, Int64)]',
+    'traversal_ceilings : Array[(Int, String, Int64)]') : read(p)), /Unreviewed parent\/edge field or type/);
   const path = 'src/connectors/local/managed_provider.mbt';
   assert.throws(() => checkParentCensus(p => p === path ? read(p).toString().replace(
     'mut reported_work : Result[Int64, ManagedProviderWorkIssue]', 'mut reported_work : Array[Int64]') : read(p)), /Unreviewed parent\/edge field or type/);

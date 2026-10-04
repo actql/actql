@@ -119,7 +119,7 @@ test "path profile boundaries reject omission reinterpretation and unsupported m
     body in [
       keyed_path_body(""),
       keyed_path_body(",\"path_mode\":\"simple\""),
-      keyed_path_body(",\"path_mode\":\"trail\"", emit="nodes"),
+      keyed_path_body(",\"path_mode\":\"trail\"", emit="unknown"),
     ] {
     assert_true(
       @graph_typing.check_traverse(

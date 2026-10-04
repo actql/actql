@@ -122,11 +122,16 @@ export function graphSchemas() {
     });
     result[name] = {oneOf:[legacy[name],keyed]};
   }
-  const paths = structuredClone(legacy.traverse);
-  paths.required.push('path_mode');
-  paths.properties.path_mode = {enum:['walk','trail','acyclic']};
-  paths.properties.emit = {const:'paths'};
-  result.traverse = {oneOf:[legacy.traverse,paths]};
+  const traversal = structuredClone(legacy.traverse);
+  traversal.required.push('path_mode');
+  traversal.properties.path_mode = {enum:['walk','trail','acyclic']};
+  traversal.properties.emit = {enum:['nodes','paths']};
+  // Both emissions apply the same existing homogeneous and patterned filters.
+  const predicate = traversal.properties.hops.items.properties.edge_where;
+  traversal.properties.edge_where = structuredClone(predicate);
+  traversal.properties.node_where = structuredClone(predicate);
+  traversal.oneOf[0].not.anyOf.push({required:['edge_where']},{required:['node_where']});
+  result.traverse = {oneOf:[legacy.traverse,traversal]};
   return result;
 }
 
