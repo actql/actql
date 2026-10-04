@@ -12,8 +12,7 @@ test "current public Property Graph admission refuses unsupported SGA rather tha
   )
   for
     operation in [
-      "\"graphs_equal\":{\"other\":\"g\"}",
-      "\"graph_diff\":{\"other\":\"g\"}", "\"apply_graph_delta\":{\"delta\":\"g\"}",
+      "\"graphs_equal\":{\"other\":\"g\"}", "\"graph_diff\":{\"other\":\"g\"}", "\"apply_graph_delta\":{\"delta\":\"g\"}",
       "\"subgraph\":{\"nodes\":[1]}", "\"reach\":{\"start\":{\"ids\":[1]},\"max_hops\":1}",
       "\"shortest_path\":{\"start\":{\"ids\":[1]},\"end\":{\"ids\":[1]}}", "\"graft_graph\":{\"other\":\"g\"}",
       "\"union_graphs\":{\"inputs\":[\"g\"]}", "\"subtract_graphs\":{\"other\":\"g\"}",
