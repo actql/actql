@@ -10,6 +10,8 @@ import test from 'node:test';
 import './installed-connectors.test.mjs';
 // The neutral row source's Site boundary runs with the installation tests.
 import './installed-row-source.test.mjs';
+// Real installed-Host target cancellation and process restart.
+import './embedded-target-cancel.test.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from
   './embedded-local.mjs';
 import {installedEffectIdentity} from './installed-effect.mjs';

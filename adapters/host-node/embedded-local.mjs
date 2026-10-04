@@ -489,24 +489,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       return false;
     }
     const runId = control.runDefinitionRunId(retained.runDefinition);
-    const state = checkpoints.journal.getRunState(runId);
-    const view = state?.runState.checkpoint === undefined
-      ? [`${runId}-effect-commit`, `${runId}-source-1`, `${runId}-source-0`]
-        .map(id => checkpoints.journal.inspect(id)).find(item => item !== undefined &&
-          checkpoints.journal.currentResume(item.checkpointCid)?.state !== 'completed')
-      : checkpoints.journal.inspect(state.runState.checkpoint.checkpoint_cid);
-    if (!['effect_set', 'read_access'].includes(view?.kind) || view.runId !== runId ||
-        view.runDefinitionCid !== ref.runDefinitionCid ||
-        view.prepareAttemptId !== null) return false;
-    if (state?.status === 'waiting_checkpoint') {
-      return checkpoints.journal.cancelCheckpoint(view.checkpointCid)
-        .outcome === 'cancelled';
-    }
-    if (state?.status === 'resuming') {
-      return checkpoints.journal.cancelUnsentResume(view.checkpointCid)
-        .outcome === 'cancelled';
-    }
-    return false;
+    return checkpoints.cancelEffectContinuation(runId, ref.runDefinitionCid);
   };
   const cancel = async ({ref, principalId: actual, connection}) => {
     if (!hostConnection({principalId: actual, connection, ref})) {
@@ -1557,8 +1540,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           // Durable custody still exists only before transfer to a Checkpoint
           // or physical dispatch. A complete private record is not sufficient
           // to establish that transfer. The original unknown Run stays intact.
-          if ([`${runId}-effect-commit`, `${runId}-source-0`, `${runId}-source-1`]
-            .some(id => checkpoints.journal.inspect(id) !== undefined)) continue;
+          if (checkpoints.effectRunState(runId, ref.runDefinitionCid) !== undefined) {
+            continue;
+          }
           await retireEffectCapture(ref);
         } catch (error) { failures.push(error); }
       }
