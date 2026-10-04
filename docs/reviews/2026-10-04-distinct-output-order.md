@@ -84,7 +84,38 @@ Run identity/counters on repeat read, attach and resubmit. Refusals require zero
 Run admission/provider I/O. `--distinct-order-only` selects this corpus without
 running unrelated Graph/native/restart campaigns.
 
-Fresh packed results and exact submitted CI are pending until recorded here.
+Fresh packed acceptance passed at product SHA
+`34aad88d157c9f75973577f917302b2df0ec5e05`: six positives and three typed
+refusals on **each** of Embedded Local and authenticated HTTP. Evidence
+`public-query-evidence-2X49VP` is complete/passed, with no evidence errors;
+the acceptance child exits 0 with complete output. Successful temporary
+installations were removed after logs and digests were retained. The preceding
+five-case run at `81c02c0144e0a0ef711dc9a98074d28ca47b06f4` remains predecessor
+evidence, not validation of the later selected-column follow-up.
+
+| Normally packed package | SHA-256 |
+|---|---|
+| actql-client-wire-0.0.0-development.tgz | `6b448edf6ff246e1865858e9ed654e6f973c602e60b65447bcd7bbdd0afaefde` |
+| actql-sdk-0.0.0-development.tgz | `494cafc4a5e4615dc47bba3b46bfd3c163c06690a258c8e619cc13a4198b2123` |
+| actql-run-host-core-0.0.0-development.tgz | `26032d6a2baa9798a093dc5be5293b757fd75232eb817368cef9f5aa012c8d91` |
+| actql-local-node-0.0.0-development.tgz | `4a058a57b817d3f1994bb3b0967683380c93893ec3d1b874598759c5aef6aba9` |
+| actql-node-0.0.0-development.tgz | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+Reproduce the selected public corpus with the repository-pinned toolchain:
+
+```sh
+node scripts/test-packed-public-query.mjs --distinct-order-only
+```
+
+Latest main `605d42356c29ff926e046e73a87a54cf3a420f0a` was subsequently normally merged without conflicts.
+It includes D's optional-Effect observations and additive Session CI records.
+The Frontend repair/test/independent fixture bytes are unchanged by that merge;
+the public Host gains D's separate acquisition diagnostic calls. Its new CI
+and history settings/declarations are retained. No full local suite or repeated
+packed campaign was added solely for this integration. Exact submitted-HEAD
+integration and public acceptance remain for automatic PR CI; the pre-merge
+Local/HTTP result above is not relabeled as final-HEAD evidence.
+
 No common checker, planner, provider, Run owner, remote protocol or SDK is changed.
 Normative grammar, contract versions, schemas and pins are unchanged; newly
 accepted queries acquire their ordinary generated Program identities. Historical
