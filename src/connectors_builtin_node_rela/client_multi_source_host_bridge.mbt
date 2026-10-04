@@ -157,3 +157,21 @@ pub fn client_program_prepare_multi_captured_effect_acquisition_ledger(
     values_body, fragment_body, ordered_body,
   )
 }
+
+///|
+#export_name("clientProgramPrepareMultiCapturedLocalAcquisitionLedger")
+pub fn client_program_prepare_multi_captured_local_acquisition_ledger(
+  prepared : @publication_host.PreparedClientProgram,
+  acquisitions : Array[@duckdb_host.CaptureConfiguration],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @resources.Ledger? {
+  @client_local_host.prepare_multi_captured_local_acquisition_ledger(
+    prepared, acquisitions, transport_bytes, transport_execution_bytes, registry_body,
+    values_body, fragment_body, ordered_body,
+  )
+}

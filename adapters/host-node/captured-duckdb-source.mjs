@@ -115,31 +115,20 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
   // Mandatory physical limits are actual Host policy, independent of all
   // optional cost/quantity evidence. Validate them before any comparison.
   const admittedLimits = admittedTransportPolicy(transportLimits);
-  const single = effectful || moon.clientProgramAcquisitionCount(checkedOwner) === 1;
   const planning = acquisitionPlanning === undefined ? undefined
     : checkDuckDBAcquisitionPlanning(acquisitionPlanning);
   const selectionInputs = {moon, requirement, schema, table, contracts,
     source: {database, schema, table, sourceRef}, planning};
   let acquisition, broad = false, selection;
-  if (single) {
-    const decision = await currentReadDecision(database, sourceAccess);
-    if (decision.action === 'dispatch') {
-      ({acquisition, broad, selection} = selectAcquisition(selectionInputs));
-    } else if (decision.action === 'deny') {
-      throw new ExecutionAuthorizationError(decision);
-    }
-    // A delegated/held read has no execution authority yet. Its existing
-    // Checkpoint owner handles approval; comparison waits for resumed access.
-  } else {
-    // The separately bounded plural-Native path keeps its existing
-    // sole-candidate preparation and custody. No made-up cost remains.
-    const native = moon.clientProgramPrepareDuckDBAcquisition(
-      requirement, schema, table, ...contracts);
-    broad = moon.clientProgramDuckDBNativeCandidateUnavailable(native);
-    acquisition = checked(broad
-      ? moon.clientProgramPrepareDuckDBBroadAcquisition(
-        requirement, schema, table, ...contracts) : native);
+  const decision = await currentReadDecision(database, sourceAccess);
+  if (decision.action === 'dispatch') {
+    ({acquisition, broad, selection} = selectAcquisition(selectionInputs));
+  } else if (decision.action === 'deny') {
+    throw new ExecutionAuthorizationError(decision);
   }
+  // A delegated/held read has no execution authority yet. Its existing
+  // Checkpoint owner handles approval; comparison waits for resumed access.
+  // Source count and downstream Effects do not change candidate eligibility.
   // The Host-resolved physical target is part of what an approval covers:
   // the same checked source read from another schema or table is another
   // read. Physical names are bound by their exact UTF-8 bytes (hex): the
@@ -153,7 +142,7 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
     physicalBinding: duckDBPhysicalTarget({database, schema, table})});
   preparations.set(prepared, Object.freeze({moon, checkedOwner, effectful, registry,
     values, fragment, ordered, database, schema, table, sourceAccess,
-    requirement, evidenceContext, acquisition, broad, selection, single, selectionInputs,
+    requirement, evidenceContext, acquisition, broad, selection, selectionInputs,
     transportLimits: admittedLimits, acquisitionPlanning, occurrence: prepared.occurrence}));
   return prepared;
 }
@@ -203,12 +192,10 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
     if (transportLimitKeys.some(key => currentLimits[key] !== owner.transportLimits[key])) {
       throw new Error('InstalledSourceResourcePolicyMismatch');
     }
-    if (owner.single) {
-      const decision = await currentReadDecision(database, sourceAccess, signal);
-      if (decision.action !== 'dispatch') throw new ExecutionAuthorizationError(decision);
-      if (owner.acquisition === undefined) {
-        authorizedSelection = selectAcquisition(owner.selectionInputs);
-      }
+    const decision = await currentReadDecision(database, sourceAccess, signal);
+    if (decision.action !== 'dispatch') throw new ExecutionAuthorizationError(decision);
+    if (owner.acquisition === undefined) {
+      authorizedSelection = selectAcquisition(owner.selectionInputs);
     }
     grant = await authorizeLocalDatabase(database, sourceAccess);
   } catch (cause) {
