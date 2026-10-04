@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash, generateKeyPairSync, sign} from 'node:crypto';
-import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import {mkdir, mkdtemp, readFile, readdir, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
@@ -272,6 +272,70 @@ test('non-first Salesforce source view retains two public consumer Results',
       {Name: 'record-1'}, {Name: 'record-3'},
     ]);
     assert.equal(setup.queries().length, reads);
+  });
+
+test('retained Salesforce acquisition failure publishes nothing or rereads',
+  async t => {
+    const setup = await installation(t, {retainedRelationOutput: true,
+      queryFailureStatus: 503});
+    await setup.publish();
+    const {client, close} = await setup.open();
+    const requestId = 'salesforce-retained-source-failure';
+    const execution = await client.aql(program, {format: 'json', requestId});
+    const state = await execution.wait();
+    assert.equal(state.status, 'failed');
+    assert.equal(state.result_available, false);
+    await assert.rejects(execution.result('records').all());
+    assert.equal(setup.queries().length, 1);
+    assert.deepEqual(await readdir(join(setup.root, 'state',
+      'carrier-snapshots')), []);
+    const resent = await client.aql(program, {format: 'json', requestId});
+    assert.deepEqual(resent.ref, execution.ref);
+    assert.equal(setup.queries().length, 1);
+    await close();
+    const reopened = await setup.open();
+    const attached = await reopened.client.attach(execution.ref);
+    assert.equal((await attached.wait()).status, 'failed');
+    await assert.rejects(attached.result('records').all());
+    assert.equal(setup.queries().length, 1);
+  });
+
+test('retained Salesforce capture survives cancellation until cleanup',
+  async t => {
+    let reachedCapture;
+    const captured = new Promise(resolve => { reachedCapture = resolve; });
+    let releaseCapture;
+    const pause = new Promise(resolve => { releaseCapture = resolve; });
+    t.after(() => releaseCapture());
+    const setup = await installation(t, {retainedRelationOutput: true});
+    await setup.publish();
+    const authorization = checkpointAuthorization({
+      faultInjection(name) {
+        if (name === 'acquisition_completed') {
+          reachedCapture();
+          return pause;
+        }
+      },
+    });
+    const {client, close} = await setup.open({authorization});
+    const requestId = 'salesforce-retained-cancel-after-capture';
+    const execution = await client.aql(program, {format: 'json', requestId});
+    await captured;
+    assert.equal(setup.queries().length, 1);
+    await client.cancelRequest(requestId);
+    releaseCapture();
+    const state = await execution.wait();
+    assert.equal(state.status, 'cancelled', JSON.stringify(state));
+    assert.equal(state.result_available, false);
+    await assert.rejects(execution.result('records').all());
+    assert.deepEqual(await readdir(join(setup.root, 'state',
+      'carrier-snapshots')), []);
+    assert.equal(setup.queries().length, 1);
+    await close();
+    const reopened = await setup.open({authorization});
+    const attached = await reopened.client.attach(execution.ref);
+    assert.equal((await attached.wait()).status, 'cancelled');
+    assert.equal(setup.queries().length, 1);
   });
 
 test('invalid diagnostics retain an acquired source and its failed cleanup',

@@ -64,8 +64,12 @@ selects the non-first view from a two-view Salesforce declaration, reads
 independently expected producer and downstream consumer Named Results from
 the real retained Store, and observes `retained-file` for both outputs.
 Resend and reopened-Host attach do not issue another Salesforce query. This
-closes the selected multi-view capture route, not two simultaneous Salesforce
-captures or its connector-specific Store failure and cancellation matrix.
+closes the selected multi-view capture route. A retained-mode provider error
+after the read starts publishes nothing and is not reread after resend or
+Host reopen. Cancellation at the captured-input handoff retains the source
+through stop and cleanup and publishes nothing. These tests do not establish
+two simultaneous Salesforce captures, a Store writer fault, or cancellation
+after positive Compute work.
 
 The installed full-family Host now declares TEA and VecA to the common checker,
 matching its already registered bounded providers. This does not make a
