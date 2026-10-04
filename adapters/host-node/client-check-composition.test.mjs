@@ -21,6 +21,10 @@ function fixture(states = [], publication = aliases) {
       assert.equal(value, environment); return environmentCid;
     },
     clientProgramCheckCompilerIdentity: () => '{"compiler":"fixture"}',
+    clientProgramCheckContextIdentity: value => {
+      assert.equal(value, environment);
+      return '{"host_policy_profile":{},"model_task_contract_cids":[],"profiles":{}}';
+    },
     clientProgramCheckUnavailable: correlation_ref => JSON.stringify({
       version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid, outcome: 'unavailable',
       problem: {code: 'check_unavailable'}, correlation_ref}),
@@ -146,12 +150,12 @@ test('composition: exact Unicode source and received-input fallback have fixed r
   async () => {
     const texts = ["SELECT 'caf\u00e9' AS label", "SELECT 'cafe\u0301' AS label"];
     const vectors = [{parameterDeclarations: undefined, refs: [
-      'ctx:879f19beef512ebb648c006c29175abe59e4a3bc33a0725efe54b0c9fbbf3b77',
-      'ctx:49d90fe86e644f543154b856969dd610bdad4dee5b4840f848bed66d979f500b',
+      'ctx:a36eb61c9d5a7a83549f5e219983918efe38835607a3798fc4eef5994b1b56be',
+      'ctx:e7dcd93e2ef7ef4a6e94c045ebf3b112f42344b416465004d5ecec7e969b788c',
     ]}, {parameterDeclarations: {'\u00e9': {type: 'string'}, 'e\u0301': {type: 'string'}},
       refs: [
-        'ctx:449533e4ee8b7160a09a5088fe1a09dc3f53b58eae556bf7ff0c32e1f3edcebb',
-        'ctx:f2aca818e68bdf3fa852513a20712bc410c803047d0df9c5720e6cf7fc78bfe9',
+        'ctx:0c1e814b3ca96275a5c63e2a496f2f51e9abeb5c0293713c4afcb3c7eacd7494',
+        'ctx:c2f4402378a86133d888454f386f6128f85b3c2fc0fe20ea6c74a960aa9c2d49',
       ]}];
     const f = fixture([], []);
     for (const {parameterDeclarations, refs} of vectors) {

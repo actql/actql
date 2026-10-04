@@ -8,6 +8,7 @@ import {execFileSync} from 'node:child_process';
 import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {createRequire} from 'node:module';
+import {createHash} from 'node:crypto';
 import {userInfo} from 'node:os';
 import {DatabaseSync} from 'node:sqlite';
 import {join} from 'node:path';
@@ -23,6 +24,9 @@ import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from
   './embedded-local.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {sourceAliasPublication} from './source-alias-publication.mjs';
+import {connectInProcess} from '../../packages/sdk/host-port.mjs';
+import {createNodeInProcessClientHost} from './in-process-client.mjs';
+import {createClientHttpHandler} from './client-http.mjs';
 
 const repository = fileURLToPath(new URL('../../', import.meta.url));
 const scratch = join(repository, '_build', 'client-check');
@@ -815,6 +819,151 @@ const environment = moon.clientProgramCheckEnvironment(
   canonicalText(sourceEnvironment), sourceEnvironment.evidence_bundle_cid,
   false, false, true, true, false, false, false);
 const contextKey = new Uint8Array(32).fill(7);
+
+// Actual public ingress with the real admitted checker and read-decision owner.
+// A fixed test-only key makes complete envelopes comparable across physically
+// different private inventories. No provider or Run handler is installed.
+async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
+  profiles = [false, false, true, true, false, false, false]} = {}) {
+  const admitted = moon.clientProgramCheckEnvironment(canonicalText(wire),
+    wire.evidence_bundle_cid, ...profiles);
+  assert.notEqual(admitted, undefined, 'context fixture must be admitted');
+  const authorization = readOutcome === undefined ? undefined
+    : await createNodeAuthorizationGate({configuration: account(readOutcome),
+      context: {principal: owner, contextCid: `sha256:${'3'.repeat(64)}`}});
+  if (authorization) t.after(() => authorization.close());
+  const check = installNodeClientCheck({moon, environment: admitted, contextKey,
+    publication: sourceAliasPublication(moon, admitted, aliases),
+    sourceAccesses: authorization === undefined ? [] : [{authorization,
+      connection: 'local-database', resource: '/records.duckdb',
+      sourceRef: aliases[0].sourceRef}]});
+  const mode = entrance === 'local' ? 'local' : 'remote';
+  const profile = {version: 'actql-client-host/0.1', mode, owner: mode,
+    durability: 'volatile', scopeRef: 'check-fixture', capabilities: [],
+    limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
+      maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
+      maxRows: 10, maxBatchRows: 10, maxBatchRetainedValueBytes: 2048}};
+  const configuration = {authenticate: () => owner,
+    authorizeConnection: () => true, negotiate: () => profile, check,
+    maxRowBytes: 1024};
+  if (entrance === 'local') {
+    const client = await connectInProcess({mode, owner: mode},
+      createNodeInProcessClientHost(configuration));
+    t.after(() => client.close());
+    return client;
+  }
+  const server = createServer({key: tlsKey, cert: tlsCertificate},
+    createClientHttpHandler({...configuration,
+      authenticate: header => header === 'Bearer owner-token' ? owner : undefined}));
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(async () => {
+    server.closeAllConnections();
+    await new Promise(resolve => server.close(resolve));
+  });
+  const client = await connect({mode,
+    endpoint: `https://127.0.0.1:${server.address().port}/`, token: 'owner-token'});
+  t.after(() => client.close());
+  return client;
+}
+
+const withPolicy = (wire, host_policy_profile) => {
+  const {evidence_bundle_cid, ...body} = structuredClone(wire);
+  body.host_policy_profile = structuredClone(host_policy_profile);
+  return {...body, evidence_bundle_cid: `sha256:${createHash('sha256')
+    .update(canonicalText(body)).digest('hex')}`};
+};
+const emptyEnvironment = JSON.parse(await readFile(join(repository,
+  'spec/local-check-environment.json'), 'utf8'));
+const absentEnvironment = withPolicy(emptyEnvironment, sourceEnvironment.host_policy_profile);
+const numericContract = JSON.parse(await readFile(join(repository,
+  'spec/contracts/actql-numeric-reduction.json'), 'utf8'));
+const propertyGraphLaw = JSON.parse(await readFile(join(repository,
+  'spec/dependencies/actql-property-graph-laws.json'), 'utf8'));
+const fixtureCid = value => `sha256:${createHash('sha256')
+  .update(canonicalText(value)).digest('hex')}`;
+
+test('the admitted checker exposes exact selections without private Source inventories', () => {
+  const flags = ['text_time', 'veca', 'rela', 'sga', 'tea', 'calendar', 'text_rank'];
+  for (const enabled of [undefined, ...flags]) {
+    const choices = flags.map(flag => flag === enabled);
+    const admitted = moon.clientProgramCheckEnvironment(canonicalText(absentEnvironment),
+      absentEnvironment.evidence_bundle_cid, ...choices);
+    assert.notEqual(admitted, undefined);
+    const expected = {host_policy_profile: sourceEnvironment.host_policy_profile,
+      model_task_contract_cids: [], profiles: {
+        ...Object.fromEntries(flags.map(flag => [flag, flag === enabled])),
+        property_graph: false, property_graph_law_cid: null, model_tasks: true,
+        numeric_profile_cid: null, calendar_profile_cid: null, text_rank_profile_cid: null}};
+    assert.deepEqual(JSON.parse(moon.clientProgramCheckContextIdentity(admitted)), expected);
+  }
+  const numericCid = fixtureCid(numericContract);
+  const propertyCid = fixtureCid(propertyGraphLaw);
+  const numeric = moon.clientProgramCheckEnvironmentWithNumericProfile(
+    canonicalText(absentEnvironment), absentEnvironment.evidence_bundle_cid,
+    false, false, true, true, false, false, false, numericCid);
+  assert.notEqual(numeric, undefined);
+  assert.equal(JSON.parse(moon.clientProgramCheckContextIdentity(numeric))
+    .profiles.numeric_profile_cid, numericCid);
+  const graph = moon.clientProgramCheckEnvironmentWithPropertyGraphProfile(
+    canonicalText(absentEnvironment), absentEnvironment.evidence_bundle_cid,
+    false, false, true, true, false, false, false, numericCid, propertyCid);
+  assert.notEqual(graph, undefined);
+  assert.deepEqual(JSON.parse(moon.clientProgramCheckContextIdentity(graph)).profiles,
+    {text_time: false, veca: false, rela: true, sga: true, tea: false,
+      calendar: false, text_rank: false, property_graph: true,
+      property_graph_law_cid: propertyCid, model_tasks: true,
+      numeric_profile_cid: numericCid, calendar_profile_cid: null, text_rank_profile_cid: null});
+});
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: private Source inventories cannot change public context references`, async t => {
+    const absent = await contextClient(t, entrance, absentEnvironment);
+    const hidden = [
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'deny'}),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'delegate'}),
+      await contextClient(t, entrance,
+        withPolicy(rightEnvironment, sourceEnvironment.host_policy_profile),
+        {aliases: [rightAlias], readOutcome: 'deny'}),
+    ];
+    for (const [text, options, verdict] of [
+      ['SELECT 1 AS n', {format: 'sql'}, 'verified'],
+      ['SELECT id FROM records', {format: 'sql'}, 'undetermined'],
+      ['SELECT missing AS n', {format: 'sql'}, 'invalid'],
+      [query, {format: 'sql', parameterDeclarations: declarations,
+        parameters: {minimum: 'twenty'}}, 'invalid'],
+    ]) {
+      const expected = await absent.check(text, options);
+      assert.equal(expected.outcome, 'completed');
+      assert.equal(expected.report.verdict, verdict);
+      assert.deepEqual(expected.report.coverage.unresolved,
+        text.includes('FROM records') ? protectedSource : []);
+      assert.deepEqual(expected.report.reasons.map(reason => reason.code),
+        text === 'SELECT missing AS n' ? ['query_invalid']
+          : options.parameters ? ['supplied_value_type_mismatch'] : []);
+      for (const client of hidden) {
+        const outcome = await client.check(text, options);
+        assert.deepEqual(outcome, expected, '[check-mutation:private-context]');
+        assert.equal(getCheckInput(outcome, 'source').text, text);
+      }
+    }
+  });
+
+  test(`${entrance}: public context references retain policy profiles and visible contracts`, async t => {
+    const original = await contextClient(t, entrance, absentEnvironment);
+    const changedPolicy = await contextClient(t, entrance, emptyEnvironment);
+    const changedProfiles = await contextClient(t, entrance, absentEnvironment,
+      {profiles: [true, false, true, true, false, false, false]});
+    const visible = await contextClient(t, entrance, sourceEnvironment,
+      {aliases: [alias], readOutcome: 'allow'});
+    const reference = (await original.check('SELECT 1 AS n', {format: 'sql'})).report.context_ref;
+    for (const client of [changedPolicy, changedProfiles, visible]) {
+      const outcome = await client.check('SELECT 1 AS n', {format: 'sql'});
+      assert.equal(outcome.report.verdict, 'verified');
+      assert.notEqual(outcome.report.context_ref, reference,
+        '[check-mutation:public-context]');
+    }
+  });
+}
 
 async function installation(install, {readOutcome, aliases},
   {closed = false} = {}) {
