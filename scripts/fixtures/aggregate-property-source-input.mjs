@@ -34,7 +34,7 @@ const expected = [
   {bucket: 'A', n: 4, d: 3, h: 3, s: 80, a: 20, lo: 10, hi: 30},
   {bucket: 'B', n: 0, d: 0, h: 0, s: null, a: null, lo: null, hi: null},
 ];
-const property = {property: {value: {field: 'payload'}, name: 'score'}};
+const property = {property: {name: 'score', value: {field: 'payload'}}};
 const program = {version: 'actql/0.1', id: 'fixture.aggregate_property',
   stages: [{id: 'main', inputs: {}, steps: [
     {values: {schema: {id: number, bucket: string, payload, other}, rows}, as: 'objects'},

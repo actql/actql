@@ -105,3 +105,30 @@ selection. Common limited OVER argument handling has a separate public case.
 
 This does not close nested GROUP keys, HAVING property paths, non-aggregate
 analytic arguments, collection-specific argument ordering or the whole Frontend.
+
+## Separate common Values emitter finding
+
+The first fresh packed source `fd776f1fda2a3bb249bd0d032efd0e179e778d78`
+(`public-query-evidence-m3uQxC`) stopped on the independent JSON control before
+any text acceptance or HTTP case. Public submission returned `SubmissionUnknown`
+with a 500 `ClientHostFailure`; this was not a parse or aggregate type refusal.
+The README smoke controls passed separately, not the aggregate cases. Logs and
+identity/digests were retained; the disposable install was removed.
+
+An incremental bridge probe over those compiled inputs prepared the same JSON
+successfully. The Values compiler returned
+`Compilation(Plan(Graph(Fragment(AoA(NoncanonicalPipeline)))))`, while the task
+compiler succeeded. The emitted raw aggregate expression retained property
+members in author order `value,name`; canonical order is `name,value`. At the
+first mismatch, all member values were identical. This is a common single-Values
+AoA emission defect, independent of text argument lowering. No Host route,
+compiler guard or fallback was changed to bypass it.
+
+The [minimal authored JSON reproduction](../../scripts/fixtures/aggregate-property-member-order.repro.program.json)
+expects one row `{"n":1}`. Common preparation must accept either JSON member
+order and emit the same canonical AoA identity. This boundary belongs to the
+common owner: `run_publication_host::emit_client_values_pipeline_graph` and
+the aggregate expression emitter called by `lowering_relation::emit_sequence_steps`.
+The independent acceptance control now authors its property members in canonical
+order; expressions, input rows, types, aggregate arguments and expected output
+are unchanged. This does not claim the separate member-order defect is repaired.
