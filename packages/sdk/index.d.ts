@@ -73,6 +73,8 @@ export declare class ClientError extends Error {
   readonly hint?: string;
   readonly requestId?: string;
   readonly attemptId?: string;
+  /** Complete rows returned by the failed call; aggregate calls return none. */
+  readonly rowsYielded?: number;
   readonly cleanupError?: unknown;
   readonly lookupContext?: Readonly<{endpoint: string; scopeRef: string}>;
   readonly status?: number;
@@ -101,6 +103,8 @@ export type ReadOptions = {
 export interface Reader<T> extends AsyncIterable<T> {
   readonly attemptId: string;
   state(): 'not_started' | 'prefix' | 'complete';
+  /** Complete rows yielded to this reader's caller, excluding buffered rows. */
+  rowsYielded(): number;
 }
 
 export type ResultDescription = WireResultDescription;

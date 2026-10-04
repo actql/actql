@@ -411,8 +411,18 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('4ac81bd72c110d09c286a0f2d4c5d68d4340a2e6843d75deabd8dbbd9fb26b77'),
     cid(aoaContract), mergedDefinitionDependencies, barrierCid).run.run_definition_cid,
     pin('48ef7cfc48aa9303ffd61e0820cbec0f32bd767fb5a2d4e5b0fdb1d60bdd290d'));
-  assert.equal(current.run.run_definition_cid,
+  // Retain the prior integration and current main as immutable preimages.
+  assert.equal(vector(pin('d0207424274d6a5549eff6c16cd7cfa5a1e63e66c627c23bb63f24ec82154180'),
+    cid(aoaContract), dependencies, barrierCid).run.run_definition_cid,
+    pin('ce86fb3d6d861cac9a29da60c1ede5230e2eb4af39b059137fb6f416938316a4'));
+  assert.equal(vector(pin('37e9fadf9ae65bc194ad17b790ce208450550defcdbfb8354ef3c5c9c0cf4f6d'),
+    cid(aoaContract), mergedDefinitionDependencies, barrierCid).run.run_definition_cid,
+    pin('cfd9395735fcb60fa33631944f54a49b5865dd7f55116bc26759b0ee72a037b4'));
+  assert.equal(vector(pin('542afdc74f52bbb3d9fa721434c2ac54641e01995eb46abee1dbd44252898374'),
+    cid(aoaContract), dependencies, barrierCid).run.run_definition_cid,
     pin('d798266b5638e543550903b2cc400fcede71b9056fcc9fbac2f1f18ea2e4a503'));
+  assert.equal(current.run.run_definition_cid,
+    pin('3dce46175daa5fb3da4a54fac92158c7be33a0611158ffc6a84b2b5d8c53e13a'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');

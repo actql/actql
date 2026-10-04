@@ -231,6 +231,11 @@ export async function verifyComparison({plan, ...options}) {
   assert(unchanged(plan.context, options.context), 'Different final comparison owner');
   exact(plan.costs, ['checkpointMilliseconds', 'transferMilliseconds', 'inspectionMilliseconds', 'totalMilliseconds']);
   assert(Object.values(plan.costs).every(value => Number.isSafeInteger(value) && value >= 0), 'Invalid comparison costs');
+  // An already completed integrity rejection is permanent for this recorded
+  // comparison. A repeated rejection, later repair or transport outage cannot
+  // confirm it or downgrade it to optional unavailability.
+  assert(Array.isArray(plan.actions) && !plan.actions.some(entry => entry.status === 'origin-rejected'),
+    'Rejected origin receipt');
   // A cache/history miss consumed no original. Do not turn later availability
   // into a retroactive adoption or fail an otherwise valid complete fresh run.
   // This records that no origin was used, not a claim that absence is permanent.
@@ -265,6 +270,7 @@ export async function verifyComparison({plan, ...options}) {
     return {status: 'unconfirmed', reason: 'origin-unavailable', reuseAuthorized: false,
       costs: {totalMilliseconds: Math.round(performance.now() - started)}};
   }
+  assert(!replay.actions.some(entry => entry.status === 'origin-rejected'), 'Rejected origin receipt');
   // A genuine cache miss after a valid start is informational: all candidate
   // obligations were independently executed fresh. Preserve the original plan.
   if (replay.artifact === null && replay.actions.every(entry => entry.status === 'origin-archive-unavailable')) {

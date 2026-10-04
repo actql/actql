@@ -219,7 +219,14 @@ pub fn compile_query_script(
           if graph is Some(graph) {
             if script_has_graph_rows(query) {
               let bound = lower_script_graph_rows(
-                construction, query, graph, limits, steps, reserved, output,
+                construction,
+                query,
+                graph,
+                limits,
+                steps,
+                reserved,
+                output,
+                known~,
               )
               known = known.filter(input => {
                 !(input.relation.length() == 1 &&
@@ -336,6 +343,7 @@ pub fn compile_query_script(
           stage_steps,
           reserved,
           "aql_script_result",
+          known=stage_known,
           retained=Some(retained),
         )
       } else if @query.graph_query(current) is Some(_) {

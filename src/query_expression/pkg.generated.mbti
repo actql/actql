@@ -20,6 +20,8 @@ pub fn expression(Lowered) -> @expression_syntax.Expression
 
 pub fn lower(@query_syntax.Expression, (Array[@query_syntax.NamePart]) -> String?, Limits) -> Result[Lowered, Diagnostic]
 
+pub fn numeric_literal(String) -> Result[Double, Issue]
+
 pub fn source(Lowered) -> @program_source_builder.Source
 
 // Errors
