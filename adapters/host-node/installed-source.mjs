@@ -10,6 +10,9 @@
 //   installation), `readAuthorization` ({accountConfiguration, context}, for
 //   the Host's pre-acquisition Checkpoint) and `sourceAccess` (the base
 //   access whose `authorization` a Checkpoint may wrap);
+// - optionally `sourceReadAccesses`: one declared sourceRef and read tuple
+//   per view for Check disclosure and plural Checkpoint authority. Its
+//   acquisition still uses the installation-scoped `sourceAccess`;
 // - `connectorRegistration`/`connectorRevision` when its manifest declares
 //   them: the installed implementation's own identification, which must
 //   equal the declaration;
@@ -212,6 +215,54 @@ export async function loadInstalledSource(path, {root, principalId, moon,
 
 // Installation inventory is bounded and inert. Only a checked acquisition
 // occurrence selects a member later; installing a binding never reads it.
+export function installedSourceReadAccesses(source) {
+  const accesses = source.sourceReadAccesses ?? [source.sourceAccess];
+  if (!Array.isArray(accesses) || accesses.length === 0 ||
+      accesses.length > 64) {
+    throw new TypeError('InvalidInstalledSourceReadAccesses');
+  }
+  if (source.sourceReadAccesses !== undefined) {
+    const refs = new Set();
+    for (const access of accesses) {
+      if (typeof access?.sourceRef !== 'string' ||
+          typeof access.connection !== 'string' ||
+          access.connection !== source.sourceAccess?.connection ||
+          typeof access.resource !== 'string' ||
+          access.authorization !== source.sourceAccess?.authorization ||
+          typeof source.admitsSource !== 'function' ||
+          !source.admitsSource(access.sourceRef) ||
+          refs.has(access.sourceRef)) {
+        throw new TypeError('InvalidInstalledSourceReadAccesses');
+      }
+      refs.add(access.sourceRef);
+    }
+  }
+  return accesses;
+}
+
+export function installedSourceReadBindings(source) {
+  if (typeof source.sourceAccess?.authorization?.authorize !== 'function' ||
+      typeof source.ledgerCapacity !== 'function' ||
+      typeof source.admitsSource !== 'function') {
+    throw new TypeError('InstalledMultiSourceUnsupported');
+  }
+  const refs = [];
+  for (const access of installedSourceReadAccesses(source)) {
+    if (typeof access?.sourceRef !== 'string' ||
+        typeof access.connection !== 'string' ||
+        typeof access.resource !== 'string' ||
+        access.authorization !== source.sourceAccess.authorization ||
+        !source.admitsSource(access.sourceRef)) {
+      throw new TypeError('InstalledMultiSourceUnsupported');
+    }
+    refs.push(access.sourceRef);
+  }
+  if (new Set(refs).size !== refs.length) {
+    throw new TypeError('InstalledSourceBindingAmbiguous');
+  }
+  return refs;
+}
+
 export function installedSourcePaths({sourceProfilePath, sourceProfilePaths} = {},
   fallback = process.env.ACTQL_LOCAL_SOURCE_PROFILE) {
   if (sourceProfilePaths !== undefined) {
@@ -241,20 +292,17 @@ export async function loadInstalledSources(paths, options) {
     if (failures.length) throw new AggregateError(failures, 'InstalledSourceCleanupPending');
   };
   try {
+    const refs = [];
     for (const path of paths) {
       const source = await loadInstalledSource(path, options);
       sources.push(source);
       // Each independently installed source must have an exact checked
       // occurrence and an owned capacity before either read may start.
-      if (typeof source.sourceAccess?.sourceRef !== 'string' ||
-          typeof source.ledgerCapacity !== 'function') {
-        throw new TypeError('InstalledMultiSourceUnsupported');
-      }
+      refs.push(...installedSourceReadBindings(source));
     }
     verifyInstalledConnectorBindings(sources[0], sources[1]);
     const environmentWire = composeInstalledCheckEnvironment(options.moon,
       options.baseEnvironmentWire, sources[0].environmentWire, sources[1].environmentWire);
-    const refs = sources.map(source => source.sourceAccess.sourceRef);
     if (new Set(refs).size !== refs.length) {
       throw new TypeError('InstalledSourceBindingAmbiguous');
     }

@@ -42,6 +42,13 @@ expected Join rows from the real retained Store, and resend and reopened-Host
 attach do not reacquire either provider. This is evidence for those installed
 source pairs and the shared two-input owner, not every provider combination,
 every Join variant, or exact/one-short physical limits for the row capture.
+For a row connector with multiple declared views, the two-installation Host
+now carries each view's source reference and read tuple into Check disclosure
+and pre-acquisition Checkpoint selection. The installed source still prepares
+the selected occurrence and physical target before any read. Focused adapter,
+Check, and Checkpoint tests cover this binding, including an unused declared
+view; no public retained-Store E2E with a concrete multi-view connector is
+claimed yet.
 
 The installed full-family Host now declares TEA and VecA to the common checker,
 matching its already registered bounded providers. This does not make a

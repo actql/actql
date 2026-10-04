@@ -6,7 +6,53 @@ import {join} from 'node:path';
 import test from 'node:test';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
-import {openRowSourceCredentialSite} from './installed-row-source.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
+import {createInstalledRowSource, openRowSourceCredentialSite} from
+  './installed-row-source.mjs';
+import {installedSourceReadAccesses, installedSourceReadBindings} from
+  './installed-source.mjs';
+
+test('row source exposes exact read tuples for every declared view', async () => {
+  const authorization = {authorize: async () => ({action: 'dispatch'}),
+    accountConfiguration: '{}', context: {contextCid: 'context'}};
+  const views = [{resource: 'issues', resource_kind: 'issue', fields:
+    [{name: 'id', type: 'number', nullable: false}]},
+  {resource: 'comments', resource_kind: 'comment', fields:
+    [{name: 'id', type: 'number', nullable: false}]}];
+  const declaration = checked(moon.clientProgramRowSourceRestoreDeclaration(
+    'fixture', 'fixture', 'fixture/0.1', JSON.stringify({views}), undefined));
+  const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(
+    declaration));
+  const adapter = await createInstalledRowSource({moon, declaration,
+    declared, environmentWire: '{}', connectorId: 'fixture',
+    connectorRegistration: 'fixture', connectorRevision: 'fixture/0.1',
+    site: {connection: 'example:connection', close() {}}, authorization,
+    readOperation: 'read', physicalTarget: () => ({}),
+    readPages: async () => {}, bindingCid: `sha256:${'a'.repeat(64)}`,
+    limits: {maxPages: 1, maxPageBytes: 1024, maxPageRows: 10,
+      maxCaptureRows: 10}});
+  assert.equal(adapter.sourceAccess.sourceRef, undefined);
+  assert.deepEqual(installedSourceReadAccesses(adapter).map(access => ({
+    sourceRef: access.sourceRef, resource: access.resource,
+    connection: access.connection,
+  })), declared.views.map(view => ({sourceRef: view.source_ref,
+    resource: view.resource, connection: 'example:connection'})));
+  assert.ok(installedSourceReadAccesses(adapter).every(access =>
+    access.authorization === adapter.sourceAccess.authorization &&
+    adapter.admitsSource(access.sourceRef)));
+  assert.deepEqual(installedSourceReadBindings(adapter),
+    declared.views.map(view => view.source_ref));
+  assert.throws(() => installedSourceReadAccesses({sourceReadAccesses: []}),
+    {message: 'InvalidInstalledSourceReadAccesses'});
+  assert.throws(() => installedSourceReadBindings({...adapter,
+    sourceReadAccesses: [adapter.sourceReadAccesses[0],
+      adapter.sourceReadAccesses[0]]}),
+  {message: 'InvalidInstalledSourceReadAccesses'});
+  assert.throws(() => installedSourceReadBindings({...adapter,
+    sourceReadAccesses: [{...adapter.sourceReadAccesses[0],
+      sourceRef: 'connector://foreign/r#v'}]}),
+  {message: 'InvalidInstalledSourceReadAccesses'});
+});
 
 test('the row source Site refuses an undeclared response header before any credential use',
   async t => {

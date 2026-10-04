@@ -287,6 +287,12 @@ export async function createInstalledRowSource({moon, declaration,
   const sourceAccess = Object.freeze({authorization,
     connection: site.connection,
     ...(sourceRefs.size === 1 ? {sourceRef: [...sourceRefs][0]} : {})});
+  // Read disclosure and held-Run authority are per declared view. The
+  // acquisition access stays installation-scoped; its checked preparation
+  // supplies the one exact view and read tuple before provider I/O.
+  const sourceReadAccesses = Object.freeze(declared.views.map(view =>
+    Object.freeze({authorization, connection: site.connection,
+      sourceRef: view.source_ref, resource: view.resource})));
   const decideRead = (prepared, access, signal) =>
     access.authorization.authorize('acquisition', prepared.readTuple, {
       subjectCid: cid({version: 'actql-row-source-acquisition-read/0.1',
@@ -511,6 +517,7 @@ export async function createInstalledRowSource({moon, declaration,
       accountConfiguration: authorization.accountConfiguration,
       context: authorization.context}),
     sourceAccess,
+    sourceReadAccesses,
     admitsSource: sourceRef => sourceRefs.has(sourceRef),
     ledgerCapacity(prepared) {
       const owner = preparations.get(prepared);
