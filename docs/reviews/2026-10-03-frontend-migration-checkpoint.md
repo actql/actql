@@ -698,3 +698,27 @@ The final merge destination remains main; D does not merge this PR.
 its reader-close unit is merged into main as `6c2c65742`. That accepted consumer
 iterator boundary still does not prove the formal active temporary-holder
 inventory, which remains an A-owned observation dependency.
+
+### Final-main merge preflight and additive resolution
+
+Submitted `ed139eff22eb8a91f893ac8ad74c9effe8ec823d` automatic CI
+[37191034738](https://github.com/actql/actql/actions/runs/37191034738)
+failed preflight before package production or public Graph execution. Its first
+error is the missing resolution for merge
+`e3ecb26c952a045e8a4984a7b2e0a318c50a4cce`, requiring
+`.github/workflows/ci.yml` and `package.json`. A complete local history check
+at the same submitted source reproduces that exact error. The earlier
+`f1505f07858c8f371b808b59cdcc5b90a70b83a9` history success does not cover this
+later main merge, and this CI failure is not a new runtime diagnosis.
+
+The additive `resolve-graph-retention-policy-main-e3ecb26c9` resolution binds
+the actual ordered parents `f1505f07858c8f371b808b59cdcc5b90a70b83a9` and
+`c26339bed484c1965da78f6a9540333c2583ea31`, both maximal Git ancestors
+`5e22c522becb80477cb7ed4f4733a48a463d5bf2` and
+`60394aacca05c297c07cf6e8129973a34318a6c3`, and all 85 ancestral source-binding
+groups touching either required path. Identical resulting workflow bytes still
+require this real multi-base resolution. Both parent blob digests/modes and the
+merged result are pinned; current CI cost controls and all test registrations
+remain. Existing declarations, supplements and their introductions are retained
+unchanged. Complete history acceptance and pristine fresh-packed Graph coverage
+must be evaluated on the new submitted source and its automatic CI separately.
