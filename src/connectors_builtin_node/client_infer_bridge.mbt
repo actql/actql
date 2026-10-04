@@ -330,6 +330,139 @@ pub fn client_program_start_scoped_infer_execution(
 }
 
 ///|
+/// Run the original Program prefix and physical preflight, then retain the
+/// complete call inventory without entering a provider. The callback must
+/// durably record each owner-issued attempt before returning true.
+#export_name("clientProgramStartScopedEnteredInferExecution")
+pub fn client_program_start_scoped_entered_infer_execution(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  graph : @publication_host.ClientInferPlanGraph,
+  registry : String,
+  values : String,
+  provider : @model.ModelProvider,
+  fragment : String,
+  ordered : String,
+  enter_call : (@model.ModelCallEntry) -> Bool,
+  deferred : Bool,
+) -> Result[@infer_host.Execution, @infer_host.Issue] {
+  @infer_host.start(
+    prepared,
+    step,
+    registry,
+    values,
+    provider,
+    @publication_host.client_infer_plan_graph_request_cid(graph),
+    @infer_host.standard_limits(),
+    plan=Some(graph),
+    fragment_body=Some(fragment),
+    ordered_body=Some(ordered),
+    defer_dispatch=deferred,
+    enter_call=Some(enter_call),
+  )
+}
+
+///|
+#export_name("clientProgramStartAcquiredEnteredInferExecution")
+pub fn client_program_start_acquired_entered_infer_execution(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  graph : @publication_host.ClientInferPlanGraph,
+  registry : String,
+  values : String,
+  provider : @model.ModelProvider,
+  input : @publication_host.ClientInferCapturedInput,
+  fragment : String,
+  ordered : String,
+  enter_call : (@model.ModelCallEntry) -> Bool,
+  deferred : Bool,
+) -> Result[@infer_host.Execution, @infer_host.Issue] {
+  @infer_host.start(
+    prepared,
+    step,
+    registry,
+    values,
+    provider,
+    @publication_host.client_infer_plan_graph_request_cid(graph),
+    @infer_host.standard_limits(),
+    plan=Some(graph),
+    acquired_input=Some(input),
+    fragment_body=Some(fragment),
+    ordered_body=Some(ordered),
+    defer_dispatch=deferred,
+    enter_call=Some(enter_call),
+  )
+}
+
+///|
+#export_name("clientProgramInferPreparedCallSet")
+pub fn client_program_infer_prepared_call_set(
+  active : @infer_host.Execution,
+) -> @model.PreparedModelCallSet? {
+  @infer_host.prepared_model_call_set(active)
+}
+
+///|
+#export_name("clientProgramInferPreparedCallCount")
+pub fn client_program_infer_prepared_call_count(
+  set : @model.PreparedModelCallSet,
+) -> Int? {
+  @model.prepared_model_call_set_count(set)
+}
+
+///|
+#export_name("clientProgramInferPreparedInputWire")
+pub fn client_program_infer_prepared_input_wire(
+  set : @model.PreparedModelCallSet,
+) -> String? {
+  @model.prepared_model_call_set_input(set).map(
+    @publication.run_evidence_value_json,
+  )
+}
+
+///|
+#export_name("clientProgramInferPreparedSlotWire")
+pub fn client_program_infer_prepared_slot_wire(
+  set : @model.PreparedModelCallSet,
+  index : Int,
+) -> String? {
+  @model.prepared_model_call_set_slot(set, index).map(
+    @publication.run_evidence_value_json,
+  )
+}
+
+///|
+/// The Checkpoint grant, current dispatch admission, and still-retained
+/// prepared inventory must all belong to the same original Run and call set.
+#export_name("clientProgramResumeApprovedInferExecution")
+pub fn client_program_resume_approved_infer_execution(
+  active : @infer_host.Execution,
+  grant : @checkpoint.ModelInvocationGrant,
+  admission : @publication_host.ClientInferDispatchAdmission,
+  now : () -> String,
+  current : () -> Bool,
+) -> Result[Unit, @infer_host.Issue] {
+  @infer_host.resume_approved_model_call_set(
+    active, grant, admission, now, current,
+  )
+}
+
+///|
+#export_name("clientProgramInferCallEntryOriginals")
+pub fn client_program_infer_call_entry_originals(
+  value : @model.ModelCallEntry,
+) -> (Int, String, String, String) {
+  (
+    @model.model_call_entry_slot(value),
+    @publication.run_evidence_value_json(@model.model_call_entry_call(value)),
+    @publication.run_evidence_value_json(@model.model_call_entry_attempt(value)),
+    @publication.run_evidence_value_json(
+      @model.model_call_entry_authority(value),
+    ),
+  )
+}
+
+///|
 /// Replay has no physical provider and prepares the normal input again.
 #export_name("clientProgramStartInferReplay")
 pub fn client_program_start_infer_replay(

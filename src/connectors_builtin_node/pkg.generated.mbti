@@ -4,6 +4,7 @@ package "actql/actql/connectors_builtin_node"
 import {
   "actql/actql/canonical_json",
   "actql/actql/check_environment",
+  "actql/actql/checkpoint_runtime",
   "actql/actql/client_infer_host",
   "actql/actql/client_local_host",
   "actql/actql/client_row_source_host",
@@ -574,6 +575,8 @@ pub fn client_program_infer_attempt_leaf(@model_execution.ModelAttemptEvidence, 
 
 pub fn client_program_infer_attempt_records(@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> @model_execution.ModelAttemptRecords
 
+pub fn client_program_infer_call_entry_originals(@model_execution.ModelCallEntry) -> (Int, String, String, String)
+
 pub fn client_program_infer_capture_call(@model_execution.VerifiedModelCapture, Int) -> @run_publication.RunEvidenceValue?
 
 pub fn client_program_infer_capture_call_count(@model_execution.VerifiedModelCapture) -> Int?
@@ -649,6 +652,14 @@ pub fn client_program_infer_plan_graph_wire(@run_publication_host.ClientInferPla
 pub fn client_program_infer_plan_request_wire(@run_publication_host.ClientInferPlanGraph) -> String
 
 pub fn client_program_infer_prefix_fragment(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[@run_publication_host.ClientTaskFragmentNode, @run_publication_host.ClientTaskFragmentIssue]
+
+pub fn client_program_infer_prepared_call_count(@model_execution.PreparedModelCallSet) -> Int?
+
+pub fn client_program_infer_prepared_call_set(@client_infer_host.Execution) -> @model_execution.PreparedModelCallSet?
+
+pub fn client_program_infer_prepared_input_wire(@model_execution.PreparedModelCallSet) -> String?
+
+pub fn client_program_infer_prepared_slot_wire(@model_execution.PreparedModelCallSet, Int) -> String?
 
 pub fn client_program_infer_provider_id(@check_environment.ModelExecutionContract) -> String
 
@@ -1048,6 +1059,8 @@ pub fn client_program_result_row_contract_unit_cid(@run_publication_host.ClientR
 
 pub fn client_program_result_row_contract_wire(@run_publication_host.ClientResultRowContractIdentity) -> String
 
+pub fn client_program_resume_approved_infer_execution(@client_infer_host.Execution, @checkpoint_runtime.ModelInvocationGrant, @run_publication_host.ClientInferDispatchAdmission, () -> String, () -> Bool) -> Result[Unit, @client_infer_host.Issue]
+
 pub fn client_program_row_source_accept_page(@client_row_source_host.RowRun, Bytes) -> Result[Int, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_attempt(@client_row_source_host.RowRun) -> @client_row_source_host.RowAttempt
@@ -1164,6 +1177,8 @@ pub fn client_program_source_publication_valid(@program_check.CheckEnvironment, 
 
 pub fn client_program_stage_semantics_json(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientIdentityMaterialIssue]
 
+pub fn client_program_start_acquired_entered_infer_execution(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelProvider, @run_publication_host.ClientInferCapturedInput, String, String, (@model_execution.ModelCallEntry) -> Bool, Bool) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
+
 pub fn client_program_start_acquired_infer_execution(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelProvider, @run_publication_host.ClientInferCapturedInput, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
 pub fn client_program_start_acquired_infer_slot_replay(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelSlotReplayRead, @run_publication_host.ClientInferCapturedInput, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
@@ -1189,6 +1204,8 @@ pub fn client_program_start_model_output(@client_local_host.ClientInferInputExec
 pub fn client_program_start_restored_infer_replay(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @run_publication.ModelCaptureBundleRead, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
 pub fn client_program_start_restored_infer_slot_replay(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelSlotReplayRead, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
+
+pub fn client_program_start_scoped_entered_infer_execution(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelProvider, String, String, (@model_execution.ModelCallEntry) -> Bool, Bool) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
 pub fn client_program_start_scoped_infer_execution(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelProvider, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 

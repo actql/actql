@@ -14,7 +14,7 @@ const activeOperations = new WeakMap();
 export function openNodeInferOperation({moon, preparedProgram, step, graph,
   registry, values, fragment, ordered, provider, savedCapture, savedSlots, quantityCapacity,
   physicalPreflight, egressAdmission, computeSuffix, acquiredInput, composedInput,
-  signal, quantum = 256, observeProgress}) {
+  signal, quantum = 256, observeProgress, deferDispatch = false, enterCall}) {
   if (!Number.isSafeInteger(quantum) || quantum < 1 || quantum > 2147483647 ||
       [provider, savedCapture, savedSlots].filter(value => value !== undefined)
         .length !== 1) {
@@ -51,6 +51,39 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       savedCapture !== undefined)) {
     throw new TypeError('InvalidComposedInferOperation');
   }
+  if (typeof deferDispatch !== 'boolean' ||
+      (deferDispatch && (provider === undefined || composedInput !== undefined ||
+        typeof enterCall !== 'function')) ||
+      (enterCall !== undefined && (typeof enterCall !== 'function' ||
+        provider === undefined || composedInput !== undefined))) {
+    throw new TypeError('InvalidInstalledInferEntry');
+  }
+  let entryFailure;
+  let entryFlight;
+  const enterOriginal = entry => {
+    try {
+      const originals = moon.clientProgramInferCallEntryOriginals(entry);
+      const result = enterCall(Object.freeze({slot: originals._0,
+        callWire: originals._1, attemptWire: originals._2,
+        authorityWire: originals._3}));
+      if (result !== null && typeof result === 'object' &&
+          typeof result.then === 'function') {
+        entryFailure = new TypeError('AsyncInferAttemptEntry');
+        const flight = Promise.resolve(result);
+        entryFlight = flight;
+        flight.catch(() => {}).finally(() => {
+          if (entryFlight === flight) entryFlight = undefined;
+        }).catch(() => {});
+        return false;
+      }
+      return result === true;
+    } catch (error) {
+      // The journal may have committed before its acknowledgement was lost.
+      // Core retains this attempt as unknown; never invoke or silently retry.
+      entryFailure = error;
+      return false;
+    }
+  };
   const active = checked(composedInput !== undefined
     ? moon.clientProgramStartComposedInferExecution(composedInput.occurrence,
       graph, composedInput.prefix, composedInput.inputs, provider,
@@ -63,10 +96,18 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         graph, registry, values, savedSlots, acquiredInput, fragment, ordered)
     : savedCapture === undefined
       ? acquiredInput === undefined
-        ? moon.clientProgramStartScopedInferExecution(preparedProgram, step,
-          graph, registry, values, provider, fragment, ordered)
-        : moon.clientProgramStartAcquiredInferExecution(preparedProgram, step,
-          graph, registry, values, provider, acquiredInput, fragment, ordered)
+        ? enterCall === undefined
+          ? moon.clientProgramStartScopedInferExecution(preparedProgram, step,
+            graph, registry, values, provider, fragment, ordered)
+          : moon.clientProgramStartScopedEnteredInferExecution(preparedProgram,
+            step, graph, registry, values, provider, fragment, ordered,
+            enterOriginal, deferDispatch)
+        : enterCall === undefined
+          ? moon.clientProgramStartAcquiredInferExecution(preparedProgram, step,
+            graph, registry, values, provider, acquiredInput, fragment, ordered)
+          : moon.clientProgramStartAcquiredEnteredInferExecution(preparedProgram,
+            step, graph, registry, values, provider, acquiredInput, fragment,
+            ordered, enterOriginal, deferDispatch)
       : moon.clientProgramStartRestoredInferReplay(preparedProgram, step,
         graph, registry, values, savedCapture, fragment, ordered));
   const requestStop = () => moon.clientProgramCancelInferExecution(active);
@@ -111,11 +152,60 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   let closeFlight;
   let reclaimed = false;
   let closing = false;
+  let waiting = false;
+  let retainedCallSet;
+
+  function preparedCallSet() {
+    if (!waiting || closing || reclaimed) return undefined;
+    if (retainedCallSet !== undefined) return retainedCallSet;
+    const set = moon.clientProgramInferPreparedCallSet(active);
+    const count = set === undefined ? undefined :
+      moon.clientProgramInferPreparedCallCount(set);
+    if (!Number.isSafeInteger(count) || count < 0) {
+      throw new Error('InferPreparedCallSetUnavailable');
+    }
+    const inputWire = moon.clientProgramInferPreparedInputWire(set);
+    if (typeof inputWire !== 'string') {
+      throw new Error('InferPreparedCallSetUnavailable');
+    }
+    retainedCallSet = Object.freeze({inputWire, count,
+      slotWire(index) {
+        if (!waiting || closing || reclaimed || !Number.isSafeInteger(index) ||
+            index < 0 || index >= count) {
+          throw new Error('InferPreparedCallSetUnavailable');
+        }
+        const wire = moon.clientProgramInferPreparedSlotWire(set, index);
+        if (typeof wire !== 'string') {
+          throw new Error('InferPreparedCallSetUnavailable');
+        }
+        return wire;
+      }});
+    return retainedCallSet;
+  }
+
+  async function materializeCallSet({quantum: step = 256,
+    signal: readSignal = signal} = {}) {
+    if (!Number.isSafeInteger(step) || step < 1) {
+      throw new TypeError('InvalidInferCallInventoryQuantum');
+    }
+    const set = preparedCallSet();
+    if (set === undefined) throw new Error('InferPreparedCallSetUnavailable');
+    const slotWires = [];
+    for (let index = 0; index < set.count; index++) {
+      readSignal?.throwIfAborted();
+      slotWires.push(set.slotWire(index));
+      if ((index + 1) % step === 0) await yieldEventLoop();
+    }
+    readSignal?.throwIfAborted();
+    return Object.freeze({inputWire: set.inputWire,
+      slotWires: Object.freeze(slotWires)});
+  }
 
   function cleanup() {
     if (reclaimed) return true;
     // Cancellation delivery alone never permits releasing the execution.
-    if (!moon.clientProgramInferExecutionStopped(active)) return false;
+    if (!moon.clientProgramInferExecutionStopped(active) ||
+        entryFlight !== undefined) return false;
     reclaimed = checked(moon.clientProgramCleanupInferExecution(active));
     if (reclaimed) signal?.removeEventListener('abort', requestStop);
     return reclaimed;
@@ -129,6 +219,11 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       const kind = moon.clientProgramInferExecutionPollKind(poll);
       if (kind === 'complete') {
         return moon.clientProgramInferExecutionOutput(poll);
+      }
+      if (kind === 'waiting') {
+        if (!deferDispatch) throw new Error('UnexpectedInferApprovalWait');
+        waiting = true;
+        return Object.freeze({kind: 'waiting', callSet: preparedCallSet()});
       }
       if (kind === 'failed') {
         // Preserve the existing typed cause without a new public classifier.
@@ -163,10 +258,30 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     return flight;
   }
 
+  function resumeApproved({grant, admission, now, current}) {
+    if (!waiting || closing || reclaimed || typeof now !== 'function' ||
+        typeof current !== 'function') {
+      return Promise.reject(new Error('InferApprovalResumeUnavailable'));
+    }
+    try {
+      checked(moon.clientProgramResumeApprovedInferExecution(active, grant,
+        admission, now, current));
+    } catch (error) { return Promise.reject(error); }
+    waiting = false;
+    retainedCallSet = undefined;
+    flight = undefined;
+    return run();
+  }
+
   async function stop() {
     closing = true;
     requestStop();
     if (flight !== undefined) await flight.catch(() => {});
+    if (entryFlight !== undefined) {
+      const pendingEntry = entryFlight;
+      await pendingEntry.catch(() => {});
+      if (entryFlight === pendingEntry) entryFlight = undefined;
+    }
     if (!moon.clientProgramInferExecutionStopped(active)) {
       const poll = checked(moon.clientProgramAdvanceInferExecution(active, 1));
       if (moon.clientProgramInferExecutionPollKind(poll) !== 'stopped' ||
@@ -186,9 +301,12 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     return closeFlight;
   }
 
-  const operation = Object.freeze({run, stop, close, cleanup,
+  const operation = Object.freeze({run, resumeApproved, preparedCallSet,
+    materializeCallSet,
+    entryFailure: () => entryFailure, stop, close, cleanup,
     cleanupPending: () => !reclaimed,
-    physicalStopped: () => moon.clientProgramInferExecutionStopped(active),
+    physicalStopped: () => entryFlight === undefined &&
+      moon.clientProgramInferExecutionStopped(active),
     quantityUsage: () => moon.clientProgramInferQuantityUsage(active),
     stoppedAttemptCount: () => moon.clientProgramInferStoppedAttemptCount(active),
     acquireOutput: () => moon.clientProgramAcquireInferOutput(active),
