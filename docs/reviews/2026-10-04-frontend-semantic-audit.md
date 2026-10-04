@@ -176,11 +176,32 @@ parent updates. B performed no merge or manual CI rerun.
 | node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
 
 D's CTE source-capture repair and its post-fix acceptance remain separate;
-no parallel repair was made here. The independent traversal text connection
-has begun from #303: three focused JS Program/checker cases pass for earlier
-DATA Relation selectors, preserving authored hop bounds, path mode and
-typed-identity output names. This working implementation has no packed
-execution evidence yet and does not establish all selector-source coverage.
+no parallel repair was made here. #316 has since been normally integrated by
+the shared integration worktree at published
+`7ee4c7740138e0b2c2f745b24510a25eab484e9d`: C dependency
+`8c2933d672520085e291b9ada47b1c136954f4d5` and main
+`67f2b659c25db21fd4188ffaab295439c0bda401`. B's parallel local integration
+has the same product/contracts/CI tree and only an additional review record;
+its non-fast-forward push was rejected. No force push, duplicate publication
+or replacement CI run was made. [Automatic CI 37175353412](https://github.com/actql/actql/actions/runs/37175353412)
+is still in progress for the published integration HEAD. The preceding 27-job
+and packed successes are not relabelled as this new Git revision's evidence.
+
+The independent traversal text connection is now
+[Draft #323](https://github.com/actql/actql/pull/323), submitted
+`1218b85be09e03ec9433a98e5264ed9e10c7563d`, normally integrated with the same
+main. Three traversal Program/checker cases plus five retained Graph-row cases
+pass (8/8); named numeric admission passes 1/1 and independent manifest/Run
+checks pass 7/7. Earlier DATA Relation selectors resolve to existing emitted
+producers, retaining authored hop bounds, path mode, empty label lists and
+typed-identity output names. Five public positives and seven refusals are
+connected to the existing external packed application, with independently
+authored JSON/definition/row/type expectations. [Automatic CI 37175418951](https://github.com/actql/actql/actions/runs/37175418951)
+and fresh packed Local/HTTP remain pending. Direct installed selector Sources
+and path emission remain source-connection gaps, not permanent language limits
+or completed execution coverage. The B-owned Graph-call branch and D-owned
+capture/CTE boundary were [shared with D](https://github.com/actql/actql/pull/273#issuecomment-5976330639);
+no common execution owner or parallel CTE repair was added.
 
 ## Historical repair follow-up before main capacity integration
 
