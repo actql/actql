@@ -200,7 +200,7 @@ fn prepare_program_sequence_limits(
     }
     let subject = unit_operation_subject(source, remaining) + "/sequence/"
     let matches = reidentify_sequence_limit(
-      @sequence.limit(selected.limits, MatchesPerKey),
+      @sequence.host_limit(selected.limits, MatchesPerKey),
       subject + "matches-per-key",
       "matches_per_key",
       remaining,
@@ -212,7 +212,7 @@ fn prepare_program_sequence_limits(
       ),
     )
     let output = reidentify_sequence_limit(
-      @sequence.limit(selected.limits, OutputRows),
+      @sequence.host_limit(selected.limits, OutputRows),
       subject + "output",
       "rows",
       remaining,

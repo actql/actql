@@ -1,5 +1,46 @@
 # SGA, VecA, and TEA Local execution gaps
 
+## Current public retained Relation output
+
+An installed Local or HTTP Host can now set `retainedRelationOutput: true` in
+its trusted installation configuration. The public Client's ordinary Program
+path then opens the existing checked retained factory for source-free tasks or
+one or two DuckDB-captured sources, and installs a real row Store for output while
+keeping the existing Carrier snapshot Store. Omission and `false` preserve the
+previous memory-output selection and installation identity. A different value
+is rejected; an installed source without retained-output support is rejected
+before physical start rather than silently falling back to memory output.
+Effect and INFER dispatch keep their separate
+existing owners.
+
+The public source-free Values/sort, single-source DuckDB-acquired filter/sort,
+and two-source DuckDB-acquired Join Programs read independently expected
+Named Result rows. The acquired cases also check description, attach, and
+idempotent resend, and the Host observes the actual `retained-file` output
+representation before cleanup. The two-source case repeats those reads in
+fresh Local and HTTPS processes without reopening either source. The unchanged
+public Local/HTTPS acquisition-selection fixture passes in the default mode. A
+separate writer regression cancels while the Store lease is being acquired;
+it checks zero reservations, nonpublication, and cleanup retry. These tests
+establish the public configuration connection, not retained output for every
+installed source or two-source Program variant. Full CI and Native Host cancellation
+remain separate verification units.
+
+The installed full-family Host now declares TEA and VecA to the common checker,
+matching its already registered bounded providers. This does not make a
+checker declaration an execution offer: the exact selected task and its
+obligations still decide execution. A source-free Values producer followed by
+`to_events` → `watermark_events` → `events`, and another followed by
+`to_vectors` → `normalize_vectors` → `vectors`, each publish their Bridge
+Relation and two downstream consumer Named Results through the real publication
+Store. The public Local tests compare all three Results with independent
+ordered values and verify the physical representations: the source Values task
+uses the row-file Store, while the Carrier, Bridge, and descendant tasks retain
+managed generations. This does not prove row-file retention of the Bridge
+Relation, HTTPS Carrier execution, every TEA/VecA variant, or Carrier-specific
+failure recovery at the public ingress. Existing configured standard-Host
+evidence for those boundaries remains separate.
+
 ## Current Property Graph migration (2026-10-02)
 
 The new definition-keyed Property Graph is the sole executable Graph contract.
@@ -580,12 +621,12 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Registered operations | 69 |
-| Executable production routes | 58 |
-| Typed pre-execution refusals (not execution success) | 11 |
-| Operation-specific boundary records | 58 |
-| Four-role lifecycle assurance | 58 |
-| Full route work/workspace assurance | 58 |
-| Path-scoped work/workspace assurance | 108 |
+| Executable production routes | 59 |
+| Typed pre-execution refusals (not execution success) | 10 |
+| Operation-specific boundary records | 59 |
+| Four-role lifecycle assurance | 59 |
+| Full route work/workspace assurance | 59 |
+| Path-scoped work/workspace assurance | 110 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -732,8 +773,21 @@ reclamation. The memory-output chain uses the same owner and remains a
 regression control. No synchronous fallback or new Host state machine was
 added.
 
-A nonlinear producer that appends `l` and then filters `l` rather than the
-append result is still unsupported by the bounded selected provider. The
+A checked binary Relation producer can now branch from a private intermediate
+and rejoin in the same task: `append` → two filters reading the appended rows
+→ `append` of the two filtered outputs. The planner retains this bounded,
+single-root shape as one task. The selected Relation owner keeps both earlier
+completions live, binds each later input to its exact step and port, and uses
+one cumulative work budget and overlapping child capacity. The retained Host
+reads the producer and two consumer Named Results against fixed ordered rows;
+the later-branch cancellation, arithmetic failure, Store append/finalize
+failure, and cleanup checks exercise the same owner. The memory-output Host
+also completes the identical authored Program through the same physical task
+shape. This does not admit arbitrary nonlinear operations or intermediate
+Result roots.
+
+A disconnected producer that appends `l` and then filters `l` rather than the
+append result remains unsupported by the bounded selected provider. The
 ordinary retained-only Host rejects that Program during whole-graph selection:
 no Compute dispatch, Store lease, or completed task is created. Another
 eligible implementation may provide a valid offer. The `unsupported-chain`
@@ -1074,7 +1128,7 @@ local execution, and Native Host in-flight cancellation remains a separate unit.
 
 The full Node factory now installs the existing SGA, TEA and VecA providers,
 including the Relation-valued time-series, interval/as-of and sequence
-providers. The four source-free/captured and memory/retained factories share
+providers. The source-free, captured and multi-captured memory/retained factories share
 this selection. RelA-only keeps the same bridge body with no family providers;
 the artifact gate checks both import closure and actual linked cores. The
 specialized SGA selector factory remains SGA-only.
@@ -1118,10 +1172,11 @@ The existing row-only Compute Store failure tests remain separate evidence.
 Public Client retained-mode selection remains Host-owned as described above.
 `embedded-local.mjs` already chooses the task compiler in `planFor` for
 multi-task Programs or Graph Carrier Programs. This includes the multi-task
-Events/Vectors Programs exercised here. The remaining Client connection is in
-`client-dispatch-owner.mjs`: carry the retained configuration and select the
-retained factory instead of the current memory-output factory. Neither Client
-owner is replaced here.
+Events/Vectors Programs exercised here. The public Client connection in
+`client-dispatch-owner.mjs` now carries the retained mode to the checked
+source-free, single DuckDB-captured or two-source DuckDB-captured factory.
+The older configured standard-Host family cases below are not themselves
+public Client acceptance for every family. Neither Client owner is replaced.
 This addition certifies explicit configured standard-Host factory paths, not
 an implicit retained mode in every Client configuration. Native Host in-flight
 cancellation and full family-variant acceptance are not completed by these
@@ -1195,11 +1250,18 @@ buffer reservation, and successful later reuse of the original capture.
 Full-content verification rejects foreign values, changed order and truncation;
 the independent envelope vectors also cover exact bytes and one-byte-short.
 
-Public Client dispatch still chooses the memory-output captured factory; its Host owner
-must explicitly connect the additive retained factory and Store configuration.
-This concrete configuration gap remains, rather than being hidden by the
-configured standard-Host proof. Linux CI and Native Host in-flight cancellation
-are separate evidence and completion units.
+This was the public Client configuration gap at the time of the captured-input
+factory proof. The current installed Host now selects the additive retained
+factory when explicitly configured, for source-free Programs and one or two
+DuckDB-captured sources. The two-source factory keeps the checked input
+positions and the existing acquisition ledger; a public two-source Join
+reaches the real row Store and publishes its independently expected Named
+Result. Fresh-process Local and HTTPS attach and repeated requests do not
+reacquire either source. This public test does not establish retained output
+for other connector sources,
+all multi-source variants, or two-consumer and failure recovery for the
+two-source route. Linux CI and Native Host in-flight cancellation are separate
+evidence and completion units.
 
 #### Mixed retained Store and typed Carrier paths
 
@@ -2710,16 +2772,16 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | Coverage state | Count |
 |---|---:|
 | `contract` | 40/40 |
-| `checker` | 24/40 |
-| `lowering` | 24/40 |
-| `kernel` | 24/40 |
-| `managed` | 24/40 |
-| `standard_host` | 24/40 |
-| `consumer_lifetime` | 24/40 |
-| `resources` | 29/40 |
-| `cancellation` | 29/40 |
-| `publication` | 24/40 |
-| `three_targets` | 19/40 |
+| `checker` | 25/40 |
+| `lowering` | 25/40 |
+| `kernel` | 25/40 |
+| `managed` | 25/40 |
+| `standard_host` | 25/40 |
+| `consumer_lifetime` | 25/40 |
+| `resources` | 30/40 |
+| `cancellation` | 30/40 |
+| `publication` | 25/40 |
+| `three_targets` | 20/40 |
 | complete operations | 19/40 |
 | open operations | 21/40 |
 <!-- local-family-coverage-summary:end -->
@@ -4557,6 +4619,21 @@ that it does not infer order from an unrelated publication representation.
 Selected Host-delivered cancellation cases are registered for all three
 diagnostics. Other retained Graph Relation-producing operations remain separate
 completion units; this change does not waive their route or resource proofs.
+
+Current Property Graph equality now checks two exact, ordered Graph operands
+against compatible closed definitions and runs the selected bounded provider.
+The retained Node Host constructs both Graphs in one Stage, compares them,
+passes the Boolean Relation through a later filter, publishes the Named Result,
+and reads two consumers from the real Store. Its timer cancellation begins
+after both Graphs are constructed and stops the selected equality kernel
+without publishing partial output. The quantum-one kernel fixture admits the
+independently derived three-step count mismatch at the exact work ceiling,
+rejects two steps, admits one workspace slot, rejects zero, and preserves both
+borrowed inputs after cleanup. A separate 512-character property fixture
+rejects insufficient nested comparison work and stops during a yielded value
+comparison. The focused equality suite passed on JS, Wasm, and native.
+Broader representation variants and same-SHA CI remain open, so current
+equality is partial.
 
 Selected `SGA.match_nodes` and `SGA.match_edges` now read an exact managed
 Graph view through their existing bounded match kernels. The Node standard

@@ -1430,7 +1430,7 @@ export function validateResourceAccounting({
         components: 'start_components_view',
         reach: 'start_reach_view',
         shortest_path: 'start_shortest_view',
-        graphs_equal: 'start_graphs_equal_view',
+        graphs_equal: 'start_property_equality_views',
       }[route.operation];
       const provider = fs.readFileSync(path.join(root, route.dispatch.path), 'utf8');
       if (route.selected_entrypoint?.symbol !== selectedSymbol ||
@@ -1912,9 +1912,13 @@ export function validateResourceAccounting({
       fail(`${label}: bounded type-index evidence is missing`);
     }
     if (route.family === 'SGA' && route.operation === 'graphs_equal' &&
-      (!boundaryRoles.has('graphs_equal_control_work_exact_one_short_and_cancel') ||
-        !boundaryRoles.has('graphs_equal_nested_value_work_ceiling') ||
-        !boundaryRoles.has('graphs_equal_long_text_quantum_cancel_cleanup'))) {
+      (!boundaryRoles.has('property_equality_work_exact_one_short') ||
+        !boundaryRoles.has('property_equality_workspace_exact_one_short') ||
+        !boundaryRoles.has('property_equality_cancel_cleanup') ||
+        !boundaryRoles.has('property_equality_nested_value_work_ceiling') ||
+        !boundaryRoles.has('property_equality_long_text_quantum_cancel_cleanup') ||
+        !environmentRoles.has('property_equality_retained_named_results') ||
+        !environmentRoles.has('property_equality_host_in_flight_cancel'))) {
       fail(`${label}: Graph equality control-work evidence is missing`);
     }
     if (route.family === 'SGA' && route.operation === 'components' &&

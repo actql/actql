@@ -5,7 +5,7 @@ import {execFileSync} from 'node:child_process';
 import {performance} from 'node:perf_hooks';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {gateJobs} from '../../scripts/ci-targets.mjs';
-import {resolveMainBaseline, fullCheckpointJobs, validateMainBaseline} from '../../scripts/ci-main-base.mjs';
+import {resolveMainBaseline, fullCheckpointJobs, validateMainBaseline, isMainEvidenceEvent} from '../../scripts/ci-main-base.mjs';
 import {openArtifactZip} from '../../scripts/ci-artifact-reader.mjs';
 import {catalogPath, validateCatalog, compareCatalogs} from './actions.mjs';
 import {actionInputs, gitTree, compareInputs, hash} from './inputs.mjs';
@@ -256,7 +256,8 @@ export async function verifyComparison({plan, ...options}) {
     assert.equal(run.id, plan.baseline.runId); assert.equal(run.run_attempt, plan.baseline.runAttempt);
     assert.equal(run.head_sha, plan.baseline.baseSha); assert.equal(run.workflow_id, options.context.workflowId);
     assert.equal(run.repository?.id, options.context.repositoryId); assert.equal(run.head_repository?.id, options.context.repositoryId);
-    assert.equal(run.path, '.github/workflows/ci.yml'); assert.equal(run.event, 'push'); assert.equal(run.head_branch, 'main');
+    assert.equal(run.path, '.github/workflows/ci.yml');
+    assert(isMainEvidenceEvent(run.event, run.head_branch), 'Comparison origin is not protected main integration');
     assert.equal(run.status, 'completed'); assert.equal(run.conclusion, 'success');
     const artifact = await options.request(`/actions/artifacts/${plan.artifact.id}`);
     assert.equal(artifact.id, plan.artifact.id); assert.equal(artifact.digest, plan.artifact.digest, 'Changed original archive digest');
