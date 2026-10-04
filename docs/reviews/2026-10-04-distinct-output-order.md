@@ -1,0 +1,87 @@
+# DISTINCT output-expression ORDER connection
+
+## Selected boundary and baseline
+
+Base main: `0c01f539f3e367b4a0c09f4ec4d07c235f9b983b`.
+This is a new implementation unit after the completed semantic audit.
+The existing [query scope contract](../spec/query-text.md#scope-and-lowering)
+requires ORDER expressions to resolve SELECT aliases before colliding inputs,
+and requires DISTINCT ordering to depend on selected expressions or aliases.
+No new syntax or semantic decision is introduced.
+
+| Boundary inspected | Existing common/public support | Action |
+|---|---|---|
+| Graph rows definition/label selectors and traverse node output | Integrated #316/#323 source connections | Retain; do not reimplement |
+| DISTINCT followed by an expression over its evaluated output alias | Common Relation projection, DISTINCT, derive, sort and take exist; ordinary SELECT rejects the expression | Selected repair |
+| Source capture, CTE predicate ownership, assertions and Effect arguments | Existing D-owned connections and #325 repair | No parallel implementation |
+| Other Graph consumers and direct installed traversal selector Sources | Separate common/acquisition dependencies or unconnected source forms | Remain separate; no fallback or execution owner added |
+
+The concrete counterexample is:
+
+```sql
+SELECT DISTINCT -x AS x FROM t ORDER BY -x
+```
+
+The ordinary SELECT branch previously materialized DISTINCT but then sent ORDER
+to the input-order branch, which rejects a new expression without a deferred
+projection. The existing projected Pipe branch already supports this operation.
+The new focused file fails 2 of 4 tests against the unmodified product; the
+selected-expression reuse and unselected-input refusal controls pass.
+
+## Repair and independent obligations
+
+`query_program/compile.mbt::compile_steps` connects ordinary DISTINCT to the
+existing projected ORDER path. It retains the SELECT input scope only for exact
+selected-expression correspondence. Live range references are closed after
+DISTINCT, so an original physical name cannot masquerade as an overwritten
+public alias. The same closure applies to the existing scoped Pipe path.
+
+The selected expression is evaluated once; equivalent ORDER occurrences share
+one helper. DISTINCT compares only public selected columns. The helper is
+derived afterward and removed before publication. Unselected input ordering
+still reports UnsupportedOrdering; other expression failures retain the original
+expression diagnostic rather than being flattened to that classification.
+
+`distinct_order_output_test.mbt` includes an independently authored complete
+Program, common-checker admission, evaluation-count controls, selected-expression
+reuse, and unselected/qualified input refusals. The first post-repair comparison
+exposed an authoring error in the expected helper suffix: the existing reserved
+pool contains both copies of `x`, so its length is 2. Only that private suffix
+was corrected; the expected operators, references and Result contract were
+unchanged. This is not counted as a second product defect.
+
+The public fixture independently writes a JSON Program and SQL/Pipe sources.
+Its input contains duplicate amount 2, amount 1, NULL, and amount 99 on ID 0.
+WHERE excludes ID 0. DISTINCT output is NULL, -1, -2 in the declared ORDER;
+LIMIT 2 OFFSET 1 returns -1, -2. Resolving the ORDER expression through the
+input instead of the projected alias reverses those last two rows. A separate
+unlimited case detects duplicate leakage, and an empty case retains nullable
+column metadata. Exact rows and ordered type contracts are authored constants.
+
+An independent SQLite calculation over an explicitly projected subquery checks
+that arithmetic/order expectation. A single SQLite SELECT resolves this
+colliding name differently; it is not used as a GoogleSQL name-resolution oracle.
+The adopted scope contract, not SQLite's single-query alias behavior, determines
+the expected result. No expected values are generated from the product lowerer.
+
+## Evidence and remaining work
+
+Focused JS ORDER checks pass 31/31, including existing scoped Pipe, JOIN and CTE
+ORDER regressions. Before-repair evidence is `run-UBzUTJ`; the repaired broad
+selection is `run-YNgxTw` (a final diagnostic-preservation follow-up is checked
+separately). Pinned Moon formatting and diff checks pass.
+
+The existing packed public-query runner includes five positive cases (machine
+control, SQL/Pipe limits, NULL/duplicates, empty) and three pre-admission refusals
+on each of Embedded Local and authenticated HTTP. Its existing helper compares
+Result rows and descriptions, complete reads, one Source session and identical
+Run identity/counters on repeat read, attach and resubmit. Refusals require zero
+Run admission/provider I/O. `--distinct-order-only` selects this corpus without
+running unrelated Graph/native/restart campaigns.
+
+Fresh packed results and exact submitted CI are pending until recorded here.
+No common checker, planner, provider, Run owner, remote protocol or SDK is changed.
+Normative grammar, contract versions, schemas and pins are unchanged; newly
+accepted queries acquire their ordinary generated Program identities. Historical
+accepted-input identities and stored data are not reinterpreted. No full Core,
+all-target, proof, performance or manual CI rerun is part of local verification.
