@@ -406,7 +406,11 @@ test "Effect compiler keeps the original Model barrier and KEEP in one Plan" {
   )
   assert_eq(
     client_compiled_run_infer_observation_policy(model_run),
-    prepared_client_effect_publication_data_policy_cid(owner),
+    Some(
+      @environment.model_task_data_handling_cid(
+        @environment.model_execution_task(component.execution),
+      ),
+    ),
   )
   assert_true(
     check_client_compiled_run_definition(model_run, definition) is Ok(_),
@@ -586,6 +590,19 @@ test "two acquired roots JOIN INFER KEEP and downstream Effect compile together"
   assert_eq(compilation.compiled.result_names, ["published"])
   // Both independent captures remain prerequisites of the actual JOIN task.
   assert_eq(@strategy.graph_captured_prefix(occurrence.owner.graph), 2)
+  let allowed = issue_client_effect_allowed_run(
+    compilation,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
+    "2099-01-01T00:00:00.000Z",
+  ).unwrap()
+  let model_run = client_effect_allowed_infer_run(allowed).unwrap()
+  let source_policy = prepared_client_effect_publication_data_policy_cid(owner)
+  assert_true(source_policy is Some(_))
+  assert_eq(
+    client_compiled_run_infer_observation_policy(model_run),
+    source_policy,
+  )
   // The two declared source policies are unknown. A public provider-side
   // observation must not make their combined input eligible for dispatch.
   assert_true(

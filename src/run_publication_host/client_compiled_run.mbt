@@ -75,10 +75,25 @@ pub fn client_compiled_run_infer_observation_policy(
 ) -> String? {
   guard client_compiled_run_infer(value) is Some(plan) else { return None }
   match value.compilation {
-    Effects(allowed) =>
-      prepared_client_effect_publication_data_policy_cid(
-        allowed.compilation.owner,
+    Effects(allowed) => {
+      let graph = @strategy.checked_effect_computation_graph(
+        allowed.compilation.owner.graph,
       )
+      if @strategy.graph_source_free_inputs_complete(graph) {
+        // The same checked source-free Model policy used by pure INFER.
+        // This is an explicit source-free closure, never a rescue of missing
+        // protected Source provenance or an adapter-supplied default policy.
+        Some(
+          @environment.model_task_data_handling_cid(
+            @environment.model_execution_task(plan.execution),
+          ),
+        )
+      } else {
+        prepared_client_effect_publication_data_policy_cid(
+          allowed.compilation.owner,
+        )
+      }
+    }
     Tasks(_) =>
       Some(
         @environment.model_task_data_handling_cid(
