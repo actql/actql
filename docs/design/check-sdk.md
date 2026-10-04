@@ -669,6 +669,12 @@ JSON pointer tokens escape `~` before `/`, retaining exact field spelling and
 array indices. A missing submitted node or a pointer exceeding 4,096 UTF-16
 code units has no public location; paths are never truncated or fabricated.
 Default-origin failures do not acquire a supplied-document location.
+Declaration admission failures can carry a reader-owned pointer in the submitted
+`parameter_declarations` document, including an invalid default, type member or
+metadata member. The pointer must resolve to an admitted submitted node; a missing
+member is omitted rather than invented. An admitted empty declaration map has the
+known root pointer `""`. Admission budgets and internal failures remain separate
+from declaration violations and do not receive a violation location.
 A missing value is a Requirement for bound-input checking, not a diagnostic or
 verified template report. Its declaration pointer/revision identifies the full
 submitted admission contract, including constraints; supplying a value requires
