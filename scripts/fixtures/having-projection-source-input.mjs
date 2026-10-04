@@ -48,7 +48,7 @@ export const havingProjectionSuccesses = [
     columns: [number('next', true), number('n')],
   }),
   success('empty-input', 'sql', source, {sourceRows: [], expected: []}),
-  success('scoped-join', 'sql', 'WITH b AS (SELECT 1 AS k), c AS (SELECT 1 AS z) SELECT r.id + 1 AS next, COUNT(*) AS n FROM records AS r JOIN b ON r.id = b.k JOIN c ON b.k = c.z GROUP BY r.id HAVING next > 1 ORDER BY next', {
+  success('scoped-join', 'sql', 'WITH a AS (SELECT id FROM records), b AS (SELECT 1 AS k), c AS (SELECT 1 AS z) SELECT r.id + 1 AS next, COUNT(*) AS n FROM a AS r JOIN b ON r.id = b.k JOIN c ON b.k = c.z GROUP BY r.id HAVING next > 1 ORDER BY next', {
     expected: [{next: 2, n: 1}],
   }),
   success('next-pipe-scope', 'aql-text', 'SELECT id + 1 AS id, COUNT(*) AS n FROM records WHERE id > 0 GROUP BY records.id HAVING id > 2 |> SELECT id + 1 AS next, n |> ORDER BY next', {

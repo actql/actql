@@ -98,6 +98,31 @@ them for bounded local diagnosis and does not replace normal CI registration.
 - Packed Local/HTTP acceptance is pending. Authored expectations and focused
   checker tests do not establish public execution success.
 
+The initial fresh packed run at `2d4d5dd12b4cc4f8491b3165a89641eae3ebcbf0`
+(`public-query-evidence-C8JeIa`) completed the first seven Local positives,
+including the independent JSON control. It then rejected the initially authored
+scoped JOIN case with `ClientProgramUnsupported`; HTTP and later cases were not
+reached. Evidence was saved before the disposable installation was recovered.
+The current fixture first binds the acquired Relation as CTE `a` and retains
+the same joins, grouping, HAVING expression, expected row and Source read count.
+
+The original case's outer `FROM records` bypassed all CTE bindings:
+
+```sql
+WITH b AS (SELECT 1 AS k), c AS (SELECT 1 AS z)
+SELECT r.id + 1 AS next, COUNT(*) AS n
+FROM records AS r JOIN b ON r.id = b.k JOIN c ON b.k = c.z
+GROUP BY r.id HAVING next > 1 ORDER BY next;
+```
+
+A bounded preparation probe of the exact prepack-built bridge classified this
+as `QueryLowering(UnsupportedCte)`. Removing HAVING still produces that refusal.
+`compile_cte_query` currently requires the outer principal input to be one of
+its CTE bindings. The equivalent acquired-CTE form prepares successfully in the
+same environment. This is a separate CTE composition coverage gap, not a reason
+to change the HAVING expectation or expand this unit into D-owned CTE lowering.
+The probe establishes preparation only, not packed execution success.
+
 The change retains contract version 0.1, public APIs, wire and stored-data
 formats. Previously rejected sources acquire a normal Program and its normal
 identity; no independent CID vectors are regenerated from product output.
