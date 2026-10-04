@@ -85,6 +85,17 @@ and zero provider I/O.
 - Fresh packed Local/HTTP execution is pending. Authored rows and successful
   checker tests do not establish public execution acceptance.
 
+The first fresh packed attempt at `67c4f517532d08bd1348954eef10d3b9bd5d42fc`
+(`public-query-evidence-QMBuda`) passed the first four Local positives. The
+alias-collision case's rows matched, but its schema comparison failed because
+the expected object omitted the fixed checked `additional_properties: false`.
+[Value contracts](../spec/language.md#value-contracts) explicitly requires that
+expansion in checked/protocol contracts and forbids it in author declarations.
+The fixture now includes it only in expected Result columns, independently of
+the product encoder. Input declarations, rows, value types, NULL behavior and
+expected sort orders are unchanged. Logs were retained and the disposable
+installation was removed; later Local cases and HTTP were not reached.
+
 No grammar, wire, schema, numeric law, saved-data format or version changes.
 Previously rejected valid sources obtain an ordinary Program and its normal
 identity. Full Core, all targets, native, proof and performance checks are not

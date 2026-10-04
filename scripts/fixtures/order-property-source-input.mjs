@@ -2,6 +2,9 @@
 const number = {type: 'number', nullable: false};
 const payload = {type: 'object', nullable: true, fields: {score: number}};
 const other = {...payload, nullable: false};
+// language.md Value contracts requires this fixed checked expansion. It is
+// absent from author declarations and is not inferred from a returned schema.
+const otherColumn = {name: 'payload', contract: {...other, additional_properties: false}};
 const columns = [{name: 'id', contract: number}];
 const rows = [{id: 2, payload: {score: 10}, other: {score: 30}},
   {id: 1, payload: {score: 20}, other: {score: 5}},
@@ -36,10 +39,10 @@ export const orderPropertySuccesses = [
   textCase('qualified-input', 'SELECT id FROM objects ORDER BY objects.payload.score NULLS LAST'),
   textCase('output-alias-collision', 'SELECT id, other AS payload FROM objects ORDER BY payload.score',
     aliasOrder.map(row => ({...row, payload: rows.find(value => value.id === row.id).other})),
-    {columns: [...columns, {name: 'payload', contract: other}]}),
+    {columns: [...columns, otherColumn]}),
   textCase('qualified-collision', 'SELECT id, other AS payload FROM objects ORDER BY objects.payload.score NULLS LAST',
     inputOrder.map(row => ({...row, payload: rows.find(value => value.id === row.id).other})),
-    {columns: [...columns, {name: 'payload', contract: other}]}),
+    {columns: [...columns, otherColumn]}),
   textCase('pipe-control', 'FROM objects |> SELECT id, payload |> ORDER BY payload.score NULLS LAST |> SELECT id'),
 ];
 export const orderPropertyRefusals = [
