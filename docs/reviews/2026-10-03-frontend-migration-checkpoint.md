@@ -16,13 +16,29 @@ Earlier checkpoints below retain their original source and package identities.
 
 ## Pure two-Source JSON/text composition checkpoint (2026-10-04)
 
-The adopted main for this independent acceptance change is
+The packed acceptance adopted main
 `7dee31c1cc61b081f0feb12761b2bd5c2f41c12c`, including A #292 Native/Broad
 acquisition and the formal cancellation/cleanup foundation. Fresh packs from
 clean `27dc783a4c1b8dca34c496d21362c42866250513` passed
 `node scripts/test-packed-public-query.mjs --two-source-only` through external
 Local and authenticated HTTPS installations with no runtime MoonBit toolchain.
 This is fixed-SHA local packed evidence; automatic PR CI is a separate check.
+
+The later ordinary integration is
+`5962250507a903413654c0744bfb1176fd2b410c`, adopting main
+`d5f0802c93e2863b092aa8f1a9e9a7cc97b12c5b` and its installed connector
+manifests. Both additions in `scripts/test-packed-public-query.mjs` survive the
+merge; existing foundation records are preserved. Pinned JS runtime build,
+the two real capture boundary cases and complete retained-history validation
+passed at this integration. It is not a new local packed campaign.
+
+[Earlier automatic PR CI 37170657090](https://github.com/actql/actql/actions/runs/37170657090)
+at `e210c920e6b05b21bb6f9216933717ea635dd0c2` found two capture expectation
+failures: the test compared post-predicate logical captures with unfiltered
+physical database input. Fix `07f717e0f501598af6df5a81b772e9013987b41d`
+separately authors each captured relation's expected rows, retaining NULL and
+duplicates and excluding the negative keys by the specified predicate. The
+public packed JOIN expected rows and product behavior are unchanged.
 
 The submitted text is retained verbatim in
 `adapters/host-node/fixtures/two-source/two-source-join.aql`. Both independent
