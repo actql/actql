@@ -413,6 +413,30 @@ for (const [entrance, open] of Object.entries(entrances)) {
       assert.equal(new Set(refs).size, refs.length);
     });
 
+  test(`${entrance}: Unicode source spelling survives ordinary and fallback binding`,
+    async t => {
+      const client = await open(t, configurations.allowed);
+      const texts = ["SELECT 'caf\u00e9' AS label", "SELECT 'cafe\u0301' AS label"];
+      // Canonically colliding declaration names force the received-input
+      // fallback. They are invalid declarations, not a second valid Program.
+      for (const parameterDeclarations of [undefined,
+        {'\u00e9': {type: 'string'}, 'e\u0301': {type: 'string'}}]) {
+        const run = text => client.check(text, {format: 'sql', parameterDeclarations});
+        const outcomes = await Promise.all(texts.map(run));
+        const invalid = parameterDeclarations !== undefined;
+        for (let index = 0; index < texts.length; index++) {
+          assert.deepEqual(withoutContext(outcomes[index]).report, {
+            context_ref: '<ctx>', scope: {kind: 'bound_input'},
+            verdict: invalid ? 'invalid' : 'verified',
+            reasons: invalid ? [{code: 'parameter_declarations_invalid'}] : [],
+            coverage: {limits: [], unresolved: []}});
+          assert.deepEqual(await run(texts[index]), outcomes[index]);
+        }
+        assert.notEqual(outcomes[0].report.context_ref, outcomes[1].report.context_ref);
+      }
+      client.assertNoExecution();
+    });
+
   test(`${entrance}: distinct supplied values give distinct contexts`,
     async t => {
       const client = await open(t, configurations.allowed);
