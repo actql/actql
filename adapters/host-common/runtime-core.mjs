@@ -2039,6 +2039,22 @@ function publicationControl(moon) {
           ? 'RunHostSourceFreeDefinitionRejected'
           : 'RunHostSourceFreeAdmissionRejected'));
     },
+    compiledInferOriginalRunWire(compiled, definition) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer' ||
+          !moon.clientProgramCheckCompiledRunDefinition(value, token(definition))) {
+        throw new TypeError('Foreign Client compiled Infer Run');
+      }
+      // This envelope contains the original owner-issued bodies. It is not
+      // independent evidence or a fresh admission of the saved Run.
+      return JSON.stringify({
+        boundInvocationTemplateWire: compiled.template.wire,
+        compiledPlanWire: compiled.compiledPlan.wire,
+        preparedInvocationWire: compiled.preparedEvidence.wire,
+        runAuthorizationWire: compiled.authorization.wire,
+        runDefinitionWire: definition.wire,
+      });
+    },
     issueCheckedClientCompiledInvocation(compiled, definition,
       {dataPolicyCid, source}, limits) {
       const value = compiledRunTokens.get(compiled);

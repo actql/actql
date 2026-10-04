@@ -9,7 +9,12 @@ test('checked Infer dispatch retains its owner-issued admission', () => {
   const graph = {};
   const execution = {};
   const definitionToken = {};
+  const otherDefinitionToken = {};
   const compiledToken = {};
+  const templateToken = {};
+  const planToken = {};
+  const preparedToken = {};
+  const authorizationToken = {};
   const admission = {};
   const account = {};
   const delegated = {};
@@ -23,16 +28,23 @@ test('checked Infer dispatch retains its owner-issued admission', () => {
       return ok({});
     },
     clientProgramIssueTaskCompiledRun: () => ok(compiledToken),
-    clientProgramCompiledRunTemplate: () => ({}),
-    clientProgramCompiledRunPlan: () => ({}),
-    clientProgramCompiledRunPrepared: () => ({}),
-    clientProgramCompiledRunAuthorization: () => ({}),
+    clientProgramCompiledRunTemplate: () => templateToken,
+    clientProgramCompiledRunPlan: () => planToken,
+    clientProgramCompiledRunPrepared: () => preparedToken,
+    clientProgramCompiledRunAuthorization: () => authorizationToken,
     clientProgramCompiledRunAdmission: () => ({}),
-    strategyPublicationAdmit: () => ok(definitionToken),
+    strategyPublicationAdmit: (_name, wire) => ok(wire === 'other definition'
+      ? otherDefinitionToken : definitionToken),
     strategyPublicationContractName: () => 'run_definition',
     strategyPublicationContractIdentityField: () => 'run_definition_cid',
     strategyPublicationContractIdentity: () => 'sha256:' + 'a'.repeat(64),
-    strategyPublicationContractJson: () => '{}',
+    strategyPublicationContractJson: value => value === planToken
+      ? 'compiled plan' : 'run definition',
+    strategyRunEvidenceJson: value => value === templateToken
+      ? 'bound template' : value === preparedToken
+        ? 'prepared invocation' : 'run authorization',
+    clientProgramCheckCompiledRunDefinition: (compiled, definition) =>
+      compiled === compiledToken && definition === definitionToken,
     clientProgramIssueInferDispatchAdmission(...args) {
       assert.deepEqual(args, [compiledToken, definitionToken, account,
         'principal', 'now', delegated, observeAccount, observeAt]);
@@ -56,6 +68,23 @@ test('checked Infer dispatch retains its owner-issued admission', () => {
   const definition = control.admit('run_definition', '{}', {
     maxWireBytes: 128, maxNodes: 8, maxDepth: 4,
   });
+  assert.deepEqual(JSON.parse(control.compiledInferOriginalRunWire(compiled,
+    definition)), {
+    boundInvocationTemplateWire: 'bound template',
+    compiledPlanWire: 'compiled plan',
+    preparedInvocationWire: 'prepared invocation',
+    runAuthorizationWire: 'run authorization',
+    runDefinitionWire: 'run definition',
+  });
+  assert.throws(() => control.compiledInferOriginalRunWire({}, definition),
+    /Foreign Client compiled Infer Run/u);
+  assert.throws(() => control.compiledInferOriginalRunWire(compiled, {}),
+    /Foreign publication contract/u);
+  const otherDefinition = control.admit('run_definition', 'other definition', {
+    maxWireBytes: 128, maxNodes: 8, maxDepth: 4,
+  });
+  assert.throws(() => control.compiledInferOriginalRunWire(compiled,
+    otherDefinition), /Foreign Client compiled Infer Run/u);
   const observation = {account, principalId: 'principal', at: 'now', delegated,
     observeAccount, observeAt};
   const returned = control.issueCheckedClientInferDispatch(compiled,
