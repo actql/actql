@@ -169,17 +169,24 @@ pub fn finish_output(output : OutputBuilder) -> Result[Completed, Issue] {
   let graph = match @storage.finish(output.graph) {
     Ok(value) => value
     Err(issue) => {
+      @storage.cancel(output.graph) |> ignore
       @lifecycle.cancel_retention_port(output.retention) |> ignore
       return Err(Storage(issue))
     }
   }
   let retained = match @lifecycle.retain(output.retention, graph) {
     Ok(value) => value
-    Err(issue) => return Err(Lifecycle(issue))
+    Err(issue) => {
+      @storage.discard(graph)
+      return Err(Lifecycle(issue))
+    }
   }
   match @lifecycle.complete(retained) {
     Ok(value) => Ok({ core: value, })
-    Err(issue) => Err(Lifecycle(issue))
+    Err(issue) => {
+      @storage.discard(graph)
+      Err(Lifecycle(issue))
+    }
   }
 }
 
