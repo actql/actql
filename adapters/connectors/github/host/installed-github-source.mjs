@@ -5,11 +5,15 @@
 // provider-neutral row source; this module supplies GitHub's view
 // specification, its repository binding and its Issue listing driver.
 //
-// Physical identity: the API origin, the repository's stable id and node id
-// (observed by the explicit publication step, never during Check or load)
-// and the owner/repo used for access are kept apart. A rename or transfer is
-// not followed: a publication whose owner/repo no longer matches the Site
-// profile is refused, and a new explicit publication re-binds it.
+// Physical identity: the API origin, the repository's stable database id and
+// global node ID (observed by the explicit publication step through the same
+// GraphQL API the reads use, never during Check or load) and the owner/repo
+// used for access are kept apart. Every read page resolves the repository by
+// that node ID, so a different repository under the same name is never read.
+// A rename or transfer is not followed: a publication whose owner/repo no
+// longer matches the Site profile, or a page whose repository is now named
+// differently, is refused, and a new explicit publication re-binds it; so is
+// a node ID whose representation changed.
 import {createHash, randomUUID} from 'node:crypto';
 import {mkdir, readFile, rename, writeFile} from 'node:fs/promises';
 import {dirname, isAbsolute} from 'node:path';
@@ -23,15 +27,15 @@ import {invokeScopedCredentialOperation} from
   '../../../host-common/owned-invocation-context.mjs';
 import {callHttpsCredentialResource} from
   '../../../site-node/https-credential-resource.mjs';
-import {GITHUB_ISSUE_LIST_OPERATION, githubIssueListPath, readGitHubIssues}
-  from '../site/github-issue-read.mjs';
+import {githubIssueListPath} from '../site/github-issue-read.mjs';
+import {GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION,
+  readGitHubIssuesByNode} from '../site/github-issue-graphql-read.mjs';
 
 export const INSTALLED_GITHUB_SOURCE_VERSION =
   'actql-installed-github-source/0.1';
 export const INSTALLED_GITHUB_SITE_VERSION = 'actql-installed-github-site/0.1';
 const PUBLICATION_VERSION = 'actql-github-publication/0.1';
 const TARGET_VERSION = 'actql-installed-github-target/0.1';
-const REPOSITORY_OPERATION = 'github:repository:read';
 const registration = 'github';
 const revision = 'github/0.1';
 const viewsUrl = new URL('../../../../src/connectors/github/source-views.json',
@@ -42,8 +46,8 @@ const siteKeys = ['apiOrigin', 'credentialAuthorityId', 'credentialKeyId',
   'credentialPrivateKeyPath', 'environment', 'journalRoot', 'namespaceId',
   'owner', 'repo', 'siteGeneration', 'siteKey', 'tokenEnvironment'];
 const readLimits = Object.freeze({maxPages: 10, maxRows: 100,
-  maxBytes: 4_000_000, maxNodes: 400_000, maxDepth: 32,
-  maxLocatorUnits: 2048, perPage: 100});
+  maxBytes: 4_000_000, maxNodes: 400_000, maxDepth: 32, perPage: 100,
+  maxRequestBytes: 16_384});
 const rowLimits = Object.freeze({maxPages: readLimits.maxPages,
   maxPageBytes: 4_000_000, maxPageRows: 100, maxCaptureRows: 100});
 
@@ -174,31 +178,39 @@ export async function publishInstalledGitHubSource(profile, {root,
     const nonce = randomUUID();
     const runInvocationCid = `sha256:${createHash('sha256')
       .update(`github-publication:${nonce}`).digest('hex')}`;
-    const grant = opened.site.issueReadGrant({operation: REPOSITORY_OPERATION,
-      decision, resource: 'issues', runInvocationCid,
-      dispatchRequestCid: runInvocationCid, maxUses: 1});
+    const grant = opened.site.issueReadGrant({
+      operation: GITHUB_GRAPHQL_READ_OPERATION, decision, resource: 'issues',
+      runInvocationCid, dispatchRequestCid: runInvocationCid, maxUses: 1});
+    // The fixed repository lookup, so the stored node ID has the same
+    // representation every read compares exactly.
     const response = await invokeScopedCredentialOperation({
       authorization: {...grant, useId: `${nonce}-repository`},
       credential: opened.site.credential,
       callResource: callHttpsCredentialResource,
-      operation: REPOSITORY_OPERATION, method: 'GET',
-      path: `/repos/${site.owner}/${site.repo}`,
+      operation: GITHUB_GRAPHQL_READ_OPERATION, method: 'POST',
+      path: GITHUB_GRAPHQL_PATH,
       headers: JSON.parse(providerMoon.githubRequestHeadersJson()),
-      maxResponseBytes: 1_000_000, signal});
+      body: providerMoon.githubRepositoryRequest(site.owner, site.repo),
+      maxRequestBytes: 16_384, maxResponseBytes: 1_000_000, signal});
     if (!response.accepted || response.statusCode !== 200) {
       fail('GitHubRepositoryUnavailable');
     }
-    const repository = JSON.parse(providerMoon.githubRepositoryJson(
+    const observed = JSON.parse(providerMoon.githubRepositoryResponseJson(
       response.body, 1_000_000));
+    if (observed.refused) {
+      fail(observed.refused.kind === 'RepositoryUnavailable'
+        ? 'GitHubRepositoryUnavailable' : 'GitHubRepositoryUnverified');
+    }
+    const repository = observed.repository;
     // The access owner/repo must be the repository's current names: a
     // redirect or rename is not followed silently.
-    if (repository === null || repository.owner !== site.owner ||
-        repository.name !== site.repo) {
+    if (repository.name_with_owner !== `${site.owner}/${site.repo}`) {
       fail('GitHubRepositoryBindingChanged');
     }
     const publication = {version: PUBLICATION_VERSION,
       apiOrigin: site.apiOrigin, owner: site.owner, repo: site.repo,
-      repository: {id: repository.id, node_id: repository.node_id},
+      repository: {id: repository.database_id,
+        node_id: repository.node_id},
       catalogCid: declared.catalog_cid,
       connectorId: checkedProfile.connectorId};
     await mkdir(dirname(checkedProfile.publicationPath), {recursive: true});
@@ -249,7 +261,7 @@ export async function loadInstalledGitHubSource(profile, {root, principalId,
     connectorId: checkedProfile.connectorId,
     connectorRegistration: registration, connectorRevision: revision,
     site: opened.site, authorization: opened.authorization,
-    readOperation: GITHUB_ISSUE_LIST_OPERATION, physicalTarget,
+    readOperation: GITHUB_GRAPHQL_READ_OPERATION, physicalTarget,
     bindingCid: contentCid({version: 'actql-installed-github-binding/0.1',
       contextCid: opened.authorization.context.contextCid,
       apiOrigin: site.apiOrigin, repository: publication.repository,
@@ -259,45 +271,15 @@ export async function loadInstalledGitHubSource(profile, {root, principalId,
       credentialAuthorityId: site.credentialAuthorityId,
       credentialKeyId: site.credentialKeyId}),
     limits: rowLimits,
-    targetOperations: [REPOSITORY_OPERATION],
-    // GitHub's documented Issue listing is addressed by owner/repo and its
-    // rows carry no repository id. The read is bound to the published
-    // repository by checking, under the current read decision, that the
-    // access name resolves to the published id and node id immediately
-    // before the first page and again after the last; any difference, or an
-    // unverifiable check, stops the acquisition before capture, so no Result
-    // or Source Evidence is issued under the old binding. A replacement that
-    // is reversed entirely within the read window is not observable through
-    // name-addressed listing and is not claimed to be detected.
-    readPages: async ({resource, authorizationFor, targetAuthorizationFor,
-      consumePage, signal}) => {
+    readPages: async ({resource, authorizationFor, consumePage, signal}) => {
       if (resource !== 'issues') fail('UndeclaredGitHubResource');
-      const verify = async label => {
-        const response = await invokeScopedCredentialOperation({
-          authorization: await targetAuthorizationFor(REPOSITORY_OPERATION,
-            label),
-          credential: opened.site.credential,
-          callResource: callHttpsCredentialResource,
-          operation: REPOSITORY_OPERATION, method: 'GET',
-          path: `/repos/${site.owner}/${site.repo}`,
-          headers: JSON.parse(providerMoon.githubRequestHeadersJson()),
-          maxResponseBytes: 1_000_000, signal});
-        const observed = response.accepted && response.statusCode === 200
-          ? JSON.parse(providerMoon.githubRepositoryJson(response.body,
-            1_000_000)) : null;
-        if (observed === null) fail('GitHubRepositoryUnverified');
-        if (observed.id !== publication.repository.id ||
-            observed.node_id !== publication.repository.node_id ||
-            observed.owner !== site.owner || observed.name !== site.repo) {
-          fail('GitHubRepositoryIdentityChanged');
-        }
-      };
-      await verify('before');
-      const read = await readGitHubIssues({moon: providerMoon,
-        origin: site.apiOrigin, owner: site.owner, repo: site.repo,
-        filters: [['state', 'all']], credential: opened.site.credential,
-        authorizationFor, limits: readLimits, consumePage, signal});
-      await verify('after');
-      return read;
+      return readGitHubIssuesByNode({moon: providerMoon,
+        repository: {nodeId: publication.repository.node_id,
+          databaseId: publication.repository.id,
+          nameWithOwner: `${site.owner}/${site.repo}`},
+        filters: {state: 'all', labels: []},
+        credential: opened.site.credential,
+        callResource: callHttpsCredentialResource, authorizationFor,
+        limits: readLimits, consumePage, signal});
     }});
 }

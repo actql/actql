@@ -16,13 +16,23 @@ pub fn classify_failure(Int, HeaderObservation) -> ExchangeFailure
 
 pub fn header_value(HeaderObservation, String) -> String?
 
+pub let issues_query : String
+
+pub fn issues_request(String, Int, String?, IssueFilters) -> Result[String, GraphqlRequestIssue]
+
 pub fn next_page(String?, String, String, Int, Int) -> Result[NextPage?, LinkIssue]
 
 pub fn project_issue_page(Bytes, PageLimits) -> Result[IssuePage, IssuePageIssue]
 
-pub fn project_repository(Bytes, Int) -> RepositoryIdentity?
+pub fn project_issues_response(Bytes, PageLimits, String, Int64, String) -> Result[GraphqlIssuePage, GraphqlResponseIssue]
+
+pub fn project_repository_response(Bytes, PageLimits) -> Result[GraphqlRepository, GraphqlResponseIssue]
 
 pub fn rate_limit_basis(HeaderObservation) -> RateLimitBasis
+
+pub let repository_query : String
+
+pub fn repository_request(String, String) -> String
 
 pub fn request_headers() -> Array[(String, String)]
 
@@ -49,8 +59,50 @@ pub(all) enum ExchangeFailure {
   Unexpected(Int)
 } derive(Eq, @debug.Debug)
 
+pub(all) struct GraphqlIssuePage {
+  repository : GraphqlRepository
+  rows : Array[IssueRow]
+  has_next_page : Bool
+  end_cursor : String?
+} derive(Eq, @debug.Debug)
+
+pub(all) struct GraphqlRepository {
+  node_id : String
+  database_id : Int64
+  name_with_owner : String
+} derive(Eq, @debug.Debug)
+
+pub(all) enum GraphqlRequestIssue {
+  InvalidNodeId
+  InvalidPageSize
+  InvalidCursor
+  InvalidState
+  InvalidLabel
+  InvalidSince
+} derive(Eq, @debug.Debug)
+
+pub(all) enum GraphqlResponseIssue {
+  InvalidResponse
+  RateLimited
+  Errors(String)
+  RepositoryUnavailable
+  WrongType(String)
+  ForeignRepository
+  IdRepresentationChanged
+  BindingChanged
+  MissingCursor
+  BudgetExceeded
+  Row(IssuePageIssue)
+} derive(Eq, @debug.Debug)
+
 pub(all) struct HeaderObservation {
   entries : Array[(String, String)]
+} derive(Eq, @debug.Debug)
+
+pub(all) struct IssueFilters {
+  state : String
+  labels : Array[String]
+  since : String?
 } derive(Eq, @debug.Debug)
 
 pub(all) struct IssuePage {
@@ -107,13 +159,6 @@ pub(all) struct RateLimitBasis {
   reset_epoch_seconds : Int64?
   remaining : Int64?
   resource : String?
-} derive(Eq, @debug.Debug)
-
-pub(all) struct RepositoryIdentity {
-  id : Int64
-  node_id : String
-  owner : String
-  name : String
 } derive(Eq, @debug.Debug)
 
 // Type aliases
