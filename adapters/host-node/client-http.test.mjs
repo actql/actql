@@ -639,6 +639,41 @@ test('cancel and reconcile classify synchronous and asynchronous Host faults',
     });
   });
 
+test('reconcile validates the same Run state over HTTP and in-process', async () => {
+  const connection = {mode: 'local', owner: 'local', runners: [], consentRefs: []};
+  let reply;
+  let calls = 0;
+  const options = {authenticate: () => 'principal-a',
+    authorizeConnection: () => true, negotiate: () => {},
+    reconcile: () => { calls++; return reply; }, maxRowBytes: 1024};
+  const port = createNodeInProcessClientHost(options);
+  await withServer(createClientHttpHandler(options), async base => {
+    const request = () => fetch(`${base}/actql/client/0.1/reconcile`, {
+      method: 'POST', headers: {'content-type': 'application/json'},
+      body: JSON.stringify({connection, ref}),
+    });
+    for (reply of [state,
+      {...state, status: 'needs_reconciliation',
+        next_action: {kind: 'reconcile_run', reason: 'execution_unknown'}},
+      {...state, status: 'needs_reconciliation',
+        next_action: {kind: 'reconcile', effects: ['write']}}]) {
+      const response = await request();
+      assert.equal(response.status, 200);
+      assert.deepEqual(await response.json(), reply);
+      assert.deepEqual(await port.perform('reconcile', {connection, ref}), reply);
+    }
+    for (reply of [undefined, {...state, status: 'not_an_engine_state'},
+      {...state, status: 'needs_reconciliation', next_action: {kind: 'reconcile_run'}}]) {
+      const response = await request();
+      assert.equal(response.status, 500);
+      assert.deepEqual(await response.json(), {code: 'ClientHostFailure'});
+      await assert.rejects(port.perform('reconcile', {connection, ref}),
+        {code: 'InvalidClientHostRunState', status: 500});
+    }
+    assert.equal(calls, 12);
+  });
+});
+
 test('local-owned Hybrid Cloud ref reaches Host authorization before use',
   async () => {
     const authorized = [];
