@@ -59,7 +59,7 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.equal(body.query_text_grammar_sha256,
     '7cd11ce7c1e58b585756ef3c8ac0eb078cf2bbb7003086263f665e26251b7f0e');
   assert.equal(body.query_text_rules_sha256,
-    '54640d82b50522dd101ab384a777c316ad2227fc59cd7ea711fec1fe6d127ba0');
+    'a303762cd3b49d16c2e40a58487db008a6ed5fb9b262518b76d3056c9abbced7');
   assert.equal(body.source_grammar_cid,
     'sha256:487b95656a825703baa75f2e108ac94d3d8a38fa113bb2ef12a3532cac2654ae');
   const historicalBody = {...body, query_text_rules_sha256: 'e4639cbce44c77135b0f162475ca653b9774ef593a4c02434f6ea30b34ff2eb2'};
@@ -85,7 +85,17 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     '803a87b786e68fe64cc79a49abe359659dc32f5373168ae868b310d2dbb47927',
     source_grammar_cid: 'sha256:e9b7efcdee0ef6c06bfb6cbc7805f595e030ecbd79e5afeb0ffa17b755710b7a'}),
     'sha256:4ac81bd72c110d09c286a0f2d4c5d68d4340a2e6843d75deabd8dbbd9fb26b77');
-  const expected = 'sha256:542afdc74f52bbb3d9fa721434c2ac54641e01995eb46abee1dbd44252898374';
+  assert.equal(cid({...body, query_text_rules_sha256:
+    '54640d82b50522dd101ab384a777c316ad2227fc59cd7ea711fec1fe6d127ba0'}),
+    'sha256:542afdc74f52bbb3d9fa721434c2ac54641e01995eb46abee1dbd44252898374');
+  assert.equal(cid({...body, query_text_rules_sha256:
+    '65b078b5222afb74121a0785ffc2f3b3acba8642dbbb67e56477cb924fe20933'}),
+    'sha256:d0207424274d6a5549eff6c16cd7cfa5a1e63e66c627c23bb63f24ec82154180');
+  assert.equal(cid({...body, query_text_rules_sha256:
+    '65b078b5222afb74121a0785ffc2f3b3acba8642dbbb67e56477cb924fe20933',
+    source_grammar_cid: 'sha256:e9b7efcdee0ef6c06bfb6cbc7805f595e030ecbd79e5afeb0ffa17b755710b7a'}),
+    'sha256:37e9fadf9ae65bc194ad17b790ce208450550defcdbfb8354ef3c5c9c0cf4f6d');
+  const expected = 'sha256:8ac5a6bdc47a98eca02efae3ca1ceadc613bc930bb523c0013fc73a9bb81dcdc';
   assert.equal(cid(historicalBody),
     'sha256:2a5854a264c13c65bf7c2ecbc6f59f9ec09e0c590aacc1c8aed6ec247da80067');
   assert.equal(cid({...body, query_text_rules_sha256:
