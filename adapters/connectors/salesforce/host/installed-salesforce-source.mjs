@@ -1,4 +1,6 @@
-// Host-owned Salesforce source installation for the standard installed Host.
+// Salesforce's source installation for the standard installed Host, entered
+// in the Host's installed connector table by `src/connectors/salesforce/
+// host-bundle.json` (`check`, `identityParts`, `publish`, `load`).
 // The Host profile names the installed Site profile (which holds only secret
 // references), the account configuration text, the connector id, the target
 // Resources and the published generation. Loading performs no provider I/O:
@@ -68,8 +70,23 @@ export function checkInstalledSalesforceSourceProfile(profile) {
     resources: Object.freeze([...profile.resources])});
 }
 
-async function openSite(profile, {root, principalId, moon, salesforceMoon,
-  runtimeBundleCid, resolveSecret, openCredentialJournal}) {
+// The parts of this installation's identity: the Host profile with its
+// account configuration as a document, the installed Site profile and the
+// published generation. No credential value and no provider I/O.
+export async function installedSalesforceSourceIdentityParts(profile,
+  providerProfile, read) {
+  const checkedProfile = checkInstalledSalesforceSourceProfile(providerProfile);
+  return [
+    {...profile, accountConfigurationWire: JSON.parse(
+      profile.accountConfigurationWire)},
+    await read(checkedProfile.siteProfilePath),
+    await read(checkedProfile.publicationPath),
+  ];
+}
+
+async function openSite(profile, {root, principalId, moon,
+  providerMoon: salesforceMoon, runtimeBundleCid, resolveSecret,
+  openCredentialJournal}) {
   const authorization = await installSalesforceAuthorization({
     accountConfiguration: profile.accountConfigurationWire, principalId,
     root});
@@ -148,13 +165,13 @@ function issuedBroadRuntime(moon) {
 // base Check Environment; the published declaration and its evidence
 // members are added to it.
 export async function loadInstalledSalesforceSource(profile, {root,
-  principalId, moon, salesforceMoon, baseEnvironmentWire, runtimeBundleCid,
-  resolveSecret, openCredentialJournal}) {
+  principalId, moon, providerMoon: salesforceMoon, baseEnvironmentWire,
+  runtimeBundleCid, resolveSecret, openCredentialJournal}) {
   const checkedProfile = checkInstalledSalesforceSourceProfile(profile);
   const broadMoon = issuedBroadRuntime(moon);
   const {authorization, site} = await openSite(checkedProfile, {root,
-    principalId, moon, salesforceMoon, runtimeBundleCid, resolveSecret,
-    openCredentialJournal});
+    principalId, moon, providerMoon: salesforceMoon, runtimeBundleCid,
+    resolveSecret, openCredentialJournal});
   try {
     const loaded = await loadSalesforceGeneration({site,
       path: checkedProfile.publicationPath,
@@ -430,6 +447,10 @@ function installedSalesforceAdapter({moon, broadMoon, site, authorization,
 
   return Object.freeze({
     realizationKey: 'salesforce-acquired',
+    // The installed implementation's own identification; the Host refuses
+    // the installation when its declared registration differs.
+    connectorRegistration: site.connectorRegistration,
+    connectorRevision: site.connectorRevision,
     environmentWire: environment.wire, generationCid,
     connectorBindings: Object.freeze([
       installedSalesforceSiteBinding(site, connectorId)]),

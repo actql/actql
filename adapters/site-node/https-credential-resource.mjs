@@ -1,4 +1,6 @@
 import {request as httpsRequest} from 'node:https';
+import {observeResponseHeaders, ownRequestHeaders, ownResponseHeaderNames} from
+  '../host-common/http-exchange.mjs';
 
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
@@ -45,6 +47,11 @@ function operationFor(operations, scope, maxRequestBytes) {
       (!mutation && operation.body !== undefined)) {
     fail('InvalidRemoteCredentialOperation');
   }
+  // Allowed non-secret request headers and the declared response header
+  // names travel with the registered operation; the typed exchange refuses
+  // reserved names and over-long values before anything is sent.
+  const headers = ownRequestHeaders(operation.headers);
+  const responseHeaders = ownResponseHeaderNames(operation.responseHeaders);
   let origin;
   try {
     origin = new URL(scope.resourceOrigin);
@@ -62,11 +69,13 @@ function operationFor(operations, scope, maxRequestBytes) {
     path: exactRequestTarget(operation.path),
     body: mutation ? operation.body : undefined,
     requestBytes: mutation ? Buffer.byteLength(operation.body) : 0,
+    headers,
+    responseHeaders,
   });
 }
 
 function receive({hostname, port, path, method, body, requestBytes, secret,
-  ca, cert, key, signal, maxResponseBytes}) {
+  headers, ca, cert, key, signal, maxResponseBytes}) {
   return new Promise((resolve, reject) => {
     let settled = false;
     const finish = (handler, value) => {
@@ -83,8 +92,11 @@ function receive({hostname, port, path, method, body, requestBytes, secret,
       ca,
       cert,
       key,
+      // A provider may replace `accept`; the credential and body framing
+      // headers are this adapter's own.
       headers: Object.freeze({
         accept: 'application/json',
+        ...Object.fromEntries(headers),
         authorization: `Bearer ${secret}`,
         ...(body === undefined ? {} : {
           'content-type': 'application/json',
@@ -120,6 +132,9 @@ function receive({hostname, port, path, method, body, requestBytes, secret,
 
 /// Execute one pre-registered HTTPS operation. Credential material is resolved
 /// and applied inside this adapter and is never returned to Connector code.
+/// An operation is `{method, path, body?, headers?, responseHeaders?}`: the
+/// optional entries are the typed exchange's allowed request headers and the
+/// declared response header names (`adapters/host-common/http-exchange.mjs`).
 export async function callHttpsCredentialResource({
   grant,
   useId,
@@ -199,12 +214,17 @@ export async function callHttpsCredentialResource({
     if (!accepted && !returnRejectedResponse) {
       fail('RemoteCredentialResourceRejected');
     }
+    // Only the declared response headers are observed, as bounded pairs; an
+    // observation beyond the caps is a refusal of this exchange, recorded
+    // below like any other failure after the request started.
+    const headers = observeResponseHeaders(response.headers,
+      operation.responseHeaders);
     journal.finish(claimed.record.useCid, accepted ? 'succeeded' : 'failed');
     return Object.freeze({
       useCid: claimed.record.useCid,
       accepted,
       statusCode: response.statusCode,
-      headers: response.headers,
+      headers,
       body: response.body,
     });
   } catch (error) {
