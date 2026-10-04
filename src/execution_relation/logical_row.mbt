@@ -38,6 +38,11 @@ fn[T : RowValues] charge_logical_row(
     let writer = @encode.measuring_writer(cap, b.host_nodes, b.host_depth)
     @encode.begin_object(writer)
     for i = 0; i < names.length(); i = i + 1 {
+      // Omission is not a NULL value. Physical presence slots are charged by
+      // the row owner; logical wire retention includes only present keys.
+      if !row.value_present(i) {
+        continue
+      }
       if i >= b.host_nodes - 1 {
         b.failed = true
         return Err(ValueMeasure(HostMeasureLimit))

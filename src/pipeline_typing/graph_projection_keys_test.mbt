@@ -53,10 +53,7 @@ test "Graph definition presence permits guaranteed projection but never sample-b
   for
     (suffix, expected) in [
       ("{\"select\":[\"p\"]}", @relation.PresenceRequired("p")),
-      (
-        "{\"filter\":\"p IS NOT NULL\"}",
-        @relation.ConditionalInputNotImplemented,
-      ),
+      ("{\"filter\":\"p IS NOT NULL\"}", @relation.PresenceRequired("p")),
     ] {
     assert_true(
       @pipeline_typing.check_carriers(
