@@ -1134,7 +1134,7 @@ fn lower_analytic_call(
           (
             "expr",
             match
-              @expression.append(
+              @expression.append_with_properties(
                 argument,
                 resolve,
                 construction.builder,

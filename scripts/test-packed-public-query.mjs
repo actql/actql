@@ -44,6 +44,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/group-ordinal-source-input.mjs', 'group-ordinal-source-input.mjs'],
   ['scripts/fixtures/order-ordinal-source-input.mjs', 'order-ordinal-source-input.mjs'],
   ['scripts/fixtures/distinct-order-source-input.mjs', 'distinct-order-source-input.mjs'],
+  ['scripts/fixtures/analytic-property-source-input.mjs', 'analytic-property-source-input.mjs'],
   ['scripts/fixtures/group-select-scope-source-input.mjs', 'group-select-scope-source-input.mjs'],
   ['scripts/fixtures/having-projection-source-input.mjs', 'having-projection-source-input.mjs'],
   ['scripts/fixtures/acquired-data-source-input.mjs', 'acquired-data-source-input.mjs'],
@@ -119,6 +120,9 @@ if (process.argv.includes('--property-graph-source-only')) {
 }
 if (process.argv.includes('--distinct-order-only')) {
   runtimeEnvironment.ACTQL_TEST_DISTINCT_ORDER_ONLY = '1';
+}
+if (process.argv.includes('--analytic-property-only')) {
+  runtimeEnvironment.ACTQL_TEST_ANALYTIC_PROPERTY_ONLY = '1';
 }
 if (process.argv.includes('--graph-rows-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_ROWS_ONLY = '1';
@@ -230,6 +234,7 @@ if (process.argv.includes('--cancellation-only')) {
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
 const narrowPublicQuery = process.argv.some(flag => ['--source-free-only',
+  '--analytic-property-only',
   '--order-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--group-star-only', '--group-ordinal-only',
   '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only', '--two-source-only',
   '--relation-data-only', '--acquired-data-only',
@@ -275,6 +280,7 @@ if (plannerSelectionOnly || twoSourceExampleOnly) return;
 // Narrow selections without the String fixture have no retained String Run.
 // Keep restart acceptance for full/source-free selections that create it.
 if (!process.argv.some(flag => ['--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
+  '--analytic-property-only',
   '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only',
   '--relation-data-only', '--acquired-data-only', '--data-set-strategy-only', '--two-source-only',
   '--property-graph-source-only', '--graph-rows-only'].includes(flag))) {
@@ -282,6 +288,7 @@ if (!process.argv.some(flag => ['--alias-scope-only', '--scoped-order-only', '--
     runtimeEnvironment, 120000).trimEnd());
 }
 if (process.argv.includes('--order-ordinal-only') ||
+  process.argv.includes('--analytic-property-only') ||
     process.argv.includes('--distinct-order-only') ||
   process.argv.includes('--source-free-only') ||
   process.argv.includes('--data-set-strategy-only') ||
