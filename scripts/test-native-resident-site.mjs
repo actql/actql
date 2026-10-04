@@ -560,8 +560,11 @@ try {
         .map(row => row.record_key);
     } finally { database.close(); }
   };
+  // The live Site commits report and ACK records while this polls; wait out
+  // a transient write lock like the other journal observers, never mask it.
   const reportState = () => {
     const database = new DatabaseSync(journalPath, {readOnly: true});
+    database.exec('PRAGMA busy_timeout = 5000');
     try {
       const reports = database.prepare('SELECT record_key, body FROM actql_records ' +
         'WHERE namespace = ?').all('site_output_report');

@@ -286,7 +286,7 @@ fn prepare_sequence_count(
         expressions = remaining
         GraphMatchStep(prepared)
       }
-      GraphBoundsRows(_) | GraphDegreeRows(_) => {
+      GraphBoundsRows(_) | GraphDegreeRows(_) | GraphComponentsRows(_) => {
         let (prepared, used_bindings, used_names, used_work) = match
           prepare_graph_diagnostic_node(
             owner,

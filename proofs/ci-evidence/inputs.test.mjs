@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readCatalog, compareCatalogs} from './actions.mjs';
-import {actionInputs, compareInputs, packageImports, sharedFiles} from './inputs.mjs';
+import {actionInputs, compareInputs, packageImports, sharedFiles, mutationSnapshotExtras} from './inputs.mjs';
+import {reviewedPackageConfiguration, reviewedPackageConfigurations, packageConfigurationReview} from './package-configurations.mjs';
 
 const catalog = readCatalog();
 const runtime = {profile: 'controlled-test-runtime', components: {node: '1'.repeat(64)}, unresolved: []};
@@ -79,6 +80,28 @@ test('literal normal, test and whitebox imports are tracked; arbitrary expressio
   assert.throws(() => packageImports('import { dynamic_dependency() }'), /unknown package import/u);
 });
 
+test('reviewed native-only configuration requires its independent path/bytes/toolchain and JS target', () => {
+  const [path, digest] = Object.entries(reviewedPackageConfigurations)[0];
+  const request = {path, digest, target: 'js', toolchainDigest: packageConfigurationReview.toolchainDigest};
+  assert(reviewedPackageConfiguration(request));
+  for (const changed of [
+    {...request, path: 'src/unreviewed/moon.pkg'},
+    {...request, digest: 'f'.repeat(64)},
+    {...request, target: 'native'},
+    {...request, target: 'wasm'},
+    {...request, toolchainDigest: 'f'.repeat(64)},
+  ]) assert.equal(reviewedPackageConfiguration(changed), false);
+  // Even at a reviewed path, source is read independently; a copied descriptor
+  // or a changed pre-build option does not inherit the reviewed digest.
+  const files = new Map(base);
+  files.set(path, 'options(pre_build: { "command": "unreviewed" })');
+  const selected = {...action, package: path.slice(0, -'/moon.pkg'.length)};
+  const observed = inventory(files, 'a'.repeat(40), selected);
+  assert(observed.unresolved.some(reason => reason.endsWith(path)));
+  assert.deepEqual(observed.inputs.packageConfigurations, []);
+  assert(observed.inputs.files.some(file => file.path === path));
+});
+
 test('literal formatter exclusions remain bound; dynamic configuration stays open', () => {
   assert.equal(packageImports('formatter(ignore: [ "fixture.generated_wbtest.mbt", ])').unknown, null);
   assert.throws(() => packageImports('formatter(ignore: [ discover_files() ])'), /formatter ignore/u);
@@ -87,4 +110,23 @@ test('literal formatter exclusions remain bound; dynamic configuration stays ope
   changed.set('src/bounded_execution/moon.pkg', 'formatter(ignore: [ "session_contract_wbtest.mbt" ])');
   assert.equal(inventory(changed).unresolved.length, 0);
   assert.equal(compareInputs(inventory(), inventory(changed)).eligible, false);
+});
+
+test('mutation restoration inputs include unrelated src members and the actual resource audit JSON files', () => {
+  const selected = catalog.actions.find(value => value.id === 'mutations-js'), files = new Map(base);
+  for (const path of mutationSnapshotExtras) if (!files.has(path)) files.set(path, 'independent audit');
+  files.set('proofs/bounded-session/mutations.mjs', 'original mutation executor');
+  files.set('proofs/bounded-session/evidence.mjs', 'original snapshot');
+  files.set('src/connectors/local/moon.pkg', ''); files.set('src/query_integration/moon.pkg', '');
+  const original = inventory(files, 'a'.repeat(40), selected);
+  assert.equal(original.unresolved.length, 0);
+  for (const change of [
+    map => map.set('src/unrelated/new.mbt', 'read by snapshot even without a compilation import'),
+    map => map.set(mutationSnapshotExtras[2], 'changed audit'),
+    map => map.delete(mutationSnapshotExtras[3]),
+    map => map.delete('proofs/bounded-session/mutations.mjs'),
+  ]) {
+    const changed = new Map(files); change(changed);
+    assert.equal(compareInputs(original, inventory(changed, 'b'.repeat(40), selected)).eligible, false);
+  }
 });

@@ -4,6 +4,17 @@
 // version and loads only that connector's module and provider bundle.
 export const installedConnectors = Object.freeze([
   Object.freeze({
+    name: "github", registration: "github",
+    revision: "github/0.1",
+    providerBundle: "connectors/github/host_node",
+    responseHeaders: Object.freeze(["link","retry-after","x-ratelimit-limit","x-ratelimit-remaining","x-ratelimit-reset","x-ratelimit-resource"]),
+    source: Object.freeze({
+      profileVersion: "actql-installed-github-source/0.1",
+      load: () => import("../connectors/github/host/installed-github-source.mjs")
+        .then(module => Object.freeze({check: module.checkInstalledGitHubSourceProfile, identityParts: module.installedGitHubSourceIdentityParts, publish: module.publishInstalledGitHubSource, load: module.loadInstalledGitHubSource})),
+    }),
+  }),
+  Object.freeze({
     name: "salesforce", registration: "salesforce",
     revision: "salesforce/0.1",
     providerBundle: "connectors/salesforce/host_node",
@@ -12,6 +23,11 @@ export const installedConnectors = Object.freeze([
       profileVersion: "actql-installed-salesforce-source/0.1",
       load: () => import("../connectors/salesforce/host/installed-salesforce-source.mjs")
         .then(module => Object.freeze({check: module.checkInstalledSalesforceSourceProfile, identityParts: module.installedSalesforceSourceIdentityParts, publish: module.publishInstalledSalesforceSource, load: module.loadInstalledSalesforceSource})),
+    }),
+    effect: Object.freeze({
+      profileVersion: "actql-installed-salesforce-effect/0.1",
+      load: () => import("../connectors/salesforce/host/installed-salesforce-effect-installation.mjs")
+        .then(module => Object.freeze({check: module.checkInstalledSalesforceEffectInstallation, identityParts: module.installedSalesforceEffectIdentityParts, publish: module.publishInstalledSalesforceEffectInstallation, load: module.loadInstalledSalesforceEffectInstallation})),
     }),
   }),
 ]);

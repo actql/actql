@@ -331,14 +331,13 @@ test "missing or wrong Graph evidence cannot fabricate current MATCH rows" {
 }
 
 ///|
-test "unsupported current Graph consumers cannot manufacture a legacy checked pipeline" {
+test "unconnected current Graph consumers cannot manufacture a legacy checked pipeline" {
   let identity = "{\"definition\":\"N\",\"domain\":\"sha256:" +
     "0".repeat(64) +
     "\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]}"
   for
     (name, body) in [
       ("normalize_graph", "true"),
-      ("components", "{\"kind\":\"strong\"}"),
       (
         "reach",
         "{\"start\":{\"ids\":[" +
@@ -395,6 +394,7 @@ test "unsupported current Graph consumers cannot manufacture a legacy checked pi
     (name, body) in [
       ("degree", "{\"direction\":\"both\"}"),
       ("graph_bounds", "{\"max_nodes\":1}"),
+      ("components", "{\"kind\":\"strong\",\"max_output_rows\":2}"),
     ] {
     assert_true(
       @pipeline_typing.check_carriers(

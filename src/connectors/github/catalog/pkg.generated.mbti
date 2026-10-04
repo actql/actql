@@ -1,0 +1,166 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/github/catalog"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub let api_version : String
+
+pub fn canonical_timestamp(String) -> String?
+
+pub fn classify_comment_response(Int, HeaderObservation, Bytes, Int) -> CommentOutcome
+
+pub fn classify_failure(Int, HeaderObservation) -> ExchangeFailure
+
+pub fn header_value(HeaderObservation, String) -> String?
+
+pub let issues_query : String
+
+pub fn issues_request(String, Int, String?, IssueFilters) -> Result[String, GraphqlRequestIssue]
+
+pub fn next_page(String?, String, String, Int, Int) -> Result[NextPage?, LinkIssue]
+
+pub fn project_issue_page(Bytes, PageLimits) -> Result[IssuePage, IssuePageIssue]
+
+pub fn project_issues_response(Bytes, PageLimits, String, Int64, String) -> Result[GraphqlIssuePage, GraphqlResponseIssue]
+
+pub fn project_repository_response(Bytes, PageLimits) -> Result[GraphqlRepository, GraphqlResponseIssue]
+
+pub fn rate_limit_basis(HeaderObservation) -> RateLimitBasis
+
+pub let repository_query : String
+
+pub fn repository_request(String, String) -> String
+
+pub fn request_headers() -> Array[(String, String)]
+
+pub let response_headers : Array[String]
+
+pub let user_agent : String
+
+// Errors
+
+// Types and methods
+pub(all) enum CommentOutcome {
+  Created(id~ : Int64, node_id~ : String)
+  Refused(status~ : Int)
+  Unknown
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ExchangeFailure {
+  RateLimited(RateLimitBasis)
+  PermissionDenied
+  NotFound
+  Gone
+  Unprocessable
+  ProviderUnavailable
+  Unexpected(Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct GraphqlIssuePage {
+  repository : GraphqlRepository
+  rows : Array[IssueRow]
+  has_next_page : Bool
+  end_cursor : String?
+} derive(Eq, @debug.Debug)
+
+pub(all) struct GraphqlRepository {
+  node_id : String
+  database_id : Int64
+  name_with_owner : String
+} derive(Eq, @debug.Debug)
+
+pub(all) enum GraphqlRequestIssue {
+  InvalidNodeId
+  InvalidPageSize
+  InvalidCursor
+  InvalidState
+  InvalidLabel
+  InvalidSince
+} derive(Eq, @debug.Debug)
+
+pub(all) enum GraphqlResponseIssue {
+  InvalidResponse
+  RateLimited
+  Errors(String)
+  RepositoryUnavailable
+  WrongType(String)
+  ForeignRepository
+  IdRepresentationChanged
+  BindingChanged
+  MissingCursor
+  BudgetExceeded
+  Row(IssuePageIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct HeaderObservation {
+  entries : Array[(String, String)]
+} derive(Eq, @debug.Debug)
+
+pub(all) struct IssueFilters {
+  state : String
+  labels : Array[String]
+  since : String?
+} derive(Eq, @debug.Debug)
+
+pub(all) struct IssuePage {
+  rows : Array[IssueRow]
+  excluded_pull_requests : Int
+  provider_items : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) enum IssuePageIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidResponse
+  MissingRequiredField(String)
+  NullRequiredField(String)
+  InvalidField(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct IssueRow {
+  number : Int64
+  node_id : String
+  title : String
+  state : String
+  body : String?
+  author : String?
+  comments : Int64
+  created_at : String
+  updated_at : String
+  closed_at : String?
+} derive(Eq, @debug.Debug)
+
+pub(all) enum LinkIssue {
+  MalformedLink
+  ForeignOrigin
+  ForeignResource
+  NonAdvancingPage
+  LocatorTooLong
+} derive(Eq, @debug.Debug)
+
+pub(all) struct NextPage {
+  path : String
+  query : Array[(String, String)]
+  page : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct PageLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_rows : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RateLimitBasis {
+  retry_after_seconds : Int64?
+  reset_epoch_seconds : Int64?
+  remaining : Int64?
+  resource : String?
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

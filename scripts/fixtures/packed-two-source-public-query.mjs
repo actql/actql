@@ -70,10 +70,20 @@ try {
   }
 
   const first = await runChild('public-success');
-  assert.equal(first.cases, 8);
+  assert.equal(first.cases, 12);
   const retained = await runChild('retained');
-  assert.equal(retained.cases, 8);
+  assert.equal(retained.cases, 12);
   assert.deepEqual(retained.provider.sourceProviderOpens, []);
+  assert.equal(retained.provider.sourceIo, 0);
+  assert.deepEqual(retained.readerClosures.map(item => `${item.mode}/${item.variant}`).sort(),
+    ['https/broad-text', 'https/distinct', 'local/broad-text', 'local/distinct']);
+  for (const item of retained.readerClosures) {
+    assert.equal(item.closedReader.state, 'prefix');
+    assert.equal(item.closedReader.rowsYielded, 1);
+    assert.equal(item.continuingReader.state, 'complete');
+    assert.equal(item.continuingReader.rowsYielded, fixture.expected.rows.length);
+    assert.notEqual(item.closedReader.attemptId, item.continuingReader.attemptId);
+  }
   for (const [name, action] of [['exact-inventory', 'recover-exact'],
     ['changed-second-binding', 'recover-changed-binding'],
     ['changed-second-generation', 'recover-changed-generation'],
@@ -104,8 +114,8 @@ try {
     await runChild(action, `broad-${action}`);
   }
   summary.status = 'passed';
-  summary.publicSuccessCases = 8;
-  summary.freshRetainedCases = 8;
+  summary.publicSuccessCases = 12;
+  summary.freshRetainedCases = 12;
   summary.recoveryAndFailureScenarios = 12;
   console.log('Packed two-source Local/HTTPS success, retained recovery, refusal, failure and cleanup acceptance passed');
 } catch (error) {

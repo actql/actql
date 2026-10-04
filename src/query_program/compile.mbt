@@ -1398,6 +1398,7 @@ fn compile_steps(
   // alias again after Pipe AS has established a new scope.
   let mut pipe_rebound = projected_input || initial_scope is Some(_)
   let mut pipe_selected = false
+  let mut distinct_order_scope = false
   for i in start_at..<@query.operation_count(query) {
     let operation = @query.operation_at(query, i).unwrap()
     // Graph occurrence slots are an implementation detail, not a public
@@ -1416,6 +1417,7 @@ fn compile_steps(
       // SELECT has materialized its output. Later operators consume that
       // Relation, irrespective of whether SET introduced private slots.
       pipe_selected = false
+      distinct_order_scope = false
       pipe_ranges = []
       sql_group_projection = false
     }
@@ -2254,6 +2256,8 @@ fn compile_steps(
         pipe_selected = true
         if distinct {
           add_distinct = true
+          distinct_order_scope = true
+          pipe_ranges = []
         }
       }
       Select(projections, distinct) if !preserve_identity_select &&
@@ -2268,6 +2272,10 @@ fn compile_steps(
       }
       Select(projections, distinct) => {
         selected_input_fields = active_fields.copy()
+        let input_scope : JoinChainScope = {
+          visible: pipe_visible.copy(),
+          ranges: pipe_ranges.copy(),
+        }
         let names : Array[String] = []
         let derives : Array[(String, @builder.Node)] = []
         let temporary_names : Array[String] = []
@@ -2374,6 +2382,15 @@ fn compile_steps(
         selected_expressions = expressions
         selected_output_slots = bindings.copy()
         add_distinct = distinct
+        if distinct {
+          // DISTINCT materializes only the selected columns. Reuse the
+          // existing projected-scope ORDER path for expressions over those
+          // evaluated aliases; removed input columns remain unavailable.
+          selected_input_scope = input_scope
+          pipe_selected = true
+          distinct_order_scope = true
+          pipe_ranges = []
+        }
         let needs_input_order = if distinct {
           false
         } else {
@@ -2433,9 +2450,30 @@ fn compile_steps(
           // A materialized DISTINCT/SELECT cannot sort through a range slot
           // that its projection removed. An identical selected expression is
           // handled below using the evaluated output slot.
-          pipe_slot(path, pipe_visible, pipe_ranges).filter(slot => {
+          let current = pipe_slot(path, pipe_visible, pipe_ranges).filter(slot => {
             active_fields.contains(slot)
           })
+          if current is Some(_) {
+            return current
+          }
+          if distinct_order_scope {
+            // A selected input column remains available through its output
+            // slot even when aliased. This does not expose a removed input
+            // or confuse an overwritten alias with its original value.
+            if pipe_slot(
+                path,
+                selected_input_scope.visible,
+                selected_input_scope.ranges,
+              )
+              is Some(source) {
+              for binding in selected_output_slots {
+                if binding.1 == source {
+                  return Some(binding.0)
+                }
+              }
+            }
+          }
+          None
         }
         for term in terms {
           let expression = term.expression
@@ -2497,7 +2535,15 @@ fn compile_steps(
                         max_work,
                       ) {
                       Ok(node) => node
-                      Err(error) => raise Abort(Expression(error))
+                      Err(error) =>
+                        if distinct_order_scope &&
+                          join_reference_paths(expression).any(path => {
+                            resolve(path) is None
+                          }) {
+                          raise Abort(UnsupportedOrdering)
+                        } else {
+                          raise Abort(Expression(error))
+                        }
                     }
                     derives.push((slot, value))
                     hidden.push((expression, slot))
@@ -3025,6 +3071,51 @@ fn query_terms(query : @query.Query) -> Array[@query.Query] {
 }
 
 ///|
+// Count only references to the outer input under this nonrecursive CTE scope.
+// A later JOIN-right use needs the same complete capture as a principal FROM;
+// an earlier CTE with the input's name instead binds its own retained Result.
+// Two references suffice to establish sharing; no acquisition is performed.
+fn cte_capture_reference_count(
+  query : @query.Query,
+  declarations : @query.Query,
+  visible_ctes : Int,
+  input : Input,
+) -> Int {
+  let mut count = 0
+  for term in query_terms(query) {
+    let paths = [@query.relation(term)]
+    for index in 0..<@query.join_part_count(term) {
+      paths.push(@query.join_part_at(term, index).unwrap().relation)
+    }
+    for index in 0..<@query.operation_count(term) {
+      if @query.operation_at(term, index) is Some(Nearest(clause)) {
+        paths.push(clause.relation)
+      }
+    }
+    for path in paths {
+      if !input_relation_matches(path, input) {
+        continue
+      }
+      let mut shadowed = false
+      for index in 0..<visible_ctes {
+        if same_relation_path(path, [
+            @query.cte_at(declarations, index).unwrap().name,
+          ]) {
+          shadowed = true
+        }
+      }
+      if !shadowed {
+        count += 1
+        if count == 2 {
+          return count
+        }
+      }
+    }
+  }
+  count
+}
+
+///|
 fn compile_cte_query(
   query : @query.Query,
   context : Context,
@@ -3076,16 +3167,25 @@ fn compile_cte_query(
       let mut referenced_elsewhere = captures_source &&
         (
           @query.set_part_count(cte.query) > 0 ||
-          query_terms(query).any(term => {
-            same_relation_path(@query.relation(term), captures[0].relation)
-          })
+          cte_capture_reference_count(cte.query, query, index, captures[0]) > 1 ||
+          cte_capture_reference_count(
+            query,
+            query,
+            @query.cte_count(query),
+            captures[0],
+          ) >
+          0
         )
       for other in 0..<@query.cte_count(query) {
         if captures_source &&
           other != index &&
-          query_terms(@query.cte_at(query, other).unwrap().query).any(term => {
-            same_relation_path(@query.relation(term), captures[0].relation)
-          }) {
+          cte_capture_reference_count(
+            @query.cte_at(query, other).unwrap().query,
+            query,
+            other,
+            captures[0],
+          ) >
+          0 {
           referenced_elsewhere = true
         }
       }
@@ -3238,7 +3338,7 @@ fn compile_cte_query(
       } else if @query.join_part_count(query) == 1 {
         let part = @query.join_part_at(query, 0).unwrap()
         let mut right_input : Input? = None
-        for input in cte_inputs {
+        for input in known {
           if same_relation_path(input.relation, part.relation) {
             right_input = Some(input)
           }

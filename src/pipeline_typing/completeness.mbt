@@ -101,6 +101,7 @@ pub fn completeness_scope(v : CompletenessRequirement) -> CompletenessScope {
         | GraphBounds(_)
         | GraphDegree(_)
         | GraphEquality(..)
+        | GraphComponents(_)
         | Traverse(..)
         | PropertyGraphConstruction(..)
         | Vector(_)

@@ -12,4 +12,6 @@ import {
 import {
   "actql/actql/source_value" @source,
   "actql/actql/decode_core" @wire,
+  "actql/actql/expression_syntax" @expression,
+  "actql/actql/expression_typing" @typing,
 } for "test"

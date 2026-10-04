@@ -148,3 +148,74 @@ test "same-schema definition selection is stable and not erased from Plan meanin
   assert_eq(emitted[0], emitted[1])
   assert_false(emitted[0] == emitted[2])
 }
+
+///|
+test "label selection is canonical and retained in node and edge Plan parameters" {
+  for (operation, label) in [("node_rows", "Node"), ("edge_rows", "owns")] {
+    let emitted = [label.to_lower(), label, label.to_lower()].map(name => {
+      let owner = carrier_projection_owner(
+        "[{\"from\":\"g\",\"" + operation + "\":{\"label\":\"" + name + "\"}}]",
+        [("g", graph_match_carrier())],
+      )
+      let sequence = @lowering_relation.prepare_sequence(
+        owner,
+        sequence_limits(),
+      ).unwrap()
+      guard @lowering_relation.sequence_step(sequence, 0)
+        is Some(@lowering_relation.CarrierProjectionStep(projected)) else {
+        abort("selected label Bridge")
+      }
+      assert_eq(
+        @lowering_relation.carrier_projection_definition(projected),
+        None,
+      )
+      assert_eq(
+        @lowering_relation.carrier_projection_label(projected),
+        Some(label),
+      )
+      let writer = @encode.writer(10000, 1000, 100)
+      @lowering_relation.emit_sequence_steps(sequence, writer)
+      @encode.finish(writer)
+    })
+    assert_eq(emitted[0], emitted[1])
+    assert_eq(emitted[1], emitted[2])
+    assert_true(emitted[0].contains("\"params\":{\"label\":\"" + label + "\"}"))
+  }
+}
+
+///|
+test "different same-schema labels remain distinct Plan selections" {
+  let properties = @carrier.rows(
+    [],
+    field_set=Closed,
+    max_fields=0,
+    max_name_bytes=0,
+  ).unwrap()
+  let definition = @carrier.property_node_definition(
+    "N",
+    [@contract.primitive(NumberType, nullable=false)],
+    properties,
+    ["A", "B"],
+    max_fields=2,
+    max_name_bytes=100,
+  ).unwrap()
+  let graph = @carrier.property_graph(
+    "sha256:" + "0".repeat(64),
+    [definition],
+    [],
+    max_definitions=1,
+    max_contract_work=1000,
+  ).unwrap()
+  let emitted = ["A", "a", "B"].map(label => {
+    let owner = carrier_projection_owner(
+      "[{\"from\":\"g\",\"node_rows\":{\"label\":\"" + label + "\"}}]",
+      [("g", graph)],
+    )
+    let sequence = @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
+    let writer = @encode.writer(10000, 1000, 100)
+    @lowering_relation.emit_sequence_steps(sequence, writer)
+    @encode.finish(writer)
+  })
+  assert_eq(emitted[0], emitted[1])
+  assert_false(emitted[0] == emitted[2])
+}

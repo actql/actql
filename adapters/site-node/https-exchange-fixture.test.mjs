@@ -207,3 +207,43 @@ test('paged listings link pages and the last page carries no next relation',
     assert.equal(route.handle({query: {state: 'closed'}}).status, 404);
     assert.equal(route.handle({query: {state: 'open', page: '0'}}).status, 422);
   });
+
+test('a since-filtered listing continues on page two with the same date, encoded once',
+  async t => {
+    const since = '2026-10-01T00:00:00Z';
+    const items = Array.from({length: 3}, (_, index) => ({number: index + 1}));
+    let route;
+    const fixture = await openHttpsExchangeFixture(t, {routes: [{
+      method: 'GET', pathname: '/repos/o/r/issues',
+      handle: exchange => route.handle(exchange)}]});
+    route = pagedListing({items, origin: fixture.origin,
+      pathname: '/repos/o/r/issues', maxSize: 2, query: {state: 'all', since}});
+    const {authorization, resource} = await credential(t, fixture.origin,
+      'issues:list');
+    const list = query => invokeScopedCredentialOperation({
+      authorization: authorization(), credential: {...resource, ca: fixture.ca},
+      callResource: callHttpsCredentialResource, operation: 'issues:list',
+      method: 'GET', path: '/repos/o/r/issues', query,
+      responseHeaders: ['link'], maxResponseBytes: 4096});
+    const first = await list([['state', 'all'], ['since', since],
+      ['per_page', '2']]);
+    assert.deepEqual(JSON.parse(first.body.toString('utf8')), items.slice(0, 2));
+    // The provider states the continuation with the date percent-encoded.
+    const [[name, link]] = first.headers;
+    assert.equal(name, 'link');
+    assert.ok(link.includes(
+      '?state=all&since=2026-10-01T00%3A00%3A00Z&per_page=2&page=2>; rel="next"'));
+    // The connector's decoded pairs for that link (the GitHub catalog test
+    // pins the same decoding) are encoded exactly once by the exchange.
+    const second = await list([['state', 'all'], ['since', since],
+      ['per_page', '2'], ['page', '2']]);
+    assert.deepEqual(JSON.parse(second.body.toString('utf8')), items.slice(2));
+    assert.equal(second.headers.length, 1);
+    assert.doesNotMatch(second.headers[0][1], /rel="next"/);
+    const seen = fixture.seen();
+    assert.equal(seen.length, 2);
+    assert.equal(seen[1].path,
+      '/repos/o/r/issues?state=all&since=2026-10-01T00%3A00%3A00Z&per_page=2&page=2');
+    assert.equal(seen[1].query.since, since);
+    assert.equal(seen[0].query.since, seen[1].query.since);
+  });

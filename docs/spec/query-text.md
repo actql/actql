@@ -378,15 +378,55 @@ DATA rows = FROM g |> node_rows() |> SELECT node_key, labels;
 FROM rows |> ORDER BY node_key |> RESULT nodes
 ```
 
-These calls accept no named options in the current connection. Definition
-selection is a separate common-contract dependency, not an inferred filter.
+Each call accepts either no arguments, `definition: "N"`, or `label: "Person"`.
+Exactly one string-valued selector is permitted; these names are Graph element
+names, not producer references or property predicates. Resolution uses the
+common Graph name identity and retains declared spelling. Definition selection
+chooses one same-kind definition; label selection chooses all same-kind
+definitions declaring that label, including properties exposed by their other
+labels. Unknown names, wrong element kinds, mixed selectors and non-string
+selectors are explicit pre-admission refusals. The selector is lowered to the
+existing closed `node_rows` / `edge_rows` object, without inferred filtering.
 The common Bridge owns the finite schema, typed element identities, retained
 key columns, label sets and property presence. Conditional presence is not
 nullable: an ordinary reference to a Conditional field is rejected by the
-common checker, even after `IS NOT NULL`. The remaining Relation operations
+common checker, even after `IS NOT NULL`. Project guaranteed columns before
+ordinary filtering if the selected schema still contains Conditional fields.
+The remaining Relation operations
 use normal scope, expression, order and Result lowering. DATA adds no copy,
 acquisition or execution owner. A Graph-preserving normalize call still needs
 an adapted common consumer; source lowering alone does not authorize it.
+
+The node emission of `traverse` also enters ordinary Relation processing:
+
+```aql
+DATA seeds = FROM g |> node_rows() |> SELECT id AS element;
+FROM g
+  |> traverse(start: {from: seeds, id: 'element'}, direction: 'out',
+              min_hops: 0, max_hops: 2, path_mode: 'trail',
+              emit: 'nodes', max_output_rows: 10)
+  |> SELECT start_id, node_id, depth |> ORDER BY depth |> RESULT visited
+```
+
+`start.from` resolves an earlier DATA Relation producer, including a
+backtick-quoted DATA name. Its `id` names a column containing the common
+typed Graph identity, not a raw key. The Frontend retains every authored
+argument, including an empty `edge_types` list and explicit output/hop bounds.
+Numeric arguments use the same literal admission as query expressions.
+The common checker owns selector membership, identity/type checks, path mode,
+predicates, finite hop bounds, fixed non-NULL output contracts and capacity.
+The output names are `start_id`, `node_id`, `depth`; no uniqueness or presence
+proof is manufactured by the Frontend. A DATA binding of that output can
+continue through ordinary Relation operations without expanding its producer.
+
+This connection requires explicit `emit: 'nodes'`. Path emission and direct
+installed selector Sources remain unconnected source forms and are rejected
+before Run admission. Installed selectors need the existing checked
+acquisition/share boundary; the Frontend cannot replace it with repeated reads.
+These are current implementation gaps, not new limits on the common traversal
+contract. Typed literal/list and predicate selectors are passed unchanged for
+ordinary checking; source acceptance alone is not their execution evidence.
+
 Other named calls parse but their output Carrier/schema is not yet connected
 to subsequent source operations; they return UnsupportedGraph before Run
 admission. Calls following a MATCH Relation are also explicitly unsupported

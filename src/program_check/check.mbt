@@ -108,6 +108,7 @@ fn check_supported_source(
               | "degree"
               | "graph_bounds"
               | "graphs_equal"
+              | "components"
               | "to_vectors"
               | "normalize_vectors"
               | "score_vectors"

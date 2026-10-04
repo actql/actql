@@ -155,6 +155,7 @@ pub enum CheckedOperation {
   GraphBounds(@graph.CheckedGraphBounds)
   GraphDegree(@graph.CheckedDegree)
   GraphEquality(right~ : Target, checked~ : @graph.CheckedPropertyEquality)
+  GraphComponents(@graph.CheckedComponents)
   Traverse(selector~ : Target?, checked~ : @graph.CheckedTraverse)
   PropertyGraphConstruction(
     inputs~ : Array[Target],

@@ -1,0 +1,65 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-github-issue-driver-main-5dcef9189",
+  "kind": "resolution",
+  "revision": "5dcef918940aec5b5c546208e7b1bb4b7ef3db14",
+  "parents": [
+    "def4a69ead1305e59d84143e76a1b9529ff62a0d",
+    "917f802f5074e67112ca64919f39690b31dbccf7"
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-3877b637406b",
+    "adopt-63b114ad524b",
+    "adopt-678626b010b4",
+    "adopt-7427f7f09276",
+    "adopt-9a7c592a8ed9",
+    "adopt-b480cffb6e6d",
+    "adopt-bf2d058c21c1",
+    "adopt-f24288853c19",
+    "adopt-sga-query-contract",
+    "ci-mandatory-preflight",
+    "frontend-sga-main-integration",
+    "frontend-unified-graph-source-integration",
+    "github-issue-read-registration",
+    "main-pr233-package-resolution",
+    "packed-composed-infer-effect-acceptance",
+    "pr164-main-a32-verification-resolution",
+    "pr164-main4f-runtime-check-resolution",
+    "pr164-property-graph-source",
+    "public-text-computation-bridge-ci",
+    "remove-duplicate-runtime-package-checks",
+    "resident-cancellation-issuer-registration",
+    "resident-cancellation-native-registration",
+    "resident-source-native-registration",
+    "resolve-cancellation-foundation-main-5caeccc79",
+    "resolve-composition-custody-main-maximal-bases",
+    "resolve-composition-frontend-latest-main",
+    "resolve-composition-infer-main-maximal-bases",
+    "resolve-composition-resident-source-main",
+    "resolve-composition-reviewed-supplements-main",
+    "resolve-resident-cancel-foundation-7b5a8048",
+    "resolve-resident-source-latest-main",
+    "sdk-cancel-response-loss-registration"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "def4a69ead1305e59d84143e76a1b9529ff62a0d",
+          "digest": "5c877d5db18542bc15679b2105f8f1915bd9d300ba5f460b2b797da70a3e1607",
+          "mode": "100644"
+        },
+        {
+          "revision": "917f802f5074e67112ca64919f39690b31dbccf7",
+          "digest": "a8aa14b274cf49398d074b81b3de6ba701a40d2707a610109078d76c019a2a05",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "3a52a7a660756f39ea32ef75f233e29f41a65796bf9cf9f2b38dfea34ba7ec70",
+      "afterMode": "100644",
+      "reason": "Retain both the GitHub bridge/read fixture registrations and main cancellation registrations in the actual normal main merge. Bind all applicable source histories, ordered parents and actual result bytes without changing a validator or historical declaration."
+    }
+  ]
+}

@@ -2,6 +2,7 @@
 pub(all) enum GraphKeyOperation {
   MatchOperation(@graph.CheckedMatch)
   TraverseOperation(@graph.CheckedTraverse)
+  ComponentsOperation(@graph.CheckedComponents)
 }
 
 ///|
@@ -18,6 +19,12 @@ pub fn graph_query_keys(
         @graph.traverse_source(op),
         @graph.traverse_input(op),
         @graph.traverse_output(op),
+      )
+    ComponentsOperation(op) =>
+      (
+        @graph.components_source(op),
+        @graph.components_input(op),
+        @graph.components_output(op),
       )
   }
   try {
@@ -48,6 +55,7 @@ pub fn graph_query_keys(
             names.push(Unqualified("start_id"))
             names.push(Unqualified("node_id"))
           }
+        ComponentsOperation(_) => names.push(Unqualified("node_id"))
       }
     }
     let fields : Array[KeyField] = []

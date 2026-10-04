@@ -327,13 +327,35 @@ request is `{method, path, query, headers, body}` with lowercase, non-secret,
 bounded request headers (`accept`, API version and `User-Agent` headers are
 declared by the provider's driver, never hidden in it), and the response
 observation carries only the header names the installation declared, under
-fixed caps. An over-long or malformed header observation is a typed refusal.
+fixed caps. For an installed row source, the Site's `callResource` refuses an
+operation that would observe a header outside the manifest's
+`responseHeaders` before any credential use. An over-long or malformed header observation is a typed refusal.
 `adapters/site-node/https-exchange-fixture.mjs` is the provider-neutral test
 server for that boundary; it answers HTTPS and replaces no owner.
 
-Effect installations are not yet declared this way: `installed-effect.mjs`
-still accepts one profile version. Their declaration follows with the Effect
-installer's own approval, execution and recovery acceptance.
+A connector whose Site driver returns pages of JSON rows does not need its
+own capture code in the common runtime. `adapters/host-node/installed-row-source.mjs`
+and the common package `src/client_row_source_host` (exported as
+`clientProgramRowSource*`) do the following:
+- generate the connector's SourceViews and Catalog from its view
+  specification, for example `src/connectors/github/source-views.json`;
+- reproduce the published Catalog CID on load;
+- admit every row value against the checked input schema;
+- run the same custody, residual, retention, evidence and capture owners as
+  every broad acquisition.
+
+The connector supplies its view specification, its physical target and its
+page driver. Values must already be in ActQL spelling; for example GitHub's
+whole-second timestamps gain `.000`. GitHub's Issue source is the first user.
+
+An Effect installation is declared by the same manifest's optional `effect`
+section. It has the same keys, its own profile version, and a module exporting
+`check`, `identityParts(profile, read)`, `load` and optionally `publish`.
+`installed-effect.mjs` selects it by the Effect profile's version and gives
+`load` the Host's own Effect Ledger root. `load` returns the Effect Site
+hooks: `environmentWire`, `connectorBindings`, the self-reported registration
+and revision, `prepareCaptured`, `prepareRecovered` and `close`. The Host's
+Run, Checkpoint, dispatch, Ledger and publication owners do not change.
 
 Acquisition still uses the shared `CapabilityRegistry` and checked request/evidence
 SDK, with mock/DuckDB preparation, issuer, retention and capture in their owning

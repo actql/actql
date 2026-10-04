@@ -1447,7 +1447,7 @@ export function validateResourceAccounting({
         host.indexOf('for (const cancellationCase of graphCancellationCases)'),
       );
       if (!environmentRoles.has('components_strong_host_in_flight_cancel') ||
-        !cases.includes("name: 'components-strong',")) {
+        !cases.includes("name: 'current-components-strong-in-flight',")) {
         fail(`${label}: delivered components cancellation fixture is missing`);
       }
     }
@@ -1922,9 +1922,10 @@ export function validateResourceAccounting({
       fail(`${label}: Graph equality control-work evidence is missing`);
     }
     if (route.family === 'SGA' && route.operation === 'components' &&
-      (!boundaryRoles.has('components_empty_exact_work_workspace_cancel_cleanup') ||
-        !boundaryRoles.has('components_nonempty_work_ceiling_and_active_cancel') ||
-        !boundaryRoles.has('components_long_text_minimum_cancel_cleanup'))) {
+      (!boundaryRoles.has('components_workspace_exact_one_short') ||
+        !boundaryRoles.has('components_output_work_exact_one_short') ||
+        !boundaryRoles.has('components_kernel_cancel_cleanup') ||
+        !boundaryRoles.has('components_long_text_typed_order'))) {
       fail(`${label}: components boundary evidence is missing`);
     }
     if (route.family === 'SGA' && route.operation === 'reach' &&

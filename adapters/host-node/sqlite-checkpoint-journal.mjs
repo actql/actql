@@ -709,6 +709,43 @@ export function openSqliteCheckpointJournal(root, {
     return {checkpoint, decided};
   }
 
+  function refuseUnsentRunResume(reference, runDefinitionCid, expectedKind, expectedClaim) {
+      alive();
+      const at = iso(now());
+      return transaction.run(() => {
+        const claimedIntent = expectedClaim === undefined ? undefined :
+          fenced(expectedClaim, now());
+        const checkpoint = rowFor(reference);
+        if (checkpoint === undefined) fail('CheckpointNotFound');
+        const artifact = JSON.parse(checkpoint.checkpoint_wire);
+        if (artifact.run_definition_cid !== runDefinitionCid ||
+            artifact.kind !== expectedKind || checkpoint.run_id === null) {
+          fail('CheckpointRunMismatch');
+        }
+        const intent = statements.intentByCheckpoint.get(
+          checkpoint.checkpoint_cid);
+        if (claimedIntent !== undefined && claimedIntent.intent_id !== intent?.intent_id) {
+          fail('ResumeClaimStale');
+        }
+        const run = statements.run.get(checkpoint.run_id);
+        if (checkpoint.closure !== 'resolved' || intent === undefined ||
+            run?.status !== 'resuming' || intent.state === 'completed') {
+          return Object.freeze({outcome: 'not_resuming'});
+        }
+        if (statements.startedAdmission.get(intent.intent_id) !== undefined) {
+          return Object.freeze({outcome: 'admitted'});
+        }
+        transitionAllowed('resuming', 'failed');
+        changed(statements.completeIntent.run(Number(intent.generation) + 1,
+          'preparation-refusal', 'failed', at, intent.intent_id,
+          intent.generation), 'ResumeClaimStale');
+        changed(statements.moveRun.run('failed', at, '', '', run.run_id,
+          run.version, 'resuming'), 'RunStateConflict');
+        fault('refuseUnsentEffectResume');
+        return Object.freeze({outcome: 'failed', runId: run.run_id});
+      });
+    }
+
   return Object.freeze({
     path,
 
@@ -926,40 +963,12 @@ export function openSqliteCheckpointJournal(root, {
       });
     },
 
-    // A definitive preparation refusal may end only an exact Effect
-    // continuation that has never entered protected dispatch. The check and
-    // fencing transition share the admission transaction; an older claimant
-    // cannot send after this outcome. Admitted work remains untouched.
-    refuseUnsentEffectResume(reference, runDefinitionCid) {
-      alive();
-      const at = iso(now());
-      return transaction.run(() => {
-        const checkpoint = rowFor(reference);
-        if (checkpoint === undefined) fail('CheckpointNotFound');
-        const artifact = JSON.parse(checkpoint.checkpoint_wire);
-        if (artifact.run_definition_cid !== runDefinitionCid ||
-            artifact.kind !== 'effect_set' || checkpoint.run_id === null) {
-          fail('CheckpointRunMismatch');
-        }
-        const intent = statements.intentByCheckpoint.get(
-          checkpoint.checkpoint_cid);
-        const run = statements.run.get(checkpoint.run_id);
-        if (checkpoint.closure !== 'resolved' || intent === undefined ||
-            run?.status !== 'resuming' || intent.state === 'completed') {
-          return Object.freeze({outcome: 'not_resuming'});
-        }
-        if (statements.startedAdmission.get(intent.intent_id) !== undefined) {
-          return Object.freeze({outcome: 'admitted'});
-        }
-        transitionAllowed('resuming', 'failed');
-        changed(statements.completeIntent.run(Number(intent.generation) + 1,
-          'preparation-refusal', 'failed', at, intent.intent_id,
-          intent.generation), 'ResumeClaimStale');
-        changed(statements.moveRun.run('failed', at, '', '', run.run_id,
-          run.version, 'resuming'), 'RunStateConflict');
-        fault('refuseUnsentEffectResume');
-        return Object.freeze({outcome: 'failed', runId: run.run_id});
-      });
+    // Refusal is exact-kind and only applies before any protected start.
+    refuseUnsentEffectResume: (reference, runDefinitionCid) =>
+      refuseUnsentRunResume(reference, runDefinitionCid, 'effect_set'),
+    refuseUnsentSourceResume(reference, runDefinitionCid, claim) {
+      if (claim === undefined) fail('InvalidResumeClaim');
+      return refuseUnsentRunResume(reference, runDefinitionCid, 'read_access', claim);
     },
 
     // Durable request cancellation of one prepare attempt, committed before
@@ -1340,15 +1349,29 @@ export function openSqliteCheckpointJournal(root, {
     // longer revalidate, nothing is dispatched and the Run exits `resuming`
     // to `failed`, or to `needs_reconciliation` over `unknownEffects`, with
     // terminal_error.code ACTQL_E_RESUME_REVALIDATION_FAILED.
-    claimResume(runId, {claimant, leaseMs, binding, unknownEffects = []}) {
+    claimResume(runId, {claimant, leaseMs, binding, unknownEffects = [],
+      preserveStarted = false, expectedCheckpointCid}) {
       alive();
       if (!text(runId)) fail('InvalidRunId');
+      if (typeof preserveStarted !== 'boolean') fail('InvalidResumeClaim');
+      if (expectedCheckpointCid !== undefined && !text(expectedCheckpointCid)) fail('InvalidResumeClaim');
       const current = bindingJson(binding);
       const unknown = effectsJson(unknownEffects);
       const at = now();
       return transaction.run(() => {
         const intent = statements.intent.get(runId);
         if (intent === undefined) fail('ResumeIntentNotFound');
+        if (expectedCheckpointCid !== undefined &&
+            intent.checkpoint_cid !== expectedCheckpointCid) {
+          return Object.freeze({action: 'changed'});
+        }
+        // Source continuation has no external idempotent dispatch identity.
+        // Keep an earlier entered unit unresolved, atomically with the claim
+        // decision and before changed-binding invalidation can end it.
+        if (preserveStarted && intent.state !== 'completed' &&
+            statements.startedAdmission.get(intent.intent_id) !== undefined) {
+          return Object.freeze({action: 'admitted'});
+        }
         const {checkpoint, decided} = claimLocked(intent, claimant, at,
           current, leaseMs);
         if (decided.action === 'busy' || decided.action === 'completed') {
@@ -1495,6 +1518,55 @@ export function openSqliteCheckpointJournal(root, {
           checkpoint.decision_subject_cid,
         requestedClaims: Object.freeze(
           JSON.parse(checkpoint.requested_claims_json)),
+      });
+    },
+
+    // Read the original intent's durable physical-start fact without
+    // claiming or invalidating it under a possibly changed installation.
+    // A later Host may reconcile that work, never infer a fresh start from
+    // the absence of an in-process operation or from retained input rows.
+    hasStartedResume(checkpointCid) {
+      alive();
+      if (!text(checkpointCid)) fail('InvalidCheckpointReference');
+      const intent = statements.intentByCheckpoint.get(checkpointCid);
+      return intent !== undefined && intent.state !== 'completed' &&
+        statements.startedAdmission.get(intent.intent_id) !== undefined;
+    },
+
+    // Trusted Host observation of this exact Run's committed publication or
+    // durable Effect reconciliation receipt state from its original owner.
+    // This settles a lost completion response, not execution authorization:
+    // no callback, claim or dispatch is returned. Atomically fencing any old
+    // claimant prevents further work after the already-observed outcome.
+    settleObservedEffectResume(reference, runDefinitionCid, runStateWire) {
+      alive();
+      const admitted = core(runtime.runStateAdmit(runStateWire), 'InvalidRunState');
+      if (!['succeeded', 'needs_reconciliation'].includes(admitted.status) ||
+          admitted.checkpoint_cid !== null) {
+        fail('InvalidRunState');
+      }
+      const at = iso(now());
+      return transaction.run(() => {
+        const checkpoint = rowFor(reference);
+        if (checkpoint === undefined) fail('CheckpointNotFound');
+        const artifact = JSON.parse(checkpoint.checkpoint_wire);
+        if (artifact.run_definition_cid !== runDefinitionCid ||
+            artifact.kind !== 'read_access' || checkpoint.run_id !== admitted.run_id) {
+          fail('CheckpointRunMismatch');
+        }
+        const intent = statements.intentByCheckpoint.get(checkpoint.checkpoint_cid);
+        const run = statements.run.get(checkpoint.run_id);
+        if (intent === undefined || intent.state === 'completed' || run?.status !== 'resuming') {
+          return Object.freeze({outcome: 'not_resuming'});
+        }
+        transitionAllowed('resuming', admitted.status);
+        changed(statements.completeIntent.run(Number(intent.generation) + 1,
+          'effect-outcome-observer', admitted.status, at, intent.intent_id,
+          intent.generation), 'ResumeClaimStale');
+        changed(statements.moveRun.run(admitted.status, at, '', admitted.run_state_wire,
+          run.run_id, run.version, 'resuming'), 'RunStateConflict');
+        fault('settleObservedEffectResume');
+        return Object.freeze({outcome: admitted.status, runId: run.run_id});
       });
     },
 

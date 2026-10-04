@@ -27,6 +27,15 @@ pub fn operation_profile_requirement(
         AdmitBothPropertyGraphs => Some(PropertyGraph)
         CompareCompleteGraphValues | ResolvePropertyEqualityResources => None
       }
+    ComponentsRequirement(o) =>
+      match o {
+        AdmitComponentGraph => Some(PropertyGraph)
+        EnforceComponentInputNodes
+        | ResolveComponentResources
+        | EnforceComponentOutputRows
+        | EnforceComponentAuthorGuard
+        | BindComponentAuthorGuard(_) => None
+      }
     TraverseRequirement(o) =>
       match o {
         ResolvePropertyGraphTraversalProfile => Some(PropertyGraph)

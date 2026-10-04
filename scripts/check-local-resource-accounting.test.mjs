@@ -106,7 +106,7 @@ test('resource audit fixtures are reclaimed on success, rejection, and setup fai
 });
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /69 operations, 5 implementation profiles, 57 production routes mapped, 12 typed pre-execution refusals \(not execution success\), 57 with operation-specific boundary records, 57 with four-role boundary evidence, 57 with full work\/workspace assurance, 106 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /69 operations, 5 implementation profiles, 58 production routes mapped, 11 typed pre-execution refusals \(not execution success\), 58 with operation-specific boundary records, 58 with four-role boundary evidence, 58 with full work\/workspace assurance, 108 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('unsupported Graph routes require one shared public refusal boundary and cannot claim execution', () => {
@@ -1049,8 +1049,8 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
-    '| Path-scoped work/workspace assurance | 106 |',
-    '| Path-scoped work/workspace assurance | 105 |',
+    '| Path-scoped work/workspace assurance | 108 |',
+    '| Path-scoped work/workspace assurance | 107 |',
   );
   assert.notEqual(stale, gaps);
   assert.match(
@@ -2198,7 +2198,7 @@ test('resource completion rejects every unassured operation', () => {
 
 test('strict resource completion accepts every assured route', () => {
   assert.match(run(undefined, undefined, ['--require-boundary-complete']),
-    /57 with four-role boundary evidence, 57 with full work\/workspace assurance/);
+    /58 with four-role boundary evidence, 58 with full work\/workspace assurance/);
 });
 
 test('whole-sequence take owes both keyed and unkeyed resource branches', () => {

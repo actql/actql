@@ -1,0 +1,35 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/connectors/github/host_node"
+
+// Values
+pub fn github_api_version() -> String
+
+pub fn github_classify_failure_json(Int, Array[String], Array[String]) -> String
+
+pub fn github_comment_outcome_json(Int, Array[String], Array[String], Bytes, Int) -> String
+
+pub fn github_issue_page_json(Bytes, Int, Int, Int, Int) -> String
+
+pub fn github_issues_page_json(Bytes, Int, Int, Int, Int, String, Double, String) -> String
+
+pub fn github_issues_request_json(String, Int, Bool, String, String, Array[String], Bool, String) -> String
+
+pub fn github_next_page_json(Bool, String, String, String, Int, Int) -> String
+
+pub fn github_rate_limit_basis_json(Array[String], Array[String]) -> String
+
+pub fn github_repository_request(String, String) -> String
+
+pub fn github_repository_response_json(Bytes, Int) -> String
+
+pub fn github_request_headers_json() -> String
+
+pub fn github_response_headers_json() -> String
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

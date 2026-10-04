@@ -1,0 +1,92 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "scoped-session-acquisition-main-resolution",
+  "kind": "resolution",
+  "revision": "7a39c6e8336389b22167bb8c8b3393a55a2bf258",
+  "parents": [
+    "a0c21e4ad0b03d66a5c7ed5ed84d7da4bcfbee41",
+    "67f2b659c25db21fd4188ffaab295439c0bda401"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "a0c21e4ad0b03d66a5c7ed5ed84d7da4bcfbee41",
+          "digest": "a8aa14b274cf49398d074b81b3de6ba701a40d2707a610109078d76c019a2a05",
+          "mode": "100644"
+        },
+        {
+          "revision": "67f2b659c25db21fd4188ffaab295439c0bda401",
+          "digest": "a8aa14b274cf49398d074b81b3de6ba701a40d2707a610109078d76c019a2a05",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "a8aa14b274cf49398d074b81b3de6ba701a40d2707a610109078d76c019a2a05",
+      "afterMode": "100644",
+      "reason": "Integrate current main using a normal merge. Retain the shared package commands and bounded local-check wrapper bytes already agreed by both parents; both histories changed these protected paths relative to their actual common ancestors. Preserve all original declarations and complete real ancestral dependencies rather than exempting this merge because its final bytes match a parent."
+    },
+    {
+      "path": "scripts/local-checks.mjs",
+      "before": [
+        {
+          "revision": "a0c21e4ad0b03d66a5c7ed5ed84d7da4bcfbee41",
+          "digest": "09393983e76ecbd9c61b4a0fb135734a14a0593a5bfb0f9076d01647bc43d685",
+          "mode": "100644"
+        },
+        {
+          "revision": "67f2b659c25db21fd4188ffaab295439c0bda401",
+          "digest": "09393983e76ecbd9c61b4a0fb135734a14a0593a5bfb0f9076d01647bc43d685",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "09393983e76ecbd9c61b4a0fb135734a14a0593a5bfb0f9076d01647bc43d685",
+      "afterMode": "100644",
+      "reason": "Integrate current main using a normal merge. Retain the shared package commands and bounded local-check wrapper bytes already agreed by both parents; both histories changed these protected paths relative to their actual common ancestors. Preserve all original declarations and complete real ancestral dependencies rather than exempting this merge because its final bytes match a parent."
+    }
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-3877b637406b",
+    "adopt-63b114ad524b",
+    "adopt-678626b010b4",
+    "adopt-7427f7f09276",
+    "adopt-9a7c592a8ed9",
+    "adopt-b480cffb6e6d",
+    "adopt-bf2d058c21c1",
+    "adopt-f24288853c19",
+    "adopt-sga-query-contract",
+    "advisory-local-verification-guidance",
+    "bounded-local-execution-guard",
+    "ci-mandatory-preflight",
+    "client-ci-split",
+    "four-owned-pipeline-producers",
+    "frontend-sga-main-integration",
+    "frontend-unified-graph-source-integration",
+    "main-pr233-package-resolution",
+    "packed-composed-infer-effect-acceptance",
+    "pr164-main-a32-verification-resolution",
+    "pr164-main4f-runtime-check-resolution",
+    "pr164-property-graph-source",
+    "public-text-computation-bridge-ci",
+    "remove-duplicate-runtime-package-checks",
+    "resident-cancellation-issuer-registration",
+    "resident-cancellation-native-registration",
+    "resident-source-native-registration",
+    "resolve-cancellation-foundation-main-5caeccc79",
+    "resolve-composition-custody-main-maximal-bases",
+    "resolve-composition-frontend-latest-main",
+    "resolve-composition-infer-main-maximal-bases",
+    "resolve-composition-resident-source-main",
+    "resolve-composition-reviewed-supplements-main",
+    "resolve-host-owner-main-7081dedfd",
+    "resolve-local-guard-pipeline-ci",
+    "resolve-resident-cancel-foundation-7b5a8048",
+    "resolve-resident-source-latest-main",
+    "sdk-cancel-response-loss-registration"
+  ],
+  "mergeBases": [
+    "9640d35f6c9443ffdfa802c1e477aa19d49142e2",
+    "d5f0802c93e2863b092aa8f1a9e9a7cc97b12c5b"
+  ]
+}

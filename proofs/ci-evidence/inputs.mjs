@@ -2,31 +2,75 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {encode} from '../bounded-session/action-inputs.mjs';
+import {reviewedPackageConfiguration, packageConfigurationReview} from './package-configurations.mjs';
 
 export const inputVersion = 'actql-verification-action-inputs/0.1';
 export const hash = value => createHash('sha256').update(value).digest('hex');
+// The existing mutation executor's restoration snapshot reads these files as
+// well as all src and proofs/bounded-session members, independently of imports.
+export const mutationSnapshotExtras = Object.freeze([
+  'toolchain.json', 'moon.mod',
+  'docs/reviews/2026-09-23-local-resource-production-routes.json',
+  'docs/reviews/2026-09-23-local-resource-accounting-audit.json',
+]);
 const validSha = value => typeof value === 'string' && /^[a-f0-9]{40}$/u.test(value);
 const validPath = value => typeof value === 'string' && /^[A-Za-z0-9_.\/-]+$/u.test(value) &&
   !value.startsWith('/') && !value.split('/').some(part => ['', '.', '..'].includes(part));
 export const sharedFiles = ['proofs/ci-evidence/actions.mjs', 'proofs/ci-evidence/inputs.mjs',
+  'proofs/ci-evidence/execution-recipes.mjs',
+  'proofs/bounded-session/evidence.mjs', 'proofs/bounded-session/run.mjs',
+  'proofs/ci-evidence/package-configurations.mjs',
+  'proofs/ci-evidence/isolated-contract.mjs',
   'proofs/ci-evidence/receipts.mjs', 'proofs/ci-evidence/check.mjs',
   'proofs/ci-evidence/applications.mjs',
+  'proofs/ci-evidence/acceptance.mjs', 'proofs/ci-evidence/acquisition.mjs',
   'proofs/ci-evidence/plan.mjs',
+  'proofs/ci-evidence/isolation.mjs', 'proofs/ci-evidence/isolated-mutations.mjs',
+  'proofs/ci-evidence/isolated-runtime.mjs', 'proofs/ci-evidence/isolated-execution.mjs',
+  'proofs/ci-evidence/mutation-inventory.mjs',
+  'proofs/ci-evidence/mutation-observation.mjs',
   'proofs/ci-evidence/runtime.mjs', 'proofs/ci-evidence/collect.mjs', 'proofs/ci-evidence/transport.mjs', 'proofs/ci-evidence/final.mjs',
   'proofs/ci-evidence/cli.mjs',
   'proofs/ci-evidence/Reuse.lean', 'proofs/ci-evidence/Claims.lean',
+  'package.json', 'package-lock.json',
   'scripts/test-execution.mjs', 'scripts/packed-query-evidence.mjs', 'scripts/ci-artifact-reader.mjs',
   'proofs/bounded-session/action-inputs.mjs', 'toolchain.json', 'moon.mod',
   'scripts/setup-moonbit.mjs', 'scripts/moonbit-installation.mjs',
   'scripts/ci-main-base.mjs', 'scripts/ci-targets.mjs',
   '.github/workflows/ci.yml', '.github/actions/setup-toolchain/action.yml'];
 
+// Read cat-file's length-delimited binary protocol, never split blob bytes on
+// newlines. Bind every returned object to the ls-tree identity and content; a
+// missing/truncated/reordered/substituted response cannot populate the cache.
+export function readBlobBatch(output, objects) {
+  assert(Buffer.isBuffer(output) && Array.isArray(objects) && objects.length > 0 && objects.length <= 256);
+  const parsed = new Map();
+  let offset = 0;
+  for (const object of objects) {
+    assert(validSha(object) && !parsed.has(object), 'Invalid/duplicate requested Git blob');
+    const end = output.indexOf(10, offset);
+    assert(end >= offset, 'Missing Git batch header');
+    const header = output.subarray(offset, end).toString('ascii');
+    const match = /^([a-f0-9]{40}) blob (0|[1-9][0-9]*)$/u.exec(header);
+    assert(match && match[1] === object, 'Missing/wrong Git batch blob identity/type');
+    const size = Number(match[2]); offset = end + 1;
+    assert(Number.isSafeInteger(size) && size <= 64 * 1024 * 1024 && offset + size < output.length && output[offset + size] === 10,
+      'Truncated/unbounded Git batch blob');
+    const bytes = output.subarray(offset, offset + size);
+    const digest = createHash('sha1').update(`blob ${size}\0`).update(bytes).digest('hex');
+    assert.equal(digest, object, 'Git batch blob bytes differ from object identity');
+    parsed.set(object, Buffer.from(bytes)); offset += size + 1;
+  }
+  assert.equal(offset, output.length, 'Unexpected extra Git batch output');
+  return parsed;
+}
+
 // Read an immutable Git revision. No generated/untracked inputs can silently
 // join the closure. The execution boundary must independently require a clean
 // tracked checkout and the corresponding runtime manifest.
 export function gitTree(root, revision) {
   assert(validSha(revision), 'Expected full input revision');
-  const git = args => execFileSync('git', args, {cwd: root, maxBuffer: 64 * 1024 * 1024});
+  const git = (args, input) => execFileSync('git', args, {cwd: root, input, maxBuffer: 64 * 1024 * 1024});
   assert.equal(git(['replace', '-l']).toString().trim(), '', 'Replaced Git history');
   const entries = new Map();
   const bytes = new Map();
@@ -35,10 +79,24 @@ export function gitTree(root, revision) {
     assert(match, 'Unmodelled Git object');
     entries.set(match[4], {path: match[4], mode: match[1], object: match[3], kind: match[2]});
   }
-  return {entries, read(path) {
+  function prefetch(paths) {
+    const objects = new Set();
+    for (const path of paths) {
+      const entry = entries.get(path);
+      assert(entry?.kind === 'blob', `Missing source input: ${path}`);
+      if (!bytes.has(entry.object)) objects.add(entry.object);
+    }
+    const selected = [...objects];
+    for (let offset = 0; offset < selected.length; offset += 256) {
+      const batch = selected.slice(offset, offset + 256);
+      const parsed = readBlobBatch(git(['cat-file', '--batch'], `${batch.join('\n')}\n`), batch);
+      for (const [object, data] of parsed) bytes.set(object, data);
+    }
+  }
+  return {entries, prefetch, read(path) {
     const entry = entries.get(path);
     assert(entry?.kind === 'blob', `Missing source input: ${path}`);
-    if (!bytes.has(entry.object)) bytes.set(entry.object, git(['cat-file', 'blob', entry.object]));
+    if (!bytes.has(entry.object)) prefetch([path]);
     return bytes.get(entry.object);
   }};
 }
@@ -72,6 +130,8 @@ export function actionInputs({tree, revision, action, runtime}) {
   assert(validSha(revision));
   assert(runtime && typeof runtime === 'object' && Array.isArray(runtime.unresolved), 'Missing runtime boundary');
   const included = new Set(), listings = new Map(), external = new Set(), unresolved = new Set(runtime.unresolved);
+  const configurations = [];
+  const toolchainDigest = tree.entries.get('toolchain.json')?.kind === 'blob' ? hash(tree.read('toolchain.json')) : null;
   function add(path) {
     if (!tree.entries.has(path)) { unresolved.add(`missing source input: ${path}`); return; }
     included.add(path);
@@ -103,7 +163,13 @@ export function actionInputs({tree, revision, action, runtime}) {
       let result;
       try { result = packageImports(tree.read(manifest).toString('utf8')); }
       catch { unresolved.add(`unmodelled import syntax: ${manifest}`); return; }
-      if (result.unknown) unresolved.add(`${result.unknown}: ${manifest}`);
+      if (result.unknown) {
+        const digest = hash(tree.read(manifest));
+        if (reviewedPackageConfiguration({path: manifest, digest, target: action.target, toolchainDigest})) {
+          configurations.push({path: manifest, digest, target: action.target, toolchainDigest,
+            review: packageConfigurationReview});
+        } else unresolved.add(`${result.unknown}: ${manifest}`);
+      }
       for (const dependency of result.imports) {
         if (dependency.startsWith('actql/actql/')) {
           const child = `src/${dependency.slice('actql/actql/'.length)}`;
@@ -123,16 +189,23 @@ export function actionInputs({tree, revision, action, runtime}) {
     }
     if (action.package) visit(action.package);
     else if (action.id === 'mutations-js') {
+      listing('src', true);
+      mutationSnapshotExtras.forEach(add);
+      add('proofs/bounded-session/mutations.mjs');
+      add('proofs/bounded-session/evidence.mjs');
       for (const path of ['src/bounded_execution', 'src/connectors/local', 'src/query_integration']) visit(path);
     } else unresolved.add(`unreviewed executor: ${action.id}`);
   }
-  const files = [...included].sort().map(path => {
+  const paths = [...included].sort();
+  tree.prefetch?.(paths.filter(path => tree.entries.get(path).kind === 'blob'));
+  const files = paths.map(path => {
     const entry = tree.entries.get(path);
     const bytes = entry.kind === 'blob' ? tree.read(path) : null;
     return {path, kind: entry.kind, mode: entry.mode, bytes: bytes?.length ?? 0, digest: bytes ? hash(bytes) : entry.object};
   });
   const inputs = {action, files, directories: [...listings].sort(([a], [b]) => a.localeCompare(b)).map(([path, members]) => ({path, members})),
-    externalPackages: [...external].sort(), runtime, unresolved: [...unresolved].sort()};
+    externalPackages: [...external].sort(), packageConfigurations: configurations.sort((a, b) => a.path.localeCompare(b.path)),
+    runtime, unresolved: [...unresolved].sort()};
   return {version: inputVersion, revision, inputs, key: hash(`actql-verification-action-key/0.1\0${encode(inputs)}`),
     unresolved: [...unresolved].sort()};
 }

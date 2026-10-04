@@ -545,6 +545,7 @@ fn lower_expression_measured(
       | GraphBoundsRows(_)
       | GraphDegreeRows(_)
       | GraphEqualityRows(_)
+      | GraphComponentsRows(_)
       | PropertyGraphConstructionValue(_)
       | VectorValue(_)
       | NearestValue(_)

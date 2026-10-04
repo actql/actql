@@ -1,5 +1,5 @@
 ///|
-test "conditional Relation presence only admits guaranteed projection including empty input" {
+test "conditional Relation presence admits guaranteed projection and filter including empty input" {
   let schema = @schema.from_presence_fields(
     [
       (
@@ -36,7 +36,7 @@ test "conditional Relation presence only admits guaranteed projection including 
     )
     is Err({ kind: Operation(PresenceRequired("p")), .. }),
   )
-  for body in ["[{\"derive\":{}}]", "[{\"filter\":\"p IS NOT NULL\"}]"] {
+  for body in ["[{\"derive\":{}}]"] {
     assert_true(
       @pipeline_typing.check(
         cursor(body),
@@ -48,6 +48,50 @@ test "conditional Relation presence only admits guaranteed projection including 
       is Err({ kind: Operation(ConditionalInputNotImplemented), .. }),
     )
   }
+  assert_true(
+    @pipeline_typing.check(
+      cursor("[{\"filter\":\"id < 4\"},{\"select\":[\"id\"]}]"),
+      [("rows", schema)],
+      None,
+      None,
+      limits(),
+    )
+    is Ok(_),
+  )
+  for body in ["p IS NOT NULL", "if(false, p > 0, true)"] {
+    assert_true(
+      @pipeline_typing.check(
+        cursor("[{\"filter\":\"" + body + "\"}]"),
+        [("rows", schema)],
+        None,
+        None,
+        limits(),
+      )
+      is Err({ kind: Operation(PresenceRequired("p")), .. }),
+    )
+  }
+  assert_true(
+    @pipeline_typing.check(
+      cursor(
+        "[{\"filter\":\"id < 4\"},{\"sort\":[{\"id\":\"desc\"}]},{\"take\":1},{\"select\":[\"id\"]}]",
+      ),
+      [("rows", schema)],
+      None,
+      None,
+      limits(),
+    )
+    is Ok(_),
+  )
+  assert_true(
+    @pipeline_typing.check(
+      cursor("[{\"sort\":[{\"p\":\"asc\"}]}]"),
+      [("rows", schema)],
+      None,
+      None,
+      limits(),
+    )
+    is Err({ kind: Operation(PresenceRequired("p")), .. }),
+  )
   let dense = @schema.from_fields(
     [(Unqualified("id"), @contract.primitive(NumberType, nullable=false))],
     max_fields=1,

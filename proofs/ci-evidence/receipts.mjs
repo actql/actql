@@ -1,10 +1,14 @@
 import assert from 'node:assert/strict';
+import {mutationObservation} from './mutation-observation.mjs';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {parseTestExecution} from '../../scripts/test-execution.mjs';
 import {openArtifactZip} from '../../scripts/ci-artifact-reader.mjs';
 import {compareInputs, hash, inputVersion} from './inputs.mjs';
 import {validateCatalog, version as catalogVersion} from './actions.mjs';
 import {ArtifactUnavailable} from './transport.mjs';
+import {mutationIds} from './mutation-inventory.mjs';
+export {mutationIds} from './mutation-inventory.mjs';
+import {isolatedProfile} from './isolated-runtime.mjs';
 
 export const receiptVersion = 'actql-verification-action-receipt/0.1';
 const positive = value => Number.isSafeInteger(value) && value > 0;
@@ -61,6 +65,11 @@ export function validateReceipt(receipt) {
   }
   const observation = receipt.artifacts.find(entry => entry.path === `observations/${receipt.action.id}.log`);
   assert(observation && observation.digest === execution.observationDigest, 'Missing bound execution observation');
+  if (receipt.inputs.inputs.runtime.profile === isolatedProfile) {
+    assert.equal(receipt.action.id, 'mutations-js', 'Isolated profile applied to another action');
+    assert(['isolated-inputs.json', 'isolated-observation.json', 'isolated-execution.json'].every(path =>
+      receipt.artifacts.some(entry => entry.path === path)), 'Missing bound isolated correspondence');
+  }
   return receipt;
 }
 
@@ -90,10 +99,7 @@ export function observationUnits(action, output, status) {
   throw new Error('Unreviewed action observation');
 }
 
-export const mutationIds = Object.freeze(['stale-token-reuse', 'zero-quantum', 'terminal-resume',
-  'cleanup-changed-as-complete', 'cumulative-as-delta', 'reset-budget-history', 'accept-backward-work',
-  'adapter-terminal-resume', 'premature-cleanup-success', 'cleanup-retry-reruns-callback',
-  'actual-set-path-reaches-adapter', 'actual-nest-path-reaches-adapter', 'nest-parent-child-ports-swapped']);
+
 
 export function sealReceipt({origin, action, inputs, output, status, milliseconds, artifacts = []}) {
   const observation = Buffer.from(output);
@@ -159,36 +165,71 @@ export async function authenticateOrigin({receipt, artifactId, expected, request
   return artifact;
 }
 
-export async function readOriginReceipt({archive, artifactId, action, expected, request, acquisition}) {
+export async function readOriginReceipts({archive, artifactId, actions, expected, request, acquisition}) {
+  assert(Array.isArray(actions) && actions.length > 0 && actions.length <= 256, 'Empty/unbounded receipt group');
+  assert(new Set(actions.map(action => action.id)).size === actions.length, 'Duplicate requested action');
   // First read permits no execution/extraction. Authenticate its carried IDs,
   // then reopen against the API's ZIP digest before accepting any bytes.
   let zip = await openArtifactZip(archive, {limits: {maxCompressedBytes: 64 * 1024 * 1024, maxTotalBytes: 256 * 1024 * 1024, maxEntries: 2000}});
-  let receipt;
-  try { receipt = parseReceipt(await zip.read(`receipts/${action.id}.json`)); }
+  const receipts = new Map();
+  try {
+    for (const action of actions) {
+      const receipt = parseReceipt(await zip.read(`receipts/${action.id}.json`));
+      assert.equal(encode(receipt.action), encode(action), 'Origin target/scope/premises/command mismatch');
+      receipts.set(action.id, receipt);
+    }
+  }
   finally { await zip.close(); }
-  assert.equal(encode(receipt.action), encode(action), 'Origin target/scope/premises/command mismatch');
+  const receipt = receipts.get(actions[0].id);
+  // Only receipts owned by the same actual run/attempt/job/archive share API
+  // authentication. Similar scope, bytes or repository names are insufficient.
+  for (const original of receipts.values()) assert.equal(encode(original.origin), encode(receipt.origin), 'Mixed receipt archive owners');
   const artifact = await authenticateOrigin({receipt, artifactId, expected, request, acquisition});
   zip = await openArtifactZip(archive, {expectedSha256: artifact.digest,
     limits: {maxCompressedBytes: 64 * 1024 * 1024, maxTotalBytes: 256 * 1024 * 1024, maxEntries: 2000}});
   try {
-    const bytes = await zip.read(`receipts/${action.id}.json`);
-    assert.equal(encode(parseReceipt(bytes)), encode(receipt), 'Receipt changed during authentication');
-    for (const entry of receipt.artifacts) {
-      const member = zip.entries.find(value => value.path === entry.path);
-      assert(member && member.bytes === entry.bytes, 'Missing/wrong artifact size');
-      assert.equal(await zip.digest(entry.path), entry.digest, 'Original artifact digest mismatch');
+    const checked = new Map(), digests = new Map();
+    for (const action of actions) {
+      const receipt = receipts.get(action.id), bytes = await zip.read(`receipts/${action.id}.json`);
+      assert.equal(encode(parseReceipt(bytes)), encode(receipt), 'Receipt changed during authentication');
+      for (const entry of receipt.artifacts) {
+        const member = zip.entries.find(value => value.path === entry.path);
+        assert(member && member.bytes === entry.bytes, 'Missing/wrong artifact size');
+        if (!digests.has(entry.path)) digests.set(entry.path, await zip.digest(entry.path));
+        assert.equal(digests.get(entry.path), entry.digest, 'Original artifact digest mismatch');
+      }
+      const observation = await zip.read(`observations/${action.id}.log`);
+      assert.equal(observationUnits(action, observation.toString('utf8'), receipt.execution.exit), receipt.execution.units);
+      let scientificDigest = null;
+      if (action.id === 'mutations-js') {
+        const path = 'results/mutations-js.json';
+        assert(receipt.artifacts.some(entry => entry.path === path), 'Missing mutation result artifact');
+        const result = await zip.json(path);
+        assert.deepEqual(result.results?.map(entry => entry.id).sort(), [...mutationIds].sort());
+        assert(result.results.every(entry => entry.killed === true && positive(entry.failureCount) && entry.target === 'js'));
+        assert.equal(result.sourceRestored, true, 'Unconfirmed mutation source restoration');
+        assert.equal(result.revision, receipt.origin.testedRevision, 'Wrong mutation source revision');
+        scientificDigest = mutationObservation(result).digest;
+      }
+      checked.set(action.id, {receipt, receiptDigest: hash(bytes), artifactId, archiveDigest: zip.sha256, scientificDigest});
     }
-    const observation = await zip.read(`observations/${action.id}.log`);
-    assert.equal(observationUnits(action, observation.toString('utf8'), receipt.execution.exit), receipt.execution.units);
-    if (action.id === 'mutations-js') {
-      const path = 'results/mutations-js.json';
-      assert(receipt.artifacts.some(entry => entry.path === path), 'Missing mutation result artifact');
-      const result = await zip.json(path);
-      assert.deepEqual(result.results?.map(entry => entry.id).sort(), [...mutationIds].sort());
-      assert(result.results.every(entry => entry.killed === true && positive(entry.failureCount) && entry.target === 'js'));
-      assert.equal(result.sourceRestored, true, 'Unconfirmed mutation source restoration');
-      assert.equal(result.revision, receipt.origin.testedRevision, 'Wrong mutation source revision');
-    }
-    return {receipt, receiptDigest: hash(bytes), artifactId, archiveDigest: zip.sha256};
+    // A rerun or head transition during the bounded ZIP inspection invalidates
+    // the entire group. The before/after check surrounds all member validation.
+    const current = await request(`/actions/runs/${receipt.origin.runId}`);
+    assert.equal(current.id, receipt.origin.runId); assert.equal(current.run_attempt, receipt.origin.runAttempt);
+    assert.equal(current.head_sha, receipt.origin.runHeadRevision);
+    assert.equal(current.workflow_id, receipt.origin.workflowId);
+    assert.equal(current.repository?.id, receipt.origin.repositoryId);
+    assert.equal(current.repository?.full_name, receipt.origin.repository);
+    assert.equal(current.head_repository?.id, acquisition === 'reused' ? receipt.origin.repositoryId : expected.headRepositoryId ?? receipt.origin.repositoryId);
+    assert.equal(current.path, receipt.origin.workflowPath); assert.equal(current.event, receipt.origin.event);
+    assert.equal(current.head_branch, receipt.origin.branch);
+    if (acquisition === 'reused') assert(current.status === 'completed' && current.conclusion === 'success');
+    else assert(current.status === 'in_progress' || current.status === 'completed' && current.conclusion === 'success');
+    return checked;
   } finally { await zip.close(); }
+}
+
+export async function readOriginReceipt({action, ...options}) {
+  return (await readOriginReceipts({...options, actions: [action]})).get(action.id);
 }

@@ -10,9 +10,11 @@ import {openArtifactZip} from '../../scripts/ci-artifact-reader.mjs';
 import {catalogPath, validateCatalog, compareCatalogs} from './actions.mjs';
 import {actionInputs, gitTree, compareInputs, hash} from './inputs.mjs';
 import {policyUnchanged} from './applications.mjs';
-import {readOriginReceipt} from './receipts.mjs';
+import {readOriginReceipts} from './receipts.mjs';
 import {downloadArtifact, ArtifactUnavailable, unavailableTransport} from './transport.mjs';
 import {checkRuntimeObservation} from './runtime.mjs';
+import {runtimeForAction, readActionRuntimes} from './isolated-runtime.mjs';
+import {mutationObservation} from './mutation-observation.mjs';
 
 export const comparisonVersion = 'actql-verification-action-comparison/0.1';
 const positive = value => Number.isSafeInteger(value) && value > 0;
@@ -41,7 +43,7 @@ export function selectOriginArtifact(data, baseline, context) {
   return artifact;
 }
 
-async function readRuntime({archive, artifact, baseline, context}) {
+async function readRuntime({archive, artifact, baseline, context, tree}) {
   const zip = await openArtifactZip(archive, {expectedSha256: artifact.digest,
     limits: {maxCompressedBytes: 64 * 1024 * 1024, maxTotalBytes: 256 * 1024 * 1024, maxEntries: 2000}});
   try {
@@ -55,24 +57,24 @@ async function readRuntime({archive, artifact, baseline, context}) {
     assert.equal(state.context.runAttempt, baseline.runAttempt);
     assert.equal(state.context.workflowId, context.workflowId);
     checkRuntimeObservation(state.runtime, distributionInputs);
-    return state.runtime;
+    return {runtime: state.runtime, actionRuntimes: await readActionRuntimes({zip, state, tree})};
   } finally { await zip.close(); }
 }
 
 // All injection points are internal test seams. The CI caller supplies actual
 // Git, the existing Actions client and transport; request JSON cannot override
 // authentication, history, source extraction or runtime validation.
-export async function comparisonPlan({root, context, runtime, directory, token, request,
+export async function comparisonPlan({root, context, runtime, actionRuntimes = {}, directory, token, request,
   recordedRunId = null, treeAt = revision => gitTree(root, revision),
   git = args => execFileSync('git', args, {cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024}),
-  resolveBaseline = resolveMainBaseline, download = downloadArtifact, read = readOriginReceipt,
-  loadRuntime = readRuntime}) {
+  resolveBaseline = resolveMainBaseline, download = downloadArtifact, read = null,
+  loadRuntime = readRuntime, onArchive = null, readGroup = readOriginReceipts}) {
   assert(sha(context.candidateRevision) && positive(context.repositoryId) && positive(context.workflowId));
   assert(recordedRunId === null || positive(recordedRunId));
   const start = performance.now(), tree = treeAt(context.candidateRevision);
   const catalog = validateCatalog(JSON.parse(tree.read(catalogPath)));
   const actions = catalog.actions.map(action => ({actionId: action.id, acquisition: 'execute',
-    candidateActionKey: actionInputs({tree, revision: context.candidateRevision, action, runtime}).key,
+    candidateActionKey: actionInputs({tree, revision: context.candidateRevision, action, runtime: runtimeForAction(action, runtime, actionRuntimes)}).key,
     status: 'checkpoint-unavailable', origin: null, equal: false, closed: false, unresolved: []}));
   // At the final consumer validate the originally selected checkpoint again,
   // rather than changing the origin when another old run finishes meanwhile.
@@ -115,7 +117,7 @@ export async function comparisonPlan({root, context, runtime, directory, token, 
   try {
     artifact = selectOriginArtifact(await request(`/actions/runs/${baseline.runId}/artifacts?per_page=100`), baseline, context);
     archive = await download({repository: context.repository, artifactId: artifact.id, token, directory});
-    originRuntime = await loadRuntime({archive, artifact, baseline, context});
+    originRuntime = await loadRuntime({archive, artifact, baseline, context, tree: originTree});
     plan.artifact = {id: artifact.id, digest: artifact.digest, bytes: artifact.size_in_bytes};
   } catch (error) {
     if (!unavailableTransport(error)) throw error;
@@ -127,28 +129,42 @@ export async function comparisonPlan({root, context, runtime, directory, token, 
   }
   plan.costs.transferMilliseconds = Math.round(performance.now() - transferStart);
   const inspectionStart = performance.now();
+  const matched = catalog.actions.filter(action => {
+    const registered = originalCatalog.actions.find(value => value.id === action.id);
+    return registered && unchanged(registered, action);
+  });
+  let originals = null, groupFailure;
+  if (read === null && matched.length > 0) {
+    try {
+      originals = await readGroup({archive, artifactId: artifact.id, actions: matched,
+        acquisition: 'reused', request, expected: {...context, ancestors: [baseline.baseSha]}});
+    } catch (error) { groupFailure = error; }
+  }
   for (const [index, action] of catalog.actions.entries()) {
     const entry = actions[index], registered = originalCatalog.actions.find(value => value.id === action.id);
     if (!registered || !unchanged(registered, action)) { entry.status = 'registration-changed'; continue; }
     try {
-      const original = await read({archive, artifactId: artifact.id, action, acquisition: 'reused', request,
-        expected: {...context, ancestors: [baseline.baseSha]}});
+      if (groupFailure) throw groupFailure;
+      const original = read === null ? originals.get(action.id) : await read({archive, artifactId: artifact.id, action,
+        acquisition: 'reused', request, expected: {...context, ancestors: [baseline.baseSha]}});
       const receipt = original.receipt;
       assert(unchanged(receipt.action, action), 'Wrong origin action/target/scope');
       assert.equal(receipt.origin.testedRevision, baseline.baseSha);
       assert.equal(receipt.origin.runId, baseline.runId); assert.equal(receipt.origin.runAttempt, baseline.runAttempt);
       assert.equal(original.artifactId, artifact.id);
       assert.equal(original.archiveDigest, artifact.digest.replace(/^sha256:/u, ''));
-      assert(unchanged(receipt.inputs.inputs.runtime, originRuntime), 'Receipt runtime differs from authenticated observation');
-      const reconstructed = actionInputs({tree: originTree, revision: baseline.baseSha, action, runtime: originRuntime});
+      const originalRuntime = runtimeForAction(action, originRuntime.runtime, originRuntime.actionRuntimes);
+      assert(unchanged(receipt.inputs.inputs.runtime, originalRuntime), 'Receipt runtime differs from authenticated observation');
+      const reconstructed = actionInputs({tree: originTree, revision: baseline.baseSha, action, runtime: originalRuntime});
       assert(unchanged(reconstructed, receipt.inputs), 'Original carried inputs do not match actual Git');
-      const current = actionInputs({tree, revision: context.candidateRevision, action, runtime});
+      const current = actionInputs({tree, revision: context.candidateRevision, action, runtime: runtimeForAction(action, runtime, actionRuntimes)});
       const comparison = compareInputs(reconstructed, current);
       entry.status = comparison.eligible ? 'closed-inputs-match' : comparison.equal ? 'same-inputs-open' : 'candidate-inputs-changed';
       entry.equal = comparison.equal; entry.closed = comparison.eligible; entry.unresolved = comparison.reasons;
       entry.origin = {receiptDigest: original.receiptDigest, actionKey: reconstructed.key,
         revision: receipt.origin.testedRevision, runId: receipt.origin.runId, runAttempt: receipt.origin.runAttempt,
-        units: receipt.execution.units, milliseconds: receipt.execution.milliseconds};
+        units: receipt.execution.units, milliseconds: receipt.execution.milliseconds,
+        scientificDigest: original.scientificDigest ?? null};
     } catch (error) {
       // Optional origin authentication must not prevent any fresh action from
       // running. Keep authenticated earlier entries; this entry has no origin
@@ -156,11 +172,15 @@ export async function comparisonPlan({root, context, runtime, directory, token, 
       entry.status = unavailableTransport(error) ? 'origin-receipt-unavailable' : 'origin-rejected';
     }
   }
+  // A private transport handle, never serialized in scientific evidence. It
+  // lets the execution selector retain exactly the already inspected archive.
+  onArchive?.({archive, artifact, baseline});
   plan.costs.inspectionMilliseconds = Math.round(performance.now() - inspectionStart);
   return finish();
 }
 
-export function compareFreshObservations({plan, context, runtime, tree, receipts}) {
+export function compareFreshObservations({plan, context, runtime, actionRuntimes = {}, tree, receipts, mutationResult = null,
+  acquisitions = null}) {
   assert.equal(plan.version, comparisonVersion); assert.equal(plan.mode, 'comparison');
   assert.equal(plan.reuseAuthorized, false, 'Comparison cannot authorize skip');
   assert(unchanged(plan.context, context), 'Different comparison owner');
@@ -171,18 +191,35 @@ export function compareFreshObservations({plan, context, runtime, tree, receipts
   return catalog.actions.map((action, index) => {
     const entry = plan.actions[index], receipt = receipts[index];
     assert.equal(entry.acquisition, 'execute');
-    assert(unchanged(receipt.action, action) && receipt.origin.testedRevision === context.candidateRevision);
-    const current = actionInputs({tree, revision: context.candidateRevision, action, runtime});
+    assert(unchanged(receipt.action, action));
+    const current = actionInputs({tree, revision: context.candidateRevision, action, runtime: runtimeForAction(action, runtime, actionRuntimes)});
     assert.equal(entry.candidateActionKey, current.key, 'Changed candidate comparison inputs');
+    const acquisition = acquisitions?.find(value => value.actionId === action.id);
+    if (acquisition?.acquisition === 'reused') {
+      assert.equal(action.id, 'mutations-js');
+      assert.equal(receipt.origin.testedRevision, acquisition.origin.revision);
+      assert.equal(receipt.inputs.key, current.key);
+      assert.equal(hash(Buffer.from(`${encode(receipt)}\n`)), acquisition.origin.receiptDigest);
+      return {actionId: action.id, status: 'reused-not-executed', freshUnits: null, originUnits: receipt.execution.units,
+        freshMilliseconds: null, originMilliseconds: receipt.execution.milliseconds,
+        scientificDigest: null, originScientificDigest: acquisition.origin.scientificDigest};
+    }
+    assert.equal(receipt.origin.testedRevision, context.candidateRevision);
     assert(unchanged(receipt.inputs, current), 'Fresh receipt does not match comparison candidate');
     const comparable = entry.equal && entry.origin !== null;
-    const matches = comparable && receipt.execution.units === entry.origin.units;
-    // This measures count correspondence only. It is not a proof of output
-    // determinism, and an open runtime cannot become closed because counts match.
+    const scientificDigest = action.id === 'mutations-js' ? mutationObservation(mutationResult).digest : null;
+    const matches = comparable && receipt.execution.units === entry.origin.units &&
+      (action.id !== 'mutations-js' || scientificDigest === entry.origin.scientificDigest);
+    // For mutations compare the registered experiment selections and actual
+    // detection results too. This is finite correspondence, not a proof of
+    // determinism; matching results cannot close an unreviewed input boundary.
     if (entry.closed) assert(matches, 'Closed equal-input action disagreed with normal execution');
-    return {actionId: action.id, status: !comparable ? 'not-comparable' : matches ? 'counts-match' : 'counts-mismatch',
+    return {actionId: action.id, status: !comparable ? 'not-comparable' : matches ?
+      action.id === 'mutations-js' ? 'scientific-match' : 'counts-match' :
+      action.id === 'mutations-js' ? 'scientific-mismatch' : 'counts-mismatch',
       freshUnits: receipt.execution.units, originUnits: comparable ? entry.origin.units : null,
-      freshMilliseconds: receipt.execution.milliseconds, originMilliseconds: entry.origin?.milliseconds ?? null};
+      freshMilliseconds: receipt.execution.milliseconds, originMilliseconds: entry.origin?.milliseconds ?? null,
+      scientificDigest, originScientificDigest: comparable ? entry.origin.scientificDigest : null};
   });
 }
 
@@ -194,6 +231,11 @@ export async function verifyComparison({plan, ...options}) {
   assert(unchanged(plan.context, options.context), 'Different final comparison owner');
   exact(plan.costs, ['checkpointMilliseconds', 'transferMilliseconds', 'inspectionMilliseconds', 'totalMilliseconds']);
   assert(Object.values(plan.costs).every(value => Number.isSafeInteger(value) && value >= 0), 'Invalid comparison costs');
+  // An already completed integrity rejection is permanent for this recorded
+  // comparison. A repeated rejection, later repair or transport outage cannot
+  // confirm it or downgrade it to optional unavailability.
+  assert(Array.isArray(plan.actions) && !plan.actions.some(entry => entry.status === 'origin-rejected'),
+    'Rejected origin receipt');
   // A cache/history miss consumed no original. Do not turn later availability
   // into a retroactive adoption or fail an otherwise valid complete fresh run.
   // This records that no origin was used, not a claim that absence is permanent.
@@ -228,6 +270,7 @@ export async function verifyComparison({plan, ...options}) {
     return {status: 'unconfirmed', reason: 'origin-unavailable', reuseAuthorized: false,
       costs: {totalMilliseconds: Math.round(performance.now() - started)}};
   }
+  assert(!replay.actions.some(entry => entry.status === 'origin-rejected'), 'Rejected origin receipt');
   // A genuine cache miss after a valid start is informational: all candidate
   // obligations were independently executed fresh. Preserve the original plan.
   if (replay.artifact === null && replay.actions.every(entry => entry.status === 'origin-archive-unavailable')) {

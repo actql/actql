@@ -78,8 +78,9 @@ if (action === 'public-success') {
   await report({cases: retained.length, provider: provider.snapshot()});
 } else if (action === 'retained') {
   const retained = JSON.parse(await readFile(resolve(root, 'retained-two-source.json'), 'utf8'));
-  await verifyTwoSourceRetained({connect, openInstalledRemoteHttpHost, fixture, retained, provider, tls, authorization: baseAuthorization});
-  await report({cases: retained.length, provider: provider.snapshot()});
+  const readerClosures = await verifyTwoSourceRetained({connect, openInstalledRemoteHttpHost,
+    fixture, retained, provider, tls, authorization: baseAuthorization});
+  await report({cases: retained.length, readerClosures, provider: provider.snapshot()});
 } else {
   const directory = resolve(root, `${caseName}-state`), requestId = `two-source-${caseName}`;
   const mode = caseName.startsWith('local-') ? 'local' : 'https';
@@ -121,6 +122,11 @@ if (action === 'public-success') {
     }
     delete environment.evidence_bundle_cid; environment.evidence_bundle_cid = cid(environment);
     changed.checkEnvironmentWire = canonical(environment);
+    // Keep the public alias bound to the intentionally changed valid view.
+    // The retained Run must reject generation drift at its dependency owner,
+    // rather than failing unrelated Host alias publication during startup.
+    changed.queryAliases = changed.queryAliases.map(alias => ({...alias,
+      sourceViewContractCid: view.contract_cid}));
     const path = resolve(root, `${caseName}-changed-right.profile.json`);
     await writeFile(path, canonical(changed)); sourceProfilePaths[1] = path;
     // An ordinary public submission must reach accepted dispatch under the

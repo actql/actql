@@ -150,6 +150,23 @@ export const pipeResultExecutionFailures = [
     resultNames: ['original', 'invalid'], sourceReadSessionCount: 1},
 ];
 export const queryCompositionSuccesses = [
+  ...['sql', 'aql-text'].map(format => ({
+    name: `cte-join-right-shared-capture-${format}`, format,
+    text: 'WITH chosen AS (SELECT id FROM records WHERE id = 1), pairs AS (SELECT r.id AS id FROM chosen AS l CROSS JOIN records AS r) SELECT id FROM pairs ORDER BY id',
+    sourceRows: [{id: 1, amount: null}, {id: 2, amount: 20}],
+    expected: [{id: 1}, {id: 2}], columns: [relationNumber('id')],
+    sourceReadSessionCount: 1,
+  })),
+  {name: 'cte-outer-join-right-shared-capture', format: 'sql',
+    text: 'WITH chosen AS (SELECT id FROM records WHERE id = 1) SELECT r.id AS id FROM chosen AS l CROSS JOIN records AS r ORDER BY id',
+    sourceRows: [{id: 1, amount: null}, {id: 2, amount: 20}],
+    expected: [{id: 1}, {id: 2}], columns: [relationNumber('id')],
+    sourceReadSessionCount: 1},
+  {name: 'cte-join-right-shadows-outer-capture', format: 'sql',
+    text: 'WITH chosen AS (SELECT id FROM records WHERE id = 1), records AS (SELECT id FROM chosen), pairs AS (SELECT r.id AS id FROM chosen AS l CROSS JOIN records AS r) SELECT id FROM pairs ORDER BY id',
+    sourceRows: [{id: 1, amount: null}, {id: 2, amount: 20}],
+    expected: [{id: 1}], columns: [relationNumber('id')],
+    sourceReadSessionCount: 1},
   {name: 'derived-exact-string-chunks', format: 'sql',
     text: "SELECT value FROM (SELECT r'\\n' 'e\\u0301' AS value) AS chosen",
     expected: [{value: '\\ne\u0301'}],

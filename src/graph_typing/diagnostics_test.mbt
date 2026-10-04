@@ -148,6 +148,65 @@ test "graph bounds retain declared parameter references without observing values
 }
 
 ///|
+test "components retain semantic identity and positive output guards" {
+  let graph = current_scope_graph()
+  let weak = @graph_typing.check_components(
+    cursor("{\"kind\":\"weak\",\"max_output_rows\":2}"),
+    graph,
+    None,
+    limits(),
+  ).unwrap()
+  assert_eq(@graph_typing.components_kind(weak), @graph_typing.Weak)
+  assert_true(
+    @graph_typing.components_max_output_rows(weak)
+    is Some(@graph_typing.Literal(2L)),
+  )
+  assert_eq(@graph_typing.components_pending_count(weak), 5)
+  assert_eq(
+    @graph_typing.components_pending_at(weak, 4),
+    Some(@graph_typing.EnforceComponentAuthorGuard),
+  )
+  let output = @carrier.complete_schema(
+    @carrier.relation_rows(@graph_typing.components_output(weak)).unwrap(),
+  ).unwrap()
+  assert_eq(@row.field_count(output), 3)
+  let identity = @row.lookup(output, Unqualified("node_id")).unwrap()
+  let component = @row.lookup(output, Unqualified("component_id")).unwrap()
+  assert_true(identity.shape is @contract.Json)
+  assert_true(component.shape is @contract.Json)
+  assert_false(identity.nullable)
+  assert_false(component.nullable)
+  assert_true(@row.lookup(output, Unqualified("component_size")) is Some(_))
+
+  let declarations = @parameter.read_declarations(
+    Some(cursor("{\"n\":{\"type\":\"number\"}}")),
+    { max_parameters: 1, max_nodes: 10, max_depth: 10, max_text_bytes: 100, },
+  ).unwrap()
+  let strong = @graph_typing.check_components(
+    cursor("{\"kind\":\"strong\",\"max_output_rows\":{\"$param\":\"n\"}}"),
+    graph,
+    Some(declarations),
+    limits(),
+  ).unwrap()
+  assert_eq(@graph_typing.components_kind(strong), @graph_typing.Strong)
+  assert_eq(@graph_typing.components_pending_count(strong), 6)
+  assert_eq(
+    @graph_typing.components_pending_at(strong, 5),
+    Some(@graph_typing.BindComponentAuthorGuard("n")),
+  )
+  for
+    body in [
+      "{}", "{\"kind\":\"sideways\"}", "{\"kind\":\"weak\",\"max_output_rows\":0}",
+      "{\"kind\":\"weak\",\"max_output_rows\":null}", "{\"kind\":\"strong\",\"extra\":true}",
+    ] {
+    assert_true(
+      @graph_typing.check_components(cursor(body), graph, None, limits())
+      is Err(_),
+    )
+  }
+}
+
+///|
 test "graph diagnostic checkers preserve exact work and structure budgets" {
   let graph = current_scope_graph()
   let bounds_source = cursor("{\"max_nodes\":0,\"max_edges\":0}")
