@@ -290,8 +290,7 @@ async function effectFixture({splitSource = false,
       id: 'middle',
       inputs: {rows: {result: {stage: 'source', result: 'rows'}}},
       steps: [
-        // Preserve the checked three-Stage Effect refusal without depending
-        // on a retired Graph constructor or an unsupported Graph consumer.
+        // An ordinary source-free producer/import chain feeding terminal Effects.
         {select: ['id'], as: 'projected'},
         {from: 'projected', take: 2, as: 'selected'},
       ],
@@ -4355,14 +4354,43 @@ test(`two-member captured Effect Run ${
   });
 }
 
-test('public Effect submit rejects an unsupported checked Program before acceptance',
+test('public Effect submit rejects an unsupported checked acquisition shape before acceptance',
   async t => {
-    const unsupported = await effectFixture({splitSource: true,
+    const terminal = await effectFixture({splitSource: true,
       writeKind: 'create', memberIds: ['save', 'save_again'],
       sourceIds: ['001000000000001', '001000000000002']});
-    const prepare = installNodeClientEffectProgramPreparation({
-      moon, environment: unsupported.environment,
+    const prepareTerminal = installNodeClientEffectProgramPreparation({
+      moon, environment: terminal.environment,
     });
+    const supported = prepareTerminal({kind: 'aql',
+      input: {text: terminal.document, format: 'json'}, parameters: null});
+    // The shared source-free DAG compiler now supports this terminal shape.
+    // Compilation alone is not a claim that its public publication is closed.
+    checked(moon.clientProgramCompileLocalEffects(supported));
+    const acquired = await effectFixture({splitSource: true,
+      writeKind: 'update', memberIds: ['save', 'save_again']});
+    const program = JSON.parse(acquired.document);
+    // The installed single-acquisition profile supports one terminal Local
+    // Unit, not this checked acquisition followed by two Local Units. Keep
+    // a genuinely unsupported Host shape instead of rejecting source-free DAGs.
+    program.stages[0].inputs = {remote: {connector: 'crm/main', resource: 'r'}};
+    program.stages[0].steps = [{select: ['id'], as: 'selected'}];
+    const environmentDocument = JSON.parse(acquired.environmentWire);
+    const sourceEnvironment = JSON.parse(await readFile(new URL(
+      '../../../host-node/fixtures/query-amount-environment.json', import.meta.url), 'utf8'));
+    for (const name of ['schema_snapshots', 'connector_capabilities',
+      'connector_catalogs', 'source_views', 'contract_registry']) {
+      environmentDocument[name] = [...environmentDocument[name], ...sourceEnvironment[name]]
+        .sort((left, right) => canonicalHash(left) < canonicalHash(right) ? -1 : 1);
+    }
+    withFixtureConnector(environmentDocument, 'connector://crm/main/r#v');
+    environmentDocument.evidence_bundle_cid = canonicalHashWithoutSelf(
+      environmentDocument, 'evidence_bundle_cid');
+    const environment = moon.clientProgramCheckEnvironment(canonicalJson(environmentDocument),
+      environmentDocument.evidence_bundle_cid, false, false, true, false, false, false, false);
+    assert.ok(environment);
+    const unsupported = {document: JSON.stringify(program), environment};
+    const prepare = installNodeClientEffectProgramPreparation({moon, environment});
     const prepared = prepare({kind: 'aql',
       input: {text: unsupported.document, format: 'json'},
       parameters: null});

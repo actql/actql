@@ -47,6 +47,7 @@ fn attach_fragment_budgets(
       @lower.GraphMatchStep(_) => ()
       @lower.GraphTraverseStep(_) => ()
       @lower.GraphDiagnosticStep(_) => ()
+      @lower.GraphEqualityStep(_) => ()
       @lower.GraphNormalizeStep(_) => ()
       @lower.PropertyGraphConstructionStep(_) => ()
       @lower.VectorStep(_) => ()
@@ -366,7 +367,8 @@ fn attach_fragment_budgets(
                 return Err(InputLimit)
               }
               let field = @schema.field_at(schema, j).unwrap()
-              if !supported_comparison(field.contract, field.contract) {
+              if @lower.kernel_distinct_projection(kernel) is Some(_) &&
+                !supported_comparison(field.contract, field.contract) {
                 return Err(UnsupportedRowComparison(i, field.name))
               }
             }

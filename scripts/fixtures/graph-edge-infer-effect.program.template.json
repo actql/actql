@@ -1,0 +1,405 @@
+{
+  "version": "actql/0.1",
+  "id": "fixture.graph-edge-infer-effect",
+  "stages": [
+    {
+      "id": "graph_rows",
+      "inputs": {},
+      "steps": [
+        {
+          "values": {
+            "schema": {
+              "person_key": {
+                "type": "number",
+                "nullable": false
+              },
+              "tenant_key": {
+                "type": "string",
+                "nullable": false
+              },
+              "note": {
+                "type": "number",
+                "nullable": true
+              }
+            },
+            "rows": [
+              {
+                "person_key": 2,
+                "tenant_key": "a",
+                "note": null
+              },
+              {
+                "person_key": 1,
+                "tenant_key": "a",
+                "note": 7
+              }
+            ]
+          },
+          "as": "persons"
+        },
+        {
+          "values": {
+            "schema": {
+              "edge_key": {
+                "type": "number",
+                "nullable": false
+              },
+              "tenant_key": {
+                "type": "string",
+                "nullable": false
+              },
+              "source_key": {
+                "type": "number",
+                "nullable": false
+              },
+              "target_key": {
+                "type": "number",
+                "nullable": false
+              },
+              "note": {
+                "type": "number",
+                "nullable": true
+              }
+            },
+            "rows": [
+              {
+                "edge_key": 2,
+                "tenant_key": "a",
+                "source_key": 1,
+                "target_key": 2,
+                "note": null
+              },
+              {
+                "edge_key": 1,
+                "tenant_key": "a",
+                "source_key": 1,
+                "target_key": 2,
+                "note": 7
+              }
+            ]
+          },
+          "as": "edges"
+        },
+        {
+          "property_graph": {
+            "version": "actql-property-graph-constructor/0.1",
+            "nodes": [
+              {
+                "name": "N",
+                "from": "persons",
+                "key": [
+                  "tenant_key",
+                  "person_key"
+                ],
+                "labels": [
+                  {
+                    "name": "Person",
+                    "properties": {
+                      "mode": "columns",
+                      "columns": [
+                        {
+                          "from": "note",
+                          "to": "note"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ],
+            "edges": [
+              {
+                "name": "E",
+                "from": "edges",
+                "key": [
+                  "tenant_key",
+                  "edge_key"
+                ],
+                "source": {
+                  "definition": "N",
+                  "key": [
+                    "tenant_key",
+                    "source_key"
+                  ]
+                },
+                "target": {
+                  "definition": "N",
+                  "key": [
+                    "tenant_key",
+                    "target_key"
+                  ]
+                },
+                "labels": [
+                  {
+                    "name": "Link",
+                    "properties": {
+                      "mode": "columns",
+                      "columns": [
+                        {
+                          "from": "note",
+                          "to": "note"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "as": "g"
+        },
+        {
+          "from": "g",
+          "edge_rows": true,
+          "as": "rows"
+        },
+        {
+          "select": [
+            {
+              "graph_identity": "id"
+            },
+            {
+              "id": "edge_key"
+            },
+            "tenant_key",
+            "note"
+          ]
+        },
+        {
+          "derive": {
+            "left_amount": {
+              "multiply": [
+                {
+                  "field": "id"
+                },
+                {
+                  "literal": 10
+                }
+              ]
+            },
+            "right_amount": {
+              "multiply": [
+                {
+                  "field": "id"
+                },
+                {
+                  "literal": 100
+                }
+              ]
+            }
+          },
+          "as": "projected"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "projected",
+          "fields": [
+            "id",
+            "graph_identity",
+            "tenant_key",
+            "note",
+            "left_amount",
+            "right_amount"
+          ]
+        }
+      }
+    },
+    {
+      "id": "classify",
+      "inputs": {
+        "rows": {
+          "result": {
+            "stage": "graph_rows",
+            "result": "rows"
+          }
+        }
+      },
+      "steps": [
+        {
+          "assert_rows": {
+            "unique_by": [
+              "id"
+            ]
+          },
+          "as": "retained"
+        },
+        {
+          "infer": {
+            "contract": "model-task:composition-risk.v1",
+            "key": "id",
+            "input": {
+              "score": {
+                "field": "right_amount"
+              }
+            }
+          },
+          "as": "inferred"
+        },
+        {
+          "join": {
+            "with": "retained",
+            "kind": "inner",
+            "cardinality": "one_to_one",
+            "on": [
+              {
+                "left": "id",
+                "right": "id"
+              }
+            ],
+            "select": {
+              "id": "right.id",
+              "graph_identity": "right.graph_identity",
+              "tenant_key": "right.tenant_key",
+              "note": "right.note",
+              "left_amount": "right.left_amount",
+              "right_amount": "right.right_amount",
+              "outcome": "left.outcome",
+              "value": "left.value"
+            }
+          }
+        },
+        {
+          "filter": {
+            "eq": [
+              {
+                "field": "outcome"
+              },
+              {
+                "literal": "ok"
+              }
+            ]
+          }
+        },
+        {
+          "derive": {
+            "risk": {
+              "property": {
+                "value": {
+                  "field": "value"
+                },
+                "name": "risk"
+              }
+            }
+          }
+        },
+        {
+          "select": [
+            "id",
+            "graph_identity",
+            "tenant_key",
+            "note",
+            "left_amount",
+            "right_amount",
+            "risk"
+          ]
+        },
+        {
+          "sort": [
+            {
+              "id": "asc"
+            }
+          ],
+          "as": "ordered"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "ordered",
+          "fields": [
+            "id",
+            "graph_identity",
+            "tenant_key",
+            "note",
+            "left_amount",
+            "right_amount",
+            "risk"
+          ]
+        }
+      }
+    },
+    {
+      "id": "apply",
+      "inputs": {
+        "classified": {
+          "result": {
+            "stage": "classify",
+            "result": "rows"
+          }
+        }
+      },
+      "steps": [
+        {
+          "filter": {
+            "eq": [
+              {
+                "field": "risk"
+              },
+              {
+                "literal": "high"
+              }
+            ]
+          }
+        },
+        {
+          "derive": {
+            "target_id": {
+              "literal": "a00000000000002"
+            },
+            "next_name": {
+              "literal": "review-required"
+            }
+          },
+          "as": "updates"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "updates",
+          "fields": [
+            "id",
+            "graph_identity",
+            "tenant_key",
+            "note",
+            "left_amount",
+            "right_amount",
+            "risk",
+            "target_id",
+            "next_name"
+          ]
+        }
+      },
+      "effects": {
+        "save": {
+          "update": {
+            "target": "connector://crm-main/Test_Record__c",
+            "mapping": "__PUBLICATION_MAPPING_REF__",
+            "from": {
+              "result": "rows"
+            },
+            "id": "target_id",
+            "set": {
+              "Name": {
+                "field": "next_name"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "results": {
+    "classified": {
+      "from": {
+        "stage": "classify",
+        "result": "rows"
+      }
+    },
+    "updates": {
+      "from": {
+        "stage": "apply",
+        "result": "rows"
+      }
+    }
+  }
+}

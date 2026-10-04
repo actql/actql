@@ -741,12 +741,12 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Registered operations | 69 |
-| Executable production routes | 58 |
-| Typed pre-execution refusals (not execution success) | 11 |
-| Operation-specific boundary records | 58 |
-| Four-role lifecycle assurance | 58 |
-| Full route work/workspace assurance | 58 |
-| Path-scoped work/workspace assurance | 108 |
+| Executable production routes | 59 |
+| Typed pre-execution refusals (not execution success) | 10 |
+| Operation-specific boundary records | 59 |
+| Four-role lifecycle assurance | 59 |
+| Full route work/workspace assurance | 59 |
+| Path-scoped work/workspace assurance | 110 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -2879,16 +2879,16 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | Coverage state | Count |
 |---|---:|
 | `contract` | 40/40 |
-| `checker` | 24/40 |
-| `lowering` | 24/40 |
-| `kernel` | 24/40 |
-| `managed` | 24/40 |
-| `standard_host` | 24/40 |
-| `consumer_lifetime` | 24/40 |
-| `resources` | 29/40 |
-| `cancellation` | 29/40 |
-| `publication` | 24/40 |
-| `three_targets` | 19/40 |
+| `checker` | 25/40 |
+| `lowering` | 25/40 |
+| `kernel` | 25/40 |
+| `managed` | 25/40 |
+| `standard_host` | 25/40 |
+| `consumer_lifetime` | 25/40 |
+| `resources` | 30/40 |
+| `cancellation` | 30/40 |
+| `publication` | 25/40 |
+| `three_targets` | 20/40 |
 | complete operations | 19/40 |
 | open operations | 21/40 |
 <!-- local-family-coverage-summary:end -->
@@ -4726,6 +4726,21 @@ that it does not infer order from an unrelated publication representation.
 Selected Host-delivered cancellation cases are registered for all three
 diagnostics. Other retained Graph Relation-producing operations remain separate
 completion units; this change does not waive their route or resource proofs.
+
+Current Property Graph equality now checks two exact, ordered Graph operands
+against compatible closed definitions and runs the selected bounded provider.
+The retained Node Host constructs both Graphs in one Stage, compares them,
+passes the Boolean Relation through a later filter, publishes the Named Result,
+and reads two consumers from the real Store. Its timer cancellation begins
+after both Graphs are constructed and stops the selected equality kernel
+without publishing partial output. The quantum-one kernel fixture admits the
+independently derived three-step count mismatch at the exact work ceiling,
+rejects two steps, admits one workspace slot, rejects zero, and preserves both
+borrowed inputs after cleanup. A separate 512-character property fixture
+rejects insufficient nested comparison work and stops during a yielded value
+comparison. The focused equality suite passed on JS, Wasm, and native.
+Broader representation variants and same-SHA CI remain open, so current
+equality is partial.
 
 Selected `SGA.match_nodes` and `SGA.match_edges` now read an exact managed
 Graph view through their existing bounded match kernels. The Node standard
