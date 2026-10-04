@@ -10,7 +10,7 @@ import {encode} from '../bounded-session/action-inputs.mjs';
 import {snapshot} from '../bounded-session/evidence.mjs';
 import {hash} from './inputs.mjs';
 import {copyRegular, stageDistribution, stageMutationSource, loaderPaths, isolatedEnvironment,
-  isolatedRunArguments, scratchDockerfile, checkImageDefinition} from './isolation.mjs';
+  isolatedRunArguments, scratchDockerfile, checkImageDefinition, isolatedCoreBuildMetadata} from './isolation.mjs';
 import {observeImageRoot, platformInputs, imageRuntime, checkIsolatedInputs, checkIsolatedResult, snapshotFromGit} from './isolated-runtime.mjs';
 import {isolatedExperimentDigest} from './isolated-contract.mjs';
 
@@ -48,7 +48,8 @@ export function prepareIsolatedMutation({root, tree, origin, directory}) {
   const moonHome = process.env.MOON_HOME ?? join(root, '.toolchains', `moonbit-${pin.version}`);
   const budget = {remaining: 1024 ** 3};
   copyRegular({source: realpathSync(process.execPath), target: join(imageRoot, 'runtime/node'), budget});
-  stageDistribution({source: moonHome, destination: join(imageRoot, 'runtime/moonbit'), budget});
+  stageDistribution({source: moonHome, destination: join(imageRoot, 'runtime/moonbit'), budget,
+    excludedFiles: isolatedCoreBuildMetadata});
   // The pinned Moon build executor (n2) invokes /bin/sh -c, even for JS
   // compilation. Stage its real bytes and inspect its own ELF dependencies;
   // do not borrow a host mount or silently substitute another shell.

@@ -20,6 +20,14 @@ export const isolatedSourceFiles = Object.freeze(['proofs/ci-evidence/isolated-m
   'proofs/ci-evidence/isolated-contract.mjs',
   'proofs/ci-evidence/mutation-inventory.mjs', 'proofs/ci-evidence/mutation-observation.mjs']);
 const child = isolatedSourceFiles[0];
+// The pinned Moon runner writes its selected workspace's own database and
+// all_pkgs.json. Installed core contributes prebuilt .mi/.core inputs, not the
+// build owner's database or bundle metadata. Keep those four files physically
+// unavailable in this isolated executor; do not normalize their recorded bytes.
+export const isolatedCoreBuildMetadata = Object.freeze([
+  'lib/core/_build/.moon_db',
+  ...['js', 'wasm', 'native'].map(target => `lib/core/_build/${target}/release/bundle/all_pkgs.json`),
+]);
 const safe = path => typeof path === 'string' && /^[A-Za-z0-9_.\/-]+$/u.test(path) &&
   !isAbsolute(path) && !path.split('/').some(part => ['', '.', '..'].includes(part));
 const stable = (a, b) => ['dev', 'ino', 'mode', 'size', 'mtimeNs', 'ctimeNs'].every(key => a[key] === b[key]);
@@ -84,8 +92,11 @@ export function copyRegular({source, target, budget}) {
 // Preserve in-distribution symlinks and bind their exact targets. Every chain
 // must terminate inside the staged installation; outside/dangling/cyclic links
 // fail preparation instead of becoming a cleared unresolved label.
-export function stageDistribution({source, destination, budget, maxEntries = 30000}) {
+export function stageDistribution({source, destination, budget, maxEntries = 30000, excludedFiles = []}) {
   assert(Number.isSafeInteger(maxEntries) && maxEntries > 0, 'Invalid distribution entry bound');
+  assert(Array.isArray(excludedFiles) && excludedFiles.every(path => safe(path)) &&
+    new Set(excludedFiles).size === excludedFiles.length, 'Invalid distribution exclusions');
+  const exclusions = new Set(excludedFiles), excluded = [];
   assert(lstatSync(source).isDirectory(), 'Distribution root must be a real directory');
   // Parent aliases such as macOS /var -> /private/var do not constitute a
   // distribution escape. Compare physical roots after rejecting a linked root.
@@ -94,6 +105,11 @@ export function stageDistribution({source, destination, budget, maxEntries = 300
     assert(records.length < maxEntries, 'Distribution entry bound exceeded');
     const from = path ? join(root, path) : root, to = path ? join(destination, path) : destination;
     const before = lstatSync(from, {bigint: true}), mode = Number(before.mode & 0o777n);
+    if (exclusions.has(path)) {
+      assert(before.isFile(), 'Excluded distribution input must be a regular file');
+      excluded.push(path);
+      return;
+    }
     if (before.isSymbolicLink()) {
       const target = readlinkSync(from), resolved = realpathSync(from), inside = relative(root, resolved);
       assert(!isAbsolute(target) && inside && !inside.startsWith('../') && !isAbsolute(inside), 'Distribution link escapes the staged root');
@@ -108,7 +124,8 @@ export function stageDistribution({source, destination, budget, maxEntries = 300
           assert(members.length < maxEntries, 'Distribution membership bound exceeded'); members.push(entry.name);
         }
       } finally { directory.closeSync(); }
-      members.sort(); records.push({path, kind: 'directory', mode, members});
+      members.sort(); records.push({path, kind: 'directory', mode,
+        members: members.filter(member => !exclusions.has(path ? `${path}/${member}` : member))});
       for (const member of members) { assert(safe(member), 'Unreviewed distribution path'); visit(path ? `${path}/${member}` : member); }
     } else {
       assert(before.isFile(), 'Nonregular distribution entry');
@@ -121,7 +138,7 @@ export function stageDistribution({source, destination, budget, maxEntries = 300
     assert(records.some(record => record.path === link.resolved && ['file', 'directory'].includes(record.kind)), 'Unstaged link target');
     assert.equal(relative(realpathSync(destination), realpathSync(join(destination, link.path))), link.resolved, 'Staged link changed resolution');
   }
-  return {records, digest: hash(encode(records))};
+  return {records, excludedFiles: excluded.sort(), digest: hash(encode(records))};
 }
 
 // ldd is an explicit trusted extraction step for already pinned executables.

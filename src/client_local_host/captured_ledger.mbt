@@ -174,6 +174,34 @@ fn prepare_multi_captured_local_ledger_owned(
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
+  if acquisitions.length() != 2 {
+    return None
+  }
+  let capacities = []
+  for acquisition in acquisitions {
+    guard @duckdb_host.configured_capture_capacity(acquisition)
+      is Some(capacity) else {
+      return None
+    }
+    capacities.push((capacity.retained_bytes, capacity.execution_bytes))
+  }
+  prepare_multi_captured_capacity_ledger_owned(
+    owner, capacities, transport_bytes, transport_execution_bytes, registry_body,
+    values_body, fragment_body, ordered_body,
+  )
+}
+
+///|
+fn prepare_multi_captured_capacity_ledger_owned(
+  owner : ClientLocalSequenceOwner,
+  capacities : Array[(Int64, Int64)],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @resources.Ledger? {
   let graph = match owner {
     Pure(prepared) => @publication_host.prepared_client_graph(prepared)
     Effect(prepared) =>
@@ -183,7 +211,7 @@ fn prepare_multi_captured_local_ledger_owned(
   }
   let count = @strategy.graph_task_count(graph)
   if @strategy.graph_captured_prefix(graph) != 2 ||
-    acquisitions.length() != 2 ||
+    capacities.length() != 2 ||
     count < 3 ||
     count > 32 ||
     transport_bytes.length() != 2 ||
@@ -201,26 +229,23 @@ fn prepare_multi_captured_local_ledger_owned(
   let mut transfer = count.to_int64() * 1000000L
   let mut execution_capacity = 536870912L
   for index in 0..<2 {
-    let acquisition = acquisitions[index]
-    guard @duckdb_host.configured_capture_capacity(acquisition)
-      is Some(capacity) else {
+    let (capture_retained, capture_execution) = capacities[index]
+    if capture_retained < 0L ||
+      capture_execution < 0L ||
+      capture_retained > 9223372036854775807L - retained {
       return None
     }
-    if capacity.retained_bytes < 0L ||
-      capacity.retained_bytes > 9223372036854775807L - retained {
-      return None
-    }
-    retained += capacity.retained_bytes
+    retained += capture_retained
     let bytes = transport_bytes[index]
     let scratch = transport_execution_bytes[index]
     if bytes < 0L ||
       bytes > 9223372036854775807L - transfer ||
       scratch < 0L ||
-      scratch > 9223372036854775807L - capacity.execution_bytes {
+      scratch > 9223372036854775807L - capture_execution {
       return None
     }
     transfer += bytes
-    let required_execution = scratch + capacity.execution_bytes
+    let required_execution = scratch + capture_execution
     if required_execution > execution_capacity {
       execution_capacity = required_execution
     }
@@ -302,6 +327,85 @@ pub fn prepare_multi_captured_effect_acquisition_ledger(
   prepare_multi_captured_local_ledger_owned(
     Effect(prepared),
     acquisitions,
+    transport_bytes,
+    transport_execution_bytes,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+  )
+}
+
+///|
+/// Pending Sources contribute their checked candidate envelope before any
+/// physical read. Later selection must fit that same envelope; no ledger is
+/// replaced or reset when a read is approved.
+pub fn prepare_multi_captured_effect_capacity_ledger(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  capacities : Array[ClientDuckDBCaptureCapacity],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @resources.Ledger? {
+  if capacities.length() != 2 {
+    return None
+  }
+  for index in 0..<2 {
+    guard prepare_effect_local_query_requirement(
+        prepared, index, 0, registry_body, values_body, fragment_body, ordered_body,
+      )
+      is Ok(requirement) &&
+      client_duckdb_capture_capacity_matches_requirement(
+        capacities[index],
+        requirement,
+      ) else {
+      return None
+    }
+  }
+  prepare_multi_captured_capacity_ledger_owned(
+    Effect(prepared),
+    capacities.map(value => (value.retained_bytes, value.execution_bytes)),
+    transport_bytes,
+    transport_execution_bytes,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+  )
+}
+
+///|
+pub fn prepare_multi_captured_local_capacity_ledger(
+  prepared : @publication_host.PreparedClientProgram,
+  capacities : Array[ClientDuckDBCaptureCapacity],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @resources.Ledger? {
+  if capacities.length() != 2 {
+    return None
+  }
+  for index in 0..<2 {
+    guard prepare_local_query_requirement(
+        prepared, index, 0, registry_body, values_body, fragment_body, ordered_body,
+      )
+      is Ok(requirement) &&
+      client_duckdb_capture_capacity_matches_requirement(
+        capacities[index],
+        requirement,
+      ) else {
+      return None
+    }
+  }
+  prepare_multi_captured_capacity_ledger_owned(
+    Pure(prepared),
+    capacities.map(value => (value.retained_bytes, value.execution_bytes)),
     transport_bytes,
     transport_execution_bytes,
     registry_body,

@@ -241,6 +241,7 @@ export async function exerciseTwoSourcePublicQuery({connect, openInstalledRemote
 export async function verifyTwoSourceRetained({connect, openInstalledRemoteHttpHost,
   fixture, retained, provider, tls, authorization}) {
   assert.deepEqual(provider.snapshot().sourceProviderOpens, []);
+  const readerClosures = [];
   for (const item of retained) {
     const before = readTwoSourceJournal(item.directory);
     const running = await openTwoSourcePublicHost({connect, openInstalledRemoteHttpHost, tls, authorization, ...item});
@@ -254,6 +255,41 @@ export async function verifyTwoSourceRetained({connect, openInstalledRemoteHttpH
         const reader = attached.result(name).rows();
         assert.deepEqual(await Array.fromAsync(reader), result.rows);
         assert.equal(reader.state(), 'complete');
+        if (item.variant === 'distinct' || item.variant === 'broad-text') {
+          // One public consumer closes after a prefix while another consumer
+          // of the same durable Named Result must still receive every row.
+          assert.ok(result.rows.length > 1, 'the independent fixture has a remaining suffix');
+          const prefix = attached.result(name).rows();
+          const continuing = attached.result(name).rows();
+          const prefixIterator = prefix[Symbol.asyncIterator]();
+          const continuingIterator = continuing[Symbol.asyncIterator]();
+          assert.notEqual(prefix.attemptId, continuing.attemptId);
+          try {
+            assert.deepEqual(await prefixIterator.next(), {value: result.rows[0], done: false});
+            assert.deepEqual(await continuingIterator.next(), {value: result.rows[0], done: false});
+            await prefixIterator.return();
+            assert.equal(prefix.state(), 'prefix');
+            assert.equal(prefix.rowsYielded(), 1);
+            assert.deepEqual(await Array.fromAsync(continuingIterator), result.rows.slice(1));
+            assert.equal(continuing.state(), 'complete');
+            assert.equal(continuing.rowsYielded(), result.rows.length);
+            assert.deepEqual(await attached.result(name).all(), result.rows,
+              'a new consumer still sees the complete independent Result');
+            assert.deepEqual((await attached.result(name).describe()).columns, result.columns);
+            assert.equal((await attached.status()).status, 'succeeded');
+            const observation = {mode: item.mode, variant: item.variant,
+              ref: item.ref, requestId: item.requestId, result: name,
+              closedReader: {attemptId: prefix.attemptId, state: prefix.state(),
+                rowsYielded: prefix.rowsYielded()},
+              continuingReader: {attemptId: continuing.attemptId, state: continuing.state(),
+                rowsYielded: continuing.rowsYielded()}};
+            readerClosures.push(observation);
+            console.log('packed two-source reader-close acceptance ' + JSON.stringify(observation));
+          } finally {
+            try { await prefixIterator.return(); }
+            finally { await continuingIterator.return(); }
+          }
+        }
       }
       assert.deepEqual((await client.lookupRequest(item.requestId)).ref, item.ref);
       assert.equal(typeof item.submission.document, 'string');
@@ -267,4 +303,6 @@ export async function verifyTwoSourceRetained({connect, openInstalledRemoteHttpH
       assert.equal(provider.snapshot().sourceIo, 0, 'fresh-process Result access does not execute provider SQL');
     } finally { client.close(); await running.close(); }
   }
+  assert.equal(readerClosures.length, 4, 'Native JSON and Broad text each cover Local and HTTPS');
+  return readerClosures;
 }

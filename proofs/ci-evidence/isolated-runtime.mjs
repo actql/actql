@@ -8,7 +8,7 @@ import {release, cpus} from 'node:os';
 import {inventoryDistribution} from './runtime.mjs';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {hash} from './inputs.mjs';
-import {isolatedEnvironment, mutationSourcePaths, scratchDockerfile} from './isolation.mjs';
+import {isolatedEnvironment, mutationSourcePaths, scratchDockerfile, isolatedCoreBuildMetadata} from './isolation.mjs';
 import {mutationIds} from './mutation-inventory.mjs';
 import {isolatedRunArguments, mutationSnapshotExtras, checkImageDefinition} from './isolation.mjs';
 import {isolatedContract, matchesIsolatedContract, isolatedExperimentDigest} from './isolated-contract.mjs';
@@ -71,6 +71,8 @@ export function checkIsolatedInputs({runtime, manifest, tree}) {
   assert.equal(manifest.platformInputs.platform, 'linux'); assert.equal(manifest.platformInputs.architecture, 'x64');
   const byPath = new Map(manifest.root.entries.map(entry => [entry.path, entry]));
   assert.equal(byPath.size, manifest.root.entries.length, 'Duplicate image input');
+  for (const path of isolatedCoreBuildMetadata)
+    assert(!byPath.has(`runtime/moonbit/${path}`), 'Installed core build metadata must be absent from the isolated image');
   const children = new Map();
   for (const entry of manifest.root.entries) {
     assert(typeof entry.path === 'string', 'Invalid image path');

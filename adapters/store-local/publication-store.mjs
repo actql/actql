@@ -40,7 +40,7 @@ const physicalHoldingNamespaces = Object.freeze([
 ]);
 const localContinuationEvidenceNames = Object.freeze([
   'captured_input', 'invocation_request', 'prepared_invocation',
-  'review_projection', 'continuation_record',
+  'review_projection', 'continuation_record', 'source_capture',
 ]);
 const recordNamePattern = /^(0|[1-9][0-9]*)\.json$/u;
 const custodyNamePattern =

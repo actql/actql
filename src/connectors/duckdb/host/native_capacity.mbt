@@ -10,7 +10,14 @@ pub struct NativeCapacity {
 pub fn configured_native_capacity(
   setup : NativeHostConfiguration,
 ) -> NativeCapacity? {
-  native_capacity(setup.limits)
+  prepared_native_capacity(setup.limits)
+}
+
+///|
+/// Size the declared Native receiver before candidate selection. This is
+/// capacity preparation only: limits confer neither a choice nor read authority.
+pub fn prepared_native_capacity(limits : NativeHostLimits) -> NativeCapacity? {
+  native_capacity(limits)
 }
 
 ///|
