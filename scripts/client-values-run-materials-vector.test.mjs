@@ -339,8 +339,36 @@ test('baseline preimages and changed normative pins independently determine the 
     pin('6a5c24d7320c4edfcd61609c5490463b38df1f0c73b398f01b196f1feff35c80'));
   assert.equal(vector("sha256:2422e7815a6d6f6cbc2dd4289da3ba5d98eeb58545c356d45e897627e7ac3a8e", cid(aoaContract), {unit:pin("aef305d463bd57cdd2d84c0d89c5494dc3cea2773e1e8fb9dfd6a4dfc6bca115"),proof:pin("29635233b75d1ec087bfca5b2b706be26454d4322456b61d820dbf1310317bc4"),resultPlan:pin("7bce35b89c9c21d1f9ecd506e7bf103009425557249abb641aab8e7150d5f3eb")}, barrierCid).run.run_definition_cid, pin("33063a0c0762a010768e79c8d6de94682c4dddf66657b3681d9ae57e71630e4e"));
   assert.equal(vector("sha256:ae383655950a9e0f2d292ffd546e6bf9eb5cb1e9a9d72e86f6086bb917f681b6", cid(aoaContract), {unit:pin("18dc8e9fc34fa63d1e5973243b019bda7446f2247c1ed2c5f945366bea8a520a"),proof:pin("54124219997d78cedc627fd7f05f4cc236deb36700ab4942f710a1524e3bcc0e"),resultPlan:pin("b073b5030c6a53eca1062d6acfeac9d6b8c41efbddc6b7d4d192fc7e3308e366")}, barrierCid).run.run_definition_cid, pin("81d0f20687086a3a17a81541a6042c1f4c6afb3d4a9a09fceca1f69236e374d2"));
-  assert.equal(current.run.run_definition_cid,
+  // Preserve the row-bridge parent's historical closures before definition selection.
+  const rowGrammar = pin('dc6a79192190098180af67a8726ecad1519d0c93037e43ad41d45cc288d0ef09');
+  const traversalDependencies = {
+    unit: pin('18dc8e9fc34fa63d1e5973243b019bda7446f2247c1ed2c5f945366bea8a520a'),
+    proof: pin('54124219997d78cedc627fd7f05f4cc236deb36700ab4942f710a1524e3bcc0e'),
+    resultPlan: pin('b073b5030c6a53eca1062d6acfeac9d6b8c41efbddc6b7d4d192fc7e3308e366'),
+  };
+  assert.equal(vector(rowGrammar, preRefreshContract, preRefreshDependencies, barrierCid).run.run_definition_cid,
+    pin('7e2ae717cb6fa6b82328da3688ee0a4083dc3d78ad2793a4e02da135aceb14c7'));
+  assert.equal(vector(rowGrammar, cid(aoaContract), beforeSelectionDependencies, barrierCid).run.run_definition_cid,
+    pin('97c4dacbf36c4d15cd0b936c07a24d75b1d033d92d587e376c2c50ee598ea918'));
+  assert.equal(vector(pin("bd3b6c7767656a531df52628453cbff90762a8d6013af432ced62d241d8fdb0a"), preRefreshContract, preRefreshDependencies, barrierCid).run.run_definition_cid,
+    pin('fb0b9d9c1e2d0645859c0ce278205aa086b0f6daddf6f12ac2cb568d756b0ed8'));
+  assert.equal(vector(pin('b631f06f2ad3b4972d2ac2211819a55d40b1ffd4c5ff6e56b726a20f512c106d'), preRefreshContract, preRefreshDependencies, barrierCid).run.run_definition_cid,
+    pin('b37addde56c74a96dcf6ba4161c6c36a8d66f8bf6d77cc476ed753c29d123042'));
+  assert.equal(vector(pin('b631f06f2ad3b4972d2ac2211819a55d40b1ffd4c5ff6e56b726a20f512c106d'),
+    cid(aoaContract), traversalDependencies, barrierCid).run.run_definition_cid,
+    pin('33cfcb3f25ea4ace4092ddc986cf36501136c845caa6dc7d6453ed5bf3931fbf'));
+  assert.equal(vector(pin("bd3b6c7767656a531df52628453cbff90762a8d6013af432ced62d241d8fdb0a"), cid(aoaContract), beforeSelectionDependencies, barrierCid).run.run_definition_cid, pin("cb619661631f118d81c0ae5fdfe60240ccde214ca7dd0b6f8c50719adbec95b1"));
+  assert.equal(vector('sha256:d825ab855369e92f2e4da5e9af19567cdc89e431784b09d19c3b57ef2e9f301a', cid(aoaContract), traversalDependencies, barrierCid).run.run_definition_cid,
+    pin('4d639cb6924c87b916878498ce98e61156414ead2b3f974084ae1c9cc92cb9a6'));
+  const selectionDependencies = {
+    unit: pin('56ea51419a5f42a23d41b6e6e58d0496fabe58da6d6bea1be555bfd0cbbe00fa'),
+    proof: pin('c71b51eff535dc79152ac6458b4e3d21758aa3bb0335d143ad5a0899220524d2'),
+    resultPlan: pin('4bee979f2e9c5b6bed478ba9df66c3cc677a3af0d3609c0a2d415770d4badd1a'),
+  };
+  assert.equal(vector('sha256:caad49cf67bec4b67c2cb6beed69e7c9f71a80b19f2e8e04535d0d7f1c12cd90', cid(aoaContract), selectionDependencies, barrierCid).run.run_definition_cid,
     pin('4ac75ab91130a87f439df5621d673c5aec12fbe67f3ccc033691d4af5e4abc3b'));
+  assert.equal(current.run.run_definition_cid,
+    pin('48ef7cfc48aa9303ffd61e0820cbec0f32bd767fb5a2d4e5b0fdb1d60bdd290d'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');
