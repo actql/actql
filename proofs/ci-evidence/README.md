@@ -198,3 +198,25 @@ the ELF dependencies. The mandatory isolated residual cannot be removed by a
 carried runtime label. Actual CI execution, main comparison, scoped activation
 and net savings remain required. No local Docker or mutation campaign is needed
 to submit this bounded executor change; use its natural PR CI.
+
+## Reviewed JS package configuration
+
+The initial mutation input walk encountered fourteen literal package options
+that the general limited parser deliberately leaves unknown. The finite policy
+in `package-configurations.mjs` records independently reviewed package paths,
+full configuration digests and the exact toolchain pin for JS only. These
+configurations contain native stub/link options and native/not-native file
+predicates; they do not launch native build tools in this JS action. The pinned
+Moon [conditional compilation implementation](https://github.com/moonbitlang/moon/blob/94521db/crates/moonbuild-rupes-recta/src/cond_comp.rs)
+selects file predicates before build lowering, while native stub/link options
+belong to the [native backend contract](https://docs.moonbitlang.com/en/latest/toolchain/moon/package.html#native-backend).
+
+All configuration and source bytes, modes and directory memberships still
+participate in the input key, including native sources read by the restoration
+snapshot. Accepted records carry the review path, digest, target and toolchain
+in the manifest. A changed configuration, toolchain, target, unreviewed package
+or option stays unresolved and executes fresh; no general configuration parser
+or target-name override grants acceptance. Native/Wasm input closures and the
+isolated runtime residual remain separate unfinished obligations. This policy
+does not prove Moon's implementation or OS determinism and does not itself
+authorize reuse.

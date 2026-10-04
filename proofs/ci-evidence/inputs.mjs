@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {encode} from '../bounded-session/action-inputs.mjs';
+import {reviewedPackageConfiguration, packageConfigurationReview} from './package-configurations.mjs';
 
 export const inputVersion = 'actql-verification-action-inputs/0.1';
 export const hash = value => createHash('sha256').update(value).digest('hex');
@@ -16,6 +17,7 @@ const validSha = value => typeof value === 'string' && /^[a-f0-9]{40}$/u.test(va
 const validPath = value => typeof value === 'string' && /^[A-Za-z0-9_.\/-]+$/u.test(value) &&
   !value.startsWith('/') && !value.split('/').some(part => ['', '.', '..'].includes(part));
 export const sharedFiles = ['proofs/ci-evidence/actions.mjs', 'proofs/ci-evidence/inputs.mjs',
+  'proofs/ci-evidence/package-configurations.mjs',
   'proofs/ci-evidence/receipts.mjs', 'proofs/ci-evidence/check.mjs',
   'proofs/ci-evidence/applications.mjs',
   'proofs/ci-evidence/plan.mjs',
@@ -122,6 +124,8 @@ export function actionInputs({tree, revision, action, runtime}) {
   assert(validSha(revision));
   assert(runtime && typeof runtime === 'object' && Array.isArray(runtime.unresolved), 'Missing runtime boundary');
   const included = new Set(), listings = new Map(), external = new Set(), unresolved = new Set(runtime.unresolved);
+  const configurations = [];
+  const toolchainDigest = tree.entries.get('toolchain.json')?.kind === 'blob' ? hash(tree.read('toolchain.json')) : null;
   function add(path) {
     if (!tree.entries.has(path)) { unresolved.add(`missing source input: ${path}`); return; }
     included.add(path);
@@ -153,7 +157,13 @@ export function actionInputs({tree, revision, action, runtime}) {
       let result;
       try { result = packageImports(tree.read(manifest).toString('utf8')); }
       catch { unresolved.add(`unmodelled import syntax: ${manifest}`); return; }
-      if (result.unknown) unresolved.add(`${result.unknown}: ${manifest}`);
+      if (result.unknown) {
+        const digest = hash(tree.read(manifest));
+        if (reviewedPackageConfiguration({path: manifest, digest, target: action.target, toolchainDigest})) {
+          configurations.push({path: manifest, digest, target: action.target, toolchainDigest,
+            review: packageConfigurationReview});
+        } else unresolved.add(`${result.unknown}: ${manifest}`);
+      }
       for (const dependency of result.imports) {
         if (dependency.startsWith('actql/actql/')) {
           const child = `src/${dependency.slice('actql/actql/'.length)}`;
@@ -188,7 +198,8 @@ export function actionInputs({tree, revision, action, runtime}) {
     return {path, kind: entry.kind, mode: entry.mode, bytes: bytes?.length ?? 0, digest: bytes ? hash(bytes) : entry.object};
   });
   const inputs = {action, files, directories: [...listings].sort(([a], [b]) => a.localeCompare(b)).map(([path, members]) => ({path, members})),
-    externalPackages: [...external].sort(), runtime, unresolved: [...unresolved].sort()};
+    externalPackages: [...external].sort(), packageConfigurations: configurations.sort((a, b) => a.path.localeCompare(b.path)),
+    runtime, unresolved: [...unresolved].sort()};
   return {version: inputVersion, revision, inputs, key: hash(`actql-verification-action-key/0.1\0${encode(inputs)}`),
     unresolved: [...unresolved].sort()};
 }
