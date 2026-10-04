@@ -93,8 +93,40 @@ The latter retains the existing static-label/property distinction and canonical
 top-level property spelling. Expected Programs and rows were authored from the
 contracts rather than compiler or provider output.
 
-Packed Local/HTTP and submitted-HEAD CI are pending. No grammar, wire, schema,
-law CID, storage or contract-version change is introduced. Full Core, all
-targets, proof, performance and a Google service differential run are not local
-checks for this bounded unit. Draft preparation is not merge validation;
-`awaiting ready_for_review` is not a rerun request. No merge is performed.
+Changed MoonBit formatting, three Node syntax checks, local document links and
+`git diff --check` passed.
+
+Clean normal pack from
+`1ae1a3f260a1759e462fbb27919e936f54424367` completed the focused selection:
+**9 positives + 5 preparation refusals on Embedded Local, then the same
+9 + 5 on HTTP**. Receipt `public-query-evidence-9xoeqS` records status passed,
+complete true, all 12 command exits zero, source identity and tarball digests.
+The positives include the independent JSON control and authored source, not a
+test-side Program patch. Both routes compared independent rows, full ordered
+Result descriptions (including typed empty output), finished streams, public
+fields, same-Run resend/lookup/attach and acquisition counters. The five refusal
+cases verified existing typed public input errors, zero Run admissions and zero
+provider I/O. Preliminary README Local/HTTPS controls also passed; they are
+separate from these Graph acceptance counts.
+
+| Package | Tarball SHA-256 |
+|---|---|
+| client-wire | `52fe3218df346cfb9dae0adc248071563fe68918bded16f8d733415e65584fc0` |
+| sdk | `f81bf27c3bb42a007bc16b6f89a15542a89c7fb844e2893870d1161a8e8abc6d` |
+| run-host-core | `65b6408c2bb93597b8c92fc424b010b5e1d3e8b75ba414ad006bd30d57999a86` |
+| local-node | `a0551d47c34a7ef59c7042227ed128f922d4e5994771715bfdd305ba2264d45d` |
+| node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+After completion, the original command evidence and package digests were kept,
+and only this invocation's temporary installation was removed (about 178 MiB).
+Its separate cleanup record does not rewrite the original receipt. No shared
+dependencies, toolchain, another worktree or active output were removed.
+
+Submitted-HEAD CI remains unverified. No grammar, wire, schema, law CID, storage
+or contract-version change is introduced. The evidence commit does not modify
+the tested product, fixture or harness, so no second packed run is added solely
+for the report. Full Core, all targets, proof, performance and a Google service
+differential run are not local checks for this bounded unit. Draft preparation
+is not merge validation; `awaiting ready_for_review` is not a rerun request.
+The source-to-Named-Result boundary above is locally accepted; review and
+required submitted-HEAD CI are separate. No merge is performed.
