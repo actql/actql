@@ -300,6 +300,53 @@ main comparisons and ordinary PR reuse. CPU identity is retained. Source file
 counts are not measured runner savings; capture, image, transfer and final-check
 costs remain part of the unfinished net-savings acceptance.
 
+#### New-cohort execution acceptance
+
+Git/filesystem correspondence tests do not establish that the selected files
+compile or that the thirteen experiments run in the immutable image. Keep the
+following execution acceptance open until evidence for this source policy is
+available; an old full-source image or a Draft preparation check cannot close it.
+
+The existing `.github/workflows/ci.yml` `session-evidence` job is the execution
+entry. It needs the real Actions repository/run/attempt/job identity, a clean
+checkout at the event revision, the pinned Node/MoonBit/Lean setup, Linux x64,
+`/usr/bin/docker`, and the existing read-only Actions token for authentication.
+Its commands remain, in workflow order:
+
+1. `node proofs/ci-evidence/collect.mjs init` prepares and independently checks
+   the selected image inputs and records the acquisition plan. For new-policy
+   execution acceptance, `mutations-js` must be `fresh`.
+2. `node proofs/bounded-session/run.mjs all` retains the existing baseline.
+3. `ACTQL_SESSION_COLLECT=true node proofs/ci-evidence/collect.mjs mutations`
+   builds/runs the immutable image and closes its owned container/image. Require
+   all thirteen registered experiment IDs and their intended suite/filter
+   assertions in the raw logs; compile failures, timeouts, absent experiments
+   and zero-test runs are failures, not mutation detections.
+4. Preserve the intervening chain/capacity checks and the workflow's final
+   three-target restoration runs. Then
+   `node proofs/ci-evidence/collect.mjs finish` checks the complete inventory
+   with the actual Lean checker and retains the original receipt bytes.
+5. In the existing final `check` job,
+   `node proofs/ci-evidence/final.mjs` authenticates the producer's uploaded
+   artifact using its actual artifact ID/digest and the same run/attempt. Require
+   the separately uploaded `session-applicability-<run>-<attempt>-<sha>` result.
+
+Inspect `session-actions-<run>-<attempt>-<sha>` for `isolated-inputs.json`,
+`isolated-observation.json`, `isolated-execution.json`, the mutation receipt and
+result, original assertion logs, and the Lean certificate/output. Check actual
+image bytes/modes/membership against Git, physical absence of excluded source,
+read-only runtime and shell startup observations, byte-exact child restoration,
+unchanged parent checkout, and owner-bound closure. The final consumer must
+verify those observations, not just a producer success count.
+
+Local focused Node tests can independently verify source selection, physical
+staging/snapshot correspondence and validator refusal fixtures. They do not
+execute this image or authenticate a live Actions consumer. Do not set synthetic
+Actions variables, remove CI guards or run a host campaign as a substitute.
+When hosted execution is unavailable, retain the fixed revision and this exact
+acceptance gap; successful main comparison, ordinary PR reuse, related-change
+fresh execution and net savings remain subsequent obligations.
+
 The initial mutation input walk encountered fourteen literal package options
 that the general limited parser deliberately leaves unknown. The finite policy
 in `package-configurations.mjs` records independently reviewed package paths,
