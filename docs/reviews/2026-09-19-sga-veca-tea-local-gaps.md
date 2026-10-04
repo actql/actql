@@ -4667,8 +4667,11 @@ A focused JS fixture verifies the copied keyed nodes and parallel edges,
 quantum-one progress, cancellation after a partial output before handoff, and
 a literal workspace exact/one-short boundary. A source Program passes public
 checking; one focused postmerge standard Host case retained the normalized
-Graph, published MATCH rows and two consumer Named Results, and reclaimed its
-resources. The shared task splitter
+Graph, published MATCH rows and two consumer Named Results, and retained
+cleanup responsibility across an injected failure before reclaiming its
+resources. A second focused Host case reached the later filter, preserved its
+typed arithmetic failure, published no Result, and reclaimed its resources.
+The shared task splitter
 now separates a selected Carrier-to-Carrier normalization before a later
 Relation consumer without changing the fused preference of other families.
 The copy now enforces an independently calculated 37-step control-work

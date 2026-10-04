@@ -124,7 +124,7 @@
           "layers": ["standard_host", "consumer_lifetime", "publication"],
           "targets": ["node"],
           "evidence": ["adapters/connectors/duckdb/node/test/standard-host.test.mjs"],
-          "verification": "The focused postmerge standard Host retained-Store case passed with three independent Named Results and final resource release. It does not claim the full Host failure matrix or resource closure."
+          "verification": "Focused postmerge standard Host retained-Store cases passed for three independent Named Results, cleanup failure with held responsibility followed by successful retry, and a later filter arithmetic failure after normalization. The filter failure retains its typed cause, publishes no Result, and releases resources. This does not claim the full Host failure matrix or resource closure."
         }
       ],
       "historical_implementation_evidence": [
