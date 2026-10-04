@@ -66,6 +66,14 @@ narrows the local execution.
 - Affected existing JS `*group*` callers: **6/6** (`run-hsEOmK`).
 - Node public-case controls: **2/2** (`run-kFYqIv`).
 - Pinned Moon formatting, Node syntax and diff checks pass.
+- Initial fresh packed attempt at `8ab22b23db1beec2d19c8bcf9a996e89e2d6e4b2`
+  (`public-query-evidence-sIJVnO`) stops before its first JSON control is
+  accepted. That control omitted the installed acquisition's scan/filter/select
+  shape; `prepare_client_query_acquisition` reports `UnsupportedShape`.
+  Correct the independent control to an explicit always-true filter followed by
+  select, retaining all rows and the same grouping/Result expectation. This is
+  a control construction correction, not a change to a submitted source
+  predicate, output expectation or common-owner admission rule.
 - Fresh packed Local/HTTP is pending. Parser/checker evidence is not public
   execution evidence. Exact submitted-HEAD automatic CI is also pending.
 - No full local Core, all-target, proof, performance or manual CI rerun.
