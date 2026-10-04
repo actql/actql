@@ -88,6 +88,19 @@ must be verified on both Embedded Local and authenticated HTTP. Invalid
 properties, ungrouped receivers and displaced aliases must fail before Run
 admission or provider I/O.
 
-Fresh packed acceptance and submitted-HEAD CI are pending at this source
-preparation stage. Full Core, all targets, native, proof and performance are
-not local checks for this unit. No merge or manual CI rerun is requested.
+The first clean packed source `bd2e72fcad5dcc87260012fd77e842b35cb65a88`
+(`public-query-evidence-RLAZd3`) passed all eight positives and five preparation
+refusals on both Embedded Local and authenticated HTTP. The selected command
+then failed in an unrelated String restart consumer: its retained String Run
+file did not exist because this selection does not create String cases. The
+new focused flag was missing from the driver's narrow-selection lists. This
+was a harness registration error, not a grouping execution failure, and the
+campaign receipt remains failed/incomplete. Logs, identities and digests were
+retained; its disposable installation was removed with no evidence errors.
+
+The flag is now registered consistently for related-only consumers and early
+return. Full/default and source-free selections retain their existing String
+restart behavior. The final focused clean-source receipt and submitted-HEAD
+CI remain pending until recorded below. Full Core, all targets, native, proof
+and performance are not local checks for this unit. No PR merge or manual CI
+rerun is requested.

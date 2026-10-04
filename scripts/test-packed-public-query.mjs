@@ -234,6 +234,7 @@ if (process.argv.includes('--cancellation-only')) {
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
 const narrowPublicQuery = process.argv.some(flag => ['--source-free-only',
+  '--group-property-only',
   '--order-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--group-star-only', '--group-ordinal-only',
   '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only', '--two-source-only',
   '--relation-data-only', '--acquired-data-only',
@@ -279,6 +280,7 @@ if (plannerSelectionOnly || twoSourceExampleOnly) return;
 // Narrow selections without the String fixture have no retained String Run.
 // Keep restart acceptance for full/source-free selections that create it.
 if (!process.argv.some(flag => ['--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
+  '--group-property-only',
   '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only',
   '--relation-data-only', '--acquired-data-only', '--data-set-strategy-only', '--two-source-only',
   '--property-graph-source-only', '--graph-rows-only'].includes(flag))) {
@@ -286,6 +288,7 @@ if (!process.argv.some(flag => ['--alias-scope-only', '--scoped-order-only', '--
     runtimeEnvironment, 120000).trimEnd());
 }
 if (process.argv.includes('--order-ordinal-only') ||
+    process.argv.includes('--group-property-only') ||
     process.argv.includes('--distinct-order-only') ||
   process.argv.includes('--source-free-only') ||
   process.argv.includes('--data-set-strategy-only') ||
