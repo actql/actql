@@ -94,3 +94,21 @@ execution evidence remain separate.
 
 D's saved shared-CTE predicate counterexample is still independently unresolved.
 It does not block this unit, and this unit cannot close it.
+
+### Submitted-source identity follow-up
+
+Submitted `1218b85be09e03ec9433a98e5264ed9e10c7563d` reached the
+SGA normative-preimage assertion in [automatic CI 37175418951](https://github.com/actql/actql/actions/runs/37175418951).
+The spec job failed because that separate assertion still pinned the previous
+query-rule bytes; it is not a successful spec run or packed acceptance.
+The traverse rule addition is the only changed input to this grammar closure.
+Independent SHA-256 over the authored rule file gives
+`65b078b5222afb74121a0785ffc2f3b3acba8642dbbb67e56477cb924fe20933`;
+independent sorted JSON assembly gives grammar CID
+`37e9fadf9ae65bc194ad17b790ce208450550defcdbfb8354ef3c5c9c0cf4f6d`.
+The preceding grammar vectors retain their original rule bytes rather than
+being recomputed under the new rules. Product output is not the oracle.
+The corrected SGA preimage assertion and compilation-manifest tests pass
+**6/6** through the bounded Node wrapper. No product or execution code changes
+are included in this follow-up; fresh submitted-HEAD CI and packed execution
+remain required.
