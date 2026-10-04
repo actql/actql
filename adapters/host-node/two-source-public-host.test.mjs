@@ -10,14 +10,32 @@ import {resolve} from 'node:path';
 import test from 'node:test';
 import {fileURLToPath} from 'node:url';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
-import {canonical, loadTwoSourceFixtures, installTwoSourceFixtures}
+import {canonical, expectedTwoSourceResults, loadTwoSourceFixtures,
+  installTwoSourceFixtures, observeTwoSourceProvider, openTwoSourcePublicHost}
   from '../../scripts/fixtures/two-source-public-query.mjs';
+import {connectEmbeddedLocal} from './embedded-local.mjs';
 
 const repository = fileURLToPath(new URL('../../', import.meta.url));
 const driver = fileURLToPath(new URL('../../scripts/fixtures/two-source-restart.mjs', import.meta.url));
 const fixtureDirectory = fileURLToPath(new URL('./fixtures/two-source/', import.meta.url));
 const duckdbPackage = resolve(repository, 'adapters/connectors/duckdb/node/package.json');
 const duckdb = createRequire(duckdbPackage)('@duckdb/node-api');
+
+function hostAuthorization(observe) {
+  const keys = generateKeyPairSync('ed25519');
+  return {
+    accountConfiguration: canonical({version: 'actql-execution-account-config/0.1',
+      account_id: 'two-source-host', entries: [{entry_id: 'allow-owned-test-run',
+        outcome: 'allow', principal: {all: true}, connection: {all: true},
+        resource: {all: true}, operation: {any_of: ['write']}, exclusions: []}]}),
+    reviewers: [{keyId: 'fixture-reviewer-key', reviewerId: 'fixture-reviewer',
+      principalId: 'fixture-reviewer', publicKey: keys.publicKey.export({
+        type: 'spki', format: 'pem'})}],
+    hostKey: {keyId: 'fixture-host-key', privateKey: keys.privateKey.export({
+      type: 'pkcs8', format: 'pem'})},
+    ...(observe === undefined ? {} : {observe}),
+  };
+}
 
 async function runChild(configuration, action, caseName = action, expectedSignal) {
   const child = spawn(process.execPath, [driver, configuration, action, caseName],
@@ -48,16 +66,7 @@ test('two installed sources use normal public Local/HTTPS execution and owned re
       '-keyout', 'remote.key', '-out', 'remote.crt', '-days', '1',
       '-subj', '/CN=localhost', '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'],
     {cwd: root, stdio: 'ignore'});
-    const keys = generateKeyPairSync('ed25519');
-    const authorization = {
-      accountConfiguration: canonical({version: 'actql-execution-account-config/0.1',
-        account_id: 'two-source-host', entries: [{entry_id: 'allow-owned-test-run',
-          outcome: 'allow', principal: {all: true}, connection: {all: true},
-          resource: {all: true}, operation: {any_of: ['write']}, exclusions: []}]}),
-      reviewers: [{keyId: 'fixture-reviewer-key', reviewerId: 'fixture-reviewer',
-        principalId: 'fixture-reviewer', publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
-      hostKey: {keyId: 'fixture-host-key', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
-    };
+    const authorization = hostAuthorization();
     const configuration = resolve(root, 'two-source-configuration.json');
     await writeFile(configuration, JSON.stringify({root, fixtureDirectory, installation,
       authorization, runtime: {
@@ -115,5 +124,47 @@ test('two installed sources use normal public Local/HTTPS execution and owned re
       await t.test(label, () => runChild(configuration, action));
       await t.test(`Broad: ${label}`, () => runChild(configuration, action, `broad-${action}`));
     }
+    scratch.passed();
+  });
+
+test('public two-source join retains its output through the installed Store',
+  {timeout: 120_000}, async () => {
+    const scratch = await createOwnedScratch({parent: resolve(repository, '_build'),
+      prefix: 'two-source-retained-output-', label: 'public two-source retained output',
+      digests: () => []});
+    const root = scratch.path;
+    const fixture = await loadTwoSourceFixtures(fixtureDirectory);
+    const installation = await installTwoSourceFixtures({root, fixture, duckdb});
+    const provider = observeTwoSourceProvider(duckdb, installation.databases);
+    const directory = resolve(root, 'retained-output-state');
+    let outputRepresentations;
+    const authorization = hostAuthorization((name, detail) => {
+      if (name === 'computed') outputRepresentations = detail.outputRepresentations;
+    });
+    let running, client;
+    try {
+      running = await openTwoSourcePublicHost({
+        connect: connectEmbeddedLocal, mode: 'local', directory,
+        sourceProfilePaths: [installation.profiles.left, installation.profiles.right],
+        authorization, retainedRelationOutput: true});
+      client = await running.connect();
+      const requestId = 'two-source-retained-output';
+      const execution = await client.aql(fixture.program, {format: 'json', requestId});
+      const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
+      assert.equal(state.status, 'succeeded', JSON.stringify(state));
+      const expected = expectedTwoSourceResults(fixture, 'distinct').joined;
+      assert.deepEqual(await execution.result('joined').all(), expected.rows);
+      assert.deepEqual((await execution.result('joined').describe()).columns,
+        expected.columns);
+      assert.ok(outputRepresentations?.some(value =>
+        value.representation === 'retained-file'));
+      const before = provider.snapshot();
+      const attached = await client.attach(execution.ref);
+      assert.deepEqual(await attached.result('joined').all(), expected.rows);
+      const resent = await client.aql(fixture.program, {format: 'json', requestId});
+      assert.deepEqual(resent.ref, execution.ref);
+      assert.deepEqual(provider.snapshot(), before,
+        'Result reuse never repeats either physical source');
+    } finally { client?.close(); await running?.close(); provider.restore(); }
     scratch.passed();
   });

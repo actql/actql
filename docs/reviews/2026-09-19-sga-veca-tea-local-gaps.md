@@ -5,15 +5,16 @@
 An installed Local or HTTP Host can now set `retainedRelationOutput: true` in
 its trusted installation configuration. The public Client's ordinary Program
 path then opens the existing checked retained factory for source-free tasks or
-one DuckDB-captured source, and installs a real row Store for output while
+one or two DuckDB-captured sources, and installs a real row Store for output while
 keeping the existing Carrier snapshot Store. Omission and `false` preserve the
 previous memory-output selection and installation identity. A different value
-is rejected; an installed source without retained-output support and a
-two-source acquisition are rejected before physical start rather than silently
-falling back to memory output. Effect and INFER dispatch keep their separate
+is rejected; an installed source without retained-output support is rejected
+before physical start rather than silently falling back to memory output.
+Effect and INFER dispatch keep their separate
 existing owners.
 
-The public source-free Values/sort and DuckDB-acquired filter/sort Programs
+The public source-free Values/sort, single-source DuckDB-acquired filter/sort,
+and two-source DuckDB-acquired Join Programs
 read independently expected Named Result rows. The acquired case also checks
 description, attach, and idempotent resend, and the Host observes the actual
 `retained-file` output representation before cleanup. The unchanged public
@@ -21,7 +22,7 @@ Local/HTTPS acquisition-selection fixture passes in the default mode. A
 separate writer regression cancels while the Store lease is being acquired;
 it checks zero reservations, nonpublication, and cleanup retry. These tests
 establish the public configuration connection, not retained output for every
-installed source or two-source Program. Full CI and Native Host cancellation
+installed source or two-source Program variant. Full CI and Native Host cancellation
 remain separate verification units.
 
 ## Current Property Graph migration (2026-10-02)
@@ -1098,7 +1099,7 @@ local execution, and Native Host in-flight cancellation remains a separate unit.
 
 The full Node factory now installs the existing SGA, TEA and VecA providers,
 including the Relation-valued time-series, interval/as-of and sequence
-providers. The four source-free/captured and memory/retained factories share
+providers. The source-free, captured and multi-captured memory/retained factories share
 this selection. RelA-only keeps the same bridge body with no family providers;
 the artifact gate checks both import closure and actual linked cores. The
 specialized SGA selector factory remains SGA-only.
@@ -1144,7 +1145,7 @@ Public Client retained-mode selection remains Host-owned as described above.
 multi-task Programs or Graph Carrier Programs. This includes the multi-task
 Events/Vectors Programs exercised here. The public Client connection in
 `client-dispatch-owner.mjs` now carries the retained mode to the checked
-source-free or single DuckDB-captured factory.
+source-free, single DuckDB-captured or two-source DuckDB-captured factory.
 The older configured standard-Host family cases below are not themselves
 public Client acceptance for every family. Neither Client owner is replaced.
 This addition certifies explicit configured standard-Host factory paths, not
@@ -1222,9 +1223,14 @@ the independent envelope vectors also cover exact bytes and one-byte-short.
 
 This was the public Client configuration gap at the time of the captured-input
 factory proof. The current installed Host now selects the additive retained
-factory when explicitly configured, for a single DuckDB-captured source.
-Other connector sources and multi-source retained output remain outside this
-connection. Linux CI and Native Host in-flight cancellation are separate
+factory when explicitly configured, for source-free Programs and one or two
+DuckDB-captured sources. The two-source factory keeps the checked input
+positions and the existing acquisition ledger; a public two-source Join
+reaches the real row Store and publishes its independently expected Named
+Result. Attached and repeated requests do not reacquire either source. This
+public test does not establish retained output for other connector sources,
+all multi-source variants, or two-consumer and failure recovery for the
+two-source route. Linux CI and Native Host in-flight cancellation are separate
 evidence and completion units.
 
 #### Mixed retained Store and typed Carrier paths

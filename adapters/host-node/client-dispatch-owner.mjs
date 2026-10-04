@@ -256,9 +256,6 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         throw new Error('InstalledInferDispatchUnavailable');
       }
       const multiple = held.preparedSources?.length === 2;
-      if (multiple && retainedRelationOutput) {
-        throw new TypeError('InstalledMultiSourceRetainedOutputUnsupported');
-      }
       if (inferring && multiple) {
         throw new Error('InstalledInferMultiSourceUnsupported');
       }
@@ -390,7 +387,10 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         held.plan = acquiredMultiTaskPublicationPlan({moon, control, acquired: held.plan,
           preparedProgram, sources, authorityScopeCid, effectiveDataPolicyCid,
           captureStartedAt, captureCompletedAt, namespaceId, storeAuthorityCid, now});
-        setup = moon.clientProgramOpenMultiCapturedLocalHost(preparedProgram,
+        const open = retainedRelationOutput
+          ? moon.clientProgramOpenMultiCapturedLocalRetainedHost
+          : moon.clientProgramOpenMultiCapturedLocalHost;
+        setup = open(preparedProgram,
           captures.map(value => value.capture.source()), ledger, registry, values, fragment, ordered);
         if (setup === undefined) throw new Error('InstalledMultiSourceHostUnavailable');
         entry.pendingSetup = setup;
