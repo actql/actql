@@ -367,8 +367,13 @@ test('baseline preimages and changed normative pins independently determine the 
   };
   assert.equal(vector('sha256:caad49cf67bec4b67c2cb6beed69e7c9f71a80b19f2e8e04535d0d7f1c12cd90', cid(aoaContract), selectionDependencies, barrierCid).run.run_definition_cid,
     pin('4ac75ab91130a87f439df5621d673c5aec12fbe67f3ccc033691d4af5e4abc3b'));
-  assert.equal(current.run.run_definition_cid,
+  // Retain the Graph-row text baseline before the traverse connection. Only
+  // query rule bytes change; the Values Unit/proof/Result Plan remain fixed.
+  assert.equal(vector('sha256:4ac81bd72c110d09c286a0f2d4c5d68d4340a2e6843d75deabd8dbbd9fb26b77',
+    cid(aoaContract), dependencies, barrierCid).run.run_definition_cid,
     pin('48ef7cfc48aa9303ffd61e0820cbec0f32bd767fb5a2d4e5b0fdb1d60bdd290d'));
+  assert.equal(current.run.run_definition_cid,
+    pin('cfd9395735fcb60fa33631944f54a49b5865dd7f55116bc26759b0ee72a037b4'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');

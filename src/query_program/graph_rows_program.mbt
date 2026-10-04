@@ -4,7 +4,9 @@ fn script_has_graph_rows(query : @query.Query) -> Bool {
     guard @query.operation_at(query, index) is Some(GraphCall(call)) else {
       break
     }
-    if call.operation == "node_rows" || call.operation == "edge_rows" {
+    if call.operation == "node_rows" ||
+      call.operation == "edge_rows" ||
+      call.operation == "traverse" {
       return true
     }
   }
@@ -82,6 +84,7 @@ fn lower_script_graph_rows(
   steps : Array[@builder.Node],
   reserved : Array[String],
   output : String,
+  known? : Array[Input] = [],
   retained? : Array[RetainedResult]? = None,
 ) -> Input raise Abort {
   if @query.cte_count(query) > 0 ||
@@ -98,9 +101,19 @@ fn lower_script_graph_rows(
     guard @query.operation_at(query, index) is Some(GraphCall(call)) else {
       break
     }
-    if row_input is Some(_) || !call.arguments.is_empty() {
+    if row_input is Some(_) {
       raise Abort(UnsupportedGraph)
     }
+    if call.operation == "traverse" {
+      row_input = Some(
+        lower_script_traversal_nodes(
+          construction, query, call, current, known, limits, steps, reserved,
+        ),
+      )
+      current = row_input.unwrap().name
+      continue
+    }
+    guard call.arguments.is_empty() else { raise Abort(UnsupportedGraph) }
     if call.operation != "normalize_graph" &&
       call.operation != "node_rows" &&
       call.operation != "edge_rows" {
