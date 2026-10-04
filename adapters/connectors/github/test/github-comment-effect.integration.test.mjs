@@ -232,6 +232,18 @@ async function approve(host, execution) {
   assert.deepEqual(answer.results.map(item => item.status), ['committed']);
 }
 
+// Approve the held Set from a separate Host process and close it, so no Host
+// is running when a test then changes the input or the provider; nothing
+// has been sent at that point.
+async function approvedAndStopped(setup, first, execution) {
+  await first.close();
+  const reviewer = await setup.openHost();
+  await approve(reviewer, execution);
+  await reviewer.close();
+  assert.equal(commentSends(setup.api).length, 0,
+    'nothing is sent before the approved Set is resumed');
+}
+
 // Resume the Run in a new Host process and wait for its end.
 async function resumed(setup, execution) {
   const host = await setup.openHost();
@@ -300,8 +312,7 @@ test('a subject that stops being an Issue after approval is refused before the s
     const first = await setup.openHost();
     const {execution} = await submitted(setup, first, 'comment-moved',
       [{node_id: 'I_7', comment: 'hello'}]);
-    await approve(first, execution);
-    await first.close();
+    await approvedAndStopped(setup, first, execution);
     // After approval, the node now resolves into another repository.
     setup.state.subjects.set('I_7', {type: 'Issue', repository: 'R_other',
       number: 7});
@@ -319,8 +330,7 @@ test('a reply lost after the comment was created stays unknown and is never rese
     const first = await setup.openHost();
     const {execution} = await submitted(setup, first, 'comment-lost',
       [{node_id: 'I_7', comment: 'hello'}]);
-    await approve(first, execution);
-    await first.close();
+    await approvedAndStopped(setup, first, execution);
     const {host: second, state} = await resumed(setup, execution);
     assert.equal(state.status, 'needs_reconciliation', JSON.stringify(state));
     assert.deepEqual(state.next_action, {effects: ['comment'],
@@ -357,8 +367,7 @@ test('an Effect input altered after approval is refused before any send',
     const first = await setup.openHost();
     const {execution} = await submitted(setup, first, 'comment-altered',
       [{node_id: 'I_7', comment: 'hello'}]);
-    await approve(first, execution);
-    await first.close();
+    await approvedAndStopped(setup, first, execution);
     await setup.alterEffectInput();
     const {state} = await resumed(setup, execution);
     assert.equal(state.status, 'failed', JSON.stringify(state));
