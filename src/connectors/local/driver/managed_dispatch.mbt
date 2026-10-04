@@ -1928,7 +1928,11 @@ pub fn[T] start_local_managed_dispatch(
           if key == "BRIDGE.graph.to_node_rows" ||
             key == "BRIDGE.graph.to_edge_rows" {
             graph_rows = true
-          } else if key == "REL.where" &&
+          } else if (
+              key == "REL.where" ||
+              key == "REL.orderByStable" ||
+              key == "REL.limit"
+            ) &&
             @lower.preparation_schema_at(
               prepared,
               @pipeline.Step(

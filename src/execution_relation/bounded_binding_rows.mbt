@@ -1467,12 +1467,12 @@ fn bounded_binding_rows_step(
           used += 1
         } else if state.sort_column < state.input_names.length() {
           if state.sort_measure is None {
-            guard bounded_binding_input_cell(
+            guard bounded_binding_input_charge_cell(
                 state.input,
                 indices[state.sort_row],
                 state.sort_column,
               )
-              is Some(value) else {
+              is Ok(cell) else {
               return fail_bounded_binding_rows(InvalidExecution, progress, used)
             }
             if !spend_control(state.control, 1) ||
@@ -1481,6 +1481,14 @@ fn bounded_binding_rows_step(
                 state.input_names[state.sort_column],
               ) {
               return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+            }
+            guard cell is Some(value) else {
+              if !charge_node(state.output_values, 2) {
+                return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+              }
+              state.sort_column += 1
+              used += 1
+              continue
             }
             guard start_stepped_measure_result(value, state.workspace)
               is Some(cursor) else {
@@ -1658,6 +1666,9 @@ fn bounded_binding_rows_step(
         state.column = 0
         state.phase = if state.json_path is Some(_) {
           PickJson
+        } else if state.preserve_presence &&
+          state.projection_ordinals is Some(_) {
+          CopyPresenceRow
         } else if state.projection_ordinals is Some(_) {
           BuildOutputRow
         } else {
@@ -1966,10 +1977,14 @@ fn bounded_binding_rows_step(
           !spend_control(state.control, 1) {
           return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
         }
+        let source_row = match state.sorted_indices {
+          Some(indices) => indices[state.row]
+          None => state.row
+        }
         let cell = match
           bounded_binding_input_charge_cell(
             state.input,
-            state.row,
+            source_row,
             state.column,
           ) {
           Ok(None) => None
@@ -1979,7 +1994,7 @@ fn bounded_binding_rows_step(
             let value = match state.input {
               CompletedBindingInput(read) => {
                 guard read.columns.get(state.column) is Some(source) &&
-                  completed_presence_cell(read.bound.output, state.row, source)
+                  completed_presence_cell(read.bound.output, source_row, source)
                   is Ok(Present(value)) else {
                   return fail_bounded_binding_rows(
                     InvalidExecution,
@@ -1990,7 +2005,11 @@ fn bounded_binding_rows_step(
                 value
               }
               SuppliedBindingInput(read) => {
-                guard captured_presence_cell(read.rows, state.row, state.column)
+                guard captured_presence_cell(
+                    read.rows,
+                    source_row,
+                    state.column,
+                  )
                   is Ok(Present(value)) else {
                   return fail_bounded_binding_rows(
                     InvalidExecution,
@@ -2368,13 +2387,21 @@ fn bounded_binding_rows_step(
           return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
         }
         if state.scope is Some(scope) {
-          guard state.input_roots.get(state.row) is Some(root) else {
+          let source_row = if state.preserve_presence {
+            match state.sorted_indices {
+              Some(indices) => indices[state.row]
+              None => state.row
+            }
+          } else {
+            state.row
+          }
+          guard state.input_roots.get(source_row) is Some(root) else {
             return fail_bounded_binding_rows(InvalidExecution, progress, used)
           }
           let result = if state.preserve_presence {
             let source : BoundedBindingRow = {
               input: state.input,
-              row: state.row,
+              row: source_row,
               width: state.input_names.length(),
             }
             row_event_output(scope, state.output_names, source, [], root)
@@ -2634,7 +2661,11 @@ fn start_bounded_binding_rows_with_input(
   }
   let body = @lower.kernel_body(kernel)
   let preserve_presence = !@schema.all_fields_required(input_schema) &&
-    body is @lower.Filter(_)
+    (
+      body is @lower.Filter(_) ||
+      body is @lower.StableSort(_) ||
+      body is @lower.Limit(_, _, _)
+    )
   if !@schema.all_fields_required(input_schema) &&
     !preserve_presence &&
     !(body is @lower.Select(_)) {

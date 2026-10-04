@@ -65,8 +65,9 @@ non-nullable value type. Closed column knowledge therefore does not imply that
 every declared column occurs in every row. Ordinary object value contracts keep
 their exact required-field rules.
 
-The execution profile permits projection and Required-only filter expressions
-on conditional inputs. Every syntactic filter reference must be Required,
+The execution profile permits projection, Required-only filter expressions,
+Required-key sort and proven-order take on conditional inputs. Every syntactic
+filter reference and authored sort key must be Required,
 including references in lazy/dead branches; runtime samples and `IS NOT NULL`
 do not provide a presence proof. Graph definition/label selection derives its
 schema from declarations through its existing Bridge contract, not row predicates.
@@ -75,7 +76,11 @@ rows are admitted and charged before predicate evaluation, including rows that
 will be rejected. The existing bounded evaluator copies admitted surviving cells,
 charges presence containers, and retains them until output handoff or cleanup.
 Logical wire retention omits absent keys without inventing NULL values; physical
-presence slots remain charged by the common row owner. Other row consumers reject conditional inputs rather than rebuilding
+presence slots remain charged by the common row owner. Sort moves each complete
+typed row, including absent cells, according to its existing admitted order
+completion; take applies offset/count to that proven order. Neither operation
+promotes Conditional columns or discards them. Selection and retained presence
+slots use the existing bounded row workspace and cleanup path. Other row consumers reject conditional inputs rather than rebuilding
 their schema as dense or filling absent cells with NULL. Public Results require
 required selected and ordering columns.
 

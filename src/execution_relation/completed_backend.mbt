@@ -204,7 +204,13 @@ fn completed_selection(
   workspace : RowWorkspace,
 ) -> Result[CompletedTable, RowIssue] {
   match input {
-    PresenceTable(_) => Err(InvalidRows)
+    PresenceTable(table) => {
+      if !reserve_slots(workspace, indices.length()) ||
+        !spend_control(control, indices.length()) {
+        return Err(RowLimit)
+      }
+      Ok(PresenceTable({ ..table, id, rows: indices.map(i => table.rows[i]), }))
+    }
     AdmittedTable(table) =>
       Ok(
         AdmittedTable({
