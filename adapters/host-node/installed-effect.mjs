@@ -122,6 +122,8 @@ export async function loadInstalledEffect(path, {root, principalId, moon,
   }
   return Object.freeze({environmentWire: installed.environmentWire,
     connectorBindings: installed.connectorBindings,
+    targetReadInventory: installed.targetReadInventory,
+    targetReadAuthorization: installed.targetReadAuthorization,
     prepareCaptured: installed.prepareCaptured,
     prepareRecovered: installed.prepareRecovered,
     close: () => installed.close()});

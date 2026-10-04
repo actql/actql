@@ -816,6 +816,7 @@ pub fn generated_sequence_all_row_kernels(
       | @lower.GraphTraverseStep(_)
       | @lower.GraphDiagnosticStep(_)
       | @lower.GraphEqualityStep(_)
+      | @lower.GraphNormalizeStep(_)
       | @lower.PropertyGraphConstructionStep(_)
       | @lower.VectorStep(_)
       | @lower.EventStep(_)

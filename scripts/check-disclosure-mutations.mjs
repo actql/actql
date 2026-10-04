@@ -22,7 +22,9 @@ const mutations = [
   ['an unresolved obligation is reported as a violation',
     'if findings\n    .iter()\n    .any(finding => {\n' +
     '      finding\n      is (Violation(_)\n      | SyntaxViolation(_, _)\n' +
+    '      | QueryViolation(_, _)\n' +
     '      | TypeViolation(_, _, _, _)\n      | SuppliedViolation(_)\n' +
+    '      | ConstraintViolation(_, _, _)\n' +
     '      | UndeclaredParameter(_, _))\n    }) {\n' +
     '    "invalid"',
     'if findings.iter().any(finding => !(finding is Limit(_))) {\n' +
@@ -49,8 +51,22 @@ const mutations = [
     'guard check_type_name(source) is Some(expected) else',
     'guard check_type_name(root_source) is Some(expected) else'],
   ['a supplied constraint loses its owned location',
-    'let fallback = SuppliedViolation(pointer)',
-    'let fallback = SuppliedViolation(None)'],
+    'return ConstraintViolation(name, constraint, pointer)',
+    'return ConstraintViolation(name, constraint, None)'],
+  ['a supplied numeric constraint is assigned to the duration family',
+    'ParameterIssue(NumericConstraint, ..)) =>\n      Some("numeric")',
+    'ParameterIssue(NumericConstraint, ..)) =>\n      Some("duration")'],
+  ['a supplied constraint loses its typed explanation facts',
+    'return ConstraintViolation(name, constraint, pointer)',
+    'return SuppliedViolation(pointer)'],
+  ['an unresolved column loses its retained authored location',
+    '    Some(origin) =>\n      QueryViolation(\n' +
+    '        @source_origin.start(origin).byte_offset,\n' +
+    '        @source_origin.end(origin).byte_offset,\n      )',
+    '    Some(_) => Violation("query_invalid")'],
+  ['an unresolved column starts one byte after its authored token',
+    '        @source_origin.start(origin).byte_offset,',
+    '        @source_origin.start(origin).byte_offset + 1,'],
 ];
 
 const strict = id => ({id, operator: 'strictEqual'});
@@ -73,6 +89,14 @@ const targets = [
     [strict('nested-outcome'), deep('nested-type')]],
   ['supplied constraint locations retain the binder path without private values',
     [strict('constraint-outcome'), deep('constraint-location')]],
+  ['supplied constraint locations retain the binder path without private values',
+    [strict('constraint-outcome'), deep('constraint-location')]],
+  ['supplied constraint locations retain the binder path without private values',
+    [strict('constraint-outcome'), deep('constraint-location')]],
+  ['unresolved column expressions retain authored source positions',
+    [strict('column-outcome'), strict('column-verdict'), deep('column-location')]],
+  ['unresolved column expressions retain authored source positions',
+    [strict('column-outcome'), strict('column-verdict'), deep('column-location')]],
 ];
 
 // Reuse the common reporter and nonzero-execution evidence. A process failure

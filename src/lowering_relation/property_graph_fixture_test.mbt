@@ -48,7 +48,6 @@ fn graph_current_owner(
 test "unconnected lowering consumers cannot issue retired Graph kernels for a current definition" {
   for
     (name, body) in [
-      ("normalize_graph", "true"),
       (
         "reach",
         "{\"start\":{\"ids\":[" +
@@ -158,6 +157,7 @@ test "current Graph equality lowers as one ordered binary occurrence" {
 test "current Graph diagnostics lower to their registered typed operations" {
   for
     (name, body, operation) in [
+      ("normalize_graph", "true", "SGA.normalize"),
       ("degree", "{\"direction\":\"both\"}", "SGA.degree_metrics"),
       ("graph_bounds", "{\"max_nodes\":1}", "SGA.bounds_check"),
       (

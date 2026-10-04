@@ -18,6 +18,7 @@ pub(all) enum OperationExecutionCheck {
   GraphMatchExecution(GraphMatchCheck)
   GraphEqualityExecution(GraphEqualityCheck)
   GraphDiagnosticExecution(GraphDiagnosticCheck)
+  GraphNormalizeExecution(GraphNormalizeCheck)
   VectorExecution(VectorCheck)
   NearestExecution(NearestCheck)
   PoolExecution(PoolCheck)
@@ -106,6 +107,7 @@ pub fn operation_execution_phase(
         RequireDiagnosticResources => BeforeOperationInputUse
         EnforceDiagnosticRows => BeforeOperationOutput
       }
+    GraphNormalizeExecution(_) => BeforeOperationInputUse
     VectorExecution(v) =>
       match v.rule {
         AdmitVectorComponents
@@ -294,6 +296,7 @@ pub fn operation_execution_failure(
     | GraphMatchExecution(_)
     | GraphEqualityExecution(_)
     | GraphDiagnosticExecution(_)
+    | GraphNormalizeExecution(_)
     | VectorExecution(_)
     | NearestExecution(_)
     | PoolExecution(_)

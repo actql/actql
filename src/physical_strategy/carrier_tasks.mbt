@@ -206,6 +206,7 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
     return None
   }
   let mut found_carrier = false
+  let mut carrier_transform = false
   let mut found_relation = false
   let mut found_zero_input = false
   let mut zero_input_count = 0
@@ -271,6 +272,12 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
               return None
             }
             found_carrier = true
+            if @lower.node_can_split_carrier_transform(node) {
+              // A selected Carrier-to-Carrier step has its own output
+              // generation. A later row consumer need not keep the whole
+              // prefix fused merely to reuse that generation.
+              carrier_transform = true
+            }
             if @lower.node_prefers_fused_without_relation_consumer(node) {
               prefer_fused_without_relation = true
             }
@@ -290,7 +297,7 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
   }
   if all_selected &&
     found_carrier &&
-    (!prefer_fused_without_relation || found_relation) {
+    (!prefer_fused_without_relation || found_relation || carrier_transform) {
     return Some(-1)
   }
   // A non-linear Relation dependency cannot be realized by the fused provider.

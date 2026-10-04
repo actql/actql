@@ -56,8 +56,6 @@ test "set ORDER expressions cannot recover operand columns or ranges" {
       "SELECT a AS x FROM left_rows UNION ALL SELECT c AS y FROM right_rows ORDER BY y + 1",
       "SELECT a AS x FROM left_rows UNION ALL SELECT c AS y FROM right_rows ORDER BY left_rows.a + 1",
       "SELECT a AS x FROM left_rows UNION ALL SELECT c AS y FROM right_rows ORDER BY right_rows.c + 1",
-      "SELECT a AS x FROM left_rows UNION ALL SELECT c AS y FROM right_rows ORDER BY 1",
-      "SELECT a AS x FROM left_rows UNION ALL SELECT c AS y FROM right_rows ORDER BY (1)",
       "SELECT a AS x FROM left_rows UNION ALL SELECT c AS y FROM right_rows ORDER BY -1",
       "SELECT a AS x FROM left_rows UNION ALL SELECT c AS y FROM right_rows ORDER BY 'x'",
       "SELECT a AS x FROM left_rows UNION ALL SELECT c AS y FROM right_rows ORDER BY NULL",

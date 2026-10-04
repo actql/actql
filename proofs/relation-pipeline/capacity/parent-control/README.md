@@ -195,6 +195,14 @@ first candidate. `provider-construction.json` pins their source, order and
 compatibility wrappers independently of execution observations. Under the
 declared native representation/capture premises, one batch has this upper bound:
 
+The Graph normalization change adds `GraphNormalizeStep` to the row-kernel
+exclusion match in `generated_sequence_all_row_kernels`. It changes which
+sequence is eligible for a row kernel, but does not alter `GeneratedSequence`
+fields, the eleven selected Relation provider constructors, their callbacks
+or captures, the candidate literal, or their simultaneous lifetime. The
+updated source premise records that reviewed branch change; the 2344-byte
+constructor envelope and its incomplete parent/pipeline claims are unchanged.
+
 | Source-owned group | Requested bytes |
 | --- | ---: |
 | Eleven four-reference provider records | `11 * 40` |

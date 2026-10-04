@@ -50,6 +50,37 @@ export function resolveCheckLocation(outcome, location, currentInput) {
       .decode(bytes.subarray(location.start_byte, location.end_byte))});
 }
 
+// Coordinates describe this submitted revision, never a newer editor buffer.
+export function resolveCheckTextRange(outcome, location, currentInput) {
+  const resolved = resolveCheckLocation(outcome, location, currentInput);
+  if (resolved?.kind !== 'text' || !resolved.input.text.isWellFormed()) return undefined;
+  const text = resolved.input.text;
+  let byte = 0, line = 0, character = 0, start, end;
+  for (let at = 0; ; ) {
+    if (byte === resolved.start_byte) start = Object.freeze({line, character});
+    if (byte === resolved.end_byte) {
+      end = Object.freeze({line, character});
+      break;
+    }
+    if (at === text.length) return undefined;
+    const scalar = text.codePointAt(at);
+    const units = scalar > 0xffff ? 2 : 1;
+    let width = scalar <= 0x7f ? 1 : scalar <= 0x7ff ? 2 : scalar <= 0xffff ? 3 : 4;
+    if (scalar === 13 && text[at + 1] === '\n') {
+      // There is no exact editor position between the two CRLF bytes.
+      if (resolved.start_byte === byte + 1 || resolved.end_byte === byte + 1) return undefined;
+      at++;
+      width++;
+    }
+    if (scalar === 13 || scalar === 10) { line++; character = 0; }
+    else character += units;
+    byte += width;
+    at += units;
+  }
+  return start && Object.freeze({...resolved, positionEncoding: 'utf-16',
+    range: Object.freeze({start, end})});
+}
+
 // Presentation never participates in verdicts, admission or retry decisions.
 export function explainCheckReason(reason) {
   const explanations = {
@@ -59,6 +90,7 @@ export function explainCheckReason(reason) {
     parameter_declarations_invalid: ['The parameter declarations are invalid.', 'Correct the supplied declarations.'],
     supplied_parameters_invalid: ['The supplied parameter input is invalid.', 'Correct the supplied parameter map.'],
     supplied_value_invalid: ['A supplied value violates its declaration.', 'Correct the value to satisfy its declared contract.'],
+    supplied_value_constraint_violation: ['A supplied value violates a declared constraint.', 'Correct the value to satisfy the declared constraint family.'],
     supplied_value_type_mismatch: ['A supplied value has the wrong type.', 'Supply a value of the declared type.'],
     parameter_value_required: ['A declared parameter value is missing.', 'Supply the declared value and check the complete bound input again.'],
     program_invalid: ['The input violates the checked Program contract.', 'Correct the input under the selected contract.'],
@@ -69,6 +101,18 @@ export function explainCheckReason(reason) {
     unresolved_protected: ['Source resolution cannot be established from the disclosed context.', 'Ask the Source or checking-context owner to review the published context.'],
   };
   const known = Object.hasOwn(explanations, reason?.code) ? explanations[reason.code] : undefined;
+  const constraintHints = {
+    numeric: 'Supply a number satisfying the declared integer, minimum and maximum constraints.',
+    duration: 'Supply a string in the admitted duration format.',
+    array_length: 'Supply an array with the declared exact length.',
+    array_size: 'Supply an array within the declared maximum item count.',
+  };
+  const constraint = reason?.facts?.constraint;
+  if (reason?.code === 'supplied_value_constraint_violation' &&
+      typeof constraint === 'string' && Object.hasOwn(constraintHints, constraint)) {
+    return Object.freeze({kind: 'known', summary: known[0],
+      hint: constraintHints[constraint]});
+  }
   return Object.freeze(known ? {kind: 'known', summary: known[0], hint: known[1]}
     : {kind: 'unknown', summary: 'No supported explanation is available for this reason.'});
 }

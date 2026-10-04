@@ -8,8 +8,10 @@ priv enum CheckFinding {
   // A disclosable proven violation of the caller's own input.
   Violation(String)
   SyntaxViolation(Int, Int)
+  QueryViolation(Int, Int)
   TypeViolation(String, String, String, String?)
   SuppliedViolation(String?)
+  ConstraintViolation(String, String, String?)
   UndeclaredParameter(String, (Int, Int)?)
   RequiredValue(String, String)
   // An obligation that cannot be discharged from disclosable evidence.
@@ -256,8 +258,9 @@ fn check_source_findings(
           | UnknownColumn
           | AmbiguousColumn
           | DuplicateOutput
-          | Expression(_)
         ) => findings.push(Violation("query_invalid"))
+        QueryLowering(Expression(_)) =>
+          findings.push(check_query_finding(issue))
         // Host query context, not the caller's input.
         QueryLowering(InvalidContext) => return Failed("check_context_invalid")
         // A construction budget of this check: undetermined, never invalid.
@@ -292,8 +295,10 @@ fn check_source_findings(
       finding
       is (Violation(_)
       | SyntaxViolation(_, _)
+      | QueryViolation(_, _)
       | TypeViolation(_, _, _, _)
       | SuppliedViolation(_)
+      | ConstraintViolation(_, _, _)
       | UndeclaredParameter(_, _))
     }) {
     return Report
@@ -437,8 +442,10 @@ fn check_verdict(findings : Array[CheckFinding]) -> String {
       finding
       is (Violation(_)
       | SyntaxViolation(_, _)
+      | QueryViolation(_, _)
       | TypeViolation(_, _, _, _)
       | SuppliedViolation(_)
+      | ConstraintViolation(_, _, _)
       | UndeclaredParameter(_, _))
     }) {
     "invalid"
@@ -477,8 +484,11 @@ fn write_check_report(
     match finding {
       Violation(code) => Some(code)
       SyntaxViolation(_, _) => Some("query_syntax_invalid")
+      QueryViolation(_, _) => Some("query_invalid")
       TypeViolation(_, _, _, _) => Some("supplied_value_type_mismatch")
       SuppliedViolation(_) => Some("supplied_value_invalid")
+      ConstraintViolation(_, _, _) =>
+        Some("supplied_value_constraint_violation")
       UndeclaredParameter(_, _) => Some("parameter_undeclared")
       _ => None
     }
@@ -610,9 +620,42 @@ fn write_check_report(
         }
       }
     }
+    if code == "supplied_value_constraint_violation" {
+      for finding in findings {
+        if finding is ConstraintViolation(name, constraint, pointer) {
+          @encode.key(writer, "facts")
+          @encode.begin_object(writer)
+          @encode.key(writer, "constraint")
+          @encode.string_value(writer, constraint)
+          @encode.key(writer, "parameter")
+          @encode.string_value(writer, name)
+          @encode.end_object(writer)
+          if documents.parameters_revision is Some(revision) &&
+            pointer is Some(pointer) {
+            write_check_structured_location(
+              writer, "parameters", revision, pointer,
+            )
+          }
+          break
+        }
+      }
+    }
     if code == "query_syntax_invalid" {
       for finding in findings {
         if finding is SyntaxViolation(start, end) {
+          write_check_text_location(
+            writer,
+            documents.source_revision,
+            start,
+            end,
+          )
+          break
+        }
+      }
+    }
+    if code == "query_invalid" {
+      for finding in findings {
+        if finding is QueryViolation(start, end) {
           write_check_text_location(
             writer,
             documents.source_revision,
@@ -739,6 +782,20 @@ fn check_syntax_finding(diagnostic : @query_syntax.Diagnostic) -> CheckFinding {
 }
 
 ///|
+/// Project only the existing lowerer's owned authored origin. Unresolved Source
+/// names and lowerer failures lacking provenance cannot acquire a location.
+fn check_query_finding(issue : @source_frontend.Issue) -> CheckFinding {
+  match @source_frontend.unknown_column_origin(issue) {
+    Some(origin) =>
+      QueryViolation(
+        @source_origin.start(origin).byte_offset,
+        @source_origin.end(origin).byte_offset,
+      )
+    None => Violation("query_invalid")
+  }
+}
+
+///|
 fn write_check_document(
   writer : @encode.Writer,
   document_id : String,
@@ -855,6 +912,24 @@ fn check_supplied_type_finding(
     None
   }
   let fallback = SuppliedViolation(pointer)
+  // These are the binder's proven families, not another constraint check.
+  // NumericConstraint does not identify which integer/bound condition failed.
+  let constraint = match issue {
+    BindingInput(Supplied, ParameterIssue(NumericConstraint, ..)) =>
+      Some("numeric")
+    BindingInput(Supplied, ParameterIssue(DurationConstraint, ..)) =>
+      Some("duration")
+    BindingInput(Supplied, ParameterIssue(LengthConstraint, ..)) =>
+      Some("array_length")
+    BindingInput(Supplied, Value(ValueIssue(ArrayConstraint, ..))) =>
+      Some("array_size")
+    _ => None
+  }
+  if constraint is Some(constraint) &&
+    path.get(0) is Some(@source.Key(name)) &&
+    name.length() <= 256 {
+    return ConstraintViolation(name, constraint, pointer)
+  }
   guard issue
     is (BindingInput(
       Supplied,

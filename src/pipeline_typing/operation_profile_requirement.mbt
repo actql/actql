@@ -27,6 +27,11 @@ pub fn operation_profile_requirement(
         AdmitBothPropertyGraphs => Some(PropertyGraph)
         CompareCompleteGraphValues | ResolvePropertyEqualityResources => None
       }
+    NormalizeRequirement(o) =>
+      match o {
+        AdmitNormalizeGraph => Some(PropertyGraph)
+        ResolveNormalizeResources => None
+      }
     ComponentsRequirement(o) =>
       match o {
         AdmitComponentGraph => Some(PropertyGraph)

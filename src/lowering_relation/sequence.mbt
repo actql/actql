@@ -24,6 +24,7 @@ pub enum PreparedStep {
   GraphMatchStep(PreparedGraphMatch)
   GraphDiagnosticStep(PreparedGraphDiagnostic)
   GraphEqualityStep(PreparedGraphEquality)
+  GraphNormalizeStep(Int)
   GraphTraverseStep(PreparedGraphTraverse)
   PropertyGraphConstructionStep(PreparedPropertyGraphConstruction)
   VectorStep(PreparedVector)
@@ -314,6 +315,7 @@ fn prepare_sequence_count(
         }
         GraphEqualityStep(prepared)
       }
+      GraphNormalizeValue(_) => GraphNormalizeStep(i)
       GraphTraverseRows(_) => {
         let (prepared, used_entries, used_names, remaining) = match
           prepare_graph_traverse_node(
@@ -540,6 +542,8 @@ pub fn emit_sequence_step_range(
       GraphMatchStep(v) => emit_graph_match_node(v, out)
       GraphDiagnosticStep(v) => emit_graph_diagnostic_node(v, out)
       GraphEqualityStep(v) => emit_graph_equality_node(v, out)
+      GraphNormalizeStep(index) =>
+        emit_graph_normalize_node(value.owner, index, out)
       GraphTraverseStep(v) => emit_graph_traverse_node(v, out)
       PropertyGraphConstructionStep(v) =>
         emit_property_graph_construction_node(v, out)
