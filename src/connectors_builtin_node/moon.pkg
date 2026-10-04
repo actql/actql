@@ -62,6 +62,7 @@ import {
   "moonbitlang/core/debug",
   "actql/actql/stage_results" @effect_results,
   "actql/actql/source_frontend",
+  "actql/actql/frontend_source_map" @source_origin,
   "actql/actql/query_program",
   "actql/actql/query_syntax",
   "actql/actql/parameter_binding",

@@ -2,6 +2,7 @@
 package "actql/actql/source_frontend"
 
 import {
+  "actql/actql/frontend_source_map",
   "actql/actql/parameter_binding",
   "actql/actql/query_program",
   "actql/actql/query_syntax",
@@ -17,6 +18,8 @@ pub fn lower(String, Format, @query_program.Context?, source_path? : String) -> 
 pub fn parse_query(String, Format, source_path? : String) -> Result[@query_syntax.Query, Issue]
 
 pub fn select_format(String) -> Result[Format, Issue]
+
+pub fn unknown_column_origin(Issue) -> @frontend_source_map.Origin?
 
 // Errors
 
