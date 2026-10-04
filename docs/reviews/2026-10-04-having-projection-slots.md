@@ -12,8 +12,10 @@ the language profile or introduce a new evaluation owner.
   Three conflict resolutions preserve both grouped input-scope snapshots and
   all packed acceptance corpus registrations.
 - Dependency: [#362](https://github.com/actql/actql/pull/362),
-  `3bc8cee765409b39696aed746ca2f10f407001a6`, which retains grouped SELECT's
-  input scope independently of output aliases.
+  `14a54b33399fc52c80180756e49b56bb022819db`, which retains grouped SELECT's
+  input scope independently of output aliases and includes the subsequent main
+  integration. Its earlier `3bc8cee765409b39696aed746ca2f10f407001a6` had a
+  successful automatic CI run; this does not certify the updated parent HEAD.
 - Existing rule: [query text name resolution](../spec/query-text.md).
 - Selected external rule: [GoogleSQL HAVING](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#having_clause).
   SELECT aliases are visible in HAVING and take precedence over input names;
@@ -103,8 +105,38 @@ them for bounded local diagnosis and does not replace normal CI registration.
   (`run-6UQLaX`, `focused-test-CqJ6VA`), HAVING **8/8**
   (`run-9SsFj7`, `focused-test-DjRQto`), Node controls **2/2**
   (`run-rZbngv`, `focused-test-eBpRBX`). These counts overlap earlier runs.
-- Packed Local/HTTP acceptance is pending. Authored expectations and focused
-  checker tests do not establish public execution success.
+- Fresh external tarball acceptance at
+  `b6f1ad0a31ec3df6000d99b25a44ae2352fc1395`: **ten positives and four
+  pre-admission refusals per Embedded Local/authenticated HTTP transport passed**
+  (`public-query-evidence-34tEqi`). The runner checked independent rows and
+  ordered full column contracts, completed streams, no private output slots,
+  one Source acquisition and the same Run on request resubmission/attach without
+  additional I/O. Refusals had zero durable Run admission and zero provider I/O.
+  The README quickstart and missing-runtime-asset control also passed; they are
+  not included in the ten HAVING positives.
+- The normal merge of the updated parent at
+  `f8c6c3e6173ab78f30213b218c7649aab20d7876` has exactly the same entire Git
+  tree (`5c7f2cb6bcb65cba3ed283b0edf94ad8efeda66d`) as the packed source SHA.
+  Conflict resolutions retain both parent registrations and HAVING cases.
+  Subsequent edits record evidence only. This tree comparison avoids repeating
+  the same local packed campaign; submitted-HEAD CI is recorded separately in
+  the PR and is not inferred from the earlier successful run.
+
+The successful command was `node scripts/test-packed-public-query.mjs
+--having-projection-only` with the repository-pinned MoonBit and Node toolchains.
+All five packages used normal `npm pack`/prepack. The consumer installed them
+outside the checkout with scripts disabled; it did not replace the runtime or
+patch the generated Program. The receipt records clean source, completed zero
+exit status, tarball digests and no evidence errors. Disposable tarballs,
+installation and Host Store were removed after evidence was retained.
+
+| Tarball | SHA-256 |
+|---|---|
+| `actql-client-wire-0.0.0-development.tgz` | `6b448edf6ff246e1865858e9ed654e6f973c602e60b65447bcd7bbdd0afaefde` |
+| `actql-sdk-0.0.0-development.tgz` | `feeed615674aaa5f179cb4d5feabdb6713f9e986c8d08cc38f1513338730b8c2` |
+| `actql-run-host-core-0.0.0-development.tgz` | `1c81124d1abef56cab7d76a72498f113e5ffcc33d4a0288830a2a18e224a1275` |
+| `actql-local-node-0.0.0-development.tgz` | `ca1af6fe61c864b9529a4e695c4f24a51f1433f0c9b112f805beddef44294458` |
+| `actql-node-0.0.0-development.tgz` | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
 
 The initial fresh packed run at `2d4d5dd12b4cc4f8491b3165a89641eae3ebcbf0`
 (`public-query-evidence-C8JeIa`) completed the first seven Local positives,
