@@ -84,9 +84,10 @@ export class ClientError extends Error {
   }
 }
 const fail = code => { throw new ClientError(code); };
-const readFailure = (cause, attemptId) => new ClientError(
+const readFailure = (cause, attemptId, rowsYielded) => new ClientError(
   typeof cause?.code === 'string' ? cause.code : 'ResultReadUnknown',
-  {attemptId, cause});
+  {attemptId, rowsYielded, cause,
+    ...(cause?.cleanupError === undefined ? {} : {cleanupError: cause.cleanupError})});
 
 // The Host accepted and durably holds the request, but no Run exists yet:
 // it waits on a `prepare_attempt` Checkpoint, is resuming, or ended without
@@ -372,6 +373,7 @@ async function connectSelected(selected, port) {
           options.maxRowRetainedValueBytes,
           confirmed.limits.maxRowRetainedValueBytes);
         let state = 'not_started';
+        let rowsYielded = 0;
         const controller = new AbortController();
         const iterate = async function* () {
           if (state !== 'not_started') fail('ReadAttemptAlreadyStarted');
@@ -405,7 +407,9 @@ async function connectSelected(selected, port) {
                 if (wireBytes > maxWireBytes) fail('ResultWireLimit');
                 if (retainedValueBytes(frame.value) >
                     maxRowRetainedValueBytes) fail('ResultRowRetainedLimit');
-                yield structuredClone(frame.value);
+                const row = structuredClone(frame.value);
+                rowsYielded++;
+                yield row;
               }
               controller.signal.throwIfAborted();
               state = 'complete';
@@ -429,6 +433,7 @@ async function connectSelected(selected, port) {
                   if (retainedValueBytes(row) > maxRowRetainedValueBytes) {
                     fail('ResultRowRetainedLimit');
                   }
+                  rowsYielded++;
                   yield row;
                 }
                 if (new TextEncoder().encode(line).byteLength >
@@ -456,7 +461,7 @@ async function connectSelected(selected, port) {
               state = 'complete';
             }
           } catch (cause) {
-            failure = readFailure(cause, attemptId);
+            failure = readFailure(cause, attemptId, rowsYielded);
           } finally {
             options.signal?.removeEventListener('abort', abort);
             if (stream) {
@@ -465,7 +470,7 @@ async function connectSelected(selected, port) {
               } catch (cause) {
                 if (failure) failure.cleanupError = cause;
                 else failure = new ClientError('ResultReadCleanupUnknown',
-                  {attemptId, cause});
+                  {attemptId, rowsYielded, cause});
               } finally {
                 stream.releaseLock();
               }
@@ -478,17 +483,20 @@ async function connectSelected(selected, port) {
           }
         };
         return Object.freeze({attemptId, state: () => state,
+          rowsYielded: () => rowsYielded,
           [Symbol.asyncIterator]: iterate});
       };
 
       const batches = (options = {}) => {
         const reader = rows(options);
+        let rowsYielded = 0;
         const maxRows = tighter(options.maxBatchRows,
           confirmed.limits.maxBatchRows);
         const maxBytes = tighter(options.maxBatchRetainedValueBytes,
           confirmed.limits.maxBatchRetainedValueBytes);
         return Object.freeze({attemptId: reader.attemptId,
           state: reader.state,
+          rowsYielded: () => rowsYielded,
           async *[Symbol.asyncIterator]() {
             let batch = [], bytes = 0;
             try {
@@ -496,13 +504,17 @@ async function connectSelected(selected, port) {
                 const size = retainedValueBytes(row);
                 if (size > maxBytes) fail('ResultBatchLimit');
                 if (batch.length === maxRows || bytes + size > maxBytes) {
+                  rowsYielded += batch.length;
                   yield batch; batch = []; bytes = 0;
                 }
                 batch.push(row); bytes += size;
               }
-              if (batch.length) yield batch;
+              if (batch.length) {
+                rowsYielded += batch.length;
+                yield batch;
+              }
             } catch (cause) {
-              throw readFailure(cause, reader.attemptId);
+              throw readFailure(cause, reader.attemptId, rowsYielded);
             }
           }});
       };
@@ -524,7 +536,7 @@ async function connectSelected(selected, port) {
           }
           return values;
         } catch (cause) {
-          throw readFailure(cause, reader.attemptId);
+          throw readFailure(cause, reader.attemptId, 0);
         }
       };
       return Object.freeze({

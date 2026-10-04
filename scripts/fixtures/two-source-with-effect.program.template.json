@@ -1,0 +1,182 @@
+{
+  "version": "actql/0.1",
+  "id": "fixture.two-source-optional-effect",
+  "stages": [
+    {
+      "id": "acquire_left",
+      "inputs": {
+        "remote": {
+          "connector": "crm/main",
+          "resource": "r"
+        }
+      },
+      "steps": [
+        {
+          "filter": "id >= 0"
+        },
+        {
+          "select": [
+            "id",
+            "amount"
+          ],
+          "as": "captured"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "captured",
+          "fields": [
+            "id",
+            "amount"
+          ]
+        }
+      }
+    },
+    {
+      "id": "acquire_right",
+      "inputs": {
+        "remote": {
+          "connector": "crm/right",
+          "resource": "r"
+        }
+      },
+      "steps": [
+        {
+          "filter": "id >= 0"
+        },
+        {
+          "select": [
+            "id",
+            "amount"
+          ],
+          "as": "captured"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "captured",
+          "fields": [
+            "id",
+            "amount"
+          ]
+        }
+      }
+    },
+    {
+      "id": "join_sources",
+      "inputs": {
+        "left_rows": {
+          "result": {
+            "stage": "acquire_left",
+            "result": "rows"
+          }
+        },
+        "right_rows": {
+          "result": {
+            "stage": "acquire_right",
+            "result": "rows"
+          }
+        }
+      },
+      "steps": [
+        {
+          "from": "left_rows",
+          "join": {
+            "with": "right_rows",
+            "kind": "inner",
+            "on": [
+              {
+                "left": "id",
+                "right": "id"
+              }
+            ],
+            "max_output_rows": 100,
+            "select": {
+              "id": "left.id",
+              "left_amount": "left.amount",
+              "right_amount": "right.amount"
+            }
+          }
+        },
+        {
+          "filter": "id = 1"
+        },
+        {
+          "derive": {
+            "risk": {
+              "literal": "high"
+            },
+            "target_id": {
+              "literal": "a00000000000002"
+            },
+            "next_name": {
+              "literal": "review-required"
+            }
+          }
+        },
+        {
+          "select": [
+            "id",
+            "left_amount",
+            "right_amount",
+            "risk",
+            "target_id",
+            "next_name"
+          ]
+        },
+        {
+          "sort": [
+            {
+              "id": "asc"
+            },
+            {
+              "left_amount": "asc"
+            },
+            {
+              "right_amount": "asc"
+            }
+          ],
+          "as": "ordered"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "ordered",
+          "fields": [
+            "id",
+            "left_amount",
+            "right_amount",
+            "risk",
+            "target_id",
+            "next_name"
+          ]
+        }
+      },
+      "effects": {
+        "save": {
+          "update": {
+            "target": "connector://crm-main/Test_Record__c",
+            "mapping": "__PUBLICATION_MAPPING_REF__",
+            "from": {
+              "result": "rows"
+            },
+            "id": "target_id",
+            "set": {
+              "Name": {
+                "field": "next_name"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "results": {
+    "updates": {
+      "from": {
+        "stage": "join_sources",
+        "result": "rows"
+      }
+    }
+  }
+}

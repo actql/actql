@@ -161,6 +161,16 @@ distribution[3] = distribution[3].replace(
   'adapters/host-node/client-program-bridge.test.mjs adapters/host-node/public-source-preparation.test.mjs ',
 );
 
+// Public read progress uses the existing prepared SDK/Host distribution gate.
+// Keep the intended file additions fixed independently of package.json.
+distribution[3] = distribution[3].replace(
+  'packages/sdk/index.test.mjs ',
+  'packages/sdk/index.test.mjs packages/sdk/read-progress.test.mjs ',
+).replace(
+  'adapters/host-node/in-process-client.test.mjs ',
+  'adapters/host-node/in-process-client.test.mjs adapters/host-node/client-read-progress.test.mjs ',
+);
+
 test('runtime preparation preserves physical cwd and output through a symlinked temporary parent', t => {
   const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'runtime-build-alias-')));
   // Both the link and its target belong to this test. Recursive removal of

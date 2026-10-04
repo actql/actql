@@ -565,7 +565,9 @@ test('known status refusal and unknown faults classify equally on both ports',
             assert.ok(error instanceof ClientError);
             assert.equal(error.code, code);
             assert.equal(error.message, code);
-            assert.equal(error.cause, cause);
+            assert.equal(error.status, status);
+            assert.equal(error.cause, undefined);
+            assert.equal(error.stack, undefined);
             return true;
           });
       }
@@ -625,7 +627,9 @@ test('cancel and reconcile classify synchronous and asynchronous Host faults',
                   assert.ok(error instanceof ClientError);
                   assert.equal(error.code, publicCode);
                   assert.equal(error.message, publicCode);
-                  assert.equal(error.cause, cause);
+                  assert.equal(error.status, status);
+                  assert.equal(error.cause, undefined);
+                  assert.equal(error.stack, undefined);
                   return true;
                 });
             }
