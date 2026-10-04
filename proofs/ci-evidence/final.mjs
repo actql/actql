@@ -73,9 +73,9 @@ export async function verifyCurrentFamily({root, artifactId, expectedDigest, con
   assert(result.applications.every(entry => entry.acquisition === 'fresh'));
   assert.equal(encode(comparisonObservations), encode(compareFreshObservations({plan: comparison, context,
     runtime: state.runtime, tree: gitTree(root, context.candidateRevision), receipts})), 'Wrong comparison of actual fresh executions');
-  const comparisonCosts = await verifyComparison({plan: comparison, root, context, runtime: state.runtime, request, token, directory});
-  result.comparison = {baseline: comparison.baseline, statuses: comparison.actions.map(entry => ({actionId: entry.actionId, status: entry.status})),
-    producerCosts: comparison.costs, consumerCosts: comparisonCosts, reuseAuthorized: false};
+  const confirmation = await verifyComparison({plan: comparison, root, context, runtime: state.runtime, request, token, directory});
+  result.comparison = {baseline: comparison.baseline, recordedStatuses: comparison.actions.map(entry => ({actionId: entry.actionId, status: entry.status})),
+    producerCosts: comparison.costs, confirmation, reuseAuthorized: false};
   return result;
 }
 
@@ -99,4 +99,5 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const checked = await verifyCurrentFamily({root, artifactId, expectedDigest: process.env.SESSION_ARTIFACT_DIGEST,
     context, request, archive, token, directory});
   console.log(`PASS bounded-session: ${checked.applications.length} current fresh actions, exact run/attempt and executed Lean certificate`);
+  console.log(`Main comparison: ${checked.comparison.confirmation.status}; reuse is not authorized`);
 }

@@ -116,6 +116,11 @@ each receipt binds that plan's original bytes. Completion stores the actual
 fresh unit counts/durations separately and binds both records in the executed
 Lean certificate. The final required check reconstructs candidate inputs,
 checks the fresh observations and authenticates the selected main origin again.
+Fresh acceptance is independent of optional main comparison availability. If
+the original becomes unavailable after collection, the consumer records
+`unconfirmed` without modifying the original plan or authorizing reuse. Run,
+attempt, repository, digest and completed-archive inconsistencies still reject;
+they are not downgraded to a transport/cache miss.
 
 The comparison uses the exact recorded SHA/run/attempt, not a newer main run
 that finishes during the candidate. Origin catalogs and source manifests come

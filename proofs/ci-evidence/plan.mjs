@@ -11,7 +11,7 @@ import {catalogPath, validateCatalog, compareCatalogs} from './actions.mjs';
 import {actionInputs, gitTree, compareInputs, hash} from './inputs.mjs';
 import {policyUnchanged} from './applications.mjs';
 import {readOriginReceipt} from './receipts.mjs';
-import {downloadArtifact} from './transport.mjs';
+import {downloadArtifact, ArtifactUnavailable, unavailableTransport} from './transport.mjs';
 import {checkRuntimeObservation} from './runtime.mjs';
 
 export const comparisonVersion = 'actql-verification-action-comparison/0.1';
@@ -26,17 +26,18 @@ export function selectOriginArtifact(data, baseline, context) {
     'Incomplete origin artifact inventory');
   const name = `session-actions-${baseline.runId}-${baseline.runAttempt}-${baseline.baseSha}`;
   const selected = data.artifacts.filter(artifact => artifact.name === name);
+  if (selected.length === 0 && !data.artifacts.some(artifact => artifact.name?.startsWith('session-actions-'))) throw new ArtifactUnavailable();
   assert.equal(selected.length, 1, 'Missing/ambiguous original Session archive');
   const artifact = selected[0];
   assert(positive(artifact.id) && positive(artifact.size_in_bytes) && artifact.size_in_bytes <= 64 * 1024 * 1024,
     'Invalid origin archive size/identity');
-  assert.equal(artifact.expired, false);
-  assert(Number.isFinite(Date.parse(artifact.expires_at)) && Date.parse(artifact.expires_at) > Date.now());
+  assert(typeof artifact.expired === 'boolean' && Number.isFinite(Date.parse(artifact.expires_at)), 'Invalid artifact expiry');
   assert(/^sha256:[a-f0-9]{64}$/u.test(artifact.digest ?? ''), 'Missing origin archive digest');
   assert.equal(artifact.workflow_run?.id, baseline.runId);
   assert.equal(artifact.workflow_run?.head_sha, baseline.baseSha);
   assert.equal(artifact.workflow_run?.repository_id, context.repositoryId);
   assert.equal(artifact.workflow_run?.head_repository_id, context.repositoryId);
+  if (artifact.expired || Date.parse(artifact.expires_at) <= Date.now()) throw new ArtifactUnavailable();
   return artifact;
 }
 
@@ -76,14 +77,20 @@ export async function comparisonPlan({root, context, runtime, directory, token, 
   // At the final consumer validate the originally selected checkpoint again,
   // rather than changing the origin when another old run finishes meanwhile.
   // The restricted list still comes from the live API, not carried JSON.
-  const checkpointRequest = recordedRunId === null ? request : async path => {
-    if (/^\/actions\/workflows\/\d+\/runs\?/u.test(path)) {
-      return {workflow_runs: [await request(`/actions/runs/${recordedRunId}`)]};
-    }
-    return request(path);
+  let checkpointUnavailable = false;
+  const checkpointRequest = async path => {
+    try {
+      if (recordedRunId !== null && /^\/actions\/workflows\/\d+\/runs\?/u.test(path)) {
+        return {workflow_runs: [await request(`/actions/runs/${recordedRunId}`)]};
+      }
+      return await request(path);
+    } catch (error) { checkpointUnavailable ||= unavailableTransport(error); throw error; }
   };
   const baseline = await resolveBaseline({testedSha: context.candidateRevision, repository: context.repository,
     repositoryId: context.repositoryId, requiredJobs: fullCheckpointJobs(gateJobs), git, request: checkpointRequest});
+  // The shared resolver reports lookup failures instead of throwing. Retain
+  // typed transport failure for the final optional-comparison boundary.
+  if (recordedRunId !== null && checkpointUnavailable) throw new ArtifactUnavailable();
   const checkpointMilliseconds = Math.round(performance.now() - start);
   const plan = {version: comparisonVersion, mode: 'comparison', reuseAuthorized: false, context,
     catalogDigest: identity(catalog), baseline, artifact: null, actions,
@@ -110,7 +117,8 @@ export async function comparisonPlan({root, context, runtime, directory, token, 
     archive = await download({repository: context.repository, artifactId: artifact.id, token, directory});
     originRuntime = await loadRuntime({archive, artifact, baseline, context});
     plan.artifact = {id: artifact.id, digest: artifact.digest, bytes: artifact.size_in_bytes};
-  } catch {
+  } catch (error) {
+    if (!unavailableTransport(error)) throw error;
     // No API body, signed URL, filesystem path, token or arbitrary exception
     // message is copied into scientific evidence or diagnostics.
     actions.forEach(action => action.status = 'origin-archive-unavailable');
@@ -141,7 +149,10 @@ export async function comparisonPlan({root, context, runtime, directory, token, 
       entry.origin = {receiptDigest: original.receiptDigest, actionKey: reconstructed.key,
         revision: receipt.origin.testedRevision, runId: receipt.origin.runId, runAttempt: receipt.origin.runAttempt,
         units: receipt.execution.units, milliseconds: receipt.execution.milliseconds};
-    } catch { entry.status = 'origin-rejected'; }
+    } catch (error) {
+      if (unavailableTransport(error)) throw error;
+      entry.status = 'origin-rejected';
+    }
   }
   plan.costs.inspectionMilliseconds = Math.round(performance.now() - inspectionStart);
   return finish();
@@ -188,11 +199,40 @@ export async function verifyComparison({plan, ...options}) {
     assert(plan.actions.every(entry => entry.origin === null && !entry.equal && !entry.closed && entry.acquisition === 'execute' &&
       ['checkpoint-unavailable', 'origin-catalog-missing', 'policy-changed', 'origin-archive-unavailable'].includes(entry.status)),
     'No-origin plan carried a successful original');
-    return {checkpointMilliseconds: 0, transferMilliseconds: 0, inspectionMilliseconds: 0, totalMilliseconds: 0};
+    return {status: 'not-compared', reuseAuthorized: false,
+      costs: {checkpointMilliseconds: 0, transferMilliseconds: 0, inspectionMilliseconds: 0, totalMilliseconds: 0}};
   }
-  const replay = await comparisonPlan({...options, recordedRunId: plan.baseline.baseSha === null ? null : plan.baseline.runId});
+  const started = performance.now();
+  let replay;
+  try {
+    // The resolver deliberately discards unsuitable checkpoints. Check the
+    // recorded identity separately so a changed run/attempt cannot masquerade
+    // as a transport miss during optional comparison.
+    const run = await options.request(`/actions/runs/${plan.baseline.runId}`);
+    assert.equal(run.id, plan.baseline.runId); assert.equal(run.run_attempt, plan.baseline.runAttempt);
+    assert.equal(run.head_sha, plan.baseline.baseSha); assert.equal(run.workflow_id, options.context.workflowId);
+    assert.equal(run.repository?.id, options.context.repositoryId); assert.equal(run.head_repository?.id, options.context.repositoryId);
+    assert.equal(run.path, '.github/workflows/ci.yml'); assert.equal(run.event, 'push'); assert.equal(run.head_branch, 'main');
+    assert.equal(run.status, 'completed'); assert.equal(run.conclusion, 'success');
+    const artifact = await options.request(`/actions/artifacts/${plan.artifact.id}`);
+    assert.equal(artifact.id, plan.artifact.id); assert.equal(artifact.digest, plan.artifact.digest, 'Changed original archive digest');
+    assert.equal(artifact.size_in_bytes, plan.artifact.bytes, 'Changed original archive size');
+    // Identity checks precede expiry, so an expired but substituted object is
+    // still an integrity rejection rather than an availability downgrade.
+    selectOriginArtifact({total_count: 1, artifacts: [artifact]}, plan.baseline, options.context);
+    replay = await comparisonPlan({...options, recordedRunId: plan.baseline.runId});
+  } catch (error) {
+    if (!unavailableTransport(error)) throw error;
+    return {status: 'unconfirmed', reason: 'origin-unavailable', reuseAuthorized: false,
+      costs: {totalMilliseconds: Math.round(performance.now() - started)}};
+  }
+  // A genuine cache miss after a valid start is informational: all candidate
+  // obligations were independently executed fresh. Preserve the original plan.
+  if (replay.artifact === null && replay.actions.every(entry => entry.status === 'origin-archive-unavailable')) {
+    return {status: 'unconfirmed', reason: 'origin-unavailable', reuseAuthorized: false, costs: replay.costs};
+  }
   for (const field of ['version', 'mode', 'reuseAuthorized', 'context', 'catalogDigest', 'baseline', 'artifact', 'actions']) {
     assert(unchanged(plan[field], replay[field]), `Changed/invalid comparison ${field}`);
   }
-  return replay.costs;
+  return {status: 'confirmed', reuseAuthorized: false, costs: replay.costs};
 }

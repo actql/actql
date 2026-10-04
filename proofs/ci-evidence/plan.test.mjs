@@ -6,6 +6,7 @@ import {readCatalog, catalogPath} from './actions.mjs';
 import {actionInputs, sharedFiles, hash} from './inputs.mjs';
 import {sealReceipt, canonicalReceipt} from './receipts.mjs';
 import {comparisonPlan, selectOriginArtifact, compareFreshObservations, verifyComparison} from './plan.mjs';
+import {ArtifactUnavailable} from './transport.mjs';
 
 const base = 'a'.repeat(40), current = 'b'.repeat(40);
 const catalog = readCatalog(); catalog.actions = catalog.actions.filter(action => ['model', 'session-js'].includes(action.id));
@@ -24,6 +25,8 @@ const baseline = {baseSha: base, testedSha: current, runId: 3, runAttempt: 1, wo
 const artifact = {id: 6, name: `session-actions-3-1-${base}`, expired: false, expires_at: '2099-01-01T00:00:00Z',
   size_in_bytes: 100, digest: `sha256:${'e'.repeat(64)}`,
   workflow_run: {id: 3, head_sha: base, repository_id: 1, head_repository_id: 1}};
+const mainRun = {id: 3, run_attempt: 1, head_sha: base, workflow_id: 2, path: '.github/workflows/ci.yml',
+  repository: {id: 1}, head_repository: {id: 1}, event: 'push', head_branch: 'main', status: 'completed', conclusion: 'success'};
 function receipt(action, revision = base, executionRuntime = runtime, source = files) {
   const inputs = actionInputs({tree: tree(source), revision, action, runtime: executionRuntime});
   return sealReceipt({origin: {repository: 'actql/actql', repositoryId: 1, workflowId: 2,
@@ -43,6 +46,8 @@ function fixture() {
       return state.checkpoint;
     },
     request: async path => {
+      if (path === '/actions/runs/3') return structuredClone(mainRun);
+      if (path === '/actions/artifacts/6') return structuredClone(state.artifact);
       assert.equal(path, '/actions/runs/3/artifacts?per_page=100');
       return {total_count: 1, artifacts: [state.artifact]};
     }, download: async () => { state.downloadCount++; return '/unit-fixture/origin.zip'; },
@@ -143,15 +148,62 @@ test('artifact selection binds main SHA, repository, exact attempt, expiry and c
   assert.throws(() => selectOriginArtifact({total_count: 2, artifacts: [artifact, artifact]}, baseline, context));
 });
 
-test('missing/expired/corrupt transfer schedules fresh execution without a successful origin', async () => {
-  for (const change of [state => state.artifact.expired = true, state => state.artifact.name = 'other-attempt']) {
+test('missing/expired/unavailable transfer schedules fresh execution without a successful origin', async () => {
+  for (const change of [state => state.artifact.expired = true]) {
     const {state, options} = fixture(); change(state);
     const plan = await comparisonPlan(options);
     assert.equal(plan.artifact, null); assert(plan.actions.every(entry => entry.status === 'origin-archive-unavailable' && entry.origin === null));
   }
-  const {options} = fixture(); options.download = async () => { throw new Error('private-token-or-signed-url'); };
+  const {options} = fixture(); options.download = async () => { throw new ArtifactUnavailable(); };
   const plan = await comparisonPlan(options);
   assert(!encode(plan).includes('private-token')); assert(plan.actions.every(entry => entry.acquisition === 'execute'));
+});
+
+test('start succeeds, all fresh actions pass, final origin transfer is unavailable without comparison success', async () => {
+  const {options} = fixture(), plan = await comparisonPlan(options), original = encode(plan);
+  const fresh = catalog.actions.map(action => receipt(action, current));
+  assert(compareFreshObservations({plan, context, runtime, tree: tree(), receipts: fresh}).every(entry => entry.status === 'counts-match'));
+  options.download = async () => { throw new ArtifactUnavailable(); };
+  const result = await verifyComparison({plan, ...options});
+  assert.equal(result.status, 'unconfirmed'); assert.equal(result.reason, 'origin-unavailable');
+  assert.equal(result.reuseAuthorized, false); assert.equal(encode(plan), original);
+});
+
+test('final API timeout is unconfirmed while digest, run, attempt and repository mismatches reject', async () => {
+  const missing = fixture(), plan = await comparisonPlan(missing.options);
+  missing.options.request = async () => { throw new DOMException('timeout', 'TimeoutError'); };
+  assert.equal((await verifyComparison({plan, ...missing.options})).status, 'unconfirmed');
+  for (const patch of [{id: 99}, {run_attempt: 2}, {head_sha: current}, {repository: {id: 9}}, {head_repository: {id: 9}}]) {
+    const {options} = fixture(), initial = await comparisonPlan(options), request = options.request;
+    options.request = async path => path === '/actions/runs/3' ? {...mainRun, ...patch} : request(path);
+    await assert.rejects(verifyComparison({plan: initial, ...options}));
+  }
+  const {options} = fixture(), initial = await comparisonPlan(options);
+  options.loadRuntime = async () => { throw new Error('Invalid artifact ZIP: digest mismatch'); };
+  await assert.rejects(verifyComparison({plan: initial, ...options}), /digest mismatch/u);
+  const substituted = fixture(), started = await comparisonPlan(substituted.options);
+  substituted.state.artifact.expired = true; substituted.state.artifact.digest = `sha256:${'f'.repeat(64)}`;
+  await assert.rejects(verifyComparison({plan: started, ...substituted.options}), /Changed original archive digest/u);
+});
+
+test('a history lookup timeout swallowed by the shared resolver remains an unconfirmed comparison', async () => {
+  const {options} = fixture(), plan = await comparisonPlan(options), request = options.request;
+  options.request = async path => {
+    if (path.endsWith('/jobs')) throw new DOMException('timeout', 'TimeoutError');
+    return request(path);
+  };
+  options.resolveBaseline = async ({request}) => {
+    try { await request('/actions/runs/3/jobs'); return baseline; }
+    catch { return {baseSha: null, reason: 'history lookup failed'}; }
+  };
+  assert.equal((await verifyComparison({plan, ...options})).status, 'unconfirmed');
+});
+
+test('wrong artifact attempt and corrupt completed archives are not transport misses', async () => {
+  const {state, options} = fixture(); state.artifact.name = `session-actions-3-2-${base}`;
+  await assert.rejects(comparisonPlan(options), /Missing\/ambiguous/u);
+  const corrupt = fixture(); corrupt.options.loadRuntime = async () => { throw new Error('Invalid artifact ZIP: digest mismatch'); };
+  await assert.rejects(comparisonPlan(corrupt.options), /digest mismatch/u);
 });
 
 test('cache/history absence remains a fresh result even if a checkpoint becomes available before final check', async () => {
@@ -183,12 +235,13 @@ test('final replay restricts checkpoint selection to the recorded live-API main 
   const {options} = fixture(); const calls = [];
   options.request = async path => {
     calls.push(path);
-    if (path === '/actions/runs/3') return {id: 3, from: 'live-api'};
+    if (path === '/actions/runs/3') return {...mainRun, from: 'live-api'};
+    if (path === '/actions/artifacts/6') return artifact;
     return {total_count: 1, artifacts: [artifact]};
   };
   options.resolveBaseline = async ({request}) => {
     const selected = await request('/actions/workflows/2/runs?branch=main');
-    assert.deepEqual(selected.workflow_runs, [{id: 3, from: 'live-api'}]); return baseline;
+    assert.deepEqual(selected.workflow_runs, [{...mainRun, from: 'live-api'}]); return baseline;
   };
   const plan = await comparisonPlan({...options, recordedRunId: 3});
   await verifyComparison({plan, ...options}); assert(calls.includes('/actions/runs/3'));
