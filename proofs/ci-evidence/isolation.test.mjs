@@ -113,10 +113,15 @@ test('the actual image definition rejects changed environment, hooks, volumes, i
     User: '1000:1000', WorkingDir: '/workspace', Entrypoint: ['/runtime/node', '/source/proofs/ci-evidence/isolated-mutations.mjs'],
     Cmd: null, Volumes: null, OnBuild: null}};
   assert(checkImageDefinition({image, imageId, owner}));
+  const reordered = structuredClone(image); reordered.Config.Env.reverse();
+  assert(checkImageDefinition({image: reordered, imageId, owner}));
   for (const alter of [
     image => image.Id = `sha256:${'b'.repeat(64)}`,
     image => image.Config.Labels['org.actql.ci.owner'] = '1:2:4',
     image => image.Config.Env.push('UNREVIEWED=value'),
+    image => image.Config.Env.push(image.Config.Env[0]),
+    image => image.Config.Env.pop(),
+    image => image.Config.Env[0] = 'HOME=/unreviewed',
     image => image.Config.User = '0:0',
     image => image.Config.Entrypoint = ['/runtime/another-command'],
     image => image.Config.Healthcheck = {Test: ['CMD', '/runtime/another-command']},

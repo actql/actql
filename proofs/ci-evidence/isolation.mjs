@@ -161,7 +161,12 @@ export function checkImageDefinition({image, imageId, owner}) {
   assert.equal(image.Id, imageId); assert.equal(image.Os, 'linux'); assert.equal(image.Architecture, 'amd64');
   const config = image.Config;
   assert(config?.Labels?.['org.actql.ci.owner'] === owner, 'Wrong built image owner');
-  assert(encode(config.Env) === encode(Object.entries(isolatedEnvironment).map(([name, value]) => `${name}=${value}`)), 'Unexpected built image environment');
+  // Builders can retain the position of an existing default PATH when ENV
+  // replaces its value. Order is not a dependency when all names are unique;
+  // exact sorted entries still reject extra, missing, duplicate or changed ENV.
+  assert(Array.isArray(config.Env) && config.Env.every(value => typeof value === 'string') &&
+    encode([...config.Env].sort()) === encode(Object.entries(isolatedEnvironment).map(([name, value]) => `${name}=${value}`).sort()),
+  'Unexpected built image environment');
   assert(config.User === '1000:1000' && config.WorkingDir === '/workspace', 'Changed image user/workdir');
   assert(encode(config.Entrypoint) === encode(['/runtime/node', `/source/${child}`]), 'Changed image entrypoint');
   for (const field of ['Cmd', 'Volumes', 'Healthcheck', 'OnBuild', 'ExposedPorts']) {

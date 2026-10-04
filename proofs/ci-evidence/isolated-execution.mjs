@@ -78,7 +78,7 @@ export function prepareIsolatedMutation({root, tree, origin, directory}) {
 export function executeIsolatedMutation({root, tree, prepared}) {
   assert.equal(process.env.GITHUB_ACTIONS, 'true', 'Isolated execution is CI-only');
   checkIsolatedInputs({runtime: prepared.runtime, manifest: prepared.manifest, tree});
-  const before = snapshot(root), tag = `actql-session-${prepared.owner.replaceAll(':', '-')}`;
+  const before = snapshot(root), tag = `actql-session-${prepared.owner.replaceAll(':', '-')}:latest`;
   const cidFile = join(prepared.context, 'container.id'), iidFile = join(prepared.context, 'image.id');
   const costs = {preparationMilliseconds: prepared.preparationMilliseconds, buildMilliseconds: 0, executionMilliseconds: 0,
     inspectionMilliseconds: 0, closeMilliseconds: 0};
