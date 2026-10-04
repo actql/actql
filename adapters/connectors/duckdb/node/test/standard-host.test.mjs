@@ -1900,6 +1900,26 @@ async function exerciseStrategyGraph(
     step:{from:'g',degree:{direction:'both'},as:'out'},
     fields:['degree'],secondFields:['degree'],expected:[],
   }, {
+    name: 'retained-weak-components', retainedOutput:true,
+    selectedStructural:true,
+    inputRows:[
+      {id:1,src:1,dst:2,node_name:'first',weight:10},
+      {id:2,src:2,dst:2,node_name:'second',weight:20},
+    ],
+    step:{from:'g',components:{kind:'weak'},as:'out'},
+    fields:['component_size'],secondFields:['component_size'],
+    expected:[{component_size:2},{component_size:2}],
+  }, {
+    name: 'retained-strong-components', retainedOutput:true,
+    selectedStructural:true,
+    inputRows:[
+      {id:1,src:1,dst:2,node_name:'first',weight:10},
+      {id:2,src:2,dst:2,node_name:'second',weight:20},
+    ],
+    step:{from:'g',components:{kind:'strong'},as:'out'},
+    fields:['component_size'],secondFields:['component_size'],
+    expected:[{component_size:1},{component_size:1}],
+  }, {
     name:'retained-labelled-node-match', retainedOutput:true,
     selectedStructural:true,
     step:{from:'g', match_nodes:{definition:'N', label:'Node',
@@ -4685,6 +4705,22 @@ async function exerciseStrategyGraph(
     completedTasks:[1,2],
     step:{from:'g',degree:{direction:'both'},as:'out'},
     fields:['node','degree'],
+  }, {
+    name: 'current-components-strong-fused-in-flight',
+    retainedOutput:true,rows:40,advanceQuantum:1,
+    constructionProgress:80,constructionStarts:[1],
+    managedStarts:1,cancelTask:2,completedTasks:[1],
+    step:{from:'g',components:{kind:'strong'},as:'out'},
+    fields:['node_id','component_size'],
+  }, {
+    name: 'current-components-strong-in-flight',
+    selectedStructural:true,
+    retainedOutput:true,rows:40,advanceQuantum:1,
+    constructionProgress:80,constructionStarts:[1],
+    cancelOnManagedStart:2,managedStarts:2,cancelTask:3,
+    completedTasks:[1,2],
+    step:{from:'g',components:{kind:'strong'},as:'out'},
+    fields:['node_id','component_size'],
   }, {
     name:'current-traverse-hop-predicate-in-flight',
     selectedStructural:true,

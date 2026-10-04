@@ -72,6 +72,7 @@
         "unique_pair",
         "ordered",
         "output_schema",
+        "preserve_presence",
         "admitted_limits",
         "input_values",
         "output_values",
@@ -107,7 +108,9 @@
         "capture_charge_open",
         "capture_charge_column",
         "capture_charge_measure",
-        "capture_row"
+        "capture_row",
+        "presence_cells",
+        "presence_usage_start"
       ]
     },
     {
@@ -152,7 +155,7 @@
     "measureFrames": "5: conservative bound for the four measurement cursors on scalar numeric/NULL leaves"
   },
   "borrowed": "ProducerRead retains exact upstream backing; original input rows/cells are counted by their existing owner, new receiving columns/wrappers remain parent/edge obligations",
-  "fixedObjects": "Session/provider, comparison/control/budgets, typed schemas, closures, Refs, empty containers and cursor records have bounded source structure but no established per-target byte conversion",
+  "fixedObjects": "Session/provider, comparison/control/budgets, typed schemas, closures, Refs, empty containers and cursor records have bounded source structure but no established per-target byte conversion. Sparse filter adds a Boolean, an optional ValueUsage record and a presence-cell container; these are false/None/empty on this DISTINCT scope. Sparse rows reserve their slots in the existing workspace and remain an independent runtime obligation, not an extension of this DISTINCT byte bound.",
   "notDischarged": [
     "dynamic backing capacity and allocation growth overlap",
     "complete fixed-object allocation identity census",

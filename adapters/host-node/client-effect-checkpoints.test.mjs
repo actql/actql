@@ -34,7 +34,7 @@ const configuration = read => canonicalJson({
 });
 
 async function fixture(t, {read = 'allow', effectRequiredClaims = [],
-  accountConfiguration = configuration(read), leaseMs = 60_000} = {}) {
+  accountConfiguration = configuration(read), leaseMs = 60_000, source} = {}) {
   const scratch = new URL('../../_build/client-effect-checkpoints/',
     import.meta.url);
   await mkdir(scratch, {recursive: true});
@@ -44,7 +44,7 @@ async function fixture(t, {read = 'allow', effectRequiredClaims = [],
   const open = async () => {
     const installed = await installRemoteCheckpoints({root, namespaceId: 'local',
       authorityScopeCid: cid('3'), ownerPrincipal: 'owner', siteKey: 'local',
-      realizationKey: 'source-free-values', environmentCid: cid('4'),
+      realizationKey: 'source-free-values', environmentCid: cid('4'), source,
       contractControl: runtimeCore(moon).publicationControl, now: () => clock,
       authorization: {accountConfiguration, leaseMs,
         effectRequiredClaims, resumeAfterAnswer: false,
@@ -136,6 +136,267 @@ const continuation = beforeDefer => ({runId: 'run-a',
   runDefinitionCid: cid('1'), unitId: 'unit-a', declaredResults: ['answer'],
   reviewWire: canonicalJson({message: 'Review the whole Effect Set'}),
   continuationWire: canonicalJson({requestId: 'request-a'}), beforeDefer});
+
+test('an acquired Effect Source wait retains its capture and resumes only the exact read',
+  async t => {
+    const source = {accountConfiguration: configuration('delegate'),
+      context: {principal: 'owner', contextCid: cid('7')}};
+    const {open, close, clock} = await fixture(t, {source});
+    let installed = await open();
+    let sourceCalls = 0;
+    let retained = 0;
+    const captureWire = '{"source":"first","rows":[["é",17],["é",-4]]}';
+    let captureCid;
+    const occurrence = {stage: 1, input: 0, task: 1,
+      checkedSource: {sourceRef: 'second', requirementCid: cid('8')},
+      readTuple: {...scope, operation: 'read'},
+      physicalBinding: {database: 'reference-db', schema: 'public', table: 'second'}};
+    const options = () => ({runId: 'run-source', runDefinitionCid: cid('1'),
+      unitId: 'source-unit-1', occurrence, declaredResults: ['answer'],
+      async beforeDefer() {
+        retained++;
+        captureCid = await installed.retainComputationSource('run-source', cid('1'), captureWire);
+      },
+      continuation: async () => JSON.stringify({requestId: 'request-source',
+        occurrence: 1, captures: [captureCid]})});
+    let gate = await installed.computationSourceAuthorization(options());
+    const waiting = await gate.authorize();
+    assert.equal(waiting.action, 'waiting', JSON.stringify(waiting));
+    assert.equal(retained, 1);
+    assert.equal(sourceCalls, 0);
+    gate.close();
+    const summary = (await installed.listCheckpoints({principalId: 'reviewer',
+      after: '', limit: 10})).items[0];
+    assert.equal(summary.kind, 'read_access');
+    assert.equal(summary.subject.runId, 'run-source');
+    const review = await installed.reviewCheckpoint({principalId: 'reviewer',
+      checkpointCid: summary.checkpointCid, maxBytes: 65536});
+    const reviewed = JSON.parse(Buffer.from(review.contentBase64, 'base64'));
+    assert.deepEqual(reviewed.scope.occurrence, occurrence);
+    assert.equal(reviewed.scope.run_definition_cid, cid('1'));
+    const answer = await signedAnswer(summary, 'approved', {
+      keyId: 'reviewer-key', reviewerId: 'reviewer', authorityScopeCid: cid('3'),
+      sign: bytes => sign(null, bytes, reviewer.privateKey)}, new Date(clock).toISOString());
+    const resolution = await installed.resolve({principalId: 'reviewer', items: [answer]});
+    assert.equal(resolution.results[0].status, 'committed', JSON.stringify(resolution));
+    await close(installed);
+    installed = await open();
+    const view = installed.journal.inspect(summary.checkpointCid);
+    assert.deepEqual(await installed.computationContinuation(view),
+      {requestId: 'request-source', occurrence: 1, captures: [captureCid]});
+    assert.equal((await installed.readComputationSource(view, captureCid, 65536))
+      .toString('utf8'), captureWire);
+    const claimed = installed.journal.claimResume('run-source', {
+      claimant: 'source-resumer', leaseMs: 60000, binding: installed.binding});
+    assert.equal(claimed.action, 'claimed');
+    const resumption = {claim: {checkpointCid: summary.checkpointCid, claim: claimed.claim}};
+    gate = await installed.computationSourceAuthorization(options());
+    const resumed = await gate.resume({resumption});
+    assert.equal(resumed.action, 'dispatch', JSON.stringify(resumed));
+    const mismatched = await installed.computationSourceAuthorization({
+      ...options(), occurrence: {...occurrence, physicalBinding: {
+        ...occurrence.physicalBinding, table: 'other'}}});
+    assert.notEqual((await mismatched.resume({resumption})).action, 'dispatch');
+    mismatched.close();
+    const effect = await installed.effectAuthorization(continuation(async () => {}));
+    assert.notEqual((await effect.resume('effect_commit', {...scope, operation: 'effect'},
+      {subjectCid: cid('2'), resumption})).action, 'dispatch');
+    effect.close();
+    resumed.admission.enter();
+    sourceCalls++;
+    assert.throws(() => resumed.admission.enter(), {code: 'ResumeAdmissionConsumed'});
+    assert.equal(sourceCalls, 1);
+    assert.equal(retained, 1, 'approval does not recreate the retained capture');
+    gate.close();
+  });
+
+const readOccurrence = () => ({stage: 0, input: 0, task: 0,
+  checkedSource: {sourceRef: 'first', requirementCid: cid('8')},
+  readTuple: {...scope, operation: 'read'},
+  physicalBinding: {database: 'reference-db', schema: 'public', table: 'first'}});
+const sourceOptions = (occurrence = readOccurrence()) => ({runId: 'source-scope',
+  runDefinitionCid: cid('1'), unitId: 'source-unit', occurrence,
+  declaredResults: ['answer'], beforeDefer: async () => {},
+  continuation: async () => '{"requestId":"original"}'});
+const delegatedSource = () => ({accountConfiguration: configuration('delegate'),
+  context: {principal: 'owner', contextCid: cid('7')}});
+
+test('Source review owns its occurrence and refuses changed installation context', async t => {
+  const source = delegatedSource();
+  const {open} = await fixture(t, {source});
+  const installed = await open();
+  const occurrence = readOccurrence();
+  const original = structuredClone(occurrence);
+  const gate = await installed.computationSourceAuthorization(sourceOptions(occurrence));
+  occurrence.physicalBinding.table = 'changed-after-creation';
+  occurrence.readTuple.resource = 'other';
+  const waiting = await gate.authorize();
+  assert.equal(waiting.action, 'waiting');
+  const review = await installed.reviewCheckpoint({principalId: 'reviewer',
+    checkpointCid: waiting.checkpoint.checkpointCid, maxBytes: 65536});
+  assert.deepEqual(JSON.parse(Buffer.from(review.contentBase64, 'base64')).scope.occurrence,
+    original);
+  gate.close();
+  source.context = {...source.context, contextCid: cid('9')};
+  await assert.rejects(installed.computationSourceAuthorization(sourceOptions()),
+    {code: 'SourceCheckpointConfigurationChanged'});
+});
+
+for (const exit of ['rejected', 'cancelled', 'expired']) {
+  test(`Source ${exit} wait creates no resumable read`, async t => {
+    const {open, clock, advance} = await fixture(t, {source: delegatedSource()});
+    const installed = await open();
+    const gate = await installed.computationSourceAuthorization(sourceOptions());
+    const waiting = await gate.authorize();
+    assert.equal(waiting.action, 'waiting');
+    const [summary] = (await installed.listCheckpoints({principalId: 'reviewer',
+      after: '', limit: 10})).items;
+    if (exit === 'rejected') {
+      const answer = await signedAnswer(summary, 'rejected', {
+        keyId: 'reviewer-key', reviewerId: 'reviewer',
+        sign: bytes => sign(null, bytes, reviewer.privateKey)}, new Date(clock).toISOString());
+      assert.equal((await installed.resolve({principalId: 'reviewer', items: [answer]}))
+        .results[0].status, 'committed');
+    } else if (exit === 'cancelled') {
+      assert.equal(installed.journal.cancelCheckpoint(summary.checkpointCid).outcome, 'cancelled');
+    } else {
+      advance(24 * 60 * 60 * 1000 + 1);
+      installed.journal.expire();
+    }
+    assert.equal(installed.journal.getRunState('source-scope').status, 'cancelled');
+    assert.equal(installed.journal.currentResume(summary.checkpointCid), undefined);
+    gate.close();
+  });
+}
+
+test('revoked Source configuration invalidates durable approval before dispatch', async t => {
+  const source = delegatedSource();
+  const {open, close, clock} = await fixture(t, {source});
+  let installed = await open();
+  const gate = await installed.computationSourceAuthorization(sourceOptions());
+  await gate.authorize(); gate.close();
+  const [summary] = (await installed.listCheckpoints({principalId: 'reviewer', after: '', limit: 10})).items;
+  const answer = await signedAnswer(summary, 'approved', {keyId: 'reviewer-key',
+    reviewerId: 'reviewer', sign: bytes => sign(null, bytes, reviewer.privateKey)},
+  new Date(clock).toISOString());
+  assert.equal((await installed.resolve({principalId: 'reviewer', items: [answer]})).results[0].status,
+    'committed');
+  await close(installed);
+  source.accountConfiguration = configuration('deny');
+  installed = await open();
+  const claimed = installed.journal.claimResume('source-scope', {
+    claimant: 'revoked', leaseMs: 60000, binding: installed.binding});
+  assert.equal(claimed.action, 'invalidated');
+  assert.equal(installed.journal.getRunState('source-scope').status, 'failed');
+  assert.equal(claimed.terminalErrorCode, 'ACTQL_E_RESUME_REVALIDATION_FAILED');
+});
+
+test('failed Source continuation persistence retires only after confirmed custody close', async t => {
+  const {open} = await fixture(t, {source: delegatedSource()});
+  const installed = await open();
+  let captureCid;
+  const gate = await installed.computationSourceAuthorization({...sourceOptions(),
+    beforeDefer: async () => {
+      captureCid = await installed.retainComputationSource('source-scope', cid('1'),
+        '{"fixture":"original captured rows"}');
+    }, continuation: async () => { throw new Error('ContinuationWriteUnavailable'); }});
+  assert.equal((await gate.authorize()).action, 'failure');
+  const view = {kind: 'read_access', prepareAttemptId: null, runId: 'source-scope',
+    runDefinitionCid: cid('1')};
+  assert.ok((await installed.readComputationSource(view, captureCid, 4096)).length > 0);
+  assert.equal(installed.journal.getRunState('source-scope'), undefined);
+  // The physical acquisition owner invokes retirement only after its actual
+  // close; failure to create a Checkpoint is not itself that confirmation.
+  await installed.retireComputationSources('source-scope');
+  await assert.rejects(installed.readComputationSource(view, captureCid, 4096),
+    {code: 'ContinuationEvidenceRetired'});
+  gate.close();
+});
+
+async function approveSource(installed, clock) {
+  const gate = await installed.computationSourceAuthorization(sourceOptions());
+  await gate.authorize(); gate.close();
+  const [summary] = (await installed.listCheckpoints({principalId: 'reviewer', after: '', limit: 10})).items;
+  const answer = await signedAnswer(summary, 'approved', {keyId: 'reviewer-key',
+    reviewerId: 'reviewer', sign: bytes => sign(null, bytes, reviewer.privateKey)},
+  new Date(clock).toISOString());
+  assert.equal((await installed.resolve({principalId: 'reviewer', items: [answer]})).results[0].status,
+    'committed');
+  return summary;
+}
+
+test('entered Source intents stay unresolved before changed-binding claim invalidation', async t => {
+  const {open, clock, advance} = await fixture(t, {source: delegatedSource(), leaseMs: 1000});
+  const installed = await open();
+  const summary = await approveSource(installed, clock);
+  assert.equal(installed.journal.hasStartedResume(summary.checkpointCid), false);
+  assert.equal(installed.journal.claimResume('source-scope', {claimant: 'wrong-page',
+    leaseMs: 1000, binding: installed.binding, preserveStarted: true,
+    expectedCheckpointCid: cid('9')}).action, 'changed');
+  const claimed = installed.journal.claimResume('source-scope', {claimant: 'first',
+    leaseMs: 1000, binding: installed.binding, preserveStarted: true,
+    expectedCheckpointCid: summary.checkpointCid});
+  const gate = await installed.computationSourceAuthorization(sourceOptions());
+  const decision = await gate.resume({resumption: {claim: {
+    checkpointCid: summary.checkpointCid, claim: claimed.claim}}});
+  decision.admission.enter();
+  gate.close();
+  assert.equal(installed.hasUnresolvedSourceStart('source-scope', cid('1')), true);
+  advance(1001);
+  const second = installed.journal.claimResume('source-scope', {claimant: 'second',
+    leaseMs: 1000, preserveStarted: true, expectedCheckpointCid: summary.checkpointCid,
+    binding: {...installed.binding, environmentBindingCid: cid('a')}});
+  assert.equal(second.action, 'admitted');
+  assert.equal(second.claim, undefined);
+  assert.equal(installed.journal.getRunState('source-scope').status, 'resuming');
+  assert.equal(installed.journal.currentResume(summary.checkpointCid).generation, claimed.claim.generation);
+});
+
+test('a stale Source failure cannot refuse the newer unstarted claimant', async t => {
+  const {open, clock, advance} = await fixture(t, {source: delegatedSource(), leaseMs: 1000});
+  const installed = await open();
+  const summary = await approveSource(installed, clock);
+  const first = installed.journal.claimResume('source-scope', {claimant: 'first',
+    leaseMs: 1000, binding: installed.binding, preserveStarted: true});
+  advance(1001);
+  const second = installed.journal.claimResume('source-scope', {claimant: 'second',
+    leaseMs: 1000, binding: installed.binding, preserveStarted: true});
+  assert.equal(second.action, 'claimed');
+  assert.throws(() => installed.journal.refuseUnsentSourceResume(summary.checkpointCid,
+    cid('1'), first.claim), {code: 'ResumeClaimStale'});
+  assert.equal(installed.journal.getRunState('source-scope').status, 'resuming');
+  assert.equal(installed.journal.currentResume(summary.checkpointCid).generation,
+    second.claim.generation);
+  assert.equal(installed.journal.refuseUnsentSourceResume(summary.checkpointCid,
+    cid('1'), second.claim).outcome, 'failed');
+});
+
+test('exact committed publication settles a lost Source resume completion without dispatch', async t => {
+  const {open, clock, advance} = await fixture(t, {source: delegatedSource(), leaseMs: 1000});
+  const installed = await open();
+  const summary = await approveSource(installed, clock);
+  const claimed = installed.journal.claimResume('source-scope', {claimant: 'first',
+    leaseMs: 1000, binding: installed.binding, preserveStarted: true});
+  const gate = await installed.computationSourceAuthorization(sourceOptions());
+  const decision = await gate.resume({resumption: {claim: {
+    checkpointCid: summary.checkpointCid, claim: claimed.claim}}});
+  decision.admission.enter(); gate.close();
+  advance(1001);
+  // This port is called by the Host only after the exact Publication Store
+  // index and its admitted state have been read. Availability remains the
+  // Store's separate observation; the journal never invents available rows.
+  const observed = {...installed.journal.getRunState('source-scope').runState, status: 'succeeded'};
+  assert.throws(() => installed.journal.settleObservedEffectResume(summary.checkpointCid,
+    cid('1'), JSON.stringify({...observed, status: 'failed'})), {code: 'InvalidRunState'});
+  assert.throws(() => installed.journal.settleObservedEffectResume(summary.checkpointCid,
+    cid('9'), JSON.stringify(observed)), {code: 'CheckpointRunMismatch'});
+  assert.equal(installed.journal.settleObservedEffectResume(summary.checkpointCid,
+    cid('1'), JSON.stringify(observed)).outcome, 'succeeded');
+  assert.equal(installed.journal.hasStartedResume(summary.checkpointCid), false);
+  assert.equal(installed.journal.getRunState('source-scope').status, 'succeeded');
+  assert.equal(installed.journal.settleObservedEffectResume(summary.checkpointCid,
+    cid('1'), JSON.stringify(observed)).outcome, 'not_resuming');
+});
 
 test('Effect review and signed answer survive installed service restart',
   async t => {

@@ -96,12 +96,12 @@ function authorization(facts, stage, beforeDefer) {
   });
 }
 
-function completionOptions(stage, gate, signal, resume) {
+function completionOptions(stage, gate, signal, resume, beforeDispatch) {
   const apply = {...stage.apply, authorization: Object.freeze({gate,
     scopes: stage.scopes,
     ...(resume === undefined ? {} : {resume})})};
   return Object.freeze({apply, receipt: stage.receipt,
-    publication: stage.publication, signal});
+    publication: stage.publication, signal, beforeDispatch});
 }
 
 function noEffectRowWasSent(options) {
@@ -256,6 +256,11 @@ export function createInstalledEffectSite({environmentWire,
         facts.observePreEffectFailure?.();
         throw failure;
       }
+      if (opened?.status === 'waiting_checkpoint' && opened.checkpoint !== undefined) {
+        // The Source owner has persisted its exact continuation and retained
+        // inputs. Waiting is neither a failed computation nor Effect approval.
+        return Object.freeze({status: 'waiting_checkpoint', checkpoint: opened.checkpoint});
+      }
       const {execution, checkedHost} = opened ?? {};
       if (execution === undefined || checkedHost === undefined) {
         fail('InvalidInstalledEffectComputationPort');
@@ -311,7 +316,8 @@ export function createInstalledEffectSite({environmentWire,
             control: facts.control, computation: stage.computation,
             preview: stage.preview});
         });
-        const options = completionOptions(stage, gate, signal);
+        const options = completionOptions(stage, gate, signal, undefined,
+          facts.assertContinuationCurrent);
         let result;
         try { result = await completeCapturedEffectRun(options); }
         catch (error) {

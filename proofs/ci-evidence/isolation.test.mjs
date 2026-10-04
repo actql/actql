@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtempSync, mkdirSync, readFileSync, writeFileSync, chmodSync, lstatSync, symlinkSync, rmSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, readFileSync, writeFileSync, chmodSync, lstatSync, symlinkSync, rmSync, existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {join, dirname} from 'node:path';
 import {mutationSourcePaths, stageMutationSource, copyRegular, stageDistribution, loaderPaths,
   isolatedRunArguments, scratchDockerfile, mutationSnapshotExtras, isolatedEnvironment, isolatedSourceFiles, checkImageDefinition} from './isolation.mjs';
 
@@ -85,6 +85,49 @@ test('entry and byte limits stop distribution staging instead of emitting a comp
   const root = temporary(t), source = join(root, 'moon'); mkdirSync(source); writeFileSync(join(source, 'binary'), '12345');
   assert.throws(() => stageDistribution({source, destination: join(root, 'entry-limit'), budget: {remaining: 10}, maxEntries: 1}), /bound/u);
   assert.throws(() => stageDistribution({source, destination: join(root, 'byte-limit'), budget: {remaining: 4}}), /oversized/u);
+});
+
+test('isolated core build metadata is absent, rather than normalized in the runtime key', t => {
+  const root = temporary(t);
+  const excludedFiles = ['lib/core/_build/.moon_db', ...['js', 'wasm', 'native']
+    .map(target => `lib/core/_build/${target}/release/bundle/all_pkgs.json`)];
+  const staged = [];
+  for (const owner of ['first', 'second']) {
+    const source = join(root, owner), destination = join(root, `stage-${owner}`);
+    for (const path of [...excludedFiles, 'bin/moonc', 'lib/core/_build/js/release/bundle/core.core',
+      'lib/core/_build/js/release/bundle/array/array.mi', 'lib/core/array/moon.pkg']) {
+      mkdirSync(dirname(join(source, path)), {recursive: true});
+      writeFileSync(join(source, path), excludedFiles.includes(path) ? `owner-dependent ${owner}` : path);
+    }
+    staged.push(stageDistribution({source, destination, budget: {remaining: 10000}, excludedFiles}));
+    for (const path of excludedFiles) assert.equal(existsSync(join(destination, path)), false, path);
+    for (const path of ['bin/moonc', 'lib/core/_build/js/release/bundle/core.core',
+      'lib/core/_build/js/release/bundle/array/array.mi', 'lib/core/array/moon.pkg'])
+      assert.equal(readFileSync(join(destination, path), 'utf8'), path);
+    assert.deepEqual(staged.at(-1).excludedFiles, excludedFiles.slice().sort());
+  }
+  assert.equal(staged[0].digest, staged[1].digest);
+  // A real compiler interface change must still change the staged input key.
+  const source = join(root, 'second');
+  writeFileSync(join(source, 'lib/core/_build/js/release/bundle/array/array.mi'), 'changed compiler interface');
+  const changed = stageDistribution({source, destination: join(root, 'changed-interface'),
+    budget: {remaining: 10000}, excludedFiles});
+  assert.notEqual(changed.digest, staged[0].digest);
+});
+
+test('excluded metadata cannot hide a link, directory, traversal or duplicate exclusion', t => {
+  const root = temporary(t), path = 'lib/core/_build/.moon_db';
+  for (const kind of ['directory', 'link']) {
+    const source = join(root, kind); mkdirSync(dirname(join(source, path)), {recursive: true});
+    if (kind === 'directory') mkdirSync(join(source, path));
+    else { writeFileSync(join(source, 'actual'), 'must not bypass link validation'); symlinkSync('../../../actual', join(source, path)); }
+    assert.throws(() => stageDistribution({source, destination: join(root, `stage-${kind}`),
+      budget: {remaining: 10000}, excludedFiles: [path]}), /Excluded distribution input must be a regular file/u);
+  }
+  const source = join(root, 'invalid'); mkdirSync(source);
+  for (const excludedFiles of [['../outside'], ['/absolute'], [path, path]])
+    assert.throws(() => stageDistribution({source, destination: join(root, `invalid-${excludedFiles.length}`),
+      budget: {remaining: 10000}, excludedFiles}), /Invalid distribution exclusions/u);
 });
 
 test('loader extraction retains actual standard paths and refuses unknown or missing dependencies', () => {

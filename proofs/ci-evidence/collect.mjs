@@ -9,7 +9,8 @@ import {fileURLToPath} from 'node:url';
 import {performance} from 'node:perf_hooks';
 import {actionsReader} from '../../scripts/ci-main-base.mjs';
 import {encode} from '../bounded-session/action-inputs.mjs';
-import {readCatalog, catalogPath, initialRegistrationRevision, compareCatalogs} from './actions.mjs';
+import {readCatalog, catalogPath, initialRegistrationRevision, preserveProtectedActions} from './actions.mjs';
+import {checkExecutionRecipes} from './execution-recipes.mjs';
 import {actionInputs, gitTree, hash} from './inputs.mjs';
 import {canonicalReceipt, parseReceipt, sealReceipt} from './receipts.mjs';
 import {leanRecords} from './applications.mjs';
@@ -37,7 +38,9 @@ export async function initialize() {
   assert.equal(revision, process.env.GITHUB_SHA, 'Wrong CI checkout');
   assert.equal(git(['status', '--porcelain', '--untracked-files=normal']), '', 'Dirty comparison checkout');
   const protectedCatalog = JSON.parse(gitTree(root, initialRegistrationRevision).read(catalogPath));
-  assert.equal(compareCatalogs(protectedCatalog, readCatalog()).unchanged, true, 'Comparison requires the complete initial catalog');
+  const catalog = readCatalog();
+  preserveProtectedActions(protectedCatalog, catalog);
+  checkExecutionRecipes(catalog);
   const request = actionsReader({repository, token: process.env.ACTIONS_READ_TOKEN});
   const runId = Number(process.env.GITHUB_RUN_ID), runAttempt = Number(process.env.GITHUB_RUN_ATTEMPT);
   const run = await request(`/actions/runs/${runId}`);
@@ -160,6 +163,7 @@ async function mutations() {
 
 export function finish() {
   const state = json(join(directory, 'context.json')), catalog = readCatalog();
+  checkExecutionRecipes(catalog);
   const acquisition = json(join(directory, 'acquisition-plan.json'));
   assert.deepEqual(acquisition.actions.map(entry => entry.actionId), catalog.actions.map(action => action.id));
   assert.equal(encode(acquisition.context), encode(state.context));

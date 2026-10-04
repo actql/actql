@@ -1,0 +1,72 @@
+///|
+/// Pending-source capacity is not a selected acquisition or a read grant.
+#export_name("clientProgramPrepareDuckDBCaptureCapacity")
+pub fn client_program_prepare_duckdb_capture_capacity(
+  requirement : @planning.QueryRequirement,
+  database_schema : String,
+  table : String,
+  query_contract_body : String,
+  evidence_contract_body : String,
+  two_receipt_contract_body : String,
+) -> Result[
+  @client_local_host.ClientDuckDBCaptureCapacity,
+  @client_local_host.ClientDuckDBAcquisitionIssue,
+] {
+  @client_local_host.prepare_client_duckdb_capture_capacity(
+    requirement, database_schema, table, query_contract_body, evidence_contract_body,
+    two_receipt_contract_body,
+  )
+}
+
+///|
+#export_name("clientProgramDuckDBCaptureCapacityValues")
+pub fn client_program_duckdb_capture_capacity_values(
+  capacity : @client_local_host.ClientDuckDBCaptureCapacity,
+) -> Array[Int64] {
+  @client_local_host.client_duckdb_capture_capacity_values(capacity)
+}
+
+///|
+#export_name("clientProgramDuckDBCaptureCapacityAccepts")
+pub fn client_program_duckdb_capture_capacity_accepts(
+  capacity : @client_local_host.ClientDuckDBCaptureCapacity,
+  selected : @duckdb_host.CaptureConfiguration,
+) -> Bool {
+  @client_local_host.client_duckdb_capture_capacity_accepts(capacity, selected)
+}
+
+///|
+#export_name("clientProgramPrepareMultiCapturedEffectCapacityLedger")
+pub fn client_program_prepare_multi_captured_effect_capacity_ledger(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  capacities : Array[@client_local_host.ClientDuckDBCaptureCapacity],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @resources.Ledger? {
+  @client_local_host.prepare_multi_captured_effect_capacity_ledger(
+    prepared, capacities, transport_bytes, transport_execution_bytes, registry_body,
+    values_body, fragment_body, ordered_body,
+  )
+}
+
+///|
+#export_name("clientProgramPrepareMultiCapturedLocalCapacityLedger")
+pub fn client_program_prepare_multi_captured_local_capacity_ledger(
+  prepared : @publication_host.PreparedClientProgram,
+  capacities : Array[@client_local_host.ClientDuckDBCaptureCapacity],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @resources.Ledger? {
+  @client_local_host.prepare_multi_captured_local_capacity_ledger(
+    prepared, capacities, transport_bytes, transport_execution_bytes, registry_body,
+    values_body, fragment_body, ordered_body,
+  )
+}

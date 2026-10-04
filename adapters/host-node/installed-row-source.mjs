@@ -20,6 +20,8 @@ import {openSqliteCredentialJournal} from
   '../site-node/sqlite-credential-journal.mjs';
 import {signRemoteCredentialGrant} from
   '../site-node/remote-credential-signature.mjs';
+import {callHttpsCredentialResource} from
+  '../site-node/https-credential-resource.mjs';
 
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
@@ -115,9 +117,13 @@ export async function installRowSourceAuthorization({accountConfiguration,
 // only for a read decision the installed gate returned as dispatch for this
 // connection and Resource, or for a Checkpoint approval of exactly this
 // installation's physical target.
+// `responseHeaders` is the installation's declared response header names
+// (its `host-bundle.json`); the Site's `callResource` refuses, before any
+// credential use, an operation that would observe any other header.
 export async function openRowSourceCredentialSite({profile, principalId,
   authorization, connection, connectorRegistration, connectorRevision,
   runtimeBundleCid, commonMoon, resolveSecret, ca, admitsApprovalTarget,
+  responseHeaders = [],
   now = () => Date.now(), grantLifetimeMs = 15 * 60 * 1000,
   openCredentialJournal = openSqliteCredentialJournal}) {
   if (!text(profile?.credentialPrivateKeyPath) ||
@@ -172,8 +178,21 @@ export async function openRowSourceCredentialSite({profile, principalId,
       keyId: profile.credentialKeyId, privateKey}), control);
     return Object.freeze({grant, scope});
   }
+  if (!Array.isArray(responseHeaders) ||
+      responseHeaders.some(name => !text(name))) {
+    fail('InvalidRowSourceCredentialSite');
+  }
+  const declaredHeaders = new Set(responseHeaders);
+  const callResource = options => {
+    for (const operation of options?.operations?.values?.() ?? []) {
+      for (const name of operation?.responseHeaders ?? []) {
+        if (!declaredHeaders.has(name)) fail('UndeclaredResponseHeader');
+      }
+    }
+    return callHttpsCredentialResource(options);
+  };
   return Object.freeze({
-    credential, connection,
+    credential, connection, callResource,
     // Admit a resumed Checkpoint approval only for this installation's own
     // physical target of the same Resource.
     admitCheckpointReadApproval(decision) {

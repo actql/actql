@@ -218,6 +218,27 @@ test('initial receipt digest, run, attempt and input inconsistencies are rejecte
   }
 });
 
+test('rejected initial receipts never confirm or become unavailable when final transport changes', async () => {
+  for (const mutate of [
+    value => ({...value, archiveDigest: 'f'.repeat(64)}),
+    value => ({...value, receipt: {...value.receipt, origin: {...value.receipt.origin, runId: 99}}}),
+    value => ({...value, receipt: {...value.receipt, origin: {...value.receipt.origin, runAttempt: 2}}}),
+    value => ({...value, receipt: {...value.receipt, inputs: {...value.receipt.inputs, key: 'f'.repeat(64)}}}),
+  ]) {
+    const {options} = fixture(), read = options.read;
+    options.read = async args => mutate(await read(args));
+    const plan = await comparisonPlan(options), original = encode(plan);
+    assert(plan.actions.every(entry => entry.status === 'origin-rejected'));
+    await assert.rejects(verifyComparison({plan, ...options}), /Rejected origin receipt/u);
+    // A later repair or outage cannot erase the earlier completed rejection.
+    options.read = read;
+    await assert.rejects(verifyComparison({plan, ...options}), /Rejected origin receipt/u);
+    options.request = async () => { throw new ArtifactUnavailable(); };
+    await assert.rejects(verifyComparison({plan, ...options}), /Rejected origin receipt/u);
+    assert.equal(encode(plan), original);
+  }
+});
+
 test('the production group path authenticates once and treats a mid-group outage as wholly unconfirmed', async () => {
   const f = fixture(), individual = f.options.read; let groups = 0;
   f.options.read = null;

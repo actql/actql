@@ -9,6 +9,100 @@ pub(all) enum ClientDuckDBAcquisitionIssue {
 }
 
 ///|
+/// A checked pending-source budget, independent of AcquisitionChoice. The
+/// componentwise maximum covers both installed realizations, while
+/// the opaque owner binds the budget to the original checked requirement.
+struct ClientDuckDBCaptureCapacity {
+  requirement : @planning.QueryRequirement
+  retained_bytes : Int64
+  execution_bytes : Int64
+}
+
+///|
+/// Prepare capacity before read approval without choosing Native or Broad.
+/// Both installed realizations are bounded conservatively, including paths
+/// the later selector may exclude. No estimate, preference, candidate choice,
+/// permit or read is manufactured, and eligibility remains the selector's job.
+pub fn prepare_client_duckdb_capture_capacity(
+  requirement : @planning.QueryRequirement,
+  database_schema : String,
+  table : String,
+  query_contract_body : String,
+  evidence_contract_body : String,
+  two_receipt_contract_body : String,
+) -> Result[ClientDuckDBCaptureCapacity, ClientDuckDBAcquisitionIssue] {
+  match
+    prepare_client_duckdb_acquisition_parts(
+      requirement, database_schema, table, query_contract_body, evidence_contract_body,
+      two_receipt_contract_body,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  guard @duckdb_host.prepared_native_capacity(client_duckdb_native_limits())
+    is Some(native) else {
+    return Err(Preparation)
+  }
+  guard @duckdb_host.prepared_broad_capacity(
+      requirement,
+      client_duckdb_broad_limits(),
+    )
+    is Some(broad) else {
+    return Err(Preparation)
+  }
+  let retained_bytes = if native.retained_bytes > broad.retained_bytes {
+    native.retained_bytes
+  } else {
+    broad.retained_bytes
+  }
+  let execution_bytes = if native.execution_bytes > broad.execution_bytes {
+    native.execution_bytes
+  } else {
+    broad.execution_bytes
+  }
+  Ok({ requirement, retained_bytes, execution_bytes, })
+}
+
+///|
+pub fn client_duckdb_capture_capacity_values(
+  capacity : ClientDuckDBCaptureCapacity,
+) -> Array[Int64] {
+  [capacity.retained_bytes, capacity.execution_bytes]
+}
+
+///|
+/// Requirement identity is a capacity/custody binding, never read authority.
+pub fn client_duckdb_capture_capacity_matches_requirement(
+  capacity : ClientDuckDBCaptureCapacity,
+  requirement : @planning.QueryRequirement,
+) -> Bool {
+  @planning.query_requirement_cid(capacity.requirement) ==
+  @planning.query_requirement_cid(requirement)
+}
+
+///|
+/// Before an approved read starts, check its real selected configuration
+/// against the pending budget already used by the shared Run ledger.
+pub fn client_duckdb_capture_capacity_accepts(
+  envelope : ClientDuckDBCaptureCapacity,
+  selected : @duckdb_host.CaptureConfiguration,
+) -> Bool {
+  if !client_duckdb_capture_capacity_matches_requirement(
+      envelope,
+      @duckdb_host.configured_capture_requirement(selected),
+    ) {
+    return false
+  }
+  guard @duckdb_host.configured_capture_capacity(selected) is Some(capacity) else {
+    return false
+  }
+  capacity.retained_bytes >= 0L &&
+  capacity.execution_bytes >= 0L &&
+  capacity.retained_bytes <= envelope.retained_bytes &&
+  capacity.execution_bytes <= envelope.execution_bytes
+}
+
+///|
 /// Bind one checked source requirement to the installed DuckDB realization.
 /// This single-candidate API has exactly one implementation; its explicit singleton Host
 /// preference needs no duration estimate and makes no cheapest-route claim.
@@ -176,13 +270,24 @@ fn configure_client_duckdb_native(
     @duckdb_query.DuckDBNativePreparation,
   ],
 ) -> @duckdb_host.NativeHostConfiguration {
+  @duckdb_host.configure_native_host(
+    receipts,
+    requirement,
+    choice,
+    candidate,
+    client_duckdb_native_limits(),
+  )
+}
+
+///|
+fn client_duckdb_native_limits() -> @duckdb_host.NativeHostLimits {
   let measurement : @execution.FixedInputGuardMeasureLimits = {
     max_work: 100000,
     max_bytes: 100000,
     max_nodes: 10000,
     max_depth: 100,
   }
-  @duckdb_host.configure_native_host(receipts, requirement, choice, candidate, {
+  {
     physical: {
       max_rows: 100,
       max_cells: 1000,
@@ -229,7 +334,7 @@ fn configure_client_duckdb_native(
       max_rows: 100,
       max_text_bytes: 100000,
     },
-  })
+  }
 }
 
 ///|
@@ -295,13 +400,24 @@ fn configure_client_duckdb_broad(
     @duckdb_query.DuckDBQueryPreparation,
   ],
 ) -> @duckdb_host.BroadHostConfiguration {
+  @duckdb_host.configure_broad_host(
+    contracts,
+    requirement,
+    choice,
+    candidate,
+    client_duckdb_broad_limits(),
+  )
+}
+
+///|
+fn client_duckdb_broad_limits() -> @duckdb_host.BroadHostLimits {
   let values : @execution.ValueLimits = {
     max_nodes: 10000,
     max_text_bytes: 100000,
     max_depth: 100,
     max_work: 1000000,
   }
-  @duckdb_host.configure_broad_host(contracts, requirement, choice, candidate, {
+  {
     physical: {
       max_rows: 100,
       max_cells: 1000,
@@ -357,5 +473,5 @@ fn configure_client_duckdb_broad(
       max_rows: 100,
       max_text_bytes: 100000,
     },
-  })
+  }
 }

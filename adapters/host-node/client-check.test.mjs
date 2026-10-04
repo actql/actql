@@ -230,6 +230,142 @@ const protectedSource = [{boundary: 'source_resolution',
   reason: 'unresolved_protected'}];
 
 for (const [entrance, open] of Object.entries(entrances)) {
+  test(`${entrance}: unresolved column expressions retain authored source positions`, async t => {
+    const client = await open(t, configurations.denied);
+    const visible = await open(t, configurations.allowed);
+    for (const format of ['sql', 'aql-text']) {
+      for (const [text, start, end, token] of [
+        ['SELECT missing AS n', 7, 14, 'missing'],
+        ['/*😀*/\r\nSELECT missing AS n', 17, 24, 'missing'],
+        ['/* missing */ SELECT missing AS n', 21, 28, 'missing'],
+        ['SELECT missing AS n, missing AS m', 7, 14, 'missing'],
+        ['SELECT `é😀` AS n', 7, 15, '`é😀`'],
+      ]) {
+        const outcome = await client.check(text, {format});
+        assert.equal(outcome.outcome, 'completed', '[check-mutation:column-outcome]');
+        assert.equal(outcome.report.verdict, 'invalid', '[check-mutation:column-verdict]');
+        const original = getCheckInput(outcome, 'source');
+        assert.deepEqual(outcome.report.reasons, [{code: 'query_invalid',
+          location: {document_id: 'source', revision: original.revision,
+            kind: 'text', start_byte: start, end_byte: end, precision: 'exact'}}],
+        '[check-mutation:column-location]');
+        assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+        const location = outcome.report.reasons[0].location;
+        assert.equal(resolveCheckLocation(outcome, location).text, token);
+        assert.equal(resolveCheckLocation(outcome, location,
+          {...original, text: 'SELECT id AS n'}), undefined);
+        assert.equal(resolveCheckLocation(JSON.parse(JSON.stringify(outcome)), location), undefined);
+        assert.equal(explainCheckReason(outcome.report.reasons[0]).kind, 'known');
+      }
+      // Double quotes are string literals; backticks quote identifiers.
+      const literal = await client.check('SELECT "é😀" AS n', {format});
+      assert.equal(literal.report.verdict, 'verified');
+      assert.deepEqual(literal.report.reasons, []);
+      const bare = await client.check('SELECT missing', {format});
+      assert.deepEqual(bare.report.reasons, [{code: 'query_invalid'}]);
+      const protectedInput = await client.check('SELECT missing AS n FROM records', {format});
+      assert.equal(protectedInput.report.verdict, 'undetermined');
+      assert.deepEqual(protectedInput.report.reasons, []);
+      assert.deepEqual(protectedInput.report.coverage, {limits: [], unresolved: protectedSource});
+      for (const [text, start, end, token] of [
+        ['SELECT missing AS n FROM records', 7, 14, 'missing'],
+        ['SELECT records.missing AS n FROM records', 7, 22, 'records.missing'],
+      ]) {
+        const outcome = await visible.check(text, {format});
+        assert.equal(outcome.outcome, 'completed', '[check-mutation:column-outcome]');
+        assert.equal(outcome.report.verdict, 'invalid', '[check-mutation:column-verdict]');
+        const original = getCheckInput(outcome, 'source');
+        assert.deepEqual(outcome.report.reasons, [{code: 'query_invalid',
+          location: {document_id: 'source', revision: original.revision,
+            kind: 'text', start_byte: start, end_byte: end, precision: 'exact'}}],
+        '[check-mutation:column-location]');
+        assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location).text, token);
+      }
+    }
+    client.assertNoExecution();
+    visible.assertNoExecution();
+  });
+
+  test(`${entrance}: nested supplied type facts follow the submitted contract and path`, async t => {
+    const client = await open(t, configurations.denied);
+    const cases = [
+      [{type: 'object', fields: {'a//b': {type: 'number'}}},
+        {'a//b': 'private-value'}, '/options/a~1~1b', 'number', 'string'],
+      [{type: 'object', fields: {'/a~~//é': {type: 'array', items: {type: 'number'}}}},
+        {'/a~~//é': [7, 'private-value']}, '/options/~1a~0~0~1~1é/1', 'number', 'string'],
+      [{type: 'array', items: {type: 'object', fields: {enabled: {type: 'boolean'}}}},
+        [{enabled: 2}], '/options/0/enabled', 'boolean', 'number'],
+      [{type: 'object', fields: {count: {type: 'number'}}},
+        {count: null}, '/options/count', 'number', 'null'],
+    ];
+    for (const [declaration, value, pointer, expected_type, actual_type] of cases) {
+      const parameters = {options: value};
+      const outcome = await client.check('SELECT id FROM records', {format: 'sql',
+        parameterDeclarations: {options: declaration, missing: {type: 'string'}}, parameters});
+      assert.equal(outcome.outcome, 'completed', '[check-mutation:nested-outcome]');
+      assert.equal(outcome.report.verdict, 'invalid');
+      const original = getCheckInput(outcome, 'parameters');
+      assert.deepEqual(outcome.report.reasons, [{code: 'supplied_value_type_mismatch',
+        facts: {parameter: 'options', expected_type, actual_type},
+        location: {document_id: 'parameters', revision: original.revision,
+          kind: 'structured', pointer}}], '[check-mutation:nested-type]');
+      assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: protectedSource});
+      assert.deepEqual(original.value, parameters);
+      const reason = outcome.report.reasons[0];
+      assert.equal(resolveCheckLocation(outcome, reason.location).input, original);
+      assert.equal(resolveCheckLocation(outcome, reason.location,
+        {...original, value: {options: 'edited'}}), undefined);
+      assert.equal(resolveCheckLocation(JSON.parse(JSON.stringify(outcome)), reason.location), undefined);
+      assert.equal(JSON.stringify(outcome).includes('private-value'), false);
+      assert.equal(explainCheckReason(reason).kind, 'known');
+    }
+    client.assertNoExecution();
+  });
+
+  test(`${entrance}: supplied constraint locations retain the binder path without private values`, async t => {
+    const client = await open(t, configurations.denied);
+    for (const [declaration, value, pointer] of [
+      [{type: 'object', fields: {count: {type: 'number', integer: true}}},
+        {count: 1.5}, '/options/count'],
+      [{type: 'object', fields: {count: {type: 'number', minimum: 1}}},
+        {count: 0}, '/options/count'],
+      [{type: 'object', fields: {waits: {type: 'array', length: 2, items: {type: 'string'}}}},
+        {waits: ['private-value']}, '/options/waits'],
+      [{type: 'array', items: {type: 'string', format: 'duration'}},
+        ['1s', 'private-value'], '/options/1'],
+    ]) {
+      const outcome = await client.check('SELECT id FROM records', {format: 'sql',
+        parameterDeclarations: {options: declaration}, parameters: {options: value}});
+      assert.equal(outcome.outcome, 'completed', '[check-mutation:constraint-outcome]');
+      const original = getCheckInput(outcome, 'parameters');
+      assert.equal(outcome.report.verdict, 'invalid');
+      assert.deepEqual(outcome.report.reasons, [{code: 'supplied_value_invalid',
+        location: {document_id: 'parameters', revision: original.revision,
+          kind: 'structured', pointer}}], '[check-mutation:constraint-location]');
+      assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: protectedSource});
+      assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location).input, original);
+      assert.equal(JSON.stringify(outcome).includes('private-value'), false);
+    }
+    // A valid pointer exceeding the public bound is omitted, not truncated.
+    for (const longKey of ['a'.repeat(4096), '~'.repeat(2050)]) {
+      const oversized = await client.check('SELECT 1 AS n', {format: 'sql',
+        parameterDeclarations: {options: {type: 'object', fields: {[longKey]: {type: 'number'}}}},
+        parameters: {options: {[longKey]: 'private-value'}}});
+      assert.deepEqual(oversized.report.reasons, [{code: 'supplied_value_type_mismatch',
+        facts: {parameter: 'options', expected_type: 'number', actual_type: 'string'}}]);
+    }
+    // Invalid defaults belong to declarations, never to the supplied document.
+    const defaults = await client.check('SELECT 1 AS n', {format: 'sql',
+      parameterDeclarations: {options: {type: 'number', minimum: 1, default: 0}},
+      parameters: {options: 3}});
+    assert.deepEqual(defaults.report.reasons, [{code: 'parameter_declarations_invalid'}]);
+    const missingMember = await client.check('SELECT 1 AS n', {format: 'sql',
+      parameterDeclarations: {options: {type: 'object', fields: {count: {type: 'number'}}}},
+      parameters: {options: {}}});
+    assert.deepEqual(missingMember.report.reasons, [{code: 'supplied_value_invalid'}]);
+    client.assertNoExecution();
+  });
+
   test(`${entrance}: undeclared references keep authored semantic locations`, async t => {
     const client = await open(t, configurations.denied);
     for (const [text, start, end] of [
@@ -716,6 +852,18 @@ async function acceptDisclosure(install) {
     assert.equal(canonicalJson(unrelated),
       canonicalJson(await absent(sourceRequest('SELECT missing AS n'))));
     assert.equal(unrelated.report?.verdict, 'invalid', variant);
+    const nestedRequest = sourceRequest('SELECT id FROM records',
+      {options: {'/a~~//é': [7, 'private-value']}},
+      {options: {type: 'object', fields: {'/a~~//é': {type: 'array', items: {type: 'number'}}}}});
+    const nested = await check(nestedRequest);
+    assert.equal(nested.outcome, 'completed');
+    assert.equal(canonicalJson(nested), canonicalJson(await absent(nestedRequest)),
+      '[check-mutation:nested-disclosure]');
+    assert.equal(nested.report.verdict, 'invalid');
+    assert.deepEqual(nested.report.coverage.unresolved, protectedSource);
+    assert.deepEqual(nested.report.reasons[0].facts,
+      {parameter: 'options', expected_type: 'number', actual_type: 'string'});
+    assert.equal(nested.report.reasons[0].location.pointer, '/options/~1a~0~0~1~1é/1');
   }
   // A reference is never reused for another audience, another source or
   // another exact value.
