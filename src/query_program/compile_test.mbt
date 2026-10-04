@@ -706,7 +706,8 @@ test "Pipe AGGREGATE sees replaced top-level fields and closes old ranges" {
   ).unwrap()
   let program = compile(query, pair_context(), construction_limits()).unwrap()
   let wire = semantic(program)
-  assert_true(wire.contains("\"select\":[{\"x\":\"aql_pipe_set_2\"},\"y\"]"))
+  assert_true(wire.contains("\"by\":[\"aql_pipe_set_2\"]"))
+  assert_true(wire.contains("\"select\":[{\"x\":\"aql_pipe_set_2\"},\"n\"]"))
   assert_true(
     wire.contains("\"group\":{\"aggregates\":{\"n\":{\"fn\":\"count\"}}"),
   )

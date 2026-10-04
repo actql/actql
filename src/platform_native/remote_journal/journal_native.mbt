@@ -295,6 +295,189 @@ pub fn Journal::accept(
 }
 
 ///|
+/// Persist cancellation in this journal before any reply or physical stop.
+/// Missing dispatch admission and the nonstartable tombstone are one fenced
+/// transaction. Existing work retains its execution/evidence and cleanup;
+/// only an unclaimed Accepted record may be confirmed cancelled here.
+pub fn Journal::request_cancellation(
+  self : Journal,
+  request : @remote.DispatchRequest,
+) -> Result[@remote.DispatchRecord, NativeRemoteJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let key = match @remote.dispatch_request_attempt_identity(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  let marker = match @remote.dispatch_request_json(request) {
+    Ok(value) => @utf8.encode(value)
+    Err(issue) => return Err(Protocol(issue))
+  }
+  match self.begin_mutation(true) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  // This read and the exclusive start claim use the same transaction boundary.
+  let existing = match self.database.read("site_dispatch", key) {
+    Ok(value) => Some(value)
+    Err(@sqlite.NotFound) => None
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  let admission = match existing {
+    None =>
+      match @remote.prepare_dispatch_cancellation(self.control, request) {
+        Ok(value) => Some(value)
+        Err(issue) => {
+          ignore(self.database.rollback())
+          return Err(Protocol(issue))
+        }
+      }
+    Some(value) => {
+      match self.existing(request, value) {
+        Ok(_) => ()
+        Err(issue) => {
+          ignore(self.database.rollback())
+          return Err(issue)
+        }
+      }
+      None
+    }
+  }
+  let mut transition : @remote.DispatchTransition? = None
+  let persist = fn() -> Result[Unit, NativeRemoteJournalIssue] {
+    match self.database.read("site_cancel_request", key) {
+      Ok(value) if value.revision == 0L && value.body == marker => ()
+      Ok(_) => return Err(StateCollision)
+      Err(@sqlite.NotFound) =>
+        match self.database.insert("site_cancel_request", key, marker) {
+          Ok(0L) => ()
+          Ok(_) => return Err(StateCollision)
+          Err(issue) => return Err(Physical(issue))
+        }
+      Err(issue) => return Err(Physical(issue))
+    }
+    match admission {
+      Some(value) => {
+        let body = match @remote.dispatch_admission_durable_json(value) {
+          Ok(value) => @utf8.encode(value)
+          Err(issue) => return Err(Protocol(issue))
+        }
+        let initial = match
+          @remote.prepare_dispatch_acceptance(self.control, request) {
+          Ok(value) => value
+          Err(issue) => return Err(Protocol(issue))
+        }
+        let initial_body = match
+          @remote.dispatch_admission_durable_json(initial) {
+          Ok(value) => @utf8.encode(value)
+          Err(issue) => return Err(Protocol(issue))
+        }
+        match self.database.insert("site_dispatch", key, initial_body) {
+          Ok(0L) => ()
+          Ok(_) => return Err(StateCollision)
+          Err(issue) => return Err(Physical(issue))
+        }
+        match self.database.compare_exchange("site_dispatch", key, 0L, body) {
+          Ok(1L) => ()
+          Ok(_) => return Err(StateCollision)
+          Err(issue) => return Err(Physical(issue))
+        }
+      }
+      None => {
+        let record = match self.require(request) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        if @remote.dispatch_record_state_codes(record)[0] == 0 {
+          match self.database.read("site_start_claim", key) {
+            Ok(_) => return Err(StateCollision)
+            Err(@sqlite.NotFound) => ()
+            Err(issue) => return Err(Physical(issue))
+          }
+          let next = match @remote.prepare_confirm_execution_cancelled(record) {
+            Ok(value) => value
+            Err(issue) => return Err(Protocol(issue))
+          }
+          let body = match @remote.dispatch_transition_durable_json(next) {
+            Ok(value) => @utf8.encode(value)
+            Err(issue) => return Err(Protocol(issue))
+          }
+          let revision = @remote.dispatch_transition_expected_revision(next).to_int64()
+          match
+            self.database.compare_exchange("site_dispatch", key, revision, body) {
+            Ok(value) if value == revision + 1L => transition = Some(next)
+            Ok(_) => return Err(StateCollision)
+            Err(issue) => return Err(Physical(issue))
+          }
+        }
+      }
+    }
+    Ok(())
+  }
+  match persist() {
+    Ok(_) => ()
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(issue)
+    }
+  }
+  match self.database.commit() {
+    Ok(_) => ()
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  // Memory commits follow physical durability, including uncertain-commit replay.
+  match admission {
+    Some(value) =>
+      match @remote.commit_dispatch_acceptance(value, true) {
+        Ok((_, record)) => return Ok(record)
+        Err(issue) => return Err(Protocol(issue))
+      }
+    None => ()
+  }
+  match transition {
+    Some(value) =>
+      match @remote.commit_dispatch_transition(value, true) {
+        Ok(_) => ()
+        Err(issue) => return Err(Protocol(issue))
+      }
+    None => ()
+  }
+  self.require(request)
+}
+
+///|
+/// Restore the exact saved cancellation intent; absence is not stop evidence.
+pub fn Journal::cancellation_requested(
+  self : Journal,
+  request : @remote.DispatchRequest,
+) -> Result[Bool, NativeRemoteJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let key = match @remote.dispatch_request_attempt_identity(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  let expected = match @remote.dispatch_request_json(request) {
+    Ok(value) => @utf8.encode(value)
+    Err(issue) => return Err(Protocol(issue))
+  }
+  match self.database.read("site_cancel_request", key) {
+    Err(@sqlite.NotFound) => Ok(false)
+    Err(issue) => Err(Physical(issue))
+    Ok(value) if value.revision == 0L && value.body == expected => Ok(true)
+    Ok(_) => Err(StateCollision)
+  }
+}
+
+///|
 /// Resolve one exact durable Site record without creating dispatch authority.
 /// Historical generations remain queryable after a generation restart.
 pub fn Journal::require(

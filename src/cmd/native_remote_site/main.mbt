@@ -299,6 +299,8 @@ fn poll_once(
       Err("dispatch requires a runtime-linked Site component")
     Some(@remote.Plan(_)) | Some(@remote.Output(_)) =>
       Err("output requires an application-linked Site component")
+    Some(@remote.Cancel(_)) =>
+      Err("cancel requires the resident Site control owner")
     Some(@remote.Query(request)) =>
       match
         @client.acknowledge_status(journal, client, observation_url, request) {

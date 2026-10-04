@@ -4446,6 +4446,17 @@ pub fn strategy_remote_poll_query_json(
 }
 
 ///|
+#export_name("strategyRemotePollCancelJson")
+pub fn strategy_remote_poll_cancel_json(
+  request : @remote.DispatchRequest,
+) -> String raise NodeHostFailure {
+  match @remote.remote_poll_cancel_json(request) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
 #export_name("strategyRemotePollReleaseJson")
 pub fn strategy_remote_poll_release_json(
   request : @remote.DispatchRequest,

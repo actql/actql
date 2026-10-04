@@ -56,6 +56,8 @@ pub fn admit_remote_output_report_retry_json(String) -> Result[String, DispatchI
 
 pub fn admit_remote_output_result_json(String, RemotePollOutput, @publication_payload.PublicationPayloadRequest, @remote_transfer.RemoteTransferRequest) -> Result[RemoteOutputResult, DispatchIssue]
 
+pub fn admit_remote_poll_cancel_json(String) -> Result[DispatchRequest, DispatchIssue]
+
 pub fn admit_remote_poll_dispatch_json(String) -> Result[RemotePollDispatch, DispatchIssue]
 
 pub fn admit_remote_poll_not_seen_json(String, DispatchRequest) -> Result[Unit, DispatchIssue]
@@ -179,6 +181,8 @@ pub fn dispatch_admission_request_json(DispatchAdmission) -> Result[String, Disp
 pub fn dispatch_record_durable_json(DispatchRecord) -> Result[String, DispatchIssue]
 
 pub fn dispatch_record_matches_request(DispatchRecord, DispatchRequest) -> Bool
+
+pub fn dispatch_record_request(DispatchRecord) -> DispatchRequest
 
 pub fn dispatch_record_requires_managed_observation(DispatchRecord) -> Bool
 
@@ -317,6 +321,8 @@ pub fn prepare_coordinator_response_observation(CoordinatorDispatchIntentRecord,
 pub fn prepare_coordinator_site_observation(CoordinatorDispatchIntentRecord, Int, Int, Int, Int, Bool, Bool, RemoteExecutionEvidence?) -> Result[CoordinatorDispatchTransition, DispatchIssue]
 
 pub fn prepare_dispatch_acceptance(SiteDispatchJournal, DispatchRequest) -> Result[DispatchAdmission, DispatchIssue]
+
+pub fn prepare_dispatch_cancellation(SiteDispatchJournal, DispatchRequest) -> Result[DispatchAdmission, DispatchIssue]
 
 pub fn prepare_dispatch_request(String, String, String, Int, String, String, Int, String, String, String, String, String, String, String, String, String) -> Result[DispatchRequest, DispatchIssue]
 
@@ -490,6 +496,8 @@ pub fn remote_output_result_projection(RemoteOutputResult, @remote_transfer.Remo
 
 pub fn remote_output_result_transfer_record(RemoteOutputResult, @remote_transfer.RemoteTransferRequest) -> Result[@remote_transfer.RemoteTransferRecord, DispatchIssue]
 
+pub fn remote_poll_cancel_json(DispatchRequest) -> Result[String, DispatchIssue]
+
 pub fn remote_poll_dispatch_input_binding(RemotePollDispatch) -> RemoteInputBinding
 
 pub fn remote_poll_dispatch_json(DispatchRequest, RemoteInputBinding) -> Result[String, DispatchIssue]
@@ -501,6 +509,8 @@ pub fn remote_poll_dispatch_request(RemotePollDispatch) -> DispatchRequest
 pub fn remote_poll_dispatch_run_materials(RemotePollDispatch) -> String?
 
 pub fn remote_poll_not_seen_json(DispatchRequest) -> Result[String, DispatchIssue]
+
+pub fn remote_poll_operation_is_cancel(RemotePollOperation) -> Bool
 
 pub fn remote_poll_operation_is_output(RemotePollOperation) -> Bool
 
@@ -791,6 +801,7 @@ pub(all) enum RemotePollOperation {
   Plan(RemotePollOutput)
   Output(RemotePollOutput)
   Query(DispatchRequest)
+  Cancel(DispatchRequest)
   Release(DispatchRequest)
 }
 
