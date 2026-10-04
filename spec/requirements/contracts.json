@@ -1918,7 +1918,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/check-outcome.verdict-must-agree-with-evidence",
-      "statement_sha256": "52e63caee78c246c7e21e73d73aafc9b18a653e1c8c6c5031739c63a6c631471",
+      "statement_sha256": "f10445e5070b32144fe5b1e69f4b677f0411397055be2d770e23ab6724665b69",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -2050,7 +2050,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "c75e27665ceaa3513bb2f35285026a24e3cb9e1663961a08a183b4b85e6d900c",
+      "statement_sha256": "ae8d2ad8a26742033ae38219ff4cee9d4423a59ab5d99ed2cc4bdc2a95e6e3b6",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

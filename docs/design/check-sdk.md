@@ -548,3 +548,98 @@ and consumers that read decisions without inference. Shared-graph construction
 counts and independent usage checks accompany identity, capacity and obligation
 invariance. Operation expansion, new inference, general execution admission,
 Workers support and durable capture are not implied by this checking boundary.
+
+
+## Public authored-input reports
+
+The public Client `check(text, {format, parameterDeclarations, parameters})`
+returns the registered `actql-check-outcome/0.1` envelope. Checking completion,
+its scope-bound verdict and eventual execution outcomes are separate facts.
+The public report is projected by the existing MoonBit check bridge before
+serialization. Local and HTTPS use that projection with the same disclosure
+policy. SQL/Text lowering retains its admitted Program; the same `check_parsed`
+checker consumes it without replacing authored provenance with generated JSON.
+
+The corrected unfinished check contract requires `reason_schema_cid`, identifying
+`actql-check-reason/0.1`, on completed, failed and unavailable envelopes. Reports
+require `inputs` and `requirements` as well as the existing scope, context,
+reasons and coverage. The machine schema, generated Client wire/SDK types and
+validators are updated together. Older Clients reject the additional closed
+fields; newer Clients reject replies without them or with another reason-schema
+identity. There is no compatibility adapter or interpretation of a rejected
+reply as success. `actql-diagnostics/0.1`, `plan_result` and their historical
+code/payload/CID meanings are unchanged.
+
+The active producers and consumers share this one contract:
+
+| Boundary | Contract use |
+| --- | --- |
+| `connectors_builtin_node/client_check.mbt` | Projects common parser/checker facts after Source disclosure and emits every outcome |
+| `adapters/host-node/client-check.mjs` | Binds input revisions and context; validates the MoonBit response for installed Local/HTTPS Hosts |
+| `scripts/check-outcome-contract.mjs` and protocol registry | Define the closed reason/outcome shapes and exact schema/registry pins |
+| `scripts/generate-client-host-wire.mjs`, `packages/client-wire` | Generate types/structural guards; enforce location/document and verdict/evidence consistency |
+| `packages/sdk` | Validates each response and binds locations to that call's immutable submitted inputs |
+| `packages/local-node` build graph | Packages the same Host adapter and compiled bridge, with the SDK/client-wire package dependencies |
+| Independent Host, SDK and generator tests | Fix byte ranges and facts independently; reject malformed facts and contract mismatches |
+
+The Client–Host `check` request shape and `actql-client-host/0.1` identity remain
+unchanged; the registered check outcome/reason schemas are the response authority.
+Coordinated publication does not imply that consumers in other environments have
+updated. A closed-schema mismatch fails validation in that consumer, including
+responses with no diagnostic reasons, rather than returning an empty success.
+
+Text locations name the `source` document and its immutable revision, with
+zero-based half-open UTF-8 byte ranges. BOM, CRLF, non-BMP and combining scalars
+remain in the received bytes. EOF and insertion positions can be zero width.
+Structured declarations and values use a different location kind with a JSON
+pointer; these API inputs are objects, not authored JSON text. Their revisions
+bind the exact JSON serialization supplied to the common admission owner. An
+unavailable original position is omitted, including lowerer semantic failures
+without owned source provenance. No generated JSON path is displayed as SQL.
+
+Document IDs (`source`, `parameter_declarations`, `parameters`) are roles within
+one report, not private file paths. Each Host issues a keyed, domain-separated
+revision over that role's exact bytes. These revisions are not public content
+hashes, authorization grants or retrieval references. `context_ref` additionally
+binds audience, disclosure policy, compiler, environment, requested scope,
+visible Source set and bindings. Changing authority or checking context can
+change `context_ref` without changing the same input revision.
+
+The SDK detaches structured caller input synchronously before awaiting credentials
+or transport, and retains immutable input snapshots in a weak association with
+that exact response. `getCheckInput` retrieves that call's snapshot;
+`resolveCheckLocation` uses the same snapshot and checks identity, revision,
+content and byte boundaries. A copied/externally parsed report has no association.
+Unavailable input, another revision or edited text yields no resolved location;
+the reason's safe code/explanation remains usable. The API applies no edits.
+`explainCheckReason` provides safe English summaries/hints; unknown codes have an
+explicit generic explanation and confer no retry or execution permission.
+
+The Host adds no document database, persistent input store, history or re-fetch
+API for checking. The existing request envelope/source limit is retained: 65,536
+UTF-16 source code units at request validation and 65,536 original source bytes
+at frontend admission; an input beyond an analysis budget is not an invalidity
+proof. Structured admission keeps its existing bounded JSON/decode/binding
+budgets. Report construction reserves a separate 65,536-byte, 4,096-node budget.
+The Host's request/analysis data becomes eligible for collection after processing
+and response completion; neither deterministic immediate erasure nor a retention
+interval is promised. The SDK association becomes eligible for collection when
+its response is unreachable; application-retained snapshots remain application
+owned. No secret input is copied into public Reasons.
+
+Initial typed facts cover undeclared parameter names, root supplied-value type
+mismatches (expected/actual types, never values), and missing declared values.
+A missing value is a Requirement for bound-input checking, not a diagnostic or
+verified template report. Its declaration pointer/revision identifies the full
+submitted admission contract, including constraints; supplying a value requires
+a new complete check. Other typed causes retain their less-specific registered
+public reason until their projection is implemented. Protected Source resolution
+has one generic unresolved boundary and no hidden candidate, count or location.
+There is no negative-existence authority for installed query aliases; omission
+from an audience-visible publication cannot prove absence. Provider Resource
+catalog completeness is not query-alias completeness.
+
+The first supported boundary is bound-input checking. Template-only checking,
+fix application, report retrieval, LSP conversion and execution/Delivery outcome
+explanations remain separate work. The input-report connection does not claim
+the design's S1–S9/X1–X17/invariant completion gate.

@@ -10,13 +10,60 @@ const code = {type: 'string', pattern: '^[a-z][a-z0-9_]{0,63}$'};
 const opaqueRef = {type: 'string', minLength: 1, maxLength: 128,
   pattern: '^[A-Za-z0-9:_-]+$'};
 
+const documentId = {enum: ['source', 'parameter_declarations', 'parameters']};
+const revision = {type: 'string', pattern: '^rev:[0-9a-f]{64}$'};
+const integer = {type: 'integer', minimum: 0, maximum: 1048576};
+const location = {oneOf: [
+  {type: 'object', additionalProperties: false,
+    required: ['kind', 'document_id', 'revision', 'start_byte', 'end_byte', 'precision'],
+    properties: {kind: {const: 'text'}, document_id: {const: 'source'}, revision,
+      start_byte: integer, end_byte: integer, precision: {enum: ['exact', 'approximate']}}},
+  {type: 'object', additionalProperties: false,
+    required: ['kind', 'document_id', 'revision', 'pointer'],
+    properties: {kind: {const: 'structured'},
+      document_id: {enum: ['parameter_declarations', 'parameters']}, revision,
+      pointer: {type: 'string', maxLength: 4096, pattern: '^(?:/(?:[^~]|~[01])*)*$'}}},
+]};
+// This registered facts schema is separate from outcome and presentation identity.
+// Known facts are closed; future codes have only a safe code-only representation.
+const parameterName = {type: 'string', minLength: 1, maxLength: 256};
+const typeName = {enum: ['null', 'boolean', 'number', 'string', 'array', 'object',
+  'date', 'timestamp', 'decimal', 'json', 'vector', 'resource_ref', 'artifact_ref']};
+export const checkReasonSchema = {
+  $schema: 'https://json-schema.org/draft/2020-12/schema',
+  $id: 'https://smooth.dev/schemas/actql-check-reason-0.1.json',
+  title: 'actql-check-reason-0.1',
+  type: 'object', additionalProperties: false,
+  required: ['code'], properties: {code, location,
+    facts: {oneOf: [
+      {type: 'object', additionalProperties: false, required: ['parameter'], properties: {parameter: parameterName}},
+      {type: 'object', additionalProperties: false,
+        required: ['parameter', 'expected_type', 'actual_type'],
+        properties: {parameter: parameterName, expected_type: typeName, actual_type: typeName}},
+      {type: 'object', additionalProperties: false,
+        required: ['parameter', 'expected_type'],
+        properties: {parameter: parameterName, expected_type: typeName}},
+    ]}},
+  allOf: [
+    {if: {properties: {code: {const: 'supplied_value_type_mismatch'}}},
+      then: {required: ['facts'], properties: {facts: {required: ['actual_type']}}}},
+    {if: {properties: {code: {const: 'parameter_undeclared'}}},
+      then: {required: ['facts'], properties: {facts: {not: {required: ['expected_type']}}}}},
+    {if: {properties: {code: {const: 'parameter_value_required'}}},
+      then: {required: ['facts'], properties: {facts: {required: ['expected_type'], not: {required: ['actual_type']}}}}},
+    {if: {properties: {code: {not: {enum: ['supplied_value_type_mismatch', 'parameter_value_required', 'parameter_undeclared']}}}},
+      then: {not: {required: ['facts']}}},
+  ],
+};
+export const checkReasonSchemaCid = machineCid(checkReasonSchema);
+
 function report(verdicts) {
   const empty = {type: 'array', items: {}, maxItems: 0};
   const emptyCoverage = {properties: {limits: empty, unresolved: empty}};
   return {
     allOf: [
       {if: {properties: {verdict: {const: 'verified'}}},
-        then: {properties: {reasons: empty, coverage: emptyCoverage}}},
+        then: {properties: {reasons: empty, requirements: empty, coverage: emptyCoverage}}},
       {if: {properties: {verdict: {const: 'invalid'}}},
         then: {properties: {reasons: {type: 'array', items: {}, minItems: 1}}}},
       {if: {properties: {verdict: {const: 'undetermined'}}},
@@ -24,9 +71,13 @@ function report(verdicts) {
           coverage: {not: emptyCoverage}}}},
     ],
     type: 'object', additionalProperties: false,
-    required: ['context_ref', 'coverage', 'reasons', 'scope', 'verdict'],
+    required: ['context_ref', 'coverage', 'inputs', 'reasons', 'requirements', 'scope', 'verdict'],
     properties: {
       context_ref: opaqueRef,
+      inputs: {type: 'array', minItems: 1, maxItems: 3, items: {
+        type: 'object', additionalProperties: false,
+        required: ['document_id', 'revision', 'kind', 'byte_length'],
+        properties: {document_id: documentId, revision, kind: {enum: ['text', 'structured']}, byte_length: integer}}},
       coverage: {
         type: 'object', additionalProperties: false,
         required: ['limits', 'unresolved'],
@@ -41,9 +92,10 @@ function report(verdicts) {
               reason: {const: 'unresolved_protected'}}}},
         },
       },
-      reasons: {type: 'array', items: {
-        type: 'object', additionalProperties: false,
-        required: ['code'], properties: {code}}},
+      reasons: {type: 'array', maxItems: 1024, items: checkReasonSchema},
+      requirements: {type: 'array', maxItems: 1024, items: {...checkReasonSchema,
+        properties: {...checkReasonSchema.properties, code: {const: 'parameter_value_required'}},
+        required: ['code', 'facts']}},
       scope: {type: 'object', additionalProperties: false,
         required: ['kind'], properties: {kind: {const: 'bound_input'}}},
       verdict: {enum: verdicts},
@@ -61,26 +113,29 @@ export function checkOutcomeSchema() {
     title: 'actql-check-outcome-0.1',
     oneOf: [
       {type: 'object', additionalProperties: false,
-        required: ['outcome', 'report', 'version'],
+        required: ['outcome', 'report', 'version', 'reason_schema_cid'],
         properties: {
           outcome: {const: 'completed'},
           report: report(['invalid', 'undetermined', 'verified']),
+          reason_schema_cid: {const: checkReasonSchemaCid},
           version: {const: 'actql-check-outcome/0.1'}}},
       // A partial report can never verify.
       {type: 'object', additionalProperties: false,
-        required: ['outcome', 'problem', 'version'],
+        required: ['outcome', 'problem', 'version', 'reason_schema_cid'],
         properties: {
           outcome: {const: 'failed'},
           partial_report: report(['invalid', 'undetermined']),
           problem,
+          reason_schema_cid: {const: checkReasonSchemaCid},
           version: {const: 'actql-check-outcome/0.1'}}},
       // No verdict, report, scope or context field.
       {type: 'object', additionalProperties: false,
-        required: ['correlation_ref', 'outcome', 'problem', 'version'],
+        required: ['correlation_ref', 'outcome', 'problem', 'version', 'reason_schema_cid'],
         properties: {
           correlation_ref: opaqueRef,
           outcome: {const: 'unavailable'},
           problem,
+          reason_schema_cid: {const: checkReasonSchemaCid},
           version: {const: 'actql-check-outcome/0.1'}}},
     ],
   };
@@ -88,6 +143,8 @@ export function checkOutcomeSchema() {
 
 export function applyCheckOutcomeSchema(registry) {
   const schema = checkOutcomeSchema();
+  registry.artifact_schemas.check_reason = checkReasonSchema;
+  registry.artifact_schema_cids.check_reason = checkReasonSchemaCid;
   registry.artifact_schemas.check_outcome = schema;
   registry.artifact_schema_cids.check_outcome = machineCid(schema);
   registry.artifact_registry_cid = machineCid(registry.artifact_schemas);
@@ -95,6 +152,8 @@ export function applyCheckOutcomeSchema(registry) {
 }
 
 export function checkCheckOutcomeSchema(registry) {
+  assert.deepEqual(registry.artifact_schemas.check_reason, checkReasonSchema);
+  assert.equal(registry.artifact_schema_cids.check_reason, checkReasonSchemaCid);
   assert.deepEqual(registry.artifact_schemas.check_outcome,
     checkOutcomeSchema());
   assert.equal(registry.artifact_schema_cids.check_outcome,
@@ -108,6 +167,13 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   if (process.argv.includes('--write')) {
     applyCheckOutcomeSchema(registry);
     writeFileSync(path, JSON.stringify(registry, null, 2) + '\n');
+    writeFileSync('src/connectors_builtin_node/check_reason_schema.generated.mbt',
+      '// Generated by scripts/check-outcome-contract.mjs --write.\n\n///|\n' +
+      'let check_reason_schema_cid = ' + JSON.stringify(checkReasonSchemaCid) + '\n');
   }
   checkCheckOutcomeSchema(registry);
+  assert.equal(readFileSync(
+    'src/connectors_builtin_node/check_reason_schema.generated.mbt', 'utf8'),
+  '// Generated by scripts/check-outcome-contract.mjs --write.\n\n///|\n' +
+    'let check_reason_schema_cid = ' + JSON.stringify(checkReasonSchemaCid) + '\n');
 }

@@ -270,3 +270,43 @@ Run acceptance and provider I/O. JSON/YAML Program remains supported machine
 input. Text is never retried as another format, and extensions do not choose
 a language. Removal of the old surface does not claim that every adopted
 Graph, VecA/TEA or Effect surface is implemented.
+
+
+## Checking authored input
+
+```js
+import {getCheckInput, resolveCheckLocation, explainCheckReason} from '@actql/sdk';
+
+const outcome = await client.check('SELECT @missing AS n', {format: 'sql'});
+if (outcome.outcome === 'completed') {
+  const {scope, context_ref, verdict, reasons, requirements} = outcome.report;
+  for (const reason of [...reasons, ...requirements]) {
+    const explanation = explainCheckReason(reason);
+    const location = reason.location && resolveCheckLocation(outcome, reason.location);
+    // location.input belongs to this submitted revision, including while editing.
+    console.log({scope, context_ref, verdict, explanation, location});
+  }
+  const submitted = getCheckInput(outcome, 'source');
+}
+```
+
+A completed check may be invalid or undetermined. Its verdict is always bound to
+scope/context and does not start or authorize a Run. Wrong supplied types expose
+expected/actual types without values. Missing declared values expose Requirements
+and remain undetermined in bound-input scope. Unsupported checking and budget
+exhaustion are not author errors. Inaccessible and absent installed Source aliases
+share unresolved coverage; an independent public violation remains visible.
+
+Locations use the immutable original input snapshot, not the latest editor buffer.
+`resolveCheckLocation` returns `undefined` for a copied report, missing snapshot,
+stale revision, changed content or invalid byte boundary. Supplying its optional
+current-input argument validates the same identity/revision/content. Text spans
+are UTF-8 byte intervals; structured values/declarations have revision-bound
+pointers. There is no SDK parser, automatic fix or Host input re-fetch API.
+
+This coordinated correction changes the closed `actql-check-outcome/0.1` schema
+and introduces `actql-check-reason/0.1`. Schema identity, validator and SDK/Host
+must match; a mismatched reply throws `InvalidHostCheckOutcome` and never becomes
+success or an empty diagnostic report. Existing `actql-diagnostics/0.1` is a
+separate contract. Original snapshots remain weakly associated with the response;
+retaining a response or a retrieved snapshot retains its submitted input.

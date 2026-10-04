@@ -2,6 +2,7 @@
 // checker. Public Local/HTTP verdict expectations live in client-check.test.
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {checkReasonSchemaCid} from '../../packages/client-wire/index.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
 
 const environment = Object.freeze({});
@@ -21,13 +22,13 @@ function fixture(states = [], publication = aliases) {
     },
     clientProgramCheckCompilerIdentity: () => '{"compiler":"fixture"}',
     clientProgramCheckUnavailable: correlation_ref => JSON.stringify({
-      version: 'actql-check-outcome/0.1', outcome: 'unavailable',
+      version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid, outcome: 'unavailable',
       problem: {code: 'check_unavailable'}, correlation_ref}),
     clientProgramCheckSource: (...args) => {
       checked.push(args);
-      return JSON.stringify({version: 'actql-check-outcome/0.1',
-        outcome: 'completed', report: {context_ref: args[6],
-          scope: {kind: 'bound_input'}, verdict: 'verified', reasons: [],
+      return JSON.stringify({version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid,
+        outcome: 'completed', report: {context_ref: args[6], inputs: [{document_id: 'source', revision: args[7], kind: 'text', byte_length: Buffer.byteLength(args[0])}],
+          requirements: [], scope: {kind: 'bound_input'}, verdict: 'verified', reasons: [],
           coverage: {limits: [], unresolved: []}}});
     },
   };

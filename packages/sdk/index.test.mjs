@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {createServer} from 'node:http';
-import {connect, ClientError} from './index.mjs';
+import {checkReasonSchemaCid} from '@actql/client-wire';
+import {connect, ClientError, getCheckInput, resolveCheckLocation, explainCheckReason} from './index.mjs';
 
 const ref = Object.freeze({namespaceId: 'namespace-a',
   authorityScopeCid: `sha256:${'a'.repeat(64)}`,
@@ -34,6 +35,26 @@ const oversizedControl = cancelled => new Response(new ReadableStream({
   cancel() { cancelled.push(true); },
 }));
 
+test('check rejects a location inside an original UTF-8 scalar', async t => {
+  const revision = 'rev:' + '4'.repeat(64);
+  let start = 9;
+  mock.method(globalThis, 'fetch', async url => url.pathname.endsWith('/connect')
+    ? Response.json(profile) : Response.json({version: 'actql-check-outcome/0.1',
+      reason_schema_cid: checkReasonSchemaCid, outcome: 'completed', report: {
+        context_ref: 'ctx:fixture', scope: {kind: 'bound_input'}, verdict: 'invalid',
+        inputs: [{document_id: 'source', kind: 'text', revision, byte_length: 18}],
+        reasons: [{code: 'query_syntax_invalid', location: {kind: 'text',
+          document_id: 'source', revision, start_byte: start, end_byte: 12,
+          precision: 'exact'}}], requirements: [], coverage: {limits: [], unresolved: []}}}));
+  t.after(() => mock.restoreAll());
+  const client = await connect(options);
+  await assert.rejects(client.check("SELECT '😀' AS n", {format: 'sql'}),
+    {code: 'InvalidHostCheckOutcome'});
+  start = 8;
+  const result = await client.check("SELECT '😀' AS n", {format: 'sql'});
+  assert.equal(resolveCheckLocation(result, result.report.reasons[0].location).text, '😀');
+});
+
 test('review wire budget covers maximum base64 without relaxing body limits',
   async t => {
     const maximum = 1024 * 1024;
@@ -59,8 +80,8 @@ test('review wire budget covers maximum base64 without relaxing body limits',
 test('check refuses a Host verdict that contradicts its own evidence',
   async t => {
     const version = 'actql-check-outcome/0.1';
-    const report = (verdict, reasons, limits, unresolved) => ({version,
-      outcome: 'completed', report: {context_ref: 'ctx:a',
+    const report = (verdict, reasons, limits, unresolved) => ({version, reason_schema_cid: checkReasonSchemaCid,
+      outcome: 'completed', report: {context_ref: 'ctx:a', requirements: [], inputs: [{document_id: 'source', revision: 'rev:' + '1'.repeat(64), kind: 'text', byte_length: 13}],
         scope: {kind: 'bound_input'}, verdict, reasons,
         coverage: {limits, unresolved}}});
     const limit = [{code: 'analysis_budget_exhausted'}];
@@ -82,7 +103,7 @@ test('check refuses a Host verdict that contradicts its own evidence',
       report('invalid', [], limit, []),
       report('undetermined', violation, limit, []),
       report('undetermined', [], [], []),
-      {version, outcome: 'failed', problem: {code: 'check_internal'},
+      {version, reason_schema_cid: checkReasonSchemaCid, outcome: 'failed', problem: {code: 'check_internal'},
         partial_report: report('invalid', [], [], open).report},
     ]) {
       reply = inconsistent;
@@ -940,3 +961,50 @@ for (const stop of ['return', 'break']) {
     assert.deepEqual(requests, ['connect', 'attach', 'read']);
   });
 }
+
+
+test('check retains detached submitted inputs while credentials are pending', async t => {
+  let release;
+  const credential = new Promise(resolve => {release = resolve;});
+  let waitForCredentials = false;
+  let sent;
+  mock.method(globalThis, 'fetch', async (url, request) => {
+    if (url.pathname.endsWith('/connect')) return Response.json(profile);
+    sent = JSON.parse(request.body);
+    return Response.json({version: 'actql-check-outcome/0.1',
+      reason_schema_cid: checkReasonSchemaCid, outcome: 'completed', report: {
+        context_ref: 'ctx:fixture', scope: {kind: 'bound_input'}, verdict: 'invalid',
+        inputs: [
+          {document_id: 'source', kind: 'text', revision: 'rev:' + '1'.repeat(64), byte_length: 13},
+          {document_id: 'parameter_declarations', kind: 'structured', revision: 'rev:' + '2'.repeat(64), byte_length: 23},
+          {document_id: 'parameters', kind: 'structured', revision: 'rev:' + '3'.repeat(64), byte_length: 11},
+        ],
+        reasons: [{code: 'supplied_value_type_mismatch',
+          facts: {parameter: 'x', expected_type: 'number', actual_type: 'string'},
+          location: {kind: 'structured', document_id: 'parameters',
+            revision: 'rev:' + '3'.repeat(64), pointer: '/x'}}],
+        requirements: [], coverage: {limits: [], unresolved: []},
+      }});
+  });
+  t.after(() => mock.restoreAll());
+  const client = await connect({...options, token: async () => {
+    if (waitForCredentials) await credential;
+    return 'scoped-token';
+  }});
+  waitForCredentials = true;
+  const parameterDeclarations = {x: {type: 'number'}};
+  const parameters = {x: 'bad'};
+  const pending = client.check('SELECT 1 AS n', {format: 'sql', parameterDeclarations, parameters});
+  parameterDeclarations.x.type = 'string';
+  parameters.x = 'new';
+  release();
+  const outcome = await pending;
+  assert.deepEqual(sent.input.parameterDeclarations, {x: {type: 'number'}});
+  assert.deepEqual(sent.parameters, {x: 'bad'});
+  assert.deepEqual(getCheckInput(outcome, 'parameters').value, {x: 'bad'});
+  assert.equal(Object.isFrozen(getCheckInput(outcome, 'parameters').value), true);
+  assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location).input.value.x, 'bad');
+  assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location,
+    {...getCheckInput(outcome, 'parameters'), value: parameters}), undefined);
+  assert.equal(explainCheckReason({code: 'future_problem'}).kind, 'unknown');
+});

@@ -120,8 +120,72 @@ test "query and machine input routes retain explicit formats and declarations" {
   )
   let machine = "{\"version\":\"actql/0.1\",\"id\":\"retained\"}"
   assert_eq(lower(machine, Json, None).unwrap().document, machine)
+  assert_true(lower(machine, Json, None).unwrap().program is None)
   let yaml = "version: actql/0.1\nid: retained\n"
   assert_eq(lower(yaml, Yaml, None).unwrap().document, yaml)
+  assert_true(lower(yaml, Yaml, None).unwrap().program is None)
+}
+
+///|
+fn lookup(cursor : @wire.Cursor, key : String) -> @wire.Cursor {
+  @wire.lookup(@wire.open_object(cursor).unwrap(), key).unwrap()
+}
+
+///|
+test "retained query Program keeps authored unknown-Parameter spans through the existing checker" {
+  // Fixed byte expectations include four-byte Unicode and an unmodified CRLF.
+  // They are authored independently of lowerer output and token positions.
+  for
+    (text, start, end) in [
+      ("SELECT @missing AS n", 7, 15),
+      ("/*😀*/\r\nSELECT @missing AS n", 17, 25),
+    ] {
+    for format in [Format::Sql, Format::Text] {
+      let lowered = lower(
+        text,
+        format,
+        Some(test_context()),
+        source_path="submitted.sql",
+      ).unwrap()
+      let program = lowered.program.unwrap()
+      let stage = @program.stages(program)[0]
+      let steps = @wire.elements(lookup(@program.stage_body(stage), "steps")).unwrap()
+      let expression = lookup(lookup(steps[1], "derive"), "aql_query_expr_0")
+      let admitted = @expression.admit(expression, {
+        max_nodes: 64,
+        max_depth: 16,
+        max_text_bytes: 1024,
+        max_tokens: 64,
+        tree: {
+          max_nodes: 64,
+          max_depth: 16,
+          max_string_bytes: 1024,
+          max_total_string_bytes: 1024,
+        },
+      }).unwrap()
+      match
+        @typing.check(
+          admitted,
+          { fields: None, left: None, right: None, parameters: None, },
+          {
+            max_nodes: 64,
+            max_depth: 16,
+            max_work: 1024,
+            max_text_bytes: 1024,
+          },
+        ) {
+        Err(issue) => {
+          assert_eq(issue.kind, @typing.UnknownParameter("missing"))
+          let span = @wire.cursor_span(issue.location.source)
+          assert_eq(span.source_path, "submitted.sql")
+          assert_eq(span.start_byte, start)
+          assert_eq(span.end_byte, end)
+          assert_true(issue.location.range is None)
+        }
+        Ok(_) => fail("the common checker must reject the undeclared Parameter")
+      }
+    }
+  }
 }
 
 ///|

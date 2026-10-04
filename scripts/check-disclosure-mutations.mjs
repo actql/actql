@@ -17,7 +17,9 @@ const mutations = [
     '          findings.push(Unresolved("source_resolution"))\n' +
     '        }'],
   ['an unresolved obligation is reported as a violation',
-    'if findings.iter().any(finding => finding is Violation(_)) {\n' +
+    'if findings\n    .iter()\n    .any(finding => {\n' +
+    '      finding\n      is (Violation(_)\n      | SyntaxViolation(_, _)\n' +
+    '      | TypeViolation(_, _, _)\n      | UndeclaredParameter(_, _))\n    }) {\n' +
     '    "invalid"',
     'if findings.iter().any(finding => !(finding is Limit(_))) {\n' +
     '    "invalid"'],
@@ -28,14 +30,28 @@ const mutations = [
     'Budget => findings.push(Limit("analysis_budget_exhausted"))',
     'Budget => findings.push(Violation("supplied_value_invalid"))'],
   ['a missing value is reported as a violation',
-    'Ok(NeedsBindings(_)) => findings.push(Limit("bound_values_missing"))',
-    'Ok(NeedsBindings(_)) => findings.push(Violation("bound_values_missing"))'],
+    'Ok(NeedsBindings(missing)) => {\n            findings.push(Limit("bound_values_missing"))',
+    'Ok(NeedsBindings(missing)) => {\n            findings.push(Violation("bound_values_missing"))'],
+  ['an authored UTF-8 location is shifted by one byte',
+    '@encode.number_value(writer, start.to_double())',
+    '@encode.number_value(writer, (start + 1).to_double())'],
 ];
 
-const build = () => execFileSync('moon', ['build', '--target', 'js',
-  '--release', 'src/connectors_builtin_node'], {stdio: 'inherit'});
-const accepted = () => spawnSync(process.execPath, ['--test', acceptance],
-  {stdio: 'ignore'}).status === 0;
+const build = () => execFileSync(process.execPath, ['scripts/local-checks.mjs',
+  'build', 'moon', '--', '--target', 'js', '--release',
+  'src/connectors_builtin_node'], {stdio: 'inherit'});
+const accepted = () => {
+  const result = spawnSync(process.execPath, ['scripts/local-checks.mjs',
+    'test', 'node', '--', '--test-name-pattern',
+    'authored syntax|a disclosable violation|absent and denied|exhausted analysis budget|parameter budgets|supplied type',
+    acceptance], {encoding: 'utf8'});
+  // Only executed acceptance failures count as rejection. Compilation,
+  // import, timeout and zero-selection failures are infrastructure faults.
+  if (result.status !== 0 && !/fail [1-9][0-9]*/u.test(result.stdout)) {
+    throw new Error(`Mutation acceptance did not run: ${result.stdout}\n${result.stderr}`);
+  }
+  return result.status === 0;
+};
 
 const original = readFileSync(path, 'utf8');
 const results = [];
