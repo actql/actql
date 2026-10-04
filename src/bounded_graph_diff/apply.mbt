@@ -15,6 +15,7 @@ priv struct ActionSet {
 ///|
 priv enum ApplyPhase {
   BaseSnapshot
+  ReadBaseBody
   ApplyNodes
   ApplyEdges
   TargetSnapshot
@@ -36,6 +37,7 @@ struct ApplyPreparation {
   mut snapshot_preparation : @snapshot.Preparation?
   mut base_snapshot : @snapshot.Snapshot?
   mut base_body : @value.Value?
+  mut body_admission : BodyAdmission?
   chunks : Array[String]
   mut builder : @storage.Builder?
   mut result : @storage.Storage?
@@ -209,10 +211,7 @@ pub fn prepare_apply(
   guard checked_add(usage.nodes, usage.nodes) is Some(twice_delta) &&
     checked_add(twice_delta, twice_delta) is Some(action_slots) &&
     source_workspace(Stored(base)) is Some(snapshot_slots) &&
-    checked_add(limits.max_identity_nodes, limits.max_identity_nodes)
-    is Some(twice_body) &&
-    checked_add(twice_body, twice_body) is Some(four_body) &&
-    checked_add(four_body, twice_body) is Some(body_slots) &&
+    body_workspace_slots(limits) is Some(body_slots) &&
     checked_add(action_slots, snapshot_slots) is Some(with_snapshot) &&
     checked_add(with_snapshot, body_slots) is Some(with_body) &&
     checked_add(with_body, storage_limits.max_workspace_slots)
@@ -256,6 +255,7 @@ pub fn prepare_apply(
     snapshot_preparation: Some(preparation),
     base_snapshot: None,
     base_body: None,
+    body_admission: None,
     chunks: [],
     builder: None,
     result: None,
@@ -436,29 +436,24 @@ pub fn advance_apply(
             if @snapshot.cid(snapshot) != value.expected_base {
               return Ok(apply_failure(value, WrongBase, used, progress))
             }
-            guard @source.parse_json(value.chunks.join(""), {
-                max_input_bytes: value.limits.max_identity_bytes,
-                max_nodes: value.limits.max_identity_nodes,
-                max_depth: value.limits.max_identity_depth,
-              })
-              is Ok(source) &&
-              @decode.admit(source, {
-                max_nodes: value.limits.max_identity_nodes,
-                max_depth: value.limits.max_identity_depth,
-                max_string_bytes: value.limits.max_identity_bytes,
-                max_total_string_bytes: value.limits.max_identity_bytes,
-              })
-              is Ok(cursor) &&
-              @value.admit_usage(json_contract(), cursor, {
-                max_nodes: value.limits.max_identity_nodes,
-                max_depth: value.limits.max_identity_depth,
-                max_text_bytes: value.limits.max_identity_bytes,
-              })
-              is Ok((body, nodes, _)) else {
-              return Ok(apply_failure(value, InvalidGraph, used, progress))
-            }
-            used += nodes.to_int64() * 3
-            value.chunks.clear()
+            value.body_admission = Some(start_body(value.chunks, value.limits))
+            value.phase = ReadBaseBody
+          }
+        }
+      }
+      ReadBaseBody => {
+        guard value.body_admission is Some(admission) else {
+          return Err(Terminal)
+        }
+        match advance_body(admission, quantum - used.to_int()) {
+          BodyContinue(work~) => used += work.to_int64()
+          BodyFailed(issue, work~) =>
+            return Ok(
+              apply_failure(value, issue, used + work.to_int64(), progress),
+            )
+          BodyComplete(body, work~) => {
+            used += work.to_int64()
+            value.body_admission = None
             value.base_body = Some(body.value)
             value.builder = match
               @storage.prepare(
@@ -608,6 +603,10 @@ pub fn cleanup_apply(value : ApplyPreparation) -> Bool {
   value.result = None
   value.base_body = None
   value.chunks.clear()
+  if value.body_admission is Some(admission) {
+    cleanup_body(admission)
+  }
+  value.body_admission = None
   value.nodes.add.clear()
   value.nodes.remove.clear()
   value.nodes.update.clear()

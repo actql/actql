@@ -82,7 +82,10 @@ test "Delta diff selection and output validation respect each poll quantum" {
     @graph_contract.cid(delta_fixture_contract()),
     delta_fixture_limits(),
   ).unwrap()
-  while preparation.phase == SnapshotLeft || preparation.phase == SnapshotRight {
+  while preparation.phase == SnapshotLeft ||
+        preparation.phase == SnapshotRight ||
+        preparation.phase == ReadLeftBody ||
+        preparation.phase == ReadRightBody {
     guard advance(preparation, 1) is Ok(Continue(..)) else {
       fail("fixture snapshot preparation failed")
     }
@@ -137,4 +140,52 @@ test "Delta diff cancellation drops a pending action without publishing" {
   }
   assert_true(cleanup(preparation))
   fail("fixture did not create a pending action")
+}
+
+///|
+test "Delta snapshot framing cancellation releases every active data owner" {
+  for stopped_phase in [ParseBody, DecodeBody, AdmitBody] {
+    let base = delta_fixture_storage(false)
+    let target = delta_fixture_storage(true)
+    let preparation = prepare(
+      base,
+      target,
+      json_contract(),
+      @graph_contract.cid(delta_fixture_contract()),
+      delta_fixture_limits(),
+    ).unwrap()
+    let mut body : BodyAdmission? = None
+    for _ in 0..<100000 {
+      guard advance(preparation, 1) is Ok(Continue(work~, ..)) else {
+        fail("fixture completed before the requested cancellation boundary")
+      }
+      assert_true(work > 0 && work <= 1)
+      if preparation.body_admission is Some(active) {
+        let reached = match (stopped_phase, active.phase) {
+          (ParseBody, ParseBody)
+          | (DecodeBody, DecodeBody)
+          | (AdmitBody, AdmitBody) => true
+          _ => false
+        }
+        if reached {
+          body = Some(active)
+          break
+        }
+      }
+    }
+    let active = body.unwrap()
+    assert_true(cleanup(preparation))
+    assert_true(cleanup(preparation))
+    assert_true(preparation.body_admission is None)
+    assert_true(active.parser is None)
+    assert_true(active.source_node is None)
+    assert_true(active.decoder is None)
+    assert_true(active.decoded is None)
+    assert_true(active.admission is None)
+    assert_true(active.chunks.is_empty())
+    assert_true(active.phase is BodyFinished)
+    assert_true(advance(preparation, 1) is Err(Terminal))
+    assert_eq(@storage.node_count(base), 3)
+    assert_eq(@storage.edge_count(target), 2)
+  }
 }

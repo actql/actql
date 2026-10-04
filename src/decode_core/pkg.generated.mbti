@@ -16,9 +16,13 @@ pub fn admit_raw_json(Json, @source_span.Span, Limits) -> Result[Cursor, Issue]
 
 pub fn admit_raw_scalar_column(Array[Json], @source_span.Span, Limits) -> Result[Cursor, Issue]
 
+pub fn advance_admission(Admission, Int) -> Result[AdmissionPoll, AdmissionControlIssue]
+
 pub fn array_length(Cursor) -> Int?
 
 pub fn boolean(Cursor) -> Result[Bool, Issue]
+
+pub fn cancel_admission(Admission) -> Unit
 
 pub fn closed_object(Cursor, Array[String]) -> Result[ObjectView, Issue]
 
@@ -56,6 +60,8 @@ pub fn required(ObjectView, String) -> Result[Cursor, Issue]
 
 pub fn safe_integer(Cursor) -> Result[Int64, Issue]
 
+pub fn start_admission(@source_value.Node, Limits) -> Result[Admission, Issue]
+
 pub fn text(Cursor) -> Result[String, Issue]
 
 pub fn tree_index(Cursor, Cursor) -> Int?
@@ -65,6 +71,19 @@ pub fn view(Cursor) -> ValueView
 // Errors
 
 // Types and methods
+type Admission
+
+pub(all) enum AdmissionControlIssue {
+  InvalidQuantum
+  Terminal
+} derive(Eq, @debug.Debug)
+
+pub enum AdmissionPoll {
+  AdmissionContinue(work~ : Int)
+  AdmissionComplete(Cursor, work~ : Int)
+  AdmissionFailed(Issue, work~ : Int)
+}
+
 pub(all) struct AdmissionUsage {
   nodes : Int
   depth : Int

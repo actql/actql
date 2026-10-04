@@ -8,6 +8,7 @@ import {
   "actql/actql/canonical_value" @canonical,
   "actql/actql/canonical_json" @identity,
   "actql/actql/source_span" @span,
+  "actql/actql/bounded_tuple_sort" @sort,
   "moonbitlang/core/json",
 }
 

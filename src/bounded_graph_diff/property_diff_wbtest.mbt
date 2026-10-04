@@ -103,6 +103,7 @@ fn delta_fixture_limits() -> Limits {
     max_output_nodes: 10000,
     max_output_text_bytes: 100000,
     max_output_depth: 100,
+    max_identity_nodes: 1000,
   }
 }
 

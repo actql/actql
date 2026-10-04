@@ -51,7 +51,9 @@ priv enum DiffSource {
 ///|
 priv enum Phase {
   SnapshotLeft
+  ReadLeftBody
   SnapshotRight
+  ReadRightBody
   Nodes
   Edges
   Assemble
@@ -73,6 +75,7 @@ struct Preparation {
   mut right_snapshot : @snapshot.Snapshot?
   mut left_body : @value.Value?
   mut right_body : @value.Value?
+  mut body_admission : BodyAdmission?
   chunks : Array[String]
   mut phase : Phase
   mut left_cursor : Int
@@ -302,10 +305,7 @@ fn prepare_source(
     checked_add(left_slots, right_slots) is Some(snapshot_slots) &&
     checked_add(action_capacity, action_capacity) is Some(twice_actions) &&
     checked_add(twice_actions, action_capacity) is Some(action_slots) &&
-    checked_add(limits.max_identity_nodes, limits.max_identity_nodes)
-    is Some(twice_body) &&
-    checked_add(twice_body, twice_body) is Some(four_body) &&
-    checked_add(four_body, twice_body) is Some(body_slots) &&
+    body_workspace_slots(limits) is Some(body_slots) &&
     checked_add(body_slots, snapshot_slots) is Some(with_snapshots) &&
     checked_add(with_snapshots, action_slots) is Some(with_actions) &&
     checked_add(limits.max_output_depth.max(limits.value_limits.max_depth), 1)
@@ -365,6 +365,7 @@ fn prepare_source(
     right_snapshot: None,
     left_body: None,
     right_body: None,
+    body_admission: None,
     chunks: [],
     phase: SnapshotLeft,
     left_cursor: 0,
@@ -384,42 +385,6 @@ fn prepare_source(
     output_nodes,
     output_text,
   })
-}
-
-///|
-/// Only decode bytes emitted by the existing validated snapshot owner.
-/// Source/decode/value admission remain bounded. Their synchronous framing
-/// passes report their actual node work; selection/comparison is incremental.
-fn read_snapshot_body(
-  value : Preparation,
-) -> Result[(@value.Value, Int), Issue] {
-  let text = value.chunks.join("")
-  value.chunks.clear()
-  guard @source.parse_json(text, {
-      max_input_bytes: value.limits.max_identity_bytes,
-      max_nodes: value.limits.max_identity_nodes,
-      max_depth: value.limits.max_identity_depth,
-    })
-    is Ok(source) &&
-    @decode.admit(source, {
-      max_nodes: value.limits.max_identity_nodes,
-      max_depth: value.limits.max_identity_depth,
-      max_string_bytes: value.limits.max_identity_bytes,
-      max_total_string_bytes: value.limits.max_identity_bytes,
-    })
-    is Ok(cursor) &&
-    @decode.array_length(cursor) == Some(5) &&
-    @value.admit_usage(json_contract(), cursor, {
-      max_nodes: value.limits.max_identity_nodes,
-      max_depth: value.limits.max_identity_depth,
-      max_text_bytes: value.limits.max_identity_bytes,
-    })
-    is Ok((body, nodes, _)) &&
-    checked_add(nodes, nodes) is Some(twice) &&
-    checked_add(twice, nodes) is Some(work) else {
-    return Err(InvalidGraph)
-  }
-  Ok((body.value, work))
 }
 
 ///|
@@ -545,13 +510,28 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
           @snapshot.Continue(..) => ()
           @snapshot.Complete(_, ..) => {
             value.snapshot_preparation = None
-            let (body, work) = match read_snapshot_body(value) {
-              Ok(result) => result
-              Err(issue) => return Ok(failed(value, issue, progress, used))
+            value.body_admission = Some(start_body(value.chunks, value.limits))
+            value.phase = if value.phase == SnapshotLeft {
+              ReadLeftBody
+            } else {
+              ReadRightBody
             }
+          }
+        }
+      }
+      ReadLeftBody | ReadRightBody => {
+        guard value.body_admission is Some(admission) else {
+          return Err(Terminal)
+        }
+        match advance_body(admission, quantum - used.to_int()) {
+          BodyContinue(work~) => used += work.to_int64()
+          BodyFailed(issue, work~) =>
+            return Ok(failed(value, issue, progress, used + work.to_int64()))
+          BodyComplete(body, work~) => {
             used += work.to_int64()
-            if value.phase == SnapshotLeft {
-              value.left_body = Some(body)
+            value.body_admission = None
+            if value.phase == ReadLeftBody {
+              value.left_body = Some(body.value)
               value.snapshot_preparation = match
                 start_snapshot(value.right, value.limits) {
                 Ok(preparation) => Some(preparation)
@@ -559,7 +539,7 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
               }
               value.phase = SnapshotRight
             } else {
-              value.right_body = Some(body)
+              value.right_body = Some(body.value)
               value.phase = Nodes
             }
           }
@@ -842,6 +822,10 @@ pub fn cleanup(value : Preparation) -> Bool {
     value.right_snapshot = None
   }
   value.chunks.clear()
+  if value.body_admission is Some(admission) {
+    cleanup_body(admission)
+  }
+  value.body_admission = None
   value.left_body = None
   value.right_body = None
   value.comparison = None

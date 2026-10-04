@@ -28,6 +28,8 @@ pub fn advance_canonical_conversion(CanonicalConversion) -> CanonicalConversionP
 
 pub fn advance_complete_equality(CompleteEquality, Int) -> CompleteEqualityPoll
 
+pub fn advance_json_admission(JsonAdmission) -> JsonAdmissionPoll
+
 pub fn advance_recheck_runtime_value(RecheckCursor) -> RecheckPoll
 
 pub fn advance_wire_emit(WireEmitCursor) -> Bool raise @encode_core.EncodeFailure
@@ -49,6 +51,8 @@ pub fn boolean_value(Bool) -> Value
 pub fn cancel_array_value(ArrayBuilder) -> Bool
 
 pub fn cancel_canonical_conversion(CanonicalConversion) -> Unit
+
+pub fn cancel_json_admission(JsonAdmission) -> Unit
 
 pub fn cancel_object_value(ObjectBuilder) -> Bool
 
@@ -142,6 +146,8 @@ pub fn start_canonical_conversion(@canonical_json.CanonicalValue, Limits, contra
 
 pub fn start_complete_equality(CheckedValue, CheckedValue, Limits) -> Result[CompleteEquality, CompleteEqualityIssue]
 
+pub fn start_json_admission(@decode_core.Cursor, Limits) -> Result[JsonAdmission, Issue]
+
 pub fn start_recheck_runtime_value(Value, @value_contract.Contract, Limits) -> RecheckCursor?
 
 pub fn start_wire_emit(Value, @encode_core.Writer) -> WireEmitCursor
@@ -230,6 +236,15 @@ pub(all) enum IssueKind {
   UnauthorizedReference
   BudgetExceeded
 } derive(Eq, @debug.Debug)
+
+type JsonAdmission
+
+pub enum JsonAdmissionPoll {
+  JsonAdmissionContinue
+  JsonAdmissionComplete(CheckedValue, Int, Int)
+  JsonAdmissionFailed(Issue)
+  JsonAdmissionTerminal
+}
 
 pub(all) enum KeyOrderIssue {
   InvalidKey
