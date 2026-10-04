@@ -143,3 +143,110 @@ test "current Graph components preserve typed order and bounded ownership" {
   assert_true(@local_bridge.cleanup_rows_to_graph(construction).unwrap())
   assert_true(@graphs.discard_completed(graph))
 }
+
+///|
+test "strong components split a directed feeder from a cycle" {
+  let nodes = keyed_source_owner(
+    "{\"id\":{\"type\":\"number\",\"nullable\":false}}", "[{\"id\":3},{\"id\":2},{\"id\":1}]",
+  )
+  let edges = keyed_source_owner(
+    "{\"key\":{\"type\":\"number\",\"nullable\":false},\"src\":{\"type\":\"number\",\"nullable\":false},\"dst\":{\"type\":\"number\",\"nullable\":false}}",
+    "[{\"key\":12,\"src\":3,\"dst\":2},{\"key\":11,\"src\":2,\"dst\":1},{\"key\":10,\"src\":1,\"dst\":2}]",
+  )
+  let body =
+    #|[{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"nodes","key":["id"]}],"edges":[{"name":"E","from":"edges","key":["key"],"source":{"definition":"N","key":["src"]},"target":{"definition":"N","key":["dst"]}}]},"as":"g"}]
+  let owner = keyed_bridge_owner(nodes, edges, body=Some(body))
+  let construction = @local_bridge.start_rows_to_property_graph(
+    @bounded.control(),
+    prepared_sequence(owner),
+    0,
+    keyed_bridge_inputs(owner, nodes, edges),
+    { ..carrier_graph_storage_limits(), max_work: 10000, },
+    10000L,
+    1000,
+    () => true,
+  ).unwrap()
+  let graph = match
+    keyed_bridge_terminal(construction, max_fixture_steps=10000) {
+    @local_bridge.Complete(value, ..) => value
+    _ => fail("cycle Graph construction failed")
+  }
+  guard @pipeline.carrier_at(
+      @lower.pipeline(@lower.bound_preparation(owner)),
+      @pipeline.Step(0),
+    )
+    is Some(@carrier_contract.GraphValue(schema)) else {
+    fail("typed cycle Graph schema")
+  }
+  let domain = @carrier_contract.property_graph_domain(
+    @carrier_contract.graph_property_definition(schema),
+  )
+  let identity = fn(key : Int) {
+    "{\"definition\":\"N\",\"domain\":\"" +
+    domain +
+    "\",\"key\":[" +
+    key.to_string() +
+    "],\"key_types\":[{\"kind\":\"number\"}]}"
+  }
+  let limits : @execution.ValueLimits = {
+    max_work: 100000,
+    max_nodes: 10000,
+    max_text_bytes: 10000,
+    max_depth: 50,
+  }
+  for kind in ["weak", "strong"] {
+    let receiver = keyed_graph_receiver(
+      owner,
+      body="[{\"from\":\"g\",\"components\":{\"kind\":\"" +
+        kind +
+        "\",\"max_output_rows\":3}}]",
+    )
+    let input = @graphs.prepare_producer_read(receiver, 0, owner, graph).unwrap()
+    let active = @local_sga.start_components(
+      @bounded.control(),
+      task_test_completion(receiver),
+      prepared_sequence(receiver),
+      0,
+      input,
+      3,
+      limits,
+      200,
+      10000,
+      10000,
+      [],
+    ).unwrap()
+    let mut output = None
+    for _ in 0..<10000 {
+      match @local_sga.advance_components(active, 1).unwrap() {
+        @local_sga.ComponentsContinue(work~, ..) => assert_true(work > 0L)
+        @local_sga.ComponentsComplete(value, ..) => {
+          output = Some(value)
+          break
+        }
+        _ => fail("cycle component execution failed")
+      }
+    }
+    let output = output.unwrap()
+    let expected_rows = if kind == "weak" {
+      [(0, 1, 1, 3), (1, 2, 1, 3), (2, 3, 1, 3)]
+    } else {
+      [(0, 1, 1, 2), (1, 2, 1, 2), (2, 3, 3, 1)]
+    }
+    for (index, node, component, size) in expected_rows {
+      assert_eq(
+        @execution.completed_output_row_wire(output, index, 10000, 10000, 50).unwrap(),
+        "{\"component_id\":" +
+        identity(component) +
+        ",\"component_size\":" +
+        size.to_string() +
+        ",\"node_id\":" +
+        identity(node) +
+        "}",
+      )
+    }
+    assert_true(@local_sga.cleanup_components(active).unwrap())
+    assert_true(@graphs.producer_read_available(input))
+  }
+  assert_true(@local_bridge.cleanup_rows_to_graph(construction).unwrap())
+  assert_true(@graphs.discard_completed(graph))
+}
