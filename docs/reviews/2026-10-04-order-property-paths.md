@@ -103,8 +103,25 @@ their existing meaning. No owner, checker, type or execution changes are needed.
 After the repair, the focused JS ORDER selection passed **44/44**
 (`run-vkpDIX`, `focused-test-FQC3xh`), including the new receiver regression
 and existing JOIN/DISTINCT callers. MoonBit formatting, fixture syntax and diff
-checks pass. The new packed cases are unverified at this commit; prior success
-below does not establish this receiver repair.
+checks pass.
+
+Fresh packed source `d76e5543952b9d412b02f303278bdb06e1115b02` passed
+**nine positives and five pre-admission refusals per Embedded Local and
+authenticated HTTP** (`public-query-evidence-BJyxl3`). The new receiver
+collision returned IDs **1,3,2**; the qualified control returned **2,1,3**.
+Independent rows, full ordered column contracts, nullable original scores,
+closed non-null aliased objects, internal-column exclusion, stream completion,
+same-Run resubmit/attach and zero additional Source reads all passed. Refusals
+retained zero Run admission and provider I/O. The normal prepack produced a clean
+distribution; the receipt is complete, has no evidence errors and records that
+the disposable install/tarballs/Host Store were removed. Logs, identity and
+digests remain. This acceptance supersedes the original seven-case result for
+the receiver repair; submitted-HEAD CI remains separate.
+
+The changed Local Node tarball SHA-256 is
+`8b6e472394cfaf31b9a1837acec39b07eb6febcbf47aa80b77d7b73c8b0f6ec5`.
+The other four tarball digests match the historical table below. Only this
+evidence document changes after the tested source commit.
 
 ## Original executed evidence (before the receiver repair)
 
