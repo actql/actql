@@ -915,3 +915,67 @@ limits guard relaxation, timeout increase or new execution owner is introduced.
 Active temporary-holder count observation is a separate completion unit. The
 existing cleanup and reservation-return checks remain; no all-holder-zero claim
 is made here. Graph text and additional operations are outside #304.
+
+### Pristine Graph Policy recovery acceptance
+
+Submitted product source `c988bae700a641c0ef968b4411cabbaf51cf4956` is tested
+by automatic run [37200985055](https://github.com/actql/actql/actions/runs/37200985055).
+The actual tested merge is `37352c7e3de6ec5f82905d269cc6b1ee94415e05`, with
+ordered parents `3c443c5bf3483170aa941feac767650a76b532f2` (main) and the
+submitted source. This merge includes subsequent main connector changes; its
+tree is not identical to the submitted tree. Producer job `111433135472`
+passes and publishes artifact `11303081237`, named
+`actql-client-packages-37200985055-1-37352c7e3de6ec5f82905d269cc6b1ee94415e05`.
+All five tarballs match the producer manifest digests. The Local tarball's
+Effect restoration adapter also matches that exact tested Git source.
+
+A clean isolated checkout of the tested merge reuses those exact tarballs
+through the existing manifest/clean-source/digest checks. The existing consumer
+`node scripts/test-packed-salesforce-source.mjs --composed-graph --keep-artifacts`
+passes under the common execution guard (`run-myTGCk`, 250 seconds, exit 0,
+complete command and caller output, released guard locks). No prepack/build,
+adapter overlay, Program correction or new owner is used. Runtime is macOS
+Node 22.23.2; this focused acceptance is separate from hosted Linux execution.
+
+| Public Program path | Independent rows/types/column order | Durable restart boundaries | Physical calls and writes |
+| --- | --- | --- | --- |
+| node_rows → Relation → INFER → Effect, Local | Pass | Same request/Run at both boundaries | Source 0; Model inputs 100/200 once; writes 0/0/1/1 |
+| node_rows → Relation → INFER → Effect, HTTPS | Pass | Same request/Run at both boundaries | Source 0; Model inputs 100/200 once; writes 0/0/1/1 |
+| edge_rows → Relation → INFER → Effect, Local | Pass | Same request/Run at both boundaries | Source 0; Model inputs 100/200 once; writes 0/0/1/1 |
+| edge_rows → Relation → INFER → Effect, HTTPS | Pass | Same request/Run at both boundaries | Source 0; Model inputs 100/200 once; writes 0/0/1/1 |
+
+Each path preserves the typed string/number Graph key and authored NULL property.
+The independently authored classified result has two rows; updates has the
+one high-risk row and sets record `a00000000000002` Name to `review-required`.
+Both `capture-waiting` and `approval-committed` crashes retain the same Run.
+Recovery has no current Host Result Policy binding and reuses the exact saved
+formal original. Saved Model responses and confirmed Effects are not replayed.
+Missing Policy and duplicate/NULL counterexamples refuse before Model calls
+or writes. The existing shared stale authorization, cancellation, pending
+cleanup/retry, lost-response reconciliation without resend and deadline checks
+also pass. No duplicate fault matrix or expected-state/timeout change is added.
+
+The emitted observation records are retained in the accompanying
+[acceptance record](2026-10-04-graph-policy-restoration.acceptance.json).
+They are execution observations, not generated expectations. Original request
+and checkpoint journals, dependency originals and custody remain at
+`/private/tmp/.codex-scratch/actql-packed-salesforce-BVfALJ`. Verified copies of
+the command receipt/output, acceptance/restart records and producer manifest
+are archived at `/private/tmp/actql-304-pristine-graph-37352c7e-evidence`.
+As documented above, the dedicated child co-locates Host and common Run owner;
+neither memory survives either exit. This is not a two-distinct-PID claim.
+Physical cleanup confirmation and byte/reservation return pass; active-holder
+count is not proved and remains a separate completion unit. Named Result
+retention remains available for re-fetch.
+
+The hosted run is terminal failure (17 successful jobs, 10 failed, 3 skipped).
+Seven independently inspected required jobs, including packed/distribution,
+have no runner and no steps; their annotations report account payment or
+spending limits. `pipeline-evidence` likewise has no runner/steps and explicitly
+reports an Actions budget preventing execution. Client and Check aggregates
+fail because required dependencies fail. Executed checks include passing
+preflight, Host, lint, package production, Core wasm/native, spec and Salesforce.
+The unstarted jobs establish neither a remaining Graph product failure nor
+complete required-CI success. No manual retry or duplicate workflow is started.
+#304 remains Draft pending required CI and renewed review; these recorded
+results must not be relabeled as acceptance of a later source or new scope.
