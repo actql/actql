@@ -32,12 +32,14 @@ checker declaration an execution offer: the exact selected task and its
 obligations still decide execution. A source-free Values producer followed by
 `to_events` → `watermark_events` → `events`, and another followed by
 `to_vectors` → `normalize_vectors` → `vectors`, each publish their Bridge
-Relation and two downstream consumer Named Results through the real retained
+Relation and two downstream consumer Named Results through the real publication
 Store. The public Local tests compare all three Results with independent
-ordered values and observe retained-file output. They do not prove HTTPS
-Carrier execution, every TEA/VecA variant, or Carrier-specific failure
-recovery at the public ingress. Existing configured standard-Host evidence
-for those boundaries remains separate.
+ordered values and verify the physical representations: the source Values task
+uses the row-file Store, while the Carrier, Bridge, and descendant tasks retain
+managed generations. This does not prove row-file retention of the Bridge
+Relation, HTTPS Carrier execution, every TEA/VecA variant, or Carrier-specific
+failure recovery at the public ingress. Existing configured standard-Host
+evidence for those boundaries remains separate.
 
 ## Current Property Graph migration (2026-10-02)
 

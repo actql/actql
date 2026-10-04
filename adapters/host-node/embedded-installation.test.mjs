@@ -149,7 +149,7 @@ test('public source-free Program uses installed retained Relation output',
       value.representation === 'retained-file'));
   });
 
-test('public Events Bridge retains producer and two consumer Results', async t => {
+test('public Events Bridge publishes managed producer and two consumer Results', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-public-retained-events-'));
   t.after(() => rm(directory, {recursive: true, force: true}));
   let outputRepresentations;
@@ -208,11 +208,15 @@ test('public Events Bridge retains producer and two consumer Results', async t =
     {watermark_decision: 'mark', event_id: 1},
     {watermark_decision: 'keep', event_id: 2},
   ]);
-  assert.ok(outputRepresentations?.some(value =>
-    value.representation === 'retained-file'));
+  assert.deepEqual(outputRepresentations, [
+    {task: 0, representation: 'retained-file'},
+    {task: 1, representation: 'managed-local-memory'},
+    {task: 2, representation: 'managed-local-memory'},
+    {task: 3, representation: 'managed-local-memory'},
+  ]);
 });
 
-test('public Vectors Bridge retains producer and two consumer Results', async t => {
+test('public Vectors Bridge publishes managed producer and two consumer Results', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-public-retained-vectors-'));
   t.after(() => rm(directory, {recursive: true, force: true}));
   let outputRepresentations;
@@ -260,8 +264,12 @@ test('public Vectors Bridge retains producer and two consumer Results', async t 
   assert.deepEqual(await execution.result('consumed_a').all(), expected);
   assert.deepEqual(await execution.result('consumed_b').all(), expected.map(row => ({
     embedding: row.embedding, id: row.id})));
-  assert.ok(outputRepresentations?.some(value =>
-    value.representation === 'retained-file'));
+  assert.deepEqual(outputRepresentations, [
+    {task: 0, representation: 'retained-file'},
+    {task: 1, representation: 'managed-local-memory'},
+    {task: 2, representation: 'managed-local-memory'},
+    {task: 3, representation: 'managed-local-memory'},
+  ]);
 });
 
 test('installed Host admits only an exact Result policy original', async t => {
