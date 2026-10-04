@@ -19,6 +19,22 @@ import {prepareCapturedDuckDBSource, openCapturedDuckDBSource} from
 import {splitSourceAliasProfile} from './source-alias-publication.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 
+function retainedAuthorization(accountId, observe) {
+  const keys = generateKeyPairSync('ed25519');
+  return {
+    accountConfiguration: canonicalJson({version: 'actql-execution-account-config/0.1',
+      account_id: accountId, entries: [{entry_id: 'write', outcome: 'allow',
+        principal: {all: true}, connection: {all: true}, resource: {all: true},
+        operation: {any_of: ['write']}, exclusions: []}]}),
+    reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer',
+      principalId: userInfo().username,
+      publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
+    hostKey: {keyId: 'host', privateKey: keys.privateKey.export({
+      type: 'pkcs8', format: 'pem'})},
+    observe,
+  };
+}
+
 test('installed HTTP status denies an unregistered Run with a public code',
   async t => {
     const directory = await mkdtemp(join(tmpdir(), 'actql-status-denied-'));
@@ -108,22 +124,9 @@ test('public source-free Program uses installed retained Relation output',
     const directory = await mkdtemp(join(tmpdir(), 'actql-public-retained-'));
     t.after(() => rm(directory, {recursive: true, force: true}));
     let outputRepresentations;
-    const keys = generateKeyPairSync('ed25519');
-    const authorization = {
-      accountConfiguration: canonicalJson({
-        version: 'actql-execution-account-config/0.1',
-        account_id: 'retained-source-free', entries: [{entry_id: 'write',
-          outcome: 'allow', principal: {all: true}, connection: {all: true},
-          resource: {all: true}, operation: {any_of: ['write']}, exclusions: []}]}),
-      reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer',
-        principalId: userInfo().username,
-        publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
-      hostKey: {keyId: 'host', privateKey: keys.privateKey.export({
-        type: 'pkcs8', format: 'pem'})},
-      observe(name, detail) {
-        if (name === 'computed') outputRepresentations = detail.outputRepresentations;
-      },
-    };
+    const authorization = retainedAuthorization('retained-source-free', (name, detail) => {
+      if (name === 'computed') outputRepresentations = detail.outputRepresentations;
+    });
     const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, retainedRelationOutput: true,
         authorization}}).catch(error => {
@@ -145,6 +148,121 @@ test('public source-free Program uses installed retained Relation output',
     assert.ok(outputRepresentations?.some(value =>
       value.representation === 'retained-file'));
   });
+
+test('public Events Bridge retains producer and two consumer Results', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-public-retained-events-'));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  let outputRepresentations;
+  const authorization = retainedAuthorization('retained-events', (name, detail) => {
+    if (name === 'computed') outputRepresentations = detail.outputRepresentations;
+  });
+  const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
+    installation: {directory, retainedRelationOutput: true, authorization}});
+  t.after(() => client.close());
+  const program = {version: 'actql/0.1', id: 'public-retained-events', stages: [{
+    id: 'values', inputs: {}, steps: [{values: {schema: {
+      event_id: {type: 'number', nullable: false},
+      occurred_at: {type: 'number', nullable: false},
+      payload: {type: 'string', nullable: false},
+    }, rows: [
+      {event_id: 1, occurred_at: 5, payload: 'first'},
+      {event_id: 2, occurred_at: 15, payload: 'second'},
+    ]}, as: 'out'}],
+    results: {r: {from: 'out', fields: ['event_id', 'occurred_at', 'payload']}},
+  }, {
+    id: 'events', inputs: {rows: {result: {stage: 'values', result: 'r'}}},
+    steps: [{from: 'rows', to_events: {id: 'event_id', time: 'occurred_at'},
+      as: 'source'},
+    {from: 'source', watermark_events: {watermark_ms: 10, policy: 'mark'},
+      as: 'marked'},
+    {from: 'marked', events: true, as: 'out'}],
+    results: {r: {from: 'out', fields: ['event_id', 'occurred_at', 'payload',
+      'watermark_ms', 'late', 'watermark_decision']}},
+  }, {
+    id: 'consumer_a', inputs: {x: {result: {stage: 'events', result: 'r'}}},
+    steps: [{select: ['event_id', 'late'], as: 'out'}],
+    results: {r: {from: 'out', fields: ['event_id', 'late']}},
+  }, {
+    id: 'consumer_b', inputs: {x: {result: {stage: 'events', result: 'r'}}},
+    steps: [{select: ['watermark_decision', 'event_id'], as: 'out'}],
+    results: {r: {from: 'out', fields: ['watermark_decision', 'event_id']}},
+  }], results: {
+    published: {from: {stage: 'events', result: 'r'}},
+    consumed_a: {from: {stage: 'consumer_a', result: 'r'}},
+    consumed_b: {from: {stage: 'consumer_b', result: 'r'}},
+  }};
+  const execution = await client.aql(JSON.stringify(program), {format: 'json',
+    requestId: 'public-retained-events'});
+  const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
+  assert.equal(state.status, 'succeeded', JSON.stringify(state));
+  assert.deepEqual(await execution.result('published').all(), [
+    {event_id: 1, occurred_at: 5, payload: 'first', watermark_ms: 10,
+      late: true, watermark_decision: 'mark'},
+    {event_id: 2, occurred_at: 15, payload: 'second', watermark_ms: 10,
+      late: false, watermark_decision: 'keep'},
+  ]);
+  assert.deepEqual(await execution.result('consumed_a').all(), [
+    {event_id: 1, late: true}, {event_id: 2, late: false},
+  ]);
+  assert.deepEqual(await execution.result('consumed_b').all(), [
+    {watermark_decision: 'mark', event_id: 1},
+    {watermark_decision: 'keep', event_id: 2},
+  ]);
+  assert.ok(outputRepresentations?.some(value =>
+    value.representation === 'retained-file'));
+});
+
+test('public Vectors Bridge retains producer and two consumer Results', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-public-retained-vectors-'));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  let outputRepresentations;
+  const authorization = retainedAuthorization('retained-vectors', (name, detail) => {
+    if (name === 'computed') outputRepresentations = detail.outputRepresentations;
+  });
+  const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
+    installation: {directory, retainedRelationOutput: true, authorization}});
+  t.after(() => client.close());
+  const program = {version: 'actql/0.1', id: 'public-retained-vectors', stages: [{
+    id: 'values', inputs: {}, steps: [{values: {schema: {
+      id: {type: 'number', nullable: false},
+      embedding: {type: 'vector', dimensions: 2, nullable: false},
+    }, rows: [
+      {id: 1, embedding: [3, 4]}, {id: 2, embedding: [0, 2]},
+    ]}, as: 'out'}],
+    results: {r: {from: 'out', fields: ['id', 'embedding']}},
+  }, {
+    id: 'vectors', inputs: {rows: {result: {stage: 'values', result: 'r'}}},
+    steps: [{from: 'rows', to_vectors: {id: 'id', vector: 'embedding'},
+      as: 'source'},
+    {from: 'source', normalize_vectors: true, as: 'normalized'},
+    {from: 'normalized', vectors: true, as: 'out'}],
+    results: {r: {from: 'out', fields: ['id', 'embedding']}},
+  }, {
+    id: 'consumer_a', inputs: {x: {result: {stage: 'vectors', result: 'r'}}},
+    steps: [{select: ['id', 'embedding'], as: 'out'}],
+    results: {r: {from: 'out', fields: ['id', 'embedding']}},
+  }, {
+    id: 'consumer_b', inputs: {x: {result: {stage: 'vectors', result: 'r'}}},
+    steps: [{select: ['embedding', 'id'], as: 'out'}],
+    results: {r: {from: 'out', fields: ['embedding', 'id']}},
+  }], results: {
+    published: {from: {stage: 'vectors', result: 'r'}},
+    consumed_a: {from: {stage: 'consumer_a', result: 'r'}},
+    consumed_b: {from: {stage: 'consumer_b', result: 'r'}},
+  }};
+  const execution = await client.aql(JSON.stringify(program), {format: 'json',
+    requestId: 'public-retained-vectors'});
+  const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
+  assert.equal(state.status, 'succeeded', JSON.stringify(state));
+  const expected = [{id: 1, embedding: [0.6000000238418579, 0.800000011920929]},
+    {id: 2, embedding: [0, 1]}];
+  assert.deepEqual(await execution.result('published').all(), expected);
+  assert.deepEqual(await execution.result('consumed_a').all(), expected);
+  assert.deepEqual(await execution.result('consumed_b').all(), expected.map(row => ({
+    embedding: row.embedding, id: row.id})));
+  assert.ok(outputRepresentations?.some(value =>
+    value.representation === 'retained-file'));
+});
 
 test('installed Host admits only an exact Result policy original', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-result-policy-'));

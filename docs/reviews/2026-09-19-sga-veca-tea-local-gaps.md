@@ -26,6 +26,19 @@ establish the public configuration connection, not retained output for every
 installed source or two-source Program variant. Full CI and Native Host cancellation
 remain separate verification units.
 
+The installed full-family Host now declares TEA and VecA to the common checker,
+matching its already registered bounded providers. This does not make a
+checker declaration an execution offer: the exact selected task and its
+obligations still decide execution. A source-free Values producer followed by
+`to_events` → `watermark_events` → `events`, and another followed by
+`to_vectors` → `normalize_vectors` → `vectors`, each publish their Bridge
+Relation and two downstream consumer Named Results through the real retained
+Store. The public Local tests compare all three Results with independent
+ordered values and observe retained-file output. They do not prove HTTPS
+Carrier execution, every TEA/VecA variant, or Carrier-specific failure
+recovery at the public ingress. Existing configured standard-Host evidence
+for those boundaries remains separate.
+
 ## Current Property Graph migration (2026-10-02)
 
 The new definition-keyed Property Graph is the sole executable Graph contract.
