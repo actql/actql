@@ -12,11 +12,11 @@ test "current public Property Graph admission refuses unsupported SGA rather tha
   )
   for
     operation in [
-      "\"normalize_graph\":true", "\"graphs_equal\":{\"other\":\"g\"}", "\"graph_diff\":{\"other\":\"g\"}",
-      "\"apply_graph_delta\":{\"delta\":\"g\"}", "\"subgraph\":{\"nodes\":[1]}",
-      "\"reach\":{\"start\":{\"ids\":[1]},\"max_hops\":1}", "\"shortest_path\":{\"start\":{\"ids\":[1]},\"end\":{\"ids\":[1]}}",
-      "\"graft_graph\":{\"other\":\"g\"}", "\"union_graphs\":{\"inputs\":[\"g\"]}",
-      "\"subtract_graphs\":{\"other\":\"g\"}", "\"mean_graphs\":{\"inputs\":[\"g\"]}",
+      "\"graphs_equal\":{\"other\":\"g\"}", "\"graph_diff\":{\"other\":\"g\"}", "\"apply_graph_delta\":{\"delta\":\"g\"}",
+      "\"subgraph\":{\"nodes\":[1]}", "\"reach\":{\"start\":{\"ids\":[1]},\"max_hops\":1}",
+      "\"shortest_path\":{\"start\":{\"ids\":[1]},\"end\":{\"ids\":[1]}}", "\"graft_graph\":{\"other\":\"g\"}",
+      "\"union_graphs\":{\"inputs\":[\"g\"]}", "\"subtract_graphs\":{\"other\":\"g\"}",
+      "\"mean_graphs\":{\"inputs\":[\"g\"]}",
     ] {
     let source = "{\"version\":\"actql/0.1\",\"id\":\"unsupported-current-graph\",\"stages\":[{\"id\":\"source\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1}]},\"as\":\"nodes\"},{\"property_graph\":{\"version\":\"actql-property-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"nodes\",\"key\":[\"id\"],\"labels\":[{\"name\":\"Node\"}]}],\"edges\":[]},\"as\":\"g\"},{\"from\":\"g\"," +
       operation +

@@ -31,8 +31,6 @@ const NAMESPACE = 'local-continuation-private';
 const NAMES = Object.freeze(['captured_input', 'invocation_request',
   'prepared_invocation', 'review_projection', 'continuation_record',
   'source_capture']);
-// Terminal Run statuses. `needs_reconciliation` keeps its evidence.
-const TERMINAL_RUNS = Object.freeze(['succeeded', 'failed', 'cancelled']);
 const ATTEMPT = /^[A-Za-z0-9._:-]{1,128}$/u;
 
 const fail = (code, cause) => {
@@ -103,11 +101,13 @@ const holdingCidOf = (prepareAttemptId, name, semanticCid) => cidOf(
 const envelopeBound = maxBytes => Math.ceil(maxBytes / 3) * 4 + 256;
 
 // `preparation(id)` returns undefined when the journal has no preparation,
-// else {status, runStatus}. It is the only retention input.
+// else {status, runStatus}. The journal supplies its Core-owned outcome
+// classifier; this storage port owns no Run state vocabulary.
 export function openContinuationEvidence({stateDirectory, key, keyId,
-  contractControl, preparation, busyTimeoutMs = 60_000, store: storeOptions}) {
+  contractControl, preparation, isTerminalRunOutcome, busyTimeoutMs = 60_000, store: storeOptions}) {
   if (!(key instanceof Uint8Array) || key.byteLength !== 32 ||
-      typeof keyId !== 'string' || typeof preparation !== 'function') {
+      typeof keyId !== 'string' || typeof preparation !== 'function' ||
+      typeof isTerminalRunOutcome !== 'function') {
     fail('InvalidContinuationEvidencePort');
   }
   const ledgers = join(stateDirectory, 'attempts');
@@ -255,7 +255,7 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
     if (current === undefined) return ledger.abandoned !== true;
     if (current.status === 'ended') return false;
     if (current.status === 'run_created') {
-      return !TERMINAL_RUNS.includes(current.runStatus);
+      return !isTerminalRunOutcome(current.runStatus);
     }
     return true;
   }

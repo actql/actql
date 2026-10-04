@@ -14,7 +14,7 @@ import {admitDispatchJson, dispatchCid, createJournal, prepareIntent,
   admissionDurableJson, admitDurableJson, commitIntent, admitResponseJson,
   prepareResponseObservation, responseDurableJson}
   from '../coordinator-core/index.mjs';
-import {admitEnvironment, admitRequestFields, admitRunDefinition,
+import {admitEnvironment, admitProfileSelection, admitRequestFields, admitRunDefinition,
   admitSourceFreeRunDefinition,
   issueSourceFreeRunMaterials, issueTaskRunMaterials,
   admitPublicationContract, admitRunEvidenceValue, sealRunEvidenceValue,
@@ -70,6 +70,60 @@ const without = (value, key) => {
   delete body[key];
   return cid(body);
 };
+
+const noProfiles = Object.freeze({textTime: false, veca: false, rela: false,
+  sga: false, tea: false, calendar: false, textRank: false});
+
+test('profile admission preserves omitted and explicit false selections', () => {
+  assert.deepEqual(admitProfileSelection({}), noProfiles);
+  assert.deepEqual(admitProfileSelection(noProfiles), noProfiles);
+  for (const key of ['textTime', 'veca', 'rela', 'sga', 'tea', 'calendar', 'textRank']) {
+    const input = {[key]: true};
+    const admitted = admitProfileSelection(input);
+    assert.deepEqual(admitted, {...noProfiles, [key]: true});
+    assert.ok(Object.isFrozen(admitted));
+    assert.notEqual(admitted, input);
+    input[key] = false;
+    assert.equal(admitted[key], true);
+    assert.deepEqual(admitProfileSelection({[key]: false}), noProfiles);
+  }
+});
+
+test('profile admission and environment refuse the same malformed selections', () => {
+  const malformed = [null, undefined, [], true, false, 0, 'rela',
+    {unknown: false}, {rela: true, unknown: true}];
+  for (const key of ['textTime', 'veca', 'rela', 'sga', 'tea', 'calendar', 'textRank']) {
+    for (const value of [undefined, null, 0, 1, 'true', [], {}]) {
+      malformed.push({[key]: value});
+    }
+  }
+  for (const input of malformed) {
+    assert.throws(() => admitProfileSelection(input),
+      {name: 'TypeError', message: 'InvalidRunHostProfileSelection'});
+    assert.throws(() => admitEnvironment(environmentWire, evidenceCid, input),
+      {name: 'TypeError', message: 'InvalidRunHostEnvironment'});
+  }
+});
+
+test('profile admission retains environment and prepared request identities', () => {
+  const document = read('values.json');
+  const scope = 'sha256:' + 'a'.repeat(64);
+  const inputCid = 'sha256:' + 'b'.repeat(64);
+  const identity = profiles => requestFields(prepareRequest(
+    prepare(document, 'json', admitEnvironment(environmentWire, evidenceCid, profiles)),
+    scope, 'retained-profile', inputCid));
+  const expected = identity({rela: true});
+  const persisted = {textTime: false, veca: false, rela: true, sga: false,
+    tea: false, calendar: false, textRank: false};
+  assert.deepEqual(admitProfileSelection({rela: true}), persisted);
+  assert.deepEqual(identity(persisted), expected);
+  assert.deepEqual(identity(admitProfileSelection({rela: true})), expected);
+  assert.deepEqual(identity(admitProfileSelection(persisted)), expected);
+  assert.throws(() => admitEnvironment(null, evidenceCid, {}),
+    {name: 'TypeError', message: 'InvalidRunHostEnvironment'});
+  assert.throws(() => admitEnvironment(environmentWire, null, {}),
+    {name: 'TypeError', message: 'InvalidRunHostEnvironment'});
+});
 
 test('Run materials project the original owner and retained input, not new authority', () => {
   const document = read('values.json');

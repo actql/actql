@@ -22,6 +22,10 @@ import {distinctOrderSuccesses, distinctOrderRefusals}
   from './distinct-order-source-input.mjs';
 import {orderPropertySuccesses, orderPropertyRefusals}
   from './order-property-source-input.mjs';
+import {groupSelectScopeSuccesses, groupSelectScopeRefusals}
+  from './group-select-scope-source-input.mjs';
+import {havingProjectionSuccesses, havingProjectionRefusals}
+  from './having-projection-source-input.mjs';
 import {uniquePublicQueryCases} from './public-query-cases.mjs';
 import {orderOrdinalSuccesses, orderOrdinalRefusals}
   from './order-ordinal-source-input.mjs';
@@ -45,6 +49,8 @@ const sourceFreeOnly = process.env.ACTQL_TEST_SOURCE_FREE_ONLY === '1';
 const inferOnly = process.env.ACTQL_TEST_INFER_REFUSAL_ONLY === '1';
 const joinOnly = process.env.ACTQL_TEST_JOIN_ORDER_ONLY === '1';
 const groupOnly = process.env.ACTQL_TEST_GROUP_SCOPE_ONLY === '1';
+const groupSelectScopeOnly = process.env.ACTQL_TEST_GROUP_SELECT_SCOPE_ONLY === '1';
+const havingProjectionOnly = process.env.ACTQL_TEST_HAVING_PROJECTION_ONLY === '1';
 const groupStarOnly = process.env.ACTQL_TEST_GROUP_STAR_ONLY === '1';
 const compositionOnly = process.env.ACTQL_TEST_QUERY_COMPOSITION_ONLY === '1';
 const resultOnly = process.env.ACTQL_TEST_PIPE_RESULT_ONLY === '1';
@@ -52,7 +58,7 @@ const dataOnly = process.env.ACTQL_TEST_RELATION_DATA_ONLY === '1';
 const acquiredDataOnly = process.env.ACTQL_TEST_ACQUIRED_DATA_ONLY === '1';
 const dataSetStrategyOnly = process.env.ACTQL_TEST_DATA_SET_STRATEGY_ONLY === '1';
 const orderPropertyOnly = process.env.ACTQL_TEST_ORDER_PROPERTY_ONLY === '1';
-const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupStarOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || orderPropertyOnly;
+const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || havingProjectionOnly || groupStarOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || orderPropertyOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const joinChain = JSON.parse(await readFile('join-chain-cases.json', 'utf8'));
 const groupScope = JSON.parse(await readFile('group-scope-cases.json', 'utf8'));
@@ -70,6 +76,8 @@ const dataSetStrategyInputs = {
   refusals: [],
 };
 const scopeInputs = orderPropertyOnly ? {successes: orderPropertySuccesses, refusals: orderPropertyRefusals}
+  : havingProjectionOnly ? {successes: havingProjectionSuccesses, refusals: havingProjectionRefusals}
+  : groupSelectScopeOnly ? {successes: groupSelectScopeSuccesses, refusals: groupSelectScopeRefusals}
   : groupStarOnly ? {successes: groupStarSuccesses, refusals: groupStarRefusals}
   : orderOrdinalOnly ? {successes: orderOrdinalSuccesses, refusals: orderOrdinalRefusals}
   : distinctOrderOnly ? {successes: distinctOrderSuccesses, refusals: distinctOrderRefusals}
@@ -97,6 +105,10 @@ const scopeInputs = orderPropertyOnly ? {successes: orderPropertySuccesses, refu
 if (!scopeOnly) {
   scopeInputs.successes.push(...orderPropertySuccesses);
   scopeInputs.refusals.push(...orderPropertyRefusals);
+  scopeInputs.successes.push(...havingProjectionSuccesses);
+  scopeInputs.refusals.push(...havingProjectionRefusals);
+  scopeInputs.successes.push(...groupSelectScopeSuccesses);
+  scopeInputs.refusals.push(...groupSelectScopeRefusals);
   scopeInputs.successes.push(...orderOrdinalSuccesses);
   scopeInputs.refusals.push(...orderOrdinalRefusals);
   scopeInputs.successes.push(...distinctOrderSuccesses);
