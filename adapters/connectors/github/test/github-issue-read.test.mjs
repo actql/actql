@@ -9,6 +9,8 @@ import {join} from 'node:path';
 import test from 'node:test';
 // Comment creation runs with the Issue read suite in the same gate.
 import './github-comment-create.test.mjs';
+// The node-bound GraphQL read runs with the Issue read suite in the same gate.
+import './github-issue-graphql-read.test.mjs';
 import * as commonMoon from
   '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import * as moon from
@@ -32,10 +34,11 @@ const issue = (number, extra = {}) => ({number, node_id: `I_${number}`,
   title: `Issue ${number}`, state: 'open', body: null,
   user: {login: 'octo'}, comments: 0, created_at: '2026-10-02T00:00:00Z',
   updated_at: '2026-10-03T00:00:00Z', closed_at: null, labels: [], ...extra});
+// GitHub's whole-second timestamps, in the ActQL spelling of the same instant.
 const row = number => ({number, node_id: `I_${number}`,
   title: `Issue ${number}`, state: 'open', body: null, author: 'octo',
-  comments: 0, created_at: '2026-10-02T00:00:00Z',
-  updated_at: '2026-10-03T00:00:00Z', closed_at: null});
+  comments: 0, created_at: '2026-10-02T00:00:00.000Z',
+  updated_at: '2026-10-03T00:00:00.000Z', closed_at: null});
 const pull = number => issue(number,
   {pull_request: {url: `https://api.example/pulls/${number}`}});
 
@@ -111,7 +114,7 @@ test('pages follow Link to completion, exclude pull requests and keep since',
       ['since', since]]});
     assert.equal(result.complete, true);
     assert.deepEqual(result.rows, [row(1), row(3), {...row(4), body: 'text',
-      state: 'closed', closed_at: '2026-10-04T00:00:00Z', author: null}]);
+      state: 'closed', closed_at: '2026-10-04T00:00:00.000Z', author: null}]);
     assert.deepEqual(result.pages.map(page => [page.page, page.rows,
       page.excludedPullRequests, page.providerItems]), [[1, 1, 1, 2], [2, 2, 0, 2]]);
     const seen = context.fixture.seen();

@@ -15,7 +15,7 @@ const fail = () => {
 // The Host owns the ordering of common apply, durable outcome admission and
 // publication. A provider may supply physical dispatch and current observation,
 // but cannot substitute a Set Receipt or decide that unknown rows succeeded.
-function validateCompletion({apply, receipt, publication}, recovered) {
+function validateCompletion({apply, receipt, publication, beforeDispatch}, recovered) {
   if (!apply || !receipt || !publication ||
       apply.moon !== receipt.commonMoon ||
       apply.ledger !== receipt.ledger ||
@@ -25,6 +25,7 @@ function validateCompletion({apply, receipt, publication}, recovered) {
       receipt.members.length === 0 ||
       (!recovered && receipt.members.length !== apply.members?.length) ||
       typeof receipt.authorizeEvidenceRead !== 'function' ||
+      beforeDispatch !== undefined && typeof beforeDispatch !== 'function' ||
       (recovered && (apply.store !== publication.store ||
         apply.publicationControl !== publication.control ||
         apply.computation !== publication.computation ||
@@ -88,6 +89,11 @@ async function complete(options, recovered) {
       transferred = true;
     }
     options.signal?.throwIfAborted();
+    const fenced = options.beforeDispatch?.();
+    if (typeof fenced?.then === 'function') {
+      void Promise.resolve(fenced).catch(() => {});
+      fail();
+    }
     return dispatch(row);
   };
   const original = options.apply;

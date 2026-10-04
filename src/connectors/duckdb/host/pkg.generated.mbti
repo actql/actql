@@ -75,6 +75,8 @@ pub fn configured_broad_host_limits(BroadHostConfiguration) -> BroadHostLimits
 
 pub fn configured_capture_capacity(CaptureConfiguration) -> NativeCapacity?
 
+pub fn configured_capture_requirement(CaptureConfiguration) -> @query_planning.QueryRequirement
+
 pub fn configured_native_capacity(NativeHostConfiguration) -> NativeCapacity?
 
 pub fn configured_native_host_limits(NativeHostConfiguration) -> NativeHostLimits
@@ -114,6 +116,10 @@ pub fn native_host_source_capture_source_ref(NativeHostSourceCapture) -> String?
 pub fn prepare_broad_host_residual_input(BroadHostRun) -> Result[(@execution_query.QuerySequence, @execution_query.QueryReceipt, () -> Bool, @query_planning.QueryLogicalGuards, @acquisition.DuckDBBroadCompletionLimits), BroadHostIssue]
 
 pub fn prepare_native_source_evidence_context(@query_planning.QueryRequirement) -> Result[NativeSourceEvidenceContext, NativeSourceEvidenceIssue]
+
+pub fn prepared_broad_capacity(@query_planning.QueryRequirement, BroadHostLimits) -> NativeCapacity?
+
+pub fn prepared_native_capacity(NativeHostLimits) -> NativeCapacity?
 
 pub fn source_evidence_context_supports(NativeSourceEvidenceContext, String) -> Bool
 

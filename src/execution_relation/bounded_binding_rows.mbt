@@ -25,6 +25,7 @@ priv enum BoundedBindingRowsPhase {
   EvaluateBindings
   EvaluatePredicate
   BuildOutputRow
+  CopyPresenceRow
   CheckOutputRow
   ChargeOutputRow
   ChargeCaptureRow
@@ -196,7 +197,15 @@ impl RowValues for BoundedBindingRow with fn value_count(self) {
 
 ///|
 impl RowValues for BoundedBindingRow with fn value_at(self, column) {
-  bounded_binding_input_cell(self.input, self.row, column).unwrap()
+  bounded_binding_input_charge_cell(self.input, self.row, column)
+  .unwrap()
+  .unwrap()
+}
+
+///|
+impl RowValues for BoundedBindingRow with fn value_present(self, column) {
+  bounded_binding_input_charge_cell(self.input, self.row, column).unwrap()
+  is Some(_)
 }
 
 ///|
@@ -462,6 +471,7 @@ priv struct BoundedBindingRowsState {
   mut unique_pair : Int
   ordered : Bool
   output_schema : @schema.Schema
+  preserve_presence : Bool
   admitted_limits : @admitted.Limits
   input_values : ValueBudget
   output_values : ValueBudget
@@ -499,6 +509,8 @@ priv struct BoundedBindingRowsState {
   mut capture_charge_column : Int
   mut capture_charge_measure : SteppedValueMeasure?
   mut capture_row : Array[@admitted.Value]
+  mut presence_cells : Array[@admitted.Value?]
+  mut presence_usage_start : ValueUsage?
 }
 
 ///|
@@ -666,6 +678,8 @@ fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {
   state.output_row = []
   state.checked_row = []
   state.capture_row = []
+  state.presence_cells = []
+  state.presence_usage_start = None
   state.json_current = None
   state.json_picked = None
   state.watermark_times = []
@@ -1453,12 +1467,12 @@ fn bounded_binding_rows_step(
           used += 1
         } else if state.sort_column < state.input_names.length() {
           if state.sort_measure is None {
-            guard bounded_binding_input_cell(
+            guard bounded_binding_input_charge_cell(
                 state.input,
                 indices[state.sort_row],
                 state.sort_column,
               )
-              is Some(value) else {
+              is Ok(cell) else {
               return fail_bounded_binding_rows(InvalidExecution, progress, used)
             }
             if !spend_control(state.control, 1) ||
@@ -1467,6 +1481,14 @@ fn bounded_binding_rows_step(
                 state.input_names[state.sort_column],
               ) {
               return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+            }
+            guard cell is Some(value) else {
+              if !charge_node(state.output_values, 2) {
+                return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+              }
+              state.sort_column += 1
+              used += 1
+              continue
             }
             guard start_stepped_measure_result(value, state.workspace)
               is Some(cursor) else {
@@ -1644,6 +1666,9 @@ fn bounded_binding_rows_step(
         state.column = 0
         state.phase = if state.json_path is Some(_) {
           PickJson
+        } else if state.preserve_presence &&
+          state.projection_ordinals is Some(_) {
+          CopyPresenceRow
         } else if state.projection_ordinals is Some(_) {
           BuildOutputRow
         } else {
@@ -1828,11 +1853,21 @@ fn bounded_binding_rows_step(
           !spend_control_text(state.control, state.input_names[state.column]) {
           return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
         }
-        guard bounded_binding_input_cell(state.input, state.row, state.column)
-          is Some(value) else {
-          return fail_bounded_binding_rows(InvalidExecution, progress, used)
+        let field = @schema.field_at(
+          bounded_binding_input_schema(state.input),
+          state.column,
+        ).unwrap()
+        if !state.preserve_presence || field.presence == @schema.Required {
+          guard bounded_binding_input_cell(state.input, state.row, state.column)
+            is Some(value) else {
+            return fail_bounded_binding_rows(InvalidExecution, progress, used)
+          }
+          state.snapshot[state.input_names[state.column]] = value
+        } else {
+          // Conditional cells never enter ordinary expression scope, even
+          // when this particular row happens to contain a value.
+          release_slots(state.workspace, 1)
         }
-        state.snapshot[state.input_names[state.column]] = value
         state.column += 1
         used += 1
       }
@@ -1883,7 +1918,11 @@ fn bounded_binding_rows_step(
             match evaluated.value {
               Boolean(true) => {
                 state.column = 0
-                state.phase = BuildOutputRow
+                state.phase = if state.preserve_presence {
+                  CopyPresenceRow
+                } else {
+                  BuildOutputRow
+                }
               }
               Boolean(false) | Null => {
                 if state.assertion {
@@ -1923,6 +1962,71 @@ fn bounded_binding_rows_step(
             used += 1
           }
         }
+      }
+      CopyPresenceRow => {
+        if state.column == state.output_names.length() {
+          state.presence_usage_start = Some({
+            nodes: state.output_values.nodes,
+            text_bytes: state.output_values.text,
+            work: state.output_values.work,
+          })
+          state.phase = ChargeOutputRow
+          continue
+        }
+        if !reserve_slots(state.workspace, 1) ||
+          !spend_control(state.control, 1) {
+          return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+        }
+        let source_row = match state.sorted_indices {
+          Some(indices) => indices[state.row]
+          None => state.row
+        }
+        let cell = match
+          bounded_binding_input_charge_cell(
+            state.input,
+            source_row,
+            state.column,
+          ) {
+          Ok(None) => None
+          Ok(Some(_)) => {
+            // The exact input schema and unchanged output schema retain the
+            // source admission proof; a present NULL stays Some(Null).
+            let value = match state.input {
+              CompletedBindingInput(read) => {
+                guard read.columns.get(state.column) is Some(source) &&
+                  completed_presence_cell(read.bound.output, source_row, source)
+                  is Ok(Present(value)) else {
+                  return fail_bounded_binding_rows(
+                    InvalidExecution,
+                    progress,
+                    used,
+                  )
+                }
+                value
+              }
+              SuppliedBindingInput(read) => {
+                guard captured_presence_cell(
+                    read.rows,
+                    source_row,
+                    state.column,
+                  )
+                  is Ok(Present(value)) else {
+                  return fail_bounded_binding_rows(
+                    InvalidExecution,
+                    progress,
+                    used,
+                  )
+                }
+                value
+              }
+            }
+            Some(value)
+          }
+          Err(issue) => return fail_bounded_binding_rows(issue, progress, used)
+        }
+        state.presence_cells.push(cell)
+        state.column += 1
+        used += 1
       }
       BuildOutputRow => {
         if state.column == state.output_names.length() {
@@ -2076,8 +2180,38 @@ fn bounded_binding_rows_step(
             if !charge_text(state.output_values, state.output_names[column]) {
               return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
             }
-            guard state.output_row.get(column) is Some(value) &&
-              start_stepped_measure_result(value, state.workspace)
+            let value = if state.preserve_presence {
+              guard state.presence_cells.get(column) is Some(cell) else {
+                return fail_bounded_binding_rows(
+                  InvalidExecution,
+                  progress,
+                  used,
+                )
+              }
+              guard cell is Some(value) else {
+                if !charge_node(state.output_values, 2) {
+                  return fail_bounded_binding_rows(
+                    Rows(RowLimit),
+                    progress,
+                    used,
+                  )
+                }
+                state.output_charge_column += 1
+                used += 1
+                continue
+              }
+              capture(value)
+            } else {
+              guard state.output_row.get(column) is Some(value) else {
+                return fail_bounded_binding_rows(
+                  InvalidExecution,
+                  progress,
+                  used,
+                )
+              }
+              value
+            }
+            guard start_stepped_measure_result(value, state.workspace)
               is Some(cursor) else {
               return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
             }
@@ -2105,7 +2239,12 @@ fn bounded_binding_rows_step(
         if !state.capture_charge_open {
           if !output.buffer.open ||
             output.buffer.reading ||
-            output.buffer.rows.length() >= output.buffer.max_rows ||
+            (if state.preserve_presence {
+              output.buffer.presence_rows.length()
+            } else {
+              output.buffer.rows.length()
+            }) >=
+            output.buffer.max_rows ||
             !charge_node(output.buffer.budget, 1) {
             return fail_bounded_binding_rows(
               Capture(CaptureLimit),
@@ -2115,8 +2254,63 @@ fn bounded_binding_rows_step(
           }
           state.capture_charge_open = true
           used += 1
-        } else if state.capture_charge_column < state.checked_row.length() {
+        } else if state.capture_charge_column <
+          (if state.preserve_presence {
+            state.presence_cells.length()
+          } else {
+            state.checked_row.length()
+          }) {
           let column = state.capture_charge_column
+          if state.preserve_presence {
+            if state.capture_charge_measure is None {
+              if !charge_text(output.buffer.budget, state.output_names[column]) {
+                return fail_bounded_binding_rows(
+                  Capture(CaptureLimit),
+                  progress,
+                  used,
+                )
+              }
+              guard state.presence_cells[column] is Some(value) else {
+                if !charge_node(output.buffer.budget, 2) {
+                  return fail_bounded_binding_rows(
+                    Capture(CaptureLimit),
+                    progress,
+                    used,
+                  )
+                }
+                state.capture_charge_column += 1
+                used += 1
+                continue
+              }
+              guard start_stepped_measure_result(
+                  capture(value),
+                  state.workspace,
+                )
+                is Some(cursor) else {
+                return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+              }
+              state.capture_charge_measure = Some(cursor)
+            }
+            let cursor = state.capture_charge_measure.unwrap()
+            match advance_stepped_measure_result(cursor, output.buffer.budget) {
+              SteppedMeasureLimit =>
+                return fail_bounded_binding_rows(
+                  Capture(CaptureLimit),
+                  progress,
+                  used,
+                )
+              SteppedMeasureWorkspaceLimit =>
+                return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+              SteppedMeasureContinue => ()
+              SteppedMeasureComplete => {
+                clear_stepped_measure(cursor)
+                state.capture_charge_measure = None
+                state.capture_charge_column += 1
+              }
+            }
+            used += 1
+            continue
+          }
           guard @schema.field_at(output.buffer.schema, column) is Some(field) &&
             state.checked_row.get(column) is Some(checked) else {
             return fail_bounded_binding_rows(
@@ -2187,22 +2381,40 @@ fn bounded_binding_rows_step(
         }
       }
       CommitOutputRow => {
-        if !state.output_requires_steps &&
+        if !state.preserve_presence &&
+          !state.output_requires_steps &&
           !retain_row(state.output_row, state.output_names, state.output_values) {
           return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
         }
         if state.scope is Some(scope) {
-          guard state.input_roots.get(state.row) is Some(root) else {
+          let source_row = if state.preserve_presence {
+            match state.sorted_indices {
+              Some(indices) => indices[state.row]
+              None => state.row
+            }
+          } else {
+            state.row
+          }
+          guard state.input_roots.get(source_row) is Some(root) else {
             return fail_bounded_binding_rows(InvalidExecution, progress, used)
           }
-          match
+          let result = if state.preserve_presence {
+            let source : BoundedBindingRow = {
+              input: state.input,
+              row: source_row,
+              width: state.input_names.length(),
+            }
+            row_event_output(scope, state.output_names, source, [], root)
+          } else {
             row_event_output(
               scope,
               state.output_names,
               state.output_row,
               state.slot_roots,
               root,
-            ) {
+            )
+          }
+          match result {
             Err(issue) =>
               return fail_bounded_binding_rows(Rows(issue), progress, used)
             Ok(_) => ()
@@ -2211,7 +2423,28 @@ fn bounded_binding_rows_step(
         guard state.output is Some(output) else {
           return fail_bounded_binding_rows(InvalidExecution, progress, used)
         }
-        if state.output_requires_steps {
+        if state.preserve_presence {
+          guard state.presence_usage_start is Some(start) &&
+            output.buffer.open &&
+            !output.buffer.reading &&
+            output.buffer.presence_rows.length() < output.buffer.max_rows &&
+            state.presence_cells.length() ==
+            @schema.field_count(output.buffer.schema) else {
+            return fail_bounded_binding_rows(InvalidExecution, progress, used)
+          }
+          if !reserve_slots(state.workspace, 1) {
+            return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+          }
+          output.buffer.presence_rows.push({
+            schema: state.output_schema,
+            cells: state.presence_cells,
+            usage: {
+              nodes: state.output_values.nodes - start.nodes,
+              text_bytes: state.output_values.text - start.text_bytes,
+              work: state.output_values.work - start.work,
+            },
+          })
+        } else if state.output_requires_steps {
           if !output.buffer.open ||
             output.buffer.reading ||
             output.buffer.rows.length() >= output.buffer.max_rows ||
@@ -2248,6 +2481,10 @@ fn bounded_binding_rows_step(
         state.output_row = []
         state.checked_row = []
         state.capture_row = []
+        // Retained presence cells remain owned by the output buffer until its
+        // transfer/cleanup. Do not release their workspace reservation here.
+        state.presence_cells = []
+        state.presence_usage_start = None
         state.output_charge_open = false
         state.output_charge_column = 0
         state.capture_charge_open = false
@@ -2423,6 +2660,20 @@ fn start_bounded_binding_rows_with_input(
     return Err(InvalidExecution)
   }
   let body = @lower.kernel_body(kernel)
+  let preserve_presence = !@schema.all_fields_required(input_schema) &&
+    (
+      body is @lower.Filter(_) ||
+      body is @lower.StableSort(_) ||
+      body is @lower.Limit(_, _, _)
+    )
+  if !@schema.all_fields_required(input_schema) &&
+    !preserve_presence &&
+    !(body is @lower.Select(_)) {
+    return Err(InvalidExecution)
+  }
+  if preserve_presence && !physical_equal(input_schema, output_schema) {
+    return Err(InvalidExecution)
+  }
   let (bindings, ordered, predicate, select_mode, take_range, sort_kernel) = match
     body {
     @lower.OrderedBindings(bindings) =>
@@ -2506,7 +2757,9 @@ fn start_bounded_binding_rows_with_input(
   let sort_only = body is @lower.StableSort(_) ||
     body is @lower.TopK(_, _) ||
     body is @lower.PartitionedTopK(_, _)
-  if !@schema.all_fields_required(input_schema) && !select_mode {
+  if !@schema.all_fields_required(input_schema) &&
+    !select_mode &&
+    !preserve_presence {
     return Err(InvalidExecution)
   }
   let partition_limit = match body {
@@ -2893,6 +3146,7 @@ fn start_bounded_binding_rows_with_input(
     unique_pair: 1,
     ordered,
     output_schema,
+    preserve_presence,
     admitted_limits: {
       max_nodes: values.max_nodes,
       max_depth: values.max_depth,
@@ -2948,6 +3202,8 @@ fn start_bounded_binding_rows_with_input(
     capture_charge_column: 0,
     capture_charge_measure: None,
     capture_row: [],
+    presence_cells: [],
+    presence_usage_start: None,
   }
   let (session, token) = @bounded.start(
     engine,

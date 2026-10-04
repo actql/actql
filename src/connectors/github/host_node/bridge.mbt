@@ -232,3 +232,143 @@ pub fn github_comment_outcome_json(
   }
   json.stringify()
 }
+
+///|
+fn graphql_issue_name(issue : @catalog.GraphqlResponseIssue) -> Json {
+  match issue {
+    InvalidResponse => { "kind": "InvalidResponse" }
+    RateLimited => { "kind": "RateLimited" }
+    Errors(kind) => { "kind": "Errors", "type": kind.to_json() }
+    RepositoryUnavailable => { "kind": "RepositoryUnavailable" }
+    WrongType(name) => { "kind": "WrongType", "type": name.to_json() }
+    ForeignRepository => { "kind": "ForeignRepository" }
+    IdRepresentationChanged => { "kind": "IdRepresentationChanged" }
+    BindingChanged => { "kind": "BindingChanged" }
+    MissingCursor => { "kind": "MissingCursor" }
+    BudgetExceeded => { "kind": "BudgetExceeded" }
+    Row(row) => { "kind": "Row", "row": issue_text(row) }
+  }
+}
+
+///|
+fn graphql_repository_json(repository : @catalog.GraphqlRepository) -> Json {
+  {
+    "node_id": repository.node_id.to_json(),
+    "database_id": Json::number(repository.database_id.to_double()),
+    "name_with_owner": repository.name_with_owner.to_json(),
+  }
+}
+
+///|
+/// The publication lookup body for `owner/name`: the fixed query only.
+#export_name("githubRepositoryRequest")
+pub fn github_repository_request(owner : String, name : String) -> String {
+  @catalog.repository_request(owner, name)
+}
+
+///|
+/// One Issue page request body for the published node ID, or a refusal:
+/// `{"body": "..."}` or `{"refused": "..."}`. Callers supply variables only.
+#export_name("githubIssuesRequestJson")
+pub fn github_issues_request_json(
+  node_id : String,
+  first : Int,
+  has_after : Bool,
+  after : String,
+  state : String,
+  labels : Array[String],
+  has_since : Bool,
+  since : String,
+) -> String {
+  let json : Json = match
+    @catalog.issues_request(
+      node_id,
+      first,
+      if has_after {
+        Some(after)
+      } else {
+        None
+      },
+      { state, labels, since: if has_since { Some(since) } else { None }, },
+    ) {
+    Ok(body) => { "body": body.to_json() }
+    Err(issue) => {
+      let name = match issue {
+        InvalidNodeId => "InvalidNodeId"
+        InvalidPageSize => "InvalidPageSize"
+        InvalidCursor => "InvalidCursor"
+        InvalidState => "InvalidState"
+        InvalidLabel => "InvalidLabel"
+        InvalidSince => "InvalidSince"
+      }
+      { "refused": name.to_json() }
+    }
+  }
+  json.stringify()
+}
+
+///|
+/// Project one Issue page of the published repository:
+/// `{"page": {...}}` or `{"refused": {"kind": ...}}`.
+#export_name("githubIssuesPageJson")
+pub fn github_issues_page_json(
+  body : Bytes,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_rows : Int,
+  expected_node_id : String,
+  expected_database_id : Double,
+  expected_name_with_owner : String,
+) -> String {
+  let json : Json = match
+    @catalog.project_issues_response(
+      body,
+      { max_bytes, max_nodes, max_depth, max_rows, },
+      expected_node_id,
+      expected_database_id.to_int64(),
+      expected_name_with_owner,
+    ) {
+    Ok(page) => {
+      let rows : Array[Json] = page.rows.map(row => {
+        "number": Json::number(row.number.to_double()),
+        "node_id": row.node_id.to_json(),
+        "title": row.title.to_json(),
+        "state": row.state.to_json(),
+        "body": optional_text(row.body),
+        "author": optional_text(row.author),
+        "comments": Json::number(row.comments.to_double()),
+        "created_at": row.created_at.to_json(),
+        "updated_at": row.updated_at.to_json(),
+        "closed_at": optional_text(row.closed_at),
+      })
+      {
+        "page": {
+          "rows": Json::array(rows),
+          "hasNextPage": page.has_next_page.to_json(),
+          "endCursor": optional_text(page.end_cursor),
+          "repository": graphql_repository_json(page.repository),
+        },
+      }
+    }
+    Err(issue) => { "refused": graphql_issue_name(issue) }
+  }
+  json.stringify()
+}
+
+///|
+/// Project a publication lookup: `{"repository": {...}}` or `{"refused": ...}`.
+#export_name("githubRepositoryResponseJson")
+pub fn github_repository_response_json(body : Bytes, max_bytes : Int) -> String {
+  let json : Json = match
+    @catalog.project_repository_response(body, {
+      max_bytes,
+      max_nodes: 20000,
+      max_depth: 32,
+      max_rows: 1,
+    }) {
+    Ok(repository) => { "repository": graphql_repository_json(repository) }
+    Err(issue) => { "refused": graphql_issue_name(issue) }
+  }
+  json.stringify()
+}

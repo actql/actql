@@ -1,0 +1,19 @@
+{
+  "columns": [
+    {"name": "id", "contract": {"type": "number", "nullable": false}},
+    {"name": "left_amount", "contract": {"type": "number", "nullable": true}},
+    {"name": "right_amount", "contract": {"type": "number", "nullable": true}},
+    {"name": "risk", "contract": {"type": "string", "nullable": false, "max_utf8_bytes": 4}},
+    {"name": "target_id", "contract": {"type": "string", "nullable": false, "max_utf8_bytes": 15}},
+    {"name": "next_name", "contract": {"type": "string", "nullable": false, "max_utf8_bytes": 15}}
+  ],
+  "sourceProviderOpenCounts": [[1, 0], [1, 0], [1, 1], [1, 1], [1, 1], [1, 1]],
+  "sourceReadSessions": [1, 0, 1, 0, 0, 0],
+  "effectWriteCounts": [0, 0, 0, 0, 1, 1],
+  "restartBoundaries": [
+    "source-waiting",
+    "source-approval-committed",
+    "capture-waiting",
+    "approval-committed"
+  ]
+}
