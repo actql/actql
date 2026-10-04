@@ -171,3 +171,54 @@ scheduling, acquisition custody and the selected installation table pass
 37180581517 passed preflight but had not started its packed consumer when
 this integration was prepared. That older submitted SHA's results remain
 separate from the new automatic PR run; no manual rerun is requested.
+
+### Accepted optional Effect pairs
+
+#335 submitted `08f705a9d94865b01a6ec5cc94a40f902a7d9092`. Its completed
+[automatic PR CI 37181207518](https://github.com/actql/actql/actions/runs/37181207518)
+passed all required jobs. The package producer and
+[packed consumer](https://github.com/actql/actql/actions/runs/37181207518/job/111374719540)
+used clean tested merge `9076b173a1dff5cf8cff7169b9cfd1203b639dea` against main
+`9b7f0057193a3c955f1c604cc0370a2a2660a832`, with package artifact `11295510699`.
+The prepared status above is historical; the new fixed-source result is accepted.
+
+All eight Native JSON/Broad text, with/without Effect, Local/HTTPS submissions
+passed. Completed logs bind each submitted Program digest, format, request/Run,
+actual candidate eligibility, rows and complete column contracts/order.
+Source read sessions are `[2,0,0]` without Effect and `[2,0,0,0]` with Effect;
+write counts are `[0,0,0]` and `[0,0,1,1]` respectively. Model calls are zero.
+Completed-Run or capture-waiting/approval-committed restoration preserves the
+same request/Run without another Source read or confirmed Effect replay.
+#335 entered main at `e51097122b949849ef2bb895dfb305bad1c3a248`.
+This does not establish source-free Graph approval or active temporary holdings.
+
+### Public Result reader-close acceptance prepared
+
+The next narrow unit starts from that accepted main. In the existing fresh-process
+retained-Run phase, Native JSON (`distinct`) and Broad text each exercise Local
+and HTTPS, for four observations without additional Program submissions or jobs.
+Two public `Result.rows()` consumers open the same retained JOIN result. Both
+yield the independently authored first row; one then closes its iterator.
+Its state must remain `prefix` with one yielded row, while the second consumer
+receives the complete five-row fixture, including NULL and duplicate rows in the
+required order. A new reader must still obtain all rows and the original column
+contracts/order. The Run remains succeeded and exact request replay keeps its ref.
+
+The existing provider and journal observations must remain unchanged: no Source
+provider open or SQL in this fresh process, no new admission/physical transition.
+The existing packed report retains both attempt IDs, states and yielded counts
+for all four cases. Normal CI uses its existing package installation and retained
+phase; the Source/INFER/Effect failure matrix is not duplicated. Public execution
+at the new source remains pending; prepared assertions are not accepted evidence.
+
+This is the close of a public Result reader's consumer iterator. It does not
+prove physical producer-handle cleanup, active temporary-holder counts or
+reservation return; the approved common-owner inventory handoff to A remains.
+Graph Result Policy adoption and Graph approval/recovery stay with #304.
+
+Selected SDK read-progress and public-query fixture tests pass 12/12 before
+normal integration of main `605d42356c29ff926e046e73a87a54cf3a420f0a` (#333).
+Client CI registration checks pass 15/15 after that integration, with no
+conflict or declaration changes. Outer driver syntax and diff checks pass.
+These focused checks do not establish the new four public reader-close cases;
+their exact-source packed acceptance and automatic PR CI remain pending.

@@ -227,5 +227,41 @@ export function installNodeClientEffectRun({moon,
         runDefinition: retained.runDefinition, preparedExecution, signal}));
       return Object.freeze({kind: 'started', ref: start.ref, value});
     },
+    // Rebind a previously admitted computation for the existing Checkpoint
+    // owner. This grants no physical-start permit and never clears the Run's
+    // original start claim. The caller must retain its fenced continuation
+    // and restore completed inputs before asking an adapter for new I/O.
+    async restoreComputation(handle) {
+      const owned = handles.get(handle);
+      if (owned === undefined) throw denied();
+      const {prepared, identity, namespaceId, principalId, connection, compile} = owned;
+      const retained = journal.resolveDefinition(identity, {namespaceId}, moon, control);
+      if (retained?.ref.runDefinitionCid !== handle.ref.runDefinitionCid ||
+          retained.physicalStartReserved !== true ||
+          retained.preDispatchFailureConfirmed || retained.cancellationRequested ||
+          retained.observedTerminalOutcome !== null) throw denied();
+      const evidence = retained.runAdmissionEvidence;
+      if (evidence === undefined) throw denied();
+      const compilation = compile();
+      const allowed = checked(moon.clientProgramAdmitAllowedEffectRun(compilation,
+        admitEvidence('prepared_invocation', evidence.prepared),
+        admitEvidence('run_authorization', evidence.authorization)));
+      const definition = definitionToken(retained.runDefinition);
+      const owner = checked(moon.clientProgramBindCompiledEffectRun(prepared, allowed, definition));
+      const current = await authorizeRunStart(Object.freeze({namespaceId,
+        principalId, connection, ref: retained.ref, runDefinition: retained.runDefinition}));
+      if (current !== true) throw denied();
+      if (!moon.clientProgramEffectRunStartCurrent(allowed, definition, now())) {
+        throw expired(retained.ref);
+      }
+      const facts = {ref: retained.ref, identity, owner, prepared, compilation,
+        allowed, definition, runDefinition: retained.runDefinition};
+      const preparedExecution = prepareExecution?.(Object.freeze(facts));
+      if (typeof preparedExecution?.then === 'function') {
+        void Promise.resolve(preparedExecution).catch(() => {});
+        throw new TypeError('AsyncClientEffectPreparation');
+      }
+      return Object.freeze({...facts, preparedExecution});
+    },
   });
 }

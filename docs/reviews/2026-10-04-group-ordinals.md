@@ -5,6 +5,12 @@
 Initial parent: #348 at `79d6cf73be340edabea5d692f1273b3d9d178c18`.
 Initial integrated baseline: `ae7007bdd987a26c9f866daa341e6b4996f82571`,
 including main `04e0d806c7927c3aeb1f1dd9908eeb761f013473`.
+Subsequently integrated parent #348 at
+`0f04634056845ea17fc3f4ccc34245d89ef1363e`, which normally merges main
+`8899d1041b390bb7c60742ce79277859e229da61` including merged #338.
+Runner registration conflicts retain GROUP-star, GROUP-position and
+DISTINCT-ORDER cases in both their narrow selections and ordinary CI corpus.
+Main CI settings and existing history declarations are preserved.
 This repair depends on #348's preserved pre-group visible column mapping.
 It does not reopen the completed meaning-preservation audit.
 

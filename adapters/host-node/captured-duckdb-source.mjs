@@ -119,6 +119,12 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
     : checkDuckDBAcquisitionPlanning(acquisitionPlanning);
   const selectionInputs = {moon, requirement, schema, table, contracts,
     source: {database, schema, table, sourceRef}, planning};
+  // A bounded capacity envelope is preparation, not a selected acquisition
+  // or a read grant. It lets the existing pair ledger retain a completed
+  // first input while the second input still awaits its own authorization.
+  const capacityEnvelope = typeof moon.clientProgramPrepareDuckDBCaptureCapacity === 'function'
+    ? checked(moon.clientProgramPrepareDuckDBCaptureCapacity(requirement,
+      schema, table, ...contracts)) : undefined;
   let acquisition, broad = false, selection;
   const decision = await currentReadDecision(database, sourceAccess);
   if (decision.action === 'dispatch') {
@@ -135,6 +141,8 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
   // database distinguishes names that ActQL's logical text normalization
   // treats as equal. The readable names are display only.
   const prepared = Object.freeze({checkedSource, selection,
+    physicalPolicy: Object.freeze({transportLimits: admittedLimits,
+      acquisitionPlanning: planning ?? null}),
     occurrence: Object.freeze({...occurrence}),
     readTuple: Object.freeze({connection: sourceAccess.connection ??
       'local-database', resource: sourceAccess.resource ?? database,
@@ -143,7 +151,8 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
   preparations.set(prepared, Object.freeze({moon, checkedOwner, effectful, registry,
     values, fragment, ordered, database, schema, table, sourceAccess,
     requirement, evidenceContext, acquisition, broad, selection, selectionInputs,
-    transportLimits: admittedLimits, acquisitionPlanning, occurrence: prepared.occurrence}));
+    transportLimits: admittedLimits, acquisitionPlanning, capacityEnvelope,
+    occurrence: prepared.occurrence}));
   return prepared;
 }
 
@@ -196,6 +205,14 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
     if (decision.action !== 'dispatch') throw new ExecutionAuthorizationError(decision);
     if (owner.acquisition === undefined) {
       authorizedSelection = selectAcquisition(owner.selectionInputs);
+    }
+    if (owner.capacityEnvelope !== undefined) {
+      const selected = authorizedSelection ?? owner;
+      const configuration = (selected.broad ? moon.clientProgramCapturedBroadConfiguration
+        : moon.clientProgramCapturedNativeConfiguration)(selected.acquisition);
+      if (!moon.clientProgramDuckDBCaptureCapacityAccepts(owner.capacityEnvelope, configuration)) {
+        throw new Error('InstalledSourceCapacityEnvelopeMismatch');
+      }
     }
     grant = await authorizeLocalDatabase(database, sourceAccess);
   } catch (cause) {
@@ -315,4 +332,18 @@ export function capturedDuckDBPhysicalCapacity(prepared) {
     throw new TypeError('InstalledSourcePreparationMismatch');
   }
   return computePhysicalCapacity(owner.transportLimits);
+}
+
+export function capturedDuckDBPendingCapacity(prepared) {
+  const owner = preparations.get(prepared);
+  if (owner?.capacityEnvelope === undefined) {
+    throw new TypeError('InstalledSourceCapacityEnvelopeUnavailable');
+  }
+  return owner.capacityEnvelope;
+}
+
+export function capturedDuckDBRequirement(prepared) {
+  const owner = preparations.get(prepared);
+  if (owner === undefined) throw new TypeError('InstalledSourcePreparationMismatch');
+  return owner.requirement;
 }

@@ -81,8 +81,10 @@ narrows the local execution.
   The normally packed consumer runs outside the checkout without a MoonBit
   runtime. Successful temporary installations are removed after evidence and
   digests are retained.
-- Exact submitted-HEAD automatic CI is pending; the preceding product's public
-  success is not relabeled as final integration evidence.
+- Automatic CI at `79d6cf73be340edabea5d692f1273b3d9d178c18`
+  [completed successfully](https://github.com/actql/actql/actions/runs/37186312710),
+  including the ordinary packed corpus and final check. This remains that SHA's
+  evidence; subsequent integration is verified separately.
 - No full local Core, all-target, proof, performance or manual CI rerun.
 
 Reproduce the selected public corpus with the repository-pinned toolchain:
@@ -114,3 +116,13 @@ its existing history declaration/tests. Frontend source, fixture and packed
 consumer bytes are unchanged by that merge. No broad local rerun is added
 solely for integration; exact submitted-HEAD CI verifies the combined tree.
 There is no unmerged dependency on another Frontend or common-owner PR.
+
+Normally merged main `04e0d806c7927c3aeb1f1dd9908eeb761f013473`, then
+`8899d1041b390bb7c60742ce79277859e229da61`, retaining current Source/capture,
+conditional-cell and isolated-runtime fixes. The latter includes merged #338.
+Two packed-runner registration conflicts were resolved by retaining both the
+GROUP-star and DISTINCT-ORDER imports, narrow selections and ordinary corpus
+cases. Main's CI settings and history declarations are preserved. No product
+change is added to the GROUP-star repair by this integration. The new submitted
+SHA's automatic CI is pending; the earlier CI and package receipts above do not
+establish success for the integrated tree.

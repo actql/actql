@@ -110,6 +110,26 @@ Unknown dependencies cause the affected actions to execute; they never grant
 permission to reuse and do not automatically invalidate unrelated closed leaves.
 No inherited secret values or secret-derived hashes may enter the manifest.
 
+The isolated JS image excludes exactly four installed-core build-owner files:
+`lib/core/_build/.moon_db` and `lib/core/_build/{js,wasm,native}/release/bundle/all_pkgs.json`.
+They are absent from the executor, rather than ignored or normalized when
+hashing an image that can still read them. The independent image validator
+rejects their reintroduction. Compiler executables, loaders, core source,
+manifests, `.mi` and `.core` bytes remain bound; unreviewed files are still
+included. The whole-installation runtime observation and its unresolved
+boundaries remain unchanged. CPU/platform differences still force fresh work.
+
+For the pinned Moon revision `94521dbd387b041d449918a6495346d407cfb698`,
+the [selected workspace layout](https://github.com/moonbitlang/moon/blob/94521dbd387b041d449918a6495346d407cfb698/crates/moonbuild-rupes-recta/src/target_layout.rs#L634)
+owns the build database. The [runner generates package metadata](https://github.com/moonbitlang/moon/blob/94521dbd387b041d449918a6495346d407cfb698/crates/moon/src/rr_build/mod.rs#L955)
+in that selected workspace, and [installed-core lookup](https://github.com/moonbitlang/moon/blob/94521dbd387b041d449918a6495346d407cfb698/crates/moonutil/src/moon_dir.rs#L268)
+resolves prebuilt core artifacts. This is the source-level rationale for the
+isolated staging boundary, not a formal proof of the compiler binary. Ordinary
+CI must still execute all thirteen assertion mutations in the resulting image,
+verify byte-exact restoration and complete the existing JS/Wasm/native checks.
+The policy change invalidates earlier keys; old images are not relabeled as
+matching this boundary.
+
 ### Immutable origin receipt
 
 Canonical UTF-8 JSON uses the existing `action-inputs.mjs` encoding rules.
