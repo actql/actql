@@ -612,13 +612,15 @@ fn check_impl(
     }
     // Projection and the implemented filter/derive/sort/take kernels preserve
     // conditional rows without making conditional fields ordinary values.
+    // Distinct's own checker permits only a guaranteed-key projection here.
     // This checked boundary also covers consumers using Knowledge directly,
     // rather than letting them infer dense rows from known field types.
     if key != "select" &&
       key != "filter" &&
       key != "derive" &&
       key != "sort" &&
-      key != "take" {
+      key != "take" &&
+      key != "distinct" {
       if carrier(input, inputs, steps) is @carrier.Relation(rows) {
         if !@carrier.all_fields_required(rows) {
           fail(
@@ -1687,7 +1689,8 @@ fn check_impl(
             key == "filter" ||
             key == "derive" ||
             key == "sort" ||
-            key == "take",
+            key == "take" ||
+            key == "distinct",
         )
         let operation_limits : @relation.Limits = {
           max_work: b.work,
