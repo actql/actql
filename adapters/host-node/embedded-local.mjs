@@ -951,11 +951,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
             store, storeAuthorityCid, authorityScopeCid,
             observeRun: ({ref}) => observeRun({ref, principalId}),
             openComputation: ({retainComputationOwner} = {}) => {
-              if (moon.clientProgramEffectPrepareQueryAcquisition(
+              if (inferSelections.has(facts.prepared) ||
+                  moon.clientProgramEffectPrepareQueryAcquisition(
                 facts.prepared, 0, 0)?.$tag === 1) {
                 const sourceContinuation = acquiredEffectContinuation({
                   checkpoints: inferSelections.has(facts.prepared) ||
-                    sourceProfile.realizationKey !== 'duckdb-acquired' ? undefined : sourceCheckpoints,
+                    sourceProfile?.realizationKey !== 'duckdb-acquired' ? undefined : sourceCheckpoints,
                   moon, acquired: facts.preparedExecution,
                   submission: effectSubmissions.get(facts.prepared),
                   declaredResults: moon.clientProgramEffectCompilationResultNames(facts.compilation),
@@ -966,8 +967,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
                 return openAcquiredEffectComputation({moon,
                   owner: facts.owner, acquired: facts.preparedExecution,
                   sourceProfile, registry, values, fragment, ordered,
-                  sourceAccess: sourceProfile.sourceAccess, signal, now,
+                  sourceAccess: sourceProfile?.sourceAccess, signal, now,
                   retainComputationOwner, infer: inferSelections.get(facts.prepared),
+                  computeConfigurations: {local: localSnapshotConfiguration},
                   store, principalId, faultInjection: authorization?.faultInjection,
                   observe: authorization?.observe, sourceContinuation});
               }
@@ -1033,7 +1035,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
         const options = {moon, control, prepared,
           compilation, allowed, definition, authorityScopeCid, namespaceId,
           storeAuthorityCid, now, resultDataPolicy: retainedResultDataPolicy};
-        return moon.clientProgramEffectPrepareQueryAcquisition(prepared,
+        return inferSelections.has(prepared) ||
+          moon.clientProgramEffectPrepareQueryAcquisition(prepared,
           0, 0)?.$tag === 1
           ? acquiredEffectPublicationAdmission(options)
           : sourceFreeEffectPublicationPlan(options);
@@ -1102,7 +1105,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     // Its start claim cannot be reset by a lost response or a second submit.
     void effectRun.start(accepted).catch(error => {
       diagnostic('effect_start_failed', {ref: accepted.ref,
-        code: error?.code ?? error?.message});
+        code: error?.code ?? error?.message, cause: error?.cause});
     }).finally(() => settleHeldRun(accepted, runIdOf(accepted)))
       .catch(error => diagnostic('effect_settlement_failed', {
         ref: accepted.ref, code: error?.code ?? error?.message}));
@@ -1415,7 +1418,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       }, error => {
         if (!startObserved) settle({refused: error});
         diagnostic('effect_start_failed', {ref: accepted.ref,
-          code: error?.code ?? error?.message});
+          code: error?.code ?? error?.message, cause: error?.cause});
       }).finally(() => settleHeldRun(accepted, runId))
         .catch(error => diagnostic('effect_settlement_failed', {
           ref: accepted.ref, code: error?.code ?? error?.message}));

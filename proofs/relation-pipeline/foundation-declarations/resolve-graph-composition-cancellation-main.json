@@ -1,0 +1,64 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-graph-composition-cancellation-main",
+  "kind": "resolution",
+  "revision": "24ab15658c9b55c28d80ee8c7b20f95e76c9e4fa",
+  "parents": [
+    "61e029c3ee99a1fb4dae4468a7698402f106aac0",
+    "313782a85f1114b907375e2800d4aefb3a938712"
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-3877b637406b",
+    "adopt-63b114ad524b",
+    "adopt-678626b010b4",
+    "adopt-7427f7f09276",
+    "adopt-9a7c592a8ed9",
+    "adopt-b480cffb6e6d",
+    "adopt-bf2d058c21c1",
+    "adopt-f24288853c19",
+    "adopt-sga-query-contract",
+    "ci-mandatory-preflight",
+    "frontend-sga-main-integration",
+    "frontend-unified-graph-source-integration",
+    "graph-composition-fixture-registration",
+    "main-pr233-package-resolution",
+    "packed-composed-infer-effect-acceptance",
+    "pr164-main-a32-verification-resolution",
+    "pr164-main4f-runtime-check-resolution",
+    "pr164-property-graph-source",
+    "public-text-computation-bridge-ci",
+    "remove-duplicate-runtime-package-checks",
+    "resident-cancellation-issuer-registration",
+    "resident-source-native-registration",
+    "resolve-cancellation-foundation-main-5caeccc79",
+    "resolve-composition-custody-main-maximal-bases",
+    "resolve-composition-frontend-latest-main",
+    "resolve-composition-infer-main-maximal-bases",
+    "resolve-composition-resident-source-main",
+    "resolve-composition-reviewed-supplements-main",
+    "resolve-graph-composition-text-main",
+    "resolve-resident-source-latest-main",
+    "sdk-cancel-response-loss-registration"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "61e029c3ee99a1fb4dae4468a7698402f106aac0",
+          "digest": "fe1d9370f1341066406ab73946c3d2129a6fcdf4ea958a4e9833ab42f4447284",
+          "mode": "100644"
+        },
+        {
+          "revision": "313782a85f1114b907375e2800d4aefb3a938712",
+          "digest": "6b86f29a66da78ef94db188f81770e8b442ffcff27714c6c785cca9d3473568e",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "cf9a8a4f7cc0db302d794f99ea1b30aedcabd7b1274a41069a30f7492ef56640",
+      "afterMode": "100644",
+      "reason": "Retain main coordinator cancellation regression registration and the independent Graph composition fixture checks in the existing package commands. Preserve current incremental CI settings and all historical declarations and supplements."
+    }
+  ]
+}
