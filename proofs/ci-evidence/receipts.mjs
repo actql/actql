@@ -5,6 +5,9 @@ import {openArtifactZip} from '../../scripts/ci-artifact-reader.mjs';
 import {compareInputs, hash, inputVersion} from './inputs.mjs';
 import {validateCatalog, version as catalogVersion} from './actions.mjs';
 import {ArtifactUnavailable} from './transport.mjs';
+import {mutationIds} from './mutation-inventory.mjs';
+export {mutationIds} from './mutation-inventory.mjs';
+import {isolatedProfile} from './isolated-runtime.mjs';
 
 export const receiptVersion = 'actql-verification-action-receipt/0.1';
 const positive = value => Number.isSafeInteger(value) && value > 0;
@@ -61,6 +64,11 @@ export function validateReceipt(receipt) {
   }
   const observation = receipt.artifacts.find(entry => entry.path === `observations/${receipt.action.id}.log`);
   assert(observation && observation.digest === execution.observationDigest, 'Missing bound execution observation');
+  if (receipt.inputs.inputs.runtime.profile === isolatedProfile) {
+    assert.equal(receipt.action.id, 'mutations-js', 'Isolated profile applied to another action');
+    assert(['isolated-inputs.json', 'isolated-observation.json', 'isolated-execution.json'].every(path =>
+      receipt.artifacts.some(entry => entry.path === path)), 'Missing bound isolated correspondence');
+  }
   return receipt;
 }
 
@@ -90,10 +98,7 @@ export function observationUnits(action, output, status) {
   throw new Error('Unreviewed action observation');
 }
 
-export const mutationIds = Object.freeze(['stale-token-reuse', 'zero-quantum', 'terminal-resume',
-  'cleanup-changed-as-complete', 'cumulative-as-delta', 'reset-budget-history', 'accept-backward-work',
-  'adapter-terminal-resume', 'premature-cleanup-success', 'cleanup-retry-reruns-callback',
-  'actual-set-path-reaches-adapter', 'actual-nest-path-reaches-adapter', 'nest-parent-child-ports-swapped']);
+
 
 export function sealReceipt({origin, action, inputs, output, status, milliseconds, artifacts = []}) {
   const observation = Buffer.from(output);
