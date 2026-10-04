@@ -6,6 +6,8 @@ import {createRequire} from 'node:module';
 import {tmpdir, userInfo} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+// The installed connector table runs with the installation tests.
+import './installed-connectors.test.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from
   './embedded-local.mjs';
 import {installedEffectIdentity} from './installed-effect.mjs';
