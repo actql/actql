@@ -18,6 +18,8 @@ pub fn data_declaration_at(QueryScript, Int) -> DataDeclaration?
 
 pub fn data_declaration_count(QueryScript) -> Int
 
+pub fn effect_result_continuation(Query, NamePart) -> (Query, Query)?
+
 pub fn expression_child(Expression, Int) -> Expression?
 
 pub fn expression_document(Expression) -> @frontend_source_map.Document
@@ -80,9 +82,13 @@ pub fn set_part_at(Query, Int) -> SetPart?
 
 pub fn set_part_count(Query) -> Int
 
+pub fn single_query_script(Query) -> QueryScript
+
 pub fn starts_query(String, LexicalLimits, source_path? : String) -> Result[Bool, Diagnostic]
 
 pub fn starts_sql(String, LexicalLimits, source_path? : String) -> Result[Bool, Diagnostic]
+
+pub fn terminal_effect(Query) -> UpdateEffectClause?
 
 pub fn token_at(Tokens, Int) -> Token?
 
@@ -269,6 +275,7 @@ pub(all) struct JoinPart {
   on : Expression?
   using_columns : Array[NamePart]
   pre_join_filter : Expression?
+  max_output_rows : Int64?
 }
 
 pub(all) struct KeepItem {
@@ -379,6 +386,7 @@ pub(all) struct QueryLimits {
 
 pub(all) enum QueryOperation {
   GraphCall(SgaCall)
+  AssertUnique(Array[Array[NamePart]])
   Infer(InferClause)
   Nearest(NearestClause)
   RetainResult(NamePart)
@@ -443,6 +451,15 @@ pub struct Token {
 } derive(Eq, @debug.Debug)
 
 type Tokens
+
+pub(all) struct UpdateEffectClause {
+  name : NamePart
+  target : String
+  mapping : NamePart
+  result : NamePart
+  id : NamePart
+  set : Array[(NamePart, Expression)]
+}
 
 // Type aliases
 

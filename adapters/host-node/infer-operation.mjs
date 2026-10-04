@@ -271,7 +271,9 @@ export function openNodeComposedInferProvider({moon, selected, sources,
         failure = error;
         return false;
       }
-    });
+    }, active => operation !== undefined &&
+      activeOperations.get(operation) === active &&
+      operation.cleanupPending() === false);
   return Object.freeze({provider, operation: () => operation,
     failure: () => failure});
 }

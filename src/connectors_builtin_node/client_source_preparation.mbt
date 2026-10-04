@@ -313,18 +313,12 @@ pub fn client_program_prepare_source_with_parameters(
   declarations : String?,
   parameters : String?,
 ) -> ClientProgramBridgeOutcome {
-  let context = client_source_context(environment, publication, declarations) catch {
-    ClientSourceStop(issue) => return Rejected(SourcePreparation(issue))
-  }
-  let selected = match @source_frontend.select_format(format) {
-    Ok(Text) => @source_frontend.Text
-    Ok(Sql) => @source_frontend.Sql
-    _ => return Rejected(InvalidFormat)
-  }
   let lowered = match
-    @source_frontend.lower(document, selected, Some(context)) {
+    client_program_lower_source(
+      document, format, environment, publication, declarations,
+    ) {
     Ok(value) => value
-    Err(issue) => return Rejected(SourcePreparation(Frontend(issue)))
+    Err(issue) => return Rejected(issue)
   }
   client_program_prepare_effect_free_with_parameters(
     lowered.document,
@@ -332,4 +326,120 @@ pub fn client_program_prepare_source_with_parameters(
     environment,
     parameters,
   )
+}
+
+///|
+fn client_program_lower_source(
+  document : String,
+  format : String,
+  environment : @program_check.CheckEnvironment,
+  publication : String,
+  declarations : String?,
+) -> Result[@source_frontend.Lowered, ClientProgramBridgeIssue] {
+  let context = client_source_context(environment, publication, declarations) catch {
+    ClientSourceStop(issue) => return Err(SourcePreparation(issue))
+  }
+  let selected = match @source_frontend.select_format(format) {
+    Ok(Text) => @source_frontend.Text
+    Ok(Sql) => @source_frontend.Sql
+    _ => return Err(InvalidFormat)
+  }
+  match @source_frontend.lower(document, selected, Some(context)) {
+    Ok(value) => Ok(value)
+    Err(issue) => Err(SourcePreparation(Frontend(issue)))
+  }
+}
+
+///|
+/// Select an existing computation owner from the parser's Effect inventory,
+/// before semantic checking. Neither branch is a fallback for the other.
+pub(all) enum ClientSourceComputationBridgeOutcome {
+  SourcePure(ClientProgramBridgeOutcome)
+  SourceEffect(ClientEffectProgramBridgeOutcome)
+}
+
+///|
+#export_name("clientProgramPrepareSourceComputationWithParameters")
+pub fn client_program_prepare_source_computation_with_parameters(
+  document : String,
+  format : String,
+  environment : @program_check.CheckEnvironment,
+  publication : String,
+  declarations : String?,
+  parameters : String?,
+  allow_effects : Bool,
+  evidence : Array[@context.StageCapacityInput],
+) -> ClientSourceComputationBridgeOutcome {
+  let lowered = match
+    client_program_lower_source(
+      document, format, environment, publication, declarations,
+    ) {
+    Ok(value) => value
+    Err(issue) => return SourcePure(Rejected(issue))
+  }
+  let (_, supplied) = match client_program_input("json", parameters) {
+    Ok(value) => value
+    Err(issue) => return SourcePure(Rejected(issue))
+  }
+  let limits = client_program_standard_limits()
+  let parsed = match
+    @stage_syntax.parse(
+      lowered.document,
+      limits.checking.input,
+      format=lowered.format,
+    ) {
+    Ok(value) => value
+    Err(issue) => return SourcePure(Rejected(Preparation(Syntax(issue))))
+  }
+  for stage in @stage_syntax.stages(parsed) {
+    if !@stage_syntax.effect_names(stage).is_empty() {
+      if !allow_effects {
+        return SourcePure(Rejected(Preparation(EffectNotSupported(stage.id))))
+      }
+      return SourceEffect(
+        match
+          @publication_host.prepare_parsed_client_effect_computation(
+            parsed,
+            environment,
+            supplied,
+            evidence,
+            client_program_effect_limits(),
+          ) {
+          Ok(value) => EffectPrepared(value)
+          Err(issue) => EffectRejected(Preparation(issue))
+        },
+      )
+    }
+  }
+  SourcePure(
+    match
+      @publication_host.prepare_parsed_effect_free_client_program(
+        parsed, environment, supplied, limits,
+      ) {
+      Ok(value) => Prepared(value)
+      Err(issue) => Rejected(Preparation(issue))
+    },
+  )
+}
+
+///|
+#export_name("clientProgramSourceComputationPure")
+pub fn client_program_source_computation_pure(
+  outcome : ClientSourceComputationBridgeOutcome,
+) -> ClientProgramBridgeOutcome? {
+  match outcome {
+    SourcePure(value) => Some(value)
+    SourceEffect(_) => None
+  }
+}
+
+///|
+#export_name("clientProgramSourceComputationEffect")
+pub fn client_program_source_computation_effect(
+  outcome : ClientSourceComputationBridgeOutcome,
+) -> ClientEffectProgramBridgeOutcome? {
+  match outcome {
+    SourcePure(_) => None
+    SourceEffect(value) => Some(value)
+  }
 }

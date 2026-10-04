@@ -19,6 +19,12 @@ function installation() {
       calls.push({kind: 'source', args});
       return {prepared};
     },
+    clientProgramPrepareSourceComputationWithParameters: (...args) => {
+      calls.push({kind: 'source', args});
+      return {pure: {prepared}};
+    },
+    clientProgramSourceComputationPure: outcome => outcome.pure,
+    clientProgramSourceComputationEffect: outcome => outcome.effect,
     clientProgramPrepareEffectFreeWithParameters: (...args) => {
       calls.push({kind: 'program', args});
       return {prepared};
@@ -69,6 +75,74 @@ test('JSON Program keeps its existing preparation route', () => {
   }, parameters: null}), {code: 'ClientProgramInvalidInput'});
 });
 
+test('lowered text Effect goes directly to its existing owner without resubmitting text', () => {
+  const {moon, calls} = installation();
+  const preparedEffect = {};
+  const evidence = [{}];
+  moon.clientProgramPrepareSourceWithParameters = () => ({
+    code: 'effect_not_supported', issue: {kind: 'effect'},
+  });
+  moon.clientProgramPrepareSourceComputationWithParameters = (...args) => {
+    calls.push({kind: 'source', args});
+    return {effect: {preparedEffect}};
+  };
+  moon.clientProgramPrepareEffectComputationWithParameters = (...args) => {
+    calls.push({kind: 'original-effect-document', args});
+    return {code: 'invalid_format', issue: {kind: 'text_is_not_json'}};
+  };
+  moon.clientProgramEffectPreparationReady = outcome => outcome.preparedEffect;
+  moon.clientProgramEffectPreparationIssue = outcome => outcome.issue;
+  moon.clientProgramEffectPreparationIssueCode = outcome => outcome.code;
+  const prepare = installNodeClientProgramPreparation({moon, environment,
+    sourcePublication: publication, allowEffects: true, effectEvidence: evidence});
+  evidence.push({foreign: true});
+  const text = 'frontend-authored Effect source';
+  assert.equal(prepare({kind: 'aql', input: {text, format: 'aql-text',
+    parameterDeclarations: {p: {type: 'string'}}}, parameters: {p: 'e\u0301\r\n'}}),
+  preparedEffect);
+  assert.equal(prepare.kindOf(preparedEffect), 'effectful');
+  assert.deepEqual(calls, [{kind: 'source', args: [text, 'aql-text', environment,
+    JSON.stringify(publication), '{"p":{"type":"string"}}', '{"p":"é\\r\\n"}',
+    true, [evidence[0]]]}]);
+  assert.throws(() => prepare.assertOwned({}), TypeError);
+});
+
+test('text Effect closure refusal is preserved without retrying original source', () => {
+  const {moon, calls} = installation();
+  const issue = {kind: 'foreign_mapping'};
+  moon.clientProgramPrepareSourceComputationWithParameters = (...args) => {
+    calls.push({kind: 'source', args});
+    return {effect: {issue, code: 'effect_mapping_rejected'}};
+  };
+  moon.clientProgramPrepareEffectComputationWithParameters = () => {
+    throw new Error('SourceMustNotBeResubmitted');
+  };
+  moon.clientProgramEffectPreparationReady = () => undefined;
+  moon.clientProgramEffectPreparationIssue = outcome => outcome.issue;
+  moon.clientProgramEffectPreparationIssueCode = outcome => outcome.code;
+  const prepare = installNodeClientProgramPreparation({moon, environment,
+    sourcePublication: publication, allowEffects: true});
+  assert.throws(() => prepare({kind: 'aql', input: {text: 'frontend-authored Effect source',
+    format: 'aql-text'}, parameters: null}), error => {
+    assert.equal(error.code, 'ClientProgramRejected');
+    assert.equal(error.cause, issue);
+    return true;
+  });
+  assert.equal(calls.length, 1);
+});
+
+test('contradictory source computation branches cannot issue an owned preparation', () => {
+  const {moon, prepared} = installation();
+  for (const outcome of [{}, {pure: {prepared}, effect: {preparedEffect: {}}}]) {
+    moon.clientProgramPrepareSourceComputationWithParameters = () => outcome;
+    const prepare = installNodeClientProgramPreparation({moon, environment,
+      sourcePublication: publication});
+    assert.throws(() => prepare({kind: 'aql', input: {text: 'SELECT 1', format: 'sql'},
+      parameters: null}), {name: 'TypeError', message: 'InvalidClientSourceComputationOutcome'});
+    assert.throws(() => prepare.assertOwned(prepared), TypeError);
+  }
+});
+
 test('mismatched or malformed alias publication cannot be installed', () => {
   const {moon} = installation();
   for (const sourcePublication of [
@@ -89,7 +163,7 @@ test('mismatched or malformed alias publication cannot be installed', () => {
 test('source input is typed unsupported until the shared MoonBit bridge exists',
   () => {
     const {moon} = installation();
-    delete moon.clientProgramPrepareSourceWithParameters;
+    delete moon.clientProgramPrepareSourceComputationWithParameters;
     const prepare = installNodeClientProgramPreparation({moon, environment});
     assert.throws(() => prepare({kind: 'aql', input: {
       text: 'SELECT 1', format: 'sql',
@@ -98,8 +172,9 @@ test('source input is typed unsupported until the shared MoonBit bridge exists',
 
 test('confirmed Frontend refusal keeps a typed input error', () => {
   const {moon} = installation();
-  moon.clientProgramPrepareSourceWithParameters = () => ({
+  moon.clientProgramPrepareSourceComputationWithParameters = () => ({pure: {
     code: 'source_rejected', issue: {kind: 'unknown_alias'},
+  },
   });
   const prepare = installNodeClientProgramPreparation({moon, environment,
     sourcePublication: publication});

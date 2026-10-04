@@ -26,6 +26,21 @@ export function compositionProgram(mappingRef) {
   return program;
 }
 
+// Independently authored text: bind only the installed MappingRef, never a
+// generated Program, operation or Effect. Exact bytes are persisted on submit.
+export const compositionTextTemplate = readFileSync(new URL(
+  './composed-infer-effect.aql.template', import.meta.url), 'utf8');
+const nullAssertionText = readFileSync(new URL(
+  './composed-infer-effect-null-assert.aql.template', import.meta.url), 'utf8');
+export function compositionText(mappingRef, variant = 'normal') {
+  assert.equal(typeof mappingRef, 'string');
+  assert.ok(mappingRef.length > 0 && !/[`\\\r\n]/u.test(mappingRef));
+  assert.ok(['normal', 'duplicate', 'null'].includes(variant));
+  const template = variant === 'null' ? nullAssertionText : compositionTextTemplate;
+  assert.equal(template.split('__PUBLICATION_MAPPING_REF__').length, 2);
+  return template.replace('__PUBLICATION_MAPPING_REF__', mappingRef);
+}
+
 // Installed contract and deterministic test provider remain separate from the
 // Program. No real service, credential, charge or external write is involved.
 export async function modelConfiguration(baseEnvironment) {
