@@ -736,9 +736,11 @@ async function preparePinnedEffectSourcePayloadOwned({
         ...local.dependency.bodies,
         ...local.staticBodies,
         ...localEvidenceContext.retentionDependencies,
-        ...localEvidenceContext.acquisitionDependencies,
+        ...(localEvidenceContext.resultDataPolicy === undefined ? [] :
+          [localEvidenceContext.resultDataPolicy]),
+        ...(localEvidenceContext.acquisitionDependencies ?? []),
         ...(localEvidenceContext.acquiredCatalogBodies
-          ?? localEvidenceContext.acquiredEvidence.catalogBodies),
+          ?? localEvidenceContext.acquiredEvidence?.catalogBodies ?? []),
         schemaBody,
         Object.freeze({kind: 'relation_value', cid: summary.logicalCid,
           wire: '{"sort":"relation","value":' + relationChunks.join('') + '}'}),

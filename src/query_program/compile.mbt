@@ -1398,6 +1398,7 @@ fn compile_steps(
   // alias again after Pipe AS has established a new scope.
   let mut pipe_rebound = projected_input || initial_scope is Some(_)
   let mut pipe_selected = false
+  let mut distinct_order_scope = false
   for i in start_at..<@query.operation_count(query) {
     let operation = @query.operation_at(query, i).unwrap()
     // Graph occurrence slots are an implementation detail, not a public
@@ -1416,6 +1417,7 @@ fn compile_steps(
       // SELECT has materialized its output. Later operators consume that
       // Relation, irrespective of whether SET introduced private slots.
       pipe_selected = false
+      distinct_order_scope = false
       pipe_ranges = []
       sql_group_projection = false
     }
@@ -2254,6 +2256,8 @@ fn compile_steps(
         pipe_selected = true
         if distinct {
           add_distinct = true
+          distinct_order_scope = true
+          pipe_ranges = []
         }
       }
       Select(projections, distinct) if !preserve_identity_select &&
@@ -2268,6 +2272,10 @@ fn compile_steps(
       }
       Select(projections, distinct) => {
         selected_input_fields = active_fields.copy()
+        let input_scope : JoinChainScope = {
+          visible: pipe_visible.copy(),
+          ranges: pipe_ranges.copy(),
+        }
         let names : Array[String] = []
         let derives : Array[(String, @builder.Node)] = []
         let temporary_names : Array[String] = []
@@ -2374,6 +2382,15 @@ fn compile_steps(
         selected_expressions = expressions
         selected_output_slots = bindings.copy()
         add_distinct = distinct
+        if distinct {
+          // DISTINCT materializes only the selected columns. Reuse the
+          // existing projected-scope ORDER path for expressions over those
+          // evaluated aliases; removed input columns remain unavailable.
+          selected_input_scope = input_scope
+          pipe_selected = true
+          distinct_order_scope = true
+          pipe_ranges = []
+        }
         let needs_input_order = if distinct {
           false
         } else {
@@ -2387,6 +2404,11 @@ fn compile_steps(
                     path => resolve_column(path, query, input, active_fields),
                   )
                   is Some(_)
+                let selected_ordinal = order_ordinal_column(
+                    term.expression,
+                    output,
+                  )
+                  is Some(_)
                 let selected_name = match
                   @query.expression_node(
                     term.expression,
@@ -2398,7 +2420,7 @@ fn compile_steps(
                     })
                   _ => false
                 }
-                !selected_expression && !selected_name
+                !selected_expression && !selected_name && !selected_ordinal
               })
             _ => false
           }
@@ -2433,9 +2455,30 @@ fn compile_steps(
           // A materialized DISTINCT/SELECT cannot sort through a range slot
           // that its projection removed. An identical selected expression is
           // handled below using the evaluated output slot.
-          pipe_slot(path, pipe_visible, pipe_ranges).filter(slot => {
+          let current = pipe_slot(path, pipe_visible, pipe_ranges).filter(slot => {
             active_fields.contains(slot)
           })
+          if current is Some(_) {
+            return current
+          }
+          if distinct_order_scope {
+            // A selected input column remains available through its output
+            // slot even when aliased. This does not expose a removed input
+            // or confuse an overwritten alias with its original value.
+            if pipe_slot(
+                path,
+                selected_input_scope.visible,
+                selected_input_scope.ranges,
+              )
+              is Some(source) {
+              for binding in selected_output_slots {
+                if binding.1 == source {
+                  return Some(binding.0)
+                }
+              }
+            }
+          }
+          None
         }
         for term in terms {
           let expression = term.expression
@@ -2454,13 +2497,21 @@ fn compile_steps(
               },
             )
           }
-          let direct = match
-            @query.expression_node(
-              expression,
-              @query.expression_root(expression),
-            ).unwrap().kind {
-            Reference(path) => resolve(path)
-            _ => None
+          let ordinal = order_ordinal_column(
+            expression,
+            pipe_visible.map(pair => pair.0),
+          )
+          let direct = if ordinal is Some(name) {
+            resolve([{ value: name, quoted: false, }])
+          } else {
+            match
+              @query.expression_node(
+                expression,
+                @query.expression_root(expression),
+              ).unwrap().kind {
+              Reference(path) => resolve(path)
+              _ => None
+            }
           }
           let name = if direct is Some(slot) {
             slot
@@ -2497,7 +2548,15 @@ fn compile_steps(
                         max_work,
                       ) {
                       Ok(node) => node
-                      Err(error) => raise Abort(Expression(error))
+                      Err(error) =>
+                        if distinct_order_scope &&
+                          join_reference_paths(expression).any(path => {
+                            resolve(path) is None
+                          }) {
+                          raise Abort(UnsupportedOrdering)
+                        } else {
+                          raise Abort(Expression(error))
+                        }
                     }
                     derives.push((slot, value))
                     hidden.push((expression, slot))
@@ -2558,7 +2617,7 @@ fn compile_steps(
               term.expression,
               @query.expression_root(term.expression),
             ).unwrap().kind
-          let mut selected : String? = None
+          let mut selected = order_ordinal_column(term.expression, output)
           match kind {
             Reference(path) if path.length() == 1 =>
               for field in output {
@@ -5216,7 +5275,7 @@ fn join_order_projection(
       let reserved = visible_names + left_fields + right_fields
       for term in terms {
         let expression = term.expression
-        let mut selected : String? = None
+        let mut selected = order_ordinal_column(expression, visible_names)
         match
           @query.expression_node(expression, @query.expression_root(expression)).unwrap().kind {
           Reference(path) if path.length() == 1 =>

@@ -95,6 +95,22 @@ test('embedded Host reuses equivalent installation options, not object identity'
     {name: 'TypeError', message: 'InstalledHostConfigurationMismatch'});
   });
 
+test('installed Host admits only an exact Result policy original', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-result-policy-'));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const wire = '{"classification":"unknown","source_data_policy_cids":[],"source_response_policy_cids":[],"unknown_provenance":true,"version":"actql-effective-data-policy/0.1"}';
+  const original = {kind: 'data_policy',
+    cid: `sha256:${createHash('sha256').update(wire).digest('hex')}`, wire};
+  await assert.rejects(openInstalledRemoteHttpHost({directory,
+    authenticate: () => userInfo().username,
+    resultDataPolicy: {...original, cid: `sha256:${'a'.repeat(64)}`}}),
+  {code: 'MoonBitHostFailure'});
+  const host = await openInstalledRemoteHttpHost({directory,
+    authenticate: () => userInfo().username, resultDataPolicy: original});
+  t.after(async () => host.close());
+  assert.equal(typeof host.handler, 'function');
+});
+
 test('installed Effect identity compares declarations and generation semantics',
   async t => {
     const directory = await mkdtemp(join(tmpdir(), 'actql-effect-identity-'));

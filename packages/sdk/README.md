@@ -315,6 +315,11 @@ stale revision, changed content or invalid byte boundary. Supplying its optional
 current-input argument validates the same identity/revision/content. Text spans
 are UTF-8 byte intervals; structured values/declarations have revision-bound
 pointers. There is no SDK parser, automatic fix or Host input re-fetch API.
+Unresolved column expressions can carry the lowerer's original authored
+identifier range in `query_invalid`. The range is omitted when the existing
+failure has no authored origin, including unresolved Source names and current
+unaliased-column failures. The SDK uses the same submitted snapshot for both
+syntax and name-resolution ranges.
 `resolveCheckTextRange(outcome, location, currentInput?)` additionally returns
 zero-based `range.start`/`range.end` line and character coordinates with
 `positionEncoding: 'utf-16'`. It reads that same immutable source snapshot and
