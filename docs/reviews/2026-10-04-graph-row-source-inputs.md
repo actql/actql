@@ -62,7 +62,7 @@ The corresponding focused MoonBit issuer test confirms the fixed expectation.
 Generated runtime bundles remain untracked. Fixture generators were run in
 Workers → Node order and required no generated fixture changes.
 
-## Executed evidence
+## Historical pre-main executed evidence
 
 Product/fixture verification SHA:
 `8074f08e4954e87f1b1f37471bbc3d9fb0003dfd`. Any subsequent change adding only
@@ -109,8 +109,9 @@ evidence preservation (`artifactsRemoved: true`).
 No full Core, all-target, proof, performance or full packed suite was run locally.
 Exact submitted-HEAD CI is separate from this selected evidence. This does not
 claim completion of traversal, remaining SGA consumers, snapshot acceptance or
-Frontend r1. #287 remains separately blocked on #295's main integration and
-remaining packed acceptance; neither its 512 MiB limit nor expectations change.
+Frontend r1. At this pre-main baseline, #287 was separately blocked on #295's main
+integration and remaining packed acceptance; its limit and expectations stayed
+unchanged. The later integrated status is recorded below.
 
 ## Main integration follow-up
 
@@ -149,3 +150,7 @@ installation was removed after evidence preservation. Integrated tarball digests
 | actql-node-0.0.0-development.tgz | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
 
 A following report-only commit is not a new packed source verification.
+
+After #295 was integrated, #287's unchanged eight-normal/four-refusal corpus
+also passed packed Local and HTTP at `508cbeccc8826c24eb0c8efc74c0d64168c64a35`.
+That is a separate unit; #287's submitted-HEAD CI and review remain pending.
