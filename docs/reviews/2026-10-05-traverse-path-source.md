@@ -83,6 +83,28 @@ change is claimed here.
 - Changed MoonBit formatting and three packed-fixture script syntax checks
   passed. The unmatched test-name selection executed zero tests and is not
   counted as successful evidence.
-- Clean-HEAD normal-prepack external Local/HTTP acceptance: pending.
+- Clean source `bbf63803fe3b4422e5d12f35a94edf456130aa77` passed normal-prepack
+  external Embedded Local and authenticated HTTP acceptance: 13 positives and
+  18 preparation refusals per transport (eight path positives plus five existing
+  node positives). The command was `node scripts/test-packed-public-query.mjs
+  --graph-traverse-paths-only --keep-artifacts`, serialized through the existing
+  shared heavy-check guard. Receipt `public-query-evidence-7ApkHg` records a clean
+  checkout, all twelve commands at exit zero, complete output and no evidence
+  errors. README Local/HTTPS and missing-asset controls passed separately.
+  Named rows, ordered full type contracts, empty results, path multiplicity,
+  same-Run resend/attach/lookup, completed streams, no private columns and zero
+  acquisition passed. Refusals had zero Run admission and provider I/O.
+- Five packages were produced by ordinary `npm pack` with their prepack hooks,
+  then installed outside the checkout. The consumer has no compiler on PATH.
+  The source identity and package digests below are original receipt evidence;
+  subsequent evidence-only documentation is not another packed execution.
 - Submitted-HEAD required CI, Wasm/native and full integration: pending;
   no full local gate or manual CI rerun is part of this unit.
+
+| Package | Tarball SHA-256 |
+|---|---|
+| client-wire | `52fe3218df346cfb9dae0adc248071563fe68918bded16f8d733415e65584fc0` |
+| sdk | `f81bf27c3bb42a007bc16b6f89a15542a89c7fb844e2893870d1161a8e8abc6d` |
+| run-host-core | `93ba3347347da36ceebe19df8a5806d0c65d1c717961537479cc1e1d6df4f2c3` |
+| local-node | `c149ec2fd0c727d0d6ce344c37ffbe4ea4d36a3933aec245d44636fe15824988` |
+| node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
