@@ -115,6 +115,14 @@ This result belongs to the verified product SHA above. A following evidence-only
 commit does not relabel it as a fresh packed run of the final submitted HEAD;
 that HEAD's integration and normal public corpus are checked by automatic PR CI.
 
+Subsequently integrated main:
+`4cd79be2d720d60288c2816aee318aeb7bd2b3e6`, by normal merge without conflicts.
+It adds E's separate nested supplied Check diagnostics. Frontend repair,
+fixture and acceptance-driver bytes are unchanged by the merge. Its public
+Check bridge changes are retained; the earlier packed result is not relabeled
+as validation of that later bridge. No broad local rerun is added solely for
+the integration; submitted-HEAD CI covers the combined tree.
+
 No common checker/planner/provider, Run/Effect owner, SDK or transport is changed.
 The existing grammar already parses these expressions; no grammar, wire,
 schema, contract version or canonical law changes are introduced. Corrected
