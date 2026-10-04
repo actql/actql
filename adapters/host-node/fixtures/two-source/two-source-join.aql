@@ -1,0 +1,7 @@
+DATA left_rows = FROM left_records |> WHERE id >= 0 |> SELECT id, amount;
+DATA right_rows = FROM right_records |> WHERE id >= 0 |> SELECT id, amount;
+DATA joined_rows = SELECT l.id AS id, l.amount AS left_amount, r.amount AS right_amount
+  FROM left_rows AS l JOIN right_rows AS r ON l.id = r.id MAX_OUTPUT_ROWS 100;
+FROM joined_rows
+  |> ORDER BY id, left_amount, right_amount
+  |> RESULT joined

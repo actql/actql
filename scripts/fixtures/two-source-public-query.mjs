@@ -24,6 +24,7 @@ export async function loadTwoSourceFixtures(directory) {
     environments: {left: await json('left.environment.json'),
       right: await json('right.environment.json')},
     program: await readFile(resolve(directory, 'two-source-join.program.json'), 'utf8'),
+    textProgram: await readFile(resolve(directory, 'two-source-join.aql'), 'utf8'),
     leftOnly: await readFile(resolve(directory, 'left-only.program.json'), 'utf8')};
 }
 
@@ -46,11 +47,16 @@ export async function installTwoSourceFixtures({root, fixture, duckdb}) {
     ['right_missing', 'right', 'right'], ['left_broad', 'left', 'left'],
     ['right_broad', 'right', 'right'], ['right_missing_broad', 'right', 'right']]) {
     const environment = fixture.environments[source], database = databases[databaseName];
+    const view = environment.source_views[0];
     profiles[name] = resolve(root, `${name}.profile.json`);
     await writeFile(profiles[name], canonical({
       acquisitionPlanning: {policy: 'priority', priority: name.endsWith('_broad')
         ? ['broadQuery', 'nativeQuery'] : ['nativeQuery', 'broadQuery']},
     version: 'actql-installed-duckdb-source/0.1', database, schema: 'main',
+      queryAliases: [{name: source + '_records',
+        sourceRef: environment.schema_snapshots[0].source_ref,
+        sourceViewContractCid: view.contract_cid,
+        schemaContractCid: view.output.schema.cid}],
       table: name.startsWith('right_missing') ? 'missing_records' : 'records',
       sourceRef: environment.schema_snapshots[0].source_ref,
       checkEnvironmentWire: canonical(environment),
@@ -166,8 +172,10 @@ export async function openTwoSourcePublicHost({connect, openInstalledRemoteHttpH
 export async function exerciseTwoSourcePublicQuery({connect, openInstalledRemoteHttpHost,
   root, fixture, installation, provider, tls, authorization}) {
   const retained = [];
-  for (const mode of ['local', 'https']) for (const variant of ['distinct', 'equal-content', 'unused-right', 'broad']) {
-    const sourceProfilePaths = variant === 'broad'
+  for (const mode of ['local', 'https']) for (const variant of [
+    'distinct', 'equal-content', 'unused-right', 'broad', 'native-text', 'broad-text']) {
+    const broad = variant === 'broad' || variant === 'broad-text';
+    const sourceProfilePaths = broad
       ? [installation.profiles.left_broad, installation.profiles.right_broad]
       : [installation.profiles.left,
         installation.profiles[variant === 'equal-content' ? 'right_equal' : 'right']];
@@ -175,7 +183,9 @@ export async function exerciseTwoSourcePublicQuery({connect, openInstalledRemote
     const expectedDatabases = variant === 'unused-right' ? [installation.databases.left]
       : [installation.databases.left, installation.databases[variant === 'equal-content' ? 'equal_content' : 'right']];
     const results = expectedTwoSourceResults(fixture, variant);
-    const text = variant === 'unused-right' ? fixture.leftOnly : fixture.program;
+    const text = variant.endsWith('-text') ? fixture.textProgram
+      : variant === 'unused-right' ? fixture.leftOnly : fixture.program;
+    const format = variant.endsWith('-text') ? 'aql-text' : 'json';
     const observe = () => ({...provider.snapshot(), acceptedRuns: readTwoSourceJournal(directory).length});
     const before = provider.snapshot();
     const selections = [];
@@ -201,10 +211,11 @@ export async function exerciseTwoSourcePublicQuery({connect, openInstalledRemote
       assert.deepEqual(provider.snapshot(), before, 'plural check performs no provider I/O');
       await exercisePublicQueryInput(connect, running.options, {
         requestPrefix: `${mode}-${variant}`, observe, refusals: [],
-        successes: [{name: 'two-source-join', text, format: 'json', results,
+        successes: [{name: 'two-source-join', text, format, results,
           sourceReadSessionCount: expectedDatabases.length}],
         completedCase: item => retained.push({mode, variant, directory, sourceProfilePaths,
-          ref: item.ref, requestId: `${mode}-${variant}-two-source-join`}),
+          ref: item.ref, requestId: `${mode}-${variant}-two-source-join`,
+          submission: {document: text, format}}),
       });
       const commands = provider.snapshot().sourceReadCommands.slice(before.sourceReadCommands.length);
       const opens = provider.snapshot().sourceProviderOpens.slice(before.sourceProviderOpens.length);
@@ -216,14 +227,14 @@ export async function exerciseTwoSourcePublicQuery({connect, openInstalledRemote
       assert.equal(selections.length, expectedDatabases.length);
       for (const selected of selections) {
         assert.equal(selected.status, 'selected');
-        assert.equal(selected.selectedCandidate, variant === 'broad' ? 'broadQuery' : 'nativeQuery');
+        assert.equal(selected.selectedCandidate, broad ? 'broadQuery' : 'nativeQuery');
         assert.equal(selected.selectionBasis, 'explicitPriority');
         assert.ok(selected.nativeSupported && selected.broadSupported,
           'the common owner reports both eligible candidates before explicit priority');
       }
     } finally { await running.close(); }
   }
-  assert.equal(retained.length, 8);
+  assert.equal(retained.length, 12);
   return retained;
 }
 
@@ -245,8 +256,10 @@ export async function verifyTwoSourceRetained({connect, openInstalledRemoteHttpH
         assert.equal(reader.state(), 'complete');
       }
       assert.deepEqual((await client.lookupRequest(item.requestId)).ref, item.ref);
-      const resent = await client.aql(item.variant === 'unused-right' ? fixture.leftOnly : fixture.program,
-        {format: 'json', requestId: item.requestId});
+      assert.equal(typeof item.submission.document, 'string');
+      assert.ok(['json', 'aql-text'].includes(item.submission.format));
+      const resent = await client.aql(item.submission.document,
+        {format: item.submission.format, requestId: item.requestId});
       assert.deepEqual(resent.ref, item.ref);
       assert.equal((await resent.status()).status, 'succeeded');
       assert.deepEqual(readTwoSourceJournal(item.directory), before, 'retained access adds no admission or physical transition');
