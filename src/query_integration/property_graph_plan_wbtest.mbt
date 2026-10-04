@@ -219,15 +219,18 @@ test "retained external Relation selector splits only its Carrier consumer" {
       Some(0),
     )
   }
-  // Independent authored-shape account: original DAG admission 43;
+  // Original DAG admission: former 43 + 55 contextual obligation visits
+  // + one root Result binding = 99. Repeated imported producer occurrences
+  // are distinct visits: rows 2; selections 10 + 2 * 2 = 14;
+  // query 21 + 2 * 2 + 14 = 39; total 2 + 14 + 39 = 55.
   // classification 30 (including the five retained-selector edge visits);
   // task mapping 8; edge mapping 33; controls 2; operations 36; Result 1.
   // The full retained-selector scan costs five even when its match is last.
-  // The earlier 55-entry requirement-inventory guard runs before classification.
-  // Budgets 66 and 70 therefore check preparation-wide refusal only;
-  // they do not identify the first or fifth retained-selector edge.
-  // 152 is one short of the complete immutable graph. No partial graph escapes.
-  for work in [0, 43, 66, 70, 152] {
+  // Preserve previous low limits, including the former 153-unit success.
+  // The inventory is spent before classification: 122 stops before the
+  // selector's first edge and 126 before its fifth. 208 is one short of
+  // the complete graph; 209 succeeds without changing any output/owner.
+  for work in [0, 43, 66, 70, 99, 122, 126, 152, 153, 208] {
     assert_true(
       @strategy.prepare_checked_dag(
         program,
@@ -243,7 +246,7 @@ test "retained external Relation selector splits only its Carrier consumer" {
     program,
     owners,
     20,
-    153,
+    209,
     source_free_root=true,
   ).unwrap()
   assert_true(physical_equal(@strategy.graph_program(bounded), program))
