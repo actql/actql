@@ -12,7 +12,8 @@ import {isAbsolute} from 'node:path';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {acquisitionFailure} from '../host-common/acquisition-outcome.mjs';
-import {authorizationRuntimeCode} from '../host-common/authorization-gate.mjs';
+import {authorizationDispatchFacts, authorizationRuntimeCode} from
+  '../host-common/authorization-gate.mjs';
 import {checkpointApprovalFacts} from '../host-common/checkpoint-approval.mjs';
 import {canonicalJson, contentCid, createLocalAuthorizationGate} from
   './local-account-config.mjs';
@@ -229,6 +230,33 @@ export async function openRowSourceCredentialSite({profile, principalId,
         fail('RowSourceGrantNotAuthorized');
       }
       return sign({operation, runInvocationCid, dispatchRequestCid, maxUses});
+    },
+    // One write grant for an Effect commit decision on `resource`, for the
+    // sealed Set `subjectCid`. A commit the Host's own Checkpoint commit gate
+    // decided counts only when that gate decided it for this principal under
+    // this exact account configuration; the gate owns its approval's
+    // currency.
+    issueEffectGrant({operation, decision, resource, runInvocationCid,
+      dispatchRequestCid, subjectCid}) {
+      ensureOpen();
+      const facts = authorizationDispatchFacts(decision);
+      const hostCommit = facts !== undefined &&
+        facts.principal === principalId &&
+        facts.configurationCid === authorization.configurationCid;
+      if (!text(operation) || !cidPattern.test(subjectCid ?? '') ||
+          !(authorization.issued(decision) || hostCommit) ||
+          decision.action !== 'dispatch' ||
+          decision.boundary !== 'effect_commit' ||
+          (!hostCommit &&
+            decision.contextCid !== authorization.context.contextCid) ||
+          decision.tuple?.connection !== connection ||
+          decision.tuple?.resource !== resource ||
+          decision.tuple?.operation !== 'effect' ||
+          decision.subjectCid !== subjectCid) {
+        fail('RowSourceGrantNotAuthorized');
+      }
+      return sign({operation, runInvocationCid, dispatchRequestCid,
+        maxUses: 1});
     },
     close() {
       closing = true;
