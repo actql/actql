@@ -40,13 +40,18 @@ const mutations = [
     '@encode.number_value(writer, (start + 1).to_double())'],
 ];
 
+const strict = id => ({id, operator: 'strictEqual'});
+const deep = id => ({id, operator: 'deepStrictEqual'});
 const targets = [
-  ['a disclosable violation is reported beside a protected source', ['public-violation']],
-  ['a disclosable violation is reported beside a protected source', ['protected-unresolved']],
-  ['an exhausted analysis budget is undetermined, not invalid or failed', ['construction-budget']],
-  ['parameter budgets are limits, never violations', ['binding-budget']],
-  ['supplied type violations and missing values expose different typed facts', ['missing-value']],
-  ['authored syntax locations retain exact UTF-8 input revisions', ['syntax-outcome', 'syntax-location']],
+  ['a disclosable violation is reported beside a protected source', [deep('public-violation')]],
+  ['a disclosable violation is reported beside a protected source',
+    [strict('protected-outcome'), deep('protected-unresolved')]],
+  ['an exhausted analysis budget is undetermined, not invalid or failed',
+    [strict('construction-outcome'), deep('construction-budget')]],
+  ['parameter budgets are limits, never violations', [deep('binding-budget')]],
+  ['supplied type violations and missing values expose different typed facts', [strict('missing-value')]],
+  ['authored syntax locations retain exact UTF-8 input revisions',
+    [strict('syntax-outcome'), deep('syntax-location')]],
 ];
 
 // Reuse the common reporter and nonzero-execution evidence. A process failure
@@ -55,6 +60,7 @@ export function mutationAcceptance(result, expected, file = acceptance) {
   const fault = () => { throw new Error('Mutation verification infrastructure failure: ' +
     `${result.error?.code ?? result.signal ?? result.status}\n${result.stdout ?? ''}\n${result.stderr ?? ''}`); };
   if (result.error || result.signal || ![0, 1].includes(result.status)) fault();
+  if (!Array.isArray(expected) || expected.length === 0) fault();
   if (/Local check stopped:|evidence write failed/iu.test(result.stderr ?? '')) fault();
   // Selected acceptance cases have no diagnostic events. Reject any such
   // event, including asynchronous exceptions after an assertion has failed.
@@ -82,9 +88,9 @@ export function mutationAcceptance(result, expected, file = acceptance) {
     seen.add(entry.name);
     if (!entry.passed && (entry.failureType !== 'testCodeFailure' ||
         entry.errorCode !== 'ERR_ASSERTION' ||
-        !['strictEqual', 'deepStrictEqual'].includes(entry.operator) ||
         typeof entry.errorMessage !== 'string' ||
-        !target.assertions.some(id => entry.errorMessage.startsWith(`[check-mutation:${id}]`)))) fault();
+        !target.assertions.some(({id, operator}) => entry.operator === operator &&
+          entry.errorMessage.startsWith(`[check-mutation:${id}]`)))) fault();
   }
   const failed = cases.filter(entry => !entry.passed).length;
   if (failed !== counts.failed || (result.status === 0

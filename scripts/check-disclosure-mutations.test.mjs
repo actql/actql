@@ -7,7 +7,7 @@ import test from 'node:test';
 import {mutationAcceptance} from './check-disclosure-mutations.mjs';
 import {nodeTestArguments} from './test-execution.mjs';
 
-const expected = [{name: 'selected', assertions: ['expected']}];
+const expected = [{name: 'selected', assertions: [{id: 'expected', operator: 'strictEqual'}]}];
 function fixture(t) {
   const directory = mkdtempSync(join(tmpdir(), 'actql-mutation-evidence-'));
   t.after(() => rmSync(directory, {recursive: true, force: true}));
@@ -32,6 +32,8 @@ function fixture(t) {
 test('mutation evidence requires the named expected assertion, or a genuine pass', t => {
   const {file, run} = fixture(t);
   assert.equal(mutationAcceptance(run("test('selected', () => {});"), expected, file), true);
+  assert.throws(() => mutationAcceptance(run("test('selected', () => {});"), [], file),
+    /infrastructure failure/u);
   const rejected = run("test('selected', () => assert.equal(1, 2, '[check-mutation:expected]')); ");
   assert.equal(rejected.status, 1);
   assert.equal(mutationAcceptance(rejected, expected, file), false);
@@ -52,6 +54,7 @@ for (const [name, body, options] of [
   ['uncaught exception', "test('selected', async () => { setImmediate(() => { throw new Error('uncaught'); }); await new Promise(resolve => setTimeout(resolve, 50)); });", {}],
   ['unexpected assertion', "test('selected', () => assert.equal(1, 2, 'unrelated'));", {}],
   ['unexpected assertion operator', "test('selected', () => assert.ok(false, '[check-mutation:expected]'));", {}],
+  ['different equality operator with the expected identifier', "test('selected', () => assert.deepEqual({n: 1}, {n: 2}, '[check-mutation:expected]'));", {}],
   ['timeout', '', {directTimeout: true}],
   ['test cancellation', "test('selected', {timeout: 20}, () => new Promise(() => {}));", {}],
   ['unselected test', "test('other', () => assert.equal(1, 2, '[check-mutation:expected]'));", {}],
@@ -72,7 +75,7 @@ for (const [name, body, options] of [
 test('an assertion in another named test or file is not the mutation target', t => {
   const {file, run} = fixture(t);
   const result = run("test('selected', () => assert.equal(1, 2, '[check-mutation:expected]')); ");
-  assert.throws(() => mutationAcceptance(result, [{name: 'other', assertions: ['expected']}], file),
+  assert.throws(() => mutationAcceptance(result, [{...expected[0], name: 'other'}], file),
     /infrastructure failure/u);
   assert.throws(() => mutationAcceptance(result, expected, file + '.other'), /infrastructure failure/u);
 });

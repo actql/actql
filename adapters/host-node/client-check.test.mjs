@@ -382,7 +382,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
           coverage: {limits: [], unresolved: protectedSource}}}, '[check-mutation:public-violation]');
       // Without the violation the protected source leaves it undetermined,
       // never invalid and never verified.
-      assert.deepEqual(withoutContext(await check(client, 'satisfied'), 'protected-unresolved'), {
+      assert.deepEqual(withoutContext(await check(client, 'satisfied'), 'protected-outcome'), {
         outcome: 'completed', version: 'actql-check-outcome/0.1',
         report: {context_ref: '<ctx>', scope: {kind: 'bound_input'},
           verdict: 'undetermined', reasons: [],
@@ -469,7 +469,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
     const client = await open(t, configurations.allowed);
     const outcome = await client.check('SELECT id FROM records' +
       ' UNION ALL SELECT id FROM records'.repeat(50), {format: 'sql'});
-    assert.deepEqual(withoutContext(outcome, 'construction-budget').report, {context_ref: '<ctx>',
+    assert.deepEqual(withoutContext(outcome, 'construction-outcome').report, {context_ref: '<ctx>',
       scope: {kind: 'bound_input'}, verdict: 'undetermined', reasons: [],
       coverage: {limits: [{code: 'analysis_budget_exhausted'}],
         unresolved: []}}, '[check-mutation:construction-budget]');
