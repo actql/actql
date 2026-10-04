@@ -1284,6 +1284,7 @@ fn having_column(
   active_fields : Array[String],
   projections : Array[@query.Projection],
   group_keys : Array[(@query.Expression, String)],
+  computed : Array[(@query.Expression, String)],
   scope? : JoinChainScope? = None,
 ) -> String? {
   let resolve = fn(source : Array[@query.NamePart]) -> String? {
@@ -1310,6 +1311,11 @@ fn having_column(
               Some(expression) => {
                 let mut slot : String? = None
                 for pair in group_keys {
+                  if same_expression(pair.0, expression) {
+                    slot = Some(pair.1)
+                  }
+                }
+                for pair in computed {
                   if same_expression(pair.0, expression) {
                     slot = Some(pair.1)
                   }
@@ -1371,6 +1377,7 @@ fn compile_steps(
   let mut sql_group_select_scope : JoinChainScope? = None
   let mut sql_group_input_columns : Array[(String, String)] = []
   let grouped_keys : Array[(@query.Expression, String)] = []
+  let having_values : Array[(@query.Expression, String)] = []
   let mut first = true
   let mut input_from = input.name
   let mut terminal_result = false
@@ -1413,6 +1420,7 @@ fn compile_steps(
       // input ranges or reuse GROUP expressions over different value slots.
       sql_group_projection = false
       grouped_keys.clear()
+      having_values.clear()
       pipe_ranges = []
       pipe_rebound = true
     }
@@ -1788,6 +1796,7 @@ fn compile_steps(
         let input_visible = pipe_visible.copy()
         let input_ranges = pipe_ranges.copy()
         grouped_keys.clear()
+        having_values.clear()
         sql_group_projection = grouping_scope == @query.SqlSelect
         if sql_group_projection {
           // SQL star names the input row, before grouping removes columns or
@@ -2044,6 +2053,86 @@ fn compile_steps(
           raise Abort(UnsupportedHaving)
         }
         let projections = selected_projections(query)
+        let scope = if pipe_changed || pipe_rebound {
+          Some({ visible: pipe_visible, ranges: pipe_ranges, })
+        } else {
+          None
+        }
+        let references = join_reference_paths(predicate)
+        let derives : Array[(String, @builder.Node)] = []
+        let physical = active_fields.copy()
+        for projection in projections {
+          if projection.name is Some(name) {
+            physical.push(name.value)
+          }
+        }
+        for projection in projections {
+          guard projection.name is Some(name) &&
+            projection.expression is Some(expression) &&
+            projection.aggregate is None &&
+            projection.analytic is None else {
+            continue
+          }
+          // Qualified input references keep their range meaning. Property
+          // paths may ask the common expression lowerer for an alias prefix.
+          if !references.any(path => {
+              same_name(name, path[0]) &&
+              (
+                path.length() == 1 ||
+                having_column(
+                  path,
+                  query,
+                  input,
+                  active_fields,
+                  projections,
+                  grouped_keys,
+                  having_values,
+                  scope~,
+                )
+                is None
+              )
+            }) {
+            continue
+          }
+          if having_column(
+              [name],
+              query,
+              input,
+              active_fields,
+              projections,
+              grouped_keys,
+              having_values,
+              scope~,
+            )
+            is Some(_) {
+            continue
+          }
+          let slot = pipe_physical_name(physical, "aql_having_expr_")
+          physical.push(slot)
+          let input_scope = sql_group_select_scope.unwrap()
+          derives.push(
+            (
+              slot,
+              append_pipe_expression(
+                construction,
+                expression,
+                input_scope.visible,
+                input_scope.ranges,
+                max_work,
+              ),
+            ),
+          )
+          having_values.push((expression, slot))
+        }
+        if !derives.is_empty() {
+          let derive_step : Array[(String, @builder.Node)] = []
+          if entries.length() == 1 {
+            derive_step.push(entries[0])
+            entries.clear()
+          }
+          derive_step.push(("derive", construction.object(derives)))
+          step_entries.push(derive_step)
+        }
         let value = match
           @expression.append(
             predicate,
@@ -2055,11 +2144,8 @@ fn compile_steps(
                 active_fields,
                 projections,
                 grouped_keys,
-                scope=if pipe_changed || pipe_rebound {
-                  Some({ visible: pipe_visible, ranges: pipe_ranges, })
-                } else {
-                  None
-                },
+                having_values,
+                scope~,
               )
             },
             construction.builder,
@@ -2189,6 +2275,11 @@ fn compile_steps(
               let mut grouped_slot : String? = None
               if sql_group_projection {
                 for pair in grouped_keys {
+                  if same_expression(pair.0, expression) {
+                    grouped_slot = Some(pair.1)
+                  }
+                }
+                for pair in having_values {
                   if same_expression(pair.0, expression) {
                     grouped_slot = Some(pair.1)
                   }
@@ -2379,6 +2470,11 @@ fn compile_steps(
               expressions.push((expression, name))
               let mut grouped_slot : String? = None
               for pair in grouped_keys {
+                if same_expression(pair.0, expression) {
+                  grouped_slot = Some(pair.1)
+                }
+              }
+              for pair in having_values {
                 if same_expression(pair.0, expression) {
                   grouped_slot = Some(pair.1)
                 }
