@@ -2,6 +2,7 @@
 // checker. Public Local/HTTP verdict expectations live in client-check.test.
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {checkReasonSchemaCid} from '../../packages/client-wire/index.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
 
 const environment = Object.freeze({});
@@ -21,13 +22,13 @@ function fixture(states = [], publication = aliases) {
     },
     clientProgramCheckCompilerIdentity: () => '{"compiler":"fixture"}',
     clientProgramCheckUnavailable: correlation_ref => JSON.stringify({
-      version: 'actql-check-outcome/0.1', outcome: 'unavailable',
+      version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid, outcome: 'unavailable',
       problem: {code: 'check_unavailable'}, correlation_ref}),
     clientProgramCheckSource: (...args) => {
       checked.push(args);
-      return JSON.stringify({version: 'actql-check-outcome/0.1',
-        outcome: 'completed', report: {context_ref: args[6],
-          scope: {kind: 'bound_input'}, verdict: 'verified', reasons: [],
+      return JSON.stringify({version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid,
+        outcome: 'completed', report: {context_ref: args[6], inputs: [{document_id: 'source', revision: args[7], kind: 'text', byte_length: Buffer.byteLength(args[0])}],
+          requirements: [], scope: {kind: 'bound_input'}, verdict: 'verified', reasons: [],
           coverage: {limits: [], unresolved: []}}});
     },
   };
@@ -136,3 +137,32 @@ test('composition: only applicable read owners determine whole-context unavailab
   assert.equal((await unavailable.check(request())).outcome, 'unavailable');
   assert.deepEqual(unavailable.calls, [1]);
 });
+
+// Fixed HMAC vectors derived independently with Python's JSON serialization
+// and hmac/sha256, the fixture's 32 bytes of 0x07, and literal context fields.
+// No product canonicalizer or returned context is used to build expectations.
+// The preimages include the registered actql-check-reason/0.1 schema CID.
+test('composition: exact Unicode source and received-input fallback have fixed references',
+  async () => {
+    const texts = ["SELECT 'caf\u00e9' AS label", "SELECT 'cafe\u0301' AS label"];
+    const vectors = [{parameterDeclarations: undefined, refs: [
+      'ctx:879f19beef512ebb648c006c29175abe59e4a3bc33a0725efe54b0c9fbbf3b77',
+      'ctx:49d90fe86e644f543154b856969dd610bdad4dee5b4840f848bed66d979f500b',
+    ]}, {parameterDeclarations: {'\u00e9': {type: 'string'}, 'e\u0301': {type: 'string'}},
+      refs: [
+        'ctx:449533e4ee8b7160a09a5088fe1a09dc3f53b58eae556bf7ff0c32e1f3edcebb',
+        'ctx:f2aca818e68bdf3fa852513a20712bc410c803047d0df9c5720e6cf7fc78bfe9',
+      ]}];
+    const f = fixture([], []);
+    for (const {parameterDeclarations, refs} of vectors) {
+      for (const [index, text] of texts.entries()) {
+        const input = {text, format: 'sql',
+          ...(parameterDeclarations === undefined ? {} : {parameterDeclarations})};
+        const call = {principalId: 'owner', input, parameters: null};
+        const outcome = await f.check(call);
+        assert.equal(outcome.report.context_ref, refs[index]);
+        assert.deepEqual(await f.check(call), outcome);
+        assert.equal(f.checked.at(-1)[0], text, 'checker receives the authored spelling');
+      }
+    }
+  });

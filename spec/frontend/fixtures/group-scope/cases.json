@@ -1,0 +1,297 @@
+{
+  "successes": [
+    {
+      "name": "group-drop-original-sum",
+      "format": "aql-text",
+      "sourceRows": [
+        {
+          "id": 1,
+          "amount": 10
+        },
+        {
+          "id": 2,
+          "amount": 20
+        }
+      ],
+      "text": "FROM records AS before |> DROP id |> AGGREGATE SUM(before.id) AS total |> RESULT answer",
+      "results": {
+        "answer": {
+          "rows": [
+            {
+              "total": 3
+            }
+          ],
+          "columns": [
+            {
+              "name": "total",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadSessionCount": 1
+    },
+    {
+      "name": "group-set-original-sum",
+      "format": "aql-text",
+      "sourceRows": [
+        {
+          "id": 1,
+          "amount": 10
+        },
+        {
+          "id": 2,
+          "amount": 20
+        }
+      ],
+      "text": "FROM records AS before |> SET id = amount |> AGGREGATE SUM(before.id) AS total |> RESULT answer",
+      "results": {
+        "answer": {
+          "rows": [
+            {
+              "total": 3
+            }
+          ],
+          "columns": [
+            {
+              "name": "total",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadSessionCount": 1
+    },
+    {
+      "name": "group-snapshot-original-key",
+      "format": "aql-text",
+      "text": "SELECT 7 AS x, 9 AS y |> AS before |> SET x = y |> AGGREGATE COUNT(*) AS n GROUP BY before.x |> ORDER BY x",
+      "results": {
+        "answer": {
+          "rows": [
+            {
+              "x": 7,
+              "n": 1
+            }
+          ],
+          "columns": [
+            {
+              "name": "x",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "n",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadCount": 0
+    },
+    {
+      "name": "group-snapshot-current-key",
+      "format": "aql-text",
+      "text": "SELECT 7 AS x, 9 AS y |> AS before |> SET x = y |> AGGREGATE COUNT(*) AS n GROUP BY x |> ORDER BY x",
+      "results": {
+        "answer": {
+          "rows": [
+            {
+              "x": 9,
+              "n": 1
+            }
+          ],
+          "columns": [
+            {
+              "name": "x",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "n",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadCount": 0
+    },
+    {
+      "name": "group-sql-chain-computed-alias",
+      "format": "aql-text",
+      "text": "WITH t AS (SELECT 2 AS x, 10 AS y UNION ALL SELECT 1 AS x, 20 AS y) SELECT l.x + 1 AS y, COUNT(*) AS n FROM t AS l JOIN t AS r ON l.x = r.x JOIN t AS s ON r.x = s.x GROUP BY y HAVING y > 1 ORDER BY y",
+      "results": {
+        "answer": {
+          "rows": [
+            {
+              "y": 2,
+              "n": 1
+            },
+            {
+              "y": 3,
+              "n": 1
+            }
+          ],
+          "columns": [
+            {
+              "name": "y",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "n",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadCount": 0
+    },
+    {
+      "name": "group-pipe-chain-new-scope",
+      "format": "aql-text",
+      "text": "WITH t AS (SELECT 2 AS x, 10 AS y UNION ALL SELECT 1 AS x, 20 AS y) FROM t AS l |> JOIN t AS r ON l.x = r.x |> JOIN t AS s ON r.x = s.x |> AGGREGATE COUNT(*) AS n GROUP BY l.x |> SELECT x, n |> ORDER BY x",
+      "results": {
+        "answer": {
+          "rows": [
+            {
+              "x": 1,
+              "n": 1
+            },
+            {
+              "x": 2,
+              "n": 1
+            }
+          ],
+          "columns": [
+            {
+              "name": "x",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "n",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadCount": 0
+    },
+    {
+      "name": "group-empty-nullable-key",
+      "format": "aql-text",
+      "text": "SELECT CAST(NULL AS FLOAT64) AS x WHERE FALSE |> AS before |> AGGREGATE COUNT(*) AS n GROUP BY before.x |> ORDER BY x",
+      "results": {
+        "answer": {
+          "rows": [],
+          "columns": [
+            {
+              "name": "x",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            },
+            {
+              "name": "n",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadCount": 0
+    },
+    {
+      "name": "group-acquired-shared-producer",
+      "format": "aql-text",
+      "text": "DATA seed = FROM records |> SELECT id; SELECT l.id AS id, COUNT(*) AS n FROM seed AS l JOIN seed AS r ON l.id = r.id JOIN seed AS s ON r.id = s.id GROUP BY id ORDER BY id",
+      "results": {
+        "answer": {
+          "rows": [
+            {
+              "id": 1,
+              "n": 1
+            },
+            {
+              "id": 2,
+              "n": 1
+            },
+            {
+              "id": 3,
+              "n": 8
+            }
+          ],
+          "columns": [
+            {
+              "name": "id",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "n",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadSessionCount": 1
+    }
+  ],
+  "refusals": [
+    {
+      "name": "group-old-range",
+      "format": "aql-text",
+      "text": "FROM records AS before |> AGGREGATE COUNT(*) AS n GROUP BY before.id |> SELECT before.id, n"
+    },
+    {
+      "name": "group-old-range-after-set",
+      "format": "aql-text",
+      "text": "FROM records AS before |> SET id = id + 1 |> AGGREGATE COUNT(*) AS n GROUP BY before.id |> SELECT before.id, n"
+    },
+    {
+      "name": "group-nongrouped-sql-range",
+      "format": "aql-text",
+      "text": "WITH t AS (SELECT 2 AS x, 10 AS y UNION ALL SELECT 1 AS x, 20 AS y) SELECT r.y, COUNT(*) AS n FROM t AS l JOIN t AS r ON l.x = r.x JOIN t AS s ON r.x = s.x GROUP BY l.x"
+    },
+    {
+      "name": "group-dropped-input",
+      "format": "aql-text",
+      "text": "FROM records AS before |> AGGREGATE COUNT(*) AS n GROUP BY id |> SELECT amount, n"
+    }
+  ]
+}

@@ -718,11 +718,24 @@ for (const [exitCode, resistant] of [[0, false], [7, false], [7, true]]) {
 
 test('TERM-resistant descendants trigger owned-group KILL and retain locks', async t => {
   const f = fixture(t), pidFile = join(f.root, 'pid');
-  const source = `process.on('SIGTERM',()=>{}); require('fs').writeFileSync(${JSON.stringify(pidFile)},String(process.pid));console.log('resistant');setInterval(()=>{},1000);`;
-  const result = await start(f, {timeoutSeconds: 0.2, graceSeconds: 0.1, steps: steps(source)}).done;
-  assert.equal(result.code, 124, result.stderr);
+  // Cancellation must follow handler installation, rather than race Node startup
+  // against a 0.2s timeout. Delay readiness past the former timeout explicitly;
+  // timeout cancellation itself is covered by the inherited-pipe cases below.
+  const source = `setTimeout(() => {
+    process.on('SIGTERM',()=>{});
+    require('fs').writeFileSync(${JSON.stringify(pidFile)},String(process.pid));
+    console.log('resistant'); setInterval(()=>{},1000);
+  }, 350);`;
+  const run = start(f, {graceSeconds: 0.1, steps: steps(source)});
+  let result;
+  try {
+    await until(() => existsSync(pidFile));
+    run.child.kill('SIGINT');
+  } finally { result = await run.done; }
+  assert.equal(result.code, 130, result.stderr);
   assert.equal(Boolean(live(Number(readFileSync(pidFile)))), false);
   assert.equal(locks(f).length, 2);
+  assert.match(summary(attempts(f)[0]).status, /^interrupted/u);
   assert.match(summary(attempts(f)[0]).status, /SIGKILL escalation/u);
   assert.match(readFileSync(join(attempts(f)[0], 'output.log'), 'utf8'), /resistant/u);
   const next = await start(f).done;

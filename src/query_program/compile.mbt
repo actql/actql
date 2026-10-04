@@ -1284,7 +1284,14 @@ fn having_column(
   active_fields : Array[String],
   projections : Array[@query.Projection],
   group_keys : Array[(@query.Expression, String)],
+  scope? : JoinChainScope? = None,
 ) -> String? {
+  let resolve = fn(source : Array[@query.NamePart]) -> String? {
+    match scope {
+      Some(scope) => pipe_slot(source, scope.visible, scope.ranges)
+      None => resolve_column(source, query, input, active_fields)
+    }
+  }
   if path.length() == 1 {
     let mut selected : String? = None
     let mut matched = false
@@ -1315,8 +1322,7 @@ fn having_column(
                         expression,
                         @query.expression_root(expression),
                       ).unwrap().kind {
-                      Reference(source) =>
-                        resolve_column(source, query, input, active_fields)
+                      Reference(source) => resolve(source)
                       _ => None
                     }
                 }
@@ -1335,7 +1341,7 @@ fn having_column(
       return selected
     }
   }
-  resolve_column(path, query, input, active_fields)
+  resolve(path)
 }
 
 ///|
@@ -1361,6 +1367,7 @@ fn compile_steps(
   let mut requires_graph_projection = graph_bindings_only
   let mut active_fields = fields.copy()
   let mut grouped = false
+  let mut sql_group_projection = false
   let grouped_keys : Array[(@query.Expression, String)] = []
   let mut first = true
   let mut input_from = input.name
@@ -1410,6 +1417,7 @@ fn compile_steps(
       // Relation, irrespective of whether SET introduced private slots.
       pipe_selected = false
       pipe_ranges = []
+      sql_group_projection = false
     }
     let entries : Array[(String, @builder.Node)] = []
     let mut deferred = false
@@ -1758,30 +1766,12 @@ fn compile_steps(
         pipe_changed = true
         deferred = true
       }
-      Group(keys, projections) => {
+      Group(keys, projections, grouping_scope) => {
         let scoped = pipe_changed || pipe_rebound
-        if scoped {
-          let materialize : Array[(String, @builder.Node)] = []
-          if entries.length() == 1 && entries[0].0 == "from" {
-            materialize.push(entries[0])
-            entries.clear()
-          }
-          let visible : Array[@builder.Node] = []
-          for entry in pipe_visible {
-            visible.push(
-              if entry.0 == entry.1 {
-                construction.text(entry.1)
-              } else {
-                construction.object([(entry.0, construction.text(entry.1))])
-              },
-            )
-          }
-          materialize.push(("select", construction.array(visible)))
-          step_entries.push(materialize)
-          active_fields = pipe_visible.map(entry => entry.0)
-          pipe_visible = active_fields.map(name => (name, name))
-          pipe_ranges = []
-        }
+        let input_visible = pipe_visible.copy()
+        let input_ranges = pipe_ranges.copy()
+        grouped_keys.clear()
+        sql_group_projection = grouping_scope == @query.SqlSelect
         // A sole global DISTINCT ARRAY_AGG ordered by the same referenced
         // value can obtain its candidate key from ordinary row DISTINCT.
         // Project the value first so no unrelated column supplies a chosen
@@ -1833,9 +1823,14 @@ fn compile_steps(
         }
         let derives : Array[(String, @builder.Node)] = []
         let key_names : Array[String] = []
+        let key_display_names : Array[String] = []
         let by : Array[@builder.Node] = []
         for index in 0..<keys.length() {
-          let expression = group_key_expression(keys[index], projections)
+          let expression = if sql_group_projection {
+            group_key_expression(keys[index], projections)
+          } else {
+            keys[index]
+          }
           let mut root_index = @query.expression_root(expression)
           while @query.expression_node(expression, root_index).unwrap().kind
                 is Parenthesized(child) {
@@ -1876,6 +1871,12 @@ fn compile_steps(
             }
           }
           key_names.push(name)
+          key_display_names.push(
+            match root.kind {
+              Reference(path) => path.last().unwrap().value
+              _ => name
+            },
+          )
           by.push(construction.text(name))
           grouped_keys.push((expression, name))
         }
@@ -1939,10 +1940,62 @@ fn compile_steps(
         )
         active_fields = result_fields.copy()
         output = result_fields
-        pipe_visible = result_fields.map(name => (name, name))
-        if scoped {
+        if sql_group_projection && scoped {
+          // SQL retains only grouped input bindings until its SELECT. Private
+          // JOIN slots stay physical; qualified names are never flattened.
+          pipe_visible = input_visible.filter(entry => {
+            key_names.contains(entry.1)
+          })
+          for entry in aggregates {
+            pipe_visible.push((entry.0, entry.0))
+          }
+          pipe_ranges = input_ranges.map(range => {
+            (range.0, range.1.filter(entry => key_names.contains(entry.1)))
+          })
+          pipe_changed = true
+        } else if !sql_group_projection {
+          // Pipe AGGREGATE creates a new row scope. Rename only the retained
+          // group keys after aggregation; arguments used the old value slots.
+          let names : Array[String] = []
+          let selected : Array[@builder.Node] = []
+          for index in 0..<key_names.length() {
+            let name = key_display_names[index]
+            if names.any(previous => ascii_upper(previous) == ascii_upper(name)) {
+              raise Abort(DuplicateOutput)
+            }
+            names.push(name)
+            selected.push(
+              if name == key_names[index] {
+                construction.text(name)
+              } else {
+                construction.object([
+                  (name, construction.text(key_names[index])),
+                ])
+              },
+            )
+          }
+          for entry in aggregates {
+            if names.any(previous => {
+                ascii_upper(previous) == ascii_upper(entry.0)
+              }) {
+              raise Abort(DuplicateOutput)
+            }
+            names.push(entry.0)
+            selected.push(construction.text(entry.0))
+          }
+          if names != active_fields {
+            step_entries.push(entries.copy())
+            entries.clear()
+            entries.push(("select", construction.array(selected)))
+          }
+          active_fields = names.copy()
+          output = names
+          pipe_visible = names.map(name => (name, name))
           pipe_ranges = []
           pipe_changed = true
+          pipe_rebound = true
+        } else {
+          pipe_visible = result_fields.map(name => (name, name))
         }
         grouped = true
       }
@@ -1956,7 +2009,17 @@ fn compile_steps(
             predicate,
             path => {
               having_column(
-                path, query, input, active_fields, projections, grouped_keys,
+                path,
+                query,
+                input,
+                active_fields,
+                projections,
+                grouped_keys,
+                scope=if pipe_changed || pipe_rebound {
+                  Some({ visible: pipe_visible, ranges: pipe_ranges, })
+                } else {
+                  None
+                },
               )
             },
             construction.builder,
@@ -2047,7 +2110,14 @@ fn compile_steps(
             Some(_) => raise Abort(UnsupportedProjection)
             None => {
               if projection.aggregate is Some(_) {
-                raise Abort(UnsupportedProjection)
+                let name = projection.name.unwrap().value
+                if !sql_group_projection || !active_fields.contains(name) {
+                  raise Abort(UnsupportedAggregate)
+                }
+                names.push(name)
+                bindings.push((name, name))
+                selected.push(construction.text(name))
+                continue
               }
               if projection.analytic is Some(_) {
                 let name = projection.name.unwrap().value
@@ -2066,41 +2136,55 @@ fn compile_steps(
                 continue
               }
               let expression = projection.expression.unwrap()
-              let source = match
-                @query.expression_node(
-                  expression,
-                  @query.expression_root(expression),
-                ).unwrap().kind {
-                Reference(path) =>
-                  match pipe_slot(path, pipe_visible, pipe_ranges) {
-                    Some(slot) => slot
-                    None => {
-                      let slot = pipe_physical_name(physical, "aql_pipe_expr_")
-                      physical.push(slot)
-                      derives.push(
-                        (
-                          slot,
-                          append_pipe_expression(
-                            construction, expression, pipe_visible, pipe_ranges,
-                            max_work,
-                          ),
-                        ),
-                      )
-                      slot
-                    }
+              let mut grouped_slot : String? = None
+              if sql_group_projection {
+                for pair in grouped_keys {
+                  if same_expression(pair.0, expression) {
+                    grouped_slot = Some(pair.1)
                   }
-                _ => {
-                  let slot = pipe_physical_name(physical, "aql_pipe_expr_")
-                  physical.push(slot)
-                  derives.push(
-                    (
-                      slot,
-                      append_pipe_expression(
-                        construction, expression, pipe_visible, pipe_ranges, max_work,
+                }
+              }
+              let source = if grouped_slot is Some(slot) {
+                slot
+              } else {
+                match
+                  @query.expression_node(
+                    expression,
+                    @query.expression_root(expression),
+                  ).unwrap().kind {
+                  Reference(path) =>
+                    match pipe_slot(path, pipe_visible, pipe_ranges) {
+                      Some(slot) => slot
+                      None => {
+                        let slot = pipe_physical_name(
+                          physical, "aql_pipe_expr_",
+                        )
+                        physical.push(slot)
+                        derives.push(
+                          (
+                            slot,
+                            append_pipe_expression(
+                              construction, expression, pipe_visible, pipe_ranges,
+                              max_work,
+                            ),
+                          ),
+                        )
+                        slot
+                      }
+                    }
+                  _ => {
+                    let slot = pipe_physical_name(physical, "aql_pipe_expr_")
+                    physical.push(slot)
+                    derives.push(
+                      (
+                        slot,
+                        append_pipe_expression(
+                          construction, expression, pipe_visible, pipe_ranges, max_work,
+                        ),
                       ),
-                    ),
-                  )
-                  slot
+                    )
+                    slot
+                  }
                 }
               }
               let name = match projection.name {
@@ -2941,6 +3025,51 @@ fn query_terms(query : @query.Query) -> Array[@query.Query] {
 }
 
 ///|
+// Count only references to the outer input under this nonrecursive CTE scope.
+// A later JOIN-right use needs the same complete capture as a principal FROM;
+// an earlier CTE with the input's name instead binds its own retained Result.
+// Two references suffice to establish sharing; no acquisition is performed.
+fn cte_capture_reference_count(
+  query : @query.Query,
+  declarations : @query.Query,
+  visible_ctes : Int,
+  input : Input,
+) -> Int {
+  let mut count = 0
+  for term in query_terms(query) {
+    let paths = [@query.relation(term)]
+    for index in 0..<@query.join_part_count(term) {
+      paths.push(@query.join_part_at(term, index).unwrap().relation)
+    }
+    for index in 0..<@query.operation_count(term) {
+      if @query.operation_at(term, index) is Some(Nearest(clause)) {
+        paths.push(clause.relation)
+      }
+    }
+    for path in paths {
+      if !input_relation_matches(path, input) {
+        continue
+      }
+      let mut shadowed = false
+      for index in 0..<visible_ctes {
+        if same_relation_path(path, [
+            @query.cte_at(declarations, index).unwrap().name,
+          ]) {
+          shadowed = true
+        }
+      }
+      if !shadowed {
+        count += 1
+        if count == 2 {
+          return count
+        }
+      }
+    }
+  }
+  count
+}
+
+///|
 fn compile_cte_query(
   query : @query.Query,
   context : Context,
@@ -2992,16 +3121,25 @@ fn compile_cte_query(
       let mut referenced_elsewhere = captures_source &&
         (
           @query.set_part_count(cte.query) > 0 ||
-          query_terms(query).any(term => {
-            same_relation_path(@query.relation(term), captures[0].relation)
-          })
+          cte_capture_reference_count(cte.query, query, index, captures[0]) > 1 ||
+          cte_capture_reference_count(
+            query,
+            query,
+            @query.cte_count(query),
+            captures[0],
+          ) >
+          0
         )
       for other in 0..<@query.cte_count(query) {
         if captures_source &&
           other != index &&
-          query_terms(@query.cte_at(query, other).unwrap().query).any(term => {
-            same_relation_path(@query.relation(term), captures[0].relation)
-          }) {
+          cte_capture_reference_count(
+            @query.cte_at(query, other).unwrap().query,
+            query,
+            other,
+            captures[0],
+          ) >
+          0 {
           referenced_elsewhere = true
         }
       }
@@ -3154,7 +3292,7 @@ fn compile_cte_query(
       } else if @query.join_part_count(query) == 1 {
         let part = @query.join_part_at(query, 0).unwrap()
         let mut right_input : Input? = None
-        for input in cte_inputs {
+        for input in known {
           if same_relation_path(input.relation, part.relation) {
             right_input = Some(input)
           }

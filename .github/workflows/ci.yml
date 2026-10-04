@@ -235,10 +235,17 @@ jobs:
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      artifact-id: ${{ steps.session-actions.outputs.artifact-id }}
+      artifact-digest: ${{ steps.session-actions.outputs.artifact-digest }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: ./.github/actions/setup-toolchain
       - name: Install audited Lean pin
         run: |
@@ -246,10 +253,18 @@ jobs:
           echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
       - name: Reject invalid evidence derivations
         run: node --test proofs/bounded-session/evidence.test.mjs proofs/bounded-session/proof-check.test.mjs
+      - name: Reject invalid incremental action inputs and origins
+        run: node --test proofs/ci-evidence/*.test.mjs
+      - name: Select fresh or verified-main acquisition for this live run and attempt
+        env:
+          ACTIONS_READ_TOKEN: ${{ github.token }}
+        run: node proofs/ci-evidence/collect.mjs init
       - name: Produce conditional common-mechanism evidence beside existing gates
         run: node proofs/bounded-session/run.mjs all
-      - name: Detect representative production mutations with replacement tests
-        run: node proofs/bounded-session/mutations.mjs
+      - name: Execute or authenticate the registered JS mutation obligation
+        env:
+          ACTQL_SESSION_COLLECT: 'true'
+        run: node proofs/ci-evidence/collect.mjs mutations
       - name: Reject invalid serial chain derivations and weakened claims
         run: node --test proofs/relation-chain/evidence.test.mjs proofs/relation-chain/proof-check.test.mjs
       - name: Detect serial chain accounting and ownership mutations
@@ -263,11 +278,23 @@ jobs:
       # Keep both evidence sets fresh: either mutation batch can invalidate
       # another target's incremental artifacts even after source restoration.
       - name: Restore and verify final common-mechanism artifacts on all targets
+        env:
+          ACTQL_SESSION_COLLECT: 'true'
         run: node proofs/bounded-session/run.mjs all
       - name: Produce final serial chain evidence on all targets
         run: node proofs/relation-chain/run.mjs all
       - name: Produce conditional allocation capacity evidence on all targets
         run: node proofs/relation-capacity/run.mjs all
+      - name: Check complete fresh and reused action inventory with Lean
+        run: node proofs/ci-evidence/collect.mjs finish
+      - name: Retain immutable action receipts for comparison and final check
+        id: session-actions
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: session-actions-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: .artifacts/session-actions/
+          include-hidden-files: true
+          if-no-files-found: error
       - name: Retain exact-source evidence and mutation results
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -906,15 +933,39 @@ jobs:
       native-separated-network, workers, connector-addition, duckdb-node, focused-tests]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           persist-credentials: false
+          fetch-depth: 0
       - name: Require selected jobs and explicit not-applicable families
         env:
           RESULTS: ${{ toJSON(needs) }}
           CI_PLAN: ${{ needs.select-targets.outputs.plan }}
         run: node scripts/ci-targets.mjs gate
+      - name: Set up pinned Node for the selected evidence consumer
+        if: ${{ needs.session-evidence.result == 'success' }}
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.22.0
+      - name: Authenticate all action receipts and the executed Lean certificate
+        id: session-acceptance-check
+        if: ${{ needs.session-evidence.result == 'success' }}
+        env:
+          ACTIONS_READ_TOKEN: ${{ github.token }}
+          SESSION_ARTIFACT_ID: ${{ needs.session-evidence.outputs.artifact-id }}
+          SESSION_ARTIFACT_DIGEST: ${{ needs.session-evidence.outputs.artifact-digest }}
+        run: node proofs/ci-evidence/final.mjs
+      - name: Retain the final applicability observation separately from original receipts
+        if: ${{ needs.session-evidence.result == 'success' && steps.session-acceptance-check.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: session-applicability-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: .artifacts/session-applicability/verified-family.json
+          if-no-files-found: error
   spec:
     needs: [preflight]
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
@@ -1128,5 +1179,3 @@ jobs:
         run: node --test adapters/connectors/duckdb/node/bench/matched-equivalent-pair.test.mjs
       - name: Build fixture-independent acquisition Host entries
         run: npm run build:host --prefix adapters/connectors/duckdb/node
-
-

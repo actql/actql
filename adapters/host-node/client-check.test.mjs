@@ -14,8 +14,8 @@ import {join} from 'node:path';
 import test, {after} from 'node:test';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import {connect} from '../../packages/sdk/index.mjs';
-import {validCheckOutcome} from '../../packages/client-wire/index.mjs';
+import {connect, getCheckInput, resolveCheckLocation, explainCheckReason} from '../../packages/sdk/index.mjs';
+import {validCheckOutcome, checkReasonSchemaCid} from '../../packages/client-wire/index.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {createNodeAuthorizationGate} from './authorization.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
@@ -210,16 +210,123 @@ const entrances = Object.freeze({local: localClient, http: httpClient});
 const contextRef = /^ctx:[0-9a-f]{64}$/u;
 // Context references are keyed per Host installation: they are compared
 // within one Host here, and across Hosts by the fixed-key tests below.
-const withoutContext = outcome => {
-  assert.equal(outcome.outcome, 'completed');
+const withoutContext = (outcome, expectedAssertion) => {
+  assert.equal(outcome.outcome, 'completed', expectedAssertion === undefined
+    ? undefined : `[check-mutation:${expectedAssertion}]`);
   assert.match(outcome.report.context_ref, contextRef);
-  return {...outcome, report: {...outcome.report, context_ref: '<ctx>'}};
+  assert.equal(outcome.reason_schema_cid, checkReasonSchemaCid);
+  assert.equal(outcome.report.inputs[0].document_id, 'source');
+  for (const input of outcome.report.inputs) assert.match(input.revision, /^rev:[0-9a-f]{64}$/u);
+  // These original fixtures compare classification/coverage. Exact public
+  // locations and retained inputs have their own independent vectors below.
+  const {reason_schema_cid, ...envelope} = outcome;
+  const {inputs, requirements, ...report} = outcome.report;
+  return {...envelope, report: {...report, context_ref: '<ctx>',
+    reasons: report.reasons.map(({location, facts, ...reason}) =>
+      reason.code === 'supplied_value_type_mismatch' ? {code: 'supplied_value_invalid'} : reason)}};
 };
 
 const protectedSource = [{boundary: 'source_resolution',
   reason: 'unresolved_protected'}];
 
 for (const [entrance, open] of Object.entries(entrances)) {
+  test(`${entrance}: undeclared references keep authored semantic locations`, async t => {
+    const client = await open(t, configurations.denied);
+    for (const [text, start, end] of [
+      ['SELECT @missing AS n', 7, 15],
+      ['/*😀*/\r\nSELECT @missing AS n', 17, 25],
+    ]) {
+      const outcome = await client.check(text, {format: 'sql'});
+      assert.equal(outcome.report.verdict, 'invalid');
+      assert.deepEqual(outcome.report.requirements, []);
+      assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+      const revision = outcome.report.inputs[0].revision;
+      assert.deepEqual(outcome.report.reasons, [{code: 'parameter_undeclared',
+        facts: {parameter: 'missing'}, location: {document_id: 'source', revision,
+          kind: 'text', start_byte: start, end_byte: end, precision: 'exact'}}]);
+      assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location).text, '@missing');
+    }
+    client.assertNoExecution();
+  });
+
+  test(`${entrance}: supplied type violations and missing values expose different typed facts`, async t => {
+    for (const hidden of ['absent', 'denied', 'allowed']) {
+      const client = await open(t, configurations[hidden]);
+      const violation = await check(client, 'violation');
+      assert.equal(violation.report.verdict, 'invalid');
+      const values = getCheckInput(violation, 'parameters');
+      assert.deepEqual(values.value, {minimum: 'twenty'});
+      assert.deepEqual(violation.report.reasons, [{code: 'supplied_value_type_mismatch',
+        facts: {parameter: 'minimum', expected_type: 'number', actual_type: 'string'},
+        location: {document_id: 'parameters', revision: values.revision,
+          kind: 'structured', pointer: '/minimum'}}]);
+      assert.deepEqual(violation.report.requirements, []);
+      assert.deepEqual(violation.report.coverage, {limits: [],
+        unresolved: hidden === 'allowed' ? [] : protectedSource});
+      assert.equal(JSON.stringify(violation).includes('twenty'), false);
+      assert.equal(resolveCheckLocation(violation, violation.report.reasons[0].location).input, values);
+      const mixed = await client.check(query, {format: 'sql',
+        parameterDeclarations: {...declarations, another: {type: 'number'}},
+        parameters: {minimum: 'twenty'}});
+      assert.equal(mixed.report.verdict, 'invalid');
+      assert.deepEqual(mixed.report.reasons[0].facts,
+        {parameter: 'minimum', expected_type: 'number', actual_type: 'string'});
+      assert.deepEqual(mixed.report.coverage.unresolved,
+        hidden === 'allowed' ? [] : protectedSource);
+      const missing = await check(client, 'missing');
+      const declared = getCheckInput(missing, 'parameter_declarations');
+      assert.equal(missing.report.verdict, 'undetermined', '[check-mutation:missing-value]');
+      assert.deepEqual(missing.report.reasons, []);
+      assert.deepEqual(missing.report.requirements, [{code: 'parameter_value_required',
+        facts: {parameter: 'minimum', expected_type: 'number'},
+        location: {document_id: 'parameter_declarations', revision: declared.revision,
+          kind: 'structured', pointer: '/minimum'}}]);
+      assert.equal(explainCheckReason(missing.report.requirements[0]).kind, 'known');
+      assert.notEqual(missing.report.context_ref, violation.report.context_ref);
+      assert.notEqual(declared.revision, values.revision);
+      client.assertNoExecution();
+    }
+  });
+
+  test(`${entrance}: authored syntax locations retain exact UTF-8 input revisions`, async t => {
+    const client = await open(t, configurations.denied);
+    // Fixed byte expectations, hand-counted independently of parser output.
+    const cases = [
+      ['SELECT', 6, 6],
+      ['SELECT 1 AS n,\r\n', 16, 16],
+      ["\ufeffSELECT 'é😀e\u0301' AS x,\r\n", 29, 29],
+    ];
+    const revisions = [];
+    for (const [text, start, end] of cases) {
+      const outcome = await client.check(text, {format: 'sql'});
+      assert.equal(outcome.outcome, 'completed', '[check-mutation:syntax-outcome]');
+      assert.equal(outcome.report.verdict, 'invalid');
+      assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+      assert.deepEqual(outcome.report.requirements, []);
+      assert.equal(outcome.report.reasons.length, 1);
+      const reason = outcome.report.reasons[0];
+      const input = getCheckInput(outcome, 'source');
+      assert.deepEqual(input, {documentId: 'source', revision: outcome.report.inputs[0].revision,
+        kind: 'text', text});
+      assert.deepEqual(outcome.report.inputs, [{document_id: 'source', revision: input.revision,
+        kind: 'text', byte_length: end}]);
+      assert.deepEqual(reason, {code: 'query_syntax_invalid', location: {
+        kind: 'text', document_id: 'source', revision: input.revision,
+        start_byte: start, end_byte: end, precision: 'exact'}}, '[check-mutation:syntax-location]');
+      const resolved = resolveCheckLocation(outcome, reason.location);
+      assert.equal(resolved.text, '');
+      assert.equal(resolved.input.text, text);
+      assert.equal(explainCheckReason(reason).kind, 'known');
+      assert.equal(resolveCheckLocation(outcome, reason.location, {...input, text: 'SELECT 1 AS n'}), undefined);
+      assert.equal(resolveCheckLocation(outcome, reason.location, {...input, revision: 'rev:' + '0'.repeat(64)}), undefined);
+      assert.equal(resolveCheckLocation(JSON.parse(JSON.stringify(outcome)), reason.location), undefined);
+      assert.equal(getCheckInput(outcome, 'source', 'rev:' + '0'.repeat(64)), undefined);
+      revisions.push(input.revision);
+    }
+    assert.equal(new Set(revisions).size, cases.length);
+    client.assertNoExecution();
+  });
+
   test(`${entrance}: zero, one and two installed Sources preserve public checks`,
     async t => {
       for (const configuration of [[], [configurations.allowed],
@@ -272,14 +379,14 @@ for (const [entrance, open] of Object.entries(entrances)) {
         outcome: 'completed', version: 'actql-check-outcome/0.1',
         report: {context_ref: '<ctx>', scope: {kind: 'bound_input'},
           verdict: 'invalid', reasons: [{code: 'supplied_value_invalid'}],
-          coverage: {limits: [], unresolved: protectedSource}}}, name);
+          coverage: {limits: [], unresolved: protectedSource}}}, '[check-mutation:public-violation]');
       // Without the violation the protected source leaves it undetermined,
       // never invalid and never verified.
-      assert.deepEqual(withoutContext(await check(client, 'satisfied')), {
+      assert.deepEqual(withoutContext(await check(client, 'satisfied'), 'protected-outcome'), {
         outcome: 'completed', version: 'actql-check-outcome/0.1',
         report: {context_ref: '<ctx>', scope: {kind: 'bound_input'},
           verdict: 'undetermined', reasons: [],
-          coverage: {limits: [], unresolved: protectedSource}}}, name);
+          coverage: {limits: [], unresolved: protectedSource}}}, '[check-mutation:protected-unresolved]');
       // A missing value is a limit: undetermined, never invalid.
       assert.deepEqual(withoutContext(await check(client, 'missing')), {
         outcome: 'completed', version: 'actql-check-outcome/0.1',
@@ -362,10 +469,10 @@ for (const [entrance, open] of Object.entries(entrances)) {
     const client = await open(t, configurations.allowed);
     const outcome = await client.check('SELECT id FROM records' +
       ' UNION ALL SELECT id FROM records'.repeat(50), {format: 'sql'});
-    assert.deepEqual(withoutContext(outcome).report, {context_ref: '<ctx>',
+    assert.deepEqual(withoutContext(outcome, 'construction-outcome').report, {context_ref: '<ctx>',
       scope: {kind: 'bound_input'}, verdict: 'undetermined', reasons: [],
       coverage: {limits: [{code: 'analysis_budget_exhausted'}],
-        unresolved: []}});
+        unresolved: []}}, '[check-mutation:construction-budget]');
   });
 
   test(`${entrance}: an undecided source is hidden exactly like an absent ` +
@@ -411,6 +518,30 @@ for (const [entrance, open] of Object.entries(entrances)) {
         await ref('SELECT 1 AS n', 'aql-text'), await ref('SELECT 1 AS n\n'),
         await ref('SELECT 1 AS n\r\n')];
       assert.equal(new Set(refs).size, refs.length);
+    });
+
+  test(`${entrance}: Unicode source spelling survives ordinary and fallback binding`,
+    async t => {
+      const client = await open(t, configurations.allowed);
+      const texts = ["SELECT 'caf\u00e9' AS label", "SELECT 'cafe\u0301' AS label"];
+      // Canonically colliding declaration names force the received-input
+      // fallback. They are invalid declarations, not a second valid Program.
+      for (const parameterDeclarations of [undefined,
+        {'\u00e9': {type: 'string'}, 'e\u0301': {type: 'string'}}]) {
+        const run = text => client.check(text, {format: 'sql', parameterDeclarations});
+        const outcomes = await Promise.all(texts.map(run));
+        const invalid = parameterDeclarations !== undefined;
+        for (let index = 0; index < texts.length; index++) {
+          assert.deepEqual(withoutContext(outcomes[index]).report, {
+            context_ref: '<ctx>', scope: {kind: 'bound_input'},
+            verdict: invalid ? 'invalid' : 'verified',
+            reasons: invalid ? [{code: 'parameter_declarations_invalid'}] : [],
+            coverage: {limits: [], unresolved: []}});
+          assert.deepEqual(await run(texts[index]), outcomes[index]);
+        }
+        assert.notEqual(outcomes[0].report.context_ref, outcomes[1].report.context_ref);
+      }
+      client.assertNoExecution();
     });
 
   test(`${entrance}: distinct supplied values give distinct contexts`,
@@ -502,12 +633,17 @@ for (const [entrance, open] of Object.entries(entrances)) {
       if (entrance === 'local') {
         assert.deepEqual(await run('SELECT @s AS v', {s: {type: 'string'}},
           {s: 'a'.repeat(70000)}), expected('undetermined', [], budget, []));
+        // The submitted byte measurement can exceed admission's budget;
+        // publishing that measurement must not turn a limit into failure.
+        assert.deepEqual(await run('SELECT @s AS v', {s: {type: 'string'}},
+          {s: 'a'.repeat(1048577)}), expected('undetermined', [], budget, []));
         // Binding budget: a declared default and a supplied value that are
         // each admissible, but not together.
         const pair = {a: {type: 'string', default: 'a'.repeat(40000)},
           b: {type: 'string'}};
         assert.deepEqual(await run('SELECT @a AS a, @b AS b', pair,
-          {b: 'b'.repeat(40000)}), expected('undetermined', [], budget, []));
+          {b: 'b'.repeat(40000)}), expected('undetermined', [], budget, []),
+        '[check-mutation:binding-budget]');
         assert.deepEqual(await run('SELECT @a AS a, @b AS b', pair,
           {b: 'b'.repeat(20000)}), expected('verified', [], [], []));
       }
@@ -572,7 +708,7 @@ async function acceptDisclosure(install) {
       assert.deepEqual(left.report.coverage.unresolved, protectedSource, name);
       assert.equal(left.report.verdict,
         name === 'violation' ? 'invalid' : 'undetermined', name);
-      assert.deepEqual(left.report.reasons, name === 'violation'
+      assert.deepEqual(withoutContext(left).report.reasons, name === 'violation'
         ? [{code: 'supplied_value_invalid'}] : [], name);
     }
     // A violation that does not depend on any source is reported as is.
@@ -600,7 +736,7 @@ async function acceptDisclosure(install) {
     const check = await installation(install, configuration, {closed: true});
     const outcome = await check(ownerRequest('violation'));
     assert.deepEqual(Object.keys(outcome).sort(),
-      ['correlation_ref', 'outcome', 'problem', 'version']);
+      ['correlation_ref', 'outcome', 'problem', 'reason_schema_cid', 'version']);
     unavailable.push({...outcome, correlation_ref: '<corr>'});
   }
   assert.deepEqual(unavailable[0], unavailable[1]);
@@ -617,35 +753,36 @@ test('an unsupported format is a failure without a verdict', async () => {
   assert.deepEqual(await check({principalId: owner,
     input: {text: 'SELECT id FROM records', format: 'json'},
     parameters: null}), {outcome: 'failed',
-    problem: {code: 'check_format_unsupported'},
+    problem: {code: 'check_format_unsupported'}, reason_schema_cid: checkReasonSchemaCid,
     version: 'actql-check-outcome/0.1'});
 });
 
 test('the public outcome contract keeps verdicts bound and partial ' +
   'reports unverified', () => {
-  const report = {context_ref: 'ctx:a', scope: {kind: 'bound_input'},
+  const report = {context_ref: 'ctx:a', requirements: [], inputs: [{document_id: 'source', revision: 'rev:' + '1'.repeat(64), kind: 'text', byte_length: 1}], scope: {kind: 'bound_input'},
     verdict: 'undetermined', reasons: [],
     coverage: {limits: [{code: 'analysis_budget_exhausted'}],
       unresolved: []}};
   const version = 'actql-check-outcome/0.1';
-  assert.equal(validCheckOutcome({outcome: 'completed', report, version}),
+  const reason_schema_cid = checkReasonSchemaCid;
+  assert.equal(validCheckOutcome({outcome: 'completed', report, version, reason_schema_cid}),
     true);
   for (const key of ['context_ref', 'scope']) {
     const {[key]: _removed, ...unbound} = report;
     assert.equal(validCheckOutcome({outcome: 'completed', report: unbound,
-      version}), false, key);
+      version, reason_schema_cid}), false, key);
   }
   assert.equal(validCheckOutcome({outcome: 'failed',
     partial_report: {...report, verdict: 'invalid',
       reasons: [{code: 'supplied_value_invalid'}]},
-    problem: {code: 'check_internal'}, version}), true);
+    problem: {code: 'check_internal'}, version, reason_schema_cid}), true);
   assert.equal(validCheckOutcome({outcome: 'failed',
     partial_report: {...report, verdict: 'verified',
       coverage: {limits: [], unresolved: []}},
-    problem: {code: 'check_internal'}, version}), false);
+    problem: {code: 'check_internal'}, version, reason_schema_cid}), false);
   assert.equal(validCheckOutcome({outcome: 'unavailable',
     correlation_ref: 'corr:a', problem: {code: 'check_unavailable'},
-    report, version}), false);
+    report, version, reason_schema_cid}), false);
 });
 
 // Each mutation is one plausible change to the Host owner. Its module is
@@ -713,6 +850,17 @@ test('http: SDK rejects contradictory evidence injected into a real verified rep
     });
     const check = () => client.check('SELECT 1 AS n', {format: 'sql'});
     assert.equal((await check()).report.verdict, 'verified');
+    // A mismatched contract is refused even when there are no reasons.
+    mutation = value => {
+      const mismatched = structuredClone(value);
+      delete mismatched.reason_schema_cid;
+      delete mismatched.report.inputs;
+      delete mismatched.report.requirements;
+      return mismatched;
+    };
+    await assert.rejects(check(), {code: 'InvalidHostCheckOutcome'});
+    mutation = value => ({...value, reason_schema_cid: 'sha256:' + '0'.repeat(64)});
+    await assert.rejects(check(), {code: 'InvalidHostCheckOutcome'});
     for (const coverage of [
       {limits: [{code: 'analysis_budget_exhausted'}], unresolved: []},
       {limits: [], unresolved: [{boundary: 'source_resolution',
@@ -725,4 +873,3 @@ test('http: SDK rejects contradictory evidence injected into a real verified rep
       problem: {code: 'check_internal'}, partial_report: value.report});
     await assert.rejects(check(), {code: 'InvalidHostCheckOutcome'});
   });
-

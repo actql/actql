@@ -346,9 +346,14 @@ The connector supplies its view specification, its physical target and its
 page driver. Values must already be in ActQL spelling; for example GitHub's
 whole-second timestamps gain `.000`. GitHub's Issue source is the first user.
 
-Effect installations are not yet declared this way: `installed-effect.mjs`
-still accepts one profile version. Their declaration follows with the Effect
-installer's own approval, execution and recovery acceptance.
+An Effect installation is declared by the same manifest's optional `effect`
+section. It has the same keys, its own profile version, and a module exporting
+`check`, `identityParts(profile, read)`, `load` and optionally `publish`.
+`installed-effect.mjs` selects it by the Effect profile's version and gives
+`load` the Host's own Effect Ledger root. `load` returns the Effect Site
+hooks: `environmentWire`, `connectorBindings`, the self-reported registration
+and revision, `prepareCaptured`, `prepareRecovered` and `close`. The Host's
+Run, Checkpoint, dispatch, Ledger and publication owners do not change.
 
 Acquisition still uses the shared `CapabilityRegistry` and checked request/evidence
 SDK, with mock/DuckDB preparation, issuer, retention and capture in their owning

@@ -115,3 +115,59 @@ Verified SHA-256 digests:
 
 The ingress correction remains subject to fresh automatic exact-source CI and
 full registered public acceptance, including restart and pending cleanup cases.
+## Optional terminal Effect comparison prepared on 2026-10-04
+
+The next narrow acceptance unit starts from main
+`ab049bd4e0eec06b48186a957abf2af308d44716`, then normally merges main
+`fc3378ec65551edd7d5d52ca1d88ea15d6e690fa` (#325 included). It compares Native JSON and
+Broad authored text, each with and without a terminal Effect, on Local and
+HTTPS. These are two independent pairs, not a strategy/format cross product.
+The six files named by `scripts/fixtures/two-source-optional-effect.mjs`
+contain complete submitted Programs, exact text and independent expectations.
+Only the newly published MappingRef is bound at submission. No lowered JSON
+is amended and no Source or Effect is invoked separately by the harness.
+
+Both members retain `id >= 0` on each Source, JOIN `max_output_rows: 100`,
+the same six output columns and the single row with `id: 1`, NULL left amount,
+right amount 100, literal risk `high` and target/name constants. Both acquire
+each exact DuckDB once, invoke no Model, and restore the same submitted request
+and Run without provider opens or SQL after process termination. The Effect
+member requires signed approval and write counts `[0,0,1,1]`; the pure member
+has no checkpoint or write and counts `[0,0,0]`. The existing driver stops the
+dedicated Host and execution process at durable capture and persisted approval;
+the pure control stops after completed publication.
+
+The ordinary packed Salesforce composition consumer executes these pairs
+without a new job or package producer. `--optional-effect-only` selects them
+without the existing Source/INFER fault matrix. Existing focused flags retain
+their prior selections. An additive diagnostic observer connection exposes the
+actual completed acquisition selection in the existing Effect owner, as the
+pure owner already does. It does not change selection, admission or cleanup.
+Program and Run CIDs can differ across JSON/text structure or Effect presence;
+only exact same-request replay identity is required. The pair compares actual
+candidate eligibility and explicit priority, not unrelated requirement CIDs.
+
+Before registration, the new focused fixture/scheduling regression failed
+1/5 tests because ordinary packed execution did not run the pair. After the
+connection, 29/29 selected Node tests passed (Client scheduling, acquisition
+custody and DuckDB selection). Outer and generated driver syntax checks and
+`git diff --check` passed. Fresh-packed public execution and automatic PR CI
+are pending; these local checks are not execution acceptance.
+
+This does not close the Source-free Graph Result Data Policy dependency or
+prove active temporary holding inventory. Those common connections remain
+with A; cumulative allocation counters and `client.close()` alone are not
+physical release evidence. Existing failure/recovery matrices are reused,
+not duplicated for this optional-Effect pair.
+
+### Manifest and Session CI main integration
+
+The next normal merge adopts main
+`c4fc104d8a700794766dcee5114617b001f8a6f9`, including #334's existing
+manifest-selected Effect installation and #326's current scoped Session CI
+setting. No conflicts or product acceptance changes are needed. Client
+scheduling, acquisition custody and the selected installation table pass
+30/30 focused Node tests after this integration. The previous PR run
+37180581517 passed preflight but had not started its packed consumer when
+this integration was prepared. That older submitted SHA's results remain
+separate from the new automatic PR run; no manual rerun is requested.
