@@ -550,3 +550,50 @@ Source/binary/command manifest: `_build/repro/artifacts-09b003893.json`.
 The runtime-performance objective remains unmet. Do not repeat the same test
 until favorable; use these Native boundaries to choose the next cause or a
 justified larger existing case, keeping the same comparison obligations.
+
+## Retained-output scaling diagnostic and fixed comparison
+
+At clean controller revision `638c89d4f56c4a6fe844234ba2512ad3a3484b08`,
+reuse the already compiled `fe0b68242` release, not a retagged HEAD build.
+The existing 1,000-row narrow training observations confirm that the selective
+fixture still retains only two rows: its Local Compute/identity interval is
+2.120--2.250 ms and fresh DuckDB 14.204--16.251 ms. Those forced training legs
+cannot establish a runtime improvement. No training campaign was repeated.
+
+One existing `retainedCase` at
+`retained-large-output-downstream-reuse/text-1024/1000` exposes the larger
+retention/identity workload while preserving every fixture limit. This size
+belongs to the fixture domain, but is outside the registered 27-case acceptance
+matrix. It is a selected diagnostic, not new matrix qualification.
+
+The initial controller incorrectly supplied Local rates when the existing
+cumulative text contract makes Local ineligible; Native refused before execution
+(`incomplete task estimate profile`, `run-IotZZR`). Remove that invalid control
+input without changing eligibility or budgets. The corrected single invocation
+(`run-0EV8eL`) admits three 1,000-row holdings of 1,047,891 bytes each, five
+physical attempts (three Computes, one environment, one import), and zero final
+holding/reservations. Native entry-through-result is 162.199 ms, including
+32.935 ms acquisition and 110.203 ms Compute/identity; the final output read and
+identity interval occupies approximately 29.592 ms of that enclosing interval.
+Resident setup is 3.641 ms and import 6.647 ms. These nested intervals must not
+be added to their enclosing timers. Source preparation is 178.657 ms, complete
+parent execution/admission 187.416 ms, and independent product admission 9.126 ms.
+A single invocation is not a performance estimate or CPU attribution.
+
+Preserve the failed input and corrected observation/controller in
+`_build/repro/retained-text-638c89d4/`, including its byte/digest manifest.
+
+Before measuring, fix one fully admitted prelaunch per binary and 21 alternating
+pairs for this exact retained-text fixture. Use the existing comparison entry
+with `--retained-text-1000`, archived `f8c687638` before and `fe0b68242` after
+binaries, unchanged ASCII-runtime source difference, full binary hashes, one
+immutable source, and actual planner/Owner/usage/holding correspondence. Local
+receives no offer estimate in either leg because it is ineligible. Both fresh
+and resident costs remain the same explicit controls, not calibrated estimates.
+Retain source preparation, prelaunch costs, complete parent intervals, application,
+Compute/identity, sequential task and cleanup intervals. Decide the primary
+complete-parent reduction using the same paired arithmetic mean and 95% interval
+with threshold zero. Keep every observation; do not extend the sample count or
+retry the experiment to obtain a favorable result. The earlier 100-row ASCII
+result remains indeterminate; this separate workload cannot replace that result
+or authorize a general speedup claim.

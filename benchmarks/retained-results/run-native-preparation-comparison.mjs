@@ -17,9 +17,10 @@ const root = fileURLToPath(new URL('../../', import.meta.url));
 const exec = promisify(execFile);
 const [baselinePath, outputPath, condition, ...extra] = process.argv.slice(2);
 assert(baselinePath && outputPath && !extra.length &&
-  (condition === undefined || ['--matched-first-use', '--retained-continuation'].includes(condition)),
+  (condition === undefined || ['--matched-first-use', '--retained-continuation', '--retained-text-1000'].includes(condition)),
   'ExpectedNativePreparationBaselineAndOutput');
 const continuation = condition === '--retained-continuation';
+const retainedText = condition === '--retained-text-1000';
 const matchedFirstUse = condition !== undefined;
 const destination = resolve(outputPath);
 assert(destination !== root && !destination.startsWith(root + sep), 'NativeComparisonOutputInsideCheckout');
@@ -55,7 +56,8 @@ const unchanged = async () => {
   assert.equal(await sha256File(afterBinary), afterDigest);
 };
 await unchanged();
-const fixture = retainedCase(workloads[0], 'narrow', 100);
+const fixture = retainedText ? retainedCase(workloads[2], 'text-1024', 1000)
+  : retainedCase(workloads[0], 'narrow', 100);
 const directory = await mkdtemp(join(tmpdir(), 'actql-native-ascii-word-'));
 const database = join(directory, 'source.duckdb');
 const label = continuation ? 'canonical-continuation-rewrap' : 'native-ascii-word-loop';
@@ -70,7 +72,12 @@ const basis = {revision, compiledSourceRevision, baselineRevision, beforeDigest,
     ? 'One fully admitted unmeasured launch per binary before all 21 pairs. Its full cost and observations are retained separately. Both binary images have prior use; this does not establish OS-cache coldness or explain the original external delay.'
     : 'No explicit prelaunch; preserve all first-use observations',
   host: 'native', providedAcquisition: ['native'],
-  computeConditions: 'Same existing explicit resident experiment on both binaries: Local/fresh 1000 ms, resident default 1 ms. These are fixed control inputs, not new measured estimates or an invented planner reason.',
+  computeConditions: retainedText
+    ? 'Same explicit resident experiment on both binaries: fresh 1000 ms, resident default 1 ms; Local is ineligible under the unchanged cumulative text contract and receives no estimate. These are fixed control inputs, not calibrated costs.'
+    : 'Same existing explicit resident experiment on both binaries: Local/fresh 1000 ms, resident default 1 ms. These are fixed control inputs, not new measured estimates or an invented planner reason.',
+  fixtureScope: retainedText
+    ? 'Existing retainedCase domain at 1000 text rows; outside the registered 27-case acceptance matrix. Diagnose retained/identity scaling without adding a matrix acceptance claim.'
+    : 'Existing 100-row low-selectivity fixture',
   scopes: {cycle: 'application files, full binary hash, process exit and product/Owner admission; common source preparation reported separately',
     executionMs: 'probe entry through final result identity; includes preparation, not only task execution',
     applicationPreparationMs: 'actual application-start to library-start clock interval',
@@ -86,7 +93,8 @@ const executeLeg = async (leg, identity) => {
   const child = join(directory, leg + '-' + identity); await mkdir(child);
   const start = performance.now();
   const prepared = await prepareNativeDirectProduct({root, fixture, database, directory: child,
-    residentPolicy: true, localRates: ['1000', '1000', '1000'], nativeRates: ['1000', '1000', '1000'],
+    residentPolicy: true, ...(retainedText ? {} : {localRates: ['1000', '1000', '1000']}),
+    nativeRates: ['1000', '1000', '1000'],
     phaseObserver: true});
   const invocation = {...prepared, binary: leg === 'before' ? beforeBinary : afterBinary};
   assert.equal(await sha256File(invocation.binary), leg === 'before' ? beforeDigest : afterDigest);
