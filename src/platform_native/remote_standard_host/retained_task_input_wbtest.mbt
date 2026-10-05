@@ -226,6 +226,53 @@ fn retained_transfer_current(
 }
 
 ///|
+test "retained Transfer preflight checks current grants without asserting receiver commit" {
+  let (producer, transfer, receipt, site) = retained_transfer_fixture(false)
+  let request = @transfer.record_request(transfer)
+  let authorized = Ref(true)
+  let current = @publication_host.install_client_retained_input_current(
+    () => site,
+    () => standard_transfer_input_cid("c"),
+    () => 1791158400000L,
+    (_, _) => authorized.val,
+  )
+  @publication_host.validate_client_retained_input_transfer_current(
+    producer, request, current,
+  ).unwrap()
+  // Request admission must not loosen the existing binding commit boundary.
+  assert_true(
+    @publication_host.prepare_client_retained_task_input(
+      producer, transfer, receipt, "use-a", current, 262144,
+    )
+    is Err(@publication_host.TransferNotCommitted),
+  )
+  let before = @site.site_status(site)
+  authorized.val = false
+  assert_true(
+    @publication_host.validate_client_retained_input_transfer_current(
+      producer, request, current,
+    )
+    is Err(@publication_host.AuthorizationUnavailable),
+  )
+  let after = @site.site_status(site)
+  assert_eq(before[6], after[6])
+  assert_eq(before[7], after[7])
+  authorized.val = true
+  let expired = @publication_host.install_client_retained_input_current(
+    () => site,
+    () => standard_transfer_input_cid("c"),
+    () => 4102444800001L,
+    (_, _) => true,
+  )
+  assert_true(
+    @publication_host.validate_client_retained_input_transfer_current(
+      producer, request, expired,
+    )
+    is Err(@publication_host.TransferExpired),
+  )
+}
+
+///|
 test "retained task binding restores exact original ports without changing Transfer revision" {
   let (producer, transfer, receipt, site) = retained_transfer_fixture(true)
   let value = prepare_native_remote_retained_task_input(
