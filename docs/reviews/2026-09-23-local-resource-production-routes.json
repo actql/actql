@@ -4548,6 +4548,41 @@
       },
       "boundary_tests": [
         {
+          "role": "distinct_nested_compare_quantum_order",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_distinct_tree_wbtest.mbt",
+          "fixture": "whole-row DISTINCT yields during nested comparison and preserves logical work"
+        },
+        {
+          "role": "distinct_nested_compare_stop_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_distinct_tree_wbtest.mbt",
+          "fixture": "whole-row DISTINCT retains a nested comparison until confirmed stop and cleanup"
+        },
+        {
+          "role": "distinct_nested_compare_workspace",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_distinct_tree_wbtest.mbt",
+          "fixture": "whole-row DISTINCT accounts nested comparison workspace and frame limits"
+        },
+        {
+          "role": "distinct_nested_compare_work",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_distinct_tree_wbtest.mbt",
+          "fixture": "whole-row DISTINCT complete comparator accepts exact work and rejects one short"
+        },
+        {
+          "role": "distinct_nested_compare_public_barrier",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_distinct_tree_wbtest.mbt",
+          "fixture": "public nested DISTINCT fixture reaches a scanning barrier after nine Host quanta"
+        },
+        {
           "role": "selected_distinct_first_occurrence_and_null",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
@@ -4633,6 +4668,13 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "distinct_nested_compare_public_store",
+          "suite": "node:embedded_distinct_values",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-distinct-value-retention.test.mjs",
+          "fixture": "public retained DISTINCT scans nested values, publishes and cancels without redispatch"
+        },
         {
           "role": "same_stage_distinct_timer_cancel_cleanup",
           "suite": "node:duckdb_standard_host",

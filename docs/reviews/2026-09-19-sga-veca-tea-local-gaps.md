@@ -5596,3 +5596,23 @@ Packed/HTTP and Wasm/native execution remain unverified for this unit. Other
 recursive comparator callers remain separate.
 See the [Set boundary record](2026-10-06-local-set-tree-comparison.md) and
 [retained capacity record](2026-10-06-local-retained-store-capacity.md).
+
+### DISTINCT recursive comparison boundary
+
+Whole-row DISTINCT now reuses the Set admitted-tree cursor during sorting and
+adjacent-row equality, instead of synchronously walking nested Array/Object/
+Vector values inside one poll. This splits actual comparison scanning, not
+value measurement. Focused JS tests preserve independent survivors, order,
+absent-versus-NULL behavior and logical work across quanta, exact/one-short
+comparison work and whole-operation workspace, and roots until confirmed stop
+and single cleanup.
+
+The ordinary installed retained Host runs Values -> DISTINCT -> derive ->
+Unnest -> select -> sort as one fused producer task, publishes literal ordered
+producer/two-consumer Results and reuses the same request without Compute.
+Cancellation is delivered at a kernel-certified nested UTF-16 scanning barrier;
+physical stop remains separate from the request and all Results stay unavailable
+on stop. The fused input is held by the completed-input owner, not a Store lease.
+Public whole-Ledger reservations, packed/HTTP and Wasm/native execution are not
+newly established. Other recursive comparators and expression scans remain
+separate. See the [DISTINCT boundary record](2026-10-06-local-distinct-tree-comparison.md).

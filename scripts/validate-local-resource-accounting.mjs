@@ -901,6 +901,8 @@ export function validateResourceAccounting({
           'adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs',
         'node:property_graph_surface_checker':
           'scripts/property-graph-surface-checker.test.mjs',
+        'node:embedded_distinct_values':
+          'adapters/host-node/public-distinct-value-retention.test.mjs',
       }[item.suite];
       if (!suitePath || item.path !== suitePath ||
         JSON.stringify(item.targets) !== JSON.stringify(['node']) ||
@@ -909,6 +911,12 @@ export function validateResourceAccounting({
         continue;
       }
       const sourceText = fs.readFileSync(path.join(root, suitePath), 'utf8');
+      if (item.suite === 'node:embedded_distinct_values' &&
+          !fs.readFileSync(path.join(root,
+            'adapters/host-node/embedded-installation.test.mjs'), 'utf8')
+            .includes("import './public-distinct-value-retention.test.mjs';")) {
+        fail(`${label}: nested DISTINCT public fixture is not suite-connected`);
+      }
       const namedCase = sourceText.includes(`name: '${item.fixture}'`) ||
         sourceText.includes(`test('${item.fixture}',`);
       const tupleCase = typeof item.case === 'string' &&
@@ -1720,6 +1728,11 @@ export function validateResourceAccounting({
         'distinct_unkeyed_workspace_exact_one_short',
         'selected_distinct_kernel_cancel_cleanup',
         'distinct_adjacent_long_key_cancel_cleanup',
+        'distinct_nested_compare_quantum_order',
+        'distinct_nested_compare_stop_cleanup',
+        'distinct_nested_compare_workspace',
+        'distinct_nested_compare_work',
+        'distinct_nested_compare_public_barrier',
         'same_stage_distinct_two_consumers',
         'same_stage_values_distinct_two_consumers',
         'same_stage_values_distinct_dag_selection',
@@ -1731,6 +1744,9 @@ export function validateResourceAccounting({
       }
       if (!environmentRoles.has('same_stage_distinct_timer_cancel_cleanup')) {
         fail(`${label}: same-stage distinct timer fixture is missing`);
+      }
+      if (!environmentRoles.has('distinct_nested_compare_public_store')) {
+        fail(`${label}: nested DISTINCT public Store fixture is missing`);
       }
     }
     if (route.family === 'SGA' && route.operation === 'graph_bounds' &&
