@@ -1719,8 +1719,42 @@ pub fn pin_durable_store_destination_material(
   reader_id : String,
   expected_receipt_cid : String,
 ) -> Result[NativeRemoteDestinationMaterialUse, NativeRemoteTransferClientIssue] {
-  if @transfer.request_projection(request)[1] != "store" ||
-    use_id.is_empty() ||
+  if @transfer.request_projection(request)[1] != "store" {
+    return Err(InvalidRequest)
+  }
+  pin_durable_destination_material(
+    journal, root, request, use_id, reader_id, expected_receipt_cid,
+  )
+}
+
+///|
+/// Borrow an exact committed Direct destination. Its allocation use is fixed
+/// by the existing Direct receiver; the reader is the consumer occurrence.
+pub fn pin_durable_direct_destination_material(
+  journal : @journal.Journal,
+  root : @filesystem.Root,
+  request : @transfer.RemoteTransferRequest,
+  reader_id : String,
+  expected_receipt_cid : String,
+) -> Result[NativeRemoteDestinationMaterialUse, NativeRemoteTransferClientIssue] {
+  if @transfer.request_projection(request)[1] != "direct" {
+    return Err(InvalidRequest)
+  }
+  pin_durable_destination_material(
+    journal, root, request, "direct-destination", reader_id, expected_receipt_cid,
+  )
+}
+
+///|
+fn pin_durable_destination_material(
+  journal : @journal.Journal,
+  root : @filesystem.Root,
+  request : @transfer.RemoteTransferRequest,
+  use_id : String,
+  reader_id : String,
+  expected_receipt_cid : String,
+) -> Result[NativeRemoteDestinationMaterialUse, NativeRemoteTransferClientIssue] {
+  if use_id.is_empty() ||
     reader_id.is_empty() ||
     expected_receipt_cid.is_empty() {
     return Err(InvalidRequest)
@@ -1966,6 +2000,14 @@ pub fn release_destination_material_use(
 /// material state prevents new readers before physical deletion begins, and
 /// capacity is returned only after every owned generation is durably absent.
 pub fn reclaim_durable_store_destination_material(
+  material : NativeRemoteDestinationMaterialUse,
+) -> Result[Bool, NativeRemoteTransferClientIssue] {
+  reclaim_durable_destination_material(material)
+}
+
+///|
+/// Direct and Store destinations share the same durable material cleanup Owner.
+pub fn reclaim_durable_destination_material(
   material : NativeRemoteDestinationMaterialUse,
 ) -> Result[Bool, NativeRemoteTransferClientIssue] {
   if material.reading {

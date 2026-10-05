@@ -285,6 +285,9 @@ test "committed destination readers durably block reclaim" {
   assert_false(
     second.finish_destination_material_reclaim(request, receipt, true).unwrap(),
   )
+  assert_false(
+    first.begin_destination_material_reclaim(request, receipt).unwrap(),
+  )
   assert_eq(first.destination_capacity_usage().unwrap().reserved_bytes, 0L)
   assert_true(first.close())
   assert_true(second.close())
