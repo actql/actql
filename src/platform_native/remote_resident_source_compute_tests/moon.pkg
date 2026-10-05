@@ -14,6 +14,7 @@ import {
   "actql/actql/check_environment" @environment,
   "actql/actql/run_publication" @publication,
   "actql/actql/remote_site_protocol" @remote,
+  "actql/actql/remote_resident_site" @resident_protocol,
   "actql/actql/execution_site" @site,
   "actql/actql/physical_manifest" @manifest,
   "actql/actql/sha256" @sha,

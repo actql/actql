@@ -1,0 +1,52 @@
+{
+  "columns": [
+    {
+      "name": "id",
+      "contract": {
+        "type": "number",
+        "nullable": false
+      }
+    },
+    {
+      "name": "first",
+      "contract": {
+        "type": "number",
+        "nullable": true
+      }
+    },
+    {
+      "name": "last",
+      "contract": {
+        "type": "number",
+        "nullable": true
+      }
+    }
+  ],
+  "rows": [
+    {
+      "id": 1,
+      "first": null,
+      "last": 20
+    },
+    {
+      "id": 2,
+      "first": null,
+      "last": 30
+    },
+    {
+      "id": 3,
+      "first": 10,
+      "last": 40
+    },
+    {
+      "id": 4,
+      "first": 20,
+      "last": 40
+    },
+    {
+      "id": 5,
+      "first": 30,
+      "last": 40
+    }
+  ]
+}
