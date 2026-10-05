@@ -104,7 +104,8 @@ function principals(values, code) {
 // undefined when the Host installs no Run-acceptance protection (then its
 // in-process Site is unprotected and pure compute is covered, as before).
 // `source` (optional): the installed source's own read authorization,
-// {accountConfiguration, context}. With it, a request whose Program acquires
+// {accountConfiguration, context, sourceRef?}. A sourceRef also binds two
+// distinct occurrences of that same installed source. A request that acquires
 // that source is decided for the Host-resolved read tuple before any Run or
 // provider I/O exists, and a delegated read is held like Run acceptance.
 // `sources` is the plural installation alternative: sourceRef selects only
@@ -117,8 +118,9 @@ export async function installRemoteCheckpoints({root, namespaceId,
   if (authorization === null || typeof authorization !== 'object') {
     fail('InvalidRemoteHostAuthorization');
   }
+  // Two installed row declarations may each publish up to 64 views.
   if (sources !== undefined && (source !== undefined ||
-      !Array.isArray(sources) || sources.length < 1 || sources.length > 2 ||
+      !Array.isArray(sources) || sources.length < 1 || sources.length > 128 ||
       sources.some(item => typeof item?.sourceRef !== 'string' ||
         item.sourceRef.length === 0) ||
       new Set(sources.map(item => item.sourceRef)).size !== sources.length)) {
@@ -206,12 +208,17 @@ export async function installRemoteCheckpoints({root, namespaceId,
     const installed = sources === undefined ? installedSources[0]
       : installedSources.find(item => item.configuration.sourceRef ===
         occurrence.checkedSource.sourceRef);
-    if (installed === undefined) fail('HeldAcquisitionChanged');
+    if (installed === undefined ||
+        (installed.configuration.sourceRef !== undefined &&
+          installed.configuration.sourceRef !== occurrence.checkedSource.sourceRef)) {
+      fail('HeldAcquisitionChanged');
+    }
     return installed;
   }
   function captureInventory(captured) {
     const inventory = acquisitionsOf(captured);
-    if (captured.version === MULTI_SOURCE_SUBMISSION && sources === undefined) {
+    if (captured.version === MULTI_SOURCE_SUBMISSION && sources === undefined &&
+        source?.sourceRef === undefined) {
       fail('HeldAcquisitionChanged');
     }
     if (installedSources.length > 0) {
@@ -1475,13 +1482,28 @@ export async function installRemoteCheckpoints({root, namespaceId,
       }
       return journal.getRunState(runId);
     },
+    // Route only through the journal's exact current continuation. The
+    // transition owner fences physical entry; this lookup grants no authority.
+    cancelEffectContinuation(runId, runDefinitionCid) {
+      const view = journal.activeRunCheckpoint(runId);
+      if (!['effect_set', 'read_access'].includes(view?.kind) ||
+          view.runId !== runId || view.runDefinitionCid !== runDefinitionCid ||
+          view.prepareAttemptId !== null) return false;
+      const state = journal.getRunState(runId);
+      if (state?.status === 'waiting_checkpoint') {
+        return journal.cancelCheckpoint(view.checkpointCid).outcome === 'cancelled';
+      }
+      if (state?.status === 'resuming') {
+        return journal.cancelUnsentResume(view.checkpointCid).outcome === 'cancelled';
+      }
+      return false;
+    },
     hasUnresolvedSourceStart(runId, runDefinitionCid) {
-      return [0, 1].some(task => {
-        const view = journal.inspect(`${runId}-source-${task}`);
-        return view?.kind === 'read_access' && view.runId === runId &&
-          view.runDefinitionCid === runDefinitionCid &&
-          journal.hasStartedResume(view.checkpointCid);
-      });
+      const view = journal.activeRunCheckpoint(runId);
+      return view?.kind === 'read_access' && view.runId === runId &&
+        view.runDefinitionCid === runDefinitionCid &&
+        view.checkpointId.startsWith(`${runId}-source-`) &&
+        journal.hasStartedResume(view.checkpointCid);
     },
     hasUnresolvedEffectTargetStart(runId, runDefinitionCid) {
       const view = journal.activeRunCheckpoint(runId);
@@ -1836,4 +1858,3 @@ export async function installRemoteCheckpoints({root, namespaceId,
       {journal, store: evidence});
   }
 }
-

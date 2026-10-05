@@ -44,11 +44,13 @@ function validateRead({
   refreshCatalog,
   limits,
   consumePage,
+  chargePage,
   callResource = callHttpsCredentialResource,
 }) {
   if (!moon || !plan ||
       typeof authorizationForPage !== 'function' ||
-      typeof consumePage !== 'function' || !credential ||
+      typeof consumePage !== 'function' ||
+      (chargePage !== undefined && typeof chargePage !== 'function') || !credential ||
       typeof credential !== 'object' ||
       !refreshCatalog || (typeof refreshCatalog !== 'object' &&
         typeof refreshCatalog !== 'function') ||
@@ -58,7 +60,7 @@ function validateRead({
   validateLimits(limits);
   const context = ownInvocationContext({
     authorization: initialAuthorization, credential, limits,
-    callbacks: {authorizationForPage, consumePage, callResource},
+    callbacks: {authorizationForPage, consumePage, chargePage, callResource},
   });
   const scope = validateAuthorization(context.authorization);
   if (!moon.salesforceReadProjectionScopeMatches(
@@ -107,6 +109,7 @@ async function driveQueryPages({
   credential,
   limits,
   consumePage,
+  chargePage,
   callResource,
   signal,
 }, scope, owner) {
@@ -130,8 +133,12 @@ async function driveQueryPages({
       if (!response.accepted) {
         fail('SalesforceQueryResourceRejected');
       }
+      // Account the exact received body before any provider decoding. The
+      // neutral owner binds this single-use admission to the selected run.
+      const charge = await chargePage?.(response.body);
       const page = checked(owner.acceptPage(path, response.body));
-      await consumePage(page, Object.freeze({path, pageIndex: pages.length}));
+      await consumePage(page, Object.freeze({path, pageIndex: pages.length,
+        charge}));
       owner.acknowledgePage?.(page);
       pages.push(Object.freeze({
         path,
@@ -178,12 +185,23 @@ export async function readSalesforceQuery(options) {
     ...options, initialAuthorization: context.authorization,
     authorizationForPage: context.callbacks.authorizationForPage,
     consumePage: context.callbacks.consumePage,
+    chargePage: context.callbacks.chargePage,
     callResource: context.callbacks.callResource,
     credential: context.credential, limits: ownedLimits,
   }, context.scope, {
     nextPath: () => moon.salesforceQueryReadNextPath(read),
-    acceptPage: (path, body) => moon.salesforceQueryReadAcceptPage(read, path,
-      body),
+    acceptPage: (path, body) => {
+      const result = moon.salesforceQueryReadAcceptPage(read, path, body);
+      const violation = result?.$tag === 0
+        ? moon.salesforceQueryReadValueViolation?.(plan, result._0)
+        : undefined;
+      if (typeof violation === 'string') {
+        throw Object.assign(new Error('SalesforceValueViolation'), {
+          code: 'SalesforceValueViolation',
+          violation: Object.freeze(JSON.parse(violation))});
+      }
+      return result;
+    },
     acknowledgePage: page => checked(
       moon.salesforceQueryReadAcknowledgePage(read, page)),
     complete: () => moon.salesforceQueryReadComplete(read),
@@ -219,6 +237,7 @@ export async function readSalesforceManagedQuery(options) {
     ...options, initialAuthorization: context.authorization,
     authorizationForPage: context.callbacks.authorizationForPage,
     consumePage: async () => {},
+    chargePage: context.callbacks.chargePage,
     callResource: context.callbacks.callResource,
     credential: context.credential, limits: ownedLimits,
   }, context.scope, {
@@ -231,79 +250,4 @@ export async function readSalesforceManagedQuery(options) {
     interrupt: () => moon.salesforceManagedQueryCancel(query),
   });
   return Object.freeze({...result, currentCatalog});
-}
-
-/// Read the exact selected Acquisition attempt through the same bounded Site
-/// transport. This moves the attempt only to AwaitingCleanup. The Host must
-/// separately confirm physical settlement, verify evidence, and capture it.
-export async function readSalesforceIssuedBroad(options) {
-  const {moon, hostRun, apiVersion, limits, maxCaptureRows,
-    captureLimits} = options;
-  if (!moon || !hostRun ||
-      typeof moon.salesforceBroadHostAttempt !== 'function' ||
-      typeof moon.salesforceIssuedBroadValueViolation !== 'function' ||
-      typeof apiVersion !== 'string' ||
-      !count(maxCaptureRows) || !captureLimits ||
-      !count(captureLimits.maxNodes) ||
-      !count(captureLimits.maxTextBytes) ||
-      !count(captureLimits.maxDepth) ||
-      !count(captureLimits.maxWork)) {
-    fail('InvalidSalesforceIssuedBroadRead');
-  }
-  const attempt = moon.salesforceBroadHostAttempt(hostRun);
-  const plan = moon.salesforceIssuedBroadPlan(attempt);
-  const physical = {...options, plan, consumePage: async () => {}};
-  const context = validateRead(physical);
-  // Claim the exact attempt before the first await. A rejected duplicate
-  // must not abort the owner that already holds this physical read.
-  checked(moon.salesforceIssuedBroadBegin(
-    attempt, apiVersion, context.limits.maxBytes, context.limits.maxNodes,
-    context.limits.maxDepth, context.limits.maxRows,
-    context.limits.maxLocatorUnits, context.limits.maxPages,
-    BigInt(context.limits.maxTotalRows), maxCaptureRows,
-    captureLimits.maxNodes, captureLimits.maxTextBytes,
-    captureLimits.maxDepth, captureLimits.maxWork,
-  ));
-  try {
-    const currentCatalog = await recheckCurrentCatalog({
-      ...physical, credential: context.credential,
-      refreshCatalog: context.refreshCatalog,
-      callResource: context.callbacks.callResource,
-    });
-    const result = await driveQueryPages({
-      ...physical,
-      initialAuthorization: context.authorization,
-      authorizationForPage: context.callbacks.authorizationForPage,
-      callResource: context.callbacks.callResource,
-      credential: context.credential, limits: context.limits,
-    }, context.scope, {
-      nextPath: () => moon.salesforceIssuedBroadNextPath(attempt),
-      acceptPage: (path, body) => {
-        const result = moon.salesforceIssuedBroadAcceptPage(attempt, path,
-          body);
-        // A provider value that is not a value of its declared type fails
-        // the whole acquisition, typed by Resource, field, type and kind.
-        const violation = result?.$tag === 0
-          ? moon.salesforceIssuedBroadValueViolation(attempt, result._0)
-          : undefined;
-        if (typeof violation === 'string') {
-          throw Object.assign(new Error('SalesforceValueViolation'), {
-            code: 'SalesforceValueViolation',
-            violation: Object.freeze(JSON.parse(violation))});
-        }
-        return result;
-      },
-      complete: () => moon.salesforceIssuedBroadComplete(attempt),
-      rowCount: () => moon.salesforceIssuedBroadRowCount(attempt),
-      finish: () => {
-        checked(moon.salesforceIssuedBroadFinish(attempt));
-        return {hostRun};
-      },
-      interrupt: () => moon.salesforceBroadHostAbort(hostRun),
-    });
-    return Object.freeze({...result, currentCatalog});
-  } catch (error) {
-    moon.salesforceBroadHostAbort(hostRun);
-    throw error;
-  }
 }

@@ -84,11 +84,23 @@ fn direct_execution_candidate(
     Ok(None) => ()
     other => return other
   }
+  match graph_equality_execution_check(site, policy) {
+    Ok(None) => ()
+    other => return other
+  }
   match graph_diagnostic_execution_check(site, policy) {
     Ok(None) => ()
     other => return other
   }
+  match subgraph_execution_check(site, policy) {
+    Ok(None) => ()
+    other => return other
+  }
   match graph_normalize_execution_check(site, policy) {
+    Ok(None) => ()
+    other => return other
+  }
+  match graph_delta_execution_check(site, policy) {
     Ok(None) => ()
     other => return other
   }

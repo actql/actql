@@ -4,6 +4,7 @@ package "actql/actql/bounded_graph_diff"
 import {
   "actql/actql/bounded_graph_snapshot",
   "actql/actql/carrier_contract",
+  "actql/actql/decode_core",
   "actql/actql/managed_carrier_runtime",
   "actql/actql/managed_graph_storage",
   "actql/actql/value_admission",
@@ -14,13 +15,33 @@ import {
 // Values
 pub fn advance(Preparation, Int) -> Result[Poll, Issue]
 
+pub fn advance_apply(ApplyPreparation, Int) -> Result[ApplyPoll, Issue]
+
+pub fn apply_uses_output_builder(ApplyPreparation, @managed_graph_storage.Builder) -> Bool
+
 pub fn base_cid(Delta) -> String
 
 pub fn cleanup(Preparation) -> Bool
 
+pub fn cleanup_apply(ApplyPreparation) -> Bool
+
+pub fn cleanup_apply_base(ApplyBasePreparation) -> Unit
+
 pub fn prepare(@managed_graph_storage.Storage, @managed_graph_storage.Storage, @value_contract.Contract, String, Limits) -> Result[Preparation, Issue]
 
+pub fn prepare_apply(@managed_graph_storage.Storage, @decode_core.Cursor, Limits, @managed_graph_storage.Limits, reference_issuer? : @value_admission.ReferenceIssuer?, output_builder? : @managed_graph_storage.Builder?) -> Result[ApplyPreparation, Issue]
+
+pub fn prepare_apply_base_view(@managed_carrier_runtime.ProducerView, @carrier_contract.Graph, Limits, @managed_graph_storage.Limits, output_builder? : @managed_graph_storage.Builder?, reserved_workspace_slots? : Int) -> Result[ApplyBasePreparation, Issue]
+
+pub fn prepare_apply_view(@managed_carrier_runtime.ProducerView, @carrier_contract.Graph, @decode_core.Cursor, Limits, @managed_graph_storage.Limits, reference_issuer? : @value_admission.ReferenceIssuer?, output_builder? : @managed_graph_storage.Builder?) -> Result[ApplyPreparation, Issue]
+
 pub fn prepare_view(@managed_carrier_runtime.ProducerView, @carrier_contract.Graph, @managed_carrier_runtime.ProducerView, @carrier_contract.Graph, @value_contract.Contract, String, Limits) -> Result[Preparation, Issue]
+
+pub fn start_apply(@managed_graph_storage.Storage, @decode_core.Cursor, Limits, @managed_graph_storage.Limits, reference_issuer? : @value_admission.ReferenceIssuer?, output_builder? : @managed_graph_storage.Builder?) -> Result[ApplyPreparation, Issue]
+
+pub fn start_apply_from_prepared_base(ApplyBasePreparation, @decode_core.Cursor, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[ApplyPreparation, Issue]
+
+pub fn start_apply_view(@managed_carrier_runtime.ProducerView, @carrier_contract.Graph, @decode_core.Cursor, Limits, @managed_graph_storage.Limits, reference_issuer? : @value_admission.ReferenceIssuer?, output_builder? : @managed_graph_storage.Builder?) -> Result[ApplyPreparation, Issue]
 
 pub fn target_cid(Delta) -> String
 
@@ -29,12 +50,27 @@ pub fn value(Delta) -> @value_admission.CheckedValue
 // Errors
 
 // Types and methods
+type ApplyBasePreparation
+
+pub enum ApplyPoll {
+  ApplyContinue(progress~ : Int64, work~ : Int64)
+  ApplyComplete(@managed_graph_storage.Storage, progress~ : Int64, work~ : Int64)
+  ApplyFailed(Issue, progress~ : Int64, work~ : Int64)
+}
+
+type ApplyPreparation
+
 type Delta
 
 pub(all) enum Issue {
   InvalidLimits
   InvalidGraph
   InvalidDeltaContract
+  InvalidDelta
+  WrongBase
+  BeforeMismatch
+  TargetMismatch
+  Storage(@managed_graph_storage.Issue)
   UnsupportedGraphOperation
   WorkspaceLimit
   OutputLimit

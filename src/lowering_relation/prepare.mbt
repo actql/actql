@@ -64,8 +64,11 @@ pub enum Payload {
   GraphMatchRows(@graph.CheckedMatch)
   GraphBoundsRows(@graph.CheckedGraphBounds)
   GraphDegreeRows(@graph.CheckedDegree)
+  GraphEqualityRows(@graph.CheckedPropertyEquality)
   GraphNormalizeValue(@graph.CheckedNormalize)
+  GraphDeltaValue(@graph.CheckedDelta)
   GraphComponentsRows(@graph.CheckedComponents)
+  GraphSubgraphValue(@graph.CheckedSubgraph)
   GraphTraverseRows(@graph.CheckedTraverse)
   PropertyGraphConstructionValue(@graph.CheckedPropertyConstruction)
   VectorValue(@vector.CheckedVector)
@@ -220,8 +223,15 @@ pub fn operation(value : PreparedNode) -> String {
       }
     GraphBoundsRows(_) => "SGA.bounds_check"
     GraphDegreeRows(_) => "SGA.degree_metrics"
+    GraphEqualityRows(_) => "SGA.equal"
     GraphNormalizeValue(_) => "SGA.normalize"
+    GraphDeltaValue(value) =>
+      match @graph.delta_operation(value) {
+        Difference => "SGA.diff"
+        Application(_) => "SGA.apply_delta"
+      }
     GraphComponentsRows(_) => "SGA.components"
+    GraphSubgraphValue(_) => "SGA.subgraph"
     GraphTraverseRows(_) => "SGA.traverse"
     PropertyGraphConstructionValue(_) => "BRIDGE.rows.to_property_graph"
     VectorValue(value) =>
@@ -297,8 +307,11 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     GraphMatch(value) => Some(GraphMatchRows(value))
     GraphBounds(value) => Some(GraphBoundsRows(value))
     GraphDegree(value) => Some(GraphDegreeRows(value))
+    GraphEquality(checked~, ..) => Some(GraphEqualityRows(checked))
     GraphNormalize(value) => Some(GraphNormalizeValue(value))
+    GraphDelta(checked~, ..) => Some(GraphDeltaValue(checked))
     GraphComponents(value) => Some(GraphComponentsRows(value))
+    Subgraph(checked~, ..) => Some(GraphSubgraphValue(checked))
     Traverse(checked~, ..) => Some(GraphTraverseRows(checked))
     Pool(value) => Some(PoolValue(value))
     Nearest(checked~, ..) => Some(NearestValue(checked))
@@ -426,8 +439,28 @@ pub fn prepare(
         )
       GraphBoundsRows(_) => ("graph_bounds", 1)
       GraphDegreeRows(_) => ("degree", 1)
+      GraphEqualityRows(_) => ("graphs_equal", 2)
       GraphNormalizeValue(_) => ("normalize_graph", 1)
+      GraphDeltaValue(value) =>
+        (
+          if @graph.delta_operation(value) is Difference {
+            "graph_diff"
+          } else {
+            "apply_graph_delta"
+          },
+          2,
+        )
       GraphComponentsRows(_) => ("components", 1)
+      GraphSubgraphValue(checked) =>
+        (
+          "subgraph",
+          if @graph.selector_form(@graph.subgraph_nodes(checked))
+            is @graph.RelationIds(..) {
+            2
+          } else {
+            1
+          },
+        )
       GraphTraverseRows(checked) =>
         (
           "traverse",
@@ -634,8 +667,13 @@ pub fn prepare(
       CrossJoinRows(_) => None
       NestRows(_) => None
       GraphMatchRows(_) => None
-      GraphBoundsRows(_) | GraphDegreeRows(_) | GraphComponentsRows(_) => None
+      GraphBoundsRows(_)
+      | GraphDegreeRows(_)
+      | GraphEqualityRows(_)
+      | GraphComponentsRows(_) => None
+      GraphSubgraphValue(_) => None
       GraphNormalizeValue(_) => None
+      GraphDeltaValue(_) => None
       GraphTraverseRows(_) => None
       PropertyGraphConstructionValue(_) => None
       VectorValue(_) => None

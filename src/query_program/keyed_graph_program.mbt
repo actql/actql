@@ -120,7 +120,12 @@ fn keyed_node_constraint(
   }
   let append = fn(expression : @query.Expression) -> @builder.Node raise Abort {
     match
-      @expression.append(expression, resolve, construction.builder, max_work) {
+      @expression.append_with_properties(
+        expression,
+        resolve,
+        construction.builder,
+        max_work,
+      ) {
       Ok(value) => value
       Err(error) => raise Abort(Expression(error))
     }
@@ -214,6 +219,7 @@ fn lower_script_keyed_graph_query(
   reserved : Array[String],
   output : String,
   retained : Array[RetainedResult],
+  known? : Array[Input] = [],
 ) -> Input raise Abort {
   guard @query.graph_query(query) is Some(pattern_query) &&
     pattern_query.pattern is Some(pattern) else {
@@ -225,7 +231,13 @@ fn lower_script_keyed_graph_query(
     raise Abort(UnknownRelation)
   }
   let graph = lower_script_graph_calls(
-    construction, query, input_graph, steps, reserved,
+    construction,
+    query,
+    input_graph,
+    limits,
+    steps,
+    reserved,
+    known~,
   )
   let query = @query.after_graph_calls(query)
   let mut projected = false

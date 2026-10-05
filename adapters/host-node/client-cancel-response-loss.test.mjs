@@ -1,14 +1,19 @@
 // Public SDK/installed-ingress acceptance, with the real request journal and
 // common Run/control issuers. This does not define a cancellation-operation
-// identity or simulate provider execution. The existing Run is unstarted.
+// identity or simulate provider execution. Physical-start/close facts in the
+// explanation cases are recorded through the existing control owner only.
 import assert from 'node:assert/strict';
-import {mkdtemp, rm} from 'node:fs/promises';
+import {execFileSync} from 'node:child_process';
+import {mkdir, mkdtemp, readFile, rm} from 'node:fs/promises';
 import {createServer} from 'node:http';
+import {createServer as createTlsServer} from 'node:https';
+import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
-import test from 'node:test';
-import {connect} from '../../packages/sdk/index.mjs';
+import test, {after} from 'node:test';
+import * as sdk from '../../packages/sdk/index.mjs';
+const {connect} = sdk;
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
@@ -22,6 +27,18 @@ import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
 import {installNodeClientRunAttach} from './client-run-attach.mjs';
 
+const scratch = new URL('../../_build/client-cancel-tests/', import.meta.url).pathname;
+await mkdir(scratch, {recursive: true});
+const tlsRoot = await mkdtemp(join(scratch, 'tls-'));
+execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
+  '-keyout', 'remote.key', '-out', 'remote.crt', '-days', '1',
+  '-subj', '/CN=actql-cancel-fixture', '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'],
+{cwd: tlsRoot, stdio: 'ignore'});
+const tlsKey = await readFile(join(tlsRoot, 'remote.key'));
+const tlsCertificate = await readFile(join(tlsRoot, 'remote.crt'));
+setDefaultCACertificates([...getCACertificates('default'), tlsCertificate.toString('utf8')]);
+after(() => rm(tlsRoot, {recursive: true, force: true}));
+
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const scope = {namespaceId: 'namespace-a', authorityScopeCid: cid('a')};
 const requestId = 'saved-request';
@@ -33,7 +50,7 @@ const profile = {version: 'actql-client-host/0.1', mode: 'local',
     maxRetainedValueBytes: 4096, maxRows: 10, maxBatchRows: 10,
     maxBatchRetainedValueBytes: 2048}};
 
-async function fixture(t, transport, loss) {
+async function fixture(t, transport, loss, {physicalStart = false, terminal = false, reply = null} = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-cancel-loss-'));
   const journal = openClientRequestJournal(directory);
   let database, server, client;
@@ -69,6 +86,11 @@ async function fixture(t, transport, loss) {
   }, moon, publicationControl);
   journal.reserveDispatch(identity, {namespaceId: scope.namespaceId,
     currentAuthorization: true}, moon, publicationControl);
+  if (physicalStart) {
+    assert.equal(journal.reservePhysicalStart(identity, {namespaceId: scope.namespaceId,
+      ref: accepted.ref, currentAuthorization: true}, moon, publicationControl), true);
+  }
+  if (terminal) journal.markPhysicalClose(accepted.ref, 'failed');
   // A separate SQLite connection observes committed facts, not a handler's
   // answer, SDK state, or the fixture's in-memory counters.
   database = new DatabaseSync(join(directory, 'client-requests.sqlite3'),
@@ -81,8 +103,8 @@ async function fixture(t, transport, loss) {
   const before = stored();
   assert.equal(before.length, 1);
   assert.equal(before[0].cancellation_requested, 0);
-  assert.equal(before[0].physical_start_reserved, 0);
-  let authorized = true, cancelAllowed = true, cancelCalls = 0, submits = 0;
+  assert.equal(before[0].physical_start_reserved, physicalStart ? 1 : 0);
+  let authorized = true, cancelAllowed = true, cancelCalls = 0, submits = 0, credentialFailure;
   const operations = [];
   const options = {
     authenticate: () => 'local-principal',
@@ -125,6 +147,10 @@ async function fixture(t, transport, loss) {
     },
     maxRowBytes: 1024,
   };
+  const alterReply = value => reply === 'foreign_ref'
+    ? {...value, ref: {...value.ref, runDefinitionCid: cid('f')}}
+    : reply === 'malformed' ? {}
+    : reply === 'response_object' ? new Response('{}') : value;
   let pendingLoss = loss;
   if (transport === 'in-process') {
     const port = createNodeInProcessClientHost(options);
@@ -136,12 +162,12 @@ async function fixture(t, transport, loss) {
         if (phase === 'before-dispatch') throw new Error('LostCancelTransport');
         const reply = await port.perform(operation, body, signal);
         if (phase === 'after-commit') throw new Error('LostCancelTransport');
-        return reply;
+        return operation === 'cancel' ? alterReply(reply) : reply;
       },
     });
   } else {
     const handler = createClientHttpHandler(options);
-    server = createServer((request, response) => {
+    const serve = (request, response) => {
       const operation = request.url.split('/').at(-1);
       operations.push(operation);
       const phase = operation === 'cancel' ? pendingLoss : undefined;
@@ -160,17 +186,29 @@ async function fixture(t, transport, loss) {
           return response;
         };
       }
+      if (operation === 'cancel' && reply !== null) {
+        const end = response.end;
+        response.end = function(data, ...args) {
+          assert.equal(response.statusCode, 200);
+          const value = JSON.parse(data.toString());
+          return end.call(this, JSON.stringify(alterReply(value)), ...args);
+        };
+      }
       void handler(request, response);
-    });
+    };
+    server = transport === 'https'
+      ? createTlsServer({key: tlsKey, cert: tlsCertificate}, serve) : createServer(serve);
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
     client = await connect({mode: 'local', owner: 'local',
-      endpoint: `http://127.0.0.1:${server.address().port}/`, token: 'test-token'});
+      endpoint: `${transport === 'https' ? 'https' : 'http'}://127.0.0.1:${server.address().port}/`,
+      token: async () => { if (credentialFailure) throw credentialFailure; return 'test-token'; }});
   }
   const execution = await client.attach(accepted.ref);
   return {client, execution, before, stored, operations,
     counts: () => ({cancelCalls, submits}),
     authorize: value => { authorized = value; },
-    authorizeCancel: value => { cancelAllowed = value; }};
+    authorizeCancel: value => { cancelAllowed = value; },
+    rejectCredentials: value => { credentialFailure = value; }};
 }
 
 for (const transport of ['in-process', 'http']) {
@@ -238,4 +276,100 @@ for (const transport of ['in-process', 'http']) {
         false);
       assert.deepEqual(f.stored(), f.before);
     });
+}
+
+
+for (const transport of ['in-process', 'https']) {
+  test(`${transport}: Run cancellation explanations retain recorded control facts`, async t => {
+    const f = await fixture(t, transport, undefined, {physicalStart: true});
+    const accepted = await f.execution.cancel();
+    assert.equal(typeof sdk.explainCancellation, 'function', '[check-mutation:cancel-explanation-api]');
+    const next = {operation: 'status', ref: {...f.execution.ref}};
+    const expected = {observation: 'accepted', revision: f.before[0].revision + 1,
+      summary: 'The Host recorded a Run cancellation request. Refresh Run state for physical stop, Effects and release.', next};
+    assert.deepEqual(sdk.explainCancellation(accepted), expected, '[check-mutation:cancel-explanation]');
+    assert.equal(f.stored()[0].physical_close_confirmed, 0);
+    const state = await f.execution.status();
+    assert.equal(state.status, 'running');
+    assert.equal(state.control.cancellation_requested, true);
+    assert.equal(state.control.physical_stop, 'unknown');
+    const already = await f.execution.cancel();
+    assert.deepEqual(sdk.explainCancellation(already), {...expected,
+      observation: 'already_requested',
+      summary: 'The Host reports an existing Run cancellation request. Refresh Run state for physical stop, Effects and release.'},
+    '[check-mutation:cancel-explanation]');
+    assert.deepEqual(sdk.explainCancellation(JSON.parse(JSON.stringify(accepted))), undefined);
+    assert.deepEqual(sdk.explainCancellation({kind: 'accepted', ref: f.execution.ref, revision: 999}), undefined);
+    assert.equal(Object.isFrozen(sdk.explainCancellation(accepted).next.ref), true);
+    if (!Object.isFrozen(accepted)) accepted.kind = 'already_terminal';
+    assert.deepEqual(sdk.explainCancellation(accepted), expected, '[check-mutation:cancel-explanation]');
+    assert.deepEqual(f.counts(), {cancelCalls: 2, submits: 0});
+    f.authorize(false);
+    await assert.rejects(f.execution.status(), {code: 'ClientConnectionDenied'});
+    await assert.rejects(f.execution.cancel(), error => {
+      assert.equal(sdk.explainCancellation(error), undefined);
+      return error.code === 'ClientConnectionDenied';
+    });
+    assert.deepEqual(f.counts(), {cancelCalls: 2, submits: 0});
+    assert.deepEqual(sdk.explainCancellation(accepted), expected);
+    const terminal = await fixture(t, transport, undefined, {physicalStart: true, terminal: true});
+    const reply = await terminal.execution.cancel();
+    assert.deepEqual(sdk.explainCancellation(reply), {
+      observation: 'already_terminal', revision: terminal.before[0].revision,
+      summary: 'The Host reports the Run is already terminal for cancellation. Refresh Run state for Effect and release details.',
+      next: {operation: 'status', ref: {...terminal.execution.ref}},
+    }, '[check-mutation:cancel-explanation]');
+    assert.equal(terminal.stored()[0].cancellation_requested, 0);
+  });
+
+  test(`${transport}: Run cancellation uncertainty retains read-only observation advice`, async t => {
+    assert.equal(typeof sdk.explainCancellation, 'function', '[check-mutation:cancel-explanation-api]');
+    for (const scenario of [
+      {phase: 'before-dispatch', committed: false},
+      {phase: 'after-commit', committed: true},
+      {reply: 'foreign_ref', committed: true},
+      {reply: 'malformed', committed: true},
+      ...(transport === 'in-process' ? [{reply: 'response_object', committed: true}] : []),
+    ]) {
+      const f = await fixture(t, transport, scenario.phase, {reply: scenario.reply ?? null, physicalStart: true});
+      let error;
+      await assert.rejects(f.execution.cancel(), cause => {error = cause; return true;});
+      if (scenario.reply === 'response_object') {
+        assert.equal(error.code, 'InvalidLocalHostPortResponse');
+      }
+      const before = f.stored();
+      assert.equal(before[0].cancellation_requested, scenario.committed ? 1 : 0);
+      assert.equal(before[0].physical_close_confirmed, 0);
+      assert.deepEqual(f.counts(), {cancelCalls: scenario.committed ? 1 : 0, submits: 0});
+      const expected = {observation: 'outcome_unknown',
+        summary: 'The Run cancellation outcome is unknown. The request may have been recorded.',
+        next: {operation: 'status', ref: {...f.execution.ref}}};
+      assert.deepEqual(sdk.explainCancellation(error), expected, '[check-mutation:cancel-unknown-explanation]');
+      error.code = 'Accepted'; error.message = 'stopped';
+      assert.deepEqual(sdk.explainCancellation(error), expected, '[check-mutation:cancel-unknown-explanation]');
+      assert.equal(sdk.explainCancellation(Object.assign(new Error(error.message), error)), undefined);
+      await f.execution.status();
+      assert.deepEqual(f.stored(), before);
+      assert.deepEqual(f.counts(), {cancelCalls: scenario.committed ? 1 : 0, submits: 0});
+      assert.deepEqual(sdk.explainCancellation(error), expected);
+    }
+    if (transport === 'https') {
+      const credentials = await fixture(t, transport);
+      const failed = new Error('private credential failure');
+      credentials.rejectCredentials(failed);
+      await assert.rejects(credentials.execution.cancel(), error => {
+        assert.equal(error, failed);
+        assert.equal(sdk.explainCancellation(error), undefined);
+        return true;
+      });
+      assert.deepEqual(credentials.counts(), {cancelCalls: 0, submits: 0});
+    }
+    const closed = await fixture(t, transport);
+    closed.client.close();
+    await assert.rejects(closed.execution.cancel(), error => {
+      assert.equal(sdk.explainCancellation(error), undefined);
+      return error.code === 'ClientClosed';
+    });
+    assert.deepEqual(closed.counts(), {cancelCalls: 0, submits: 0});
+  });
 }

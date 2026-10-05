@@ -765,7 +765,8 @@ MUST be schema-guaranteed present. Conditional references MUST fail during
 checking; sample values, an empty Relation and `IS NOT NULL` do not prove
 presence. Projection of guaranteed columns and filter/derive expressions that
 reference only guaranteed columns, Required-key sort, proven-order take and
-keyed DISTINCT over guaranteed columns are
+keyed DISTINCT over guaranteed columns, complete-row DISTINCT and GROUP over
+guaranteed references are
 supported. Filter MUST preserve the exact
 input schema, ordered surviving rows and each cell's presence; it MUST admit and
 charge all input rows before evaluating the predicate, including rejected rows.
@@ -796,15 +797,34 @@ schema-guaranteed present, while ordering completion, take determinacy, complete
 input admission and resource accounting retain their existing obligations;
 neither observed samples nor an empty result establish order or presence.
 
-<!-- requirement-block: value-contracts.relation-keyed-distinct-projection value-contracts.relation-keyed-distinct-unselected-presence value-contracts.relation-keyed-distinct-input-admission value-contracts.relation-keyed-distinct-reference-presence value-contracts.relation-sparse-whole-row-distinct-refusal -->
+<!-- requirement-block: value-contracts.relation-keyed-distinct-projection value-contracts.relation-keyed-distinct-unselected-presence value-contracts.relation-keyed-distinct-input-admission value-contracts.relation-keyed-distinct-reference-presence -->
 Keyed DISTINCT on conditional Relation inputs MUST project only its specified,
 schema-guaranteed columns before deduplication, preserving their checked value
 types and nullability and the existing first-occurrence ordering. Unspecified
 conditional columns MUST NOT survive the projection or participate in equality.
 The complete sparse input MUST still be admitted and charged, including omitted
 cells' presence slots and values not selected for output. An unguaranteed key
-MUST fail during checking. Sparse whole-row `distinct: true` remains unsupported
-in this profile and MUST NOT be reinterpreted as guaranteed-key DISTINCT.
+MUST fail during checking.
+
+<!-- requirement-block: value-contracts.relation-whole-row-distinct-presence value-contracts.relation-whole-row-distinct-equality value-contracts.relation-whole-row-distinct-input-admission -->
+Complete-row `distinct: true` on conditional Relation inputs MUST preserve the
+input schema, values and presence through deduplication, retention and reload.
+Equality MUST include presence at every column: omitted and explicitly NULL
+cells are different, and unselected-key projection is not complete-row equality.
+The entire input MUST be admitted and charged, including duplicate rows and
+omission slots. Existing first-occurrence ordering and type-specific equality
+remain in force; deduplication does not make Conditional columns ordinarily
+referenceable or publishable and does not establish a new stable-order proof.
+
+<!-- requirement-block: value-contracts.relation-group-reference-presence value-contracts.relation-group-input-admission value-contracts.relation-group-output-contract -->
+GROUP on conditional Relation inputs MUST require schema-guaranteed presence
+for every group key and every reference in aggregate arguments, filters and
+aggregate-local ordering, including syntactically present unevaluated branches.
+The complete sparse input MUST be admitted and charged before aggregation,
+without reading absent unreferenced cells as NULL or omitting their presence
+storage from resource accounting. The aggregate result MUST retain the existing
+GROUP output schema, types, nullability, empty-input behavior and ordering
+through retention and reload; unselected input columns do not survive grouping.
 
 <!-- requirement-block: value-contracts.empty-object-contracts -->
 Both authored and checked object contracts MUST permit `fields: {}`. This closed
@@ -6153,32 +6173,39 @@ per entity kind. A changed identity is a removal and addition, not an update.
 The graph contract fixes all record fields and equality laws; no patch paths,
 arbitrary JSON instructions or implicit property merge exist.
 
-<!-- requirement-block: graph-equality-and-delta.snapshot-identity graph-equality-and-delta.snapshot-identity-backend-independence -->
+<!-- requirement-block: graph-equality-and-delta.snapshot-owner graph-equality-and-delta.snapshot-identity graph-equality-and-delta.snapshot-identity-backend-independence -->
 The base and target graph CIDs hash one canonical JSON array with preimage
-`["actql-graph-snapshot/0.1", graph_contract_cid, nodes, edges]`. `nodes`
-contains the complete closed node records in canonical typed node-ID order.
-`edges` contains the complete closed edge records in lexicographic source ID,
-target ID and nullable label order. Records and admitted values use canonical
-JSON object-key order and the typed wire representation fixed by their common
-graph contract. This identity excludes acquisition order, provider locators,
-process handles, indexes and physical storage. Implementations MUST validate
-strict record order while hashing and MUST NOT substitute an unordered
-container digest or a backend-specific serialization.
+`["actql-property-graph-snapshot/0.1", graph_contract_cid,
+admitted_definition_body, nodes, edges]`. This is the formal Property Graph
+snapshot identity, including the saved admitted constructor definitions;
+Delta MUST reuse that snapshot contract rather than a separate digest domain.
+`nodes` and `edges` contain complete closed records in their respective
+canonical typed identity order. In particular, edges are ordered by their
+independent edge identities, not by endpoint tuples. Records and admitted
+values use canonical JSON object-key order and the typed wire representation
+fixed by the common graph contract. This identity excludes acquisition order,
+provider locators, process handles, indexes and physical storage.
+Implementations MUST validate strict record order while hashing and MUST NOT
+substitute an unordered container digest, backend-specific serialization or
+the retired four-element `actql-graph-snapshot/0.1` preimage.
 
-<!-- requirement-block: graph-equality-and-delta.complete-records -->
-Delta node records MUST use the closed shape `{id, props}` and edge records
-the closed shape `{src, dst, rel, props}`. IDs retain the common contract's
-semantic node-ID type without string conversion; `rel` is the semantic edge
-label as nullable string, with explicit null for absent type. Each non-null
-`props` object contains exactly its complete node/edge property field set;
-an empty property map is `{}`, not an omitted member. These wrappers prevent
-business properties named `id`, `src`, `rel` or `props` from shadowing identity
-members. A node display label, if retained by a source mapping, is an ordinary
-declared property, not an undeclared extra Delta member. The adapter does not
-copy AoA's optional or partial update records into this complete-record format.
-Before and after snapshots are admitted under the one common graph contract;
-closed edge-label evidence is the union of both known domains, or unknown when
-either domain is unknown. Empty graphs do not weaken these contract requirements.
+<!-- requirement-block: graph-equality-and-delta.complete-records graph-equality-and-delta.independent-edge-identity graph-equality-and-delta.key-identity-binding graph-equality-and-delta.shared-record-contract -->
+Delta node records MUST use the formal snapshot's closed shape
+`{id, key, props}` and edge records its closed shape
+`{dst, id, key, props, src}`. Node and edge IDs retain domain, definition and
+typed key identity without string conversion; edge identity MUST NOT be
+reconstructed from endpoints or labels. `key` preserves the original typed
+key components and MUST agree with `id`; `src` and `dst` retain typed node
+identities. The saved admitted definition body supplies label sets, key-column
+metadata and per-definition property contracts. Each non-null `props` object
+contains the complete property field set for its own definition, not the union
+of all definitions. A property absent from that definition is not filled with
+NULL, while a declared nullable property's NULL remains explicit. An empty
+property map is `{}`, not an omitted member. Snapshot and Delta record
+validation, normalization and identity checks MUST share the same contract;
+old tuple records, guessed definitions and implicit format conversions are
+rejected. Before and after snapshots are admitted under the one common graph
+contract. Empty graphs do not weaken these contract requirements.
 
 `apply_graph_delta: {with: relation_name, field: delta_field}` consumes the
 base graph and exactly one Delta row; zero or multiple rows fail. Delta is

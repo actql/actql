@@ -60,8 +60,13 @@ Double quotes do not quote identifiers: `"id"` is a value, while `` `id` `` is
 a name. The explicit Graph `LABELS` annotation retains its separate historical
 double-quoted annotation profile; accepting double-quoted query literals does
 not expand that profile's escapes or admit raw control characters in it.
-Backtick identifiers currently retain their existing limited escape profile;
-the wider GoogleSQL identifier escape repertoire is a coverage gap.
+Backtick identifiers use the same non-raw escape repertoire as STRING,
+including the `\\377` octal ceiling. They must be nonempty and may contain
+physical newlines and control scalars. Source CR and CRLF decode to LF;
+escaped `\\r` remains CR at decoding. Raw prefixes, triple quotation and
+chunk concatenation do not apply to identifiers. Decoded names still pass
+through ordinary name resolution and the common authored-name contracts;
+quoting does not bypass field-name restrictions or confer authority.
 Comments are line `--` and non-nested block `/* ... */` comments. Query
 parameters use `@name`. Bytes and raw bytes are not yet implemented in this
 profile and are rejected, including mixed STRING/bytes chunks, rather than
@@ -397,7 +402,31 @@ use normal scope, expression, order and Result lowering. DATA adds no copy,
 acquisition or execution owner. A Graph-preserving normalize call still needs
 an adapted common consumer; source lowering alone does not authorize it.
 
-The node emission of `traverse` also enters ordinary Relation processing:
+The existing Graph diagnostic operations also enter ordinary Relation processing:
+
+```aql
+DATA stats = FROM g |> degree(direction: "out");
+FROM stats |> WHERE degree > 0 |> SELECT node, degree |> RESULT active
+FROM g |> graph_bounds(max_nodes: 10, max_edges: @edge_limit)
+  |> SELECT kind, node_id, actual, max |> RESULT violations
+FROM g |> components(kind: "strong", max_output_rows: 100)
+  |> SELECT node_id, component_id, component_size |> RESULT groups
+```
+
+Each line terminating in RESULT is a separate query example. The Pipe's left
+Graph supplies the existing operation input. Bodies, typed parameter references
+and authored guards are preserved for the common checker and owner; omitted
+required arguments and invalid values are not replaced with defaults. Diagnostic
+thresholds select violations, rather than raising execution-resource ceilings.
+The Relation scopes are exactly `node, degree`, `kind, node_id, actual, max`, and
+`node_id, component_id, component_size`, respectively. Graph identity types,
+nullable bounds `node_id`, component identity/order, selected capacity and
+atomic guard failures follow the existing machine contracts. DATA reuses the
+producer; old Graph columns do not reappear after the Relation transition.
+These source connections do not establish support for other Graph operations
+or waive the common admission and execution obligations.
+
+Both emissions of `traverse` enter ordinary Relation processing:
 
 ```aql
 DATA seeds = FROM g |> node_rows() |> SELECT id AS element;
@@ -415,17 +444,66 @@ argument, including an empty `edge_types` list and explicit output/hop bounds.
 Numeric arguments use the same literal admission as query expressions.
 The common checker owns selector membership, identity/type checks, path mode,
 predicates, finite hop bounds, fixed non-NULL output contracts and capacity.
-The output names are `start_id`, `node_id`, `depth`; no uniqueness or presence
+For `emit: 'nodes'`, the output names are `start_id`, `node_id`, `depth`.
+For `emit: 'paths'`, they are `start_id`, `end_id`, `hop_count`, `node_ids`,
+`edge_ids`. Path identity arrays retain complete definition-scoped typed
+identities, including distinct parallel-edge keys. Path eligibility, exact-path
+deduplication and canonical enumeration remain common traversal contracts;
+the Frontend neither converts paths to minimum-depth nodes nor sorts them
+implicitly. No uniqueness or presence
 proof is manufactured by the Frontend. A DATA binding of that output can
 continue through ordinary Relation operations without expanding its producer.
 
-This connection requires explicit `emit: 'nodes'`. Path emission and direct
-installed selector Sources remain unconnected source forms and are rejected
+This connection requires explicit literal `emit: 'nodes'` or `emit: 'paths'`.
+Omitted, unknown and parameter-valued emission cannot supply a static column
+scope and are rejected. Direct installed selector Sources remain unconnected and are rejected
 before Run admission. Installed selectors need the existing checked
 acquisition/share boundary; the Frontend cannot replace it with repeated reads.
 These are current implementation gaps, not new limits on the common traversal
 contract. Typed literal/list and predicate selectors are passed unchanged for
 ordinary checking; source acceptance alone is not their execution evidence.
+
+`match_nodes(...)` and `match_edges(...)` also produce ordinary Relations.
+Their required `fields` list declares the visible output names in order; it
+must be a nonempty list of STRING values. The common match checker resolves
+`definition`, optional `label`, identity/source/target `bindings`, property
+presence, field contracts and predicate types. No identity or presence proof
+is inferred by the Frontend. The authored operation body is retained,
+including structured Expression predicates, parameters, empty edge `types`
+and invalid options for the ordinary checker to refuse. Arguments are values
+in the adopted named SGA surface, not query aliases or SQL expression text.
+The Frontend does not reparse STRING contents as query expressions. A matched
+Relation can bind DATA and continue through normal WHERE, SELECT, ORDER and
+LIMIT; omitted Graph fields and further Graph calls are unavailable.
+
+`graphs_equal` also enters ordinary Relation processing:
+
+```aql
+DATA same = FROM g |> graphs_equal(with: g);
+FROM same |> SELECT equal |> RESULT comparison
+```
+
+The required `with:` argument resolves an earlier DATA Graph producer using
+the existing DATA naming rule, including backtick-quoted names and bindings
+that retain a producer. A string is not a producer reference. The left input
+is the current Graph, including a preceding `normalize_graph()` output;
+resolving the right input does not reconstruct, acquire or copy either Graph.
+Unknown/forward references, Relation inputs, missing or extra arguments and
+a second Graph call after the Relation transition are explicit preparation
+refusals. A DATA binding of the comparison can continue through the ordinary
+Relation scope, expression, order and Result paths.
+
+The existing common checker owns compatible closed definitions and key/type
+contracts; the common comparison owner evaluates admitted Graph values,
+including complete identity, labels, properties and retained provenance.
+The output is one row with the non-NULL Boolean column `equal`. Subsequent
+Relation filtering may produce an empty result while retaining that column's
+contract. The Frontend exposes only `equal`, not the original Graph's keys,
+properties or internal slots, and does not derive new Graph equality semantics.
+Authored ORDER/LIMIT is lowered unchanged, but the current common order owner
+does not derive total-order evidence for this output and rejects that path with
+`UnresolvedOrder` before Run admission. This is a common implementation gap,
+not a language restriction or permission to discard the authored order.
 
 Other named calls parse but their output Carrier/schema is not yet connected
 to subsequent source operations; they return UnsupportedGraph before Run

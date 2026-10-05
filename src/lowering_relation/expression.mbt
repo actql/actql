@@ -483,6 +483,18 @@ fn lower_expression_measured(
         }
         (@graph.predicate_expression(predicate), references)
       }
+      GraphSubgraphValue(checked) => {
+        if binding_index != 0 {
+          expression_fail(step.source, MissingCheckedBinding)
+        }
+        guard @graph.subgraph_edges(checked) is Some(predicate) else {
+          expression_fail(step.source, MissingCheckedBinding)
+        }
+        guard graph_predicate_fields(predicate) is Some(references) else {
+          expression_fail(step.source, MissingResolvedField(""))
+        }
+        (@graph.predicate_expression(predicate), references)
+      }
       GraphTraverseRows(checked) => {
         let hop_index = binding_index / 2
         guard binding_index >= 0 &&
@@ -544,7 +556,9 @@ fn lower_expression_measured(
       | NestRows(_)
       | GraphBoundsRows(_)
       | GraphDegreeRows(_)
+      | GraphEqualityRows(_)
       | GraphNormalizeValue(_)
+      | GraphDeltaValue(_)
       | GraphComponentsRows(_)
       | PropertyGraphConstructionValue(_)
       | VectorValue(_)

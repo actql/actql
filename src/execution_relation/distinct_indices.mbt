@@ -18,19 +18,18 @@ fn[T : IndexedRows] distinct_indices(
   }
   let baseline = workspace.live
   let run = fn() -> Result[Array[Int], OrderingIssue] {
-    if !reserve_slots(workspace, columns.length()) ||
-      !spend_control(control, columns.length()) {
+    if !spend_control(control, columns.length()) {
       return Err(Limit)
     }
-    let order = columns.map(column => {
-      column,
-      descending: false,
-      nulls_first: false,
-    })
-    let sorted = match stable_order_indices(table, order, control, workspace) {
+    let sort_baseline = workspace.live
+    let sorted = match
+      stable_complete_order_indices(table, columns, control, workspace) {
       Ok(v) => v
       Err(e) => return Err(e)
     }
+    // Complete ordering owns two merge buffers. Retain only its returned
+    // index, as the existing DISTINCT index owner did before marking groups.
+    release_slots(workspace, workspace.live - sort_baseline - sorted.length())
     let count = table.row_count()
     if !reserve_slots(workspace, count) || !spend_control(control, count) {
       return Err(Limit)
@@ -44,7 +43,13 @@ fn[T : IndexedRows] distinct_indices(
         true
       } else {
         match
-          compare_row_indices(table, sorted[i - 1], sorted[i], order, control) {
+          compare_complete_row_indices(
+            table,
+            sorted[i - 1],
+            sorted[i],
+            columns,
+            control,
+          ) {
           Ok(c) => c != 0
           Err(e) => return Err(e)
         }

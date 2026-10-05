@@ -297,6 +297,10 @@ pub fn fragment_request_row_limits(FragmentRequest) -> FragmentRowLimits?
 
 pub fn fragment_row_limits_valid(FragmentRowLimits) -> Bool
 
+pub fn graph_delta_checked(PreparedGraphDelta) -> @graph_typing.CheckedDelta
+
+pub fn graph_delta_output_carrier(PreparedGraphDelta) -> @carrier_contract.Carrier
+
 pub fn graph_diagnostic_bounds(PreparedGraphDiagnostic) -> (Int64?, Int64?, Int64?)?
 
 pub fn graph_diagnostic_component_max_output_rows(PreparedGraphDiagnostic) -> Int64?
@@ -304,6 +308,10 @@ pub fn graph_diagnostic_component_max_output_rows(PreparedGraphDiagnostic) -> In
 pub fn graph_diagnostic_kind(PreparedGraphDiagnostic) -> GraphDiagnosticKind
 
 pub fn graph_diagnostic_output_schema(PreparedGraphDiagnostic) -> @relation_schema.Schema
+
+pub fn graph_equality_checked(PreparedGraphEquality) -> @graph_typing.CheckedPropertyEquality
+
+pub fn graph_equality_output_schema(PreparedGraphEquality) -> @relation_schema.Schema
 
 pub fn graph_match_field_at(PreparedGraphMatch, Int) -> @relation_schema.FieldName?
 
@@ -334,6 +342,20 @@ pub fn graph_match_property_scope_fields(PreparedGraphMatch) -> @carrier_contrac
 pub fn graph_match_type_at(PreparedGraphMatch, Int) -> String?
 
 pub fn graph_match_type_count(PreparedGraphMatch) -> Int?
+
+pub fn graph_subgraph_edge_fields(PreparedGraphSubgraph) -> @carrier_contract.Knowledge
+
+pub fn graph_subgraph_edge_predicate(PreparedGraphSubgraph) -> Expression?
+
+pub fn graph_subgraph_edge_property_position(PreparedGraphSubgraph, Int, Int) -> Int?
+
+pub fn graph_subgraph_literal_edge_predicate(PreparedGraphSubgraph) -> Bool?
+
+pub fn graph_subgraph_literal_id_at(PreparedGraphSubgraph, Int) -> @value_admission.CheckedValue?
+
+pub fn graph_subgraph_literal_id_count(PreparedGraphSubgraph) -> Int?
+
+pub fn graph_subgraph_relation_selector_field(PreparedGraphSubgraph) -> @relation_schema.FieldName?
 
 pub fn graph_traverse_bounds(PreparedGraphTraverse) -> (Int64, Int64)?
 
@@ -1208,6 +1230,10 @@ pub(all) enum GraphConstructionIssue {
   InvalidPropertyGraphConstruction
 } derive(Eq, @debug.Debug)
 
+pub(all) enum GraphDeltaIssue {
+  InvalidGraphDeltaWiring
+} derive(Eq, @debug.Debug)
+
 pub(all) enum GraphDiagnosticIssue {
   InvalidGraphDiagnosticLimits
   InvalidGraphDiagnosticWiring
@@ -1225,6 +1251,10 @@ pub(all) enum GraphDiagnosticKind {
   StrongComponentsDiagnostic
 } derive(Eq, @debug.Debug)
 
+pub(all) enum GraphEqualityIssue {
+  InvalidGraphEqualityWiring
+} derive(Eq, @debug.Debug)
+
 pub(all) enum GraphMatchIssue {
   InvalidGraphMatchLimits
   InvalidGraphMatchWiring
@@ -1237,6 +1267,13 @@ pub(all) enum GraphMatchLiteralSelection {
   SelectNoEntities
   SelectAllEntities
 } derive(Eq, @debug.Debug)
+
+pub(all) enum GraphSubgraphIssue {
+  InvalidGraphSubgraphLimits
+  InvalidGraphSubgraphWiring
+  GraphSubgraphPreparationLimit
+  GraphSubgraphExpression(ExpressionIssue)
+}
 
 pub(all) enum GraphTraverseIssue {
   InvalidGraphTraverseLimits
@@ -1431,8 +1468,11 @@ pub enum Payload {
   GraphMatchRows(@graph_typing.CheckedMatch)
   GraphBoundsRows(@graph_typing.CheckedGraphBounds)
   GraphDegreeRows(@graph_typing.CheckedDegree)
+  GraphEqualityRows(@graph_typing.CheckedPropertyEquality)
   GraphNormalizeValue(@graph_typing.CheckedNormalize)
+  GraphDeltaValue(@graph_typing.CheckedDelta)
   GraphComponentsRows(@graph_typing.CheckedComponents)
+  GraphSubgraphValue(@graph_typing.CheckedSubgraph)
   GraphTraverseRows(@graph_typing.CheckedTraverse)
   PropertyGraphConstructionValue(@graph_typing.CheckedPropertyConstruction)
   VectorValue(@vector_typing.CheckedVector)
@@ -1504,9 +1544,15 @@ pub(all) enum PreparedFrameBoundary {
   PreparedUnboundedFollowing
 } derive(Eq, @debug.Debug)
 
+type PreparedGraphDelta
+
 type PreparedGraphDiagnostic
 
+type PreparedGraphEquality
+
 type PreparedGraphMatch
+
+type PreparedGraphSubgraph
 
 type PreparedGraphTraverse
 
@@ -1581,7 +1627,10 @@ pub enum PreparedStep {
   NestStep(PreparedNestKernel)
   GraphMatchStep(PreparedGraphMatch)
   GraphDiagnosticStep(PreparedGraphDiagnostic)
+  GraphSubgraphStep(PreparedGraphSubgraph)
+  GraphEqualityStep(PreparedGraphEquality)
   GraphNormalizeStep(Int)
+  GraphDeltaStep(PreparedGraphDelta)
   GraphTraverseStep(PreparedGraphTraverse)
   PropertyGraphConstructionStep(PreparedPropertyGraphConstruction)
   VectorStep(PreparedVector)
@@ -1672,7 +1721,10 @@ pub(all) enum SequenceIssue {
   NestFailure(Int, NestIssue)
   GraphMatchFailure(Int, GraphMatchIssue)
   GraphDiagnosticFailure(Int, GraphDiagnosticIssue)
+  GraphSubgraphFailure(Int, GraphSubgraphIssue)
+  GraphEqualityFailure(Int, GraphEqualityIssue)
   GraphTraverseFailure(Int, GraphTraverseIssue)
+  GraphDeltaFailure(Int, GraphDeltaIssue)
   GraphConstructionFailure(Int, GraphConstructionIssue)
   VectorFailure(Int, VectorIssue)
   EventFailure(Int, EventIssue)

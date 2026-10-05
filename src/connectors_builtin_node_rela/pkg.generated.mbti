@@ -5,7 +5,6 @@ import {
   "actql/actql/canonical_json",
   "actql/actql/client_local_host",
   "actql/actql/client_row_source_host",
-  "actql/actql/client_salesforce_host",
   "actql/actql/connector_sdk",
   "actql/actql/connectors/reference_compute",
   "actql/actql/connectors/salesforce/catalog",
@@ -36,6 +35,7 @@ import {
   "actql/actql/source_value",
   "actql/actql/sourceview_resolution",
   "actql/actql/stage_results",
+  "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
 
@@ -440,6 +440,10 @@ pub fn client_program_imported_effect_relation_bodies(@run_publication_host.Clie
 
 pub fn client_program_imported_effect_scope_json(@run_publication_host.ClientEffectImportedEvidence) -> String
 
+pub fn client_program_installed_duckdb_capture_capacity(@actql/actql/connectors/duckdb/host.CaptureConfiguration) -> @client_local_host.ClientInstalledCaptureCapacity?
+
+pub fn client_program_installed_row_capture_capacity(@client_row_source_host.RowAcquisition) -> @client_local_host.ClientInstalledCaptureCapacity?
+
 pub fn client_program_issue_acquired_effect_evidence(@run_publication_host.PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, @run_publication.PublicationContract, Int, Int, Int) -> Result[@run_publication_host.ClientEffectAcquiredEvidence, @run_publication_host.ClientEffectAcquiredEvidenceIssue]
 
 pub fn client_program_issue_acquired_effect_evidence_at(@run_publication_host.PreparedClientEffectComputation, Int, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Result[@run_publication_host.ClientEffectAcquiredEvidence, @run_publication_host.ClientEffectAcquiredEvidenceIssue]
@@ -519,6 +523,8 @@ pub fn client_program_issue_publication_witnesses(@run_publication_host.Prepared
 pub fn client_program_issue_result_plan(@run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientResultPlanIdentity, @run_publication_host.ClientResultPlanIssue]
 
 pub fn client_program_issue_result_row_contract(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[@run_publication_host.ClientResultRowContractIdentity, @run_publication_host.ClientResultRowContractIssue]
+
+pub fn client_program_issue_source_free_exported_local_effect_result_artifact(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectLocalResultExport, @run_publication_host.ClientEffectLocalInvocation, @run_publication_host.ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalResultArtifactIssue]
 
 pub fn client_program_issue_source_free_local_effect_identity(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalResultArtifact, Int, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalIdentity, @run_publication_host.ClientEffectLocalIdentityIssue]
 
@@ -612,6 +618,8 @@ pub fn client_program_open_multi_captured_local_effect_host(@run_publication_hos
 
 pub fn client_program_open_multi_captured_local_host(@run_publication_host.PreparedClientProgram, Array[@execution_query.CapturedInputSource], @physical_resources.Ledger, String, String, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
+pub fn client_program_open_multi_captured_local_retained_host(@run_publication_host.PreparedClientProgram, Array[@execution_query.CapturedInputSource], @physical_resources.Ledger, String, String, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
+
 pub fn client_program_open_source_free_local_effect_host(@run_publication_host.PreparedClientEffectRun, String, String, Int64, Int64, Int64, Int64) -> ClientLocalEffectHost?
 
 pub fn client_program_open_source_free_local_host(@run_publication_host.PreparedClientProgram, String, String, Int64, Int64, Int64, Int64, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
@@ -658,11 +666,15 @@ pub fn client_program_prepare_multi_captured_local_acquisition_ledger(@run_publi
 
 pub fn client_program_prepare_multi_captured_local_capacity_ledger(@run_publication_host.PreparedClientProgram, Array[@client_local_host.ClientDuckDBCaptureCapacity], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 
+pub fn client_program_prepare_multi_captured_local_installed_ledger(@run_publication_host.PreparedClientProgram, Array[@client_local_host.ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
+
 pub fn client_program_prepare_multi_captured_local_ledger(@run_publication_host.PreparedClientProgram, Array[@actql/actql/connectors/duckdb/host.NativeHostConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn client_program_prepare_query_acquisition(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[@sourceview_resolution.QueryAcquisition, @run_publication_host.ClientAcquisitionIssue]
 
-pub fn client_program_prepare_salesforce_acquisition(@client_salesforce_host.ClientSalesforceDeclaration, @query_planning.QueryRequirement, @catalog.CatalogObservation, String, String, Int) -> Result[@client_salesforce_host.ClientSalesforceAcquisition, @client_salesforce_host.ClientSalesforceIssue]
+pub fn client_program_prepare_salesforce_declared_row_acquisition(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @query_planning.QueryRequirement, String, String) -> Result[@client_row_source_host.RowAcquisition, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
+
+pub fn client_program_prepare_salesforce_row_acquisition(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @query_planning.QueryRequirement, @catalog.CatalogObservation, String, String, Int) -> Result[(@catalog.ReadProjection, @client_row_source_host.RowAcquisition), @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
 pub fn client_program_prepare_source_computation_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, String?, Bool, Array[@pipeline_check_context.StageCapacityInput]) -> ClientSourceComputationBridgeOutcome
 
@@ -702,6 +714,8 @@ pub fn client_program_query_requirement_source_evidence_facts(@query_planning.Qu
 
 pub fn client_program_query_requirement_source_ref(@query_planning.QueryRequirement) -> String
 
+pub fn client_program_recheck_salesforce_row_projection(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @client_row_source_host.RowAcquisition, @catalog.CatalogObservation, Int) -> Result[@catalog.ReadProjection, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
+
 pub fn client_program_recover_effect_target_guards(@run_publication.EffectPreviewIdentity, Array[Array[@logical_request_scope.LogicalRequestScope]], Array[Array[@effect_application.LogicalItemLocator]], Array[Array[@effect_application.EffectDispatchKey]], Array[Array[@effect_application.EffectLedgerBasis]], Array[Array[@effect_application.EffectLedgerEntry?]], Array[Array[Bool]], Int, Int, Int) -> Result[@effect_application.RecoveredEffectTargetGuards, @effect_application.EffectSetProgressIssue]
 
 pub fn client_program_release_effect_input(@physical_strategy.CapturedEffectInput) -> Bool
@@ -732,7 +746,13 @@ pub fn client_program_result_row_contract_unit_cid(@run_publication_host.ClientR
 
 pub fn client_program_result_row_contract_wire(@run_publication_host.ClientResultRowContractIdentity) -> String
 
+pub fn client_program_row_source_accept_charged_page(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, Bytes) -> Result[Int, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_accept_charged_values(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, @client_row_source_host.RowHostIssue]
+
 pub fn client_program_row_source_accept_page(@client_row_source_host.RowRun, Bytes) -> Result[Int, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_accept_values(@client_row_source_host.RowRun, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_attempt(@client_row_source_host.RowRun) -> @client_row_source_host.RowAttempt
 
@@ -742,7 +762,11 @@ pub fn client_program_row_source_capture(@client_row_source_host.RowRun) -> Resu
 
 pub fn client_program_row_source_capture_source(@client_row_source_host.RowSourceCapture) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]
 
+pub fn client_program_row_source_charge_page(@client_row_source_host.RowRun, Bytes) -> Result[@client_row_source_host.RowPageCharge, @client_row_source_host.RowHostIssue]
+
 pub fn client_program_row_source_close(@client_row_source_host.RowRun) -> Unit
+
+pub fn client_program_row_source_close_accounted(@client_row_source_host.RowRun) -> Result[Unit, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_columns(@client_row_source_host.RowAcquisition) -> Array[String]
 
@@ -758,59 +782,47 @@ pub fn client_program_row_source_prepare_mapping(@client_row_source_host.RowDecl
 
 pub fn client_program_row_source_restore_declaration(String, String, String, String, String?) -> Result[@client_row_source_host.RowDeclaration, @client_row_source_host.RowHostIssue]
 
+pub fn client_program_row_source_retain_captured_task(@client_row_source_host.RowSourceCapture, @physical_strategy.CapturedDAG, Int) -> Result[Unit, @client_row_source_host.RowHostIssue]
+
 pub fn client_program_row_source_start(@client_row_source_host.RowAcquisition, String, (@client_row_source_host.RowAttempt) -> Bool) -> Result[@client_row_source_host.RowRun, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_start_accounted(@client_row_source_host.RowAcquisition, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[@client_row_source_host.RowRun, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_target(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement) -> Result[Array[String], @client_row_source_host.RowHostIssue]
 
-pub fn client_program_salesforce_acquisition_start(@client_salesforce_host.ClientSalesforceAcquisition, String, (@actql/actql/connectors/salesforce/host.SalesforceBroadAttempt) -> Bool) -> Result[@actql/actql/connectors/salesforce/host.SalesforceBroadHostRun, @client_salesforce_host.ClientSalesforceIssue]
-
-pub fn client_program_salesforce_broad_abort(@actql/actql/connectors/salesforce/host.SalesforceBroadHostRun) -> Unit
-
-pub fn client_program_salesforce_broad_accept_page(@actql/actql/connectors/salesforce/host.SalesforceBroadAttempt, String, Bytes) -> Result[@catalog.QueryPage, @actql/actql/connectors/salesforce/host.SalesforceBroadAttemptIssue]
-
-pub fn client_program_salesforce_broad_attempt(@actql/actql/connectors/salesforce/host.SalesforceBroadHostRun) -> @actql/actql/connectors/salesforce/host.SalesforceBroadAttempt
-
-pub fn client_program_salesforce_broad_begin(@actql/actql/connectors/salesforce/host.SalesforceBroadAttempt, String, Int, Int, Int, Int, Int, Int, Int64, Int, Int, Int, Int, Int) -> Result[Bool, @actql/actql/connectors/salesforce/host.SalesforceBroadAttemptIssue]
-
-pub fn client_program_salesforce_broad_close(@actql/actql/connectors/salesforce/host.SalesforceBroadHostRun) -> Unit
-
-pub fn client_program_salesforce_broad_complete(@actql/actql/connectors/salesforce/host.SalesforceBroadAttempt) -> Bool
-
-pub fn client_program_salesforce_broad_finish(@actql/actql/connectors/salesforce/host.SalesforceBroadAttempt) -> Result[Bool, @actql/actql/connectors/salesforce/host.SalesforceBroadAttemptIssue]
-
-pub fn client_program_salesforce_broad_next_path(@actql/actql/connectors/salesforce/host.SalesforceBroadAttempt) -> Result[String?, @actql/actql/connectors/salesforce/host.SalesforceBroadAttemptIssue]
-
-pub fn client_program_salesforce_broad_plan(@actql/actql/connectors/salesforce/host.SalesforceBroadAttempt) -> @catalog.ReadProjection
-
-pub fn client_program_salesforce_broad_row_count(@actql/actql/connectors/salesforce/host.SalesforceBroadAttempt) -> Result[Int64, @actql/actql/connectors/salesforce/host.SalesforceBroadAttemptIssue]
-
-pub fn client_program_salesforce_broad_value_violation(@actql/actql/connectors/salesforce/host.SalesforceBroadAttempt, @actql/actql/connectors/salesforce/host.SalesforceBroadAttemptIssue) -> String?
-
-pub fn client_program_salesforce_capture(@actql/actql/connectors/salesforce/host.SalesforceBroadHostRun) -> Result[@actql/actql/connectors/salesforce/host.SalesforceBroadSourceCapture, @client_salesforce_host.ClientSalesforceIssue]
-
-pub fn client_program_salesforce_capture_source(@actql/actql/connectors/salesforce/host.SalesforceBroadSourceCapture) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]
-
-pub fn client_program_salesforce_declaration_catalog_cid(@client_salesforce_host.ClientSalesforceDeclaration) -> String
-
-pub fn client_program_salesforce_issue_source_evidence(@client_salesforce_host.ClientSalesforceAcquisition, @actql/actql/connectors/salesforce/host.SalesforceBroadSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[String, @client_salesforce_host.ClientSalesforceIssue]
-
-pub fn client_program_salesforce_observation_cid(@catalog.CatalogObservation) -> String
+pub fn client_program_salesforce_begin_query_read(@catalog.ReadProjection, String, Int, Int, Int, Int, Int, Int, Int64) -> Result[@catalog.QueryRead, @catalog.QueryReadIssue]
 
 pub fn client_program_salesforce_query_page_response_sha256(@catalog.QueryPage) -> String
 
 pub fn client_program_salesforce_query_page_row_count(@catalog.QueryPage) -> Int
 
+pub fn client_program_salesforce_query_page_values(@catalog.QueryPage) -> (Array[String], Array[Array[@value_admission.CheckedValue]])
+
+pub fn client_program_salesforce_query_read_accept_page(@catalog.QueryRead, String, Bytes) -> Result[@catalog.QueryPage, @catalog.QueryReadIssue]
+
+pub fn client_program_salesforce_query_read_acknowledge_page(@catalog.QueryRead, @catalog.QueryPage) -> Result[Unit, @catalog.QueryReadIssue]
+
+pub fn client_program_salesforce_query_read_complete(@catalog.QueryRead) -> Bool
+
+pub fn client_program_salesforce_query_read_interrupt(@catalog.QueryRead) -> Bool
+
+pub fn client_program_salesforce_query_read_next_path(@catalog.QueryRead) -> Result[String?, @catalog.QueryReadIssue]
+
+pub fn client_program_salesforce_query_read_row_count(@catalog.QueryRead) -> Int64
+
+pub fn client_program_salesforce_query_read_value_violation(@catalog.ReadProjection, @catalog.QueryReadIssue) -> String?
+
 pub fn client_program_salesforce_read_projection_scope_matches(@catalog.ReadProjection, String, String, String, String, Int, String, String, String, String, String) -> Bool
 
 pub fn client_program_salesforce_recheck_read_projection(@catalog.ReadProjection, @catalog.CatalogObservation) -> Result[Bool, @catalog.ReadProjectionIssue]
 
-pub fn client_program_salesforce_recover_observation(@client_salesforce_host.ClientSalesforceSite, String, String, String, String, Array[String], Array[Bytes?], Array[Int], Array[String?], Array[String?], Int, Int, Int, Int, Int, Int, String?) -> Result[@catalog.CatalogObservation, @client_salesforce_host.ClientSalesforceIssue]
+pub fn client_program_salesforce_recover_observation(@actql/actql/connectors/salesforce/host.InstalledSalesforceSite, String, String, String, String, Array[String], Array[Bytes?], Array[Int], Array[String?], Array[String?], Int, Int, Int, Int, Int, Int, String?) -> Result[@catalog.CatalogObservation, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
-pub fn client_program_salesforce_restore_declaration(@client_salesforce_host.ClientSalesforceSite, @catalog.CatalogObservation, String, String, Int, Int, Int) -> Result[@client_salesforce_host.ClientSalesforceDeclaration, @client_salesforce_host.ClientSalesforceIssue]
+pub fn client_program_salesforce_restore_declaration(@actql/actql/connectors/salesforce/host.InstalledSalesforceSite, @catalog.CatalogObservation, String, String, Int, Int, Int) -> Result[@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
-pub fn client_program_salesforce_site(String, String, String, String, String, String, Int, String) -> Result[@client_salesforce_host.ClientSalesforceSite, @client_salesforce_host.ClientSalesforceIssue]
+pub fn client_program_salesforce_site(String, String, String, String, String, String, Int, String) -> Result[@actql/actql/connectors/salesforce/host.InstalledSalesforceSite, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
-pub fn client_program_salesforce_source_target(@client_salesforce_host.ClientSalesforceDeclaration, @query_planning.QueryRequirement) -> Result[Array[String], @client_salesforce_host.ClientSalesforceIssue]
+pub fn client_program_salesforce_source_target(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @query_planning.QueryRequirement) -> Result[Array[String], @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
 pub fn client_program_select_duckdb_acquisition(@query_planning.QueryRequirement, String, String, String, String, String, @client_local_host.ClientDuckDBAcquisitionEstimate, @client_local_host.ClientDuckDBAcquisitionEstimate, Array[String]) -> Result[@client_local_host.ClientDuckDBAcquisitionSelection, @client_local_host.ClientDuckDBAcquisitionIssue]
 

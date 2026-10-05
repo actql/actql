@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/client_row_source_host" @row_host,
   "actql/actql/connector_conformance" @conformance,
   "actql/actql/connectors/duckdb/host" @acquisition_host,
   "actql/actql/connectors/duckdb/host_native" @native_host,
@@ -41,6 +42,7 @@ import {
   "actql/actql/source_request_slots" @request_slots,
   "actql/actql/binding_declarations" @bindings,
   "actql/actql/stage_results",
+  "actql/actql/relation_results",
   "actql/actql/query_planning" @planning,
   "actql/actql/program_check",
   "actql/actql/physical_cost" @cost,
@@ -86,6 +88,7 @@ import {
   "moonbitlang/core/bench",
   "actql/actql/bounded_execution" @bounded,
   "actql/actql/bounded_graph_snapshot" @snapshot,
+  "actql/actql/bounded_graph_diff",
   "actql/actql/graph_contract",
   "actql/actql/local_bridge",
   "actql/actql/local_sga_provider",

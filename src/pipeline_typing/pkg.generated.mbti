@@ -256,17 +256,23 @@ pub fn operation_obligations_graph_components(OperationObligations) -> @graph_ty
 
 pub fn operation_obligations_graph_degree(OperationObligations) -> @graph_typing.CheckedDegree?
 
+pub fn operation_obligations_graph_delta(OperationObligations) -> @graph_typing.CheckedDelta?
+
 pub fn operation_obligations_graph_normalize(OperationObligations) -> @graph_typing.CheckedNormalize?
 
 pub fn operation_obligations_match(OperationObligations) -> @graph_typing.CheckedMatch?
 
 pub fn operation_obligations_property_construction(OperationObligations) -> @graph_typing.CheckedPropertyConstruction?
 
+pub fn operation_obligations_property_equality(OperationObligations) -> @graph_typing.CheckedPropertyEquality?
+
 pub fn operation_obligations_scope(OperationObligations) -> OperationObligationScope
 
 pub fn operation_obligations_selector(OperationObligations) -> @graph_typing.CheckedSelector?
 
 pub fn operation_obligations_source(OperationObligations) -> @decode_core.Cursor
+
+pub fn operation_obligations_subgraph(OperationObligations) -> @graph_typing.CheckedSubgraph?
 
 pub fn operation_order_demand(OperationObligation) -> OperationOrderDemand?
 
@@ -461,8 +467,11 @@ pub enum CheckedOperation {
   GraphMatch(@graph_typing.CheckedMatch)
   GraphBounds(@graph_typing.CheckedGraphBounds)
   GraphDegree(@graph_typing.CheckedDegree)
+  GraphEquality(right~ : Target, checked~ : @graph_typing.CheckedPropertyEquality)
   GraphNormalize(@graph_typing.CheckedNormalize)
+  GraphDelta(right~ : Target, checked~ : @graph_typing.CheckedDelta)
   GraphComponents(@graph_typing.CheckedComponents)
+  Subgraph(selector~ : Target?, checked~ : @graph_typing.CheckedSubgraph)
   Traverse(selector~ : Target?, checked~ : @graph_typing.CheckedTraverse)
   PropertyGraphConstruction(inputs~ : Array[Target], checked~ : @graph_typing.CheckedPropertyConstruction)
   Vector(@vector_typing.CheckedVector)
@@ -533,6 +542,7 @@ pub(all) enum ExpressionConsumer {
   AnalyticArgument(String)
   SequencePredicate(Int)
   GraphMatchPredicate
+  GraphSubgraphEdgePredicate
   GraphTraverseEdgePredicate(Int)
   GraphTraverseNodePredicate(Int)
   InferInput(Int)
@@ -709,8 +719,11 @@ pub(all) enum OperationObligation {
   WindowRequirement(@temporal_window.Obligation)
   MatchRequirement(@graph_typing.MatchObligation)
   DiagnosticRequirement(@graph_typing.DiagnosticObligation)
+  PropertyEqualityRequirement(@graph_typing.PropertyEqualityObligation)
   NormalizeRequirement(@graph_typing.NormalizeObligation)
+  DeltaRequirement(@graph_typing.DeltaObligation)
   ComponentsRequirement(@graph_typing.ComponentsObligation)
+  SubgraphRequirement(@graph_typing.SubgraphObligation)
   TraverseRequirement(@graph_typing.TraverseObligation)
   SelectorRequirement(@graph_typing.SelectorObligation)
   ConstructionRequirement(@graph_typing.ConstructionObligation)

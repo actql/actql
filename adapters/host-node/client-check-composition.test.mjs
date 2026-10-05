@@ -37,7 +37,7 @@ function fixture(states = [], publication = aliases) {
     },
   };
   const sourceAccesses = states.map(state => ({
-    sourceRef: aliases[state.index].sourceRef,
+    sourceRef: (publication[state.index] ?? aliases[state.index]).sourceRef,
     connection: `connection-${state.index}`, resource: state.noReadTuple ? undefined : `resource-${state.index}`,
     authorization: {authorize: async (boundary, tuple, options) => {
       calls.push(state.index);
@@ -83,13 +83,25 @@ test('composition: each source uses its own decision in either order', async () 
   }
 });
 
-test('composition: unusable owners withhold only an unestablishable whole context', async () => {
+test('composition: every declared view uses its own read decision', async () => {
+  const third = {...aliases[0], name: 'C',
+    sourceRef: 'connector://fixture/C/r#v'};
+  const publication = [...aliases, third];
+  const f = fixture([{index: 0, action: 'dispatch'},
+    {index: 1, action: 'deny'}, {index: 2, action: 'dispatch'}], publication);
+  assert.equal((await f.check(request())).outcome, 'completed');
+  assert.deepEqual(f.calls, [0, 1, 2]);
+  assert.deepEqual(f.visible(), [aliases[0], third]);
+});
+
+test('composition: unusable read owners hide only their own names', async () => {
   for (const states of [[{index: 0, action: 'throw'}],
     [{index: 0, action: 'throw'}, {index: 1, action: 'throw'}]]) {
     for (const publication of [[], aliases]) {
       const f = fixture(states, publication);
-      assert.equal((await f.check(request())).outcome, 'unavailable');
-      assert.equal(f.checked.length, 0);
+      assert.deepEqual(await f.check(request()), await fixture([], []).check(request()));
+      assert.equal(f.checked.length, 1);
+      assert.deepEqual(f.visible(), []);
       assert.deepEqual(f.calls, states.map(state => state.index));
     }
   }
@@ -131,15 +143,16 @@ test('composition: abort propagates without consulting later owners or checking'
 });
 
 
-test('composition: only applicable read owners determine whole-context unavailability', async () => {
+test('composition: missing read tuples and failed read owners preserve checking', async () => {
   const absentTuple = {index: 0, action: 'throw', noReadTuple: true};
   const none = fixture([absentTuple]);
   assert.equal((await none.check(request())).outcome, 'completed');
   assert.deepEqual(none.calls, []);
   assert.deepEqual(none.visible(), []);
-  const unavailable = fixture([absentTuple, {index: 1, action: 'throw'}]);
-  assert.equal((await unavailable.check(request())).outcome, 'unavailable');
-  assert.deepEqual(unavailable.calls, [1]);
+  const failedOwner = fixture([absentTuple, {index: 1, action: 'throw'}]);
+  assert.deepEqual(await failedOwner.check(request()), await none.check(request()));
+  assert.deepEqual(failedOwner.calls, [1]);
+  assert.deepEqual(failedOwner.visible(), []);
 });
 
 // Fixed HMAC vectors derived independently with Python's JSON serialization
@@ -150,12 +163,12 @@ test('composition: exact Unicode source and received-input fallback have fixed r
   async () => {
     const texts = ["SELECT 'caf\u00e9' AS label", "SELECT 'cafe\u0301' AS label"];
     const vectors = [{parameterDeclarations: undefined, refs: [
-      'ctx:5a15632c1c22741da23b342023a8c9c7423586ff9faef931b60e8f1ae86b16a4',
-      'ctx:2ca093b515e22a4a3d18c4b7bca508a178a2dbc817577fb311e6419fd6ba7637',
+      'ctx:46982a2ccd38dbd5279e65a30ffd300fd0aaf1ffd1674e76c146d0f501b0b286',
+      'ctx:6924a09081c2abb5411f4d94075a19b719ff9881f788c2ec972bf6976faeae87',
     ]}, {parameterDeclarations: {'\u00e9': {type: 'string'}, 'e\u0301': {type: 'string'}},
       refs: [
-        'ctx:0faf1bbbc25e1c002548f59cf87256383d0c1fd84435b902e5d8aa652ba988e2',
-        'ctx:b53208caee12a293841b62a0acb8877619810519f5e9e7781f4801cef04b8bfb',
+        'ctx:344593e878a1e3a1f268053d16030febe13fca9e51505d706dc170bcf0c0e0a6',
+        'ctx:9aeb45fd652ad9ed69d176d196f2d50d28c48bfa01f2d1c274a711f2effb3e73',
       ]}];
     const f = fixture([], []);
     for (const {parameterDeclarations, refs} of vectors) {

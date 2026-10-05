@@ -274,7 +274,7 @@ fn relation_chain_step_inputs(
   sequence : @execution.GeneratedSequence,
   position : Int,
   inputs : Array[ManagedProviderInput],
-  previous : @execution.CompletedOutput?,
+  completed : Array[@execution.CompletedOutput?],
   max_entries : Int,
   max_value_bytes : Int,
 ) -> Result[Array[ManagedProviderInput], @connector.FixedComputeIssue] {
@@ -285,11 +285,6 @@ fn relation_chain_step_inputs(
     is Some(step) &&
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) else {
     return Err(@connector.Execution(@execution.InputSet))
-  }
-  let prior = if position > 0 {
-    @execution.generated_sequence_step_index_at(sequence, position - 1)
-  } else {
-    None
   }
   let selected : Array[ManagedProviderInput] = []
   for port in 0..<@lower.node_input_count(node) {
@@ -328,7 +323,16 @@ fn relation_chain_step_inputs(
     }
     match target {
       Some(@pipeline.Step(producer_step)) => {
-        guard prior == Some(producer_step) && previous is Some(output) else {
+        let mut producer_position = -1
+        for earlier in 0..<position {
+          if @execution.generated_sequence_step_index_at(sequence, earlier) ==
+            Some(producer_step) {
+            producer_position = earlier
+            break
+          }
+        }
+        guard producer_position >= 0 &&
+          completed.get(producer_position) is Some(Some(output)) else {
           return Err(@connector.Execution(@execution.InputSet))
         }
         let bound = match
@@ -418,12 +422,15 @@ fn bounded_relation_chain_execution(
     is Some(first) else {
     return Err(@connector.Execution(@execution.InputSet))
   }
+  let completed : Ref[Array[@execution.CompletedOutput?]] = Ref(
+    Array::make(count, None),
+  )
   let first_inputs = match
     relation_chain_step_inputs(
       sequence,
       0,
       inputs,
-      None,
+      completed.val,
       execution.rows.operation_entries,
       max_value_bytes,
     ) {
@@ -445,7 +452,6 @@ fn bounded_relation_chain_execution(
     Err(issue) => return Err(issue)
   }
   let children : Ref[Array[ManagedProviderExecution]] = Ref([initial])
-  let previous : Ref[@execution.CompletedOutput?] = Ref(None)
   let current : Ref[ManagedProviderExecution?] = Ref(Some(initial))
   let position = Ref(0)
   let pending = Ref(false)
@@ -459,7 +465,6 @@ fn bounded_relation_chain_execution(
   let start_next = fn() -> Result[Unit, @connector.FixedComputeIssue] {
     guard position.val > 0 &&
       position.val < count &&
-      previous.val is Some(output) &&
       @execution.generated_sequence_step_index_at(sequence, position.val)
       is Some(step) &&
       @execution.select_generated_sequence_step(sequence, step)
@@ -471,7 +476,7 @@ fn bounded_relation_chain_execution(
         sequence,
         position.val,
         inputs,
-        Some(output),
+        completed.val,
         execution.rows.operation_entries,
         max_value_bytes,
       ) {
@@ -628,7 +633,7 @@ fn bounded_relation_chain_execution(
               terminal.val = true
               return Ok(managed_provider_complete(output, progress, work))
             }
-            previous.val = Some(output)
+            completed.val[position.val] = Some(output)
             position.val += 1
             current.val = None
             pending.val = true
@@ -705,7 +710,7 @@ fn bounded_relation_chain_execution(
           }
         }
         current.val = None
-        previous.val = None
+        completed.val = []
         children.val = []
         reclaimed.val = true
         Ok(true)
@@ -736,6 +741,7 @@ fn selected_relation_provider(
       if count < 1 {
         return false
       }
+      let used_by_later = Array::make(count, false)
       for index in 0..<count {
         guard @execution.generated_sequence_step_index_at(sequence, index)
           is Some(step) &&
@@ -780,12 +786,6 @@ fn selected_relation_provider(
         if single_unsupported || chain_unsupported {
           return false
         }
-        let previous = if index > 0 {
-          @execution.generated_sequence_step_index_at(sequence, index - 1)
-        } else {
-          None
-        }
-        let mut prior_inputs = 0
         for port in 0..<input_count {
           if !@lower.node_accepts_managed_relation_view(node, port) {
             return false
@@ -809,16 +809,30 @@ fn selected_relation_provider(
                 if producer_step < first_step {
                   continue
                 }
-                if previous != Some(producer_step) {
+                let mut producer_position = -1
+                for earlier in 0..<index {
+                  if @execution.generated_sequence_step_index_at(
+                      sequence, earlier,
+                    ) ==
+                    Some(producer_step) {
+                    producer_position = earlier
+                    break
+                  }
+                }
+                if producer_position < 0 {
                   return false
                 }
-                prior_inputs += 1
+                used_by_later[producer_position] = true
               }
               None => return false
             }
           }
         }
-        if count > 1 && index > 0 && prior_inputs == 0 {
+      }
+      // An external-only child may form a second branch. Every private
+      // output before the final step must still be consumed within the task.
+      for index in 0..<(count - 1) {
+        if !used_by_later[index] {
           return false
         }
       }

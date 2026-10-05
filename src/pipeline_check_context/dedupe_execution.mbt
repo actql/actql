@@ -16,8 +16,11 @@ pub(all) enum OperationExecutionCheck {
   NestExecution(NestExecutionCheck)
   GraphSelectorExecution(GraphSelectorCheck)
   GraphMatchExecution(GraphMatchCheck)
+  GraphEqualityExecution(GraphEqualityCheck)
   GraphDiagnosticExecution(GraphDiagnosticCheck)
+  SubgraphExecution(SubgraphExecutionCheck)
   GraphNormalizeExecution(GraphNormalizeCheck)
+  GraphDeltaExecution(GraphDeltaCheck)
   VectorExecution(VectorCheck)
   NearestExecution(NearestCheck)
   PoolExecution(PoolCheck)
@@ -96,12 +99,33 @@ pub fn operation_execution_phase(
         | EvaluatePredicate
         | OrderMatches => BeforeOperationOutput
       }
+    GraphEqualityExecution(v) =>
+      match v.rule {
+        RequireEqualityResources => BeforeOperationInputUse
+        CompareGraphValues => BeforeOperationOutput
+      }
     GraphDiagnosticExecution(v) =>
       match v.rule {
         RequireDiagnosticResources => BeforeOperationInputUse
         EnforceDiagnosticRows => BeforeOperationOutput
       }
+    SubgraphExecution(v) =>
+      match v.rule {
+        AdmitSubgraphGraph | EnforceSubgraphResources => BeforeOperationInputUse
+        InduceSubgraphEndpoints
+        | FilterSubgraphEdges
+        | PreserveSubgraphIdentities
+        | PreserveSubgraphPolicy => BeforeOperationOutput
+      }
     GraphNormalizeExecution(_) => BeforeOperationInputUse
+    GraphDeltaExecution(v) =>
+      match v.rule {
+        AdmitGraphOperands
+        | RequireDeltaResources
+        | RequireExactlyOneDeltaRow
+        | AdmitCompleteDeltaActions => BeforeOperationInputUse
+        EnforceDeltaRows | CheckExactBaseBeforeTarget => BeforeOperationOutput
+      }
     VectorExecution(v) =>
       match v.rule {
         AdmitVectorComponents
@@ -288,8 +312,11 @@ pub fn operation_execution_failure(
     NestExecution(_) => RejectOperationOutput
     GraphSelectorExecution(_)
     | GraphMatchExecution(_)
+    | GraphEqualityExecution(_)
     | GraphDiagnosticExecution(_)
+    | SubgraphExecution(_)
     | GraphNormalizeExecution(_)
+    | GraphDeltaExecution(_)
     | VectorExecution(_)
     | NearestExecution(_)
     | PoolExecution(_)

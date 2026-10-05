@@ -4541,7 +4541,7 @@
             "path": "src/execution_relation/distinct_sequence_wbtest.mbt",
             "fixtures": [
               "whole-row distinct preserves first occurrence and feeds take in the same driver",
-              "distinct comparison readiness depends on selected schema not row count",
+              "whole-row distinct admits complete array values independent of row count",
               "empty-schema distinct collapses identical empty tuples but preserves empty input",
               "whole-row distinct compares every key domain including owned references",
               "keyed distinct accepts every relation value payload domain"

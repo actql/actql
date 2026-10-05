@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "ci-manual-main-integration",
+  "kind": "change",
+  "revision": "fcad8f4c51f73dad64868569289e4b0d3807f8f9",
+  "parents": [
+    "3c443c5bf3483170aa941feac767650a76b532f2"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "3c443c5bf3483170aa941feac767650a76b532f2",
+          "digest": "d7cb319c9c21db14238c4a130df00df7daaf1720143a607b0267db644a7f5e56",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "5a98c2ad9661df4d1e0a2104efebdb84c1ae231d63cbd9bfb9cb37c50d403fcf",
+      "afterMode": "100644",
+      "reason": "Remove the automatic main-push trigger and its obsolete concurrency exception. Keep PR and manual dispatch paths, all selected verification obligations and failure checks. Full main integration is explicitly scheduled at meaningful milestones rather than after every merge."
+    }
+  ]
+}

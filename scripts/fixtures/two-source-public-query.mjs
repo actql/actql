@@ -145,12 +145,15 @@ export function expectedTwoSourceResults(fixture, variant) {
 }
 
 export async function openTwoSourcePublicHost({connect, openInstalledRemoteHttpHost,
-  mode, directory, sourceProfilePaths, tls, authorization}) {
+  mode, directory, sourceProfilePaths, tls, authorization,
+  retainedRelationOutput = false}) {
   let host, server;
   let options = {mode: 'local', owner: 'local', durability: 'durable',
-    installation: {directory, sourceProfilePaths, ...(authorization === undefined ? {} : {authorization})}};
+    installation: {directory, sourceProfilePaths, retainedRelationOutput,
+      ...(authorization === undefined ? {} : {authorization})}};
   if (mode === 'https') {
     host = await openInstalledRemoteHttpHost({directory, sourceProfilePaths, authorization,
+      retainedRelationOutput,
       authenticate: header => header === 'Bearer fixture-token' ? userInfo().username : undefined});
     server = createServer(tls, host.handler);
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -203,7 +206,7 @@ export async function exerciseTwoSourcePublicQuery({connect, openInstalledRemote
       assert.deepEqual({...check, report: {...check.report, context_ref: '<ctx>',
         inputs: check.report.inputs.map(input => ({...input, revision: '<revision>'}))}},
         {version: 'actql-check-outcome/0.1', outcome: 'completed',
-          reason_schema_cid: 'sha256:1565f0b7e8e32f70d97905797ccc37a872b08116c0ef3d9599e4e4509b568621',
+          reason_schema_cid: 'sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa',
           report: {context_ref: '<ctx>', scope: {kind: 'bound_input'},
             inputs: [{document_id: 'source', kind: 'text', revision: '<revision>', byte_length: 17}],
             verdict: 'verified', reasons: [], requirements: [],

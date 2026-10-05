@@ -2276,6 +2276,18 @@ function publicationControl(moon) {
       localEffectDependencyTokens.set(value, {kind: 'acquired', issued});
       return value;
     },
+    issueSourceFreeEffectEvidence(owner, unit, limits) {
+      issuanceLimits(limits, 'Source-free Effect dependency');
+      const invocation = checked(moon.clientProgramIssueSourceFreeLocalEffectInvocation(
+        owner, unit, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      const scope = control.seal('acquisition_scope',
+        '{"sources":[],"version":"actql-acquisition-scope/0.1"}', limits);
+      const value = Object.freeze({invocation, bodies: Object.freeze([
+        Object.freeze({kind: 'acquisition_scope', wire: scope.wire}),
+      ])});
+      localEffectDependencyTokens.set(value, {kind: 'source_free', issued: invocation});
+      return value;
+    },
     issueEffectResultImportObservation(owner, inputs, captured, manifest,
       artifact, limits) {
       issuanceLimits(limits, 'Effect Result import observation');
@@ -2330,7 +2342,12 @@ function publicationControl(moon) {
         throw new TypeError('Foreign local Effect dependency evidence');
       }
       const exactContext = localEffectContext(context);
-      const result = owned.kind === 'acquired'
+      const result = owned.kind === 'source_free'
+        ? moon.clientProgramIssueSourceFreeExportedLocalEffectResultArtifact(
+          owner, inputs, exported, owned.issued, definition, receipt,
+          token(retention), ...exactContext,
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth)
+        : owned.kind === 'acquired'
         ? moon.clientProgramIssueAcquiredEffectLocalResultArtifact(
           owner, inputs, exported, owned.issued, definition, receipt,
           ...exactContext, limits.maxWireBytes, limits.maxNodes, limits.maxDepth)

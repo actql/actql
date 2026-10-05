@@ -10,7 +10,10 @@ import {certificates} from '../adapters/site-node/https-agent-harness.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const selectorDeriveOnly = process.argv.includes('--selector-derive-only');
-if (process.argv.slice(2).some(argument=>argument !== '--selector-derive-only')) {
+const deltaApplicationOnly = process.argv.includes('--delta-application-only');
+if (process.argv.slice(2).some(argument=>!['--selector-derive-only',
+  '--delta-application-only'].includes(argument)) ||
+  (selectorDeriveOnly && deltaApplicationOnly)) {
   throw new Error('Unknown packed Property Graph selection');
 }
 const source = checkoutState(repository);
@@ -39,6 +42,7 @@ await mkdir(join(root,'fixtures'));
 for (const name of ['property-graph-public-host.test.mjs','check-canonical-json.mjs',
   'fixtures/property-graph-parallel.program.json',
   'fixtures/property-graph-presence.program.json',
+  'fixtures/property-graph-delta-application.mjs',
   'fixtures/property-graph-definition-rows.program.json',
   'fixtures/property-graph-label-rows.program.json',
   'fixtures/property-graph-selector-derive.program.json',
@@ -49,6 +53,7 @@ await mkdir(join(root,'tls'));
 await certificates(join(root,'tls'));
 const output = await run(process.execPath,['--test',
   ...(selectorDeriveOnly ? ['--test-name-pattern','selector property derive'] : []),
+  ...(deltaApplicationOnly ? ['--test-name-pattern','complete Delta application'] : []),
   'property-graph-public-host.test.mjs'],root,
   {...environment,ACTQL_PROPERTY_GRAPH_PACKED:'1',
     PATH:[dirname(process.execPath),'/usr/bin','/bin'].join(':')});
@@ -61,7 +66,7 @@ const acceptance = {
   version:'property-graph-packed-acceptance/0.1',node:process.version,
   source,
   packages:digests,paths:['embedded-local','remote-https'],
-  selection:selectorDeriveOnly ? 'selector-derive' : 'all',
+  selection:selectorDeriveOnly ? 'selector-derive' : deltaApplicationOnly ? 'delta-application' : 'all',
   independentFixture:'fixtures/property-graph-parallel.program.json',
   presenceFixture:'fixtures/property-graph-presence.program.json',
   definitionFixture:'fixtures/property-graph-definition-rows.program.json',
@@ -73,6 +78,12 @@ const acceptance = {
     'guaranteed property filter derive projection and independently ordered public read/reattach',
     'sparse intermediate Store save source denial verified reload and temporary body cleanup',
     'unguaranteed derive input rejected before Run admission including empty input',
+  ] : deltaApplicationOnly ? [
+    'complete Delta records preserve typed identities composite keys and the remaining parallel edge',
+    'independent base and target Graph snapshot bytes and CID through save revocation and reload',
+    'changed property omission and explicit NULL retained through real Relation Store reload',
+    'guaranteed projection initial read reattach and schema through public Local and HTTPS',
+    'malformed wrong-base and wrong-target Delta fail with confirmed physical stop and temporary cleanup',
   ] : ['typed MATCH Named Result','independent-key TRAIL identities',
     'inventory-driven unsupported consumer refusal before Run admission and physical work',
     'composite keys and label sets','independent snapshot bytes and CID',
@@ -89,7 +100,8 @@ const acceptance = {
     'conditional property refusal before Run admission',
     'Required-key DISTINCT projects only specified columns and preserves first-occurrence order',
     'keyed DISTINCT Relation Store source denial verified reload and public empty schema',
-    'Conditional-key and sparse whole-row DISTINCT refusal before Run admission',
+    'Conditional-key and ordinary Conditional reference refusal before Run admission',
+    'whole-row DISTINCT retains typed identity omission and NULL through Relation Store reload',
     'declaration-derived definition selection with empty and nullable Results',
     'selected property filter and alias projection after Relation Store reload',
     'guaranteed selector property filter derive and projection with sparse intermediate Store reload',
@@ -98,7 +110,9 @@ const acceptance = {
     'conditional label reference and mixed unknown wrong-kind selector refusal before Run admission',
     'unknown wrong-kind extra-field and selected-column collision refusal before Run admission',
     'path-mode-aware node output with independently ordered minimum eligible depth',
-    'node traversal Relation Store retention, source denial and verified reload'],
+    'node traversal Relation Store retention, source denial and verified reload',
+    'complete Delta application with independent Graph and Relation Store reload expectations',
+    'malformed wrong-base and wrong-target Delta failure with confirmed stop and temporary cleanup'],
 };
 await writeFile(join(root,'acceptance.json'),JSON.stringify(acceptance,null,2)+'\n');
 console.log(output);

@@ -50,7 +50,6 @@ test "conditional Relation presence admits guaranteed projection filter and deri
   )
   for
     (body, kind) in [
-      ("[{\"distinct\":true}]", @relation.ConditionalInputNotImplemented),
       ("[{\"distinct\":[\"p\"]}]", @relation.PresenceRequired("p")),
     ] {
     assert_true(
@@ -65,6 +64,16 @@ test "conditional Relation presence admits guaranteed projection filter and deri
       actual == kind,
     )
   }
+  let whole = @pipeline_typing.check(
+    cursor("[{\"distinct\":true}]"),
+    [("rows", schema)],
+    None,
+    None,
+    limits(),
+  ).unwrap()
+  assert_true(
+    physical_equal(@pipeline_typing.output_schema(whole).unwrap(), schema),
+  )
   for
     body in [
       "[{\"derive\":{}}]", "[{\"derive\":{\"z\":\"id + 1\"}},{\"select\":[\"id\",\"z\"]}]",

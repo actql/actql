@@ -19,6 +19,35 @@ fn presence_schema() -> @schema.Schema {
 }
 
 ///|
+test "presence group admits guaranteed references and rejects optional references in every lane" {
+  let input = presence_schema()
+  let checked = @relation_typing.check(
+    Group,
+    cursor(
+      "{\"by\":[\"id\"],\"aggregates\":{\"n\":{\"fn\":\"count\"},\"m\":{\"fn\":\"max\",\"field\":\"id\"}}}",
+    ),
+    input,
+    None,
+    limits(),
+  ).unwrap()
+  let output = @relation_typing.output_schema(checked)
+  assert_true(@schema.all_fields_required(output))
+  assert_true(@schema.lookup_reference(output, "p") is None)
+  for
+    body in [
+      "{\"by\":[\"p\"],\"aggregates\":{\"n\":{\"fn\":\"count\"}}}", "{\"by\":[],\"aggregates\":{\"n\":{\"fn\":\"count\",\"field\":\"p\"}}}",
+      "{\"by\":[],\"aggregates\":{\"n\":{\"fn\":\"count\",\"expr\":\"if(false, p, id)\"}}}",
+      "{\"by\":[],\"aggregates\":{\"n\":{\"fn\":\"count\",\"filter\":\"false AND p IS NOT NULL\"}}}",
+      "{\"by\":[],\"aggregates\":{\"n\":{\"fn\":\"first\",\"field\":\"id\",\"order_by\":[{\"p\":\"asc\"}]}}}",
+    ] {
+    assert_eq(
+      @relation_typing.check(Group, cursor(body), input, None, limits()).unwrap_err().kind,
+      PresenceRequired("p"),
+    )
+  }
+}
+
+///|
 test "only guaranteed columns project from a conditional Relation schema" {
   let input = presence_schema()
   let projection = @relation_typing.check(
@@ -235,10 +264,14 @@ test "presence keyed distinct projects guaranteed keys without retaining optiona
     @relation_typing.check(Distinct, cursor("[\"p\"]"), input, None, limits()).unwrap_err().kind,
     PresenceRequired("p"),
   )
-  assert_eq(
-    @relation_typing.check(Distinct, cursor("true"), input, None, limits()).unwrap_err().kind,
-    ConditionalInputNotImplemented,
-  )
+  let whole = @relation_typing.check(
+    Distinct,
+    cursor("true"),
+    input,
+    None,
+    limits(),
+  ).unwrap()
+  assert_true(physical_equal(@relation_typing.output_schema(whole), input))
   let nullable = @schema.from_presence_fields(
     [
       (

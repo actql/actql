@@ -10,6 +10,9 @@
 //   installation), `readAuthorization` ({accountConfiguration, context}, for
 //   the Host's pre-acquisition Checkpoint) and `sourceAccess` (the base
 //   access whose `authorization` a Checkpoint may wrap);
+// - optionally `sourceReadAccesses`: one declared sourceRef and read tuple
+//   per view for Check disclosure and plural Checkpoint authority. Its
+//   acquisition still uses the installation-scoped `sourceAccess`;
 // - `connectorRegistration`/`connectorRevision` when its manifest declares
 //   them: the installed implementation's own identification, which must
 //   equal the declaration;
@@ -35,7 +38,8 @@ import {retainInstalledHostInitializationFailure} from './installed-host-cleanup
 import {splitSourceAliasProfile} from './source-alias-publication.mjs';
 import {INSTALLED_DUCKDB_SOURCE_VERSION, installDuckDBSourceProfile} from
   './installed-duckdb-source.mjs';
-import {openCapturedDuckDBSource, prepareCapturedDuckDBSource} from
+import {openCapturedDuckDBSource, prepareCapturedDuckDBSource,
+  capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity} from
   './captured-duckdb-source.mjs';
 import {installedConnectors} from
   '../connectors-builtin/installations.generated.mjs';
@@ -125,6 +129,7 @@ function duckdbAdapter(profile, moon, {root, principalId}) {
     .map(catalog => catalog.connector_id);
   return Object.freeze({
     realizationKey: 'duckdb-acquired',
+    supportsRetainedRelationOutput: true,
     environmentWire: profile.environmentWire,
     connectorBindings: Object.freeze(catalogIds.map(connectorId =>
       Object.freeze({connectorId, bindingCid: contentCid({
@@ -135,16 +140,31 @@ function duckdbAdapter(profile, moon, {root, principalId}) {
     readAuthorization: profile.readAuthorization,
     sourceAccess: profile.sourceAccess,
     admitsSource: sourceRef => sourceRef === profile.sourceRef,
+    ledgerCapacity(prepared) {
+      const physical = capturedDuckDBPhysicalCapacity(prepared);
+      const capacity = moon.clientProgramInstalledDuckDBCaptureCapacity(
+        capturedDuckDBConfiguration(prepared));
+      if (capacity === undefined) {
+        throw new TypeError('InstalledSourceCapacityUnavailable');
+      }
+      return Object.freeze({
+        capacity,
+        transferBytes: physical.transferBytes,
+        executionBytes: physical.executionBytes,
+      });
+    },
     prepare: ({preparedProgram, preparedEffect, registry, values, fragment, ordered,
       sourceAccess, occurrence}) => prepareCapturedDuckDBSource({...common,
       preparedProgram, preparedEffect, registry, values, fragment, ordered,
       sourceAccess, occurrence, transportLimits: profile.transportLimits}),
     open: ({preparedProgram, preparedEffect, registry, values, fragment, ordered,
-      sourceAccess, signal, preparedSource, reportAcquisitionFailure, occurrence, ledger}) =>
+      sourceAccess, signal, preparedSource, reportAcquisitionFailure, occurrence, ledger,
+      retainedRelationOutput}) =>
       openCapturedDuckDBSource({
       ...common, preparedProgram, preparedEffect, registry, values, fragment, ordered,
       sourceAccess, transportLimits: profile.transportLimits, signal,
-      preparedSource, reportAcquisitionFailure, occurrence, ledger}),
+      preparedSource, reportAcquisitionFailure, occurrence, ledger,
+      retainedRelationOutput}),
     close: () => {},
   });
 }
@@ -186,15 +206,69 @@ export async function loadInstalledSource(path, {root, principalId, moon,
   const {providerProfile, queryAliases} = splitSourceAliasProfile(profile);
   const {entry, module} = await selectInstallation(profile);
   const checked = module.check(providerProfile);
-  const adapter = verifyInstalledConnectorRegistration(entry,
-    await module.load(checked, {root, principalId, moon, baseEnvironmentWire,
-      resolveSecret, installation: entry,
-      ...await providerRuntime(entry, runtimeUrl)}));
-  return Object.freeze({...adapter, queryAliases});
+  const adapter = await module.load(checked, {root, principalId, moon,
+    baseEnvironmentWire, resolveSecret, installation: entry,
+    ...await providerRuntime(entry, runtimeUrl)});
+  try {
+    verifyInstalledConnectorRegistration(entry, adapter);
+    return Object.freeze({...adapter, queryAliases});
+  } catch (cause) {
+    // The caller cannot own an adapter until validation returns it.
+    throw await retainInstalledHostInitializationFailure(cause,
+      {sourceProfile: adapter});
+  }
 }
 
 // Installation inventory is bounded and inert. Only a checked acquisition
 // occurrence selects a member later; installing a binding never reads it.
+export function installedSourceReadAccesses(source) {
+  const accesses = source.sourceReadAccesses ?? [source.sourceAccess];
+  if (!Array.isArray(accesses) || accesses.length === 0 ||
+      accesses.length > 64) {
+    throw new TypeError('InvalidInstalledSourceReadAccesses');
+  }
+  if (source.sourceReadAccesses !== undefined) {
+    const refs = new Set();
+    for (const access of accesses) {
+      if (typeof access?.sourceRef !== 'string' ||
+          typeof access.connection !== 'string' ||
+          access.connection !== source.sourceAccess?.connection ||
+          typeof access.resource !== 'string' ||
+          access.authorization !== source.sourceAccess?.authorization ||
+          typeof source.admitsSource !== 'function' ||
+          !source.admitsSource(access.sourceRef) ||
+          refs.has(access.sourceRef)) {
+        throw new TypeError('InvalidInstalledSourceReadAccesses');
+      }
+      refs.add(access.sourceRef);
+    }
+  }
+  return accesses;
+}
+
+export function installedSourceReadBindings(source) {
+  if (typeof source.sourceAccess?.authorization?.authorize !== 'function' ||
+      typeof source.ledgerCapacity !== 'function' ||
+      typeof source.admitsSource !== 'function') {
+    throw new TypeError('InstalledMultiSourceUnsupported');
+  }
+  const refs = [];
+  for (const access of installedSourceReadAccesses(source)) {
+    if (typeof access?.sourceRef !== 'string' ||
+        typeof access.connection !== 'string' ||
+        typeof access.resource !== 'string' ||
+        access.authorization !== source.sourceAccess.authorization ||
+        !source.admitsSource(access.sourceRef)) {
+      throw new TypeError('InstalledMultiSourceUnsupported');
+    }
+    refs.push(access.sourceRef);
+  }
+  if (new Set(refs).size !== refs.length) {
+    throw new TypeError('InstalledSourceBindingAmbiguous');
+  }
+  return refs;
+}
+
 export function installedSourcePaths({sourceProfilePath, sourceProfilePaths} = {},
   fallback = process.env.ACTQL_LOCAL_SOURCE_PROFILE) {
   if (sourceProfilePaths !== undefined) {
@@ -224,24 +298,24 @@ export async function loadInstalledSources(paths, options) {
     if (failures.length) throw new AggregateError(failures, 'InstalledSourceCleanupPending');
   };
   try {
+    const refs = [];
     for (const path of paths) {
       const source = await loadInstalledSource(path, options);
       sources.push(source);
-      // This first public multi-input profile is two independent DuckDB
-      // acquisitions. Other providers retain their existing singular path.
-      if (source.realizationKey !== 'duckdb-acquired') {
-        throw new TypeError('InstalledMultiSourceUnsupported');
-      }
+      // Each independently installed source must have an exact checked
+      // occurrence and an owned capacity before either read may start.
+      refs.push(...installedSourceReadBindings(source));
     }
     verifyInstalledConnectorBindings(sources[0], sources[1]);
     const environmentWire = composeInstalledCheckEnvironment(options.moon,
       options.baseEnvironmentWire, sources[0].environmentWire, sources[1].environmentWire);
-    const refs = sources.map(source => source.sourceAccess.sourceRef);
     if (new Set(refs).size !== refs.length) {
       throw new TypeError('InstalledSourceBindingAmbiguous');
     }
     return Object.freeze({
-      realizationKey: 'duckdb-acquired', environmentWire,
+      realizationKey: sources.every(source =>
+        source.realizationKey === 'duckdb-acquired')
+        ? 'duckdb-acquired' : 'installed-multi-acquired', environmentWire,
       sources: Object.freeze(sources),
       connectorBindings: Object.freeze(sources.flatMap(source => source.connectorBindings)),
       queryAliases: Object.freeze(sources.flatMap(source => source.queryAliases ?? [])),

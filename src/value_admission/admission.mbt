@@ -67,35 +67,91 @@ fn text_size(
 
 ///|
 fn number(cursor : @decode.Cursor) -> Double raise Abort {
-  match @decode.view(cursor) {
-    @decode.NumberValue(value) => {
+  match @decode.finite_number(cursor) {
+    Ok(value) => {
       if @scalar.read_finite_number(value) is None ||
         (value == 0.0 && 1.0 / value < 0.0) {
         fail(cursor, InvalidNumber)
       }
       value
     }
+    Err(issue) =>
+      if issue.kind == @decode.WrongType {
+        fail(cursor, WrongType)
+      } else {
+        fail(cursor, InvalidNumber)
+      }
+  }
+}
+
+///|
+/// Shared non-null scalar admission. Container readers must not call `view`
+/// merely to discover a scalar mismatch: that would copy a complete child map.
+fn read_scalar(
+  cursor : @decode.Cursor,
+  shape : @contract.Shape,
+  budget : Budget,
+) -> Value raise Abort {
+  match shape {
+    @contract.Text(bounds) => {
+      let text = decoded(@decode.text(cursor))
+      let bytes = text_size(text, cursor, budget).to_int64()
+      let count = @scalar.unicode_scalar_count(text).unwrap().to_int64()
+      if (bounds.min_length is Some(n) && count < n) ||
+        (bounds.max_codepoints is Some(n) && count > n) ||
+        (bounds.max_utf8_bytes is Some(n) && bytes > n) {
+        fail(cursor, StringConstraint)
+      }
+      Text(text)
+    }
+    @contract.Number => Number(number(cursor))
+    @contract.Boolean => Boolean(decoded(@decode.boolean(cursor)))
+    @contract.Decimal(precision~, scale~) => {
+      let text = decoded(@decode.text(cursor))
+      ignore(text_size(text, cursor, budget))
+      match decimal(text, precision, scale) {
+        Some(value) => Decimal(value)
+        None => fail(cursor, InvalidDecimal)
+      }
+    }
+    @contract.Date | @contract.Timestamp => {
+      let text = decoded(@decode.text(cursor))
+      ignore(text_size(text, cursor, budget))
+      if shape is @contract.Date {
+        if text.length() != 10 || !valid_date(text) {
+          fail(cursor, InvalidDate)
+        }
+        Date(text)
+      } else {
+        if !valid_timestamp(text) {
+          fail(cursor, InvalidTimestamp)
+        }
+        Timestamp(text)
+      }
+    }
     _ => fail(cursor, WrongType)
   }
 }
 
 ///|
-// Resolve the key's span only on failure. Successful admission never rebuilds
-// the declaration map per field.
-fn key_text(
+// The admitted source cursor retains the key span. Resolve it directly rather
+// than rebuilding the complete declaration map merely to locate a refusal.
+fn cursor_key_text(
   name : String,
-  names : Array[String],
-  object : @decode.Cursor,
   child : @decode.Cursor,
   budget : Budget,
 ) -> Unit raise Abort {
   ignore(text_size(name, child, budget, identifier=true)) catch {
     Abort(ValueIssue(kind, ..)) =>
-      match @decode.closed_object(object, names.filter(n => n != name)) {
-        Err(location) =>
-          raise Abort(ValueIssue(kind, path=location.path, span=location.span))
-        Ok(_) => fail(child, kind)
-      }
+      raise Abort(
+        ValueIssue(
+          kind,
+          path=@decode.cursor_path(child),
+          span=@decode.cursor_key_span(child).unwrap_or(
+            @decode.cursor_span(child),
+          ),
+        ),
+      )
     error => raise error
   }
 }
@@ -154,43 +210,13 @@ fn run(
         let depth = parent_depth + (if container { 1 } else { 0 })
         let shape = expected.map(c => c.shape)
         match shape {
-          Some(@contract.Text(bounds)) => {
-            let text = decoded(@decode.text(cursor))
-            let bytes = text_size(text, cursor, budget).to_int64()
-            let count = @scalar.unicode_scalar_count(text).unwrap().to_int64()
-            if (bounds.min_length is Some(n) && count < n) ||
-              (bounds.max_codepoints is Some(n) && count > n) ||
-              (bounds.max_utf8_bytes is Some(n) && bytes > n) {
-              fail(cursor, StringConstraint)
-            }
-            values.push(Text(text))
-          }
-          Some(@contract.Number) => values.push(Number(number(cursor)))
-          Some(@contract.Boolean) =>
-            values.push(Boolean(decoded(@decode.boolean(cursor))))
-          Some(@contract.Decimal(precision~, scale~)) => {
-            let text = decoded(@decode.text(cursor))
-            ignore(text_size(text, cursor, budget))
-            match decimal(text, precision, scale) {
-              Some(value) => values.push(Decimal(value))
-              None => fail(cursor, InvalidDecimal)
-            }
-          }
-          Some(@contract.Date) | Some(@contract.Timestamp) => {
-            let text = decoded(@decode.text(cursor))
-            ignore(text_size(text, cursor, budget))
-            if shape is Some(@contract.Date) {
-              if text.length() != 10 || !valid_date(text) {
-                fail(cursor, InvalidDate)
-              }
-              values.push(Date(text))
-            } else {
-              if !valid_timestamp(text) {
-                fail(cursor, InvalidTimestamp)
-              }
-              values.push(Timestamp(text))
-            }
-          }
+          Some(@contract.Text(_))
+          | Some(@contract.Number)
+          | Some(@contract.Boolean)
+          | Some(@contract.Decimal(..))
+          | Some(@contract.Date)
+          | Some(@contract.Timestamp) =>
+            values.push(read_scalar(cursor, expected.unwrap().shape, budget))
           Some(@contract.Vector(dimensions~)) => {
             let items = decoded(@decode.elements(cursor))
             if items.length().to_double() != dimensions {
@@ -256,7 +282,7 @@ fn run(
                 Some(child) => child
                 None => decoded(@decode.required(view, field.name))
               }
-              key_text(field.name, names, cursor, child, budget)
+              cursor_key_text(field.name, child, budget)
               children.push((child, field.contract))
             }
             work.push(BuildObject(names))
@@ -288,7 +314,7 @@ fn run(
                 let children : Array[@decode.Cursor] = []
                 for name in names {
                   let child = @decode.lookup(view, name).unwrap()
-                  key_text(name, names, cursor, child, budget)
+                  cursor_key_text(name, child, budget)
                   children.push(child)
                 }
                 work.push(BuildObject(names))
@@ -327,31 +353,24 @@ pub fn admit_usage(
   cursor : @decode.Cursor,
   limits : Limits,
 ) -> Result[(CheckedValue, Int, Int), Issue] {
-  if limits.max_nodes < 0 || limits.max_depth < 0 || limits.max_text_bytes < 0 {
-    return Err(
-      ValueIssue(
-        InvalidLimits,
-        path=@decode.cursor_path(cursor),
-        span=@decode.cursor_span(cursor),
-      ),
-    )
+  let admission = match start_typed_admission(contract, cursor, limits) {
+    Ok(admission) => admission
+    Err(issue) => return Err(issue)
   }
-  try {
-    let budget : Budget = {
-      nodes: limits.max_nodes,
-      text: limits.max_text_bytes,
-      max_depth: limits.max_depth,
+  // Ordinary callers and resumed Store callers share the same admission
+  // transitions. This convenience entry drains them without claiming that the
+  // complete traversal is a single bounded execution step.
+  while true {
+    match advance_typed_admission(admission) {
+      TypedAdmissionContinue => ()
+      TypedAdmissionComplete(value, nodes, text) =>
+        return Ok((value, nodes, text))
+      TypedAdmissionFailed(issue) => return Err(issue)
+      TypedAdmissionTerminal =>
+        abort("typed admission terminated without a result")
     }
-    let value = run(cursor, contract, budget)
-    Ok(
-      (
-        { contract, value, },
-        limits.max_nodes - budget.nodes,
-        limits.max_text_bytes - budget.text,
-      ),
-    )
-  } catch {
-    Abort(issue) => Err(issue)
+  } nobreak {
+    abort("typed admission stopped without a result")
   }
 }
 

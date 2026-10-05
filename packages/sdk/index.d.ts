@@ -1,4 +1,5 @@
 import type {ClientSourceFormat, WireCancellation, WireCheckpointSummary, WireClientProfile,
+  WireConnection,
   WireRequestCancellation,
   WireDeliveryAttemptLookup, WireHeldRequest, WireRequestLookup,
   WireResolveItem, WireResolveResult, WireRunRef,
@@ -14,7 +15,36 @@ export type CheckInput = Readonly<{documentId: string; revision: string}> & (
 /** Available only for the exact response of this SDK check call. */
 export declare function getCheckInput(outcome: CheckOutcome, documentId: string,
   revision?: string): CheckInput | undefined;
-/** Omitted when original input is unavailable, stale or mismatched. No edits are applied. */
+export type SubmissionInput = Readonly<{
+  requestId: string;
+  kind: 'program' | 'aql';
+  input: unknown;
+  parameters: unknown;
+  connection: Readonly<WireConnection>;
+  lookupContext: Readonly<{endpoint: string; scopeRef: string}>;
+}>;
+/** Original prepared JSON input, not evidence of sending, acceptance or permission to resend. */
+export declare function getSubmissionInput(result: unknown): SubmissionInput | undefined;
+export type SubmissionExplanation = Readonly<{summary: string}> & (
+  Readonly<{
+    observation: 'acceptance_unknown' | 'request_held';
+    next: Readonly<{operation: 'lookupRequest'; requestId: string;
+      lookupContext: Readonly<{endpoint: string; scopeRef: string}>}>;
+  }> | Readonly<{
+    observation: 'run_reference_received';
+    next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;
+  }>);
+/** Read-only advice for this exact SDK submit result; no retry or execution permission. */
+export declare function explainSubmission(result: unknown): SubmissionExplanation | undefined;
+export type CancellationExplanation = Readonly<{
+  summary: string;
+  next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;
+}> & (Readonly<{
+  observation: 'accepted' | 'already_requested' | 'already_terminal'; revision: number;
+}> | Readonly<{observation: 'outcome_unknown'}>);
+/** Read-only advice for this exact Execution.cancel result; no cancellation-operation identity or stop/release proof. */
+export declare function explainCancellation(result: unknown): CancellationExplanation | undefined;
+/** Omitted for unavailable/stale input or a pointer without a submitted JSON node. No edits are applied. */
 export declare function resolveCheckLocation(outcome: CheckOutcome,
   location: WireCheckLocation, currentInput?: CheckInput):
   (WireCheckLocation & Readonly<{input: CheckInput; text?: string}>) | undefined;

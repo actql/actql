@@ -145,6 +145,10 @@ function expectedCalls(names, directory) {
 // at their registered positions rather than ignoring arbitrary extra checks.
 const distribution = expectedGates['check:distribution-client'];
 distribution[3] = distribution[3].replace(
+  'scripts/packed-client-packages.test.mjs ',
+  'scripts/packed-client-packages.test.mjs scripts/graph-composition-fixture.test.mjs ',
+);
+distribution[3] = distribution[3].replace(
   'scripts/infer-owner-checker.test.mjs ',
   'scripts/infer-owner-checker.test.mjs scripts/property-graph-surface-checker.test.mjs scripts/property-graph-public-host.test.mjs ',
 );
@@ -173,6 +177,11 @@ distribution[3] = distribution[3].replace(
   'packages/sdk/checkpoints.test.mjs ',
   'packages/sdk/checkpoints.test.mjs packages/sdk/model-checkpoints.test.mjs ',
 );
+
+// The issued-retention original regression is part of the existing prepared
+// distribution gate. Pin its one intended addition independently of the
+// package command, retaining the exact inventory and duplicate rejection.
+distribution[3] += ' adapters/host-node/local-values-plan-policy.test.mjs';
 
 test('runtime preparation preserves physical cwd and output through a symlinked temporary parent', t => {
   const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'runtime-build-alias-')));

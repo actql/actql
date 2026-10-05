@@ -7,6 +7,7 @@ import {
   "actql/actql/expression_syntax",
   "actql/actql/expression_text",
   "actql/actql/expression_typing",
+  "actql/actql/graph_contract",
   "actql/actql/parameter_binding",
   "actql/actql/relation_append",
   "actql/actql/relation_schema",
@@ -18,11 +19,15 @@ import {
 }
 
 // Values
+pub fn check_apply_graph_delta(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, @graph_contract.CheckedContract?, Limits) -> Result[CheckedDelta, Issue]
+
 pub fn check_components(@decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedComponents, Issue]
 
 pub fn check_degree(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedDegree, Issue]
 
 pub fn check_graph_bounds(@decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedGraphBounds, Issue]
+
+pub fn check_graph_diff(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedDelta, Issue]
 
 pub fn check_match(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedMatch, MatchIssue]
 
@@ -34,7 +39,11 @@ pub fn check_path_contract(PathOutput, @decode_core.Cursor, @carrier_contract.Ca
 
 pub fn check_property_construction(@decode_core.Cursor, Array[(String, @carrier_contract.Carrier)], String, Limits) -> Result[CheckedPropertyConstruction, Issue]
 
+pub fn check_property_equality(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedPropertyEquality, Issue]
+
 pub fn check_selector(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedSelector, MatchIssue]
+
+pub fn check_subgraph(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedSubgraph, MatchIssue]
 
 pub fn check_traverse(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedTraverse, MatchIssue]
 
@@ -67,6 +76,20 @@ pub fn degree_pending_count(CheckedDegree) -> Int
 pub fn degree_source(CheckedDegree) -> @decode_core.Cursor
 
 pub fn degree_usage(CheckedDegree) -> Usage
+
+pub fn delta_graph(CheckedDelta) -> @graph_contract.CheckedContract
+
+pub fn delta_operation(CheckedDelta) -> DeltaOperation
+
+pub fn delta_output(CheckedDelta) -> @carrier_contract.Carrier
+
+pub fn delta_pending_at(CheckedDelta, Int) -> DeltaObligation?
+
+pub fn delta_pending_count(CheckedDelta) -> Int
+
+pub fn delta_source(CheckedDelta) -> @decode_core.Cursor
+
+pub fn delta_usage(CheckedDelta) -> Usage
 
 pub fn graph_bounds_input(CheckedGraphBounds) -> @carrier_contract.Carrier
 
@@ -226,6 +249,18 @@ pub fn property_element_keys(PropertyElement) -> Array[@relation_schema.FieldNam
 
 pub fn property_element_properties(PropertyElement) -> Array[(@relation_schema.FieldName, @relation_schema.FieldName)]
 
+pub fn property_equality_input(CheckedPropertyEquality, right~ : Bool) -> @carrier_contract.Carrier
+
+pub fn property_equality_output(CheckedPropertyEquality) -> @carrier_contract.Carrier
+
+pub fn property_equality_pending_at(CheckedPropertyEquality, Int) -> PropertyEqualityObligation?
+
+pub fn property_equality_pending_count(CheckedPropertyEquality) -> Int
+
+pub fn property_equality_source(CheckedPropertyEquality) -> @decode_core.Cursor
+
+pub fn property_equality_usage(CheckedPropertyEquality) -> Usage
+
 pub fn selector_form(CheckedSelector) -> SelectorForm
 
 pub fn selector_id_at(CheckedSelector, Int) -> @value_admission.CheckedValue?
@@ -245,6 +280,26 @@ pub fn selector_pending_count(CheckedSelector) -> Int
 pub fn selector_source(CheckedSelector) -> @decode_core.Cursor
 
 pub fn selector_usage(CheckedSelector) -> PredicateUsage
+
+pub fn subgraph_edge_fields(CheckedSubgraph) -> @carrier_contract.Knowledge
+
+pub fn subgraph_edge_property_position(CheckedSubgraph, Int, Int) -> Int?
+
+pub fn subgraph_edges(CheckedSubgraph) -> CheckedPredicate?
+
+pub fn subgraph_nodes(CheckedSubgraph) -> CheckedSelector
+
+pub fn subgraph_output(CheckedSubgraph) -> @carrier_contract.Carrier
+
+pub fn subgraph_pending(CheckedSubgraph) -> Array[SubgraphObligation]
+
+pub fn subgraph_pending_at(CheckedSubgraph, Int) -> SubgraphObligation?
+
+pub fn subgraph_pending_count(CheckedSubgraph) -> Int
+
+pub fn subgraph_source(CheckedSubgraph) -> @decode_core.Cursor
+
+pub fn subgraph_usage(CheckedSubgraph) -> PredicateUsage
 
 pub fn traverse_bounds(CheckedTraverse) -> (Double, Double)
 
@@ -283,6 +338,8 @@ type CheckedComponents
 
 type CheckedDegree
 
+type CheckedDelta
+
 type CheckedGraphBounds
 
 type CheckedMatch
@@ -297,7 +354,11 @@ type CheckedPredicate
 
 type CheckedPropertyConstruction
 
+type CheckedPropertyEquality
+
 type CheckedSelector
+
+type CheckedSubgraph
 
 type CheckedTraverse
 
@@ -327,6 +388,20 @@ pub enum Count {
   Literal(Int64)
   Parameter(String)
 }
+
+pub(all) enum DeltaObligation {
+  AdmitDeltaGraphs
+  ResolveDeltaResources
+  EnforceDeltaRelationRows
+  AdmitExactlyOneDeltaRow
+  AdmitDeltaActions
+  VerifyDeltaBaseBeforeTarget
+} derive(Eq, @debug.Debug)
+
+pub(all) enum DeltaOperation {
+  Difference
+  Application(@relation_schema.FieldName)
+} derive(Eq, @debug.Debug)
 
 pub(all) enum DiagnosticObligation {
   AdmitDiagnosticGraph
@@ -362,9 +437,11 @@ pub(all) enum IssueKind {
   IncompleteGraph
   UnsupportedGraphProfile
   UnsupportedGraphOperation
+  IncompatibleGraphDomains
   UnknownDeltaField(String)
   UntypedDeltaField(String)
   InvalidDeltaType
+  DeltaContractMismatch
   UnknownConstructionField(String)
   InvalidConstructionIdentity
   InvalidConstructionLabel
@@ -484,6 +561,12 @@ type PropertyEdge
 
 type PropertyElement
 
+pub(all) enum PropertyEqualityObligation {
+  AdmitBothPropertyGraphs
+  CompareCompleteGraphValues
+  ResolvePropertyEqualityResources
+} derive(Eq, @debug.Debug)
+
 pub(all) enum PropertyPathMode {
   Walk
   Trail
@@ -501,6 +584,16 @@ pub(all) enum SelectorObligation {
   DeduplicateSelectorIdentities
   RequireSelectorMembership
   ResolveSelectorResources
+} derive(Eq, @debug.Debug)
+
+pub(all) enum SubgraphObligation {
+  AdmitSubgraphInput
+  InduceSelectedEndpoints
+  FilterInducedEdges
+  PreserveSubgraphIdentitiesAndProperties
+  PreserveSubgraphPolicyAndScope
+  ResolveSubgraphResources
+  ResolveSubgraphProfile
 } derive(Eq, @debug.Debug)
 
 type TraversalHop

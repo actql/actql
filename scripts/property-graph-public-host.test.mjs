@@ -6,6 +6,8 @@ import {userInfo} from 'node:os';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import test from 'node:test';
 import {canonicalText} from './check-canonical-json.mjs';
+import {propertyGraphPresenceOracle, deltaApplicationScenario as deltaScenario} from
+  './fixtures/property-graph-delta-application.mjs';
 
 // The same independent oracle runs against source and repository-external
 // tarballs. The packed branch imports no checkout implementation or toolchain.
@@ -67,42 +69,9 @@ const expectedSnapshot = canonicalText(['actql-property-graph-snapshot/0.1',cid(
     src:identity('N',1),dst:identity('N',1)}))]);
 const snapshotCid = 'sha256:' + createHash('sha256').update(expectedSnapshot).digest('hex');
 
-const presenceConstructor = structuredClone(presenceFixture.stages[0].steps[3].property_graph);
-occurrence = 0;
-for (const family of ['nodes','edges']) for (const element of presenceConstructor[family]) {
-  delete element.from;
-  element.input_occurrence = occurrence++;
-}
-const presenceDomain = cid({constructor:presenceConstructor,
-  producer_definitions:presenceFixture.stages[0].steps.slice(0,3)
-    .map(step => ({body:{values:step.values},dependencies:[]})),
-  version:'actql-property-graph-definition/0.1'});
-const presenceIdentity = (definition, key, kinds) => ({definition,domain:presenceDomain,
-  key,key_types:kinds.map(kind=>({kind}))});
-const nodeIdentity = key => presenceIdentity('N',[key,'a'],['number','string']);
-const presenceContract = {version:'actql-property-graph-contract/0.1',domain:presenceDomain,
-  identity_law_cid:lawCid,value_law_cid:lawCid,
-  node_definitions:[{name:'M',key_columns:['company_key'],key_contracts:[number],labels:{},properties:{}},
-    {name:'N',key_columns:['person_key','tenant_key'],key_contracts:[number,string],
-      labels:{Owner:['p'],Person:['p']},properties:{p:{type:'number',nullable:true}}}],
-  edge_definitions:[{name:'E',key_columns:['edge_key','tenant_key'],key_contracts:[number,string],
-    labels:{Link:[]},properties:{},source_definition:'N',target_definition:'N'}]};
-const presenceSnapshot = canonicalText(['actql-property-graph-snapshot/0.1',cid(presenceContract),presenceContract,
-  [{id:presenceIdentity('M',[3],['number']),key:[3],props:{}},
-    ...[1,2].map(key=>({id:nodeIdentity(key),key:[key,'a'],props:{p:key===1 ? 7 : null}}))],
-  [10,11].map(key=>({id:presenceIdentity('E',[key,'a'],['number','string']),key:[key,'a'],props:{},
-    src:nodeIdentity(1),dst:nodeIdentity(2)}))]);
-const presenceSnapshotCid = 'sha256:' + createHash('sha256').update(presenceSnapshot).digest('hex');
-// Independent full Relation streams, including unprojected conditional fields.
-// These are canonical ordered rows, not bytes captured from the implementation.
-const presenceRows = {
-  node_rows: [{company_key:3,id:presenceIdentity('M',[3],['number']),labels:[]},
-    ...[1,2].map(key=>({id:nodeIdentity(key),labels:['Owner','Person'],
-      p:key===1 ? 7 : null,person_key:key,tenant_key:'a'}))],
-  edge_rows: [10,11].map(key=>({edge_key:key,
-    id:presenceIdentity('E',[key,'a'],['number','string']),
-    src:nodeIdentity(1),dst:nodeIdentity(2),labels:['Link'],tenant_key:'a'})),
-};
+const {contract:presenceContract,identity:presenceIdentity,nodeIdentity,
+  snapshot:presenceSnapshot,snapshotCid:presenceSnapshotCid,rows:presenceRows} =
+  propertyGraphPresenceOracle(presenceFixture);
 // The source fixture deliberately supplies descending keys. Canonical Graph
 // order must be established, not inherited accidentally from already sorted input.
 assert.deepEqual(presenceFixture.stages[0].steps[0].values.rows.map(row=>row.person_key),[2,1]);
@@ -336,6 +305,89 @@ function minimalSelectorDeriveScenario() {
   return {document,retained,derived,snapshot,expected:derived.map(({id,z})=>({id,z}))};
 }
 
+function relationSubgraphScenario(empty, subset = false, external = false) {
+  const document = structuredClone(presenceFixture);
+  document.id = `relation-subgraph-${empty ? 'empty' : subset ? 'subset' : 'all'}-${external ? 'external' : 'inline'}`;
+  const construction = structuredClone(document.stages[0].steps.slice(0,4));
+  if (empty) for (const step of construction.slice(0,3)) step.values.rows = [];
+  document.stages = [{id:'selections',inputs:{},steps:[...structuredClone(construction),
+    subset ? {from:'g',match_nodes:{definition:'N',bindings:{identity:'id'},
+      where:'p IS NULL',fields:['id']},as:'rows'}
+      : {from:'g',node_rows:true,as:'rows'},
+    {from:'rows',select:['id'],as:'selected'}],
+  results:{out:{from:'selected',fields:['id']}}},
+  {id:'query',inputs:{selected:{result:{stage:'selections',result:'out'}}},
+    steps:[...structuredClone(construction),
+      {from:'g',subgraph:{nodes:{from:'selected',id:'id'}},as:'slice'},
+      {from:'slice',node_rows:true,as:'rows'},
+      {from:'rows',select:['id','labels'],as:'projected'}],
+    results:{out:{from:'projected',fields:['id','labels']}}}];
+  document.results = {answer:{from:{stage:'query',result:'out'}}};
+  if (external) {
+    // The regression shape has no inline VALUES or later Relation operation
+    // to force task segmentation: constructor -> Subgraph -> MATCH reads its
+    // selector from another Stage through the ordinary checked task graph.
+    const sources = construction.slice(0,3).map(step=>({id:step.as,inputs:{},
+      steps:[structuredClone(step)],results:{out:{from:step.as,
+        fields:Object.keys(step.values.schema)}}}));
+    const inputs = Object.fromEntries(sources.map(stage=>[stage.id,
+      {result:{stage:stage.id,result:'out'}}]));
+    document.stages[0].inputs = structuredClone(inputs);
+    document.stages[0].steps.splice(0,3);
+    document.stages[1].inputs = {...inputs,...document.stages[1].inputs};
+    document.stages[1].steps = [structuredClone(construction[3]),
+      {from:'g',subgraph:{nodes:{from:'selected',id:'id'}},as:'slice'},
+      {from:'slice',match_nodes:{definition:'N',bindings:{identity:'id'},
+        where:'true',fields:['id','p']},as:'projected'}];
+    document.stages[1].results.out.fields = ['id','p'];
+    document.stages.unshift(...sources);
+  }
+  // Independent snapshot/row expectations keep all three property states in
+  // the full selection. The subset retains N:2, with explicit NULL, and must
+  // exclude both edges because their N:1 endpoint is not selected.
+  const full = JSON.parse(presenceSnapshot);
+  if (empty || external) {
+    const constructor = structuredClone(construction[3].property_graph);
+    let occurrence = 0;
+    for (const family of ['nodes','edges']) for (const element of constructor[family]) {
+      delete element.from;
+      element.input_occurrence = occurrence++;
+    }
+    // Retained Results preserve the producer definition and its declared
+    // projection. Neither bound data CIDs nor product output form this oracle.
+    full[2].domain = cid({constructor,producer_definitions:construction.slice(0,3)
+      .map(step=>{
+        const producer={body:{values:step.values},dependencies:[]};
+        // Result publication checks the fields array itself as Select's
+        // source body, not a newly authored {select: ...} operation wrapper.
+        return external ? {producer,projection:Object.keys(step.values.schema)} : producer;
+      }),
+      version:'actql-property-graph-definition/0.1'});
+    full[1] = cid(full[2]);
+    for (const node of full[3]) node.id.domain = full[2].domain;
+    for (const edge of full[4]) {
+      edge.id.domain = full[2].domain;
+      edge.src.domain = full[2].domain;
+      edge.dst.domain = full[2].domain;
+    }
+    if (empty) { full[3] = []; full[4] = []; }
+  }
+  const selected = structuredClone(full);
+  if (subset) {
+    selected[3] = empty ? [] : [full[3][2]];
+    selected[4] = [];
+  }
+  const allRows = structuredClone(presenceRows.node_rows);
+  for (const row of allRows) row.id.domain = full[2].domain;
+  const retained = empty ? [] : subset ? [allRows[2]] : allRows;
+  return {document,retained,full:canonicalText(full),snapshot:canonicalText(selected),
+    expected:external ? retained.filter(row=>row.id.definition==='N').map(({id,p})=>({id,p}))
+      : retained.map(({id,labels})=>({id,labels})),
+    columns:external ? ['id','p'] : ['id','labels'],
+    graphTasks:external ? [3,6,7] : [3,9,10],
+    relationTasks:external ? (subset ? [] : [4]) : (subset ? [11] : [4,11])};
+}
+
 function presenceKeyedDistinctScenario(empty) {
   const scenario = presenceFilterScenario(empty, false, 1);
   const {document,before} = scenario;
@@ -351,11 +403,53 @@ function presenceKeyedDistinctScenario(empty) {
   return {document,before,expected};
 }
 
-for (const mode of ['local','remote']) for (const profile of ['graph','presence-filter','presence-selection','selector-derive','presence-keyed-distinct']) {
+function presenceGroupScenario(empty) {
+  const {document,before} = presenceFilterScenario(empty, false, 1);
+  document.id = `presence-group-${empty ? 'empty' : 'values'}`;
+  document.stages[0].steps.splice(5,document.stages[0].steps.length-5,
+    {group:{by:['person_key'],aggregates:{
+      m:{fn:'max',expr:'person_key',filter:'person_key > 0'},n:{fn:'count'},
+    }},as:'grouped'});
+  document.stages[0].results.out.from = 'grouped';
+  document.stages[0].results.out.fields = ['person_key','m','n'];
+  // M:1 and N:1 coalesce on the guaranteed raw key. Their optional property
+  // states do not change the count/max; canonical GROUP key order is numeric.
+  const expected = empty ? [] : [
+    {person_key:1,m:1,n:2},{person_key:2,m:2,n:1},{person_key:4,m:4,n:1},
+  ];
+  return {document,before,expected};
+}
+
+
+function presenceWholeDistinctScenario(empty) {
+  const {document,before} = presenceKeyedDistinctScenario(empty);
+  document.id = `presence-whole-distinct-${empty ? 'empty' : 'values'}`;
+  const steps = document.stages[0].steps;
+  steps[5] = {distinct:true,as:'unique'};
+  steps.push({select:['person_key'],as:'projected'});
+  // M:1 and N:1 have different typed identities and optional p presence.
+  // They remain separate complete rows even though their final keys coincide.
+  const expected = empty ? [] : [{person_key:1},{person_key:1},{person_key:2},{person_key:4}];
+  return {document,before,expected};
+}
+
+function deltaApplicationScenario(projection, failure) {
+  return deltaScenario(presenceFixture, projection, failure);
+}
+
+for (const mode of ['local','remote']) for (const profile of ['graph','presence-filter','presence-selection','selector-derive','relation-subgraph','presence-keyed-distinct','presence-whole-distinct','presence-group','delta-application']) {
   const name = profile === 'graph'
     ? `keyed constructor and TRAIL reach public Named Results through ${mode}`
+    : profile === 'delta-application'
+      ? `complete Delta application survives Graph and Relation Store reload through ${mode}`
+    : profile === 'relation-subgraph'
+      ? `external Relation-selected subgraph survives Store reload and public Named Results through ${mode}`
+    : profile === 'presence-group'
+      ? `presence group survives Relation Store and public Named Results through ${mode}`
     : profile === 'presence-keyed-distinct'
       ? `presence keyed distinct survives Relation Store and public Named Results through ${mode}`
+    : profile === 'presence-whole-distinct'
+      ? `presence whole-row distinct survives Relation Store and public Named Results through ${mode}`
     : profile === 'selector-derive'
       ? `selector property derive survives Relation Store and public Named Results through ${mode}`
       : `presence ${profile === 'presence-filter' ? 'filter' : 'selection sort and take'} survives Relation Store and public Named Results through ${mode}`;
@@ -423,9 +517,79 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
       client = await connect({mode,endpoint:`https://127.0.0.1:${server.address().port}/`,token:'synthetic-test-token'});
     }
     t.after(() => client.close());
-    if (profile === 'presence-keyed-distinct') {
+    if (profile === 'delta-application') {
+      for (const projection of ['node_rows','edge_rows']) {
+        const {document,target,retained,expected,fields} = deltaApplicationScenario(projection);
+        const run = await client.aql(canonicalText(document),
+          {format:'json',requestId:`${document.id}-${mode}`});
+        const state = await run.wait();
+        assert.equal(state.status,'succeeded',JSON.stringify(state));
+        assert.deepEqual(await run.result('answer').all(),expected);
+        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
+        assert.deepEqual((await run.result('answer').describe()).columns.map(column=>column.name),fields);
+        assert.deepEqual(snapshots.get(run.ref.runDefinitionCid),
+          [[3,presenceSnapshot],[5,target]].map(([task,bytes])=>({
+            task,cid:'sha256:'+createHash('sha256').update(bytes).digest('hex'),
+            bytes:Buffer.byteLength(bytes),verifiedReadBytes:Buffer.byteLength(bytes),
+            sourceReleased:true,restored:true,temporaryBodyReclaimed:true,
+          })));
+        // Observe the full sparse rows before projection, through the real
+        // Relation Store. Missing, NULL and value must not be reconstructed
+        // from the final result, nor from a Graph-only snapshot roundtrip.
+        const observed = relationSnapshots.get(run.ref.runDefinitionCid);
+        // Sparse node filtering retains a separate selected-operation output.
+        // The dense edge suffix stays fused; its bridge output is still saved
+        // and revoked before that suffix, without inventing another checkpoint.
+        for (const task of projection === 'node_rows' ? [6,7] : [6]) {
+          const bytes = canonicalText(retained);
+          assert.deepEqual(observed.find(entry=>entry.task === task),{
+            task,cid:cid(retained),bytes:Buffer.byteLength(bytes),
+            verifiedReadBytes:Buffer.byteLength(bytes),rows:retained.length,
+            sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true,
+          });
+        }
+        assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
+      }
+      for (const failure of ['malformed','wrong-base','wrong-target']) {
+        const {document} = deltaApplicationScenario('node_rows',failure);
+        const run = await client.aql(canonicalText(document),
+          {format:'json',requestId:`${document.id}-${mode}`});
+        const state = await run.wait();
+        assert.equal(state.status,'failed',JSON.stringify(state));
+        assert.equal(state.control.physical_stop,'confirmed');
+        await assert.rejects(run.result('answer').all());
+        assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
+      }
+      return;
+    }
+    if (profile === 'relation-subgraph') {
+      for (const [empty,subset,external] of [[false,false],[true,false],[false,true],
+        [false,false,true],[true,false,true],[false,true,true]]) {
+        const {document,retained,expected,full,snapshot,columns,graphTasks,relationTasks} = relationSubgraphScenario(empty,subset,external);
+        const run = await client.aql(canonicalText(document),
+          {format:'json',requestId:`${document.id}-${mode}`});
+        const state = await run.wait();
+        assert.equal(state.status,'succeeded',JSON.stringify(state));
+        assert.deepEqual(await run.result('answer').all(),expected);
+        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
+        assert.deepEqual((await run.result('answer').describe()).columns.map(column=>column.name),columns);
+        assert.deepEqual(snapshots.get(run.ref.runDefinitionCid),[[graphTasks[0],full],[graphTasks[1],full],[graphTasks[2],snapshot]].map(([task,bytes])=>({
+          task,cid:cid(JSON.parse(bytes)),bytes:Buffer.byteLength(bytes),verifiedReadBytes:Buffer.byteLength(bytes),
+          sourceReleased:true,restored:true,temporaryBodyReclaimed:true,
+        })));
+        const streams = relationTasks.map(task=>[task,retained]);
+        assert.deepEqual(relationSnapshots.get(run.ref.runDefinitionCid),streams.map(([task,rows])=>{
+          const bytes=canonicalText(rows);
+          return {task,cid:cid(rows),bytes:Buffer.byteLength(bytes),verifiedReadBytes:Buffer.byteLength(bytes),
+            rows:rows.length,sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true};
+        }));
+        assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
+      }
+      return;
+    }
+    if (profile === 'presence-group') {
       for (const empty of [false,true]) {
-        const {document,before,expected} = presenceKeyedDistinctScenario(empty);
+        const {document,before,expected} = presenceGroupScenario(empty);
         const run = await client.aql(canonicalText(document),
           {format:'json',requestId:`${document.id}-${mode}`});
         const state = await run.wait();
@@ -433,7 +597,8 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
         assert.deepEqual(await run.result('answer').all(),expected);
         assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
         assert.deepEqual((await run.result('answer').describe()).columns,
-          [{name:'person_key',contract:number}]);
+          [{name:'person_key',contract:number},
+            {name:'m',contract:{type:'number',nullable:true}},{name:'n',contract:number}]);
         assert.deepEqual(relationSnapshots.get(run.ref.runDefinitionCid),
           [[4,before],[5,expected]].map(([task,rows])=>{
             const bytes = canonicalText(rows);
@@ -443,10 +608,63 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
           }));
         assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
       }
-      for (const distinct of [['p'],true]) {
+      // Check all authored reference lanes, even unused/dead branches. An
+      // empty Relation cannot turn a Conditional property into a Required one.
+      for (const empty of [false,true]) for (const group of [
+        {by:['p'],aggregates:{n:{fn:'count'}}},
+        {by:['person_key'],aggregates:{n:{fn:'count',field:'p'}}},
+        {by:['person_key'],aggregates:{n:{fn:'max',expr:'if(false, p, person_key)'}}},
+        {by:['person_key'],aggregates:{n:{fn:'count',filter:'false AND p IS NOT NULL'}}},
+        {by:['person_key'],aggregates:{n:{fn:'first',field:'person_key',order_by:[{p:'asc'}]}}},
+      ]) {
+        const {document} = presenceGroupScenario(empty);
+        document.stages[0].steps[5].group = group;
+        const requestId = `conditional-group-${mode}-${empty}-${cid(group)}`;
+        const before = physicalSteps.length;
+        await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+          error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
+        assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+        assert.deepEqual(physicalSteps.slice(before),[]);
+      }
+      return;
+    }
+    if (profile === 'presence-keyed-distinct' || profile === 'presence-whole-distinct') {
+      const whole = profile === 'presence-whole-distinct';
+      for (const empty of [false,true]) {
+        const {document,before,expected} = whole
+          ? presenceWholeDistinctScenario(empty) : presenceKeyedDistinctScenario(empty);
+        const run = await client.aql(canonicalText(document),
+          {format:'json',requestId:`${document.id}-${mode}`});
+        const state = await run.wait();
+        assert.equal(state.status,'succeeded',JSON.stringify(state));
+        assert.deepEqual(await run.result('answer').all(),expected);
+        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
+        assert.deepEqual((await run.result('answer').describe()).columns,
+          [{name:'person_key',contract:number}]);
+        assert.deepEqual(relationSnapshots.get(run.ref.runDefinitionCid),
+          [[4,before],[5,whole ? before : expected]].map(([task,rows])=>{
+            const bytes = canonicalText(rows);
+            return {task,cid:cid(rows),bytes:Buffer.byteLength(bytes),
+              verifiedReadBytes:Buffer.byteLength(bytes),rows:rows.length,
+              sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true};
+          }));
+        assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
+      }
+      for (const distinct of [['p']]) {
         const {document} = presenceKeyedDistinctScenario(false);
         document.stages[0].steps[5].distinct = distinct;
         const requestId = `conditional-distinct-${mode}-${String(distinct)}`;
+        const before = physicalSteps.length;
+        await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+          error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
+        assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+        assert.deepEqual(physicalSteps.slice(before),[]);
+      }
+      if (whole) for (const operation of [{select:['p']},{filter:'p IS NOT NULL'},
+        {filter:'true OR p > 0'}]) {
+        const {document} = presenceWholeDistinctScenario(false);
+        document.stages[0].steps[6] = operation;
+        const requestId = `whole-conditional-ref-${mode}-${Object.keys(operation)[0]}-${Object.values(operation)[0]}`;
         const before = physicalSteps.length;
         await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
           error=>error instanceof ClientError && error.code === 'ClientProgramRejected');

@@ -106,7 +106,7 @@ test('resource audit fixtures are reclaimed on success, rejection, and setup fai
 });
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /69 operations, 5 implementation profiles, 58 production routes mapped, 11 typed pre-execution refusals \(not execution success\), 58 with operation-specific boundary records, 58 with four-role boundary evidence, 58 with full work\/workspace assurance, 108 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /69 operations, 5 implementation profiles, 61 production routes mapped, 8 typed pre-execution refusals \(not execution success\), 61 with operation-specific boundary records, 60 with four-role boundary evidence, 60 with full work\/workspace assurance, 112 with path-scoped work\/workspace evidence, 1 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('unsupported Graph routes require one shared public refusal boundary and cannot claim execution', () => {
@@ -148,6 +148,54 @@ test('current Graph diagnostics require their own bounded and Host stop fixtures
       }, ['--require-boundary-complete']),
       new RegExp(`SGA ${operation}:`));
     }
+  }
+});
+
+test('current Graph equality requires its selected value, resource, and Host evidence', () => {
+  for (const role of [
+    'property_equality_work_exact_one_short',
+    'property_equality_workspace_exact_one_short',
+    'property_equality_cancel_cleanup',
+    'property_equality_nested_value_work_ceiling',
+    'property_equality_long_text_quantum_cancel_cleanup',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'SGA' &&
+        entry.operation === 'graphs_equal');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }, ['--require-boundary-complete']),
+    /SGA graphs_equal: Graph equality control-work evidence is missing/u);
+  }
+  for (const role of [
+    'property_equality_retained_named_results',
+    'property_equality_host_in_flight_cancel',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'SGA' &&
+        entry.operation === 'graphs_equal');
+      route.environment_tests = route.environment_tests.filter(item =>
+        item.role !== role);
+    }, ['--require-boundary-complete']),
+    /SGA graphs_equal: Graph equality control-work evidence is missing/u);
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'SGA' &&
+      entry.operation === 'graphs_equal');
+    route.selected_entrypoint.symbol = 'start_graphs_equal_view';
+  }, ['--require-boundary-complete']),
+  /SGA graphs_equal: selected Graph operation does not reach its view kernel/u);
+});
+
+test('current Delta Host stop records name executable conversion and application fixtures', () => {
+  for (const role of ['timer_delivered_input_conversion_cancel_and_cleanup',
+    'timer_delivered_bounded_application_cancel_and_cleanup']) {
+    const delta = routes => routes.routes.find(route=>route.operation==='apply_graph_delta');
+    assert.match(run(undefined, routes => {
+      delta(routes).environment_tests.find(item=>item.role===role).fixture = 'missing-Delta-stop-fixture';
+    }), /SGA apply_graph_delta: missing environment fixture missing-Delta-stop-fixture/u);
+    assert.match(run(undefined, routes => {
+      delta(routes).environment_tests.find(item=>item.role===role).targets = ['js','wasm','native'];
+    }), /SGA apply_graph_delta: environment evidence must name an executable suite/u);
   }
 });
 
@@ -1014,7 +1062,7 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
-    '| Path-scoped work/workspace assurance | 108 |',
+    '| Path-scoped work/workspace assurance | 112 |',
     '| Path-scoped work/workspace assurance | 54 |',
   );
   assert.notEqual(stale, gaps);
@@ -2161,9 +2209,35 @@ test('resource completion rejects every unassured operation', () => {
   /RelA analytic: entrypoint boundary assurance is missing/);
 });
 
-test('strict resource completion accepts every assured route', () => {
-  assert.match(run(undefined, undefined, ['--require-boundary-complete']),
-    /58 with four-role boundary evidence, 58 with full work\/workspace assurance/);
+const pendingBoundaryErrors = [
+  'SGA subgraph: entrypoint boundary assurance is missing',
+  'SGA subgraph: entrypoint work/workspace assurance is missing',
+];
+
+test('Delta combined workspace and delivered stop cannot lose their registered proof roles', () => {
+  const delta = routes => routes.routes.find(route=>route.operation==='apply_graph_delta');
+  for (const [collection,role,expected] of [
+    ['boundary_tests','delta_combined_workspace_exact_one_short',
+      'SGA apply_graph_delta: entrypoint operation workspace lacks an executable fixture'],
+    ['environment_tests','timer_delivered_bounded_application_cancel_and_cleanup',
+      'SGA apply_graph_delta: entrypoint in_flight_cancel lacks an executable fixture'],
+  ]) {
+    const result = evaluate(undefined, routes => {
+      delta(routes)[collection] = delta(routes)[collection].filter(item=>item.role!==role);
+    });
+    assert(result.errors.includes(expected), result.errors.join('\n'));
+  }
+  const result = evaluate(undefined, routes => {
+    delete delta(routes).resource_assurance.entrypoint;
+  }, ['--require-boundary-complete']);
+  assert(result.errors.includes('SGA apply_graph_delta: entrypoint work/workspace assurance is missing'));
+});
+
+test('strict resource completion preserves every current unassured Graph obligation', () => {
+  // A registered current route is not the same as full route assurance. Keep
+  // this rejection until the missing path-scoped evidence actually exists.
+  assert.deepEqual(evaluate(undefined, undefined,
+    ['--require-boundary-complete']).errors, pendingBoundaryErrors);
 });
 
 test('whole-sequence take owes both keyed and unkeyed resource branches', () => {
@@ -2890,7 +2964,7 @@ test('resource validator inputs are immutable and errors are fresh in either ord
     sources: sourceTemplate, requireBoundaryComplete: true};
   const before = JSON.stringify(options);
   const good = validateResourceAccounting(options);
-  assert.deepEqual(good.errors, []);
+  assert.deepEqual(good.errors, pendingBoundaryErrors);
   const badManifest = structuredClone(manifestTemplate);
   badManifest.bindings = [];
   const bad = validateResourceAccounting({...options, manifest: badManifest});
@@ -2900,15 +2974,16 @@ test('resource validator inputs are immutable and errors are fresh in either ord
   assert.notEqual(validateResourceAccounting(options).errors, good.errors);
   assert.equal(JSON.stringify(options), before);
   good.errors.push('caller-owned error collection');
-  assert.deepEqual(validateResourceAccounting(options).errors, []);
+  assert.deepEqual(validateResourceAccounting(options).errors, pendingBoundaryErrors);
 });
 
-test('resource validator matches the CLI for strict success and independent rejections', () => {
+test('resource validator matches the CLI for scoped success and strict independent rejections', () => {
   const omitMixed = routes => { routes.mixed_paths = []; };
   assert.equal(evaluate(undefined, omitMixed).errors.length, 0);
   assert.match(run(undefined, omitMixed, ['--require-boundary-complete']),
     /typed prefix mixed-stage assurance is missing/u);
   for (const [mutator, routeMutator, args, gapsText] of [
+    [undefined, undefined],
     [undefined, undefined, ['--require-boundary-complete']],
     [undefined, omitMixed, ['--require-boundary-complete']],
     [manifest => { manifest.bindings = []; }],
@@ -2953,8 +3028,11 @@ test('resource CLI honors environment, strict checks, and summary write custody'
     writeFileSync(gapsTarget, stale);
     assert.throws(() => invoke(['--check-summary']), error =>
       error.status === 1 && /summary is stale/u.test(String(error.stderr)));
-    assert.match(invoke(['--check-summary', '--write-summary',
-      '--require-boundary-complete']), /69 operations/u);
+    assert.throws(() => invoke(['--check-summary', '--write-summary',
+      '--require-boundary-complete']), error => error.status === 1 &&
+      pendingBoundaryErrors.every(message=>String(error.stderr).includes(message)));
+    assert.equal(readFileSync(gapsTarget, 'utf8'), stale);
+    assert.match(invoke(['--check-summary', '--write-summary']), /69 operations/u);
     assert.equal(readFileSync(gapsTarget, 'utf8'), gapsTemplate);
     const rejected = structuredClone(manifestTemplate);
     rejected.bindings = [];

@@ -104,6 +104,53 @@ test('typed public facts are closed and locations bind declared input revisions'
     {...constraint, code: 'parameter_undeclared'},
     {...constraint, code: 'future_code'},
   ]) assert.equal(valid(outcome(changed)), false, '[check-mutation:constraint-schema]');
+  const expression = {code: 'query_expression_invalid', facts: {issue: 'invalid_number'},
+    location: {kind: 'text', document_id: 'source', revision,
+      start_byte: 0, end_byte: 6, precision: 'exact'}};
+  for (const issue of ['unknown_reference', 'invalid_arguments', 'invalid_number', 'expected_boolean']) {
+    assert.equal(valid(outcome({...expression, facts: {issue}})), true);
+    assert.equal(valid(outcome({code: expression.code, facts: {issue}})), true);
+  }
+  for (const changed of [
+    {code: expression.code}, {...expression, facts: {}},
+    {...expression, facts: {issue: 'invalid_escape'}},
+    {...expression, facts: {issue: 'future_issue'}},
+    {...expression, facts: {...expression.facts, name: 'private_name'}},
+    {...expression, location}, {...expression, code: 'query_invalid'},
+    {...expression, code: 'future_code'},
+  ]) assert.equal(valid(outcome(changed)), false, '[check-mutation:expression-schema]');
+  const graph = {code: 'graph_operation_invalid',
+    facts: {operation: 'components', issue: 'invalid_kind'}};
+  for (const issue of ['invalid_kind', 'invalid_output_rows']) {
+    assert.equal(valid(outcome({...graph, facts: {...graph.facts, issue}})), true);
+  }
+  for (const changed of [
+    {code: graph.code}, {...graph, facts: {issue: 'invalid_kind'}},
+    {...graph, facts: {operation: 'subgraph', issue: 'invalid_kind'}},
+    {...graph, facts: {operation: 'components', issue: 'unknown_reference'}},
+    {...graph, facts: {operation: 'components', issue: 'future_issue'}},
+    {...graph, facts: {...graph.facts, value: 'private_kind'}},
+    {...graph, code: 'program_invalid'}, {...graph, code: 'future_code'},
+    {...graph, code: 'query_expression_invalid'}, {...graph, location},
+  ]) assert.equal(valid(outcome(changed)), false, '[check-mutation:graph-schema]');
+  const lexical = {code: 'query_lexical_invalid', facts: {issue: 'invalid_escape'},
+    location: {kind: 'text', document_id: 'source', revision,
+      start_byte: 6, end_byte: 6, precision: 'exact'}};
+  assert.equal(valid(outcome(lexical)), true);
+  const {location: _omitted, ...unlocated} = lexical;
+  assert.equal(valid(outcome(unlocated)), true, 'unowned locations may be omitted');
+  for (const changed of [
+    {code: 'query_lexical_invalid'},
+    {...lexical, facts: {}},
+    {...lexical, facts: {issue: 'future_issue'}},
+    {...lexical, facts: {issue: 'unknown_reference'}},
+    {...lexical, facts: {issue: 'invalid_arguments'}},
+    {...lexical, facts: {...lexical.facts, token: 'private text'}},
+    {...lexical, location},
+    {...lexical, code: 'parameter_undeclared'},
+    {...lexical, code: 'future_code'},
+    {...lexical, code: 'query_syntax_invalid'},
+  ]) assert.equal(valid(outcome(changed)), false, '[check-mutation:lexical-schema]');
 });
 
 

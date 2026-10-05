@@ -1,5 +1,190 @@
 # SGA, VecA, and TEA Local execution gaps
 
+## Current public retained Relation output
+
+An installed Local or HTTP Host can now set `retainedRelationOutput: true` in
+its trusted installation configuration. The public Client's ordinary Program
+path then opens the existing checked retained factory for source-free tasks or
+one or two DuckDB-captured sources, and installs a real row Store for output while
+keeping the existing Carrier snapshot Store. Omission and `false` preserve the
+previous memory-output selection and installation identity. A different value
+is rejected; an installed source without retained-output support is rejected
+before physical start rather than silently falling back to memory output.
+Effect and INFER dispatch keep their separate
+existing owners.
+
+The public source-free Values/sort, single-source DuckDB-acquired filter/sort,
+and two-source DuckDB-acquired Join Programs read independently expected
+Named Result rows. The acquired cases also check description, attach, and
+idempotent resend, and the Host observes the actual `retained-file` output
+representation before cleanup. The two-source case repeats those reads in
+fresh Local and HTTPS processes without reopening either source. The unchanged
+public Local/HTTPS acquisition-selection fixture passes in the default mode. A
+separate writer regression cancels while the Store lease is being acquired;
+it checks zero reservations, nonpublication, and cleanup retry. These tests
+establish the public configuration connection, not retained output for every
+installed source or two-source Program variant. Full CI and Native Host cancellation
+remain separate verification units.
+
+Two independently installed GitHub row sources can now occupy the two checked
+captured input tasks of one retained-output Program. The Host prepares each
+source at its own occurrence, checks both capacities against one Local ledger,
+charges the page transfer, and transfers each captured holding to its exact
+task before Join. A public HTTPS Program joins distinct repositories, publishes
+the Join and two downstream consumer Named Results to the real retained Store,
+and reads them again after Host reopen without provider I/O. Later-source
+failure, cancellation after the first capture, and a failed cleanup followed
+by retry leave no partial Result or lost holding and do not reacquire a source.
+An awaited Host test hook at the bounded Join advance also delivers
+cancellation after positive Compute progress with both captures live. Neither
+input cleanup starts before that advance is released; the cancelled Run
+confirms physical stop, publishes no Result, releases both captures, and
+does not reacquire on same-request resend.
+This selected row-file task uses the same `localStrategyContribution.run` and
+`prepareLocalRetainedOutput` writer as the retained binary-chain append and
+finalize fault harness. Two public HTTPS cases now lose the acknowledgement
+after actual Store append and after actual seal, respectively. Both leave the
+Join and consumer Results unavailable, reclaim the writer and two acquired
+inputs, and avoid another writer entry or provider read on same-request resend.
+These are acknowledgement-loss faults at the selected writer boundary, not a
+claim about every possible OS write error or the mixed-provider variant.
+The existing two-DuckDB-source retained route remains covered separately.
+The same public HTTPS fixture now combines a GitHub row source and a DuckDB
+source in both Program acquisition orders. Each run reads its independent
+expected Join rows from the real retained Store, and resend and reopened-Host
+attach do not reacquire either provider. This is evidence for those installed
+source pairs and the shared two-input owner, not every provider combination,
+every Join variant, or exact/one-short physical limits for the row capture.
+The installed GitHub source also has a public retained-Store 100/101-row
+boundary: 100 rows publish exact ordered Named Results, while 101 reaches
+the typed `GitHubReadRowLimit`, publishes nothing, and a same-request resend
+does not fetch again. This proves the connector's total-row ceiling through
+the public route; it does not isolate the downstream row-capture ceiling,
+which is also 100 in this installation.
+The same installed source now feeds a selected bounded Relation group followed
+by a filter and sort in one Compute task. The public HTTPS Host reads numeric
+COUNT, SUM, and AVG groups and two distinct consumer Results from the real
+retained Store against literal expectations. A second Program filters all
+acquired rows before a global group and observes count zero with null SUM/AVG.
+Both committed Results remain readable after Host reopen without another
+source read. This is a source-to-numeric-group connection proof, not an
+independent Host-wide exact/one-short budget or capture ceiling proof.
+The checked Program-to-RowAcquisition owner has a separate 2/1 capture-row
+boundary test: the same two-row page passes with capacity two and yields a
+capture, while capacity one gives typed `CaptureLimit` and cannot finish or
+expose a partial capture. This isolates the common capture owner but is not
+a public retained-Store 2/1 configuration test.
+An installed Salesforce source also supplies an exact retained Relation to a
+later Events Stage. The normal HTTPS Host selects the source, derives a
+non-null numeric clock, runs `to_events` and `watermark_events`, and reads the
+formal `events` Bridge followed by a same-Stage Relation filter and two
+consumers from the real Store against independent ordered rows. The acquired
+row task uses retained-file output;
+the Carrier tasks use managed material. A repeated request and reopened Host
+do not reacquire the source. Duplicate event identities fail after capture
+without publishing a partial Result. An arithmetic failure in the Relation
+filter after the formal Events Bridge likewise leaves no published Result or
+retained Carrier snapshot. Cancellation at the captured-input handoff reclaims
+its file without a second read. This path does not claim that
+a nullable Salesforce datetime can directly serve as the non-null Event clock,
+nor does the handoff cancellation prove cancellation inside a TEA kernel.
+The installed GitHub Issues source provides a separate non-null numeric Event
+clock from issue numbers. An HTTPS Program retains that acquired input, runs
+`to_events` and a fixed `window_events` transform, and publishes the formal
+`events` Bridge and a later consumer with independent ordered window rows.
+Reading the committed Result after Host reopen does not repeat either source
+page. This is a fixed-window route with a genuine varying source clock, not
+evidence for other TEA window variants or in-kernel cancellation of an
+externally acquired input.
+Two separately captured GitHub sources also feed the retained-file Join task,
+then `to_events`, fixed windowing, the formal Bridge, and a same-Stage Relation
+filter. The public Host reads the windowed Result and its consumer after two
+acquisition completions, observes both row-file and managed representations,
+and reopens the committed Result without another source request. This proves
+that particular two-source-to-Carrier chain, not every Join or TEA variant.
+The same Program shape with a failing post-Bridge Relation filter also leaves
+the Result unavailable. An injected first-input cleanup failure retains its
+holding until Host cleanup retry succeeds, with neither source reacquired.
+The public Host reports `CapturedRunPublicationFailed`; this fixture does not
+inspect the inner arithmetic issue or prove Compute entrypoint non-reexecution.
+The same retained Join-to-Events route also accepts a GitHub capture paired
+with a DuckDB capture. Its fixed-window and consumer Results match independent
+ordered rows after Host reopen, without another read from either provider.
+This adds mixed-provider Carrier evidence, not a Store writer fault or
+post-progress Compute cancellation for the mixed-provider variant.
+For a row connector with multiple declared views, the two-installation Host
+now carries each view's source reference and read tuple into Check disclosure
+and pre-acquisition Checkpoint selection. The installed source still prepares
+the selected occurrence and physical target before any read. Focused adapter,
+Check, and Checkpoint tests cover this binding, including an unused declared
+view. The installed Salesforce adapter now uses the checked retained
+Host factory when output retention is configured. A public HTTPS fixture
+selects the non-first view from a two-view Salesforce declaration, reads
+independently expected producer and downstream consumer Named Results from
+the real retained Store, and observes `retained-file` for both outputs.
+Resend and reopened-Host attach do not issue another Salesforce query. This
+closes the selected multi-view capture route. A retained-mode provider error
+after the read starts publishes nothing and is not reread after resend or
+Host reopen. Cancellation at the captured-input handoff retains the source
+through stop and cleanup and publishes nothing. Two distinct views of the
+same installed Salesforce source can also fill the two checked input tasks
+of a retained Join. The Host selects both view bindings, reserves their
+physical capture capacities in the shared ledger, charges received pages,
+and transfers each captured holding to its exact task. The public HTTPS
+fixture uses asymmetric Resource rows to check exact left/right Join input
+binding and two downstream consumer Named Results. It checks resend without
+reacquisition, attach after Host reopen, and cancellation after the first
+capture but before the second read. A provider failure during the second
+read releases the first captured holding without publication or reacquisition.
+A fault after both captures confirms nonpublication, and a separate failed
+close retains its holding through shutdown retry without another provider
+read. Final dispatch cleanup releases
+the transfer reservation and all retained holdings. These tests do not
+establish a Store writer fault, cancellation after positive Join work, or
+every Salesforce acquisition variant.
+Two separately installed Salesforce sources also retain exact left and right
+input ports when their Resources return different rows. The public HTTPS
+fixture reads the Join and both consumer Results from the real Store, then
+resends and reopens the Host without another provider query. This validates
+the two-adapter Salesforce binding through the same owner; it does not turn
+other provider pairs into an implicit completion claim.
+The same published Salesforce SourceView may fill two separate acquisition
+slots in different Stages. Each slot retains its own checked requirement and
+occurrence identity, while both select the same installed read authority. A
+held pair resumes across Host restart with separate approvals, and a completed
+public Result attaches after restart without reacquiring either slot.
+
+The installed full-family Host now declares TEA and VecA to the common checker,
+matching its already registered bounded providers. This does not make a
+checker declaration an execution offer: the exact selected task and its
+obligations still decide execution. A source-free Values producer followed by
+`to_events` → `watermark_events` → `events`, and another followed by
+`to_vectors` → `normalize_vectors` → `vectors`, each publish their Bridge
+Relation and two downstream consumer Named Results through the real publication
+Store. The public Local tests compare all three Results with independent
+ordered values and verify the physical representations: the source Values task
+uses the row-file Store, while the Carrier, Bridge, and descendant tasks retain
+managed generations. This does not prove row-file retention of the Bridge
+Relation, HTTPS Carrier execution, every TEA/VecA variant, or Carrier-specific
+failure recovery at the public ingress. Existing configured standard-Host
+evidence for those boundaries remains separate.
+
+The provider-neutral installed row source now selects the same checked
+single-capture retained Host as the built-in source when its ordinary Query
+acquisition succeeds. Its Effect path remains on the existing Effect owner.
+The GitHub Issues HTTPS fixture exercises this common row-source adapter:
+one captured source feeds two separate Relation consumer tasks whose physical
+outputs are both `retained-file`. Both Named Results match independently
+specified ordered rows, the Compute Store has no remaining row files after
+cleanup, and a resend plus a closed-and-reopened Host read the committed
+Results without another provider request. This proves the installed generic
+row-source handoff, not every connector's custom acquisition adapter or a
+fresh-process restart. The existing bounded retained driver and writer fault
+tests remain the shared resource, cancellation and cleanup evidence. A second
+HTTPS case fails the source after one accepted page; the Run publishes no
+Result, leaves no row-file scratch, and a same-request resend performs no
+additional provider read. It does not stand in for a Store writer fault.
+
 ## Current Property Graph migration (2026-10-02)
 
 The new definition-keyed Property Graph is the sole executable Graph contract.
@@ -580,13 +765,13 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Registered operations | 69 |
-| Executable production routes | 58 |
-| Typed pre-execution refusals (not execution success) | 11 |
-| Operation-specific boundary records | 58 |
-| Four-role lifecycle assurance | 58 |
-| Full route work/workspace assurance | 58 |
-| Path-scoped work/workspace assurance | 108 |
-| Selected-only assurance | 0 |
+| Executable production routes | 61 |
+| Typed pre-execution refusals (not execution success) | 8 |
+| Operation-specific boundary records | 61 |
+| Four-role lifecycle assurance | 60 |
+| Full route work/workspace assurance | 60 |
+| Path-scoped work/workspace assurance | 112 |
+| Selected-only assurance | 1 |
 <!-- local-resource-accounting-summary:end -->
 
 ### Route evidence closure after the retained Store bounded lane
@@ -732,13 +917,145 @@ reclamation. The memory-output chain uses the same owner and remains a
 regression control. No synchronous fallback or new Host state machine was
 added.
 
-A nonlinear producer that appends `l` and then filters `l` rather than the
-append result is still unsupported by the bounded selected provider. The
-ordinary retained-only Host rejects that Program during whole-graph selection:
-no Compute dispatch, Store lease, or completed task is created. Another
-eligible implementation may provide a valid offer. The `unsupported-chain`
-fixture is a pre-execution rejection control, not an assertion that all
-multi-step Relation tasks are rejected.
+A checked binary Relation producer can now branch from a private intermediate
+and rejoin in the same task: `append` → two filters reading the appended rows
+→ `append` of the two filtered outputs. The planner retains this bounded,
+single-root shape as one task. The selected Relation owner keeps both earlier
+completions live, binds each later input to its exact step and port, and uses
+one cumulative work budget and overlapping child capacity. The retained Host
+reads the producer and two consumer Named Results against fixed ordered rows;
+the later-branch cancellation, arithmetic failure, Store append/finalize
+failure, and cleanup checks exercise the same owner. The memory-output Host
+also completes the identical authored Program through the same physical task
+shape. This does not admit arbitrary nonlinear operations or intermediate
+Result roots.
+
+The same bounded owner now retains a checked global `COUNT` on each branch:
+`append` → two filters → two independent groups → `append`. The splitter keeps
+the authored producer as one task when every child is eligible for selected
+managed execution and has exact Relation ports. The ordinary memory-output
+Host and real retained Store Host both run this shape; the latter reads the
+producer and two consumer Named Results against independently fixed ordered
+rows `[{n: 3}, {n: 2}]`. A mixed `MAX`/`COUNT` branch also completes as one
+selected task and publishes `[{n: 4}, {n: 2}]`; the existing whole-task
+provider, rather than the narrower split eligibility for `COUNT`, admits it.
+Independent `SUM` and `AVG` branch slots likewise seal and publish
+`[{n: 9}, {n: 1.5}]` through the retained Store and two consumer Results.
+The same checked shape permits selected bounded `sort` and `distinct`
+children on different branches. With a duplicated input ID, the retained
+producer and both consumers read the fixed ordered rows
+`[{id: 4}, {id: 3}, {id: 2}, {id: 2}, {id: 1}, {id: 2}]`; the memory-output
+Host also runs the authored Program as one physical task. This does not
+admit arbitrary order-sensitive or nonlinear child operations.
+The selected `take` child can follow the sorted branch without splitting
+the task or resetting its cumulative budget. On the same duplicated input,
+the real Store publishes `[{id: 4}, {id: 3}, {id: 1}, {id: 2}]` to the
+producer and two consumers; the memory-output Host runs the same Program.
+The same bounded fork can use `top_k` on one branch and `dedupe_rows` on the
+other when their checked order requirements are met. The fixture asserts
+unique IDs before `top_k`, gives duplicate IDs a distinct origin for the
+dedupe top-tie rule, and projects that private origin away before the task
+Result. The retained producer and two consumers then publish the fixed order
+`[{id: 4}, {id: 3}, {id: 1}, {id: 2}]` without changing the task's cumulative
+work or intermediate ownership model. This is not blanket admission of
+order-sensitive children with unresolved ties.
+
+Partitioned `top_k_by` now uses that same one-task fork when its exact
+candidate-key assertion and selected bounded provider apply. The authored
+Append output has distinct IDs and two `origin` partitions; the ranked result
+feeds both a filtered branch and a second projection before the branches
+rejoin. The retained Store Host checks the producer and two consumer Named
+Results against the independent ordered IDs `[4,2,4]`; the focused fixture
+checks memory and retained selection, task identity, and final cleanup. This
+does not admit a missing candidate key or replace the selected ranking kernel.
+
+The same selected fork owner accepts bounded `lag`, `watermark_rows`, and
+`json_pick` children when their checked Relation inputs and obligations match.
+Three separate authored Append forks filter on `previous`, `watermark_late`,
+or `picked` before joining that branch with an independent projection of the
+Append output. The retained producer and two consumers read the fixed ID
+orders `[4,1,2,3,4]`, `[2,1,2,3,4]`, and `[3,4,1,2,3,4]` from the real
+Store. A focused memory/retained test also checks exact operation ports,
+task output identity, and final reservations under the existing chain owner.
+These routes reuse the bounded unary kernels and their operation-specific
+resource proofs; they do not admit every temporal or JSON variant to a fork.
+
+The same selected fork also accepts a fixed `row_window`, `unpivot`, or
+`unnest` child with its checked Relation input. Each authored Append task
+filters on a field created by that child before joining an independent
+projection of the Append output. The retained producer and both consumers
+read fixed ID orders `[2,3,4,1,2,3,4]`, `[3,4,1,2,3,4]`, and
+`[3,4,4,1,2,3,4]` from the real Store. The repeated `4` in the last route
+is an expansion result, not a deduplicated row. The fast memory/retained
+fixture checks the same selected task output and cleanup. These routes use
+the existing window and expansion bounds and the shared fork owner; they
+do not prove every sliding-window or outer-expansion variant.
+
+The bounded group child also accepts a `MAX` pivot and a cumulative `COUNT`
+analytic inside the same Append fork. The pivot branch filters on a generated
+axis field; the analytic branch filters on its generated count. Each rejoins
+an independent projection of the Append output and publishes the fixed ID
+order `[3,4,1,2,3,4]` to the producer and two consumers. The fork keeps
+analytic under one task and leaves its exact aggregate/frame admission to
+the existing bounded group provider; it does not mark every analytic as an
+independently splittable task.
+These routes do not extend the numeric SUM/AVG profile or prove every frame
+and pivot variant.
+
+The checked fixed Row Window followed by Window Group also stays in the
+existing one-task bounded fork. Its grouped count output is filtered on `n`,
+reused by a second projection, and appended before retention. With input
+IDs `[1,2,3,4]` and width 2, the standard Host reads the producer and two
+consumer Named Results from the real Store in the fixed window-start order
+`[2,0,2,4]`, with counts `[2,1,2,1]`. The focused memory/retained fixture
+checks the same physical task and cleanup. This adds product evidence for
+the existing provider, not support for every window shape or aggregate.
+
+The same existing bounded owner also executes a checked Nest after Append,
+then reuses its nested output in two branches before rejoining. The Nest
+reads its child port from the original Stage input, not from the preceding
+Append output. The standard Host publishes producer and two consumer Named
+Results with the fixed nested rows: IDs `[3,4,1,2,3,4]`, empty `items` for
+3 and 4, and `[{matched:1}]` or `[{matched:2}]` for 1 and 2. A focused
+memory/retained fixture confirms the one-task path and final cleanup. This
+was an evidence gap in the existing bounded provider, not a new Nest kernel
+or general nested-chain admission.
+
+A checked inner equijoin can now start the same-task fork or follow an
+Append as a bounded child. The first shape joins the left and right Stage
+inputs, filters the joined output along two branches and publishes
+`[{id:2,matched:2},{id:1,matched:1}]`. The second joins the private Append
+output with the original left input, then reuses the joined rows in two
+branches and publishes IDs `[2,1,2]`. In both cases the standard Host reads
+the producer and two consumer Named Results from the real retained Store;
+the focused fixture confirms the exact operation ports, one producer task,
+and final cleanup. The existing selected Join provider and fork owner supply
+the output ceiling, cumulative work, stop, and intermediate ownership.
+This does not claim other join kinds or every join failure variant in a fork.
+
+The same retained Host also runs `EXCEPT ALL` and Cross Join as the first
+binary child of separate fork/join Programs. The former publishes the
+duplicate-sensitive rows `[{id: 2}, {id: 1}, {id: 1}]`; the latter publishes
+all six `id`/`tag` rows in branch order. Both producer and consumer Results
+are read from the real Store. These are route examples for the already
+selected Set and Cross Join kernels, not new set or join semantics.
+The chain owner supplies cumulative work, overlapping child capacity,
+stop-before-release and reverse cleanup for these selected children. The
+earlier fork-join fault cases exercise that owner; they are shared lifecycle
+evidence, not a claim that every group-specific failure or aggregate variant
+was separately tested. Arbitrary nonlinear shapes remain outside this admission.
+
+A later child may read the same Stage input directly instead of a private
+intermediate, provided every earlier private output feeds a later child.
+The ordinary Append task `append(l,r) -> filter(l) -> append(both) -> select`
+now stays under the selected bounded owner. Its exact operation ports retain
+the left input for the second child; the real Store publishes
+`[{id: 1}, {id: 2}, {id: 3}, {id: 4}, {id: 2}]` to the producer and two
+consumers. If the task instead discards the Append output and publishes only
+`filter(l)`, it is still rejected during whole-graph selection: no Compute
+dispatch, Store lease, or completed task is created. Another eligible
+implementation may provide a valid offer. The `unsupported-chain` fixture
+remains a pre-execution rejection control.
 
 | Remaining retained Store route | State | Required next proof |
 | --- | --- | --- |
@@ -1074,7 +1391,7 @@ local execution, and Native Host in-flight cancellation remains a separate unit.
 
 The full Node factory now installs the existing SGA, TEA and VecA providers,
 including the Relation-valued time-series, interval/as-of and sequence
-providers. The four source-free/captured and memory/retained factories share
+providers. The source-free, captured and multi-captured memory/retained factories share
 this selection. RelA-only keeps the same bridge body with no family providers;
 the artifact gate checks both import closure and actual linked cores. The
 specialized SGA selector factory remains SGA-only.
@@ -1118,10 +1435,11 @@ The existing row-only Compute Store failure tests remain separate evidence.
 Public Client retained-mode selection remains Host-owned as described above.
 `embedded-local.mjs` already chooses the task compiler in `planFor` for
 multi-task Programs or Graph Carrier Programs. This includes the multi-task
-Events/Vectors Programs exercised here. The remaining Client connection is in
-`client-dispatch-owner.mjs`: carry the retained configuration and select the
-retained factory instead of the current memory-output factory. Neither Client
-owner is replaced here.
+Events/Vectors Programs exercised here. The public Client connection in
+`client-dispatch-owner.mjs` now carries the retained mode to the checked
+source-free, single DuckDB-captured or two-source DuckDB-captured factory.
+The older configured standard-Host family cases below are not themselves
+public Client acceptance for every family. Neither Client owner is replaced.
 This addition certifies explicit configured standard-Host factory paths, not
 an implicit retained mode in every Client configuration. Native Host in-flight
 cancellation and full family-variant acceptance are not completed by these
@@ -1195,11 +1513,18 @@ buffer reservation, and successful later reuse of the original capture.
 Full-content verification rejects foreign values, changed order and truncation;
 the independent envelope vectors also cover exact bytes and one-byte-short.
 
-Public Client dispatch still chooses the memory-output captured factory; its Host owner
-must explicitly connect the additive retained factory and Store configuration.
-This concrete configuration gap remains, rather than being hidden by the
-configured standard-Host proof. Linux CI and Native Host in-flight cancellation
-are separate evidence and completion units.
+This was the public Client configuration gap at the time of the captured-input
+factory proof. The current installed Host now selects the additive retained
+factory when explicitly configured, for source-free Programs and one or two
+DuckDB-captured sources. The two-source factory keeps the checked input
+positions and the existing acquisition ledger; a public two-source Join
+reaches the real row Store and publishes its independently expected Named
+Result. Fresh-process Local and HTTPS attach and repeated requests do not
+reacquire either source. This public test does not establish retained output
+for other connector sources,
+all multi-source variants, or two-consumer and failure recovery for the
+two-source route. Linux CI and Native Host in-flight cancellation are separate
+evidence and completion units.
 
 #### Mixed retained Store and typed Carrier paths
 
@@ -2710,16 +3035,16 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | Coverage state | Count |
 |---|---:|
 | `contract` | 40/40 |
-| `checker` | 24/40 |
-| `lowering` | 24/40 |
-| `kernel` | 24/40 |
-| `managed` | 24/40 |
-| `standard_host` | 24/40 |
-| `consumer_lifetime` | 24/40 |
-| `resources` | 29/40 |
-| `cancellation` | 29/40 |
-| `publication` | 24/40 |
-| `three_targets` | 19/40 |
+| `checker` | 27/40 |
+| `lowering` | 27/40 |
+| `kernel` | 27/40 |
+| `managed` | 27/40 |
+| `standard_host` | 25/40 |
+| `consumer_lifetime` | 25/40 |
+| `resources` | 32/40 |
+| `cancellation` | 32/40 |
+| `publication` | 25/40 |
+| `three_targets` | 20/40 |
 | complete operations | 19/40 |
 | open operations | 21/40 |
 <!-- local-family-coverage-summary:end -->
@@ -3157,7 +3482,35 @@ typed Relation input and consumes that exact delta as its second input. The
 applied Graph reaches two overlapping downstream Relation consumers and the
 formal Named Result publication path on JS, Wasm, and native. Independent
 release and retryable cleanup return execution, retention, and held-byte
-ledgers to zero. `apply_graph_delta` is complete.
+ledgers to zero. That completion claim describes the historical tuple profile,
+not the current Property Graph implementation.
+
+The current complete-record path uses the formal Property Graph snapshot CID
+and the checked Graph/Relation mixed input ports. Conversion, one-use handoff,
+application and completion share one bounded work owner. Current portable
+fixtures cover exact/one-short control work, cancellation at the handoff,
+borrowed-input lifetime, invalid installed capacity/overflow and repeat cleanup.
+Source public Local/HTTPS acceptance saves and reloads both the Graph and the
+intermediate Relation, preserving parallel-edge identity, composite key aliases
+and omission versus explicit NULL. Malformed, wrong-base and wrong-target
+inputs fail without exposing a partial result and confirm physical stop and
+temporary resource reclamation. Focused clean-revision packed Local/HTTPS and
+selected JS/Wasm/native Delta checks are revision-bound evidence, not a full
+SGA campaign. The real installed Local Host also delivers timer cancellation
+after positive work in conversion and, separately, after bounded application
+progress. Both cases withhold Delta completion, confirm physical stop and
+return held/reserved bytes without resuming Compute on repeated cleanup.
+This is not SDK cancel-response-loss or cleanup-I/O-failure acceptance.
+The registered managed Delta route now checks independently calculated exact
+combined logical workspace (71,951 slots) and one-short rejection before work,
+for both ordinary and selected sequences. Its fixture includes simultaneous
+Relation conversion, snapshot indexes, base-body admission, provisional Storage,
+complete-before comparison, staged output and action-identity continuations.
+The registered four-role and work/workspace records name these current fixtures;
+they do not establish that Wasm/native or hosted CI ran at a later source SHA.
+Published final-revision acceptance and source/physical-resource assurance
+remain separate obligations. The installed Delta workspace is a logical
+reservation, not a count proof or a total-heap theorem.
 Reach retains its typed start identity, direction, and finite depth.
 Its two stable output-ordering phases now resume typed identity comparisons
 one bounded unit at a time. A long common-prefix fixture checks quantum-one
@@ -4542,6 +4895,32 @@ full Node standard-Host test passed locally. Same-SHA Linux CI remains
 unverified; these cases do not establish every Graph selector variant or every
 mixed Carrier failure mode.
 
+The current definition-keyed Property Graph subgraph path now binds a selected
+Graph and a Relation selector to their exact operation ports. Its bounded
+kernel preserves distinct edge keys even when endpoints coincide, copies
+declared properties, and retains only induced edges passing the optional edge
+predicate. JS integration fixtures cover snapshot save/reload, a downstream
+edge consumer, a same-Stage Relation-selected chain, independent managed Host
+consumers, cancellation after positive progress, and independently calculated
+exact/one-short control-work and workspace boundaries. The focused subgraph
+fixtures passed on JS, Wasm, and native. A standard Node Host
+case also publishes the resulting Relation to a real retained Store and reads
+the Named Result. A second real Store case delivers cancellation after the
+selected subgraph has made positive progress, confirms physical stop before
+cleanup, and leaves the producer and consumers unpublished. This does not yet
+prove predicate node selection or Store fault cleanup for the keyed path.
+The cross-Stage selector connection now derives its selected-task boundary from
+the checked secondary managed Relation port and its exact retained producer
+edge. Constructor inputs alone do not change the established fused MATCH route.
+A focused Plan regression fails without that connection. Source public
+Local/HTTPS cases cover constructor/Subgraph/MATCH with external retained inputs,
+independent typed identity and nullable property expectations, parallel-edge
+retention, induced endpoint exclusion, and all/subset/empty selection. Graph and
+sparse Relation Store reload revoke access to the original output and retain
+omission versus NULL. Fresh packed and integrated-SHA CI remain separate pending
+obligations. The larger standard-Host diagnostic timed out in its shared prelude;
+it is not reported as a pass or as a Subgraph assertion failure.
+
 Selected Graph bounds, degree, and weak/strong components now accept an exact
 managed Graph view when a later Relation operation splits the authored Stage.
 Stored and viewed inputs use the same bounded diagnostic kernels, with the
@@ -4557,6 +4936,21 @@ that it does not infer order from an unrelated publication representation.
 Selected Host-delivered cancellation cases are registered for all three
 diagnostics. Other retained Graph Relation-producing operations remain separate
 completion units; this change does not waive their route or resource proofs.
+
+Current Property Graph equality now checks two exact, ordered Graph operands
+against compatible closed definitions and runs the selected bounded provider.
+The retained Node Host constructs both Graphs in one Stage, compares them,
+passes the Boolean Relation through a later filter, publishes the Named Result,
+and reads two consumers from the real Store. Its timer cancellation begins
+after both Graphs are constructed and stops the selected equality kernel
+without publishing partial output. The quantum-one kernel fixture admits the
+independently derived three-step count mismatch at the exact work ceiling,
+rejects two steps, admits one workspace slot, rejects zero, and preserves both
+borrowed inputs after cleanup. A separate 512-character property fixture
+rejects insufficient nested comparison work and stops during a yielded value
+comparison. The focused equality suite passed on JS, Wasm, and native.
+Broader representation variants and same-SHA CI remain open, so current
+equality is partial.
 
 Selected `SGA.match_nodes` and `SGA.match_edges` now read an exact managed
 Graph view through their existing bounded match kernels. The Node standard

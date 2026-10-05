@@ -1,6 +1,8 @@
 import {registerRetainedInput} from '../store-local/representations.mjs';
 
-export function prepareLocalRetainedOutput(output, createLease, checked, signal) {
+export function prepareLocalRetainedOutput(
+  output, createLease, checked, signal, faultInjection,
+) {
   if (!createLease) throw new TypeError('LocalOutputStoreRequired');
   const {key, limits, install, begin, next, finish, refresh} = output;
   let store, body;
@@ -18,7 +20,8 @@ export function prepareLocalRetainedOutput(output, createLease, checked, signal)
     async write() {
       signal?.throwIfAborted();
       checked(begin());
-      store = createLease(key, limits.wire.max_bytes, limits.max_batch_bytes, signal);
+      store = await createLease(key, limits.wire.max_bytes, limits.max_batch_bytes, signal);
+      signal?.throwIfAborted();
       const writer = store.reserve(limits.wire.max_bytes);
       await writer.start();
       signal?.throwIfAborted();
@@ -26,12 +29,27 @@ export function prepareLocalRetainedOutput(output, createLease, checked, signal)
         const part = checked(next());
         if (part == null) break;
         await writer.append(part);
+        if (faultInjection !== undefined) {
+          // A trusted test hook after physical acceptance, not completion.
+          const status = store.status();
+          await faultInjection('local_retained_output_appended', {
+            admittedWriteBytes: status.admittedWriteBytes,
+            reservedBytes: status.reservedBytes,
+          });
+        }
         signal?.throwIfAborted();
       }
       const content = checked(finish());
       await writer.append(content.tail);
       signal?.throwIfAborted();
       body = await writer.seal({cid: content.cid, bytes: content.bytes});
+      if (faultInjection !== undefined) {
+        // The sealed body stays owned when its acknowledgement is lost.
+        await faultInjection('local_retained_output_sealed', {
+          sealedBytes: body.bytes,
+          reservedBytes: store.status().reservedBytes,
+        });
+      }
       signal?.throwIfAborted();
       const representation = checked(content.bind(() => body.available()));
       registerRetainedInput(representation.material, representation.readable, body,

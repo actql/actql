@@ -2,10 +2,12 @@ import './check-locations.test.mjs';
 import test, {mock} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {createServer} from 'node:http';
 import {checkReasonSchemaCid} from '@actql/client-wire';
-import {connect, ClientError, getCheckInput, resolveCheckLocation, explainCheckReason} from './index.mjs';
+import {connect, ClientError, getCheckInput, getSubmissionInput, explainSubmission, resolveCheckLocation, explainCheckReason} from './index.mjs';
 
 test('constraint explanations use owned families without choosing a failed numeric bound', () => {
   const hints = {
@@ -23,6 +25,31 @@ test('constraint explanations use owned families without choosing a failed numer
   assert.equal(explainCheckReason({code: 'supplied_value_constraint_violation',
     facts: {constraint: 'private-provider-text'}}).hint,
   'Correct the value to satisfy the declared constraint family.');
+});
+
+test('Boolean predicate explanations retain the requirement without exposing input text', () => {
+  assert.deepEqual(explainCheckReason({code: 'query_expression_invalid',
+    facts: {issue: 'expected_boolean', value: 'private-predicate'}}),
+  {kind: 'known', summary: 'A predicate must have Boolean type.',
+    hint: 'Use a Boolean condition, such as a comparison, in the predicate.'});
+  assert.equal(explainCheckReason({code: 'future_code', facts: {issue: 'expected_boolean'}}).kind, 'unknown');
+});
+
+test('Graph explanations require a known operation and owned issue', () => {
+  assert.deepEqual(explainCheckReason({code: 'graph_operation_invalid',
+    facts: {operation: 'components', issue: 'invalid_kind'}}),
+  {kind: 'known', summary: 'The components kind is invalid.',
+    hint: 'Choose weak or strong for components kind.'});
+  assert.deepEqual(explainCheckReason({code: 'graph_operation_invalid',
+    facts: {operation: 'components', issue: 'invalid_output_rows'}}),
+  {kind: 'known', summary: 'The components output row limit is invalid.',
+    hint: 'Supply a positive safe integer for components max_output_rows.'});
+  for (const facts of [undefined, {}, {issue: 'invalid_kind'},
+    {operation: 'future_operation', issue: 'invalid_kind'},
+    {operation: 'components', issue: 'private_provider_text'}]) {
+    assert.deepEqual(explainCheckReason({code: 'graph_operation_invalid', facts}),
+      {kind: 'unknown', summary: 'No supported explanation is available for this reason.'});
+  }
 });
 
 const ref = Object.freeze({namespaceId: 'namespace-a',
@@ -778,7 +805,7 @@ test('submit fixes Program and parameters before asynchronous token lookup',
     program.marker = 'changed';
     parameters.value = 'changed';
     releaseToken('token');
-    await submitted;
+    const execution = await submitted;
     assert.deepEqual(requests[1].body, {
       connection: {mode: 'remote', owner: 'remote',
         consentRefs: [], runners: []},
@@ -786,7 +813,99 @@ test('submit fixes Program and parameters before asynchronous token lookup',
       input: {version: 'actql/0.1', marker: 'original'},
       parameters: {value: 'original'},
     });
+    const snapshot = getSubmissionInput(execution);
+    assert.deepEqual(snapshot.input, {version: 'actql/0.1', marker: 'original'});
+    assert.deepEqual(snapshot.parameters, {value: 'original'});
+    assert.equal(Object.isFrozen(snapshot.input), true);
+    assert.equal(Object.isFrozen(snapshot.parameters), true);
+    assert.equal(snapshot.lookupContext.endpoint, 'https://host.example/');
+    assert.equal(snapshot.lookupContext.scopeRef, 'scope-a');
+    assert.equal('token' in snapshot, false);
   });
+
+test('overlapping unknown submits keep their own exact text and declarations', async t => {
+  const waiting = new Map();
+  mock.method(globalThis, 'fetch', async (url, init) => {
+    if (url.pathname.endsWith('/connect')) return Response.json(profile);
+    const body = JSON.parse(init.body);
+    return new Promise(resolve => waiting.set(body.requestId, resolve));
+  });
+  t.after(() => mock.restoreAll());
+  const client = await connect(options);
+  const text = 'SELECT "e\u0301"\r\nFROM @x';
+  const declarations = {p: {type: 'String'}};
+  const parameters = {p: 'original'};
+  const first = client.aql(text, {format: 'sql', requestId: 'first',
+    parameterDeclarations: declarations, parameters}).catch(error => error);
+  const second = client.start({version: 'actql/0.1', marker: 'second'},
+    {requestId: 'second', parameters: {p: 'second'}}).catch(error => error);
+  declarations.p.type = 'Int';
+  parameters.p = 'edited';
+  await new Promise(resolve => setImmediate(resolve));
+  waiting.get('second')(Response.json({bad: true}));
+  const secondError = await second;
+  waiting.get('first')(Response.json({bad: true}));
+  const firstError = await first;
+  assert.equal(firstError.code, 'SubmissionUnknown');
+  assert.equal(secondError.code, 'SubmissionUnknown');
+  assert.deepEqual(getSubmissionInput(firstError).input,
+    {text, format: 'sql', parameterDeclarations: {p: {type: 'String'}}},
+    '[check-mutation:submission-input]');
+  assert.deepEqual(getSubmissionInput(firstError).parameters, {p: 'original'});
+  assert.deepEqual(getSubmissionInput(secondError).input,
+    {version: 'actql/0.1', marker: 'second'});
+  assert.equal(getSubmissionInput(firstError).requestId, 'first');
+  const firstExplanation = explainSubmission(firstError);
+  assert.deepEqual(firstExplanation, {
+    observation: 'acceptance_unknown',
+    summary: 'Submission acceptance is unknown. Work may already have started.',
+    next: {operation: 'lookupRequest', requestId: 'first',
+      lookupContext: {endpoint: 'https://host.example/', scopeRef: 'scope-a'}},
+  });
+  assert.equal(explainSubmission(secondError).next.requestId, 'second');
+  firstError.code = 'Accepted';
+  firstError.requestId = 'second';
+  firstError.message = 'Execution succeeded';
+  assert.equal(explainSubmission(firstError), firstExplanation);
+  assert.equal(Object.isFrozen(firstExplanation.next.lookupContext), true);
+  assert.equal(explainSubmission({...firstError}), undefined);
+  assert.equal(explainSubmission(JSON.parse(JSON.stringify(firstError))), undefined);
+  assert.equal(getSubmissionInput(secondError).requestId, 'second');
+  assert.equal(Object.isFrozen(getSubmissionInput(firstError).input.parameterDeclarations.p), true);
+  assert.equal(getSubmissionInput({...firstError}), undefined);
+  assert.equal(getSubmissionInput(JSON.parse(JSON.stringify(firstError))), undefined);
+});
+
+test('local credential and payload failures do not acquire submission input', async t => {
+  const foreign = new Error('CredentialUnavailable');
+  const operations = [];
+  mock.method(globalThis, 'fetch', async url => {
+    operations.push(url.pathname.split('/').at(-1));
+    return Response.json(profile);
+  });
+  t.after(() => mock.restoreAll());
+  let calls = 0;
+  const client = await connect({...options, token: () => {
+    if (++calls === 1) return 'token';
+    throw foreign;
+  }});
+  for (const marker of ['first', 'second']) {
+    await assert.rejects(client.start({marker}), error => error === foreign);
+    assert.equal(getSubmissionInput(foreign), undefined);
+    assert.equal(explainSubmission(foreign), undefined);
+  }
+  await assert.rejects(client.start({value: 1n}), error => {
+    assert.equal(error.code, 'InvalidClientPayload');
+    assert.equal(getSubmissionInput(error), undefined);
+    assert.equal(explainSubmission(error), undefined);
+    return true;
+  });
+  for (const value of [undefined, null, 1, 'error', {}, new ClientError('SubmissionUnknown')]) {
+    assert.equal(getSubmissionInput(value), undefined);
+    assert.equal(explainSubmission(value), undefined);
+  }
+  assert.deepEqual(operations, ['connect']);
+});
 
 test('request lookup distinguishes retained Run, absence and malformed Host reply',
   async t => {
@@ -1044,4 +1163,33 @@ test('check retains detached submitted inputs while credentials are pending', as
   assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location,
     {...getCheckInput(outcome, 'parameters'), value: parameters}), undefined);
   assert.equal(explainCheckReason({code: 'future_problem'}).kind, 'unknown');
+});
+
+// Compile an independent public consumer, including invalid reference/write uses.
+test('typed predicate diagnostics remain accessible through the SDK contract', () => {
+  execFileSync(process.execPath, [fileURLToPath(new URL(
+    '../../node_modules/typescript/bin/tsc', import.meta.url)),
+  '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
+  '--target', 'ES2022', fileURLToPath(new URL(
+    './predicate-reason.typecheck.mts', import.meta.url))],
+  {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
+});
+
+test('typed submission explanations preserve reference roles and read-only targets', () => {
+  execFileSync(process.execPath, [fileURLToPath(new URL(
+    '../../node_modules/typescript/bin/tsc', import.meta.url)),
+  '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
+  '--target', 'ES2022', fileURLToPath(new URL(
+    './submission-explanation.typecheck.mts', import.meta.url))],
+  {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
+});
+
+
+test('typed cancellation explanations preserve observation-only targets', () => {
+  execFileSync(process.execPath, [fileURLToPath(new URL(
+    '../../node_modules/typescript/bin/tsc', import.meta.url)),
+  '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
+  '--target', 'ES2022', fileURLToPath(new URL(
+    './cancellation-explanation.typecheck.mts', import.meta.url))],
+  {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
 });
