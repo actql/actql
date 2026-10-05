@@ -300,7 +300,11 @@ fn source_diagnostic_category(issue : SourceFailure) -> DiagnosticCategory {
       Context(
         Stages(
           RowCapacity(
-            Construction(_, _, Application(InvalidBoundCount | InvalidBoundMilliseconds(_)))
+            Construction(
+              _,
+              _,
+              Application(InvalidBoundCount | InvalidBoundMilliseconds(_))
+            )
           )
         )
       )
