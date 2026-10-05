@@ -147,6 +147,19 @@ function validateSourceInventory(wire) {
           Buffer.from(Buffer.from(binding.utf8_hex[key], 'hex').toString('utf8'), 'utf8').toString('hex') !== binding.utf8_hex[key] ||
           Buffer.from(binding.utf8_hex[key], 'hex').toString('utf8').normalize('NFC') !== binding[key]);
     }
+    if (keys(binding, 'version,org_id,instance_origin,site_key,site_generation,connection_revision,catalog_cid,resource,fields') &&
+        binding.version === 'actql-installed-salesforce-target/0.1') {
+      let origin;
+      try { origin = new URL(binding.instance_origin); } catch { return false; }
+      return origin.protocol === 'https:' && origin.origin === binding.instance_origin &&
+        [binding.org_id, binding.site_key, binding.connection_revision,
+          binding.resource].every(value => typeof value === 'string' && value !== '') &&
+        Number.isSafeInteger(binding.site_generation) && binding.site_generation >= 0 &&
+        cid(binding.catalog_cid) && Array.isArray(binding.fields) &&
+        binding.fields.length > 0 && binding.fields.length <= 100 &&
+        binding.fields.every(value => typeof value === 'string' && value !== '') &&
+        new Set(binding.fields).size === binding.fields.length;
+    }
     // This is a Host-private physical target, not a new common Engine
     // identity. The installed Site checks it again against its publication.
     let origin;
@@ -183,7 +196,10 @@ function validateSourceInventory(wire) {
       (binding.version === 'actql-installed-github-target/0.1' &&
         (binding.resource !== occurrence.readTuple.resource ||
          occurrence.readTuple.connection !==
-           `github:${new URL(binding.api_origin).host}/${binding.owner}/${binding.repo}`))) {
+           `github:${new URL(binding.api_origin).host}/${binding.owner}/${binding.repo}`)) ||
+      (binding.version === 'actql-installed-salesforce-target/0.1' &&
+        (binding.resource !== occurrence.readTuple.resource ||
+         occurrence.readTuple.connection !== `salesforce:${binding.org_id}`))) {
       fail('InvalidClientSourceInventory');
     }
     requirements.add(source.requirementCid);

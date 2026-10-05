@@ -960,6 +960,8 @@ pub fn client_program_prepare_multi_captured_local_ledger(@run_publication_host.
 
 pub fn client_program_prepare_query_acquisition(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[@sourceview_resolution.QueryAcquisition, @run_publication_host.ClientAcquisitionIssue]
 
+pub fn client_program_prepare_salesforce_declared_row_acquisition(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @query_planning.QueryRequirement, String, String) -> Result[@client_row_source_host.RowAcquisition, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
+
 pub fn client_program_prepare_salesforce_row_acquisition(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @query_planning.QueryRequirement, @catalog.CatalogObservation, String, String, Int) -> Result[(@catalog.ReadProjection, @client_row_source_host.RowAcquisition), @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
 pub fn client_program_prepare_source_computation_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, String?, Bool, Array[@pipeline_check_context.StageCapacityInput]) -> ClientSourceComputationBridgeOutcome
@@ -1012,6 +1014,8 @@ pub fn client_program_read_infer_slot_replay(@run_publication.RunEvidenceValue, 
 
 pub fn client_program_read_verified_infer_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Array[@model_execution.ModelAttemptRecords], @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, Int, Int) -> Result[@model_execution.ModelSlotReplayRead, @model_execution.ModelExecutionIssue]
 
+pub fn client_program_recheck_salesforce_row_projection(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @client_row_source_host.RowAcquisition, @catalog.CatalogObservation, Int) -> Result[@catalog.ReadProjection, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
+
 pub fn client_program_recover_effect_target_guards(@run_publication.EffectPreviewIdentity, Array[Array[@logical_request_scope.LogicalRequestScope]], Array[Array[@effect_application.LogicalItemLocator]], Array[Array[@effect_application.EffectDispatchKey]], Array[Array[@effect_application.EffectLedgerBasis]], Array[Array[@effect_application.EffectLedgerEntry?]], Array[Array[Bool]], Int, Int, Int) -> Result[@effect_application.RecoveredEffectTargetGuards, @effect_application.EffectSetProgressIssue]
 
 pub fn client_program_refresh_acquired_effect_cleanup(ClientLocalEffectHost) -> Bool
@@ -1060,6 +1064,8 @@ pub fn client_program_result_row_contract_unit_cid(@run_publication_host.ClientR
 
 pub fn client_program_result_row_contract_wire(@run_publication_host.ClientResultRowContractIdentity) -> String
 
+pub fn client_program_row_source_accept_charged_values(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, @client_row_source_host.RowHostIssue]
+
 pub fn client_program_row_source_accept_page(@client_row_source_host.RowRun, Bytes) -> Result[Int, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_accept_values(@client_row_source_host.RowRun, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, @client_row_source_host.RowHostIssue]
@@ -1071,6 +1077,8 @@ pub fn client_program_row_source_begin(@client_row_source_host.RowRun, Int, Int,
 pub fn client_program_row_source_capture(@client_row_source_host.RowRun) -> Result[@client_row_source_host.RowSourceCapture, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_capture_source(@client_row_source_host.RowSourceCapture) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]
+
+pub fn client_program_row_source_charge_page(@client_row_source_host.RowRun, Bytes) -> Result[@client_row_source_host.RowPageCharge, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_close(@client_row_source_host.RowRun) -> Unit
 

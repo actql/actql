@@ -27,11 +27,15 @@ pub fn managed_query_next_path(ManagedQuery) -> Result[String?, ManagedQueryIssu
 
 pub fn managed_query_row_count(ManagedQuery) -> Int64
 
+pub fn prepare_installed_salesforce_declared_row_acquisition(InstalledSalesforceDeclaration, @query_planning.QueryRequirement, String, String) -> Result[@client_row_source_host.RowAcquisition, InstalledSalesforceIssue]
+
 pub fn prepare_installed_salesforce_row_acquisition(InstalledSalesforceDeclaration, @query_planning.QueryRequirement, @catalog.CatalogObservation, String, String, Int) -> Result[(@catalog.ReadProjection, @client_row_source_host.RowAcquisition), InstalledSalesforceIssue]
 
 pub fn prepare_managed_query(@catalog.ReadProjection, String, @catalog.QueryPageLimits, Int, Int64, @execution_relation.ManagedOutputValues) -> Result[ManagedQuery, ManagedQueryIssue]
 
 pub fn prepare_salesforce_row_projection(@query_planning.QueryRequirement, @catalog.ReadProjection, String, @catalog.StaticDeclaration) -> Result[SalesforceReadPreparation, SalesforceReadPreparationIssue]
+
+pub fn recheck_installed_salesforce_row_projection(InstalledSalesforceDeclaration, @client_row_source_host.RowAcquisition, @catalog.CatalogObservation, Int) -> Result[@catalog.ReadProjection, InstalledSalesforceIssue]
 
 pub fn recover_installed_salesforce_observation(InstalledSalesforceSite, String, String, String, String, Array[String], Array[Bytes?], Array[Int], Array[String?], Array[String?], @catalog.DescribeLimits, Int, String?) -> Result[@catalog.CatalogObservation, InstalledSalesforceIssue]
 

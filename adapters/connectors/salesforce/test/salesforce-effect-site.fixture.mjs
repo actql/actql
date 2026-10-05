@@ -97,13 +97,17 @@ export async function openSalesforceEffectSiteFixture(t, {
   numberFields = false,
   // The Host's logical connection id the Site declares under.
   connectorId = 'crm-main',
-  // An HTTP status every query request is answered with instead of rows.
+  // An HTTP status selected query requests answer with instead of rows.
   queryFailureStatus,
+  // Restrict the injected query failure to this 1-based request, if set.
+  queryFailureOnRequest,
   // Records a query answers instead of the three stored ones.
   storedRecords,
   // Bounded locator pages and exact reply faults for public Read acceptance.
   queryPageSize,
   queryResponse = body => body,
+  // Resource-specific records for distinguishing two checked source views.
+  recordsByResource,
   // Further writable objects shaped like Test_Record__c.
   writableObjects: extraWritable = [],
   // The 1-based sequence numbers of record writes the org rejects with a
@@ -192,7 +196,11 @@ export async function openSalesforceEffectSiteFixture(t, {
       return;
     }
     if (queryFailureStatus !== undefined && request.method === 'GET' &&
-        request.url?.startsWith(`${prefix}query?q=`)) {
+        request.url?.startsWith(`${prefix}query?q=`) &&
+        (queryFailureOnRequest === undefined ||
+          seen.filter(item => item.method === 'GET' &&
+            item.path?.startsWith(`${prefix}query?q=`)).length ===
+          queryFailureOnRequest)) {
       response.writeHead(queryFailureStatus, {'content-type': 'application/json'});
       response.end('[{"errorCode":"SERVER_UNAVAILABLE"}]');
       return;
@@ -213,7 +221,8 @@ export async function openSalesforceEffectSiteFixture(t, {
       const stored = state !== undefined ? (match[3] === undefined
         ? [...state.values()]
         : [...state.values()].sort((a, b) => a.Id < b.Id ? -1 : 1))
-        : storedRecords ?? (match[3] === undefined ? storedOrder
+        : recordsByResource?.[match[2]] ?? storedRecords ??
+          (match[3] === undefined ? storedOrder
         : [...storedOrder].sort()).map(index => ({
         Id: `a0000000000000${index}`,
         Name: `record-${index}`, External_Key__c: `key-${index}`,

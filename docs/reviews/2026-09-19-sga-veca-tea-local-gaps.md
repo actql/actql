@@ -67,9 +67,33 @@ Resend and reopened-Host attach do not issue another Salesforce query. This
 closes the selected multi-view capture route. A retained-mode provider error
 after the read starts publishes nothing and is not reread after resend or
 Host reopen. Cancellation at the captured-input handoff retains the source
-through stop and cleanup and publishes nothing. These tests do not establish
-two simultaneous Salesforce captures, a Store writer fault, or cancellation
-after positive Compute work.
+through stop and cleanup and publishes nothing. Two distinct views of the
+same installed Salesforce source can also fill the two checked input tasks
+of a retained Join. The Host selects both view bindings, reserves their
+physical capture capacities in the shared ledger, charges received pages,
+and transfers each captured holding to its exact task. The public HTTPS
+fixture uses asymmetric Resource rows to check exact left/right Join input
+binding and two downstream consumer Named Results. It checks resend without
+reacquisition, attach after Host reopen, and cancellation after the first
+capture but before the second read. A provider failure during the second
+read releases the first captured holding without publication or reacquisition.
+A fault after both captures confirms nonpublication, and a separate failed
+close retains its holding through shutdown retry without another provider
+read. Final dispatch cleanup releases
+the transfer reservation and all retained holdings. These tests do not
+establish a Store writer fault, cancellation after positive Join work, or
+every Salesforce acquisition variant.
+Two separately installed Salesforce sources also retain exact left and right
+input ports when their Resources return different rows. The public HTTPS
+fixture reads the Join and both consumer Results from the real Store, then
+resends and reopens the Host without another provider query. This validates
+the two-adapter Salesforce binding through the same owner; it does not turn
+other provider pairs into an implicit completion claim.
+The same published Salesforce SourceView may fill two separate acquisition
+slots in different Stages. Each slot retains its own checked requirement and
+occurrence identity, while both select the same installed read authority. A
+held pair resumes across Host restart with separate approvals, and a completed
+public Result attaches after restart without reacquiring either slot.
 
 The installed full-family Host now declares TEA and VecA to the common checker,
 matching its already registered bounded providers. This does not make a

@@ -204,51 +204,14 @@ pub fn installed_salesforce_source_target(
 }
 
 ///|
-/// Recheck the current provider projection under the preserved declaration,
-/// then hand off to the provider-neutral acquisition owner. This module owns
-/// no admission buffer, attempt state, residual, retention, capture or evidence.
-pub fn prepare_installed_salesforce_row_acquisition(
+/// Prepare the declared checked source without observing the provider. The
+/// exact returned acquisition supplies both capacity bounds and the run owner.
+pub fn prepare_installed_salesforce_declared_row_acquisition(
   declaration : InstalledSalesforceDeclaration,
   requirement : @planning.QueryRequirement,
-  current : @catalog.CatalogObservation,
   query_contract_body : String,
   evidence_contract_body : String,
-  max_soql_bytes : Int,
-) -> Result[
-  (@catalog.ReadProjection, @rows.RowAcquisition),
-  InstalledSalesforceIssue,
-] {
-  if !site_binding_matches(declaration.site, current.binding) {
-    return Err(ForeignBinding)
-  }
-  let (resource, fields) = match
-    installed_salesforce_source_target(declaration, requirement) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let plan = match
-    @catalog.prepare_read_projection(
-      current,
-      current.binding,
-      resource,
-      fields,
-      max_soql_bytes,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Projection(issue))
-  }
-  // Reuse provider projection and exact-int prefilter validation, not its
-  // a provider-owned execution/custody path.
-  let provider = match
-    prepare_salesforce_row_projection(
-      requirement,
-      plan,
-      declaration.declaration.connector_id,
-      declaration.declaration,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Preparation(issue))
-  }
+) -> Result[@rows.RowAcquisition, InstalledSalesforceIssue] {
   let source_ref = @planning.query_requirement_source(requirement).0
   for view in declaration.declaration.views {
     if view.source_ref == source_ref {
@@ -269,11 +232,75 @@ pub fn prepare_installed_salesforce_row_acquisition(
         Err(issue) => return Err(Source(issue))
       }
       return @rows.prepare_declared_row_acquisition(
-          preparation, connector_registration, query_contract_body, evidence_contract_body,
-        )
-        .map(value => (salesforce_read_plan(provider), value))
-        .map_err(issue => Row(issue))
+        preparation, connector_registration, query_contract_body, evidence_contract_body,
+      ).map_err(issue => Row(issue))
     }
   }
   Err(UndeclaredSource)
+}
+
+///|
+/// Recheck a fresh projection against the same acquisition prepared before
+/// dispatch. This module owns no admission, custody, retention or capture.
+pub fn recheck_installed_salesforce_row_projection(
+  declaration : InstalledSalesforceDeclaration,
+  acquisition : @rows.RowAcquisition,
+  current : @catalog.CatalogObservation,
+  max_soql_bytes : Int,
+) -> Result[@catalog.ReadProjection, InstalledSalesforceIssue] {
+  if !site_binding_matches(declaration.site, current.binding) {
+    return Err(ForeignBinding)
+  }
+  let requirement = @rows.row_acquisition_requirement(acquisition)
+  let (resource, fields) = match
+    installed_salesforce_source_target(declaration, requirement) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let plan = match
+    @catalog.prepare_read_projection(
+      current,
+      current.binding,
+      resource,
+      fields,
+      max_soql_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Projection(issue))
+  }
+  // Reuse exact declaration/type validation and checked integer prefiltering.
+  prepare_salesforce_row_projection(
+    requirement,
+    plan,
+    declaration.declaration.connector_id,
+    declaration.declaration,
+  )
+  .map(provider => salesforce_read_plan(provider))
+  .map_err(issue => Preparation(issue))
+}
+
+///|
+/// Compatibility preparation for callers that already hold a fresh describe.
+/// Installed dispatch prepares first, then rechecks this exact acquisition.
+pub fn prepare_installed_salesforce_row_acquisition(
+  declaration : InstalledSalesforceDeclaration,
+  requirement : @planning.QueryRequirement,
+  current : @catalog.CatalogObservation,
+  query_contract_body : String,
+  evidence_contract_body : String,
+  max_soql_bytes : Int,
+) -> Result[
+  (@catalog.ReadProjection, @rows.RowAcquisition),
+  InstalledSalesforceIssue,
+] {
+  let acquisition = match
+    prepare_installed_salesforce_declared_row_acquisition(
+      declaration, requirement, query_contract_body, evidence_contract_body,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  recheck_installed_salesforce_row_projection(
+    declaration, acquisition, current, max_soql_bytes,
+  ).map(plan => (plan, acquisition))
 }

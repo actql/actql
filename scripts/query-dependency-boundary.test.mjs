@@ -9,13 +9,15 @@ const imports = name => [...manifest(name).matchAll(/"actql\/actql\/([^"]+)"/g)]
 
 test('common captured DAG consumes owned obligations without operation templates', () => {
   const dag = readFileSync('src/physical_strategy/captured_dag.mbt', 'utf8');
-  assert.doesNotMatch(dag, /@relation\.operation|@join\.kind|\.operation\s+is|steps\s*[!=]=\s*[12]/);
+  assert.doesNotMatch(dag, /@relation\.|@join\.kind|\.operation\s+is|steps\s*[!=]=\s*[12]/);
   assert.doesNotMatch(dag, /application_closure_at|join_application_at/);
   const graph = readFileSync('src/physical_strategy/graph.mbt', 'utf8');
   assert.match(graph, /stage_requirement_operations/);
   assert.match(graph, /program_identity_producer_is_local/);
   assert.match(graph, /physical_equal\(site\.pipeline, pipeline\)/);
-  for (const name of ['relation_typing', 'relation_join_shape', 'capacity_graph_preflight']) {
+  // Carrier preparation uses checked aggregate cardinality to bound its work;
+  // the captured DAG itself must not inspect Relation operation semantics.
+  for (const name of ['relation_join_shape', 'capacity_graph_preflight']) {
     assert.ok(!imports('physical_strategy').includes(name));
   }
 });

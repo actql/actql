@@ -17,6 +17,8 @@ import {
 // Values
 pub fn abort_row_run(RowRun) -> Unit
 
+pub fn accept_charged_row_run_values(RowRun, RowPageCharge, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, RowHostIssue]
+
 pub fn accept_row_run_page(RowRun, Bytes) -> Result[Int, RowHostIssue]
 
 pub fn accept_row_run_values(RowRun, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, RowHostIssue]
@@ -24,6 +26,8 @@ pub fn accept_row_run_values(RowRun, Array[String], Array[Array[@value_admission
 pub fn begin_row_run(RowRun, Int, Int, Int) -> Result[Unit, RowHostIssue]
 
 pub fn capture_row_run(RowRun) -> Result[RowSourceCapture, RowHostIssue]
+
+pub fn charge_row_run_page(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]
 
 pub fn close_accounted_row_run(RowRun) -> Result[Unit, RowHostIssue]
 
@@ -208,6 +212,8 @@ pub(all) struct RowMappingSource {
 } derive(Eq, @debug.Debug)
 
 type RowObservation
+
+type RowPageCharge
 
 pub(all) struct RowPageLimits {
   max_bytes : Int

@@ -6221,6 +6221,38 @@ pub fn client_program_salesforce_source_target(
 }
 
 ///|
+#export_name("clientProgramPrepareSalesforceDeclaredRowAcquisition")
+pub fn client_program_prepare_salesforce_declared_row_acquisition(
+  declaration : @salesforce_host.InstalledSalesforceDeclaration,
+  requirement : @planning.QueryRequirement,
+  query_contract : String,
+  evidence_contract : String,
+) -> Result[
+  @client_row_source_host.RowAcquisition,
+  @salesforce_host.InstalledSalesforceIssue,
+] {
+  @salesforce_host.prepare_installed_salesforce_declared_row_acquisition(
+    declaration, requirement, query_contract, evidence_contract,
+  )
+}
+
+///|
+#export_name("clientProgramRecheckSalesforceRowProjection")
+pub fn client_program_recheck_salesforce_row_projection(
+  declaration : @salesforce_host.InstalledSalesforceDeclaration,
+  acquisition : @client_row_source_host.RowAcquisition,
+  current : @salesforce_catalog.CatalogObservation,
+  max_soql_bytes : Int,
+) -> Result[
+  @salesforce_catalog.ReadProjection,
+  @salesforce_host.InstalledSalesforceIssue,
+] {
+  @salesforce_host.recheck_installed_salesforce_row_projection(
+    declaration, acquisition, current, max_soql_bytes,
+  )
+}
+
+///|
 #export_name("clientProgramPrepareSalesforceRowAcquisition")
 pub fn client_program_prepare_salesforce_row_acquisition(
   declaration : @salesforce_host.InstalledSalesforceDeclaration,
@@ -6270,6 +6302,31 @@ pub fn client_program_salesforce_query_read_value_violation(
       })
     _ => None
   }
+}
+
+///|
+#export_name("clientProgramRowSourceChargePage")
+pub fn client_program_row_source_charge_page(
+  run : @client_row_source_host.RowRun,
+  body : Bytes,
+) -> Result[
+  @client_row_source_host.RowPageCharge,
+  @client_row_source_host.RowHostIssue,
+] {
+  @client_row_source_host.charge_row_run_page(run, body)
+}
+
+///|
+#export_name("clientProgramRowSourceAcceptChargedValues")
+pub fn client_program_row_source_accept_charged_values(
+  run : @client_row_source_host.RowRun,
+  charge : @client_row_source_host.RowPageCharge,
+  columns : Array[String],
+  rows : Array[Array[@admitted.CheckedValue]],
+) -> Result[Int, @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.accept_charged_row_run_values(
+    run, charge, columns, rows,
+  )
 }
 
 ///|

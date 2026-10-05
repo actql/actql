@@ -44,11 +44,13 @@ function validateRead({
   refreshCatalog,
   limits,
   consumePage,
+  chargePage,
   callResource = callHttpsCredentialResource,
 }) {
   if (!moon || !plan ||
       typeof authorizationForPage !== 'function' ||
-      typeof consumePage !== 'function' || !credential ||
+      typeof consumePage !== 'function' ||
+      (chargePage !== undefined && typeof chargePage !== 'function') || !credential ||
       typeof credential !== 'object' ||
       !refreshCatalog || (typeof refreshCatalog !== 'object' &&
         typeof refreshCatalog !== 'function') ||
@@ -58,7 +60,7 @@ function validateRead({
   validateLimits(limits);
   const context = ownInvocationContext({
     authorization: initialAuthorization, credential, limits,
-    callbacks: {authorizationForPage, consumePage, callResource},
+    callbacks: {authorizationForPage, consumePage, chargePage, callResource},
   });
   const scope = validateAuthorization(context.authorization);
   if (!moon.salesforceReadProjectionScopeMatches(
@@ -107,6 +109,7 @@ async function driveQueryPages({
   credential,
   limits,
   consumePage,
+  chargePage,
   callResource,
   signal,
 }, scope, owner) {
@@ -130,8 +133,12 @@ async function driveQueryPages({
       if (!response.accepted) {
         fail('SalesforceQueryResourceRejected');
       }
+      // Account the exact received body before any provider decoding. The
+      // neutral owner binds this single-use admission to the selected run.
+      const charge = await chargePage?.(response.body);
       const page = checked(owner.acceptPage(path, response.body));
-      await consumePage(page, Object.freeze({path, pageIndex: pages.length}));
+      await consumePage(page, Object.freeze({path, pageIndex: pages.length,
+        charge}));
       owner.acknowledgePage?.(page);
       pages.push(Object.freeze({
         path,
@@ -178,6 +185,7 @@ export async function readSalesforceQuery(options) {
     ...options, initialAuthorization: context.authorization,
     authorizationForPage: context.callbacks.authorizationForPage,
     consumePage: context.callbacks.consumePage,
+    chargePage: context.callbacks.chargePage,
     callResource: context.callbacks.callResource,
     credential: context.credential, limits: ownedLimits,
   }, context.scope, {
@@ -229,6 +237,7 @@ export async function readSalesforceManagedQuery(options) {
     ...options, initialAuthorization: context.authorization,
     authorizationForPage: context.callbacks.authorizationForPage,
     consumePage: async () => {},
+    chargePage: context.callbacks.chargePage,
     callResource: context.callbacks.callResource,
     credential: context.credential, limits: ownedLimits,
   }, context.scope, {

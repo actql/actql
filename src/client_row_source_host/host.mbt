@@ -337,6 +337,15 @@ struct RowRun {
   attempt : RowAttempt
   mut closed : Bool
   mut physical : RowPhysical?
+  mut page_charge : RowPageCharge?
+}
+
+///|
+/// One page charged before provider decoding, owned by its exact live attempt.
+/// Admission consumes this ticket once; it carries no parallel resource owner.
+struct RowPageCharge {
+  owner : RowAttempt
+  mut consumed : Bool
 }
 
 ///|
@@ -388,6 +397,7 @@ pub fn start_row_acquisition(
     attempt: { preparation, authority: { issuer, token, }, state: Pending, },
     closed: false,
     physical: None,
+    page_charge: None,
   })
 }
 
@@ -486,7 +496,69 @@ pub fn begin_row_run(
 }
 
 ///|
-/// Admit one page; returns its row count. A refused page aborts the attempt.
+/// Account for the actual received provider body before decoding it. A pending
+/// ticket must be admitted before another body is charged or the read finishes.
+/// Ordinary runs enforce the same page bound without a physical reservation.
+pub fn charge_row_run_page(
+  run : RowRun,
+  body : Bytes,
+) -> Result[RowPageCharge, RowHostIssue] {
+  guard !run.closed && run.attempt.state is Reading(read) else {
+    return Err(InvalidState)
+  }
+  if run.page_charge is Some(_) {
+    abort_row_run(run)
+    return Err(Physical(InvalidCharge))
+  }
+  if run.physical is Some(physical) {
+    match
+      @resources.charge_transfer(
+        physical.ledger,
+        physical.reservation,
+        body.length().to_int64(),
+      ) {
+      Ok(_) => ()
+      Err(issue) => {
+        abort_row_run(run)
+        return Err(Physical(issue))
+      }
+    }
+  }
+  if body.length() > read.page_limits.max_bytes {
+    abort_row_run(run)
+    return Err(Source(InvalidPage))
+  }
+  let charge = { owner: run.attempt, consumed: false, }
+  run.page_charge = Some(charge)
+  Ok(charge)
+}
+
+///|
+fn consume_row_page_charge(
+  run : RowRun,
+  charge : RowPageCharge,
+) -> Result[Unit, RowHostIssue] {
+  guard !run.closed && run.attempt.state is Reading(_) else {
+    return Err(InvalidState)
+  }
+  if !physical_equal(charge.owner, run.attempt) {
+    abort_row_run(run)
+    return Err(Physical(ForeignOwner))
+  }
+  guard !charge.consumed &&
+    run.page_charge is Some(expected) &&
+    physical_equal(expected, charge) else {
+    abort_row_run(run)
+    return Err(Physical(InvalidCharge))
+  }
+  charge.consumed = true
+  run.page_charge = None
+  Ok(())
+}
+
+///|
+/// Admit one JSON page with exactly one charge of its actual received bytes.
+/// A refused page aborts the attempt.
 pub fn accept_row_run_page(
   run : RowRun,
   bytes : Bytes,
@@ -494,24 +566,18 @@ pub fn accept_row_run_page(
   guard !run.closed && run.attempt.state is Reading(read) else {
     return Err(InvalidState)
   }
-  if run.physical is Some(physical) {
-    match
-      @resources.charge_transfer(
-        physical.ledger,
-        physical.reservation,
-        bytes.length().to_int64(),
-      ) {
-      Ok(_) => ()
-      Err(issue) => {
-        abort_row_attempt(run.attempt)
-        return Err(Physical(issue))
-      }
-    }
+  let charge = match charge_row_run_page(run, bytes) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match consume_row_page_charge(run, charge) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   match accept_row_source_page(read, bytes) {
     Ok(count) => Ok(count)
     Err(issue) => {
-      abort_row_attempt(run.attempt)
+      abort_row_run(run)
       Err(Source(issue))
     }
   }
@@ -523,6 +589,10 @@ pub fn accept_row_run_page(
 pub fn finish_row_run(run : RowRun) -> Result[Unit, RowHostIssue] {
   guard !run.closed && run.attempt.state is Reading(read) else {
     return Err(InvalidState)
+  }
+  if run.page_charge is Some(_) {
+    abort_row_run(run)
+    return Err(Physical(InvalidCharge))
   }
   match finish_row_source_read(read) {
     Ok(scan) => {
@@ -538,13 +608,17 @@ pub fn finish_row_run(run : RowRun) -> Result[Unit, RowHostIssue] {
 
 ///|
 pub fn abort_row_run(run : RowRun) -> Unit {
+  if run.page_charge is Some(charge) {
+    charge.consumed = true
+    run.page_charge = None
+  }
   abort_row_attempt(run.attempt)
 }
 
 ///|
 pub fn close_row_run(run : RowRun) -> Unit {
   if !run.closed {
-    abort_row_attempt(run.attempt)
+    abort_row_run(run)
     @planning.close_query_evidence_registration(run.issuer.registration)
     run.closed = true
   }
@@ -652,7 +726,8 @@ pub fn row_capture_source(
 }
 
 ///|
-/// Typed page handoff; completion and settlement are separate operations.
+/// Compatibility handoff for unaccounted typed rows. Accounted providers must
+/// charge their actual response body before decoding and consume its ticket.
 pub fn accept_row_run_values(
   run : RowRun,
   columns : Array[String],
@@ -661,10 +736,39 @@ pub fn accept_row_run_values(
   guard !run.closed && run.attempt.state is Reading(read) else {
     return Err(InvalidState)
   }
+  if run.physical is Some(_) || run.page_charge is Some(_) {
+    abort_row_run(run)
+    return Err(Physical(InvalidCharge))
+  }
   match accept_row_source_values(read, columns, rows) {
     Ok(count) => Ok(count)
     Err(issue) => {
-      abort_row_attempt(run.attempt)
+      abort_row_run(run)
+      Err(Source(issue))
+    }
+  }
+}
+
+///|
+/// Admit the typed values of one previously charged provider body. Ownership
+/// and single consumption are checked before retaining any value.
+pub fn accept_charged_row_run_values(
+  run : RowRun,
+  charge : RowPageCharge,
+  columns : Array[String],
+  rows : Array[Array[@admitted.CheckedValue]],
+) -> Result[Int, RowHostIssue] {
+  guard !run.closed && run.attempt.state is Reading(read) else {
+    return Err(InvalidState)
+  }
+  match consume_row_page_charge(run, charge) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  match accept_row_source_values(read, columns, rows) {
+    Ok(count) => Ok(count)
+    Err(issue) => {
+      abort_row_run(run)
       Err(Source(issue))
     }
   }
