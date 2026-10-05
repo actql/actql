@@ -27,10 +27,16 @@ Focused JS verification on this source union passed 195 expression-typing
 and 226 lowering tests; a 34-test runtime/caller selection; 755 Frontend and
 identity tests; 1,145 shared execution and pipeline-identity tests; and four
 query-integration pin callers. These selections overlap and are not a summed
-suite count. Ninety focused Node contract/identity checks pass, including two
+suite count. Ninety-one focused Node contract/identity checks pass, including two
 complete independent preimages for the law-dependent ordered-node and fragment
 fixtures. An intermediate 1,141/1,145 run exposed four stale fixed CIDs; their
 explicit preimages were independently rebuilt before the successful rerun.
+
+The first fresh candidate executed all seven original positive Local cases,
+then rejected an added JSON control because its authoring helper emitted an
+empty `params` object. The helper now omits absent declarations; an independent
+fixture guard and installed ordinary preparation check cover that correction.
+The failed candidate remains distinct from successful final acceptance.
 
 The ordinary public corpus contains 17 positive and seven refusal cases,
 including direct false/true/NULL SELECT results in JSON, SQL and Pipe, NULL-item

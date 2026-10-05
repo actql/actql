@@ -223,3 +223,22 @@ test('exact String parameter vectors preserve every unrelated historical expecta
     });
   }
 });
+
+// Machine controls omit absent declarations: the Program grammar rejects an
+// explicitly empty params map before membership typing or execution can run.
+import {groupedInSuccesses} from './fixtures/grouped-in-source-input.mjs';
+test('membership machine controls never emit empty parameter declarations', () => {
+  const driver = read('scripts/test-packed-public-query.mjs');
+  const narrowSelection = driver.slice(driver.indexOf('const narrowPublicQuery'),
+    driver.indexOf('try {', driver.indexOf('const narrowPublicQuery')));
+  assert.ok(narrowSelection.includes("'--grouped-in-only'"));
+  const controls = groupedInSuccesses.filter(item => item.format === 'json');
+  assert.ok(controls.length >= 6);
+  for (const item of controls) {
+    const program = JSON.parse(item.text);
+    if (Object.hasOwn(program, 'params'))
+      assert.ok(Object.keys(program.params).length > 0, item.name);
+  }
+  assert.ok(controls.some(item => !Object.hasOwn(JSON.parse(item.text), 'params')));
+  assert.ok(controls.some(item => Object.hasOwn(JSON.parse(item.text), 'params')));
+});

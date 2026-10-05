@@ -78,8 +78,9 @@ const unknownExpected = [{id: 1, included: null, excluded: null},
   {id: 3, included: null, excluded: null}];
 const emptyColumns = [idColumn, ...['included', 'excluded'].map(name => ({name,
   contract: {type: 'boolean', nullable: false}}))];
-const projectProgram = (right, params = {}) => ({
-  version: 'actql/0.1', id: 'fixture.common_membership', params,
+const projectProgram = (right, params) => ({
+  version: 'actql/0.1', id: 'fixture.common_membership',
+  ...(params === undefined ? {} : {params}),
   stages: [{id: 'capture', inputs: {remote: {connector: 'crm/main', resource: 'r'}},
     steps: [{from: 'remote', filter: {literal: true}},
       {select: ['amount', 'id'], as: 'captured'}],
