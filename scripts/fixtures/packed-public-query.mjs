@@ -22,6 +22,8 @@ import {groupOrdinalSuccesses, groupOrdinalRefusals}
   from './group-ordinal-source-input.mjs';
 import {distinctOrderSuccesses, distinctOrderRefusals}
   from './distinct-order-source-input.mjs';
+import {orderPropertySuccesses, orderPropertyRefusals}
+  from './order-property-source-input.mjs';
 import {groupSelectScopeSuccesses, groupSelectScopeRefusals}
   from './group-select-scope-source-input.mjs';
 import {havingProjectionSuccesses, havingProjectionRefusals}
@@ -31,6 +33,8 @@ import {implicitPropertySuccesses, implicitPropertyRefusals}
 import {groupPropertySuccesses, groupPropertyRefusals}
   from './group-property-source-input.mjs';
 import {uniquePublicQueryCases} from './public-query-cases.mjs';
+import {quotedIdentifierSuccesses, quotedIdentifierRefusals}
+  from './quoted-identifier-source-input.mjs';
 import {orderOrdinalSuccesses, orderOrdinalRefusals}
   from './order-ordinal-source-input.mjs';
 import {graphRowSourceSuccesses, graphRowSourceRefusals}
@@ -39,6 +43,8 @@ import {graphPropertyPredicateSuccesses, graphPropertyPredicateRefusals}
   from './graph-property-predicate-source-input.mjs';
 import {graphTraverseSourceSuccesses, graphTraverseSourceRefusals}
   from './property-graph-traverse-source-input.mjs';
+import {graphEqualitySourceSuccesses, graphEqualitySourceRefusals}
+  from './property-graph-equality-source-input.mjs';
 import {acquiredDataSuccesses, acquiredGraphSourceSuccesses, acquiredDataRefusals}
   from './acquired-data-source-input.mjs';
 import {graphProjectionPropertySuccesses, graphProjectionPropertyRefusals}
@@ -54,6 +60,8 @@ const propertyGraphOnly = process.env.ACTQL_TEST_PROPERTY_GRAPH_SOURCE_ONLY === 
 const graphPropertyPredicateOnly = process.env.ACTQL_TEST_GRAPH_PROPERTY_PREDICATE_ONLY === '1';
 const graphDiagnosticsOnly = process.env.ACTQL_TEST_GRAPH_DIAGNOSTICS_ONLY === '1';
 const graphRowsOnly = process.env.ACTQL_TEST_GRAPH_ROWS_ONLY === '1';
+const graphEqualityOnly = process.env.ACTQL_TEST_GRAPH_EQUALITY_ONLY === '1';
+const quotedIdentifiersOnly = process.env.ACTQL_TEST_QUOTED_IDENTIFIERS_ONLY === '1';
 const graphProjectionPropertyOnly = process.env.ACTQL_TEST_GRAPH_PROJECTION_PROPERTY_ONLY === '1';
 const orderOrdinalOnly = process.env.ACTQL_TEST_ORDER_ORDINAL_ONLY === '1';
 const distinctOrderOnly = process.env.ACTQL_TEST_DISTINCT_ORDER_ONLY === '1';
@@ -74,7 +82,8 @@ const resultOnly = process.env.ACTQL_TEST_PIPE_RESULT_ONLY === '1';
 const dataOnly = process.env.ACTQL_TEST_RELATION_DATA_ONLY === '1';
 const acquiredDataOnly = process.env.ACTQL_TEST_ACQUIRED_DATA_ONLY === '1';
 const dataSetStrategyOnly = process.env.ACTQL_TEST_DATA_SET_STRATEGY_ONLY === '1';
-const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || graphDiagnosticsOnly;
+const orderPropertyOnly = process.env.ACTQL_TEST_ORDER_PROPERTY_ONLY === '1';
+const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const joinChain = JSON.parse(await readFile('join-chain-cases.json', 'utf8'));
 const groupScope = JSON.parse(await readFile('group-scope-cases.json', 'utf8'));
@@ -92,6 +101,7 @@ const dataSetStrategyInputs = {
   refusals: [],
 };
 const scopeInputs = graphDiagnosticsOnly ? {successes: graphDiagnosticSourceSuccesses, refusals: graphDiagnosticSourceRefusals, executionFailures: graphDiagnosticSourceExecutionFailures}
+  : orderPropertyOnly ? {successes: orderPropertySuccesses, refusals: orderPropertyRefusals}
   : graphProjectionPropertyOnly ? {successes: graphProjectionPropertySuccesses, refusals: graphProjectionPropertyRefusals}
   : graphPropertyPredicateOnly ? {successes: graphPropertyPredicateSuccesses, refusals: graphPropertyPredicateRefusals}
   : implicitPropertyOnly ? {successes: implicitPropertySuccesses, refusals: implicitPropertyRefusals}
@@ -100,10 +110,12 @@ const scopeInputs = graphDiagnosticsOnly ? {successes: graphDiagnosticSourceSucc
   : havingProjectionOnly ? {successes: havingProjectionSuccesses, refusals: havingProjectionRefusals}
   : groupSelectScopeOnly ? {successes: groupSelectScopeSuccesses, refusals: groupSelectScopeRefusals}
   : groupStarOnly ? {successes: groupStarSuccesses, refusals: groupStarRefusals}
+  : quotedIdentifiersOnly ? {successes: quotedIdentifierSuccesses, refusals: quotedIdentifierRefusals}
   : orderOrdinalOnly ? {successes: orderOrdinalSuccesses, refusals: orderOrdinalRefusals}
   : distinctOrderOnly ? {successes: distinctOrderSuccesses, refusals: distinctOrderRefusals}
   : graphTraverseOnly ? {successes: graphTraverseSourceSuccesses, refusals: graphTraverseSourceRefusals}
   : graphRowsOnly ? {successes: graphRowSourceSuccesses, refusals: graphRowSourceRefusals}
+  : graphEqualityOnly ? {successes: graphEqualitySourceSuccesses, refusals: graphEqualitySourceRefusals}
   : scopedOrderOnly ? {
   successes: scope.successes.filter(item => item.name.startsWith('scoped-order-')),
   refusals: scope.refusals.filter(item => item.name.startsWith('scoped-order-')),
@@ -124,6 +136,8 @@ const scopeInputs = graphDiagnosticsOnly ? {successes: graphDiagnosticSourceSucc
   refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...relationDataRefusals, ...acquiredDataRefusals, ...propertyGraphSourceRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals, ...groupStarRefusals, ...groupOrdinalRefusals],
   executionFailures: [...pipeResultExecutionFailures, ...propertyGraphSourceExecutionFailures]};
 if (!scopeOnly) {
+  scopeInputs.successes.push(...orderPropertySuccesses);
+  scopeInputs.refusals.push(...orderPropertyRefusals);
   scopeInputs.successes.push(...graphProjectionPropertySuccesses);
   scopeInputs.refusals.push(...graphProjectionPropertyRefusals);
   scopeInputs.successes.push(...graphPropertyPredicateSuccesses);
@@ -136,6 +150,8 @@ if (!scopeOnly) {
   scopeInputs.refusals.push(...havingProjectionRefusals);
   scopeInputs.successes.push(...groupSelectScopeSuccesses);
   scopeInputs.refusals.push(...groupSelectScopeRefusals);
+  scopeInputs.successes.push(...quotedIdentifierSuccesses);
+  scopeInputs.refusals.push(...quotedIdentifierRefusals);
   scopeInputs.successes.push(...orderOrdinalSuccesses);
   scopeInputs.refusals.push(...orderOrdinalRefusals);
   scopeInputs.successes.push(...distinctOrderSuccesses);
@@ -147,6 +163,8 @@ if (!scopeOnly) {
   scopeInputs.executionFailures.push(...graphDiagnosticSourceExecutionFailures);
   scopeInputs.successes.push(...graphTraverseSourceSuccesses);
   scopeInputs.refusals.push(...graphTraverseSourceRefusals);
+  scopeInputs.successes.push(...graphEqualitySourceSuccesses);
+  scopeInputs.refusals.push(...graphEqualitySourceRefusals);
 }
 if (!scopeOnly) {
   scopeInputs.successes.push(...joinChain.successes);

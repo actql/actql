@@ -12,6 +12,8 @@ const tests = {
     'private-context', 'deepStrictEqual'],
   public: ['public context references retain policy profiles and visible contracts',
     'public-context', 'notStrictEqual'],
+  source: ['failed Source read owners preserve the bound public check',
+    'source-owner', 'deepStrictEqual'],
 };
 const mutations = [
   ['private Environment CID enters the public preimage',
@@ -21,6 +23,10 @@ const mutations = [
     'checking_context: checkingContext', 'checking_context: null', 'public'],
   ['authorized Source contracts are omitted',
     'visible_aliases: visible', 'visible_aliases: []', 'public'],
+  ['failed Source read owners make the whole check unavailable',
+    'return portions.flatMap(value => value ?? []).sort((left, right) =>',
+    "if (portions.some(value => value === undefined)) return undefined;\n" +
+    '    return portions.flatMap(value => value ?? []).sort((left, right) =>', 'source'],
 ];
 const accepted = target => {
   const [name, id, operator] = tests[target];
@@ -38,6 +44,13 @@ try {
   for (const [name, from, to, target] of mutations) {
     if (original.split(from).length !== 2) throw new Error(`Mutation anchor not unique: ${name}`);
     writeFileSync(path, original.replace(from, to));
+    if (target === 'source') {
+      const source = readFileSync(path, 'utf8');
+      const anchor = 'const visible = await visibleAliases(signal);';
+      if (source.split(anchor).length !== 2) throw new Error('Source failure mutation anchor not unique');
+      writeFileSync(path, source.replace(anchor, anchor +
+        "\n    if (visible === undefined) return JSON.parse(moon.clientProgramCheckUnavailable('corr:mutant'));"));
+    }
     results.push({name, rejected: !accepted(target)});
   }
 } finally {

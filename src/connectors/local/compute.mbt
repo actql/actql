@@ -300,6 +300,7 @@ pub fn local_managed_sequence_supported(
       @lower.SequenceMatchStep(_) => true
       @lower.NestStep(_) => true
       @lower.GraphMatchStep(_) => false
+      @lower.GraphSubgraphStep(_) => false
       @lower.GraphTraverseStep(_) => false
       @lower.GraphDiagnosticStep(_) => false
       @lower.GraphEqualityStep(_) => false

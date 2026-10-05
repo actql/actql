@@ -70,6 +70,7 @@ fn graph_selector_execution_check(
   }
   let (relation, role, index) = match step.operation {
     Traverse(selector=target, ..) => (target, @pipeline.Right, 1)
+    Subgraph(selector=target, ..) => (target, @pipeline.Right, 1)
     _ => return Err(ForeignOccurrence(site.step))
   }
   guard @pipeline.input_occurrence_at(step, 0) is Some(primary) &&

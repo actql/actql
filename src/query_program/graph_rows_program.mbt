@@ -7,6 +7,7 @@ fn script_has_graph_rows(query : @query.Query) -> Bool {
     if call.operation == "node_rows" ||
       call.operation == "edge_rows" ||
       script_graph_diagnostic_fields(call.operation) is Some(_) ||
+      call.operation == "graphs_equal" ||
       call.operation == "traverse" {
       return true
     }
@@ -122,6 +123,7 @@ fn lower_script_graph_rows(
   reserved : Array[String],
   output : String,
   known? : Array[Input] = [],
+  graphs? : Array[ScriptGraph] = [],
   retained? : Array[RetainedResult]? = None,
 ) -> Input raise Abort {
   if @query.cte_count(query) > 0 ||
@@ -145,6 +147,15 @@ fn lower_script_graph_rows(
       row_input = Some(
         lower_script_graph_diagnostic(
           construction, query, call, current, fields, limits, steps, reserved,
+        ),
+      )
+      current = row_input.unwrap().name
+      continue
+    }
+    if call.operation == "graphs_equal" {
+      row_input = Some(
+        lower_script_graph_equality(
+          construction, query, call, current, graphs, steps, reserved,
         ),
       )
       current = row_input.unwrap().name

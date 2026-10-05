@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {generateKeyPairSync} from 'node:crypto';
-import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import {mkdir, mkdtemp, readFile, readdir, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
@@ -76,7 +76,8 @@ const program = JSON.stringify({version: 'actql/0.1', id: 'github-read',
     results: {r: {from: 'out', fields: ['number', 'title', 'author']}}}],
   results: {issues: {from: {stage: 'compute', result: 'r'}}}});
 
-async function installation(t, {faults = []} = {}) {
+async function installation(t, {faults = [], retainedRelationOutput = false,
+  observe} = {}) {
   // The provider's current state; tests change it after publication while
   // the local Site profile stays fixed.
   const state = {
@@ -113,13 +114,30 @@ async function installation(t, {faults = []} = {}) {
   const profilePath = join(root, 'source-profile.json');
   await writeFile(profilePath, JSON.stringify(profile));
   const hostRoot = join(root, 'state');
+  const hostKeys = observe === undefined ? undefined :
+    generateKeyPairSync('ed25519');
+  const hostAuthorization = hostKeys === undefined ? undefined : {
+    accountConfiguration: canonicalJson({
+      version: 'actql-execution-account-config/0.1',
+      account_id: 'github-retained-host', entries: [{entry_id: 'query',
+        outcome: 'allow', principal: {all: true}, connection: {all: true},
+        resource: {all: true}, operation: {any_of: ['write']},
+        exclusions: []}]}),
+    hostKey: {keyId: 'host', privateKey: hostKeys.privateKey.export({
+      type: 'pkcs8', format: 'pem'})},
+    reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer',
+      principalId: owner, publicKey: hostKeys.publicKey.export({
+        type: 'spki', format: 'pem'})}],
+    observe,
+  };
   const publish = () => publishInstalledSourceProfile(profilePath, {
     root: hostRoot, principalId: owner, moon: commonMoon, runtimeUrl,
     resolveSecret: secret});
   const open = async () => {
     const host = await openInstalledRemoteHttpHost({directory: hostRoot,
       authenticate: header => tokens.get(header?.replace(/^Bearer /u, '')),
-      sourceProfilePath: profilePath, resolveSourceSecret: secret});
+      sourceProfilePath: profilePath, resolveSourceSecret: secret,
+      retainedRelationOutput, authorization: hostAuthorization});
     const server = createServer({key: tlsKey, cert: tlsCertificate},
       host.handler);
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -182,6 +200,83 @@ test('public Client reads published GitHub Issues to a Named Result', async t =>
     assert.equal(entry.authorized, true);
   }
 });
+
+test('installed row source retains public output across Host reopen',
+  async t => {
+    let outputRepresentations;
+    const setup = await installation(t, {retainedRelationOutput: true,
+      observe(name, detail) {
+        if (name === 'computed') outputRepresentations = detail.outputRepresentations;
+      }});
+    await setup.publish();
+    const document = JSON.parse(program);
+    document.id = 'github-retained-two-consumers';
+    document.stages.push({id: 'audit',
+      inputs: {x: {result: {stage: 'acquire', result: 'r'}}},
+      steps: [{select: ['number', 'title'], as: 'out'}],
+      results: {r: {from: 'out', fields: ['number', 'title']}}});
+    document.results.audit = {from: {stage: 'audit', result: 'r'}};
+    const {client, close} = await setup.open().catch(error => {
+      assert.fail(error.primaryFailure?.stack ?? error.stack);
+    });
+    const run = await client.aql(JSON.stringify(document), {format: 'json',
+      requestId: 'github-retained-read'});
+    const state = await run.wait();
+    assert.equal(state.status, 'succeeded', JSON.stringify(state));
+    const expected = [{number: 1, title: 'Issue 1', author: 'octocat'},
+      {number: 4, title: 'Issue 4', author: 'octocat'},
+      {number: 5, title: 'Issue 5', author: 'octocat'}];
+    assert.deepEqual(await run.result('issues').all(), expected);
+    const audit = expected.map(({number, title}) => ({number, title}));
+    assert.deepEqual(await run.result('audit').all(), audit);
+    assert.deepEqual(outputRepresentations,
+      [{task: 1, representation: 'retained-file'},
+        {task: 2, representation: 'retained-file'}]);
+    const reads = listings(setup.api).length;
+    assert.equal(reads, 2);
+    assert.deepEqual(await readdir(join(setup.root, 'state',
+      'carrier-snapshots')), []);
+    const resent = await client.aql(JSON.stringify(document), {format: 'json',
+      requestId: 'github-retained-read'});
+    assert.deepEqual(resent.ref, run.ref);
+    assert.equal(listings(setup.api).length, reads);
+    await client.close();
+    await close();
+    const resumed = await setup.open();
+    const attached = await resumed.client.attach(run.ref);
+    assert.deepEqual(await attached.result('issues').all(), expected);
+    assert.deepEqual(await attached.result('audit').all(), audit);
+    assert.equal(listings(setup.api).length, reads);
+  });
+
+test('retained row source does not publish after a later page fails',
+  async t => {
+    const setup = await installation(t, {retainedRelationOutput: true,
+      observe() {}});
+    await setup.publish();
+    const normal = graphqlRoute(() => ({...setup.state, answer: undefined}));
+    setup.state.answer = variables => variables.after === null
+      ? normal.handle({body: JSON.stringify({query: 'query ActqlIssues(',
+        variables})})
+      : {headers: {'x-ratelimit-remaining': '0',
+        'x-ratelimit-reset': '1790000000'},
+        body: {data: null, errors: [{type: 'RATE_LIMITED',
+          message: 'API rate limit exceeded'}]}};
+    const {client} = await setup.open();
+    const run = await client.aql(program, {format: 'json',
+      requestId: 'github-retained-later-page-failure'});
+    const state = await run.wait();
+    assert.equal(state.status, 'failed', JSON.stringify(state));
+    assert.equal(state.result_available, false);
+    assert.equal(state.result_availability.issues.state, 'unavailable');
+    assert.equal(listings(setup.api).length, 2);
+    assert.deepEqual(await readdir(join(setup.root, 'state',
+      'carrier-snapshots')), []);
+    const resent = await client.aql(program, {format: 'json',
+      requestId: 'github-retained-later-page-failure'});
+    assert.deepEqual(resent.ref, run.ref);
+    assert.equal(listings(setup.api).length, 2);
+  });
 
 test('a renamed repository binding is refused until it is published again',
   async t => {

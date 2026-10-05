@@ -60,8 +60,13 @@ Double quotes do not quote identifiers: `"id"` is a value, while `` `id` `` is
 a name. The explicit Graph `LABELS` annotation retains its separate historical
 double-quoted annotation profile; accepting double-quoted query literals does
 not expand that profile's escapes or admit raw control characters in it.
-Backtick identifiers currently retain their existing limited escape profile;
-the wider GoogleSQL identifier escape repertoire is a coverage gap.
+Backtick identifiers use the same non-raw escape repertoire as STRING,
+including the `\\377` octal ceiling. They must be nonempty and may contain
+physical newlines and control scalars. Source CR and CRLF decode to LF;
+escaped `\\r` remains CR at decoding. Raw prefixes, triple quotation and
+chunk concatenation do not apply to identifiers. Decoded names still pass
+through ordinary name resolution and the common authored-name contracts;
+quoting does not bypass field-name restrictions or confer authority.
 Comments are line `--` and non-nested block `/* ... */` comments. Query
 parameters use `@name`. Bytes and raw bytes are not yet implemented in this
 profile and are rejected, including mixed STRING/bytes chunks, rather than
@@ -450,6 +455,35 @@ acquisition/share boundary; the Frontend cannot replace it with repeated reads.
 These are current implementation gaps, not new limits on the common traversal
 contract. Typed literal/list and predicate selectors are passed unchanged for
 ordinary checking; source acceptance alone is not their execution evidence.
+
+`graphs_equal` also enters ordinary Relation processing:
+
+```aql
+DATA same = FROM g |> graphs_equal(with: g);
+FROM same |> SELECT equal |> RESULT comparison
+```
+
+The required `with:` argument resolves an earlier DATA Graph producer using
+the existing DATA naming rule, including backtick-quoted names and bindings
+that retain a producer. A string is not a producer reference. The left input
+is the current Graph, including a preceding `normalize_graph()` output;
+resolving the right input does not reconstruct, acquire or copy either Graph.
+Unknown/forward references, Relation inputs, missing or extra arguments and
+a second Graph call after the Relation transition are explicit preparation
+refusals. A DATA binding of the comparison can continue through the ordinary
+Relation scope, expression, order and Result paths.
+
+The existing common checker owns compatible closed definitions and key/type
+contracts; the common comparison owner evaluates admitted Graph values,
+including complete identity, labels, properties and retained provenance.
+The output is one row with the non-NULL Boolean column `equal`. Subsequent
+Relation filtering may produce an empty result while retaining that column's
+contract. The Frontend exposes only `equal`, not the original Graph's keys,
+properties or internal slots, and does not derive new Graph equality semantics.
+Authored ORDER/LIMIT is lowered unchanged, but the current common order owner
+does not derive total-order evidence for this output and rejects that path with
+`UnresolvedOrder` before Run admission. This is a common implementation gap,
+not a language restriction or permission to discard the authored order.
 
 Other named calls parse but their output Carrier/schema is not yet connected
 to subsequent source operations; they return UnsupportedGraph before Run
