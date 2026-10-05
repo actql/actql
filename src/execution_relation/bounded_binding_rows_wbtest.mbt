@@ -183,6 +183,7 @@ fn bounded_binding_rows_fixture(
   max_entries? : Int = 10000,
   max_frames? : Int = 100,
   fragment_rows? : Int64 = 2L,
+  logical_limits? : LogicalLimits? = None,
 ) -> (@bounded.Control, BoundedBindingRowsExecution, ProducerRead) raise {
   let (source_owner, source) = bounded_binding_rows_source(
     rows,
@@ -234,7 +235,18 @@ fn bounded_binding_rows_fixture(
       distinct_keyed {
       []
     } else {
-      [sequence_fragment_context(sequence, 0, fragment_rows)]
+      let context = sequence_fragment_context(sequence, 0, fragment_rows)
+      [
+        match logical_limits {
+          None => context
+          Some(limits) =>
+            prepare_fragment_runtime_context(
+              context.fragment,
+              limits,
+              context.physical,
+            ).unwrap()
+        },
+      ]
     },
     [@lower.node_id(first)],
     100000,
@@ -3204,7 +3216,10 @@ test "bounded filter preserves exact nested input charges" {
       max_entries=1000,
     )
     let mut terminal = false
-    for _ in 0..<1000 {
+    // Admission, logical weight, cell wire measurement and row wire emission
+    // each visit the 256 items through continuations. Sixteen polls per item
+    // leave finite room for both child and container transitions in each walk.
+    for _ in 0..<4096 {
       if !terminal {
         match advance_bounded_binding_rows(execution, 1).unwrap() {
           BoundedBindingRowsContinue(..) => ()
