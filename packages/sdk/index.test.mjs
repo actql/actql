@@ -17,7 +17,7 @@ test('check presentation revisions are immutable and separate from schema identi
     [{locale: 'ja'}, 'ja'], [{locale: 'ja-JP'}, 'ja'], [{locale: 'fr'}, 'en'],
     [{get locale() { throw new Error('private locale cause'); }}, 'en']]) {
     const info = getCheckPresentationInfo(options);
-    assert.deepEqual(info, {locale, translationRevision: `2026-10-06.${locale}.2`});
+    assert.deepEqual(info, {locale, translationRevision: `2026-10-06.${locale}.3`});
     assert.equal(Object.isFrozen(info), true);
     assert.equal(Object.hasOwn(info, 'reasonSchemaCid'), false);
     assert.equal(Object.hasOwn(info, 'outcomeSchemaCid'), false);
@@ -1376,4 +1376,28 @@ test('unused Parameter explanations distinguish a declaration violation from a m
     hint: 'Remove the unused declaration or reference the parameter in the Program, then check again.'});
   assert.notEqual(explainCheckReason({code: 'parameter_unused'}).hint,
     explainCheckReason({code: 'parameter_value_required'}).hint);
+});
+
+test('operation scalar presentation explains the existing closed domains without deciding outcomes', () => {
+  const cases = [
+    ['positive_safe_integer', 'An operation parameter must be a positive safe integer.', 'Supply an integer from 1 through 9007199254740991.'],
+    ['nonnegative_safe_integer', 'An operation parameter must be a nonnegative safe integer.', 'Supply an integer from 0 through 9007199254740991; negative zero is not admitted.'],
+    ['unit_fraction', 'An operation parameter must be a finite fraction between 0 and 1.', 'Supply a number from 0 through 1, inclusive; negative zero is not admitted.'],
+    ['finite_number', 'An operation parameter must be a finite number.', 'Supply a finite number; negative zero is not admitted.'],
+    ['duration', 'An operation parameter must be an admitted duration.', 'Supply positive ASCII digits followed by ms, s, m, h or d, without whitespace; the milliseconds must fit a safe integer.'],
+    ['positive_milliseconds', 'An operation parameter must be positive safe milliseconds or an admitted duration.', 'Supply a positive safe integer of milliseconds, or a positive duration string with ms, s, m, h or d.'],
+    ['signed_milliseconds', 'An operation parameter must be signed safe milliseconds or an admitted duration.', 'Supply integer milliseconds from -9007199254740991 through 9007199254740991 without negative zero, or a positive duration string.'],
+    ['timestamp', 'An operation parameter must be an admitted timestamp value.', 'Supply a non-null timestamp value admitted by the timestamp declaration contract.'],
+  ];
+  for (const [domain, summary, hint] of cases) {
+    const reason = Object.freeze({code: 'operation_parameter_invalid', facts: Object.freeze({parameter: 'p', domain})});
+    assert.deepEqual(explainCheckReason(reason), {kind: 'known', summary, hint});
+    const japanese = explainCheckReason(reason, {locale: 'ja'});
+    assert.equal(japanese.kind, 'known');
+    assert.equal(typeof japanese.hint, 'string');
+    assert.equal(Object.hasOwn(japanese, 'verdict'), false);
+    assert.equal(Object.hasOwn(japanese, 'next'), false);
+    assert.equal(Object.hasOwn(japanese, 'apply'), false);
+    assert.equal(reason.facts.domain, domain);
+  }
 });

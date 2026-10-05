@@ -11,6 +11,7 @@ priv enum CheckFinding {
   LexicalViolation(String, (Int, Int)?)
   ExpressionViolation(String, (Int, Int)?)
   FrameViolation
+  OperationScalarViolation(String, String, (String, String)?)
   GraphViolation(String, String)
   TypeViolation(String, String, String, String?)
   DefaultTypeViolation(String, String, String, String?)
@@ -205,6 +206,7 @@ fn check_source_findings(
     }
     Err(_) => return Failed("check_internal")
   }
+  let mut explanation_bindings : @parameter_binding.BoundValues? = None
   if supplied_admitted {
     // Omitted declarations admit the binder's empty set; an authored empty
     // declaration map was rejected above and must not be substituted here.
@@ -238,7 +240,7 @@ fn check_source_findings(
           }
         }
       }
-      Ok(Ready(_)) => ()
+      Ok(Ready(bound)) => explanation_bindings = Some(bound)
       Err(issue) =>
         match check_binding_fault(issue) {
           Budget => findings.push(Limit("analysis_budget_exhausted"))
@@ -373,6 +375,7 @@ fn check_source_findings(
       | LexicalViolation(_, _)
       | ExpressionViolation(_, _)
       | FrameViolation
+      | OperationScalarViolation(_, _, _)
       | GraphViolation(_, _)
       | TypeViolation(_, _, _, _)
       | DefaultTypeViolation(_, _, _, _)
@@ -424,7 +427,11 @@ fn check_source_findings(
             is Some(finding) {
             findings.push(finding)
           } else {
-            findings.push(check_program_finding(diagnostic))
+            findings.push(
+              check_program_finding(
+                diagnostic, explanation_bindings, supplied, parameters, declarations,
+              ),
+            )
           }
         MissingInput => findings.push(Limit("bound_values_missing"))
         UnsupportedImplementation =>
@@ -574,9 +581,101 @@ fn check_declarations(
 }
 
 ///|
+/// Project an existing scalar rejection, without rechecking the supplied value.
+/// The first admitted binder retains whether this call supplied the value or
+/// selected its default. Internal requirement indexes are never input positions.
+fn check_operation_scalar_finding(
+  diagnostic : @program_check.CheckDiagnostic,
+  bindings : @parameter_binding.BoundValues?,
+  supplied : @decode.Cursor?,
+  parameters : String?,
+  declarations : String?,
+) -> CheckFinding? {
+  guard @program_check.diagnostic_cause(diagnostic)
+    is Closure(Operations(Scalars(InvalidValue(_, demand)))) else {
+    return None
+  }
+  let name = match demand {
+    SafeInteger(name, ..)
+    | Fraction(name)
+    | Finite(name)
+    | Duration(name)
+    | Milliseconds(name, ..)
+    | Timestamp(name) => name
+  }
+  guard name.length() <= 256 else { return None }
+  let domain = match demand {
+    SafeInteger(_, minimum=1L) => Some("positive_safe_integer")
+    SafeInteger(_, minimum=0L) => Some("nonnegative_safe_integer")
+    SafeInteger(_, ..) => None
+    Fraction(_) => Some("unit_fraction")
+    Finite(_) => Some("finite_number")
+    Duration(_) => Some("duration")
+    Milliseconds(_, signed=false) => Some("positive_milliseconds")
+    Milliseconds(_, signed=true) => Some("signed_milliseconds")
+    Timestamp(_) => Some("timestamp")
+  }
+  guard domain is Some(domain) else { return None }
+  guard bindings is Some(bound) else { return None }
+  let mut original_parameter = None
+  for index in 0..<@parameter_binding.bound_value_count(bound) {
+    let parameter = @parameter_binding.bound_value_at(bound, index).unwrap()
+    if parameter.name == name {
+      original_parameter = Some(parameter)
+      break
+    }
+  }
+  // A generated or differently scoped name is not a caller-owned parameter.
+  guard original_parameter is Some(parameter) else { return None }
+  let mut location = None
+  match parameter.origin {
+    Supplied =>
+      if supplied is Some(cursor) &&
+        parameters is Some(body) &&
+        check_supplied_cursor(cursor, [@source.Key(name)]) is Some(_) &&
+        check_original_pointer(body, cursor, [@source.Key(name)])
+        is Some(pointer) {
+        location = Some(("parameters", pointer))
+      }
+    Default =>
+      if declarations is Some(body) {
+        let original = @parameter_binding.bound_declarations(bound)
+        for declaration in @parameter_binding.declarations(original) {
+          if declaration.name != name {
+            continue
+          }
+          let cursor = @parameter_binding.declaration_source(declaration)
+          let path = @decode.cursor_path(cursor)
+          if path.length() == 1 &&
+            path[0] is @source.Key(key) &&
+            key == name &&
+            check_supplied_cursor(cursor, [@source.Key("default")]) is Some(_) &&
+            check_original_pointer(body, cursor, [@source.Key("default")])
+            is Some(relative) &&
+            check_supplied_pointer(path) is Some(prefix) {
+            location = Some(("parameter_declarations", prefix + relative))
+          }
+          break
+        }
+      }
+  }
+  Some(OperationScalarViolation(name, domain, location))
+}
+
+///|
 fn check_program_finding(
   diagnostic : @program_check.CheckDiagnostic,
+  bindings : @parameter_binding.BoundValues?,
+  supplied : @decode.Cursor?,
+  parameters : String?,
+  declarations : String?,
 ) -> CheckFinding {
+  if check_operation_scalar_finding(
+      diagnostic, bindings, supplied, parameters, declarations,
+    )
+    is Some(finding) {
+    return finding
+  }
   if @program_check.diagnostic_cause(diagnostic)
     is Closure(Operations(Frames(InvalidFrame(_)))) {
     // The existing closure Owner proves the bound frame violation. Its
@@ -669,6 +768,7 @@ fn check_verdict(findings : Array[CheckFinding]) -> String {
       | LexicalViolation(_, _)
       | ExpressionViolation(_, _)
       | FrameViolation
+      | OperationScalarViolation(_, _, _)
       | GraphViolation(_, _)
       | TypeViolation(_, _, _, _)
       | DefaultTypeViolation(_, _, _, _)
@@ -717,6 +817,7 @@ fn write_check_report(
       LexicalViolation(_, _) => Some("query_lexical_invalid")
       ExpressionViolation(_, _) => Some("query_expression_invalid")
       FrameViolation => Some("query_frame_invalid")
+      OperationScalarViolation(_, _, _) => Some("operation_parameter_invalid")
       GraphViolation(_, _) => Some("graph_operation_invalid")
       TypeViolation(_, _, _, _) => Some("supplied_value_type_mismatch")
       DefaultTypeViolation(_, _, _, _) =>
@@ -977,6 +1078,32 @@ fn write_check_report(
           write_check_structured_location(
             writer, "parameter_declarations", revision, pointer,
           )
+          break
+        }
+      }
+    }
+    if code == "operation_parameter_invalid" {
+      for finding in findings {
+        if finding is OperationScalarViolation(name, domain, location) {
+          @encode.key(writer, "facts")
+          @encode.begin_object(writer)
+          @encode.key(writer, "domain")
+          @encode.string_value(writer, domain)
+          @encode.key(writer, "parameter")
+          @encode.string_value(writer, name)
+          @encode.end_object(writer)
+          if location is Some((document_id, pointer)) {
+            let revision = if document_id == "parameters" {
+              documents.parameters_revision
+            } else {
+              documents.declarations_revision
+            }
+            if revision is Some(revision) {
+              write_check_structured_location(
+                writer, document_id, revision, pointer,
+              )
+            }
+          }
           break
         }
       }

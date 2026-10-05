@@ -1491,7 +1491,7 @@ for (const entrance of ['local', 'http']) {
       assert.equal(JSON.stringify(outcome), original);
       assert.equal(requests, count, 'Presentation performs no additional check or execution I/O');
       assert.deepEqual(sdk.getCheckPresentationInfo({locale: 'ja'}),
-        {locale: 'ja', translationRevision: '2026-10-06.ja.2'});
+        {locale: 'ja', translationRevision: '2026-10-06.ja.3'});
     }
     const declarations = Object.fromEntries(Array.from({length: 512}, (_, i) =>
       [`p${String(i).padStart(3, '0')}`, {type: 'number'}]));
@@ -2846,6 +2846,7 @@ for (const entrance of ['local', 'http']) {
       ['c4bdfd21416f02aa13a2ac1d7614ef398dec7b31', 'sha256:16c81ff351a5c3d1fa56757c3c9936a68fd7014c81137e8efa1c54988a61c961'],
       ['5d52b3a970984f3cdad554b9030a0c25fa8ac887', 'sha256:ac08ebfd20b15d7ee4898039c94f3d089baaaeb693b319d241b3e0fe6adec4a6'],
       ['7f4a8167a0e6492b61478c805a77f3f583b0cd2f', 'sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d'],
+      ['b40f973ca636895d7dccac79c4c678371d912887', 'sha256:15d4d9b93f6e22c50256271ba09d09ba5da6a2a7105e118af2ad224a0591feac'],
       ['47fd48576a1c4f48ebd0ce949e821e302a420cba', 'sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d'],
     ]) {
       const historical = path => execFileSync('git', ['show', `${revision}:${path}`],
@@ -2950,3 +2951,160 @@ test('http: SDK rejects contradictory evidence injected into a real verified rep
       problem: {code: 'check_internal'}, partial_report: value.report});
     await assert.rejects(check(), {code: 'InvalidHostCheckOutcome'});
   });
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: operation parameter violations explain owned domains and input origins`, async t => {
+    const client = await contextClient(t, entrance, sourceEnvironment,
+      {aliases: [alias], readOutcome: 'allow'});
+    for (const direction of ['PRECEDING', 'FOLLOWING']) {
+      const text = 'SELECT FIRST_VALUE(amount) OVER '
+        + `(ORDER BY id ROWS BETWEEN @before ${direction} AND @after ${direction}) AS first FROM records`;
+      for (const before of [0, -1, 1.5, 9007199254740992]) {
+        const outcome = await client.check(text, {format: 'sql',
+          parameterDeclarations: {before: {type: 'number', nullable: false},
+            after: {type: 'number', nullable: false}}, parameters: {before, after: 2}});
+        assert.equal(outcome.outcome, 'completed');
+        assert.equal(outcome.report.verdict, 'invalid');
+        const [reason] = outcome.report.reasons;
+        assert.deepEqual({code: reason.code, facts: reason.facts},
+          {code: 'operation_parameter_invalid', facts: {parameter: 'before', domain: 'positive_safe_integer'}},
+          '[check-mutation:operation-parameter-facts]');
+        assert.deepEqual(reason.location, {kind: 'structured', document_id: 'parameters',
+          revision: outcome.report.inputs.find(input => input.document_id === 'parameters').revision, pointer: '/before'},
+          '[check-mutation:operation-parameter-location]');
+        const resolved = resolveCheckLocation(outcome, reason.location);
+        assert.equal(resolved.input.value.before, before);
+        assert.equal(resolved.pointer, '/before');
+        assert.deepEqual(explainCheckReason(reason), {kind: 'known',
+          summary: 'An operation parameter must be a positive safe integer.',
+          hint: 'Supply an integer from 1 through 9007199254740991.'}, '[check-mutation:operation-parameter-explanation]');
+        assert.deepEqual(explainCheckReason(reason, {locale: 'ja'}), {kind: 'known',
+          summary: '演算パラメータには正のsafe integerが必要です。', hint: '1以上9007199254740991以下の整数を渡してください。'});
+        assert.equal(resolveCheckLocation(structuredClone(outcome), reason.location), undefined);
+        assert.equal(resolveCheckLocation(outcome, reason.location, {...resolved.input, revision: `rev:${'0'.repeat(64)}`}), undefined);
+        assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+        assert.deepEqual(outcome.report.requirements, []);
+      }
+    }
+  });
+}
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: operation parameter defaults and missing values keep distinct origins`, async t => {
+    const client = await contextClient(t, entrance, sourceEnvironment,
+      {aliases: [alias], readOutcome: 'allow'});
+    const text = 'SELECT FIRST_VALUE(amount) OVER '
+      + '(ORDER BY id ROWS BETWEEN @before PRECEDING AND @after PRECEDING) AS first FROM records';
+    const declarations = {before: {type: 'number', nullable: false, default: 0},
+      after: {type: 'number', nullable: false}};
+    const pending = client.check(text, {format: 'sql', parameterDeclarations: declarations,
+      parameters: {after: 2}});
+    declarations.before.default = 2;
+    const outcome = await pending;
+    assert.equal(outcome.report.verdict, 'invalid');
+    const [reason] = outcome.report.reasons;
+    assert.deepEqual({code: reason.code, facts: reason.facts}, {code: 'operation_parameter_invalid',
+      facts: {parameter: 'before', domain: 'positive_safe_integer'}});
+    assert.deepEqual(reason.location, {kind: 'structured', document_id: 'parameter_declarations',
+      revision: outcome.report.inputs.find(input => input.document_id === 'parameter_declarations').revision,
+      pointer: '/before/default'}, '[check-mutation:operation-default-location]');
+    const resolved = resolveCheckLocation(outcome, reason.location);
+    assert.equal(resolved.input.value.before.default, 0);
+    assert.equal(resolved.pointer, '/before/default');
+    assert.equal(resolveCheckLocation(outcome, reason.location, {...resolved.input, value: declarations}), undefined);
+    assert.equal(getCheckInput(outcome, 'parameters').value.before, undefined);
+    const overridden = await client.check(text, {format: 'sql',
+      parameterDeclarations: {...declarations, before: {...declarations.before, default: 0}},
+      parameters: {before: 1.5, after: 2}});
+    assert.equal(overridden.report.reasons[0].location.document_id, 'parameters');
+    assert.equal(overridden.report.reasons[0].location.pointer, '/before');
+    const missing = await client.check(text, {format: 'sql', parameterDeclarations: {
+      before: {type: 'number', nullable: false}, after: {type: 'number', nullable: false}}, parameters: {after: 2}});
+    assert.equal(missing.report.verdict, 'undetermined');
+    assert.deepEqual(missing.report.reasons, []);
+    assert.deepEqual(missing.report.requirements.map(({code, facts}) => ({code, facts})),
+      [{code: 'parameter_value_required', facts: {parameter: 'before', expected_type: 'number'}}]);
+  });
+
+  test(`${entrance}: operation offset violations retain the nonnegative domain`, async t => {
+    const wire = withPolicy(sourceEnvironment, {capacity: {...sourceEnvironment.host_policy_profile.capacity,
+      max_analytic_input_wire_bytes: 10000, max_analytic_output_wire_bytes: 10000,
+      max_analytic_partition_wire_bytes: 10000, max_analytic_frame_memberships: 10000}});
+    const client = await contextClient(t, entrance, wire,
+      {aliases: [alias], readOutcome: 'allow'});
+    for (const offset of [-1, 1.5, 9007199254740992]) {
+      const outcome = await client.check('SELECT LAG(amount, @offset) OVER (ORDER BY id) AS previous FROM records', {format: 'sql',
+        parameterDeclarations: {offset: {type: 'number', nullable: false}}, parameters: {offset}});
+      assert.equal(outcome.report.verdict, 'invalid', JSON.stringify(outcome));
+      assert.deepEqual(outcome.report.reasons[0].facts, {parameter: 'offset', domain: 'nonnegative_safe_integer'});
+      assert.equal(outcome.report.reasons[0].location.pointer, '/offset');
+      assert.deepEqual(explainCheckReason(outcome.report.reasons[0]), {kind: 'known',
+        summary: 'An operation parameter must be a nonnegative safe integer.',
+        hint: 'Supply an integer from 0 through 9007199254740991; negative zero is not admitted.'});
+    }
+    const verified = await client.check('SELECT LAG(amount, @offset) OVER (ORDER BY id) AS previous FROM records', {format: 'sql',
+      parameterDeclarations: {offset: {type: 'number', nullable: false}}, parameters: {offset: 0}});
+    assert.equal(verified.report.verdict, 'verified', JSON.stringify(verified));
+  });
+}
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: literal-only LIMIT syntax does not invent scalar domain facts`, async t => {
+    const client = await contextClient(t, entrance, sourceEnvironment,
+      {aliases: [alias], readOutcome: 'allow'});
+    const outcome = await client.check('SELECT id FROM records LIMIT 2 OFFSET @offset', {format: 'sql',
+      parameterDeclarations: {offset: {type: 'number', nullable: false}}, parameters: {offset: -1}});
+    assert.equal(outcome.report.verdict, 'invalid');
+    assert.deepEqual(outcome.report.reasons.map(({code, facts}) => ({code, ...(facts ? {facts} : {})})),
+      [{code: 'query_syntax_invalid'}]);
+    assert.equal(outcome.report.reasons[0].location.document_id, 'source');
+    assert.deepEqual({...outcome.report.reasons[0].location, revision: 'submitted'},
+      {kind: 'text', document_id: 'source', revision: 'submitted', start_byte: 38, end_byte: 38, precision: 'exact'});
+    assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location).text, '');
+  });
+
+  test(`${entrance}: protected scalar demands retain only independent public violations`, async t => {
+    const clients = [
+      await contextClient(t, entrance, sourceEnvironment),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'deny'}),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'allow', closed: true}),
+    ];
+    for (const before of [0, 'private-operation-value']) {
+      const results = await Promise.all(clients.map(client => client.check('SELECT FIRST_VALUE(amount) OVER '
+        + '(ORDER BY id ROWS BETWEEN @before PRECEDING AND @after PRECEDING) AS first FROM records',
+      {format: 'sql', parameterDeclarations: {before: {type: 'number'}, after: {type: 'number'}},
+        parameters: {before, after: 2}})));
+      assert.deepEqual(results[0], results[1], '[check-mutation:operation-parameter-protected]');
+      assert.deepEqual(results[0], results[2], '[check-mutation:operation-parameter-protected]');
+      const {report} = results[0];
+      assert.equal(report.verdict, typeof before === 'number' ? 'undetermined' : 'invalid');
+      assert.deepEqual(report.reasons.map(({code, facts}) => ({code, ...(facts ? {facts} : {})})),
+        typeof before === 'number' ? [] : [{code: 'supplied_value_type_mismatch',
+          facts: {parameter: 'before', expected_type: 'number', actual_type: 'string'}}]);
+      assert.deepEqual(report.coverage, {limits: [],
+        unresolved: [{boundary: 'source_resolution', reason: 'unresolved_protected'}]});
+      assert.equal(JSON.stringify(results).includes('private-operation-value'), false);
+    }
+  });
+}
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: SDK rejects malformed operation facts from an actual check reply`, async t => {
+    let mutation = value => value;
+    const client = await contextClient(t, entrance, sourceEnvironment,
+      {aliases: [alias], readOutcome: 'allow', mutateCheckTransportReply: value => mutation(value)});
+    const check = () => client.check('SELECT FIRST_VALUE(amount) OVER '
+      + '(ORDER BY id ROWS BETWEEN @before PRECEDING AND @after PRECEDING) AS first FROM records',
+    {format: 'sql', parameterDeclarations: {before: {type: 'number'}, after: {type: 'number'}},
+      parameters: {before: 0, after: 2}});
+    assert.deepEqual((await check()).report.reasons[0].facts,
+      {parameter: 'before', domain: 'positive_safe_integer'});
+    for (const facts of [undefined, {}, {parameter: 'before', domain: 'private_domain'},
+      {parameter: 'before', domain: 'positive_safe_integer', requirement_index: 0},
+      {parameter: 'before', domain: 'positive_safe_integer', value: 'private-value'}]) {
+      mutation = value => ({...value, report: {...value.report,
+        reasons: [{...value.report.reasons[0], facts}]}});
+      await assert.rejects(check(), {code: 'InvalidHostCheckOutcome'});
+    }
+  });
+}

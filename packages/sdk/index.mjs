@@ -318,6 +318,7 @@ export function explainCheckReason(reason, options) {
     parameter_value_required: ['A declared parameter value is missing.', 'Supply the declared value and check the complete bound input again.'],
     parameter_default_type_mismatch: ['A parameter default does not match its declared type.',
       'Correct the default to match the declared type, then check again.'],
+    operation_parameter_invalid: ['A parameter violates an operation scalar domain.', 'Correct the supplied value or selected default under the reported operation domain.'],
     program_invalid: ['The input violates the checked Program contract.', 'Correct the input under the selected contract.'],
     bound_values_missing: ['Required bound inputs are missing.', 'Supply the declared inputs and check again.'],
     implementation_limit: ['This checking implementation cannot discharge an obligation.', 'Ask the checking-context owner to review support for the submitted construct.'],
@@ -326,6 +327,30 @@ export function explainCheckReason(reason, options) {
     unresolved_protected: ['Source resolution cannot be established from the disclosed context.', 'Ask the Source or checking-context owner to review the published context.'],
   };
   const known = Object.hasOwn(explanations, reason?.code) ? explanations[reason.code] : undefined;
+  const scalarExplanations = {
+    positive_safe_integer: ['An operation parameter must be a positive safe integer.',
+      'Supply an integer from 1 through 9007199254740991.'],
+    nonnegative_safe_integer: ['An operation parameter must be a nonnegative safe integer.',
+      'Supply an integer from 0 through 9007199254740991; negative zero is not admitted.'],
+    unit_fraction: ['An operation parameter must be a finite fraction between 0 and 1.',
+      'Supply a number from 0 through 1, inclusive; negative zero is not admitted.'],
+    finite_number: ['An operation parameter must be a finite number.',
+      'Supply a finite number; negative zero is not admitted.'],
+    duration: ['An operation parameter must be an admitted duration.',
+      'Supply positive ASCII digits followed by ms, s, m, h or d, without whitespace; the milliseconds must fit a safe integer.'],
+    positive_milliseconds: ['An operation parameter must be positive safe milliseconds or an admitted duration.',
+      'Supply a positive safe integer of milliseconds, or a positive duration string with ms, s, m, h or d.'],
+    signed_milliseconds: ['An operation parameter must be signed safe milliseconds or an admitted duration.',
+      'Supply integer milliseconds from -9007199254740991 through 9007199254740991 without negative zero, or a positive duration string.'],
+    timestamp: ['An operation parameter must be an admitted timestamp value.',
+      'Supply a non-null timestamp value admitted by the timestamp declaration contract.'],
+  };
+  const domain = reason?.facts?.domain;
+  if (reason?.code === 'operation_parameter_invalid' && typeof domain === 'string' &&
+      Object.hasOwn(scalarExplanations, domain)) {
+    const [summary, hint] = localizeCheck(`scalar.${domain}`, scalarExplanations[domain], options);
+    return Object.freeze({kind: 'known', summary, hint});
+  }
   const lexicalExplanations = {
     unexpected_end: ['The input ends before a token is complete.', 'Complete the quoted token or escape sequence at the reported position.'],
     unexpected_token: ['A token is not valid in this lexical context.', 'Correct the token spelling or delimiter at the reported position.'],

@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:f905ddd1e79265cc6f0eb47f47447de72b33c418edcfae5c9f88e3371a812bb6",
+  "artifact_registry_cid": "sha256:9d7fd133e515430b83f8d7e2078a3e9af9e7993b38dac659c9c7412519522f6e",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10713,8 +10713,8 @@
     "model_prompt": "sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204",
     "model_retry_policy": "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c",
     "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55",
-    "check_outcome": "sha256:506730273187b8d1bb3b7a5bd1a446eaffe3007da615c637bd461743e4e0a1b6",
-    "check_reason": "sha256:15d4d9b93f6e22c50256271ba09d09ba5da6a2a7105e118af2ad224a0591feac",
+    "check_outcome": "sha256:e82160288635a2047646ae956dbba116224b1c64b03231b6c4245d43a6cecc5c",
+    "check_reason": "sha256:3204b8f2edb377120d3139f380fc3c49541ff34b7117430de4ed52e0f826025f",
     "model_provider_binding": "sha256:a4a37e0016403b483aa267dca7aae6c682940d2b23343b95defbcac2a1ca92b3",
     "model_invocation_scope": "sha256:2ae55fd7143e29dc3468123dbea9979c65f0aeac9adc392098db87679ebf88c3"
   },
@@ -76367,6 +76367,33 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
+                              "parameter",
+                              "domain"
+                            ],
+                            "properties": {
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "domain": {
+                                "enum": [
+                                  "positive_safe_integer",
+                                  "nonnegative_safe_integer",
+                                  "unit_fraction",
+                                  "finite_number",
+                                  "duration",
+                                  "positive_milliseconds",
+                                  "signed_milliseconds",
+                                  "timestamp"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
                               "operation",
                               "issue"
                             ],
@@ -76592,6 +76619,13 @@
                                       "constraint"
                                     ]
                                   }
+                                },
+                                {
+                                  "not": {
+                                    "required": [
+                                      "domain"
+                                    ]
+                                  }
                                 }
                               ]
                             }
@@ -76681,6 +76715,40 @@
                               "required": [
                                 "constraint"
                               ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "operation_parameter_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "domain"
+                              ]
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "enum": [
+                                    "parameters",
+                                    "parameter_declarations"
+                                  ]
+                                }
+                              }
                             }
                           }
                         }
@@ -76862,7 +76930,8 @@
                                   "query_lexical_invalid",
                                   "query_expression_invalid",
                                   "query_frame_invalid",
-                                  "graph_operation_invalid"
+                                  "graph_operation_invalid",
+                                  "operation_parameter_invalid"
                                 ]
                               }
                             }
@@ -77095,6 +77164,33 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
+                              "parameter",
+                              "domain"
+                            ],
+                            "properties": {
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "domain": {
+                                "enum": [
+                                  "positive_safe_integer",
+                                  "nonnegative_safe_integer",
+                                  "unit_fraction",
+                                  "finite_number",
+                                  "duration",
+                                  "positive_milliseconds",
+                                  "signed_milliseconds",
+                                  "timestamp"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
                               "operation",
                               "issue"
                             ],
@@ -77320,6 +77416,13 @@
                                       "constraint"
                                     ]
                                   }
+                                },
+                                {
+                                  "not": {
+                                    "required": [
+                                      "domain"
+                                    ]
+                                  }
                                 }
                               ]
                             }
@@ -77409,6 +77512,40 @@
                               "required": [
                                 "constraint"
                               ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "operation_parameter_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "domain"
+                              ]
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "enum": [
+                                    "parameters",
+                                    "parameter_declarations"
+                                  ]
+                                }
+                              }
                             }
                           }
                         }
@@ -77590,7 +77727,8 @@
                                   "query_lexical_invalid",
                                   "query_expression_invalid",
                                   "query_frame_invalid",
-                                  "graph_operation_invalid"
+                                  "graph_operation_invalid",
+                                  "operation_parameter_invalid"
                                 ]
                               }
                             }
@@ -77633,7 +77771,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:15d4d9b93f6e22c50256271ba09d09ba5da6a2a7105e118af2ad224a0591feac"
+              "const": "sha256:3204b8f2edb377120d3139f380fc3c49541ff34b7117430de4ed52e0f826025f"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -78066,6 +78204,33 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
+                              "parameter",
+                              "domain"
+                            ],
+                            "properties": {
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "domain": {
+                                "enum": [
+                                  "positive_safe_integer",
+                                  "nonnegative_safe_integer",
+                                  "unit_fraction",
+                                  "finite_number",
+                                  "duration",
+                                  "positive_milliseconds",
+                                  "signed_milliseconds",
+                                  "timestamp"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
                               "operation",
                               "issue"
                             ],
@@ -78291,6 +78456,13 @@
                                       "constraint"
                                     ]
                                   }
+                                },
+                                {
+                                  "not": {
+                                    "required": [
+                                      "domain"
+                                    ]
+                                  }
                                 }
                               ]
                             }
@@ -78380,6 +78552,40 @@
                               "required": [
                                 "constraint"
                               ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "operation_parameter_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "domain"
+                              ]
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "enum": [
+                                    "parameters",
+                                    "parameter_declarations"
+                                  ]
+                                }
+                              }
                             }
                           }
                         }
@@ -78561,7 +78767,8 @@
                                   "query_lexical_invalid",
                                   "query_expression_invalid",
                                   "query_frame_invalid",
-                                  "graph_operation_invalid"
+                                  "graph_operation_invalid",
+                                  "operation_parameter_invalid"
                                 ]
                               }
                             }
@@ -78794,6 +79001,33 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
+                              "parameter",
+                              "domain"
+                            ],
+                            "properties": {
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "domain": {
+                                "enum": [
+                                  "positive_safe_integer",
+                                  "nonnegative_safe_integer",
+                                  "unit_fraction",
+                                  "finite_number",
+                                  "duration",
+                                  "positive_milliseconds",
+                                  "signed_milliseconds",
+                                  "timestamp"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
                               "operation",
                               "issue"
                             ],
@@ -79019,6 +79253,13 @@
                                       "constraint"
                                     ]
                                   }
+                                },
+                                {
+                                  "not": {
+                                    "required": [
+                                      "domain"
+                                    ]
+                                  }
                                 }
                               ]
                             }
@@ -79108,6 +79349,40 @@
                               "required": [
                                 "constraint"
                               ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "operation_parameter_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "domain"
+                              ]
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "enum": [
+                                    "parameters",
+                                    "parameter_declarations"
+                                  ]
+                                }
+                              }
                             }
                           }
                         }
@@ -79289,7 +79564,8 @@
                                   "query_lexical_invalid",
                                   "query_expression_invalid",
                                   "query_frame_invalid",
-                                  "graph_operation_invalid"
+                                  "graph_operation_invalid",
+                                  "operation_parameter_invalid"
                                 ]
                               }
                             }
@@ -79350,7 +79626,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:15d4d9b93f6e22c50256271ba09d09ba5da6a2a7105e118af2ad224a0591feac"
+              "const": "sha256:3204b8f2edb377120d3139f380fc3c49541ff34b7117430de4ed52e0f826025f"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -79396,7 +79672,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:15d4d9b93f6e22c50256271ba09d09ba5da6a2a7105e118af2ad224a0591feac"
+              "const": "sha256:3204b8f2edb377120d3139f380fc3c49541ff34b7117430de4ed52e0f826025f"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -79610,6 +79886,33 @@
                     "duration",
                     "array_length",
                     "array_size"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "parameter",
+                "domain"
+              ],
+              "properties": {
+                "parameter": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "domain": {
+                  "enum": [
+                    "positive_safe_integer",
+                    "nonnegative_safe_integer",
+                    "unit_fraction",
+                    "finite_number",
+                    "duration",
+                    "positive_milliseconds",
+                    "signed_milliseconds",
+                    "timestamp"
                   ]
                 }
               }
@@ -79843,6 +80146,13 @@
                         "constraint"
                       ]
                     }
+                  },
+                  {
+                    "not": {
+                      "required": [
+                        "domain"
+                      ]
+                    }
                   }
                 ]
               }
@@ -79932,6 +80242,40 @@
                 "required": [
                   "constraint"
                 ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "operation_parameter_invalid"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "facts"
+            ],
+            "properties": {
+              "facts": {
+                "required": [
+                  "domain"
+                ]
+              },
+              "location": {
+                "properties": {
+                  "kind": {
+                    "const": "structured"
+                  },
+                  "document_id": {
+                    "enum": [
+                      "parameters",
+                      "parameter_declarations"
+                    ]
+                  }
+                }
               }
             }
           }
@@ -80113,7 +80457,8 @@
                     "query_lexical_invalid",
                     "query_expression_invalid",
                     "query_frame_invalid",
-                    "graph_operation_invalid"
+                    "graph_operation_invalid",
+                    "operation_parameter_invalid"
                   ]
                 }
               }
