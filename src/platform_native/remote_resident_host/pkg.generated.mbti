@@ -6,6 +6,7 @@ import {
   "actql/actql/connectors/duckdb/adapters/native",
   "actql/actql/connectors/duckdb/host_native",
   "actql/actql/connectors/duckdb/standard_host",
+  "actql/actql/execution_relation",
   "actql/actql/execution_site",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
@@ -16,6 +17,7 @@ import {
   "actql/actql/platform_native/remote_journal",
   "actql/actql/platform_native/remote_runtime",
   "actql/actql/platform_native/remote_standard_host",
+  "actql/actql/platform_native/remote_transfer_client",
   "actql/actql/platform_native/remote_transfer_journal",
   "actql/actql/platform_native/remote_values_host",
   "actql/actql/platform_native/runtime_bundle",
@@ -35,6 +37,10 @@ pub fn complete_resident_output_intent(@remote_journal.Journal, @publication_pay
 pub fn deliver_resident_output(ResidentExecuted, @remote_journal.Journal, String, String, Int, @remote_site_protocol.RemotePollOutput, @publication_store.Store, @http_client.Client, @remote_transfer_journal.Journal, String, String, Int, (String) -> Unit) -> ResidentDelivery
 
 pub fn execute_resident_attempt(@remote_journal.Journal, ResidentExecution, ResidentRunAdmission, String, String, () -> String, ((String) -> Bool)?) -> Result[ResidentExecuted, ResidentExecutionFailure]
+
+pub fn install_resident_retained_compute_executor(@run_publication_host.ClientRunMaterials, ResidentSourceComputeConfiguration, @remote_standard_host.NativeRemoteRetainedTaskInput, @remote_transfer_client.NativeRemoteDestinationMaterialUse, @remote_site_protocol.DispatchRequest, @remote_standard_host.NativeRemoteStandardRowCodec, @remote_standard_host.NativeRemoteStandardTransferSourceLimits, @remote_standard_host.NativeRemoteRetainedInputCurrent, @remote_standard_host.NativeRemoteStandardTaskLimits) -> Result[@remote_standard_host.NativeRemoteStandardTaskExecutor, ResidentSourceComputeIssue]
+
+pub fn open_resident_retained_compute(@run_publication_host.PreparedClientProgram, ResidentSourceComputeConfiguration, @remote_standard_host.NativeRemoteRetainedTaskInput, @remote_transfer_client.NativeRemoteDestinationMaterialUse, @remote_site_protocol.DispatchRequest, @remote_standard_host.NativeRemoteStandardRowCodec, @remote_standard_host.NativeRemoteStandardTransferSourceLimits, @remote_standard_host.NativeRemoteRetainedInputCurrent, observe? : (ResidentSourceComputeEvent) -> Bool) -> Result[ResidentSourceCompute, (ResidentSourceComputeIssue, @remote_standard_host.NativeRemoteStandardInputFailure)]
 
 pub fn open_resident_source_compute(@run_publication_host.PreparedClientProgram, ResidentSourceComputeConfiguration, String, observe? : (ResidentSourceComputeEvent) -> Bool) -> Result[ResidentSourceCompute, (ResidentSourceComputeIssue, @remote_standard_host.NativeRemoteStandardInputFailure)]
 
@@ -135,6 +141,7 @@ type ResidentSourceCompute
 pub fn ResidentSourceCompute::close(Self) -> Bool
 pub fn ResidentSourceCompute::execute_task(Self, Int) -> Result[@host_native.NativeStandardStrategyTaskCompletion, ResidentSourceComputeIssue]
 pub fn ResidentSourceCompute::prepare_result_export(Self, @run_publication_host.PublicationOutputExportLimits) -> Result[@run_publication_host.PublicationOutputExport, ResidentSourceComputeIssue]
+pub fn ResidentSourceCompute::prepare_source_export(Self, @run_publication_host.PublicationOutputExportLimits) -> Result[@execution_relation.CompletedOutputExport, ResidentSourceComputeIssue]
 pub fn ResidentSourceCompute::usage(Self) -> @physical_resources.LedgerUsage
 
 pub(all) struct ResidentSourceComputeConfiguration {
@@ -166,6 +173,7 @@ pub(all) enum ResidentSourceComputeIssue {
   Acquisition(@host_native.NativeReadOnlySourceIssue)
   Execution(@host_native.NativeAcquisitionFailure)
   Capture
+  RetainedInput(@remote_standard_host.NativeRemoteRetainedTaskSourceIssue)
   Run(@run_publication_host.ClientRunOpenIssue)
   Dispatch(@standard_host.DispatchIssue)
   Compute(@host_native.NativeStandardStrategyRunIssue)

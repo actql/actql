@@ -2,19 +2,30 @@
 package "actql/actql/canonical_json"
 
 import {
+  "actql/actql/decode_core",
   "actql/actql/encode_core",
   "actql/actql/source_value",
   "moonbitlang/core/debug",
 }
 
 // Values
+pub fn advance_cursor_admission(CursorAdmission) -> CursorAdmissionPoll
+
+pub fn advance_emit(CanonicalEmit) -> Bool raise @encode_core.EncodeFailure
+
 pub fn[T] array_at(FrozenArray[T], Int) -> T?
 
 pub fn[T] array_count(FrozenArray[T]) -> Int
 
 pub fn[T] array_values(FrozenArray[T]) -> Array[T]
 
+pub fn cancel_cursor_admission(CursorAdmission) -> Unit
+
+pub fn cancel_emit(CanonicalEmit) -> Unit
+
 pub fn cid_value(CanonicalValue, Int, Int, Int) -> String raise @encode_core.EncodeFailure
+
+pub fn emit_pending_frames(CanonicalEmit) -> Int
 
 pub fn emit_value(CanonicalValue, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
@@ -34,6 +45,10 @@ pub fn object_with_string_field(CanonicalValue, String, String) -> CanonicalValu
 
 pub fn object_without_field(CanonicalValue, String) -> CanonicalValue?
 
+pub fn start_cursor_admission(@decode_core.Cursor, Int, Int, Int, Int) -> CursorAdmission?
+
+pub fn start_emit(CanonicalValue, @encode_core.Writer) -> CanonicalEmit
+
 pub fn stringify_value(CanonicalValue, Int, Int, Int) -> String raise @encode_core.EncodeFailure
 
 // Errors
@@ -45,6 +60,8 @@ pub(all) suberror CanonicalFailure {
 } derive(@debug.Debug)
 
 // Types and methods
+type CanonicalEmit
+
 pub enum CanonicalValue {
   Null
   Bool(Bool)
@@ -52,6 +69,15 @@ pub enum CanonicalValue {
   String(String)
   Array(FrozenArray[CanonicalValue])
   Object(FrozenArray[(String, CanonicalValue)])
+}
+
+type CursorAdmission
+
+pub enum CursorAdmissionPoll {
+  CursorAdmissionContinue
+  CursorAdmissionComplete(CanonicalValue, Int, Int)
+  CursorAdmissionFailed(CanonicalFailure)
+  CursorAdmissionTerminal
 }
 
 type FrozenArray[T]

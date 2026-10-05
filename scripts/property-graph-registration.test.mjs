@@ -104,7 +104,7 @@ test('SourceView Graph fixture owns independent schema and the complete CID chai
 test('constructor pins a distinct complete execution contract and exact shared dependencies', () => {
   checkRegistration(aoa, law, protocol, registry);
   assert.equal(cid(body), 'sha256:b00de8912497c6af1596debd1c59ee8d3477faf0391be40f64ac82ebc6d9ebb7');
-  assert.equal(cid(registry), 'sha256:af8d2530f74cabec40daa30580dc0a036691a9d8875c0eb7a85ee40240768bcd');
+  assert.equal(cid(registry), 'sha256:fee948e7f47074c96f02bf392cba9520473679beb4db16522ea15a22b20f8b84');
   assert.equal(body.dependencies.property_graph_law.cid,
     'sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc');
   assert.equal(body.dependencies.canonical_value_contract.cid,
@@ -117,7 +117,14 @@ test('adding keyed constructor preserves every prior registry entry and historic
   const {[operation]: added, ...previous} = registry;
   assert.ok(added);
   // Integrated String semantics change REL.values, not the Graph addition.
-  assert.equal(cid(previous), 'sha256:579c3a62fc22e6fea165bdd5714e3ca26206f606e43098434e84c02c8c0651cc');
+  // Historical absence of the keyed operation retains the pre-alignment
+  // shared-expression pins, independently of today's membership contract.
+  const historical = structuredClone(previous);
+  historical['REL.derive'].execution_extensions.ordered_bindings.cid =
+    'sha256:5c42162fa5adc40007f7e4630fa30e835c0dce20f74785be074f4490aff522de';
+  historical['ACTQL.expression_fragment/0.1'].execution_contract.cid =
+    'sha256:1282c3d8af052606f64be809cead104630c67a8b676050bcdc7edd4a884b9b60';
+  assert.equal(cid(historical), 'sha256:579c3a62fc22e6fea165bdd5714e3ca26206f606e43098434e84c02c8c0651cc');
   assert.deepEqual(registry['BRIDGE.rows.to_graph'], {inputs: ['relation', 'relation'], output: 'graph'});
   assert.equal(aoa.local_family_execution_profile.registry_operations.includes(operation), false);
   assert.equal(aoa.local_family_execution_profile.registry_operations.length, 38);

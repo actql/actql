@@ -87,6 +87,7 @@ priv enum Continuation {
 priv enum Evaluation {
   Enter(@lower.Expression)
   Return(Value)
+  Membership(MembershipState)
   Score(VectorScoreState)
   Concat(VectorConcatState)
   FinishObject(ObjectExpressionState)
@@ -116,6 +117,19 @@ priv struct ObjectExpressionState {
   roots : Array[ExpressionRootLease?]
   root : ExpressionRootLease?
   mut index : Int
+}
+
+///|
+priv struct MembershipState {
+  expression : @lower.Expression
+  operation : @lower.BinaryOperator
+  left : Value
+  items : @admitted.FrozenArray[@admitted.Value]?
+  left_root : ExpressionRootLease?
+  right_root : ExpressionRootLease?
+  mut index : Int
+  mut matched : Bool
+  mut unknown : Bool
 }
 
 ///|
@@ -242,6 +256,7 @@ priv struct ExpressionFrame {
   stack : Array[Continuation]
   objects : Array[@admitted.ObjectBuilder]
   mut object_context : Int
+  mut membership_context : Int
   mut state : Evaluation
   mut active : @lower.Expression
   mut current_root : ExpressionRootLease?
@@ -277,6 +292,7 @@ fn expression_frame(
     stack: [],
     objects: [],
     object_context: 0,
+    membership_context: 0,
     state: Enter(root),
     active: root,
     current_root: None,
@@ -299,6 +315,7 @@ fn close_expression_frame(frame : ExpressionFrame) -> Unit {
   }
   frame.objects.clear()
   frame.object_context = 0
+  frame.membership_context = 0
   frame.stack.clear()
   frame.current_root = None
   match frame.state {
@@ -521,6 +538,9 @@ fn advance_expression_frame_impl(
             frame.state = Enter(child)
           }
           Binary(op, left, right) => {
+            if op == @lower.In || op == @lower.NotIn {
+              frame.membership_context += 1
+            }
             frame.stack.push(Left(expr, op, right))
             frame.state = Enter(left)
           }
@@ -587,6 +607,7 @@ fn advance_expression_frame_impl(
         // an object/property receiver. Forwarded roots reuse their exact proof;
         // subsequent semantic consumptions still pay the complete weight.
         let object_operand = frame.object_context > 0 ||
+          frame.membership_context > 0 ||
           @lower.expression_body(frame.active) is @lower.Property(_, _, _)
         if frame.current_root is None &&
           scope is Some(scope) &&
@@ -800,6 +821,27 @@ fn advance_expression_frame_impl(
           }
           Right(expr, op, left, left_root) => {
             frame.active = expr
+            if op == @lower.In || op == @lower.NotIn {
+              let state = match
+                start_membership(
+                  logical_work,
+                  expr,
+                  op,
+                  left,
+                  left_root,
+                  value,
+                  frame.current_root,
+                ) {
+                Ok(state) => state
+                Err(issue) => return Err(issue)
+              }
+              frame.current_root = None
+              frame.state = Membership(state)
+              if !drain {
+                return Ok(None)
+              }
+              continue
+            }
             if (left is Text(text) && text.length() > 64) ||
               (value is Text(text) && text.length() > 64) {
               match
@@ -1121,6 +1163,49 @@ fn advance_expression_frame_impl(
               frame.state = Enter(otherwise)
             }
           }
+        }
+      }
+      Membership(state) => {
+        frame.active = state.expression
+        let item = match state.items {
+          Some(items) => @admitted.element_at(items, state.index)
+          None => None
+        }
+        if item is Some(item) {
+          // Scan all admitted elements, including duplicates after a match.
+          // Comparisons are control work, not synthetic semantic expressions.
+          match
+            membership_compare(
+              budget,
+              state.expression,
+              state.left,
+              capture(item),
+            ) {
+            Ok(Boolean(true)) => state.matched = true
+            Ok(Boolean(false)) => ()
+            Ok(Null) => state.unknown = true
+            Ok(_) =>
+              return Err({
+                kind: Scalar(InvalidOperand),
+                expression: state.expression,
+              })
+            Err(issue) => return Err(issue)
+          }
+          state.index += 1
+        } else {
+          match expression_event_release(state.left_root, state.expression) {
+            Ok(_) => ()
+            Err(issue) => return Err(issue)
+          }
+          match expression_event_release(state.right_root, state.expression) {
+            Ok(_) => ()
+            Err(issue) => return Err(issue)
+          }
+          release_slots(workspace, 1)
+          frame.membership_context -= 1
+          frame.state = Return(
+            membership_result(state.operation, state.matched, state.unknown),
+          )
         }
       }
       Score(score) => {

@@ -6,17 +6,8 @@ priv enum WireFrame {
   ArrayNext(FrozenArray[Value], Int)
   ObjectNext(FrozenArray[(String, Value)], Int)
   ObjectValueNext(FrozenArray[(String, Value)], Int)
-  CanonicalRead(@identity.CanonicalValue)
-  CanonicalArrayNext(@identity.FrozenArray[@identity.CanonicalValue], Int)
-  CanonicalObjectNext(
-    @identity.FrozenArray[(String, @identity.CanonicalValue)],
-    Int
-  )
-  CanonicalObjectValueNext(
-    @identity.FrozenArray[(String, @identity.CanonicalValue)],
-    Int
-  )
   VectorNext(FrozenArray[Double], Int)
+  ReferenceNext(@identity.CanonicalEmit)
 }
 
 ///|
@@ -98,6 +89,7 @@ pub fn emit_checked_wire_value(
 struct WireEmitCursor {
   pending : Array[WireFrame]
   output : @encode.Writer
+  mut reference_frames : Int
 }
 
 ///|
@@ -105,7 +97,7 @@ pub fn start_wire_emit(
   value : Value,
   output : @encode.Writer,
 ) -> WireEmitCursor {
-  { pending: [Read(value)], output, }
+  { pending: [Read(value)], output, reference_frames: 0, }
 }
 
 ///|
@@ -118,15 +110,19 @@ pub fn cancel_wire_emit(cursor : WireEmitCursor) -> Unit {
     if frame is KeyNext(key) {
       @encode.cancel_ordered_key(key)
     }
+    if frame is ReferenceNext(reference) {
+      @identity.cancel_emit(reference)
+    }
   }
   cursor.pending.clear()
+  cursor.reference_frames = 0
 }
 
 ///|
 /// Number of owned continuations, for callers that reserve traversal custody
 /// before advancing. One frame can grow the pending stack by at most one.
 pub fn wire_emit_pending_frames(cursor : WireEmitCursor) -> Int {
-  cursor.pending.length()
+  cursor.pending.length() + cursor.reference_frames
 }
 
 ///|
@@ -162,7 +158,11 @@ pub fn advance_wire_emit(
           @encode.begin_array(output)
           pending.push(VectorNext(items, 0))
         }
-        Reference(reference) => pending.push(CanonicalRead(reference.envelope))
+        Reference(reference) => {
+          let canonical = @identity.start_emit(reference.envelope, output)
+          cursor.reference_frames = @identity.emit_pending_frames(canonical)
+          pending.push(ReferenceNext(canonical))
+        }
       }
     TextNext(text) =>
       if !@encode.advance_string_value(text) {
@@ -200,54 +200,6 @@ pub fn advance_wire_emit(
       pending.push(ObjectNext(items, index + 1))
       pending.push(Read(child))
     }
-    CanonicalRead(value) =>
-      match value {
-        @identity.Null => @encode.null_value(output)
-        @identity.Bool(value) => @encode.bool_value(output, value)
-        @identity.Number(value) => @encode.number_value(output, value)
-        @identity.String(value) =>
-          if value.length() <= 64 {
-            @encode.string_value(output, value)
-          } else {
-            pending.push(TextNext(@encode.start_string_value(output, value)))
-          }
-        @identity.Array(values) => {
-          @encode.begin_array(output)
-          pending.push(CanonicalArrayNext(values, 0))
-        }
-        @identity.Object(values) => {
-          @encode.begin_ordered_object(output)
-          pending.push(CanonicalObjectNext(values, 0))
-        }
-      }
-    CanonicalArrayNext(values, index) =>
-      if @identity.array_at(values, index) is Some(child) {
-        pending.push(CanonicalArrayNext(values, index + 1))
-        pending.push(CanonicalRead(child))
-      } else {
-        @encode.end_array(output)
-      }
-    CanonicalObjectNext(values, index) =>
-      if @identity.array_at(values, index) is Some((name, child)) {
-        if name.length() > 64 {
-          let key = @encode.start_ordered_key(output, name)
-          pending.push(CanonicalObjectValueNext(values, index))
-          pending.push(KeyNext(key))
-        } else {
-          @encode.ordered_key(output, name)
-          pending.push(CanonicalObjectNext(values, index + 1))
-          pending.push(CanonicalRead(child))
-        }
-      } else {
-        @encode.end_object(output)
-      }
-    CanonicalObjectValueNext(values, index) => {
-      guard @identity.array_at(values, index) is Some((_, child)) else {
-        raise @encode.InvalidStructure
-      }
-      pending.push(CanonicalObjectNext(values, index + 1))
-      pending.push(CanonicalRead(child))
-    }
     VectorNext(items, index) =>
       if items.values.get(index) is Some(child) {
         @encode.number_value(output, child)
@@ -255,6 +207,17 @@ pub fn advance_wire_emit(
       } else {
         @encode.end_array(output)
       }
+    ReferenceNext(reference) => {
+      // Keep the child cursor reachable if its writer fails during advance.
+      // The enclosing cleanup can then close the exact pending child once.
+      pending.push(ReferenceNext(reference))
+      if @identity.advance_emit(reference) {
+        pending.pop() |> ignore
+        cursor.reference_frames = 0
+      } else {
+        cursor.reference_frames = @identity.emit_pending_frames(reference)
+      }
+    }
   }
   pending.is_empty()
 }

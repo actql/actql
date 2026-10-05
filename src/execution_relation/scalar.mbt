@@ -211,6 +211,30 @@ pub fn binary(
   right : Value,
 ) -> Result[Value, ScalarIssue] {
   match op {
+    In | NotIn => {
+      let items = match right {
+        Null => return Ok(Boolean(op == @lower.NotIn))
+        Captured(@admitted.Array(items)) => items
+        _ => return Err(InvalidOperand)
+      }
+      let mut matched = false
+      let mut unknown = false
+      for i in 0..<@admitted.element_count(items) {
+        match
+          binary(
+            @lower.Equal,
+            left,
+            capture(@admitted.element_at(items, i).unwrap()),
+          ) {
+          Ok(Boolean(true)) => matched = true
+          Ok(Boolean(false)) => ()
+          Ok(Null) => unknown = true
+          Ok(_) => return Err(InvalidOperand)
+          Err(issue) => return Err(issue)
+        }
+      }
+      Ok(membership_result(op, matched, unknown))
+    }
     Add | Subtract | Multiply | Divide | Modulo => {
       if left is Null || right is Null {
         return Ok(Null)
@@ -234,7 +258,9 @@ pub fn binary(
         | LessEqual
         | Greater
         | GreaterEqual
-        | NullIf => Err(InvalidOperand)
+        | NullIf
+        | In
+        | NotIn => Err(InvalidOperand)
       }
     }
     Equal
@@ -286,7 +312,8 @@ fn binary_comparison_result(
     Greater => Ok(Boolean(compared > 0))
     GreaterEqual => Ok(Boolean(compared >= 0))
     NullIf => Ok(if compared == 0 { Null } else { left })
-    Add | Subtract | Multiply | Divide | Modulo => Err(InvalidOperand)
+    Add | Subtract | Multiply | Divide | Modulo | In | NotIn =>
+      Err(InvalidOperand)
   }
 }
 
@@ -323,5 +350,20 @@ pub fn boolean_pair(
         },
       )
     Coalesce | Concat | ConcatStrict => Err(InvalidOperand)
+  }
+}
+
+///|
+fn membership_result(
+  op : @lower.BinaryOperator,
+  matched : Bool,
+  unknown : Bool,
+) -> Value {
+  if matched {
+    Boolean(op == @lower.In)
+  } else if unknown {
+    Null
+  } else {
+    Boolean(op == @lower.NotIn)
   }
 }

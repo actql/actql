@@ -438,6 +438,12 @@ fn derive_row_counts(
           }),
         )
       GraphDegree(_) => graph_input.bind(g => g.nodes)
+      GraphDelta(checked~, ..) =>
+        if @graph.delta_operation(checked) is Difference {
+          Some(count(1L, true))
+        } else {
+          None
+        }
       GraphComponents(_) => graph_input.bind(g => g.nodes)
       GraphBounds(_) =>
         if graph_input.bind(g => g.nodes) is Some({ upper: 0L, .. }) {

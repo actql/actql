@@ -58,9 +58,9 @@ test "independent ordered DATA machine Program owns every bounded Relation step"
 }
 
 ///|
-test "multiple Values roots do not authorize an unregistered selected aggregate" {
-  // Distinct COUNT is accepted by the ordinary checker but is not a selected
-  // count profile. Having two roots must not bypass that capability boundary.
+test "multiple Values roots retain an independently selected distinct aggregate" {
+  // General GROUP now has a selected provider. The two Values roots, append,
+  // and distinct aggregate retain exact task boundaries and result ownership.
   let document =
     #|{"version":"actql/0.1","id":"unselected-multi-root","stages":[{"id":"main","inputs":{},"steps":[{"as":"left","values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":2}]}},{"as":"right","values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]}},{"from":"left","append":{"with":"right"},"as":"combined"},{"from":"combined","group":{"by":[],"aggregates":{"total":{"fn":"count","field":"id","distinct":true}}},"as":"summed"}],"results":{"rows":{"from":"summed","fields":["total"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
   let environment = admit_client_check_environment(
@@ -76,5 +76,27 @@ test "multiple Values roots do not authorize an unregistered selected aggregate"
     None,
     run_materials_limits().preparation,
   ).unwrap()
-  assert_eq(@strategy.graph_task_count(prepared_client_graph(prepared)), 1)
+  let graph = prepared_client_graph(prepared)
+  assert_eq(@strategy.graph_task_count(graph), 4)
+  for task in 0..<4 {
+    assert_eq(
+      @strategy.graph_task_target(graph, task),
+      Some(@pipeline.Step(task)),
+    )
+  }
+  assert_eq(@strategy.graph_task_input_count(graph, 2), Some(2))
+  assert_eq(@strategy.graph_task_input_count(graph, 3), Some(1))
+  assert_eq(@strategy.graph_result_task(graph, 0), Some(3))
+  let limits = run_materials_limits()
+  let compilation = issue_prepared_client_task_compilation(
+    prepared,
+    run_materials_manifests(),
+    limits.sequence,
+    1000,
+    1000,
+    1000000,
+    100000,
+    100,
+  ).unwrap()
+  assert_eq(client_task_compilation_result_names(compilation), ["answer"])
 }
