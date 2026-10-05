@@ -12,6 +12,7 @@ import {reviewBytesMatchCid, contentCid, checkedSigner, signedAnswer} from './ch
 // The response owns only a weak association to this call's immutable inputs.
 // A parsed/copied report has no such association and cannot resolve a location.
 const checkInputs = new WeakMap();
+const checkFrontiers = new WeakMap();
 // Original request data is available only through explicit SDK access, never
 // by serializing an error or Run handle. It does not establish acceptance.
 const submissionInputs = new WeakMap();
@@ -36,6 +37,78 @@ export function getCheckInput(outcome, documentId, revision) {
   const input = checkInputs.get(outcome)?.get(documentId);
   return input && (revision === undefined || input.revision === revision)
     ? input : undefined;
+}
+
+// Compare typed public obligations, never translated explanations or severity.
+const structuralKey = value => value !== null && typeof value === 'object'
+  ? Array.isArray(value) ? '[' + value.map(structuralKey).join(',') + ']'
+    : '{' + Object.keys(value).sort().map(key =>
+      JSON.stringify(key) + ':' + structuralKey(value[key])).join(',') + '}'
+  : JSON.stringify(value);
+const unordered = values => [...new Map(values.map(value =>
+  [structuralKey(value), value])).entries()].sort(([left], [right]) =>
+  left < right ? -1 : left > right ? 1 : 0).map(([, value]) => value);
+
+export function getCheckRequirementFrontier(outcome) {
+  if (!checkInputs.has(outcome) || outcome.outcome !== 'completed') return undefined;
+  if (checkFrontiers.has(outcome)) return checkFrontiers.get(outcome);
+  const report = outcome.report;
+  // These are the currently exposed typed Requirements. Unknown obligations
+  // cannot supply a structural admission condition for supplementation.
+  if (report.requirements.some(reason => reason.code !== 'parameter_value_required')) return undefined;
+  const frontier = freezeInput({contextRef: report.context_ref,
+    reasonSchemaCid: outcome.reason_schema_cid,
+    scope: {...report.scope}, requirements: unordered(report.requirements.map(({code, facts}) =>
+      ({code, facts}))),
+    coverage: {limits: unordered(report.coverage.limits),
+      unresolved: unordered(report.coverage.unresolved)}});
+  checkFrontiers.set(outcome, frontier);
+  return frontier;
+}
+
+export function equalCheckRequirementFrontiers(first, second) {
+  const left = getCheckRequirementFrontier(first);
+  const right = getCheckRequirementFrontier(second);
+  if (!left || !right) return undefined;
+  return structuralKey(left) === structuralKey(right);
+}
+
+// This bounds read-only checking, not an authoritative supplement write.
+export function createCheckSupplementationSession(client, {maxAttempts} = {}) {
+  if (typeof client?.check !== 'function' || !Number.isSafeInteger(maxAttempts) || maxAttempts < 1) {
+    fail('InvalidCheckSupplementationSession');
+  }
+  let attempts = 0, checking = false, previous, stopped;
+  return Object.freeze({
+    async check(text, options) {
+      if (checking) fail('CheckSupplementationBusy');
+      if (stopped || attempts >= maxAttempts) {
+        throw new ClientError('CheckSupplementationStopped', {
+          decision: stopped ?? Object.freeze({kind: 'stop', reason: 'attempt_budget'}),
+          attempts, maxAttempts});
+      }
+      checking = true;
+      attempts++;
+      try {
+        const outcome = await client.check(text, options);
+        const frontier = getCheckRequirementFrontier(outcome);
+        let reason;
+        if (!frontier) reason = 'frontier_unavailable';
+        else if (outcome.report.verdict !== 'undetermined' || frontier.requirements.length === 0) {
+          reason = 'no_known_supplement';
+        } else if (previous && structuralKey(previous) === structuralKey(frontier)) {
+          reason = 'unchanged_frontier';
+        } else if (attempts >= maxAttempts) reason = 'attempt_budget';
+        const decision = Object.freeze(reason === undefined
+          ? {kind: 'more_checks'} : {kind: 'stop', reason});
+        if (decision.kind === 'stop') stopped = decision;
+        previous = frontier;
+        return Object.freeze({outcome, attempts, decision});
+      } finally {
+        checking = false;
+      }
+    },
+  });
 }
 
 export function getSubmissionInput(result) {
@@ -225,6 +298,8 @@ export function explainCheckReason(reason) {
     supplied_value_constraint_violation: ['A supplied value violates a declared constraint.', 'Correct the value to satisfy the declared constraint family.'],
     supplied_value_type_mismatch: ['A supplied value has the wrong type.', 'Supply a value of the declared type.'],
     parameter_value_required: ['A declared parameter value is missing.', 'Supply the declared value and check the complete bound input again.'],
+    parameter_default_type_mismatch: ['A parameter default does not match its declared type.',
+      'Correct the default to match the declared type, then check again.'],
     program_invalid: ['The input violates the checked Program contract.', 'Correct the input under the selected contract.'],
     bound_values_missing: ['Required bound inputs are missing.', 'Supply the declared inputs and check again.'],
     implementation_limit: ['This checking implementation cannot discharge an obligation.', 'Ask the checking-context owner to review support for the submitted construct.'],
@@ -269,6 +344,11 @@ export function explainCheckReason(reason) {
       Object.hasOwn(graphExplanations, issue)) {
     const [summary, hint] = graphExplanations[issue];
     return Object.freeze({kind: 'known', summary, hint});
+  }
+  if (reason?.code === 'graph_operation_invalid' &&
+      reason?.facts?.operation === 'subgraph' && issue === 'invalid_node_selector') {
+    return Object.freeze({kind: 'known', summary: 'The Subgraph node selector is invalid.',
+      hint: 'Provide one selector: nonempty ids, a named Relation with an id field, or a node where predicate.'});
   }
   const constraintHints = {
     numeric: 'Supply a number satisfying the declared integer, minimum and maximum constraints.',
@@ -872,7 +952,22 @@ async function connectSelected(selected, port) {
           throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),
             context, 'outcome_unknown');
         }
-        return retainCancellationExplanation(response, context, response.kind, response.revision);
+        // Local ports may reuse their response object across operations.
+        let received;
+        try { received = structuredClone(response); }
+        catch {
+          throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),
+            context, 'outcome_unknown');
+        }
+        // Cloning may reject a Local value or drop/change its validated fields.
+        if (!validCancellation(received) ||
+            received.ref.namespaceId !== ref.namespaceId ||
+            received.ref.authorityScopeCid !== ref.authorityScopeCid ||
+            received.ref.runDefinitionCid !== ref.runDefinitionCid) {
+          throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),
+            context, 'outcome_unknown');
+        }
+        return retainCancellationExplanation(received, context, received.kind, received.revision);
       },
       // The Run's current state after the Host's reconciliation attempt. An
       // unknown Effect outcome stays `needs_reconciliation` until the Host
@@ -969,6 +1064,11 @@ async function connectSelected(selected, port) {
         if (cause instanceof ClientError) throw cause;
         throw new ClientError('InvalidHostCheckOutcome', {cause});
       }
+      if (!validCheckOutcome(outcome)) fail('InvalidHostCheckOutcome');
+      // Own this call's value before binding or freezing it. A Local Host may
+      // reuse its response object without replacing a previous SDK observation.
+      try { outcome = structuredClone(outcome); }
+      catch { fail('InvalidHostCheckOutcome'); }
       if (!validCheckOutcome(outcome)) fail('InvalidHostCheckOutcome');
       const report = outcome.report ?? outcome.partial_report;
       if (report) {

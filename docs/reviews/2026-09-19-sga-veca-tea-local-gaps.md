@@ -1188,6 +1188,140 @@ Nest 35-slot exact-workspace failure, reproduced independently at the unchanged
 parent `b2da55d77784d8d1317ab35ccc1303c585f33507`. They remain explicit
 regression obligations; the passing selection does not hide those failures.
 
+Analytic input, partition and output envelope emission now retains a shared
+wire cursor across charged advances for large cells. Long Text is emitted in
+64-UTF-16-unit chunks, preserving a crossing surrogate pair, through the
+existing encoder rather than another serializer. Nested admitted values use
+the existing frame traversal. Pending cursor and continuation slots are
+reserved before allocation, and analytic cleanup closes the cursor and both
+writers without rolling back work or releasing borrowed input. Small leaves
+retain their existing charges. The completed-Relation identity scan and fixed
+record guard reuse the same Text cursor. Wire bytes and CIDs are unchanged;
+new chunk advances consume actual control work.
+
+An independent 4,096-character Text fixture failed its per-advance emission
+bound on the unchanged parent before this connection. The replacement tests
+check bounded emission, cleanup during input/partition/output Text, and exact
+wire envelopes with each scope one byte short. Shared encoder fixtures cover
+escaping, surrogate boundaries, all four sinks, invalid Unicode, exact bytes,
+typed one-short errors, and rejection of writer interleaving or unfinished
+finalization. Nested traversal has a literal six/five-slot workspace boundary;
+raw Text has a three/two-slot boundary. These are component custody checks,
+not a new Host timer-cancellation claim. The existing retained analytic
+long-Text Host fixture remains the production connection check; its submitted
+source execution must be recorded independently.
+
+This closes large cell emission in analytic envelopes, not every synchronous
+encoding boundary. Object field names, reference envelopes, unrelated value
+emitters and logical expression-event accounting remain separate work. No
+whole-operation assurance or retained-route completion count is promoted by
+this change. The parent Group/Nest fixture corrections are independently
+submitted in the managed Group fixture-fix PR; their evidence is not silently
+attributed to this branch.
+
+Analytic logical input and output row retention now borrows a resumable row
+measurement rather than draining every cell inside one advance. It reuses the
+logical value cursor, encoder and root owner. Long Text logical weight is
+charged across the shared finite UTF-16 walk, and nested values keep indexed
+frames rather than materializing their elements. Cursor/frame capacity is
+reserved before allocation. Successful rows keep the same total logical work,
+wire bytes and root order; successfully consumed work is retained even when
+the pending measurement fails or is cancelled. Additional physical advances
+consume control work. The finite small-row path keeps its existing charges.
+
+The independent Text row fixes 4,105 logical work, 4,110 retained bytes and
+twelve measurement-custody slots, with each one short checked against its
+typed cause. A nested 65-element row fixes 74 work and 143 bytes independently.
+The analytic fixture observes incomplete input and output root measurement
+before close, keeps the borrowed input alive, and confirms no row acceptance
+or partial root publication. These direct close checks are not Host-delivered
+timer cancellation. The ordinary managed analytic Program fixture advances
+with quantum one and delivers its copied long Text to two downstream Computes;
+it passed locally with the existing seven managed analytic cases, including
+independent consumer reads and final reservation/holding reclamation. The
+affected logical, analytic, envelope and scale selection passed 51 JS tests;
+the final row selection passed all four tests after adding the nested case.
+These are focused portable JS results, not new-source Node Store or packed
+publication evidence, or Wasm/native execution.
+
+The analytic-only source `bbc27511fba3adade27f2fa1225941a3c15bf930` also passed
+the focused real retained-Store standard Native/Broad Node Host case, including
+publication, two consumers and reclamation. Its evidence is `run-7Wdk3D` /
+`focused-test-nxPBJc`. This is separate evidence for that exact source, not
+packed acceptance or validation of later row-owner changes.
+
+Bounded binding-row execution now reuses the same logical-row cursor for
+large input roots and output-root transfer. Ordinary filter and derivation
+retain their borrowed rows across charged advances rather than draining a
+nested cell in the retention phase. Physical output retention happens once,
+before resumable logical retention, and the existing root owner keeps input
+leases until the complete output root is registered. Dense and conditional
+rows share this transfer rule. Conditional output also reserves its borrowed
+presence wrapper before construction; omission remains distinct from NULL.
+Cleanup closes pending cursors before discarding their borrowed row views,
+retains consumed work and leaves input ownership with the caller.
+
+Independent fixtures fix a 256-item row at 268 logical work and 532 wire
+bytes. The rejecting filter costs 277 total work; the accepting filter costs
+545 and peaks at 1,064 live bytes during root transfer. Exact/one-short work
+and live limits keep their typed failure causes. Fifteen existing row entries
+plus thirteen cursor/continuation entries fix the 28/27 workspace boundary.
+Quantum-one cancellation is delivered through the existing control after
+positive input/output measurement, observes stop before cleanup and issues
+no partial completion. A conditional Text/NULL/omission fixture fixes 1,083
+work independently and verifies borrowed-wrapper cleanup after cancellation.
+These checks exercise the real binding-row session, not a Node timer.
+
+The affected row, presence and shared-cursor fixtures, together with the
+ordinary managed unary Program/Host callers, passed 128 focused JS tests.
+Small-row budgets remain unchanged. The existing nested-input fixture now
+allows a finite continuation bound for admission, weight and both wire walks;
+its exact limits and typed one-short expectations are unchanged.
+The new binding-row source has not yet been exercised by the real Node Store,
+packed consumers or Wasm/native execution. Other logical expression-event
+callers and wire emission of long object field names/reference envelopes
+remain separate work. No whole-operation assurance count is promoted by
+either component connection.
+
+The following expression component closes the first logical measurement of
+demanded large values in resumable expression frames. Previously only borrowed
+Object/Property aggregates yielded there; an ordinary long Text field result
+drained its full weight and wire measurement in one Return transition. A
+focused regression failed at that boundary on the unchanged parent source
+(`run-WGfPYT` / `focused-test-bAfC6x`, 0/1), before the production change.
+
+Rows and expressions now share the existing cursor's reservation and charged
+advance primitive. Reservation precedes cursor/frame allocation. Every
+successfully consumed logical unit remains charged on failure or cancellation,
+and incomplete measurement does not issue a root. Only the first completed
+result event is prepaid; later forwarding and operand consumption retain their
+full semantic weight. The exact scope/root proof and acquisition result ceiling
+remain checked. Cleanup releases cursor custody without releasing borrowed
+caller roots or refunding work. Finite small-value paths are unchanged.
+
+Independent Text vectors fix 4,098/4,097 total work and live bytes, and 10/9
+measurement workspace slots. COALESCE fixes 12,293/12,292 work across field,
+operand and forwarded result events, including draining after suspension.
+Foreign, revoked and unmeasured root proofs are refused. A checked bounded
+derive stops during demanded Text measurement after positive work, preserves
+its input until cleanup and never accepts a partial completion. Its successful
+counterpart reads the completed owner's canonical column order directly.
+An ordinary Program derives a long Text into two downstream Compute consumers
+at quantum one, compares independently expected rows and releases them
+independently through the existing common Host owner.
+
+The changed expression/row fixtures and ordinary managed unary callers passed
+136/136 focused JS tests on the matching production implementation before
+final formatting (`run-3Rtqip` / `focused-test-jx0ALX`). Workers and Node Host
+fixture sources are regenerated
+from the changed Program helper and pass their normal freshness checks. The
+resource audit passes without promoting any whole-operation assurance count.
+This is common execution/Host evidence, not a new real Node retained-Store,
+packed, Wasm/native execution or Linux integration result. Large intrinsic
+comparison/concatenation and long object-field/reference wire transitions
+remain distinct work; no general expression cancellation guarantee is inferred
+from the bounded result-measurement connection alone.
+
 #### Retained Relation obligation chains
 
 The retained materializing lane now binds checked obligations to the exact

@@ -30,6 +30,8 @@ priv enum BoundedBindingRowsPhase {
   CheckOutputRow
   ChargeOutputRow
   ChargeCaptureRow
+  RetainOutputRow
+  RetainOutputRoot
   CommitOutputRow
   FinishOutput
   Terminal
@@ -47,6 +49,34 @@ priv enum BoundedBindingInput {
 priv enum BoundedOutputCell {
   CheckedOutputCell(@admitted.CheckedValue)
   ExactAdmittedOutputCell(@admitted.Value)
+}
+
+///|
+priv enum BindingLogicalOutput {
+  DenseBindingLogicalRow(SteppedLogicalRow[Array[Value]])
+  PresenceBindingLogicalRow(SteppedLogicalRow[Ref[Array[@admitted.Value?]]])
+}
+
+///|
+fn advance_binding_logical_output(
+  value : BindingLogicalOutput,
+) -> Result[LogicalRoot?, RowIssue] {
+  match value {
+    DenseBindingLogicalRow(cursor) => advance_stepped_logical_row(cursor)
+    PresenceBindingLogicalRow(cursor) => advance_stepped_logical_row(cursor)
+  }
+}
+
+///|
+fn close_binding_logical_output(value : BindingLogicalOutput) -> Unit {
+  match value {
+    DenseBindingLogicalRow(cursor) => close_stepped_logical_row(cursor)
+    PresenceBindingLogicalRow(cursor) => {
+      close_stepped_logical_row(cursor)
+      // The enclosing state removes this pending owner after closing it.
+      release_slots(cursor.workspace, 1)
+    }
+  }
 }
 
 ///|
@@ -548,6 +578,8 @@ priv struct BoundedBindingRowsState {
   control : ControlBudget
   workspace : RowWorkspace
   mut input_roots : Array[ExpressionRootLease]
+  mut input_logical : SteppedLogicalRow[BoundedBindingRow]?
+  mut output_logical : BindingLogicalOutput?
   mut output : AdmittedOutput?
   rows : Ref[AdmittedOutputRows?]
   live : Ref[Bool]
@@ -702,6 +734,14 @@ fn bounded_small_output_value(value : Value) -> Bool {
 
 ///|
 fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {
+  if state.input_logical is Some(cursor) {
+    close_stepped_logical_row(cursor)
+    state.input_logical = None
+  }
+  if state.output_logical is Some(cursor) {
+    close_binding_logical_output(cursor)
+    state.output_logical = None
+  }
   if state.output_recheck is Some(cursor) {
     @admitted.cancel_recheck_runtime_value(cursor)
     state.output_recheck = None
@@ -1243,15 +1283,45 @@ fn bounded_binding_rows_step(
           row: state.input_row,
           width: state.input_names.length(),
         }
-        let root = match
-          retain_logical_row(logical, state.input_names, source) {
-          Ok(value) => value
-          Err(issue) =>
-            return fail_bounded_binding_rows(
-              Rows(LogicalRows(issue)),
-              progress,
-              used,
-            )
+        let small = state.input_logical is None &&
+          bounded_small_logical_row(state.input_names, source)
+        let root = if small {
+          match retain_logical_row(logical, state.input_names, source) {
+            Ok(value) => value
+            Err(issue) =>
+              return fail_bounded_binding_rows(
+                Rows(LogicalRows(issue)),
+                progress,
+                used,
+              )
+          }
+        } else {
+          if !spend_control(state.control, 1) {
+            return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+          }
+          used += 1
+          if state.input_logical is None {
+            state.input_logical = match
+              start_stepped_logical_row(
+                logical,
+                state.input_names,
+                source,
+                state.workspace,
+              ) {
+              Ok(cursor) => Some(cursor)
+              Err(issue) =>
+                return fail_bounded_binding_rows(Rows(issue), progress, used)
+            }
+          }
+          match advance_stepped_logical_row(state.input_logical.unwrap()) {
+            Ok(None) => continue
+            Ok(Some(root)) => {
+              state.input_logical = None
+              root
+            }
+            Err(issue) =>
+              return fail_bounded_binding_rows(Rows(issue), progress, used)
+          }
         }
         let lease = match register_scope_root(scope, root) {
           Ok(value) => value
@@ -1268,7 +1338,11 @@ fn bounded_binding_rows_step(
         }
         state.input_roots.push(lease)
         state.input_row += 1
-        used += 1
+        // Small rows keep their former single-step charge. The cursor already
+        // consumed this advance when it completed a larger row.
+        if small {
+          used += 1
+        }
       }
       ChargeSortNames => {
         if state.column == state.input_names.length() {
@@ -2234,7 +2308,7 @@ fn bounded_binding_rows_step(
           state.phase = if state.output_requires_steps {
             ChargeOutputRow
           } else {
-            CommitOutputRow
+            RetainOutputRow
           }
           continue
         }
@@ -2552,15 +2626,18 @@ fn bounded_binding_rows_step(
           }
           used += 1
         } else {
-          state.phase = CommitOutputRow
+          state.phase = RetainOutputRow
         }
       }
-      CommitOutputRow => {
+      RetainOutputRow => {
         if !state.preserve_presence &&
           !state.output_requires_steps &&
           !retain_row(state.output_row, state.output_names, state.output_values) {
           return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
         }
+        state.phase = RetainOutputRoot
+      }
+      RetainOutputRoot => {
         if state.scope is Some(scope) {
           let source_row = if state.preserve_presence {
             match state.sorted_indices {
@@ -2573,35 +2650,121 @@ fn bounded_binding_rows_step(
           guard state.input_roots.get(source_row) is Some(root) else {
             return fail_bounded_binding_rows(InvalidExecution, progress, used)
           }
-          let result = if state.preserve_presence {
+          let small = if state.output_logical is Some(_) {
+            false
+          } else if state.preserve_presence {
             if !reserve_slots(state.workspace, 1) {
               return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
             }
-            row_event_output(
-              scope,
+            let small = bounded_small_logical_row(
               state.output_names,
               Ref(state.presence_cells),
-              state.slot_roots,
-              root,
             )
-          } else {
-            row_event_output(
-              scope,
-              state.output_names,
-              state.output_row,
-              state.slot_roots,
-              root,
-            )
-          }
-          match result {
-            Err(issue) =>
-              return fail_bounded_binding_rows(Rows(issue), progress, used)
-            Ok(_) => ()
-          }
-          if state.preserve_presence {
             release_slots(state.workspace, 1)
+            small
+          } else {
+            bounded_small_logical_row(state.output_names, state.output_row)
+          }
+          if state.output_logical is None && small {
+            let result = if state.preserve_presence {
+              if !reserve_slots(state.workspace, 1) {
+                return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+              }
+              let result = row_event_output(
+                scope,
+                state.output_names,
+                Ref(state.presence_cells),
+                state.slot_roots,
+                root,
+              )
+              release_slots(state.workspace, 1)
+              result
+            } else {
+              row_event_output(
+                scope,
+                state.output_names,
+                state.output_row,
+                state.slot_roots,
+                root,
+              )
+            }
+            if result is Err(issue) {
+              return fail_bounded_binding_rows(Rows(issue), progress, used)
+            }
+          } else {
+            if !spend_control(state.control, 1) {
+              return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+            }
+            used += 1
+            if state.output_logical is None {
+              let pending = if state.preserve_presence {
+                if !reserve_slots(state.workspace, 1) {
+                  return fail_bounded_binding_rows(
+                    Rows(RowLimit),
+                    progress,
+                    used,
+                  )
+                }
+                match
+                  start_stepped_logical_row(
+                    scope.budget,
+                    state.output_names,
+                    Ref(state.presence_cells),
+                    state.workspace,
+                  ) {
+                  Ok(cursor) => PresenceBindingLogicalRow(cursor)
+                  Err(issue) => {
+                    release_slots(state.workspace, 1)
+                    return fail_bounded_binding_rows(
+                      Rows(issue),
+                      progress,
+                      used,
+                    )
+                  }
+                }
+              } else {
+                match
+                  start_stepped_logical_row(
+                    scope.budget,
+                    state.output_names,
+                    state.output_row,
+                    state.workspace,
+                  ) {
+                  Ok(cursor) => DenseBindingLogicalRow(cursor)
+                  Err(issue) =>
+                    return fail_bounded_binding_rows(
+                      Rows(issue),
+                      progress,
+                      used,
+                    )
+                }
+              }
+              state.output_logical = Some(pending)
+            }
+            let pending = state.output_logical.unwrap()
+            match advance_binding_logical_output(pending) {
+              Ok(None) => continue
+              Err(issue) =>
+                return fail_bounded_binding_rows(Rows(issue), progress, used)
+              Ok(Some(output_root)) => {
+                close_binding_logical_output(pending)
+                state.output_logical = None
+                if row_event_retained_output(
+                    scope,
+                    output_root,
+                    state.slot_roots,
+                    root,
+                  )
+                  is Err(issue) {
+                  return fail_bounded_binding_rows(Rows(issue), progress, used)
+                }
+              }
+            }
           }
         }
+        state.phase = CommitOutputRow
+      }
+      CommitOutputRow => {
         guard state.output is Some(output) else {
           return fail_bounded_binding_rows(InvalidExecution, progress, used)
         }
@@ -3391,6 +3554,8 @@ fn start_bounded_binding_rows_with_input(
     control,
     workspace,
     input_roots: [],
+    input_logical: None,
+    output_logical: None,
     output: Some(output),
     rows,
     live,

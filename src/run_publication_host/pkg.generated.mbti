@@ -688,6 +688,8 @@ pub fn plan_fact_manifest_identity_cid(PlanFactManifestIdentity) -> String
 
 pub fn plan_fact_manifest_identity_wire(PlanFactManifestIdentity) -> String
 
+pub fn prepare_acquired_task_publication_export(@physical_strategy.CapturedDAG, Int, @execution_query.CapturedInputSource, PublicationOutputExportLimits) -> Result[PublicationOutputExport, PublicationOutputExportIssue]
+
 pub fn prepare_all_captured_result_publication_exports(@physical_strategy.CapturedDAG, PublicationOutputExportLimits, converted_outputs? : Array[@execution_relation.CompletedOutput?], max_pins? : Int) -> Result[Array[PublicationOutputExport], PublicationOutputExportIssue]
 
 pub fn prepare_captured_result_publication_export(@physical_strategy.CapturedDAG, Int, PublicationOutputExportLimits, converted_output? : @execution_relation.CompletedOutput, max_pins? : Int) -> Result[PublicationOutputExport, PublicationOutputExportIssue]
@@ -1967,6 +1969,7 @@ pub(all) enum PublicationOutputExportIssue {
   Evidence(@run_publication.ResultEvidenceIssuanceIssue)
   Artifact(@run_publication.ResultArtifactIssuanceIssue)
   Capture(@run_publication.CapturedRunIssuanceIssue)
+  Source(@execution_query.CapturedSourceIssue)
 }
 
 pub(all) struct PublicationOutputExportLimits {

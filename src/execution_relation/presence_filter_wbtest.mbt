@@ -7,8 +7,11 @@ fn presence_filter_fixture(
   workspace_limit? : Int = 10000,
   operations? : String? = None,
   wires? : Array[String]? = None,
+  source_schema? : @schema.Schema? = None,
 ) -> (@bounded.Control, BoundedBindingRowsExecution, ProducerRead) raise {
-  let source_owner = presence_output_owner()
+  let source_owner = presence_output_owner(
+    schema=source_schema.unwrap_or_else(presence_test_schema),
+  )
   let supplied = prepare_admitted_output(
     source_owner,
     Step(0),

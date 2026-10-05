@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:5b35eb06984208f693b1f9b771d1bb1dd9f8f21fafc500dfe884b0f99478a277",
+  "artifact_registry_cid": "sha256:1cfeaaa69a67f08838d95d454602036cbef88e14b14c717ffee828d09ba2db35",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10713,8 +10713,8 @@
     "model_prompt": "sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204",
     "model_retry_policy": "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c",
     "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55",
-    "check_outcome": "sha256:73ad8b654c674edac53fe6b31438b6425e9c8d90fa908deecceec6940ff72ff1",
-    "check_reason": "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa",
+    "check_outcome": "sha256:955a26f215973e6b41e95b908836bdf555761e9b4f79bd6f3c7d6abb25fb7e17",
+    "check_reason": "sha256:ceb2a05aa8eee7b8c62fc9e734d5488e1c3b9ddd4fc57bbbd1b419cb2bb88261",
     "model_provider_binding": "sha256:a4a37e0016403b483aa267dca7aae6c682940d2b23343b95defbcac2a1ca92b3",
     "model_invocation_scope": "sha256:2ae55fd7143e29dc3468123dbea9979c65f0aeac9adc392098db87679ebf88c3"
   },
@@ -76385,6 +76385,24 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
+                              "operation",
+                              "issue"
+                            ],
+                            "properties": {
+                              "operation": {
+                                "const": "subgraph"
+                              },
+                              "issue": {
+                                "enum": [
+                                  "invalid_node_selector"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
                               "issue"
                             ],
                             "properties": {
@@ -76426,6 +76444,37 @@
                               "required": [
                                 "actual_type"
                               ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "parameter_default_type_mismatch"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "actual_type"
+                              ]
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "parameter_declarations"
+                                }
+                              }
                             }
                           }
                         }
@@ -76614,12 +76663,16 @@
                               ],
                               "properties": {
                                 "operation": {
-                                  "const": "components"
+                                  "enum": [
+                                    "components",
+                                    "subgraph"
+                                  ]
                                 },
                                 "issue": {
                                   "enum": [
                                     "invalid_kind",
-                                    "invalid_output_rows"
+                                    "invalid_output_rows",
+                                    "invalid_node_selector"
                                   ]
                                 }
                               }
@@ -76641,6 +76694,7 @@
                               "not": {
                                 "enum": [
                                   "supplied_value_type_mismatch",
+                                  "parameter_default_type_mismatch",
                                   "parameter_value_required",
                                   "parameter_undeclared",
                                   "supplied_value_constraint_violation",
@@ -76898,6 +76952,24 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
+                              "operation",
+                              "issue"
+                            ],
+                            "properties": {
+                              "operation": {
+                                "const": "subgraph"
+                              },
+                              "issue": {
+                                "enum": [
+                                  "invalid_node_selector"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
                               "issue"
                             ],
                             "properties": {
@@ -76939,6 +77011,37 @@
                               "required": [
                                 "actual_type"
                               ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "parameter_default_type_mismatch"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "actual_type"
+                              ]
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "parameter_declarations"
+                                }
+                              }
                             }
                           }
                         }
@@ -77127,12 +77230,16 @@
                               ],
                               "properties": {
                                 "operation": {
-                                  "const": "components"
+                                  "enum": [
+                                    "components",
+                                    "subgraph"
+                                  ]
                                 },
                                 "issue": {
                                   "enum": [
                                     "invalid_kind",
-                                    "invalid_output_rows"
+                                    "invalid_output_rows",
+                                    "invalid_node_selector"
                                   ]
                                 }
                               }
@@ -77154,6 +77261,7 @@
                               "not": {
                                 "enum": [
                                   "supplied_value_type_mismatch",
+                                  "parameter_default_type_mismatch",
                                   "parameter_value_required",
                                   "parameter_undeclared",
                                   "supplied_value_constraint_violation",
@@ -77198,7 +77306,7 @@
               }
             },
             "reason_schema_cid": {
-              "const": "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa"
+              "const": "sha256:ceb2a05aa8eee7b8c62fc9e734d5488e1c3b9ddd4fc57bbbd1b419cb2bb88261"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -77648,6 +77756,24 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
+                              "operation",
+                              "issue"
+                            ],
+                            "properties": {
+                              "operation": {
+                                "const": "subgraph"
+                              },
+                              "issue": {
+                                "enum": [
+                                  "invalid_node_selector"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
                               "issue"
                             ],
                             "properties": {
@@ -77689,6 +77815,37 @@
                               "required": [
                                 "actual_type"
                               ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "parameter_default_type_mismatch"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "actual_type"
+                              ]
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "parameter_declarations"
+                                }
+                              }
                             }
                           }
                         }
@@ -77877,12 +78034,16 @@
                               ],
                               "properties": {
                                 "operation": {
-                                  "const": "components"
+                                  "enum": [
+                                    "components",
+                                    "subgraph"
+                                  ]
                                 },
                                 "issue": {
                                   "enum": [
                                     "invalid_kind",
-                                    "invalid_output_rows"
+                                    "invalid_output_rows",
+                                    "invalid_node_selector"
                                   ]
                                 }
                               }
@@ -77904,6 +78065,7 @@
                               "not": {
                                 "enum": [
                                   "supplied_value_type_mismatch",
+                                  "parameter_default_type_mismatch",
                                   "parameter_value_required",
                                   "parameter_undeclared",
                                   "supplied_value_constraint_violation",
@@ -78161,6 +78323,24 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
+                              "operation",
+                              "issue"
+                            ],
+                            "properties": {
+                              "operation": {
+                                "const": "subgraph"
+                              },
+                              "issue": {
+                                "enum": [
+                                  "invalid_node_selector"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
                               "issue"
                             ],
                             "properties": {
@@ -78202,6 +78382,37 @@
                               "required": [
                                 "actual_type"
                               ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "parameter_default_type_mismatch"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "actual_type"
+                              ]
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "parameter_declarations"
+                                }
+                              }
                             }
                           }
                         }
@@ -78390,12 +78601,16 @@
                               ],
                               "properties": {
                                 "operation": {
-                                  "const": "components"
+                                  "enum": [
+                                    "components",
+                                    "subgraph"
+                                  ]
                                 },
                                 "issue": {
                                   "enum": [
                                     "invalid_kind",
-                                    "invalid_output_rows"
+                                    "invalid_output_rows",
+                                    "invalid_node_selector"
                                   ]
                                 }
                               }
@@ -78417,6 +78632,7 @@
                               "not": {
                                 "enum": [
                                   "supplied_value_type_mismatch",
+                                  "parameter_default_type_mismatch",
                                   "parameter_value_required",
                                   "parameter_undeclared",
                                   "supplied_value_constraint_violation",
@@ -78473,7 +78689,7 @@
               }
             },
             "reason_schema_cid": {
-              "const": "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa"
+              "const": "sha256:ceb2a05aa8eee7b8c62fc9e734d5488e1c3b9ddd4fc57bbbd1b419cb2bb88261"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -78514,7 +78730,7 @@
               }
             },
             "reason_schema_cid": {
-              "const": "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa"
+              "const": "sha256:ceb2a05aa8eee7b8c62fc9e734d5488e1c3b9ddd4fc57bbbd1b419cb2bb88261"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -78755,6 +78971,24 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "operation",
+                "issue"
+              ],
+              "properties": {
+                "operation": {
+                  "const": "subgraph"
+                },
+                "issue": {
+                  "enum": [
+                    "invalid_node_selector"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "issue"
               ],
               "properties": {
@@ -78796,6 +79030,37 @@
                 "required": [
                   "actual_type"
                 ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "parameter_default_type_mismatch"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "facts"
+            ],
+            "properties": {
+              "facts": {
+                "required": [
+                  "actual_type"
+                ]
+              },
+              "location": {
+                "properties": {
+                  "kind": {
+                    "const": "structured"
+                  },
+                  "document_id": {
+                    "const": "parameter_declarations"
+                  }
+                }
               }
             }
           }
@@ -78984,12 +79249,16 @@
                 ],
                 "properties": {
                   "operation": {
-                    "const": "components"
+                    "enum": [
+                      "components",
+                      "subgraph"
+                    ]
                   },
                   "issue": {
                     "enum": [
                       "invalid_kind",
-                      "invalid_output_rows"
+                      "invalid_output_rows",
+                      "invalid_node_selector"
                     ]
                   }
                 }
@@ -79011,6 +79280,7 @@
                 "not": {
                   "enum": [
                     "supplied_value_type_mismatch",
+                    "parameter_default_type_mismatch",
                     "parameter_value_required",
                     "parameter_undeclared",
                     "supplied_value_constraint_violation",

@@ -27,77 +27,11 @@ fn retained_compute_through_runtime(
   destination_journal : @journal.Journal,
   cleanup_owner : @transfer_client.NativeRemoteDestinationMaterialUse,
   destination_bytes : Int64,
+  retained_site_usage? : Array[Int64] = Array::make(9, 0L),
 ) -> Unit raise {
-  let crypto = @signature.load_library(
-    retained_runtime_required_env("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY"),
-  ).unwrap()
-  let target = retained_runtime_required_env(
-    "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_TARGET",
+  let (bundles, active, journal) = retained_runtime_owners(
+    sqlite, site, root_path, name,
   )
-  let bundle_cid = retained_runtime_required_env(
-    "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID",
-  )
-  let root = @filesystem.open_root(root_path).unwrap()
-  let directory = name + ".runtime"
-  root.create_directory(directory).unwrap() |> ignore
-  let root = root.open_child(directory).unwrap()
-  let component = b"native-runtime"
-  let writer = root
-    .create_writer("stage", component.length().to_int64())
-    .unwrap()
-  writer.append(component).unwrap()
-  let generation = writer.seal("component").unwrap()
-  let path = root_path + "/" + directory
-  let bundles = @bundle.open_runtime_bundle_store(
-    sqlite,
-    crypto,
-    path,
-    [
-      {
-        issuer_authority: "bundle-authority-a",
-        key_id: "key-a",
-        public_key_pem: retained_runtime_required_env(
-          "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY",
-        ),
-      },
-    ],
-    target,
-    component.length().to_int64(),
-    4,
-    8,
-    1048576L,
-  ).unwrap()
-  bundles
-  .adopt(
-    "actql-remote-runtime-bundle-signature/0.1",
-    "key-a",
-    bundle_cid,
-    retained_runtime_required_env(
-      "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_BODY",
-    ),
-    retained_runtime_required_env("ACTQL_TEST_NATIVE_REMOTE_RUNTIME_SIGNATURE"),
-    "component",
-    generation,
-  )
-  .unwrap()
-  |> ignore
-  bundles.activate(bundle_cid).unwrap() |> ignore
-  let active = bundles
-    .acquire_active_component(
-      "sha256:" + @sha.hex(component),
-      target,
-      "retained-consumer-process",
-    )
-    .unwrap()
-  let control = @remote.create_site_dispatch_journal(
-    site, "actql-remote-site/0.1",
-  ).unwrap()
-  let journal = @dispatch_journal.open_journal(
-    sqlite,
-    path + "/execution.sqlite3",
-    1048576L,
-    control,
-  ).unwrap()
   let limits : @output.NativeRemoteStandardTaskLimits = {
     output_export: resident_compute_limits(),
     max_manifest_bytes: 4096,
@@ -160,7 +94,11 @@ fn retained_compute_through_runtime(
     destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
     destination_bytes,
   )
-  let completion = runtime.start(dispatch, binding).unwrap()
+  let completion = match runtime.start(dispatch, binding) {
+    Ok(value) => value
+    Err(@runtime.Physical(code)) => abort("Consumer Runtime refused: " + code)
+    Err(_) => abort("Consumer Runtime refused outside physical Owner")
+  }
   assert_eq(entries.val, 1)
   assert_true(runtime.retains_dispatch_resources())
   assert_eq(
@@ -250,9 +188,93 @@ fn retained_compute_through_runtime(
   )
   let usage = @site.site_status(site)
   for index in [2, 4, 6, 7, 8] {
-    assert_eq(usage[index], 0L)
+    assert_eq(usage[index], retained_site_usage[index])
   }
   assert_true(runtime.close().unwrap())
   assert_true(journal.close())
   assert_true(bundles.close().unwrap())
+}
+
+///|
+fn retained_runtime_owners(
+  sqlite : @sqlite.Library,
+  site : @site.ExecutionSite,
+  root_path : String,
+  name : String,
+) -> (
+  @bundle.NativeRuntimeBundleStore,
+  @bundle.NativeActiveRuntimeBinding,
+  @dispatch_journal.Journal,
+) {
+  let crypto = @signature.load_library(
+    retained_runtime_required_env("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY"),
+  ).unwrap()
+  let target = retained_runtime_required_env(
+    "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_TARGET",
+  )
+  let bundle_cid = retained_runtime_required_env(
+    "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID",
+  )
+  let root = @filesystem.open_root(root_path).unwrap()
+  let directory = name + ".runtime"
+  root.create_directory(directory).unwrap() |> ignore
+  let root = root.open_child(directory).unwrap()
+  let component = b"native-runtime"
+  let writer = root
+    .create_writer("stage", component.length().to_int64())
+    .unwrap()
+  writer.append(component).unwrap()
+  let generation = writer.seal("component").unwrap()
+  let path = root_path + "/" + directory
+  let bundles = @bundle.open_runtime_bundle_store(
+    sqlite,
+    crypto,
+    path,
+    [
+      {
+        issuer_authority: "bundle-authority-a",
+        key_id: "key-a",
+        public_key_pem: retained_runtime_required_env(
+          "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY",
+        ),
+      },
+    ],
+    target,
+    component.length().to_int64(),
+    4,
+    8,
+    1048576L,
+  ).unwrap()
+  bundles
+  .adopt(
+    "actql-remote-runtime-bundle-signature/0.1",
+    "key-a",
+    bundle_cid,
+    retained_runtime_required_env(
+      "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_BODY",
+    ),
+    retained_runtime_required_env("ACTQL_TEST_NATIVE_REMOTE_RUNTIME_SIGNATURE"),
+    "component",
+    generation,
+  )
+  .unwrap()
+  |> ignore
+  bundles.activate(bundle_cid).unwrap() |> ignore
+  let active = bundles
+    .acquire_active_component(
+      "sha256:" + @sha.hex(component),
+      target,
+      "retained-consumer-process",
+    )
+    .unwrap()
+  let control = @remote.create_site_dispatch_journal(
+    site, "actql-remote-site/0.1",
+  ).unwrap()
+  let journal = @dispatch_journal.open_journal(
+    sqlite,
+    path + "/execution.sqlite3",
+    1048576L,
+    control,
+  ).unwrap()
+  (bundles, active, journal)
 }

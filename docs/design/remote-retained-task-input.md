@@ -105,6 +105,17 @@ The Native capture adapter validates the dispatch, input and original checked
 producer capture owner before any physical read. Existing registered Transfer
 providers supply bounded bytes and borrow lifetime; the existing row verifier
 establishes the captured source. It never performs another Source acquisition.
+The registered codec fixes framing before reading. The standard output
+export's ordered-row contract uses `[` on the first row chunk, `,` on later
+chunks, and `]` on the final chunk. An empty export has exactly one `[]` chunk
+with zero rows. The verifier checks those delimiters and exact manifest lengths
+before passing each row to the existing typed decoder. The installed per-chunk
+wire limit includes framing, and physical frame and total byte limits remain
+unchanged. A malformed ordered export is never retried as a bare-row profile.
+Other existing registered row profiles retain their one-bare-row-per-chunk
+contract. Neither profile rewrites Transfer bytes, chunk identities, the
+producer manifest, or execution evidence.
+
 Rejected pre-admission leaves the borrow with its caller. Stream or framing
 failure returns the existing retryable physical cleanup owner. Success keeps
 the borrow live until its capture owner closes; neither path reclaims a holding.
@@ -141,3 +152,12 @@ dispatch with an equal input binding cannot reuse that borrow. Compute completio
 keeps the input borrowed while output readers remain active. Formal output
 release closes the captured Run and returns its borrow, after which the separate
 destination and producer cleanup Owners can release their holdings and capacity.
+
+A completed acquisition task can have an internal consumer edge without a
+public Named Result rooted at that producer. Its export uses the original
+captured DAG's exact physical source match and the existing Relation export
+Owner. It does not fabricate a Result definition, another Run, or a completed
+Compute. Public Source Results still use their checked Result projection;
+internal producer output uses the checked acquisition task port. Source
+observation and managed output evidence remain durable Runtime records, and
+formal release closes the captured DAG before confirming input-owner cleanup.
