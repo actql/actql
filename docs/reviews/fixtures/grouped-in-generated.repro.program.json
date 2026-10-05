@@ -1,0 +1,102 @@
+{
+  "id": "adhoc.query",
+  "params": {
+    "p": {
+      "type": "number"
+    }
+  },
+  "results": {
+    "answer": {
+      "from": {
+        "result": "rows",
+        "stage": "main"
+      }
+    }
+  },
+  "stages": [
+    {
+      "id": "capture",
+      "inputs": {
+        "source_0": {
+          "connector": "crm/main",
+          "resource": "r",
+          "view": "v"
+        }
+      },
+      "results": {
+        "source": {
+          "fields": [
+            "amount",
+            "id"
+          ],
+          "from": "aql_capture_0"
+        }
+      },
+      "steps": [
+        {
+          "filter": {
+            "in": [
+              {
+                "field": "id"
+              },
+              {
+                "literal": [
+                  {
+                    "$param": "p"
+                  },
+                  -2
+                ]
+              }
+            ]
+          },
+          "from": "source_0"
+        },
+        {
+          "as": "aql_capture_0",
+          "select": [
+            "amount",
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "main",
+      "inputs": {
+        "source_0": {
+          "result": {
+            "result": "source",
+            "stage": "capture"
+          }
+        }
+      },
+      "results": {
+        "rows": {
+          "fields": [
+            "id"
+          ],
+          "from": "aql_gen_0"
+        }
+      },
+      "steps": [
+        {
+          "from": "source_0",
+          "select": [
+            "id"
+          ]
+        },
+        {
+          "as": "aql_gen_0",
+          "sort": [
+            {
+              "dir": "asc",
+              "field": "id",
+              "nulls": "first"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "version": "actql/0.1"
+}
