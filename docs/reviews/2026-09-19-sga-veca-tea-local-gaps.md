@@ -5530,3 +5530,20 @@ workspace 30/29 boundary checks, plus cancellation and cleanup. Their distinct
 roles are now registered with the corresponding environment evidence. Removing
 the fused timer role, either stored assurance, or substituting selected-path
 cancellation is rejected by the resource audit tests.
+
+### Sequence internal Text comparison boundary
+
+Identity sorting, uniqueness checks, compound-key sorting and partition
+boundaries now retain a stepped Text comparison cursor. This is actual
+comparison scanning, distinct from predicate initialization and output value
+measurement. Focused JS tests preserve independent result/order expectations,
+quantum-invariant control work, exact/one-short reservations and cancellation
+inside each comparison phase. Pending child-sort state is reclaimed only after
+its stop is confirmed.
+
+This does not complete the ordinary installed public Sequence route. Its
+source-free preparation currently fails before Compute with
+`SequenceCollection(MissingApplication(1))`; the conformance route's supplied
+capacity evidence is not proof of that public connection. The independent
+public reproduction and precise scope are retained in the
+[Sequence boundary record](2026-10-06-local-sequence-comparison.md).
