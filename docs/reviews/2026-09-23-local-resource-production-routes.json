@@ -10140,6 +10140,27 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/admitted_output_row_steps_wbtest.mbt",
           "fixture": "row output cursor releases partial recheck and measurement exactly once"
+        },
+        {
+          "role": "ranking_input_value_limits_stop_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "ranking input recheck yields inside unused arrays with exact limits"
+        },
+        {
+          "role": "ranking_input_shared_vector",
+          "suite": "moon:value_admission",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/value_admission/recheck_nested_steps_wbtest.mbt",
+          "fixture": "runtime vector recheck yields between components with exact node usage"
+        },
+        {
+          "role": "ranking_input_shared_json_text",
+          "suite": "moon:value_admission",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/value_admission/recheck_nested_steps_wbtest.mbt",
+          "fixture": "runtime JSON recheck yields within nested data Text without normalization"
         }
       ],
       "environment_tests": [
@@ -10170,6 +10191,13 @@
           "targets": ["node"],
           "path": "adapters/host-node/public-ranking-key-retention.test.mjs",
           "fixture": "public retained ranking publishes and cancels inside long group comparison"
+        },
+        {
+          "role": "ranking_input_public_store",
+          "suite": "node:embedded_ranking_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-ranking-key-retention.test.mjs",
+          "fixture": "public retained ranking publishes and cancels inside unused array recheck"
         }
       ],
       "path_assurance": {

@@ -44,6 +44,7 @@ priv enum RankingPhase {
   InitializeGroupValues
   InitializeTieValues
   ReadField
+  RecheckField
   ValidateGroup
   ValidateCandidate
   ValidateTie
@@ -92,6 +93,8 @@ priv struct RankingState {
   score_minimum : Double?
   score_maximum : Double?
   value_limits : @value.Limits
+  mut input_recheck : @value.RecheckCursor?
+  input_value_units : Ref[Int]
   mut comparison : RankingComparisonCursor?
   comparison_units : Ref[Int]
   mut phase : RankingPhase
@@ -202,17 +205,40 @@ fn ranking_input_row_count(value : RankingInput) -> Int {
 }
 
 ///|
-fn ranking_input_checked_cell(
+fn ranking_input_recheck(
   value : RankingInput,
   row : Int,
   column : Int,
   limits : @value.Limits,
-) -> @value.CheckedValue? {
+) -> @value.RecheckCursor? {
+  guard @schema.field_at(ranking_input_schema(value), column) is Some(field) else {
+    return None
+  }
   match value {
-    RankingProducer(read) =>
-      @execution.producer_read_checked_cell(read, row, column, limits)
-    RankingSupplied(read) =>
-      @execution.supplied_relation_read_checked_cell(read, row, column, limits)
+    RankingProducer(read) => {
+      guard @execution.producer_read_cell(read, row, column) is Some(cell) else {
+        return None
+      }
+      if cell is @execution.Text(text) {
+        return @value.start_recheck_runtime_text(text, field.contract, limits)
+      }
+      let raw = match cell {
+        @execution.Null => Some(@value.null_value())
+        @execution.Boolean(boolean) => Some(@value.boolean_value(boolean))
+        @execution.Number(number) => @value.number_value(number)
+        @execution.Captured(raw) => Some(raw)
+        @execution.Text(_) => None
+      }
+      guard raw is Some(raw) else { return None }
+      @value.start_recheck_runtime_value(raw, field.contract, limits)
+    }
+    RankingSupplied(read) => {
+      guard @execution.supplied_relation_read_cell(read, row, column)
+        is Some(raw) else {
+        return None
+      }
+      @value.start_recheck_runtime_value(raw, field.contract, limits)
+    }
   }
 }
 
@@ -238,6 +264,7 @@ struct RankingExecution {
   output_field_slots : Ref[Int]
   comparison_units : Ref[Int]
   output_row_units : Ref[Int]
+  input_value_units : Ref[Int]
   max_noninterruptible_value_nodes : Int
   max_noninterruptible_value_bytes : Int
 }
@@ -293,13 +320,17 @@ fn ranking_workspace(
   tie : Int,
   logical_inputs : Int,
   physical_inputs : Int,
+  max_value_depth? : Int = 0,
 ) -> Int? {
   // Output keys are flat KeyComparable values. The row scope needs width+1
   // borrowed slots and one shared text-measurement frame: (by+3)+2.
+  // A pending input owns at most one continuation per admitted depth,
+  // plus its current node/text frame. Reserve depth+2 before any read.
   guard ranking_checked_add(by, tie) is Some(key_width) &&
     ranking_checked_add(key_width, 8) is Some(record_width) &&
     ranking_checked_add(key_width, 5) is Some(output_width) &&
-    ranking_checked_add(key_width, 36) is Some(fixed_width) &&
+    ranking_checked_add(key_width, 44) is Some(fixed_width) &&
+    ranking_checked_add(max_value_depth, 2) is Some(recheck_frames) &&
     ranking_checked_add(by, 5) is Some(row_slots) &&
     ranking_checked_multiply(rows, record_width) is Some(records) &&
     ranking_checked_multiply(rows, output_width) is Some(outputs) &&
@@ -310,7 +341,8 @@ fn ranking_workspace(
     ranking_checked_add(logical_inputs, port_slots) is Some(input_slots) &&
     ranking_checked_add(third, input_slots) is Some(fourth) &&
     ranking_checked_add(fourth, fixed_width) is Some(fifth) &&
-    ranking_checked_add(fifth, row_slots) is Some(total) else {
+    ranking_checked_add(fifth, row_slots) is Some(sixth) &&
+    ranking_checked_add(sixth, recheck_frames) is Some(total) else {
     return None
   }
   Some(total)
@@ -343,10 +375,22 @@ fn begin_ranking_record(state : RankingState) -> Unit {
 ///|
 fn read_ranking_field(state : RankingState) -> Result[Unit, RankingIssue] {
   let read = state.inputs[state.input]
-  let schema = ranking_input_schema(read)
-  guard @schema.field_at(schema, state.field) is Some(field) &&
-    ranking_input_checked_cell(read, state.row, state.field, state.value_limits)
-    is Some(value) else {
+  guard ranking_input_recheck(read, state.row, state.field, state.value_limits)
+    is Some(cursor) else {
+    return Err(InvalidRankingRecord(state.input, state.row))
+  }
+  state.input_recheck = Some(cursor)
+  state.phase = RecheckField
+  Ok(())
+}
+
+///|
+fn bind_ranking_field(
+  state : RankingState,
+  value : @value.CheckedValue,
+) -> Result[Unit, RankingIssue] {
+  let schema = ranking_input_schema(state.inputs[state.input])
+  guard @schema.field_at(schema, state.field) is Some(field) else {
     return Err(InvalidRankingRecord(state.input, state.row))
   }
   let name = @schema.reference_name(field.name)
@@ -376,6 +420,7 @@ fn read_ranking_field(state : RankingState) -> Result[Unit, RankingIssue] {
     state.rank_value = Some(number)
   }
   state.field += 1
+  state.phase = ReadField
   Ok(())
 }
 
@@ -1041,6 +1086,29 @@ fn ranking_step(
           Err(issue) => return @bounded.Failed(issue, progress, used)
         }
       }
+      RecheckField => {
+        used += 1
+        state.input_value_units.val += 1
+        guard state.input_recheck is Some(cursor) else {
+          return @bounded.Failed(InvalidRankingKernel, progress, used)
+        }
+        match @value.advance_recheck_runtime_value(cursor) {
+          @value.RecheckContinue => ()
+          @value.RecheckComplete(value, _, _) => {
+            state.input_recheck = None
+            match bind_ranking_field(state, value) {
+              Ok(_) => ()
+              Err(issue) => return @bounded.Failed(issue, progress, used)
+            }
+          }
+          @value.RecheckFailed =>
+            return @bounded.Failed(
+              InvalidRankingRecord(state.input, state.row),
+              progress,
+              used,
+            )
+        }
+      }
       ValidateTie =>
         if state.validation_index < state.tie_values.length() {
           used += 1
@@ -1315,6 +1383,11 @@ fn ranking_step(
 
 ///|
 fn cleanup_ranking_state(state : RankingState) -> Bool {
+  if state.input_recheck is Some(cursor) {
+    @value.cancel_recheck_runtime_value(cursor)
+    state.input_recheck = None
+  }
+  state.input_value_units.val = 0
   if state.output_row is Some(row) {
     if !@execution.cleanup_admitted_output_row(row) {
       return false
@@ -1459,7 +1532,14 @@ pub fn start_ranking_inputs(
       @lower.vector_ranking_tie_break_at(prepared, index)
     })
     is Some(tie) &&
-    ranking_workspace(0, by_count, tie_count, input_count, inputs.length())
+    ranking_workspace(
+      0,
+      by_count,
+      tie_count,
+      input_count,
+      inputs.length(),
+      max_value_depth=limits.max_depth,
+    )
     is Some(input_workspace) &&
     input_workspace <= max_workspace_slots else {
     return Err(RankingWorkspaceLimit)
@@ -1513,6 +1593,7 @@ pub fn start_ranking_inputs(
       tie_count,
       input_count,
       inputs.length(),
+      max_value_depth=limits.max_depth,
     )
     is Some(workspace) &&
     workspace <= max_workspace_slots else {
@@ -1574,6 +1655,8 @@ pub fn start_ranking_inputs(
       max_text_bytes: limits.max_text_bytes,
     },
     comparison: None,
+    input_recheck: None,
+    input_value_units: Ref(0),
     comparison_units: Ref(0),
     phase: BeginRecord,
     input: 0,
@@ -1638,6 +1721,7 @@ pub fn start_ranking_inputs(
     output_field_slots,
     comparison_units: state.comparison_units,
     output_row_units: state.output_row_units,
+    input_value_units: state.input_value_units,
     max_noninterruptible_value_nodes: limits.max_nodes,
     max_noninterruptible_value_bytes: limits.max_text_bytes,
   })
@@ -1702,6 +1786,12 @@ pub fn ranking_output_field_slots(value : RankingExecution) -> Int {
 /// Charged shared row-cursor polls, cleared by stopped cleanup.
 pub fn ranking_output_row_units(value : RankingExecution) -> Int {
   value.output_row_units.val
+}
+
+///|
+/// Charged input-value recheck polls, cleared only by stopped cleanup.
+pub fn ranking_input_value_units(value : RankingExecution) -> Int {
+  value.input_value_units.val
 }
 
 ///|

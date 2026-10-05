@@ -4,14 +4,17 @@ test "ranking workspace checks every derived width" {
   assert_eq(ranking_workspace(0, 2147483632, 0, 0, 0), None)
   assert_eq(ranking_workspace(1, 2147483631, 0, 0, 0), None)
   assert_eq(ranking_workspace(0, 0, 0, 0, 1073741824), None)
+  assert_eq(ranking_workspace(0, 0, 0, 0, 0, max_value_depth=2147483647), None)
+  assert_eq(ranking_workspace(0, 0, 0, 0, 0, max_value_depth=-1), None)
 }
 
 ///|
 test "ranking workspace retains exact and one-short boundaries" {
   let required = ranking_workspace(4, 1, 2, 3, 3).unwrap()
-  assert_eq(required, 138)
-  assert_eq(ranking_workspace(4, 1, 2, 3, 2), Some(136))
-  assert_eq(ranking_workspace(0, 1, 2, 3, 2), Some(52))
+  assert_eq(required, 148)
+  assert_eq(ranking_workspace(4, 1, 2, 3, 2), Some(146))
+  assert_eq(ranking_workspace(0, 1, 2, 3, 2), Some(62))
+  assert_eq(ranking_workspace(4, 1, 2, 3, 2, max_value_depth=10), Some(156))
   assert_true(required - 1 < required)
 }
 

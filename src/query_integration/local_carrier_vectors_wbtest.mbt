@@ -3256,6 +3256,7 @@ fn direct_ranking_number(
 fn direct_ranking_output(
   owner : @lower.BoundPrepared,
   rows : Array[(Double, Double, Double)],
+  unused? : @admitted.CheckedValue? = None,
 ) -> @execution.CompletedOutput raise {
   let values = @execution.prepare_admitted_output(
     owner,
@@ -3272,6 +3273,9 @@ fn direct_ranking_output(
       let name = @schema.reference_name(
         @schema.field_at(schema, column).unwrap().name,
       )
+      if name == "zz_unused" {
+        return unused.unwrap()
+      }
       let value = if name == "q" {
         row.0
       } else if name == "id" {
@@ -4372,7 +4376,9 @@ test "standard Host executes supplied scored rankings through two consumers" {
 }
 
 ///|
-fn direct_rrf_carrier() -> @carrier_contract.Carrier {
+fn direct_rrf_carrier(
+  unused? : @value_contract.Contract? = None,
+) -> @carrier_contract.Carrier {
   let number = @value_contract.primitive(
     @value_contract.NumberType,
     nullable=false,
@@ -4381,16 +4387,20 @@ fn direct_rrf_carrier() -> @carrier_contract.Carrier {
     @value_contract.NumberType,
     nullable=true,
   )
+  let fields = [
+    (@schema.Unqualified("q"), Some(nullable_number)),
+    (@schema.Unqualified("id"), Some(number)),
+    (@schema.Unqualified("rank"), Some(number)),
+  ]
+  if unused is Some(contract) {
+    fields.push((@schema.Unqualified("zz_unused"), Some(contract)))
+  }
   @carrier_contract.relation(
     @carrier_contract.rows(
-      [
-        (@schema.Unqualified("q"), Some(nullable_number)),
-        (@schema.Unqualified("id"), Some(number)),
-        (@schema.Unqualified("rank"), Some(number)),
-      ],
+      fields,
       field_set=@carrier_contract.Closed,
-      max_fields=3,
-      max_name_bytes=7,
+      max_fields=4,
+      max_name_bytes=16,
     ).unwrap(),
   )
 }
@@ -4457,14 +4467,24 @@ fn direct_nullable_rrf_output(
 }
 
 ///|
-fn direct_rrf_owner() -> @lower.BoundPrepared {
+fn direct_rrf_owner(
+  unused? : @value_contract.Contract? = None,
+) -> @lower.BoundPrepared {
   direct_nearest_bind(
     @pipeline.check_with_evidence(
-      input_cursor("[{\"select\":[\"q\",\"id\",\"rank\"]}]"),
+      input_cursor(
+        if unused is Some(_) {
+          "[{\"select\":[\"q\",\"id\",\"rank\",\"zz_unused\"]}]"
+        } else {
+          "[{\"select\":[\"q\",\"id\",\"rank\"]}]"
+        },
+      ),
       [
         (
           "rows",
-          @pipeline.RankingInput(@vector.ranking_relation(direct_rrf_carrier())),
+          @pipeline.RankingInput(
+            @vector.ranking_relation(direct_rrf_carrier(unused~)),
+          ),
         ),
       ],
       None,
@@ -4828,6 +4848,183 @@ test "ranking bounds scratch and output assembly within quantum" {
 }
 
 ///|
+test "ranking input recheck yields inside unused arrays with exact limits" {
+  let contract = @value_contract.array_contract(
+    @value_contract.primitive(@value_contract.NumberType, nullable=false),
+    nullable=false,
+    max_items=Some(257L),
+  ).unwrap()
+  let raw = @admitted.array_value(
+    Array::make(257, @admitted.number_value(1.0).unwrap()),
+  )
+  let unused = @admitted.recheck_runtime_value(raw, contract, {
+    max_nodes: 258,
+    max_text_bytes: 0,
+    max_depth: 1,
+  }).unwrap()
+  let left = direct_rrf_owner(unused=Some(contract))
+  let right = direct_rrf_owner(unused=Some(contract))
+  let owner = direct_rrf_fusion_owner(left, right)
+  let left_output = direct_ranking_output(
+    left,
+    [(1.0, 1.0, 1.0)],
+    unused=Some(unused),
+  )
+  let right_output = direct_ranking_output(right, [], unused=Some(unused))
+  let inputs = [
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, left, left_output).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 1, right, right_output).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+  ]
+  // Input: by initialization 1, four reads, scalar rechecks 6 and array
+  // recheck 2*257+3=517, then group/candidate/policy/store 4: 532.
+  // Three scratch entries + duplicate/rank checks 4 + fusion 4 +
+  // fused scratch 1 + output/finish 30 = 42. Total control work: 574.
+  // One record: 17 slots. Input ports 6, fixed width 45, row scope 6,
+  // depth-two recheck scope 4: 78. Unused array nodes remain validated.
+  for
+    (work, slots, nodes, quantum, succeeds) in [
+      (574, 78, 258, 1, true),
+      (574, 78, 258, 7, true),
+      (574, 78, 258, 256, true),
+      (573, 78, 258, 1, false),
+      (574, 78, 257, 1, false),
+    ] {
+    let execution = @local_veca.start_ranking(
+      @bounded.control(),
+      task_test_completion(owner),
+      prepared_sequence(owner),
+      0,
+      inputs,
+      10,
+      { max_nodes: nodes, max_text_bytes: 1000, max_depth: 2, max_work: 10000, },
+      slots,
+      1000,
+      10000,
+      control_work_limit=Some(work),
+    ).unwrap()
+    let mut terminal = false
+    for _ in 0..<600 {
+      if terminal {
+        break
+      }
+      match @local_veca.advance_ranking(execution, quantum).unwrap() {
+        @local_veca.RankingContinue(..) => ()
+        @local_veca.RankingComplete(output, work=charged, ..) => {
+          assert_true(succeeds)
+          assert_eq(charged, 574L)
+          assert_eq(@local_veca.ranking_input_value_units(execution), 523)
+          assert_eq(@execution.completed_row_count(output), 1)
+          let schema = @pipeline.schema_at(
+            @lower.pipeline(@lower.bound_preparation(owner)),
+            @pipeline.Step(0),
+          ).unwrap()
+          for column in 0..<@schema.field_count(schema) {
+            let name = @schema.reference_name(
+              @schema.field_at(schema, column).unwrap().name,
+            )
+            let expected = if name == "score" { 0.5 } else { 1.0 }
+            assert_true(
+              @execution.completed_cell(output, 0, column)
+              is Some(Number(value)) &&
+              value == expected,
+            )
+          }
+          terminal = true
+        }
+        @local_veca.RankingFailed(
+          @local_veca.RankingWorkLimit,
+          work=charged,
+          ..
+        ) => {
+          assert_eq(work, 573)
+          assert_eq(charged, 573L)
+          terminal = true
+        }
+        @local_veca.RankingFailed(@local_veca.InvalidRankingRecord(0, 0), ..) => {
+          assert_eq(nodes, 257)
+          terminal = true
+        }
+        _ => fail("unused ranking input missed its typed boundary")
+      }
+    }
+    assert_true(terminal)
+    assert_eq(@local_veca.cleanup_ranking(execution), Ok(true))
+    assert_eq(@local_veca.ranking_input_value_units(execution), 0)
+    assert_eq(@local_veca.ranking_output_field_slots(execution), 0)
+    assert_eq(@local_veca.ranking_scratch_slots(execution), 0)
+    assert_true(@execution.completed_output_available(left_output))
+    assert_true(@execution.completed_output_available(right_output))
+  }
+  assert_true(
+    @local_veca.start_ranking(
+      @bounded.control(),
+      task_test_completion(owner),
+      prepared_sequence(owner),
+      0,
+      inputs,
+      10,
+      { max_nodes: 258, max_text_bytes: 1000, max_depth: 2, max_work: 10000, },
+      77,
+      1000,
+      10000,
+    )
+    is Err(@local_veca.RankingWorkspaceLimit),
+  )
+  let control = @bounded.control()
+  let execution = @local_veca.start_ranking(
+    control,
+    task_test_completion(owner),
+    prepared_sequence(owner),
+    0,
+    inputs,
+    10,
+    { max_nodes: 258, max_text_bytes: 1000, max_depth: 2, max_work: 10000, },
+    78,
+    1000,
+    10000,
+    control_work_limit=Some(574),
+  ).unwrap()
+  for _ in 0..<100 {
+    if @local_veca.ranking_input_value_units(execution) == 64 {
+      break
+    }
+    assert_true(
+      @local_veca.advance_ranking(execution, 1).unwrap()
+      is @local_veca.RankingContinue(progress=0L, ..),
+    )
+  }
+  assert_eq(@local_veca.ranking_input_value_units(execution), 64)
+  assert_true(@bounded.request_cancel(control))
+  assert_false(@local_veca.ranking_stopped(execution))
+  assert_eq(
+    @local_veca.cleanup_ranking(execution),
+    Err(@local_veca.RankingExecutionIssue(@bounded.NotStopped)),
+  )
+  assert_eq(@local_veca.ranking_input_value_units(execution), 64)
+  assert_true(@execution.producer_read_available(inputs[0]))
+  assert_true(@execution.producer_read_available(inputs[1]))
+  assert_true(
+    @local_veca.advance_ranking(execution, 1).unwrap()
+    is @local_veca.RankingStopped(@bounded.Cancelled, progress=0L, ..),
+  )
+  assert_eq(@local_veca.cleanup_ranking(execution), Ok(true))
+  assert_eq(@local_veca.ranking_input_value_units(execution), 0)
+  assert_eq(@local_veca.cleanup_ranking(execution), Ok(false))
+  assert_true(@execution.completed_output_available(left_output))
+  assert_true(@execution.completed_output_available(right_output))
+}
+
+///|
 test "ranking yields within long group and tie comparisons" {
   let prefix = String::make(512, 'x')
   let segment = prefix + "s"
@@ -4871,16 +5068,16 @@ test "ranking yields within long group and tie comparisons" {
       max_depth: 10,
       max_work: 10000,
     }
-    // Independently count four 1038-unit input rows, record sorts 1048+2590,
+    // Independently count four 1066-unit input rows, record sorts 1048+2590,
     // duplicate checks 1033, candidate folds 3600, output sort 1032, and
-    // two emitted rows plus finalization 626. Total control work is 14081.
-    // Workspace: 4*11+4 + 4*8+4 + (2+2*2) + (3+36) + 7 = 136.
+    // two emitted rows plus finalization 626. Total control work is 14193.
+    // Workspace: 4*11+4 + 4*8+4 + (2+2*2) + (3+44) + 7 + 12 = 156.
     for
       (quantum, control_limit) in [
-        (1, 14081),
-        (7, 14081),
-        (256, 14081),
-        (1, 14080),
+        (1, 14193),
+        (7, 14193),
+        (256, 14193),
+        (1, 14192),
       ] {
       let execution = @local_veca.start_ranking(
         @bounded.control(),
@@ -4890,7 +5087,7 @@ test "ranking yields within long group and tie comparisons" {
         inputs,
         10,
         limits,
-        136,
+        156,
         1000,
         10000,
         control_work_limit=Some(control_limit),
@@ -4903,8 +5100,8 @@ test "ranking yields within long group and tie comparisons" {
         match @local_veca.advance_ranking(execution, quantum).unwrap() {
           @local_veca.RankingContinue(work~, ..) => assert_true(work > 0L)
           @local_veca.RankingComplete(output, work~, ..) => {
-            assert_eq(control_limit, 14081)
-            assert_eq(work, 14081L)
+            assert_eq(control_limit, 14193)
+            assert_eq(work, 14193L)
             assert_eq(@execution.completed_row_count(output), 2)
             let schema = @pipeline.schema_at(
               @lower.pipeline(@lower.bound_preparation(owner)),
@@ -4935,8 +5132,8 @@ test "ranking yields within long group and tie comparisons" {
             terminal = true
           }
           @local_veca.RankingFailed(@local_veca.RankingWorkLimit, work~, ..) => {
-            assert_eq(control_limit, 14080)
-            assert_eq(work, 14080L)
+            assert_eq(control_limit, 14192)
+            assert_eq(work, 14192L)
             terminal = true
           }
           _ => fail("long ranking missed its typed boundary")
@@ -4960,7 +5157,7 @@ test "ranking yields within long group and tie comparisons" {
         inputs,
         10,
         limits,
-        135,
+        155,
         1000,
         10000,
       )
@@ -4975,10 +5172,10 @@ test "ranking yields within long group and tie comparisons" {
       inputs,
       10,
       limits,
-      136,
+      156,
       1000,
       10000,
-      control_work_limit=Some(14081),
+      control_work_limit=Some(14193),
     ).unwrap()
     for _ in 0..<1000 {
       if @local_veca.ranking_comparison_units(execution) == 257 {
@@ -5073,10 +5270,10 @@ test "ranking output rows keep independent logical value limits" {
         max_depth: 10,
         max_work: logical_work,
       },
-      136,
+      156,
       1000,
       10000,
-      control_work_limit=Some(14081),
+      control_work_limit=Some(14193),
     ).unwrap()
     let mut terminal = false
     for _ in 0..<15000 {
@@ -5088,7 +5285,7 @@ test "ranking output rows keep independent logical value limits" {
         @local_veca.RankingComplete(output, progress~, work~) => {
           assert_true(succeeds)
           assert_eq(progress, 2L)
-          assert_eq(work, 14081L)
+          assert_eq(work, 14193L)
           assert_eq(@execution.completed_row_count(output), 2)
           assert_eq(@local_veca.ranking_output_row_units(execution), 92)
           terminal = true
@@ -5169,10 +5366,10 @@ test "ranking output recheck and charge retain custody until stopped" {
       inputs,
       10,
       { max_nodes: 12, max_text_bytes: 1064, max_depth: 10, max_work: 1076, },
-      136,
+      156,
       1000,
       10000,
-      control_work_limit=Some(14081),
+      control_work_limit=Some(14193),
     ).unwrap()
     let mut progress = 0L
     for _ in 0..<15000 {
@@ -5255,10 +5452,10 @@ test "ranking producer path admits exact work and workspace" {
     inputs,
     10,
     limits,
-    117,
+    137,
     1000,
     10000,
-    control_work_limit=Some(212),
+    control_work_limit=Some(236),
   ).unwrap()
   let mut exact_done = false
   for _ in 0..<1000 {
@@ -5268,7 +5465,7 @@ test "ranking producer path admits exact work and workspace" {
     match @local_veca.advance_ranking(exact, 1).unwrap() {
       @local_veca.RankingContinue(work~, ..) => assert_true(work > 0L)
       @local_veca.RankingComplete(output, work~, ..) => {
-        assert_eq(work, 212L)
+        assert_eq(work, 236L)
         assert_eq(@execution.completed_row_count(output), 2)
         exact_done = true
       }
@@ -5287,10 +5484,10 @@ test "ranking producer path admits exact work and workspace" {
     inputs,
     10,
     limits,
-    117,
+    137,
     1000,
     10000,
-    control_work_limit=Some(211),
+    control_work_limit=Some(235),
   ).unwrap()
   let mut work_failed = false
   for _ in 0..<1000 {
@@ -5300,7 +5497,7 @@ test "ranking producer path admits exact work and workspace" {
     match @local_veca.advance_ranking(one_short_work, 1).unwrap() {
       @local_veca.RankingContinue(work~, ..) => assert_true(work > 0L)
       @local_veca.RankingFailed(@local_veca.RankingWorkLimit, work~, ..) => {
-        assert_eq(work, 211L)
+        assert_eq(work, 235L)
         work_failed = true
       }
       _ => fail("one-short ranking work was accepted")
@@ -5319,7 +5516,7 @@ test "ranking producer path admits exact work and workspace" {
       inputs,
       10,
       limits,
-      116,
+      136,
       1000,
       10000,
     )
@@ -5361,20 +5558,20 @@ test "registered ranking provider enforces exact work and workspace" {
     limits.local_execution,
     limits.guards,
   ).unwrap()
-  // Four three-field input rows cost 32 units; four stable sort passes cost
+  // Four three-field input rows cost 56 units; four stable sort passes cost
   // 88 (six additional record comparisons and two output comparisons);
   // duplicate/rank validation costs 12; fusion-boundary comparisons add 3;
   // four two-input folds cost 16;
   // four output visits, two four-field rows, and finalization cost 61.
-  // Workspace is 4*9 + 4 + 4*6 + 4 + (2+2*2) + (1+36) + 6 = 117 slots.
-  // Fixed comparison/row state and six scoped row slots remain reserved.
+  // Workspace is 4*9 + 4 + 4*6 + 4 + (2+2*2) + (1+44) + 6 + 12 = 137 slots.
+  // Fixed state, row scope and depth-bounded recheck frames remain reserved.
   for
     (work, slots, outcome, quantum) in [
-      (212, 117, "complete", 1),
-      (212, 117, "complete", 7),
-      (212, 117, "complete", 256),
-      (211, 117, "work", 1),
-      (212, 116, "workspace", 1),
+      (236, 137, "complete", 1),
+      (236, 137, "complete", 7),
+      (236, 137, "complete", 256),
+      (235, 137, "work", 1),
+      (236, 136, "workspace", 1),
     ] {
     let provider = @local_veca_provider.provider(
       {
@@ -5420,9 +5617,9 @@ test "registered ranking provider enforces exact work and workspace" {
       if outcome == "workspace" {
         0L
       } else if outcome == "work" {
-        211L
+        235L
       } else {
-        212L
+        236L
       },
     )
     assert_true(@local_connector.managed_provider_stopped(execution))

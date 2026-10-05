@@ -228,6 +228,31 @@ test('ranking output requires its logical limits and shared cursor custody evide
   }
 });
 
+test('ranking input requires unused-value limits, shared scans and public custody evidence', () => {
+  for (const role of ['ranking_input_value_limits_stop_cleanup',
+    'ranking_input_shared_vector', 'ranking_input_shared_json_text']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === 'merge_rankings');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`VecA merge_rankings: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'merge_rankings');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'ranking_input_public_store');
+  }), /VecA merge_rankings: ranking input public Store fixture is missing/u);
+  for (const role of ['ranking_input_shared_vector',
+    'ranking_input_shared_json_text']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === 'merge_rankings');
+      route.boundary_tests.find(item => item.role === role).suite = 'moon:local_veca';
+    }), /VecA merge_rankings: boundary evidence must be suite-connected on all targets/u);
+  }
+});
+
 test('ranking public evidence requires an actual suite connection', () => {
   const file = join(root, 'adapters/host-node/embedded-installation.test.mjs');
   const sources = Object.freeze({...sourceTemplate,
