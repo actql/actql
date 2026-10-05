@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/client_row_source_host" @row_host,
   "actql/actql/connector_conformance" @conformance,
   "actql/actql/connectors/duckdb/host" @acquisition_host,
   "actql/actql/connectors/duckdb/host_native" @native_host,

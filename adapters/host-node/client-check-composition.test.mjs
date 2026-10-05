@@ -37,7 +37,7 @@ function fixture(states = [], publication = aliases) {
     },
   };
   const sourceAccesses = states.map(state => ({
-    sourceRef: aliases[state.index].sourceRef,
+    sourceRef: (publication[state.index] ?? aliases[state.index]).sourceRef,
     connection: `connection-${state.index}`, resource: state.noReadTuple ? undefined : `resource-${state.index}`,
     authorization: {authorize: async (boundary, tuple, options) => {
       calls.push(state.index);
@@ -81,6 +81,17 @@ test('composition: each source uses its own decision in either order', async () 
       assert.deepEqual(outcome, await absent.check(request('owner', 'SELECT id FROM A')));
     }
   }
+});
+
+test('composition: every declared view uses its own read decision', async () => {
+  const third = {...aliases[0], name: 'C',
+    sourceRef: 'connector://fixture/C/r#v'};
+  const publication = [...aliases, third];
+  const f = fixture([{index: 0, action: 'dispatch'},
+    {index: 1, action: 'deny'}, {index: 2, action: 'dispatch'}], publication);
+  assert.equal((await f.check(request())).outcome, 'completed');
+  assert.deepEqual(f.calls, [0, 1, 2]);
+  assert.deepEqual(f.visible(), [aliases[0], third]);
 });
 
 test('composition: unusable read owners hide only their own names', async () => {

@@ -4,9 +4,7 @@ package "actql/actql/connectors/salesforce/host_node"
 import {
   "actql/actql/connectors/salesforce/catalog",
   "actql/actql/connectors/salesforce/host",
-  "actql/actql/execution_query",
   "actql/actql/execution_relation",
-  "actql/actql/lowering_relation",
   "actql/actql/run_publication",
 }
 
@@ -14,22 +12,6 @@ import {
 pub fn salesforce_admit_recovery_preview(String, String, String, Int, Int, Int) -> @run_publication.EffectPreviewIdentity raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_begin_query_read(@catalog.ReadProjection, String, Int, Int, Int, Int, Int, Int, Int64) -> @catalog.QueryRead raise SalesforceCatalogBridgeIssue
-
-pub fn salesforce_broad_host_abort(@host.SalesforceBroadHostRun) -> Unit
-
-pub fn salesforce_broad_host_attempt(@host.SalesforceBroadHostRun) -> @host.SalesforceBroadAttempt
-
-pub fn salesforce_broad_host_bind(@host.SalesforceBroadHostRun, @host.SalesforceBroadObservation, @lowering_relation.BoundPrepared, Int) -> @execution_relation.BoundProducerInput raise SalesforceCatalogBridgeIssue
-
-pub fn salesforce_broad_host_close(@host.SalesforceBroadHostRun) -> Unit
-
-pub fn salesforce_broad_host_complete(@host.SalesforceBroadHostRun) -> @host.SalesforceBroadObservation raise SalesforceCatalogBridgeIssue
-
-pub fn salesforce_broad_host_document(@host.SalesforceBroadObservation) -> String
-
-pub fn salesforce_broad_host_open(@host.SalesforceBroadHostConfiguration, String, (@host.SalesforceBroadAttempt) -> Bool) -> @host.SalesforceBroadHostRun raise SalesforceCatalogBridgeIssue
-
-pub fn salesforce_broad_host_source(@host.SalesforceBroadHostRun, @host.SalesforceBroadObservation) -> @execution_query.CapturedInputSource raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_catalog_begin(@catalog.ResourceListing) -> @catalog.CatalogSync
 
@@ -116,22 +98,6 @@ pub fn salesforce_execution_mapping_ref(@catalog.ExecutionMapping) -> String
 pub fn salesforce_generate_static_declaration(@catalog.CatalogObservation, String, String, String, String, String, String, Int, String, String, String, String, String, String, @catalog.SalesforceImplementation, String, Array[String], Int, Int, Int) -> @catalog.StaticDeclaration raise SalesforceDeclarationBridgeIssue
 
 pub fn salesforce_implementation(String) -> @catalog.SalesforceImplementation raise SalesforceDeclarationBridgeIssue
-
-pub fn salesforce_issued_broad_abort(@host.SalesforceBroadAttempt) -> Unit
-
-pub fn salesforce_issued_broad_accept_page(@host.SalesforceBroadAttempt, String, Bytes) -> @catalog.QueryPage raise SalesforceCatalogBridgeIssue
-
-pub fn salesforce_issued_broad_begin(@host.SalesforceBroadAttempt, String, Int, Int, Int, Int, Int, Int, Int64, Int, Int, Int, Int, Int) -> Bool raise SalesforceCatalogBridgeIssue
-
-pub fn salesforce_issued_broad_complete(@host.SalesforceBroadAttempt) -> Bool
-
-pub fn salesforce_issued_broad_finish(@host.SalesforceBroadAttempt) -> Bool raise SalesforceCatalogBridgeIssue
-
-pub fn salesforce_issued_broad_next_path(@host.SalesforceBroadAttempt) -> String? raise SalesforceCatalogBridgeIssue
-
-pub fn salesforce_issued_broad_plan(@host.SalesforceBroadAttempt) -> @catalog.ReadProjection
-
-pub fn salesforce_issued_broad_row_count(@host.SalesforceBroadAttempt) -> Int64 raise SalesforceCatalogBridgeIssue
 
 pub fn salesforce_managed_query_accept_page(@host.ManagedQuery, String, Bytes) -> @catalog.QueryPage raise SalesforceCatalogBridgeIssue
 
@@ -317,8 +283,6 @@ pub(all) suberror SalesforceCatalogBridgeIssue {
   WriteCollectionResponse(@catalog.WriteCollectionResponseIssue)
   QueryRead(@catalog.QueryReadIssue)
   ManagedQuery(@host.ManagedQueryIssue)
-  BroadAttempt(@host.SalesforceBroadAttemptIssue)
-  BroadHost(@host.SalesforceBroadHostIssue)
   InvalidResource
   PreviewRows
 }
