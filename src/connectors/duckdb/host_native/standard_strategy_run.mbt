@@ -974,9 +974,13 @@ fn native_standard_retained_storage(
   let graph = @duckdb_standard_host.dispatch_run(run.dispatch)
   guard @strategy.captured_task_target(graph, producer) is Some(target) &&
     @strategy.captured_task_output(graph, producer, target) is Some(output) &&
-    @execution.producer_storage_matches_output(storage, output) else {
+    @execution.producer_storage_retained_material(storage) is Some(material) &&
+    @execution.retained_completed_material_matches(material, output) else {
     return None
   }
+  // captured_task_output adds a fresh liveness restriction to the same owned
+  // completion. Match its exact material, not the wrapper object's address;
+  // the installed file resolver still requires that same retained occurrence.
   native_standard_retained_result(run, output)
 }
 

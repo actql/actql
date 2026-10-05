@@ -49,6 +49,14 @@ test('100 rows: actual resident/fresh/Local choices, cheaper capacity refusal an
         ['fresh', {residentPolicy: false}],
         ['local', {residentPolicy: false, localRates: ['1', '1', '1'],
           nativeRates: ['2147483647', '2147483647', '2147483647']}],
+        ['fresh-then-resident', {residentPolicy: true, phaseObserver: true,
+          localRates: ['1000000', '1000000', '1000000'], nativeRates: ['1', '1', '1000000'],
+          residentEstimates: {preparationMilliseconds: '1', cleanupMilliseconds: '1',
+            taskMilliseconds: ['1000000', '1000000', '1'], importMilliseconds: ['1', '1', '1', null]}}],
+        ['local-then-resident', {residentPolicy: true, phaseObserver: true,
+          localRates: ['1', '1000000', '1000000'], nativeRates: ['1000000', '1000000', '1000000'],
+          residentEstimates: {preparationMilliseconds: '1', cleanupMilliseconds: '1',
+            taskMilliseconds: ['1000000', '1', '1'], importMilliseconds: ['1', '1', '1', null]}}],
         // Three Compute attempts fit; resident preparation/import would need
         // five. Its lower estimate must not override the actual attempt cap.
         ['bounded', {residentPolicy: true, attemptCap: 4}],
@@ -97,10 +105,11 @@ test('100 rows: actual resident/fresh/Local choices, cheaper capacity refusal an
             {root, timeoutMs: fixture.limits.timeoutMs});
           const product = admitNativeDirectProduct(fixture, invocation, execution);
           const residentSelected = label === 'resident' || label === 'resident-profiled';
-          assert(product.ownerCorrespondence.observations.choices.every(choice =>
-            choice.resident === residentSelected));
-          assert.deepEqual(product.selected, Array(3).fill(
-            label === 'local' ? 'local' : 'duckdb'),
+          assert.deepEqual(product.ownerCorrespondence.observations.choices.map(choice => choice.resident),
+            label === 'fresh-then-resident' ? [false, false, true] :
+              label === 'local-then-resident' ? [false, true, true] : Array(3).fill(residentSelected));
+          assert.deepEqual(product.selected, label === 'local-then-resident'
+            ? ['local', 'duckdb', 'duckdb'] : Array(3).fill(label === 'local' ? 'local' : 'duckdb'),
           JSON.stringify({label, explanations: product.ownerCorrespondence.observations.explanations}));
           if (label === 'bounded') {
             assert(product.ownerCorrespondence.observations.explanations.every(
@@ -113,7 +122,16 @@ test('100 rows: actual resident/fresh/Local choices, cheaper capacity refusal an
             'MissingCheaperCandidateCapacityRefusal');
           }
           assert.deepEqual(product.ownerCorrespondence.attempts.map(attempt =>
-            attempt.physicalAttempts), residentSelected ? [3, 1, 1] : [1, 1, 1]);
+            attempt.physicalAttempts), label === 'fresh-then-resident' ? [1, 1, 3] :
+              label === 'local-then-resident' ? [1, 3, 2] : residentSelected ? [3, 1, 1] : [1, 1, 1]);
+          if (label === 'fresh-then-resident' || label === 'local-then-resident') {
+            assert.deepEqual(product.physicalPhases.intervals.filter(item => item.phase === 'import')
+              .map(item => item.producer), label === 'fresh-then-resident' ? [1] : [0, 1]);
+            const phases = product.physicalPhases.intervals.map(item => [item.task, item.phase]);
+            assert.deepEqual(phases, label === 'fresh-then-resident'
+              ? [[3, 'environment'], [3, 'import'], [3, 'compute']]
+              : [[2, 'environment'], [2, 'import'], [2, 'compute'], [3, 'import'], [3, 'compute']]);
+          }
           if (residentSelected) {
             assert.deepEqual(product.physicalPhases.intervals.map(item => item.phase),
               ['environment', 'import', 'compute', 'compute', 'compute']);
