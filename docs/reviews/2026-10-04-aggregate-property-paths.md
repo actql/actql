@@ -272,3 +272,92 @@ No full Core, all-target, native, proof or performance campaign is added.
 After the shared acceptance slot is available, use one ordinary clean-source
 pack and the unchanged selection above. CI for the later evidence-only HEAD
 is reported separately in the PR. No manual CI rerun or PR merge is performed.
+
+## Fresh integrated execution and unchanged-JSON control (2026-10-05)
+
+Main `4a63d0e699674df519c9d35a990080026000e560`, including the common
+DAG changes and merged Frontend scope/Graph routes, was normally merged at
+`61d5d214067765f36bd3e5c8101f03eaf0332339`. This is the clean source
+revision in the new ordinary prepack receipt; the later reporting commit changes
+only this document. Main's workflows, foundation declarations and existing
+Frontends remain intact. Base is main, with no unmerged code dependency.
+
+- `node scripts/local-checks.mjs test moon -- --target js src/query_program/aggregate_property_paths_test.mbt src/query_expression/lower_test.mbt`:
+  **18/18**, guard `run-QXIhdZ`, focused receipt `focused-test-ogZLTu`.
+- `node scripts/test-packed-public-query.mjs --aggregate-property-only --keep-artifacts`,
+  through the existing serial bounded guard `run-aiLMcN`: **failed**, receipt
+  `worktrees/.codex-scratch/public-query-evidence-VZYI61`. All five packages
+  were normally packed from that clean source and installed outside the checkout;
+  the original acceptance run had no installed overlay. README Local/HTTPS,
+  missing-asset and public-check controls passed. The independent aggregate JSON
+  control passed Local Named Result rows and complete ordered column contracts.
+  `aggregate-property-sql` was admitted and then failed with
+  `ACTQL_E_UNPUBLISHED_RUN`; remaining six text positives, four preparation
+  refusals and the aggregate HTTP selection were not reached. The receipt is
+  incomplete and is not an acceptance pass.
+
+The following separate diagnostic reuses that exact installed distribution
+without another build or pack. It logs errors around the existing
+`runtimeCore.next` call, restores the adapter byte-for-byte in `finally`, and
+submits the source and the saved generated JSON without changing their
+expressions, parameters, limits or stages. Guard `run-v7xOQx` completed the
+reproduction; both submissions failed. This is an explicitly disclosed
+logging-overlay diagnostic, not pristine acceptance or successful execution.
+
+```text
+runtimeCore.next -> strategyHostNext -> prepare_next_compute_task
+NodeHostFailure.Dispatch(ComputeHostIssue.Dispatch(InstalledDispatchIssue.NoStrategy))
+public state -> failed / ACTQL_E_UNPUBLISHED_RUN
+```
+
+The current generated runtime reports `Eun(AMe(zR_))`. The checked common
+dispatch path maps this to the chain above: `AMe` is ComputeHost Dispatch,
+`zR_` is InstalledDispatch NoStrategy, and `prepare_next_installed_task`
+finds no captured strategy revision. This identifies the first dispatch refusal;
+it does not establish which earlier offer/selection step omitted the revision.
+No capacity, provider-kernel or CTE cause is inferred from the terminal symptom.
+
+The common owner can use the existing `aggregatePropertyDataReproduction` and
+unchanged generated Program linked above. The generated Program file's SHA-256
+is `c37b4d5fecdeae2b7792e4b766307c938fd9029d938d1577dc344c115a04c815`.
+Its successful independent JSON control has a different authored Program shape;
+it does not prove that the generated pipeline is dispatchable. Frontend tests
+and the saved checked Program distinguish lowering from execution, and the
+unchanged-JSON submission reaches the same refusal without invoking Frontend.
+
+Private evidence paths relative to the workspace root:
+
+- `worktrees/.codex-scratch/public-query-evidence-VZYI61/summary.json`,
+  `012.stdout.log`, `012.stderr.log`: original clean packed campaign.
+- In that directory, `aggregate-boundary-diagnostic.json`,
+  `aggregate-boundary-diagnostic.stdout.log`,
+  `aggregate-boundary-diagnostic.stderr.log`, and
+  `aggregate-boundary-overlay.json`: separate current-source diagnostic and
+  restoration evidence. The original/restored adapter SHA-256 is
+  `72a1ae874a4c1940c6278f9cf6575968bc69e2301559174d7635a5d6cdee3695`.
+- `.codex-scratch/b-aggregate-property-evidence-2026-10-05/integrated-report.json`:
+  compact source/digest/check/handoff index.
+
+| Packed package at `61d5d214...` | SHA-256 |
+|---|---|
+| `actql-client-wire-0.0.0-development.tgz` | `a8d1f2a63ed08d3378765fbee905fb72233d19e66e8ce77d6f1398ae45dbe8b7` |
+| `actql-sdk-0.0.0-development.tgz` | `a42baf2456b366d3a761f01cce27292ae1dcee13c8ce6113a3b70896bedd4e97` |
+| `actql-run-host-core-0.0.0-development.tgz` | `320f6f5db36624cc767d7e21fe0fa8b6e080504482db3d322de24b6563683e8d` |
+| `actql-local-node-0.0.0-development.tgz` | `26d3bf38af2e8582190219f0faf7c615b0cabf7c5a78f0930392de93b262af63` |
+| `actql-node-0.0.0-development.tgz` | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+The preceding `10cd2c46f573554511ac98debce4272f005094f8` campaign
+(`public-query-evidence-6xyu6X`, guard `run-ESWRzY`) and its diagnostic
+(`run-gqo8Fo`) are historical, separate receipts. They likewise passed the
+Local independent JSON control and failed source/unchanged generated JSON at
+NoStrategy. The current result above is independently obtained after the real
+main integration, rather than re-labelling those older results.
+
+This route remains Draft and execution-blocked on a common dispatch correction.
+The existing eight positives/four refusals, independently authored expectations
+and 512 MiB budget are unchanged. No strategy, task partition, execution owner,
+fallback or relaxed validation was added. Resume the unchanged Local/HTTP
+selection only after a relevant adoptable correction; do not repeatedly pack
+the same failure state. Exact submitted-HEAD CI is reported in the PR separately
+from these local checks. Full Core, Wasm/native, all packed, proof and performance
+campaigns were not added.
