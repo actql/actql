@@ -106,6 +106,12 @@ fn[T : IndexedRows] advance_aggregate_expression_impl(
       Ok(false) => return Ok(None)
       Ok(true) => ()
     }
+    if !IndexedRows::cell_present(state.input, state.row, state.column) {
+      state.column += 1
+      state.column_entry_charged = false
+      reset_bounded_text_charge(state.name_charge)
+      return Ok(None)
+    }
     if !reserve_slots(state.workspace, 1) {
       return Err(RowLimit)
     }

@@ -49,7 +49,7 @@ fn script_traversal_argument(
 }
 
 ///|
-fn lower_script_traversal_nodes(
+fn lower_script_traversal_rows(
   construction : Construction,
   query : @query.Query,
   call : @query.SgaCall,
@@ -61,10 +61,13 @@ fn lower_script_traversal_nodes(
 ) -> Input raise Abort {
   // Node and path emissions have different contracts. Do not borrow one
   // output schema for the other or replace an authored emission/default.
-  guard call.arguments.any(argument => {
-    argument.0 == "emit" && argument.1 == @query.TextValue("nodes")
-  }) else {
-    raise Abort(UnsupportedGraph)
+  let emissions = call.arguments.filter(argument => argument.0 == "emit")
+  guard emissions.length() == 1 else { raise Abort(UnsupportedGraph) }
+  let fields = match emissions[0].1 {
+    @query.TextValue("nodes") => ["start_id", "node_id", "depth"]
+    @query.TextValue("paths") =>
+      ["start_id", "end_id", "hop_count", "node_ids", "edge_ids"]
+    _ => raise Abort(UnsupportedGraph)
   }
   let origin = match
     @origin.range(@query.query_document(query), call.start, call.end) {
@@ -93,7 +96,7 @@ fn lower_script_traversal_nodes(
     relation: @query.relation(query),
     name: output,
     source: StepReference,
-    visible_fields: ["start_id", "node_id", "depth"],
+    visible_fields: fields,
     graph_bindings: [],
   }
 }

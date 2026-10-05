@@ -3,8 +3,8 @@
 /// cells are charged one measured value step at a time, the operation runs
 /// as a `BoundedGroup`, and each emitted row is admitted into the managed
 /// output one measured value at a time before the trusted output completes.
-/// Aggregates with a filter, an expression argument, or a selected numeric
-/// reduction are not in this profile.
+/// Filter and expression arguments use the existing fragment runtime context;
+/// selected numeric reductions additionally use the task's numeric execution.
 priv struct BoundedGroupInputRows {
   input : BoundedGlobalCountInput
   owner : @lower.BoundPrepared
@@ -28,7 +28,16 @@ impl IndexedRows for BoundedGroupInputRows with fn row_width(self, _row) {
 
 ///|
 impl IndexedRows for BoundedGroupInputRows with fn read_cell(self, row, column) {
-  global_count_input_cell(self.input, row, column).unwrap_or(Null)
+  global_count_input_charge_cell(self.input, row, column).unwrap().unwrap()
+}
+
+///|
+impl IndexedRows for BoundedGroupInputRows with fn cell_present(
+  self,
+  row,
+  column,
+) {
+  global_count_input_charge_cell(self.input, row, column).unwrap() is Some(_)
 }
 
 ///|
@@ -318,19 +327,29 @@ fn bounded_group_step(
           used += 1
         } else if state.charge_column < width {
           if state.charge_measure is None {
-            guard global_count_input_cell(
+            let charged = match
+              global_count_input_charge_cell(
                 state.input,
                 state.charge_row,
                 state.charge_column,
-              )
-              is Some(value) else {
-              return bounded_group_failure(InvalidExecution, progress, used)
+              ) {
+              Ok(value) => value
+              Err(_) =>
+                return bounded_group_failure(InvalidExecution, progress, used)
             }
             if !charge_text(
                 state.input_values,
                 state.rows_view.names[state.charge_column],
               ) {
               return bounded_group_failure(InputLimit, progress, used)
+            }
+            guard charged is Some(value) else {
+              if !charge_node(state.input_values, 2) {
+                return bounded_group_failure(InputLimit, progress, used)
+              }
+              state.charge_column += 1
+              used += 1
+              continue
             }
             guard start_stepped_measure_result(value, state.workspace)
               is Some(cursor) else {

@@ -57,6 +57,24 @@ fn global_count_input_cell(
 }
 
 ///|
+// Reuse the same typed admission read as filter/derive: unavailable is an
+// error, absence is presence metadata, and neither becomes a NULL value.
+fn global_count_input_charge_cell(
+  input : BoundedGlobalCountInput,
+  row : Int,
+  column : Int,
+) -> Result[Value?, BoundedBindingRowsIssue] {
+  bounded_binding_input_charge_cell(
+    match input {
+      CompletedGlobalCountInput(read) => CompletedBindingInput(read)
+      SuppliedGlobalCountInput(read) => SuppliedBindingInput(read)
+    },
+    row,
+    column,
+  )
+}
+
+///|
 fn global_count_input_admitted_cell(
   input : BoundedGlobalCountInput,
   row : Int,
@@ -399,19 +417,29 @@ fn bounded_global_count_step(
           used += 1
         } else if state.charge_column < width {
           if state.charge_measure is None {
-            guard global_count_input_cell(
+            let charged = match
+              global_count_input_charge_cell(
                 state.input,
                 state.charge_row,
                 state.charge_column,
-              )
-              is Some(value) else {
-              return global_count_failure(InvalidExecution, progress, used)
+              ) {
+              Ok(value) => value
+              Err(_) =>
+                return global_count_failure(InvalidExecution, progress, used)
             }
             if !charge_text(
                 state.input_values,
                 state.input_names[state.charge_column],
               ) {
               return global_count_failure(InputLimit, progress, used)
+            }
+            guard charged is Some(value) else {
+              if !charge_node(state.input_values, 2) {
+                return global_count_failure(InputLimit, progress, used)
+              }
+              state.charge_column += 1
+              used += 1
+              continue
             }
             guard start_stepped_measure_result(value, state.workspace)
               is Some(cursor) else {

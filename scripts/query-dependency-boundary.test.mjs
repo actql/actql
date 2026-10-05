@@ -9,13 +9,15 @@ const imports = name => [...manifest(name).matchAll(/"actql\/actql\/([^"]+)"/g)]
 
 test('common captured DAG consumes owned obligations without operation templates', () => {
   const dag = readFileSync('src/physical_strategy/captured_dag.mbt', 'utf8');
-  assert.doesNotMatch(dag, /@relation\.operation|@join\.kind|\.operation\s+is|steps\s*[!=]=\s*[12]/);
+  assert.doesNotMatch(dag, /@relation\.|@join\.kind|\.operation\s+is|steps\s*[!=]=\s*[12]/);
   assert.doesNotMatch(dag, /application_closure_at|join_application_at/);
   const graph = readFileSync('src/physical_strategy/graph.mbt', 'utf8');
   assert.match(graph, /stage_requirement_operations/);
   assert.match(graph, /program_identity_producer_is_local/);
   assert.match(graph, /physical_equal\(site\.pipeline, pipeline\)/);
-  for (const name of ['relation_typing', 'relation_join_shape', 'capacity_graph_preflight']) {
+  // Carrier preparation uses checked aggregate cardinality to bound its work;
+  // the captured DAG itself must not inspect Relation operation semantics.
+  for (const name of ['relation_join_shape', 'capacity_graph_preflight']) {
     assert.ok(!imports('physical_strategy').includes(name));
   }
 });
@@ -366,9 +368,12 @@ test('Salesforce semantics do not own acquisition custody', () => {
   assert.ok(!existsSync('src/connectors/salesforce/acquisition/moon.pkg'));
   const hostApi = readFileSync(
     'src/connectors/salesforce/host/pkg.generated.mbti', 'utf8');
-  assert.match(hostApi, /pub fn salesforce_broad_candidate\(/);
-  assert.match(hostApi, /pub fn complete_salesforce_broad_capture\(/);
-  assert.match(hostApi, /pub fn bind_captured_salesforce_broad_input\(/);
+  assert.match(hostApi, /pub fn prepare_installed_salesforce_row_acquisition\(/);
+  assert.doesNotMatch(hostApi, /SalesforceBroad|salesforce_broad/);
+  assert.ok(!existsSync('src/client_salesforce_host/moon.pkg'));
+  const neutral = readFileSync('src/client_row_source_host/pkg.generated.mbti', 'utf8');
+  assert.match(neutral, /pub fn accept_row_run_values\(/);
+  assert.match(neutral, /pub fn capture_row_run\(/);
   assert.match(hostApi, /^type ManagedQuery$/m);
   assert.doesNotMatch(hostApi, /^pub struct ManagedQuery/m);
 });

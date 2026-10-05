@@ -2,6 +2,7 @@
 package "actql/actql/client_local_host"
 
 import {
+  "actql/actql/client_row_source_host",
   "actql/actql/connector_sdk",
   "actql/actql/connectors/duckdb/acquisition",
   "actql/actql/connectors/duckdb/host",
@@ -84,6 +85,10 @@ pub fn execute_source_free_values(@connectors_builtin.ConfiguredComputeHost[@phy
 
 pub fn export_client_source_capture(@execution_query.CapturedInputSource, @query_planning.QueryRequirement, String) -> Result[ClientSourceCaptureExport, ClientSourceCaptureIssue]
 
+pub fn installed_duckdb_capture_capacity(@host.CaptureConfiguration) -> ClientInstalledCaptureCapacity?
+
+pub fn installed_row_capture_capacity(@client_row_source_host.RowAcquisition) -> ClientInstalledCaptureCapacity?
+
 pub fn local_values_execution_failure_cleanup_pending(LocalValuesExecutionFailure) -> Bool
 
 pub fn local_values_execution_failure_issue(LocalValuesExecutionFailure) -> LocalValuesExecutionIssue
@@ -139,6 +144,8 @@ pub fn prepare_multi_captured_effect_local_ledger(@run_publication_host.Prepared
 pub fn prepare_multi_captured_local_acquisition_ledger(@run_publication_host.PreparedClientProgram, Array[@host.CaptureConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn prepare_multi_captured_local_capacity_ledger(@run_publication_host.PreparedClientProgram, Array[ClientDuckDBCaptureCapacity], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
+
+pub fn prepare_multi_captured_local_installed_ledger(@run_publication_host.PreparedClientProgram, Array[ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn prepare_multi_captured_local_ledger(@run_publication_host.PreparedClientProgram, Array[@host.NativeHostConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 
@@ -207,6 +214,8 @@ pub enum ClientInferInputPoll {
   Stopped(work~ : Int64)
   Failed(ClientInferInputIssue, work~ : Int64)
 }
+
+type ClientInstalledCaptureCapacity
 
 pub(all) enum ClientLocalQueryIssue {
   Sequences

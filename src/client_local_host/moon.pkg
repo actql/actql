@@ -21,5 +21,6 @@ import {
   "actql/actql/sourceview_resolution" @sourceviews,
   "actql/actql/connectors/duckdb/acquisition" @duckdb_query,
   "actql/actql/connectors/duckdb/host" @duckdb_host,
+  "actql/actql/client_row_source_host" @row_source_host,
   "moonbitlang/core/json",
 }

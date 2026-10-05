@@ -213,6 +213,39 @@ test('two source approvals hold the full inventory and survive restart', async t
   assert.equal(second.acquisitionAccess(captured.requestId, bases[0], captured.acquisitions[0]), bases[0]);
 });
 
+test('unused declared view does not take an acquisition approval', async t => {
+  const f = await fixture(t, {sources: [source('unused', 'deny'),
+    source('right'), source('left')]});
+  const checkpoints = await f.open();
+  const captured = submission();
+  assert.equal((await submit(checkpoints, captured)).kind, 'held');
+  const first = (await f.list(checkpoints))[0];
+  assert.equal(first.kind, 'read_access');
+  await f.answer(checkpoints, first);
+  const physical = f.port(checkpoints);
+  await checkpoints.start(physical);
+  assert.equal(physical.state.starts, 0);
+  const second = (await f.list(checkpoints))[0];
+  assert.equal(second.kind, 'read_access');
+  await f.answer(checkpoints, second);
+  await checkpoints.start(physical);
+  assert.equal(physical.state.starts, 1);
+  assert.deepEqual(await f.list(checkpoints), []);
+  assert.deepEqual(physical.state.captured, captured);
+});
+
+test('plural read-authority inventory accepts 128 views and refuses 129',
+  async t => {
+    const f = await fixture(t);
+    const views = Array.from({length: 128}, (_, index) =>
+      source(`view-${index}`, 'deny'));
+    const admitted = await f.open({sources: views});
+    await f.close(admitted);
+    await assert.rejects(f.open({sources: Array.from({length: 129}, (_, index) =>
+      source(`view-${index}`, 'deny'))}),
+    {code: 'InvalidRemoteHostSources'});
+  });
+
 test('Run approval chains both occurrences, even for the same source and requirement', async t => {
   const f = await fixture(t, {runOutcome: 'delegate', sources: [source('left')]});
   const checkpoints = await f.open();
@@ -474,6 +507,51 @@ test('plural captures cannot borrow singular installed authorization', async t =
   const checkpoints = await f.open();
   await assert.rejects(submit(checkpoints, submission()), {code: 'HeldAcquisitionChanged'});
   assert.deepEqual(await f.list(checkpoints), []);
+});
+
+test('singular installation binds two distinct occurrences of its own view', async t => {
+  const f = await fixture(t, {runOutcome: 'allow',
+    single: source('left', 'allow')});
+  const checkpoints = await f.open();
+  const captured = submission();
+  captured.acquisitions[1].checkedSource.sourceRef = source('left').sourceRef;
+  assert.notEqual(captured.acquisitions[0].checkedSource.requirementCid,
+    captured.acquisitions[1].checkedSource.requirementCid);
+  assert.equal((await submit(checkpoints, captured)).kind, 'dispatch');
+  const foreign = structuredClone(captured);
+  foreign.acquisitions[1].checkedSource.sourceRef = source('right').sourceRef;
+  await assert.rejects(submit(checkpoints, foreign),
+    {code: 'HeldAcquisitionChanged'});
+  assert.deepEqual(await f.list(checkpoints), []);
+});
+
+test('repeated view approvals resume distinct slots after restart', async t => {
+  const installed = source('left');
+  const f = await fixture(t, {single: installed});
+  const captured = submission();
+  captured.acquisitions[1].checkedSource.sourceRef = installed.sourceRef;
+  const first = await f.open();
+  assert.equal((await submit(first, captured)).kind, 'held');
+  const [left] = await f.list(first);
+  assert.deepEqual((await f.capturedEvidence(first, left)).captured, captured);
+  await f.answer(first, left);
+  const beforeRestart = f.port(first);
+  await first.start(beforeRestart);
+  assert.equal(beforeRestart.state.starts, 0);
+  const [right] = await f.list(first);
+  assert.notEqual(right.checkpointCid, left.checkpointCid);
+  assert.deepEqual((await f.capturedEvidence(first, right)).continuation
+    .earlier_approvals, [left.checkpointCid]);
+  await f.close(first);
+  const restored = await f.open();
+  assert.deepEqual(await f.list(restored), [right]);
+  await f.answer(restored, right);
+  const physical = f.port(restored);
+  await restored.start(physical);
+  assert.equal(physical.state.starts, 1, JSON.stringify(f.diagnostics));
+  assert.deepEqual(physical.state.captured, captured);
+  await restored.sweep();
+  assert.equal(physical.state.starts, 1);
 });
 
 
