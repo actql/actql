@@ -120,6 +120,8 @@ test "Subgraph source preserves predicates across inline, DATA and MATCH boundar
       "FROM g |> subgraph(nodes: {from: selected, id: 'id'}, edges: {literal: false}) |> node_rows() |> SELECT node_key, name",
       "DATA `slice` = FROM g |> normalize_graph() |> subgraph(nodes: {from: selected, id: 'id'}); FROM `slice` |> edge_rows() |> SELECT edge_key",
       "FROM GRAPH g |> subgraph(nodes: {from: selected, id: 'id'}) |> MATCH WALK (a:Node) |> SELECT a.name",
+      "FROM g |> subgraph(nodes: {from: selected, id: 'id'}) |> match_nodes(definition: 'n', bindings: {identity: 'element'}, where: {literal: true}, fields: ['name', 'element']) |> SELECT name, element",
+      "DATA matched = FROM g |> subgraph(nodes: {from: selected, id: 'id'}) |> match_edges(definition: 'E', label: 'r', bindings: {identity: 'edge', source: 'source', target: 'target'}, fields: ['target', 'edge', 'source']); FROM matched |> SELECT target, edge, source",
     ] {
     let actual = compile_data_set(prefix + suffix)
     match
