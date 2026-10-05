@@ -1283,6 +1283,45 @@ callers and wire emission of long object field names/reference envelopes
 remain separate work. No whole-operation assurance count is promoted by
 either component connection.
 
+The following expression component closes the first logical measurement of
+demanded large values in resumable expression frames. Previously only borrowed
+Object/Property aggregates yielded there; an ordinary long Text field result
+drained its full weight and wire measurement in one Return transition. A
+focused regression failed at that boundary on the unchanged parent source
+(`run-WGfPYT` / `focused-test-bAfC6x`, 0/1), before the production change.
+
+Rows and expressions now share the existing cursor's reservation and charged
+advance primitive. Reservation precedes cursor/frame allocation. Every
+successfully consumed logical unit remains charged on failure or cancellation,
+and incomplete measurement does not issue a root. Only the first completed
+result event is prepaid; later forwarding and operand consumption retain their
+full semantic weight. The exact scope/root proof and acquisition result ceiling
+remain checked. Cleanup releases cursor custody without releasing borrowed
+caller roots or refunding work. Finite small-value paths are unchanged.
+
+Independent Text vectors fix 4,098/4,097 total work and live bytes, and 10/9
+measurement workspace slots. COALESCE fixes 12,293/12,292 work across field,
+operand and forwarded result events, including draining after suspension.
+Foreign, revoked and unmeasured root proofs are refused. A checked bounded
+derive stops during demanded Text measurement after positive work, preserves
+its input until cleanup and never accepts a partial completion. Its successful
+counterpart reads the completed owner's canonical column order directly.
+An ordinary Program derives a long Text into two downstream Compute consumers
+at quantum one, compares independently expected rows and releases them
+independently through the existing common Host owner.
+
+The changed expression/row fixtures and ordinary managed unary callers passed
+136/136 focused JS tests on the matching production implementation before
+final formatting (`run-3Rtqip` / `focused-test-jx0ALX`). Workers and Node Host
+fixture sources are regenerated
+from the changed Program helper and pass their normal freshness checks. The
+resource audit passes without promoting any whole-operation assurance count.
+This is common execution/Host evidence, not a new real Node retained-Store,
+packed, Wasm/native execution or Linux integration result. Large intrinsic
+comparison/concatenation and long object-field/reference wire transitions
+remain distinct work; no general expression cancellation guarantee is inferred
+from the bounded result-measurement connection alone.
+
 #### Retained Relation obligation chains
 
 The retained materializing lane now binds checked obligations to the exact
