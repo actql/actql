@@ -2252,7 +2252,7 @@ fn compile_steps(
           step_entries.push(derive_step)
         }
         let value = match
-          @expression.append(
+          @expression.append_with_properties(
             predicate,
             path => {
               having_column(
