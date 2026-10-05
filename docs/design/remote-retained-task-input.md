@@ -181,6 +181,15 @@ internal producer output uses the checked acquisition task port. Source
 observation and managed output evidence remain durable Runtime records, and
 formal release closes the captured DAG before confirming input-owner cleanup.
 
+The resident dispatch admission and execution entry derive the acquisition
+role from the original checked graph and exact task key. A one-task Source Run
+retains its public Result definition. The first task of a two-task Source Run
+instead installs the existing internal acquisition output Owner and has no
+public Result definition. Public Output admission consequently refuses that
+internal output; it remains available under its original managed-output
+evidence for the separate retained-input Transfer. This route does not grant a
+consumer start claim or admit a consumer using the producer's input binding.
+
 The portable retained-input handle installs ports to the existing current
 Transfer, Site and authorization owners. It re-admits the current durable
 Transfer record and exact destination receipt before issuing a binding, when

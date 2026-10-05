@@ -84,6 +84,67 @@ fn require_resident_source_identity(
 }
 
 ///|
+/// The role comes from the original checked graph, not a transport-selected
+/// task count or a fabricated producer Result definition.
+priv enum ResidentSourceDispatchRole {
+  PublicSourceResult
+  InternalSourceProducer
+}
+
+///|
+fn resident_source_dispatch_role(
+  materials : @host.ClientRunMaterials,
+  request : @remote.DispatchRequest,
+) -> Result[ResidentSourceDispatchRole, ResidentSourceIssue] {
+  let prepared = materials.prepared
+  guard materials.compilation is @host.Tasks(compilation) else {
+    return Err(UnsupportedSource)
+  }
+  let graph = @host.prepared_client_graph(prepared)
+  let count = @strategy.graph_task_count(graph)
+  if (count != 1 && count != 2) ||
+    @strategy.graph_program_has_effects(graph) ||
+    @host.prepared_client_acquisition_count(prepared) != 1 ||
+    @host.prepared_client_result_count(prepared) != 1 ||
+    @strategy.graph_result_task(graph, 0) != Some(count - 1) ||
+    @strategy.graph_task_target(graph, 0) is Some(_) ||
+    (count == 2 && @strategy.graph_task_target(graph, 1) is None) ||
+    @host.bind_client_task_run(
+      prepared,
+      compilation,
+      materials.admission,
+      materials.run_definition,
+    )
+    is Err(_) {
+    return Err(UnsupportedSource)
+  }
+  let fragment = match
+    @host.issue_prepared_client_task_fragment(
+      prepared,
+      0,
+      @host.client_standard_values_sequence_limits(),
+      1000000,
+      100000,
+      100,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Fragment(issue))
+  }
+  if @remote.dispatch_request_task_scope(request) !=
+    (
+      @publication.publication_contract_identity(materials.run_definition),
+      @host.client_task_fragment_node_id(fragment),
+    ) {
+    return Err(ForeignInput)
+  }
+  if count == 1 {
+    Ok(PublicSourceResult)
+  } else {
+    Ok(InternalSourceProducer)
+  }
+}
+
+///|
 fn install_resident_source_executor(
   materials : @host.ClientRunMaterials,
   compilation : @host.ClientTaskCompilation,
@@ -92,16 +153,28 @@ fn install_resident_source_executor(
   execution : ResidentExecution,
   source : ResidentSourceConfiguration,
   current_time : () -> String,
+  observe? : (ResidentSourceComputeEvent) -> Bool,
 ) -> Result[
-  (@output.NativeRemoteStandardTaskExecutor, String),
+  (@output.NativeRemoteStandardTaskExecutor, String?),
   ResidentSourceIssue,
 ] {
-  let prepared = materials.prepared
-  let graph = @host.prepared_client_graph(prepared)
-  if @strategy.graph_task_count(graph) != 1 ||
-    @strategy.graph_result_task(graph, 0) != Some(0) {
-    return Err(UnsupportedSource)
+  let role = match resident_source_dispatch_role(materials, request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
+  if role is InternalSourceProducer {
+    return install_resident_acquisition_task_executor(
+      materials,
+      compilation,
+      binding,
+      request,
+      execution,
+      source,
+      current_time,
+      observe?,
+    ).map(executor => (executor, None))
+  }
+  let prepared = materials.prepared
   let inventory = match
     @publication.prepare_checked_publication_inventory(
       @host.prepared_client_identity(prepared).program_definition_cid,
@@ -117,8 +190,15 @@ fn install_resident_source_executor(
     Err(issue) => return Err(Inventory(issue))
   }
   install_resident_acquisition_task_executor(
-    materials, compilation, binding, request, execution, source, current_time,
-  ).map(executor => (executor, result_definition_cid))
+    materials,
+    compilation,
+    binding,
+    request,
+    execution,
+    source,
+    current_time,
+    observe?,
+  ).map(executor => (executor, Some(result_definition_cid)))
 }
 
 ///|
