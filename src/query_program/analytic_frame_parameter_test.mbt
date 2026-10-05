@@ -76,3 +76,47 @@ test "SQL and Pipe frame Parameters match the independent complete Program" {
     assert_eq(semantic(actual), semantic(analytic_frame_parameter_expected()))
   }
 }
+
+///|
+test "reversed bound frame Parameters retain the common frame rejection" {
+  for (direction, value) in [("PRECEDING", "1"), ("FOLLOWING", "3")] {
+    let actual = compile(
+      @query.parse_query(
+        "SELECT FIRST_VALUE(amount) OVER (ORDER BY id ROWS BETWEEN @p " +
+        direction +
+        " AND 2 " +
+        direction +
+        ") AS first FROM orders",
+        syntax_limits(),
+      ).unwrap(),
+      {
+        ..values_context(),
+        parameter_declarations: Some(number_parameter_declarations()),
+      },
+      construction_limits(),
+    ).unwrap()
+    match
+      @check.check_parsed(
+        actual,
+        check_environment(),
+        Some(analytic_frame_parameter_values(value)),
+        check_limits(),
+      ) {
+      Rejected(diagnostic) => {
+        assert_true(
+          @check.diagnostic_cause(diagnostic)
+          is Closure(Operations(Frames(InvalidFrame(_)))),
+        )
+        // Record the common classification without pinning the defective one.
+        println(
+          if @check.diagnostic_category(diagnostic) is UnclassifiedFailure {
+            "UnclassifiedFailure"
+          } else {
+            "Classified frame rejection"
+          },
+        )
+      }
+      _ => fail("Reversed bound intervals must remain rejected")
+    }
+  }
+}

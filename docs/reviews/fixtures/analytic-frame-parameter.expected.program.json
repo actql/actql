@@ -1,0 +1,143 @@
+{
+  "version": "actql/0.1",
+  "id": "fixture.analytic_frame_parameter",
+  "params": {
+    "before": {
+      "type": "number",
+      "nullable": false
+    },
+    "after": {
+      "type": "number",
+      "nullable": false
+    }
+  },
+  "stages": [
+    {
+      "id": "capture",
+      "inputs": {
+        "remote": {
+          "connector": "crm/main",
+          "resource": "r"
+        }
+      },
+      "steps": [
+        {
+          "from": "remote",
+          "filter": {
+            "gt": [
+              {
+                "field": "id"
+              },
+              {
+                "literal": 0
+              }
+            ]
+          }
+        },
+        {
+          "select": [
+            "amount",
+            "id"
+          ],
+          "as": "captured"
+        }
+      ],
+      "results": {
+        "source": {
+          "from": "captured",
+          "fields": [
+            "amount",
+            "id"
+          ]
+        }
+      }
+    },
+    {
+      "id": "main",
+      "inputs": {
+        "records": {
+          "result": {
+            "stage": "capture",
+            "result": "source"
+          }
+        }
+      },
+      "steps": [
+        {
+          "from": "records",
+          "analytic": {
+            "partition_by": [],
+            "order_by": [
+              {
+                "field": "id",
+                "dir": "asc",
+                "nulls": "first"
+              }
+            ],
+            "functions": {
+              "first": {
+                "fn": "first_value",
+                "expr": {
+                  "field": "amount"
+                }
+              },
+              "last": {
+                "fn": "last_value",
+                "expr": {
+                  "field": "amount"
+                }
+              }
+            },
+            "frame": {
+              "start": {
+                "preceding": {
+                  "$param": "before"
+                }
+              },
+              "end": {
+                "following": {
+                  "$param": "after"
+                }
+              }
+            }
+          }
+        },
+        {
+          "select": [
+            "id",
+            "first",
+            "last"
+          ]
+        },
+        {
+          "sort": [
+            {
+              "field": "id",
+              "dir": "asc",
+              "nulls": "first"
+            }
+          ],
+          "as": "ordered"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "ordered",
+          "fields": [
+            "id",
+            "first",
+            "last"
+          ]
+        }
+      }
+    }
+  ],
+  "results": {
+    "answer": {
+      "from": {
+        "stage": "main",
+        "result": "rows"
+      }
+    }
+  }
+}
