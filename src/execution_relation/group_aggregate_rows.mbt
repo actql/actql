@@ -62,6 +62,15 @@ impl[T : IndexedRows] IndexedRows for AggregateContributorRows[T] with fn read_c
 }
 
 ///|
+impl[T : IndexedRows] IndexedRows for AggregateContributorRows[T] with fn cell_present(
+  self,
+  row,
+  column,
+) {
+  self.input.cell_present(self.sources[row], column)
+}
+
+///|
 priv struct DynamicAggregateRows {
   values : Array[Value]
 }
@@ -119,6 +128,15 @@ impl[T : IndexedRows] IndexedRows for AggregateRangeRows[T] with fn read_cell(
   column,
 ) {
   self.input.read_cell(self.indices[self.start + row], column)
+}
+
+///|
+impl[T : IndexedRows] IndexedRows for AggregateRangeRows[T] with fn cell_present(
+  self,
+  row,
+  column,
+) {
+  self.input.cell_present(self.indices[self.start + row], column)
 }
 
 ///|

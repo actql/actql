@@ -37,7 +37,7 @@ function fixture(states = [], publication = aliases) {
     },
   };
   const sourceAccesses = states.map(state => ({
-    sourceRef: aliases[state.index].sourceRef,
+    sourceRef: (publication[state.index] ?? aliases[state.index]).sourceRef,
     connection: `connection-${state.index}`, resource: state.noReadTuple ? undefined : `resource-${state.index}`,
     authorization: {authorize: async (boundary, tuple, options) => {
       calls.push(state.index);
@@ -81,6 +81,17 @@ test('composition: each source uses its own decision in either order', async () 
       assert.deepEqual(outcome, await absent.check(request('owner', 'SELECT id FROM A')));
     }
   }
+});
+
+test('composition: every declared view uses its own read decision', async () => {
+  const third = {...aliases[0], name: 'C',
+    sourceRef: 'connector://fixture/C/r#v'};
+  const publication = [...aliases, third];
+  const f = fixture([{index: 0, action: 'dispatch'},
+    {index: 1, action: 'deny'}, {index: 2, action: 'dispatch'}], publication);
+  assert.equal((await f.check(request())).outcome, 'completed');
+  assert.deepEqual(f.calls, [0, 1, 2]);
+  assert.deepEqual(f.visible(), [aliases[0], third]);
 });
 
 test('composition: unusable read owners hide only their own names', async () => {
@@ -152,12 +163,12 @@ test('composition: exact Unicode source and received-input fallback have fixed r
   async () => {
     const texts = ["SELECT 'caf\u00e9' AS label", "SELECT 'cafe\u0301' AS label"];
     const vectors = [{parameterDeclarations: undefined, refs: [
-      'ctx:d9dd6d5241c1802c4d3a9b56795bd8bce3963740e2024e91b3a4f29c1680bb1e',
-      'ctx:ea630a101216632a232593161298992c128ab458058fa6c6724de4ad8eef48f0',
+      'ctx:4fd22db43a9b0b923297f5d99cbddd0f12372fe5d373ab87091b602579e86e83',
+      'ctx:d36adb8f608cd990981fe1dc899a4c0152fc9f62f526786ac8456b1d28c0bee2',
     ]}, {parameterDeclarations: {'\u00e9': {type: 'string'}, 'e\u0301': {type: 'string'}},
       refs: [
-        'ctx:8bc09708db1a71d6f853fd1eacf730f579edbec46294fe63d151e320cf8af7ae',
-        'ctx:41080a94aeaad4fa41eeec6c1ab5f059e63346c5c10c2de0197ddbf8257da65f',
+        'ctx:dbdc7121196fff51aba2d11b99087254c9f4badc9481988d0598dc9f60ae7383',
+        'ctx:050be357469ccc1974747e904277c2897f85f08d781dcf6dd3577d47fd80825b',
       ]}];
     const f = fixture([], []);
     for (const {parameterDeclarations, refs} of vectors) {

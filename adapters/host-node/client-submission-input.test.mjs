@@ -50,6 +50,7 @@ async function fixture(t, entrance, loss) {
   const journal = openClientRequestJournal(directory);
   const observer = new DatabaseSync(join(directory, 'client-requests.sqlite3'), {readOnly: true});
   let client, server, authorized = true, submits = 0, issues = 0;
+  let endpoint = 'actql:embedded';
   const operations = [];
   t.after(async () => {
     client?.close();
@@ -94,9 +95,9 @@ async function fixture(t, entrance, loss) {
         operations.push(operation);
         const phase = operation === 'submit' ? pendingLoss : undefined;
         if (phase) pendingLoss = undefined;
-        if (phase === 'before-dispatch') throw new Error('LostSubmitReply');
+        if (phase === 'before-dispatch') throw new Error('private-submission-cause');
         const answer = await port.perform(operation, body, signal);
-        if (phase === 'after-commit') throw new Error('LostSubmitReply');
+        if (phase === 'after-commit') throw new Error('private-submission-cause');
         return answer;
       },
     });
@@ -119,10 +120,11 @@ async function fixture(t, entrance, loss) {
       void handler(request, response);
     });
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    endpoint = `https://127.0.0.1:${server.address().port}/`;
     client = await sdk.connect({mode: 'local', owner: 'local',
-      endpoint: `https://127.0.0.1:${server.address().port}/`, token: 'private-token'});
+      endpoint, token: 'private-token'});
   }
-  return {client, operations, revoke: () => { authorized = false; },
+  return {client, endpoint, operations, revoke: () => { authorized = false; },
     counts: () => ({submits, issues}),
     stored: () => observer.prepare(`SELECT caller_request_id, namespace_id,
       authority_scope_cid, program_definition_cid, run_definition_cid,
@@ -167,11 +169,38 @@ for (const entrance of ['local', 'https']) {
         assert.deepEqual(snapshot.parameters, {}, '[check-mutation:submission-input]');
         assert.equal(snapshot.requestId, 'saved-request');
         assert.equal(snapshot.lookupContext.scopeRef, 'principal-a');
+        assert.equal(snapshot.lookupContext.endpoint, f.endpoint);
         assert.equal(Object.isFrozen(snapshot), true);
         assert.equal(Object.isFrozen(snapshot.parameters), true);
         assert.ok(!JSON.stringify(snapshot).includes('private-token'));
         assert.ok(!JSON.stringify(result).includes('client-values'));
         assert.equal(sdk.getSubmissionInput({...result}), undefined);
+        const explanation = sdk.explainSubmission?.(result);
+        const expectedExplanation = loss ? {
+          observation: 'acceptance_unknown',
+          summary: 'Submission acceptance is unknown. Work may already have started.',
+          next: {operation: 'lookupRequest', requestId: 'saved-request',
+            lookupContext: {endpoint: f.endpoint, scopeRef: 'principal-a'}},
+        } : {
+          observation: 'run_reference_received',
+          summary: 'The Host returned a validated Run reference. Check the current Run state for execution progress.',
+          next: {operation: 'status', ref: {namespaceId: 'namespace-a',
+            authorityScopeCid: cid('a'), runDefinitionCid: stored[0].run_definition_cid}},
+        };
+        assert.deepEqual(explanation, expectedExplanation,
+          '[check-mutation:submission-explanation]');
+        assert.equal(Object.isFrozen(explanation), true);
+        assert.equal(Object.isFrozen(explanation.next), true);
+        for (const privateText of ['private-token', 'private-submission-cause', 'client-values']) {
+          assert.equal(JSON.stringify(explanation).includes(privateText), false);
+        }
+        assert.equal(sdk.explainSubmission({...result}), undefined);
+        if (loss) {
+          result.code = 'Accepted';
+          result.message = 'Work completed successfully';
+          result.requestId = 'edited-request';
+          assert.deepEqual(sdk.explainSubmission(result), expectedExplanation);
+        }
         const found = await f.client.lookupRequest(snapshot.requestId);
         assert.equal(found.kind, committed ? 'found' : 'not_found');
         if (committed) assert.equal(found.ref.runDefinitionCid, stored[0].run_definition_cid);
@@ -181,6 +210,7 @@ for (const entrance of ['local', 'https']) {
         assert.deepEqual(f.stored(), stored);
         assert.equal(f.operations.filter(value => value === 'submit').length, 1);
         assert.equal(sdk.getSubmissionInput(result), snapshot);
+        assert.deepEqual(sdk.explainSubmission(result), expectedExplanation);
       });
     }
   }
