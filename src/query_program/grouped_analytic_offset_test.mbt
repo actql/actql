@@ -128,3 +128,32 @@ test "grouped navigation offset traversal is bounded with its source origin" {
     _ => fail("Offset grouping must consume the expression work budget")
   }
 }
+
+///|
+test "grouped OFFSET composes with derived OVER ordering in SQL and Pipe" {
+  // Four input fields and one analytic output reserve the private sort slot.
+  // This machine Program is authored independently of compiler output.
+  let expected = @program.parse(
+    (
+      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"string","nullable":false},"customer_id":{"type":"string","nullable":false},"status":{"type":"string","nullable":false},"amount":{"type":"number","nullable":false}},"rows":[{"id":"a","customer_id":"one","status":"open","amount":1},{"id":"b","customer_id":"two","status":"open","amount":2}]},"as":"orders"},{"from":"orders","derive":{"aql_analytic_sort_5":{"negate":{"field":"amount"}}}},{"analytic":{"partition_by":[],"order_by":[{"field":"aql_analytic_sort_5","dir":"asc","nulls":"last"},{"field":"id","dir":"asc","nulls":"first"}],"functions":{"previous":{"fn":"lag","expr":{"field":"amount"},"offset":1}}}},{"select":["id","amount","previous"]},{"sort":[{"field":"id","dir":"asc","nulls":"first"}],"as":"aql_gen_0"}],"results":{"rows":{"from":"aql_gen_0","fields":["id","amount","previous"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
+  ).unwrap()
+  assert_true(
+    @check.check_parsed(expected, check_environment(), None, check_limits())
+    is Checked(_),
+  )
+  for
+    text in [
+      "SELECT id, amount, LAG(amount, ((1))) OVER (ORDER BY -amount NULLS LAST, id) AS previous FROM orders ORDER BY id",
+      "FROM orders |> SELECT id, amount, LAG(amount, (1)) OVER (ORDER BY (-amount) NULLS LAST, (id)) AS previous |> ORDER BY id",
+    ] {
+    let actual = compile(
+      @query.parse_query(text, syntax_limits()).unwrap(),
+      values_context(),
+      construction_limits(),
+    ).unwrap()
+    assert_eq(semantic(actual), semantic(expected))
+  }
+}

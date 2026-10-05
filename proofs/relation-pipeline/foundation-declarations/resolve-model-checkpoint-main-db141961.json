@@ -1,0 +1,93 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-model-checkpoint-main-db141961",
+  "kind": "resolution",
+  "revision": "db141961660f9aba8f3e0c5763805113dfc545a6",
+  "parents": [
+    "e26f75000ea973b6bd1bb549972cf50cb9569f4b",
+    "312a5fc38e61c24d3f90e017d9a0983f949e2e93"
+  ],
+  "mergeBases": [
+    "4a63d0e699674df519c9d35a990080026000e560"
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-3877b637406b",
+    "adopt-63b114ad524b",
+    "adopt-678626b010b4",
+    "adopt-7427f7f09276",
+    "adopt-9a7c592a8ed9",
+    "adopt-b480cffb6e6d",
+    "adopt-bf2d058c21c1",
+    "adopt-f24288853c19",
+    "adopt-sga-query-contract",
+    "ci-mandatory-preflight",
+    "frontend-sga-main-integration",
+    "frontend-unified-graph-source-integration",
+    "github-issue-read-registration",
+    "github-issue-source-acceptance-registration",
+    "graph-composition-fixture-registration",
+    "main-pr233-package-resolution",
+    "model-invocation-checkpoint-registration",
+    "packed-composed-infer-effect-acceptance",
+    "pr164-main-a32-verification-resolution",
+    "pr164-main4f-runtime-check-resolution",
+    "pr164-property-graph-source",
+    "public-column-published-main-resolution",
+    "public-text-computation-bridge-ci",
+    "read-progress-current-main-resolution",
+    "remove-duplicate-runtime-package-checks",
+    "resident-cancellation-issuer-registration",
+    "resident-cancellation-native-registration",
+    "resident-source-native-registration",
+    "resolve-cancellation-foundation-main-5caeccc79",
+    "resolve-composition-custody-main-maximal-bases",
+    "resolve-composition-frontend-latest-main",
+    "resolve-composition-infer-main-maximal-bases",
+    "resolve-composition-resident-source-main",
+    "resolve-composition-reviewed-supplements-main",
+    "resolve-expression-diagnostics-main-d134-maximal-bases",
+    "resolve-frontend-graph-label-dependency-5fa4bc547",
+    "resolve-frontend-graph-row-input-main-0e1516677",
+    "resolve-frontend-group-ordinals-parent-bf39d807d",
+    "resolve-github-issue-driver-main-5dcef9189",
+    "resolve-github-issue-source-main",
+    "resolve-graph-composition-accepted-effect-main-1edb1560c",
+    "resolve-graph-composition-cancellation-main",
+    "resolve-graph-composition-current-main-d8dd3a918",
+    "resolve-graph-composition-resident-cleanup-main",
+    "resolve-graph-composition-text-main",
+    "resolve-graph-policy-source-approval-main-13c0d39d2",
+    "resolve-graph-retention-policy-main-e3ecb26c9",
+    "resolve-model-checkpoint-main-e26f7500",
+    "resolve-resident-cancel-foundation-7b5a8048",
+    "resolve-resident-source-latest-main",
+    "scoped-session-acquisition-main-resolution",
+    "sdk-cancel-response-loss-registration",
+    "sdk-jsonl-row-refusal-main-resolution",
+    "sdk-jsonl-row-refusal-registration",
+    "sdk-read-progress-registration",
+    "sdk-submission-explanation-acceptance-registration",
+    "source-free-effect-retention-original-regression"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "e26f75000ea973b6bd1bb549972cf50cb9569f4b",
+          "digest": "b14b913b9ef0555a966ee7563fe9efa38536995adaef83b7cc524c9c45bc3e57",
+          "mode": "100644"
+        },
+        {
+          "revision": "312a5fc38e61c24d3f90e017d9a0983f949e2e93",
+          "digest": "f5b869bdc533acc74590c41dfe363183a3d9e656abbdf0934e8f760e85462916",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "dd38a08f5423a613fc63461d45822b1aa860b869f57bfd0f8819db5b1fa8a0eb",
+      "afterMode": "100644",
+      "reason": "Preserve the current main distribution gate, including submission-input acceptance and its bounded mutation command, while retaining the Model checkpoint acceptance registration. This declares the actual normal merge resolution and all inherited package source groups, including the earlier Model/main resolution. No command, acceptance rule, existing declaration, journal behavior or execution owner is changed by this declaration."
+    }
+  ]
+}

@@ -28,12 +28,19 @@ const combined = {
 test('OFFSET and existing analytic aggregate JOIN cases retain separate installed ceilings', () => {
   const before = structuredClone(combined);
   const groups = publicQueryProfiles(combined);
-  assert.equal(groups.length, 2);
+  assert.equal(groups.length, 3);
   const ordinary = groups.find(item => item.name === 'standard');
   const offset = groups.find(item => item.name === 'analytic-offset');
+  const property = groups.find(item => item.name === 'analytic-property');
   assert.deepEqual(ordinary.capacity, capacity(10000));
   assert.deepEqual(offset.capacity, capacity(1048576));
-  assert.deepEqual(ordinary.inputs, {...standard, executionFailures: []});
+  assert.deepEqual(property.capacity, capacity(10000));
+  assert.deepEqual(property.inputs, {successes: analyticPropertySuccesses,
+    refusals: analyticPropertyRefusals, executionFailures: []});
+  assert.deepEqual(ordinary.inputs, {
+    successes: [...aggregatePropertySuccesses, ...joinPropertySuccesses],
+    refusals: [...aggregatePropertyRefusals, ...joinPropertyRefusals],
+    executionFailures: []});
   assert.deepEqual(offset.inputs, {successes: analyticOffsetSuccesses,
     refusals: analyticOffsetRefusals, executionFailures: []});
   assert.equal(offset.inputs.successes.length, 5);

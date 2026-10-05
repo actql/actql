@@ -26,7 +26,8 @@ function run(command, args, cwd = root, env = environment,
   return capture(command, args, {cwd, env, timeout});
 }
 console.log(`Packed public-query evidence: ${directory}`);
-console.log(run(process.execPath, ['--test', 'scripts/analytic-offset-profiles.test.mjs'],
+console.log(run(process.execPath, ['--test', 'scripts/analytic-offset-profiles.test.mjs',
+  'scripts/public-query-profiles.test.mjs'],
   repository).trimEnd());
 const packages = ['client-wire', 'sdk', 'run-host-core', 'local-node', 'node'];
 for (const name of packages) {
@@ -50,6 +51,8 @@ for (const [source, destination] of [
   ['scripts/fixtures/quoted-identifier-source-input.mjs', 'quoted-identifier-source-input.mjs'],
   ['scripts/fixtures/distinct-order-source-input.mjs', 'distinct-order-source-input.mjs'],
   ['scripts/fixtures/order-property-source-input.mjs', 'order-property-source-input.mjs'],
+  ['scripts/fixtures/analytic-order-source-input.mjs', 'analytic-order-source-input.mjs'],
+  ['docs/reviews/fixtures/analytic-order-property-repro.program.json', 'analytic-order-property-repro.program.json'],
   ['scripts/fixtures/join-property-source-input.mjs', 'join-property-source-input.mjs'],
   ['scripts/fixtures/analytic-property-source-input.mjs', 'analytic-property-source-input.mjs'],
   ['scripts/fixtures/group-select-scope-source-input.mjs', 'group-select-scope-source-input.mjs'],
@@ -210,6 +213,12 @@ if (process.argv.includes('--aggregate-property-only')) {
 if (process.argv.includes('--group-scope-only')) {
   runtimeEnvironment.ACTQL_TEST_GROUP_SCOPE_ONLY = '1';
 }
+if (process.argv.includes('--analytic-profiles-only')) {
+  runtimeEnvironment.ACTQL_TEST_ANALYTIC_PROFILES_ONLY = '1';
+}
+if (process.argv.includes('--analytic-order-only')) {
+  runtimeEnvironment.ACTQL_TEST_ANALYTIC_ORDER_ONLY = '1';
+}
 if (process.argv.includes('--join-property-only')) {
   runtimeEnvironment.ACTQL_TEST_JOIN_PROPERTY_ONLY = '1';
 }
@@ -292,7 +301,7 @@ if (process.argv.includes('--cancellation-only')) {
 }
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
-const narrowPublicQuery = process.argv.some(flag => ['--source-free-only',
+const narrowPublicQuery = process.argv.some(flag => ['--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
   '--analytic-offset-only',
   '--join-property-only', '--aggregate-property-only', '--analytic-property-only', '--graph-match-only',
   '--graph-diagnostics-only',
@@ -343,7 +352,7 @@ if (plannerSelectionOnly || twoSourceExampleOnly) return;
 // its Store. Restore retained Results in a new process without resubmission.
 // Narrow selections without the String fixture have no retained String Run.
 // Keep restart acceptance for full/source-free selections that create it.
-if (!process.argv.some(flag => ['--join-property-only', '--aggregate-property-only', '--analytic-property-only', '--quoted-identifiers-only', '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
+if (!process.argv.some(flag => ['--analytic-profiles-only', '--analytic-order-only', '--join-property-only', '--aggregate-property-only', '--analytic-property-only', '--quoted-identifiers-only', '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
   '--analytic-offset-only',
   '--graph-match-only',
   '--graph-diagnostics-only',
@@ -356,7 +365,9 @@ if (!process.argv.some(flag => ['--join-property-only', '--aggregate-property-on
   console.log(run(process.execPath, ['string-values-restart.mjs'], root,
     runtimeEnvironment, 120000).trimEnd());
 }
-if (process.argv.includes('--order-ordinal-only') ||
+if (process.argv.includes('--analytic-profiles-only') ||
+    process.argv.includes('--analytic-order-only') ||
+    process.argv.includes('--order-ordinal-only') ||
     process.argv.includes('--analytic-offset-only') ||
     process.argv.includes('--subgraph-only') ||
     process.argv.includes('--graph-match-only') ||

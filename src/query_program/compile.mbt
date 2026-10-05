@@ -1274,6 +1274,9 @@ fn lower_analytic(
   projections : Array[@query.Projection],
   resolve : (Array[@query.NamePart]) -> String?,
   max_work : Int,
+  reserved : Array[String],
+  evaluated : Array[(@query.Expression, String)],
+  derives : Array[(String, @builder.Node)],
 ) -> @builder.Node raise Abort {
   let call = projections[0].analytic.unwrap()
   let partitions : Array[@builder.Node] = []
@@ -1286,15 +1289,15 @@ fn lower_analytic(
   }
   let order : Array[@builder.Node] = []
   for term in call.window.order_by {
-    let root = @query.expression_node(
+    let field = analytic_order_field(
+      construction,
       term.expression,
-      @query.expression_root(term.expression),
-    ).unwrap()
-    guard root.kind is Reference(path) else { raise Abort(UnsupportedOrdering) }
-    let field = match resolve(path) {
-      Some(field) => field
-      None => raise Abort(UnknownColumn)
-    }
+      resolve,
+      reserved,
+      evaluated,
+      derives,
+      max_work,
+    )
     order.push(
       construction.object([
         ("field", construction.text(field)),
@@ -2298,10 +2301,28 @@ fn compile_steps(
             resolve_column(path, query, input, snapshot)
           }
         }
+        let reserved = active_fields.copy()
+        let evaluated : Array[(@query.Expression, String)] = []
+        let derives : Array[(String, @builder.Node)] = []
+        let operations : Array[@builder.Node] = []
         for group in groups {
-          let operation = [
-            ("analytic", lower_analytic(construction, group, resolve, max_work)),
-          ]
+          operations.push(
+            lower_analytic(
+              construction, group, resolve, max_work, reserved, evaluated, derives,
+            ),
+          )
+        }
+        if !derives.is_empty() {
+          let derive_step : Array[(String, @builder.Node)] = []
+          if !entries.is_empty() {
+            derive_step.push(entries[0])
+            entries.clear()
+          }
+          derive_step.push(("derive", construction.object(derives)))
+          step_entries.push(derive_step)
+        }
+        for body in operations {
+          let operation = [("analytic", body)]
           if !entries.is_empty() {
             operation.insert(0, entries[0])
             entries.clear()

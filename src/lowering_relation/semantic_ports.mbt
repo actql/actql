@@ -125,8 +125,10 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     GraphNormalizeValue(_) => operation(node) == "SGA.normalize"
     GraphComponentsRows(_) => operation(node) == "SGA.components"
     GraphDeltaValue(checked) =>
-      operation(node) == "SGA.apply_delta" &&
-      @graph.delta_operation(checked) is @graph.Application(_)
+      match @graph.delta_operation(checked) {
+        @graph.Application(_) => operation(node) == "SGA.apply_delta"
+        @graph.Difference => operation(node) == "SGA.diff"
+      }
     VectorValue(_) =>
       operation(node) == "BRIDGE.rows.to_vectors" ||
       operation(node) == "VEC.normalize_l2" ||

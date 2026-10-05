@@ -8,10 +8,17 @@ export const analyticPropertyCapacity = Object.freeze({
   max_analytic_output_wire_bytes: 10000,
   max_analytic_partition_wire_bytes: 10000,
 });
+export const analyticOrderCapacity = Object.freeze({
+  max_analytic_frame_memberships: 10000,
+  max_analytic_input_wire_bytes: 1048576,
+  max_analytic_output_wire_bytes: 1048576,
+  max_analytic_partition_wire_bytes: 1048576,
+});
 const profiles = new Map([
   ['standard', analyticPropertyCapacity],
   ['analytic-property', analyticPropertyCapacity],
-  ['analytic-offset', analyticOffsetCapacity],
+  ['analytic-order', analyticOrderCapacity],
+  ['analytic-offset', Object.freeze({...analyticOffsetCapacity})],
 ]);
 
 // A Host cannot change its installation profile between requests. Partition

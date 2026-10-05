@@ -158,6 +158,8 @@ pub fn start_host_typed_admission(ReferenceIssuer, @value_contract.Contract, @de
 
 pub fn start_json_admission(@decode_core.Cursor, Limits) -> Result[JsonAdmission, Issue]
 
+pub fn start_recheck_runtime_text(String, @value_contract.Contract, Limits) -> RecheckCursor?
+
 pub fn start_recheck_runtime_value(Value, @value_contract.Contract, Limits) -> RecheckCursor?
 
 pub fn start_reference_admission(ReferenceIssuer, @value_contract.Contract, @decode_core.Cursor, ReferenceLimits) -> Result[ReferenceAdmission, ReferenceIssue]
