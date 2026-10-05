@@ -11,8 +11,8 @@ const mapping = {version: 'actql-property-graph-constructor/0.1',
   nodes: [{name: 'N', from: 'n', key: ['node_key'], labels: [{name: 'Person',
     properties: {mode: 'columns', columns: ['node_key', 'p'].map(name => ({from: name, to: name}))}}]}],
   edges: [{name: 'E', from: 'e', key: ['edge_key'],
-    source: {definition: 'N', columns: ['src_key'], references: ['node_key']},
-    destination: {definition: 'N', columns: ['dst_key'], references: ['node_key']},
+    source: {definition: 'N', key: ['src_key'], references_key: ['node_key']},
+    target: {definition: 'N', key: ['dst_key'], references_key: ['node_key']},
     labels: [{name: 'R', properties: {mode: 'columns',
       columns: ['edge_key', 'weight'].map(name => ({from: name, to: name}))}}]}]};
 const prefix = 'DATA n = SELECT 2 AS node_key, @a AS p '
