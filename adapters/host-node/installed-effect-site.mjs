@@ -288,6 +288,12 @@ export function createInstalledEffectSite({environmentWire,
         // inputs. Waiting is neither a failed computation nor Effect approval.
         return Object.freeze({status: 'waiting_checkpoint', checkpoint: opened.checkpoint});
       }
+      if (opened?.status === 'needs_reconciliation' && opened.modelUnknown === true) {
+        // An entered Model attempt is neither an Effect failure nor a
+        // fabricated Effect ledger. Keep its original physical custody and
+        // stop before Preview/Effect authorization or any Effect write.
+        return Object.freeze({status: 'needs_reconciliation', modelUnknown: true});
+      }
       const {execution, checkedHost} = opened ?? {};
       if (execution === undefined || checkedHost === undefined) {
         fail('InvalidInstalledEffectComputationPort');

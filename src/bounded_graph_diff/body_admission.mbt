@@ -43,6 +43,14 @@ fn start_body(chunks : Array[String], limits : Limits) -> BodyAdmission {
 }
 
 ///|
+/// Retire streamed fragments and their backing after ownership transfers to
+/// the parser or cleanup. On non-JS targets, clear alone retains removed roots.
+fn retire_body_chunks(chunks : Array[String]) -> Unit {
+  chunks.clear()
+  chunks.shrink_to_fit()
+}
+
+///|
 /// Conservative logical workspace for source nodes/fields, owned decode
 /// indexes, JSON construction, per-object name/sort indexes and their nested
 /// continuations. Text retention remains separately bounded by identity bytes.
@@ -74,7 +82,7 @@ fn advance_body(body : BodyAdmission, quantum : Int) -> BodyPoll {
       StartBody => {
         used += 1
         let text = body.chunks.join("")
-        body.chunks.clear()
+        retire_body_chunks(body.chunks)
         body.parser = match
           @source.start_json_parse(text, {
             max_input_bytes: body.limits.max_identity_bytes,
@@ -195,7 +203,7 @@ fn cleanup_body(body : BodyAdmission) -> Unit {
   if body.admission is Some(admission) {
     @value.cancel_json_admission(admission)
   }
-  body.chunks.clear()
+  retire_body_chunks(body.chunks)
   body.parser = None
   body.decoder = None
   body.source_node = None

@@ -467,12 +467,33 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('2afc5d41a26a51589b3ad3b647c08dae6ebdb8f135834c227ab97bfd6197bf8a'),
     historicalAoA, dependencies, barrierCid).run.run_definition_cid,
     pin('975bce1f654d8967d1f28f3370e3a89cf27c40745749f99d5bebca82bc5d7e15'));
-  // The common typed JSON dependency is a retained predecessor of the text entry.
+  // Retain the clean typed-JSON predecessor with its complete admitted closure.
+  const priorJsonUnit = pin('97fd52c0bb0ceda3966aac1c36c8cbae802251ba6a33bd0d86694d2382c0414b');
+  const priorJsonDependencies = {
+    unit: priorJsonUnit,
+    proof: cid({version:'actql-bound-proof/0.1',inputs:[],law_id:'actql.bound.values',
+      semantic_ref:`unit:${priorJsonUnit}#/steps/0`,unit:'rows',value:2}),
+    resultPlan: pin('1aae680fda4f1a0eaee2004e462827d0e8f1feb15cc8c3e002569b73eeeb4aa2'),
+  };
   assert.equal(vector(pin('f0f51ba98d23a0b498cf8f4688b64bd77fc30f0702d9a28397efea5c9d758ea7'),
-    cid(aoaContract),revised,barrierCid,identities).run.run_definition_cid,
-  pin('809c490a2351d8c474cd9fe8edecd84ebcee7aca6bd25b19128691b35133d790'));
-  assert.equal(current.run.run_definition_cid,
+    pin('c75a9f71b8ee159bc77dd4db81d3dc2ba36756af4abfcaf5e32bd88751a9c93f'),
+    priorJsonDependencies, barrierCid, {
+      programCid:pin('ed4ad86f18214721af7ba7531060f91b918d4976c5d76737aa0793e188dd0137'),
+      semanticsCid:pin('b5aaea89158ff2369b6d3d4a2a9468af6b9a7c7be1fbbf8e653c5f5f986d783f'),
+    }).run.run_definition_cid,
+    pin('809c490a2351d8c474cd9fe8edecd84ebcee7aca6bd25b19128691b35133d790'));
+  assert.equal(vector(pin('c13d62b368063e2a1e96fec1b2ff833c32815d2b2c16ee26c822ee40f1a9bc77'),
+    pin('c75a9f71b8ee159bc77dd4db81d3dc2ba36756af4abfcaf5e32bd88751a9c93f'),
+    priorJsonDependencies, barrierCid, {
+      programCid:pin('ed4ad86f18214721af7ba7531060f91b918d4976c5d76737aa0793e188dd0137'),
+      semanticsCid:pin('b5aaea89158ff2369b6d3d4a2a9468af6b9a7c7be1fbbf8e653c5f5f986d783f'),
+    }).run.run_definition_cid,
     pin('83fb73f606755fc6d8c9237c28efda808c4f1870c9963d3e3675ee8c8e3d9ec7'));
+  assert.equal(vector(pin('e891f9c133e66fbc4649b0cea7968f431e3285fd7f265f3304701eb0110e6816'),
+    cid(aoaContract), revised, barrierCid, identities).run.run_definition_cid,
+    pin('3e9650d6e732f19032af1c7632a65703b92d38d2bab15686c8375fd1c1529c3c'));
+  assert.equal(current.run.run_definition_cid,
+    pin('d2f8b157e0823ce73c4bbd9ac387b8c3ad6739e59ce4b3c3a04516712a896d2b'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');
@@ -481,6 +502,6 @@ test('baseline preimages and changed normative pins independently determine the 
   const requestIntent = cid({caller_input_intent_cid:pin('b'.repeat(64)),
     parameter_values_cid:parameterValues,program_definition_cid:identities.programCid,
     version:'actql-logical-request-intent/0.1'});
-  assert.equal(requestIntent,pin('2a5fcff488c8cf9113780ea6226e951213f2458ef685ac814bfd0e45eb8f5748'));
+  assert.equal(requestIntent,pin('72ee31475f76b775c75b3911e0d7cc03b05a3eeba0dec0448d2f745a5ca51cfb'));
   assert.ok(resultSource.includes(requestIntent));
 });

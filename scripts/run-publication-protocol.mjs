@@ -115,6 +115,11 @@ const selected = Object.freeze({
   model_call_slot: Object.freeze({
     schema: 'model_call_slot', identity: 'model_call_slot_cid',
   }),
+  ...Object.fromEntries(['model_invocation_scope', 'model_provider_binding']
+    .map(schema => [schema, Object.freeze({schema, identity: 'self_cid'})])),
+  run_review_projection: Object.freeze({
+    schema: 'run_review_projection', identity: 'review_projection_cid',
+  }),
 });
 
 const moonString = value => JSON.stringify(value);
@@ -270,6 +275,17 @@ function emitSchema(schema, assumedType) {
   }
   if (schema.then !== undefined || schema.else !== undefined) {
     throw new Error('Publication schema then/else requires if');
+  }
+  if (Array.isArray(schema.const)) {
+    // The Run review's one fixed approval claim has an exact equivalent in
+    // the existing homogeneous-array rule. Do not weaken arbitrary tuples.
+    requireKeywords(schema, 'singleton array literal', ['type', 'const']);
+    if (schema.type !== undefined && schema.type !== 'array' ||
+        schema.const.length !== 1 || typeof schema.const[0] !== 'string') {
+      throw new Error('Unsupported publication schema array literal');
+    }
+    return emitSchema({type: 'array', minItems: 1, maxItems: 1,
+      items: {type: 'string', const: schema.const[0]}});
   }
   if (Array.isArray(schema.type)) {
     const alternatives = schema.type.map(type => emitSchema({...schema, type}));

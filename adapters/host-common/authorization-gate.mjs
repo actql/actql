@@ -28,6 +28,7 @@ const ARTIFACT_TYPE = Object.freeze({
   read_access: 'read_scope',
   data_egress: 'egress_scope',
   cost_scope: 'budget_scope',
+  model_invocation: 'model_invocation_scope',
   effect_set: 'effect_set_preview',
 });
 const SUBJECT_FIELDS = Object.freeze([
@@ -518,6 +519,40 @@ function gateFor(core, context) {
           reason: 'adapter_error', detail: 'SubjectArtifactMismatch'});
       }
       const kind = described?.body?.kind ?? CHECKPOINT_KIND[base.boundary];
+      // Model invocation is an explicit, retained-call-set profile. An
+      // activation's ordinary budget default does not become Model approval,
+      // and a Source read never acquires infer permission by spelling a kind.
+      const modelProfile = kind === 'model_invocation';
+      const modelArtifact = described?.body?.required_artifact?.artifact_type ===
+        'model_invocation_scope';
+      const modelCallSet = described?.modelCallSet;
+      if (modelProfile || modelArtifact || modelCallSet !== undefined) {
+        if (!modelProfile || base.boundary !== 'activation' ||
+            base.tuple.operation !== 'infer' ||
+            described.body.subject?.kind !== 'run_unit' ||
+            described.body.phase !== undefined &&
+              described.body.phase !== 'preflight' ||
+            described.body.required_artifact?.artifact_type !== undefined &&
+              !modelArtifact ||
+            described.body.requirements !== undefined &&
+              JSON.stringify(described.body.requirements) !==
+                JSON.stringify(['invocation_scope_approved'])) {
+          return frozenDecision({...base, action: 'failure',
+            reason: 'adapter_error', detail: 'ModelCheckpointProfileMismatch'});
+        }
+        // A finalized Model scope is already the activation subject. Unlike
+        // preparation, a deferred Model cannot substitute a later artifact.
+        if (artifactCid !== base.subjectCid) {
+          return frozenDecision({...base, action: 'failure',
+            reason: 'adapter_error', detail: 'SubjectArtifactMismatch'});
+        }
+        if (modelCallSet === null || typeof modelCallSet !== 'object' ||
+            Array.isArray(modelCallSet) ||
+            !Array.isArray(modelCallSet.slotWires)) {
+          return frozenDecision({...base, action: 'failure',
+            reason: 'adapter_error', detail: 'ModelCallInventoryRequired'});
+        }
+      }
       // ... and exactly for the evidence profile of this Checkpoint kind.
       if (!representableClaims(view.requiredClaims, kind)) {
         return frozenDecision({...base, action: 'failure',
@@ -562,6 +597,10 @@ function gateFor(core, context) {
         // The configuration this decision was evaluated under; a resume
         // under another configuration is refused whatever it now says.
         configurationCid: core.configurationCid,
+        // Register the complete retained inventory atomically with its
+        // Checkpoint. Core/journal/physical owners verify original linkage,
+        // durable fixed-input custody and retries; this gate invents none.
+        ...(modelProfile ? {modelCallSet} : {}),
       });
     } catch (error) {
       return frozenDecision({...base, action: 'failure',

@@ -2407,6 +2407,10 @@ fn run_selected_nearest_provider(
       @local_connector.CarrierComplete(_, ..) =>
         fail("nearest returned a Carrier")
       @local_connector.Failed(_, ..) => fail("selected nearest provider failed")
+      @local_connector.Waiting(..) =>
+        fail("synchronous provider unexpectedly waited")
+      @local_connector.Settling(_, ..) =>
+        fail("synchronous provider unexpectedly requested settlement")
       @local_connector.Stopped(..) => fail("selected nearest provider stopped")
     }
   }
@@ -2949,6 +2953,10 @@ test "registered VecA provider bounds row expressions and cancellation" {
       @local_connector.CarrierComplete(_, ..) =>
         fail("vector expression returned a Carrier")
       @local_connector.Failed(_, ..) => fail("vector expression failed")
+      @local_connector.Waiting(..) =>
+        fail("synchronous provider unexpectedly waited")
+      @local_connector.Settling(_, ..) =>
+        fail("synchronous provider unexpectedly requested settlement")
       @local_connector.Stopped(..) => fail("vector expression stopped")
     }
   }
@@ -3520,6 +3528,10 @@ fn run_direct_ranking_provider(
       @local_connector.CarrierComplete(_, ..) =>
         fail("ranking fusion returned a Carrier")
       @local_connector.Failed(_, ..) => fail("ranking provider failed")
+      @local_connector.Waiting(..) =>
+        fail("synchronous provider unexpectedly waited")
+      @local_connector.Settling(_, ..) =>
+        fail("synchronous provider unexpectedly requested settlement")
       @local_connector.Stopped(..) => fail("ranking provider stopped")
     }
   }
@@ -3614,6 +3626,10 @@ test "ranking detects an in-flight input loss before completion" {
           fail("ranking published after an input was lost")
         @local_connector.CarrierComplete(_, ..) =>
           fail("ranking returned a Carrier")
+        @local_connector.Waiting(..) =>
+          fail("synchronous provider unexpectedly waited")
+        @local_connector.Settling(_, ..) =>
+          fail("synchronous provider unexpectedly requested settlement")
         @local_connector.Stopped(..) => fail("ranking stopped without failure")
       }
     }
@@ -3683,6 +3699,10 @@ fn run_direct_nullable_ranking_provider(
       @local_connector.CarrierComplete(_, ..) =>
         fail("nullable ranking returned a Carrier")
       @local_connector.Failed(_, ..) => fail("nullable ranking failed")
+      @local_connector.Waiting(..) =>
+        fail("synchronous provider unexpectedly waited")
+      @local_connector.Settling(_, ..) =>
+        fail("synchronous provider unexpectedly requested settlement")
       @local_connector.Stopped(..) => fail("nullable ranking stopped")
     }
   }
@@ -3802,6 +3822,10 @@ test "registered VecA provider preserves supplied score authority" {
         @local_connector.Complete(value, ..) => output = Some(value)
         @local_connector.CarrierComplete(_, ..) => fail("ranking Carrier")
         @local_connector.Failed(_, ..) => fail("ranking failed")
+        @local_connector.Waiting(..) =>
+          fail("synchronous provider unexpectedly waited")
+        @local_connector.Settling(_, ..) =>
+          fail("synchronous provider unexpectedly requested settlement")
         @local_connector.Stopped(..) => fail("ranking stopped")
       }
     }
@@ -4542,6 +4566,10 @@ fn run_direct_invalid_rrf(
       @local_connector.Complete(_, ..) => fail("invalid RRF completed")
       @local_connector.CarrierComplete(_, ..) =>
         fail("invalid RRF returned a Carrier")
+      @local_connector.Waiting(..) =>
+        fail("synchronous provider unexpectedly waited")
+      @local_connector.Settling(_, ..) =>
+        fail("synchronous provider unexpectedly requested settlement")
       @local_connector.Stopped(..) => fail("invalid RRF stopped")
     }
   }
@@ -4609,6 +4637,10 @@ fn run_direct_nullable_rrf() -> Unit raise {
       @local_connector.Complete(value, ..) => output = Some(value)
       @local_connector.CarrierComplete(_, ..) => fail("RRF returned a Carrier")
       @local_connector.Failed(_, ..) => fail("nullable RRF failed")
+      @local_connector.Waiting(..) =>
+        fail("synchronous provider unexpectedly waited")
+      @local_connector.Settling(_, ..) =>
+        fail("synchronous provider unexpectedly requested settlement")
       @local_connector.Stopped(..) => fail("nullable RRF stopped")
     }
   }
@@ -5023,6 +5055,10 @@ fn run_direct_nearest_provider(
       @local_connector.CarrierComplete(_, ..) =>
         fail("nearest returned a Carrier")
       @local_connector.Failed(_, ..) => fail("nearest provider failed")
+      @local_connector.Waiting(..) =>
+        fail("synchronous provider unexpectedly waited")
+      @local_connector.Settling(_, ..) =>
+        fail("synchronous provider unexpectedly requested settlement")
       @local_connector.Stopped(..) => fail("nearest provider stopped")
     }
   }
@@ -5065,6 +5101,10 @@ fn run_direct_invalid_nearest_provider(
       @local_connector.Complete(_, ..) => fail("invalid nearest completed")
       @local_connector.CarrierComplete(_, ..) =>
         fail("invalid nearest returned a Carrier")
+      @local_connector.Waiting(..) =>
+        fail("synchronous provider unexpectedly waited")
+      @local_connector.Settling(_, ..) =>
+        fail("synchronous provider unexpectedly requested settlement")
       @local_connector.Stopped(..) => fail("invalid nearest stopped")
     }
   }

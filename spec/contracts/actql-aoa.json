@@ -16,7 +16,7 @@
     "implicit_stringification": false,
     "implicit_cid_substitution": false
   },
-  "expression_contract_cid": "sha256:72941beeddd533031e11992f8e367a4754105337658d0c7ff63127a76421fa4e",
+  "expression_contract_cid": "sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67",
   "pipeline_law_manifest": "aoa-pipeline-laws/0.1",
   "pipeline_law_manifest_cid": "sha256:587ab651a11c93172b597234f849d732319f61490fbb59d3d8841436e1e842dc",
   "rela_scalar_law_manifest_cid": "sha256:5afa312c0fa9b1e5620bc3556b17aa8da9e50646097ab84a2c04aa8a24575574",
@@ -26,7 +26,7 @@
   "sga_identity_law_manifest_cid": "sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4",
   "property_graph_law_manifest_cid": "sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc",
   "pipeline_registry_file": "spec/dependencies/aoa-pipeline-registry.json",
-  "pipeline_registry_cid": "sha256:1572e196d4a8258ca8b5c1088ff1c386493113c1ec4a5095aa62a635fc7a4ede",
+  "pipeline_registry_cid": "sha256:36c7251acf76d032b35783eaa934704a8cf7e7ceb5f043e9f1df2abee4fb0ae2",
   "target_module_contract_cid": "sha256:ae21e53e9cd0727435f707f49efb2ffc9fa1665abda9adde0ff57312265e06e1",
   "local_family_execution_profile": {
     "version": "actql-local-family-execution/0.1",
@@ -299,7 +299,7 @@
       "output": "relation",
       "execution_contract": {
         "pointer": "/execution_contracts/ACTQL.expression_fragment~10.1",
-        "cid": "sha256:b255a7e460b79995eb5e2cacf4a6381810ef15f48b7898beca490b77f2ac2495"
+        "cid": "sha256:a1ee4878ec4b3895834fde8e95320bbca28c5347247094d7b28fe079de33bb35"
       }
     },
     "REL.derive": {
@@ -1344,7 +1344,7 @@
         "expression_contract": {
           "file": "spec/contracts/actql-expressions.json",
           "pointer": "",
-          "cid": "sha256:72941beeddd533031e11992f8e367a4754105337658d0c7ff63127a76421fa4e"
+          "cid": "sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67"
         },
         "fragment_schema": {
           "file": "spec/contracts/actql-expressions.json",

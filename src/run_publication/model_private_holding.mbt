@@ -45,3 +45,55 @@ pub fn model_private_holding_cid(
     _ => None
   }
 }
+
+///|
+/// Per-call custody is distinct from legacy whole-occurrence holdings. The
+/// full scope, slot, attempt and phase prevent response/unknown collisions.
+pub fn model_scoped_private_holding_cid(
+  definition : PublicationContract,
+  store_authority_cid : String,
+  scope_cid : String,
+  slot_cid : String,
+  attempt_cid : String,
+  attempt_index : Int,
+  phase : String,
+  role : String,
+) -> String? {
+  if definition.name != "run_definition" ||
+    attempt_index != 1 ||
+    ![store_authority_cid, scope_cid, slot_cid, attempt_cid].all(
+      valid_contract_cid,
+    ) ||
+    (phase != "entered" && phase != "settled") ||
+    ![
+      "model_capture_bundle", "model_slot_capture", "model_invocation_evidence",
+      "model_call_attempt", "model_attempt_accounting", "model_attempt_outcome",
+      "model_dispatch_authority",
+    ].contains(role) {
+    return None
+  }
+  try {
+    let writer = @encode.hashing_writer(2048, 64, 4)
+    @encode.begin_object(writer)
+    @encode.key(writer, "attempt")
+    @encode.number_value(writer, attempt_index.to_double())
+    for
+      (key, value) in [
+        ("attempt_cid", attempt_cid),
+        ("phase", phase),
+        ("role", role),
+        ("run_definition_cid", definition.identity),
+        ("scope_cid", scope_cid),
+        ("slot_cid", slot_cid),
+        ("store_authority_cid", store_authority_cid),
+        ("version", "actql-model-scoped-private-holding/0.1"),
+      ] {
+      @encode.key(writer, key)
+      @encode.string_value(writer, value)
+    }
+    @encode.end_object(writer)
+    Some("sha256:" + @encode.finish_hash(writer))
+  } catch {
+    _ => None
+  }
+}

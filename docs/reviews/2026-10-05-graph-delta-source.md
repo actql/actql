@@ -99,3 +99,42 @@ typed-cell envelope; semantic Delta/identity bodies retain their owner format.
 Successful authored source through `apply_graph_delta` to Named Result in
 packed Local/HTTPS remains a required integration acceptance. Parser/checker
 success and earlier machine controls do not establish it.
+
+## Parent integration on 2026-10-06
+
+Normally integrated generic JSON source
+`9935c0581db1d91e3f5879b226e556c4f96cd3e7`, containing common typed JSON
+`00521024e055471a00736c8a2c024166f35267af` and main
+`eb74d7b65d0f338ef5862a7d9cd7397744a08eaa`. The two harness conflicts
+retain Delta/JSON selections and all new main analytic/membership selections.
+There is no new grammar or application-owner change in this child integration.
+
+On the merge tree, selected source/independent-Program/checker regressions
+passed 6/6 (`run-Ts0aKP`, `focused-test-L6t3xB`); independent Values identity
+tests passed 2/2 (`run-9rCWhD`, `focused-test-seGhpn`). Harness syntax,
+manifest, canonical vector, document-family and diff checks passed. The
+independent normative preimage matches the JSON parent's current identity.
+Integrated packed acceptance will use one clean source revision and one set
+of normally packed tarballs for both JSON and Delta selections. Old packed
+successes retain their original source SHAs and are not relabeled here.
+
+### Shared-boundary handoff
+
+B retains only the JSON literal/value/wire and text-to-Program connection.
+The existing #463 boundary packet requests A/C review; those reviews are
+not yet claimed. The combined expression law is
+`sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67`.
+The dependent schema, registry, profile and generated pins were regenerated
+in the common parent; historical declarations and independent vectors remain.
+This pin integration needs dot and the relevant contract owners' review.
+
+D/A should note one already existing #463 capture-restoration connection:
+`model_execution/restored_capture.mbt::begin_restored_model_response` passes
+`wire=true` to the common schema-directed canonical conversion of a persisted
+checked response. JSON cells use `{"$json":payload}`; JSON null differs from
+SQL NULL. This is not canonicalization of the provider's original Model wire,
+a cancellation decision or a new recovery owner. B has not added another
+fix to D's original-wire/cancellation work. Original wire custody and checked
+response restoration must remain distinct. H's Effect value comparisons,
+request identity, recovery hooks and Ledger cleanup are unchanged by this
+child. No expression scheduling/work or retained-capacity adjustment is made.

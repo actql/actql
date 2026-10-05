@@ -158,6 +158,7 @@ priv struct BoundedGlobalCountState {
   mut row_open : Bool
   mut output_row_open : Bool
   mut output_row : Array[@admitted.Value]
+  mut output_recheck : @admitted.RecheckCursor?
   mut output_measure : SteppedValueMeasure?
   mut output_pending : @admitted.Value?
 }
@@ -192,6 +193,15 @@ fn bounded_global_count_measuring_output(
 ) -> Bool {
   execution.state.phase is BuildOutput &&
   execution.state.output_measure is Some(_)
+}
+
+///|
+#warnings("-unused_value")
+fn bounded_global_count_rechecking_output(
+  execution : BoundedGlobalCountExecution,
+) -> Bool {
+  execution.state.phase is BuildOutput &&
+  execution.state.output_recheck is Some(_)
 }
 
 ///|
@@ -251,6 +261,10 @@ fn cleanup_bounded_global_count_state(state : BoundedGlobalCountState) -> Bool {
   state.counts = []
   state.output_columns = []
   state.output_row = []
+  if state.output_recheck is Some(cursor) {
+    @admitted.cancel_recheck_runtime_value(cursor)
+    state.output_recheck = None
+  }
   if state.output_measure is Some(cursor) {
     clear_stepped_measure(cursor)
     state.output_measure = None
@@ -668,6 +682,35 @@ fn bounded_global_count_step(
         guard @schema.field_at(state.output_schema, state.field) is Some(field) else {
           return global_count_failure(InvalidExecution, progress, used)
         }
+        if state.output_recheck is Some(recheck) {
+          match @admitted.advance_recheck_runtime_value(recheck) {
+            RecheckContinue => {
+              used += 1
+              continue
+            }
+            RecheckFailed => {
+              state.output_recheck = None
+              return global_count_failure(Rows(InvalidRows), progress, used + 1)
+            }
+            RecheckComplete(checked, _, _) => {
+              state.output_recheck = None
+              if state.output_pending is None {
+                state.output_pending = Some(checked.value)
+              }
+              guard state.output_pending is Some(admitted) &&
+                start_stepped_measure_result(
+                  Captured(admitted),
+                  state.workspace,
+                )
+                is Some(cursor) else {
+                return global_count_failure(Rows(RowLimit), progress, used + 1)
+              }
+              state.output_measure = Some(cursor)
+              used += 1
+              continue
+            }
+          }
+        }
         if state.output_measure is None {
           if !reserve_slots(state.workspace, 1) ||
             !spend_control(state.control, 1) {
@@ -708,6 +751,19 @@ fn bounded_global_count_step(
             }
             value
           }
+          if admitted_source is None && value is Text(text) {
+            guard @admitted.start_recheck_runtime_text(
+                text,
+                field.contract,
+                state.admitted_limits,
+              )
+              is Some(cursor) else {
+              return global_count_failure(Rows(InvalidRows), progress, used)
+            }
+            state.output_recheck = Some(cursor)
+            used += 1
+            continue
+          }
           let admitted = match admitted_source {
             Some(source) => Some(source)
             None =>
@@ -716,32 +772,42 @@ fn bounded_global_count_step(
                 Null => Some(@admitted.null_value())
                 Boolean(boolean) => Some(@admitted.boolean_value(boolean))
                 Number(number) => @admitted.number_value(number)
-                Text(text) =>
-                  @admitted.text_value(
-                    text,
-                    state.admitted_limits.max_text_bytes,
-                  )
+                Text(_) => None
               }
           }
-          guard admitted is Some(admitted) &&
-            (
-              admitted_source is Some(_) ||
+          guard admitted is Some(admitted) else {
+            return global_count_failure(Rows(InvalidRows), progress, used)
+          }
+          if admitted
+            is (@admitted.Null | @admitted.Boolean(_) | @admitted.Number(_)) {
+            if admitted_source is None &&
               @admitted.recheck_runtime_value(
                 admitted,
                 field.contract,
                 state.admitted_limits,
               )
-              is Some(_)
-            ) else {
-            return global_count_failure(Rows(InvalidRows), progress, used)
-          }
-          if admitted
-            is (@admitted.Null | @admitted.Boolean(_) | @admitted.Number(_)) {
+              is None {
+              return global_count_failure(Rows(InvalidRows), progress, used)
+            }
             if !measure_result(Captured(admitted), output.buffer.budget) {
               return global_count_failure(Capture(CaptureLimit), progress, used)
             }
             state.output_row.push(admitted)
             state.field += 1
+            used += 1
+            continue
+          }
+          state.output_pending = Some(admitted)
+          if admitted_source is None {
+            guard @admitted.start_recheck_runtime_value(
+                admitted,
+                field.contract,
+                state.admitted_limits,
+              )
+              is Some(cursor) else {
+              return global_count_failure(Rows(InvalidRows), progress, used)
+            }
+            state.output_recheck = Some(cursor)
             used += 1
             continue
           }
@@ -752,7 +818,6 @@ fn bounded_global_count_step(
             is Some(cursor) else {
             return global_count_failure(Rows(RowLimit), progress, used)
           }
-          state.output_pending = Some(admitted)
           state.output_measure = Some(cursor)
         }
         let cursor = state.output_measure.unwrap()
@@ -780,7 +845,8 @@ fn bounded_global_count_step(
           output.buffer.reading ||
           output.buffer.rows.length() >= output.buffer.max_rows ||
           state.output_row.length() != output_width ||
-          state.output_measure is Some(_) {
+          state.output_measure is Some(_) ||
+          state.output_recheck is Some(_) {
           return global_count_failure(InvalidExecution, progress, used + 1)
         }
         // The row node, field names, and every value were charged above.
@@ -937,6 +1003,7 @@ fn start_bounded_global_count_with_input(
     row_open: false,
     output_row_open: false,
     output_row: [],
+    output_recheck: None,
     output_measure: None,
     output_pending: None,
   }

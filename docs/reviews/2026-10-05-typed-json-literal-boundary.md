@@ -169,3 +169,33 @@ these results are not relabeled as the common branch's later HEAD.
 Remaining: the affected Graph fixture execution checks, A/C boundary reviews,
 Wasm/Native runtime execution and required CI. These PRs do not complete the
 whole Frontend profile or all Graph consumers.
+
+## Normal main integration on 2026-10-06
+
+Normally merged main `eb74d7b65d0f338ef5862a7d9cd7397744a08eaa` into
+`c211bacde77abba79e727c443c676fb95ae3d9ff`. The merged lowerer retains both
+typed JSON literal admission and main's shared membership-list lowering. The
+SDK retains main's checkpoint byte verification and the common JSON wire pin.
+Both parents' ordinary packed selections remain registered. Generated files
+were regenerated from the combined bodies, including Workers then Node Host
+fixtures; no freshness check or historical declaration was removed.
+
+The combined expression law is
+`sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67`;
+the Grammar Manifest is
+`sha256:e891f9c133e66fbc4649b0cea7968f431e3285fd7f265f3304701eb0110e6816`.
+The independent Values preimages retain the complete predecessor closure and
+derive current Unit/Program/Result/Run identities from selected normative roles.
+
+On this merge tree, focused JS lowering, JSON/membership evaluation, dependency
+and Values issuing callers passed 34/34 (`run-igkYPv`, `focused-test-fdu1we`).
+Node contract/SDK/grammar callers passed 8/8 in `run-utoNbP`; that attempt's
+new frozen-vector assertion failed and was corrected from its original Git
+contract bodies. The final independent vector checks passed 2/2
+(`run-18QKFG`, `focused-test-ZZY8t9`). Read-only typed-literal, catalog,
+Stage/Program, registry, canonical (370 identities), document-family and
+Workers/Node freshness checks passed, as did selected formatting. These are
+merge-tree observations, not clean new-SHA packed or CI execution evidence.
+Prior packed records above retain their original source SHAs. Integrated
+source/digest-bound public acceptance and A/C boundary review remain distinct
+obligations; no merge is requested by this integration record.

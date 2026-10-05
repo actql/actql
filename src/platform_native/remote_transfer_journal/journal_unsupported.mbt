@@ -253,6 +253,19 @@ pub fn Journal::acquire_destination_reader(
 }
 
 ///|
+pub fn Journal::validate_destination_reader(
+  _self : Journal,
+  request : @transfer.RemoteTransferRequest,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+  reader_id : String,
+) -> Result[Unit, NativeRemoteTransferJournalIssue] {
+  ignore(request)
+  ignore(receipt)
+  ignore(reader_id)
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Journal::release_destination_reader(
   _self : Journal,
   request : @transfer.RemoteTransferRequest,

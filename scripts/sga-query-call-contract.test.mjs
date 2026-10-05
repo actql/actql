@@ -119,11 +119,7 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.equal(cid({...preJsonBody, query_text_rules_sha256:
     '1591310fc6d0f8e53b01dcb646a5f22e717f53a825a00d8600c6aa3e31cb008b'}),
     'sha256:2afc5d41a26a51589b3ad3b647c08dae6ebdb8f135834c227ab97bfd6197bf8a');
-  assert.equal(cid({...body,
-    query_text_grammar_sha256: preJsonBody.query_text_grammar_sha256,
-    query_text_rules_sha256: preJsonBody.query_text_rules_sha256}),
-  'sha256:f0f51ba98d23a0b498cf8f4688b64bd77fc30f0702d9a28397efea5c9d758ea7');
-  const expected = 'sha256:c13d62b368063e2a1e96fec1b2ff833c32815d2b2c16ee26c822ee40f1a9bc77';
+  const expected = 'sha256:b6e79adc53cb126bc902391a01f404a47561e1bb08b6c2a91e0c25f3c0714ab2';
   assert.equal(cid(preJsonBody), 'sha256:88b3e10e85fa88630900251773eb7b2fe5eb00e0714f3668843145fd82e68a8c');
   assert.equal(cid(historicalBody),
     'sha256:2a5854a264c13c65bf7c2ecbc6f59f9ec09e0c590aacc1c8aed6ec247da80067');
