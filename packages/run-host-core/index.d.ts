@@ -11,6 +11,7 @@ declare const resultOccurrenceBrand: unique symbol;
 declare const runEvidenceBrand: unique symbol;
 declare const capturedSnapshotBrand: unique symbol;
 declare const materialHoldsBrand: unique symbol;
+declare const retainedInputEdgeBrand: unique symbol;
 
 export interface ResultMaterialHolds {
   readonly [materialHoldsBrand]: true;
@@ -552,6 +553,25 @@ export function sourceEvidenceFacts(prepared: PreparedProgram, stage: number,
     dataClassification: string; sourceViewContractCid: string}> | undefined;
 /** Checked logical input only, with no Site path or connection settings. */
 export function taskInputBinding(prepared: PreparedProgram, task: number): string;
+/** A checked edge, not producer completion, physical custody or permission. */
+export interface RetainedTaskInputEdge {
+  readonly [retainedInputEdgeBrand]: true;
+}
+export function prepareRetainedTaskInputEdge(prepared: PreparedProgram,
+  compilation: TaskCompilation, admission: RunAdmission,
+  definition: RunDefinition, consumerTask: number,
+  inputIndex: number): RetainedTaskInputEdge;
+export function retainedTaskInputEdgeFacts(edge: RetainedTaskInputEdge): Readonly<{
+  runDefinitionCid: string;
+  producerTaskKey: string;
+  producerOutputPort: string;
+  producerLogicalCid: string;
+  carrierContractCid: string;
+  consumerTaskKey: string;
+  consumerLogicalCid: string;
+  consumerInputPort: string;
+  physicalSchemaCid: string;
+}>;
 export function issueTaskDispatch(prepared: PreparedProgram,
   compilation: TaskCompilation, admission: RunAdmission,
   definition: RunDefinition, request: RequestIdentity, task: number,

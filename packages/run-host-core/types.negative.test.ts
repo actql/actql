@@ -2,10 +2,12 @@ import type {DeliveryContractView, PublicationContract,
   PublicationRequestContract, PublicationAttemptContract,
   PublicationRecordContract, PublicIndexEntryContract,
   ResultDeliveryControl, PreparedProgram, ValuesCompilation,
-  RunAdmission, RunDefinition, CheckEnvironment} from '@actql/run-host-core';
+  RunAdmission, RunDefinition, CheckEnvironment, RetainedTaskInputEdge,
+  TaskCompilation} from '@actql/run-host-core';
 import {issueUnpublishedRunStateWire, issuePublicationAttempt,
   issuePublicationRecord, validatePublicationRecordTransition,
-  issueSourceFreeRunMaterials} from
+  issueSourceFreeRunMaterials, prepareRetainedTaskInputEdge,
+  retainedTaskInputEdgeFacts} from
   '@actql/run-host-core';
 
 declare const control: ResultDeliveryControl;
@@ -23,6 +25,17 @@ declare const compilation: ValuesCompilation;
 declare const admission: RunAdmission;
 declare const definition: RunDefinition;
 declare const environment: CheckEnvironment;
+declare const taskCompilation: TaskCompilation;
+declare const edge: RetainedTaskInputEdge;
+retainedTaskInputEdgeFacts(edge);
+prepareRetainedTaskInputEdge(prepared, taskCompilation, admission,
+  definition, 1, 0);
+// @ts-expect-error A copied projection cannot replace the owned checked edge.
+retainedTaskInputEdgeFacts(retainedTaskInputEdgeFacts(edge));
+// @ts-expect-error A compilation is not a checked input edge.
+retainedTaskInputEdgeFacts(taskCompilation);
+// @ts-expect-error Values compilation cannot supply dependent task topology.
+prepareRetainedTaskInputEdge(prepared, compilation, admission, definition, 1, 0);
 issueSourceFreeRunMaterials(prepared, compilation, admission, definition,
   {document: '{}', format: 'json', environment, environmentWire: '{}'});
 // @ts-expect-error Raw received JSON cannot replace the admitted Run owner.

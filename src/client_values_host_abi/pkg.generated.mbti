@@ -271,6 +271,10 @@ pub fn client_values_host_result_retention_clock_contract_cid(@run_publication.P
 
 pub fn client_values_host_result_schema(@run_publication_host.PreparedClientProgram) -> Result[Array[String], @run_publication_host.ClientValuesOutputSchemaIssue]
 
+pub fn client_values_host_retained_input_edge(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int) -> Result[@run_publication_host.ClientRetainedInputEdge, @run_publication_host.ClientRetainedInputIssue]
+
+pub fn client_values_host_retained_input_edge_facts(@run_publication_host.ClientRetainedInputEdge) -> Array[String]
+
 pub fn client_values_host_run_control_observation(Int, Bool, Bool, Bool) -> Result[String, @run_publication.RunStateIssue]
 
 pub fn client_values_host_run_definition_cid(@run_publication.PublicationContract) -> String

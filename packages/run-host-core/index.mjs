@@ -1,4 +1,6 @@
 import * as owner from './dist/client_values_host_abi.js';
+
+const retainedInputEdges = new WeakMap();
 import {publicationAction} from './publication-action.mjs';
 
 const environments = new WeakMap();
@@ -941,6 +943,41 @@ const siteSelectionKeys = ['taskAttempt', 'dispatchId', 'siteKey',
   'siteGeneration', 'runtimeBundleCid', 'connectorRegistration',
   'connectorRevision', 'strategyRevision', 'obligationsCid', 'budgetCid',
   'evidenceIssuerCapabilityCid', 'grantCid'];
+
+/** Checked topology only: no producer completion, holding or start authority. */
+export function prepareRetainedTaskInputEdge(prepared, compilation, admission,
+  definition, consumerTask, inputIndex) {
+  if (![consumerTask, inputIndex].every(value => Number.isSafeInteger(value) &&
+      value >= 0 && value <= 2147483647)) {
+    throw new TypeError('InvalidRunHostRetainedInputEdge');
+  }
+  const compiled = requireHandle(taskCompilations, compilation);
+  const admitted = requireHandle(admissions, admission);
+  if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
+    throw new TypeError('ForeignRunHostCompilation');
+  }
+  const edge = checked(owner.clientValuesHostRetainedInputEdge(
+    requireHandle(preparations, prepared), compiled.value, admitted.value,
+    requireHandle(definitions, definition), consumerTask, inputIndex),
+  'RunHostRetainedInputEdgeRejected');
+  return handle(retainedInputEdges, edge, 'retained-input-edge');
+}
+
+/** Carrier port identity and physical schema identity remain distinct. */
+export function retainedTaskInputEdgeFacts(edge) {
+  const values = owner.clientValuesHostRetainedInputEdgeFacts(
+    requireHandle(retainedInputEdges, edge));
+  if (!Array.isArray(values) || values.length !== 9 ||
+      !values.every(value => typeof value === 'string')) {
+    throw new Error('InvalidRunHostRetainedInputEdgeProjection');
+  }
+  const [runDefinitionCid, producerTaskKey, producerOutputPort,
+    producerLogicalCid, carrierContractCid, consumerTaskKey,
+    consumerLogicalCid, consumerInputPort, physicalSchemaCid] = values;
+  return Object.freeze({runDefinitionCid, producerTaskKey, producerOutputPort,
+    producerLogicalCid, carrierContractCid, consumerTaskKey,
+    consumerLogicalCid, consumerInputPort, physicalSchemaCid});
+}
 
 export function issueTaskDispatch(prepared, compilation, admission,
   definition, request, task, selection) {
