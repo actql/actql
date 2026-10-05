@@ -203,7 +203,8 @@ const installation = {directory: path('host'), modelInstallation, authorization,
           assert.ok(fixtureInputs.includes(text), `The fixed input changed: ${text}`);
           assert.ok(!calls().some(value => value.text === text), `Duplicate physical send: ${text}`);
           log('provider-calls.jsonl', {text, providerRevision, phase});
-          if (phase === 'approve-crash-unknown' && text === 'bravo') crash('provider_response_lost', {text});
+          if (['approve-crash-unknown', 'immediate-crash-unknown'].includes(phase) &&
+              text === 'bravo') crash('provider_response_lost', {text});
           return moon.clientProgramModelResponse(request, JSON.stringify({reason: null, risk: fixtureRisk[text]}),
             'packed-risk-model', `public-request-${text}`, 1n, options.usageOverflow ? 1000n : 2n, new Date().toISOString());
         }))}), () => true),

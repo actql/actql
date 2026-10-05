@@ -157,7 +157,8 @@ do not establish packed acceptance for a later SHA.
 
 The ordinary packed single-INFER runner also executes the existing public
 recovery harness for both Local and HTTPS, under both `outcomes` and `fail`.
-`--recovery-only` narrows to those four cases; it does not create another job or
+Two immediate-Allow sent-unknown cases are also included. `--recovery-only`
+narrows to those six cases; it does not create another job or
 remove them from the default runner. The same five tarballs and private npm
 installation serve approval and recovery acceptance.
 
@@ -197,3 +198,18 @@ was absent beside it (`run-e1Cm1w`, `public-query-evidence-iWJfUP`, command 023,
 external test directory; no package import is replaced by a checkout link.
 The failed artifacts and command receipts remain retained. This prefix success
 does not make the failed runner or its unexecuted mixed cases successful.
+
+At clean SHA `90b23ddcee4e67b2e9ff8b37de2786c97abdd520`, fresh packing and the
+four deferred mixed-call cases passed (`run-PGXwm5`,
+`public-query-evidence-KyyJv6`). The summary records the exact source and
+tarball digests; each case retains its physical journal, Store, provider log
+and signer custody outside the checkout. This is the recovery-only selection,
+not the normal packed runner's full selection.
+
+The immediate-Allow cases intentionally exit inside the second provider call,
+before a response can return. The independently read journal must already
+contain its EnteredUnknown attempt, with SavedSuccess and Unsent neighbors and
+no approval Checkpoint. Reopening the same request preserves the Run and
+observes the saved response without retransmitting either prior call. Both
+source Local/HTTPS cases passed (`run-31SwSO`, `focused-test-Jvdf2l`, tracked
+changes present); their packed execution remains unverified at this point.

@@ -136,6 +136,31 @@ function savedEvidence(f, ordinal, role, expectedState = 'SavedSuccess') {
 }
 
 for (const transport of ['local', 'https']) {
+  test(`public Model ${transport}: immediate Allow records a sent unknown before provider invocation`, async t => {
+    const f = await fixture(t, {transport, immediate: true, count: 3});
+    const crash = f.phase('immediate-crash-unknown', {}, 77);
+    assert.equal(crash.boundary, 'provider_response_lost');
+    assertSends(f, ['alpha', 'bravo']);
+    const before = f.journal();
+    assert.equal(before.checkpoints.length, 0);
+    assert.deepEqual(slotStates(before), ['SavedSuccess', 'EnteredUnknown', 'Unsent']);
+    assert.equal(before.attempts[1].state, 'EnteredUnknown',
+      'the physical provider exits before returning, so its entry must already be durable');
+    const inventory = JSON.parse(before.scopes[0].inventory_json);
+    const resumed = f.phase('resume');
+    assert.equal(resumed.runId, before.scopes[0].run_id);
+    assert.equal(resumed.ref.runDefinitionCid, inventory.runDefinitionCid);
+    assert.equal(resumed.status, 'needs_reconciliation');
+    assert.equal(resumed.rows, undefined);
+    assertSends(f, ['alpha', 'bravo', 'charlie']);
+    assert.deepEqual(slotStates(f.journal()), ['SavedSuccess', 'EnteredUnknown', 'SavedSuccess']);
+    assert.equal(savedEvidence(f, 0, 'model_slot_capture').outcome, 'ok');
+    const again = f.phase('resume-again');
+    assertSameRun(resumed, again);
+    assert.equal(again.status, 'needs_reconciliation');
+    assertSends(f, ['alpha', 'bravo', 'charlie']);
+  });
+
   test(`public Model ${transport}: cancellation retains a sent unknown across restart`, async t => {
     const f = await fixture(t, {transport, count: 3});
     const waiting = f.phase('wait');

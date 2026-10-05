@@ -95,7 +95,7 @@ async ({root, directory, run, recordTarball}) => {
         providerFixture: pathToFileURL(join(root, 'model-provider-binding-fixture.mjs')).href,
         environment: join(root, 'base-environment.json')}}));
     const args = nodeTestArguments(['--test-name-pattern',
-      '^public Model (local|https): saved/unknown/unsent crash preserves uncertainty under',
+      '^public Model (local|https): (saved/unknown/unsent crash preserves uncertainty under|immediate Allow records a sent unknown)',
       'adapters/host-node/model-resume-public.test.mjs']);
     // The external consumer owns its own copied reporter, not a source link.
     args[1] = '--test-reporter=' + pathToFileURL(join(root,
@@ -104,7 +104,8 @@ async ({root, directory, run, recordTarball}) => {
       env: {...runtimeEnv, ACTQL_MODEL_ACCEPTANCE_INPUTS: inputs}, timeout: 120000});
     const checked = assertTestExecution('node', process.execPath, args,
       {status: 0, stdout});
-    assert.equal(checked.counts.passed, 4, 'Both transports and both failure policies must execute');
+    assert.equal(checked.counts.passed, 6,
+      'Both transports, both failure policies, and immediate durable entry must execute');
     console.log(stdout.trimEnd());
   }
 });
