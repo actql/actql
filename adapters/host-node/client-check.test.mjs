@@ -1286,11 +1286,11 @@ for (const entrance of ['local', 'http']) {
       assert.equal(Object.hasOwn(outcome.report.reasons[0], 'location'), false);
       assert.deepEqual(explainCheckReason(outcome.report.reasons[0]), {kind: 'known',
         summary: 'The analytic ROWS frame boundaries do not form a valid interval.',
-        hint: 'Choose frame boundaries in start-to-end order; PRECEDING distances decrease and FOLLOWING distances increase.'},
+        hint: 'For two PRECEDING boundaries, the start distance must be at least the end distance; for two FOLLOWING boundaries, it must be at most the end distance.'},
         '[check-mutation:check-frame-explanation]');
       assert.deepEqual(explainCheckReason(outcome.report.reasons[0], {locale: 'ja'}), {kind: 'known',
         summary: 'analytic ROWS frameの境界が有効な区間になっていません。',
-        hint: '開始から終了の順になる境界を指定してください。PRECEDINGの距離は減少し、FOLLOWINGの距離は増加します。'});
+        hint: '両境界がPRECEDINGなら開始距離を終了距離以上に、両境界がFOLLOWINGなら開始距離を終了距離以下にしてください。'});
     }
   });
 }
@@ -1353,6 +1353,32 @@ const withPolicy = (wire, host_policy_profile) => {
 const emptyEnvironment = JSON.parse(await readFile(join(repository,
   'spec/local-check-environment.json'), 'utf8'));
 const absentEnvironment = withPolicy(emptyEnvironment, sourceEnvironment.host_policy_profile);
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: check accepts ordered and equal frame boundaries`, async t => {
+    const wire = withPolicy(sourceEnvironment, {capacity: {
+      ...sourceEnvironment.host_policy_profile.capacity,
+      max_analytic_input_wire_bytes: 10000, max_analytic_output_wire_bytes: 10000,
+      max_analytic_partition_wire_bytes: 10000, max_analytic_frame_memberships: 10000,
+    }});
+    const client = await contextClient(t, entrance, wire, {aliases: [alias], readOutcome: 'allow'});
+    for (const [direction, parameters] of [
+      ['PRECEDING', {before: 2, after: 1}], ['FOLLOWING', {before: 1, after: 2}],
+      ['PRECEDING', {before: 1, after: 1}], ['FOLLOWING', {before: 1, after: 1}],
+    ]) {
+      const text = 'SELECT FIRST_VALUE(amount) OVER '
+        + `(ORDER BY id ROWS BETWEEN @before ${direction} AND @after ${direction}) AS first FROM records`;
+      const outcome = await client.check(text, {format: 'sql',
+        parameterDeclarations: {before: {type: 'number', nullable: false},
+          after: {type: 'number', nullable: false}}, parameters});
+      assert.equal(outcome.outcome, 'completed');
+      assert.equal(outcome.report.verdict, 'verified', JSON.stringify(outcome));
+      assert.deepEqual(outcome.report.reasons, []);
+      assert.deepEqual(outcome.report.requirements, []);
+      assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+    }
+  });
+}
 
 for (const entrance of ['local', 'http']) {
   test(`${entrance}: check locales retain protected equivalence and frontier`, async t => {

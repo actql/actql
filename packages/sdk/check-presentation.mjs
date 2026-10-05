@@ -21,7 +21,7 @@ const japanese = Object.freeze(Object.fromEntries(Object.entries({
   'reason.query_expression_invalid': ['式が参照・引数・数値の契約に違反しています。',
     '選択されたクエリ契約に従って式を修正してください。'],
   'reason.query_frame_invalid': ['analytic ROWS frameの境界が有効な区間になっていません。',
-    '開始から終了の順になる境界を指定してください。PRECEDINGの距離は減少し、FOLLOWINGの距離は増加します。'],
+    '両境界がPRECEDINGなら開始距離を終了距離以上に、両境界がFOLLOWINGなら開始距離を終了距離以下にしてください。'],
   'reason.query_lexical_invalid': ['クエリのトークンが字句構文に違反しています。',
     '位置が示されている場合は、その位置のトークンを修正してください。'],
   'reason.parameter_undeclared': ['クエリが未宣言のパラメータを参照しています。',
