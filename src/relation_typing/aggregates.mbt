@@ -565,6 +565,55 @@ fn check_group(
 }
 
 ///|
+// Check every authored reference, not just contributors demanded at runtime.
+// The aggregate output remains dense under the existing GROUP contract.
+fn check_group_presence(
+  b : Budget,
+  input : @schema.Schema,
+  group : CheckedGroup,
+  bindings : Array[Binding],
+) -> Unit raise Stop {
+  // Dense inputs already guarantee every resolved reference. Preserve their
+  // existing checker budget instead of repeating the sparse-input proof.
+  if @schema.all_fields_required(input) {
+    return
+  }
+  let required = fn(
+    source : @decode.Cursor,
+    name : @schema.FieldName,
+  ) raise Stop {
+    spend(b, source)
+    let spelling = @schema.reference_name(name)
+    guard @schema.lookup_reference(input, spelling) is Some(field) else {
+      fail(source, UnknownField(spelling))
+    }
+    if field.presence != @schema.Required {
+      fail(source, PresenceRequired(spelling))
+    }
+  }
+  for key in group.keys {
+    required(key.source, key.field)
+  }
+  for aggregate in group.aggregates {
+    spend(b, aggregate.source)
+    if aggregate.argument is Field(key) {
+      required(key.source, key.field)
+    }
+    for term in aggregate.order {
+      required(term.source, term.field)
+    }
+  }
+  for binding in bindings {
+    spend(b, binding.source)
+    for reference in binding.references {
+      if reference.target is InputField(name) {
+        required(binding.source, name)
+      }
+    }
+  }
+}
+
+///|
 /// Check a group with explicit additional leading keys. This validates grouping
 /// types only; it does not establish window-role evidence for the caller.
 pub fn check_group_with_prefix(
