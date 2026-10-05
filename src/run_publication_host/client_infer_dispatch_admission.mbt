@@ -5,6 +5,7 @@ pub struct ClientInferDispatchAdmission {
   compiled : ClientCompiledRun
   definition : @publication.PublicationContract
   authorization : @authorization.DispatchAuthorization
+  invocation_scope : @publication.BoundModelInvocationScope?
   evidence : @publication.RunEvidenceValue
   current : () -> Result[
     (@authorization.AdmittedAccountConfiguration, String),
@@ -29,6 +30,7 @@ pub fn issue_client_infer_dispatch_admission(
   principal : String,
   at : String,
   delegated_action? : @authorization.RuntimeAction? = None,
+  invocation_scope? : @publication.BoundModelInvocationScope? = None,
   observe_current~ : () -> Result[
     (@authorization.AdmittedAccountConfiguration, String),
     ClientInferDispatchIssue,
@@ -56,12 +58,41 @@ pub fn issue_client_infer_dispatch_admission(
     resource: @environment.model_task_identity(task).2,
     operation: "infer",
   }
+  let subject_cid = match invocation_scope {
+    None => plan.request_cid
+    Some(scope) => {
+      let (_, run_cid, _) = @publication.model_invocation_scope_run(scope)
+      let expected = @publication.model_invocation_scope_boundary(scope)
+      if run_cid != @publication.publication_contract_identity(definition) ||
+        @publication.model_invocation_scope_prepared_cid(scope) !=
+        @publication.run_evidence_value_identity(compiled.prepared) ||
+        expected.task_index != plan.task.to_int64() ||
+        expected.inference_barrier_cid != plan.barrier_cid ||
+        expected.account_id != current.account_id() ||
+        expected.configuration_cid != current.configuration_cid() ||
+        expected.principal != principal ||
+        expected.connection != tuple.connection ||
+        expected.resource != tuple.resource ||
+        expected.context_cid != context_cid {
+        return Err(ForeignRun)
+      }
+      for index in 0..<@publication.model_invocation_scope_slots(scope).length() {
+        guard @publication.model_invocation_scope_slot(scope, index)
+          is Some((_, task_cid, request_cid)) &&
+          task_cid == tuple.resource &&
+          request_cid == plan.request_cid else {
+          return Err(ForeignRun)
+        }
+      }
+      @publication.model_invocation_scope_cid(scope)
+    }
+  }
   let authorization = match
     @authorization.bind_dispatch_authorization(
       current,
       tuple,
       @authorization.Activation,
-      plan.request_cid,
+      subject_cid,
       context_cid,
       delegated_action~,
     ) {
@@ -73,6 +104,13 @@ pub fn issue_client_infer_dispatch_admission(
     @authorization.AccountAllow(entry) => (entry, "account_allow", None, [])
     @authorization.HostPermit(subject, authority, claims) =>
       (subject.entry_id, "host_permit", Some(authority), claims)
+  }
+  if invocation_scope is Some(scope) &&
+    (
+      @publication.model_invocation_scope_boundary(scope).entry_id != entry ||
+      (kind == "host_permit" && !claims.contains("invocation_scope_approved"))
+    ) {
+    return Err(ForeignRun)
   }
   try {
     let writer = @encode.writer(16384, 256, 8)
@@ -107,6 +145,15 @@ pub fn issue_client_infer_dispatch_admission(
       @encode.key(writer, name)
       @encode.string_value(writer, value)
     }
+    // Preserve ordinary unscoped originals. A scoped send names its actual
+    // typed scope; the fixed request remains a different identity field.
+    if invocation_scope is Some(scope) {
+      @encode.key(writer, "model_invocation_scope_cid")
+      @encode.string_value(
+        writer,
+        @publication.model_invocation_scope_cid(scope),
+      )
+    }
     @encode.key(writer, "answering_authority")
     match authority {
       Some(value) => @encode.string_value(writer, value)
@@ -134,6 +181,7 @@ pub fn issue_client_infer_dispatch_admission(
       compiled,
       definition,
       authorization,
+      invocation_scope,
       evidence,
       current: observe_current,
     })
@@ -167,7 +215,9 @@ pub fn check_client_infer_dispatch_current(
       configuration,
       @authorization.dispatch_authorization_tuple(value.authorization),
       @authorization.Activation,
-      plan.request_cid,
+      value.invocation_scope
+      .map(@publication.model_invocation_scope_cid)
+      .unwrap_or(plan.request_cid),
       @publication.run_publication_execution_context(value.compiled.admission),
     ) {
     return Err(Authorization(@authorization.ForeignDecision))
@@ -182,7 +232,13 @@ pub fn client_infer_dispatch_matches_scope(
 ) -> Bool {
   physical_equal(value.compiled.owner, scope.owner) &&
   client_compiled_run_infer(value.compiled) is Some(plan) &&
-  physical_equal(plan, scope.plan)
+  physical_equal(plan, scope.plan) &&
+  value.invocation_scope
+  .map(bound => {
+    @publication.model_invocation_scope_input_cid(bound) ==
+    @publication.run_evidence_value_identity(scope.artifact)
+  })
+  .unwrap_or(true)
 }
 
 ///|
@@ -218,4 +274,11 @@ pub fn client_infer_dispatch_run_cid(
   value : ClientInferDispatchAdmission,
 ) -> String {
   @publication.publication_contract_identity(value.definition)
+}
+
+///|
+pub fn client_infer_dispatch_invocation_scope_cid(
+  value : ClientInferDispatchAdmission,
+) -> String? {
+  value.invocation_scope.map(@publication.model_invocation_scope_cid)
 }

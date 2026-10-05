@@ -1834,7 +1834,8 @@ function publicationControl(moon) {
     return limits;
   };
   const issueInferDispatch = (compiled, definition,
-    {account, principalId, at, delegated, observeAccount, observeAt}) => {
+    {account, principalId, at, delegated, observeAccount, observeAt,
+      invocationScope}) => {
     const value = compiledRunTokens.get(compiled);
     if (value === undefined || compiled.kind !== 'infer') {
       throw new TypeError('Foreign Client compiled Infer Run');
@@ -1843,9 +1844,13 @@ function publicationControl(moon) {
         typeof observeAt !== 'function') {
       throw new TypeError('Missing current Infer dispatch observations');
     }
-    return checked(moon.clientProgramIssueInferDispatchAdmission(
-      value, token(definition), account, principalId, at, delegated,
-      observeAccount, observeAt));
+    return checked(invocationScope === undefined
+      ? moon.clientProgramIssueInferDispatchAdmission(
+        value, token(definition), account, principalId, at, delegated,
+        observeAccount, observeAt)
+      : moon.clientProgramIssueScopedInferDispatchAdmission(
+        value, token(definition), account, principalId, at, delegated,
+        observeAccount, observeAt, invocationScope));
   };
   control = Object.freeze({
     seal(name, bodyWire, limits) {

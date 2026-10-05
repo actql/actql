@@ -695,6 +695,73 @@ pub fn client_program_issue_infer_dispatch_admission(
   @publication_host.ClientInferDispatchAdmission,
   @publication_host.ClientInferDispatchIssue,
 ] {
+  issue_node_infer_dispatch(
+    compiled,
+    definition,
+    account,
+    principal,
+    at,
+    delegated,
+    observe_account,
+    observe_at,
+    None,
+  )
+}
+
+///|
+/// The same typed issuer with an admitted immutable Model scope. The scope
+/// does not replace current authority, the committed grant or entry custody.
+#export_name("clientProgramIssueScopedInferDispatchAdmission")
+pub fn client_program_issue_scoped_infer_dispatch_admission(
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  account : AuthorizationAccount,
+  principal : String,
+  at : String,
+  delegated : AuthorizationDecision?,
+  observe_account : () -> AuthorizationAccount,
+  observe_at : () -> String,
+  scope : @publication.BoundModelInvocationScope,
+) -> Result[
+  @publication_host.ClientInferDispatchAdmission,
+  @publication_host.ClientInferDispatchIssue,
+] {
+  issue_node_infer_dispatch(
+    compiled,
+    definition,
+    account,
+    principal,
+    at,
+    delegated,
+    observe_account,
+    observe_at,
+    Some(scope),
+  )
+}
+
+///|
+#export_name("clientProgramModelInvocationGrantScope")
+pub fn client_program_model_invocation_grant_scope(
+  grant : @checkpoint.ModelInvocationGrant,
+) -> @publication.BoundModelInvocationScope {
+  @checkpoint.model_invocation_grant_scope(grant)
+}
+
+///|
+fn issue_node_infer_dispatch(
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  account : AuthorizationAccount,
+  principal : String,
+  at : String,
+  delegated : AuthorizationDecision?,
+  observe_account : () -> AuthorizationAccount,
+  observe_at : () -> String,
+  scope : @publication.BoundModelInvocationScope?,
+) -> Result[
+  @publication_host.ClientInferDispatchAdmission,
+  @publication_host.ClientInferDispatchIssue,
+] {
   guard account.state is @authorization.Admitted(configuration) else {
     return Err(@publication_host.Authorization(@authorization.Denied))
   }
@@ -717,6 +784,7 @@ pub fn client_program_issue_infer_dispatch_admission(
       Some(value) => value.action
       None => None
     },
+    invocation_scope=scope,
     observe_current~,
   )
 }

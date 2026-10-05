@@ -1475,7 +1475,9 @@ export async function installRemoteCheckpoints({root, namespaceId,
         }
       }
       if (view === undefined) return undefined;
-      if (!['effect_set', 'read_access'].includes(view.kind) || view.runId !== runId ||
+      // Model waits use the same durable Run/Checkpoint lifecycle. This is
+      // observation only, never a Model grant or a physical send permit.
+      if (!['effect_set', 'read_access', 'model_invocation'].includes(view.kind) || view.runId !== runId ||
           view.runDefinitionCid !== runDefinitionCid ||
           view.prepareAttemptId !== null) {
         fail('EffectContinuationRunMismatch');

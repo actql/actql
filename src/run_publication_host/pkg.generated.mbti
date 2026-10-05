@@ -266,6 +266,8 @@ pub fn client_infer_dispatch_account_allow(ClientInferDispatchAdmission) -> Bool
 
 pub fn client_infer_dispatch_authority(ClientInferDispatchAdmission) -> @run_publication.RunEvidenceValue
 
+pub fn client_infer_dispatch_invocation_scope_cid(ClientInferDispatchAdmission) -> String?
+
 pub fn client_infer_dispatch_matches_run(ClientInferDispatchAdmission, ClientCompiledRun, @run_publication.PublicationContract) -> Bool
 
 pub fn client_infer_dispatch_matches_scope(ClientInferDispatchAdmission, ClientInferCallScope) -> Bool
@@ -516,7 +518,7 @@ pub fn issue_client_effect_source_free_invocation(ClientEffectCompilation, Strin
 
 pub fn issue_client_infer_call_slot(ClientInferCallScope, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientInferCallScopeIssue]
 
-pub fn issue_client_infer_dispatch_admission(ClientCompiledRun, @run_publication.PublicationContract, @execution_authorization.AdmittedAccountConfiguration, String, String, delegated_action? : @execution_authorization.RuntimeAction?, observe_current~ : () -> Result[(@execution_authorization.AdmittedAccountConfiguration, String), ClientInferDispatchIssue]) -> Result[ClientInferDispatchAdmission, ClientInferDispatchIssue]
+pub fn issue_client_infer_dispatch_admission(ClientCompiledRun, @run_publication.PublicationContract, @execution_authorization.AdmittedAccountConfiguration, String, String, delegated_action? : @execution_authorization.RuntimeAction?, invocation_scope? : @run_publication.BoundModelInvocationScope?, observe_current~ : () -> Result[(@execution_authorization.AdmittedAccountConfiguration, String), ClientInferDispatchIssue]) -> Result[ClientInferDispatchAdmission, ClientInferDispatchIssue]
 
 pub fn issue_client_infer_occurrence_call_scope(ClientInferOccurrence, ClientInferPlanGraph, @execution_relation.CompletedOutput, @execution_relation.CompletedRelationExportReceipt, Int, Int, Int, captured? : ClientInferCapturedInput?, sources? : ClientInferComposedSources?) -> Result[ClientInferCallScope, ClientInferCallScopeIssue]
 
@@ -1109,6 +1111,7 @@ pub struct ClientInferDispatchAdmission {
   compiled : ClientCompiledRun
   definition : @run_publication.PublicationContract
   authorization : @execution_authorization.DispatchAuthorization
+  invocation_scope : @run_publication.BoundModelInvocationScope?
   evidence : @run_publication.RunEvidenceValue
   current : () -> Result[(@execution_authorization.AdmittedAccountConfiguration, String), ClientInferDispatchIssue]
 }

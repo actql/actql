@@ -803,6 +803,8 @@ pub fn client_program_issue_result_plan(@run_publication_host.PreparedClientProg
 
 pub fn client_program_issue_result_row_contract(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[@run_publication_host.ClientResultRowContractIdentity, @run_publication_host.ClientResultRowContractIssue]
 
+pub fn client_program_issue_scoped_infer_dispatch_admission(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, AuthorizationAccount, String, String, AuthorizationDecision?, () -> AuthorizationAccount, () -> String, @run_publication.BoundModelInvocationScope) -> Result[@run_publication_host.ClientInferDispatchAdmission, @run_publication_host.ClientInferDispatchIssue]
+
 pub fn client_program_issue_source_free_exported_local_effect_result_artifact(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectLocalResultExport, @run_publication_host.ClientEffectLocalInvocation, @run_publication_host.ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalResultArtifactIssue]
 
 pub fn client_program_issue_source_free_local_effect_identity(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalResultArtifact, Int, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalIdentity, @run_publication_host.ClientEffectLocalIdentityIssue]
@@ -890,6 +892,8 @@ pub fn client_program_model_capture(@model_execution.ModelObservation) -> @model
 pub fn client_program_model_capture_json(@model_execution.ModelCaptureBundle) -> String?
 
 pub fn client_program_model_invocation_grant_handle(String, String, String, String, Bool) -> Result[@checkpoint_runtime.ModelInvocationGrant, String]
+
+pub fn client_program_model_invocation_grant_scope(@checkpoint_runtime.ModelInvocationGrant) -> @run_publication.BoundModelInvocationScope
 
 pub fn client_program_model_physical_request_plan(@model_execution.ModelRequest, Int64, Int64, Int64, Int64, () -> @model_execution.ModelResponse?) -> Result[@model_execution.ModelPhysicalRequestPlan, @model_execution.ModelExecutionIssue]
 

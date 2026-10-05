@@ -939,6 +939,8 @@ pub fn resume_model_approved_call_set(
   let (_, definition_cid, _) = @publication.model_invocation_scope_run(bound)
   if definition_cid !=
     @publication_host.client_infer_dispatch_run_cid(admission) ||
+    @publication_host.client_infer_dispatch_invocation_scope_cid(admission) !=
+    Some(@publication.model_invocation_scope_cid(bound)) ||
     @publication.model_invocation_scope_input_cid(bound) !=
     @publication.run_evidence_value_identity(
       @publication_host.client_infer_call_scope_artifact(scope),

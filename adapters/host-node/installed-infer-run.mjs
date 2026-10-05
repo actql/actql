@@ -9,15 +9,25 @@ import {inferPublicationExecution} from './infer-result-publication.mjs';
 import {readInstalledInferCapture} from './installed-infer-capture.mjs';
 
 import {openNodeInferCaptureCustody} from './infer-capture-custody.mjs';
+import {driveNodeInferOperation} from './infer-run-driver.mjs';
 
 export function installNodeInferRun({moon, core, registry, values, fragment, ordered, selections,
-  namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection}) {
+  namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection,
+  prepareModelDispatch}) {
   const control = core.publicationControl;
   return async ({preparedProgram, plan, store, principalId, signal,
     retainExecution, acquiredInfer, replay = false, beginPhysicalWork = () => {}}) => {
     const selected = selections.get(preparedProgram);
     if (selected === undefined || selected.graph !== plan.inferGraph) {
       throw new Error('InstalledInferSelectionMissing');
+    }
+    const dispatch = !replay && prepareModelDispatch !== undefined
+      ? await prepareModelDispatch({preparedProgram, selected, plan, store,
+        principalId, signal}) : undefined;
+    if (dispatch !== undefined && (typeof dispatch.enterCall !== 'function' ||
+        typeof dispatch.authorize !== 'function' ||
+        typeof dispatch.resume !== 'function')) {
+      throw new TypeError('InvalidInstalledInferModelDispatch');
     }
     const savedSlots = replay ? await readInstalledInferCapture({moon,
       control, store, compiled: plan.compiled, runDefinition: plan.runDefinition,
@@ -40,7 +50,9 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         ...(replay ? {savedSlots} : {provider: selected.provider,
           quantityCapacity: selected.quantityCapacity,
           physicalPreflight: selected.physicalPreflight,
-          egressAdmission: selected.egressAdmission})});
+          egressAdmission: selected.egressAdmission,
+          ...(dispatch === undefined ? {} : {deferDispatch: true,
+            enterCall: dispatch.enterCall})})});
     } finally {
       if (savedSlots !== undefined) {
         moon.clientProgramReleaseInferSlotReplay(savedSlots);
@@ -57,12 +69,13 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     retainExecution(captureOwner.custody);
     beginPhysicalWork();
     operation.bindRun(control, plan);
-    if (!replay) {
+    if (!replay && dispatch === undefined) {
       operation.bindDispatch(control, {...plan, account: selected.account,
         principalId, at: now(), observeAccount: selected.observeAccount,
         observeAt: now});
     }
-    await operation.run();
+    const result = await driveNodeInferOperation(operation, {dispatch, signal});
+    if (result?.status === 'waiting_checkpoint') return result;
     captureOwner.retainCompleted();
     const publication = await captureOwner.persist();
     await faultInjection?.('infer_capture_committed', {});

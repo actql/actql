@@ -178,10 +178,26 @@ distribution[3] = distribution[3].replace(
   'packages/sdk/checkpoints.test.mjs packages/sdk/model-checkpoints.test.mjs ',
 );
 
+// Model approval sequencing uses the same runtime build and distribution job.
+// Keep these adapter regressions separate from public packed acceptance.
+distribution[3] = distribution[3].replace(
+  'adapters/host-node/client-dispatch-owner.test.mjs ',
+  'adapters/host-node/client-dispatch-owner.test.mjs adapters/host-node/infer-operation-approval.test.mjs adapters/host-node/infer-run-driver.test.mjs adapters/host-node/infer-dispatch-waiting.test.mjs ',
+);
+
 // The issued-retention original regression is part of the existing prepared
 // distribution gate. Pin its one intended addition independently of the
 // package command, retaining the exact inventory and duplicate rejection.
 distribution[3] += ' adapters/host-node/local-values-plan-policy.test.mjs';
+
+// Main's submission custody and mutation registrations remain mandatory.
+// Keep their exact independent inventory when integrating Model approval.
+distribution[3] = distribution[3].replace(
+  'adapters/host-node/client-cancel-response-loss.test.mjs ',
+  'adapters/host-node/client-submission-input.test.mjs adapters/host-node/client-cancel-response-loss.test.mjs ',
+);
+distribution.splice(4, 0, 'node scripts/check-read-row-mutations.mjs',
+  'node scripts/check-submission-input-mutations.mjs');
 
 test('runtime preparation preserves physical cwd and output through a symlinked temporary parent', t => {
   const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'runtime-build-alias-')));

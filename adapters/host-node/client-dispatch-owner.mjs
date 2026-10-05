@@ -106,8 +106,10 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       publicationCommitted =
         await store.confirmCommittedIndex(entry.ref) !== undefined;
     }
-    journal.markPhysicalClose(entry.ref, publicationCommitted ? null :
-      entry.abort.signal.aborted ? 'cancelled' : 'failed');
+    const retainedWait = entry.modelCheckpointRetained &&
+      !entry.abort.signal.aborted;
+    journal.markPhysicalClose(entry.ref, publicationCommitted || retainedWait
+      ? null : entry.abort.signal.aborted ? 'cancelled' : 'failed');
     entry.stopObservationPending = false;
     entry.stopObserved = true;
   }
@@ -439,7 +441,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       entry.physicalWorkMayHaveStarted = true;
       entry.computeStartAttempted = true;
       if (inferring) {
-        await runInfer({preparedProgram, plan: held.plan, store,
+        const inferResult = await runInfer({preparedProgram, plan: held.plan, store,
           acquiredInfer,
           principalId: actual, signal: entry.abort.signal,
           retainExecution(execution) {
@@ -454,6 +456,26 @@ export function installNodeClientDispatchOwner({moon, control, journal,
             }
             entry.cleanupOwner = execution;
           }});
+        if (inferResult?.status === 'waiting_checkpoint') {
+          // A returned Waiting is not a completed Model or a terminal Run.
+          // Accept only the exact durable Model Checkpoint in the existing
+          // continuation journal. Its owner keeps the input custody needed
+          // for resume; this supervisor still settles physical preparation.
+          const continuation = checkpoints?.effectRunState(
+            control.runDefinitionRunId(held.plan.runDefinition),
+            entry.ref.runDefinitionCid);
+          const checkpoint = continuation?.runState?.checkpoint;
+          if (entry.cleanupOwner === undefined ||
+              continuation?.status !== 'waiting_checkpoint' ||
+              checkpoint?.kind !== 'model_invocation' ||
+              checkpoint.checkpoint_cid !== inferResult.checkpointCid) {
+            throw new Error('InstalledInferCheckpointNotRetained');
+          }
+          entry.modelCheckpointRetained = true;
+          await settleCleanup(entry);
+          await finishRun(entry);
+          return;
+        }
         // Success is the existing Store's committed index, not merely a
         // returned model value or a completed private capture.
         if (entry.cleanupOwner === undefined ||
