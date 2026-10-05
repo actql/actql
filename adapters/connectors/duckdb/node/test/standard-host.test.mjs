@@ -9647,7 +9647,7 @@ async function exerciseStrategyGraph(
       fields: ['left_value', 'right_value', 'tag']},
     {name: 'asof-long-text-filter-select-chain',
       source: retainedLongTextTemporalJoin('asof'), temporal: true,
-      expected: [{id: 1, value: 100, tag: retainedOutputText}],
+      expected: [{id: 1, tag: retainedOutputText, value: 100}],
       fields: ['id', 'value', 'tag']},
     {name: 'asof-arithmetic-control-chain', source: retainedFamilyChain(
       retainedTemporalJoinProgram('asof'), 'crossed',

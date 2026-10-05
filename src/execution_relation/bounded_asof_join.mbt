@@ -1233,9 +1233,11 @@ pub fn cleanup_bounded_asof_join(
     Err(issue) => return Err(Execution(issue))
   }
   if !@bounded.cleanup_pending(value.session) &&
-    (value.state.workspace.live != 0 ||
-    value.state.output_recheck is Some(_) ||
-    value.state.output_charge is Some(_)) {
+    (
+      value.state.workspace.live != 0 ||
+      value.state.output_recheck is Some(_) ||
+      value.state.output_charge is Some(_)
+    ) {
     return Err(InvalidExecution)
   }
   Ok(changed)
