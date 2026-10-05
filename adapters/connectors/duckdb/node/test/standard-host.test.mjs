@@ -8094,6 +8094,57 @@ async function exerciseStrategyGraph(
     from: 'ranked_greater', append: {with: 'deduped_less'}, as: 'joined',
   };
   branchedRankedSteps.push({from: 'joined', select: ['id'], as: 'out'});
+  const branchedRowTransformPrograms = ['lag', 'watermark', 'json-pick']
+    .map(name => {
+      const program = structuredClone(branchedRelationProgram);
+      if (name !== 'lag') {
+        for (const stageId of ['cross_left', 'cross_right']) {
+          const stage = program.stages.find(item => item.id === stageId);
+          if (name === 'watermark') {
+            stage.steps[0].values.schema.time = {
+              type: 'number', nullable: false,
+            };
+            stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
+              ({...row, time: row.id === 2 ? 80 : 100}));
+            stage.results.r.fields = ['id', 'time'];
+          } else {
+            stage.steps[0].values.schema.payload = {
+              type: 'object', nullable: false, fields: {
+                inner: {type: 'object', nullable: false, fields: {
+                  leaf: {type: 'number', nullable: false},
+                }},
+              },
+            };
+            stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
+              ({...row, payload: {inner: {leaf: row.id}}}));
+            stage.results.r.fields = ['id', 'payload'];
+          }
+        }
+      }
+      const prefix = [{from: 'l', append: {with: 'r'}, as: 'appended'}];
+      const transform = name === 'lag' ? [
+        {from: 'appended', assert_rows: {unique_by: ['id']}, as: 'unique'},
+        {from: 'unique', lag: {partition_by: [],
+          order_by: [{id: 'asc'}], field: 'id', output: 'previous',
+          offset: 1}, as: 'transformed'},
+        {from: 'transformed', filter: 'previous >= 3', as: 'filtered'},
+      ] : name === 'watermark' ? [
+        {from: 'appended', watermark_rows: {time: 'time',
+          late_policy: 'mark', watermark_ms: 90}, as: 'transformed'},
+        {from: 'transformed', filter: 'watermark_late = true', as: 'filtered'},
+      ] : [
+        {from: 'appended', json_pick: {column: 'payload',
+          path: ['inner', 'leaf'], output: 'picked'}, as: 'transformed'},
+        {from: 'transformed', filter: 'picked >= 3', as: 'filtered'},
+      ];
+      program.stages.find(stage => stage.id === 'crossed').steps = [
+        ...prefix, ...transform,
+        {from: 'filtered', select: ['id'], as: 'selected'},
+        {from: 'appended', select: ['id'], as: 'raw_ids'},
+        {from: 'selected', append: {with: 'raw_ids'}, as: 'out'},
+      ];
+      return [name, program];
+    });
   for (const [name, program, tasks] of [
     ['values', zeroInputProgram, [1, 2, 3]],
     ['captured Relation filter/select chain', capturedRelationChainProgram,
@@ -9565,6 +9616,13 @@ async function exerciseStrategyGraph(
       expected: [4, 3, 1, 2].map(id => ({id})), fields: ['id']},
     {name: 'append-fork-top-k-dedupe-join', source: branchedRankedProgram,
       expected: [4, 3, 1, 2].map(id => ({id})), fields: ['id']},
+    ...branchedRowTransformPrograms.map(([name, source]) => ({
+      name: `append-fork-${name}-join`, source,
+      expected: (name === 'lag' ? [4, 1, 2, 3, 4]
+        : name === 'watermark' ? [2, 1, 2, 3, 4]
+        : [3, 4, 1, 2, 3, 4]).map(id => ({id})),
+      fields: ['id'],
+    })),
     {name: 'except-all-fork-join', source: retainedExceptFork,
       expected: [2, 1, 1].map(id => ({id})), fields: ['id']},
     {name: 'cross-join-fork-join', source: retainedCrossFork,

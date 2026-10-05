@@ -195,6 +195,9 @@ fn bounded_branched_relation_chain(
       | @lower.TopK(_)
       | @lower.Distinct(_)
       | @lower.Dedupe(_)
+      | @lower.Lag(_)
+      | @lower.JsonPick(_)
+      | @lower.Watermark(_)
       | @lower.AssertRows(_)
       | @lower.CountGroup(_) => ()
       _ => return false

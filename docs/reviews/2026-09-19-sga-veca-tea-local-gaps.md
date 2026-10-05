@@ -831,6 +831,18 @@ Result. The retained producer and two consumers then publish the fixed order
 `[{id: 4}, {id: 3}, {id: 1}, {id: 2}]` without changing the task's cumulative
 work or intermediate ownership model. This is not blanket admission of
 order-sensitive children with unresolved ties.
+
+The same selected fork owner accepts bounded `lag`, `watermark_rows`, and
+`json_pick` children when their checked Relation inputs and obligations match.
+Three separate authored Append forks filter on `previous`, `watermark_late`,
+or `picked` before joining that branch with an independent projection of the
+Append output. The retained producer and two consumers read the fixed ID
+orders `[4,1,2,3,4]`, `[2,1,2,3,4]`, and `[3,4,1,2,3,4]` from the real
+Store. A focused memory/retained test also checks exact operation ports,
+task output identity, and final reservations under the existing chain owner.
+These routes reuse the bounded unary kernels and their operation-specific
+resource proofs; they do not admit every temporal or JSON variant to a fork.
+
 The same retained Host also runs `EXCEPT ALL` and Cross Join as the first
 binary child of separate fork/join Programs. The former publishes the
 duplicate-sensitive rows `[{id: 2}, {id: 1}, {id: 1}]`; the latter publishes

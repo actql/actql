@@ -23,7 +23,7 @@ const queryLimits = {
   memoryBytes: 128 * 1024 * 1024, threads: 1,
 };
 
-test('retained Relation forks execute bounded ranking and dedupe steps',
+test('retained Relation forks execute bounded ranking and row transforms',
   async t => {
     await promisify(execFile)('moon', [
       'build', '--target', 'js', '--release',
@@ -94,23 +94,84 @@ test('retained Relation forks execute bounded ranking and dedupe steps',
       ['top-k', true, false],
       ['dedupe', false, true],
       ['combined', true, true],
+      ['lag', false, false],
+      ['watermark', false, false],
+      ['json-pick', false, false],
     ]) {
       const program = structuredClone(base);
-      program.stages[3].steps = [
-        {from: 'l', append: {with: 'r'}, as: 'appended'},
-        {from: 'appended', filter: 'id > 2', as: 'greater'},
-        {from: 'appended', filter: 'id < 3', as: 'less'},
-        {from: 'greater', assert_rows: {unique_by: ['id']},
-          as: 'unique_greater'},
-        ranked ? {from: 'unique_greater', top_k: {k: 2, by: [{id: 'desc'}]},
-          as: 'ranked'} : {from: 'unique_greater', sort: [{id: 'desc'}],
-          as: 'ranked'},
-        deduped ? {from: 'less', dedupe_rows: {
-          by: ['id'], order_by: [{origin: 'asc'}],
-        }, as: 'deduped'} : {from: 'less', distinct: true, as: 'deduped'},
-        {from: 'ranked', append: {with: 'deduped'}, as: 'joined'},
-        {from: 'joined', select: ['id'], as: 'out'},
-      ];
+      if (name === 'watermark' || name === 'json-pick') {
+        for (const stage of program.stages.slice(1, 3)) {
+          if (name === 'watermark') {
+            stage.steps[0].values.schema.time = {
+              type: 'number', nullable: false,
+            };
+            stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
+              ({...row, time: row.id === 2 ? 80 : 100}));
+            stage.results.r.fields = ['id', 'origin', 'time'];
+          } else {
+            stage.steps[0].values.schema.payload = {
+              type: 'object', nullable: false, fields: {
+                inner: {type: 'object', nullable: false, fields: {
+                  leaf: {type: 'number', nullable: false},
+                }},
+              },
+            };
+            stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
+              ({...row, payload: {inner: {leaf: row.id}}}));
+            stage.results.r.fields = ['id', 'origin', 'payload'];
+          }
+        }
+      }
+      if (name === 'lag') {
+        program.stages[3].steps = [
+          {from: 'l', append: {with: 'r'}, as: 'appended'},
+          {from: 'appended', assert_rows: {unique_by: ['id', 'origin']},
+            as: 'unique'},
+          {from: 'unique', lag: {partition_by: [],
+            order_by: [{id: 'asc'}, {origin: 'asc'}], field: 'id',
+            output: 'previous', offset: 1}, as: 'lagged'},
+          {from: 'lagged', filter: 'previous >= 3', as: 'lag_filtered'},
+          {from: 'lag_filtered', select: ['id'], as: 'selected'},
+          {from: 'appended', select: ['id'], as: 'raw_ids'},
+          {from: 'selected', append: {with: 'raw_ids'}, as: 'out'},
+        ];
+      } else if (name === 'watermark') {
+        program.stages[3].steps = [
+          {from: 'l', append: {with: 'r'}, as: 'appended'},
+          {from: 'appended', watermark_rows: {time: 'time',
+            late_policy: 'mark', watermark_ms: 90}, as: 'marked'},
+          {from: 'marked', filter: 'watermark_late = true', as: 'late_rows'},
+          {from: 'late_rows', select: ['id'], as: 'selected'},
+          {from: 'appended', select: ['id'], as: 'raw_ids'},
+          {from: 'selected', append: {with: 'raw_ids'}, as: 'out'},
+        ];
+      } else if (name === 'json-pick') {
+        program.stages[3].steps = [
+          {from: 'l', append: {with: 'r'}, as: 'appended'},
+          {from: 'appended', json_pick: {column: 'payload',
+            path: ['inner', 'leaf'], output: 'picked'}, as: 'picked'},
+          {from: 'picked', filter: 'picked >= 3', as: 'picked_rows'},
+          {from: 'picked_rows', select: ['id'], as: 'selected'},
+          {from: 'appended', select: ['id'], as: 'raw_ids'},
+          {from: 'selected', append: {with: 'raw_ids'}, as: 'out'},
+        ];
+      } else {
+        program.stages[3].steps = [
+          {from: 'l', append: {with: 'r'}, as: 'appended'},
+          {from: 'appended', filter: 'id > 2', as: 'greater'},
+          {from: 'appended', filter: 'id < 3', as: 'less'},
+          {from: 'greater', assert_rows: {unique_by: ['id']},
+            as: 'unique_greater'},
+          ranked ? {from: 'unique_greater', top_k: {k: 2, by: [{id: 'desc'}]},
+            as: 'ranked'} : {from: 'unique_greater', sort: [{id: 'desc'}],
+            as: 'ranked'},
+          deduped ? {from: 'less', dedupe_rows: {
+            by: ['id'], order_by: [{origin: 'asc'}],
+          }, as: 'deduped'} : {from: 'less', distinct: true, as: 'deduped'},
+          {from: 'ranked', append: {with: 'deduped'}, as: 'joined'},
+          {from: 'joined', select: ['id'], as: 'out'},
+        ];
+      }
       const prepared = fixture.strategyFixtureCreate(
         ...args, JSON.stringify(program));
       const capture = await runNativeHostQuery(grant,
@@ -135,7 +196,8 @@ test('retained Relation forks execute bounded ranking and dedupe steps',
           assert.equal(execution.usage().reservedExecutionBytes, 0n);
         }
       }
-      if (name === 'combined') {
+      if (name === 'combined' || name === 'lag' ||
+          name === 'watermark' || name === 'json-pick') {
         const retained = fixture.strategyFixtureCreate(
           ...args, JSON.stringify(program));
         const retainedCapture = await runNativeHostQuery(grant,
