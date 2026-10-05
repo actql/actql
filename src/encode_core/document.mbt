@@ -62,7 +62,7 @@ pub fn emit_document(
       for scalar in value.text.iter() {
         hash_scalar(w, buffer.hash, scalar.to_int())
       }
-      buffer.text.write_string(value.text)
+      if buffer.text is Some(output) { output.write_string(value.text) }
     }
   }
 }

@@ -80,6 +80,7 @@ fn prepare_admitted_stream(
   max_batch_bytes : Int,
   retain_text : Bool,
   capture_value_measurement? : Bool = false,
+  discard_text? : Bool = false,
 ) -> Result[AdmittedOutputStream, OutputStreamIssue] {
   if !row_wire_valid_limits(wire) || max_batch_bytes < 0 {
     return Err(Wire(InvalidLimits))
@@ -109,6 +110,7 @@ fn prepare_admitted_stream(
         wire.max_nodes,
         wire.max_depth,
         max_batch_bytes,
+        retain_text=!discard_text,
       )
     } else {
       @encode.hashing_writer(wire.max_bytes, wire.max_nodes, wire.max_depth)

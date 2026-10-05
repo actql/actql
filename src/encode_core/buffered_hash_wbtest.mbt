@@ -174,3 +174,102 @@ test "buffered writer cannot complete a previously drained partial document" {
     },
   )
 }
+
+///|
+test "discarded batches preserve independent raw Unicode identity and exact encoded batch cap" {
+  for cap in [16, 17, 18] {
+    let w = buffered_hashing_writer(100, 10, 4, cap, retain_text=false)
+    assert_true(w.output is BufferedHashOutput(buffer) && buffer.text is None)
+    if cap < 17 {
+      assert_true(
+        try {
+          string_value(w, "é\r\n😀\"\\")
+          false
+        } catch {
+          OutputLimit => true
+          _ => false
+        },
+      )
+      assert_true(
+        try {
+          ignore(finish_hash(w))
+          false
+        } catch {
+          ClosedWriter => true
+          _ => false
+        },
+      )
+    } else {
+      string_value(w, "é\r\n😀\"\\")
+      assert_eq(drain_hash_output(w), "")
+      assert_eq(writer_progress(w), (17, 1, 0))
+      let (hash, bytes, nodes) = finish_hash_usage(w)
+      assert_eq(
+        hash, "0049092db04fc092a03b5d747c0d3651adacfa4136c83e2d16c2c2d58d1451e0",
+      )
+      assert_eq((bytes, nodes), (17, 1))
+      let original = writer(100, 10, 4)
+      string_value(original, "é\r\n😀\"\\")
+      let document = finish_document(original)
+      let embedded = buffered_hashing_writer(100, 10, 4, cap, retain_text=false)
+      emit_document(embedded, document)
+      assert_eq(drain_hash_output(embedded), "")
+      assert_eq(finish_hash_usage(embedded), (hash, 17, 1))
+    }
+  }
+}
+
+///|
+test "discarded batches still require drain and preserve cumulative limits and cancellation" {
+  let pending = buffered_hashing_writer(6, 1, 0, 6, retain_text=false)
+  string_value(pending, "😀")
+  assert_true(
+    try {
+      ignore(finish_hash(pending))
+      false
+    } catch {
+      InvalidStructure => true
+      _ => false
+    },
+  )
+  assert_true(
+    try {
+      ignore(drain_hash_output(pending))
+      false
+    } catch {
+      ClosedWriter => true
+      _ => false
+    },
+  )
+  let limited = buffered_hashing_writer(6, 3, 1, 5, retain_text=false)
+  begin_array(limited)
+  null_value(limited)
+  assert_eq(drain_hash_output(limited), "")
+  end_array(limited)
+  assert_eq(drain_hash_output(limited), "")
+  assert_eq(finish_hash_usage(limited).1, 6)
+  let overflow = buffered_hashing_writer(5, 3, 1, 5, retain_text=false)
+  begin_array(overflow)
+  null_value(overflow)
+  assert_eq(drain_hash_output(overflow), "")
+  assert_true(
+    try {
+      end_array(overflow)
+      false
+    } catch {
+      OutputLimit => true
+      _ => false
+    },
+  )
+  cancel_writer(overflow)
+  cancel_writer(overflow)
+  assert_true(
+    try {
+      ignore(finish_hash(overflow))
+      false
+    } catch {
+      ClosedWriter => true
+      _ => false
+    },
+  )
+}

@@ -86,14 +86,18 @@ pub fn prepare_completed_output_import(
     Ok(admitted) => admitted
     Err(issue) => return Err(Admission(issue))
   }
+  // Content verification consumes the full canonical stream and identical
+  // encoded batch limits; no caller uses the provisional serialized text.
   let stream = match
-    prepare_admitted_output_stream(
+    prepare_admitted_stream(
       receipt.owner,
       receipt.target,
       max_rows,
       values,
       wire,
       max_batch_bytes,
+      true,
+      discard_text=true,
     ) {
     Ok(stream) => stream
     Err(issue) => return Err(Encoding(issue))

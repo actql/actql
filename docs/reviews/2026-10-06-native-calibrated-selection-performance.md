@@ -736,3 +736,99 @@ Actual source/Owner checks, limits and public value preservation remain;
 D/H/A boundaries, physical heap bounds, #412 image acceptance and dynamic
 Hybrid remain outside this experiment. No full Core, Wasm, packed or whole
 performance matrix was run.
+
+
+### Real retained-conversion subphases and bounded text discard candidate
+
+Starting source `1c9bccc54d373f64c27ea1c5a48c74e7044c1b95` contains the
+restored preflight implementation. Two explicitly selected, temporary Native
+clock diagnostics subdivide the retained conversion; neither is a matched
+performance comparison. Preserve their original sources, instrumented sources,
+patches, controllers, binaries and observations under
+`_build/repro/conversion-phases-1c9bccc54/`. The manifest binds every source
+before/after digest. All six instrumented files were restored byte-for-byte
+before implementing the candidate below. No diagnostic clock or public clock
+API is delivered. The initial diagnostic build failed because a temporary local
+result required an explicit type (`run-3cgIQ9`); no product execution failed.
+
+| Actual boundary (ms) | Diagnostic v1 | Diagnostic v2 |
+| --- | ---: | ---: |
+| Completed-output conversion | 25.034 | 26.198 |
+| Following ordered-row identity | 4.508 | 5.047 |
+| UTF-8 validation | 0.352 | 0.398 |
+| JSON shape preflight | 1.980 | 2.088 |
+| JSON parsing | 1.529 | 1.667 |
+| Raw cursor | 0.766 | 0.886 |
+| Typed value admission | 1.567 | 1.654 |
+| Retention budget validation | 0.500 | 0.520 |
+| Completion encoding/hash | 7.079 | 7.473 |
+
+Each row subphase was observed 1,000 times. V2 separately measures actual Native
+reader boundaries: 17 `next` calls (including existing complete-content hash)
+total 3.322 ms, 17 frame-feed calls total 2.278 ms, import preparation 0.005,
+frame preparation 0.008, reader open 0.028, frame finish 0.001, reader finish/close
+0.005, and import finish/binding 0.009. The remaining 5.855 ms is unassigned;
+static availability calls do not establish CPU attribution. None is bypassed.
+Empty 1,000 clock-pair controls total 13.044 / 12.505 microseconds. This is not
+measurement of the full instrumentation overhead, and is not subtracted.
+
+V1 release: 12,406,240 bytes,
+`sha256:8135dbc4e2ea1bfe13d16a0acb01b5b3684ba9c56d95721f41e79cbef6819779`,
+build `run-YJ4hYY`, execution `run-9ev83O`; observation 177,576 bytes,
+`sha256:9533a16b325a7f78a1ca2d1649e6413a9fe475d27484f0acbb551d794b47307f`.
+V2 release: 12,406,896 bytes,
+`sha256:48e7a25224a92e5101d45da2a8d4088e85d39bf42d3d4e5e328ac7df6208fcea`,
+build `run-zquCu5`, execution `run-QycxNn`; observation 178,948 bytes,
+`sha256:a69bf6dc85d9d31de43bbbaa8592ef2c2542dc443cc2e28c67667a9870b5e01f`.
+Both single-case executions use the existing immutable 1,000-row text fixture,
+select three actual resident candidates, verify all five physical attempts and
+three holdings, unchanged values/identity/work and final zero reservations.
+Keep full parent/source preparation/entry costs: v1 590.754 / 180.191 / 166.967 ms;
+v2 621.889 / 196.832 / 176.016 ms. These are separate launches, not improvement
+measurements or OS-cache-cold results.
+
+`CompletedOutputImport` ignores each provisional serialized batch returned by
+`drain_hash_output`. The new candidate uses the **same buffered hash sink** with
+optional text retention disabled. It still emits every canonical byte into SHA,
+reserves the same per-batch encoded byte budget, requires each drain before
+completion, preserves aggregate node/depth/byte ceilings and closes on failure.
+It does not replace that sink with the existing unbounded hash-only writer.
+The existing public default still retains text; generated `encode_core` interface
+adds the optional keyword. Verified-document embedding obeys the same mode.
+No value normalization, cached digest, owner, availability, expression quantum,
+Ledger cleanup or cancellation decision changes. An encoded byte counter is
+not a proof of physical heap usage; resource/retention bounds are not weakened.
+
+Focused working-diff checks: **26/26 JS** (`run-NPLmlI`,
+`focused-test-cibDXe`) and **26/26 Native** (`run-RpQfnK`,
+`focused-test-kelJwL`). Select exactly:
+
+```sh
+node scripts/local-checks.mjs test moon --timeout-seconds 180 -- --target js \
+  src/encode_core/buffered_hash_wbtest.mbt src/encode_core/ascii_span_wbtest.mbt \
+  src/encode_core/string_cursor_wbtest.mbt src/encode_core/cancel_writer_wbtest.mbt \
+  src/execution_relation/completed_output_import_wbtest.mbt \
+  src/execution_relation/admitted_output_stream_wbtest.mbt
+```
+
+Repeat that selection with `--target native`, using the pinned MoonBit toolchain.
+Selected `moon info src/encode_core --target js` succeeded (`run-bdqE5b`, three
+tasks). An earlier guard invocation omitted its step argument list and launched
+no compiler (`run-fgUtb5`); the corrected invocation above is the interface evidence.
+Prior candidate checks caught a missed buffered-document consumer and an
+incorrect test expectation that confused authored `[s,n]` projection with canonical
+internal `[n,s]` cells. Fix those expectations using the existing schema contract;
+no product projection/order rule changed. Independent new fixtures preserve a
+literal Unicode/CRLF/quote/backslash hash, exact encoded batch cap at 16/17/18,
+aggregate overflow across drains, undrained completion rejection, repeated cancel,
+and completed-import row boundaries at 18/19/20 with exact names/cells/occurrence.
+
+The candidate's performance remains **unverified**. Predeclare one admitted
+prelaunch per binary and 21 alternating pairs on the same existing 1,000-row text
+case, before archived `fe0b68242` and after the clean candidate release. Pin actual
+compiled SHA/digest and the complete source difference. Preserve full parent,
+entry, preparation, compute/identity, sequential task and cleanup intervals and
+all source/prelaunch costs. Primary improvement requires the complete-parent
+95% interval strictly below zero. Do not reroll indeterminate earlier candidates
+or increase samples to obtain a favorable result. Wasm, full Core, packed,
+calibrated whole matrix and new CI acceptance remain unexecuted.

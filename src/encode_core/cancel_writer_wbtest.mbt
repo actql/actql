@@ -15,7 +15,7 @@ test "writer cancellation discards partial text and rejects all completion paths
     assert_eq(output.frames.length(), 0)
     if output.output is BufferedHashOutput(buffer) {
       assert_eq(buffer.bytes, 0)
-      assert_eq(buffer.text.to_string(), "")
+      assert_eq(buffer.text.unwrap().to_string(), "")
     }
     if output.output is TextOutput(text) {
       assert_eq(text.to_string(), "")
