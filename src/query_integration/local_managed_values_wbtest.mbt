@@ -190,7 +190,9 @@ test "Local managed zero-input values feed two downstream Computes" {
     execution_quantum=1,
     execution_advances=Some(values_advances),
   )
-  assert_eq(values_advances.val, 11)
+  // Eleven original transitions plus five exposed row-charge transitions
+  // for each of the two rows: start, two names, two values, then commit.
+  assert_eq(values_advances.val, 21)
   let rows = local_managed_test_rows(values_ops)
   assert_eq(rows, [
     "{\"id\":null,\"label\":\"none\"}", "{\"id\":1,\"label\":\"one\"}",

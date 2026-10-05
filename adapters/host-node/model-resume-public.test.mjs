@@ -34,7 +34,7 @@ if (packedInputs === undefined) {
   await prepareSourceNodeClient({assemble: true});
 }
 
-const processFixture = fileURLToPath(new URL('./fixtures/model-resume-public-process.mjs', import.meta.url));
+const processFixture = fileURLToPath(new URL('../../scripts/fixtures/model-resume-public-process.mjs', import.meta.url));
 const expectedRows = (count = 1, acquired = false) => [
   {id: acquired ? 1 : '1', outcome: 'ok', value: {reason: null, risk: 'high'}},
   {id: acquired ? 2 : '2', outcome: 'ok', value: {reason: null, risk: 'low'}},

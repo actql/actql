@@ -72,6 +72,66 @@ running Host. The reported process interval is diagnostic. This path currently
 lacks independent file holding, a fresh reader and equivalent comparator
 obligations, so it cannot supply formal acceptance samples.
 
+Host is an explicit experiment condition. The equivalent matrix accepts
+`node-managed` or `native-direct`; row count and workload do not select a Host.
+This changes the experimental condition of the former mixed-Host profile, so
+its results cannot be substituted for historical registered measurements.
+Record Host, acquisition choice and Compute choices separately. The Native
+application currently offers one Native acquisition candidate; its recorded
+`HostPreferred` reason does not establish a Native/Broad comparison.
+
+The Native owner diagnostic checks the existing 100-row case with resident,
+fresh and Local Compute choices, refusal of a cheaper resident strategy under
+the attempt ceiling, and close after stopping between tasks. The last condition
+does not exercise a formal cancellation request or terminal cancellation
+observation. The registered release gate and resident-offer default remain
+unchanged pending release/calibrated acceptance. For a focused local Native diagnostic, use the
+repository wrapper with an explicit build profile:
+
+```sh
+ACTQL_NATIVE_PROBE_PROFILE=debug node scripts/local-checks.mjs test node \
+  --timeout-seconds 90 -- benchmarks/retained-results/native-owner-acceptance.mjs
+```
+
+The explicitly selected Node diagnostics use the same 100-row fixture,
+standard acquisition/Compute owners, independent expected identities and
+benchmark bounds. Run each command sequentially; the observer-cost diagnostic
+must not run concurrently with the cancellation diagnostic:
+
+```sh
+node scripts/local-checks.mjs test node --timeout-seconds 45 -- benchmarks/retained-results/node-acquisition-acceptance.mjs
+node scripts/local-checks.mjs test node --timeout-seconds 45 -- benchmarks/retained-results/node-owner-acceptance.mjs
+node scripts/local-checks.mjs test node --timeout-seconds 45 -- benchmarks/retained-results/node-cancellation-acceptance.mjs
+node scripts/local-checks.mjs test node --timeout-seconds 60 -- benchmarks/retained-results/node-observation-cost.mjs
+```
+
+Prepare the affected JS release runtime before these direct imports. Acquisition
+compares actual Native/Broad choices over the original checked physical query
+preparation, including Broad residual processing. Cancellation uses the real
+managed request signal after task-1 completion acknowledgement, before task-2
+Compute. Its fixed installed worker only synchronizes a copied observation;
+it adds no execution owner or completion-verification substitute.
+
+Planner observations are opt-in through the comparator's `observePlanner`
+condition; the ordinary benchmark keeps its original completion observer and
+does not add per-task planner explanation work. `node-observation-cost.mjs`
+always runs the prescribed off/on/on/off samples, with independent output,
+selection and resource checks in both conditions. It reports preparation,
+execution, transfer/identity, holding and cleanup observations for every sample.
+Each sample starts a new process/resident environment; later tasks reuse that
+environment. OS/compile caches are uncontrolled. These finite diagnostics do
+not establish a statistical overhead bound, a performance improvement, public
+Client Native/Broad equivalence or the full registered matrix.
+
+The test uses declared diagnostic estimates, not calibrated performance inputs.
+Actual candidate projections and selected registrations precede execution;
+owner snapshots bind extra environment/import attempts and holding charges to
+completed tasks. Canonical Rows bytes and charged retained bytes remain separate.
+Phase endpoints enclose real execution boundaries. Nested task, planning and
+observer intervals must not be summed with the enclosing process interval.
+See the [planner/resident boundary record](../../docs/reviews/2026-10-05-planner-resident-benchmark-boundary.md)
+for incomplete acceptance and measurement obligations.
+
 The correctness smoke checks run without importing the ActQL evaluator:
 
 ```sh

@@ -1,0 +1,106 @@
+{
+  "version": "actql/0.1",
+  "id": "fixture.grouped_in",
+  "params": {
+    "p": {
+      "type": "number"
+    }
+  },
+  "stages": [
+    {
+      "id": "capture",
+      "inputs": {
+        "remote": {
+          "connector": "crm/main",
+          "resource": "r"
+        }
+      },
+      "steps": [
+        {
+          "from": "remote",
+          "filter": {
+            "literal": true
+          }
+        },
+        {
+          "select": [
+            "amount",
+            "id"
+          ],
+          "as": "captured"
+        }
+      ],
+      "results": {
+        "source": {
+          "from": "captured",
+          "fields": [
+            "amount",
+            "id"
+          ]
+        }
+      }
+    },
+    {
+      "id": "main",
+      "inputs": {
+        "records": {
+          "result": {
+            "stage": "capture",
+            "result": "source"
+          }
+        }
+      },
+      "steps": [
+        {
+          "from": "records",
+          "filter": {
+            "in": [
+              {
+                "field": "id"
+              },
+              {
+                "literal": [
+                  {
+                    "$param": "p"
+                  },
+                  -2
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "select": [
+            "id"
+          ]
+        },
+        {
+          "sort": [
+            {
+              "field": "id",
+              "dir": "asc",
+              "nulls": "first"
+            }
+          ],
+          "as": "ordered"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "ordered",
+          "fields": [
+            "id"
+          ]
+        }
+      }
+    }
+  ],
+  "results": {
+    "answer": {
+      "from": {
+        "stage": "main",
+        "result": "rows"
+      }
+    }
+  }
+}

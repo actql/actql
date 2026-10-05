@@ -6,6 +6,14 @@ joins the original admitted Run to the checked producer fragment/output port
 and consumer fragment/input port. The fragment identities retain the checked
 schema and ordered computation. Resolving this edge issues no start claim.
 
+Relation ports retain their checked Carrier contract, while physical output
+admission separately derives the complete field-map schema through the existing
+Relation schema Owner. An ordinary row object contract and the field-map schema
+are distinct identity domains even when they describe the same required
+columns. The edge projection preserves the Carrier contract;
+`client_retained_input_edge_schema_cid` supplies the physical schema. Neither
+identity may replace the other during producer or Transfer admission.
+
 `prepare_client_retained_input_producer` then joins that edge to the exact
 producer dispatch, attempt, registered managed output subject and durable
 execution evidence. The dispatch must name the original Run and producer
@@ -101,9 +109,35 @@ Rejected pre-admission leaves the borrow with its caller. Stream or framing
 failure returns the existing retryable physical cleanup owner. Success keeps
 the borrow live until its capture owner closes; neither path reclaims a holding.
 
-These APIs do not install a consumer executable, reserve a second holding,
-restore a reader, commit a consumer dispatch, reconcile an unknown execution
-or acknowledge cleanup. Actual Cloud/Native callers must connect these owners
-and persist the original responsibility. Public two-task execution and
-restart/cleanup acceptance require separate execution evidence, not just
-admission of this canonical body or registered-provider unit tests.
+The portable issuers do not install a consumer executable, reserve a second
+holding, restore a reader, commit a consumer dispatch, reconcile an unknown
+execution or acknowledge cleanup.
+
+The Native adapter `open_resident_retained_compute` connects an exact durable
+reader to the existing captured DAG and Native Compute Owner. It prepares the
+original checked capture without opening the configured Source database, then
+reserves decoding retention and execution capacity independently of both
+physical holdings. The same Native task execution and cleanup methods serve
+locally acquired and transferred captures. Export pins can keep cleanup
+pending; returning the borrow still leaves physical destination and producer
+holding cleanup with their separate Owners.
+
+Direct and Store destinations use the same durable journal reader and material
+cleanup state. Direct uses the allocation occurrence established by its receiver
+and a request-scoped exact reader key. Reattaching that reader after journal
+reconstruction does not allocate another holding or revive a returned reader.
+The cleanup Owner can repeat a completed reclaim without another capacity
+return; new reader admission remains forbidden after reclaim begins.
+
+Actual Cloud/Native callers must persist and connect the original Run and task
+responsibility. Public two-task execution, Coordinator reconstruction and
+holder replacement require separate execution evidence, not just admission
+of the canonical body, journal reconstruction or Native composition tests.
+
+The Native retained consumer executor enters through the existing Runtime's
+bundle admission, exclusive start claim and output evidence path. Its bound
+factory admits only the exact consumer dispatch, including the attempt; another
+dispatch with an equal input binding cannot reuse that borrow. Compute completion
+keeps the input borrowed while output readers remain active. Formal output
+release closes the captured Run and returns its borrow, after which the separate
+destination and producer cleanup Owners can release their holdings and capacity.

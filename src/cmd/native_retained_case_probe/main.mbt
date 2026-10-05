@@ -9,6 +9,14 @@ fn required(matches : @argparse.Matches, name : String) -> String {
 }
 
 ///|
+fn optional_quantity_json(value : Int64?) -> String {
+  match value {
+    Some(value) => "\"" + value.to_string() + "\""
+    None => "null"
+  }
+}
+
+///|
 fn int_option(matches : @argparse.Matches, name : String) -> Int {
   let parsed : Int = @string.from_str(required(matches, name)) catch {
     _ => abort("invalid integer option --" + name)
@@ -149,9 +157,107 @@ fn native_strategy_issue_name(
 /// timings. The clock observation grants no execution authority.
 fn execute_timed_native_strategy_run(
   run : @host.NativeStandardStrategyRun,
+  dispatch : @standard_host.StrategyHostDispatch,
+  captured : @strategy.CapturedDAG,
+  ledger : @resources.Ledger,
+  stop_after_task : Int?,
 ) -> Result[Unit, @host.NativeStandardStrategyRunIssue] {
+  let mut next_task = 1
   while true {
+    if @strategy.next_captured_task(captured) is None {
+      return Ok(())
+    }
+    emit_owner_observation("before-task", next_task, run, ledger)
     let before = @bench.monotonic_clock_start()
+    // Pause at the existing policy boundary; commit its ordinary offline
+    // choice, never a benchmark-authored ranking or physical task.
+    match @standard_host.prepare_dispatch_policy_choice(dispatch) {
+      Err(issue) => return Err(@host.Dispatch(issue))
+      Ok(true) => {
+        let observer_start = @bench.monotonic_clock_start()
+        let planning_before = @resources.ledger_usage(ledger).planning_work
+        // The existing bounded consultation owns the immutable projection.
+        // Its planning charge is part of this instrumented experiment.
+        match
+          @standard_host.prepare_dispatch_policy_request(
+            dispatch,
+            "benchmark-task-" + next_task.to_string(),
+            @strategy.graph_program_definition_cid(
+              @strategy.captured_dag_graph(captured),
+            ),
+            "native-benchmark-offline",
+            1L,
+            0L,
+          ) {
+          Err(issue) => return Err(@host.Dispatch(issue))
+          Ok(_) => ()
+        }
+        let candidates = @standard_host.dispatch_policy_candidates(dispatch).unwrap()
+        println(
+          "compute-candidates:" +
+          next_task.to_string() +
+          ":" +
+          candidates.canonical_json,
+        )
+        match @standard_host.commit_dispatch_offline_policy_choice(dispatch) {
+          Err(issue) => return Err(@host.Dispatch(issue))
+          Ok(_) => ()
+        }
+        // Preserve the owner's rejected assessments as well as feasible
+        // policy candidates. Unknown estimates and capacity refusals stay
+        // distinguishable from an executed physical provider.
+        println(
+          "compute-explanation:" +
+          next_task.to_string() +
+          ":" +
+          @strategy.explain_captured_strategy(captured, 65536, 10000).unwrap(),
+        )
+        let revision = @strategy.strategy_history_at(
+          captured,
+          @strategy.strategy_history_count(captured) - 1,
+        ).unwrap()
+        let assessment = @strategy.strategy_assessment(revision)
+        let selection_source = match
+          @strategy.strategy_selection_source(revision) {
+          @strategy.OfflineLatency => "OfflineLatency"
+          @strategy.BoundedLatency => "BoundedLatency"
+          @strategy.HostProposal => "HostProposal"
+          @strategy.ExternalPolicy(_) => "ExternalPolicy"
+        }
+        let registration = @strategy.strategy_registration(revision, next_task).unwrap()
+        println(
+          "planner-observer-work:" +
+          next_task.to_string() +
+          ":" +
+          (@resources.ledger_usage(ledger).planning_work - planning_before).to_string(),
+        )
+        println(
+          "planner-observer-us:" +
+          next_task.to_string() +
+          ":" +
+          @bench.monotonic_clock_end(observer_start).to_int64().to_string(),
+        )
+        println(
+          "compute-choice:{\"task\":" +
+          next_task.to_string() +
+          ",\"position\":" +
+          assessment.position.to_string() +
+          ",\"source\":\"" +
+          selection_source +
+          "\"" +
+          ",\"revision\":" +
+          @strategy.strategy_revision_number(revision).to_string() +
+          ",\"registration\":\"" +
+          @connector.capability_registration_selection_key(registration) +
+          "\",\"name\":\"" +
+          @connector.capability_description(registration).name +
+          "\",\"resident\":" +
+          (@strategy.strategy_resident_profile(revision, next_task) is Some(_)).to_string() +
+          "}",
+        )
+      }
+      Ok(false) => ()
+    }
     match @host.execute_next_native_standard_strategy_task(run) {
       Ok(Some(completion)) => {
         let elapsed = @bench.monotonic_clock_end(before).to_int64()
@@ -226,6 +332,11 @@ fn execute_timed_native_strategy_run(
             resident.tables.to_string(),
           )
         }
+        emit_owner_observation("after-task", completion.task, run, ledger)
+        next_task += 1
+        if stop_after_task == Some(completion.task) {
+          return Ok(())
+        }
       }
       Ok(None) => return Ok(())
       Err(issue) => return Err(issue)
@@ -233,6 +344,102 @@ fn execute_timed_native_strategy_run(
   } nobreak {
     Err(@host.InvalidSelection)
   }
+}
+
+///|
+/// Read only the existing owner and ledger. This observation does not create
+/// reservations or replace their identity/cleanup checks. Its SQL observation
+/// cost stays inside the enclosing execution interval and is recorded separately.
+fn emit_owner_observation(
+  boundary : String,
+  task : Int,
+  run : @host.NativeStandardStrategyRun,
+  ledger : @resources.Ledger,
+) -> Unit {
+  let start = @bench.monotonic_clock_start()
+  let resident = @host.native_standard_strategy_run_resident_observation(run)
+  let usage = @resources.ledger_usage(ledger)
+  println(
+    "owner-observation:{\"boundary\":\"" +
+    boundary +
+    "\",\"task\":" +
+    task.to_string() +
+    ",\"planningWork\":" +
+    usage.planning_work.to_string() +
+    ",\"attempts\":" +
+    usage.attempts.to_string() +
+    ",\"holdings\":" +
+    usage.holdings.to_string() +
+    ",\"heldBytes\":" +
+    usage.held_bytes.to_string() +
+    ",\"reservedExecutionBytes\":" +
+    usage.reserved_execution_bytes.to_string() +
+    ",\"reservedRetentionBytes\":" +
+    usage.reserved_retention_bytes.to_string() +
+    ",\"reservedTransferBytes\":" +
+    usage.reserved_transfer_bytes.to_string() +
+    ",\"uncertainTransferBytes\":" +
+    usage.uncertain_transfer_bytes.to_string() +
+    ",\"environments\":" +
+    resident.environments.to_string() +
+    ",\"imports\":" +
+    resident.imports.to_string() +
+    ",\"borrowedInputs\":" +
+    resident.borrowed_inputs.to_string() +
+    ",\"importedRows\":" +
+    resident.imported_rows.to_string() +
+    ",\"unconfirmedEnvironments\":" +
+    resident.unconfirmed_environments.to_string() +
+    ",\"importScratchBytes\":" +
+    resident.import_scratch_bytes.to_string() +
+    ",\"taskDemandBytes\":" +
+    resident.task_demand_bytes.to_string() +
+    ",\"temporaryViews\":" +
+    resident.temporary_views.to_string() +
+    ",\"tables\":" +
+    resident.tables.to_string() +
+    "}",
+  )
+  println(
+    "observer-elapsed-us:" +
+    @bench.monotonic_clock_end(start).to_int64().to_string(),
+  )
+}
+
+///|
+fn close_observed_run(
+  run : @host.NativeStandardStrategyRun,
+  ledger : @resources.Ledger,
+  task : Int,
+) -> Unit {
+  emit_owner_observation("before-close", task, run, ledger)
+  if !@host.close_native_standard_strategy_run(run).unwrap() {
+    abort("native strategy cleanup unconfirmed")
+  }
+  emit_owner_observation("after-close", task, run, ledger)
+  let first_close = @resources.ledger_usage(ledger)
+  if !@host.close_native_standard_strategy_run(run).unwrap() ||
+    @resources.ledger_usage(ledger) != first_close {
+    abort("duplicate native strategy cleanup changed ledger")
+  }
+  if !(@host.execute_next_native_standard_strategy_task(run)
+    is Err(@host.Closed)) ||
+    @resources.ledger_usage(ledger) != first_close {
+    abort("closed native strategy Run resumed physical work")
+  }
+  emit_owner_observation("duplicate-close", task, run, ledger)
+}
+
+///|
+/// Monotonic enclosing boundaries, not additive timers for parallel subwork.
+fn phase_boundary(name : String, start : @bench.Timestamp) -> Unit {
+  println("phase:" + name)
+  println(
+    "phase-time-us:" +
+    name +
+    ":" +
+    @bench.monotonic_clock_end(start).to_int64().to_string(),
+  )
 }
 
 ///|
@@ -246,6 +453,8 @@ fn main {
     @argparse.OptionArg("expected-cid", required=true),
     @argparse.OptionArg("expected-tasks", required=true),
     @argparse.OptionArg("native-ms", default_values=["1000"]),
+    @argparse.OptionArg("stop-after-task", default_values=["-"]),
+    @argparse.OptionArg("attempt-cap", default_values=["12"]),
     @argparse.OptionArg("local-eligible", default_values=["true"]),
     @argparse.OptionArg("resident-policy", default_values=["false"]),
     @argparse.OptionArg("local-task-ms", default_values=["-"]),
@@ -272,6 +481,15 @@ fn main {
   let retained_task_root = required(matches, "retained-task-root")
   let expected_cid = required(matches, "expected-cid")
   let expected_tasks = int_option(matches, "expected-tasks")
+  let stop_after_task = if required(matches, "stop-after-task") == "-" {
+    None
+  } else {
+    let task = int_option(matches, "stop-after-task")
+    if task >= expected_tasks {
+      abort("between-task stop must precede final task")
+    }
+    Some(task)
+  }
   let local_eligible = match required(matches, "local-eligible") {
     "true" => true
     "false" => false
@@ -304,11 +522,15 @@ fn main {
   let work = int_option(matches, "work")
   let entries = int_option(matches, "entries")
   let batch_bytes = int_option(matches, "batch-bytes")
+  let attempt_cap = int_option(matches, "attempt-cap")
+  if attempt_cap > 12 {
+    abort("diagnostic attempt cap exceeds registered ceiling")
+  }
   let execution_cap = int64_option(matches, "execution-cap")
   let native_ms : Int64 = @string.from_str(required(matches, "native-ms")) catch {
     _ => abort("invalid native-ms")
   }
-  println("phase:application")
+  phase_boundary("application", execution_start)
   let app = @application.load_native_remote_application_with_data(
     root,
     {
@@ -339,9 +561,9 @@ fn main {
       batch_bytes,
     },
   ).unwrap()
-  println("phase:library")
+  phase_boundary("library", execution_start)
   let library = @duckdb.load_library(library_path).unwrap()
-  println("phase:database")
+  phase_boundary("database", execution_start)
   let database = library
     .open_database(
       {
@@ -353,13 +575,58 @@ fn main {
       path=database_path,
     )
     .unwrap()
-  println("phase:acquisition-start")
+  phase_boundary("acquisition-start", execution_start)
+  let acquisition_choice = @acquisition_host.configured_native_host_choice(
+    @example.application_acquisition(app),
+  )
+  let acquisition_candidate = @planning.acquisition_choice_candidate(
+    acquisition_choice,
+  )
+  let acquisition_reason = match
+    @planning.acquisition_choice_reason(acquisition_choice) {
+    @cost.HostPreferred(_) => "HostPreferred"
+    @cost.EstimatedFastest(_, _) => "EstimatedFastest"
+    @cost.Deferred => "Deferred"
+    @cost.NoCandidates => "NoCandidates"
+  }
+  let acquisition_duration = match
+    @planning.acquisition_candidate_duration(acquisition_candidate) {
+    @cost.Complete(value) => "\"" + value.to_string() + "\""
+    @cost.Unknown => "null"
+  }
+  let quantities = @planning.acquisition_candidate_quantities(
+    acquisition_candidate,
+  )
+  let capacity = @acquisition_host.configured_native_capacity(
+    @example.application_acquisition(app),
+  ).unwrap()
+  println(
+    "acquisition-choice:{\"host\":\"native\",\"provided\":[\"native\"],\"registration\":\"" +
+    @connector.capability_registration_selection_key(
+      @planning.acquisition_candidate_registration(acquisition_candidate),
+    ) +
+    "\",\"milliseconds\":" +
+    acquisition_duration +
+    ",\"reason\":\"" +
+    acquisition_reason +
+    "\",\"transferBytes\":" +
+    optional_quantity_json(quantities.transfer_bytes) +
+    ",\"retainedBytes\":" +
+    optional_quantity_json(quantities.retained_bytes) +
+    ",\"moneyUnits\":" +
+    optional_quantity_json(quantities.money_units) +
+    ",\"receiverRetentionBytes\":\"" +
+    capacity.retained_bytes.to_string() +
+    "\",\"receiverExecutionBytes\":\"" +
+    capacity.execution_bytes.to_string() +
+    "\",\"capacityScope\":\"declared receiver, not physical heap\"}",
+  )
   let acquisition = @host.start_native_acquisition_runtime(
     @example.application_acquisition(app),
     "native-retained-diagnostic",
     database,
   ).unwrap()
-  println("phase:acquisition-execute")
+  phase_boundary("acquisition-execute", execution_start)
   let acquisition_observation = match
     @host.execute_native_acquisition_runtime(acquisition) {
     Ok(value) => value
@@ -444,15 +711,15 @@ fn main {
       ),
     ) +
     "}"
-  println("phase:acquisition-output")
+  phase_boundary("acquisition-output", execution_start)
   let output = @host.native_acquisition_runtime_output(acquisition).unwrap()
-  println("phase:source")
+  phase_boundary("source", execution_start)
   let source = @duckdb_acquisition.native_captured_source(
     output, source_rows, work,
   ).unwrap()
   let ledger = @example.application_bounded_ledger({
     planning_work: int_option(matches, "planning-work"),
-    attempts: 12,
+    attempts: attempt_cap,
     holdings: 12,
     transfer_bytes: int64_option(matches, "transfer-cap"),
     retained_bytes: int64_option(matches, "retained-cap"),
@@ -460,7 +727,7 @@ fn main {
   }) catch {
     _ => abort("registered ledger limits rejected")
   }
-  println("phase:capture")
+  phase_boundary("capture", execution_start)
   let captured = @strategy.open_captured_dag(
     @example.application_graph(app),
     source,
@@ -469,7 +736,7 @@ fn main {
   // Capture owns the admitted rows; the acquisition database is no longer a
   // live input. Close its physical connection before task databases start.
   database.close()
-  println("phase:dispatch")
+  phase_boundary("dispatch", execution_start)
   let dispatch = @example.application_native_retained_strategy_dispatch(
     app,
     captured,
@@ -485,7 +752,7 @@ fn main {
   ) catch {
     _ => abort("native strategy dispatch rejected")
   }
-  println("phase:strategy-open")
+  phase_boundary("strategy-open", execution_start)
   let run = @host.open_native_standard_strategy_run(
     dispatch,
     {
@@ -517,8 +784,16 @@ fn main {
       max_chunk_rows: Int::min(task_rows, 512),
     },
   ).unwrap()
-  println("phase:strategy-execute")
-  match execute_timed_native_strategy_run(run) {
+  phase_boundary("strategy-execute", execution_start)
+  let execution = execute_timed_native_strategy_run(
+    run, dispatch, captured, ledger, stop_after_task,
+  )
+  if execution is Err(_) {
+    close_observed_run(run, ledger, 0)
+    @host.close_native_acquisition_runtime(acquisition)
+    @strategy.stop_captured_dag(captured)
+  }
+  match execution {
     Ok(_) => ()
     Err(@host.Closed) => abort("native strategy run closed")
     Err(@host.InvalidSelection) => abort("native strategy selection invalid")
@@ -545,6 +820,7 @@ fn main {
               assessment.retained_bytes.to_string(),
             )
           }
+          println("strategy-terminal:no-strategy")
           abort("native strategy missing")
         }
         @standard_host.ForeignSelection =>
@@ -570,11 +846,23 @@ fn main {
       )
     Err(@host.Local(_)) => abort("native strategy Local task rejected")
   }
+  if stop_after_task is Some(task) {
+    close_observed_run(run, ledger, task)
+    @host.close_native_acquisition_runtime(acquisition)
+    @strategy.stop_captured_dag(captured)
+    phase_boundary("stopped-cleanup-end", execution_start)
+    println(
+      "{\"status\":\"stopped-between-tasks\",\"completed_tasks\":" +
+      task.to_string() +
+      "}",
+    )
+    return
+  }
   let task = @example.application_compute_count(app)
   if task != expected_tasks {
     abort("checked task count differs from fixture")
   }
-  println("phase:output-cid")
+  phase_boundary("output-cid", execution_start)
   let output = @host.read_native_standard_task_output(
     run,
     task,
@@ -625,10 +913,9 @@ fn main {
   if execution_us < 0L {
     abort("invalid execution interval")
   }
+  phase_boundary("execution-end", execution_start)
   let cleanup_start = @bench.monotonic_clock_start()
-  if !@host.close_native_standard_strategy_run(run).unwrap() {
-    abort("native strategy cleanup unconfirmed")
-  }
+  close_observed_run(run, ledger, task)
   @host.close_native_acquisition_runtime(acquisition)
   @strategy.stop_captured_dag(captured)
   let usage = @resources.ledger_usage(ledger)
@@ -643,6 +930,7 @@ fn main {
   if cleanup_us < 0L {
     abort("invalid cleanup interval")
   }
+  phase_boundary("cleanup-end", execution_start)
   println(
     "{\"task_count\":" +
     task.to_string() +

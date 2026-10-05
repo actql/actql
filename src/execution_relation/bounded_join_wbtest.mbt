@@ -5,13 +5,17 @@ fn bounded_join_fixture(
   kind? : String = "inner",
   options? : String = "",
   key_type? : String = "number",
+  value_type? : String = "number",
   max_work? : Int = 100000,
   max_entries? : Int = 1000,
   output_nodes? : Int = 1000,
+  output_values? : ValueLimits = run_limits().output_values,
 ) -> (@bounded.Control, BoundedJoinExecution, Array[ProducerRead]) raise {
   let schema = "{\"id\":{\"type\":\"" +
     key_type +
-    "\",\"nullable\":true},\"v\":{\"type\":\"number\",\"nullable\":false}}"
+    "\",\"nullable\":true},\"v\":{\"type\":\"" +
+    value_type +
+    "\",\"nullable\":false}}"
   let (left_owner, left_output) = bounded_cross_source(schema, left_rows)
   let (right_owner, right_output) = bounded_cross_source(schema, right_rows)
   let producer = fn(owner) {
@@ -89,7 +93,7 @@ fn bounded_join_fixture(
     trusted_output_relation_input(right),
     100,
     run_limits().input_values,
-    { ..run_limits().output_values, max_nodes: output_nodes, },
+    { ..output_values, max_nodes: output_nodes, },
     max_work,
     100,
     max_entries,
