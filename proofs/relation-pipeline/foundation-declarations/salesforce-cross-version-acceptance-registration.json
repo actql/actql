@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "salesforce-cross-version-acceptance-registration",
+  "kind": "change",
+  "revision": "a5b864f8dacede1871f893ae3c263a8def4fbe26",
+  "parents": [
+    "d1c73ec00722cb433b3ce759e3d454f7df1f48c7"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "d1c73ec00722cb433b3ce759e3d454f7df1f48c7",
+          "digest": "2ffb7546962a9034fa2f2f0b1b01892cfa83f9a151fbc028c549e79d87bc6f28",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "174823fac038c32de6b8d8eaee4e977853086387fcd683c8f7650c2dc319390f",
+      "afterMode": "100644",
+      "reason": "Register the Salesforce Effect cross-version acceptance, which generates Host state with the pinned previous version and resumes it with the current checkout. Preserve every existing test command, proof gate, corpus, mutation and foundation owner unchanged."
+    }
+  ]
+}
