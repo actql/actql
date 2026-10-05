@@ -4,6 +4,7 @@ import {
   "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/sqlite",
   "actql/actql/remote_transfer" @transfer,
+  "actql/actql/sha256" @sha,
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/string",
 }

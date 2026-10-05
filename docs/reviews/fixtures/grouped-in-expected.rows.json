@@ -1,0 +1,22 @@
+{
+  "rows": [
+    {
+      "id": -2
+    },
+    {
+      "id": 3
+    },
+    {
+      "id": 3
+    }
+  ],
+  "columns": [
+    {
+      "name": "id",
+      "contract": {
+        "type": "number",
+        "nullable": false
+      }
+    }
+  ]
+}

@@ -199,10 +199,11 @@ test "prefix cancellation makes no model call and retains cleanup custody" {
 
 ///|
 test "model response admission charges exact steps and retains provider observations" {
-  // One reservation, eight request transitions, one dispatch, and seven
-  // response transitions: root, child selections/checks and cursor ends.
+  // One reservation, eight request transitions, one dispatch, and eight
+  // response transitions: root, child selections/checks, one TextUnits
+  // poll for "high", and cursor ends. Total physical work is 18.
   let limits = standard_limits()
-  let exact = { ..limits, model: { ..limits.model, max_work: 17, }, }
+  let exact = { ..limits, model: { ..limits.model, max_work: 18, }, }
   let calls = Ref(0)
   let active = fixture_start(
     fixture_prepared(),
@@ -220,7 +221,7 @@ test "model response admission charges exact steps and retains provider observat
   let short_calls = Ref(0)
   let short = fixture_start(fixture_prepared(), () => short_calls.val += 1, limits={
     ..exact,
-    model: { ..exact.model, max_work: 16, },
+    model: { ..exact.model, max_work: 17, },
   })
   assert_true(fixture_finish(short) is Failed(Model(@model.WorkLimit), ..))
   assert_true(capture(short) is None)
@@ -602,11 +603,11 @@ test "nested mapped input stops during request encoding with zero model calls" {
 test "nested mapped request has independent byte and charged-work boundaries" {
   // {"text":[0,...,15]}: eleven structural/name bytes, twenty-two digit
   // bytes and fifteen commas. Its array emits 34 frames, replacing a scalar
-  // frame in the 17-transition model path: 17 - 1 + 34 = 50 transitions.
+  // frame in the 18-transition model path: 18 - 1 + 34 = 51 transitions.
   let base = standard_limits()
   let exact = {
     ..base,
-    model: { ..base.model, max_request_bytes: 48L, max_work: 50, },
+    model: { ..base.model, max_request_bytes: 48L, max_work: 51, },
   }
   let calls = Ref(0)
   let active = fixture_start(
@@ -631,4 +632,15 @@ test "nested mapped request has independent byte and charged-work boundaries" {
   assert_eq(short_calls.val, 0)
   assert_true(capture(short) is None)
   assert_true(cleanup(short).unwrap())
+  let work_calls = Ref(0)
+  let work_short = fixture_start(
+    fixture_input_array_prepared(16),
+    () => work_calls.val += 1,
+    limits={ ..exact, model: { ..exact.model, max_work: 50, }, },
+  )
+  assert_true(fixture_finish(work_short) is Failed(Model(@model.WorkLimit), ..))
+  assert_eq(work_calls.val, 1)
+  assert_true(capture(work_short) is None)
+  assert_true(acquire_output(work_short) is None)
+  assert_true(cleanup(work_short).unwrap())
 }

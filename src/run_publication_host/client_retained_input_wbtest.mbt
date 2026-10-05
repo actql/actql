@@ -138,6 +138,12 @@ test "retained input resolves the original Source to checked consumer port" {
     ports[4],
     "sha256:999395be222d44c0d3dafb4eb4e306cc6f0329a2096af1aeb380341d4cfa588c",
   )
+  // Independent canonical field-map schema: {"id":{"nullable":false,"type":"number"}}.
+  let schema = client_retained_input_edge_schema_cid(edge)
+  assert_eq(
+    schema, "sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513",
+  )
+  assert_true(schema != ports[4])
   assert_true(ports[1] != ports[5])
   assert_true(
     prepare_client_retained_input_edge(
@@ -173,12 +179,13 @@ test "retained input rejects another Run producer schema or attempt evidence" {
     prepared, compilation, admission, definition, 1, 0,
   ).unwrap()
   let ports = client_retained_input_edge_projection(edge)
+  let schema_cid = client_retained_input_edge_schema_cid(edge)
   let (record, evidence, subject) = retained_input_completed(
     ports[0],
     ports[1],
     1,
     1,
-    ports[4],
+    schema_cid,
   )
   let producer = prepare_client_retained_input_producer(
     edge, record, evidence, subject,
@@ -190,10 +197,12 @@ test "retained input rejects another Run producer schema or attempt evidence" {
       (
         @publication.publication_contract_identity(other_definition),
         ports[1],
-        ports[4],
+        schema_cid,
       ),
-      (ports[0], ports[5], ports[4]),
+      (ports[0], ports[5], schema_cid),
       (ports[0], ports[1], retained_input_cid("f")),
+      // The equal checked row contract is still the wrong physical schema.
+      (ports[0], ports[1], ports[4]),
     ] {
     let (foreign, proof, output) = retained_input_completed(
       run, task, 1, 1, schema,
@@ -209,7 +218,7 @@ test "retained input rejects another Run producer schema or attempt evidence" {
       ports[1],
       attempt,
       generation,
-      ports[4],
+      schema_cid,
     )
     assert_true(
       prepare_client_retained_input_producer(edge, foreign, evidence, subject)
@@ -227,12 +236,13 @@ test "retained producer reference revokes new handoff while cleanup is pending" 
     prepared, compilation, admission, definition, 1, 0,
   ).unwrap()
   let ports = client_retained_input_edge_projection(edge)
+  let schema_cid = client_retained_input_edge_schema_cid(edge)
   let (record, evidence, subject) = retained_input_completed(
     ports[0],
     ports[1],
     1,
     1,
-    ports[4],
+    schema_cid,
   )
   let producer = prepare_client_retained_input_producer(
     edge, record, evidence, subject,
