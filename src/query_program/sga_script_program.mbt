@@ -9,7 +9,15 @@ fn script_graph_input(
   if relation.length() != 1 {
     return None
   }
-  let matches = graphs.filter(graph => same_name(graph.name, relation[0]))
+  script_graph_named_input(relation[0], graphs)
+}
+
+///|
+fn script_graph_named_input(
+  name : @query.NamePart,
+  graphs : Array[ScriptGraph],
+) -> ScriptGraph? raise Abort {
+  let matches = graphs.filter(graph => same_name(graph.name, name))
   if matches.length() > 1 {
     raise Abort(AmbiguousRelation)
   }
