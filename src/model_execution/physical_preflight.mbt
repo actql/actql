@@ -79,20 +79,27 @@ fn advance_model_physical_preflight(
   guard state.physical_preflight is Some(start) else {
     return @bounded.Failed(InvalidProvider, 1, 1)
   }
-  let index = state.physical_plans.length()
+  let index = state.physical_next_slot
   if index == state.requests.length() {
     state.phase = DispatchSlot
     return @bounded.Continue(1, 1)
   }
+  if !model_slot_send_eligible(state, index) {
+    state.physical_next_slot += 1
+    return @bounded.Continue(1, 1)
+  }
   let request = state.requests[index].request
-  if state.physical_cursors.length() == index {
+  if state.physical_pending is None {
     match start(request) {
       Err(issue) => return @bounded.Failed(issue, 1, 1)
-      Ok(cursor) => state.physical_cursors.push(cursor)
+      Ok(cursor) => {
+        state.physical_cursors.push(cursor)
+        state.physical_pending = Some(cursor)
+      }
     }
     return @bounded.Continue(1, 1)
   }
-  match (state.physical_cursors[index].advance)() {
+  match (state.physical_pending.unwrap().advance)() {
     Err(issue) => @bounded.Failed(issue, 1, 1)
     Ok(None) => @bounded.Continue(1, 1)
     Ok(Some(plan)) => {
@@ -114,8 +121,25 @@ fn advance_model_physical_preflight(
       if plan.quantities.duration_ms > capacity.per_attempt.duration_ms {
         return @bounded.Failed(Ledger(@resources.DurationLimit), 1, 1)
       }
-      state.physical_plans.push(plan)
+      state.physical_plans[index] = plan
+      state.physical_pending = None
+      state.physical_next_slot += 1
       @bounded.Continue(1, 1)
     }
   }
+}
+
+///|
+fn model_slot_send_eligible(state : ModelState, slot : Int) -> Bool {
+  match state.send_mask {
+    None => true
+    Some(mask) => mask.get(slot).unwrap_or(false)
+  }
+}
+
+///|
+/// Monotone physical-cursor cleanup progress, never a stop or release permit.
+/// A Host may schedule another bounded cleanup step only while this advances.
+pub fn model_cleanup_progress(execution : ModelExecution) -> Int {
+  execution.state.physical_cleanup_index
 }

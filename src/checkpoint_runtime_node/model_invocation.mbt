@@ -157,12 +157,9 @@ fn model_field(value : Json, name : String) -> Json raise ModelBridgeFailure {
 }
 
 ///|
-fn model_call_set(
+fn model_scope_originals(
   request_wire : String,
-) -> (
-  @publication.BoundModelInvocationScope,
-  @checkpoint.ModelCheckpointBinding,
-) raise ModelBridgeFailure {
+) -> @publication.BoundModelInvocationScope raise ModelBridgeFailure {
   let request = model_parse(request_wire)
   let (admission, definition) = model_original_run(
     model_member(request, "originalRunWire"),
@@ -186,10 +183,6 @@ fn model_call_set(
     "model_input_artifact",
     model_member(request, "inputArtifactWire"),
   )
-  let review = model_evidence(
-    "run_review_projection",
-    model_member(request, "reviewWire"),
-  )
   guard model_field(request, "slotWires") is Array(wires) else {
     raise ModelBridgeFailed("MissingModelInventory")
   }
@@ -211,6 +204,22 @@ fn model_call_set(
     Ok(value) => value
     Err(issue) => raise ModelBridgeFailed(@debug.to_string(issue))
   }
+  bound
+}
+
+///|
+fn model_call_set(
+  request_wire : String,
+) -> (
+  @publication.BoundModelInvocationScope,
+  @checkpoint.ModelCheckpointBinding,
+) raise ModelBridgeFailure {
+  let request = model_parse(request_wire)
+  let bound = model_scope_originals(request_wire)
+  let review = model_evidence(
+    "run_review_projection",
+    model_member(request, "reviewWire"),
+  )
   let checkpoint = match
     @checkpoint.admit_checkpoint_wire(
       model_member(request, "checkpointWire"),
@@ -653,4 +662,197 @@ pub fn model_immediate_invocation_grant_at(
   model_invocation_grant_at_impl(
     request_wire, checkpoint_wire, sealed_verified_wire, at, true,
   )
+}
+
+///|
+#export_name("modelImmediateCallSetAdmit")
+pub fn model_immediate_call_set_admit(request_wire : String) -> String {
+  try {
+    let scope = model_scope_originals(request_wire)
+    let fields = model_scope_fields(scope)
+    fields["runValidUntil"] = Json::string(
+      @publication.model_invocation_scope_valid_until(scope),
+    )
+    ok(fields)
+  } catch {
+    ModelBridgeFailed(issue) => fail_detail("InvalidModelCallSet", issue)
+  }
+}
+
+///|
+#export_name("modelImmediateCallAttemptAdmit")
+pub fn model_immediate_call_attempt_admit(
+  request_wire : String,
+  ordinal : Int,
+  attempt_wire : String,
+  authority_wire : String,
+  attempt_index : Double,
+) -> String {
+  try {
+    let scope = model_scope_originals(request_wire)
+    guard safe_integer(attempt_index) is Some(index) else {
+      raise ModelBridgeFailed("InvalidModelAttemptIndex")
+    }
+    let attempt = model_evidence("model_call_attempt", attempt_wire)
+    let authority = model_evidence("model_dispatch_authority", authority_wire)
+    match
+      @publication.check_model_invocation_attempt(
+        scope, ordinal, attempt, authority, index,
+      ) {
+      Ok(_) =>
+        ok({
+          "attemptIndex": Json::number(index.to_double()),
+          "attemptCid": Json::string(
+            @publication.run_evidence_value_identity(attempt),
+          ),
+        })
+      Err(issue) => fail_detail("InvalidModelAttempt", @debug.to_string(issue))
+    }
+  } catch {
+    ModelBridgeFailed(issue) => fail_detail("InvalidModelAttempt", issue)
+  }
+}
+
+///|
+/// Historical exact proof linkage only. Store custody and full response bytes
+/// must be verified by the installed reader before it calls this boundary.
+#export_name("modelSavedCallAdmit")
+pub fn model_saved_call_admit(
+  request_wire : String,
+  ordinal : Int,
+  attempt_wire : String,
+  authority_wire : String,
+  accounting_wire : String,
+  outcome_wire : String,
+  capture_wire : String,
+  observation_wire : String?,
+) -> String {
+  try {
+    let scope = model_scope_originals(request_wire)
+    let request = model_parse(request_wire)
+    let (admission, definition) = model_original_run(
+      model_member(request, "originalRunWire"),
+    )
+    guard model_field(request, "slotWires") is Array(wires) &&
+      wires.get(ordinal) is Some(String(call_wire)) else {
+      raise ModelBridgeFailed("InvalidModelSlot")
+    }
+    let call = model_evidence("model_call_slot", call_wire)
+    let capture = model_evidence("model_slot_capture", capture_wire)
+    let attempt = model_evidence("model_call_attempt", attempt_wire)
+    let authority = model_evidence("model_dispatch_authority", authority_wire)
+    let accounting = model_evidence("model_attempt_accounting", accounting_wire)
+    let outcome = model_evidence("model_attempt_outcome", outcome_wire)
+    if @publication.check_model_invocation_attempt(
+        scope, ordinal, attempt, authority, 1L,
+      )
+      is Err(_) {
+      raise ModelBridgeFailed("InvalidModelAttempt")
+    }
+    let binding = match @publication.bind_model_slot_capture(call, capture) {
+      Ok(value) => value
+      Err(issue) => raise ModelBridgeFailed(@debug.to_string(issue))
+    }
+    if @publication.bind_model_slot_attempt_evidence(
+        binding, attempt, accounting, outcome, authority, admission, definition,
+      )
+      is Err(_) {
+      raise ModelBridgeFailed("InvalidModelSavedProof")
+    }
+    guard @publication.bound_model_slot_capture_outcome(binding) is Some(result) else {
+      raise ModelBridgeFailed("InvalidModelSavedOutcome")
+    }
+    if result == "ok" {
+      guard observation_wire is Some(wire) else {
+        raise ModelBridgeFailed("MissingModelResponse")
+      }
+      if @publication.verify_model_slot_success_observation(
+          binding,
+          model_evidence("model_invocation_evidence", wire),
+        )
+        is Err(_) {
+        raise ModelBridgeFailed("InvalidModelResponse")
+      }
+    } else if @publication.verify_model_slot_no_response_failure(
+        binding, result,
+      )
+      is Err(_) {
+      raise ModelBridgeFailed("InvalidModelFailure")
+    }
+    ok({
+      "state": Json::string(
+        if result == "ok" {
+          "SavedSuccess"
+        } else {
+          "SavedFailure"
+        },
+      ),
+      "slotCid": Json::string(@publication.run_evidence_value_identity(call)),
+      "captureCid": Json::string(
+        @publication.run_evidence_value_identity(capture),
+      ),
+      "attemptCid": Json::string(
+        @publication.run_evidence_value_identity(attempt),
+      ),
+    })
+  } catch {
+    ModelBridgeFailed(issue) => fail_detail("InvalidModelSavedCall", issue)
+  }
+}
+
+///|
+/// An authenticated terminal contract violation is not a fabricated provider
+/// failure or a completed slot. It only proves that this Run cannot continue.
+#export_name("modelStoppedCallAdmit")
+pub fn model_stopped_call_admit(
+  request_wire : String,
+  ordinal : Int,
+  attempt_wire : String,
+  authority_wire : String,
+  accounting_wire : String,
+  outcome_wire : String,
+) -> String {
+  try {
+    let scope = model_scope_originals(request_wire)
+    let attempt = model_evidence("model_call_attempt", attempt_wire)
+    let authority = model_evidence("model_dispatch_authority", authority_wire)
+    let accounting = model_evidence("model_attempt_accounting", accounting_wire)
+    let outcome = model_evidence("model_attempt_outcome", outcome_wire)
+    if @publication.check_model_invocation_attempt(
+        scope, ordinal, attempt, authority, 1L,
+      )
+      is Err(_) {
+      raise ModelBridgeFailed("InvalidModelAttempt")
+    }
+    let attempt_cid = @publication.run_evidence_value_identity(attempt)
+    let call = model_parse(attempt_wire)
+    let slot_cid = model_member(call, "slot_cid")
+    for wire in [accounting_wire, outcome_wire] {
+      let body = model_parse(wire)
+      if model_member(body, "attempt_cid") != attempt_cid ||
+        model_member(body, "slot_cid") != slot_cid {
+        raise ModelBridgeFailed("InvalidModelStoppedProof")
+      }
+    }
+    let body = model_parse(outcome_wire)
+    if model_member(body, "category") != "contract_violation" ||
+      !["budget_exceeded", "output_identity", "output_value"].contains(
+        model_member(body, "failure"),
+      ) {
+      raise ModelBridgeFailed("ModelAttemptStillUnknown")
+    }
+    ok({
+      "state": Json::string("SavedFailure"),
+      "attemptCid": Json::string(attempt_cid),
+      "slotCid": Json::string(slot_cid),
+      "accountingCid": Json::string(
+        @publication.run_evidence_value_identity(accounting),
+      ),
+      "outcomeCid": Json::string(
+        @publication.run_evidence_value_identity(outcome),
+      ),
+    })
+  } catch {
+    ModelBridgeFailed(issue) => fail_detail("InvalidModelStoppedProof", issue)
+  }
 }

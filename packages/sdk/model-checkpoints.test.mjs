@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {createPrivateKey, sign} from 'node:crypto';
-import {signedAnswer} from './checkpoints.mjs';
+import {signedAnswer, canonicalJson, contentCid, reviewBytesMatchCid} from './checkpoints.mjs';
 import {validCheckpointPage} from '../client-wire/index.mjs';
 
 const fixture = JSON.parse(readFileSync(new URL(
@@ -103,4 +103,23 @@ test('integrated acquired Source read still signs its Run-bound approval and rej
         summary.requiredArtifact.cid);
     } else assert.equal(answer.approvalEvidenceWire, '');
   }
+});
+
+
+test('SDK verifies canonical Model review identity without confusing its storage digest', async () => {
+  const review = fixture.cases.find(value => value.kind === 'run_review_projection');
+  assert.ok(review);
+  const wire = canonicalJson(review.artifact);
+  const bytes = value => new TextEncoder().encode(value);
+  assert.equal(await reviewBytesMatchCid(bytes(wire), review.expected_cid), true);
+  assert.notEqual(await contentCid(review.artifact), review.expected_cid);
+  for (const changed of [
+    ` ${wire}`, wire.replace('"version":', '"version":"other","version":'),
+    canonicalJson({...review.artifact, review_projection_cid: `sha256:${'0'.repeat(64)}`}),
+    canonicalJson({...review.artifact, approval_claims: []}),
+    canonicalJson({...review.artifact, version: 'actql-run-review-projection/other'}),
+  ]) assert.equal(await reviewBytesMatchCid(bytes(changed), review.expected_cid), false);
+  assert.equal(await reviewBytesMatchCid(Uint8Array.of(255), review.expected_cid), false);
+  const legacy = {summary: 'legacy review'};
+  assert.equal(await reviewBytesMatchCid(bytes(canonicalJson(legacy)), await contentCid(legacy)), true);
 });

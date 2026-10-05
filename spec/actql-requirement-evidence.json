@@ -9805,7 +9805,7 @@
     },
     {
       "requirement_id": "actql.execution/run-states.state-meaning-terminal-preparing",
-      "statement_sha256": "c2092ad6eb2f228d5227475aad153ef0f6cdfb48223d1edef0caa5bd791a487f",
+      "statement_sha256": "94a14acd7582a10ea04d4a88a2ecfbb58d08952ea164335fbbfd248dd08140b9",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -9827,7 +9827,7 @@
     },
     {
       "requirement_id": "actql.execution/run-states.from-to-required-condition-preparing",
-      "statement_sha256": "ae3429e732f94d922fb467ab0a66e56e9f4cb52ac1ecf8d8ee0a9496adc14ffc",
+      "statement_sha256": "8acd301e980dd291b3d556782750c523b3fea340e37ccc7160aa0791c954dad5",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

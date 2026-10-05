@@ -35,6 +35,8 @@ const MAX_PAGE = 100;
 const PAGE = 100;
 const LOOKUP_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 const MULTI_SOURCE_SUBMISSION = 'actql-remote-multi-source-submission/0.1';
+const MODEL_CHECKPOINT_STORAGE = 'actql-installed-model-checkpoint-storage/0.1';
+const MAX_MODEL_INPUT_BYTES = 3 * 1024 * 1024;
 
 function coded(code, detail) {
   return Object.assign(new Error(code, detail === undefined ? undefined
@@ -113,6 +115,7 @@ function principals(values, code) {
 export async function installRemoteCheckpoints({root, namespaceId,
   authorityScopeCid, ownerPrincipal, siteKey, realizationKey,
   environmentCid, contractControl, authorization, source, sources, effectTarget,
+  modelResumeVerifier,
   now = () => Date.now()}) {
   if (authorization === undefined) return undefined;
   if (authorization === null || typeof authorization !== 'object') {
@@ -285,6 +288,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
   const journal = openSqliteCheckpointJournal(join(state, 'journal'), {
     runtime: await loadCheckpointRuntime(),
     expectedAuthorityScopeCid: authorityScopeCid,
+    modelResumeVerifier,
     now,
     // Host authorization port: Host-trusted reviewer keys only; the
     // Resolution and its run-scope approval must be signed by the same key.
@@ -339,8 +343,19 @@ export async function installRemoteCheckpoints({root, namespaceId,
     stateDirectory: state, ...privateKey, contractControl,
     isTerminalRunOutcome: journal.isTerminalRunOutcome,
     preparation(prepareAttemptId) {
-      if (prepareAttemptId.startsWith('effect-')) {
-        const run = journal.getRunState(prepareAttemptId.slice(7));
+      if (prepareAttemptId.startsWith('effect-') ||
+          prepareAttemptId.startsWith('model-')) {
+        const model = prepareAttemptId.startsWith('model-');
+        const run = journal.getRunState(prepareAttemptId.slice(
+          model ? 6 : 7));
+        // Cancellation/expiry can stop unsent work while entered calls still
+        // need historical observation and cleanup. Missing discovery is not
+        // proof that those immutable Model originals may be retired.
+        if (run !== undefined && journal.isTerminalRunOutcome(run.status)) {
+          const unresolved = journal.hasUnresolvedModelCalls?.(
+            prepareAttemptId.slice(model ? 6 : 7));
+          if (model ? unresolved !== false : unresolved === true) return undefined;
+        }
         return run === undefined ? undefined :
           {status: 'run_created', runStatus: run.status};
       }
@@ -1051,6 +1066,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
     if (retry !== undefined) clearTimeout(retry);
     retry = undefined;
     await sweeping;
+    await host?.models?.drain?.();
   }
 
   // One drain: every resumable preparation, page by page (a busy page never
@@ -1077,6 +1093,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
       after = page.at(-1);
     }
     if (await recoverRuns()) busy = true;
+    if (await host?.models?.sweep()) busy = true;
     if (await host?.effects?.sweep()) busy = true;
     await evidence.settle();
     return busy;
@@ -1134,10 +1151,154 @@ export async function installRemoteCheckpoints({root, namespaceId,
       ...modelCheckpointMetadata(journal, view)});
   };
 
+  async function modelStoredContinuation(view) {
+    if (view?.kind !== 'model_invocation' || view.prepareAttemptId !== null) {
+      fail('InvalidInstalledModelContinuation');
+    }
+    const held = await evidence.open(`model-${view.runId}`);
+    if (held.requestCid !== view.runDefinitionCid) fail('ModelContinuationRunMismatch');
+    const record = await held.record('continuation_record', view.continuationStateCid);
+    if (record?.version !== MODEL_CHECKPOINT_STORAGE ||
+        record.run_definition_cid !== view.runDefinitionCid ||
+        record.model_invocation_scope_cid !== view.requiredArtifact.cid ||
+        record.review_projection_cid !== view.reviewProjectionCid ||
+        !/^sha256:[0-9a-f]{64}$/u.test(record.review_storage_cid ?? '') ||
+        typeof record.continuation_wire !== 'string') {
+      fail('InvalidInstalledModelContinuation');
+    }
+    return {held, record};
+  }
+
   return Object.freeze({
     configured,
     journal,
     binding,
+    modelContext: Object.freeze({accountId: gate.accountId,
+      configurationCid: gate.configurationCid, principal: gate.principal,
+      contextCid: gate.contextCid}),
+
+    // Exact private pre-INFER completion bytes, held before either immediate
+    // inventory registration or a deferred Checkpoint. This receipt names
+    // custody; callers must reopen it and validate the original owner binding.
+    async retainModelInput({runId, runDefinitionCid, bodyWire}) {
+      if (!IDENTIFIER.test(runId ?? '') ||
+          !/^sha256:[0-9a-f]{64}$/u.test(runDefinitionCid ?? '') ||
+          typeof bodyWire !== 'string' || bodyWire.length === 0 ||
+          Buffer.byteLength(bodyWire) > MAX_MODEL_INPUT_BYTES) {
+        fail('InvalidModelInputCustody');
+      }
+      const ownerId = `model-${runId}`;
+      const [cid] = await evidence.hold(ownerId, runDefinitionCid,
+        [{name: 'captured_input', wire: bodyWire}]);
+      return Object.freeze({ownerId, cid, runId, runDefinitionCid});
+    },
+    async readModelInput(receipt) {
+      if (receipt === null || typeof receipt !== 'object' || Array.isArray(receipt) ||
+          Object.keys(receipt).sort().join(',') !== 'cid,ownerId,runDefinitionCid,runId' ||
+          !IDENTIFIER.test(receipt.runId ?? '') || receipt.ownerId !== `model-${receipt.runId}` ||
+          !/^sha256:[0-9a-f]{64}$/u.test(receipt.cid ?? '') ||
+          !/^sha256:[0-9a-f]{64}$/u.test(receipt.runDefinitionCid ?? '')) {
+        fail('InvalidModelInputCustody');
+      }
+      const held = await evidence.open(receipt.ownerId);
+      if (held.requestCid !== receipt.runDefinitionCid) fail('ModelContinuationRunMismatch');
+      return held.bytes('captured_input', receipt.cid, {maxBytes: MAX_MODEL_INPUT_BYTES});
+    },
+
+    // A fixed Model inventory has its own activation decision. Neither a
+    // Source answer nor the later Effect Set answer is a Model send permit.
+    async modelAuthorization({runId, runDefinitionCid, unitId, scopeCid, tuple,
+      declaredResults, modelCallSet, reviewWire, continuationWire, beforeDefer,
+      journalPort = journal, attachImmediate = false}) {
+      if (!IDENTIFIER.test(runId ?? '') || typeof unitId !== 'string' || unitId.length === 0 ||
+          typeof runDefinitionCid !== 'string' || typeof scopeCid !== 'string' ||
+          tuple?.operation !== 'infer' || typeof tuple.connection !== 'string' ||
+          typeof tuple.resource !== 'string' || !Array.isArray(declaredResults) ||
+          typeof reviewWire !== 'string' || typeof continuationWire !== 'string' ||
+          typeof beforeDefer !== 'function' || typeof attachImmediate !== 'boolean' ||
+          modelCallSet === null || typeof modelCallSet !== 'object') {
+        fail('InvalidInstalledModelContinuation');
+      }
+      tuple = Object.freeze({connection: tuple.connection,
+        resource: tuple.resource, operation: 'infer'});
+      declaredResults = Object.freeze([...declaredResults]);
+      const review = contractControl.admitRunEvidence('run_review_projection',
+        reviewWire, {maxWireBytes: maxReviewBytes, maxNodes: 10000, maxDepth: 64});
+      if (review.wire !== reviewWire || modelCallSet.reviewWire !== undefined &&
+          modelCallSet.reviewWire !== reviewWire) fail('ModelReviewProjectionMismatch');
+      if (attachImmediate && journalPort !== journal &&
+          (!Object.hasOwn(journalPort, 'modelParentResume') ||
+           journalPort.modelParentResume?.claim?.runId !== runId ||
+           typeof journalPort.modelParentResume?.checkpointCid !== 'string' ||
+           !Object.hasOwn(journalPort, 'attachModelCallSetCheckpoint') ||
+           typeof journalPort.attachModelCallSetCheckpoint !== 'function' ||
+           journalPort.attachModelCallSetCheckpoint === journal.attachModelCallSetCheckpoint)) {
+        fail('ModelImmediateCheckpointChainingUnsupported');
+      }
+      const port = !attachImmediate ? journalPort : {...journalPort,
+        persistCheckpoint: checkpoint => journalPort.attachModelCallSetCheckpoint(checkpoint)};
+      const model = await createLocalAuthorizationGate({accountConfig,
+        accountConfiguration, principal: ownerPrincipal, ...decisionOptions,
+        decide, requiredClaims: ['invocation_scope_approved'],
+        answeringAuthorities: answeringAuthorities ?? authorities.map(item => item.reviewerId),
+        deferral: {journal: port, authorities, binding,
+          async describe(view) {
+            if (view.boundary !== 'activation' || view.tuple.operation !== 'infer' ||
+                view.subject.subject_cid !== scopeCid) {
+              fail('InvalidModelCheckpointBoundary');
+            }
+            await beforeDefer();
+            if (Buffer.byteLength(reviewWire) > maxReviewBytes) fail('CheckpointReviewTooLarge');
+            // The review's common semantic CID excludes its self field. The
+            // existing encrypted continuation store uses a full-byte digest;
+            // retain their exact association instead of confusing identities.
+            const storedReview = evidence.reference(`model-${runId}`,
+              'review_projection', reviewWire).semantic_cid;
+            const storedContinuation = canonicalJson({version: MODEL_CHECKPOINT_STORAGE,
+              run_definition_cid: runDefinitionCid,
+              model_invocation_scope_cid: scopeCid,
+              review_projection_cid: review.identity, review_storage_cid: storedReview,
+              continuation_wire: continuationWire});
+            const refs = await evidence.hold(`model-${runId}`, runDefinitionCid, [
+              {name: 'review_projection', wire: reviewWire},
+              {name: 'continuation_record', wire: storedContinuation},
+            ]);
+            const created = now();
+            return {priorStatus: 'running', declaredResults: [...declaredResults],
+              modelCallSet: {...modelCallSet, reviewWire}, body: {
+                checkpoint_id: `model-${hex(scopeCid)}`,
+                run_id: runId, run_definition_cid: runDefinitionCid,
+                continuation_state_cid: refs[1],
+                subject: {kind: 'run_unit', run_id: runId, unit_id: unitId,
+                  continuation: 'resume_unit'},
+                kind: 'model_invocation',
+                required_artifact: {artifact_type: 'model_invocation_scope',
+                  artifact_cid: scopeCid},
+                review_projection_cid: review.identity,
+                human_summary: `Approve fixed Model calls for Run ${runId}`,
+                created_at: new Date(created).toISOString(),
+                expires_at: new Date(created + checkpointTtlMs).toISOString(),
+              }};
+          },
+        }});
+      if (model.configurationCid !== gate.configurationCid ||
+          model.contextCid !== gate.contextCid) {
+        model.close();
+        fail('ModelCheckpointConfigurationChanged');
+      }
+      return Object.freeze({scopeCid, configurationCid: model.configurationCid,
+        contextCid: model.contextCid,
+        authorize: options => model.authorize('activation', tuple,
+          {...options, subjectCid: scopeCid}),
+        resume: options => model.resume('activation', tuple,
+          {...options, subjectCid: scopeCid}),
+        close: () => model.close(),
+      });
+    },
+    async modelContinuation(view) {
+      const {record} = await modelStoredContinuation(view);
+      return JSON.parse(record.continuation_wire);
+    },
 
     // Every target tuple has its own read-scope artifact and answer. These
     // pre-computation approvals never reuse a Source or Effect-commit grant.
@@ -1426,7 +1587,8 @@ export async function installRemoteCheckpoints({root, namespaceId,
       return evidence.settle();
     },
     async readComputationSource(view, semanticCid, maxBytes) {
-      if (view?.prepareAttemptId !== null || view.kind !== 'read_access') {
+      if (view?.prepareAttemptId !== null ||
+          !['read_access', 'model_invocation'].includes(view.kind)) {
         fail('InvalidComputationSourceContinuation');
       }
       const held = await evidence.open(`effect-${view.runId}`);
@@ -1434,7 +1596,8 @@ export async function installRemoteCheckpoints({root, namespaceId,
       return held.bytes('source_capture', semanticCid, {maxBytes});
     },
     async computationSourceReferences(view) {
-      if (view?.prepareAttemptId !== null || view.kind !== 'read_access') {
+      if (view?.prepareAttemptId !== null ||
+          !['read_access', 'model_invocation'].includes(view.kind)) {
         fail('InvalidComputationSourceContinuation');
       }
       const held = await evidence.open(`effect-${view.runId}`);
@@ -1475,7 +1638,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
         }
       }
       if (view === undefined) return undefined;
-      if (!['effect_set', 'read_access'].includes(view.kind) || view.runId !== runId ||
+      if (!['effect_set', 'read_access', 'model_invocation'].includes(view.kind) || view.runId !== runId ||
           view.runDefinitionCid !== runDefinitionCid ||
           view.prepareAttemptId !== null) {
         fail('EffectContinuationRunMismatch');
@@ -1486,7 +1649,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
     // transition owner fences physical entry; this lookup grants no authority.
     cancelEffectContinuation(runId, runDefinitionCid) {
       const view = journal.activeRunCheckpoint(runId);
-      if (!['effect_set', 'read_access'].includes(view?.kind) ||
+      if (!['effect_set', 'read_access', 'model_invocation'].includes(view?.kind) ||
           view.runId !== runId || view.runDefinitionCid !== runDefinitionCid ||
           view.prepareAttemptId !== null) return false;
       const state = journal.getRunState(runId);
@@ -1510,6 +1673,12 @@ export async function installRemoteCheckpoints({root, namespaceId,
       return view?.kind === 'read_access' && view.runDefinitionCid === runDefinitionCid &&
         view.checkpointId.startsWith(`${runId}-target-`) &&
         journal.hasStartedResume(view.checkpointCid);
+    },
+    hasUnresolvedModelStart(runId, runDefinitionCid) {
+      const view = journal.activeRunCheckpoint(runId);
+      return view?.kind === 'model_invocation' && view.runId === runId &&
+        view.runDefinitionCid === runDefinitionCid &&
+        journal.hasUnresolvedModelCalls(runId);
     },
     // Principals admitted to the Checkpoint operations at all. Each
     // operation still applies its own authorization.
@@ -1730,7 +1899,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
       // only its own review projection; never an arbitrary Store CID.
       if (view === undefined || view.checkpointCid !== checkpointCid ||
           view.prepareAttemptId === null &&
-            !['effect_set', 'read_access'].includes(view.kind)) {
+            !['effect_set', 'read_access', 'model_invocation'].includes(view.kind)) {
         fail('CheckpointReviewDenied');
       }
       if (view.closure === 'expired' || view.closure === 'cancelled') {
@@ -1740,10 +1909,21 @@ export async function installRemoteCheckpoints({root, namespaceId,
       const bound = Math.min(maxBytes, maxReviewBytes);
       let bytes;
       try {
-        const opened = await evidence.open(view.prepareAttemptId ??
-          `effect-${view.runId}`);
-        bytes = await opened.bytes('review_projection',
-          view.reviewProjectionCid, {maxBytes: bound});
+        if (view.kind === 'model_invocation') {
+          const {held, record} = await modelStoredContinuation(view);
+          bytes = await held.bytes('review_projection', record.review_storage_cid,
+            {maxBytes: bound});
+          const wire = new TextDecoder('utf-8', {fatal: true}).decode(bytes);
+          const review = contractControl.admitRunEvidence('run_review_projection', wire,
+            {maxWireBytes: bound, maxNodes: 10000, maxDepth: 64});
+          if (review.wire !== wire || review.identity !== view.reviewProjectionCid) {
+            fail('ModelReviewProjectionMismatch');
+          }
+        } else {
+          const opened = await evidence.open(view.prepareAttemptId ?? `effect-${view.runId}`);
+          bytes = await opened.bytes('review_projection',
+            view.reviewProjectionCid, {maxBytes: bound});
+        }
       } catch (error) {
         if (error?.code === 'EvidenceReadLimitExceeded') {
           fail('CheckpointReviewTooLarge');

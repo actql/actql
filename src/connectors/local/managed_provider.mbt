@@ -76,6 +76,8 @@ pub(all) enum ManagedProviderWorkIssue {
 ///|
 pub enum ManagedProviderPoll {
   Continue(progress~ : Int64, work~ : Int64)
+  Waiting(progress~ : Int64, work~ : Int64)
+  Settling(Int, progress~ : Int64, work~ : Int64)
   Complete(@execution.CompletedOutput, progress~ : Int64, work~ : Int64)
   CarrierComplete(@carrier_runtime.Material, progress~ : Int64, work~ : Int64)
   Failed(@connector.FixedComputeIssue, progress~ : Int64, work~ : Int64)
@@ -97,6 +99,26 @@ pub fn managed_provider_continue(
   work : Int64,
 ) -> ManagedProviderPoll {
   Continue(progress~, work~)
+}
+
+///|
+/// No Compute is ready until the existing Host supplies current authority.
+/// This may report work already completed, but never invents progress.
+pub fn managed_provider_waiting(
+  progress : Int64,
+  work : Int64,
+) -> ManagedProviderPoll {
+  Waiting(progress~, work~)
+}
+
+///|
+/// The same Model slot remains paused until its Store custody is acknowledged.
+pub fn managed_provider_settling(
+  slot : Int,
+  progress : Int64,
+  work : Int64,
+) -> ManagedProviderPoll {
+  Settling(slot, progress~, work~)
 }
 
 ///|
@@ -364,6 +386,8 @@ pub fn advance_managed_provider(
   if result is Ok(poll) {
     let (progress, work) = match poll {
       Continue(progress~, work~)
+      | Waiting(progress~, work~)
+      | Settling(_, progress~, work~)
       | Complete(_, progress~, work~)
       | CarrierComplete(_, progress~, work~)
       | Failed(_, progress~, work~)

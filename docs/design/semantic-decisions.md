@@ -254,3 +254,19 @@ primitive law body is unchanged: ActQL specifies the final group order rather
 than changing every use of primitive `REL.groupBy`. Independent numeric/null
 vectors are in `portability/corpus/group-canonical-order.json`; they specify the
 ordering boundary, not backend execution certification.
+
+
+## Confirmed cancellation of a running Run
+
+The public transition table omitted `running` → `cancelled`, while the common
+unpublished-Run observation issuer and installed Host cancellation path already
+reported a confirmed stopped execution as cancelled. Registering immediate
+Model work in the existing Checkpoint journal exposed that disagreement.
+
+The adopted clarification permits this transition only after admitted
+cancellation and confirmed physical stopping, with no unresolved execution,
+Effect or publication outcome and no committed publication. A committed
+publication still determines success; a lost response remains unknown and is
+never resent. This aligns the transition table and journal lifecycle with the
+existing physical observation boundary. It adds no public state, artifact,
+identity domain or permission to release retained evidence before cleanup.

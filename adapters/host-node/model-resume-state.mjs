@@ -501,6 +501,23 @@ export function createModelResumeState(database, {
     // Read under the parent transaction before a generic unsent transition.
     // Every entered attempt counts, including saved outcomes; this establishes
     // a physical-start fact, never an aggregate Model completion decision.
+    hasEnteredUnderParentLocked({checkpointCid, intentId, runId}) {
+      const rows = database.prepare('SELECT inventory_json FROM resume_model_scopes WHERE run_id = ?').all(runId);
+      for (const row of rows) {
+        const state = checked(JSON.parse(row.inventory_json));
+        for (const attempt of state.attempts) {
+          const entry = JSON.parse(attempt.entry_json);
+          const parent = entry.admission?.parentResumeFence;
+          if (parent === undefined) continue;
+          if (entry.provenance !== 'immediate' || entry.runId !== runId ||
+              typeof parent.generation !== 'number' || typeof parent.claimant !== 'string') {
+            fail('ModelResumeInventoryCorrupt');
+          }
+          if (parent.checkpointCid === checkpointCid && parent.intentId === intentId) return true;
+        }
+      }
+      return false;
+    },
     hasEnteredLocked({checkpointCid, intentId, runId, resolutionCid}) {
       const row = q.scope.get(checkpointCid);
       if (row === undefined) fail('ModelResumeInventoryCorrupt');
@@ -571,18 +588,36 @@ export function createModelResumeState(database, {
         alive();
         return transaction.run(() => view(checked(identity)));
       },
+      readModelAttemptOriginals(reference) {
+        alive();
+        return transaction.run(() => {
+          const state = checked(reference);
+          const {attempt, entry} = entryFor(state, reference);
+          return freeze({entry: copy(entry), attemptWire: attempt.attempt_wire,
+            authorityWire: attempt.authority_wire});
+        });
+      },
       // The original Run and full inventory are already durable. A fresh
       // decision and prepared execution owner cross the trusted port unchanged.
       // Call the provider immediately after return, without any intervening await.
-      enterImmediateModelCall(reference, {decision, preparedCallSet} = {}) {
+      enterImmediateModelCall(reference, {decision, preparedCallSet, parentResume} = {}) {
         alive();
         return transaction.run(() => {
           if (deferredKeys.some(key => Object.hasOwn(reference, key))) fail('ModelImmediateProvenanceMismatch');
           const state = checked(reference);
           requireNotCancelled(state.inventory);
           if (state.checkpointCid !== null) fail('ModelImmediateProvenanceMismatch');
-          if (run(state.inventory.runId)?.status !== 'running') fail('ModelImmediateRunNotRunning');
           const at = now(); const admittedAt = iso(at);
+          const status = run(state.inventory.runId)?.status;
+          let parentAdmission;
+          if (status === 'resuming' && parentResume !== undefined) {
+            parentAdmission = admissionLocked(parentResume.claim, parentResume.checkpointCid, at);
+            if (parentAdmission.runId !== state.inventory.runId || parentAdmission.kind !== 'read_access') {
+              fail('ModelImmediateParentResumeMismatch');
+            }
+          } else if (status !== 'running' || parentResume !== undefined) {
+            fail('ModelImmediateRunNotRunning');
+          }
           if (at >= Date.parse(state.inventory.runValidUntil)) fail('ModelRunExpired');
           const {binding} = slotForEntry(state, reference);
           const grant = immediateAdmission(verifier?.admitImmediateEntry, decision, preparedCallSet, {
@@ -603,7 +638,10 @@ export function createModelResumeState(database, {
           return appendEntered(state, reference, {kind: 'model_invocation', provenance: 'immediate',
             runId: state.inventory.runId, requiredArtifactCid: state.inventory.scopeCid,
             authorityCid: grant.authorityCid, admittedAt, runValidUntil: grant.runValidUntil,
-            dispatchValidUntil: grant.dispatchValidUntil, modelGrantExpiresAt}, 'enterImmediateModelCall');
+            dispatchValidUntil: grant.dispatchValidUntil, modelGrantExpiresAt,
+            ...(parentAdmission === undefined ? {} : {parentResumeFence: {
+              checkpointCid: parentAdmission.checkpointCid, intentId: parentAdmission.intentId,
+              generation: parentAdmission.generation, claimant: parentAdmission.claimant}})}, 'enterImmediateModelCall');
         });
       },
       enterResumedCall(claim, reference) {

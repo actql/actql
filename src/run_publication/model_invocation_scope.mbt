@@ -388,7 +388,6 @@ pub fn check_model_invocation_attempt(
       (authority, "connection", scope.expected.connection),
       (authority, "resource", scope.expected.resource),
       (authority, "operation", "infer"),
-      (authority, "basis", "host_permit"),
       (
         authority,
         "program_definition_cid",
@@ -407,11 +406,63 @@ pub fn check_model_invocation_attempt(
       }
     }
   }
-  if contract_string_from_value(authority.value, "answering_authority") is None ||
-    !model_scope_strings(authority.value, "satisfied_claims")
-    .unwrap()
-    .contains("invocation_scope_approved") {
-    return Err(RunEvidenceReferenceMismatch("model_attempt.approval"))
+  // These are historical authority originals, never a current send permit.
+  // An ordinary Account allow has no answering authority or approval claims;
+  // a delegated Host permit must retain its exact approved invocation claim.
+  let claims = model_scope_strings(authority.value, "satisfied_claims").unwrap()
+  let answering = contract_string_from_value(
+    authority.value,
+    "answering_authority",
+  )
+  match contract_string_from_value(authority.value, "basis") {
+    Some("account_allow") =>
+      if answering is Some(_) || !claims.is_empty() {
+        return Err(RunEvidenceReferenceMismatch("model_attempt.account_allow"))
+      }
+    Some("host_permit") =>
+      if answering is None || !claims.contains("invocation_scope_approved") {
+        return Err(RunEvidenceReferenceMismatch("model_attempt.approval"))
+      }
+    _ =>
+      return Err(RunEvidenceReferenceMismatch("model_attempt.authority_basis"))
   }
   Ok(())
+}
+
+///|
+/// Authenticate a saved attempt against the same original Run admission and
+/// exact fixed slot. Current dispatch permission is deliberately separate.
+pub fn bind_model_invocation_saved_call(
+  value : BoundModelInvocationScope,
+  ordinal : Int,
+  capture : RunEvidenceValue,
+  attempt : RunEvidenceValue,
+  accounting : RunEvidenceValue,
+  outcome : RunEvidenceValue,
+  authority : RunEvidenceValue,
+) -> Result[BoundModelSlotCapture, RunEvidenceValueIssue] {
+  guard value.slots.get(ordinal) is Some(call) else {
+    return Err(RunEvidenceReferenceMismatch("model_scope.slot"))
+  }
+  match check_model_invocation_attempt(value, ordinal, attempt, authority, 1L) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let binding = match bind_model_slot_capture(call, capture) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  match
+    bind_model_slot_attempt_evidence(
+      binding,
+      attempt,
+      accounting,
+      outcome,
+      authority,
+      value.admission,
+      value.definition,
+    ) {
+    Err(issue) => Err(issue)
+    Ok(_) => Ok(binding)
+  }
 }

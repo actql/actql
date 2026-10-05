@@ -1069,6 +1069,20 @@ test('a directly created Run exits through a checked transition', async t => {
     {code: 'RunStateConflict'});
 });
 
+
+test('a running Run records its owner-confirmed stopped cancellation without a Checkpoint', async t => {
+  const {open} = await workspace(t);
+  const journal = open();
+  journal.createRun({runId: 'run-stopped-cancel', declaredResults: ['tickets']});
+  // This storage port receives an observed outcome, never the cancellation
+  // request itself. Public Host tests retain the physical-stop proof boundary.
+  const ended = journal.finishRun('run-stopped-cancel', {status: 'cancelled'});
+  assert.equal(ended.status, 'cancelled');
+  assert.equal(ended.runState.status, 'cancelled');
+  assert.throws(() => journal.finishRun('run-stopped-cancel', {status: 'succeeded'}),
+    {code: 'RunStateConflict'});
+});
+
 function storedWire(journal, checkpointCid) {
   const database = new DatabaseSync(journal.path, {readOnly: true});
   try {
