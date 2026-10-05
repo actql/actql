@@ -159,7 +159,10 @@ fn bounded_branched_relation_chain(
     return false
   }
   match @lower.payload(first) {
-    @lower.AppendRows(_) | @lower.SetRows(_) | @lower.CrossJoinRows(_) => ()
+    @lower.InnerJoin(_)
+    | @lower.AppendRows(_)
+    | @lower.SetRows(_)
+    | @lower.CrossJoinRows(_) => ()
     _ => return false
   }
   for result in graph.results {
@@ -190,7 +193,8 @@ fn bounded_branched_relation_chain(
       return false
     }
     match @lower.payload(node) {
-      @lower.AppendRows(_)
+      @lower.InnerJoin(_)
+      | @lower.AppendRows(_)
       | @lower.SetRows(_)
       | @lower.CrossJoinRows(_)
       | @lower.Where(_)

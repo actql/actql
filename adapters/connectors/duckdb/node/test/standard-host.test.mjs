@@ -8014,6 +8014,40 @@ async function exerciseStrategyGraph(
     {from: 'appended', filter: 'id < 3', as: 'less'},
     {from: 'greater', append: {with: 'less'}, as: 'out'},
   ];
+  const branchedInnerJoinProgram = structuredClone(externalAppendProgram);
+  branchedInnerJoinProgram.stages.find(stage => stage.id === 'cross_right')
+    .steps[0].values.rows = [{id: 2}, {id: 1}];
+  const innerJoinStage = branchedInnerJoinProgram.stages.find(stage =>
+    stage.id === 'crossed');
+  innerJoinStage.steps = [
+    {from: 'l', join: {
+      with: 'r', kind: 'inner', on: [{left: 'id', right: 'id'}],
+      select: {id: 'left.id', matched: 'right.id'}, max_output_rows: 2,
+    }, as: 'joined'},
+    {from: 'joined', filter: 'matched >= 2', as: 'greater'},
+    {from: 'joined', filter: 'matched <= 1', as: 'less'},
+    {from: 'greater', append: {with: 'less'}, as: 'out'},
+  ];
+  innerJoinStage.results.r.fields = ['id', 'matched'];
+  for (const consumer of branchedInnerJoinProgram.stages.filter(stage =>
+    stage.id.startsWith('external_cross_consumer_'))) {
+    const fields = consumer.id.endsWith('_a')
+      ? ['id', 'matched'] : ['matched', 'id'];
+    consumer.steps[0].select = fields;
+    consumer.results.r.fields = fields;
+  }
+  const branchedInnerJoinChildProgram = structuredClone(externalAppendProgram);
+  branchedInnerJoinChildProgram.stages.find(stage => stage.id === 'crossed')
+    .steps = [
+      {from: 'l', append: {with: 'r'}, as: 'appended'},
+      {from: 'appended', join: {
+        with: 'l', kind: 'inner', on: [{left: 'id', right: 'id'}],
+        select: {id: 'left.id'}, max_output_rows: 4,
+      }, as: 'joined'},
+      {from: 'joined', filter: 'id >= 2', as: 'greater'},
+      {from: 'joined', select: ['id'], as: 'raw_ids'},
+      {from: 'greater', append: {with: 'raw_ids'}, as: 'out'},
+    ];
   const branchedSourceForkProgram = structuredClone(externalAppendProgram);
   branchedSourceForkProgram.stages.find(stage => stage.id === 'crossed').steps = [
     {from: 'l', append: {with: 'r'}, as: 'appended'},
@@ -9691,6 +9725,11 @@ async function exerciseStrategyGraph(
     expected: [2, 3, 4, 3, 4].map(id => ({id})), fields: ['id']},
     {name: 'append-fork-join', source: branchedRelationProgram,
       expected: [2, 3, 4, 1, 2].map(id => ({id})), fields: ['id']},
+    {name: 'inner-join-fork-append', source: branchedInnerJoinProgram,
+      expected: [{id: 2, matched: 2}, {id: 1, matched: 1}],
+      fields: ['id', 'matched']},
+    {name: 'append-inner-join-fork', source: branchedInnerJoinChildProgram,
+      expected: [2, 1, 2].map(id => ({id})), fields: ['id']},
     {name: 'append-source-fork-join', source: branchedSourceForkProgram,
       expected: [1, 2, 3, 4, 2].map(id => ({id})), fields: ['id']},
     {name: 'append-fork-group-join', source: branchedGroupProgram,

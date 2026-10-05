@@ -875,6 +875,18 @@ memory/retained fixture confirms the one-task path and final cleanup. This
 was an evidence gap in the existing bounded provider, not a new Nest kernel
 or general nested-chain admission.
 
+A checked inner equijoin can now start the same-task fork or follow an
+Append as a bounded child. The first shape joins the left and right Stage
+inputs, filters the joined output along two branches and publishes
+`[{id:2,matched:2},{id:1,matched:1}]`. The second joins the private Append
+output with the original left input, then reuses the joined rows in two
+branches and publishes IDs `[2,1,2]`. In both cases the standard Host reads
+the producer and two consumer Named Results from the real retained Store;
+the focused fixture confirms the exact operation ports, one producer task,
+and final cleanup. The existing selected Join provider and fork owner supply
+the output ceiling, cumulative work, stop, and intermediate ownership.
+This does not claim other join kinds or every join failure variant in a fork.
+
 The same retained Host also runs `EXCEPT ALL` and Cross Join as the first
 binary child of separate fork/join Programs. The former publishes the
 duplicate-sensitive rows `[{id: 2}, {id: 1}, {id: 1}]`; the latter publishes

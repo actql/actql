@@ -118,6 +118,8 @@ test('retained Relation forks execute bounded ranking and row transforms',
       ['pivot', false, false],
       ['analytic', false, false],
       ['nest', false, false],
+      ['inner-join', false, false],
+      ['inner-join-child', false, false],
     ]) {
       const program = structuredClone(base);
       if (['watermark', 'json-pick', 'unpivot', 'unnest', 'pivot']
@@ -284,6 +286,29 @@ test('retained Relation forks execute bounded ranking and row transforms',
         program.stages[3].results.r.fields = ['id', 'items'];
         program.stages[4].steps[0].select = ['id', 'items'];
         program.stages[4].results.r.fields = ['id', 'items'];
+      } else if (name === 'inner-join') {
+        program.stages[3].steps = [
+          {from: 'l', join: {
+            with: 'r', kind: 'inner',
+            on: [{left: 'id', right: 'id'}],
+            select: {id: 'left.id'}, max_output_rows: 1,
+          }, as: 'joined'},
+          {from: 'joined', filter: 'id >= 2', as: 'greater'},
+          {from: 'joined', filter: 'id <= 2', as: 'less'},
+          {from: 'greater', append: {with: 'less'}, as: 'out'},
+        ];
+      } else if (name === 'inner-join-child') {
+        program.stages[3].steps = [
+          {from: 'l', append: {with: 'r'}, as: 'appended'},
+          {from: 'appended', join: {
+            with: 'l', kind: 'inner',
+            on: [{left: 'id', right: 'id'}],
+            select: {id: 'left.id'}, max_output_rows: 3,
+          }, as: 'joined'},
+          {from: 'joined', filter: 'id >= 2', as: 'greater'},
+          {from: 'joined', select: ['id'], as: 'raw_ids'},
+          {from: 'greater', append: {with: 'raw_ids'}, as: 'out'},
+        ];
       } else {
         program.stages[3].steps = [
           {from: 'l', append: {with: 'r'}, as: 'appended'},
@@ -330,7 +355,8 @@ test('retained Relation forks execute bounded ranking and row transforms',
           name === 'watermark' || name === 'json-pick' ||
           name === 'row-window' || name === 'unpivot' || name === 'unnest' ||
           name === 'source-fork' || name === 'pivot' || name === 'analytic' ||
-          name === 'nest') {
+          name === 'nest' || name === 'inner-join' ||
+          name === 'inner-join-child') {
         const retained = fixture.strategyFixtureCreate(
           ...fixtureArgs, JSON.stringify(program));
         const retainedCapture = await runNativeHostQuery(grant,
