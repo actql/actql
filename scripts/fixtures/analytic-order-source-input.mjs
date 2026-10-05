@@ -2,6 +2,14 @@
 // The id=0 row distinguishes retained WHERE from an unconditional capture.
 const number = {type: 'number', nullable: false};
 const nullableNumber = {...number, nullable: true};
+// The common analytic envelope requires explicit installed Host ceilings.
+// These bound this test profile; the shared 512 MiB execution budget is intact.
+export const analyticOrderCapacity = {
+  max_analytic_input_wire_bytes: 1048576,
+  max_analytic_output_wire_bytes: 1048576,
+  max_analytic_partition_wire_bytes: 1048576,
+  max_analytic_frame_memberships: 10000,
+};
 const column = (name, contract = number) => ({name, contract});
 const sourceRows = [{id: 3, amount: 20}, {id: 1, amount: 10},
   {id: 2, amount: null}, {id: 4, amount: 20}, {id: 0, amount: 99}];

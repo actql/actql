@@ -24,7 +24,7 @@ import {distinctOrderSuccesses, distinctOrderRefusals}
   from './distinct-order-source-input.mjs';
 import {orderPropertySuccesses, orderPropertyRefusals}
   from './order-property-source-input.mjs';
-import {analyticOrderSuccesses, analyticOrderRefusals, analyticOrderExecutionFailures}
+import {analyticOrderCapacity, analyticOrderSuccesses, analyticOrderRefusals, analyticOrderExecutionFailures}
   from './analytic-order-source-input.mjs';
 import {groupSelectScopeSuccesses, groupSelectScopeRefusals}
   from './group-select-scope-source-input.mjs';
@@ -210,7 +210,8 @@ const canonical = value => Array.isArray(value)
     : JSON.stringify(value);
 const environment = JSON.parse(await readFile('source-environment.json', 'utf8'));
 const base = JSON.parse(await readFile('base-environment.json', 'utf8'));
-environment.host_policy_profile = base.host_policy_profile;
+environment.host_policy_profile = {...base.host_policy_profile,
+  capacity: {...base.host_policy_profile.capacity, ...analyticOrderCapacity}};
 environment.connector_capabilities[0].capability_contract_cids.push(
   'sha256:5cbd39d6847336c5961e222b083ca1395ab68be466ac69cadfbf7021cf617b89');
 environment.connector_capabilities[0].capability_contract_cids.sort();
