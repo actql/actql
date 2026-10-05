@@ -73,12 +73,9 @@ fn admit_materials(
     Err(refusal) => return Err(refusal)
   }
   if rebuilt.compilation is @host.Tasks(_) {
-    let graph = @host.prepared_client_graph(rebuilt.prepared)
-    if @strategy.graph_task_count(graph) != 1 ||
-      @host.prepared_client_acquisition_count(rebuilt.prepared) != 1 ||
-      @host.prepared_client_result_count(rebuilt.prepared) != 1 ||
-      @strategy.graph_result_task(graph, 0) != Some(0) ||
-      @strategy.graph_task_target(graph, 0) is Some(_) {
+    // The producer dispatch must name its original checked task. A dependent
+    // consumer needs the retained-input connection and remains refused here.
+    if resident_source_dispatch_role(rebuilt, request) is Err(_) {
       return Err(@resident.UnsupportedTask)
     }
     guard admission.source is Some((source_ref, source_contract_cid)) &&
@@ -234,7 +231,8 @@ pub(all) struct ResidentExecuted {
   runtime : @runtime.NativeRemoteRuntime
   completion : @runtime.NativeRemoteRuntimeCompletion
   request : @remote.DispatchRequest
-  result_definition_cid : String
+  /// Internal producer output has no public Named Result definition.
+  result_definition_cid : String?
 }
 
 ///|
@@ -276,6 +274,7 @@ pub fn execute_resident_attempt(
   claimant : String,
   current_time : () -> String,
   executor_entry : ((String) -> Bool)?,
+  source_observe? : (ResidentSourceComputeEvent) -> Bool,
 ) -> Result[ResidentExecuted, ResidentExecutionFailure] {
   let envelope = match journal.dispatch_envelope(attempt_identity) {
     Ok(Some(value)) => value
@@ -316,7 +315,19 @@ pub fn execute_resident_attempt(
       }
       let (executor, result_definition_cid) = match
         install_resident_source_executor(
-          rebuilt, compilation, binding, request, execution, source, current_time,
+          rebuilt,
+          compilation,
+          binding,
+          request,
+          execution,
+          source,
+          current_time,
+          observe=event => {
+            match source_observe {
+              Some(observer) => observer(event)
+              None => true
+            }
+          },
         ) {
         Ok(value) => value
         Err(issue) => return Err(failed(Source(issue)))
@@ -370,7 +381,7 @@ pub fn execute_resident_attempt(
         Ok(value) => value
         Err(issue) => return Err(failed(Values(issue)))
       }
-      (runtime, executor.result_definition_cid())
+      (runtime, Some(executor.result_definition_cid()))
     }
   }
   // From here the runtime may own cleanup: every failure keeps it until its
