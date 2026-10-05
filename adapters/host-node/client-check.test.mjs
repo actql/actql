@@ -1287,7 +1287,7 @@ for (const entrance of ['local', 'http']) {
       assert.deepEqual(explainCheckReason(outcome.report.reasons[0]), {kind: 'known',
         summary: 'The analytic ROWS frame boundaries do not form a valid interval.',
         hint: 'Choose frame boundaries in start-to-end order; PRECEDING distances decrease and FOLLOWING distances increase.'},
-        'check-frame-explanation');
+        '[check-mutation:check-frame-explanation]');
       assert.deepEqual(explainCheckReason(outcome.report.reasons[0], {locale: 'ja'}), {kind: 'known',
         summary: 'analytic ROWS frameの境界が有効な区間になっていません。',
         hint: '開始から終了の順になる境界を指定してください。PRECEDINGの距離は減少し、FOLLOWINGの距離は増加します。'});
