@@ -103,6 +103,37 @@ negative and boundary expectations when implementing the affected operation.
 Verify the implementation on all supported targets and report execution evidence
 separately from documentation and regeneration checks.
 
+## Delayed Model invocation authority and recovery
+
+The Run protocol previously classified inference as `read` and its closed
+Checkpoint table had no Model-invocation combination, while installed Model
+dispatch evidence already identified operation `infer`. The adopted rule
+classifies metadata inspection as `read` and provider invocation as `infer`.
+This is an explicit contract change resolving conflicting evidence. Finite
+grants and bootstrap profiles are not silently broadened; `{all: true}` keeps
+its existing current-and-future meaning.
+
+The new `actql-model-invocation-scope/0.1` and
+`actql-model-provider-binding/0.1` originals bind the exact ordered call set,
+Run occurrence, input, barrier, installed provider and activation context.
+They preserve existing call-slot and fixed-request identities. The activation
+subject is the completed scope CID, excluded from its own context preimage.
+The review and compatibility approval retain the actual Run PreparedInvocation
+original rather than renaming the new scope as a PreparedInvocation.
+
+Approval applies to the fixed call set, but durable dispatch ownership is per
+call. A whole-set once-only marker would unnecessarily strand proven-unsent
+calls after one response is saved and another is lost. Recovery instead reuses
+saved responses, never resends possibly sent calls, and permits proven-unsent
+work only while current approval, infer authority and egress hold. Unknown
+attempt evidence is not a fabricated provider failure or completed slot.
+
+This updates initial 0.1 schemas, pins, signed wire fixtures and SDK kind
+handling together. Historical authority/response bytes remain admissible only
+for no-send replay; absent scope evidence is never upgraded into send authority.
+Contract-vector coverage is not evidence that every Host and execution target
+implements the new continuation boundary. Unsupported consumers refuse it.
+
 ## Ordering and deduplication decisions
 
 The normative owners are [sort](../spec/language.md#sort) and
@@ -223,3 +254,19 @@ primitive law body is unchanged: ActQL specifies the final group order rather
 than changing every use of primitive `REL.groupBy`. Independent numeric/null
 vectors are in `portability/corpus/group-canonical-order.json`; they specify the
 ordering boundary, not backend execution certification.
+
+
+## Confirmed cancellation of a running Run
+
+The public transition table omitted `running` → `cancelled`, while the common
+unpublished-Run observation issuer and installed Host cancellation path already
+reported a confirmed stopped execution as cancelled. Registering immediate
+Model work in the existing Checkpoint journal exposed that disagreement.
+
+The adopted clarification permits this transition only after admitted
+cancellation and confirmed physical stopping, with no unresolved execution,
+Effect or publication outcome and no committed publication. A committed
+publication still determines success; a lost response remains unknown and is
+never resent. This aligns the transition table and journal lifecycle with the
+existing physical observation boundary. It adds no public state, artifact,
+identity domain or permission to release retained evidence before cleanup.

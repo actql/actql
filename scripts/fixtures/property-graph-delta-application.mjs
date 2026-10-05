@@ -79,7 +79,32 @@ export function deltaApplicationScenario(fixture, projection, failure, {emptyTar
     ? oracle.rows.node_rows.map((row,index)=>index === 1 ? {...row,p:8} : row)
     : oracle.rows.edge_rows.slice(0,1);
   const expected = retained.map(row=>Object.fromEntries(fields.map(field=>[field,row[field]])));
-  return {document,target,retained,expected,fields};
+  return {document,delta,target,retained,expected,fields};
+}
+
+// The target is first constructed using an authored Delta. The operation under
+// test must recover that exact change set from two retained Graph inputs; its
+// actual one-row output is then retained/reloaded and applied to the base.
+export function deltaDiffScenario(fixture, projection, {unchanged = false} = {}) {
+  const scenario = deltaApplicationScenario(fixture,projection);
+  const {document,delta} = scenario;
+  document.id = `delta-diff-${projection}-${unchanged ? 'unchanged' : 'changed'}`;
+  if (unchanged) {
+    const oracle = propertyGraphPresenceOracle(fixture);
+    delta.target_graph_cid = oracle.snapshotCid;
+    delta.nodes.update = [];
+    delta.edges.remove = [];
+    scenario.target = oracle.snapshot;
+    scenario.retained = oracle.rows[projection];
+    scenario.expected = scenario.retained.map(row=>
+      Object.fromEntries(scenario.fields.map(field=>[field,row[field]])));
+  }
+  const steps = document.stages[0].steps;
+  steps.splice(6,0,
+    {from:'g',graph_diff:{with:'applied'},as:'computed_changes'},
+    {from:'g',apply_graph_delta:{with:'computed_changes',field:'delta'},as:'reapplied'});
+  steps[8].from = 'reapplied';
+  return scenario;
 }
 
 // Compose existing sparse Relation consumers after the actual Delta step.

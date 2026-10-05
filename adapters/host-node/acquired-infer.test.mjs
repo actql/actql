@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import {scopedModelHolding} from '../../scripts/fixtures/model-custody-fixture.mjs';
+import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-binding-fixture.mjs';
 import test from 'node:test';
 import {createHash, generateKeyPairSync} from 'node:crypto';
 import {mkdtemp, readFile, writeFile, rm} from 'node:fs/promises';
@@ -79,8 +81,6 @@ async function runAcquiredInfer({authored, boundary}, t) {
   let started;
   const startedRun = new Promise(resolve => { started = resolve; });
   let cancelled = false;
-  let rejectReplay;
-  const replayRejected = new Promise(resolve => { rejectReplay = resolve; });
   try {
     const base = JSON.parse(await readFile(new URL(
       '../../spec/local-check-environment.json', import.meta.url), 'utf8'));
@@ -141,7 +141,6 @@ async function runAcquiredInfer({authored, boundary}, t) {
         authorization: {accountConfiguration,
           observe(name, detail) {
             observed.push({name, detail});
-            if (name === 'infer_replay_failed') rejectReplay(detail);
           },
           faultInjection: async name => {
             if (boundary === 'cancel' && calls === 1 && !cancelled &&
@@ -163,6 +162,7 @@ async function runAcquiredInfer({authored, boundary}, t) {
         registerModelProviders: moon => {
           egressIssueKind = issue => moon.clientProgramInferEgressIssueKind(issue);
           return [{providerId: 'models/packed',
+          bindingOriginals: providerBindingOriginals('models/packed', {selector: 'packed-risk-model'}),
           invoke() { throw new Error('UnpreparedModelCall'); },
           validatePrompt(actual, selector, wire) {
             return actual === taskCid && selector === 'packed-risk-model' &&
@@ -204,8 +204,10 @@ async function runAcquiredInfer({authored, boundary}, t) {
       assert.equal(error.code, 'ClientProgramUnsupported');
       let cause = error;
       while (cause && cause.code !== 'MoonBitHostFailure') cause = cause.cause;
-      assert.ok(cause, 'the common owner must provide the typed refusal');
-      assert.equal(egressIssueKind(cause.cause), 'unknown_classification');
+      const refused = observed.find(value => value.name === 'infer_preparation_rejected');
+      const typed = cause?.cause ?? refused?.detail.cause;
+      assert.ok(typed, 'the common owner must provide the typed refusal');
+      assert.equal(egressIssueKind(typed), 'unknown_classification');
       return true;
       });
       assert.equal(calls, 0);
@@ -215,14 +217,8 @@ async function runAcquiredInfer({authored, boundary}, t) {
         throw error;
       });
       started();
-      if (mode === 'replay-changed') {
-        const rejection = await replayRejected;
-        assert.equal(rejection.code, 'MoonBitHostFailure');
-        assert.equal((await run.wait()).status, 'needs_reconciliation');
-        await assert.rejects(run.result('answer').all());
-        assert.equal(calls, 0);
-        return;
-      }
+      // Replay consumes the retained complete input, even when the live Source
+      // changed after capture. It cannot reacquire rows or resend the Model.
       const terminal = await run.wait();
       if (boundary !== undefined) {
         assert.equal(terminal.status, boundary === 'cancel' ? 'cancelled' : 'failed');
@@ -243,7 +239,7 @@ async function runAcquiredInfer({authored, boundary}, t) {
       assert.deepEqual(await run.result('answer').all(), [
         {id: 1, outcome: 'ok', value: {reason: null, risk: 'high'}},
       ]);
-      assert.equal(calls, mode === 'replay' ? 0 : 1);
+      assert.equal(calls, replaying ? 0 : 1);
     }
   } finally {
     await client?.close();
@@ -269,7 +265,9 @@ async function checkStoppedEvidence(root, boundary) {
         try {
           for (const role of ['source_evidence', 'model_attempt_accounting',
             'model_attempt_outcome']) {
-            const holding = cid({role, slot: 0,
+            const holding = role !== 'source_evidence'
+              ? scopedModelHolding(hostRoot, stopped.ref.runDefinitionCid, storeCid, role)
+              : cid({role, slot: 0,
               run_definition_cid: stopped.ref.runDefinitionCid,
               store_authority_cid: storeCid,
               version: 'actql-model-private-holding/0.1'});
@@ -284,9 +282,9 @@ async function checkStoppedEvidence(root, boundary) {
               assert.ok(body.cumulative_work > 0);
             } else if (role === 'model_attempt_outcome') {
               assert.equal(body.category, boundary === 'cancel'
-                ? 'cancelled' : 'contract_violation');
+                ? 'ok' : 'contract_violation');
               assert.equal(body.failure, boundary === 'cancel'
-                ? 'cancelled' : 'budget_exceeded');
+                ? null : 'budget_exceeded');
             } else {
               assert.equal(body.source_ref, 'connector://crm/main/r#v');
             }

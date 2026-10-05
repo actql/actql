@@ -475,7 +475,7 @@ the recorded append/filter route, not every unary suffix or formal variant.
 | A supported multi-step Relation Program can miss a selected provider and run its entire computation synchronously before the bounded copy. A JS timer cannot reach that computation in flight. | Inventory reachable `None` cases from standard Host selection; connect each long-running checked sequence to existing bounded step execution without changing exact input edges, evaluation/failure order, numeric occurrence seals, or Result identity. Run positive-work timer cancel, stop, nonpublication, cleanup, and two-consumer success through the normal Host. |
 | Ordinary RelA whole-sequence entrypoints still lack complete route assurance, even where selected filter/select/derive/sort/take, values, reshape, or binary helpers are bounded. | For each reachable ordinary route, bind fixed independent exact/one-short work and peak-workspace fixtures, in-flight Host cancellation, and cleanup to its actual execution owner. Reuse a fixture only where the ordinary route reaches the same bounded implementation. Preserve separate proof for selected `row_window`, `unpivot`, `json_pick`, and `unnest`; selected top-k paths now share exact bounded entrypoints and recorded proofs with their ordinary routes. |
 | Same-Stage `append` and `cross_join` are separately assured, while other admitted whole-sequence shapes can still enter the synchronous fallback. | Preserve their exact ordered input bindings, work/workspace limits, Host timer cancellation, child leases and cleanup as controls; connect the remaining whole-sequence shapes through bounded dispatch. |
-| Ordinary keyed `group count` reuses exact admitted cell evidence from supplied or admitted producer storage and steps output charging. A providerless RowTable with raw Text still undergoes synchronous canonical recheck. | Remove or bound the remaining raw RowTable path without changing its contract or output charge. Keep quantum-one, exact/one-short, Host cancellation, two-consumer and cleanup proofs as controls. Structured keys remain rejected by the formal checker. |
+| Ordinary keyed `group count` and direct `group` reuse exact admitted cell evidence from supplied or admitted producer storage. Their raw RowTable Text outputs now use bounded Unicode recheck before the existing stepped output charge. This does not certify other raw RowTable consumers or the providerless fallback. | Preserve quantum-one, exact/one-short, cancellation and cleanup controls. Add normal-Host retained-Store evidence for the raw RowTable route before treating it as a complete product connection. Structured keys remain rejected by the formal checker. |
 | Ordinary keyed `count`→`filter`→`select` retains child sessions and their provisional outputs until final cleanup. Its physical overlap and exact logical workspace boundary now have captured-task checks, but other whole-sequence shapes remain unassured. | Reuse this proof only for the same selected chain; connect other checked shapes through bounded dispatch and prove their limits, failure cleanup and independent release. |
 | Standard SGA Graph programs still have eight registered entrypoints without complete route assurance. | Connect each reachable entrypoint to its product kernel's exact/one-short work and workspace boundary, delivered cancellation and cleanup. Prove shared kernel equivalence only through an explicit production binding; retain separate predicate, path, identity and value-width variants where their loops differ. |
 | VecA ranking and row-expression paths have bounded entrypoint assurance, but the whole delivery unit still depends on the remaining RelA and SGA paths. | Retain their exact provider bindings, independent work/workspace fixtures, delivered Host cancellation, and cleanup as regression controls. Do not extend their proof to unsupported expression placements. |
@@ -765,13 +765,13 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Registered operations | 69 |
-| Executable production routes | 61 |
-| Typed pre-execution refusals (not execution success) | 8 |
-| Operation-specific boundary records | 61 |
-| Four-role lifecycle assurance | 60 |
-| Full route work/workspace assurance | 60 |
-| Path-scoped work/workspace assurance | 112 |
-| Selected-only assurance | 1 |
+| Executable production routes | 62 |
+| Typed pre-execution refusals (not execution success) | 7 |
+| Operation-specific boundary records | 62 |
+| Four-role lifecycle assurance | 62 |
+| Full route work/workspace assurance | 62 |
+| Path-scoped work/workspace assurance | 114 |
+| Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
 ### Route evidence closure after the retained Store bounded lane
@@ -1158,6 +1158,14 @@ required count and verifies the typed `NestItemLimit` failure, nonpublication,
 and final cleanup. The bounded nest kernel's exact/one-short work and
 workspace, item-limit, and phase-cleanup tests remain the shared resource
 proofs; the retained Host cases establish that this route reaches that kernel.
+For a raw RowTable parent Text column, the bounded Nest output owner now
+rechecks Unicode and the output contract in resumed chunks, then uses the
+existing stepped value charge before moving the row into the private output
+buffer. The one-row fixture fixes seven value nodes, 4,117 UTF-8 bytes, and
+4,124 logical output work units independently, rejects each one-short limit,
+and stops during both recheck and output charge. The existing retained Host
+route remains the connection control; its execution on the new SHA is a
+separate validation result, not implied by the white-box fixture.
 
 This does not enable nonlinear tasks or arbitrary Carrier-family output. The
 existing selected Relation provider refuses a nonlinear sequence during planning.
@@ -3035,15 +3043,15 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | Coverage state | Count |
 |---|---:|
 | `contract` | 40/40 |
-| `checker` | 27/40 |
-| `lowering` | 27/40 |
-| `kernel` | 27/40 |
-| `managed` | 27/40 |
-| `standard_host` | 25/40 |
-| `consumer_lifetime` | 25/40 |
-| `resources` | 32/40 |
-| `cancellation` | 32/40 |
-| `publication` | 25/40 |
+| `checker` | 28/40 |
+| `lowering` | 28/40 |
+| `kernel` | 28/40 |
+| `managed` | 28/40 |
+| `standard_host` | 26/40 |
+| `consumer_lifetime` | 26/40 |
+| `resources` | 33/40 |
+| `cancellation` | 33/40 |
+| `publication` | 26/40 |
 | `three_targets` | 20/40 |
 | complete operations | 19/40 |
 | open operations | 21/40 |
@@ -5101,3 +5109,21 @@ final-source CI still need evidence. The language contract also permits
 normalization of an external opaque Graph while preserving its evidence level;
 the current checker and managed storage accept only typed Property Graphs, so
 that separate route remains unconnected rather than silently falling back.
+
+
+### Stored Subgraph boundary evidence after Graph integration
+
+The unselected constructor/Subgraph provider now has a delivered Node timer
+cancellation fixture. Conformance setup supplies an admitted producer and a real
+two-operation generated sequence with no selected step. The existing Local Host
+driver polls the production provider and delivers cancellation only after all
+eight constructor rows and positive Subgraph progress. Stop, repeatable cleanup,
+and continued input availability are checked. Registration/dispatch plumbing is
+a test adapter; this is not a public Run, packed acceptance, or resource-ledger
+release claim. The selected public Host path remains a separate fixture.
+
+Both stored and view kernel entrypoints already have independent work 18/17 and
+workspace 30/29 boundary checks, plus cancellation and cleanup. Their distinct
+roles are now registered with the corresponding environment evidence. Removing
+the fused timer role, either stored assurance, or substituting selected-path
+cancellation is rejected by the resource audit tests.
