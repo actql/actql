@@ -756,8 +756,8 @@ fn write_check_report(
           @encode.key(writer, "operation")
           @encode.string_value(writer, "components")
           @encode.end_object(writer)
-          // Graph lowering owns a generated Program span, not an authored
-          // source range. Do not publish that span or its internal JSON path.
+          // The checker-facing span does not retain authored origin kind
+          // or argument precision. Do not publish it as an exact input range.
           break
         }
       }

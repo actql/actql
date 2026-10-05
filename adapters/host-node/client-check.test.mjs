@@ -305,7 +305,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
         const outcome = await client.check(text, {format});
         assert.equal(outcome.outcome, 'completed');
         assert.equal(outcome.report.verdict, 'invalid', '[check-mutation:graph-argument-verdict]');
-        // Generated Program paths and spans are not authored SQL positions.
+        // Program paths and unproven argument precision are not input positions.
         assert.deepEqual(outcome.report.reasons, [{code: 'graph_operation_invalid',
           facts: {operation: 'components', issue}}], '[check-mutation:graph-argument-reason]');
         assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});

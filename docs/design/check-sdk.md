@@ -775,9 +775,11 @@ The SDK explains the required weak/strong kind or positive safe integer row
 limit. Other Graph failures retain their existing classification and safe
 fallback. Neither the submitted value nor an internal Program path is exposed.
 
-The current Graph lowering produces generated Program positions. This
-projection omits locations until the source owner supplies authored provenance;
-a generated span is not a position in the submitted AQL-text. Absent and
+Graph lowering assigns the authored call range to its diagnostic body, while
+the checker-facing span does not retain the authored/generated origin kind or
+individual argument precision. This projection omits locations until that
+owned provenance is available to the public consumer; an internal Program
+path is not an input location. Absent and
 inaccessible Source dependencies stop before this dependent Graph diagnosis
 and retain the same protected unresolved result. Source-free valid weak and
 strong components remain verified. Checking does not execute a Graph task.
