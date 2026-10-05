@@ -98,3 +98,68 @@ test "standard row capacity composes expansion and additive bounds through Resul
     )
   }
 }
+
+///|
+test "bound count document and parsed rejection preserves its typed input cause" {
+  for generated in [false, true] {
+    let (text, _, environment, _, limits) = public_input_fixture(generated~)
+    let source = text
+      .replace(old="\"take\":1", new="\"take\":{\"$param\":\"n\"}")
+      .replace(
+        old="\"type\":\"number\",\"default\":1",
+        new="\"type\":\"number\",\"nullable\":true,\"default\":1",
+      )
+    for value in ["0", "-1", "1.5", "9007199254740992", "null"] {
+      let supplied = Some(request_values("{\"n\":" + value + "}"))
+      for parsed in [false, true] {
+        let outcome = if parsed {
+          @program_check.check_parsed(
+            @syntax.parse(source, limits.input, format=Json).unwrap(),
+            environment,
+            supplied,
+            limits,
+          )
+        } else {
+          @program_check.check_document(
+            source,
+            environment,
+            supplied,
+            limits,
+            format=Json,
+          )
+        }
+        guard outcome is Rejected(diagnostic) else {
+          fail("invalid bound count passed checking")
+        }
+        assert_true(
+          @program_check.diagnostic_cause(diagnostic)
+          is @program_check.LocalConstructionFailure::Source(
+            SourceView(
+              Context(
+                Stages(
+                  RowCapacity(
+                    Construction(_, _, Application(InvalidBoundCount))
+                  )
+                )
+              )
+            )
+          ),
+        )
+        assert_eq(@program_check.diagnostic_category(diagnostic), InvalidInput)
+        assert_true(@program_check.diagnostic_location(diagnostic) is None)
+      }
+    }
+    for value in ["1", "3"] {
+      assert_true(
+        @program_check.check_document(
+          source,
+          environment,
+          Some(request_values("{\"n\":" + value + "}")),
+          limits,
+          format=Json,
+        )
+        is Checked(_),
+      )
+    }
+  }
+}
