@@ -75,15 +75,15 @@ export const analyticFrameParameterRefusals = [
     parameterDeclarations: {before: value === null ? nullableNumber : number},
     parameters: {before: value}})),
   {name: 'reversed-following', text: sql.replace('@before PRECEDING', '@before FOLLOWING'),
-    expectedCode: 'ClientProgramInvalidInput',
+    expectedCode: 'ClientProgramRejected',
     parameterDeclarations: declarations, parameters: {before: 2, after: 1}},
   {name: 'reversed-preceding', text: sql.replace('@after FOLLOWING', '@after PRECEDING'),
-    expectedCode: 'ClientProgramInvalidInput',
+    expectedCode: 'ClientProgramRejected',
     parameterDeclarations: declarations, parameters: {before: 1, after: 2}},
   ...['following', 'preceding'].map(direction => ({
     name: 'independent-json-reversed-' + direction,
     format: 'json',
-    expectedCode: 'ClientProgramInvalidInput',
+    expectedCode: 'ClientProgramRejected',
     // Copy the independently authored review control verbatim into the packed
     // installation. Its Program already owns its declarations.
     text: readFileSync(new URL(
