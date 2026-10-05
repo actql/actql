@@ -2194,6 +2194,86 @@ const schemas = {
                       "if": {
                         "properties": {
                           "code": {
+                            "enum": [
+                              "query_syntax_invalid",
+                              "parameter_undeclared"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "supplied_value_type_mismatch",
+                              "supplied_value_constraint_violation",
+                              "supplied_value_invalid",
+                              "supplied_parameters_invalid"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "parameters"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "parameter_declarations_invalid",
+                              "parameter_value_required"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "parameter_declarations"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
                             "const": "supplied_value_type_mismatch"
                           }
                         }
@@ -2795,6 +2875,86 @@ const schemas = {
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "query_syntax_invalid",
+                              "parameter_undeclared"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "supplied_value_type_mismatch",
+                              "supplied_value_constraint_violation",
+                              "supplied_value_invalid",
+                              "supplied_parameters_invalid"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "parameters"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "parameter_declarations_invalid",
+                              "parameter_value_required"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "parameter_declarations"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "properties": {
@@ -3239,7 +3399,7 @@ const schemas = {
             ]
           },
           "reason_schema_cid": {
-            "const": "sha256:ac08ebfd20b15d7ee4898039c94f3d089baaaeb693b319d241b3e0fe6adec4a6"
+            "const": "sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -3637,6 +3797,86 @@ const schemas = {
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "query_syntax_invalid",
+                              "parameter_undeclared"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "supplied_value_type_mismatch",
+                              "supplied_value_constraint_violation",
+                              "supplied_value_invalid",
+                              "supplied_parameters_invalid"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "parameters"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "parameter_declarations_invalid",
+                              "parameter_value_required"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "parameter_declarations"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "properties": {
@@ -4242,6 +4482,86 @@ const schemas = {
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "query_syntax_invalid",
+                              "parameter_undeclared"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "supplied_value_type_mismatch",
+                              "supplied_value_constraint_violation",
+                              "supplied_value_invalid",
+                              "supplied_parameters_invalid"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "parameters"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "parameter_declarations_invalid",
+                              "parameter_value_required"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "parameter_declarations"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "properties": {
@@ -4698,7 +5018,7 @@ const schemas = {
             }
           },
           "reason_schema_cid": {
-            "const": "sha256:ac08ebfd20b15d7ee4898039c94f3d089baaaeb693b319d241b3e0fe6adec4a6"
+            "const": "sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -4739,7 +5059,7 @@ const schemas = {
             }
           },
           "reason_schema_cid": {
-            "const": "sha256:ac08ebfd20b15d7ee4898039c94f3d089baaaeb693b319d241b3e0fe6adec4a6"
+            "const": "sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -5779,7 +6099,7 @@ const operationKeys = {
   ]
 };
 
-export const checkReasonSchemaCid = "sha256:ac08ebfd20b15d7ee4898039c94f3d089baaaeb693b319d241b3e0fe6adec4a6";
+export const checkReasonSchemaCid = "sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d";
 function valid(value, schema) {
   if (schema.$ref) return valid(value, schemas[schema.$ref]);
   if (schema.oneOf && schema.oneOf.filter(rule => valid(value, rule)).length !== 1) return false;

@@ -9,6 +9,10 @@ const acceptance = 'adapters/host-node/client-submission-input.test.mjs';
 const cancellationAcceptance = 'adapters/host-node/client-cancel-response-loss.test.mjs';
 const checkAcceptance = 'adapters/host-node/client-check.test.mjs';
 const expected = (phase, assertion = 'submission-input') => {
+  if (phase === 'check-location-domain') return ['local', 'http'].map(entrance => ({
+    name: `${entrance}: known check locations reject another submitted document`,
+    assertions: [{id: assertion, operator: 'deepStrictEqual'}],
+  }));
   if (phase === 'check-shape') {
     return [{name: 'local: check reply custody refuses uncloneable values and copied shape loss',
       assertions: [{id: assertion, operator: 'strictEqual'}]}];
@@ -154,6 +158,17 @@ const mutations = [
       "      if (!validCheckOutcome(outcome)) fail('InvalidHostCheckOutcome');",
     "      catch { fail('InvalidHostCheckOutcome'); }",
     'check-shape', 'check-copied-shape'],
+
+  ['check response accepts a known location in another input document',
+    "      if (!validCheckOutcome(outcome)) fail('InvalidHostCheckOutcome');\n" +
+      "      // Own this call's value before binding or freezing it. A Local Host may\n" +
+      "      // reuse its response object without replacing a previous SDK observation.\n" +
+      "      try { outcome = structuredClone(outcome); }\n" +
+      "      catch { fail('InvalidHostCheckOutcome'); }\n" +
+      "      if (!validCheckOutcome(outcome)) fail('InvalidHostCheckOutcome');",
+    "      try { outcome = structuredClone(outcome); }\n" +
+      "      catch { fail('InvalidHostCheckOutcome'); }",
+    'check-location-domain', 'known-location-domain'],
 
   ['frontier comparison discards the bound context',
     'return structuralKey(left) === structuralKey(right);',

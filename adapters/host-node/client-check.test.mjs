@@ -1205,6 +1205,7 @@ async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
   sdkConnect = connect,
   maxRequestBytes = 65536,
   mutateCheckReply,
+  mutateCheckTransportReply,
   profiles = [false, false, true, true, false, false, false]} = {}) {
   const admitted = moon.clientProgramCheckEnvironment(canonicalText(wire),
     wire.evidence_bundle_cid, ...profiles);
@@ -1231,14 +1232,24 @@ async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
     check: mutateCheckReply ? async request => mutateCheckReply(await check(request)) : check,
     maxRowBytes: 1024, maxRequestBytes};
   if (entrance === 'local') {
+    const port = createNodeInProcessClientHost(configuration);
     const client = await connectInProcess({mode, owner: mode},
-      createNodeInProcessClientHost(configuration));
+      mutateCheckTransportReply ? {async perform(operation, body, signal) {
+        const value = await port.perform(operation, body, signal);
+        return operation === 'check' ? mutateCheckTransportReply(value) : value;
+      }} : port);
     t.after(() => client.close());
     return client;
   }
-  const server = createServer({key: tlsKey, cert: tlsCertificate},
-    createClientHttpHandler({...configuration,
-      authenticate: header => header === 'Bearer owner-token' ? owner : undefined}));
+  const handler = createClientHttpHandler({...configuration,
+    authenticate: header => header === 'Bearer owner-token' ? owner : undefined});
+  const server = createServer({key: tlsKey, cert: tlsCertificate}, (request, response) => {
+    if (mutateCheckTransportReply && request.url.endsWith('/check')) {
+      const end = response.end.bind(response);
+      response.end = body => end(JSON.stringify(mutateCheckTransportReply(JSON.parse(body))));
+    }
+    return handler(request, response);
+  });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   t.after(async () => {
     server.closeAllConnections();
@@ -1717,6 +1728,56 @@ for (const entrance of ['local', 'http']) {
       if (mixedOutcome) assert.deepEqual(outcome, mixedOutcome, '[check-mutation:expression-disclosure]');
       else mixedOutcome = outcome;
     }
+  });
+
+  test(`${entrance}: known check locations reject another submitted document`, async t => {
+    // The destination nodes really exist in the same call. Revision, kind,
+    // size and pointer checks alone cannot establish the reason's input domain.
+    const cases = [
+      ['supplied_value_type_mismatch', 'SELECT @minimum AS n',
+        {minimum: {type: 'number'}}, {minimum: 'wrong'}, 'parameter_declarations'],
+      ['supplied_value_constraint_violation', 'SELECT @minimum AS n',
+        {minimum: {type: 'number', minimum: 1}}, {minimum: 0}, 'parameter_declarations'],
+      ['supplied_value_invalid', 'SELECT @minimum AS n',
+        {minimum: {type: 'number'}}, {minimum: 7, extra: 0}, 'parameter_declarations'],
+      ['query_syntax_invalid', 'SELECT',
+        {minimum: {type: 'number'}}, {minimum: 7}, 'parameter_declarations'],
+      ['parameter_undeclared', 'SELECT @missing AS n',
+        {minimum: {type: 'number'}}, {minimum: 7}, 'parameter_declarations'],
+      ['parameter_declarations_invalid', 'SELECT @minimum AS n',
+        {minimum: {type: 'number', minimum: 1, default: 0}}, {minimum: 7}, 'parameters'],
+      ['parameter_value_required', 'SELECT @minimum AS n',
+        {minimum: {type: 'number'}}, {}, 'parameters'],
+    ];
+    const refusals = [];
+    for (const partial of [false, true]) {
+      for (const [code, text, parameterDeclarations, parameters, documentId] of cases) {
+        const client = await contextClient(t, entrance, absentEnvironment, {
+          mutateCheckTransportReply(outcome) {
+            const report = structuredClone(outcome.report);
+            const findings = code === 'parameter_value_required' ? report.requirements : report.reasons;
+            assert.equal(findings[0].code, code);
+            const document = report.inputs.find(input => input.document_id === documentId);
+            assert.notEqual(document, undefined);
+            findings[0].location = {kind: 'structured', document_id: documentId,
+              revision: document.revision, pointer: ''};
+            return partial ? {version: outcome.version, reason_schema_cid: outcome.reason_schema_cid,
+              outcome: 'failed', problem: {code: 'check_internal'}, partial_report: report}
+              : {...outcome, report};
+          },
+        });
+        let refused = false;
+        try { await client.check(text, {format: 'sql', parameterDeclarations, parameters}); }
+        catch (cause) {
+          if (cause?.code !== 'InvalidHostCheckOutcome') throw cause;
+          refused = true;
+        }
+        refusals.push({code, partial, refused});
+      }
+    }
+    assert.deepEqual(refusals, [false, true].flatMap(partial =>
+      cases.map(([code]) => ({code, partial, refused: true}))),
+    '[check-mutation:known-location-domain]');
   });
 
   test(`${entrance}: structured check locations name only submitted JSON nodes`, async t => {
@@ -2490,6 +2551,7 @@ test('http: the pinned pre-extension SDK refuses the current Host contract', asy
   for (const [revision, expectedCid] of [
     ['ea67efe6c4adbb17353eea61f06a3fdfc52dd91b', 'sha256:1565f0b7e8e32f70d97905797ccc37a872b08116c0ef3d9599e4e4509b568621'],
     ['c4bdfd21416f02aa13a2ac1d7614ef398dec7b31', 'sha256:16c81ff351a5c3d1fa56757c3c9936a68fd7014c81137e8efa1c54988a61c961'],
+    ['5d52b3a970984f3cdad554b9030a0c25fa8ac887', 'sha256:ac08ebfd20b15d7ee4898039c94f3d089baaaeb693b319d241b3e0fe6adec4a6'],
   ]) {
     const historical = path => execFileSync('git', ['show', `${revision}:${path}`],
       {cwd: repository, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024});
@@ -2499,7 +2561,8 @@ test('http: the pinned pre-extension SDK refuses the current Host contract', asy
     const wire = moduleUrl(historical('packages/client-wire/index.mjs')
       .replaceAll("'./client-host.generated.js'", JSON.stringify(hostWire))
       .replaceAll("'./publication.generated.js'", JSON.stringify(publicationWire)));
-    const checkpoints = moduleUrl(historical('packages/sdk/checkpoints.mjs'));
+    const checkpoints = moduleUrl(historical('packages/sdk/checkpoints.mjs')
+      .replace("'@actql/client-wire'", JSON.stringify(wire)));
     const previous = await import(moduleUrl(historical('packages/sdk/index.mjs')
       .replace("'@actql/client-wire'", JSON.stringify(wire))
       .replace("'./checkpoints.mjs'", JSON.stringify(checkpoints))));

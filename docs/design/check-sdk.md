@@ -1002,6 +1002,18 @@ list. No input custody or persistence behavior changes.
 
 ### SDK custody of received check values
 
+Known reason locations also retain their original input domain. Syntax and
+undeclared-reference locations belong to the submitted source text. Supplied
+value/type/constraint locations belong to the supplied parameters document;
+declaration errors and missing-value Requirements belong to the declaration
+document. Existing default-type and unused-Parameter locations retain their
+declaration domain. A matching revision and an existing pointer in another
+submitted document do not satisfy this contract. Both complete and partial
+reports enforce these restrictions through the registered reason schema and
+the generated validator before SDK input association. When the owner cannot
+establish a location it remains absent; safe future code-only reasons retain
+the generic location contract until their domain is defined.
+
 A public Local Host port may reuse its response objects. The SDK detaches the
 validated check value, validates that owned value and only then associates the
 call's immutable submitted input and freezes the observation. This matches the
