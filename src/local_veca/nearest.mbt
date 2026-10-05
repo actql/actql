@@ -318,7 +318,12 @@ fn begin_nearest_record(state : NearestState) -> Unit {
 fn read_nearest_field(state : NearestState) -> Result[Unit, NearestIssue] {
   let input = current_input(state)
   if input.source is RelationProducer(read) {
-    guard relation_cell_recheck(read, state.record, state.field, state.value_limits)
+    guard relation_cell_recheck(
+        read,
+        state.record,
+        state.field,
+        state.value_limits,
+      )
       is Some(pending) else {
       return Err(InvalidNearestRecord(state.reading_queries, state.record))
     }
@@ -909,7 +914,9 @@ fn nearest_step(
           }
           @value.RecheckFailed =>
             return @bounded.Failed(
-              InvalidNearestRecord(state.reading_queries, state.record), progress, used,
+              InvalidNearestRecord(state.reading_queries, state.record),
+              progress,
+              used,
             )
         }
       }
