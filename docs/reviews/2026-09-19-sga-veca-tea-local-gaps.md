@@ -1244,12 +1244,44 @@ the final row selection passed all four tests after adding the nested case.
 These are focused portable JS results, not new-source Node Store or packed
 publication evidence, or Wasm/native execution.
 
-This does not close all logical expression-event accounting. Other row/event
-callers still drain logical measurement, and wire emission of long object
-field names and reference envelopes remains separate work. Real retained-Store
-Host publication on this source is a separate acceptance obligation; the prior
-envelope-only branch's Host result is not reused as new-source evidence. No
-whole-operation assurance count is promoted by this component connection.
+The analytic-only source `bbc27511fba3adade27f2fa1225941a3c15bf930` also passed
+the focused real retained-Store standard Native/Broad Node Host case, including
+publication, two consumers and reclamation. Its evidence is `run-7Wdk3D` /
+`focused-test-nxPBJc`. This is separate evidence for that exact source, not
+packed acceptance or validation of later row-owner changes.
+
+Bounded binding-row execution now reuses the same logical-row cursor for
+large input roots and output-root transfer. Ordinary filter and derivation
+retain their borrowed rows across charged advances rather than draining a
+nested cell in the retention phase. Physical output retention happens once,
+before resumable logical retention, and the existing root owner keeps input
+leases until the complete output root is registered. Dense and conditional
+rows share this transfer rule. Conditional output also reserves its borrowed
+presence wrapper before construction; omission remains distinct from NULL.
+Cleanup closes pending cursors before discarding their borrowed row views,
+retains consumed work and leaves input ownership with the caller.
+
+Independent fixtures fix a 256-item row at 268 logical work and 532 wire
+bytes. The rejecting filter costs 277 total work; the accepting filter costs
+545 and peaks at 1,064 live bytes during root transfer. Exact/one-short work
+and live limits keep their typed failure causes. Fifteen existing row entries
+plus thirteen cursor/continuation entries fix the 28/27 workspace boundary.
+Quantum-one cancellation is delivered through the existing control after
+positive input/output measurement, observes stop before cleanup and issues
+no partial completion. A conditional Text/NULL/omission fixture fixes 1,083
+work independently and verifies borrowed-wrapper cleanup after cancellation.
+These checks exercise the real binding-row session, not a Node timer.
+
+The affected row, presence and shared-cursor fixtures, together with the
+ordinary managed unary Program/Host callers, passed 128 focused JS tests.
+Small-row budgets remain unchanged. The existing nested-input fixture now
+allows a finite continuation bound for admission, weight and both wire walks;
+its exact limits and typed one-short expectations are unchanged.
+The new binding-row source has not yet been exercised by the real Node Store,
+packed consumers or Wasm/native execution. Other logical expression-event
+callers and wire emission of long object field names/reference envelopes
+remain separate work. No whole-operation assurance count is promoted by
+either component connection.
 
 #### Retained Relation obligation chains
 
