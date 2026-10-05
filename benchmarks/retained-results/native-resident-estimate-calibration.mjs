@@ -8,12 +8,14 @@ import {tmpdir} from 'node:os';
 import {resolve, join, sep} from 'node:path';
 import {promisify} from 'node:util';
 import {fileURLToPath} from 'node:url';
+import {performance} from 'node:perf_hooks';
 import {retainedCase, workloads} from './fixtures.mjs';
 import {nativeCostObservation} from './native-cost-observation.mjs';
 import {nativeResidentCalibrationBasis, deriveNativeResidentRates,
   admitNativeResidentEstimateProfile} from './native-resident-estimate-profile.mjs';
 
 const exec = promisify(execFile);
+const calibrationStart = performance.now();
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const digest = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 const [outputPath, ...extra] = process.argv.slice(2);
@@ -51,6 +53,7 @@ const runProbe = async (fixture, leg, round, rates, resident) => {
     '--phase-observer=true', '--resident-policy=' + Boolean(resident),
     '--local-task-ms=' + rates.local.join(','), '--native-task-ms=' + rates.fresh.join(','),
     ...(resident ? ['--resident-estimates=' + profilePath] : [])];
+  const probeStart = performance.now();
   const {stdout} = await exec(process.execPath, args, {cwd: root,
     timeout: fixture.limits.timeoutMs + 30000, maxBuffer: 2 * 1024 * 1024});
   const observation = JSON.parse(stdout.trim().split('\n').at(-1));
@@ -61,7 +64,8 @@ const runProbe = async (fixture, leg, round, rates, resident) => {
   if (leg !== 'ordinary') assert.deepEqual(cost.tasks.map(item => item.realization), expected[leg],
     'ResidentCalibrationTrainingChoiceMismatch');
   await unchanged();
-  return {round, leg, command: [process.execPath, ...args], observation, cost};
+  return {round, leg, command: [process.execPath, ...args], observation, cost,
+    probeProcessCycleMilliseconds: performance.now() - probeStart};
 };
 try {
   for (let round = 0; round < 3; round++) {
@@ -82,7 +86,8 @@ try {
   const estimateSource = digest(JSON.stringify({...basis, observations}));
   const ordinary = await runProbe(target, 'ordinary', 3, rates, measuredResident);
   const profile = {...basis, status: 'completed', observations,
-    rates, residentEstimates: measuredResident, estimateSource, ordinary};
+    rates, residentEstimates: measuredResident, estimateSource, ordinary,
+    calibrationProcessMilliseconds: performance.now() - calibrationStart};
   admitNativeResidentEstimateProfile({profile, trainingFixture: training, targetFixture: target,
     revision, binaryDigest});
   await writeFile(destination, JSON.stringify(profile, null, 2));

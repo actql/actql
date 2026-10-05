@@ -57,3 +57,19 @@ test('absolute overhead uses a difference, not a ratio or a raw-engine equivalen
   assert.throws(() => assessPairedTiming(samples(Array(11).fill(1)),
     {...options, resamples: 1000000}), /TimingAssessmentWorkLimit/);
 });
+
+test('Native configuration comparison measures complete cycles without relabeling the historical baseline', () => {
+  const label = 'uncalibrated-native-selection';
+  const pairs = Array.from({length: 7}, (_, index) => ({index, caseId: 'fixed/narrow/100',
+    order: index % 2 ? ['retained-actql', label] : [label, 'retained-actql'],
+    samples: {[label]: {status: 'completed', processCycleMs: 40},
+      'retained-actql': {status: 'completed', processCycleMs: 30}}}));
+  const config = {comparator: label, field: 'processCycleMs', mode: 'difference', threshold: 0};
+  const report = assessPairedTiming(pairs, config);
+  assert.equal(report.status, 'pass');
+  assert(Math.abs(report.estimate + 10) < 1e-12);
+  assert.equal(report.comparator, label);
+  assert.throws(() => assessPairedTiming(pairs, {...config, comparator: 'baseline-actql'}), /InvalidTimingAssessment/);
+  pairs[4].samples['retained-actql'].status = 'failed';
+  assert.equal(assessPairedTiming(pairs, config).status, 'incomplete');
+});
