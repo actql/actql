@@ -191,6 +191,16 @@ distribution[3] = distribution[3].replace(
   'adapters/host-node/client-dispatch-owner.test.mjs adapters/host-node/infer-operation-approval.test.mjs adapters/host-node/client-confirmed-cancellation.test.mjs adapters/host-node/infer-dispatch-waiting.test.mjs ',
 );
 
+// Main's Effect outcome explanation retains its existing mutation gate.
+distribution[3] = distribution[3].replace(
+  'adapters/host-node/client-cancel-response-loss.test.mjs ',
+  'adapters/host-node/client-cancel-response-loss.test.mjs adapters/host-node/client-effect-uncertainty.test.mjs ',
+);
+distribution[4] = distribution[4].replace(
+  'node scripts/check-submission-input-mutations.mjs && ',
+  'node scripts/check-submission-input-mutations.mjs && node scripts/check-effect-uncertainty-mutations.mjs && ',
+);
+
 // The issued-retention original regression is part of the existing prepared
 // distribution gate. Pin its one intended addition independently of the
 // package command, retaining the exact inventory and duplicate rejection.
