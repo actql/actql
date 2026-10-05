@@ -397,6 +397,12 @@ fn same_expression(
         }
         pending.push((a_child, b_child))
       }
+      (Property(a_child, a_name), Property(b_child, b_name)) => {
+        if a_name.value != b_name.value {
+          return false
+        }
+        pending.push((a_child, b_child))
+      }
       _ => if a != b { return false }
     }
   }
@@ -781,6 +787,7 @@ fn output_name(
               }
               raise Abort(UnknownColumn)
             }
+            Property(_, name) => name.value
             _ => raise Abort(UnsupportedProjection)
           }
         None => raise Abort(UnsupportedProjection)
@@ -1266,7 +1273,7 @@ fn same_analytic_window(
     return false
   }
   for index in 0..<left.partition_by.length() {
-    if !same_path(left.partition_by[index], right.partition_by[index]) {
+    if !same_expression(left.partition_by[index], right.partition_by[index]) {
       return false
     }
   }
@@ -1294,11 +1301,10 @@ fn lower_analytic(
 ) -> @builder.Node raise Abort {
   let call = projections[0].analytic.unwrap()
   let partitions : Array[@builder.Node] = []
-  for path in call.window.partition_by {
-    let field = match resolve(path) {
-      Some(field) => field
-      None => raise Abort(UnknownColumn)
-    }
+  for expression in call.window.partition_by {
+    let field = analytic_order_field(
+      construction, expression, resolve, reserved, evaluated, derives, max_work,
+    )
     partitions.push(construction.text(field))
   }
   let order : Array[@builder.Node] = []
@@ -2252,7 +2258,7 @@ fn compile_steps(
           step_entries.push(derive_step)
         }
         let value = match
-          @expression.append(
+          @expression.append_with_properties(
             predicate,
             path => {
               having_column(
@@ -2485,6 +2491,7 @@ fn compile_steps(
                       @query.expression_root(expression),
                     ).unwrap().kind {
                     Reference(path) => path.last().unwrap().value
+                    Property(_, name) => name.value
                     _ => raise Abort(UnsupportedProjection)
                   }
               }
@@ -5263,8 +5270,10 @@ fn join_reference_paths(
   while pending.pop() is Some(index) {
     match @query.expression_node(expression, index).unwrap().kind {
       Reference(path) => paths.push(path)
-      Parenthesized(child) | Unary(_, child) | Cast(child, _) =>
-        pending.push(child)
+      Parenthesized(child)
+      | Unary(_, child)
+      | Cast(child, _)
+      | Property(child, _) => pending.push(child)
       Binary(_, left, right) => {
         pending.push(right)
         pending.push(left)
@@ -5331,9 +5340,11 @@ fn joined_projection(
     let name = match projection.name {
       Some(value) => value.value
       None =>
-        match reference {
-          Some(path) => path.last().unwrap().value
-          None => raise Abort(UnsupportedJoin)
+        match
+          @query.expression_node(expression, @query.expression_root(expression)).unwrap().kind {
+          Reference(path) => path.last().unwrap().value
+          Property(_, name) => name.value
+          _ => raise Abort(UnsupportedJoin)
         }
     }
     if output.any(field => ascii_upper(field) == ascii_upper(name)) {
