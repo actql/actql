@@ -234,6 +234,42 @@ const protectedSource = [{boundary: 'source_resolution',
   reason: 'unresolved_protected'}];
 
 for (const [entrance, open] of Object.entries(entrances)) {
+  test(`${entrance}: non-Boolean predicates retain the common checker's requirement`, async t => {
+    const client = await open(t, configurations.allowed);
+    for (const text of ['SELECT id FROM records WHERE id', 'SELECT id FROM records WHERE 1']) {
+      const result = await client.check(text, {format: 'sql'});
+      assert.equal(result.outcome, 'completed');
+      assert.equal(result.report.verdict, 'invalid', '[check-mutation:predicate-verdict]');
+      assert.deepEqual(result.report.reasons, [{code: 'query_expression_invalid',
+        facts: {issue: 'expected_boolean'}}], '[check-mutation:predicate-reason]');
+      // The common issue retains a span without authored/generated provenance.
+      // Do not invent an exact SQL location or expose a lowered Program path.
+      assert.equal(result.report.reasons[0].location, undefined);
+      assert.deepEqual(explainCheckReason(result.report.reasons[0]), {kind: 'known',
+        summary: 'A predicate must have Boolean type.',
+        hint: 'Use a Boolean condition, such as a comparison, in the predicate.'},
+      '[check-mutation:predicate-explanation]');
+      assert.deepEqual(result.report.coverage, {limits: [], unresolved: []});
+      const document = result.report.inputs[0];
+      assert.equal(getCheckInput(result, document.document_id, document.revision).text, text);
+    }
+    const corrected = await client.check('SELECT id FROM records WHERE id > 0', {format: 'sql'});
+    assert.equal(corrected.report.verdict, 'verified');
+    assert.deepEqual(corrected.report.reasons, []);
+    const hidden = [];
+    for (const configuration of [configurations.absent, configurations.denied]) {
+      const protectedClient = await open(t, configuration);
+      const result = await protectedClient.check('SELECT id FROM records WHERE id', {format: 'sql'});
+      assert.deepEqual(result.report.reasons, [], '[check-mutation:predicate-disclosure]');
+      hidden.push(withoutContext(result));
+      protectedClient.assertNoExecution();
+    }
+    assert.deepEqual(hidden[0], hidden[1]);
+    assert.equal(hidden[0].report.verdict, 'undetermined');
+    assert.deepEqual(hidden[0].report.coverage, {limits: [], unresolved: protectedSource});
+    client.assertNoExecution();
+  });
+
   test(`${entrance}: invalid declarations retain only their owned submitted locations`, async t => {
     const client = await open(t, configurations.denied);
     for (const [declaration, pointer] of [
