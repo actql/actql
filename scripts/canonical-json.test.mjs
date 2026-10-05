@@ -3,6 +3,7 @@ import test from 'node:test';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { canonicalText, generateTests, resolvePointer, verifyIdentity } from './check-canonical-json.mjs';
+import {occurrences} from './check-owned-contract-versions.mjs';
 
 test('Stage canonical identity dependency matches the adopted kernel manifest', () => {
   const body = JSON.parse(readFileSync('spec/dependencies/aoa-kernel-laws.json', 'utf8'));
@@ -62,4 +63,23 @@ test('large fixture strings are split without breaking supplementary scalars', (
   const generated = generateTests([fixture]);
   assert.match(generated, /\\u\{1f600\}/);
   assert.ok(generated.split('\n').every(line => line.length < 2000));
+});
+
+test('generated chunks preserve complete owned version spellings and JSON bytes', () => {
+  for (const prefix of ['actql-check-outcome/', 'aoa.pipeline.effect.v', 'urn:actql:expression:']) {
+    for (const version of ['0.1', ['0', '2'].join('.')]) {
+      for (let padding = 980; padding < 1025; padding++) {
+        const value = {padding: 'a'.repeat(padding), version: prefix + version};
+        const text = canonicalText(value);
+        const generated = generateTests([{id: 'chunk-boundary', value,
+          cid: 'sha256:' + createHash('sha256').update(text).digest('hex')}]);
+        const input = generated.match(/let input = @json.parse\(\[\n([\s\S]*?)\n  \]\.join/)[1];
+        const reconstructed = input.trim().split(',\n    ').map(chunk =>
+          JSON.parse(chunk.replace(/,$/u, ''))).join('');
+        assert.equal(reconstructed, JSON.stringify(value));
+        assert.deepEqual(occurrences(generated, 'fixture.mbt').map(item => item.token),
+          version === '0.1' ? [] : [prefix + version]);
+      }
+    }
+  }
 });
