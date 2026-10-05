@@ -12,6 +12,11 @@ fn local_managed_unary_expected(kind : String) -> Array[String] {
         "{\"id\":1,\"amount\":10,\"next\":2}", "{\"id\":2,\"amount\":null,\"next\":3}",
       ]
     "derive_empty" => ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":null}"]
+    "derive_long_text" =>
+      [
+        "{\"id\":1,\"amount\":10,\"copy\":\"" + String::make(256, 'g') + "\"}",
+        "{\"id\":2,\"amount\":null,\"copy\":\"" + String::make(256, 'g') + "\"}",
+      ]
     "rename_empty" | "drop_empty" =>
       ["{\"amount\":10,\"id\":1}", "{\"amount\":null,\"id\":2}"]
     "derive_ordered" =>
@@ -270,8 +275,9 @@ fn run_local_managed_unary_case(
     kind == "top_k_by" ||
     kind == "top_k_by_parameter" ||
     kind == "top_k_by_nullable"
-  let large_nested_input = kind == "filter_nested" ||
-    kind == "unpivot_unused_payload"
+  let large_row = kind == "filter_nested" ||
+    kind == "unpivot_unused_payload" ||
+    kind == "derive_long_text"
   let (run, issuer) = captured_graph_fixture(
     local_values_unary_chain=Some(kind),
     managed_publication=publication,
@@ -318,12 +324,12 @@ fn run_local_managed_unary_case(
       max_rows: 100,
       values: limits.local_execution.rows.input_values,
       wire: {
-        max_bytes: if large_nested_input {
+        max_bytes: if large_row {
           2048
         } else {
           1000
         },
-        max_nodes: if large_nested_input {
+        max_nodes: if large_row {
           512
         } else {
           200
@@ -333,18 +339,18 @@ fn run_local_managed_unary_case(
         max_order_work: 100,
       },
       row: {
-        max_bytes: if large_nested_input {
+        max_bytes: if large_row {
           2048
         } else {
           100
         },
-        max_nodes: if large_nested_input {
+        max_nodes: if large_row {
           512
         } else {
           20
         },
         max_depth: 4,
-        max_text_bytes: if large_nested_input {
+        max_text_bytes: if large_row {
           2048
         } else {
           100
@@ -352,7 +358,7 @@ fn run_local_managed_unary_case(
       },
       max_batch_bytes: match max_batch_bytes {
         Some(value) => value
-        None => if large_nested_input { 2048 } else { 64 }
+        None => if large_row { 2048 } else { 64 }
       },
     },
     None,
@@ -423,6 +429,7 @@ fn run_local_managed_unary_case(
   let bounded_unary = kind == "json_pick" ||
     kind == "select" ||
     kind == "derive_map" ||
+    kind == "derive_long_text" ||
     kind == "derive_empty" ||
     kind == "derive_ordered" ||
     kind == "assert_where" ||
@@ -1186,6 +1193,11 @@ test "ordinary Local derive resumes within quantum and preserves row order" {
   for kind in ["derive_map", "derive_empty", "derive_ordered"] {
     run_local_managed_unary_case(kind)
   }
+}
+
+///|
+test "ordinary Local long Text derive feeds two Computes within quantum" {
+  run_local_managed_unary_case("derive_long_text")
 }
 
 ///|
