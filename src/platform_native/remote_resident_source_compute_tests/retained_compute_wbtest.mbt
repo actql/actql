@@ -52,16 +52,19 @@ fn retained_compute_run(
 }
 
 ///|
-fn retained_compute_selection() -> @host.ClientValuesSiteSelection {
+fn retained_compute_selection(
+  bundle_cid? : String = retained_compute_cid("a"),
+  budget_cid? : String = retained_compute_cid("3"),
+) -> @host.ClientValuesSiteSelection {
   {
     site_key: "retained-native",
     site_generation: 1,
-    runtime_bundle_cid: retained_compute_cid("a"),
+    runtime_bundle_cid: bundle_cid,
     connector_registration: "local",
     connector_revision: "local/1",
     strategy_revision: "strategy/1",
     obligations_cid: retained_compute_cid("2"),
-    budget_cid: retained_compute_cid("3"),
+    budget_cid,
     evidence_issuer_capability_cid: retained_compute_cid("4"),
     grant_cid: retained_compute_cid("5"),
   }
@@ -76,7 +79,7 @@ fn retained_compute_producer_fixture(
   let site = @site.create_site(
     "retained-native",
     1,
-    retained_compute_cid("a"),
+    @remote.dispatch_request_execution_scope(request)[2],
     4,
     4,
     536870912L,
@@ -112,7 +115,7 @@ fn retained_compute_producer_fixture(
   ).unwrap()
   let issuer = @remote.register_remote_evidence_issuer(
     site,
-    retained_compute_cid("a"),
+    @remote.dispatch_request_execution_scope(request)[2],
     "local",
     "local/1",
     "strategy/1",
@@ -154,7 +157,10 @@ fn retained_compute_input_limits() -> @output.NativeRemoteStandardTransferSource
 }
 
 ///|
-fn retained_compute_case(cancel_before_start : Bool) -> Unit raise {
+fn retained_compute_case(
+  cancel_before_start : Bool,
+  through_runtime? : Bool = false,
+) -> Unit raise {
   guard resident_compute_prerequisites() is Some((library_path, root_path)) else {
     return
   }
@@ -221,7 +227,6 @@ fn retained_compute_case(cancel_before_start : Bool) -> Unit raise {
   let edge = @host.prepare_client_retained_input_edge(
     prepared, compilation, admission, definition, 1, 0,
   ).unwrap()
-  let ports = @host.client_retained_input_edge_projection(edge)
   let bytes = chunks.fold(init=0L, (sum, chunk) => {
     sum + chunk.length().to_int64()
   })
@@ -229,7 +234,7 @@ fn retained_compute_case(cancel_before_start : Bool) -> Unit raise {
   // Native input implementation. They do not authorize producer completion.
   let physical = @manifest.admit(
     "actql-managed-physical-manifest/0.1",
-    ports[4],
+    @host.client_retained_input_edge_schema_cid(edge),
     retained_compute_cid("7"),
     retained_compute_cid("8"),
     chunks.length(),
@@ -240,7 +245,18 @@ fn retained_compute_case(cancel_before_start : Bool) -> Unit raise {
     4096,
     bytes,
   ).unwrap()
-  let selected = retained_compute_selection()
+  let selected = if through_runtime {
+    retained_compute_selection(
+      bundle_cid=retained_runtime_required_env(
+        "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID",
+      ),
+      budget_cid=@remote.remote_dispatch_budget_cid(
+        @remote.prepare_remote_dispatch_budget(1048576L, 1048576L).unwrap(),
+      ),
+    )
+  } else {
+    retained_compute_selection()
+  }
   let producer_dispatch = @host.prepare_client_task_dispatch(
     prepared, compilation, admission, definition, caller, 0, 1, "producer", selected,
   ).unwrap()
@@ -370,7 +386,7 @@ fn retained_compute_case(cancel_before_start : Bool) -> Unit raise {
   let foreign_site = @site.create_site(
     "retained-native",
     2,
-    retained_compute_cid("a"),
+    selected.runtime_bundle_cid,
     4,
     4,
     536870912L,
@@ -400,6 +416,43 @@ fn retained_compute_case(cancel_before_start : Bool) -> Unit raise {
   )
   assert_true(@transfer_client.destination_material_use_available(material))
   assert_eq(journal.destination_capacity_usage().unwrap().reserved_bytes, bytes)
+  if through_runtime {
+    retained_compute_through_runtime(
+      {
+        prepared,
+        compilation: @host.Tasks(compilation),
+        admission,
+        run_definition: definition,
+      },
+      configuration,
+      input,
+      material,
+      dispatch,
+      @host.prepare_client_retained_task_dispatch(
+        prepared, compilation, admission, definition, caller, 1, 2, "different-consumer-attempt",
+        selected, common_input, common_current,
+      ).unwrap(),
+      codec,
+      current,
+      site,
+      root_path,
+      name,
+      sqlite,
+      journal,
+      cleanup_owner,
+      bytes,
+    )
+    @execution.cancel_completed_relation_export_receipt(receipt)
+    @execution.cancel_completed_output_export(source_export)
+    assert_true(source_owner.close())
+    assert_true(source_owner.close())
+    assert_eq(source_owner.usage().held_bytes, 0L)
+    assert_eq(source_owner.usage().reserved_execution_bytes, 0L)
+    assert_eq(acquisitions.val, 1)
+    assert_eq(producer_captures.val, 1)
+    assert_true(journal.close())
+    return
+  }
   let entries = Ref(0)
   let consumer = match
     @resident.open_resident_retained_compute(
@@ -542,4 +595,9 @@ test "retained Direct holding survives journal reconstruction and feeds Native c
 ///|
 test "retained Native cancellation before consumer start returns borrow before each holding cleanup" {
   retained_compute_case(true)
+}
+
+///|
+test "retained Native consumer completes through Runtime claim evidence readers and formal cleanup" {
+  retained_compute_case(false, through_runtime=true)
 }

@@ -124,6 +124,8 @@ pub fn register_native_remote_standard_direct_run_factory(NativeRemoteStandardRo
 
 pub fn register_native_remote_standard_direct_source_factory(NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferBindingLimits, NativeRemoteStandardTransferSourceLimits) -> Result[NativeRemoteStandardDirectSourceFactory, NativeRemoteStandardHostIssue]
 
+pub fn register_native_remote_standard_dispatch_run_factory(@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, () -> Result[NativeRemoteStandardRunOwner, NativeRemoteStandardInputFailure]) -> Result[NativeRemoteStandardBoundRunFactory, NativeRemoteStandardHostIssue]
+
 pub fn register_native_remote_standard_physical_source(NativeRemoteStandardTransferInput, () -> Bool, (Int, (Int, Bytes) -> Result[Unit, String]) -> Result[Unit, String], () -> Bool) -> NativeRemoteStandardPhysicalSource
 
 pub fn register_native_remote_standard_row_codec(String, String, String) -> Result[NativeRemoteStandardRowCodec, NativeRemoteStandardTransferSourceIssue]
