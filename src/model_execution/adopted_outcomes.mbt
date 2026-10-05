@@ -17,6 +17,7 @@ fn adopted_model_slot_outcome(slot : AdoptedModelSlot) -> String {
   match slot {
     Success(_) => "ok"
     NoResponseFailure(failure) => model_failure_outcome(failure).unwrap()
+    UnresolvedUnknown => "result_unknown"
   }
 }
 
@@ -38,6 +39,9 @@ fn accept_failed_model_slot(
     })
     trace.work = state.work
   }
+  if state.durable_calls {
+    state.settlement_pending = Some(state.next_slot)
+  }
   state.next_slot += 1
   state.phase = DispatchSlot
   if @infer.result_mode(@relation.prepared_infer_rows_owner(state.rows)) is Fail {
@@ -56,6 +60,12 @@ fn accept_failed_model_slot(
 fn complete_model_slots(
   state : ModelState,
 ) -> @bounded.KernelStep[ModelCaptureBundle, ModelExecutionIssue] {
+  if state.durable_calls && state.settlement_pending is Some(_) {
+    return @bounded.Continue(1, 1)
+  }
+  if !state.unknown_calls.is_empty() {
+    return @bounded.Failed(UnknownCalls, 1, 1)
+  }
   if state.source is RestoredSlots(read) {
     guard model_slot_replay_count(read) == Some(state.next_slot) &&
       read.storage.bundle is Some(bundle) &&

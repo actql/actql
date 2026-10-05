@@ -8,12 +8,14 @@ priv enum RecheckFrame {
   JsonNode(Value, Int)
   JsonItems(Array[Value], Int, Int)
   JsonFields(Array[(String, Value)], Int, Int)
+  TextUnits(String, @contract.TextLimits, Int, Int64, Int64)
 }
 
 ///|
 /// Resumable form of `recheck_runtime_value`: the same structural checks,
-/// budgets and result, one node or one container child per advance, so a
-/// caller can stop between nodes of a large composite value.
+/// budgets and result, one node, one container child, or at most 64 UTF-16
+/// text units per advance. A caller can stop inside large composite values
+/// and Text scalars.
 struct RecheckCursor {
   value : Value
   contract : @contract.Contract
@@ -51,6 +53,17 @@ pub fn start_recheck_runtime_value(
     stack: [CheckNode(value, contract, 0)],
     finished: false,
   })
+}
+
+///|
+/// Stage raw runtime Text without validating it synchronously. Only a
+/// completed recheck yields a checked value for downstream publication.
+pub fn start_recheck_runtime_text(
+  value : String,
+  contract : @contract.Contract,
+  limits : Limits,
+) -> RecheckCursor? {
+  start_recheck_runtime_value(Text(value), contract, limits)
 }
 
 ///|
@@ -121,6 +134,10 @@ pub fn advance_recheck_runtime_value(cursor : RecheckCursor) -> RecheckPoll {
         cursor.stack.push(JsonFields(values, index + 1, depth))
         cursor.stack.push(JsonNode(child, depth + 1))
       }
+    TextUnits(value, bounds, offset, characters, bytes) =>
+      if !recheck_text_units(cursor, value, bounds, offset, characters, bytes) {
+        return recheck_step_fail(cursor)
+      }
   }
   RecheckContinue
 }
@@ -142,6 +159,15 @@ fn recheck_node_step(
     return contract.nullable
   }
   match (value, contract.shape) {
+    (Text(text), @contract.Text(bounds)) => {
+      // The UTF-16 lower bound is cheap, but the scalar scan must remain
+      // interruptible even for a single large runtime Text value.
+      if text.length() > budget.text {
+        return false
+      }
+      cursor.stack.push(TextUnits(text, bounds, 0, 0L, 0L))
+      true
+    }
     (Array(values), @contract.Array(item, max_items~)) => {
       let count = values.values.length()
       if depth >= budget.max_depth ||
@@ -168,6 +194,64 @@ fn recheck_node_step(
       budget.nodes += 1
       recheck_value(value, contract, budget, depth)
     }
+  }
+}
+
+///|
+/// Validate at most 64 UTF-16 units per poll, including a trailing surrogate
+/// pair that starts at the boundary. Text usage is charged exactly once.
+fn recheck_text_units(
+  cursor : RecheckCursor,
+  value : String,
+  bounds : @contract.TextLimits,
+  offset : Int,
+  characters : Int64,
+  bytes : Int64,
+) -> Bool {
+  let mut index = offset
+  let mut count = characters
+  let mut byte_count = bytes
+  let end = offset + Int::min(64, value.length() - offset)
+  while index < end {
+    let unit = value[index].to_int()
+    let mut units = 1
+    let width = if unit < 0x80 {
+      1
+    } else if unit < 0x800 {
+      2
+    } else if unit >= 0xd800 && unit <= 0xdbff {
+      if index + 1 >= value.length() {
+        return false
+      }
+      let trailing = value[index + 1].to_int()
+      if trailing < 0xdc00 || trailing > 0xdfff {
+        return false
+      }
+      units = 2
+      4
+    } else if unit >= 0xdc00 && unit <= 0xdfff {
+      return false
+    } else {
+      3
+    }
+    if width > cursor.budget.text {
+      return false
+    }
+    cursor.budget.text -= width
+    byte_count += width.to_int64()
+    count += 1L
+    index += units
+  }
+  if index < value.length() {
+    cursor.stack.push(TextUnits(value, bounds, index, count, byte_count))
+    true
+  } else {
+    (bounds.min_length is None || count >= bounds.min_length.unwrap()) &&
+    (bounds.max_codepoints is None || count <= bounds.max_codepoints.unwrap()) &&
+    (
+      bounds.max_utf8_bytes is None ||
+      byte_count <= bounds.max_utf8_bytes.unwrap()
+    )
   }
 }
 

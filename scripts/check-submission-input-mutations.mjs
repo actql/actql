@@ -7,8 +7,31 @@ import {mutationAcceptance} from './check-disclosure-mutations.mjs';
 const path = 'packages/sdk/index.mjs';
 const acceptance = 'adapters/host-node/client-submission-input.test.mjs';
 const cancellationAcceptance = 'adapters/host-node/client-cancel-response-loss.test.mjs';
-const frontierAcceptance = 'adapters/host-node/client-check.test.mjs';
+const checkAcceptance = 'adapters/host-node/client-check.test.mjs';
 const expected = (phase, assertion = 'submission-input') => {
+  if (phase === 'check-shape') {
+    return [{name: 'local: check reply custody refuses uncloneable values and copied shape loss',
+      assertions: [{id: assertion, operator: 'strictEqual'}]}];
+  }
+  if (phase === 'check-custody') {
+    return ['preserve original syntax inputs and positions',
+      'retain structured and partial input custody'].map(name => ({
+      name: `local: reused check replies ${name}`,
+      assertions: [{id: assertion, operator: 'strictEqual'}],
+    }));
+  }
+  if (phase === 'cancellation-custody') return [{
+    name: 'in-process: reused cancellation replies preserve each original Run observation',
+    assertions: [{id: assertion, operator: 'deepStrictEqual'}],
+  }];
+  if (phase.startsWith('check-outcome-')) {
+    const name = phase === 'check-outcome-reporting'
+      ? 'check outcome explanations preserve reporting boundaries'
+      : 'check outcome explanations preserve partial and unavailable boundaries';
+    return ['local', 'http'].map(entrance => ({name: `${entrance}: ${name}`,
+      assertions: [{id: assertion, operator: phase === 'check-outcome-validation'
+        ? 'strictEqual' : 'deepStrictEqual'}]}));
+  }
   if (phase.startsWith('frontier-')) {
     const name = phase === 'frontier-context' || phase === 'frontier-order'
       ? 'typed Requirement frontiers retain context and ignore presentation order'
@@ -82,6 +105,37 @@ const mutations = [
     "            cancellationContext, 'outcome_unknown');\n        }",
     "        if (value instanceof Response) fail('InvalidLocalHostPortResponse');",
     'cancellation-unknown', 'cancel-unknown-explanation'],
+  ['cancellation response reuse changes an earlier Run observation',
+    'const received = structuredClone(response);', 'const received = response;',
+    'cancellation-custody', 'cancel-custody'],
+  ['check reporting budget is blamed on an invalid input',
+    'The reporting budget could not produce a complete bound check report.',
+    'The submitted input is invalid.', 'check-outcome-reporting', 'check-outcome-explanation'],
+  ['check verification is presented as execution and release success',
+    'The report verifies only its bound checking scope and context.',
+    'Execution and release succeeded.', 'check-outcome-reporting', 'check-outcome-explanation'],
+  ['check partial report is presented as complete',
+    "reportExplanation(outcome.partial_report, 'partial')",
+    "reportExplanation(outcome.partial_report, 'complete')",
+    'check-outcome-partial', 'check-outcome-partial'],
+  ['check unavailable is presented as completed',
+    "return freezeInput({outcome: 'unavailable',",
+    "return freezeInput({outcome: 'completed',",
+    'check-outcome-unavailable', 'check-outcome-unavailable'],
+  ['check explanation bypasses malformed outcome validation',
+    '  if (!validCheckOutcome(outcome)) return undefined;', '',
+    'check-outcome-validation', 'check-outcome-invalid'],
+
+  ['check response reuse overwrites original input custody',
+    '      try { outcome = structuredClone(outcome); }\n' +
+      "      catch { fail('InvalidHostCheckOutcome'); }\n", '',
+    'check-custody', 'check-response-custody'],
+
+  ['copied check response loses its wire shape without refusal',
+    "      catch { fail('InvalidHostCheckOutcome'); }\n" +
+      "      if (!validCheckOutcome(outcome)) fail('InvalidHostCheckOutcome');",
+    "      catch { fail('InvalidHostCheckOutcome'); }",
+    'check-shape', 'check-copied-shape'],
 
   ['frontier comparison discards the bound context',
     'return structuralKey(left) === structuralKey(right);',
@@ -103,7 +157,7 @@ const mutations = [
 ];
 const accepted = (phase, assertion) => {
   const tests = expected(phase, assertion);
-  const file = phase.startsWith('frontier-') ? frontierAcceptance
+  const file = phase.startsWith('frontier-') || phase.startsWith('check-') ? checkAcceptance
     : phase.startsWith('cancellation-') ? cancellationAcceptance : acceptance;
   const result = spawnSync(process.execPath, ['scripts/local-checks.mjs', 'test', 'node',
     '--timeout-seconds', '120', '--', '--test-name-pattern',

@@ -1,5 +1,6 @@
 import './check-requirement-frontier.test.mjs';
 import './check-locations.test.mjs';
+import './effect-uncertainty.test.mjs';
 import test, {mock} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -8,7 +9,40 @@ import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {createServer} from 'node:http';
 import {checkReasonSchemaCid} from '@actql/client-wire';
-import {connect, ClientError, getCheckInput, getSubmissionInput, explainSubmission, resolveCheckLocation, explainCheckReason} from './index.mjs';
+import {connect, ClientError, getCheckInput, getSubmissionInput, explainSubmission, resolveCheckLocation, explainCheckReason, explainCheckOutcome} from './index.mjs';
+
+test('check outcome explanations preserve unknown problems and reject malformed reports', () => {
+  const metadata = {version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid};
+  for (const code of ['future_reporting_failure', 'verified', 'check_unavailable', 'constructor']) {
+    const explanation = explainCheckOutcome({...metadata, outcome: 'failed', problem: {code}});
+    assert.equal(explanation.outcome, 'failed');
+    assert.deepEqual(explanation.problem, {kind: 'unknown', code});
+    assert.equal(explanation.report, undefined);
+    assert.equal(Object.hasOwn(explanation, 'next'), false);
+  }
+  const unavailable = explainCheckOutcome({...metadata, outcome: 'unavailable',
+    correlation_ref: 'corr:fixture', problem: {code: 'check_report_unbounded'}});
+  assert.equal(unavailable.outcome, 'unavailable');
+  assert.equal(unavailable.problem.kind, 'unknown');
+  assert.equal(unavailable.report, undefined);
+  const report = {context_ref: 'ctx:fixture', scope: {kind: 'bound_input'}, verdict: 'undetermined',
+    inputs: [{document_id: 'source', revision: 'rev:' + '1'.repeat(64), kind: 'text', byte_length: 6}],
+    reasons: [], requirements: [], coverage: {limits: [{code: 'implementation_limit'}], unresolved: []}};
+  const partial = explainCheckOutcome({...metadata, outcome: 'failed', problem: {code: 'future'},
+    partial_report: report});
+  assert.deepEqual(partial.report, {completeness: 'partial', verdict: 'undetermined',
+    scope: {kind: 'bound_input'}, contextRef: 'ctx:fixture'});
+  report.scope.kind = 'changed-after-explanation';
+  assert.equal(partial.report.scope.kind, 'bound_input');
+  assert.equal(Object.isFrozen(partial.report.scope), true);
+  for (const malformed of [undefined, {}, {...metadata, outcome: 'future'},
+    {...metadata, outcome: 'failed', problem: {code: 'check_internal', message: 'private'}},
+    {...metadata, outcome: 'unavailable', correlation_ref: 'corr:fixture',
+      problem: {code: 'check_unavailable'}, partial_report: report},
+    {...metadata, outcome: 'completed', report: {...report, scope: {kind: 'bound_input'},
+      verdict: 'verified', coverage: {limits: [{code: 'implementation_limit'}], unresolved: []}}},
+  ]) assert.equal(explainCheckOutcome(malformed), undefined);
+});
 
 test('constraint explanations use owned families without choosing a failed numeric bound', () => {
   const hints = {
@@ -1201,5 +1235,14 @@ test('typed Requirement frontier consumers cannot change observations or issue w
   '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
   '--target', 'ES2022', fileURLToPath(new URL(
     './check-requirement-frontier.typecheck.mts', import.meta.url))],
+  {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
+});
+
+test('typed check outcome explanations preserve report binding and incomplete branches', () => {
+  execFileSync(process.execPath, [fileURLToPath(new URL(
+    '../../node_modules/typescript/bin/tsc', import.meta.url)),
+  '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
+  '--target', 'ES2022', fileURLToPath(new URL(
+    './check-outcome-explanation.typecheck.mts', import.meta.url))],
   {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
 });

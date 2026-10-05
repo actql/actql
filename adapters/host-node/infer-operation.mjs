@@ -14,7 +14,7 @@ const activeOperations = new WeakMap();
 export function openNodeInferOperation({moon, preparedProgram, step, graph,
   registry, values, fragment, ordered, provider, savedCapture, savedSlots, quantityCapacity,
   physicalPreflight, egressAdmission, computeSuffix, acquiredInput, composedInput,
-  signal, quantum = 256, observeProgress}) {
+  signal, quantum = 256, observeProgress, durableCalls = false, restoredInput}) {
   if (!Number.isSafeInteger(quantum) || quantum < 1 || quantum > 2147483647 ||
       [provider, savedCapture, savedSlots].filter(value => value !== undefined)
         .length !== 1) {
@@ -51,7 +51,21 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       savedCapture !== undefined)) {
     throw new TypeError('InvalidComposedInferOperation');
   }
-  const active = checked(composedInput !== undefined
+  if (restoredInput !== undefined && (provider === undefined || acquiredInput !== undefined ||
+      savedCapture !== undefined || savedSlots !== undefined)) {
+    throw new TypeError('InvalidRestoredInferInput');
+  }
+  const active = checked(restoredInput !== undefined && composedInput !== undefined
+    ? moon.clientProgramStartRestoredComposedInferInput(composedInput.occurrence, graph,
+      composedInput.prefix, provider, restoredInput.snapshot.binding,
+      restoredInput.snapshot.descriptorWire, restoredInput.snapshot.rows,
+      () => restoredInput.token.available, restoredInput.savedScope)
+    : restoredInput !== undefined
+    ? moon.clientProgramStartRestoredInferInput(preparedProgram, step, graph, registry,
+      values, provider, restoredInput.snapshot.binding, restoredInput.snapshot.descriptorWire,
+      restoredInput.snapshot.rows, () => restoredInput.token.available, restoredInput.savedScope,
+      fragment, ordered)
+    : composedInput !== undefined
     ? moon.clientProgramStartComposedInferExecution(composedInput.occurrence,
       graph, composedInput.prefix, composedInput.inputs, provider,
       composedInput.sources)
@@ -69,6 +83,9 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
           graph, registry, values, provider, acquiredInput, fragment, ordered)
       : moon.clientProgramStartRestoredInferReplay(preparedProgram, step,
         graph, registry, values, savedCapture, fragment, ordered));
+  if (durableCalls) checked(moon.clientProgramRequireInferCallEntry(active));
+  if (restoredInput !== undefined) checked(moon.clientProgramRestrictInferSendSlots(active,
+    restoredInput.sendMask));
   const requestStop = () => moon.clientProgramCancelInferExecution(active);
   if (quantityCapacity !== undefined) {
     const {limits, perAttempt} = quantityCapacity;
@@ -111,6 +128,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   let closeFlight;
   let reclaimed = false;
   let closing = false;
+  let cleanupSettlement;
 
   function cleanup() {
     if (reclaimed) return true;
@@ -127,6 +145,16 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       const poll = checked(moon.clientProgramAdvanceInferExecution(active,
         quantum));
       const kind = moon.clientProgramInferExecutionPollKind(poll);
+      if (kind === 'waiting') {
+        const preparedCallSet = moon.clientProgramInferPreparedCallSet(active);
+        if (preparedCallSet === undefined) throw new Error('InferPreparedOwnerUnavailable');
+        return Object.freeze({status: 'waiting', preparedCallSet});
+      }
+      if (kind === 'settling') {
+        const settlement = moon.clientProgramInferCallSettlement(active);
+        if (settlement === undefined) throw new Error('InferSettlementOwnerUnavailable');
+        return Object.freeze({status: 'settling', settlement});
+      }
       if (kind === 'complete') {
         return moon.clientProgramInferExecutionOutput(poll);
       }
@@ -155,7 +183,10 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       return Promise.reject(new Error('InferOperationClosed'));
     }
     if (flight === undefined) {
-      flight = drive();
+      flight = drive().then(result => {
+        if (result?.status === 'waiting' || result?.status === 'settling') flight = undefined;
+        return result;
+      });
       // The supervisor observes this promise even if its Client disconnects.
       // Retaining the rejection here prevents an unhandled detached failure.
       flight.catch(() => {});
@@ -167,10 +198,22 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     closing = true;
     requestStop();
     if (flight !== undefined) await flight.catch(() => {});
-    if (!moon.clientProgramInferExecutionStopped(active)) {
+    // Finish only bounded observation/custody already owned by an entered
+    // attempt. requestStop is sticky, so this cannot dispatch another slot.
+    while (!moon.clientProgramInferExecutionStopped(active)) {
+      requestStop();
       const poll = checked(moon.clientProgramAdvanceInferExecution(active, 1));
-      if (moon.clientProgramInferExecutionPollKind(poll) !== 'stopped' ||
-          !moon.clientProgramInferExecutionStopped(active)) throw pending();
+      const kind = moon.clientProgramInferExecutionPollKind(poll);
+      if (kind === 'settling') {
+        if (typeof cleanupSettlement !== 'function') throw pending();
+        const settlement = moon.clientProgramInferCallSettlement(active);
+        if (settlement === undefined) throw pending();
+        await cleanupSettlement(settlement);
+      } else if (kind === 'continue') {
+        await yieldEventLoop();
+      } else if (!moon.clientProgramInferExecutionStopped(active)) {
+        throw pending();
+      }
     }
   }
 
@@ -187,10 +230,19 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   }
 
   const operation = Object.freeze({run, stop, close, cleanup,
+    installSettlementCleanup(callback) {
+      if (cleanupSettlement !== undefined || typeof callback !== 'function') {
+        throw new TypeError('InvalidInferSettlementCleanup');
+      }
+      cleanupSettlement = callback;
+    },
     cleanupPending: () => !reclaimed,
+    cleanupProgress: () => moon.clientProgramInferCleanupProgress?.(active),
     physicalStopped: () => moon.clientProgramInferExecutionStopped(active),
     quantityUsage: () => moon.clientProgramInferQuantityUsage(active),
     stoppedAttemptCount: () => moon.clientProgramInferStoppedAttemptCount(active),
+    stoppedAttemptSlot: index => moon.clientProgramInferStoppedAttemptSlot(active, index),
+    hasUnknownCalls: () => moon.clientProgramInferHasUnknownCalls(active),
     acquireOutput: () => moon.clientProgramAcquireInferOutput(active),
     acquireCapture: () => moon.clientProgramAcquireInferCapture(active),
     acquireOutcomes: () => moon.clientProgramAcquireInferOutcomes(active),
@@ -203,6 +255,61 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     bindDispatch: (control, {compiled, runDefinition, ...observation}) =>
       control.bindCheckedClientInferDispatch(compiled, active, runDefinition,
         observation),
+    preparedCallSet: () => moon.clientProgramInferPreparedCallSet(active),
+    pendingSettlement: () => moon.clientProgramInferCallSettlement(active),
+    exportPreparedInput: (preparedCallSet, binding) => {
+      const exported = checked(moon.clientProgramExportInferPreparedInput(active, preparedCallSet, binding));
+      return Object.freeze({owner: exported,
+        descriptorWire: moon.clientProgramInferPreparedInputExportDescriptor(exported),
+        rows: Object.freeze(moon.clientProgramInferPreparedInputExportRows(exported)),
+        current: () => moon.clientProgramInferPreparedInputExportMatches(active, preparedCallSet, exported)});
+    },
+    preparedFacts: preparedCallSet => {
+      const count = moon.clientProgramInferPreparedCallCount(preparedCallSet);
+      const input = moon.clientProgramInferPreparedInput(preparedCallSet);
+      const artifact = moon.clientProgramInferPreparedInputArtifact(preparedCallSet);
+      const ids = moon.clientProgramInferPreparedIdentities(preparedCallSet);
+      if (!Number.isSafeInteger(count) || count < 0 || count > 128 ||
+          input === undefined || artifact === undefined || ids === undefined) {
+        throw new Error('InferPreparedOwnerUnavailable');
+      }
+      const slotWires = Array.from({length: count}, (_, slot) => {
+        const call = moon.clientProgramInferPreparedCallAt(preparedCallSet, slot);
+        if (call === undefined) throw new Error('InferPreparedCallUnavailable');
+        return moon.strategyRunEvidenceJson(call);
+      });
+      return Object.freeze({preparedCallSet, input,
+        inputArtifactWire: moon.strategyRunEvidenceJson(artifact),
+        slotWires: Object.freeze(slotWires), providerId: ids._0,
+        modelTaskCid: ids._1, fixedRequestCid: ids._2,
+        unitId: moon.clientProgramInferCallScopeUnitId(active),
+        callScopeSnapshotWire: checked(moon.clientProgramInferCallScopeSnapshot(active))});
+    },
+    bindModelScope: (control, plan, preparedCallSet, originals) =>
+      control.bindCheckedClientInferModelScope(plan.compiled, active,
+        plan.runDefinition, preparedCallSet, originals),
+    bindModelDispatch: (control, plan, preparedCallSet, scope, observation) =>
+      control.bindCheckedClientInferModelDispatch(plan.compiled, active,
+        plan.runDefinition, preparedCallSet, scope, {...observation,
+          enterCall: entry => {
+            const originals = moon.clientProgramInferCallEntryOriginals(entry);
+            if (originals === undefined) return false;
+            return observation.enterCall(Object.freeze({entry,
+              slot: originals._0, callWire: originals._1,
+              attemptWire: originals._2, authorityWire: originals._3})) === true;
+          }}),
+    entryCurrent: (entry, preparedCallSet) =>
+      moon.clientProgramInferCallEntryCurrent(entry, preparedCallSet),
+    restoreCall: (preparedCallSet, slot, record, proof, bundle) => checked(
+      moon.clientProgramRestoreInferPreparedCall(preparedCallSet, slot, record, proof, bundle)),
+    restoreUnknown: (preparedCallSet, slot, attempt, authority) => checked(
+      moon.clientProgramRestoreInferPreparedUnknown(preparedCallSet, slot, attempt, authority)),
+    settlementSlot: settlement => moon.clientProgramInferCallSettlementSlot(settlement),
+    acknowledgeSettlement: settlement => {
+      if (!moon.clientProgramAcknowledgeInferCallSettlement(settlement)) {
+        throw new Error('InferSettlementAcknowledgementRejected');
+      }
+    },
     attemptEvidence: slot => checked(moon.clientProgramInferAttemptEvidence(
       active, slot)),
     issuedSlotCapture: slot => checked(moon.clientProgramIssueInferSlotCapture(
@@ -230,7 +337,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
 // after it has bound actual producer reads. Local alone advances it. The
 // installing Run retains physical custody before binding current admissions.
 export function openNodeComposedInferProvider({moon, selected, sources,
-  control, plan, principalId, now, signal, retainOperation, retainCompleted}) {
+  control, plan, principalId, now, signal, retainOperation, retainCompleted,
+  durableCalls = false, restoredInput}) {
   if (selected?.occurrence === undefined ||
       typeof retainOperation !== 'function') {
     throw new TypeError('InvalidComposedInferProvider');
@@ -247,10 +355,10 @@ export function openNodeComposedInferProvider({moon, selected, sources,
           computeSuffix: selected.computeSuffix, provider: selected.provider,
           quantityCapacity: selected.quantityCapacity,
           physicalPreflight: selected.physicalPreflight,
-          egressAdmission: selected.egressAdmission, signal});
+          egressAdmission: selected.egressAdmission, signal, durableCalls, restoredInput});
         retainOperation(operation);
         operation.bindRun(control, plan);
-        operation.bindDispatch(control, {...plan, account: selected.account,
+        if (!durableCalls) operation.bindDispatch(control, {...plan, account: selected.account,
           principalId, at: now(), observeAccount: selected.observeAccount,
           observeAt: now});
         return activeOperations.get(operation);
