@@ -1188,6 +1188,37 @@ Nest 35-slot exact-workspace failure, reproduced independently at the unchanged
 parent `b2da55d77784d8d1317ab35ccc1303c585f33507`. They remain explicit
 regression obligations; the passing selection does not hide those failures.
 
+Analytic input, partition and output envelope emission now retains a shared
+wire cursor across charged advances for large cells. Long Text is emitted in
+64-UTF-16-unit chunks, preserving a crossing surrogate pair, through the
+existing encoder rather than another serializer. Nested admitted values use
+the existing frame traversal. Pending cursor and continuation slots are
+reserved before allocation, and analytic cleanup closes the cursor and both
+writers without rolling back work or releasing borrowed input. Small leaves
+retain their existing charges. The completed-Relation identity scan and fixed
+record guard reuse the same Text cursor. Wire bytes and CIDs are unchanged;
+new chunk advances consume actual control work.
+
+An independent 4,096-character Text fixture failed its per-advance emission
+bound on the unchanged parent before this connection. The replacement tests
+check bounded emission, cleanup during input/partition/output Text, and exact
+wire envelopes with each scope one byte short. Shared encoder fixtures cover
+escaping, surrogate boundaries, all four sinks, invalid Unicode, exact bytes,
+typed one-short errors, and rejection of writer interleaving or unfinished
+finalization. Nested traversal has a literal six/five-slot workspace boundary;
+raw Text has a three/two-slot boundary. These are component custody checks,
+not a new Host timer-cancellation claim. The existing retained analytic
+long-Text Host fixture remains the production connection check; its submitted
+source execution must be recorded independently.
+
+This closes large cell emission in analytic envelopes, not every synchronous
+encoding boundary. Object field names, reference envelopes, unrelated value
+emitters and logical expression-event accounting remain separate work. No
+whole-operation assurance or retained-route completion count is promoted by
+this change. The parent Group/Nest fixture corrections are independently
+submitted in the managed Group fixture-fix PR; their evidence is not silently
+attributed to this branch.
+
 #### Retained Relation obligation chains
 
 The retained materializing lane now binds checked obligations to the exact

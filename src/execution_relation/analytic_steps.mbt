@@ -32,6 +32,7 @@ priv struct AnalyticEvaluation[T] {
   mut inner : Int
   // Resumable envelope measurement of one row array.
   mut writer : @encode.Writer?
+  mut wire : SteppedRuntimeWire?
   mut measure_ordered : Bool
   mut measure_start : Int
   mut measure_end : Int
@@ -137,6 +138,7 @@ fn[T : RelationRows] start_analytic_evaluation(
     index: 0,
     inner: 0,
     writer: None,
+    wire: None,
     measure_ordered: false,
     measure_start: 0,
     measure_end: 0,
@@ -226,8 +228,18 @@ fn[T] close_analytic_evaluation(state : AnalyticEvaluation[T]) -> Unit {
     close_aggregate_direct(direct)
     state.direct = None
   }
-  state.writer = None
-  state.output_writer = None
+  if state.wire is Some(cursor) {
+    close_stepped_runtime_wire(cursor)
+    state.wire = None
+  }
+  if state.writer is Some(writer) {
+    @encode.cancel_writer(writer)
+    state.writer = None
+  }
+  if state.output_writer is Some(writer) {
+    @encode.cancel_writer(writer)
+    state.output_writer = None
+  }
   if state.row_retention is Some(cursor) {
     close_stepped_row_retention(cursor)
     state.row_retention = None
@@ -315,6 +327,49 @@ fn[T] analytic_begin_measure(
 }
 
 ///|
+/// Called once per charged analytic advance. Small leaves keep their old
+/// finite fast path; large cells retain a shared emitter across advances.
+fn[T] analytic_emit_cell(
+  s : AnalyticEvaluation[T],
+  writer : @encode.Writer,
+  name : String,
+  cell : Value,
+  scope : AnalyticEnvelopeScope,
+) -> Result[Bool, RowIssue] {
+  if !spend_control(s.control, 1) {
+    return Err(AnalyticEnvelope(Measurement))
+  }
+  if s.wire is Some(cursor) {
+    match advance_stepped_runtime_wire(cursor) {
+      Err(Workspace) => return Err(RowLimit)
+      Err(Encoding(_)) => return Err(AnalyticEnvelope(scope))
+      Ok(false) => return Ok(false)
+      Ok(true) => {
+        s.wire = None
+        return Ok(true)
+      }
+    }
+  }
+  @encode.key(writer, name) catch {
+    _ => return Err(AnalyticEnvelope(scope))
+  }
+  if bounded_small_output_value(cell) {
+    emit_runtime_value(cell, writer) catch {
+      _ => return Err(AnalyticEnvelope(scope))
+    }
+    return Ok(true)
+  }
+  match start_stepped_runtime_wire(cell, writer, s.workspace) {
+    Err(Workspace) => Err(RowLimit)
+    Err(Encoding(_)) => Err(AnalyticEnvelope(scope))
+    Ok(cursor) => {
+      s.wire = Some(cursor)
+      Ok(false)
+    }
+  }
+}
+
+///|
 /// One step of the row-array envelope measurement: the writer, one row entry, one
 /// cell, or the closing measurement.
 fn[T : RelationRows] analytic_measure_step(
@@ -369,17 +424,17 @@ fn[T : RelationRows] analytic_measure_step(
     return Ok(())
   }
   if s.measure_column < s.names.length() {
-    if !spend_control(s.control, 1) {
-      return Err(AnalyticEnvelope(Measurement))
-    }
-    try {
-      @encode.key(writer, s.names[s.measure_column])
-      emit_runtime_value(
-        IndexedRows::read_cell(s.input, row, s.measure_column),
+    match
+      analytic_emit_cell(
+        s,
         writer,
-      )
-    } catch {
-      _ => return Err(AnalyticEnvelope(scope))
+        s.names[s.measure_column],
+        IndexedRows::read_cell(s.input, row, s.measure_column),
+        scope,
+      ) {
+      Err(issue) => return Err(issue)
+      Ok(false) => return Ok(())
+      Ok(true) => ()
     }
     s.measure_column += 1
     return Ok(())
@@ -1653,14 +1708,17 @@ fn[T : RelationRows] analytic_advance_output(
         _ => return Err(AnalyticEnvelope(OutputWireBytes))
       }
     } else if cell <= width {
-      if !spend_control(s.control, 1) {
-        return Err(AnalyticEnvelope(Measurement))
-      }
-      try {
-        @encode.key(writer, s.output_names[cell - 1])
-        emit_runtime_value(s.row[cell - 1], writer)
-      } catch {
-        _ => return Err(AnalyticEnvelope(OutputWireBytes))
+      match
+        analytic_emit_cell(
+          s,
+          writer,
+          s.output_names[cell - 1],
+          s.row[cell - 1],
+          OutputWireBytes,
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(false) => return Ok(None)
+        Ok(true) => ()
       }
     } else {
       @encode.end_object(writer) catch {
