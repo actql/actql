@@ -22,9 +22,10 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
-// `main` immediately before the Salesforce Effect moved to the installed row
-// Effect.
-export const PREVIOUS_VERSION = '97209febbff2162c0b9552ac8d325c2434219b16';
+// The latest `main` before the Salesforce Effect moved to the installed row
+// Effect. Re-pin it to such a `main` when the standard runtime changes; the
+// runtime check below is never relaxed.
+export const PREVIOUS_VERSION = 'a5ebf3da0b409088660e8f83cd0aadd708149e44';
 
 const repository = fileURLToPath(new URL('../../../../../', import.meta.url));
 const tooling = [
