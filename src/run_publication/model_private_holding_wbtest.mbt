@@ -33,3 +33,29 @@ test "two Source custody cells preserve the original identity and cannot collide
     None,
   )
 }
+
+///|
+test "scoped Model custody uses the canonical independent preimage" {
+  let definition : PublicationContract = {
+    name: "run_definition",
+    identity_field: "run_definition_cid",
+    identity: "sha256:" + "a".repeat(64),
+    wire: "{}",
+    value: @json.from_json(Json::null(), 1, 1, 1),
+  }
+  assert_eq(
+    model_scoped_private_holding_cid(
+      definition,
+      "sha256:" + "b".repeat(64),
+      "sha256:" + "c".repeat(64),
+      "sha256:" + "d".repeat(64),
+      "sha256:" + "e".repeat(64),
+      1,
+      "settled",
+      "model_slot_capture",
+    ),
+    Some(
+      "sha256:afe23c4e4233bf147ccacd7cb76ee89c1b5f7ec67ef2c851ea8eedc7a594f9a2",
+    ),
+  )
+}

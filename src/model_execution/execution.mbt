@@ -87,9 +87,9 @@ pub(all) enum ModelExecutionIssue {
   RequestLimit
   InvocationEvidence(@publication.RunEvidenceValueIssue)
   Authorization(@publication_host.ClientInferDispatchIssue)
-  ApprovalUnavailable
-  EntryUnavailable
   Egress(@publication_host.ClientInferEgressIssue)
+  CallEntryRefused
+  UnknownCalls
 } derive(Eq, Debug)
 
 ///|
@@ -123,12 +123,14 @@ pub(all) struct ModelCaptureBundle {
 priv enum AdoptedModelSlot {
   Success(Int)
   NoResponseFailure(ModelProviderFailure)
+  UnresolvedUnknown
 }
 
 ///|
 pub(all) enum ModelObservation {
   Continue(Int64, Int64)
-  Waiting(Int64)
+  Waiting(Int64, Int64)
+  Settling(Int, Int64, Int64)
   Completed(ModelCaptureBundle, Int64, Int64)
   Failed(ModelExecutionIssue, Int64, Int64)
   Stopped(@bounded.StopReason, Int64, Int64)
@@ -170,18 +172,28 @@ struct ModelState {
   call_scope : @publication_host.ClientInferCallScope?
   mut dispatch_admission : @publication_host.ClientInferDispatchAdmission?
   egress_admission : @publication_host.ClientInferEgressAdmission?
-  mut approval_pending : Bool
-  mut approval_cancelled : Bool
-  mut approval_current : (() -> Bool)?
-  enter_call : ((ModelCallEntry) -> Bool)?
-  attempts : Array[ModelAttemptTrace]
+  attempts : Map[Int, ModelAttemptTrace]
+  attempt_slots : Array[Int]
+  restored_calls : Map[Int, RestoredModelCall]
+  unknown_calls : Map[Int, Bool]
   ledger : @resources.Ledger
-  reservations : Array[@resources.Reservation]
+  reservations : Map[Int, @resources.Reservation]
+  send_mask : Array[Bool]?
+  mut reservation_next_slot : Int
   requests : Array[PreparedModelRequest]
   physical_preflight : ModelPhysicalPreflight?
   physical_cursors : Array[ModelRequestPreflight]
-  physical_plans : Array[ModelPhysicalRequestPlan]
+  physical_plans : Map[Int, ModelPhysicalRequestPlan]
+  mut physical_next_slot : Int
+  mut physical_pending : ModelRequestPreflight?
   mut physical_cleanup_index : Int
+  durable_calls : Bool
+  mut enter_call : ((ModelCallEntry) -> Bool)?
+  mut entering : ModelCallEntry?
+  mut prepared_call_set : ModelPreparedCallSet?
+  mut settlement_pending : Int?
+  mut stop_requested : Bool
+  mut observing_response : Bool
   outcomes : Array[AdoptedModelSlot]
   mut request : ModelRequestPreparation?
   captures : Array[ModelSlotCapture]
@@ -207,50 +219,8 @@ pub struct ModelExecution {
   mut token : @bounded.Token
   control : @bounded.Control
   state : ModelState
-}
-
-///|
-/// A read of the complete, still-retained physical call inventory. The
-/// request and provider plans remain owned by the execution; this handle
-/// cannot authorize a call or keep an execution alive after cleanup.
-pub struct PreparedModelCallSet {
-  owner : ModelExecution
-}
-
-///|
-/// Exact owner-issued originals for a physical send. A Host entry callback
-/// must durably record this attempt before returning true.
-pub struct ModelCallEntry {
-  slot : Int
-  call : @publication.RunEvidenceValue
-  attempt : @publication.RunEvidenceValue
-  authority : @publication.RunEvidenceValue
-}
-
-///|
-pub fn model_call_entry_slot(value : ModelCallEntry) -> Int {
-  value.slot
-}
-
-///|
-pub fn model_call_entry_call(
-  value : ModelCallEntry,
-) -> @publication.RunEvidenceValue {
-  value.call
-}
-
-///|
-pub fn model_call_entry_attempt(
-  value : ModelCallEntry,
-) -> @publication.RunEvidenceValue {
-  value.attempt
-}
-
-///|
-pub fn model_call_entry_authority(
-  value : ModelCallEntry,
-) -> @publication.RunEvidenceValue {
-  value.authority
+  mut progress : Int64
+  mut work : Int64
 }
 
 ///|
@@ -328,6 +298,9 @@ fn advance_model(
   if @bounded.stop_requested(reader) is Some(reason) {
     return @bounded.Stopped(reason, 0, 0)
   }
+  if state.stop_requested && !state.observing_response {
+    return @bounded.Stopped(@bounded.Cancelled, 0, 0)
+  }
   if quantum < 1 {
     return @bounded.Failed(InvalidLimits, 0, 0)
   }
@@ -344,15 +317,20 @@ fn advance_model(
       state.phase = PrepareRequests
       return @bounded.Continue(1, 1)
     }
-    if state.reservations.length() <
+    if state.reservation_next_slot <
       @relation.prepared_infer_rows_count(state.rows) {
+      let ordinal = state.reservation_next_slot
+      if !model_slot_send_eligible(state, ordinal) {
+        state.reservation_next_slot += 1
+        return @bounded.Continue(1, 1)
+      }
       match
         @resources.reserve_attempt(
           state.ledger,
           state.limits.max_request_bytes + state.limits.max_response_bytes,
           state.limits.max_request_bytes +
           state.limits.max_response_bytes +
-          (if state.dispatch_admission is Some(_) || state.approval_pending {
+          (if state.dispatch_admission is Some(_) || state.durable_calls {
             81920L
           } else {
             0L
@@ -364,10 +342,11 @@ fn advance_model(
           },
           quantities=state.quantity_capacity.map(value => value.per_attempt),
         ) {
-        Ok(value) => state.reservations.push(value)
+        Ok(value) => state.reservations[ordinal] = value
         Err(issue) => return @bounded.Failed(Ledger(issue), 1, 1)
       }
-      if state.reservations.length() ==
+      state.reservation_next_slot += 1
+      if state.reservation_next_slot ==
         @relation.prepared_infer_rows_count(state.rows) {
         state.phase = PrepareRequests
       }
@@ -414,7 +393,11 @@ fn advance_model(
       Err(issue) => return @bounded.Failed(issue, 1, 1)
       Ok(None) => return @bounded.Continue(1, 1)
       Ok(Some(evidence)) => {
-        if (state.source is Restored(_) || state.source is RestoredSlots(_)) &&
+        if (
+            state.source is Restored(_) ||
+            state.source is RestoredSlots(_) ||
+            state.restored_calls.contains(state.next_slot)
+          ) &&
           (
             state.restored_evidence is None ||
             @publication.run_evidence_value_identity(
@@ -424,7 +407,8 @@ fn advance_model(
           ) {
           return @bounded.Failed(OutputIdentity, 1, 1)
         }
-        if state.source is RestoredSlots(_) {
+        if state.source is RestoredSlots(_) ||
+          state.restored_calls.contains(state.next_slot) {
           guard state.restored_binding is Some(binding) else {
             return @bounded.Failed(OutputIdentity, 1, 1)
           }
@@ -461,6 +445,19 @@ fn advance_model(
     return @bounded.Failed(OutputIdentity, 1, 1)
   }
   let request = prepared.request
+  if state.durable_calls &&
+    state.restored_calls.get(state.next_slot) is Some(saved) {
+    return advance_partial_model_restore(state, saved, prepared)
+  }
+  if state.durable_calls && state.unknown_calls.contains(state.next_slot) {
+    state.outcomes.push(UnresolvedUnknown)
+    state.next_slot += 1
+    if @infer.result_mode(@relation.prepared_infer_rows_owner(state.rows))
+      is Fail {
+      return @bounded.Failed(UnknownCalls, 1, 1)
+    }
+    return @bounded.Continue(1, 1)
+  }
   if state.source is Replay(capture) {
     return advance_model_capture_replay(state, capture, prepared)
   }
@@ -473,10 +470,10 @@ fn advance_model(
   guard state.source is Provider(provider) else {
     return @bounded.Failed(OutputIdentity, 1, 1)
   }
-  if state.approval_pending {
-    return @bounded.Failed(ApprovalUnavailable, 1, 1)
+  guard model_slot_send_eligible(state, state.next_slot) &&
+    state.reservations.get(state.next_slot) is Some(reservation) else {
+    return @bounded.Failed(CallEntryRefused, 1, 1)
   }
-  let reservation = state.reservations[state.next_slot]
   let attempt = if state.dispatch_admission is Some(admission) {
     guard prepared.call is Some(call) else {
       return @bounded.Failed(RequestIdentity, 1, 1)
@@ -494,16 +491,13 @@ fn advance_model(
       Ok(_) => ()
     }
   }
-  if state.approval_current is Some(current) && !current() {
-    return @bounded.Failed(ApprovalUnavailable, 1, 1)
-  }
   if @bounded.stop_requested(reader) is Some(reason) {
     return @bounded.Stopped(reason, 1, 1)
   }
   // ModelResponse contains typed content and token observations, not exact
   // transport bytes. Retain the dispatched envelope as uncertain usage before
-  // recording durable entry or entering physical I/O. A failed reservation
-  // cannot leave a journaled attempt that was never eligible to send.
+  // entering physical I/O: invalid metadata, rejected content or cancellation
+  // must not make that request unused when cleanup settles its reservation.
   match
     @resources.mark_transfer_uncertain(
       state.ledger,
@@ -519,23 +513,40 @@ fn advance_model(
       Ok(_) => ()
     }
   }
-  // The entry callback may commit and then lose its acknowledgement. Retain
-  // the owner-issued attempt before that boundary so cleanup and inspection
-  // cannot mistake an ambiguous send for an untouched slot.
-  if attempt is Some(trace) {
-    state.attempts.push(trace)
-  }
-  if state.enter_call is Some(enter) {
-    guard attempt is Some(trace) &&
-      enter({
-        slot: state.next_slot,
-        call: trace.call,
-        attempt: trace.attempt,
-        authority: trace.authority,
-      }) else {
-      return @bounded.Failed(EntryUnavailable, 1, 1)
+  // The Host's synchronous callback durably records this exact owner-issued
+  // attempt. It is the final fallible admission before the retained provider
+  // call. No asynchronous boundary or fresh request construction follows it.
+  if state.durable_calls {
+    guard state.prepared_call_set is Some(prepared_set) &&
+      state.enter_call is Some(enter) &&
+      attempt is Some(trace) &&
+      state.dispatch_admission is Some(admission) else {
+      return @bounded.Failed(CallEntryRefused, 1, 1)
+    }
+    let entry = {
+      prepared: prepared_set,
+      slot: state.next_slot,
+      trace,
+      admission,
+    }
+    state.entering = Some(entry)
+    let admitted = enter(entry)
+    state.entering = None
+    if !admitted {
+      return @bounded.Failed(CallEntryRefused, 1, 1)
     }
   }
+  if attempt is Some(attempt) {
+    state.attempts[state.next_slot] = attempt
+    state.attempt_slots.push(state.next_slot)
+  }
+  // A cancellation delivered by a synchronous entry observer cannot start I/O.
+  // Once provider entry begins, however, returned response custody survives
+  // cancellation and is verified/persisted before physical cleanup completes.
+  if state.stop_requested {
+    return @bounded.Stopped(@bounded.Cancelled, 1, 1)
+  }
+  state.observing_response = state.durable_calls
   let invoked = match state.physical_preflight {
     None => (provider.invoke)(request)
     Some(_) => {
@@ -548,6 +559,7 @@ fn advance_model(
   let response = match invoked {
     Ok(value) => value
     Err(issue) => {
+      state.observing_response = false
       if @bounded.stop_requested(reader) is Some(reason) {
         return @bounded.Stopped(reason, 1, 1)
       }
@@ -623,8 +635,8 @@ pub fn start_model_execution(
   quantity_capacity? : ModelQuantityCapacity? = None,
   physical_preflight? : ModelPhysicalPreflight? = None,
   egress_admission? : @publication_host.ClientInferEgressAdmission? = None,
-  defer_dispatch? : Bool = false,
-  enter_call? : ((ModelCallEntry) -> Bool)? = None,
+  durable_calls? : Bool = false,
+  send_mask? : Array[Bool]? = None,
 ) -> Result[ModelExecution, ModelExecutionIssue] {
   start_model_owned(
     rows,
@@ -636,8 +648,8 @@ pub fn start_model_execution(
     quantity_capacity~,
     physical_preflight~,
     egress_admission~,
-    defer_dispatch~,
-    enter_call~,
+    durable_calls~,
+    send_mask~,
   )
 }
 
@@ -652,13 +664,9 @@ fn start_model_owned(
   quantity_capacity? : ModelQuantityCapacity? = None,
   physical_preflight? : ModelPhysicalPreflight? = None,
   egress_admission? : @publication_host.ClientInferEgressAdmission? = None,
-  defer_dispatch? : Bool = false,
-  enter_call? : ((ModelCallEntry) -> Bool)? = None,
+  durable_calls? : Bool = false,
+  send_mask? : Array[Bool]? = None,
 ) -> Result[ModelExecution, ModelExecutionIssue] {
-  if defer_dispatch &&
-    (!(source is Provider(_)) || call_scope is None || enter_call is None) {
-    return Err(InvalidLimits)
-  }
   if egress_admission is Some(admission) &&
     !(call_scope is Some(scope) &&
     @publication_host.client_infer_egress_matches_scope(admission, scope)) {
@@ -679,7 +687,7 @@ fn start_model_owned(
     limits.value_limits.max_text_bytes < 0 {
     return Err(InvalidLimits)
   }
-  if (dispatch_admission is Some(_) || defer_dispatch) &&
+  if (dispatch_admission is Some(_) || durable_calls) &&
     limits.max_request_bytes + limits.max_response_bytes >
     9223372036854775807L - 81920L {
     return Err(InvalidLimits)
@@ -734,10 +742,13 @@ fn start_model_owned(
       Ok(_) => ()
     }
   }
+  if send_mask is Some(mask) && (!durable_calls || mask.length() != count) {
+    return Err(RequestIdentity)
+  }
   guard @relation.acquire_prepared_infer_rows(rows) is Some(input_use) else {
     return Err(OutputIdentity)
   }
-  let reservations : Array[@resources.Reservation] = []
+  let reservations : Map[Int, @resources.Reservation] = Map([])
   let state : ModelState = {
     rows,
     input_use,
@@ -749,18 +760,28 @@ fn start_model_owned(
     call_scope,
     dispatch_admission,
     egress_admission,
-    approval_pending: defer_dispatch,
-    approval_cancelled: false,
-    approval_current: None,
-    enter_call,
-    attempts: [],
+    attempts: Map([]),
+    attempt_slots: [],
+    restored_calls: Map([]),
+    unknown_calls: Map([]),
     ledger,
     reservations,
+    send_mask: send_mask.map(mask => mask.copy()),
+    reservation_next_slot: 0,
     requests: [],
     physical_preflight,
     physical_cursors: [],
-    physical_plans: [],
+    physical_plans: Map([]),
+    physical_next_slot: 0,
+    physical_pending: None,
     physical_cleanup_index: 0,
+    durable_calls,
+    enter_call: None,
+    entering: None,
+    prepared_call_set: None,
+    settlement_pending: None,
+    stop_requested: false,
+    observing_response: false,
     outcomes: [],
     request: None,
     captures: [],
@@ -783,7 +804,7 @@ fn start_model_owned(
     cleanup_model_physical_preflight,
     _ => true,
   )
-  Ok({ session, token, control, state, })
+  Ok({ session, token, control, state, progress: 0L, work: 0L, })
 }
 
 ///|
@@ -791,17 +812,37 @@ pub fn advance_model_execution(
   execution : ModelExecution,
   quantum : Int,
 ) -> Result[ModelObservation, ModelExecutionIssue] {
-  if quantum <= 0 {
+  if quantum < 1 {
     return Err(InvalidLimits)
   }
-  if execution.state.approval_pending &&
-    model_execution_prepared_call_set(execution) is Some(_) {
-    return Ok(Waiting(execution.state.work.to_int64()))
+  let state = execution.state
+  if state.durable_calls &&
+    !state.reclaimed &&
+    !@bounded.session_stopped(execution.session) {
+    if state.settlement_pending is Some(slot) {
+      return Ok(Settling(slot, execution.progress, execution.work))
+    }
+    if !state.stop_requested &&
+      state.phase is DispatchSlot &&
+      (
+        state.prepared_call_set is None ||
+        state.prepared_call_set.unwrap().scope is None ||
+        (
+          state.next_slot < state.requests.length() &&
+          !state.restored_calls.contains(state.next_slot) &&
+          !state.unknown_calls.contains(state.next_slot) &&
+          (state.enter_call is None || state.dispatch_admission is None)
+        )
+      ) {
+      return Ok(Waiting(execution.progress, execution.work))
+    }
   }
   match @bounded.advance(execution.session, execution.token, quantum) {
     Err(issue) => Err(Session(issue))
     Ok(@bounded.ContinueWith(token, progress~, work~)) => {
       execution.token = token
+      execution.progress = progress
+      execution.work = work
       Ok(Continue(progress, work))
     }
     Ok(@bounded.Completed(bundle, progress~, work~)) => {
@@ -820,202 +861,18 @@ pub fn advance_model_execution(
 }
 
 ///|
-/// The only point where all mapped requests, call originals, reservations and
-/// optional physical provider plans are complete before the first send.
-pub fn model_execution_prepared_call_set(
-  execution : ModelExecution,
-) -> PreparedModelCallSet? {
-  let state = execution.state
-  let count = @relation.prepared_infer_rows_count(state.rows)
-  if state.reclaimed ||
-    state.approval_cancelled ||
-    @bounded.session_stopped(execution.session) ||
-    !(state.phase is DispatchSlot) ||
-    state.next_slot != 0 ||
-    !(state.source is Provider(_)) ||
-    state.call_scope is None ||
-    (state.dispatch_admission is None && !state.approval_pending) ||
-    state.request is Some(_) ||
-    state.requests.length() != count ||
-    state.reservations.length() != count ||
-    !state.attempts.is_empty() ||
-    !state.outcomes.is_empty() ||
-    (
-      state.physical_preflight is Some(_) &&
-      state.physical_plans.length() != count
-    ) ||
-    state.requests.any(request => request.call is None) {
-    return None
-  }
-  Some({ owner: execution, })
-}
-
-///|
-pub fn prepared_model_call_set_input(
-  set : PreparedModelCallSet,
-) -> @publication.RunEvidenceValue? {
-  if model_execution_prepared_call_set(set.owner) is None {
-    return None
-  }
-  set.owner.state.call_scope.map(
-    @publication_host.client_infer_call_scope_artifact,
-  )
-}
-
-///|
-/// The receipt is an opaque live reference to the exact completed prefix.
-/// It is not itself proof that the input has reached durable Store custody.
-pub fn prepared_model_call_set_input_receipt(
-  set : PreparedModelCallSet,
-) -> @relation.CompletedRelationExportReceipt? {
-  if model_execution_prepared_call_set(set.owner) is None {
-    return None
-  }
-  set.owner.state.call_scope.map(
-    @publication_host.client_infer_call_scope_fixed_input_receipt,
-  )
-}
-
-///|
-pub fn prepared_model_call_set_count(set : PreparedModelCallSet) -> Int? {
-  if model_execution_prepared_call_set(set.owner) is None {
-    return None
-  }
-  Some(set.owner.state.requests.length())
-}
-
-///|
-/// These identities come from the retained execution, not a journal request.
-/// They are facts for exact binding and never authorize physical dispatch.
-pub fn prepared_model_call_set_binding(
-  set : PreparedModelCallSet,
-) -> (String, String, String)? {
-  if model_execution_prepared_call_set(set.owner) is None {
-    return None
-  }
-  guard set.owner.state.source is Provider(provider) else { return None }
-  Some(
-    (
-      provider.provider_id,
-      @environment.model_task_identity(set.owner.state.task).2,
-      set.owner.state.fixed_request_cid,
-    ),
-  )
-}
-
-///|
-pub fn prepared_model_call_set_slot(
-  set : PreparedModelCallSet,
-  index : Int,
-) -> @publication.RunEvidenceValue? {
-  if model_execution_prepared_call_set(set.owner) is None {
-    return None
-  }
-  set.owner.state.requests.get(index).bind(request => request.call)
-}
-
-///|
-/// Resume only the same live prepared inventory under a checked committed
-/// approval. A current-time callback rechecks that grant at each physical
-/// entry; it may not manufacture a new scope or skip current dispatch checks.
-pub fn resume_model_approved_call_set(
-  set : PreparedModelCallSet,
-  grant : @checkpoint.ModelInvocationGrant,
-  admission : @publication_host.ClientInferDispatchAdmission,
-  now : () -> String,
-  current : () -> Bool,
-) -> Result[Unit, ModelExecutionIssue] {
-  let state = set.owner.state
-  guard state.approval_pending &&
-    model_execution_prepared_call_set(set.owner) is Some(_) &&
-    state.call_scope is Some(scope) &&
-    state.source is Provider(provider) else {
-    return Err(RequestIdentity)
-  }
-  if !@checkpoint.model_invocation_grant_current(grant, now()) || !current() {
-    return Err(ApprovalUnavailable)
-  }
-  let bound = @checkpoint.model_invocation_grant_scope(grant)
-  let (_, definition_cid, _) = @publication.model_invocation_scope_run(bound)
-  if definition_cid !=
-    @publication_host.client_infer_dispatch_run_cid(admission) ||
-    @publication_host.client_infer_dispatch_invocation_scope_cid(admission) !=
-    Some(@publication.model_invocation_scope_cid(bound)) ||
-    @publication.model_invocation_scope_input_cid(bound) !=
-    @publication.run_evidence_value_identity(
-      @publication_host.client_infer_call_scope_artifact(scope),
-    ) ||
-    @publication.model_invocation_scope_boundary(bound).connection !=
-    provider.provider_id {
-    return Err(RequestIdentity)
-  }
-  if @publication.model_invocation_scope_slots(bound).length() !=
-    state.requests.length() {
-    return Err(RequestIdentity)
-  }
-  for index, request in state.requests {
-    guard request.call is Some(call) &&
-      @publication.model_invocation_scope_slot(bound, index)
-      is Some((slot_cid, task_cid, fixed_request_cid)) else {
-      return Err(RequestIdentity)
-    }
-    if slot_cid != @publication.run_evidence_value_identity(call) ||
-      task_cid != @environment.model_task_identity(state.task).2 ||
-      fixed_request_cid != state.fixed_request_cid {
-      return Err(RequestIdentity)
-    }
-  }
-  if @publication_host.check_client_infer_dispatch_current(admission)
-    is Err(issue) {
-    return Err(Authorization(issue))
-  }
-  if !@publication_host.client_infer_dispatch_matches_scope(admission, scope) {
-    return Err(RequestIdentity)
-  }
-  state.dispatch_admission = Some(admission)
-  state.approval_current = Some(() => {
-    @checkpoint.model_invocation_grant_current(grant, now()) && current()
-  })
-  state.approval_pending = false
-  Ok(())
-}
-
-///|
-/// The ordinary allow path uses current account authority, not a fabricated
-/// Model approval. A separate durable entry still precedes each physical send.
-pub fn resume_model_immediate_call_set(
-  set : PreparedModelCallSet,
-  admission : @publication_host.ClientInferDispatchAdmission,
-  current : () -> Bool,
-) -> Result[Unit, ModelExecutionIssue] {
-  let state = set.owner.state
-  guard state.approval_pending &&
-    model_execution_prepared_call_set(set.owner) is Some(_) &&
-    state.call_scope is Some(scope) &&
-    state.source is Provider(_) &&
-    @publication_host.client_infer_dispatch_account_allow(admission) &&
-    @publication_host.client_infer_dispatch_matches_scope(admission, scope) else {
-    return Err(RequestIdentity)
-  }
-  if !current() ||
-    @publication_host.check_client_infer_dispatch_current(admission) is Err(_) {
-    return Err(ApprovalUnavailable)
-  }
-  state.dispatch_admission = Some(admission)
-  state.approval_current = Some(current)
-  state.approval_pending = false
-  Ok(())
-}
-
-///|
 pub fn request_model_cancel(execution : ModelExecution) -> Bool {
-  let requested = @bounded.request_cancel(execution.control)
-  if requested {
-    // Waiting must not mask a delivered stop request on subsequent advances.
-    execution.state.approval_pending = false
-    execution.state.approval_cancelled = true
+  execution.state.stop_requested = true
+  if execution.state.durable_calls &&
+    (
+      execution.state.observing_response ||
+      execution.state.settlement_pending is Some(_)
+    ) {
+    // Sending is fenced immediately; finishing an already-returned observation
+    // is a bounded cleanup duty and does not authorize another provider call.
+    return true
   }
-  requested
+  @bounded.request_cancel(execution.control)
 }
 
 ///|
@@ -1085,7 +942,7 @@ pub fn cleanup_model_execution(
         execution.state.request = None
       }
       execution.state.phase = Reclaimed
-      for reservation in execution.state.reservations {
+      for (_, reservation) in execution.state.reservations {
         if @resources.reservation_open(reservation) {
           @resources.settle_reservation(execution.state.ledger, reservation)
           |> ignore
@@ -1102,6 +959,12 @@ pub fn cleanup_model_execution(
       execution.state.physical_plans.clear()
       execution.state.physical_cursors.clear()
       execution.state.outcomes.clear()
+      for (_, saved) in execution.state.restored_calls {
+        if saved.bundle is Some(bundle) {
+          @publication.release_model_capture_bundle_read(bundle) |> ignore
+        }
+      }
+      execution.state.restored_calls.clear()
       if execution.state.source is Replay(capture) {
         capture.owner.state.output_uses -= 1
       }

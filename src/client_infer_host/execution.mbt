@@ -57,6 +57,7 @@ enum Source {
 pub enum Poll {
   Continue(work~ : Int64)
   Waiting(work~ : Int64)
+  Settling(Int, work~ : Int64)
   Complete(@relation.CompletedOutput, work~ : Int64)
   Failed(Issue, work~ : Int64)
   Stopped(work~ : Int64)
@@ -78,6 +79,7 @@ pub struct Execution {
   mut rows : @relation.PreparedInferRows?
   mut identity : @relation.CompletedRelationIdentityScan?
   mut call_scope : @publication_host.ClientInferCallScope?
+  mut saved_call_scope : @publication_host.ClientInferSavedCallScope?
   mut model : @model.ModelExecution?
   mut capture : @model.ModelCaptureBundle?
   mut output : @model.ModelOutputPreparation?
@@ -94,10 +96,10 @@ pub struct Execution {
   mut output_uses : Int
   mut run_binding : ExecutionRunBinding?
   mut dispatch_admission : @publication_host.ClientInferDispatchAdmission?
+  mut durable_calls : Bool
+  mut model_send_mask : Array[Bool]?
   mut quantity_capacity : @model.ModelQuantityCapacity?
   mut physical_preflight : @model.ModelPhysicalPreflight?
-  approval_pending : Bool
-  enter_call : ((@model.ModelCallEntry) -> Bool)?
   mut egress_admission : @publication_host.ClientInferEgressAdmission?
   mut final_quantity_usage : @resources.QuantityUsage?
   mut acquired_input : @publication_host.ClientInferCapturedInput?
@@ -126,8 +128,6 @@ pub fn start(
   acquired_input? : @publication_host.ClientInferCapturedInput? = None,
   fragment_body? : String? = None,
   ordered_body? : String? = None,
-  defer_dispatch? : Bool = false,
-  enter_call? : ((@model.ModelCallEntry) -> Bool)? = None,
 ) -> Result[Execution, Issue] {
   start_owned(
     prepared,
@@ -141,8 +141,6 @@ pub fn start(
     acquired_input~,
     fragment_body~,
     ordered_body~,
-    defer_dispatch~,
-    enter_call~,
   )
 }
 
@@ -291,9 +289,6 @@ fn start_owned(
   acquired_input? : @publication_host.ClientInferCapturedInput? = None,
   fragment_body? : String? = None,
   ordered_body? : String? = None,
-  defer_dispatch? : Bool = false,
-  enter_call? : ((@model.ModelCallEntry) -> Bool)? = None,
-  restored_input? : @relation.CompletedOutput? = None,
 ) -> Result[Execution, Issue] {
   guard @publication_host.prepared_client_infer_execution_occurrence(
       prepared, step,
@@ -308,9 +303,6 @@ fn start_owned(
     is None {
     return Err(CallScope(ForeignInput))
   }
-  if restored_input is Some(_) && acquired_input is Some(_) {
-    return Err(CallScope(ForeignInput))
-  }
   start_occurrence(
     occurrence,
     Some(prepared),
@@ -319,21 +311,7 @@ fn start_owned(
     limits,
     plan,
     limits => {
-      if restored_input is Some(completed) {
-        @input.start_client_restored_infer_input(
-          prepared,
-          0,
-          step,
-          completed,
-          registry,
-          values,
-          limits.input,
-          limits.measurement,
-          limits.mapping,
-          fragment_body~,
-          ordered_body~,
-        )
-      } else if acquired_input is Some(captured) {
+      if acquired_input is Some(captured) {
         let input_source = @publication_host.client_infer_captured_input_source(
           captured, prepared, step,
         ).unwrap()
@@ -366,43 +344,6 @@ fn start_owned(
       }
     },
     acquired_input~,
-    defer_dispatch~,
-    enter_call~,
-  )
-}
-
-///|
-/// Resume preparation from a receiving completion restored by the existing
-/// Store/Relation admission owners. Ordinary prefix execution is not repeated;
-/// mapping, identity, call inventory and current dispatch use the same owners.
-/// The caller retains input custody until this execution is reclaimed.
-pub fn start_restored_prepared_input(
-  prepared : @publication_host.PreparedClientProgram,
-  step : Int,
-  registry : String,
-  values : String,
-  provider : @model.ModelProvider,
-  input : @relation.CompletedOutput,
-  limits : Limits,
-  plan : @publication_host.ClientInferPlanGraph,
-  enter_call : (@model.ModelCallEntry) -> Bool,
-  fragment_body? : String? = None,
-  ordered_body? : String? = None,
-) -> Result[Execution, Issue] {
-  start_owned(
-    prepared,
-    step,
-    registry,
-    values,
-    Physical(provider),
-    @publication_host.client_infer_plan_graph_request_cid(plan),
-    limits,
-    Some(plan),
-    fragment_body~,
-    ordered_body~,
-    defer_dispatch=true,
-    enter_call=Some(enter_call),
-    restored_input=Some(input),
   )
 }
 
@@ -420,8 +361,6 @@ fn start_occurrence(
   ],
   acquired_input? : @publication_host.ClientInferCapturedInput? = None,
   composed_sources? : @publication_host.ClientInferComposedSources? = None,
-  defer_dispatch? : Bool = false,
-  enter_call? : ((@model.ModelCallEntry) -> Bool)? = None,
 ) -> Result[Execution, Issue] {
   let (_, _, step) = @publication_host.client_infer_occurrence_coordinates(
     occurrence,
@@ -525,6 +464,7 @@ fn start_occurrence(
     rows: None,
     identity: None,
     call_scope: None,
+    saved_call_scope: None,
     model: None,
     capture: None,
     output: None,
@@ -540,10 +480,10 @@ fn start_occurrence(
     output_uses: 0,
     run_binding: None,
     dispatch_admission: None,
+    durable_calls: false,
+    model_send_mask: None,
     quantity_capacity: None,
     physical_preflight: None,
-    approval_pending: defer_dispatch,
-    enter_call,
     egress_admission: None,
     final_quantity_usage: None,
     local_component_bound: false,
@@ -574,8 +514,6 @@ pub fn start_composed(
   provider : @model.ModelProvider,
   limits : Limits,
   sources? : @publication_host.ClientInferComposedSources? = None,
-  defer_dispatch? : Bool = false,
-  enter_call? : ((@model.ModelCallEntry) -> Bool)? = None,
 ) -> Result[Execution, Issue] {
   if sources is Some(value) &&
     !@publication_host.client_infer_composed_sources_matches(value, occurrence) {
@@ -603,8 +541,6 @@ pub fn start_composed(
       )
     },
     composed_sources=sources,
-    defer_dispatch~,
-    enter_call~,
   )
 }
 
@@ -686,11 +622,11 @@ fn begin_model(active : Execution) -> Poll {
         active.limits.model,
         call_scope=active.call_scope,
         dispatch_admission=active.dispatch_admission,
+        durable_calls=active.durable_calls,
+        send_mask=active.model_send_mask,
         quantity_capacity=active.quantity_capacity,
         physical_preflight=active.physical_preflight,
         egress_admission=active.egress_admission,
-        defer_dispatch=active.approval_pending,
-        enter_call=active.enter_call,
       )
     Replay(capture) => {
       guard active.call_scope is Some(scope) else {
@@ -832,18 +768,25 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
         @input.client_infer_completed_input(active.input) is Some(completed) else {
         return fail(active, InvalidAdvance)
       }
-      active.call_scope = match
-        @publication_host.issue_client_infer_occurrence_call_scope(
-          active.occurrence,
-          plan,
-          completed,
-          receipt,
-          100000,
-          10000,
-          100,
-          captured=active.acquired_input,
-          sources=active.composed_sources,
-        ) {
+      let scoped = match active.saved_call_scope {
+        Some(saved) =>
+          @publication_host.restore_client_infer_call_scope(
+            saved, completed, receipt,
+          )
+        None =>
+          @publication_host.issue_client_infer_occurrence_call_scope(
+            active.occurrence,
+            plan,
+            completed,
+            receipt,
+            100000,
+            10000,
+            100,
+            captured=active.acquired_input,
+            sources=active.composed_sources,
+          )
+      }
+      active.call_scope = match scoped {
         Ok(value) => Some(value)
         Err(issue) => return fail(active, CallScope(issue))
       }
@@ -861,7 +804,18 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
           }
           Continue(work=active.work)
         }
-        Ok(@model.Waiting(_)) => Waiting(work=active.work)
+        Ok(@model.Waiting(_, work)) => {
+          if !account(active, work) {
+            return fail(active, InvalidAdvance)
+          }
+          Waiting(work=active.work)
+        }
+        Ok(@model.Settling(slot, _, work)) => {
+          if !account(active, work) {
+            return fail(active, InvalidAdvance)
+          }
+          Settling(slot, work=active.work)
+        }
         Ok(@model.Completed(capture, _, work)) => {
           if !account(active, work) {
             return fail(active, InvalidAdvance)
@@ -975,6 +929,8 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
       }
       let work = match poll {
         @local.Continue(work~, ..)
+        | @local.Waiting(work~, ..)
+        | @local.Settling(_, work~, ..)
         | @local.Complete(_, work~, ..)
         | @local.Failed(_, work~, ..)
         | @local.Stopped(work~, ..)
@@ -987,6 +943,10 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
       }
       match poll {
         @local.Continue(..) => Continue(work=active.work)
+        // A Compute-only suffix has no approval/custody boundary. Preserve
+        // its owner for cancellation and cleanup if an invalid provider pauses.
+        @local.Waiting(..) | @local.Settling(_, ..) =>
+          fail(active, InvalidAdvance)
         @local.Complete(output, ..) => {
           if active.cancelled {
             return stopped(active)
@@ -1032,6 +992,14 @@ pub fn advance(active : Execution, quantum : Int) -> Result[Poll, Issue] {
 
 ///|
 pub fn cancel(active : Execution) -> Bool {
+  if active.cancelled &&
+    !active.reclaimed &&
+    active.phase is Model &&
+    active.model is Some(model) {
+    // A second stop observation after per-call custody is acknowledged must
+    // finish the already-fenced child; it never authorizes another send.
+    @model.request_model_cancel(model) |> ignore
+  }
   if active.cancelled || active.reclaimed || active.phase is Terminal {
     return false
   }
@@ -1071,79 +1039,6 @@ pub fn request_preflight_pending(active : Execution) -> Bool {
 }
 
 ///|
-/// A waiting operation keeps the actual input and all prepared calls under
-/// this execution owner. No call may be dispatched while the grant is absent.
-pub fn prepared_model_call_set(
-  active : Execution,
-) -> @model.PreparedModelCallSet? {
-  if active.reclaimed || active.cancelled || !(active.phase is Model) {
-    return None
-  }
-  active.model.bind(@model.model_execution_prepared_call_set)
-}
-
-///|
-/// Resume the existing physical owner; rebuilding the input could resend a
-/// call whose outcome is not yet known.
-pub fn resume_approved_model_call_set(
-  active : Execution,
-  grant : @checkpoint.ModelInvocationGrant,
-  admission : @publication_host.ClientInferDispatchAdmission,
-  now : () -> String,
-  current : () -> Bool,
-) -> Result[Unit, Issue] {
-  guard !active.reclaimed &&
-    !active.cancelled &&
-    !active.advancing &&
-    active.phase is Model &&
-    active.model is Some(model) &&
-    @model.model_execution_prepared_call_set(model) is Some(set) else {
-    return Err(InvalidAdvance)
-  }
-  guard active.run_binding is Some(bound) &&
-    @publication_host.client_infer_dispatch_matches_run(
-      admission,
-      bound.compiled,
-      bound.definition,
-    ) else {
-    return Err(InvalidAdvance)
-  }
-  @model.resume_model_approved_call_set(set, grant, admission, now, current).map_err(issue => {
-      Issue::Model(issue)
-    },
-  )
-}
-
-///|
-/// Continue an input-complete ordinary allow under the original Run owner.
-/// Delegated decisions require the separate checked Checkpoint grant path.
-pub fn resume_immediate_model_call_set(
-  active : Execution,
-  admission : @publication_host.ClientInferDispatchAdmission,
-  current : () -> Bool,
-) -> Result[Unit, Issue] {
-  guard !active.reclaimed &&
-    !active.cancelled &&
-    !active.advancing &&
-    active.phase is Model &&
-    active.model is Some(model) &&
-    @model.model_execution_prepared_call_set(model) is Some(set) else {
-    return Err(InvalidAdvance)
-  }
-  guard active.run_binding is Some(bound) &&
-    @publication_host.client_infer_dispatch_matches_run(
-      admission,
-      bound.compiled,
-      bound.definition,
-    ) else {
-    return Err(InvalidAdvance)
-  }
-  @model.resume_model_immediate_call_set(set, admission, current).map_err(issue => {
-    Issue::Model(issue)
-  })
-}
-
-///|
 pub fn completed(poll : Poll) -> @relation.CompletedOutput? {
   match poll {
     Complete(value, ..) => Some(value)
@@ -1162,6 +1057,7 @@ pub fn poll_kind(poll : Poll) -> String {
   match poll {
     Continue(_) => "continue"
     Waiting(_) => "waiting"
+    Settling(_, ..) => "settling"
     Complete(_, ..) => "complete"
     Failed(_, ..) => "failed"
     Stopped(_) => "stopped"
@@ -1418,10 +1314,6 @@ pub fn cleanup(active : Execution) -> Result[Bool, Issue] {
   if active.identity is Some(identity) {
     @relation.cancel_completed_relation_identity_scan(identity) |> ignore
     active.identity = None
-  }
-  if active.call_scope is Some(scope) {
-    @publication_host.release_client_infer_call_scope(scope)
-    active.call_scope = None
   }
   match @input.cleanup_client_infer_input(active.input) {
     Ok(true) => {

@@ -701,7 +701,10 @@ export function openSqliteCheckpointJournal(root, {
 
   function modelHasEnteredLocked(checkpoint, intent) {
     if (checkpoint === undefined) fail('CheckpointJournalCorrupt');
-    if (JSON.parse(checkpoint.checkpoint_wire).kind !== 'model_invocation') return false;
+    const kind = JSON.parse(checkpoint.checkpoint_wire).kind;
+    if (kind === 'read_access') return modelCalls.hasEnteredUnderParentLocked({
+      checkpointCid: checkpoint.checkpoint_cid, intentId: intent.intent_id, runId: intent.run_id});
+    if (kind !== 'model_invocation') return false;
     return modelCalls.hasEnteredLocked({checkpointCid: checkpoint.checkpoint_cid,
       intentId: intent.intent_id, runId: intent.run_id,
       resolutionCid: intent.resolution_cid});
@@ -736,7 +739,7 @@ export function openSqliteCheckpointJournal(root, {
             run?.status !== 'resuming' || intent.state === 'completed') {
           return Object.freeze({outcome: 'not_resuming'});
         }
-        if (statements.startedAdmission.get(intent.intent_id) !== undefined) {
+        if (hasStartedLocked(intent)) {
           return Object.freeze({outcome: 'admitted'});
         }
         transitionAllowed('resuming', 'failed');
@@ -902,7 +905,7 @@ export function openSqliteCheckpointJournal(root, {
 
     // Track the already-issued original Run and its full call inventory in one
     // transaction. Registration grants no permission and creates no Checkpoint.
-    registerImmediateModelCallSet({modelCallSet, declaredResults}) {
+    registerImmediateModelCallSet({modelCallSet, declaredResults, parentResume}) {
       alive();
       const prepared = modelCalls.prepareImmediate(modelCallSet);
       const declared = declaredJson(declaredResults);
@@ -911,14 +914,73 @@ export function openSqliteCheckpointJournal(root, {
         const runId = prepared.inventory.runId;
         const existing = statements.run.get(runId);
         if (existing === undefined) {
+          if (parentResume !== undefined) fail('ModelImmediateParentResumeMismatch');
           statements.insertRun.run(runId, 'running', at, declared, '');
-        } else if (existing.status !== 'running' || existing.declared_results_json !== declared) {
+        } else if (existing.status === 'resuming' && parentResume !== undefined) {
+          const parent = admissionLocked(parentResume.claim, parentResume.checkpointCid, now());
+          if (parent.runId !== runId || parent.kind !== 'read_access' || existing.declared_results_json !== declared) {
+            fail('ModelImmediateParentResumeMismatch');
+          }
+        } else if (existing.status !== 'running' || existing.declared_results_json !== declared || parentResume !== undefined) {
           fail('RunStateConflict');
         }
         modelCalls.registerImmediateLocked(prepared, at);
         fault('registerImmediateModelCallSet');
       });
       return modelCalls.public.readModelCalls(prepared.inventory);
+    },
+
+    // Bounded recovery discovery only. These retained originals are untrusted
+    // until the installed owner reopens their Store custody and the ordinary
+    // Model read path re-admits them. Discovery cannot grant send permission.
+    discoverModelCallSets({runId, after = '', limit = 100} = {}) {
+      alive();
+      if ((runId !== undefined && !text(runId)) || typeof after !== 'string' ||
+          !Number.isSafeInteger(limit) || limit < 1 || limit > 1000) {
+        fail('InvalidModelInventoryPage');
+      }
+      const rows = database.prepare(`SELECT scope_cid, checkpoint_cid,
+        inventory_json, originals_json, checkpoint_originals_json FROM resume_model_scopes
+        WHERE (? IS NULL OR run_id = ?) AND scope_cid > ?
+        ORDER BY scope_cid LIMIT ?`).all(runId ?? null, runId ?? null, after, limit);
+      return rows.map(row => Object.freeze({scopeCid: row.scope_cid,
+        checkpointCid: row.checkpoint_cid,
+        inventory: JSON.parse(row.inventory_json),
+        originals: JSON.parse(row.checkpoint_originals_json || row.originals_json)}));
+    },
+    hasUnresolvedModelCalls(runId) {
+      alive();
+      if (!text(runId)) fail('InvalidRunId');
+      return transaction.run(() => {
+        let unresolved = false;
+        const scopes = database.prepare('SELECT * FROM resume_model_scopes WHERE run_id = ?').all(runId);
+        for (const scope of scopes) {
+          const inventory = JSON.parse(scope.inventory_json);
+          const slots = database.prepare('SELECT * FROM resume_model_slots WHERE scope_cid = ? ORDER BY ordinal').all(scope.scope_cid);
+          const attempts = database.prepare('SELECT * FROM resume_model_attempts WHERE scope_cid = ? ORDER BY ordinal, attempt_index').all(scope.scope_cid);
+          if (!Array.isArray(inventory.slots) || inventory.slots.length !== scope.slot_count ||
+              slots.length !== scope.slot_count) fail('ModelResumeInventoryCorrupt');
+          for (const [ordinal, slot] of slots.entries()) {
+            if (slot.ordinal !== ordinal || inventory.slots[ordinal]?.slotCid !== slot.slot_cid ||
+                inventory.slots[ordinal]?.ordinal !== ordinal) fail('ModelResumeInventoryCorrupt');
+            const entered = attempts.filter(attempt => attempt.ordinal === ordinal);
+            if (slot.state === 'Unsent') {
+              if (slot.attempt_index !== 0 || entered.length !== 0) fail('ModelResumeInventoryCorrupt');
+            } else {
+              const last = entered.at(-1);
+              if (entered.length !== slot.attempt_index || last?.attempt_index !== slot.attempt_index ||
+                  last?.state !== slot.state || entered.some((attempt, index) => attempt.attempt_index !== index + 1 ||
+                    JSON.parse(attempt.entry_json).slotCid !== slot.slot_cid ||
+                    JSON.parse(attempt.entry_json).attemptCid !== attempt.attempt_cid)) {
+                fail('ModelResumeInventoryCorrupt');
+              }
+            }
+            if (slot.state === 'EnteredUnknown') unresolved = true;
+          }
+          if (attempts.some(attempt => slots[attempt.ordinal] === undefined)) fail('ModelResumeInventoryCorrupt');
+        }
+        return unresolved;
+      });
     },
 
     ...modelCalls.public,
@@ -1085,6 +1147,12 @@ export function openSqliteCheckpointJournal(root, {
     refuseUnsentReadResume(reference, runDefinitionCid, claim) {
       if (claim === undefined) fail('InvalidResumeClaim');
       return refuseUnsentRunResume(reference, runDefinitionCid, 'read_access', claim);
+    },
+    // A definitive Model policy refusal may end only an exact live resume
+    // whose complete inventory still proves that no call ever entered.
+    refuseUnsentModelResume(reference, runDefinitionCid, claim) {
+      if (claim === undefined) fail('InvalidResumeClaim');
+      return refuseUnsentRunResume(reference, runDefinitionCid, 'model_invocation', claim);
     },
 
     // Durable request cancellation of one prepare attempt, committed before
@@ -1944,7 +2012,11 @@ export function openSqliteCheckpointJournal(root, {
           }
           insertCheckpoint(next.sealed, next.reviewers, next.bound,
             next.subject, next.claims, next.configuration, atIso);
-          modelCalls.registerLocked(next.sealed, next.modelCallSet, atIso);
+          if (outcome.attachImmediateModelCallSet === true && next.modelCallSet === undefined) {
+            fail('ModelImmediateInventoryRequired');
+          }
+          modelCalls.registerLocked(next.sealed, next.modelCallSet, atIso,
+            false, outcome.attachImmediateModelCallSet === true);
           checkpointCid = next.sealed.checkpoint_cid;
         }
         changed(statements.moveRun.run(target, atIso, checkpointCid,
@@ -2148,4 +2220,3 @@ export function openSqliteCheckpointJournal(root, {
     throwSqliteInitializationFailure(database, error, 'checkpoint-journal');
   }
 }
-

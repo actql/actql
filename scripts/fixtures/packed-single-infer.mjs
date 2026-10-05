@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import {scopedModelHolding} from './model-custody-fixture.mjs';
+import {providerBindingOriginals} from './model-provider-binding-fixture.mjs';
 import {execFileSync} from 'node:child_process';
 import {createDecipheriv, createHash, generateKeyPairSync} from 'node:crypto';
 import {appendFileSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
@@ -61,6 +63,7 @@ const checked = result => {
 const installationOptions = {directory: root, authorization,
     modelInstallation: installation,
     registerModelProviders: moon => [{providerId: 'models/packed',
+      bindingOriginals: providerBindingOriginals('models/packed', {selector: 'packed-risk-model'}),
       invoke() { throw new Error('UnpreparedModelCall'); },
       validatePrompt(actual, selector, wire) {
         return actual === taskCid && selector === 'packed-risk-model' &&
@@ -134,7 +137,9 @@ try {
     principalId: userInfo().username})).digest('hex')}`;
   for (const role of ['model_call_attempt', 'model_attempt_accounting',
     'model_attempt_outcome', 'model_dispatch_authority']) {
-    const holding = cid({role, slot: 0,
+    const holding = mode === 'cancel' || mode === 'failure'
+      ? scopedModelHolding(root, run.ref.runDefinitionCid, storeCid, role)
+      : cid({role, slot: 0,
       run_definition_cid: run.ref.runDefinitionCid,
       store_authority_cid: storeCid,
       version: 'actql-model-private-holding/0.1'});
@@ -173,9 +178,9 @@ try {
     if (role === 'model_attempt_outcome' &&
         (mode === 'cancel' || mode === 'failure')) {
       assert.equal(evidence.category,
-        mode === 'cancel' ? 'cancelled' : 'contract_violation');
+        mode === 'cancel' ? 'ok' : 'contract_violation');
       assert.equal(evidence.failure,
-        mode === 'cancel' ? 'cancelled' : 'budget_exceeded');
+        mode === 'cancel' ? null : 'budget_exceeded');
     }
   }
   console.log(JSON.stringify({mode, transport, status: terminal.status, calls,

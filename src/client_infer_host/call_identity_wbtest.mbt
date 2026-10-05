@@ -343,13 +343,6 @@ test "checked call identity survives reconstruction without a runtime row positi
       fixture_prepared()
     }
     let (input, rows, scope, fixed) = call_identity_fixture(prepared)
-    let completed = @input.client_infer_completed_input(input).unwrap()
-    let receipt = @publication_host.client_infer_call_scope_fixed_input_receipt(
-      scope,
-    )
-    assert_true(
-      @relation.completed_relation_export_matches_output(receipt, completed),
-    )
     let calls = Ref(0)
     let slots : Array[String] = []
     let provider = @model.install_model_provider("models/fixture", request => {
@@ -406,20 +399,6 @@ test "checked call identity survives reconstruction without a runtime row positi
     }
     assert_true(terminal)
     assert_true(@model.cleanup_model_execution(active).unwrap())
-    @publication_host.release_client_infer_call_scope(scope)
-    assert_true(
-      !@relation.completed_relation_export_matches_output(receipt, completed),
-    )
-    assert_true(
-      @model.start_model_execution(
-        rows,
-        provider,
-        fixed,
-        standard_limits().model,
-        call_scope=Some(scope),
-      )
-      is Err(@model.RequestIdentity),
-    )
     assert_true(@input.cleanup_client_infer_input(input).unwrap())
     assert_true(@input.client_infer_completed_input(input) is None)
     assert_eq(calls.val, 1)

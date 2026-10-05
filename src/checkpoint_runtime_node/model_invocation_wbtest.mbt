@@ -48,59 +48,6 @@ test "Model ABI returns pure bounded originals without opaque custody or retry f
 }
 
 ///|
-test "ordinary Model inventory and attempt validate without a fabricated Checkpoint" {
-  guard parse(model_fixture_wire("call_set_request")) is Some(Object(fields)) else {
-    abort("Expected object")
-  }
-  fields.remove("checkpointWire")
-  fields.remove("reviewWire")
-  let request = Json::object(fields).stringify()
-  let admitted = model_test_ok(model_immediate_call_set_admit(request))
-  assert_eq(text_member(admitted, "runId"), Some("run-model"))
-  assert_eq(
-    text_member(admitted, "scopeCid"),
-    Some(
-      "sha256:3cabfeb57f5e1b83d060f416630bf5c18026be8e23867c4b2ee7a33fcf7ba08b",
-    ),
-  )
-  assert_eq(
-    text_member(admitted, "runValidUntil"),
-    Some("2026-09-26T14:00:00.000Z"),
-  )
-  let checked = model_test_ok(
-    model_immediate_call_attempt_admit(
-      request,
-      0,
-      model_fixture_wire("model_call_attempt"),
-      model_fixture_wire("model_dispatch_authority"),
-      1.0,
-    ),
-  )
-  assert_eq(number_member(checked, "attemptIndex"), Some(1.0))
-  model_test_refuses(
-    model_immediate_call_attempt_admit(
-      request,
-      1,
-      model_fixture_wire("model_call_attempt"),
-      model_fixture_wire("model_dispatch_authority"),
-      1.0,
-    ),
-  )
-  model_test_refuses(
-    model_immediate_call_set_admit(model_fixture_wire("call_set_request")),
-  )
-  model_test_refuses(
-    model_immediate_call_attempt_admit(
-      model_fixture_wire("call_set_request"),
-      0,
-      model_fixture_wire("model_call_attempt"),
-      model_fixture_wire("model_dispatch_authority"),
-      1.0,
-    ),
-  )
-}
-
-///|
 test "Model ABI rejects missing inventory and substituted PreparedInvocation original" {
   guard parse(model_fixture_wire("call_set_request")) is Some(Object(fields)) else {
     abort("Expected object")
@@ -245,14 +192,6 @@ test "Model live grant checks minimum review and Run expiry for deferred and imm
       let answer = model_test_ok(
         live(request, checkpoint, verified, "2026-09-26T11:29:59.999Z"),
       )
-      let handle = model_invocation_grant_handle(
-        request, checkpoint, verified, "2026-09-26T11:29:59.999Z", immediate,
-      ).unwrap()
-      assert_eq(@checkpoint.model_invocation_grant_expires_at(handle), expiry)
-      assert_eq(
-        @checkpoint.model_invocation_grant_checkpoint_cid(handle),
-        text_member(answer, "checkpointCid").unwrap(),
-      )
       assert_eq(text_member(answer, "expiresAt"), Some(expiry))
       assert_eq(text_member(answer, "runId"), Some("run-model"))
       assert_eq(
@@ -277,12 +216,6 @@ test "Model live grant checks minimum review and Run expiry for deferred and imm
           expiry, "2026-09-26T12:00:00.001Z", "2026-09-25T12:00:00.999Z", "invalid",
         ] {
         model_test_refuses(live(request, checkpoint, verified, at))
-        assert_true(
-          model_invocation_grant_handle(
-            request, checkpoint, verified, at, immediate,
-          )
-          is Err(_),
-        )
       }
       // Immutable custody/original observation stays legal after live expiry.
       ignore(model_test_ok(model_call_set_admit(request)))

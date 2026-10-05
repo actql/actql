@@ -107,8 +107,9 @@ fn fixture_finish(active : Execution, initial_work? : Int64 = 0L) -> Poll raise 
   for _ in 0..<2000 {
     let poll = advance(active, 1).unwrap()
     let work = match poll {
-      Continue(work~)
-      | Waiting(work~)
+      Waiting(work~)
+      | Settling(_, work~)
+      | Continue(work~)
       | Complete(_, work~)
       | Failed(_, work~)
       | Stopped(work~) => work

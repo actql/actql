@@ -5,11 +5,11 @@ pub struct ClientInferCallScope {
   owner : PreparedClientProgram
   plan : ClientInferPlanGraph
   input : @execution.CompletedOutput
-  receipt : @execution.CompletedRelationExportReceipt
   artifact : @publication.RunEvidenceValue
   effective : @publication.RunEvidenceValue
   source : @publication.ModelSourceObservation?
   sources : Array[@publication.ModelSourceObservation]
+  named_sources : Array[(String, @publication.ModelSourceObservation)]
   unit_definition_cid : String
   source_ordinal : Int
 }
@@ -193,13 +193,19 @@ pub fn issue_client_infer_occurrence_call_scope(
     owner,
     plan,
     input,
-    receipt,
     artifact,
     effective,
     source: captured.map(value => value.observation),
     sources: sources
     .map(client_infer_composed_source_observations)
     .unwrap_or([]),
+    named_sources: match captured {
+      Some(value) => [(value.name, value.observation)]
+      None =>
+        sources
+        .map(value => value.inputs.map(input => (input.name, input.observation)))
+        .unwrap_or([])
+    },
     unit_definition_cid,
     source_ordinal: step,
   })
@@ -213,8 +219,7 @@ pub fn client_infer_call_scope_matches(
 ) -> Bool {
   physical_equal(value.owner, owner) &&
   @execution.completed_output_available(input) &&
-  @execution.completed_output_same_occurrence(value.input, input) &&
-  @execution.completed_relation_export_matches_output(value.receipt, input)
+  @execution.completed_output_same_occurrence(value.input, input)
 }
 
 ///|
@@ -222,21 +227,6 @@ pub fn client_infer_call_scope_artifact(
   value : ClientInferCallScope,
 ) -> @publication.RunEvidenceValue {
   value.artifact
-}
-
-///|
-/// The exact bounded export receipt remains with the prepared call scope.
-/// Its CIDs alone do not prove that the fixed input is held or replayable.
-pub fn client_infer_call_scope_fixed_input_receipt(
-  value : ClientInferCallScope,
-) -> @execution.CompletedRelationExportReceipt {
-  value.receipt
-}
-
-///|
-/// Release the receipt's reference to its source after the call owner stops.
-pub fn release_client_infer_call_scope(value : ClientInferCallScope) -> Unit {
-  @execution.cancel_completed_relation_export_receipt(value.receipt)
 }
 
 ///|
@@ -281,10 +271,6 @@ pub fn client_infer_call_scope_matches_rows(
   fixed_request_cid : String,
 ) -> Bool {
   fixed_request_cid == value.plan.request_cid &&
-  @execution.completed_relation_export_matches_output(
-    value.receipt,
-    value.input,
-  ) &&
   @execution.prepared_infer_rows_matches_completed_input(rows, value.input) &&
   physical_equal(
     @infer.model_task(@execution.prepared_infer_rows_owner(rows)),
@@ -330,4 +316,468 @@ pub fn issue_client_infer_call_slot(
   @publication.seal_run_evidence_value(
     "model_call_slot", body, max_wire_bytes, max_nodes, max_depth,
   ).map_err(issue => Evidence(issue))
+}
+
+///|
+/// The exact completed input remains with its original execution owner.
+/// Exporting or restoring it uses the ordinary bounded Relation/Store path.
+pub fn client_infer_call_scope_input(
+  value : ClientInferCallScope,
+) -> @execution.CompletedOutput? {
+  if @execution.completed_output_available(value.input) {
+    Some(value.input)
+  } else {
+    None
+  }
+}
+
+///|
+/// The authored Unit coordinate selected by the same checked occurrence.
+pub fn client_infer_call_scope_unit_id(value : ClientInferCallScope) -> String? {
+  @syntax.stages(value.owner.source)
+  .get(value.plan.stage)
+  .map(stage => stage.id)
+}
+
+///|
+/// Exact private originals for a completed fixed input. This record is not
+/// a public artifact or permission; authenticated Store custody is required
+/// before it can be used by the saved-scope reader below.
+pub fn client_infer_call_scope_snapshot(
+  value : ClientInferCallScope,
+) -> Result[String, ClientInferCallScopeIssue] {
+  if !@execution.completed_output_available(value.input) {
+    return Err(ForeignInput)
+  }
+  let writer = @encode.writer(1000000, 100000, 100) catch {
+    _ => return Err(Encoding)
+  }
+  let body = try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-host-model-input-scope/0.1")
+    @encode.key(writer, "input_artifact_wire")
+    @encode.string_value(
+      writer,
+      @publication.run_evidence_value_json(value.artifact),
+    )
+    @encode.key(writer, "effective_inputs_wire")
+    @encode.string_value(
+      writer,
+      @publication.run_evidence_value_json(value.effective),
+    )
+    @encode.key(writer, "sources")
+    @encode.begin_array(writer)
+    for (name, observation) in value.named_sources {
+      let (source, input, started, completed) = @publication.model_source_observation_originals(
+        observation,
+      )
+      @encode.begin_object(writer)
+      for
+        (field, text) in [
+          ("name", name),
+          ("source_evidence_wire", @publication.run_evidence_value_json(source)),
+          ("source_input_wire", @publication.run_evidence_value_json(input)),
+          ("capture_started_at", started),
+          ("capture_completed_at", completed),
+        ] {
+        @encode.key(writer, field)
+        @encode.string_value(writer, text)
+      }
+      @encode.end_object(writer)
+    }
+    @encode.end_array(writer)
+    @encode.end_object(writer)
+    @encode.finish(writer)
+  } catch {
+    _ => return Err(Encoding)
+  }
+  guard parse_plan_identity_value(body, 1000000, 100000, 100) is Some(parsed) else {
+    return Err(Encoding)
+  }
+  Ok(@canonical.stringify_value(parsed, 1000000, 100000, 100)) catch {
+    _ => Err(Encoding)
+  }
+}
+
+///|
+/// A receiving owner for authenticated historical input provenance. It has
+/// no Source callback and cannot confer infer, egress or Effect permission.
+pub struct ClientInferSavedCallScope {
+  compiled : ClientCompiledRun
+  definition : @publication.PublicationContract
+  occurrence : ClientInferOccurrence
+  plan : ClientInferPlanGraph
+  artifact : @publication.RunEvidenceValue
+  effective : @publication.RunEvidenceValue
+  named_sources : Array[(String, @publication.ModelSourceObservation)]
+  available : () -> Bool
+}
+
+///|
+fn infer_scope_string(
+  value : @canonical.CanonicalValue,
+  field : String,
+) -> String? {
+  match @canonical.object_field(value, field) {
+    Some(@canonical.String(text)) => Some(text)
+    _ => None
+  }
+}
+
+///|
+fn infer_scope_evidence(
+  name : String,
+  wire : String,
+) -> Result[@publication.RunEvidenceValue, ClientInferCallScopeIssue] {
+  let value = match
+    @publication.admit_run_evidence_value(name, wire, 1000000, 100000, 100) {
+    Ok(value) => value
+    Err(issue) => return Err(Evidence(issue))
+  }
+  if @publication.run_evidence_value_json(value) != wire {
+    return Err(ForeignInput)
+  }
+  Ok(value)
+}
+
+///|
+/// Resolve original Source names and contracts from the checked graph alone.
+/// Preparing these logical acquisitions never contacts a Source provider.
+fn infer_scope_expected_sources(
+  occurrence : ClientInferOccurrence,
+) -> Result[
+  Array[(String, @planning.QuerySourceEvidenceFacts)],
+  ClientInferCallScopeIssue,
+] {
+  let owner = occurrence.owner
+  let graph = owner.graph
+  if client_acquired_infer_prefix_owner(owner, 0, occurrence.step) is Some(_) {
+    guard prepare_client_query_acquisition(owner, occurrence.stage, 0)
+      is Ok(acquisition) &&
+      @planning.query_acquisition_source_evidence_facts(acquisition)
+      is Some(facts) &&
+      @acquisition.pipeline_request_at(
+        @acquisition.query_acquisition_owner(acquisition),
+        @acquisition.query_acquisition_source_index(acquisition),
+      )
+      is Some(@acquisition.Direct(mode, _)) else {
+      return Err(ForeignInput)
+    }
+    let name = @acquisition.declaration(@acquisition.mode_input(mode)).input_name
+    return Ok([(name, facts)])
+  }
+  let count = @strategy.graph_captured_prefix(graph)
+  if count == 0 {
+    return Ok([])
+  }
+  if count != 2 || occurrence.task != count {
+    return Err(UnsupportedBindings)
+  }
+  let pipeline = @lower.pipeline(
+    @lower.bound_preparation(occurrence.preparation),
+  )
+  let incoming : Array[(Int, Int)] = []
+  for index in 0..<@strategy.graph_data_count(graph) {
+    guard @strategy.graph_data_at(graph, index) is Some(edge) else {
+      return Err(ForeignInput)
+    }
+    if @strategy.data_edge_consumer(edge) == occurrence.task {
+      incoming.push(
+        (@strategy.data_edge_producer(edge), @strategy.data_edge_input(edge)),
+      )
+    }
+  }
+  if incoming.length() != count {
+    return Err(ForeignInput)
+  }
+  let expected : Array[(String, @planning.QuerySourceEvidenceFacts)] = []
+  for task in 0..<count {
+    let ports = incoming.filter(edge => edge.0 == task)
+    guard ports.length() == 1 &&
+      @pipeline.input_at(pipeline, ports[0].1) is Some((name, _)) &&
+      @strategy.graph_task_unit_index(graph, task) is Some(stage) &&
+      prepare_client_query_acquisition(owner, stage, 0) is Ok(acquisition) &&
+      @planning.query_acquisition_source_evidence_facts(acquisition)
+      is Some(facts) else {
+      return Err(ForeignInput)
+    }
+    if expected.any(item => item.0 == name) {
+      return Err(ForeignInput)
+    }
+    expected.push((name, facts))
+  }
+  Ok(expected)
+}
+
+///|
+/// Re-admit historical source observations without a fresh acquisition or a
+/// completed ObservationSet. The Host callback must authenticate the exact
+/// original Run/scope snapshot and keep its durable holding available.
+pub fn read_client_infer_saved_call_scope(
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrence : ClientInferOccurrence,
+  plan : ClientInferPlanGraph,
+  snapshot_wire : String,
+  authority_scope_cid : String,
+  custody_available : () -> Bool,
+) -> Result[ClientInferSavedCallScope, ClientInferCallScopeIssue] {
+  if !custody_available() ||
+    !client_infer_occurrence_matches_compiled_run(occurrence, compiled) ||
+    check_client_compiled_run_definition(compiled, definition) is Err(_) ||
+    !client_infer_occurrence_matches_plan(occurrence, plan) ||
+    client_compiled_run_infer(compiled) is None ||
+    !physical_equal(client_compiled_run_infer(compiled).unwrap(), plan) {
+    return Err(ForeignOwner)
+  }
+  guard parse_plan_identity_value(snapshot_wire, 1000000, 100000, 100)
+    is Some(snapshot) &&
+    @canonical.object_field_count(snapshot) == Some(4) &&
+    infer_scope_string(snapshot, "version") ==
+    Some("actql-host-model-input-scope/0.1") &&
+    infer_scope_string(snapshot, "input_artifact_wire") is Some(artifact_wire) &&
+    infer_scope_string(snapshot, "effective_inputs_wire")
+    is Some(effective_wire) &&
+    @canonical.object_field(snapshot, "sources")
+    is Some(@canonical.Array(source_values)) else {
+    return Err(ForeignInput)
+  }
+  let canonical = @canonical.stringify_value(snapshot, 1000000, 100000, 100) catch {
+    _ => return Err(Encoding)
+  }
+  if canonical != snapshot_wire {
+    return Err(ForeignInput)
+  }
+  let artifact = match
+    infer_scope_evidence("model_input_artifact", artifact_wire) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let effective = match
+    infer_scope_evidence("model_effective_inputs", effective_wire) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let expected = match infer_scope_expected_sources(occurrence) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let sources = @canonical.array_values(source_values)
+  if sources.length() != expected.length() {
+    return Err(ForeignInput)
+  }
+  let named_sources : Array[(String, @publication.ModelSourceObservation)] = []
+  let logicals : Array[(String, @publication.RunEvidenceValue)] = []
+  for index in 0..<sources.length() {
+    let source = sources[index]
+    let (name, facts) = expected[index]
+    guard @canonical.object_field_count(source) == Some(5) &&
+      infer_scope_string(source, "name") == Some(name) &&
+      infer_scope_string(source, "source_evidence_wire") is Some(source_wire) &&
+      infer_scope_string(source, "source_input_wire") is Some(input_wire) &&
+      infer_scope_string(source, "capture_started_at") is Some(started) &&
+      infer_scope_string(source, "capture_completed_at") is Some(completed) else {
+      return Err(ForeignInput)
+    }
+    let evidence = match infer_scope_evidence("source_evidence", source_wire) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    let input = match infer_scope_evidence("source_input_logical", input_wire) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    let observation = match
+      @publication.admit_model_source_observation(
+        evidence,
+        input,
+        facts.source_ref,
+        facts.source_contract_cid,
+        authority_scope_cid,
+        facts.source_data_policy_cid,
+        started,
+        completed,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Evidence(issue))
+    }
+    named_sources.push((name, observation))
+    logicals.push((name, input))
+  }
+  let identity = prepared_client_identity(occurrence.owner)
+  let bindings = match
+    issue_prepared_client_empty_invocation_bindings(
+      occurrence.owner,
+      100000,
+      10000,
+      100,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(UnsupportedBindings)
+  }
+  guard parse_plan_identity_value(effective_wire, 1000000, 100000, 100)
+    is Some(effective_value) &&
+    infer_scope_string(effective_value, "parameter_values_cid") ==
+    Some(identity.parameter_values_cid) &&
+    infer_scope_string(effective_value, "invocation_bindings_cid") ==
+    Some(@publication.run_evidence_value_identity(bindings)) &&
+    @canonical.object_field(effective_value, "input_artifacts")
+    is Some(input_map) &&
+    @canonical.object_field_count(input_map) == Some(logicals.length()) else {
+    return Err(ForeignInput)
+  }
+  for (name, input) in logicals {
+    if infer_scope_string(input_map, name) !=
+      Some(@publication.run_evidence_value_identity(input)) {
+      return Err(ForeignInput)
+    }
+  }
+  guard @checked.unit_definition_cid(
+      @strategy.graph_program(occurrence.owner.graph),
+      occurrence.stage,
+    )
+    is Some(unit_cid) &&
+    parse_plan_identity_value(artifact_wire, 1000000, 100000, 100)
+    is Some(artifact_value) &&
+    @canonical.object_field(artifact_value, "source_ordinal")
+    is Some(@canonical.Number(source_ordinal)) &&
+    source_ordinal == occurrence.step.to_double() else {
+    return Err(ForeignInput)
+  }
+  for
+    (field, expected) in [
+      ("program_definition_cid", identity.program_definition_cid),
+      ("unit_definition_cid", unit_cid),
+      (
+        "effective_inputs_cid",
+        @publication.run_evidence_value_identity(effective),
+      ),
+      ("input_fragment_cid", plan.input_fragment_cid),
+      ("completeness", "complete"),
+    ] {
+    if infer_scope_string(artifact_value, field) != Some(expected) {
+      return Err(ForeignInput)
+    }
+  }
+  if !custody_available() {
+    return Err(ForeignInput)
+  }
+  Ok({
+    compiled,
+    definition,
+    occurrence,
+    plan,
+    artifact,
+    effective,
+    named_sources,
+    available: custody_available,
+  })
+}
+
+///|
+pub fn client_infer_saved_call_scope_matches_run(
+  value : ClientInferSavedCallScope,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> Bool {
+  (value.available)() &&
+  physical_equal(value.compiled, compiled) &&
+  @publication.publication_contract_identity(value.definition) ==
+  @publication.publication_contract_identity(definition)
+}
+
+///|
+pub fn client_infer_saved_call_scope_matches_occurrence(
+  value : ClientInferSavedCallScope,
+  occurrence : ClientInferOccurrence,
+  plan : ClientInferPlanGraph,
+) -> Bool {
+  (value.available)() &&
+  client_infer_occurrence_matches(value.occurrence, occurrence.owner) &&
+  client_infer_occurrence_coordinates(value.occurrence) ==
+  client_infer_occurrence_coordinates(occurrence) &&
+  physical_equal(value.plan, plan)
+}
+
+///|
+/// Adopt the restored completion only after its ordinary live identity scan.
+/// All historical input and Source identities remain unchanged.
+pub fn restore_client_infer_call_scope(
+  value : ClientInferSavedCallScope,
+  input : @execution.CompletedOutput,
+  receipt : @execution.CompletedRelationExportReceipt,
+) -> Result[ClientInferCallScope, ClientInferCallScopeIssue] {
+  let occurrence = value.occurrence
+  if !(value.available)() ||
+    !@execution.completed_output_matches_port(
+      input,
+      occurrence.preparation,
+      @pipeline.Step(occurrence.step - 1),
+    ) ||
+    !@execution.completed_relation_export_matches_output(receipt, input) {
+    return Err(ForeignInput)
+  }
+  guard parse_plan_identity_value(
+      @publication.run_evidence_value_json(value.artifact),
+      1000000,
+      100000,
+      100,
+    )
+    is Some(artifact) &&
+    @checked.unit_definition_cid(
+      @strategy.graph_program(occurrence.owner.graph),
+      occurrence.stage,
+    )
+    is Some(unit_definition_cid) else {
+    return Err(ForeignInput)
+  }
+  for
+    (field, expected) in [
+      (
+        "logical_relation_cid",
+        @execution.logical_relation_cid(
+          @execution.completed_relation_export_identity(receipt),
+        ),
+      ),
+      (
+        "relation_schema_cid",
+        @execution.relation_schema_cid(
+          @execution.completed_relation_export_schema_identity(receipt),
+        ),
+      ),
+      (
+        "ordered_rows_cid",
+        @execution.output_stream_identity(
+          @execution.completed_relation_export_content(receipt),
+        ).0,
+      ),
+    ] {
+    if infer_scope_string(artifact, field) != Some(expected) {
+      return Err(ForeignInput)
+    }
+  }
+  if !(value.available)() {
+    return Err(ForeignInput)
+  }
+  Ok({
+    owner: occurrence.owner,
+    plan: value.plan,
+    input,
+    artifact: value.artifact,
+    effective: value.effective,
+    source: if value.named_sources.length() == 1 {
+      Some(value.named_sources[0].1)
+    } else {
+      None
+    },
+    sources: if value.named_sources.length() == 1 {
+      []
+    } else {
+      value.named_sources.map(item => item.1)
+    },
+    named_sources: value.named_sources.copy(),
+    unit_definition_cid,
+    source_ordinal: occurrence.step,
+  })
 }

@@ -279,3 +279,32 @@ test('real immediate Model grant rechecks review expiry after asynchronous Host 
   assert.deepEqual(f.counts, {resolution: 1, approval: 1, attestation: 1});
   assert.deepEqual(f.journal.readResumeCalls(f.inventory).slots.map(slot => slot.state), ['Unsent', 'Unsent']);
 });
+
+
+test('compiled stopped proof distinguishes terminal contract violations from unknown attempts', () => {
+  const original = attemptOriginals(request, 0);
+  const seal = body => canonical({...body, self_cid: cidOf(body)});
+  const accounting = {version: 'actql-model-attempt-accounting/0.1',
+    attempt_cid: original.attemptCid, slot_cid: original.slotCid,
+    cumulative_work: 23, uncertain_wire_bytes: 66536,
+    input_tokens: 1, output_tokens: 1000, cost_units: null, duration_ms: null};
+  const outcome = {version: 'actql-model-attempt-outcome/0.1',
+    attempt_cid: original.attemptCid, slot_cid: original.slotCid,
+    category: 'contract_violation', failure: 'budget_exceeded'};
+  const check = (cost = seal(accounting), result = seal(outcome), attempt = original.attemptWire) =>
+    JSON.parse(runtime.modelStoppedCallAdmit(canonical(request), 0, attempt,
+      original.authorityWire, cost, result));
+  const accepted = check();
+  assert.equal(accepted.ok, true, JSON.stringify(accepted));
+  assert.equal(accepted.state, 'SavedFailure');
+  assert.equal(accepted.attemptCid, original.attemptCid);
+  assert.equal(accepted.captureCid, undefined);
+  for (const category of ['cancelled', 'result_unknown', 'provider_failure', 'ok']) {
+    assert.equal(check(seal(accounting), seal({...outcome, category})).ok, false);
+  }
+  assert.equal(check('', seal(outcome)).ok, false);
+  assert.equal(check(seal(accounting), '').ok, false);
+  assert.equal(check(seal({...accounting, slot_cid: `sha256:${'f'.repeat(64)}`})).ok, false);
+  assert.equal(check(seal(accounting), seal({...outcome, attempt_cid: `sha256:${'f'.repeat(64)}`})).ok, false);
+  assert.equal(check(seal(accounting), seal({...outcome, failure: 'result_unknown'})).ok, false);
+});

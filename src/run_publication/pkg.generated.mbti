@@ -76,6 +76,8 @@ pub fn begin_result_delivery(ResultDeliverySerializer) -> Result[String, Deliver
 
 pub fn begin_result_material_holds(String, String) -> Result[ResultMaterialHolds, ResultMaterialHoldIssue]
 
+pub fn bind_model_invocation_saved_call(BoundModelInvocationScope, Int, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue) -> Result[BoundModelSlotCapture, RunEvidenceValueIssue]
+
 pub fn bind_model_invocation_scope(RunPublicationAdmission, PublicationContract, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, Array[RunEvidenceValue], ModelInvocationBoundary) -> Result[BoundModelInvocationScope, RunEvidenceValueIssue]
 
 pub fn bind_model_slot_attempt_evidence(BoundModelSlotCapture, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunPublicationAdmission, PublicationContract) -> Result[BoundModelAttemptEvidence, RunEvidenceValueIssue]
@@ -412,11 +414,15 @@ pub fn model_observation_slot_count(RunEvidenceValue) -> Int?
 
 pub fn model_private_holding_cid(PublicationContract, String, String, Int) -> String?
 
+pub fn model_scoped_private_holding_cid(PublicationContract, String, String, String, String, Int, String, String) -> String?
+
 pub fn model_source_observation_fields(ModelSourceObservation) -> (String, String, String)
 
 pub fn model_source_observation_interval(Array[ModelSourceObservation]) -> (String, String)?
 
 pub fn model_source_observation_matches_input(ModelSourceObservation, RunEvidenceValue) -> Bool
+
+pub fn model_source_observation_originals(ModelSourceObservation) -> (RunEvidenceValue, RunEvidenceValue, String, String)
 
 pub fn next_result_delivery_row(ResultDeliverySerializer, String) -> Result[String, DeliverySerializationIssue]
 

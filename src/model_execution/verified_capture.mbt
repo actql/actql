@@ -81,6 +81,11 @@ pub fn bind_verified_model_slot_capture(
     Ok(value) => value
     Err(issue) => return Err(InvocationEvidence(issue))
   }
+  if capture.owner.state.restored_calls.get(slot) is Some(saved) &&
+    @publication.run_evidence_value_identity(saved.record) !=
+    @publication.run_evidence_value_identity(record) {
+    return Err(OutputIdentity)
+  }
   if capture.owner.state.dispatch_admission is Some(_) {
     let issued = match
       model_execution_issued_slot_capture(capture.owner, slot) {
@@ -100,6 +105,7 @@ pub fn bind_verified_model_slot_capture(
       }
       @publication.verify_model_slot_success_observation(binding, observation)
     }
+    UnresolvedUnknown => return Err(OutputIdentity)
     NoResponseFailure(_) =>
       @publication.verify_model_slot_no_response_failure(
         binding,
@@ -144,6 +150,11 @@ pub fn verified_model_capture_owned_slot(
   if state.dispatch_admission is Some(_) {
     return model_execution_issued_slot_capture(capture.owner, slot)
   }
+  if state.restored_calls.get(slot) is Some(saved) {
+    return bind_verified_model_slot_capture(capture, slot, saved.record).map(_ => {
+      saved.record
+    })
+  }
   guard state.source is RestoredSlots(read) && read.storage.proofs is Some(_) else {
     return Err(OutputIdentity)
   }
@@ -170,6 +181,16 @@ pub fn model_execution_has_adopted_evidence(execution : ModelExecution) -> Bool 
     return false
   }
   if state.dispatch_admission is Some(_) {
+    return true
+  }
+  // Every restored call already carries the bound original attempt proof.
+  // A no-send replay must not require fresh dispatch authority merely to
+  // issue its completed observation, including an empty fixed inventory.
+  if state.durable_calls &&
+    state.prepared_call_set is Some(prepared) &&
+    prepared.scope is Some(_) &&
+    state.unknown_calls.is_empty() &&
+    state.restored_calls.length() == state.requests.length() {
     return true
   }
   state.source is RestoredSlots(read) &&

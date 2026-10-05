@@ -178,11 +178,17 @@ distribution[3] = distribution[3].replace(
   'packages/sdk/checkpoints.test.mjs packages/sdk/model-checkpoints.test.mjs ',
 );
 
+// Installed Model restore reuses the existing build and distribution gate.
+distribution[3] = distribution[3].replace(
+  'adapters/host-node/installed-infer-capture.test.mjs ',
+  'adapters/host-node/installed-infer-capture.test.mjs adapters/host-node/model-resume-public.test.mjs adapters/host-node/model-resume-effect-public.test.mjs adapters/local-node/model-pause.test.mjs ',
+);
+
 // Model approval sequencing uses the same runtime build and distribution job.
 // Keep these adapter regressions separate from public packed acceptance.
 distribution[3] = distribution[3].replace(
   'adapters/host-node/client-dispatch-owner.test.mjs ',
-  'adapters/host-node/client-dispatch-owner.test.mjs adapters/host-node/infer-operation-approval.test.mjs adapters/host-node/infer-run-driver.test.mjs adapters/host-node/infer-dispatch-waiting.test.mjs ',
+  'adapters/host-node/client-dispatch-owner.test.mjs adapters/host-node/infer-operation-approval.test.mjs adapters/host-node/infer-dispatch-waiting.test.mjs ',
 );
 
 // The issued-retention original regression is part of the existing prepared

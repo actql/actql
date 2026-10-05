@@ -12,7 +12,6 @@ import {
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/run_publication_host" @publication_host,
   "actql/actql/run_publication" @publication,
-  "actql/actql/checkpoint_runtime" @checkpoint,
   "actql/actql/value_contract" @contract,
 }
 

@@ -18,7 +18,10 @@ function fixture({checkpoint, failClose = false} = {}) {
       markPhysicalClose: (_ref, outcome) => stopped.push(outcome),
       markPreDispatchFailure: () => assert.fail('preparation already started'),
     },
-    checkpoints: {heldOrigin: () => false,
+    checkpoints: {journal: {inspect(cid) {
+        assert.equal(cid, 'model-checkpoint');
+        return waiting;
+      }}, heldOrigin: () => false,
       acquisitionAccess: () => undefined, releaseAcquisition() {},
       effectRunState(runId, definitionCid) {
         assert.equal(runId, 'infer-run');
@@ -34,7 +37,7 @@ function fixture({checkpoint, failClose = false} = {}) {
     runInfer: async ({retainExecution}) => {
       retainExecution({async close() { closes++; }, cleanup: () => recover,
         cleanupPending: () => !recover});
-      return {status: 'waiting_checkpoint', checkpointCid: 'model-checkpoint'};
+      return {status: 'waiting_checkpoint', checkpoint: {checkpointCid: 'model-checkpoint'}};
     },
   });
   return {owner, ref, stopped, events, closes: () => closes,
@@ -46,9 +49,8 @@ function fixture({checkpoint, failClose = false} = {}) {
       cancellationRequested: false}, {})};
 }
 
-const held = {status: 'waiting_checkpoint', runState: {
-  status: 'waiting_checkpoint', checkpoint: {kind: 'model_invocation',
-    checkpoint_cid: 'model-checkpoint'}}};
+const held = {kind: 'model_invocation', checkpointCid: 'model-checkpoint',
+  runId: 'infer-run', runDefinitionCid: 'infer-definition', prepareAttemptId: null};
 
 test('durable Model wait closes physical preparation without failing or publishing the Run', async () => {
   const f = fixture({checkpoint: held});
@@ -63,11 +65,10 @@ test('durable Model wait closes physical preparation without failing or publishi
 
 for (const [name, checkpoint] of [
   ['no committed Checkpoint', undefined],
-  ['foreign Checkpoint', {...held, runState: {...held.runState,
-    checkpoint: {...held.runState.checkpoint, checkpoint_cid: 'foreign'}}}],
-  ['Effect approval instead of Model approval', {...held,
-    runState: {...held.runState, checkpoint: {...held.runState.checkpoint,
-      kind: 'effect_set'}}}],
+  ['foreign Run', {...held, runId: 'foreign'}],
+  ['foreign definition', {...held, runDefinitionCid: 'foreign'}],
+  ['an acquisition prepare attempt', {...held, prepareAttemptId: 'foreign'}],
+  ['Effect approval instead of Model approval', {...held, kind: 'effect_set'}],
 ]) {
   test(`an in-memory Model wait cannot substitute ${name}`, async () => {
     const f = fixture({checkpoint});

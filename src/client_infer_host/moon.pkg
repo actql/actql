@@ -7,7 +7,6 @@ import {
   "actql/actql/run_publication" @publication,
   "actql/actql/client_local_host" @input,
   "actql/actql/model_execution" @model,
-  "actql/actql/checkpoint_runtime" @checkpoint,
   "actql/actql/execution_relation" @relation,
   "actql/actql/run_publication_host" @publication_host,
   "actql/actql/check_environment" @environment,

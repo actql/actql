@@ -8,7 +8,7 @@ import {checkpointLimits, clientSourceFormats, isClientSubmitRejection, validCan
   validResourceListing, validResourcePeek, resultDescriptionLimits,
   validResultDescription, validCheckOutcome} from
   '@actql/client-wire';
-import {bytesCid, contentCid, checkedSigner, signedAnswer} from './checkpoints.mjs';
+import {reviewBytesMatchCid, contentCid, checkedSigner, signedAnswer} from './checkpoints.mjs';
 // The response owns only a weak association to this call's immutable inputs.
 // A parsed/copied report has no such association and cannot resolve a location.
 const checkInputs = new WeakMap();
@@ -1107,7 +1107,7 @@ async function connectSelected(selected, port) {
       const bytes = Uint8Array.from(atob(review.contentBase64),
         character => character.charCodeAt(0));
       if (bytes.byteLength !== review.byteLength ||
-          await bytesCid(bytes) !== review.artifactCid ||
+          !await reviewBytesMatchCid(bytes, review.artifactCid) ||
           typeof checkpoint === 'object' &&
             checkpoint.reviewProjectionCid !== undefined &&
             checkpoint.reviewProjectionCid !== review.artifactCid) {

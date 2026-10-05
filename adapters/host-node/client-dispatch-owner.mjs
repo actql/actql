@@ -106,10 +106,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       publicationCommitted =
         await store.confirmCommittedIndex(entry.ref) !== undefined;
     }
-    const retainedWait = entry.modelCheckpointRetained &&
-      !entry.abort.signal.aborted;
-    journal.markPhysicalClose(entry.ref, publicationCommitted || retainedWait
-      ? null : entry.abort.signal.aborted ? 'cancelled' : 'failed');
+    journal.markPhysicalClose(entry.ref, publicationCommitted ? null :
+      entry.abort.signal.aborted ? 'cancelled' : 'failed');
     entry.stopObservationPending = false;
     entry.stopObserved = true;
   }
@@ -441,8 +439,11 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       entry.physicalWorkMayHaveStarted = true;
       entry.computeStartAttempted = true;
       if (inferring) {
-        const inferResult = await runInfer({preparedProgram, plan: held.plan, store,
+        const result = await runInfer({preparedProgram, plan: held.plan, store,
           acquiredInfer,
+          submission: Object.fromEntries(['requestId', 'principalId', 'connection',
+            'kind', 'input', 'parameters'].filter(key => Object.hasOwn(submission, key))
+            .map(key => [key, submission[key]])),
           principalId: actual, signal: entry.abort.signal,
           retainExecution(execution) {
             if (entry.cleanupOwner !== undefined &&
@@ -456,22 +457,35 @@ export function installNodeClientDispatchOwner({moon, control, journal,
             }
             entry.cleanupOwner = execution;
           }});
-        if (inferResult?.status === 'waiting_checkpoint') {
-          // A returned Waiting is not a completed Model or a terminal Run.
-          // Accept only the exact durable Model Checkpoint in the existing
-          // continuation journal. Its owner keeps the input custody needed
-          // for resume; this supervisor still settles physical preparation.
-          const continuation = checkpoints?.effectRunState(
-            control.runDefinitionRunId(held.plan.runDefinition),
-            entry.ref.runDefinitionCid);
-          const checkpoint = continuation?.runState?.checkpoint;
-          if (entry.cleanupOwner === undefined ||
-              continuation?.status !== 'waiting_checkpoint' ||
-              checkpoint?.kind !== 'model_invocation' ||
-              checkpoint.checkpoint_cid !== inferResult.checkpointCid) {
-            throw new Error('InstalledInferCheckpointNotRetained');
+        if (result?.status === 'waiting_checkpoint') {
+          const checkpoint = checkpoints?.journal.inspect(result.checkpoint?.checkpointCid);
+          if (entry.cleanupOwner === undefined || checkpoint?.kind !== 'model_invocation' ||
+              checkpoint.prepareAttemptId !== null ||
+              checkpoint.runDefinitionCid !== accepted.ref.runDefinitionCid ||
+              checkpoint.runId !== control.runDefinitionRunId(accepted.runDefinition)) {
+            throw new Error('InstalledInferWaitingNotCommitted');
           }
-          entry.modelCheckpointRetained = true;
+          // The fixed input and continuation have reached durable custody.
+          // Stopping this physical owner is not a failed or cancelled Run;
+          // the Checkpoint lifecycle remains authoritative for its next step.
+          entry.observeStopped = () => journal.markPhysicalClose(entry.ref, null);
+          await step('infer_waiting_checkpoint', {ref: accepted.ref,
+            checkpointCid: checkpoint.checkpointCid});
+          await settleCleanup(entry);
+          await finishRun(entry);
+          return;
+        }
+        if (result?.status === 'needs_reconciliation') {
+          const runId = control.runDefinitionRunId(accepted.runDefinition);
+          if (entry.cleanupOwner === undefined ||
+              checkpoints?.journal.hasUnresolvedModelCalls(runId) !== true) {
+            throw new Error('InstalledInferUnknownNotRecorded');
+          }
+          // The owner made all permitted progress and retained an entered
+          // call without a saved response. Physical stop is not an ordinary
+          // failure and cannot turn that call into a completed barrier.
+          entry.observeStopped = () => journal.markPhysicalClose(entry.ref, null);
+          await step('infer_needs_reconciliation', {ref: accepted.ref});
           await settleCleanup(entry);
           await finishRun(entry);
           return;

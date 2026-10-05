@@ -1833,25 +1833,6 @@ function publicationControl(moon) {
     }
     return limits;
   };
-  const issueInferDispatch = (compiled, definition,
-    {account, principalId, at, delegated, observeAccount, observeAt,
-      invocationScope}) => {
-    const value = compiledRunTokens.get(compiled);
-    if (value === undefined || compiled.kind !== 'infer') {
-      throw new TypeError('Foreign Client compiled Infer Run');
-    }
-    if (typeof observeAccount !== 'function' ||
-        typeof observeAt !== 'function') {
-      throw new TypeError('Missing current Infer dispatch observations');
-    }
-    return checked(invocationScope === undefined
-      ? moon.clientProgramIssueInferDispatchAdmission(
-        value, token(definition), account, principalId, at, delegated,
-        observeAccount, observeAt)
-      : moon.clientProgramIssueScopedInferDispatchAdmission(
-        value, token(definition), account, principalId, at, delegated,
-        observeAccount, observeAt, invocationScope));
-  };
   control = Object.freeze({
     seal(name, bodyWire, limits) {
       return inspect(checked(moon.strategyPublicationSeal(
@@ -2044,22 +2025,6 @@ function publicationControl(moon) {
           ? 'RunHostSourceFreeDefinitionRejected'
           : 'RunHostSourceFreeAdmissionRejected'));
     },
-    compiledInferOriginalRunWire(compiled, definition) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer' ||
-          !moon.clientProgramCheckCompiledRunDefinition(value, token(definition))) {
-        throw new TypeError('Foreign Client compiled Infer Run');
-      }
-      // This envelope contains the original owner-issued bodies. It is not
-      // independent evidence or a fresh admission of the saved Run.
-      return JSON.stringify({
-        boundInvocationTemplateWire: compiled.template.wire,
-        compiledPlanWire: compiled.compiledPlan.wire,
-        preparedInvocationWire: compiled.preparedEvidence.wire,
-        runAuthorizationWire: compiled.authorization.wire,
-        runDefinitionWire: definition.wire,
-      });
-    },
     issueCheckedClientCompiledInvocation(compiled, definition,
       {dataPolicyCid, source}, limits) {
       const value = compiledRunTokens.get(compiled);
@@ -2114,6 +2079,13 @@ function publicationControl(moon) {
       if (identity === undefined) throw new TypeError('InvalidModelPrivateHolding');
       return identity;
     },
+    modelScopedPrivateHoldingCid(definition, storeAuthorityCid, entry, role, phase = 'settled') {
+      const identity = moon.clientProgramModelScopedPrivateHoldingCid(token(definition),
+        storeAuthorityCid, entry.scopeCid, entry.slotCid, entry.attemptCid,
+        entry.attemptIndex, phase, role);
+      if (identity === undefined) throw new TypeError('InvalidModelScopedPrivateHolding');
+      return identity;
+    },
     bindCheckedClientInferRun(compiled, execution, definition) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer') {
@@ -2122,16 +2094,69 @@ function publicationControl(moon) {
       return checked(moon.clientProgramBindInferRun(execution,
         value, token(definition)));
     },
-    // A waiting execution has already advanced past the pre-start bind
-    // boundary. Its resume path verifies this exact opaque admission itself.
-    issueCheckedClientInferDispatch(compiled, definition, observation) {
-      return issueInferDispatch(compiled, definition, observation);
-    },
     bindCheckedClientInferDispatch(compiled, execution, definition,
-      observation) {
-      const admitted = issueInferDispatch(compiled, definition, observation);
+      {account, principalId, at, delegated, observeAccount, observeAt}) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer Run');
+      }
+      if (typeof observeAccount !== 'function' ||
+          typeof observeAt !== 'function') {
+        throw new TypeError('Missing current Infer dispatch observations');
+      }
+      const admitted = checked(moon.clientProgramIssueInferDispatchAdmission(
+        value, token(definition), account, principalId, at, delegated,
+        observeAccount, observeAt));
       return checked(moon.clientProgramBindInferDispatchAdmission(execution,
         admitted));
+    },
+    readCheckedClientComposedInferSavedInputScope(compiled, definition, occurrence,
+      graph, snapshotWire, authorityScopeCid, custodyAvailable) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer' || typeof custodyAvailable !== 'function') {
+        throw new TypeError('Foreign Client compiled Infer Run');
+      }
+      return checked(moon.clientProgramReadSavedComposedInferInputScope(value, token(definition),
+        occurrence, graph, snapshotWire, authorityScopeCid, custodyAvailable));
+    },
+    readCheckedClientInferSavedInputScope(compiled, definition, preparedProgram,
+      step, graph, snapshotWire, authorityScopeCid, custodyAvailable) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer' || typeof custodyAvailable !== 'function') {
+        throw new TypeError('Foreign Client compiled Infer Run');
+      }
+      return checked(moon.clientProgramReadSavedInferInputScope(value, token(definition),
+        preparedProgram, step, graph, snapshotWire, authorityScopeCid, custodyAvailable));
+    },
+    bindCheckedClientInferModelScope(compiled, execution, definition,
+      preparedCallSet, {scope, provider, expectedBoundary}) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer Run');
+      }
+      // bindInferRun already retained this exact compilation in the active
+      // owner. The portable binder compares actual input and every fixed call.
+      checked(moon.clientProgramBindInferRun(execution, value, token(definition)));
+      return checked(moon.clientProgramBindInferModelScope(execution,
+        preparedCallSet, evidenceToken(scope), evidenceToken(provider), {...expectedBoundary,
+          task_index: BigInt(expectedBoundary.task_index),
+          strategy_revision: BigInt(expectedBoundary.strategy_revision)}));
+    },
+    bindCheckedClientInferModelDispatch(compiled, execution, definition,
+      preparedCallSet, scope, {account, principalId, at, delegated,
+        observeAccount, observeAt, enterCall}) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer' ||
+          typeof observeAccount !== 'function' || typeof observeAt !== 'function' ||
+          typeof enterCall !== 'function') {
+        throw new TypeError('Foreign Client compiled Infer dispatch');
+      }
+      const admitted = checked(moon.clientProgramIssueScopedInferDispatchAdmission(
+        value, token(definition), scope, account, principalId, at, delegated,
+        observeAccount, observeAt));
+      checked(moon.clientProgramBindInferModelDispatch(execution, preparedCallSet,
+        admitted, enterCall));
+      return admitted;
     },
     bindCheckedClientInferInvocation(compiled, execution, definition,
       verified, invocation, dataPolicyCid) {

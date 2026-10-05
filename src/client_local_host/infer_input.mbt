@@ -4,6 +4,7 @@
 /// No ModelTask provider is invoked by input preparation.
 struct ClientInferInputExecution {
   prefix : @local.ManagedProviderExecution?
+  retained_input : ClientInferRetainedInput?
   sequence : @execution.GeneratedSequence
   infer_step : Int
   owner : @lower.BoundPrepared
@@ -30,6 +31,7 @@ pub(all) enum ClientInferInputIssue {
   Mapping(@execution.InferPreparationIssue)
   ProducerRead(@execution.ProducerReadIssue)
   Capture(@query.CapturedSourceIssue)
+  RetainedInput(ClientInferRetainedInputIssue)
 }
 
 ///|
@@ -169,7 +171,6 @@ fn start_client_infer_input_sequence(
   execution : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
   mapping : @execution.InferPreparationLimits,
-  restored_input? : @execution.CompletedOutput? = None,
 ) -> Result[ClientInferInputExecution, ClientInferInputIssue] {
   if mapping.max_work < 0 || execution.max_work < 0 {
     return Err(InvalidLimits)
@@ -189,110 +190,41 @@ fn start_client_infer_input_sequence(
     Ok(value) => value
     Err(issue) => return Err(ClientInferInputIssue::Preparation(issue))
   }
-  // A restored input must carry the actual receiving completion. This bind
-  // rejects foreign occurrences and representations before mapping any row.
-  let control = @bounded.control()
-  let restored_mapping = match restored_input {
-    None => None
-    Some(output) => {
-      let bound = match
-        @execution.bind_infer_completed_input(
-          expressions, owner, target, output,
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(Mapping(issue))
-      }
-      match @execution.start_infer_rows_preparation(control, bound, mapping) {
-        Ok(value) => Some(value)
-        Err(issue) => return Err(Mapping(issue))
-      }
-    }
+  guard @local.local_bounded_relation_provider(execution, measurement, sequence)
+    is Some(provider) else {
+    return Err(UnsupportedProgram)
   }
-  let prefix = if restored_input is Some(_) {
-    None
-  } else {
-    guard @local.local_bounded_relation_provider(
-        execution, measurement, sequence,
-      )
-      is Some(provider) else {
-      return Err(UnsupportedProgram)
-    }
-    let prefix = match
-      @local.start_managed_provider_with_inputs_and_execution(
-        provider,
-        sequence,
-        inputs,
-        execution.rows.max_rows,
-        measurement.max_bytes,
-        execution,
-      ) {
-      Ok(value) => Some(value)
-      Err(issue) => return Err(Local(issue))
-    }
-    prefix
+  let prefix = match
+    @local.start_managed_provider_with_inputs_and_execution(
+      provider,
+      sequence,
+      inputs,
+      execution.rows.max_rows,
+      measurement.max_bytes,
+      execution,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Local(issue))
   }
   Ok({
-    prefix,
+    prefix: Some(prefix),
+    retained_input: None,
     sequence,
     infer_step: step,
     owner,
     target,
     expressions,
     limits: mapping,
-    control,
-    mapping: restored_mapping,
+    control: @bounded.control(),
+    mapping: None,
     rows: None,
-    completed_input: restored_input,
-    prefix_done: restored_input is Some(_),
+    completed_input: None,
+    prefix_done: false,
     stopped: false,
     cancelled: false,
     reclaimed: false,
     work: 0L,
   })
-}
-
-///|
-/// Map a Store-readmitted completion through the normal checked INFER input
-/// owner without executing its prefix again. The caller retains the admitted
-/// receiving completion and physical Store custody until this consumer ends.
-/// CIDs or caller-authored rows cannot substitute for this opaque completion.
-pub fn start_client_restored_infer_input(
-  prepared : @publication_host.PreparedClientProgram,
-  task : Int,
-  step : Int,
-  input : @execution.CompletedOutput,
-  registry_body : String,
-  values_body : String,
-  execution : @execution.SequenceExecutionLimits,
-  measurement : @execution.FixedInputGuardMeasureLimits,
-  mapping : @execution.InferPreparationLimits,
-  fragment_body? : String? = None,
-  ordered_body? : String? = None,
-) -> Result[ClientInferInputExecution, ClientInferInputIssue] {
-  if @publication_host.client_infer_prefix_owner(prepared, task, step) is None {
-    return Err(UnsupportedProgram)
-  }
-  guard prepare_client_infer_prefix(
-      prepared,
-      task,
-      step,
-      registry_body,
-      values_body,
-      fragment_body~,
-      ordered_body~,
-    )
-    is Some(sequence) else {
-    return Err(UnsupportedProgram)
-  }
-  start_client_infer_input_sequence(
-    sequence,
-    step,
-    [],
-    execution,
-    measurement,
-    mapping,
-    restored_input=Some(input),
-  )
 }
 
 ///|
@@ -430,6 +362,14 @@ pub fn advance_client_infer_input(
         active.stopped = true
         Ok(Stopped(work=active.work))
       }
+      @local.Waiting(work~, ..) | @local.Settling(_, work~, ..) => {
+        // The checked Compute-only prefix cannot own a Model call. Reject an
+        // unexpected pause without pretending its physical owner has stopped.
+        active.work += work
+        @local.cancel_managed_provider(prefix) |> ignore
+        active.stopped = @local.managed_provider_stopped(prefix)
+        Err(UnsupportedProgram)
+      }
       @local.CarrierComplete(_, work~, ..) => {
         active.work += work
         active.stopped = true
@@ -505,6 +445,9 @@ pub fn cleanup_client_infer_input(
       Ok(false) => return Ok(false)
       Err(issue) => return Err(Local(issue))
     }
+  }
+  if active.retained_input is Some(retained) {
+    close_client_infer_retained_input(retained) |> ignore
   }
   active.reclaimed = true
   active.completed_input = None
