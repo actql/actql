@@ -34,6 +34,7 @@ const typeName = {enum: ['null', 'boolean', 'number', 'string', 'array', 'object
 const lexicalIssues = ['unexpected_end', 'unexpected_token', 'invalid_escape',
   'invalid_scalar', 'empty_identifier', 'unterminated_comment', 'invalid_number', 'invalid_parameter'];
 const graphIssues = ['invalid_kind', 'invalid_output_rows'];
+const subgraphIssues = ['invalid_node_selector'];
 const expressionIssues = ['unknown_reference', 'invalid_arguments', 'invalid_number', 'expected_boolean'];
 export const checkReasonSchema = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
@@ -55,12 +56,18 @@ export const checkReasonSchema = {
           constraint: {enum: ['numeric', 'duration', 'array_length', 'array_size']}}},
       {type: 'object', additionalProperties: false, required: ['operation', 'issue'],
         properties: {operation: {const: 'components'}, issue: {enum: graphIssues}}},
+      {type: 'object', additionalProperties: false, required: ['operation', 'issue'],
+        properties: {operation: {const: 'subgraph'}, issue: {enum: subgraphIssues}}},
       {type: 'object', additionalProperties: false, required: ['issue'],
         properties: {issue: {enum: [...new Set([...lexicalIssues, ...expressionIssues])]}}},
     ]}},
   allOf: [
     {if: {properties: {code: {const: 'supplied_value_type_mismatch'}}},
       then: {required: ['facts'], properties: {facts: {required: ['actual_type']}}}},
+    {if: {properties: {code: {const: 'parameter_default_type_mismatch'}}},
+      then: {required: ['facts'], properties: {facts: {required: ['actual_type']},
+        location: {properties: {kind: {const: 'structured'},
+          document_id: {const: 'parameter_declarations'}}}}}},
     {if: {properties: {code: {const: 'parameter_undeclared'}}},
       then: {required: ['facts'], properties: {facts: {required: ['parameter'], allOf: [
         {not: {required: ['expected_type']}}, {not: {required: ['constraint']}}]}}}},
@@ -77,9 +84,10 @@ export const checkReasonSchema = {
         location: {properties: {kind: {const: 'text'}}}}}},
     {if: {properties: {code: {const: 'graph_operation_invalid'}}},
       then: {required: ['facts'], properties: {facts: {required: ['operation', 'issue'],
-        properties: {operation: {const: 'components'}, issue: {enum: graphIssues}}},
+        properties: {operation: {enum: ['components', 'subgraph']},
+          issue: {enum: [...graphIssues, ...subgraphIssues]}}},
         location: {properties: {kind: {const: 'text'}}}}}},
-    {if: {properties: {code: {not: {enum: ['supplied_value_type_mismatch', 'parameter_value_required', 'parameter_undeclared', 'supplied_value_constraint_violation', 'query_lexical_invalid', 'query_expression_invalid', 'graph_operation_invalid']}}}},
+    {if: {properties: {code: {not: {enum: ['supplied_value_type_mismatch', 'parameter_default_type_mismatch', 'parameter_value_required', 'parameter_undeclared', 'supplied_value_constraint_violation', 'query_lexical_invalid', 'query_expression_invalid', 'graph_operation_invalid']}}}},
       then: {not: {required: ['facts']}}},
   ],
 };

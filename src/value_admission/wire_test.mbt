@@ -42,6 +42,49 @@ fn assert_wire(
 }
 
 ///|
+test "resumable typed wire yields inside a long nested Text and cancels" {
+  let text = String::make(130, 'a') + "😀"
+  let expected = "[\"" + text + "\",[1,2]]"
+  let value = accept(simple("json"), expected)
+  // Outer array, Text, inner array and two numbers: five nodes, depth two.
+  // Quoted Text is 136 bytes; both array envelopes and ',[1,2]' add eight.
+  let writer = @encode.writer(144, 5, 2)
+  let cursor = @value_admission.start_wire_emit(value.value, writer)
+  let mut polls = 0
+  let mut largest = 0
+  let mut done = false
+  while !done && polls < 100 {
+    let before = @encode.writer_progress(writer).0
+    done = @value_admission.advance_wire_emit(cursor)
+    largest = Int::max(largest, @encode.writer_progress(writer).0 - before)
+    polls += 1
+  }
+  assert_true(done && polls > 3)
+  assert_true(largest <= 68)
+  assert_eq(@value_admission.wire_emit_pending_frames(cursor), 0)
+  assert_eq(@encode.finish_text_usage(writer), (expected, 144, 5, 2))
+
+  let writer = @encode.writer(144, 5, 2)
+  let cursor = @value_admission.start_wire_emit(value.value, writer)
+  for _ in 0..<4 {
+    assert_false(@value_admission.advance_wire_emit(cursor))
+  }
+  // One Text chunk has emitted, while the outer continuation still exists.
+  assert_eq(@encode.writer_progress(writer).0, 66)
+  @value_admission.cancel_wire_emit(cursor)
+  assert_eq(@value_admission.wire_emit_pending_frames(cursor), 0)
+  assert_true(
+    try {
+      @encode.finish(writer) |> ignore
+      false
+    } catch {
+      @encode.ClosedWriter => true
+      _ => false
+    },
+  )
+}
+
+///|
 test "typed wire fixed scalar and opaque object vectors" {
   // Expected text and UTF-8 counts are independently fixed, not product output.
   for

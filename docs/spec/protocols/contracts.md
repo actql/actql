@@ -1330,7 +1330,7 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:f2590f98dbf689c88515222bad6159cdb7f3f98a4d3b36c5b2a17c8d314749c8 -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
-<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:373ead0fcb26870ba3309594bb73f29a3d9918b509807ddeb9549d644bff9feb -->
+<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:b862682624a332be400671e882b7890178a099b78fbca606755743d4154f69d7 -->
 <!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:8d2b0da02c425402474f281cbe9ab15d5bdc6fed061e40005d2ebc13353904c7 -->
 
 <a id="parameter-value-projection"></a>
@@ -1918,8 +1918,8 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/normalization_journal sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:4ccb9e9e3c885c48a19359c2771456a0d25fa9dfb44bf27130d6a655257ace45
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_result sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_reason sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_outcome sha256:73ad8b654c674edac53fe6b31438b6425e9c8d90fa908deecceec6940ff72ff1
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_reason sha256:ceb2a05aa8eee7b8c62fc9e734d5488e1c3b9ddd4fc57bbbd1b419cb2bb88261
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_outcome sha256:955a26f215973e6b41e95b908836bdf555761e9b4f79bd6f3c7d6abb25fb7e17
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_source sha256:6730fdb00f7b0f21ae796bd55f686fb984cddac5b8da5325cec2114b82a37e1c
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_barrier sha256:587bfea69fbab0d23d200ac65ffc20c373142c4843820d37db6e0c617f10206a
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_evaluation_envelope sha256:168fa3b40dd267423f0cbf0b350e9fbab589f094afb400f9f83a2dad22171ba9

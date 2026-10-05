@@ -9,6 +9,7 @@ import {generateKeyPairSync, sign} from 'node:crypto';
 import {mkdir, mkdtemp, readdir, readFile, rm, writeFile} from
   'node:fs/promises';
 import {createServer} from 'node:https';
+import {DatabaseSync} from 'node:sqlite';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
 import test, {after} from 'node:test';
@@ -291,6 +292,40 @@ test('a comment waits for approval across a restart, is sent once and never agai
     assert.equal((await again.status()).status, 'succeeded');
     assert.equal(commentSends(setup.api).length, 1);
     assert.equal(setup.state.comments.length, 1);
+  });
+
+test('a recovered Ledger whose first close fails is retried by its Host owner, once',
+  async t => {
+    const setup = await installation(t);
+    const first = await setup.openHost();
+    const {execution} = await submitted(setup, first, 'comment-close-retry',
+      [{node_id: 'I_7', comment: 'hello from actql'}]);
+    await approvedAndStopped(setup, first, execution);
+    // The resumed Host's first Effect Ledger close fails.
+    const original = DatabaseSync.prototype.close;
+    const counts = {attempts: 0, closes: 0};
+    let failures = 1;
+    DatabaseSync.prototype.close = function () {
+      if (!new Error().stack.includes('effect-ledger.mjs')) {
+        return original.call(this);
+      }
+      counts.attempts++;
+      if (failures > 0) {
+        failures--;
+        throw new Error('InjectedLedgerCloseFailure');
+      }
+      const closed = original.call(this);
+      counts.closes++;
+      return closed;
+    };
+    t.after(() => { DatabaseSync.prototype.close = original; });
+    const {host, state} = await resumed(setup, execution);
+    assert.equal(state.status, 'succeeded', JSON.stringify(state));
+    await waitFor(async () => counts.closes === 1);
+    await host.close();
+    // Sent once; the handle was closed once, by a retry of the failed close.
+    assert.equal(commentSends(setup.api).length, 1);
+    assert.deepEqual(counts, {attempts: 2, closes: 1});
   });
 
 test('a pull request or another repository\'s Issue is refused before any approval or send',

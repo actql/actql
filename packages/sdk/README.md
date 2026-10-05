@@ -429,6 +429,45 @@ and remain undetermined in bound-input scope. Unsupported checking and budget
 exhaustion are not author errors. Inaccessible and absent installed Source aliases
 share unresolved coverage; an independent public violation remains visible.
 
+`getCheckRequirementFrontier(outcome)` retains the known public parameter
+Requirements of this exact completed SDK response. `equalCheckRequirementFrontiers(a, b)`
+compares their bound scope, opaque context reference, reason schema, typed
+obligation set and outstanding coverage. Requirement order, duplicates, fact-key
+order and optional presentation locations do not establish progress. Changed
+bindings or declarations change the bound context even when the remaining
+parameter names and expected types are identical. The returned observation is
+immutable; copied or partial reports are not comparable. The current closed
+wire schema rejects unknown Requirement codes and malformed known facts.
+
+```js
+import {createCheckSupplementationSession} from '@actql/sdk';
+const checks = createCheckSupplementationSession(client, {maxAttempts: 3});
+const result = await checks.check('SELECT @x AS n', {
+  format: 'sql', parameterDeclarations: {x: {type: 'number'}}, parameters: {},
+});
+// Present the unchanged Owner outcome, including its scope and verdict.
+console.log(result.outcome, result.decision);
+// After obtaining a value, explicitly call checks.check with the new bindings.
+```
+
+The session issues only the caller's explicit read-only checks. It stops after
+an unchanged frontier, a non-comparable response, no known supplementation path,
+or the total attempt cap, including across changing contexts. Failed attempts
+consume that cap; concurrent calls refuse before another attempt. A stopped
+session refuses further calls before transport I/O. `more_checks` indicates
+remaining local attempt capacity, not verification, progress, permission to
+execute or authority to write supplements. Per-call Owner analysis/reporting
+budgets still apply; the session does not measure total server work. It creates
+no submission lifecycle, Host input storage, public hash or new wire contract.
+
+The SDK detaches each validated check response before binding input snapshots
+and freezing the received observation. A Local Host can reuse its response
+objects; later replies cannot replace an earlier outcome, context, input or
+location association. Completed and failed partial reports keep their own
+submitted inputs. Unavailable responses provide no bound report or snapshot.
+Uncloneable replies or replies whose copied shape violates the wire contract
+fail with `InvalidHostCheckOutcome` before acquiring an input association.
+
 Locations use the immutable original input snapshot, not the latest editor buffer.
 `resolveCheckLocation` returns `undefined` for a copied report, missing snapshot,
 stale revision, changed content, invalid byte boundary or a structured pointer
@@ -510,7 +549,30 @@ position. Absent and inaccessible Source dependencies stop before dependent
 predicate checking and retain equivalent protected unresolved coverage.
 The verdict still comes from the common checker; explanations are advisory.
 
-### Graph components argument explanations
+### Parameter default type explanations
+
+`parameter_default_type_mismatch` explains the declaration owner's typed
+wrong-type or unexpected-null rejection of a literal default. Its closed
+`parameter`, `expected_type` and `actual_type` facts describe the failing leaf,
+including nested object fields and array items; they contain no default value.
+Its optional structured location belongs to `parameter_declarations`, uses the
+original key spelling and binds to the revision retained for that check call.
+The SDK advises correcting the default rather than supplying a missing value.
+A valid default still goes through the common checker. Declaring an unused
+parameter is independently invalid; a default is not a parameter use.
+
+Other declaration errors keep their existing safe fallback. Declaration budgets
+remain analysis limits. No dependent Source diagnosis is inferred after
+rejected declaration admission. The Host adds no persistent input storage or
+retrieval API, and the SDK retains the existing call-bound input custody.
+
+This extension changes the registered `actql-check-reason/0.1` body and reason CID
+with coordinated Host, schema, validator, SDK type and fixture updates. The embedded reason pin also changes the `actql-check-outcome/0.1` schema body
+and CID; the outcome fields and verdict semantics remain unchanged.
+`actql-diagnostics/0.1` remains unchanged.
+Mixed reason-schema pins are rejected; there is no compatibility adapter.
+
+### Graph argument explanations
 
 The public `graph_operation_invalid` reason carries closed facts
 `operation: "components"` and `issue: "invalid_kind"` or
@@ -530,8 +592,19 @@ inaccessible Source dependencies stop before this dependent Graph diagnosis
 and retain the same protected unresolved result. Source-free valid weak and
 strong components remain verified. Checking does not execute a Graph task.
 
+Subgraph selector violations carry `operation: "subgraph"` and
+`issue: "invalid_node_selector"`. The SDK describes the closed selector forms:
+nonempty ids, a named Relation with an id field, or a node where predicate.
+The currently unimplemented where form is an implementation limit with an
+undetermined verdict. Invalid selectors are input violations. Generated
+Program paths are not authored locations, so these explanations omit positions.
+Protected dependencies suppress dependent Graph explanations while independent
+supplied-value violations remain public.
+
 This coordinated extension changes the registered `actql-check-reason/0.1`
-body and dependent outcome schema identities, validators and SDK wire types.
+body, its identity pins, validators and SDK wire types. The Subgraph extension
+changes the reason-schema CID and the outcome-schema CID because the latter
+embeds the exact reason pin. Outcome fields and verdict semantics remain unchanged.
 It leaves `actql-diagnostics/0.1` unchanged. Mixed schema pins are rejected by
 existing contract validation; there is no compatibility adapter.
 
@@ -539,6 +612,13 @@ existing contract validation; there is no compatibility adapter.
 
 `explainCancellation(result)` returns immutable read-only advice for the exact
 response or uncertain error produced by this SDK's `Execution.cancel()` call.
+The SDK detaches each validated cancellation response, so a Local port reusing
+its response object cannot change an earlier result's Run, kind, revision or
+explanation.
+The detached value is revalidated against the response schema and all three
+original Run fields. Clone failures or changed fields raise
+`InvalidHostCancellation` with the original Run's `outcome_unknown` advice;
+they never trigger another cancellation request.
 Validated `accepted`, `already_requested` and `already_terminal` observations
 retain the Host's control revision. The summary distinguishes recording a
 cancellation request, an existing request and a Run already terminal for

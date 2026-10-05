@@ -1,4 +1,34 @@
 ///|
+test "unused Parameter declarations retain the existing input rejection" {
+  let (text, _, environment, _, limits) = public_input_fixture()
+  let text = text.replace(old="id + $n", new="id + 1")
+  let parsed = @syntax.parse(text, limits.input, format=Json).unwrap()
+  for
+    outcome in [
+      @program_check.check_document(
+        text,
+        environment,
+        None,
+        limits,
+        format=Json,
+      ),
+      @program_check.check_parsed(parsed, environment, None, limits),
+    ] {
+    let diagnostic = public_rejected(outcome)
+    guard @program_check.diagnostic_cause(diagnostic)
+      is @program_check.LocalConstructionFailure::Source(
+        Identity(References(Usage(UnusedParameter(declaration))))
+      ) else {
+      raise @program_check.diagnostic_cause(diagnostic)
+    }
+    assert_eq(declaration.name, "n")
+    assert_eq(@program_check.diagnostic_category(diagnostic), InvalidInput)
+    // This classification does not invent a public input location.
+    assert_true(@program_check.diagnostic_location(diagnostic) is None)
+  }
+}
+
+///|
 test "document and parsed diagnostics expose semantic categories without phase matching" {
   let (text, _, environment, _, limits) = public_input_fixture()
   for

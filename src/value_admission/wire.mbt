@@ -1,6 +1,7 @@
 ///|
 priv enum WireFrame {
   Read(Value)
+  TextNext(@encode.StringEmitCursor)
   ArrayNext(FrozenArray[Value], Int)
   ObjectNext(FrozenArray[(String, Value)], Int)
   VectorNext(FrozenArray[Double], Int)
@@ -100,11 +101,20 @@ pub fn start_wire_emit(
 /// Drop pending frames; the writer stays owned by the caller.
 pub fn cancel_wire_emit(cursor : WireEmitCursor) -> Unit {
   for frame in cursor.pending {
-    if frame is ReferenceNext(reference) {
-      @identity.cancel_emit(reference)
+    match frame {
+      TextNext(text) => @encode.cancel_string_value(text)
+      ReferenceNext(reference) => @identity.cancel_emit(reference)
+      _ => ()
     }
   }
   cursor.pending.clear()
+}
+
+///|
+/// Number of owned continuations, for callers that reserve traversal custody
+/// before advancing. One frame can grow the pending stack by at most one.
+pub fn wire_emit_pending_frames(cursor : WireEmitCursor) -> Int {
+  cursor.pending.length()
 }
 
 ///|
@@ -121,7 +131,12 @@ pub fn advance_wire_emit(
         Null => @encode.null_value(output)
         Boolean(v) => @encode.bool_value(output, v)
         Number(v) => @encode.number_value(output, v)
-        Text(v) | Date(v) | Timestamp(v) => @encode.string_value(output, v)
+        Text(v) | Date(v) | Timestamp(v) =>
+          if v.length() <= 64 {
+            @encode.string_value(output, v)
+          } else {
+            pending.push(TextNext(@encode.start_string_value(output, v)))
+          }
         Decimal(v) => @encode.string_value(output, decimal_wire_text(v))
         Array(items) => {
           @encode.begin_array(output)
@@ -139,6 +154,10 @@ pub fn advance_wire_emit(
           pending.push(
             ReferenceNext(@identity.start_emit(reference.envelope, output)),
           )
+      }
+    TextNext(text) =>
+      if !@encode.advance_string_value(text) {
+        pending.push(TextNext(text))
       }
     ArrayNext(items, index) =>
       if items.values.get(index) is Some(child) {
