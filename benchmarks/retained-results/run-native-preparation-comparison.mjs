@@ -17,19 +17,20 @@ const root = fileURLToPath(new URL('../../', import.meta.url));
 const exec = promisify(execFile);
 const [baselinePath, outputPath, condition, ...extra] = process.argv.slice(2);
 assert(baselinePath && outputPath && !extra.length &&
-  (condition === undefined || ['--matched-first-use', '--retained-continuation', '--retained-text-1000', '--retained-preflight', '--bounded-text-discard'].includes(condition)),
+  (condition === undefined || ['--matched-first-use', '--retained-continuation', '--retained-text-1000', '--retained-preflight', '--bounded-text-discard', '--native-bounded-batches'].includes(condition)),
   'ExpectedNativePreparationBaselineAndOutput');
 const continuation = condition === '--retained-continuation';
 const preflight = condition === '--retained-preflight';
 const discardText = condition === '--bounded-text-discard';
-const retainedText = condition === '--retained-text-1000' || preflight || discardText;
+const boundedBatches = condition === '--native-bounded-batches';
+const retainedText = condition === '--retained-text-1000' || preflight || discardText || boundedBatches;
 const matchedFirstUse = condition !== undefined;
 const destination = resolve(outputPath);
 assert(destination !== root && !destination.startsWith(root + sep), 'NativeComparisonOutputInsideCheckout');
 const beforeBinary = resolve(baselinePath);
-const baselineRevision = (continuation || preflight || discardText) ? 'fe0b68242d9e240494e85ecb0438f74f55855c88'
+const baselineRevision = (continuation || preflight || discardText || boundedBatches) ? 'fe0b68242d9e240494e85ecb0438f74f55855c88'
   : 'f8c6876389430490cdfd09c3e576d77c6d227d06';
-const beforeDigest = (continuation || preflight || discardText) ? '2152155cc13ae8003df3c8b46a13ae45edf4a567554d579a440332475dd18f80'
+const beforeDigest = (continuation || preflight || discardText || boundedBatches) ? '2152155cc13ae8003df3c8b46a13ae45edf4a567554d579a440332475dd18f80'
   : '18c389007dcdd78638895b9b3d6a88c36783a342c8a1667ffe8a8c849a5a9830';
 assert.equal(await sha256File(beforeBinary), beforeDigest, 'NativeAsciiBaselineChanged');
 const afterBinary = join(root, '_build/native/release/build/cmd/native_retained_case_probe/native_retained_case_probe.exe');
@@ -39,13 +40,16 @@ const git = async args => (await exec('git', args, {cwd: root})).stdout.trim();
 const revision = await git(['rev-parse', 'HEAD']);
 // These fixed experiments use archived builds, not a guessed current-HEAD
 // build. A later documentation/controller revision cannot retag the binary.
-const compiledSourceRevision = discardText ? '38b5f32e42ce7f0d3ecd18c518e95f1a4eca1776'
+const compiledSourceRevision = boundedBatches ? '58ec55085f78b22eef890a99778bf05f5749c2f3'
+  : discardText ? '38b5f32e42ce7f0d3ecd18c518e95f1a4eca1776'
   : preflight ? '9c74a5b6686ebb87fa7726ed763eeda447541846'
   : continuation ? '09b003893564cd01d4ff36ae4a6b2302839bd852'
   : 'fe0b68242d9e240494e85ecb0438f74f55855c88';
 assert.equal(await git(['diff', '--name-only', compiledSourceRevision, revision, '--', 'src']), '',
   'NativePreparationCompiledSourceChanged');
-assert.equal(afterDigest, discardText
+assert.equal(afterDigest, boundedBatches
+  ? '8a9933758dc74e5a30d3775f5ee6fb7aa8c9cec072d5ac6d28e6be2a15f7af59'
+  : discardText
   ? '2574943aee7b9bc91430d3277f04b333a97770b893555d6c549fd459528f7efc'
   : preflight
   ? '0bcb9cf3cb82a7d4ce1abde7c493c7bef02f7cedb8528bdbab1e43f04571b347'
@@ -54,7 +58,9 @@ assert.equal(afterDigest, discardText
   : '2152155cc13ae8003df3c8b46a13ae45edf4a567554d579a440332475dd18f80',
   'NativePreparationCompiledBinaryChanged');
 const sourceChanges = (await git(['diff', '--name-only', baselineRevision, revision, '--', 'src'])).split('\n').filter(Boolean);
-assert.deepEqual(sourceChanges.sort(), discardText
+assert.deepEqual(sourceChanges.sort(), boundedBatches
+  ? ['src/connectors/duckdb/host_native/compute_execution.mbt']
+  : discardText
   ? ['src/encode_core/buffered_hash_wbtest.mbt', 'src/encode_core/cancel_writer_wbtest.mbt',
     'src/encode_core/document.mbt', 'src/encode_core/pkg.generated.mbti', 'src/encode_core/writer.mbt',
     'src/execution_relation/admitted_output_stream.mbt', 'src/execution_relation/completed_output_import.mbt',
@@ -75,11 +81,12 @@ const fixture = retainedText ? retainedCase(workloads[2], 'text-1024', 1000)
   : retainedCase(workloads[0], 'narrow', 100);
 const directory = await mkdtemp(join(tmpdir(), 'actql-native-ascii-word-'));
 const database = join(directory, 'source.duckdb');
-const label = discardText ? 'bounded-text-retention' : preflight ? 'retained-preflight-iterator' : continuation ? 'canonical-continuation-rewrap' : 'native-ascii-word-loop';
+const label = boundedBatches ? 'native-per-row-drain' : discardText ? 'bounded-text-retention' : preflight ? 'retained-preflight-iterator' : continuation ? 'canonical-continuation-rewrap' : 'native-ascii-word-loop';
 const pairs = [];
 const warmups = [];
 const basis = {revision, compiledSourceRevision, baselineRevision, beforeDigest, afterDigest, sourceChanges,
-  change: discardText ? 'Discard unused provisional encoded text while preserving the same batch/aggregate counters, canonical hash, drain schedule and Owner checks'
+  change: boundedBatches ? 'Reuse the existing bounded admitted batch drain at the installed byte ceiling and min(64, max_chunk_rows); preserve per-row admission/work, pending chunk backpressure, canonical identity, seal and Owner checks'
+    : discardText ? 'Discard unused provisional encoded text while preserving the same batch/aggregate counters, canonical hash, drain schedule and Owner checks'
     : preflight ? 'Scan retained JSON shape with bounded UTF-16 indices; UTF-8, JSON syntax, typed admission and all owner/identity checks remain'
     : continuation ? 'Retain a container continuation without rewrapping it per child; exact advance schedule unchanged'
     : 'Four checked ASCII units per word without the inner loop',

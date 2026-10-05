@@ -7,12 +7,12 @@ export function assessPairedTiming(pairs, {
 }) {
   if (!['baseline-actql', 'direct-duckdb',
     'direct-duckdb-with-identical-obligations-and-independent-holding',
-    'uncalibrated-native-selection', 'artifact-read-buffer-64k', 'source-open-read-write', 'native-ascii-word-loop', 'canonical-continuation-rewrap', 'retained-preflight-iterator', 'bounded-text-retention'].includes(comparator) ||
+    'uncalibrated-native-selection', 'artifact-read-buffer-64k', 'source-open-read-write', 'native-ascii-word-loop', 'canonical-continuation-rewrap', 'retained-preflight-iterator', 'bounded-text-retention', 'native-per-row-drain'].includes(comparator) ||
       !['executionMs', 'warmMs', 'coldMs', 'cleanupMs', 'processCycleMs', 'benchmarkCycleMs', 'databasePreparationMs', 'applicationPreparationMs', 'computeAndIdentityMs'].includes(field) ||
-      field === 'processCycleMs' && !['uncalibrated-native-selection', 'artifact-read-buffer-64k', 'source-open-read-write', 'native-ascii-word-loop', 'canonical-continuation-rewrap', 'retained-preflight-iterator', 'bounded-text-retention'].includes(comparator) ||
+      field === 'processCycleMs' && !['uncalibrated-native-selection', 'artifact-read-buffer-64k', 'source-open-read-write', 'native-ascii-word-loop', 'canonical-continuation-rewrap', 'retained-preflight-iterator', 'bounded-text-retention', 'native-per-row-drain'].includes(comparator) ||
       field === 'benchmarkCycleMs' && !['artifact-read-buffer-64k', 'source-open-read-write'].includes(comparator) ||
       field === 'databasePreparationMs' && comparator !== 'source-open-read-write' ||
-      ['applicationPreparationMs', 'computeAndIdentityMs'].includes(field) && !['native-ascii-word-loop', 'canonical-continuation-rewrap', 'retained-preflight-iterator', 'bounded-text-retention'].includes(comparator) ||
+      ['applicationPreparationMs', 'computeAndIdentityMs'].includes(field) && !['native-ascii-word-loop', 'canonical-continuation-rewrap', 'retained-preflight-iterator', 'bounded-text-retention', 'native-per-row-drain'].includes(comparator) ||
       !['ratio', 'difference'].includes(mode) || !Number.isFinite(threshold) ||
       !Number.isSafeInteger(minimumPairs) || minimumPairs < 7 ||
       !Number.isSafeInteger(resamples) || resamples < 10000 || resamples > 1000000 ||
