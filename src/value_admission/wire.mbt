@@ -104,14 +104,11 @@ pub fn start_wire_emit(
 /// Drop pending frames; the writer stays owned by the caller.
 pub fn cancel_wire_emit(cursor : WireEmitCursor) -> Unit {
   for frame in cursor.pending {
-    if frame is TextNext(text) {
-      @encode.cancel_string_value(text)
-    }
-    if frame is KeyNext(key) {
-      @encode.cancel_ordered_key(key)
-    }
-    if frame is ReferenceNext(reference) {
-      @identity.cancel_emit(reference)
+    match frame {
+      TextNext(text) => @encode.cancel_string_value(text)
+      KeyNext(key) => @encode.cancel_ordered_key(key)
+      ReferenceNext(reference) => @identity.cancel_emit(reference)
+      _ => ()
     }
   }
   cursor.pending.clear()

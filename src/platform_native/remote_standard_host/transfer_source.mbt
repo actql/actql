@@ -1,11 +1,19 @@
 ///|
 /// Registered finite codec profile for a Transfer-backed standard input. The
-/// first profile stores exactly one canonical retained-row wire per manifest
-/// chunk; this is not a universal Transfer codec requirement.
+/// profile fixes manifest framing before any physical read: the existing
+/// retained-row profile uses bare rows, while the standard export contract
+/// uses ordered-array framing. Neither profile falls back to the other.
 struct NativeRemoteStandardRowCodec {
   schema_contract_cid : String
   view_contract_cid : String
   codec_contract_cid : String
+  framing : NativeRemoteStandardRowFraming
+}
+
+///|
+priv enum NativeRemoteStandardRowFraming {
+  BareRow
+  OrderedArray
 }
 
 ///|
@@ -48,6 +56,7 @@ struct NativeRemoteStandardPhysicalAdmission {
   sequence : @query.QuerySequence
   program : @context.ProgramSourceIdentity
   limits : NativeRemoteStandardTransferSourceLimits
+  framing : NativeRemoteStandardRowFraming
   output : @execution.AdmittedOutput
   expected_lengths : Array[Int64]
   row_count : Int
@@ -201,7 +210,13 @@ pub fn register_native_remote_standard_row_codec(
     !transfer_source_cid(codec_contract_cid) {
     return Err(InvalidProfile)
   }
-  Ok({ schema_contract_cid, view_contract_cid, codec_contract_cid, })
+  let framing = if codec_contract_cid ==
+    @execution.ordered_rows_canonical_contract_cid() {
+    OrderedArray
+  } else {
+    BareRow
+  }
+  Ok({ schema_contract_cid, view_contract_cid, codec_contract_cid, framing, })
 }
 
 ///|
@@ -339,11 +354,28 @@ fn finish_transfer_source_admission_row(
     admission.current_bytes != admission.expected_lengths[admission.current] {
     return Err(InvalidProfile)
   }
-  append_transfer_source_row(
-    admission.output,
-    admission.row,
-    admission.limits.wire,
-  )
+  let bytes = match admission.framing {
+    BareRow => admission.row
+    OrderedArray => {
+      if admission.row_count == 0 {
+        if admission.row != [91, 93] {
+          return Err(InvalidProfile)
+        }
+        return Ok(())
+      }
+      let count = admission.row.length()
+      let prefix : Byte = if admission.current == 0 { 91 } else { 44 }
+      let last = admission.current == admission.expected_lengths.length() - 1
+      let suffix = if last { 1 } else { 0 }
+      if count <= 1 + suffix ||
+        admission.row[0] != prefix ||
+        (last && admission.row[count - 1] != 93) {
+        return Err(InvalidProfile)
+      }
+      Array::makei(count - 1 - suffix, index => admission.row[index + 1])
+    }
+  }
+  append_transfer_source_row(admission.output, bytes, admission.limits.wire)
 }
 
 ///|
@@ -392,7 +424,12 @@ pub fn prepare_native_remote_standard_physical_admission(
   }
   let mut wire_bytes = 0L
   for index, rows in row_counts {
-    if rows != 1 ||
+    let expected_rows = if codec.framing is OrderedArray && row_count == 0 {
+      0
+    } else {
+      1
+    }
+    if rows != expected_rows ||
       byte_lengths[index] < 0L ||
       byte_lengths[index] > limits.wire.max_bytes.to_int64() {
       return Err(transfer_source_failure(Some(token), InvalidProfile))
@@ -402,8 +439,13 @@ pub fn prepare_native_remote_standard_physical_admission(
       return Err(transfer_source_failure(Some(token), Limit))
     }
   }
-  if (row_count == 0 && !row_counts.is_empty()) ||
-    row_count != row_counts.length() {
+  let expected_chunks = if codec.framing is OrderedArray && row_count == 0 {
+    1
+  } else {
+    row_count
+  }
+  if row_counts.length() != expected_chunks ||
+    (row_count == 0 && codec.framing is OrderedArray && byte_lengths[0] != 2L) {
     return Err(transfer_source_failure(Some(token), InvalidProfile))
   }
   let output = match
@@ -422,6 +464,7 @@ pub fn prepare_native_remote_standard_physical_admission(
     sequence,
     program,
     limits,
+    framing: codec.framing,
     output,
     expected_lengths: byte_lengths,
     row_count,
@@ -490,12 +533,12 @@ pub fn finish_native_remote_standard_physical_admission(
   if !transfer_source_live(admission.token) {
     return Err(cancel_transfer_source_admission(admission, InvalidProfile))
   }
-  if admission.row_count == 0 {
+  if admission.expected_lengths.is_empty() {
     if admission.current != -1 {
       return Err(cancel_transfer_source_admission(admission, InvalidProfile))
     }
   } else {
-    if admission.current != admission.row_count - 1 {
+    if admission.current != admission.expected_lengths.length() - 1 {
       return Err(cancel_transfer_source_admission(admission, InvalidProfile))
     }
     match finish_transfer_source_admission_row(admission) {

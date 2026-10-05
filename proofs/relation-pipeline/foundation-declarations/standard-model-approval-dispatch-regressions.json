@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "standard-model-approval-dispatch-regressions",
+  "kind": "change",
+  "revision": "2e0909bf8bdfb5e6f289f78d8510f68955ef8a63",
+  "parents": [
+    "947745a03ee1105fd5d569a5bb046200ba5bc679"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "947745a03ee1105fd5d569a5bb046200ba5bc679",
+          "digest": "dd38a08f5423a613fc63461d45822b1aa860b869f57bfd0f8819db5b1fa8a0eb",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "4f9e7231d28d9a52205767a2bb1384ea2bc5bf9943c61f8e2f1508f98b6c22db",
+      "afterMode": "100644",
+      "reason": "Register independent prepared-wait, driver, and approval-owner regressions in the existing distribution check without adding a parallel heavy job."
+    }
+  ]
+}
