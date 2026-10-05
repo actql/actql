@@ -64,6 +64,44 @@ mutations of the Native owner implementation.
 
 ## Remaining first-unit obligations
 
+### Public Node acquisition capacity counterexample
+
+The explicit `node-acquisition-counterexample.mjs` preserves the requested
+successful Native/Broad equivalence expectation on the same registered 100-row
+source. It is not included in ordinary portable test discovery or accepted as
+a passing regression. The Node public source boundary requires schema snapshots
+and capability evidence; the diagnostic supplies those from the fixture's
+declared contracts, without deriving expected results from the evaluator.
+
+On development sources at `93a28858a47ea3ac61f23a2aa50795a6dbe2cd17` plus
+the new diagnostic file, Native is selected with the existing `HostPreferred`
+priority policy but stops with
+`NativeHostIssue.Attempt(Receiving(Values(PhysicalResultIssue.RowLimit)))`.
+Broad is selected on the same requirement, completes its residual, matches the
+independent CID and two output rows, and returns live reservations exactly once.
+The overall equivalence acceptance remains failed, not partly successful.
+
+`src/client_local_host/client_duckdb_acquisition.mbt` fixes Native physical
+`max_rows` at 100. `begin_native_receipt` subtracts validation usage before
+admitting the Native result: 100 validation rows plus two result rows need 102.
+The benchmark's data-configured application already has its own explicit
+combined receiver envelope; this public client preparation path does not.
+This is a concrete setup/admission limitation, not a demonstrated violation of
+the existing 100-row cumulative contract. Do not increase a limit silently or
+omit validation to make the benchmark pass. The requested comparison needs an
+explicitly bounded preparation connection before it can be claimed complete.
+
+The last diagnostic command was the scoped Node wrapper with a 30-second bound;
+the test ran for about 1.1 seconds and failed as above. Evidence is retained at
+`_build/local-checks/attempts/run-MmjI8q` and
+`_build/focused-evidence/focused-test-tVFheC`. The source file was then renamed
+from `node-acquisition-acceptance.mjs` to identify its incomplete status; its
+body is unchanged. Supporting JS builds were limited to `connectors_builtin_node`,
+`physical_strategy_example` and the direct `connectors/duckdb/host_node` import.
+No product limit/owner changes or broader matrix were added.
+
+### Acceptance still required
+
 1. Connect Node Host acquisition and Compute observations, and check actual
    Native/Broad choices including residual processing under equivalent results
    and obligations. Reuse the existing public selection path.
