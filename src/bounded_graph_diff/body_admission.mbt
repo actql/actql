@@ -84,11 +84,15 @@ fn advance_body(body : BodyAdmission, quantum : Int) -> BodyPoll {
         let text = body.chunks.join("")
         retire_body_chunks(body.chunks)
         body.parser = match
-          @source.start_json_parse(text, {
-            max_input_bytes: body.limits.max_identity_bytes,
-            max_nodes: body.limits.max_identity_nodes,
-            max_depth: body.limits.max_identity_depth,
-          }) {
+          @source.start_json_parse(
+            text,
+            {
+              max_input_bytes: body.limits.max_identity_bytes,
+              max_nodes: body.limits.max_identity_nodes,
+              max_depth: body.limits.max_identity_depth,
+            },
+            data_keys=true,
+          ) {
           Ok(parser) => Some(parser)
           Err(_) => return BodyFailed(InvalidGraph, work=used)
         }
@@ -155,11 +159,15 @@ fn advance_body(body : BodyAdmission, quantum : Int) -> BodyPoll {
           return BodyFailed(Terminal, work=used)
         }
         body.admission = match
-          @value.start_json_admission(cursor, {
-            max_nodes: body.limits.max_identity_nodes,
-            max_depth: body.limits.max_identity_depth,
-            max_text_bytes: body.limits.max_identity_bytes,
-          }) {
+          @value.start_json_admission(
+            cursor,
+            {
+              max_nodes: body.limits.max_identity_nodes,
+              max_depth: body.limits.max_identity_depth,
+              max_text_bytes: body.limits.max_identity_bytes,
+            },
+            data_keys=true,
+          ) {
           Ok(admission) => Some(admission)
           Err(_) => return BodyFailed(InvalidGraph, work=used)
         }

@@ -54,7 +54,8 @@ fn start_before(
     max_depth: limits.max_identity_depth,
     max_text_bytes: limits.max_identity_bytes,
   }
-  guard @value.start_json_admission(before, limits) is Ok(admission) else {
+  guard @value.start_json_admission(before, limits, data_keys=true)
+    is Ok(admission) else {
     return None
   }
   Some({

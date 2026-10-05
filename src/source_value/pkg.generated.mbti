@@ -31,7 +31,7 @@ pub fn parse_yaml_bytes_measured(Bytes, ParseLimits, source_path? : String) -> R
 
 pub fn parse_yaml_measured(String, ParseLimits, source_path? : String) -> Result[ParsedSource, ParseError]
 
-pub fn start_json_parse(String, ParseLimits, source_path? : String) -> Result[JsonParse, ParseError]
+pub fn start_json_parse(String, ParseLimits, source_path? : String, data_keys? : Bool) -> Result[JsonParse, ParseError]
 
 // Errors
 
