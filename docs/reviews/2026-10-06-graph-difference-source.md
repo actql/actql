@@ -44,6 +44,19 @@ focused checks. Full Core, Wasm/native runtime and required CI remain separate.
 The sections below preserve the earlier unresolved-order evidence at its
 original source; they are historical, not the status after this repair.
 
+The first ordinary pack at `5770a22a0e7473930b6c51eb16632dec27103cb1`
+passed actual retained-history validation and package production, then refused
+the first machine control before admission (`run-bm5quJ`). The authored fixture
+incorrectly used `mode: "none"`; the pinned constructor requires
+`mode: "no_properties"`. The nonempty removal control also used the currently
+unsupported `subtract_graphs` consumer. Correct the constructor spelling and
+produce the same empty target with the supported `subgraph` selector over an
+empty typed identity Relation. Keep the independently expected node and both
+edge removals; no result value, Host ceiling or product contract is weakened.
+The same built checker with the unchanged standard constructor ceilings prepares
+all six corrected cases (`run-1h38LY`). This diagnostic is preparation evidence,
+not a new-SHA packed execution success.
+
 
 Base: fetched main `94754f064299082a4cc4e44024dc8a844118f8ee`.
 This unit reuses the admitted Property Graph contract and the existing

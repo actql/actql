@@ -31,6 +31,15 @@ test('Delta expectations retain separate parallel identities and complete contra
   assert.equal(successes.find(item => item.name.endsWith('empty-typed-relation'))
     .results.changes.rows.length, 0);
   assert.equal(refusals.length, 8);
+  const removed = successes.find(item => item.name === 'graph-difference-json-parallel-removed');
+  const steps = JSON.parse(removed.text).stages[0].steps;
+  const construction = steps.find(step => step.property_graph).property_graph;
+  for (const element of [...construction.nodes, ...construction.edges]) {
+    assert.equal(element.labels[0].properties.mode, 'no_properties');
+  }
+  assert.ok(steps.some(step => step.subgraph?.nodes.from === 'selected'));
+  assert.ok(steps.some(step => step.as === 'selected' && step.filter?.literal === false));
+  assert.equal(steps.some(step => step.subtract_graphs), false);
 });
 
 test('ordinary packed corpus and narrow consumer retain the same authored Delta cases', () => {

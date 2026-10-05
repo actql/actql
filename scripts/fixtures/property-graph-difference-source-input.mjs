@@ -10,11 +10,11 @@ function canonical(value) {
   return JSON.stringify(value);
 }
 const cid = value => 'sha256:' + createHash('sha256').update(canonical(value)).digest('hex');
-const noProperties = [{name: 'Node', properties: {mode: 'none'}}];
+const noProperties = [{name: 'Node', properties: {mode: 'no_properties'}}];
 const node = {name: 'N', from: 'n', key: ['node_key'], labels: noProperties};
 const edge = (name, from) => ({name, from, key: ['edge_key'],
   source: {definition: 'N', key: ['src_key']}, target: {definition: 'N', key: ['dst_key']},
-  labels: [{name: 'R', properties: {mode: 'none'}}]});
+  labels: [{name: 'R', properties: {mode: 'no_properties'}}]});
 const mapping = edges => ({version: 'actql-property-graph-constructor/0.1', nodes: [node], edges});
 const sourceFree = values => ({body: {select: Object.keys(values).map((key, i) => ({[key]: `aql_query_expr_${i}`}))},
   dependencies: [{body: {derive: Object.fromEntries(Object.values(values).map((value, i) =>
@@ -63,7 +63,7 @@ const machine = empty => JSON.stringify({version: 'actql/0.1', id: 'fixture.grap
   {values: {schema: {node_key: number}, rows: nodeRows}, as: 'n'},
   {values: {schema: edgeSchema, rows: edgeRows}, as: 'e'},
   {property_graph: machineMapping, as: 'g'},
-  ...(empty ? [{from: 'g', subtract_graphs: {with: 'g'}, as: 'empty'}] : []),
+  ...(empty ? [{from: 'g', node_rows: true, as: 'members'}, {from: 'members', filter: {literal: false}, as: 'selected'}, {from: 'g', subgraph: {nodes: {from: 'selected', id: 'id'}}, as: 'empty'}] : []),
   {from: 'g', graph_diff: {with: empty ? 'empty' : 'g'}, as: 'changes'},
   {from: 'changes', select: ['delta'], as: 'projected'},
 ], results: {out: {from: 'projected', fields: ['delta']}}}], results: {changes: {from: {stage: 'main', result: 'out'}}}});
@@ -74,7 +74,7 @@ export const graphDifferenceSourceSuccesses = [
   item('json-parallel-removed', 'json', machine(true), machineDelta(true)),
   item('terminal-self', 'aql-text', prefix + 'FROM g |> graph_diff(with: g) |> SELECT delta |> RESULT changes', singleDelta),
   item('quoted-alias-normalized', 'aql-text', prefix + 'DATA `peer graph` = FROM g; DATA changes = FROM g |> normalize_graph() |> graph_diff(with: `peer graph`); FROM changes |> SELECT delta |> RESULT changes', singleDelta),
-  item('parallel-removed', 'aql-text', parallelPrefix + 'DATA empty = FROM g |> subtract_graphs(with: g); FROM g |> graph_diff(with: empty) |> SELECT delta |> RESULT changes', textParallelDelta(true)),
+  item('parallel-removed', 'aql-text', parallelPrefix + 'DATA selected = FROM g |> node_rows() |> WHERE FALSE |> SELECT id; DATA empty = FROM g |> subgraph(nodes: {from: selected, id: "id"}); FROM g |> graph_diff(with: empty) |> SELECT delta |> RESULT changes', textParallelDelta(true)),
   item('empty-typed-relation', 'aql-text', prefix + 'FROM g |> graph_diff(with: g) |> WHERE FALSE |> SELECT delta |> RESULT changes'),
 ];
 export const graphDifferenceSourceRefusals = [
