@@ -1063,11 +1063,17 @@ template interpolation is accepted.
 `getCheckPresentationInfo` exposes the selected locale and its immutable
 translation revision, separately from reason/outcome schema CIDs and report
 context/revisions. Changes to message words advance that translation revision
-separately from semantic schema identities. Translation data only replaces summary and hint. The
+separately from semantic schema identities. Translation data only replaces
+summary and hint. The
 schema-admitted outcome selects its own branch and verdict; optional reports,
 Problem references, unknown/known code classification, source position custody
 and Requirement frontiers retain their existing meanings. A malformed outcome
 remains uninterpretable even when a translation is available.
+The renderer captures its observation fields before reading application-owned
+locale options. A synchronous locale getter cannot substitute another verdict,
+scope/context, partial report, Problem code or correlation in a copied value's
+explanation. This is an immutable presentation snapshot, not input custody or
+a claim that the application-owned copy itself cannot change.
 
 Rendering performs no check, execution, cancellation, recovery or other I/O.
 The hints confer no action permission and contain no submitted values, raw

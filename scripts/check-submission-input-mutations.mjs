@@ -8,7 +8,12 @@ const path = 'packages/sdk/index.mjs';
 const acceptance = 'adapters/host-node/client-submission-input.test.mjs';
 const cancellationAcceptance = 'adapters/host-node/client-cancel-response-loss.test.mjs';
 const checkAcceptance = 'adapters/host-node/client-check.test.mjs';
+const sdkAcceptance = 'packages/sdk/index.test.mjs';
 const expected = (phase, assertion = 'submission-input') => {
+  if (phase === 'check-locale-snapshot') return [{
+    name: 'check locale lookup cannot replace a copied observation during presentation',
+    assertions: [{id: assertion, operator: 'strictEqual'}],
+  }];
   if (phase === 'check-locale-control' || phase === 'check-locale-fallback') {
     return ['local', 'http'].map(entrance => ({
       name: `${entrance}: check locales preserve observations and safe fallback`,
@@ -80,12 +85,21 @@ const expected = (phase, assertion = 'submission-input') => {
 };
 const mutations = [
   ['check locale changes an observed invalid verdict into verification',
-    "report: reportExplanation(outcome.report, 'complete')",
-    "report: {...reportExplanation(outcome.report, 'complete'), verdict: options?.locale === 'ja' ? 'verified' : outcome.report.verdict}",
+    "return freezeInput({outcome: 'completed', summary, hint, report});",
+    "return freezeInput({outcome: 'completed', summary, hint, report: {...report, verdict: options?.locale === 'ja' ? 'verified' : report.verdict}});",
     'check-locale-control', 'check-locale-control'],
   ['check unsupported locale loses its safe English fallback',
     "if (requested === 'ja' || requested === 'ja-JP') locale = 'ja';",
     "locale = 'ja';", 'check-locale-fallback', 'check-locale-fallback'],
+  ['check locale reads copied observation fields after locale lookup',
+    "const report = reportExplanation(outcome.report, 'complete');\n" +
+      "    const [summary, hint] = localizeCheck(`completed.${report.verdict}`,\n" +
+      "      explanations[report.verdict], options);",
+    "const verdict = outcome.report.verdict;\n" +
+      "    const [summary, hint] = localizeCheck(`completed.${verdict}`,\n" +
+      "      explanations[verdict], options);\n" +
+      "    const report = reportExplanation(outcome.report, 'complete');",
+    'check-locale-snapshot', 'check-locale-snapshot'],
   ['unknown submit loses its original input',
     '  if (input) submissionInputs.set(result, input);', '', 'after-commit'],
   ['original supplied parameters are replaced by null',
@@ -192,8 +206,8 @@ const mutations = [
     'check-location-domain', 'known-location-domain'],
 
   ['check Problem explanation loses its opaque correlation',
-    "return freezeInput({outcome: 'failed', summary, hint,\n      correlationRef: outcome.correlation_ref,",
-    "return freezeInput({outcome: 'failed', summary, hint,",
+    "return freezeInput({outcome: 'failed', summary, hint, correlationRef, problem,",
+    "return freezeInput({outcome: 'failed', summary, hint, problem,",
     'check-problem-explanation', 'check-problem-explanation'],
   ['check outcome bypasses its schema identity pin',
     'valid(value, schemas.check_outcome) && value.outcome_schema_cid === checkOutcomeSchemaCid;',
@@ -220,7 +234,8 @@ const mutations = [
 ];
 const accepted = (phase, assertion) => {
   const tests = expected(phase, assertion);
-  const file = phase.startsWith('frontier-') || phase.startsWith('check-') ? checkAcceptance
+  const file = phase === 'check-locale-snapshot' ? sdkAcceptance
+    : phase.startsWith('frontier-') || phase.startsWith('check-') ? checkAcceptance
     : phase.startsWith('cancellation-') ? cancellationAcceptance : acceptance;
   const result = spawnSync(process.execPath, ['scripts/local-checks.mjs', 'test', 'node',
     '--timeout-seconds', '120', '--', '--test-name-pattern',

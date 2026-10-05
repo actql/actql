@@ -24,6 +24,46 @@ test('check presentation revisions are immutable and separate from schema identi
   }
 });
 
+test('check locale lookup cannot replace a copied observation during presentation', () => {
+  const invalid = JSON.parse(readFileSync(new URL('../client-wire/fixtures/check-default-type.invalid.json', import.meta.url), 'utf8'));
+  invalid.report.context_ref = 'ctx:locale-original';
+  const explanation = explainCheckOutcome(invalid, {get locale() {
+    invalid.report.verdict = 'verified';
+    invalid.report.scope.kind = 'template';
+    invalid.report.context_ref = 'ctx:locale-replacement';
+    return 'ja';
+  }});
+  assert.equal(explanation.report.verdict, 'invalid', '[check-mutation:check-locale-snapshot]');
+  assert.deepEqual(explanation.report, {completeness: 'complete', verdict: 'invalid',
+    scope: {kind: 'bound_input'}, contextRef: 'ctx:locale-original'});
+  assert.equal(explanation.summary, '検査範囲内の入力違反が確認されました。');
+  for (const unavailable of [false, true]) {
+    const outcome = JSON.parse(readFileSync(new URL('../client-wire/fixtures/check-reporting-failure.json', import.meta.url), 'utf8'));
+    outcome.outcome = unavailable ? 'unavailable' : 'failed';
+    outcome.problem.code = unavailable ? 'check_unavailable' : 'check_internal';
+    if (!unavailable) {
+      outcome.partial_report = JSON.parse(readFileSync(new URL('../client-wire/fixtures/check-default-type.invalid.json', import.meta.url), 'utf8')).report;
+      outcome.partial_report.context_ref = 'ctx:locale-original';
+    }
+    const view = explainCheckOutcome(outcome, {get locale() {
+      outcome.correlation_ref = 'corr:locale-replacement';
+      outcome.problem.code = 'future_problem';
+      if (outcome.partial_report) {
+        outcome.partial_report.verdict = 'verified';
+        outcome.partial_report.context_ref = 'ctx:locale-replacement';
+      }
+      return 'ja';
+    }});
+    assert.equal(view.correlationRef, 'corr:independent-reporting-failure');
+    assert.deepEqual(view.problem, {kind: 'known', code: unavailable ? 'check_unavailable' : 'check_internal'});
+    if (!unavailable) {
+      assert.equal(view.report.verdict, 'invalid');
+      assert.equal(view.report.contextRef, 'ctx:locale-original');
+      assert.equal(view.report.completeness, 'partial');
+    }
+  }
+});
+
 test('localized unknown reasons and problems never hide malformed protocol values', () => {
   const fixture = JSON.parse(readFileSync(new URL('../client-wire/fixtures/check-reporting-failure.json', import.meta.url), 'utf8'));
   const failure = {...fixture, problem: {code: 'future_reporting_failure'}};

@@ -264,10 +264,11 @@ export function explainCheckOutcome(outcome, options) {
       undetermined: ['The report cannot establish verification or a proven input violation in its checking scope.',
         'Review missing inputs and disclosed checking limits; an outstanding obligation is not an input error.'],
     };
-    const [summary, hint] = localizeCheck(`completed.${outcome.report.verdict}`,
-      explanations[outcome.report.verdict], options);
-    return freezeInput({outcome: 'completed', summary, hint,
-      report: reportExplanation(outcome.report, 'complete')});
+    // Capture observation fields before reading application-owned locale options.
+    const report = reportExplanation(outcome.report, 'complete');
+    const [summary, hint] = localizeCheck(`completed.${report.verdict}`,
+      explanations[report.verdict], options);
+    return freezeInput({outcome: 'completed', summary, hint, report});
   }
   if (outcome.outcome === 'failed') {
     const explanations = {
@@ -277,22 +278,24 @@ export function explainCheckOutcome(outcome, options) {
         'Ask the checking-context owner to investigate the reporting failure.'],
     };
     const known = Object.hasOwn(explanations, outcome.problem.code);
-    const [summary, hint] = localizeCheck(`failed.${known ? outcome.problem.code : 'unknown'}`,
-      known ? explanations[outcome.problem.code]
+    const problem = {kind: known ? 'known' : 'unknown', code: outcome.problem.code};
+    const correlationRef = outcome.correlation_ref;
+    const report = outcome.partial_report === undefined ? undefined
+      : reportExplanation(outcome.partial_report, 'partial');
+    const [summary, hint] = localizeCheck(`failed.${known ? problem.code : 'unknown'}`,
+      known ? explanations[problem.code]
       : ['A complete bound check report could not be issued; this problem code has no supported explanation.',
         'Ask the checking-context owner to investigate; a partial report does not verify the input.'], options);
-    return freezeInput({outcome: 'failed', summary, hint,
-      correlationRef: outcome.correlation_ref,
-      problem: {kind: known ? 'known' : 'unknown', code: outcome.problem.code},
-      ...(outcome.partial_report === undefined ? {} : {
-        report: reportExplanation(outcome.partial_report, 'partial')})});
+    return freezeInput({outcome: 'failed', summary, hint, correlationRef, problem,
+      ...(report === undefined ? {} : {report})});
   }
+  const problem = {kind: outcome.problem.code === 'check_unavailable' ? 'known' : 'unknown',
+    code: outcome.problem.code};
+  const correlationRef = outcome.correlation_ref;
   const [summary, hint] = localizeCheck('unavailable',
     ['The scope and checking context needed for a safe public report are unavailable.',
       'Ask the checking-context owner to review the published context; this response does not establish an input error.'], options);
-  return freezeInput({outcome: 'unavailable', summary, hint,
-    problem: {kind: outcome.problem.code === 'check_unavailable' ? 'known' : 'unknown',
-      code: outcome.problem.code}, correlationRef: outcome.correlation_ref});
+  return freezeInput({outcome: 'unavailable', summary, hint, problem, correlationRef});
 }
 
 // Reason presentation does not decide the report's verdict or outcome branch.
