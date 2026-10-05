@@ -42,6 +42,7 @@ import {
   "actql/actql/source_request_slots" @request_slots,
   "actql/actql/binding_declarations" @bindings,
   "actql/actql/stage_results",
+  "actql/actql/relation_results",
   "actql/actql/query_planning" @planning,
   "actql/actql/program_check",
   "actql/actql/physical_cost" @cost,

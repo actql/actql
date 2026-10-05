@@ -12,6 +12,23 @@ existing cumulative expression node/work limits across calls and steps.
 Semantic expression-depth limits retain their original meaning. No identity
 validator, contract, runtime execution ceiling or expected Result is relaxed.
 
+The same integration connects source-free Relation DAGs to existing selected
+managed providers. Independent Values roots already reached classification,
+but analytic occurrences were omitted from that decision. A single shared
+Values root with a binary Relation consumer previously exited before exact
+edge checks. Both shapes now use the existing per-operation owner and retained
+input ports; analytic eligibility is scoped to this source-free DAG decision.
+Other fused analytic shapes keep their existing ownership. The bounded group
+provider still decides exact order, frame, expression and numeric support.
+
+The prior SQL LAG plan contained 15 steps and three independent Values roots.
+Its 805,168,640-byte execution request was the correct sum of simultaneously
+retained child lifetimes. The shared-seed JOIN reproduction similarly needed
+601,096,960 bytes. The repair changes planning/lifetimes, not capacity arithmetic
+or the unchanged 536,870,912-byte execution ceiling. New graph, compiled-run,
+actual managed execution and cancellation tests pin exact ports, shared owners,
+result identities, task limits and eventual zero reservations.
+
 The public acceptance Host declares the same four analytic ceilings of 10,000
 already used by the independent installed Node and Native client fixtures.
 The corpus keeps its original ten positives and seven refusals, and adds two
