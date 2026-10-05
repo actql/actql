@@ -298,7 +298,15 @@ fn source_diagnostic_category(issue : SourceFailure) -> DiagnosticCategory {
     SourceView(Binding(Binding(error))) => parameter_diagnostic_category(error)
     SourceView(
       Context(
-        Stages(RowCapacity(Construction(_, _, Application(InvalidBoundCount))))
+        Stages(
+          RowCapacity(
+            Construction(
+              _,
+              _,
+              Application(InvalidBoundCount | InvalidBoundMilliseconds(_))
+            )
+          )
+        )
       )
     ) => InvalidInput
     // Declaration use is the existing complete Program inventory's decision.
