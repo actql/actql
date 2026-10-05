@@ -49,10 +49,10 @@
 //   reads and the describe.
 // - `recoveryEntry({member, current})`: data retained with the captured
 //   computation to rebuild requests on recovery, and `recoverRequests({durable,
-//   recorded, previewWire, body})`. Retained data is checked, never
-//   authority: every rebuilt request must be exactly the one its claim and
-//   approved Preview row name.
-// - `requestCid(request)`: a rebuilt request's identity.
+//   recorded, previewWire, body})`, with `requestCid(request)`, a rebuilt
+//   request's identity. The three come together. Retained data is checked,
+//   never authority: every rebuilt request must be exactly the one its claim
+//   and approved Preview row name.
 //
 // The identities this factory issues (dispatch, recovery, unit, source,
 // target check and continuation) use the versions of the installation's
@@ -167,7 +167,10 @@ function checkDriver(driver) {
         typeof driver.recoverRequests !== 'function' ||
         typeof driver.requestCid !== 'function')) ||
       ((driver.recoveryEntry === undefined) !==
-        (driver.recoverRequests === undefined))) {
+        (driver.recoverRequests === undefined)) ||
+      // Recovery identifies each rebuilt request by `requestCid`.
+      (driver.recoverRequests !== undefined &&
+        typeof driver.requestCid !== 'function')) {
     fail('InvalidInstalledRowEffectDriver');
   }
   return driver;
