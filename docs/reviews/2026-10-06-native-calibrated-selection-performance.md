@@ -597,3 +597,29 @@ with threshold zero. Keep every observation; do not extend the sample count or
 retry the experiment to obtain a favorable result. The earlier 100-row ASCII
 result remains indeterminate; this separate workload cannot replace that result
 or authorize a general speedup claim.
+
+The fixed experiment completed at
+`ec69977dd2b92356283912fdda654ebe1137f625` (`run-XbXiAw`). Both prelaunches
+and all 42 measured full product/Owner admissions succeeded. Binary builds
+remain the archived `f8c687638` and `fe0b68242`; `ec69977dd` identifies only
+the clean controller/source correspondence, not a newly compiled runtime.
+
+| After minus before | Mean difference (ms) | 95% interval (ms) | Result |
+| --- | ---: | ---: | --- |
+| Complete parent cycle | +0.042 | [-7.607, +7.485] | Indeterminate |
+| Native entry through result | +1.064 | [-6.090, +8.067] | Indeterminate |
+| Application preparation | -0.036 | [-0.198, +0.135] | Indeterminate |
+| Compute/identity | +1.247 | [-5.301, +7.524] | Indeterminate |
+| Sequential task intervals | +2.001 | [-3.644, +7.715] | Indeterminate |
+| Cleanup | -0.264 | [-0.586, -0.018] | Lower observed interval only |
+
+The cleanup difference does not satisfy the primary performance criterion or
+establish attribution to hashing. Runtime improvement remains **unmet** for
+this workload too. Do not repeat or enlarge this fixed experiment. Retain all
+observations and the two prelaunch costs in
+`_build/repro/retained-text-comparison-ec69977dd.json`, with source/binary/timing
+identities in the companion `-manifest.json`. This finite diagnostic also does
+not prove a physical heap upper bound. The next causal boundary to separate is
+the final output read versus identity construction inside the approximately
+30 ms interval observed by the one-case diagnostic; no value/identity check is
+removed on the basis of a timing.
