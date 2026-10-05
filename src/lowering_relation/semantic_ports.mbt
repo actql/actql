@@ -89,6 +89,7 @@ pub fn node_accepts_managed_carrier_view(
     "TEA.join.asof" => index == 0
     "SGA.reachable" => index == 0
     "SGA.traverse" => index == 0
+    "SGA.subgraph" => index == 0
     "SGA.match_nodes" | "SGA.match_edges" => index == 0
     "VEC.knn_join" => true
     _ => false
@@ -114,6 +115,7 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
           node.input_targets.length() == 1
         )
       )
+    GraphSubgraphValue(_) => operation(node) == "SGA.subgraph"
     GraphMatchRows(_) =>
       operation(node) == "SGA.match_nodes" ||
       operation(node) == "SGA.match_edges"
@@ -122,6 +124,9 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     GraphEqualityRows(_) => operation(node) == "SGA.equal"
     GraphNormalizeValue(_) => operation(node) == "SGA.normalize"
     GraphComponentsRows(_) => operation(node) == "SGA.components"
+    GraphDeltaValue(checked) =>
+      operation(node) == "SGA.apply_delta" &&
+      @graph.delta_operation(checked) is @graph.Application(_)
     VectorValue(_) =>
       operation(node) == "BRIDGE.rows.to_vectors" ||
       operation(node) == "VEC.normalize_l2" ||
@@ -153,42 +158,15 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     | Dedupe(_) => true
     Watermark(_) | Lag(_) | Pivot(_) | Unpivot(_) | Unnest(_) | JsonPick(_) =>
       true
-    CountGroup(checked) => checked_bounded_count(checked)
+    // Both exact count and general group descriptors have an existing
+    // selected provider. Its complete kernel/context/numeric checks remain
+    // authoritative when admitting the concrete execution candidate.
+    CountGroup(_) => true
     AssertRows(_) =>
       operation(node) == "REL.assert_all" ||
       operation(node) == "REL.assert_unique"
     _ => false
   }
-}
-
-///|
-/// The selected count provider consumes keyed and global count profiles.
-/// Keep the split decision narrower than general group eligibility so an
-/// unsupported aggregate cannot enter a selected task without a provider.
-fn checked_bounded_count(checked : @relation.CheckedOperation) -> Bool {
-  guard @relation.group(checked) is Some(group) else { return false }
-  for index in 0..<@relation.aggregate_count(group) {
-    guard @relation.aggregate_at(group, index) is Some(aggregate) &&
-      (
-        @relation.aggregate_function(aggregate) == @relation.Count ||
-        @relation.aggregate_function(aggregate) == @relation.CountIf
-      ) &&
-      @relation.aggregate_filter(aggregate) is None &&
-      @relation.aggregate_distinct(aggregate) != Some(true) else {
-      return false
-    }
-    match @relation.aggregate_argument(aggregate) {
-      Rows =>
-        if @relation.aggregate_function(aggregate) is @relation.Count {
-          ()
-        } else {
-          return false
-        }
-      Field(_) => ()
-      Expression(_) => return false
-    }
-  }
-  true
 }
 
 ///|
@@ -260,7 +238,12 @@ pub fn node_prefers_fused_without_relation_consumer(
 /// Other families keep their existing fused choice until their own handoff is
 /// registered and tested.
 pub fn node_can_split_carrier_transform(node : PreparedNode) -> Bool {
-  node.payload is GraphNormalizeValue(_) && operation(node) == "SGA.normalize"
+  (node.payload is GraphNormalizeValue(_) && operation(node) == "SGA.normalize") ||
+  (
+    node.payload is GraphDeltaValue(checked) &&
+    operation(node) == "SGA.apply_delta" &&
+    @graph.delta_operation(checked) is @graph.Application(_)
+  )
 }
 
 ///|
@@ -287,6 +270,11 @@ pub fn node_accepts_managed_relation_view(
   if node.input_targets.length() == 2 && index >= 0 && index < 2 {
     return match node.payload {
       GraphTraverseRows(_) => index == 1 && operation(node) == "SGA.traverse"
+      GraphSubgraphValue(_) => index == 1 && operation(node) == "SGA.subgraph"
+      GraphDeltaValue(checked) =>
+        index == 1 &&
+        operation(node) == "SGA.apply_delta" &&
+        @graph.delta_operation(checked) is @graph.Application(_)
       InnerJoin(_)
       | CrossJoinRows(_)
       | AppendRows(_)

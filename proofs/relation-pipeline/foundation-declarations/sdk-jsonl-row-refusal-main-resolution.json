@@ -1,0 +1,85 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "sdk-jsonl-row-refusal-main-resolution",
+  "kind": "resolution",
+  "revision": "1f1b95de389563ddc74c5f3c64355caf9b531a87",
+  "parents": [
+    "1c94ac6a645f714ddec40dd91333032bf729da12",
+    "1a71730b0e5ff3e22a5f519c119a74fd589ed03d"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "1c94ac6a645f714ddec40dd91333032bf729da12",
+          "digest": "fd86afe5451c4b98b98ad2523d27755b9d54bc476c76317ebcc9e5de63139407",
+          "mode": "100644"
+        },
+        {
+          "revision": "1a71730b0e5ff3e22a5f519c119a74fd589ed03d",
+          "digest": "18c7d76c419fd0eed03df827767ab291797a7fa3b039b73a50a69b29c4e01270",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "6d34976e2a7e4a48cfa2ab54b229388a02aff4fee27129d4e882b8d5eb75b02f",
+      "afterMode": "100644",
+      "reason": "Compose the actual main merge by retaining the SDK row-refusal mutation command exactly once together with main graph-composition and Local values-policy acceptance commands. Preserve both parent contributions and all inherited validation commands without modifying the resolved package body."
+    }
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-3877b637406b",
+    "adopt-63b114ad524b",
+    "adopt-678626b010b4",
+    "adopt-7427f7f09276",
+    "adopt-9a7c592a8ed9",
+    "adopt-b480cffb6e6d",
+    "adopt-bf2d058c21c1",
+    "adopt-f24288853c19",
+    "adopt-sga-query-contract",
+    "ci-mandatory-preflight",
+    "frontend-sga-main-integration",
+    "frontend-unified-graph-source-integration",
+    "github-issue-read-registration",
+    "github-issue-source-acceptance-registration",
+    "graph-composition-fixture-registration",
+    "main-pr233-package-resolution",
+    "packed-composed-infer-effect-acceptance",
+    "pr164-main-a32-verification-resolution",
+    "pr164-main4f-runtime-check-resolution",
+    "pr164-property-graph-source",
+    "public-column-published-main-resolution",
+    "public-text-computation-bridge-ci",
+    "read-progress-current-main-resolution",
+    "remove-duplicate-runtime-package-checks",
+    "resident-cancellation-issuer-registration",
+    "resident-cancellation-native-registration",
+    "resident-source-native-registration",
+    "resolve-cancellation-foundation-main-5caeccc79",
+    "resolve-composition-custody-main-maximal-bases",
+    "resolve-composition-frontend-latest-main",
+    "resolve-composition-infer-main-maximal-bases",
+    "resolve-composition-resident-source-main",
+    "resolve-composition-reviewed-supplements-main",
+    "resolve-frontend-graph-label-dependency-5fa4bc547",
+    "resolve-frontend-graph-row-input-main-0e1516677",
+    "resolve-frontend-group-ordinals-parent-bf39d807d",
+    "resolve-github-issue-driver-main-5dcef9189",
+    "resolve-github-issue-source-main",
+    "resolve-graph-composition-accepted-effect-main-1edb1560c",
+    "resolve-graph-composition-cancellation-main",
+    "resolve-graph-composition-current-main-d8dd3a918",
+    "resolve-graph-composition-resident-cleanup-main",
+    "resolve-graph-composition-text-main",
+    "resolve-graph-policy-source-approval-main-13c0d39d2",
+    "resolve-graph-retention-policy-main-e3ecb26c9",
+    "resolve-resident-cancel-foundation-7b5a8048",
+    "resolve-resident-source-latest-main",
+    "scoped-session-acquisition-main-resolution",
+    "sdk-cancel-response-loss-registration",
+    "sdk-jsonl-row-refusal-registration",
+    "sdk-read-progress-registration",
+    "source-free-effect-retention-original-regression"
+  ]
+}

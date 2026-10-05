@@ -31,6 +31,10 @@ const location = {oneOf: [
 const parameterName = {type: 'string', minLength: 1, maxLength: 256};
 const typeName = {enum: ['null', 'boolean', 'number', 'string', 'array', 'object',
   'date', 'timestamp', 'decimal', 'json', 'vector', 'resource_ref', 'artifact_ref']};
+const lexicalIssues = ['unexpected_end', 'unexpected_token', 'invalid_escape',
+  'invalid_scalar', 'empty_identifier', 'unterminated_comment', 'invalid_number', 'invalid_parameter'];
+const graphIssues = ['invalid_kind', 'invalid_output_rows'];
+const expressionIssues = ['unknown_reference', 'invalid_arguments', 'invalid_number', 'expected_boolean'];
 export const checkReasonSchema = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
   $id: 'https://smooth.dev/schemas/actql-check-reason-0.1.json',
@@ -49,18 +53,33 @@ export const checkReasonSchema = {
         required: ['parameter', 'constraint'],
         properties: {parameter: parameterName,
           constraint: {enum: ['numeric', 'duration', 'array_length', 'array_size']}}},
+      {type: 'object', additionalProperties: false, required: ['operation', 'issue'],
+        properties: {operation: {const: 'components'}, issue: {enum: graphIssues}}},
+      {type: 'object', additionalProperties: false, required: ['issue'],
+        properties: {issue: {enum: [...new Set([...lexicalIssues, ...expressionIssues])]}}},
     ]}},
   allOf: [
     {if: {properties: {code: {const: 'supplied_value_type_mismatch'}}},
       then: {required: ['facts'], properties: {facts: {required: ['actual_type']}}}},
     {if: {properties: {code: {const: 'parameter_undeclared'}}},
-      then: {required: ['facts'], properties: {facts: {allOf: [
+      then: {required: ['facts'], properties: {facts: {required: ['parameter'], allOf: [
         {not: {required: ['expected_type']}}, {not: {required: ['constraint']}}]}}}},
     {if: {properties: {code: {const: 'parameter_value_required'}}},
       then: {required: ['facts'], properties: {facts: {required: ['expected_type'], not: {required: ['actual_type']}}}}},
     {if: {properties: {code: {const: 'supplied_value_constraint_violation'}}},
       then: {required: ['facts'], properties: {facts: {required: ['constraint']}}}},
-    {if: {properties: {code: {not: {enum: ['supplied_value_type_mismatch', 'parameter_value_required', 'parameter_undeclared', 'supplied_value_constraint_violation']}}}},
+    {if: {properties: {code: {const: 'query_lexical_invalid'}}},
+      then: {required: ['facts'], properties: {facts: {required: ['issue'], properties: {issue: {enum: lexicalIssues}}},
+        location: {properties: {kind: {const: 'text'}}}}}},
+    {if: {properties: {code: {const: 'query_expression_invalid'}}},
+      then: {required: ['facts'], properties: {facts: {required: ['issue'],
+        properties: {issue: {enum: expressionIssues}}},
+        location: {properties: {kind: {const: 'text'}}}}}},
+    {if: {properties: {code: {const: 'graph_operation_invalid'}}},
+      then: {required: ['facts'], properties: {facts: {required: ['operation', 'issue'],
+        properties: {operation: {const: 'components'}, issue: {enum: graphIssues}}},
+        location: {properties: {kind: {const: 'text'}}}}}},
+    {if: {properties: {code: {not: {enum: ['supplied_value_type_mismatch', 'parameter_value_required', 'parameter_undeclared', 'supplied_value_constraint_violation', 'query_lexical_invalid', 'query_expression_invalid', 'graph_operation_invalid']}}}},
       then: {not: {required: ['facts']}}},
   ],
 };

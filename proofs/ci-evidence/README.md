@@ -282,8 +282,20 @@ their bytes are not merely removed from a label while remaining readable.
 Unknown dependency syntax/configuration or nested unmodelled data expands fresh
 execution back to the complete source tree and retains the unresolved reasons.
 It cannot qualify narrowed reuse. Selected package additions, deletions, renames,
-imports, bytes and modes remain inputs. The existing finite configuration review
-and its exact JS/toolchain pins are unchanged.
+imports, bytes and modes remain inputs. The finite configuration review retains
+its existing JS target and exact toolchain pins.
+
+The finite configuration review was refreshed against main
+`7e337afa9e5a64035c5925aca1d93ba0ef787aaf`. Relative to the previous scoped-source
+revision, `query_integration/moon.pkg` adds only the literal white-box imports
+`client_row_source_host`, `bounded_graph_diff` and `relation_results`. Its native
+linker options and the other thirteen reviewed configuration files are
+byte-identical. The existing closure expands from 165 to 167 packages, adding
+the complete neutral row-host and bounded Graph-diff packages. No import syntax,
+target or toolchain exception is added. The actual-Git regression requires a
+healthy narrowed cohort and every immediate member of both integrated packages,
+including white-box tests and generated interfaces; full-source fallback cannot
+silently satisfy that healthy narrowed-cohort fixture.
 
 The child's original restoration snapshot and the independent Git snapshot
 cover the staged cohort. The parent checks selected checkout bytes and modes
@@ -312,6 +324,13 @@ entry. It needs the real Actions repository/run/attempt/job identity, a clean
 checkout at the event revision, the pinned Node/MoonBit/Lean setup, Linux x64,
 `/usr/bin/docker`, and the existing read-only Actions token for authentication.
 Its commands remain, in workflow order:
+
+The workflow selects this job only for the `full` profile. A Draft PR's natural
+`synchronize` run is preparation and does not execute it. Once Actions is
+available, execution requires an authorized ordinary `workflow_dispatch` for
+this branch or an authorized Ready transition and its `ready_for_review` event.
+Neither a Draft push nor a completed preparation run establishes acceptance.
+Do not change the Draft/Ready gate or synthesize an Actions event to bypass it.
 
 1. `node proofs/ci-evidence/collect.mjs init` prepares and independently checks
    the selected image inputs and records the acquisition plan. For new-policy

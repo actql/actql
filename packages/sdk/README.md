@@ -14,19 +14,86 @@ confirmed owner, durability and capability snapshot. `aql(text,
 immediately and resolve only after an acceptance response. Both accept
 `requestId`. An omitted ID is generated before send; an uncertain submission
 error exposes that ID and a lookup context. Call `lookupRequest(requestId)`
-to inspect the existing request without starting Compute. To resubmit after
-an ambiguous response, use the original entrance with the same ID and exactly
-the same intent; safety depends on the Host's atomic deduplication and its
-documented request-record retention horizon.
+to inspect the existing request without starting Compute. An unknown response
+does not prove nonacceptance, and the SDK does not retry automatically.
 Profile, admission and request-lookup replies use the public
 `@actql/client-wire` validators, including exact connection and durability
 bindings. A found request lookup must echo the requested ID. A malformed or
 foreign acceptance does not become a known Run.
 The Client serializes the submitted Program and parameters before awaiting an
 asynchronous credential callback, so later mutation of caller objects cannot
-change that transmission. An application that may need to resend must retain
-its own original input and explicit request ID. After an unknown response,
-retain the original connection selection as well: `lookupContext` identifies
+change that transmission. `getSubmissionInput(result)` retrieves this call's
+detached, deeply frozen JSON request input from its returned Execution,
+`SubmissionUnknown` error or `RequestHeld` error. It includes the original
+request ID, submission kind, Program or text with declarations, supplied
+parameters, connection selection and lookup context. Local and HTTPS use the
+same JSON-value snapshot. Text is not normalized or converted to different
+newlines. Credentials and signing keys are not added to this snapshot.
+
+```js
+import {getSubmissionInput} from '@actql/sdk';
+
+try {
+  const execution = await client.start(program, {requestId, parameters});
+  const submitted = getSubmissionInput(execution);
+  // Compare the accepted handle with this call's original input.
+} catch (error) {
+  if (error.code !== 'SubmissionUnknown') throw error;
+  const submitted = getSubmissionInput(error);
+  // Inspect the original request; do not submit the edited Program again.
+  const lookup = await client.lookupRequest(submitted.requestId);
+}
+```
+
+`explainSubmission(result)` returns a deeply frozen explanation for that exact
+SDK result. The validated submit branch fixes its observation independently of
+error `code`, message, severity or HTTP status: `acceptance_unknown` for a lost,
+malformed or foreign reply; `run_reference_received` for a validated Run
+reference; and `request_held` for a validated held response. The first says that
+work may already have started and names the original `lookupRequest` target and
+connection scope. A returned Run reference instead names its read-only `status`
+inspection. A held response names request lookup and does not promise a current
+preparation or execution state. These are presentation facts from this call,
+not a new server acceptance contract or an execution/publication/release proof.
+
+```js
+import {explainSubmission} from '@actql/sdk';
+
+const explanation = explainSubmission(result);
+if (explanation?.next.operation === 'lookupRequest') {
+  // Use the original Client and its current authorization for this lookup.
+  const observation = await client.lookupRequest(explanation.next.requestId);
+  // A missing record does not prove nonacceptance or permit resubmission.
+}
+```
+
+The helper performs no transport, retry, submit or Compute action. Suggestions
+require current authorization when explicitly used. It omits original Program,
+text, parameters, credentials and transport causes. Changing a returned error's
+fields or observing a later lookup does not rewrite the original explanation.
+Copied/deserialized results, attach handles, local payload/credential failures
+and user-created errors return `undefined`; this means no bound explanation is
+available, not success or nonacceptance. The extra presentation association is
+weak and has the same original-result lifetime as input custody. It adds no
+Host input storage, public input hash or promised retention period.
+
+The snapshot is local input custody, not evidence that sending, acceptance,
+preparation, execution or release succeeded. It grants no lookup, replay or
+effect authority. A copied or deserialized handle/error, an attach result or
+an error supplied by a credential callback has no association and returns
+`undefined`. Reusing another call's error cannot rebind its input.
+The SDK retains an association weakly while its original handle/error is
+reachable; an application that keeps that result or the retrieved snapshot
+keeps its input. It does not impose a fixed retention period or persist the
+input. Retaining multiple results can retain multiple inputs; this accessor
+adds no aggregate SDK retention limit. Input size continues to be governed by the installed Host's existing
+submission limits; this accessor adds no new Host storage or re-fetch API.
+The input may contain application secrets, so applications must select what
+they display or persist rather than log it wholesale. It is not an
+authorization-bound `context_ref` or a new public input hash.
+
+After an unknown response, retain the original connection selection as well:
+`lookupContext` identifies
 the endpoint and Host-reported scope for investigation, but does not grant
 access or authorize looking up the request through a different Workspace or
 embedded Host root. Reconnect never submits automatically.
@@ -71,6 +138,9 @@ The count proves neither Run completion nor Client persistence. A fresh read
 has a new attempt ID and starts from the beginning; no retry or append occurs
 automatically.
 An empty JSONL record fails the attempt instead of silently omitting a row.
+Malformed JSON and non-object JSONL records fail as `InvalidResultFrame` before
+being counted or yielded, matching the Local typed-frame boundary. Invalid row
+text is not retained as a parser cause. Scalar values within object fields remain valid.
 
 `await result.describe({format: 'jsonl'})` returns the confirmed Result's
 existing Definition, Artifact and schema identifiers, declaration-ordered
@@ -311,15 +381,26 @@ share unresolved coverage; an independent public violation remains visible.
 
 Locations use the immutable original input snapshot, not the latest editor buffer.
 `resolveCheckLocation` returns `undefined` for a copied report, missing snapshot,
-stale revision, changed content or invalid byte boundary. Supplying its optional
+stale revision, changed content, invalid byte boundary or a structured pointer
+without a submitted JSON node. Supplying its optional
 current-input argument validates the same identity/revision/content. Text spans
 are UTF-8 byte intervals; structured values/declarations have revision-bound
-pointers. There is no SDK parser, automatic fix or Host input re-fetch API.
-Unresolved column expressions can carry the lowerer's original authored
-identifier range in `query_invalid`. The range is omitted when the existing
-failure has no authored origin, including unresolved Source names and current
-unaliased-column failures. The SDK uses the same submitted snapshot for both
-syntax and name-resolution ranges.
+pointers. Pointer resolution uses only owned object members and canonical array
+indices, preserving the submitted member spelling and RFC 6901 escape order.
+Inherited properties, array metadata, missing nodes and scalar descendants
+cannot identify submitted nodes. Invalid Host locations refuse the check with
+`InvalidHostCheckOutcome`, including locations in partial reports or Requirements.
+There is no SDK parser, automatic fix or Host input re-fetch API.
+Typed expression failures use `query_expression_invalid`, with `facts.issue`
+`unknown_reference`, `invalid_arguments` or `invalid_number`. They identify an
+unresolved expression reference, invalid operation arguments or the admitted
+numeric domain, respectively. Numeric domain failures differ from the lexical
+reason's numeric spelling failure. `explainCheckReason` supplies safe summaries
+and advisory correction hints; messages do not determine verdicts. Only existing
+authored origins supply reference, call or numeric ranges. Missing/generated
+origins and protected Source resolution acquire no fabricated span or name.
+Unaliased-column failures lacking a typed expression diagnostic remain generic.
+The SDK uses the same submitted snapshot for syntax and expression ranges.
 `resolveCheckTextRange(outcome, location, currentInput?)` additionally returns
 zero-based `range.start`/`range.end` line and character coordinates with
 `positionEncoding: 'utf-16'`. It reads that same immutable source snapshot and
@@ -347,9 +428,93 @@ Missing submitted nodes and pointers beyond the public bound have no location;
 invalid defaults never point into supplied values. Values remain in the local
 submitted snapshot, not in public diagnostic facts.
 
+Typed lexical failures use `query_lexical_invalid` with `facts.issue`, one of
+`unexpected_end`, `unexpected_token`, `invalid_escape`, `invalid_scalar`,
+`empty_identifier`, `unterminated_comment`, `invalid_number` or
+`invalid_parameter`. `explainCheckReason` provides an issue-specific safe
+summary and hint. A location, when available, uses the parser's original source
+position, including exact zero-width positions. It contains no token text or
+private parser message. Ordinary grammar failures retain
+`query_syntax_invalid`. Budget limits remain undetermined coverage rather than
+lexical invalidity. Hints are advisory and never apply an edit or confer authority.
+
 This coordinated correction changes the closed `actql-check-outcome/0.1` schema
 and introduces `actql-check-reason/0.1`. Schema identity, validator and SDK/Host
 must match; a mismatched reply throws `InvalidHostCheckOutcome` and never becomes
 success or an empty diagnostic report. Existing `actql-diagnostics/0.1` is a
 separate contract. Original snapshots remain weakly associated with the response;
 retaining a response or a retrieved snapshot retains its submitted input.
+
+
+### Predicate type explanations
+
+The registered `query_expression_invalid` reason also carries
+`facts.issue: "expected_boolean"` for the common Relation checker's
+`ExpectedBoolean` rejection. The SDK explains that a predicate requires Boolean
+type and suggests a Boolean condition such as a comparison. It does not reveal
+the submitted value or invent an actual type absent from the retained issue.
+
+The checker-facing span does not retain authored/generated provenance, so this
+projection omits the location. A lowered Program path is not an original SQL
+position. Absent and inaccessible Source dependencies stop before dependent
+predicate checking and retain equivalent protected unresolved coverage.
+The verdict still comes from the common checker; explanations are advisory.
+
+### Graph components argument explanations
+
+The public `graph_operation_invalid` reason carries closed facts
+`operation: "components"` and `issue: "invalid_kind"` or
+`"invalid_output_rows"`. These facts project existing common Graph checker
+`InvalidBody` at `components.kind` and `InvalidCount` at
+`components.max_output_rows`; they do not introduce a second checker.
+The SDK explains the required weak/strong kind or positive safe integer row
+limit. Other Graph failures retain their existing classification and safe
+fallback. Neither the submitted value nor an internal Program path is exposed.
+
+Graph lowering assigns the authored call range to its diagnostic body, while
+the checker-facing span does not retain the authored/generated origin kind or
+individual argument precision. This projection omits locations until that
+owned provenance is available to the public consumer; an internal Program
+path is not an input location. Absent and
+inaccessible Source dependencies stop before this dependent Graph diagnosis
+and retain the same protected unresolved result. Source-free valid weak and
+strong components remain verified. Checking does not execute a Graph task.
+
+This coordinated extension changes the registered `actql-check-reason/0.1`
+body and dependent outcome schema identities, validators and SDK wire types.
+It leaves `actql-diagnostics/0.1` unchanged. Mixed schema pins are rejected by
+existing contract validation; there is no compatibility adapter.
+
+### Run cancellation explanations
+
+`explainCancellation(result)` returns immutable read-only advice for the exact
+response or uncertain error produced by this SDK's `Execution.cancel()` call.
+Validated `accepted`, `already_requested` and `already_terminal` observations
+retain the Host's control revision. The summary distinguishes recording a
+cancellation request, an existing request and a Run already terminal for
+cancellation. Each provides a `status` target for the same retained Run
+reference. Cancellation acceptance establishes no physical-stop, external
+Effect outcome or resource-release fact.
+
+Transport loss, malformed replies and differently bound replies retain an
+`outcome_unknown` explanation without a fabricated recorded revision. An HTTP
+`Response` object returned through Local is also an invalid representation with
+an unknown cancellation outcome; its existing SDK error is preserved. Changing
+an error code/message or a returned response after the call does not change
+its bound explanation. Handwritten, parsed or copied objects have no SDK
+association. Local failures before the send boundary and typed Host refusals
+retain their existing errors without a fabricated cancellation observation.
+The accessor performs no I/O or automatic retry and retains no provider cause.
+The association lasts only while its SDK result is retained; no timeout or
+persistent Host custody is added.
+
+This is presentation over the existing Client–Host cancellation contract.
+No wire/schema/CID, cancellation ledger or execution semantics is replaced.
+The current public Run cancellation response has no cancellation-operation
+identity or exact-operation lookup. A Run status refresh cannot reconcile a
+particular lost cancellation; it only observes current Run state under current
+authorization. The existing control owner must provide that operation's
+identity, immutable intent, revision conflicts and reconciliation contract
+before the complete cancellation-outcome design can be exposed. A recorded
+physical-start/close control fixture does not prove delayed live-worker stop
+or external Effect reconciliation.

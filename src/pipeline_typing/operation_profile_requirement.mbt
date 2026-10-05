@@ -32,6 +32,15 @@ pub fn operation_profile_requirement(
         AdmitNormalizeGraph => Some(PropertyGraph)
         ResolveNormalizeResources => None
       }
+    DeltaRequirement(o) =>
+      match o {
+        AdmitDeltaGraphs => Some(PropertyGraph)
+        ResolveDeltaResources
+        | EnforceDeltaRelationRows
+        | AdmitExactlyOneDeltaRow
+        | AdmitDeltaActions
+        | VerifyDeltaBaseBeforeTarget => None
+      }
     ComponentsRequirement(o) =>
       match o {
         AdmitComponentGraph => Some(PropertyGraph)
@@ -40,6 +49,16 @@ pub fn operation_profile_requirement(
         | EnforceComponentOutputRows
         | EnforceComponentAuthorGuard
         | BindComponentAuthorGuard(_) => None
+      }
+    SubgraphRequirement(o) =>
+      match o {
+        ResolveSubgraphProfile => Some(PropertyGraph)
+        AdmitSubgraphInput
+        | InduceSelectedEndpoints
+        | FilterInducedEdges
+        | PreserveSubgraphIdentitiesAndProperties
+        | PreserveSubgraphPolicyAndScope
+        | ResolveSubgraphResources => None
       }
     TraverseRequirement(o) =>
       match o {

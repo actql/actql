@@ -20,7 +20,15 @@ fn carrier_work(
 fn carrier_node_supports_selected_execution(
   node : @lower.PreparedNode,
   work : Ref[Int],
+  analytic? : Bool = false,
 ) -> Bool raise CarrierWorkStop {
+  // Source-free Relation DAGs may hand an analytic occurrence to the already
+  // registered bounded group provider. That provider retains the exact
+  // order, frame, expression-context and numeric admission checks. Other
+  // analytic shapes keep their existing fused ownership decision.
+  if analytic && @lower.payload(node) is @lower.Analytic(_) {
+    return true
+  }
   // The lowering capability query scans aggregate descriptors. Reserve its
   // bounded scan before entering it, including unsupported count profiles.
   if @lower.payload(node) is @lower.CountGroup(checked) &&
@@ -146,7 +154,8 @@ fn bounded_family_relation_chain(
 ///|
 /// A checked binary Relation task may reuse a private intermediate in two
 /// later steps and join those branches. Keep only this bounded, single-root
-/// shape together; other nonlinear or Carrier paths retain per-edge tasks.
+/// shape together, including checked group, window, or expansion children;
+/// other nonlinear or Carrier paths retain per-edge tasks.
 fn bounded_branched_relation_chain(
   graph : CheckedDAG,
   stage : Int,
@@ -158,7 +167,10 @@ fn bounded_branched_relation_chain(
     return false
   }
   match @lower.payload(first) {
-    @lower.AppendRows(_) | @lower.SetRows(_) | @lower.CrossJoinRows(_) => ()
+    @lower.InnerJoin(_)
+    | @lower.AppendRows(_)
+    | @lower.SetRows(_)
+    | @lower.CrossJoinRows(_) => ()
     _ => return false
   }
   for result in graph.results {
@@ -181,16 +193,39 @@ fn bounded_branched_relation_chain(
       @carrier.kind(@lower.node_output_carrier(node)) == @carrier.RelationKind else {
       return false
     }
+    // A checked analytic may stay inside this bounded fork, but its exact
+    // aggregate and frame support is decided by the selected group provider.
+    // Do not advertise every analytic as an independently splittable task.
+    if !(@lower.payload(node) is @lower.Analytic(_)) &&
+      !carrier_node_supports_selected_execution(node, work) {
+      return false
+    }
     match @lower.payload(node) {
-      @lower.AppendRows(_)
+      @lower.InnerJoin(_)
+      | @lower.AppendRows(_)
       | @lower.SetRows(_)
       | @lower.CrossJoinRows(_)
       | @lower.Where(_)
       | @lower.Derive(_)
-      | @lower.Select(_) => ()
+      | @lower.Select(_)
+      | @lower.Sort(_)
+      | @lower.Limit(_)
+      | @lower.TopK(_)
+      | @lower.TopKBy(_)
+      | @lower.Distinct(_)
+      | @lower.Dedupe(_)
+      | @lower.Lag(_)
+      | @lower.JsonPick(_)
+      | @lower.Watermark(_)
+      | @lower.RowWindow(_)
+      | @lower.Pivot(_)
+      | @lower.Unpivot(_)
+      | @lower.Unnest(_)
+      | @lower.Analytic(_)
+      | @lower.AssertRows(_)
+      | @lower.CountGroup(_) => ()
       _ => return false
     }
-    let mut internal_inputs = 0
     for port in 0..<@lower.node_input_count(node) {
       carrier_work(work)
       guard @lower.node_accepts_managed_relation_view(node, port) &&
@@ -205,7 +240,6 @@ fn bounded_branched_relation_chain(
             return false
           }
           used_by_later[producer] = true
-          internal_inputs += 1
           if producer != step - 1 || port > 0 {
             branched = true
           }
@@ -216,9 +250,9 @@ fn bounded_branched_relation_chain(
           }
       }
     }
-    if step > 0 && internal_inputs == 0 {
-      return false
-    }
+    // A later child may read a Stage input directly. Its output must still
+    // feed a later child, as checked by used_by_later below; the selected
+    // chain owner binds that input to this exact operation port.
   }
   for step in 0..<(count - 1) {
     carrier_work(work)
@@ -264,6 +298,7 @@ fn carrier_segment_prefix_end(
       intermediate_result = true
     }
   }
+  let mut source_free_relation_dag = false
   if stage == 0 {
     if !graph.source_free_root {
       return None
@@ -273,6 +308,7 @@ fn carrier_segment_prefix_end(
     let mut carrier_relation_consumer = false
     let mut relation_only = true
     let mut values_roots = 0
+    let mut binary_relation_consumer = false
     for step in 0..<count {
       carrier_work(work)
       guard @lower.node_at(prepared, step) is Some(node) else { return None }
@@ -302,6 +338,9 @@ fn carrier_segment_prefix_end(
       if @lower.preparation_carrier_at(prepared, @pipeline.Step(step))
         is Some(output) &&
         @carrier.kind(output) == @carrier.RelationKind {
+        if @lower.node_input_count(node) == 2 {
+          binary_relation_consumer = true
+        }
         for input in 0..<@lower.node_input_count(node) {
           carrier_work(work)
           match @lower.node_input_target(node, input) {
@@ -319,16 +358,19 @@ fn carrier_segment_prefix_end(
         }
       }
     }
-    // Independent Values roots cannot be realized as one linear pipeline.
-    // Let a Relation-only DAG reach the existing selected-provider and exact
-    // per-edge checks below; root count alone never authorizes a split.
-    let independent_relations = relation_only && values_roots > 1
+    // Independent Values roots and branches joined from one shared Values
+    // root need exact operation ports. Let these Relation-only DAGs reach the
+    // selected-provider and per-edge checks below; shape alone cannot split.
+    // A unary nonlinear Values suffix still retains its existing refusal.
+    let relation_dag = relation_only &&
+      (values_roots > 1 || (values_roots > 0 && binary_relation_consumer))
+    source_free_relation_dag = relation_dag
     // A source-free Carrier prefix needs segmentation when a later typed
     // Carrier-to-Relation step or an intermediate Result needs independent
     // ownership. Carrier-only prefixes without either retain fused execution.
     if !values_source ||
       (
-        !independent_relations &&
+        !relation_dag &&
         (
           (!carrier_construction && !intermediate_result) ||
           (!carrier_relation_consumer && !intermediate_result)
@@ -361,7 +403,11 @@ fn carrier_segment_prefix_end(
   for step in 0..<count {
     carrier_work(work)
     guard @lower.node_at(prepared, step) is Some(node) else { return None }
-    if !carrier_node_supports_selected_execution(node, work) {
+    if !carrier_node_supports_selected_execution(
+        node,
+        work,
+        analytic=source_free_relation_dag,
+      ) {
       all_selected = false
       break
     }
@@ -429,8 +475,44 @@ fn carrier_segment_prefix_end(
             }
           }
         }
-        Some(@pipeline.Input(_)) => {
+        Some(@pipeline.Input(source)) => {
           found_external_input = true
+          // A retained secondary Relation requires selected execution even
+          // when an earlier Carrier transform or later MATCH prefers fusion.
+          // Nearest already binds both Stage inputs in its fused provider;
+          // its external Relation peer alone does not require a split.
+          if !(@lower.payload(node) is @lower.NearestValue(_)) &&
+            input > 0 &&
+            @lower.node_accepts_managed_relation_view(node, input) &&
+            @lower.node_accepts_managed_carrier_view(node, 0) &&
+            @lower.node_input_target(node, 0) is Some(@pipeline.Step(primary)) &&
+            @lower.preparation_carrier_at(prepared, @pipeline.Step(primary))
+            is Some(carrier) &&
+            @carrier.kind(carrier) != @carrier.RelationKind {
+            let mut retained_relation = false
+            for edge in graph.data {
+              carrier_work(work)
+              if edge.consumer == stage &&
+                edge.input == source &&
+                edge.producer >= 0 &&
+                edge.producer < graph.owners.length() {
+                let predecessor = @lower.bound_preparation(
+                  graph.owners[edge.producer],
+                )
+                if @lower.preparation_carrier_at(predecessor, edge.target)
+                  is Some(input_carrier) &&
+                  @carrier.kind(input_carrier) == @carrier.RelationKind &&
+                  @lower.preparation_schema_at(predecessor, edge.target)
+                  is Some(_) {
+                  retained_relation = true
+                }
+              }
+            }
+            if !retained_relation {
+              return None
+            }
+            found_relation = true
+          }
           // A binary JOIN may reread an external peer in a fused chain.
           // Only a later primary port restarts an independent branch.
           if step > 0 && @lower.node_input_count(node) <= 2 && input == 0 {

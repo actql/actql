@@ -227,6 +227,7 @@ pub fn compile_query_script(
                 reserved,
                 output,
                 known~,
+                graphs~,
               )
               known = known.filter(input => {
                 !(input.relation.length() == 1 &&
@@ -239,7 +240,13 @@ pub fn compile_query_script(
               continue
             }
             let bound = lower_script_graph_calls(
-              construction, query, graph, steps, reserved,
+              construction,
+              query,
+              graph,
+              limits,
+              steps,
+              reserved,
+              known~,
             )
             if @query.operation_count(@query.after_graph_calls(query)) != 0 {
               raise Abort(UnsupportedGraph)
@@ -344,12 +351,20 @@ pub fn compile_query_script(
           reserved,
           "aql_script_result",
           known=stage_known,
+          graphs~,
           retained=Some(retained),
         )
       } else if @query.graph_query(current) is Some(_) {
         lower_script_keyed_graph_query(
-          construction, current, graphs, limits, stage_steps, reserved, "aql_script_result",
+          construction,
+          current,
+          graphs,
+          limits,
+          stage_steps,
+          reserved,
+          "aql_script_result",
           retained,
+          known=stage_known,
         )
       } else {
         lower_script_relation(

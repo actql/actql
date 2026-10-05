@@ -904,6 +904,31 @@ fn prepare_target_source_policy(
               1
             }
           }
+          @pipeline.Subgraph(selector~, checked=operation) => {
+            identity_charge(budget, 1)
+            let mut missing = @graph.selector_id_count(
+                @graph.subgraph_nodes(operation),
+              ) >
+              0
+            if @graph.subgraph_edges(operation) is Some(predicate) &&
+              publication_expression_unknown(
+                @graph.predicate_expression(predicate),
+                budget,
+              ) {
+              missing = true
+            }
+            carrier_steps.push({
+              step: index,
+              operation: step.operation,
+              unknown_provenance: missing,
+            })
+            unknown = unknown || missing
+            if selector is Some(_) {
+              2
+            } else {
+              1
+            }
+          }
           @pipeline.GraphMatch(operation) => {
             identity_charge(budget, 1)
             let mut missing = @graph.match_id_count(operation) > 0 ||
@@ -954,6 +979,19 @@ fn prepare_target_source_policy(
               unknown_provenance: false,
             })
             1
+          }
+          @pipeline.GraphDelta(..) => {
+            // Both ordered operands contribute to the result. Until exact
+            // Delta field provenance is connected, do not grant a stronger
+            // publication proof merely because checking retained a contract.
+            identity_charge(budget, 1)
+            carrier_steps.push({
+              step: index,
+              operation: step.operation,
+              unknown_provenance: true,
+            })
+            unknown = true
+            2
           }
           @pipeline.PropertyGraphConstruction(inputs~, ..) => {
             identity_charge(budget, 1)

@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {join, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
-import {hash, gitTree, actionInputs} from './inputs.mjs';
+import {hash, gitTree, actionInputs, mutationSourceInputs} from './inputs.mjs';
 import {readCatalog} from './actions.mjs';
 import {mutationIds} from './receipts.mjs';
 import {mutationContracts} from './mutation-inventory.mjs';
@@ -20,6 +20,19 @@ test('actual Git sources have the same keyed cohort, staged bytes/modes and orig
   const revision = execFileSync('git', ['rev-parse', 'HEAD'], {cwd: repository, encoding: 'utf8'}).trim();
   const tree = gitTree(repository, revision), destination = mkdtempSync(join(tmpdir(), 'actql-actual-source-cohort-'));
   t.after(() => rmSync(destination, {recursive: true, force: true}));
+  const selected = mutationSourceInputs(tree);
+  assert.deepEqual(selected.unresolved, [], 'Healthy current source must use the reviewed narrowed cohort');
+  const allSources = [...tree.entries.keys()].filter(path => path.startsWith('src/'));
+  assert(selected.paths.length < allSources.length, 'Full-source fallback is not narrowed-cohort coverage');
+  for (const directory of ['src/client_row_source_host', 'src/bounded_graph_diff']) {
+    const immediateMembers = allSources.filter(path => path.startsWith(`${directory}/`) &&
+      !path.slice(directory.length + 1).includes('/')).sort();
+    assert(immediateMembers.includes(`${directory}/moon.pkg`));
+    assert(immediateMembers.includes(`${directory}/pkg.generated.mbti`));
+    assert(immediateMembers.some(path => path.endsWith('_wbtest.mbt')));
+    assert.deepEqual(selected.directories.find(entry => entry.path === `${directory}/*`)?.members, immediateMembers);
+    for (const path of immediateMembers) assert(selected.paths.includes(path), `Missing integrated package member: ${path}`);
+  }
   const staged = stageMutationSource({tree, destination});
   const action = readCatalog().actions.find(value => value.id === 'mutations-js');
   // This verifies physical source correspondence only, never a runtime claim.

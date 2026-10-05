@@ -62,7 +62,9 @@ pub fn close_program_operations(
           GraphMatchExecution(v) => v.site
           GraphEqualityExecution(v) => v.site
           GraphDiagnosticExecution(v) => v.site
+          SubgraphExecution(v) => v.site
           GraphNormalizeExecution(v) => v.site
+          GraphDeltaExecution(v) => v.site
           VectorExecution(v) => v.site
           NearestExecution(v) => v.site
           PoolExecution(v) => v.site

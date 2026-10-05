@@ -378,6 +378,23 @@ fn derive_row_counts(
         }
         Some({ nodes: reduce_count(nodes), edges: reduce_count(edges), })
       }
+      Subgraph(selector~, checked~) =>
+        graph_input.map(input => {
+          let nodes = selector_count(
+            @graph.subgraph_nodes(checked),
+            selector,
+            result,
+            input.nodes,
+          )
+          {
+            nodes: reduce_count(nodes),
+            edges: if nodes is Some({ upper: 0L, .. }) {
+              Some(count(0L, true))
+            } else {
+              reduce_count(input.edges)
+            },
+          }
+        })
       _ => None
     }
     let next = match step.operation {
@@ -421,6 +438,12 @@ fn derive_row_counts(
           }),
         )
       GraphDegree(_) => graph_input.bind(g => g.nodes)
+      GraphDelta(checked~, ..) =>
+        if @graph.delta_operation(checked) is Difference {
+          Some(count(1L, true))
+        } else {
+          None
+        }
       GraphComponents(_) => graph_input.bind(g => g.nodes)
       GraphBounds(_) =>
         if graph_input.bind(g => g.nodes) is Some({ upper: 0L, .. }) {

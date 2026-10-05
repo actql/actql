@@ -7,7 +7,7 @@
 // Unknown options and other targets require separate review; matching a digest
 // is configuration identity, not a proof of compiler or OS correctness.
 export const packageConfigurationReview = Object.freeze({
-  revision: '5a7c9c14208c70cc3fde56c44c7b62f9ea6aa43c',
+  revision: '7e337afa9e5a64035c5925aca1d93ba0ef787aaf',
   target: 'js',
   toolchainDigest: '8a3a1396f02ba4d5d780382960d1bcf95ccc8d6b97c3da446c0899b98874819a',
   moonRevision: '94521db',
@@ -28,7 +28,7 @@ export const reviewedPackageConfigurations = Object.freeze({
   'src/platform_native/runtime_bundle/moon.pkg': 'a853c9fd5ca1ae9c3ca8744b48efaf1ffbc41c13d7c2b5fa67989d3b9950e9cc',
   'src/platform_native/signature/moon.pkg': '5d60d6863d370f759ec4c1b80f43999ab11c93158c7d61577eacb324b6807c7f',
   'src/platform_native/sqlite/moon.pkg': '05340cbc4e922feb361cd58cc8da0cec23671f76eacaaf28aafdfba682ec049d',
-  'src/query_integration/moon.pkg': '0e308857e8972a19a1f82dcf2165e0bc011b7d2a8c7f6dfc0de76373517f6036',
+  'src/query_integration/moon.pkg': '3990008f0b98a6cedd8465fe11c23d84e0c35a286339ba8a1bd7c2639f5ea955',
 });
 
 export function reviewedPackageConfiguration({path, digest, target, toolchainDigest}) {

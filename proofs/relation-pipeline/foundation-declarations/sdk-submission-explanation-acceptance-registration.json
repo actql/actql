@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "sdk-submission-explanation-acceptance-registration",
+  "kind": "change",
+  "revision": "c3966ac311d75c532ea22e7bfab03dbbbd9ced2c",
+  "parents": [
+    "24ef2622f6450735b4d105b4284cc1ab3e1ef34b"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "24ef2622f6450735b4d105b4284cc1ab3e1ef34b",
+          "digest": "6d34976e2a7e4a48cfa2ab54b229388a02aff4fee27129d4e882b8d5eb75b02f",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "f5b869bdc533acc74590c41dfe363183a3d9e656abbdf0934e8f760e85462916",
+      "afterMode": "100644",
+      "reason": "Register actual Local and trusted HTTPS submission-observation acceptance and bounded original-input and explanation mutations in the existing distribution Client gate. Preserve all inherited commands, frozen records and the existing verifier."
+    }
+  ]
+}

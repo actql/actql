@@ -89,108 +89,27 @@ fn property_identity(
   keys : Array[@value.CheckedValue],
   pending_work : Int,
 ) -> Result[(@value.CheckedValue?, Int), Issue] {
-  let types = @carrier.property_definition_keys(definition)
-  if types.length() != keys.length() {
-    return Err(InvalidIdentity)
+  let preparation = match
+    start_property_identity(builder, profile, definition, keys, pending_work) {
+    Ok(preparation) => preparation
+    Err(issue) => return Err(issue)
   }
-  let mut absent = false
-  for index, key in keys {
-    if !contract_equal(
-        builder,
-        types[index],
-        @contract.with_nullability(key.contract, false),
-      ) {
-      return Err(InvalidIdentity)
-    }
-    match key.value {
-      @value.Null => absent = true
-      @value.Reference(reference) =>
-        if !@value.reference_available(reference) {
-          return Err(InvalidIdentity)
-        }
-      _ => ()
-    }
-  }
-  if pending_work < 0 || pending_work > builder.limits.max_work - builder.work {
-    return Err(WorkLimit)
-  }
-  let remaining = builder.limits.max_work - builder.work - pending_work
-  if keys.length() > remaining {
-    return Err(WorkLimit)
-  }
-  if absent {
-    return Ok((None, keys.length()))
-  }
-  let limit = Int::min(
-    builder.limits.max_value_nodes,
-    remaining - keys.length(),
-  )
-  let cap = Int::min(
-    builder.limits.max_value_bytes,
-    builder.limits.max_total_value_bytes - builder.value_bytes,
-  )
-  try {
-    let out = @encode.writer(cap, limit, builder.limits.max_value_depth)
-    @encode.begin_object(out)
-    @encode.key(out, "definition")
-    @encode.string_value(out, @carrier.property_definition_name(definition))
-    @encode.key(out, "domain")
-    @encode.string_value(out, @carrier.property_graph_domain(profile))
-    @encode.key(out, "key")
-    @encode.begin_array(out)
-    for key in keys {
-      emit_property_key(key, out)
-    }
-    @encode.end_array(out)
-    @encode.key(out, "key_types")
-    @encode.begin_array(out)
-    for contract in types {
-      emit_property_key_type(contract, out)
-    }
-    @encode.end_array(out)
-    @encode.end_object(out)
-    let (text, _, nodes, _) = @encode.finish_text_usage(out)
-    // Each of the four bounded passes visits the same identity document.
-    // Charge the conversion once to construction, including key validation.
-    if nodes > (remaining - keys.length()) / 4 {
-      return Err(WorkLimit)
-    }
-    let source = match
-      @source.parse_json(text, {
-        max_input_bytes: cap,
-        max_nodes: nodes,
-        max_depth: builder.limits.max_value_depth,
-      }) {
-      Ok(value) => value
-      Err(_) => return Err(ValueLimit)
-    }
-    let cursor = match
-      @decode.admit(source, {
-        max_nodes: nodes,
-        max_depth: builder.limits.max_value_depth,
-        max_string_bytes: cap,
-        max_total_string_bytes: cap,
-      }) {
-      Ok(value) => value
-      Err(_) => return Err(ValueLimit)
-    }
-    let admitted = match
-      @value.admit(@carrier.graph_identity(builder.graph), cursor, {
-        max_nodes: nodes,
-        max_depth: builder.limits.max_value_depth,
-        max_text_bytes: cap,
-      }) {
-      Ok(value) => value
-      Err(_) => return Err(ValueLimit)
-    }
-    Ok((Some(admitted), nodes * 4 + keys.length()))
-  } catch {
-    _ =>
-      if limit < builder.limits.max_value_nodes {
-        Err(WorkLimit)
-      } else {
-        Err(ValueLimit)
+  while true {
+    match advance_property_identity(preparation, 64) {
+      PropertyIdentityContinue(work~) => ignore(work)
+      PropertyIdentityComplete(value, construction_work~, work~) => {
+        ignore(work)
+        cleanup_property_identity(preparation)
+        return Ok((value, construction_work))
       }
+      PropertyIdentityFailed(issue, work~) => {
+        ignore(work)
+        cleanup_property_identity(preparation)
+        return Err(issue)
+      }
+    }
+  } nobreak {
+    Err(Closed)
   }
 }
 

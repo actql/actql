@@ -839,6 +839,39 @@
       }
     },
     {
+      "requirement_id": "actql.language/value-contracts.relation-group-reference-presence",
+      "statement_sha256": "36dce3c39b739afd1aa2c349a9e20549d5cf0ec1434e67a1d31f42c32525b447",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "value-contracts",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.relation-group-input-admission",
+      "statement_sha256": "3d8c054b4ea9cb182f4731343ecf68e4f1a2c3306fd4701057ab7212d1893878",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "value-contracts",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/value-contracts.relation-group-output-contract",
+      "statement_sha256": "17f954ab237024797ce52c46b9ade8784b59a90f6a10c745ebd882a06ba96680",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "value-contracts",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/value-contracts.empty-object-contracts",
       "statement_sha256": "bf090b017152ce0db497143b00a7a7f5850358063d6e9f5dd848e28eeec452fb",
       "status": "pending",
@@ -5338,8 +5371,19 @@
       }
     },
     {
+      "requirement_id": "actql.language/graph-equality-and-delta.snapshot-owner",
+      "statement_sha256": "804ca237a865ee61ab656c6854ac892b3bf53e5ef6c37ace07cfe63121a8b1bc",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "graph-equality-and-delta",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/graph-equality-and-delta.snapshot-identity",
-      "statement_sha256": "24f59a772506124b16db64fdd3a5e68fc471f382a0685ee1d2fdb369fc2567e0",
+      "statement_sha256": "6897435efbd25a6e3df97ed2130afcad38cff2449da57db6ae00fa9c8e140117",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -5350,7 +5394,7 @@
     },
     {
       "requirement_id": "actql.language/graph-equality-and-delta.snapshot-identity-backend-independence",
-      "statement_sha256": "3929d01d780d39f5f2edeb4b4d0ead232f1938fdba2d0b0e618783a2fc5ce316",
+      "statement_sha256": "273881168505cd771a106a646714795558507a333cd76dbd655cdb89aaa41dc7",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -5361,7 +5405,40 @@
     },
     {
       "requirement_id": "actql.language/graph-equality-and-delta.complete-records",
-      "statement_sha256": "76a9e79b282955893a4807c9b23bb66140c82eb8d1e5a012da95e82fafdeff21",
+      "statement_sha256": "e497ec2f629659d3e494c3a685ba6bc18035505ed9d805c1d87de2acb022eaa0",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "graph-equality-and-delta",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/graph-equality-and-delta.independent-edge-identity",
+      "statement_sha256": "4344c8f777aee7b8c2a67b2c9975471db5fcbae80785fd816932c264c85d03eb",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "graph-equality-and-delta",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/graph-equality-and-delta.key-identity-binding",
+      "statement_sha256": "c5ccd6201f4c7d3a1180936cac6d3c20a00cf2d0a3347057241e23d3db7267ff",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "graph-equality-and-delta",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/graph-equality-and-delta.shared-record-contract",
+      "statement_sha256": "4c89de80c0cbcdc7d0394aa59f306843a6fb0c5c8b0b625f211fc1622884b547",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

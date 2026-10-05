@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:6f5a28ccc4523ffe35ab440eb1b459bdbf48987db6e8c05b98d3c6ebbff536df",
+  "artifact_registry_cid": "sha256:0c953a7a865cab86ce16342b43fb1f6c630f2516f9eef142535447447c740144",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10713,8 +10713,8 @@
     "model_prompt": "sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204",
     "model_retry_policy": "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c",
     "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55",
-    "check_outcome": "sha256:f7415bb94341e6379d2f8a04d49d4d765d1cd605598887694d1a3edee053eb54",
-    "check_reason": "sha256:1565f0b7e8e32f70d97905797ccc37a872b08116c0ef3d9599e4e4509b568621"
+    "check_outcome": "sha256:73ad8b654c674edac53fe6b31438b6425e9c8d90fa908deecceec6940ff72ff1",
+    "check_reason": "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -76253,6 +76253,49 @@
                                 ]
                               }
                             }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "operation",
+                              "issue"
+                            ],
+                            "properties": {
+                              "operation": {
+                                "const": "components"
+                              },
+                              "issue": {
+                                "enum": [
+                                  "invalid_kind",
+                                  "invalid_output_rows"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "unexpected_end",
+                                  "unexpected_token",
+                                  "invalid_escape",
+                                  "invalid_scalar",
+                                  "empty_identifier",
+                                  "unterminated_comment",
+                                  "invalid_number",
+                                  "invalid_parameter",
+                                  "unknown_reference",
+                                  "invalid_arguments",
+                                  "expected_boolean"
+                                ]
+                              }
+                            }
                           }
                         ]
                       }
@@ -76293,6 +76336,9 @@
                           ],
                           "properties": {
                             "facts": {
+                              "required": [
+                                "parameter"
+                              ],
                               "allOf": [
                                 {
                                   "not": {
@@ -76364,12 +76410,135 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "query_lexical_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "issue"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "unexpected_end",
+                                    "unexpected_token",
+                                    "invalid_escape",
+                                    "invalid_scalar",
+                                    "empty_identifier",
+                                    "unterminated_comment",
+                                    "invalid_number",
+                                    "invalid_parameter"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "query_expression_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "issue"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "unknown_reference",
+                                    "invalid_arguments",
+                                    "invalid_number",
+                                    "expected_boolean"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "graph_operation_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "operation",
+                                "issue"
+                              ],
+                              "properties": {
+                                "operation": {
+                                  "const": "components"
+                                },
+                                "issue": {
+                                  "enum": [
+                                    "invalid_kind",
+                                    "invalid_output_rows"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "not": {
                                 "enum": [
                                   "supplied_value_type_mismatch",
                                   "parameter_value_required",
                                   "parameter_undeclared",
-                                  "supplied_value_constraint_violation"
+                                  "supplied_value_constraint_violation",
+                                  "query_lexical_invalid",
+                                  "query_expression_invalid",
+                                  "graph_operation_invalid"
                                 ]
                               }
                             }
@@ -76597,6 +76766,49 @@
                                 ]
                               }
                             }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "operation",
+                              "issue"
+                            ],
+                            "properties": {
+                              "operation": {
+                                "const": "components"
+                              },
+                              "issue": {
+                                "enum": [
+                                  "invalid_kind",
+                                  "invalid_output_rows"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "unexpected_end",
+                                  "unexpected_token",
+                                  "invalid_escape",
+                                  "invalid_scalar",
+                                  "empty_identifier",
+                                  "unterminated_comment",
+                                  "invalid_number",
+                                  "invalid_parameter",
+                                  "unknown_reference",
+                                  "invalid_arguments",
+                                  "expected_boolean"
+                                ]
+                              }
+                            }
                           }
                         ]
                       }
@@ -76637,6 +76849,9 @@
                           ],
                           "properties": {
                             "facts": {
+                              "required": [
+                                "parameter"
+                              ],
                               "allOf": [
                                 {
                                   "not": {
@@ -76708,12 +76923,135 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "query_lexical_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "issue"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "unexpected_end",
+                                    "unexpected_token",
+                                    "invalid_escape",
+                                    "invalid_scalar",
+                                    "empty_identifier",
+                                    "unterminated_comment",
+                                    "invalid_number",
+                                    "invalid_parameter"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "query_expression_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "issue"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "unknown_reference",
+                                    "invalid_arguments",
+                                    "invalid_number",
+                                    "expected_boolean"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "graph_operation_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "operation",
+                                "issue"
+                              ],
+                              "properties": {
+                                "operation": {
+                                  "const": "components"
+                                },
+                                "issue": {
+                                  "enum": [
+                                    "invalid_kind",
+                                    "invalid_output_rows"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "not": {
                                 "enum": [
                                   "supplied_value_type_mismatch",
                                   "parameter_value_required",
                                   "parameter_undeclared",
-                                  "supplied_value_constraint_violation"
+                                  "supplied_value_constraint_violation",
+                                  "query_lexical_invalid",
+                                  "query_expression_invalid",
+                                  "graph_operation_invalid"
                                 ]
                               }
                             }
@@ -76752,7 +77090,7 @@
               }
             },
             "reason_schema_cid": {
-              "const": "sha256:1565f0b7e8e32f70d97905797ccc37a872b08116c0ef3d9599e4e4509b568621"
+              "const": "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -77178,6 +77516,49 @@
                                 ]
                               }
                             }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "operation",
+                              "issue"
+                            ],
+                            "properties": {
+                              "operation": {
+                                "const": "components"
+                              },
+                              "issue": {
+                                "enum": [
+                                  "invalid_kind",
+                                  "invalid_output_rows"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "unexpected_end",
+                                  "unexpected_token",
+                                  "invalid_escape",
+                                  "invalid_scalar",
+                                  "empty_identifier",
+                                  "unterminated_comment",
+                                  "invalid_number",
+                                  "invalid_parameter",
+                                  "unknown_reference",
+                                  "invalid_arguments",
+                                  "expected_boolean"
+                                ]
+                              }
+                            }
                           }
                         ]
                       }
@@ -77218,6 +77599,9 @@
                           ],
                           "properties": {
                             "facts": {
+                              "required": [
+                                "parameter"
+                              ],
                               "allOf": [
                                 {
                                   "not": {
@@ -77289,12 +77673,135 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "query_lexical_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "issue"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "unexpected_end",
+                                    "unexpected_token",
+                                    "invalid_escape",
+                                    "invalid_scalar",
+                                    "empty_identifier",
+                                    "unterminated_comment",
+                                    "invalid_number",
+                                    "invalid_parameter"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "query_expression_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "issue"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "unknown_reference",
+                                    "invalid_arguments",
+                                    "invalid_number",
+                                    "expected_boolean"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "graph_operation_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "operation",
+                                "issue"
+                              ],
+                              "properties": {
+                                "operation": {
+                                  "const": "components"
+                                },
+                                "issue": {
+                                  "enum": [
+                                    "invalid_kind",
+                                    "invalid_output_rows"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "not": {
                                 "enum": [
                                   "supplied_value_type_mismatch",
                                   "parameter_value_required",
                                   "parameter_undeclared",
-                                  "supplied_value_constraint_violation"
+                                  "supplied_value_constraint_violation",
+                                  "query_lexical_invalid",
+                                  "query_expression_invalid",
+                                  "graph_operation_invalid"
                                 ]
                               }
                             }
@@ -77522,6 +78029,49 @@
                                 ]
                               }
                             }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "operation",
+                              "issue"
+                            ],
+                            "properties": {
+                              "operation": {
+                                "const": "components"
+                              },
+                              "issue": {
+                                "enum": [
+                                  "invalid_kind",
+                                  "invalid_output_rows"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "unexpected_end",
+                                  "unexpected_token",
+                                  "invalid_escape",
+                                  "invalid_scalar",
+                                  "empty_identifier",
+                                  "unterminated_comment",
+                                  "invalid_number",
+                                  "invalid_parameter",
+                                  "unknown_reference",
+                                  "invalid_arguments",
+                                  "expected_boolean"
+                                ]
+                              }
+                            }
                           }
                         ]
                       }
@@ -77562,6 +78112,9 @@
                           ],
                           "properties": {
                             "facts": {
+                              "required": [
+                                "parameter"
+                              ],
                               "allOf": [
                                 {
                                   "not": {
@@ -77633,12 +78186,135 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "query_lexical_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "issue"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "unexpected_end",
+                                    "unexpected_token",
+                                    "invalid_escape",
+                                    "invalid_scalar",
+                                    "empty_identifier",
+                                    "unterminated_comment",
+                                    "invalid_number",
+                                    "invalid_parameter"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "query_expression_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "issue"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "unknown_reference",
+                                    "invalid_arguments",
+                                    "invalid_number",
+                                    "expected_boolean"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "graph_operation_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "operation",
+                                "issue"
+                              ],
+                              "properties": {
+                                "operation": {
+                                  "const": "components"
+                                },
+                                "issue": {
+                                  "enum": [
+                                    "invalid_kind",
+                                    "invalid_output_rows"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "not": {
                                 "enum": [
                                   "supplied_value_type_mismatch",
                                   "parameter_value_required",
                                   "parameter_undeclared",
-                                  "supplied_value_constraint_violation"
+                                  "supplied_value_constraint_violation",
+                                  "query_lexical_invalid",
+                                  "query_expression_invalid",
+                                  "graph_operation_invalid"
                                 ]
                               }
                             }
@@ -77689,7 +78365,7 @@
               }
             },
             "reason_schema_cid": {
-              "const": "sha256:1565f0b7e8e32f70d97905797ccc37a872b08116c0ef3d9599e4e4509b568621"
+              "const": "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -77730,7 +78406,7 @@
               }
             },
             "reason_schema_cid": {
-              "const": "sha256:1565f0b7e8e32f70d97905797ccc37a872b08116c0ef3d9599e4e4509b568621"
+              "const": "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -77947,6 +78623,49 @@
                   ]
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "operation",
+                "issue"
+              ],
+              "properties": {
+                "operation": {
+                  "const": "components"
+                },
+                "issue": {
+                  "enum": [
+                    "invalid_kind",
+                    "invalid_output_rows"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "issue"
+              ],
+              "properties": {
+                "issue": {
+                  "enum": [
+                    "unexpected_end",
+                    "unexpected_token",
+                    "invalid_escape",
+                    "invalid_scalar",
+                    "empty_identifier",
+                    "unterminated_comment",
+                    "invalid_number",
+                    "invalid_parameter",
+                    "unknown_reference",
+                    "invalid_arguments",
+                    "expected_boolean"
+                  ]
+                }
+              }
             }
           ]
         }
@@ -77987,6 +78706,9 @@
             ],
             "properties": {
               "facts": {
+                "required": [
+                  "parameter"
+                ],
                 "allOf": [
                   {
                     "not": {
@@ -78058,12 +78780,135 @@
           "if": {
             "properties": {
               "code": {
+                "const": "query_lexical_invalid"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "facts"
+            ],
+            "properties": {
+              "facts": {
+                "required": [
+                  "issue"
+                ],
+                "properties": {
+                  "issue": {
+                    "enum": [
+                      "unexpected_end",
+                      "unexpected_token",
+                      "invalid_escape",
+                      "invalid_scalar",
+                      "empty_identifier",
+                      "unterminated_comment",
+                      "invalid_number",
+                      "invalid_parameter"
+                    ]
+                  }
+                }
+              },
+              "location": {
+                "properties": {
+                  "kind": {
+                    "const": "text"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "query_expression_invalid"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "facts"
+            ],
+            "properties": {
+              "facts": {
+                "required": [
+                  "issue"
+                ],
+                "properties": {
+                  "issue": {
+                    "enum": [
+                      "unknown_reference",
+                      "invalid_arguments",
+                      "invalid_number",
+                      "expected_boolean"
+                    ]
+                  }
+                }
+              },
+              "location": {
+                "properties": {
+                  "kind": {
+                    "const": "text"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "graph_operation_invalid"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "facts"
+            ],
+            "properties": {
+              "facts": {
+                "required": [
+                  "operation",
+                  "issue"
+                ],
+                "properties": {
+                  "operation": {
+                    "const": "components"
+                  },
+                  "issue": {
+                    "enum": [
+                      "invalid_kind",
+                      "invalid_output_rows"
+                    ]
+                  }
+                }
+              },
+              "location": {
+                "properties": {
+                  "kind": {
+                    "const": "text"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
                 "not": {
                   "enum": [
                     "supplied_value_type_mismatch",
                     "parameter_value_required",
                     "parameter_undeclared",
-                    "supplied_value_constraint_violation"
+                    "supplied_value_constraint_violation",
+                    "query_lexical_invalid",
+                    "query_expression_invalid",
+                    "graph_operation_invalid"
                   ]
                 }
               }

@@ -598,13 +598,58 @@ bind the exact JSON serialization supplied to the common admission owner. An
 unavailable original position is omitted, including lowerer semantic failures
 without owned source provenance. No generated JSON path is displayed as SQL.
 
-An unresolved column expression can retain its existing lowerer's authored
-identifier range in a `query_invalid` reason, for both SQL and text input.
-The projection reads the existing typed failure and origin; it does not resolve
-names again or search the submitted string. Backtick-quoted names, repeated
-tokens, Unicode and CRLF retain their original byte ranges. Unaliased column
-failures currently lacking an origin omit the range. Unresolved Source names
-and generated origins do not acquire a public location.
+The parser's typed lexical issues project as `query_lexical_invalid`, with
+closed `facts.issue`: `unexpected_end`, `unexpected_token`, `invalid_escape`,
+`invalid_scalar`, `empty_identifier`, `unterminated_comment`, `invalid_number`
+or `invalid_parameter`. These facts contain no token text, Source name, private
+cause or parser message. The parser's existing authored span supplies a source
+location when present, including an exact zero-width position; no token range
+is invented. Ordinary grammar `Syntax(String)` failures remain the generic
+`query_syntax_invalid` reason. Lexical limits still project as analysis-budget
+coverage, never as these invalid-input reasons. The SDK provides safe,
+issue-specific explanations and advisory hints without interpreting messages,
+reparsing source or applying an edit.
+
+Adding this closed facts alternative changes the registered check reason and
+outcome schema identities and their coordinated Host/SDK pins. Both consumers
+reject the previous identity, including an otherwise empty verified report.
+The `parameter_undeclared` condition explicitly retains its required parameter
+fact despite the expanded union. Unknown reason codes retain only their safe
+code-only shape. This does not change `actql-diagnostics/0.1`, its code/payload
+meanings or frozen historical identity evidence.
+
+The lowerer's typed `UnknownReference`, `InvalidArguments` and `InvalidNumber`
+issues project as `query_expression_invalid` with closed `facts.issue` values
+`unknown_reference`, `invalid_arguments` and `invalid_number`. The numeric issue
+means the expression's precision, finite-value or signed-zero domain, distinct
+from lexical `invalid_number` spelling. Argument facts describe the selected
+operation's count or form, without asserting a particular overload or exposing
+argument values. Authored origins supply original half-open UTF-8 ranges for
+references, calls and numbers; generated or missing origins omit the location.
+The projection reads existing typed failures without resolving names again or
+searching the submitted string. Unaliased column failures currently lacking a
+typed expression diagnostic remain generic `query_invalid` and omit a range.
+Unresolved protected Source names cannot acquire an expression reason or span.
+Wrapped expression construction/admission budgets remain incomplete analysis;
+they never become expression violations. The lowerer's `UnsupportedFunction`
+also remains incomplete analysis: its existing type covers unknown names,
+quoted function names and unsupported qualified forms without distinguishing
+a proven input violation from implementation support. It projects only the
+existing `implementation_limit` coverage, not an expression reason or location.
+That does not certify the construct as valid or allow a Program to be issued.
+The common lowerer must supply a distinct typed violation before the public
+bridge can blame an unknown function name; no diagnostic name catalog or
+message classifier replaces that owner. Independent supplied violations and
+missing-value Requirements remain visible beside this limit. The SDK's advice
+asks the checking-context owner to review support without claiming that the
+submitted construct is allowed.
+
+This further facts extension changes the coordinated check reason and outcome
+schema identities. Facts are validated per code: lexical issues cannot use an
+expression-only fact, and expression reasons cannot use a lexical-only fact.
+Shared `invalid_number` is interpreted only with its reason code. The SDK and
+Host reject mismatched preceding identities even for empty verified responses;
+no compatibility implementation is retained.
 
 Document IDs (`source`, `parameter_declarations`, `parameters`) are roles within
 one report, not private file paths. Each Host issues a keyed, domain-separated
@@ -637,7 +682,20 @@ The SDK detaches structured caller input synchronously before awaiting credentia
 or transport, and retains immutable input snapshots in a weak association with
 that exact response. `getCheckInput` retrieves that call's snapshot;
 `resolveCheckLocation` uses the same snapshot and checks identity, revision,
-content and byte boundaries. A copied/externally parsed report has no association.
+content and byte boundaries. Structured pointers must resolve to an existing
+node in that detached submitted JSON value. Resolution follows
+[RFC 6901, Section 4](https://www.rfc-editor.org/rfc/rfc6901#section-4): decoded
+object member names must be owned, array indices must be canonical decimal
+indices naming submitted elements, and member spelling is not normalized.
+Root and existing null/false/zero/empty-string nodes are valid; inherited
+properties, array metadata, missing nodes and scalar descendants are not.
+The SDK validates locations in reasons and Requirements before exposing a
+completed or partial report; a nonexistent node refuses with
+`InvalidHostCheckOutcome`. Standalone location resolution returns `undefined`.
+This is lookup in the original input snapshot, not a query/declaration parser
+or a second checker. It changes no wire schema, reason identity or historical
+`actql-diagnostics/0.1` contract and adds no persistence or retrieval API.
+A copied/externally parsed report has no association.
 Unavailable input, another revision or edited text yields no resolved location;
 the reason's safe code/explanation remains usable. The API applies no edits.
 `resolveCheckTextRange` converts a resolved source location to zero-based UTF-16
@@ -658,7 +716,13 @@ The Host adds no document database, persistent input store, history or re-fetch
 API for checking. The existing request envelope/source limit is retained: 65,536
 UTF-16 source code units at request validation and 65,536 original source bytes
 at frontend admission; an input beyond an analysis budget is not an invalidity
-proof. Structured admission keeps its existing bounded JSON/decode/binding
+proof. The parser's source-byte admission limit is reported as
+`analysis_budget_exhausted`, including when declaration admission has already
+exhausted its budget and only independent bounded syntax checking remains.
+Source admission precedes token scanning; a location or syntax violation is not
+invented for input that was not scanned. Independent supplied-value violations
+and known missing bindings remain in the original bound-input report.
+Structured admission keeps its existing bounded JSON/decode/binding
 budgets. Report construction reserves a separate 65,536-byte, 4,096-node budget.
 The submitted `byte_length` is a safe integer measurement, not evidence of
 successful admission or an extra input limit; exhausted inputs still retain
@@ -708,3 +772,77 @@ The first supported boundary is bound-input checking. Template-only checking,
 fix application, report retrieval, LSP conversion and execution/Delivery outcome
 explanations remain separate work. The input-report connection does not claim
 the design's S1–S9/X1–X17/invariant completion gate.
+
+
+### Predicate type explanations
+
+The registered `query_expression_invalid` reason also carries
+`facts.issue: "expected_boolean"` for the common Relation checker's
+`ExpectedBoolean` rejection. The SDK explains that a predicate requires Boolean
+type and suggests a Boolean condition such as a comparison. It does not reveal
+the submitted value or invent an actual type absent from the retained issue.
+
+The checker-facing span does not retain authored/generated provenance, so this
+projection omits the location. A lowered Program path is not an original SQL
+position. Absent and inaccessible Source dependencies stop before dependent
+predicate checking and retain equivalent protected unresolved coverage.
+The verdict still comes from the common checker; explanations are advisory.
+
+### Graph components argument explanations
+
+The public `graph_operation_invalid` reason carries closed facts
+`operation: "components"` and `issue: "invalid_kind"` or
+`"invalid_output_rows"`. These facts project existing common Graph checker
+`InvalidBody` at `components.kind` and `InvalidCount` at
+`components.max_output_rows`; they do not introduce a second checker.
+The SDK explains the required weak/strong kind or positive safe integer row
+limit. Other Graph failures retain their existing classification and safe
+fallback. Neither the submitted value nor an internal Program path is exposed.
+
+Graph lowering assigns the authored call range to its diagnostic body, while
+the checker-facing span does not retain the authored/generated origin kind or
+individual argument precision. This projection omits locations until that
+owned provenance is available to the public consumer; an internal Program
+path is not an input location. Absent and
+inaccessible Source dependencies stop before this dependent Graph diagnosis
+and retain the same protected unresolved result. Source-free valid weak and
+strong components remain verified. Checking does not execute a Graph task.
+
+This coordinated extension changes the registered `actql-check-reason/0.1`
+body and dependent outcome schema identities, validators and SDK wire types.
+It leaves `actql-diagnostics/0.1` unchanged. Mixed schema pins are rejected by
+existing contract validation; there is no compatibility adapter.
+
+### Run cancellation explanations
+
+`explainCancellation(result)` returns immutable read-only advice for the exact
+response or uncertain error produced by this SDK's `Execution.cancel()` call.
+Validated `accepted`, `already_requested` and `already_terminal` observations
+retain the Host's control revision. The summary distinguishes recording a
+cancellation request, an existing request and a Run already terminal for
+cancellation. Each provides a `status` target for the same retained Run
+reference. Cancellation acceptance establishes no physical-stop, external
+Effect outcome or resource-release fact.
+
+Transport loss, malformed replies and differently bound replies retain an
+`outcome_unknown` explanation without a fabricated recorded revision. An HTTP
+`Response` object returned through Local is also an invalid representation with
+an unknown cancellation outcome; its existing SDK error is preserved. Changing
+an error code/message or a returned response after the call does not change
+its bound explanation. Handwritten, parsed or copied objects have no SDK
+association. Local failures before the send boundary and typed Host refusals
+retain their existing errors without a fabricated cancellation observation.
+The accessor performs no I/O or automatic retry and retains no provider cause.
+The association lasts only while its SDK result is retained; no timeout or
+persistent Host custody is added.
+
+This is presentation over the existing Client–Host cancellation contract.
+No wire/schema/CID, cancellation ledger or execution semantics is replaced.
+The current public Run cancellation response has no cancellation-operation
+identity or exact-operation lookup. A Run status refresh cannot reconcile a
+particular lost cancellation; it only observes current Run state under current
+authorization. The existing control owner must provide that operation's
+identity, immutable intent, revision conflicts and reconciliation contract
+before the complete cancellation-outcome design can be exposed. A recorded
+physical-start/close control fixture does not prove delayed live-worker stop
+or external Effect reconciliation.

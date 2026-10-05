@@ -62,6 +62,8 @@ import {
 } from '../../../../host-node/result-access.mjs';
 import {canonical, hash as canonicalHash} from './typed-catalog.mjs';
 import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
+import {deltaApplicationScenario} from
+  '../../../../../scripts/fixtures/property-graph-delta-application.mjs';
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -491,6 +493,130 @@ async function runDelayedManagedStop(
     throw failure;
   }
 }
+
+async function deltaHostCancellation(phase) {
+  // Use the installed common Program/Plan/provider, not a test-only Delta
+  // provider or pre-decoded replacement. Observe real operations as in the
+  // existing Host cancellation corpus; the proxy supplies no result/state.
+  const moon = await import(pathToFileURL(join(root,
+    '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js')));
+  const fixture = JSON.parse(await readFile(join(root,
+    'scripts/fixtures/property-graph-presence.program.json'), 'utf8'));
+  const {document} = deltaApplicationScenario(fixture, 'node_rows');
+  const environmentBody = JSON.parse(await readFile(join(root,
+    'spec/local-check-environment.json'), 'utf8'));
+  delete environmentBody.evidence_bundle_cid;
+  // Match the installed Host's declaration ceilings; do not remove runtime
+  // admission or substitute a looser, test-only Graph execution policy.
+  Object.assign(environmentBody.host_policy_profile.capacity, {
+    max_graph_construction_edges:1000,
+    max_graph_construction_input_rows:1000,
+    max_graph_construction_nodes:1000,
+  });
+  const environmentWire = canonical({...environmentBody,
+    evidence_bundle_cid:canonicalHash(environmentBody)});
+  const lawCid = async path => canonicalHash(JSON.parse(await readFile(join(root, path), 'utf8')));
+  const environment = moon.clientProgramCheckEnvironmentWithPropertyGraphProfile(
+    environmentWire, JSON.parse(environmentWire).evidence_bundle_cid,
+    false, true, true, true, true, false, false,
+    await lawCid('spec/contracts/actql-numeric-reduction.json'),
+    await lawCid('spec/dependencies/actql-property-graph-laws.json'));
+  assert.ok(environment);
+  const preparation = moon.clientProgramPrepareEffectFreeWithParameters(JSON.stringify(document), 'json', environment);
+  const prepared = moon.clientProgramPreparationReady(preparation);
+  assert.ok(prepared, inspect({code:moon.clientProgramPreparationIssueCode(preparation),
+    issue:moon.clientProgramPreparationIssue(preparation)}, {depth:8}));
+  assert.ok(checked(moon.clientProgramIssueTaskPlanGraph(prepared)));
+  const registry = await readFile(join(root, 'spec/dependencies/aoa-pipeline-registry.json'), 'utf8');
+  const aoa = JSON.parse(await readFile(join(root, 'spec/contracts/actql-aoa.json'), 'utf8'));
+  const setup = moon.clientProgramOpenSourceFreeLocalHost(prepared, registry,
+    JSON.stringify(aoa.execution_contracts['REL.values']), 1n, 0n, 0n, 0n,
+    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+    JSON.stringify(aoa.execution_contracts['REL.derive.ordered']));
+  assert.ok(setup);
+  const abort = new AbortController();
+  const starts = [], deltaPolls = [], lifecycle = [];
+  let scheduled = false, delivered = false, workAtDelivery;
+  abort.signal.addEventListener('abort', () => {
+    delivered = true;
+    workAtDelivery = deltaPolls.reduce((sum, poll) => sum + poll.work, 0n);
+  }, {once:true});
+  const observed = new Proxy(moon, {get(target, property, receiver) {
+    if (property !== 'strategyModule_local_ManagedStart') return Reflect.get(target, property, receiver);
+    return configuration => {
+      const task = target.strategyHostNextTask(setup);
+      starts.push(task);
+      const operations = checked(target.strategyModule_local_ManagedStart(configuration));
+      return {$tag:1,_0:new Proxy(operations, {get(owner, name, ownerReceiver) {
+        if (task !== 5 || !['advance','request_cancel','execution_stopped','cleanup_refresh'].includes(name)) {
+          return Reflect.get(owner, name, ownerReceiver);
+        }
+        if (name === 'advance') return quantum => {
+          // Narrow the real bounded operation's quantum, not its work/state.
+          const result = owner.advance(Math.min(quantum, phase === 'application' ? 32 : 1));
+          const poll = checked(result);
+          deltaPolls.push(poll);
+          // Input conversion/handoff report zero progress. Positive progress
+          // is returned only after the bounded application has begun; do not
+          // relabel cancellation during conversion as kernel cancellation.
+          if (!scheduled && !poll.complete && poll.work > 0n &&
+              (phase === 'conversion' || poll.progress > 0n)) {
+            scheduled = true;
+            setTimeout(() => abort.abort(), 0);
+          }
+          return result;
+        };
+        return (...args) => {
+          const result = owner[name](...args);
+          lifecycle.push({name,result,delivered});
+          return result;
+        };
+      }})};
+    };
+  }});
+  let execution;
+  try {
+    execution = await runInstalledStrategy(setup, runtimeCore(moon),
+      [localStrategyContribution(observed, setup, checked)], abort.signal);
+    assert.equal(scheduled, true);
+    assert.equal(delivered, true);
+    assert(workAtDelivery > 0n, 'cancel is delivered only after actual Delta work');
+    if (phase === 'application') assert(deltaPolls.some(poll=>poll.progress > 0n),
+      'bounded application, not merely conversion, made progress before cancellation');
+    assert.equal(execution.status, 'host-tasks-failed');
+    assert.equal(execution.failure?.name, 'AbortError');
+    assert.deepEqual(starts, [0,1,2,3,4,5]);
+    assert.deepEqual(execution.completed.map(value=>value.task), [0,1,2,3,4]);
+    assert(deltaPolls.every(poll=>poll.complete === false), 'no partial Delta output is completed');
+    assert(lifecycle.some(event=>event.name === 'request_cancel' && event.delivered));
+    assert(lifecycle.some(event=>event.name === 'execution_stopped' && event.result === true && event.delivered));
+  } finally {
+    if (execution) {
+      await execution.close();
+      assert.equal(await execution.cleanup(), true);
+      assert.equal(execution.cleanupPending(), false);
+      // Holdings is the monotonic allocation count, not live capacity. Keep
+      // that accounting history while returning all held/reserved bytes.
+      assert.equal(execution.usage().holdings, 5n);
+      assert.equal(execution.usage().heldBytes, 0n);
+      assert.equal(execution.usage().reservedRetentionBytes, 0n);
+      assert.equal(execution.usage().reservedTransferBytes, 0n);
+      assert.equal(execution.usage().reservedExecutionBytes, 0n);
+      const settledUsage = execution.usage();
+      const settledPollCount = deltaPolls.length;
+      await execution.close();
+      assert.equal(await execution.cleanup(), true);
+      assert.equal(deltaPolls.length, settledPollCount, 'cleanup does not resume Compute');
+      assert.deepEqual(starts, [0,1,2,3,4,5], 'cleanup does not start a new task');
+      assert.deepEqual(execution.usage(), settledUsage, 'duplicate close does not change resource accounting');
+    }
+  }
+}
+
+test('Delta application stops after positive work through the installed Local Host during input conversion',
+  {timeout:30_000}, () => deltaHostCancellation('conversion'));
+test('Delta application stops after positive work through the installed Local Host during bounded application',
+  {timeout:30_000}, () => deltaHostCancellation('application'));
 
 test('standard native and broad Node Hosts own verification through real capture and consumer', async () => {
   const exec = promisify(execFile);
@@ -1806,6 +1932,18 @@ async function exerciseStrategyGraph(
     fields:['id','node_name'], secondFields:['node_name'],
     expected:[{id:1,node_name:'first'},{id:2,node_name:'second'}],
   }, {
+    name: 'retained-relation-selected-subgraph',
+    retainedOutput:true, selectedStructural:true,
+    steps:[
+      {from:'g',match_nodes:{definition:'N',bindings:{identity:'element'},
+        where:'true',fields:['element']},as:'selected'},
+      {from:'g',subgraph:{nodes:{from:'selected',id:'element'}},as:'slice'},
+      {from:'slice',match_nodes:{definition:'N',where:'true',
+        fields:['id','node_name']},as:'out'},
+    ],
+    fields:['id','node_name'],secondFields:['node_name'],
+    expected:[{id:1,node_name:'first'},{id:2,node_name:'second'}],
+  }, {
     name: 'retained-normalized-node-match', retainedOutput:true,
     steps:[
       {from:'g',normalize_graph:true,as:'normalized'},
@@ -1964,6 +2102,16 @@ async function exerciseStrategyGraph(
     ],
     fields:['id','node_name'],secondFields:['node_name'],
     expected:[{id:2,node_name:'second'}],completedTasks:9,
+  }, {
+    name: 'retained-external-relation-subgraph',
+    retainedOutput:true,retainedTraversal:true,
+    steps:[
+      {from:'g',subgraph:{nodes:{from:'seeds',id:'element'}},as:'slice'},
+      {from:'slice',match_nodes:{definition:'N',where:'true',
+        fields:['id','node_name']},as:'out'},
+    ],
+    fields:['id','node_name'],secondFields:['node_name'],
+    expected:[{id:1,node_name:'first'},{id:2,node_name:'second'}],
   }, {
     name:'retained-trail-relation-filter', retainedOutput:true,
     retainedTraversal:true,
@@ -4732,6 +4880,21 @@ async function exerciseStrategyGraph(
     step:{from:'g',match_edges:{definition:'E',where:'weight > 10',
       fields:['src','dst','weight']},as:'out'},
     fields:['src','dst','weight'],
+  }, {
+    name: 'retained-relation-selected-subgraph-in-flight',
+    selectedStructural:true,
+    retainedOutput:true,rows:40,advanceQuantum:1,
+    constructionProgress:80,constructionStarts:[1],
+    cancelOnManagedStart:3,managedStarts:3,cancelTask:4,
+    minimumCompletedRows:1,completedTasks:[1,2,3],
+    steps:[
+      {from:'g',match_nodes:{definition:'N',bindings:{identity:'element'},
+        where:'true',fields:['element']},as:'selected'},
+      {from:'g',subgraph:{nodes:{from:'selected',id:'element'}},as:'slice'},
+      {from:'slice',match_nodes:{definition:'N',where:'true',
+        fields:['id','node_name']},as:'out'},
+    ],
+    fields:['id','node_name'],
   }, {
     name: 'retained-graph-normalize-in-flight',
     retainedOutput: true,
@@ -7977,6 +8140,299 @@ async function exerciseStrategyGraph(
     {from: 'appended', filter: 'id < 3', as: 'less'},
     {from: 'greater', append: {with: 'less'}, as: 'out'},
   ];
+  const branchedInnerJoinProgram = structuredClone(externalAppendProgram);
+  branchedInnerJoinProgram.stages.find(stage => stage.id === 'cross_right')
+    .steps[0].values.rows = [{id: 2}, {id: 1}];
+  const innerJoinStage = branchedInnerJoinProgram.stages.find(stage =>
+    stage.id === 'crossed');
+  innerJoinStage.steps = [
+    {from: 'l', join: {
+      with: 'r', kind: 'inner', on: [{left: 'id', right: 'id'}],
+      select: {id: 'left.id', matched: 'right.id'}, max_output_rows: 2,
+    }, as: 'joined'},
+    {from: 'joined', filter: 'matched >= 2', as: 'greater'},
+    {from: 'joined', filter: 'matched <= 1', as: 'less'},
+    {from: 'greater', append: {with: 'less'}, as: 'out'},
+  ];
+  innerJoinStage.results.r.fields = ['id', 'matched'];
+  for (const consumer of branchedInnerJoinProgram.stages.filter(stage =>
+    stage.id.startsWith('external_cross_consumer_'))) {
+    const fields = consumer.id.endsWith('_a')
+      ? ['id', 'matched'] : ['matched', 'id'];
+    consumer.steps[0].select = fields;
+    consumer.results.r.fields = fields;
+  }
+  const branchedInnerJoinChildProgram = structuredClone(externalAppendProgram);
+  branchedInnerJoinChildProgram.stages.find(stage => stage.id === 'crossed')
+    .steps = [
+      {from: 'l', append: {with: 'r'}, as: 'appended'},
+      {from: 'appended', join: {
+        with: 'l', kind: 'inner', on: [{left: 'id', right: 'id'}],
+        select: {id: 'left.id'}, max_output_rows: 4,
+      }, as: 'joined'},
+      {from: 'joined', filter: 'id >= 2', as: 'greater'},
+      {from: 'joined', select: ['id'], as: 'raw_ids'},
+      {from: 'greater', append: {with: 'raw_ids'}, as: 'out'},
+    ];
+  const branchedWindowGroupProgram = structuredClone(externalAppendProgram);
+  const windowGroupForkFields = ['n', 'window_start', 'window_end'];
+  const windowGroupFork = branchedWindowGroupProgram.stages.find(stage =>
+    stage.id === 'crossed');
+  windowGroupFork.steps = [
+    {from: 'l', append: {with: 'r'}, as: 'appended'},
+    {from: 'appended', row_window: {
+      kind: 'fixed', time: 'id', size: 2,
+    }, as: 'windowed'},
+    {from: 'windowed', window_group: {
+      by: [], aggregates: {n: {fn: 'count'}},
+    }, as: 'grouped'},
+    {from: 'grouped', filter: 'n >= 2', as: 'selected'},
+    {from: 'grouped', select: windowGroupForkFields, as: 'raw_groups'},
+    {from: 'selected', append: {with: 'raw_groups'}, as: 'out'},
+  ];
+  windowGroupFork.results.r.fields = windowGroupForkFields;
+  for (const consumer of branchedWindowGroupProgram.stages.filter(stage =>
+    stage.id.startsWith('external_cross_consumer_'))) {
+    const fields = consumer.id.endsWith('_a')
+      ? windowGroupForkFields : [...windowGroupForkFields].reverse();
+    consumer.steps[0].select = fields;
+    consumer.results.r.fields = fields;
+  }
+  const branchedSourceForkProgram = structuredClone(externalAppendProgram);
+  branchedSourceForkProgram.stages.find(stage => stage.id === 'crossed').steps = [
+    {from: 'l', append: {with: 'r'}, as: 'appended'},
+    {from: 'l', filter: 'id = 2', as: 'left_selected'},
+    {from: 'appended', append: {with: 'left_selected'}, as: 'joined'},
+    {from: 'joined', select: ['id'], as: 'out'},
+  ];
+  const branchedGroupProgram = structuredClone(externalAppendProgram);
+  branchedGroupProgram.stages.find(stage => stage.id === 'crossed').steps = [
+    {from: 'l', append: {with: 'r'}, as: 'appended'},
+    {from: 'appended', filter: 'id > 1', as: 'greater'},
+    {from: 'appended', filter: 'id < 3', as: 'less'},
+    {from: 'greater', group: {by: [], aggregates: {n: {fn: 'count'}}},
+      as: 'greater_count'},
+    {from: 'less', group: {by: [], aggregates: {n: {fn: 'count'}}},
+      as: 'less_count'},
+    {from: 'greater_count', append: {with: 'less_count'}, as: 'out'},
+  ];
+  branchedGroupProgram.stages.find(stage => stage.id === 'crossed')
+    .results.r.fields = ['n'];
+  for (const consumer of branchedGroupProgram.stages.filter(stage =>
+    stage.id.startsWith('external_cross_consumer_'))) {
+    consumer.steps[0].select = ['n'];
+    consumer.results.r.fields = ['n'];
+  }
+  const branchedMixedAggregateProgram = structuredClone(branchedGroupProgram);
+  branchedMixedAggregateProgram.stages.find(stage => stage.id === 'crossed')
+    .steps[3].group.aggregates.n = {fn: 'max', field: 'id'};
+  const branchedNumericGroupProgram = structuredClone(branchedGroupProgram);
+  const branchedNumericSteps = branchedNumericGroupProgram.stages.find(stage =>
+    stage.id === 'crossed').steps;
+  branchedNumericSteps[3].group.aggregates.n = {fn: 'sum', field: 'id'};
+  branchedNumericSteps[4].group.aggregates.n = {fn: 'avg', field: 'id'};
+  const branchedOrderProgram = structuredClone(branchedRelationProgram);
+  branchedOrderProgram.stages.find(stage => stage.id === 'cross_right')
+    .steps[0].values.rows = [{id: 2}, {id: 3}, {id: 4}];
+  const branchedOrderSteps = branchedOrderProgram.stages.find(stage =>
+    stage.id === 'crossed').steps;
+  branchedOrderSteps.splice(3, 0,
+    {from: 'greater', sort: [{id: 'desc'}], as: 'ordered_greater'},
+    {from: 'less', distinct: true, as: 'unique_less'});
+  branchedOrderSteps[5] = {
+    from: 'ordered_greater', append: {with: 'unique_less'}, as: 'out',
+  };
+  const branchedTakeProgram = structuredClone(branchedOrderProgram);
+  const branchedTakeSteps = branchedTakeProgram.stages.find(stage =>
+    stage.id === 'crossed').steps;
+  branchedTakeSteps.splice(4, 0, {
+    from: 'ordered_greater', take: {count: 2, offset: 0},
+    as: 'limited_greater',
+  });
+  branchedTakeSteps[6] = {
+    from: 'limited_greater', append: {with: 'unique_less'}, as: 'out',
+  };
+  const branchedRankedProgram = structuredClone(branchedOrderProgram);
+  for (const [stageId, origin] of [
+    ['cross_left', 'left'], ['cross_right', 'right'],
+  ]) {
+    const stage = branchedRankedProgram.stages.find(item =>
+      item.id === stageId);
+    stage.steps[0].values.schema.origin = {
+      type: 'string', nullable: false,
+    };
+    stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
+      ({...row, origin}));
+    stage.results.r.fields = ['id', 'origin'];
+  }
+  const branchedRankedSteps = branchedRankedProgram.stages.find(stage =>
+    stage.id === 'crossed').steps;
+  branchedRankedSteps[1].filter = 'id > 2';
+  branchedRankedSteps.splice(3, 0, {
+    from: 'greater', assert_rows: {unique_by: ['id']},
+    as: 'unique_greater',
+  });
+  branchedRankedSteps[4] = {
+    from: 'unique_greater', top_k: {k: 2, by: [{id: 'desc'}]},
+    as: 'ranked_greater',
+  };
+  branchedRankedSteps[5] = {
+    from: 'less', dedupe_rows: {
+      by: ['id'], order_by: [{origin: 'asc'}],
+    }, as: 'deduped_less',
+  };
+  branchedRankedSteps[6] = {
+    from: 'ranked_greater', append: {with: 'deduped_less'}, as: 'joined',
+  };
+  branchedRankedSteps.push({from: 'joined', select: ['id'], as: 'out'});
+  const branchedPartitionedTopKProgram = structuredClone(branchedRankedProgram);
+  const partitionedRight = branchedPartitionedTopKProgram.stages.find(stage =>
+    stage.id === 'cross_right');
+  partitionedRight.steps[0].values.rows = [3, 4].map(id =>
+    ({id, origin: 'right'}));
+  const partitionedProducer = branchedPartitionedTopKProgram.stages.find(
+    stage => stage.id === 'crossed');
+  partitionedProducer.steps = [
+    {from: 'l', append: {with: 'r'}, as: 'appended'},
+    {from: 'appended', assert_rows: {unique_by: ['id']}, as: 'unique'},
+    {from: 'unique', top_k_by: {
+      partition_by: ['origin'], k: 1, by: [{id: 'desc'}],
+    }, as: 'ranked'},
+    {from: 'ranked', filter: 'id >= 4', as: 'selected'},
+    {from: 'selected', select: ['id'], as: 'selected_ids'},
+    {from: 'ranked', select: ['id'], as: 'raw_ids'},
+    {from: 'selected_ids', append: {with: 'raw_ids'}, as: 'out'},
+  ];
+  partitionedProducer.results.r.fields = ['id'];
+  const branchedRowTransformPrograms = [
+    'lag', 'watermark', 'json-pick', 'row-window', 'unpivot', 'unnest',
+    'pivot', 'analytic', 'nest',
+  ]
+    .map(name => {
+      const program = structuredClone(branchedRelationProgram);
+      if (['watermark', 'json-pick', 'unpivot', 'unnest', 'pivot']
+        .includes(name)) {
+        for (const stageId of ['cross_left', 'cross_right']) {
+          const stage = program.stages.find(item => item.id === stageId);
+          if (name === 'watermark') {
+            stage.steps[0].values.schema.time = {
+              type: 'number', nullable: false,
+            };
+            stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
+              ({...row, time: row.id === 2 ? 80 : 100}));
+            stage.results.r.fields = ['id', 'time'];
+          } else if (name === 'json-pick') {
+            stage.steps[0].values.schema.payload = {
+              type: 'object', nullable: false, fields: {
+                inner: {type: 'object', nullable: false, fields: {
+                  leaf: {type: 'number', nullable: false},
+                }},
+              },
+            };
+            stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
+              ({...row, payload: {inner: {leaf: row.id}}}));
+            stage.results.r.fields = ['id', 'payload'];
+          } else if (name === 'unpivot') {
+            stage.steps[0].values.schema.amount = {
+              type: 'number', nullable: false,
+            };
+            stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
+              ({...row, amount: row.id * 10}));
+            stage.results.r.fields = ['id', 'amount'];
+          } else if (name === 'unnest') {
+            stage.steps[0].values.schema.items = {
+              type: 'array', nullable: false,
+              items: {type: 'number', nullable: false}, max_items: 2,
+            };
+            stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
+              ({...row, items: [row.id, row.id + 1]}));
+            stage.results.r.fields = ['id', 'items'];
+          } else {
+            stage.steps[0].values.schema.status = {
+              type: 'string', nullable: false,
+            };
+            stage.steps[0].values.schema.amount = {
+              type: 'number', nullable: false,
+            };
+            stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
+              ({...row, status: stageId === 'cross_left' ? 'a' : 'b',
+                amount: row.id * 10}));
+            stage.results.r.fields = ['id', 'status', 'amount'];
+          }
+        }
+      }
+      const prefix = [{from: 'l', append: {with: 'r'}, as: 'appended'}];
+      const transform = name === 'lag' ? [
+        {from: 'appended', assert_rows: {unique_by: ['id']}, as: 'unique'},
+        {from: 'unique', lag: {partition_by: [],
+          order_by: [{id: 'asc'}], field: 'id', output: 'previous',
+          offset: 1}, as: 'transformed'},
+        {from: 'transformed', filter: 'previous >= 3', as: 'filtered'},
+      ] : name === 'watermark' ? [
+        {from: 'appended', watermark_rows: {time: 'time',
+          late_policy: 'mark', watermark_ms: 90}, as: 'transformed'},
+        {from: 'transformed', filter: 'watermark_late = true', as: 'filtered'},
+      ] : name === 'json-pick' ? [
+        {from: 'appended', json_pick: {column: 'payload',
+          path: ['inner', 'leaf'], output: 'picked'}, as: 'transformed'},
+        {from: 'transformed', filter: 'picked >= 3', as: 'filtered'},
+      ] : name === 'row-window' ? [
+        {from: 'appended', row_window: {
+          kind: 'fixed', time: 'id', size: 2,
+        }, as: 'transformed'},
+        {from: 'transformed', filter: 'window_start >= 2', as: 'filtered'},
+      ] : name === 'unpivot' ? [
+        {from: 'appended', unpivot: {
+          columns: ['amount'], keep: ['id'], name_column: 'metric',
+          value_column: 'value',
+        }, as: 'transformed'},
+        {from: 'transformed', filter: 'value >= 30', as: 'filtered'},
+      ] : name === 'pivot' ? [
+        {from: 'appended', pivot: {
+          index: ['id'], column: 'status', values: ['a', 'b'],
+          value: 'amount', aggregate: 'max',
+        }, as: 'transformed'},
+        {from: 'transformed', filter: 'b >= 30', as: 'filtered'},
+      ] : name === 'analytic' ? [
+        {from: 'appended', analytic: {
+          partition_by: [], order_by: [{id: 'asc'}],
+          frame: {start: 'unbounded_preceding', end: 'current_row'},
+          functions: {n: {fn: 'count', field: 'id'}},
+        }, as: 'transformed'},
+        {from: 'transformed', filter: 'n >= 3', as: 'filtered'},
+      ] : name === 'nest' ? [
+        {from: 'appended', nest: {
+          with: 'l', on: [{left: 'id', right: 'id'}],
+          into: 'items', fields: [{matched: 'id'}], max_items: 1,
+        }, as: 'transformed'},
+        {from: 'transformed', filter: 'id >= 3', as: 'filtered'},
+      ] : [
+        {from: 'appended', unnest: {
+          column: 'items', as: 'item', outer: false,
+        }, as: 'transformed'},
+        {from: 'transformed', filter: 'item >= 4', as: 'filtered'},
+      ];
+      const outputFields = name === 'nest' ? ['id', 'items'] : ['id'];
+      const crossed = program.stages.find(stage => stage.id === 'crossed');
+      crossed.steps = [
+        ...prefix, ...transform,
+        {from: 'filtered', select: outputFields, as: 'selected'},
+        {from: name === 'nest' ? 'transformed' : 'appended',
+          select: outputFields, as: 'raw_ids'},
+        {from: 'selected', append: {with: 'raw_ids'}, as: 'out'},
+      ];
+      if (name === 'nest') {
+        crossed.results.r.fields = outputFields;
+        for (const consumer of program.stages.filter(stage =>
+          stage.id.startsWith('external_cross_consumer_'))) {
+          const fields = consumer.id.endsWith('_a')
+            ? outputFields : [...outputFields].reverse();
+          consumer.steps[0].select = fields;
+          consumer.results.r.fields = fields;
+        }
+      }
+      return [name, program];
+    });
   for (const [name, program, tasks] of [
     ['values', zeroInputProgram, [1, 2, 3]],
     ['captured Relation filter/select chain', capturedRelationChainProgram,
@@ -8013,6 +8469,18 @@ async function exerciseStrategyGraph(
     ['append', appendProgram, [1, 2, 3, 4, 5]],
     ['append filter chain', appendFilterProgram, [1, 2, 3, 4, 5]],
     ['external append fork-join', branchedRelationProgram, [1, 2, 3, 4, 5]],
+    ['external append source-fork-join', branchedSourceForkProgram,
+      [1, 2, 3, 4, 5]],
+    ['external append fork-group-join', branchedGroupProgram,
+      [1, 2, 3, 4, 5]],
+    ['external append fork-mixed-group-join', branchedMixedAggregateProgram,
+      [1, 2, 3, 4, 5]],
+    ['external append fork-sort-distinct-join', branchedOrderProgram,
+      [1, 2, 3, 4, 5]],
+    ['external append fork-sort-take-distinct-join', branchedTakeProgram,
+      [1, 2, 3, 4, 5]],
+    ['external append fork-top-k-dedupe-join', branchedRankedProgram,
+      [1, 2, 3, 4, 5]],
     ['filter then append captured input', filterThenAppendProgram,
       [1, 2, 3, 4]],
     ['direct cross join', directCrossJoinProgram, [1, 2, 3, 4, 5]],
@@ -8990,6 +9458,27 @@ async function exerciseStrategyGraph(
     }
     return program;
   };
+  const retainedBinaryFork = (source, fields) => {
+    const program = structuredClone(source);
+    const producer = program.stages.find(stage => stage.id === 'crossed');
+    producer.steps[0].as = 'binary';
+    producer.steps.push(
+      {from: 'binary', filter: 'id > 1', as: 'greater'},
+      {from: 'binary', filter: 'id < 2', as: 'less'},
+      {from: 'greater', append: {with: 'less'}, as: 'out'},
+    );
+    producer.results.r.fields = fields;
+    for (const consumer of program.stages.filter(stage =>
+      stage.id.startsWith('external_cross_consumer_'))) {
+      consumer.steps[0].select = fields;
+      consumer.results.r.fields = fields;
+    }
+    return program;
+  };
+  const retainedExceptFork = retainedBinaryFork(retainedSetProgram('except'),
+    ['id']);
+  const retainedCrossFork = retainedBinaryFork(externalCrossJoinProgram,
+    ['id', 'tag']);
   const retainedUnaryChain = (sourceSteps, suffix, fields, rows, schema) => {
     const program = structuredClone(externalAppendProgram);
     const left = program.stages.find(stage => stage.id === 'cross_left');
@@ -9405,6 +9894,57 @@ async function exerciseStrategyGraph(
     expected: [2, 3, 4, 3, 4].map(id => ({id})), fields: ['id']},
     {name: 'append-fork-join', source: branchedRelationProgram,
       expected: [2, 3, 4, 1, 2].map(id => ({id})), fields: ['id']},
+    {name: 'inner-join-fork-append', source: branchedInnerJoinProgram,
+      expected: [{id: 2, matched: 2}, {id: 1, matched: 1}],
+      fields: ['id', 'matched']},
+    {name: 'append-inner-join-fork', source: branchedInnerJoinChildProgram,
+      expected: [2, 1, 2].map(id => ({id})), fields: ['id']},
+    {name: 'append-window-group-fork', source: branchedWindowGroupProgram,
+      expected: [
+        {n: 2, window_start: 2, window_end: 4},
+        {n: 1, window_start: 0, window_end: 2},
+        {n: 2, window_start: 2, window_end: 4},
+        {n: 1, window_start: 4, window_end: 6},
+      ], fields: windowGroupForkFields},
+    {name: 'append-source-fork-join', source: branchedSourceForkProgram,
+      expected: [1, 2, 3, 4, 2].map(id => ({id})), fields: ['id']},
+    {name: 'append-fork-group-join', source: branchedGroupProgram,
+      expected: [{n: 3}, {n: 2}], fields: ['n']},
+    {name: 'append-fork-mixed-group-join', source: branchedMixedAggregateProgram,
+      expected: [{n: 4}, {n: 2}], fields: ['n']},
+    {name: 'append-fork-sum-avg-join', source: branchedNumericGroupProgram,
+      expected: [{n: 9}, {n: 1.5}], fields: ['n']},
+    {name: 'append-fork-sort-distinct-join', source: branchedOrderProgram,
+      expected: [4, 3, 2, 2, 1, 2].map(id => ({id})), fields: ['id']},
+    {name: 'append-fork-sort-take-distinct-join', source: branchedTakeProgram,
+      expected: [4, 3, 1, 2].map(id => ({id})), fields: ['id']},
+    {name: 'append-fork-top-k-dedupe-join', source: branchedRankedProgram,
+      expected: [4, 3, 1, 2].map(id => ({id})), fields: ['id']},
+    {name: 'append-fork-partitioned-top-k-join',
+      source: branchedPartitionedTopKProgram,
+      expected: [4, 2, 4].map(id => ({id})), fields: ['id']},
+    ...branchedRowTransformPrograms.map(([name, source]) => ({
+      name: name === 'analytic' ? 'analytic-append-fork-join'
+        : `append-fork-${name}-join`, source,
+      expected: name === 'nest' ? [
+        {id: 3, items: []}, {id: 4, items: []},
+        {id: 1, items: [{matched: 1}]},
+        {id: 2, items: [{matched: 2}]},
+        {id: 3, items: []}, {id: 4, items: []},
+      ] : (name === 'lag' ? [4, 1, 2, 3, 4]
+        : name === 'watermark' ? [2, 1, 2, 3, 4]
+        : name === 'json-pick' ? [3, 4, 1, 2, 3, 4]
+        : name === 'row-window' ? [2, 3, 4, 1, 2, 3, 4]
+        : name === 'unpivot' ? [3, 4, 1, 2, 3, 4]
+        : name === 'pivot' || name === 'analytic' ? [3, 4, 1, 2, 3, 4]
+        : [3, 4, 4, 1, 2, 3, 4]).map(id => ({id})),
+      fields: name === 'nest' ? ['id', 'items'] : ['id'],
+    })),
+    {name: 'except-all-fork-join', source: retainedExceptFork,
+      expected: [2, 1, 1].map(id => ({id})), fields: ['id']},
+    {name: 'cross-join-fork-join', source: retainedCrossFork,
+      expected: [2, 1].flatMap(id => ['a', 'b', 'c'].map(tag =>
+        ({id, tag}))), fields: ['id', 'tag']},
     {name: 'except-all-filter', source: retainedBinaryChain(
       retainedSetProgram('except'), [{filter: 'id > 1'}], ['id']),
     expected: [{id: 2}], fields: ['id']},

@@ -848,8 +848,26 @@ fn order_output_slot(
 }
 
 ///|
+// Match append_with_properties: the longest resolved prefix is the receiver,
+// and the remaining path is property access. Both the slot and prefix length
+// participate in reference identity; a range is not an object property.
+fn order_reference_identity(
+  path : Array[@query.NamePart],
+  resolve : (Array[@query.NamePart]) -> String?,
+) -> (String, Int)? {
+  let mut length = path.length()
+  while length > 0 {
+    match resolve(path[:length].to_owned()) {
+      Some(slot) => return Some((slot, length))
+      None => length -= 1
+    }
+  }
+  None
+}
+
+///|
 // Expression equality only permits reuse when ORDER has the same reference
-// meaning as SELECT. A colliding output alias can change a nested reference.
+// meaning as SELECT, including the receiver of a nested property access.
 fn reusable_order_expression(
   expression : @query.Expression,
   selected : Array[(@query.Expression, String)],
@@ -857,9 +875,15 @@ fn reusable_order_expression(
   input_slot : (Array[@query.NamePart]) -> String?,
 ) -> String? {
   for path in join_reference_paths(expression) {
-    match order_output_slot(path, aliases) {
-      Some(slot) if input_slot(path) != Some(slot) => return None
-      _ => ()
+    let selected_reference = order_reference_identity(path, input_slot)
+    let order_reference = order_reference_identity(path, prefix => {
+      match order_output_slot(prefix, aliases) {
+        Some(slot) => Some(slot)
+        None => input_slot(prefix)
+      }
+    })
+    if selected_reference is None || selected_reference != order_reference {
+      return None
     }
   }
   for (value, slot) in selected {
@@ -898,7 +922,12 @@ fn append_order_expression(
     order_expression_slot(path, query, input, fields, selected)
   }
   let lowered = if input.graph_bindings.is_empty() {
-    @expression.append(expression, resolve, construction.builder, max_work)
+    @expression.append_with_properties(
+      expression,
+      resolve,
+      construction.builder,
+      max_work,
+    )
   } else {
     @expression.append_with_macros(
       expression,
@@ -999,18 +1028,18 @@ fn lower_aggregate_resolved(
         argument,
         @query.expression_root(argument),
       ).unwrap()
-      match root.kind {
-        Reference(path) =>
-          match resolve(path) {
-            Some(field) => entries.push(("field", construction.text(field)))
-            None => raise Abort(UnknownColumn)
-          }
-        _ =>
+      let field = match root.kind {
+        Reference(path) => resolve(path)
+        _ => None
+      }
+      match field {
+        Some(field) => entries.push(("field", construction.text(field)))
+        None =>
           entries.push(
             (
               "expr",
               match
-                @expression.append(
+                @expression.append_with_properties(
                   argument,
                   resolve,
                   construction.builder,
@@ -1182,7 +1211,7 @@ fn lower_analytic_call(
           (
             "expr",
             match
-              @expression.append(
+              @expression.append_with_properties(
                 argument,
                 resolve,
                 construction.builder,
@@ -2923,13 +2952,14 @@ fn compile_steps(
               if pending_select is None {
                 raise Abort(UnsupportedOrdering)
               }
-              match kind {
+              let direct = match kind {
                 Reference(path) =>
-                  match resolve_column(path, query, input, active_fields) {
-                    Some(field) => field
-                    None => raise Abort(UnsupportedOrdering)
-                  }
-                _ => {
+                  resolve_column(path, query, input, active_fields)
+                _ => None
+              }
+              match direct {
+                Some(field) => field
+                None => {
                   let mut reused : String? = None
                   for pair in hidden {
                     if same_expression(term.expression, pair.0) {
@@ -4003,7 +4033,7 @@ fn compile_join_steps(
         selected.map(field => field.1)
       }
       let filter = match
-        @expression.append(
+        @expression.append_with_properties(
           expression,
           resolve,
           construction.builder,
@@ -5014,6 +5044,40 @@ fn join_projection_field(
 }
 
 ///|
+// Resolve the same longest column prefix as append_with_properties. The
+// suffix remains a common property expression, including NULL/type checking.
+fn join_projection_receiver(
+  path : Array[@query.NamePart],
+  part : @query.JoinPart,
+  left_qualifier : @query.NamePart,
+  right_qualifier : @query.NamePart,
+  left_fields : Array[String],
+  right_fields : Array[String],
+) -> (String, String, Int) raise Abort {
+  let mut length = path.length()
+  while length > 0 {
+    let field = Some(
+      join_projection_field(
+        path[:length].to_owned(),
+        part,
+        left_qualifier,
+        right_qualifier,
+        left_fields,
+        right_fields,
+      ),
+    ) catch {
+      Abort(UnknownColumn) => None
+      Abort(issue) => raise Abort(issue)
+    }
+    if field is Some((side, name)) {
+      return (side, name, length)
+    }
+    length -= 1
+  }
+  raise Abort(UnknownColumn)
+}
+
+///|
 fn join_keys(
   part : @query.JoinPart,
   left_qualifier : @query.NamePart,
@@ -5258,10 +5322,14 @@ fn joined_projection(
     output.push(name)
     match reference {
       Some(path) => {
-        let resolved = join_projection_field(
+        let resolved = join_projection_receiver(
           path, part, left_qualifier, right_qualifier, left_fields, right_fields,
         )
-        select.push((name, construction.text(resolved.0 + "." + resolved.1)))
+        if resolved.2 == path.length() {
+          select.push((name, construction.text(resolved.0 + "." + resolved.1)))
+        } else {
+          private_projection = true
+        }
       }
       None => private_projection = true
     }
@@ -5282,9 +5350,10 @@ fn joined_projection(
   let required : Array[(String, String)] = []
   for projection in projections {
     for path in join_reference_paths(projection.expression.unwrap()) {
-      let field = join_projection_field(
+      let receiver = join_projection_receiver(
         path, part, left_qualifier, right_qualifier, left_fields, right_fields,
       )
+      let field = (receiver.0, receiver.1)
       if !required.contains(field) {
         required.push(field)
       }
@@ -5293,9 +5362,10 @@ fn joined_projection(
   match predicate {
     Some(expression) =>
       for path in join_reference_paths(expression) {
-        let field = join_projection_field(
+        let receiver = join_projection_receiver(
           path, part, left_qualifier, right_qualifier, left_fields, right_fields,
         )
+        let field = (receiver.0, receiver.1)
         if !required.contains(field) {
           required.push(field)
         }
@@ -5305,12 +5375,31 @@ fn joined_projection(
   let aliases = output.map(name => (name, name))
   for (_, expression) in order_expressions {
     for path in join_reference_paths(expression) {
-      if order_output_slot(path, aliases) is None {
-        let field = join_projection_field(
-          path, part, left_qualifier, right_qualifier, left_fields, right_fields,
-        )
-        if !required.contains(field) {
-          required.push(field)
+      // ORDER resolves aliases at each candidate receiver prefix. Retain an
+      // input only if that prefix wins; never recover an alias-shadowed input.
+      let mut length = path.length()
+      while length > 0 {
+        let prefix = path[:length].to_owned()
+        if order_output_slot(prefix, aliases) is Some(_) {
+          break
+        }
+        let field = Some(
+          join_projection_field(
+            prefix, part, left_qualifier, right_qualifier, left_fields, right_fields,
+          ),
+        ) catch {
+          Abort(UnknownColumn) => None
+          Abort(issue) => raise Abort(issue)
+        }
+        if field is Some(field) {
+          if !required.contains(field) {
+            required.push(field)
+          }
+          break
+        }
+        length -= 1
+        if length == 0 {
+          raise Abort(UnknownColumn)
         }
       }
     }
@@ -5356,7 +5445,12 @@ fn joined_projection(
   match predicate {
     Some(expression) => {
       let filter = match
-        @expression.append(expression, resolve, construction.builder, max_work) {
+        @expression.append_with_properties(
+          expression,
+          resolve,
+          construction.builder,
+          max_work,
+        ) {
         Ok(value) => value
         Err(error) => raise Abort(Expression(error))
       }
@@ -5382,13 +5476,13 @@ fn joined_projection(
   for index in 0..<projections.length() {
     let expression = projections[index].expression.unwrap()
     let name = output[index]
-    match
+    let direct_slot = match
       @query.expression_node(expression, @query.expression_root(expression)) {
-      Some({ kind: Reference(path), .. }) => {
-        let slot = match resolve(path) {
-          Some(value) => value
-          None => raise Abort(UnknownColumn)
-        }
+      Some({ kind: Reference(path), .. }) => resolve(path)
+      _ => None
+    }
+    match direct_slot {
+      Some(slot) => {
         final_select.push(
           construction.object([(name, construction.text(slot))]),
         )
@@ -5396,7 +5490,7 @@ fn joined_projection(
       }
       _ => {
         let value = match
-          @expression.append(
+          @expression.append_with_properties(
             expression,
             resolve,
             construction.builder,
@@ -5429,7 +5523,7 @@ fn joined_projection(
   let order_derivations : Array[(String, @builder.Node)] = []
   for (name, expression) in order_expressions {
     let value = match
-      @expression.append(
+      @expression.append_with_properties(
         expression,
         path => {
           match order_output_slot(path, output_slots) {

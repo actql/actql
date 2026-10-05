@@ -12,6 +12,14 @@ import {bytesCid, contentCid, checkedSigner, signedAnswer} from './checkpoints.m
 // The response owns only a weak association to this call's immutable inputs.
 // A parsed/copied report has no such association and cannot resolve a location.
 const checkInputs = new WeakMap();
+// Original request data is available only through explicit SDK access, never
+// by serializing an error or Run handle. It does not establish acceptance.
+const submissionInputs = new WeakMap();
+const submissionContexts = new WeakMap();
+// Presentation is bound by the validated submit branch, never an error string.
+const submissionExplanations = new WeakMap();
+// Presentation retains validated Run-control observations, not another owner.
+const cancellationExplanations = new WeakMap();
 const utf8 = new TextEncoder();
 const freezeInput = value => {
   if (value !== null && typeof value === 'object') {
@@ -27,6 +35,60 @@ export function getCheckInput(outcome, documentId, revision) {
     ? input : undefined;
 }
 
+export function getSubmissionInput(result) {
+  return submissionInputs.get(result);
+}
+
+export function explainSubmission(result) {
+  return submissionExplanations.get(result);
+}
+
+export function explainCancellation(result) {
+  return cancellationExplanations.get(result);
+}
+
+const retainCancellationExplanation = (result, context, observation, revision) => {
+  if (!context) return result;
+  const summaries = {
+    accepted: 'The Host recorded a Run cancellation request. Refresh Run state for physical stop, Effects and release.',
+    already_requested: 'The Host reports an existing Run cancellation request. Refresh Run state for physical stop, Effects and release.',
+    already_terminal: 'The Host reports the Run is already terminal for cancellation. Refresh Run state for Effect and release details.',
+    outcome_unknown: 'The Run cancellation outcome is unknown. The request may have been recorded.',
+  };
+  cancellationExplanations.set(result, freezeInput({observation,
+    ...(revision === undefined ? {} : {revision}), summary: summaries[observation],
+    next: {operation: 'status', ref: context.ref}}));
+  return result;
+};
+
+const submissionLookupExplanation = (observation, input) => freezeInput({
+  observation,
+  summary: observation === 'acceptance_unknown'
+    ? 'Submission acceptance is unknown. Work may already have started.'
+    : 'The Host returned a held-request response. Look up the current request state.',
+  next: {operation: 'lookupRequest', requestId: input.requestId,
+    lookupContext: input.lookupContext},
+});
+
+const structuredNodeExists = (value, pointer) => {
+  if (typeof pointer !== 'string' || pointer.length > 4096 ||
+      !/^(?:\/(?:[^~]|~[01])*)*$/u.test(pointer)) return false;
+  if (pointer === '') return true;
+  for (const token of pointer.slice(1).split('/')) {
+    // Decode slash first so a literal ~1 encoded as ~01 stays a member name.
+    const key = token.replaceAll('~1', '/').replaceAll('~0', '~');
+    if (value === null || typeof value !== 'object') return false;
+    if (Array.isArray(value)) {
+      if (!/^(?:0|[1-9][0-9]*)$/u.test(key)) return false;
+      const index = Number(key);
+      if (!Number.isSafeInteger(index) || index >= value.length) return false;
+    }
+    if (!Object.hasOwn(value, key)) return false;
+    value = value[key];
+  }
+  return true;
+};
+
 // Reading original bytes and converting offsets is not parsing the language.
 export function resolveCheckLocation(outcome, location, currentInput) {
   const original = getCheckInput(outcome, location?.document_id, location?.revision);
@@ -38,6 +100,7 @@ export function resolveCheckLocation(outcome, location, currentInput) {
       (input.kind === 'text' ? input.text !== original.text :
         JSON.stringify(input.value) !== JSON.stringify(original.value))) return undefined;
   if (location.kind === 'structured') {
+    if (!structuredNodeExists(original.value, location.pointer)) return undefined;
     return Object.freeze({...location, input});
   }
   const bytes = utf8.encode(original.text);
@@ -85,6 +148,8 @@ export function resolveCheckTextRange(outcome, location, currentInput) {
 export function explainCheckReason(reason) {
   const explanations = {
     query_syntax_invalid: ['The query syntax is invalid.', 'Correct the query syntax at the reported location when available.'],
+    query_expression_invalid: ['An expression violates its reference, argument or numeric contract.', 'Correct the expression under the selected query contract.'],
+    query_lexical_invalid: ['A query token violates its lexical syntax.', 'Correct the token at the reported location when available.'],
     parameter_undeclared: ['The query refers to an undeclared parameter.', 'Declare the parameter or correct its reference; a value alone cannot declare it.'],
     query_invalid: ['The query violates its language or name-resolution contract.', 'Correct the query using its declared names and visible context.'],
     parameter_declarations_invalid: ['The parameter declarations are invalid.', 'Correct the supplied declarations.'],
@@ -95,12 +160,49 @@ export function explainCheckReason(reason) {
     parameter_value_required: ['A declared parameter value is missing.', 'Supply the declared value and check the complete bound input again.'],
     program_invalid: ['The input violates the checked Program contract.', 'Correct the input under the selected contract.'],
     bound_values_missing: ['Required bound inputs are missing.', 'Supply the declared inputs and check again.'],
-    implementation_limit: ['This checking implementation cannot discharge an obligation.', 'Use a checking implementation that supports the allowed construct.'],
+    implementation_limit: ['This checking implementation cannot discharge an obligation.', 'Ask the checking-context owner to review support for the submitted construct.'],
     analysis_budget_exhausted: ['The analysis budget was exhausted.', 'Ask the checking-context owner to review the analysis budget.'],
     check_unclassified: ['The checker could not establish a classified conclusion.', 'Ask the checking-context owner to investigate.'],
     unresolved_protected: ['Source resolution cannot be established from the disclosed context.', 'Ask the Source or checking-context owner to review the published context.'],
   };
   const known = Object.hasOwn(explanations, reason?.code) ? explanations[reason.code] : undefined;
+  const lexicalExplanations = {
+    unexpected_end: ['The input ends before a token is complete.', 'Complete the quoted token or escape sequence at the reported position.'],
+    unexpected_token: ['A token is not valid in this lexical context.', 'Correct the token spelling or delimiter at the reported position.'],
+    invalid_escape: ['An escape sequence is invalid.', 'Use an escape allowed by the selected string or identifier syntax.'],
+    invalid_scalar: ['A token contains a scalar forbidden by its lexical context.', 'Correct the scalar escape or quoted identifier under the selected lexical syntax.'],
+    empty_identifier: ['A quoted identifier is empty.', 'Provide a non-empty identifier inside the quoting delimiters.'],
+    unterminated_comment: ['A block comment is not terminated.', 'Add the closing block-comment delimiter.'],
+    invalid_number: ['A numeric token has invalid spelling.', 'Correct the numeric token, including any exponent.'],
+    invalid_parameter: ['A parameter reference lacks a valid name.', 'Provide a valid parameter name after @.'],
+  };
+  const issue = reason?.facts?.issue;
+  if (reason?.code === 'query_lexical_invalid' && typeof issue === 'string' &&
+      Object.hasOwn(lexicalExplanations, issue)) {
+    const [summary, hint] = lexicalExplanations[issue];
+    return Object.freeze({kind: 'known', summary, hint});
+  }
+  const expressionExplanations = {
+    expected_boolean: ['A predicate must have Boolean type.', 'Use a Boolean condition, such as a comparison, in the predicate.'],
+    unknown_reference: ['An expression reference cannot be resolved in the checked scope.', 'Use a declared reference from the disclosed query context.'],
+    invalid_arguments: ['Expression arguments violate the selected operation contract.', 'Correct the argument count or form required by the selected operation.'],
+    invalid_number: ['A numeric expression is outside the admitted numeric domain.', 'Use a finite number in the admitted precision and signed-zero domain.'],
+  };
+  if (reason?.code === 'query_expression_invalid' && typeof issue === 'string' &&
+      Object.hasOwn(expressionExplanations, issue)) {
+    const [summary, hint] = expressionExplanations[issue];
+    return Object.freeze({kind: 'known', summary, hint});
+  }
+  const graphExplanations = {
+    invalid_kind: ['The components kind is invalid.', 'Choose weak or strong for components kind.'],
+    invalid_output_rows: ['The components output row limit is invalid.', 'Supply a positive safe integer for components max_output_rows.'],
+  };
+  if (reason?.code === 'graph_operation_invalid' &&
+      reason?.facts?.operation === 'components' && typeof issue === 'string' &&
+      Object.hasOwn(graphExplanations, issue)) {
+    const [summary, hint] = graphExplanations[issue];
+    return Object.freeze({kind: 'known', summary, hint});
+  }
   const constraintHints = {
     numeric: 'Supply a number satisfying the declared integer, minimum and maximum constraints.',
     duration: 'Supply a string in the admitted duration format.',
@@ -128,6 +230,14 @@ export class ClientError extends Error {
   }
 }
 const fail = code => { throw new ClientError(code); };
+const submissionUnknown = (context, cause) => {
+  const result = new ClientError('SubmissionUnknown', {...context, cause});
+  const input = submissionContexts.get(context);
+  if (input) submissionInputs.set(result, input);
+  if (input) submissionExplanations.set(result,
+    submissionLookupExplanation('acceptance_unknown', input));
+  return result;
+};
 const readFailure = (cause, attemptId, rowsYielded) => new ClientError(
   typeof cause?.code === 'string' ? cause.code : 'ResultReadUnknown',
   {attemptId, rowsYielded, cause,
@@ -316,7 +426,7 @@ export async function connectInProcess(options, port) {
 
 async function connectSelected(selected, port) {
   let closed = false;
-  const exchange = async (operation, body = {}, signal, submitContext) => {
+  const exchange = async (operation, body = {}, signal, submitContext, cancellationContext) => {
     if (closed) fail('ClientClosed');
     if (port !== undefined) {
       let request;
@@ -324,7 +434,10 @@ async function connectSelected(selected, port) {
       catch { fail('InvalidClientPayload'); }
       try {
         const value = await port.perform(operation, request, signal);
-        if (value instanceof Response) fail('InvalidLocalHostPortResponse');
+        if (value instanceof Response) {
+          throw retainCancellationExplanation(new ClientError('InvalidLocalHostPortResponse'),
+            cancellationContext, 'outcome_unknown');
+        }
         return value;
       }
       catch (cause) {
@@ -332,12 +445,13 @@ async function connectSelected(selected, port) {
           if (isClientSubmitRejection(cause?.code)) {
             throw new ClientError(cause.code, {cause});
           }
-          throw new ClientError('SubmissionUnknown', {...submitContext, cause});
+          throw submissionUnknown(submitContext, cause);
         }
         if (cause instanceof ClientError) {
           throw cause;
         }
-        throw new ClientError('ClientTransportUnknown', {cause});
+        throw retainCancellationExplanation(new ClientError('ClientTransportUnknown', {cause}),
+          cancellationContext, 'outcome_unknown');
       }
     }
     let payload;
@@ -362,9 +476,10 @@ async function connectSelected(selected, port) {
       });
     } catch (cause) {
       if (operation === 'submit') {
-        throw new ClientError('SubmissionUnknown', {...submitContext, cause});
+        throw submissionUnknown(submitContext, cause);
       }
-      throw new ClientError('ClientTransportUnknown', {cause});
+      throw retainCancellationExplanation(new ClientError('ClientTransportUnknown', {cause}),
+          cancellationContext, 'outcome_unknown');
     }
     if (!response.ok) {
       let error;
@@ -374,8 +489,7 @@ async function connectSelected(selected, port) {
         ? error.code : `HostHTTP${response.status}`;
       if (operation === 'submit' && (response.status >= 500 ||
           !isClientSubmitRejection(code))) {
-        throw new ClientError('SubmissionUnknown', {...submitContext,
-          cause: new ClientError(code)});
+        throw submissionUnknown(submitContext, new ClientError(code));
       }
       throw new ClientError(code, {status: response.status});
     }
@@ -397,12 +511,15 @@ async function connectSelected(selected, port) {
     const ref = Object.freeze({...admission.ref});
     const runProfile = Object.freeze({...confirmed,
       durability: admission.durability});
-    const runRequest = (operation, body = {}, signal) =>
-      exchange(operation, {ref, ...body}, signal);
-    const readControl = async (operation, body, signal) => {
-      const response = await runRequest(operation, body, signal);
+    const runRequest = (operation, body = {}, signal, cancellationContext) =>
+      exchange(operation, {ref, ...body}, signal, undefined, cancellationContext);
+    const readControl = async (operation, body, signal, cancellationContext) => {
+      const response = await runRequest(operation, body, signal, cancellationContext);
       try { return await controlValue(response); }
-      catch (cause) { throw new ClientError('InvalidHostResponse', {cause}); }
+      catch (cause) {
+        throw retainCancellationExplanation(new ClientError('InvalidHostResponse', {cause}),
+          cancellationContext, 'outcome_unknown');
+      }
     };
 
     const result = name => {
@@ -473,7 +590,11 @@ async function connectSelected(selected, port) {
                       maxRowWireBytes) {
                     fail('ResultRowWireLimit');
                   }
-                  const row = JSON.parse(item);
+                  let row;
+                  try { row = JSON.parse(item); }
+                  catch { fail('InvalidResultFrame'); }
+                  if (row === null || typeof row !== 'object' ||
+                      Array.isArray(row)) fail('InvalidResultFrame');
                   if (retainedValueBytes(row) > maxRowRetainedValueBytes) {
                     fail('ResultRowRetainedLimit');
                   }
@@ -675,14 +796,16 @@ async function connectSelected(selected, port) {
         return state;
       },
       cancel: async ({signal} = {}) => {
-        const response = await readControl('cancel', {}, signal);
+        const context = freezeInput({ref: {...ref}});
+        const response = await readControl('cancel', {}, signal, context);
         if (!validCancellation(response) ||
             response.ref.namespaceId !== ref.namespaceId ||
             response.ref.authorityScopeCid !== ref.authorityScopeCid ||
             response.ref.runDefinitionCid !== ref.runDefinitionCid) {
-          fail('InvalidHostCancellation');
+          throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),
+            context, 'outcome_unknown');
         }
-        return response;
+        return retainCancellationExplanation(response, context, response.kind, response.revision);
       },
       // The Run's current state after the Host's reconciliation attempt. An
       // unknown Effect outcome stays `needs_reconciliation` until the Host
@@ -701,24 +824,43 @@ async function connectSelected(selected, port) {
     const context = {requestId, lookupContext: Object.freeze({
       endpoint: selected.endpoint, scopeRef: confirmed.scopeRef,
     })};
-    const response = await exchange('submit', {requestId, kind, input,
-      parameters: options.parameters ?? null}, options.signal, context);
+    let body;
+    try {
+      body = freezeInput(JSON.parse(JSON.stringify({requestId, kind, input,
+        parameters: options.parameters ?? null})));
+    } catch { fail('InvalidClientPayload'); }
+    const snapshot = freezeInput({...body, connection: selected.wire,
+      lookupContext: context.lookupContext});
+    submissionContexts.set(context, snapshot);
+    const response = await exchange('submit', body, options.signal, context);
     let admitted;
     try { admitted = await controlValue(response); }
     catch (cause) {
-      throw new ClientError('SubmissionUnknown', {...context, cause});
+      throw submissionUnknown(context, cause);
     }
     if (admitted?.kind === 'held' &&
         validSubmitReply(admitted, selected.wire, requestId)) {
-      throw new RequestHeld(Object.freeze({...admitted,
+      const held = new RequestHeld(Object.freeze({...admitted,
         ...(admitted.checkpoint === undefined ? {} :
           {checkpoint: Object.freeze({...admitted.checkpoint})})}),
       context.lookupContext);
+      submissionInputs.set(held, snapshot);
+      submissionExplanations.set(held,
+        submissionLookupExplanation('request_held', snapshot));
+      throw held;
     }
-    try { return execution(admitted); }
+    let result;
+    try { result = execution(admitted); }
     catch (cause) {
-      throw new ClientError('SubmissionUnknown', {...context, cause});
+      throw submissionUnknown(context, cause);
     }
+    submissionInputs.set(result, snapshot);
+    submissionExplanations.set(result, freezeInput({
+      observation: 'run_reference_received',
+      summary: 'The Host returned a validated Run reference. Check the current Run state for execution progress.',
+      next: {operation: 'status', ref: result.ref},
+    }));
+    return result;
   };
   return Object.freeze({
     profile: confirmed,

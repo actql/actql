@@ -29,6 +29,40 @@ pub fn client_program_captured_acquisition_capacity(
 }
 
 ///|
+#export_name("clientProgramInstalledDuckDBCaptureCapacity")
+pub fn client_program_installed_duckdb_capture_capacity(
+  selected : @duckdb_host.CaptureConfiguration,
+) -> @client_local_host.ClientInstalledCaptureCapacity? {
+  @client_local_host.installed_duckdb_capture_capacity(selected)
+}
+
+///|
+#export_name("clientProgramInstalledRowCaptureCapacity")
+pub fn client_program_installed_row_capture_capacity(
+  selected : @client_row_source_host.RowAcquisition,
+) -> @client_local_host.ClientInstalledCaptureCapacity? {
+  @client_local_host.installed_row_capture_capacity(selected)
+}
+
+///|
+#export_name("clientProgramPrepareMultiCapturedLocalInstalledLedger")
+pub fn client_program_prepare_multi_captured_local_installed_ledger(
+  prepared : @publication_host.PreparedClientProgram,
+  capacities : Array[@client_local_host.ClientInstalledCaptureCapacity],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @resources.Ledger? {
+  @client_local_host.prepare_multi_captured_local_installed_ledger(
+    prepared, capacities, transport_bytes, transport_execution_bytes, registry_body,
+    values_body, fragment_body, ordered_body,
+  )
+}
+
+///|
 /// Read the existing Run ledger for bounded installed-Host diagnostics.
 #export_name("clientProgramMultiCapturedLedgerUsage")
 pub fn client_program_multi_captured_ledger_usage(
@@ -81,6 +115,34 @@ pub fn client_program_open_multi_captured_local_host(
     return None
   }
   @client_local_host.open_multi_captured_local_host(
+    prepared,
+    [(0, sources[0]), (1, sources[1])],
+    ledger,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+    provider_factory=installed_client_family_providers,
+  )
+}
+
+///|
+/// The two checked captures keep their existing ledger while the selected
+/// Local task writes its Relation output to the installed retained Store.
+#export_name("clientProgramOpenMultiCapturedLocalRetainedHost")
+pub fn client_program_open_multi_captured_local_retained_host(
+  prepared : @publication_host.PreparedClientProgram,
+  sources : Array[@query.CapturedInputSource],
+  ledger : @resources.Ledger,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
+  if sources.length() != 2 {
+    return None
+  }
+  @client_local_host.open_multi_captured_local_retained_host(
     prepared,
     [(0, sources[0]), (1, sources[1])],
     ledger,

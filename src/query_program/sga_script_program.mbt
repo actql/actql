@@ -9,7 +9,15 @@ fn script_graph_input(
   if relation.length() != 1 {
     return None
   }
-  let matches = graphs.filter(graph => same_name(graph.name, relation[0]))
+  script_graph_named_input(relation[0], graphs)
+}
+
+///|
+fn script_graph_named_input(
+  name : @query.NamePart,
+  graphs : Array[ScriptGraph],
+) -> ScriptGraph? raise Abort {
+  let matches = graphs.filter(graph => same_name(graph.name, name))
   if matches.length() > 1 {
     raise Abort(AmbiguousRelation)
   }
@@ -17,16 +25,18 @@ fn script_graph_input(
 }
 
 ///|
-// Normalize retains the admitted definition, properties, labels and identity
-// domain. Its logical step is not a copy, source read or materialization.
+// Normalize and Subgraph retain the admitted definition, properties, labels
+// and identity domain. A binding is not a copy, source read or materialization.
 // Other SGA outputs require their adapted common Carrier/schema contract;
 // do not borrow legacy scalar-ID schemas to approximate those outputs.
 fn lower_script_graph_calls(
   construction : Construction,
   query : @query.Query,
   input : ScriptGraph,
+  limits : Limits,
   steps : Array[@builder.Node],
   reserved : Array[String],
+  known? : Array[Input] = [],
 ) -> ScriptGraph raise Abort {
   if @query.cte_count(query) > 0 ||
     @query.set_part_count(query) > 0 ||
@@ -38,6 +48,12 @@ fn lower_script_graph_calls(
   for index in 0..<@query.operation_count(query) {
     guard @query.operation_at(query, index) is Some(GraphCall(call)) else {
       break
+    }
+    if call.operation == "subgraph" {
+      current = lower_script_subgraph(
+        construction, query, call, current, known, limits, steps, reserved,
+      )
+      continue
     }
     // The existing normalize body is true; it has no user-supplied options.
     // Do not ignore unknown or duplicate input arguments to produce that body.
