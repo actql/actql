@@ -281,3 +281,70 @@ test('a failed close of the recovered Ledger handle is retried by the Host',
     assert.equal((await again.status()).status, 'succeeded');
     assert.equal(setup.writes().length, 1);
   });
+
+// --- Embedded Local: each step is its own process, so each is a restart ----
+// Embedded Local has no shutdown of its own (its Host lives with its
+// process), so the shutdown cleanup case above is HTTPS only; the recovered
+// Ledger close below is the same Host owner on both paths.
+
+test('Local: held across restarts, approved, written once and never again',
+  async t => {
+    const setup = await readComputeEffectInstallation(t);
+    const steps = await setup.embedded('update-local-once',
+      nameProgram(setup, ['a00000000000001']), {resultName: 'answer'});
+    assert.deepEqual(await steps('submit'), {held: true});
+    assert.equal(setup.writes().length, 0);
+    assert.deepEqual(await steps('answer'), {answered: ['committed']});
+    assert.equal(setup.writes().length, 0);
+    const done = await steps('resume');
+    assert.equal(done.status, 'succeeded', JSON.stringify(done));
+    assert.deepEqual(setup.writes().map(write => [targetOf(write),
+      write.body]), [['a00000000000001', '{"Name":"a00000000000001"}']]);
+    assert.equal((await steps('resume')).status, 'succeeded');
+    assert.equal(setup.writes().length, 1);
+  });
+
+test('Local: a reply lost after the org applied the update stays unknown and is never resent',
+  async t => {
+    const setup = await readComputeEffectInstallation(t,
+      {org: {loseReplyAfterApply: [1]}});
+    const steps = await setup.embedded('update-local-lost',
+      nameProgram(setup, ['a00000000000001']), {resultName: 'answer'});
+    assert.deepEqual(await steps('submit'), {held: true});
+    assert.deepEqual(await steps('answer'), {answered: ['committed']});
+    assert.equal((await steps('resume')).status, 'needs_reconciliation');
+    assert.equal(setup.org.records()[0].Name, 'a00000000000001');
+    assert.equal(setup.writes().length, 1);
+    assert.equal((await steps('resume')).status, 'needs_reconciliation');
+    assert.equal(setup.writes().length, 1);
+  });
+
+test('Local: a rejected write fails the Set and halts the rows after it',
+  async t => {
+    const setup = await readComputeEffectInstallation(t,
+      {org: {rejectWrites: [1]}});
+    const steps = await setup.embedded('update-local-rejected',
+      nameProgram(setup, ['a00000000000001', 'a00000000000003']),
+      {resultName: 'answer'});
+    assert.deepEqual(await steps('submit'), {held: true});
+    assert.deepEqual(await steps('answer'), {answered: ['committed']});
+    assert.equal((await steps('resume')).status, 'failed');
+    assert.equal(setup.writes().length, 1);
+  });
+
+test('Local: a failed close of the recovered Ledger handle is retried by the Host',
+  async t => {
+    const setup = await readComputeEffectInstallation(t);
+    const steps = await setup.embedded('update-local-ledger-cleanup',
+      nameProgram(setup, ['a00000000000001']),
+      {resultName: 'answer', failFirstClose: 'effect-ledger.mjs'});
+    assert.deepEqual(await steps('submit'), {held: true});
+    assert.deepEqual(await steps('answer'), {answered: ['committed']});
+    const done = await steps('resume');
+    // Public state: settled, written once.
+    assert.equal(done.status, 'succeeded', JSON.stringify(done));
+    assert.equal(setup.writes().length, 1);
+    // Internal release: the failed first close was retried by its owner.
+    assert.equal(done.closes.failed, 1);
+    assert.ok(done.closes.attempts >= 2, JSON.stringify(done.closes));
+  });

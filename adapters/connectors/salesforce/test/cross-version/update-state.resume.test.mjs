@@ -12,12 +12,19 @@ import {execFileSync} from 'node:child_process';
 import {mkdir, readFile, readdir, rm, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import test from 'node:test';
-import {approve, digests, openHost, openOrg, runtimeBundleCid, terminal,
-  waitFor} from './update-state.mjs';
+import {connectEmbeddedLocal} from '../../../../host-node/embedded-local.mjs';
+import {approve, digests, hostAuthorization, openHost, openOrg,
+  runtimeBundleCid, secret, terminal, waitFor} from './update-state.mjs';
 
+// Run by run-cross-version.mjs, which generates the state. Without it the
+// acceptance fails: an unproduced state is incomplete, never skipped.
 const saved = process.env.ACTQL_UPDATE_CROSS_VERSION_STATE;
-const skip = saved === undefined
-  ? 'set ACTQL_UPDATE_CROSS_VERSION_STATE to a generated state' : undefined;
+const skip = undefined;
+test('the cross-version state was generated', () => {
+  assert.ok(saved !== undefined,
+    'run adapters/connectors/salesforce/test/cross-version/' +
+    'run-cross-version.mjs, which generates the state this test resumes');
+});
 
 // Restore one saved phase into its original root and check it.
 async function restore(t, phase, {alter} = {}) {
@@ -219,3 +226,37 @@ for (const [kind, write] of Object.entries(kindWrites)) {
       await host.close();
     });
 }
+
+// --- Embedded Local resumes the same saved state ---------------------------
+async function settledLocal(t, context, ref) {
+  const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
+    durability: 'durable', installation: {
+      directory: context.installation.directory,
+      sourceProfilePath: context.installation.sourceProfilePath,
+      resolveSourceSecret: secret,
+      effectProfilePath: context.installation.effectProfilePath,
+      resolveEffectSecret: secret,
+      authorization: hostAuthorization(context.orgId, context.keys)}});
+  t.after(() => client.close());
+  const attached = await client.attach(ref);
+  return waitFor(async () => {
+    const current = await attached.status();
+    return terminal.includes(current.status) ? current : undefined;
+  }, {attempts: 2400});
+}
+
+test('Local: approval saved: the approved Set is sent exactly once', {skip},
+  async t => {
+    const {context, writes, ref} = await restore(t, 'approval-saved');
+    const state = await settledLocal(t, context, ref);
+    assert.equal(state.status, 'succeeded', JSON.stringify(state));
+    assert.deepEqual(writes(), ['a00000000000001']);
+  });
+
+test('Local: unknown after the send started: never resent', {skip},
+  async t => {
+    const {context, writes, ref} = await restore(t, 'unknown-after-send');
+    const state = await settledLocal(t, context, ref);
+    assert.equal(state.status, 'needs_reconciliation', JSON.stringify(state));
+    assert.deepEqual(writes(), []);
+  });

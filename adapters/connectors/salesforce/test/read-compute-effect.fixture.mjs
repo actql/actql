@@ -278,11 +278,13 @@ export async function readComputeEffectInstallation(t, {org: orgOptions = {},
 
   // Run the Embedded steps of one request, each in a new process over this
   // installation: the local owner submits, reviews and resumes.
+  // `resultName` is the Named Result a resumed step reads; `failFirstClose`
+  // makes the first close of that module's journals fail in each step.
   const embedded = async (requestId, program, {accountConfiguration =
-    hostAccountConfiguration(org.orgId)} = {}) => {
+    hostAccountConfiguration(org.orgId), resultName, failFirstClose} = {}) => {
     const path = join(root, `embedded-${requestId}.json`);
     await writeFile(path, JSON.stringify({directory: hostRoot,
-      sourceProfilePath, effectProfilePath, program, requestId,
+      sourceProfilePath, effectProfilePath, program, requestId, resultName,
       reviewerPrivateKey: pem(reviewerKeys.privateKey),
       authorization: {...checkpointAuthorization(accountConfiguration),
         reviewers: [{keyId: 'reviewer-key', reviewerId: 'reviewer',
@@ -291,7 +293,10 @@ export async function readComputeEffectInstallation(t, {org: orgOptions = {},
     return step => new Promise((resolve, reject) => {
       execFile(process.execPath, [fileURLToPath(new URL(
         './read-compute-effect.embedded-child.mjs', import.meta.url)),
-      step, path], {timeout: 120_000}, (error, stdout, stderr) => {
+      step, path], {timeout: 120_000, env: {...process.env,
+        ...(failFirstClose === undefined ? {}
+          : {ACTQL_EMBEDDED_FAIL_FIRST_CLOSE: failFirstClose})}},
+      (error, stdout, stderr) => {
         if (error) {
           reject(Object.assign(error, {stdout, stderr}));
           return;
