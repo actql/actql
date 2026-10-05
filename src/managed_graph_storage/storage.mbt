@@ -95,6 +95,7 @@ struct Storage {
   retained_value_bytes : Int
   work : Int
   workspace_slots : Int
+  mut available : Bool
 }
 
 ///|
@@ -188,40 +189,25 @@ fn encoded_values(
   pending_bytes : Int,
   pending_work : Int,
 ) -> Result[(String, Int, Int), Issue] {
-  if pending_work > builder.limits.max_work - builder.work {
-    return Err(WorkLimit)
-  }
-  let remaining_work = builder.limits.max_work - builder.work - pending_work
-  let node_limit = Int::min(builder.limits.max_value_nodes, remaining_work)
-  if node_limit < 1 {
-    return Err(WorkLimit)
-  }
-  if pending_bytes > builder.limits.max_total_value_bytes - builder.value_bytes {
-    return Err(ValueLimit)
-  }
-  let remaining = builder.limits.max_total_value_bytes -
-    builder.value_bytes -
-    pending_bytes
-  let cap = Int::min(builder.limits.max_value_bytes, remaining)
-  if cap < 0 {
-    return Err(ValueLimit)
-  }
-  try {
-    let out = @encode.writer(cap, node_limit, builder.limits.max_value_depth)
-    @encode.begin_array(out)
-    for value in values {
-      @value.emit_wire_value(value.value, out)
-    }
-    @encode.end_array(out)
-    let (text, bytes, nodes, _) = @encode.finish_text_usage(out)
-    Ok((text, bytes, nodes))
-  } catch {
-    _ =>
-      if node_limit < builder.limits.max_value_nodes {
-        Err(WorkLimit)
-      } else {
-        Err(ValueLimit)
+  let preparation = start_value_encoding(
+    builder, values, pending_bytes, pending_work,
+  )
+  while true {
+    match advance_value_encoding(preparation, 64) {
+      ValueEncodingContinue(work~) => ignore(work)
+      ValueEncodingComplete(text, bytes~, nodes~, work~) => {
+        ignore(work)
+        cleanup_value_encoding(preparation)
+        return Ok((text, bytes, nodes))
       }
+      ValueEncodingFailed(issue, work~) => {
+        ignore(work)
+        cleanup_value_encoding(preparation)
+        return Err(issue)
+      }
+    }
+  } nobreak {
+    Err(Closed)
   }
 }
 
@@ -350,7 +336,45 @@ pub fn finish(builder : Builder) -> Result[Storage, Issue] {
     retained_value_bytes: builder.retained_value_bytes,
     work: builder.work,
     workspace_slots: builder.workspace_slots,
+    available: true,
   })
+}
+
+///|
+/// A kernel borrows one pristine builder from its existing output owner. This
+/// is an exact owned configuration, not content-CID or schema-only authority.
+pub fn builder_accepts_output(
+  builder : Builder,
+  graph : @carrier.Graph,
+  limits : Limits,
+) -> Bool {
+  builder.open &&
+  builder.owns_private &&
+  physical_equal(builder.graph, graph) &&
+  builder.limits == limits &&
+  builder.input_rows == 0 &&
+  builder.work == 0 &&
+  builder.nodes.is_empty() &&
+  builder.edges.is_empty()
+}
+
+///|
+/// Only finish can transfer these private arrays/indexes from this builder.
+/// A second builder with equal contents is not the same output generation.
+pub fn builder_owns_storage(builder : Builder, storage : Storage) -> Bool {
+  !builder.open &&
+  !builder.owns_private &&
+  storage.available &&
+  physical_equal(builder.graph, storage.graph) &&
+  physical_equal(builder.nodes, storage.nodes) &&
+  physical_equal(builder.edges, storage.edges) &&
+  physical_equal(builder.node_keys, storage.node_keys) &&
+  physical_equal(builder.edge_keys, storage.edge_keys)
+}
+
+///|
+pub fn available(storage : Storage) -> Bool {
+  storage.available
 }
 
 ///|
@@ -450,6 +474,7 @@ pub fn retained_workspace_slots(value : Storage) -> Int {
 ///|
 /// Dispose private material whose completed generation was never handed off.
 pub fn discard(value : Storage) -> Unit {
+  value.available = false
   value.nodes.clear()
   value.edges.clear()
   value.node_keys.clear()

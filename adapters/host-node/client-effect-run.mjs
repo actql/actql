@@ -8,6 +8,7 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {issuedEffectSetReceiptWires} from
   '../host-common/effect-receipt-custody.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
+import {originalModelRunWire} from './installed-model-originals.mjs';
 
 const limits = Object.freeze({maxWireBytes: 1000000, maxNodes: 100000,
   maxDepth: 100});
@@ -114,11 +115,15 @@ export function installNodeClientEffectRun({moon,
             allowed, namespaceId, randomUUID(), policy.createdAt, policy.expiresAt));
           if (!moon.clientProgramEffectRunStartCurrent(allowed,
             definition, now())) throw expired();
+          const runDefinition = control.admit('run_definition',
+            moon.strategyPublicationContractJson(definition), limits);
+          const modelCompiled = inferPlanFor?.(prepared) === undefined ? undefined :
+            control.adoptCheckedClientEffectInferRun(allowed, runDefinition,
+              resultPolicyOriginal, limits);
           return {
             resultNames: moon.clientProgramEffectCompilationResultNames(
               compiled()),
-            runDefinition: control.admit('run_definition',
-              moon.strategyPublicationContractJson(definition), limits),
+            runDefinition,
             runAdmissionEvidence: {
               prepared: moon.strategyRunEvidenceJson(
                 moon.clientProgramAllowedEffectRunPrepared(allowed)),
@@ -126,6 +131,9 @@ export function installNodeClientEffectRun({moon,
                 moon.clientProgramAllowedEffectRunAuthorization(allowed)),
               ...(resultPolicyOriginal === undefined ? {} :
                 {resultPolicyOriginal}),
+              ...(modelCompiled === undefined ? {} : {
+                modelOriginalRunWire: originalModelRunWire(modelCompiled, runDefinition),
+              }),
             },
           };
         },

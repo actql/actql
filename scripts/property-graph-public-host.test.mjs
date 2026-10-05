@@ -6,6 +6,9 @@ import {userInfo} from 'node:os';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import test from 'node:test';
 import {canonicalText} from './check-canonical-json.mjs';
+import {propertyGraphPresenceOracle, deltaApplicationScenario as deltaScenario,
+  deltaRelationCompositionScenario, deltaDiffScenario} from
+  './fixtures/property-graph-delta-application.mjs';
 
 // The same independent oracle runs against source and repository-external
 // tarballs. The packed branch imports no checkout implementation or toolchain.
@@ -67,42 +70,9 @@ const expectedSnapshot = canonicalText(['actql-property-graph-snapshot/0.1',cid(
     src:identity('N',1),dst:identity('N',1)}))]);
 const snapshotCid = 'sha256:' + createHash('sha256').update(expectedSnapshot).digest('hex');
 
-const presenceConstructor = structuredClone(presenceFixture.stages[0].steps[3].property_graph);
-occurrence = 0;
-for (const family of ['nodes','edges']) for (const element of presenceConstructor[family]) {
-  delete element.from;
-  element.input_occurrence = occurrence++;
-}
-const presenceDomain = cid({constructor:presenceConstructor,
-  producer_definitions:presenceFixture.stages[0].steps.slice(0,3)
-    .map(step => ({body:{values:step.values},dependencies:[]})),
-  version:'actql-property-graph-definition/0.1'});
-const presenceIdentity = (definition, key, kinds) => ({definition,domain:presenceDomain,
-  key,key_types:kinds.map(kind=>({kind}))});
-const nodeIdentity = key => presenceIdentity('N',[key,'a'],['number','string']);
-const presenceContract = {version:'actql-property-graph-contract/0.1',domain:presenceDomain,
-  identity_law_cid:lawCid,value_law_cid:lawCid,
-  node_definitions:[{name:'M',key_columns:['company_key'],key_contracts:[number],labels:{},properties:{}},
-    {name:'N',key_columns:['person_key','tenant_key'],key_contracts:[number,string],
-      labels:{Owner:['p'],Person:['p']},properties:{p:{type:'number',nullable:true}}}],
-  edge_definitions:[{name:'E',key_columns:['edge_key','tenant_key'],key_contracts:[number,string],
-    labels:{Link:[]},properties:{},source_definition:'N',target_definition:'N'}]};
-const presenceSnapshot = canonicalText(['actql-property-graph-snapshot/0.1',cid(presenceContract),presenceContract,
-  [{id:presenceIdentity('M',[3],['number']),key:[3],props:{}},
-    ...[1,2].map(key=>({id:nodeIdentity(key),key:[key,'a'],props:{p:key===1 ? 7 : null}}))],
-  [10,11].map(key=>({id:presenceIdentity('E',[key,'a'],['number','string']),key:[key,'a'],props:{},
-    src:nodeIdentity(1),dst:nodeIdentity(2)}))]);
-const presenceSnapshotCid = 'sha256:' + createHash('sha256').update(presenceSnapshot).digest('hex');
-// Independent full Relation streams, including unprojected conditional fields.
-// These are canonical ordered rows, not bytes captured from the implementation.
-const presenceRows = {
-  node_rows: [{company_key:3,id:presenceIdentity('M',[3],['number']),labels:[]},
-    ...[1,2].map(key=>({id:nodeIdentity(key),labels:['Owner','Person'],
-      p:key===1 ? 7 : null,person_key:key,tenant_key:'a'}))],
-  edge_rows: [10,11].map(key=>({edge_key:key,
-    id:presenceIdentity('E',[key,'a'],['number','string']),
-    src:nodeIdentity(1),dst:nodeIdentity(2),labels:['Link'],tenant_key:'a'})),
-};
+const {contract:presenceContract,identity:presenceIdentity,nodeIdentity,
+  snapshot:presenceSnapshot,snapshotCid:presenceSnapshotCid,rows:presenceRows} =
+  propertyGraphPresenceOracle(presenceFixture);
 // The source fixture deliberately supplies descending keys. Canonical Graph
 // order must be established, not inherited accidentally from already sorted input.
 assert.deepEqual(presenceFixture.stages[0].steps[0].values.rows.map(row=>row.person_key),[2,1]);
@@ -464,9 +434,19 @@ function presenceWholeDistinctScenario(empty) {
   return {document,before,expected};
 }
 
-for (const mode of ['local','remote']) for (const profile of ['graph','presence-filter','presence-selection','selector-derive','relation-subgraph','presence-keyed-distinct','presence-whole-distinct','presence-group']) {
+function deltaApplicationScenario(projection, failure) {
+  return deltaScenario(presenceFixture, projection, failure);
+}
+
+for (const mode of ['local','remote']) for (const profile of ['graph','presence-filter','presence-selection','selector-derive','relation-subgraph','presence-keyed-distinct','presence-whole-distinct','presence-group','delta-application','delta-relation-composition','delta-diff']) {
   const name = profile === 'graph'
     ? `keyed constructor and TRAIL reach public Named Results through ${mode}`
+    : profile === 'delta-diff'
+      ? `Graph diff Delta survives Relation Store reload and reapplication through ${mode}`
+    : profile === 'delta-relation-composition'
+      ? `Delta Relation DISTINCT and GROUP survive Store reload through ${mode}`
+    : profile === 'delta-application'
+      ? `complete Delta application survives Graph and Relation Store reload through ${mode}`
     : profile === 'relation-subgraph'
       ? `external Relation-selected subgraph survives Store reload and public Named Results through ${mode}`
     : profile === 'presence-group'
@@ -542,6 +522,149 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
       client = await connect({mode,endpoint:`https://127.0.0.1:${server.address().port}/`,token:'synthetic-test-token'});
     }
     t.after(() => client.close());
+    if (profile === 'delta-diff') {
+      for (const projection of ['node_rows','edge_rows']) for (const unchanged of [false,true]) {
+        const {document,delta,target,retained,expected,fields} =
+          deltaDiffScenario(presenceFixture,projection,{unchanged});
+        const run = await client.aql(canonicalText(document),
+          {format:'json',requestId:`${document.id}-${mode}`});
+        const state = await run.wait();
+        assert.equal(state.status,'succeeded',JSON.stringify(state));
+        assert.deepEqual(await run.result('answer').all(),expected);
+        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
+        assert.deepEqual((await run.result('answer').describe()).columns.map(column=>column.name),fields);
+        assert.deepEqual(snapshots.get(run.ref.runDefinitionCid),
+          [[3,presenceSnapshot],[5,target],[7,target]].map(([task,bytes])=>({
+            task,cid:'sha256:'+createHash('sha256').update(bytes).digest('hex'),
+            bytes:Buffer.byteLength(bytes),verifiedReadBytes:Buffer.byteLength(bytes),
+            sourceReleased:true,restored:true,temporaryBodyReclaimed:true,
+          })));
+        const observed = relationSnapshots.get(run.ref.runDefinitionCid);
+        // The generated Delta itself crosses the real Relation Store; final
+        // Graph equivalence alone cannot prove its exact actions or custody.
+        for (const [task,rows] of [[6,[{delta}]],[8,retained]]) {
+          const bytes = canonicalText(rows);
+          assert.deepEqual(observed.find(entry=>entry.task === task),{
+            task,cid:cid(rows),bytes:Buffer.byteLength(bytes),
+            verifiedReadBytes:Buffer.byteLength(bytes),rows:rows.length,
+            sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true,
+          },`Graph diff retained task ${task}`);
+        }
+        assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
+      }
+      const {document} = deltaDiffScenario(presenceFixture,'node_rows');
+      document.stages[0].steps[6].graph_diff.extra = true;
+      const requestId = `delta-diff-extra-field-${mode}`;
+      const before = physicalSteps.length;
+      await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+        error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
+      assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+      assert.deepEqual(physicalSteps.slice(before),[]);
+      return;
+    }
+    if (profile === 'delta-relation-composition') {
+      for (const [operation,emptyTarget] of [
+        ['keyed-distinct',false],['whole-distinct',false],['group',false],['edge-group',false],
+        ['group',true],['edge-group',true],
+      ]) {
+        const {document,target,retained,derived,output,expected,fields,columns} =
+          deltaRelationCompositionScenario(presenceFixture,operation,{emptyTarget});
+        if (emptyTarget) {
+          // An ignored fixture option must not turn this into a duplicate
+          // populated case. Empty data retains the admitted declaration body.
+          const [,contractCid,contract,nodes,edges] = JSON.parse(target);
+          assert.deepEqual([nodes,edges],[[],[]]);
+          assert.deepEqual(contract,presenceContract);
+          assert.equal(contractCid,cid(presenceContract));
+          assert.deepEqual(retained,[]);
+          assert.deepEqual(expected,[]);
+        }
+        const run = await client.aql(canonicalText(document),
+          {format:'json',requestId:`${document.id}-${mode}`});
+        const state = await run.wait();
+        assert.equal(state.status,'succeeded',JSON.stringify(state));
+        assert.deepEqual(await run.result('answer').all(),expected);
+        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
+        const observedColumns = (await run.result('answer').describe()).columns;
+        assert.deepEqual(observedColumns.map(column=>column.name),fields);
+        if (columns) assert.deepEqual(observedColumns,columns);
+        else assert.deepEqual(observedColumns[1],{name:'bucket',contract:number});
+        assert.deepEqual(snapshots.get(run.ref.runDefinitionCid),
+          [[3,presenceSnapshot],[5,target]].map(([task,bytes])=>({
+            task,cid:'sha256:'+createHash('sha256').update(bytes).digest('hex'),
+            bytes:Buffer.byteLength(bytes),verifiedReadBytes:Buffer.byteLength(bytes),
+            sourceReleased:true,restored:true,temporaryBodyReclaimed:true,
+          })));
+        // Do not infer intermediate optional cells from a dense final Result.
+        // The real Store revokes each saved output before verified reload.
+        const observed = relationSnapshots.get(run.ref.runDefinitionCid);
+        const expectedStores = operation === 'edge-group' ? [[6,retained]]
+          : [[6,retained],[7,derived],[8,output]];
+        for (const [task,rows] of expectedStores) {
+          const bytes = canonicalText(rows);
+          assert.deepEqual(observed.find(entry=>entry.task === task),{
+            task,cid:cid(rows),bytes:Buffer.byteLength(bytes),
+            verifiedReadBytes:Buffer.byteLength(bytes),rows:rows.length,
+            sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true,
+          },`${operation} retained task ${task}`);
+        }
+        assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
+      }
+      const {document} = deltaRelationCompositionScenario(presenceFixture,'group');
+      document.stages[0].steps[8].group.aggregates.m.expr = 'if(false, p, bucket)';
+      const requestId = `delta-conditional-group-${mode}`;
+      const before = physicalSteps.length;
+      await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+        error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
+      assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+      assert.deepEqual(physicalSteps.slice(before),[]);
+      return;
+    }
+    if (profile === 'delta-application') {
+      for (const projection of ['node_rows','edge_rows']) {
+        const {document,target,retained,expected,fields} = deltaApplicationScenario(projection);
+        const run = await client.aql(canonicalText(document),
+          {format:'json',requestId:`${document.id}-${mode}`});
+        const state = await run.wait();
+        assert.equal(state.status,'succeeded',JSON.stringify(state));
+        assert.deepEqual(await run.result('answer').all(),expected);
+        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
+        assert.deepEqual((await run.result('answer').describe()).columns.map(column=>column.name),fields);
+        assert.deepEqual(snapshots.get(run.ref.runDefinitionCid),
+          [[3,presenceSnapshot],[5,target]].map(([task,bytes])=>({
+            task,cid:'sha256:'+createHash('sha256').update(bytes).digest('hex'),
+            bytes:Buffer.byteLength(bytes),verifiedReadBytes:Buffer.byteLength(bytes),
+            sourceReleased:true,restored:true,temporaryBodyReclaimed:true,
+          })));
+        // Observe the full sparse rows before projection, through the real
+        // Relation Store. Missing, NULL and value must not be reconstructed
+        // from the final result, nor from a Graph-only snapshot roundtrip.
+        const observed = relationSnapshots.get(run.ref.runDefinitionCid);
+        // Sparse node filtering retains a separate selected-operation output.
+        // The dense edge suffix stays fused; its bridge output is still saved
+        // and revoked before that suffix, without inventing another checkpoint.
+        for (const task of projection === 'node_rows' ? [6,7] : [6]) {
+          const bytes = canonicalText(retained);
+          assert.deepEqual(observed.find(entry=>entry.task === task),{
+            task,cid:cid(retained),bytes:Buffer.byteLength(bytes),
+            verifiedReadBytes:Buffer.byteLength(bytes),rows:retained.length,
+            sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true,
+          });
+        }
+        assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
+      }
+      for (const failure of ['malformed','wrong-base','wrong-target']) {
+        const {document} = deltaApplicationScenario('node_rows',failure);
+        const run = await client.aql(canonicalText(document),
+          {format:'json',requestId:`${document.id}-${mode}`});
+        const state = await run.wait();
+        assert.equal(state.status,'failed',JSON.stringify(state));
+        assert.equal(state.control.physical_stop,'confirmed');
+        await assert.rejects(run.result('answer').all());
+        assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
+      }
+      return;
+    }
     if (profile === 'relation-subgraph') {
       for (const [empty,subset,external] of [[false,false],[true,false],[false,true],
         [false,false,true],[true,false,true],[false,true,true]]) {

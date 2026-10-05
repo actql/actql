@@ -6,6 +6,7 @@ priv enum Phase {
   Transform
   StartNormalize
   Normalizing
+  ApplyingDelta
   StartProjection
   Projection
   Terminal
@@ -20,6 +21,7 @@ priv enum RelationExecution {
   GraphBoundsExecution(@sga.GraphBoundsExecution)
   GraphDegreeExecution(@sga.GraphDegreeExecution)
   PropertyEqualityExecution(@sga.PropertyEqualityExecution)
+  DeltaDiffExecution(@sga.DeltaDiffExecution)
   ComponentsExecution(@sga.ComponentsExecution)
 }
 
@@ -51,6 +53,7 @@ priv struct Execution {
   mut normalization : @sga.NormalizeExecution?
   mut graph : @graph.Completed?
   mut transform : @sga.SubgraphExecution?
+  mut delta_apply : @sga.DeltaApplyExecution?
   mut relation : RelationExecution?
   mut stage_progress : Int64
   mut stage_work : Int64
@@ -68,6 +71,65 @@ pub(all) struct SnapshotPolicy {
   maximum_bytes : Int
   maximum_frame_bytes : Int
   workspace_bytes : Int64
+}
+
+///|
+/// Installed input/action limits and private workspace reservation. This is
+/// configuration of the existing provider, not a resource receipt or a proof of
+/// total heap use. Plan obligations still require their checked derivation.
+pub(all) struct DeltaPolicy {
+  limits : @delta_kernel.Limits
+  workspace_bytes : Int64
+}
+
+///|
+fn valid_delta_policy(value : DeltaPolicy) -> Bool {
+  let limits = value.limits
+  value.workspace_bytes >= 0L &&
+  limits.max_workspace_slots >= 0 &&
+  limits.max_output_nodes >= 0 &&
+  limits.max_output_text_bytes >= 0 &&
+  limits.max_output_depth >= 0 &&
+  limits.max_identity_bytes >= 0 &&
+  limits.max_identity_nodes >= 0 &&
+  limits.max_identity_depth >= 0 &&
+  limits.value_limits.max_nodes >= 0 &&
+  limits.value_limits.max_depth >= 0 &&
+  limits.value_limits.max_text_bytes >= 0
+}
+
+///|
+fn delta_material(sequence : @execution.GeneratedSequence) -> Bool {
+  let selected = @execution.completion_preparation_selected_step(
+    @execution.generated_completion_preparation(sequence),
+  )
+  if selected is None && @execution.generated_sequence_step_count(sequence) != 1 {
+    return false
+  }
+  @lower.sequence_step(
+    @execution.generated_prepared_sequence(sequence),
+    selected.unwrap_or(0),
+  )
+  is Some(@lower.GraphDeltaStep(delta)) &&
+  @graph_type.delta_operation(@lower.graph_delta_checked(delta))
+  is @graph_type.Application(_)
+}
+
+///|
+fn delta_diff_material(sequence : @execution.GeneratedSequence) -> Bool {
+  let selected = @execution.completion_preparation_selected_step(
+    @execution.generated_completion_preparation(sequence),
+  )
+  if selected is None && @execution.generated_sequence_step_count(sequence) != 1 {
+    return false
+  }
+  @lower.sequence_step(
+    @execution.generated_prepared_sequence(sequence),
+    selected.unwrap_or(0),
+  )
+  is Some(@lower.GraphDeltaStep(delta)) &&
+  @graph_type.delta_operation(@lower.graph_delta_checked(delta))
+  is @graph_type.Difference
 }
 
 ///|
@@ -111,7 +173,7 @@ fn constructor_material(sequence : @execution.GeneratedSequence) -> Bool {
 
 ///|
 fn graph_material(sequence : @execution.GeneratedSequence) -> Bool {
-  if constructor_material(sequence) {
+  if constructor_material(sequence) || delta_material(sequence) {
     return true
   }
   let selected = @execution.completion_preparation_selected_step(
@@ -266,6 +328,27 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         .bind(target => @lower.preparation_carrier_at(prepared, target))
         .map(current_graph)
         .unwrap_or(false)
+      @lower.GraphDeltaStep(delta) => {
+        guard @lower.node_input_target(node, 0) is Some(base) &&
+          @lower.node_input_target(node, 1) is Some(changes) &&
+          @lower.preparation_carrier_at(prepared, base) is Some(base_carrier) &&
+          @lower.preparation_carrier_at(prepared, changes)
+          is Some(changes_carrier) else {
+          return false
+        }
+        current_graph(base_carrier) &&
+        (match @graph_type.delta_operation(@lower.graph_delta_checked(delta)) {
+          @graph_type.Application(_) =>
+            @lower.operation(node) == "SGA.apply_delta" &&
+            @carrier.kind(changes_carrier) == @carrier.RelationKind &&
+            current_graph(@lower.graph_delta_output_carrier(delta))
+          @graph_type.Difference =>
+            @lower.operation(node) == "SGA.diff" &&
+            current_graph(changes_carrier) &&
+            @carrier.kind(@lower.graph_delta_output_carrier(delta)) ==
+            @carrier.RelationKind
+        })
+      }
       // No tuple Graph constructor/projection or legacy SGA execution fallback.
       // Other new-profile operations remain explicit unsupported selections.
       _ => false
@@ -416,6 +499,54 @@ fn discard(value : @graph.Completed?) -> Bool {
 }
 
 ///|
+fn complete_graph_poll(
+  value : Execution,
+  output : @graph.Completed,
+  step : Int,
+  progress : Int64,
+  work : Int64,
+) -> Result[@local.ManagedProviderPoll, @connector.FixedComputeIssue] {
+  guard delta(progress, value.stage_progress) is Some(progress_delta) &&
+    delta(work, value.stage_work) is Some(work_delta) else {
+    @graph.discard_completed(output) |> ignore
+    return fail_execution(value)
+  }
+  let material = match value.snapshot_policy {
+    None => @graph.completed_material(output).map_err(_ => issue())
+    Some(policy) =>
+      @bridge.completed_property_snapshot_material(
+        value.control,
+        @execution.generated_sequence_owner(value.generated),
+        @pipeline.Step(step),
+        output,
+        value.limits,
+        policy.serialization,
+        policy.read,
+        policy.maximum_bytes,
+        policy.maximum_frame_bytes,
+        policy.workspace_bytes,
+        () => true,
+      ).map_err(_ => issue())
+  }
+  let material = match material {
+    Ok(material) => material
+    Err(_) => {
+      @graph.discard_completed(output) |> ignore
+      return fail_execution(value)
+    }
+  }
+  discard(value.graph) |> ignore
+  value.graph = None
+  value.terminal = true
+  value.phase = Terminal
+  Ok(
+    @local.managed_provider_carrier_complete(
+      material, progress_delta, work_delta,
+    ),
+  )
+}
+
+///|
 fn advance_execution(
   value : Execution,
   quantum : Int,
@@ -459,44 +590,14 @@ fn advance_execution(
             }
             return Ok(poll)
           }
-          Ok(@sga.NormalizeComplete(output, progress~, work~)) => {
-            guard delta(progress, value.stage_progress) is Some(progress_delta) &&
-              delta(work, value.stage_work) is Some(work_delta) else {
-              @graph.discard_completed(output) |> ignore
-              return fail_execution(value)
-            }
-            let material = match value.snapshot_policy {
-              None => @graph.completed_material(output).map_err(_ => issue())
-              Some(policy) =>
-                @bridge.completed_property_snapshot_material(
-                  value.control,
-                  @execution.generated_sequence_owner(value.generated),
-                  @pipeline.Step(value.selected_step.unwrap_or(0)),
-                  output,
-                  value.limits,
-                  policy.serialization,
-                  policy.read,
-                  policy.maximum_bytes,
-                  policy.maximum_frame_bytes,
-                  policy.workspace_bytes,
-                  () => true,
-                ).map_err(_ => issue())
-            }
-            let material = match material {
-              Ok(material) => material
-              Err(_) => {
-                @graph.discard_completed(output) |> ignore
-                return fail_execution(value)
-              }
-            }
-            value.terminal = true
-            value.phase = Terminal
-            return Ok(
-              @local.managed_provider_carrier_complete(
-                material, progress_delta, work_delta,
-              ),
+          Ok(@sga.NormalizeComplete(output, progress~, work~)) =>
+            return complete_graph_poll(
+              value,
+              output,
+              value.selected_step.unwrap_or(0),
+              progress,
+              work,
             )
-          }
           Ok(@sga.NormalizeFailed(_, progress~, work~)) => {
             guard terminal_poll(value, progress, work, false) is Some(poll) else {
               return fail_execution(value)
@@ -504,6 +605,40 @@ fn advance_execution(
             return Ok(poll)
           }
           Ok(@sga.NormalizeStopped(_, progress~, work~)) => {
+            guard terminal_poll(value, progress, work, true) is Some(poll) else {
+              return fail_execution(value)
+            }
+            return Ok(poll)
+          }
+        }
+      }
+      ApplyingDelta => {
+        guard value.delta_apply is Some(active) else {
+          return fail_execution(value)
+        }
+        match @sga.advance_delta_apply(active, quantum) {
+          Err(_) => return fail_execution(value)
+          Ok(@sga.DeltaApplyContinue(progress~, work~)) => {
+            guard continue_poll(value, progress, work) is Some(poll) else {
+              return fail_execution(value)
+            }
+            return Ok(poll)
+          }
+          Ok(@sga.DeltaApplyComplete(output, progress~, work~)) =>
+            return complete_graph_poll(
+              value,
+              output,
+              value.projection_step,
+              progress,
+              work,
+            )
+          Ok(@sga.DeltaApplyFailed(_, progress~, work~)) => {
+            guard terminal_poll(value, progress, work, false) is Some(poll) else {
+              return fail_execution(value)
+            }
+            return Ok(poll)
+          }
+          Ok(@sga.DeltaApplyStopped(_, progress~, work~)) => {
             guard terminal_poll(value, progress, work, true) is Some(poll) else {
               return fail_execution(value)
             }
@@ -710,46 +845,14 @@ fn advance_execution(
             }
             return Ok(poll)
           }
-          Ok(@sga.SubgraphComplete(output, progress~, work~)) => {
-            guard delta(progress, value.stage_progress) is Some(progress_delta) &&
-              delta(work, value.stage_work) is Some(work_delta) else {
-              @graph.discard_completed(output) |> ignore
-              return fail_execution(value)
-            }
-            let material = match value.snapshot_policy {
-              None => @graph.completed_material(output).map_err(_ => issue())
-              Some(policy) =>
-                @bridge.completed_property_snapshot_material(
-                  value.control,
-                  @execution.generated_sequence_owner(value.generated),
-                  @pipeline.Step(value.projection_step),
-                  output,
-                  value.limits,
-                  policy.serialization,
-                  policy.read,
-                  policy.maximum_bytes,
-                  policy.maximum_frame_bytes,
-                  policy.workspace_bytes,
-                  fn() { true },
-                ).map_err(_ => issue())
-            }
-            let material = match material {
-              Ok(material) => material
-              Err(_) => {
-                @graph.discard_completed(output) |> ignore
-                return fail_execution(value)
-              }
-            }
-            discard(value.graph) |> ignore
-            value.graph = None
-            value.terminal = true
-            value.phase = Terminal
-            return Ok(
-              @local.managed_provider_carrier_complete(
-                material, progress_delta, work_delta,
-              ),
+          Ok(@sga.SubgraphComplete(output, progress~, work~)) =>
+            return complete_graph_poll(
+              value,
+              output,
+              value.projection_step,
+              progress,
+              work,
             )
-          }
           Ok(@sga.SubgraphFailed(_, progress~, work~)) => {
             guard terminal_poll(value, progress, work, false) is Some(poll) else {
               return fail_execution(value)
@@ -1249,6 +1352,18 @@ fn advance_execution(
                 Ok(RelationStopped(progress, work))
               Err(_) => Err(issue())
             }
+          DeltaDiffExecution(execution) =>
+            match @sga.advance_delta_diff(execution, quantum) {
+              Ok(@sga.DeltaDiffContinue(progress~, work~)) =>
+                Ok(RelationContinue(progress, work))
+              Ok(@sga.DeltaDiffComplete(output, progress~, work~)) =>
+                Ok(RelationComplete(output, progress, work))
+              Ok(@sga.DeltaDiffFailed(_, progress~, work~)) =>
+                Ok(RelationFailed(progress, work))
+              Ok(@sga.DeltaDiffStopped(_, progress~, work~)) =>
+                Ok(RelationStopped(progress, work))
+              Err(_) => Err(issue())
+            }
           ComponentsExecution(execution) =>
             match @sga.advance_components(execution, quantum) {
               Ok(@sga.ComponentsContinue(progress~, work~)) =>
@@ -1365,6 +1480,11 @@ fn cleanup_execution(
           Ok(_) => ()
           Err(_) => failed = true
         }
+      DeltaDiffExecution(execution) =>
+        match @sga.cleanup_delta_diff(execution) {
+          Ok(_) => ()
+          Err(_) => failed = true
+        }
       ComponentsExecution(execution) =>
         match @sga.cleanup_components(execution) {
           Ok(_) => ()
@@ -1374,6 +1494,12 @@ fn cleanup_execution(
   }
   if value.transform is Some(active) {
     match @sga.cleanup_subgraph(active) {
+      Ok(_) => ()
+      Err(_) => failed = true
+    }
+  }
+  if value.delta_apply is Some(active) {
+    match @sga.cleanup_delta_apply(active) {
       Ok(_) => ()
       Err(_) => failed = true
     }
@@ -1400,6 +1526,7 @@ fn cleanup_execution(
       @sga.graph_degree_cleanup_pending(active)
     Some(PropertyEqualityExecution(active)) =>
       @sga.property_equality_cleanup_pending(active)
+    Some(DeltaDiffExecution(active)) => @sga.delta_diff_cleanup_pending(active)
     Some(ComponentsExecution(active)) => @sga.components_cleanup_pending(active)
     None => false
   }
@@ -1410,13 +1537,17 @@ fn cleanup_execution(
   let normalization_pending = value.normalization
     .map(@sga.normalize_cleanup_pending)
     .unwrap_or(false)
+  let delta_pending = value.delta_apply
+    .map(@sga.delta_apply_cleanup_pending)
+    .unwrap_or(false)
   if failed {
     return Err(issue())
   }
   if construction_pending ||
     projection_pending ||
     transform_pending ||
-    normalization_pending {
+    normalization_pending ||
+    delta_pending {
     return Ok(false)
   }
   value.reclaimed = true
@@ -1429,34 +1560,55 @@ pub fn provider(
   storage_bytes : Int64,
   capacity : @execution.ExecutionCapacity,
   snapshot_policy? : SnapshotPolicy? = None,
+  delta_policy? : DeltaPolicy? = None,
 ) -> @local.ManagedProvider {
-  @local.managed_provider_with_inputs(
-    accepts,
-    sequence => {
-      if accepts(sequence) &&
-        (
-          snapshot_policy is None ||
-          (snapshot_policy is Some(policy) && valid_snapshot_policy(policy))
-        ) {
-        provider_capacity(
-          capacity,
-          storage_bytes,
-          @lower.sequence_count(
-            @execution.generated_prepared_sequence(sequence),
-          ),
-          if graph_material(sequence) {
-            snapshot_policy.map(policy => policy.workspace_bytes).unwrap_or(0L)
-          } else {
-            0L
-          },
-        )
+  let eligible = fn(sequence) {
+    accepts(sequence) &&
+    (
+      (!delta_material(sequence) && !delta_diff_material(sequence)) ||
+      (delta_policy is Some(policy) && valid_delta_policy(policy))
+    )
+  }
+  let capacity_for = fn(sequence) {
+    if eligible(sequence) &&
+      (
+        snapshot_policy is None ||
+        (snapshot_policy is Some(policy) && valid_snapshot_policy(policy))
+      ) {
+      let snapshot_workspace = if graph_material(sequence) {
+        snapshot_policy.map(policy => policy.workspace_bytes).unwrap_or(0L)
       } else {
-        None
+        0L
       }
-    },
-    fn(sequence, inputs, max_rows, max_value_bytes, _execution) {
-      if !accepts(sequence) ||
+      let delta_workspace = if delta_material(sequence) ||
+        delta_diff_material(sequence) {
+        delta_policy.map(policy => policy.workspace_bytes).unwrap_or(0L)
+      } else {
+        0L
+      }
+      if delta_workspace > 9223372036854775807L - snapshot_workspace {
+        return None
+      }
+      provider_capacity(
+        capacity,
+        storage_bytes,
+        @lower.sequence_count(@execution.generated_prepared_sequence(sequence)),
+        snapshot_workspace + delta_workspace,
+      )
+    } else {
+      None
+    }
+  }
+  @local.managed_provider_with_inputs(
+    eligible,
+    sequence => capacity_for(sequence),
+    fn(sequence, inputs, max_rows, max_value_bytes, execution) {
+      if !eligible(sequence) ||
         storage_bytes < 0L ||
+        (
+          (delta_material(sequence) || delta_diff_material(sequence)) &&
+          capacity_for(sequence) is None
+        ) ||
         (snapshot_policy is Some(policy) && !valid_snapshot_policy(policy)) {
         return Err(@connector.InvalidLimits)
       }
@@ -1489,6 +1641,8 @@ pub fn provider(
         Some(@lower.GraphSubgraphStep(_)) => selected_step is Some(_)
         _ => false
       }
+      let direct_delta = delta_material(sequence)
+      let direct_diff = delta_diff_material(sequence)
       let direct_subgraph_relation_count = match
         @lower.sequence_step(
           @execution.generated_prepared_sequence(sequence),
@@ -1582,13 +1736,18 @@ pub fn provider(
         direct_subgraph ||
         direct_diagnostic ||
         direct_equality ||
-        direct_normalize {
-        if carriers.length() != (if direct_equality { 2 } else { 1 }) ||
+        direct_diff ||
+        direct_normalize ||
+        direct_delta {
+        if carriers.length() !=
+          (if direct_equality || direct_diff { 2 } else { 1 }) ||
           relations.length() !=
           (if direct_traverse {
             direct_traverse_relation_count
           } else if direct_subgraph {
             direct_subgraph_relation_count
+          } else if direct_delta {
+            1
           } else {
             0
           }) {
@@ -1620,6 +1779,8 @@ pub fn provider(
         construction_steps,
         phase: if direct_normalize {
           StartNormalize
+        } else if direct_delta {
+          ApplyingDelta
         } else if construction_steps == 1 {
           StartConstruction
         } else if direct_subgraph {
@@ -1631,11 +1792,65 @@ pub fn provider(
         normalization: None,
         graph: None,
         transform: None,
+        delta_apply: None,
         relation: None,
         stage_progress: 0L,
         stage_work: 0L,
         terminal: false,
         reclaimed: false,
+      }
+      if direct_delta {
+        guard delta_policy is Some(policy) else {
+          return Err(@connector.InvalidLimits)
+        }
+        state.delta_apply = match
+          @sga.start_delta_apply_inputs(
+            state.control,
+            state.sequence,
+            state.projection_step,
+            carriers[0],
+            relations[0],
+            policy.limits,
+            limits,
+            storage_bytes,
+            () => true,
+            control_work_limit=Some(
+              Int::min(limits.max_work, execution.max_work),
+            ),
+          ) {
+          Ok(active) => Some(active)
+          Err(_) => return Err(issue())
+        }
+      }
+      if direct_diff {
+        guard delta_policy is Some(policy) else {
+          return Err(@connector.InvalidLimits)
+        }
+        let active = match
+          @sga.start_delta_diff_views(
+            state.control,
+            @execution.generated_completion_preparation(sequence),
+            state.sequence,
+            state.projection_step,
+            carriers[0],
+            carriers[1],
+            max_rows,
+            {
+              max_nodes: limits.max_value_nodes,
+              max_depth: limits.max_value_depth,
+              max_text_bytes: max_value_bytes,
+              max_work: limits.max_work,
+            },
+            policy.limits,
+            limits.max_value_bytes,
+            limits.max_value_bytes,
+            Int::min(limits.max_work, execution.max_work),
+          ) {
+          Ok(active) => active
+          Err(_) => return Err(issue())
+        }
+        state.relation = Some(DeltaDiffExecution(active))
+        state.phase = Projection
       }
       Ok(
         @local.managed_provider_execution(

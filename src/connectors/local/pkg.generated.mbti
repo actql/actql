@@ -154,11 +154,15 @@ pub fn managed_provider_relation_input(@execution_relation.ProducerRead) -> Mana
 
 pub fn managed_provider_runs_numeric(ManagedProvider) -> Bool
 
+pub fn managed_provider_settling(Int, Int64, Int64) -> ManagedProviderPoll
+
 pub fn managed_provider_stopped(ManagedProviderExecution) -> Bool
 
 pub fn managed_provider_stopped_poll(Int64, Int64) -> ManagedProviderPoll
 
 pub fn managed_provider_supplied_relation_input(@execution_relation.SuppliedRelationRead) -> ManagedProviderInput
+
+pub fn managed_provider_waiting(Int64, Int64) -> ManagedProviderPoll
 
 pub fn managed_provider_with_inputs((@execution_relation.GeneratedSequence) -> Bool, (@execution_relation.GeneratedSequence) -> @execution_relation.ExecutionCapacity?, (@execution_relation.GeneratedSequence, Array[ManagedProviderInput], Int, Int, @execution_relation.SequenceExecutionLimits) -> Result[ManagedProviderExecution, @connector_sdk.FixedComputeIssue]) -> ManagedProvider
 
@@ -237,6 +241,8 @@ pub(all) struct LocalImportLimits {
 
 pub(all) struct LocalMaterializingAdvance {
   complete : Bool
+  waiting : Bool
+  settlement : Int?
   progress : Int64
   work : Int64
 }
@@ -271,6 +277,8 @@ pub enum ManagedProviderInput {
 
 pub enum ManagedProviderPoll {
   Continue(progress~ : Int64, work~ : Int64)
+  Waiting(progress~ : Int64, work~ : Int64)
+  Settling(Int, progress~ : Int64, work~ : Int64)
   Complete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
   CarrierComplete(@managed_carrier_runtime.Material, progress~ : Int64, work~ : Int64)
   Failed(@connector_sdk.FixedComputeIssue, progress~ : Int64, work~ : Int64)

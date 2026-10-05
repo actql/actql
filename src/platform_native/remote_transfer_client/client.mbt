@@ -252,6 +252,23 @@ pub fn destination_material_use_receipt_cid(
 }
 
 ///|
+/// Exact durable destination-use occurrence; equal receipts do not authorize
+/// a reader belonging to another use of the same transferred material.
+pub fn destination_material_use_id(
+  material : NativeRemoteDestinationMaterialUse,
+) -> String {
+  material.use_id
+}
+
+///|
+/// The durable reader occurrence, separate from the destination holding use.
+pub fn destination_material_use_reader_id(
+  material : NativeRemoteDestinationMaterialUse,
+) -> String {
+  material.reader_id
+}
+
+///|
 fn admit_source(
   request : @transfer.RemoteTransferRequest,
   chunks : Array[Bytes],
@@ -1746,6 +1763,15 @@ pub fn validate_destination_material_use(
   if material.released || material.reading {
     return Err(ReconciliationRequired)
   }
+  match
+    material.journal.validate_destination_reader(
+      material.request,
+      material.receipt,
+      material.reader_id,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Durable(issue))
+  }
   let cids = @transfer.request_chunk_cids(material.request)
   let lengths = @transfer.request_chunk_byte_lengths(material.request)
   if cids.length() != lengths.length() {
@@ -1787,6 +1813,15 @@ pub fn validate_destination_material_use(
   }
   if actual != destination_material_use_generation(material) {
     return Err(ReconciliationRequired)
+  }
+  match
+    material.journal.validate_destination_reader(
+      material.request,
+      material.receipt,
+      material.reader_id,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Durable(issue))
   }
   material.allocations = allocations
   material.generations = generations

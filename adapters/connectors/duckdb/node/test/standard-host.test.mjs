@@ -62,35 +62,16 @@ import {
 } from '../../../../host-node/result-access.mjs';
 import {canonical, hash as canonicalHash} from './typed-catalog.mjs';
 import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
+import {deltaApplicationScenario, deltaDiffScenario} from
+  '../../../../../scripts/fixtures/property-graph-delta-application.mjs';
+import {publicationResultExportLimits, standardPublicationPlan} from
+  './publication-plan-fixture.mjs';
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
   maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
   memoryBytes: 128 * 1024 * 1024, threads: 1 };
-const publicationResultExportLimits = Object.freeze({
-  maxResultFields: 10,
-  maxResultMappingWork: 1000,
-  maxResultOrderWork: 10000,
-  maxResultWorkspaceEntries: 100,
-  maxRows: 100,
-  maxValueNodes: 10000,
-  maxValueTextBytes: 100000,
-  maxValueDepth: 64,
-  maxValueWork: 100000,
-  maxWireBytes: 100000,
-  maxWireNodes: 10000,
-  maxWireDepth: 64,
-  maxColumns: 10,
-  maxOrderWork: 10000,
-  maxLogicalWireBytes: 100000,
-  maxLogicalWireNodes: 10003,
-  maxLogicalWireDepth: 66,
-  maxSchemaFields: 10,
-  maxSchemaBytes: 100000,
-  maxSchemaNodes: 10000,
-  maxSchemaDepth: 64,
-  maxBatchBytes: 4096,
-});
+
 
 // Read a completed run's Named Result through the existing publication
 // export, which reads managed and captured outputs alike, and return its
@@ -179,183 +160,7 @@ function sgaEnvironmentArguments(args) {
   ];
 }
 
-function standardPublicationPlan(
-  runtime,
-  programDefinitionCid,
-  resultCount,
-  attemptId,
-) {
-  const control = runtime.publicationControl;
-  const contractLimits = Object.freeze({
-    maxWireBytes: 100000,
-    maxNodes: 10000,
-    maxDepth: 64,
-  });
-  const effectiveDataPolicyCid = hash('effective-policy');
-  const template = control.sealRunEvidence(
-    'bound_invocation_template',
-    JSON.stringify({
-      version: 'actql-bound-invocation-template/0.1',
-      program_definition_cid: programDefinitionCid,
-      parameter_values_cid: hash('parameter-values'),
-      invocation_bindings_cid: hash('invocation-bindings'),
-      check_environment_cid: hash('check-environment'),
-      grammar_manifest_cid: hash('grammar-manifest'),
-      required_profile_contracts: [],
-      barrier_contract_manifest_cid: hash('barrier-contract-manifest'),
-      source_evidence: 'unbound',
-    }),
-    contractLimits,
-  );
-  const compiledPlan = control.seal('compiled_plan', JSON.stringify({
-    version: 'actql-compiled-plan/0.1',
-    compiler_version: 'compiler-test-0.1',
-    aoa_ir_version: 'aoa-ir-test-0.1',
-    executable_plan_cid: hash('executable-plan'),
-    program_definition_cid: programDefinitionCid,
-    program_semantics_cid: hash('program-semantics'),
-    aoa_contract_cid: hash('aoa-contract'),
-    aoa_logical_cid: hash('aoa-logical'),
-  }), contractLimits);
-  const prepared = control.sealRunEvidence(
-    'prepared_invocation',
-    JSON.stringify({
-      version: 'actql-prepared-invocation/0.1',
-      invocation_template_cid: template.identity,
-      compiled_plan_cid: compiledPlan.identity,
-      execution_context_cid: hash('execution-context'),
-      host_policy_cid: hash('host-policy'),
-      policy_decision: 'allow',
-      expires_at: '2026-09-18T03:00:00.000Z',
-    }),
-    contractLimits,
-  );
-  const authorization = control.sealRunEvidence(
-    'run_authorization',
-    JSON.stringify({
-      version: 'actql-run-authorization/0.1',
-      prepared_invocation_cid: prepared.identity,
-      execution_context_cid: hash('execution-context'),
-      host_policy_cid: hash('host-policy'),
-      decision: 'allowed',
-    }),
-    contractLimits,
-  );
-  const admission = control.admitRunPublication(
-    template,
-    prepared,
-    authorization,
-    compiledPlan,
-  );
-  const runDefinition = control.issueRunDefinition(admission, {
-    scopeId: 'standard-publication-scope',
-    runId: `standard-publication-${attemptId}`,
-    inputArtifactSetCid: hash('input-artifact-set'),
-    createdAt: '2026-09-18T00:00:00.000Z',
-    validUntil: '2026-09-18T02:30:00.000Z',
-  }, contractLimits);
-  const observation = control.sealRunEvidence(
-    'observation_set',
-    JSON.stringify({
-      version: 'actql-observation-set/0.1',
-      invocation_template_cid: template.identity,
-      source_evidence_cids: [],
-      captured_input_artifact_cids: [],
-      consistency: 'no_external_sources',
-      capture_started_at: null,
-      capture_completed_at: null,
-      replayability: {
-        materialized: false,
-        availability_evidence_cids: [],
-      },
-      data_policy_cid: effectiveDataPolicyCid,
-    }),
-    contractLimits,
-  );
-  const invocation = control.issueRunInvocation(
-    template,
-    observation,
-    contractLimits,
-  );
-  const retention = control.seal(
-    'result_retention_policy',
-    JSON.stringify({
-      version: 'actql-result-retention-policy/0.1',
-      retention_contract_cid: hash('retention-contract'),
-      effective_data_policy_cid: effectiveDataPolicyCid,
-      available_until: '2026-09-18T01:00:00.000Z',
-      delete_by: '2026-09-18T02:00:00.000Z',
-      extension_ceiling_at: '2026-09-18T03:00:00.000Z',
-      metadata_retention_policy_cid: hash('metadata-retention'),
-      metadata_delete_by: '2026-09-18T04:00:00.000Z',
-      clock_contract_cid: hash('clock-contract'),
-    }),
-    contractLimits,
-  );
-  const normalizationJournal = control.sealRunEvidence(
-    'normalization_journal',
-    JSON.stringify({
-      version: 'actql-normalization-journal/0.1',
-      rule_catalog_cid: hash('rule-catalog'),
-      entries: [],
-    }),
-    contractLimits,
-  );
-  const authoringContext = control.sealRunEvidence(
-    'authoring_context',
-    JSON.stringify({
-      version: 'actql-authoring-context/0.1',
-      program_definition_cid: programDefinitionCid,
-      annotations: [],
-    }),
-    contractLimits,
-  );
-  return Object.freeze({
-    admission,
-    runDefinition,
-    invocation,
-    observation,
-    normalizationJournal,
-    authoringContext,
-    results: Object.freeze(Array.from({length: resultCount}, (_, index) =>
-      Object.freeze({
-        retention,
-        evidenceContext: Object.freeze({
-          computationContractCid: hash(`checked-computation-${index}`),
-          inputRelationCids: Object.freeze([]),
-          scopeCid: hash(`result-scope-${index}`),
-          effectiveDataPolicyCid,
-          authorityScopeCid: hash('authority-scope'),
-        }),
-      }))),
-    receiptEvidence: Object.freeze({
-      bindings: Object.freeze([]),
-      sourceEvidence: Object.freeze([]),
-      modelEvidence: Object.freeze([]),
-      barrierAttemptReceiptCids: Object.freeze([]),
-    }),
-    captureEvidence: Object.freeze({
-      pendingSourceStateAdvances: Object.freeze([]),
-      modelEvidence: Object.freeze([]),
-    }),
-    request: Object.freeze({
-      namespaceId: 'namespace-a',
-      authorityScopeCid: hash('authority-scope'),
-      publicationPolicyCid: hash('publication-policy'),
-      publicationTargetCid: hash('publication-target'),
-      requestedAt: '2026-09-18T00:00:00.000Z',
-    }),
-    attempt: Object.freeze({
-      attemptId,
-      fenceCid: hash('publication-fence'),
-      externalIdempotencyKey: undefined,
-      startedAt: '2026-09-18T00:00:01.000Z',
-    }),
-    outputLimits: publicationResultExportLimits,
-    contractLimits,
-    now: () => '2026-09-18T00:00:02.000Z',
-  });
-}
+
 const hash = value => `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
 
 // Conformance-only contribution body. It uses the selected product
@@ -491,6 +296,220 @@ async function runDelayedManagedStop(
     throw failure;
   }
 }
+
+async function subgraphHostCancellation() {
+  // Prepare a real fused provider separately from the public planner, which
+  // selects individual Graph steps. Dispatch plumbing is explicitly a fixture;
+  // the bounded execution and Local Host cancellation driver are production.
+  const exec = promisify(execFile);
+  await exec('moon', ['build', '--target', 'js', '--release',
+    'src/connectors_builtin_node', 'src/connectors/duckdb/conformance'], {cwd:root});
+  const moon = await import(pathToFileURL(join(root,
+    '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js')));
+  const values = {schema:{node_key:{type:'number',nullable:false}},
+    rows:Array.from({length:8}, (_, index)=>({node_key:index+1}))};
+  const definition = {name:'N',key:['node_key'],labels:[]};
+  const constructor = {version:'actql-property-graph-constructor/0.1',
+    nodes:[{...definition,from:'rows'}],edges:[]};
+  // Independently authored definition preimage; no executed Graph supplies
+  // expected identity or cancellation progress.
+  const domain = canonicalHash({
+    constructor:{...constructor,nodes:[{...definition,input_occurrence:0}]},
+    producer_definitions:[{producer:{body:{values},dependencies:[]},projection:null}],
+    version:'actql-property-graph-definition/0.1',
+  });
+  const registry = await readFile(join(root, 'spec/dependencies/aoa-pipeline-registry.json'), 'utf8');
+  const aoa = JSON.parse(await readFile(join(root, 'spec/contracts/actql-aoa.json'), 'utf8'));
+  const fixture = await import(pathToFileURL(join(root,
+    '_build/js/release/build/connectors/duckdb/conformance/conformance.js')));
+  const fused = checked(fixture.subgraphCancelCreate(JSON.stringify([{values,as:'rows'}]),
+    JSON.stringify([{property_graph:{...constructor,nodes:[{...definition,from:'prior'}]},as:'g'},
+      {from:'g',subgraph:{nodes:{ids:values.rows.map(({node_key})=>({
+        definition:'N',domain,key:[node_key],key_types:[{kind:'number'}],
+      }))},edges:'true'},as:'slice'}]), registry,
+    JSON.stringify(aoa.execution_contracts['REL.values']),
+    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1'])));
+  let progress = 0n, advances = 0, delivered = false;
+  const abort = new AbortController();
+  const operations = {
+    inputs:[],
+    advance() {
+      const [status, rows, work] = fixture.subgraphCancelAdvance(fused);
+      advances++;
+      progress += rows;
+      if (!delivered && progress > 8n) {
+        setTimeout(() => { delivered = true; abort.abort(); }, 0);
+      }
+      return {$tag:1,_0:{complete:status === 1n,progress:rows,work}};
+    },
+    request_cancel() { assert.equal(delivered,true); return fixture.subgraphCancelRequest(fused); },
+    execution_stopped() { return fixture.subgraphCancelStopped(fused); },
+    close() { fixture.subgraphCancelCleanup(fused); },
+    cleanup_refresh() { return fixture.subgraphCancelCleanup(fused); },
+    settle() { assert.equal(fixture.subgraphCancelStopped(fused),true); return {$tag:1,_0:undefined}; },
+    complete() { assert.fail('cancelled fused Subgraph must not publish'); },
+  };
+  // Only dispatch/registration plumbing is a fixture. The provider, Host
+  // polling loop, timer delivery and failure/cleanup progression are real.
+  const runtime = new Proxy(moon,{get(target,name,receiver) {
+    if (name === 'strategyModule_local_Registration') return ()=>({});
+    if (name === 'strategyHostRegistrationSelectionKey') return ()=>'subgraph-conformance';
+    // Task identity is dispatch plumbing in this isolated provider fixture.
+    if (name === 'strategyHostTask') return ()=>0;
+    if (name === 'strategyModule_local_Dispatch') return ()=>({$tag:1,_0:operations});
+    return Reflect.get(target,name,receiver);
+  }});
+  try {
+    await assert.rejects(localStrategyContribution(runtime,undefined,checked).run(
+      undefined,abort.signal), {name:'AbortError'});
+    assert.equal(delivered,true);
+    assert(progress > 8n, 'Subgraph progresses after all 8 constructor rows');
+    assert.equal(fixture.subgraphCancelStopped(fused),true);
+    assert.equal(fixture.subgraphCancelInputAvailable(fused),true);
+    const settledAdvances = advances;
+    assert.equal(fixture.subgraphCancelCleanup(fused),true);
+    assert.equal(fixture.subgraphCancelCleanup(fused),true);
+    assert.equal(advances,settledAdvances,'cleanup never resumes execution');
+    assert.equal(fixture.subgraphCancelInputAvailable(fused),true);
+  } finally {
+    fixture.subgraphCancelRequest(fused);
+    if (!fixture.subgraphCancelStopped(fused)) fixture.subgraphCancelAdvance(fused);
+    fixture.subgraphCancelCleanup(fused);
+  }
+}
+
+test('fused Subgraph stops after construction and positive selection work through the Local Host driver',
+  {timeout:30_000}, () => subgraphHostCancellation());
+
+async function deltaHostCancellation(phase, diff = false) {
+  // Use the installed common Program/Plan/provider, not a test-only Delta
+  // provider or pre-decoded replacement. Observe real operations as in the
+  // existing Host cancellation corpus; the proxy supplies no result/state.
+  const moon = await import(pathToFileURL(join(root,
+    '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js')));
+  const fixture = JSON.parse(await readFile(join(root,
+    'scripts/fixtures/property-graph-presence.program.json'), 'utf8'));
+  const {document} = diff ? deltaDiffScenario(fixture, 'node_rows')
+    : deltaApplicationScenario(fixture, 'node_rows');
+  const targetTask = diff ? 6 : 5;
+  const environmentBody = JSON.parse(await readFile(join(root,
+    'spec/local-check-environment.json'), 'utf8'));
+  delete environmentBody.evidence_bundle_cid;
+  // Match the installed Host's declaration ceilings; do not remove runtime
+  // admission or substitute a looser, test-only Graph execution policy.
+  Object.assign(environmentBody.host_policy_profile.capacity, {
+    max_graph_construction_edges:1000,
+    max_graph_construction_input_rows:1000,
+    max_graph_construction_nodes:1000,
+  });
+  const environmentWire = canonical({...environmentBody,
+    evidence_bundle_cid:canonicalHash(environmentBody)});
+  const lawCid = async path => canonicalHash(JSON.parse(await readFile(join(root, path), 'utf8')));
+  const environment = moon.clientProgramCheckEnvironmentWithPropertyGraphProfile(
+    environmentWire, JSON.parse(environmentWire).evidence_bundle_cid,
+    false, true, true, true, true, false, false,
+    await lawCid('spec/contracts/actql-numeric-reduction.json'),
+    await lawCid('spec/dependencies/actql-property-graph-laws.json'));
+  assert.ok(environment);
+  const preparation = moon.clientProgramPrepareEffectFreeWithParameters(JSON.stringify(document), 'json', environment);
+  const prepared = moon.clientProgramPreparationReady(preparation);
+  assert.ok(prepared, inspect({code:moon.clientProgramPreparationIssueCode(preparation),
+    issue:moon.clientProgramPreparationIssue(preparation)}, {depth:8}));
+  assert.ok(checked(moon.clientProgramIssueTaskPlanGraph(prepared)));
+  const registry = await readFile(join(root, 'spec/dependencies/aoa-pipeline-registry.json'), 'utf8');
+  const aoa = JSON.parse(await readFile(join(root, 'spec/contracts/actql-aoa.json'), 'utf8'));
+  const setup = moon.clientProgramOpenSourceFreeLocalHost(prepared, registry,
+    JSON.stringify(aoa.execution_contracts['REL.values']), 1n, 0n, 0n, 0n,
+    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+    JSON.stringify(aoa.execution_contracts['REL.derive.ordered']));
+  assert.ok(setup);
+  const abort = new AbortController();
+  const starts = [], deltaPolls = [], lifecycle = [];
+  let scheduled = false, delivered = false, workAtDelivery;
+  abort.signal.addEventListener('abort', () => {
+    delivered = true;
+    workAtDelivery = deltaPolls.reduce((sum, poll) => sum + poll.work, 0n);
+  }, {once:true});
+  const observed = new Proxy(moon, {get(target, property, receiver) {
+    if (property !== 'strategyModule_local_ManagedStart') return Reflect.get(target, property, receiver);
+    return configuration => {
+      const task = target.strategyHostNextTask(setup);
+      starts.push(task);
+      const operations = checked(target.strategyModule_local_ManagedStart(configuration));
+      return {$tag:1,_0:new Proxy(operations, {get(owner, name, ownerReceiver) {
+        if (task !== targetTask || !['advance','request_cancel','execution_stopped','cleanup_refresh'].includes(name)) {
+          return Reflect.get(owner, name, ownerReceiver);
+        }
+        if (name === 'advance') return quantum => {
+          // Narrow the real bounded operation's quantum, not its work/state.
+          const result = owner.advance(Math.min(quantum, phase === 'conversion' ? 1 : 32));
+          const poll = checked(result);
+          deltaPolls.push(poll);
+          // Input conversion/handoff report zero progress. Positive progress
+          // is returned only after the bounded application has begun; do not
+          // relabel cancellation during conversion as kernel cancellation.
+          if (!scheduled && !poll.complete && poll.work > 0n &&
+              (phase === 'conversion' || poll.progress > 0n)) {
+            scheduled = true;
+            setTimeout(() => abort.abort(), 0);
+          }
+          return result;
+        };
+        return (...args) => {
+          const result = owner[name](...args);
+          lifecycle.push({name,result,delivered});
+          return result;
+        };
+      }})};
+    };
+  }});
+  let execution;
+  try {
+    execution = await runInstalledStrategy(setup, runtimeCore(moon),
+      [localStrategyContribution(observed, setup, checked)], abort.signal);
+    assert.equal(scheduled, true);
+    assert.equal(delivered, true);
+    assert(workAtDelivery > 0n, 'cancel is delivered only after actual Delta work');
+    if (phase !== 'conversion') assert(deltaPolls.some(poll=>poll.progress > 0n),
+      'bounded Delta kernel, not merely conversion, made progress before cancellation');
+    assert.equal(execution.status, 'host-tasks-failed');
+    assert.equal(execution.failure?.name, 'AbortError');
+    const expectedStarts = Array.from({length:targetTask + 1},(_,task)=>task);
+    assert.deepEqual(starts, expectedStarts);
+    assert.deepEqual(execution.completed.map(value=>value.task), expectedStarts.slice(0,-1));
+    assert(deltaPolls.every(poll=>poll.complete === false), 'no partial Delta output is completed');
+    assert(lifecycle.some(event=>event.name === 'request_cancel' && event.delivered));
+    assert(lifecycle.some(event=>event.name === 'execution_stopped' && event.result === true && event.delivered));
+  } finally {
+    if (execution) {
+      await execution.close();
+      assert.equal(await execution.cleanup(), true);
+      assert.equal(execution.cleanupPending(), false);
+      // Holdings is the monotonic allocation count, not live capacity. Keep
+      // that accounting history while returning all held/reserved bytes.
+      assert.equal(execution.usage().holdings, BigInt(targetTask));
+      assert.equal(execution.usage().heldBytes, 0n);
+      assert.equal(execution.usage().reservedRetentionBytes, 0n);
+      assert.equal(execution.usage().reservedTransferBytes, 0n);
+      assert.equal(execution.usage().reservedExecutionBytes, 0n);
+      const settledUsage = execution.usage();
+      const settledPollCount = deltaPolls.length;
+      await execution.close();
+      assert.equal(await execution.cleanup(), true);
+      assert.equal(deltaPolls.length, settledPollCount, 'cleanup does not resume Compute');
+      assert.deepEqual(starts, Array.from({length:targetTask + 1},(_,task)=>task),
+        'cleanup does not start a new task');
+      assert.deepEqual(execution.usage(), settledUsage, 'duplicate close does not change resource accounting');
+    }
+  }
+}
+
+test('Delta application stops after positive work through the installed Local Host during input conversion',
+  {timeout:30_000}, () => deltaHostCancellation('conversion'));
+test('Delta application stops after positive work through the installed Local Host during bounded application',
+  {timeout:30_000}, () => deltaHostCancellation('application'));
+test('Graph diff stops after positive work through the installed Local Host without publishing Delta',
+  {timeout:30_000}, () => deltaHostCancellation('diff', true));
 
 test('standard native and broad Node Hosts own verification through real capture and consumer', async () => {
   const exec = promisify(execFile);
@@ -8048,6 +8067,30 @@ async function exerciseStrategyGraph(
       {from: 'joined', select: ['id'], as: 'raw_ids'},
       {from: 'greater', append: {with: 'raw_ids'}, as: 'out'},
     ];
+  const branchedWindowGroupProgram = structuredClone(externalAppendProgram);
+  const windowGroupForkFields = ['n', 'window_start', 'window_end'];
+  const windowGroupFork = branchedWindowGroupProgram.stages.find(stage =>
+    stage.id === 'crossed');
+  windowGroupFork.steps = [
+    {from: 'l', append: {with: 'r'}, as: 'appended'},
+    {from: 'appended', row_window: {
+      kind: 'fixed', time: 'id', size: 2,
+    }, as: 'windowed'},
+    {from: 'windowed', window_group: {
+      by: [], aggregates: {n: {fn: 'count'}},
+    }, as: 'grouped'},
+    {from: 'grouped', filter: 'n >= 2', as: 'selected'},
+    {from: 'grouped', select: windowGroupForkFields, as: 'raw_groups'},
+    {from: 'selected', append: {with: 'raw_groups'}, as: 'out'},
+  ];
+  windowGroupFork.results.r.fields = windowGroupForkFields;
+  for (const consumer of branchedWindowGroupProgram.stages.filter(stage =>
+    stage.id.startsWith('external_cross_consumer_'))) {
+    const fields = consumer.id.endsWith('_a')
+      ? windowGroupForkFields : [...windowGroupForkFields].reverse();
+    consumer.steps[0].select = fields;
+    consumer.results.r.fields = fields;
+  }
   const branchedSourceForkProgram = structuredClone(externalAppendProgram);
   branchedSourceForkProgram.stages.find(stage => stage.id === 'crossed').steps = [
     {from: 'l', append: {with: 'r'}, as: 'appended'},
@@ -8135,6 +8178,25 @@ async function exerciseStrategyGraph(
     from: 'ranked_greater', append: {with: 'deduped_less'}, as: 'joined',
   };
   branchedRankedSteps.push({from: 'joined', select: ['id'], as: 'out'});
+  const branchedPartitionedTopKProgram = structuredClone(branchedRankedProgram);
+  const partitionedRight = branchedPartitionedTopKProgram.stages.find(stage =>
+    stage.id === 'cross_right');
+  partitionedRight.steps[0].values.rows = [3, 4].map(id =>
+    ({id, origin: 'right'}));
+  const partitionedProducer = branchedPartitionedTopKProgram.stages.find(
+    stage => stage.id === 'crossed');
+  partitionedProducer.steps = [
+    {from: 'l', append: {with: 'r'}, as: 'appended'},
+    {from: 'appended', assert_rows: {unique_by: ['id']}, as: 'unique'},
+    {from: 'unique', top_k_by: {
+      partition_by: ['origin'], k: 1, by: [{id: 'desc'}],
+    }, as: 'ranked'},
+    {from: 'ranked', filter: 'id >= 4', as: 'selected'},
+    {from: 'selected', select: ['id'], as: 'selected_ids'},
+    {from: 'ranked', select: ['id'], as: 'raw_ids'},
+    {from: 'selected_ids', append: {with: 'raw_ids'}, as: 'out'},
+  ];
+  partitionedProducer.results.r.fields = ['id'];
   const branchedRowTransformPrograms = [
     'lag', 'watermark', 'json-pick', 'row-window', 'unpivot', 'unnest',
     'pivot', 'analytic', 'nest',
@@ -9823,6 +9885,13 @@ async function exerciseStrategyGraph(
       fields: ['id', 'matched']},
     {name: 'append-inner-join-fork', source: branchedInnerJoinChildProgram,
       expected: [2, 1, 2].map(id => ({id})), fields: ['id']},
+    {name: 'append-window-group-fork', source: branchedWindowGroupProgram,
+      expected: [
+        {n: 2, window_start: 2, window_end: 4},
+        {n: 1, window_start: 0, window_end: 2},
+        {n: 2, window_start: 2, window_end: 4},
+        {n: 1, window_start: 4, window_end: 6},
+      ], fields: windowGroupForkFields},
     {name: 'append-source-fork-join', source: branchedSourceForkProgram,
       expected: [1, 2, 3, 4, 2].map(id => ({id})), fields: ['id']},
     {name: 'append-fork-group-join', source: branchedGroupProgram,
@@ -9837,6 +9906,9 @@ async function exerciseStrategyGraph(
       expected: [4, 3, 1, 2].map(id => ({id})), fields: ['id']},
     {name: 'append-fork-top-k-dedupe-join', source: branchedRankedProgram,
       expected: [4, 3, 1, 2].map(id => ({id})), fields: ['id']},
+    {name: 'append-fork-partitioned-top-k-join',
+      source: branchedPartitionedTopKProgram,
+      expected: [4, 2, 4].map(id => ({id})), fields: ['id']},
     ...branchedRowTransformPrograms.map(([name, source]) => ({
       name: name === 'analytic' ? 'analytic-append-fork-join'
         : `append-fork-${name}-join`, source,

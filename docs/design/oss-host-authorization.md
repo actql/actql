@@ -199,9 +199,9 @@ This table is guidance for the in-repository Reference/Local Host. It is not a
 new normative Core dimension; another Host chooses its own connection and
 resource identifiers. Core sees only the principal × connection × resource ×
 operation tuple of [Account authorization routing](../spec/execution.md#policy-routing).
-The operation dimension carries only the basic Read/Write/Effect
+The operation dimension carries only the basic Read/Write/Infer/Effect
 classification the [Run protocol](../spec/protocols/run.md#account-config)
-requires: `read`, `write` or `effect`. The kind of boundary stays in the
+requires: `read`, `write`, `infer` or `effect`. The kind of boundary stays in the
 decision subject and the Checkpoint kind; it is never encoded as an operation
 name. Advanced governance such as data inspection, model egress, query cost,
 business risk, approver selection or batched approval remains the Host's
@@ -211,6 +211,8 @@ delegated-decision policy.
 | --- | --- | --- | --- | --- | --- |
 | Preparation, before operator-supplied path capture and Run creation | Source connection (the Local example uses the database locator) | Source resource (`schema.table`) | `read` | `preparation`; CID of the invocation request | `run_scope` (`prepare_attempt`) |
 | Acquisition, before any provider session | Source connection | Source resource | `read` | `acquisition`; Prepared Invocation CID when known | `read_access` (`prepare_attempt` before the Run, otherwise `run_unit`) |
+| Model catalog or metadata inspection | Model connection | Model resource | `read` | Read scope | `read_access` (where review is required) |
+| Fixed Model call inventory, before a new provider send | Model connection | Model resource | `infer` | `activation`; Model Invocation Scope CID | `model_invocation` (`run_unit`) |
 | Task activation on a Host-declared protected Site | Site key | Realization key | `write` | `activation` | `cost_scope` (`run_unit`) |
 | Managed or remote transfer and output egress | Recipient Site key | Source Site key or output scope | `write` | `transfer` | `data_egress` (`run_unit`) |
 | Remote Site dispatch | Remote Site | Site registration | `write` | `activation` | `cost_scope` (`run_unit`) |
@@ -222,6 +224,22 @@ evaluation or a Host call. The Local Host binds its resume revalidation to the
 principal, authorization context and admitted configuration CID, and to the
 invocation environment; a changed configuration therefore fails resume
 revalidation rather than reinterpreting an earlier approval.
+
+Model invocation approval covers an immutable ordered call set. Its durable
+send boundary is per call: after restart the owner reuses saved responses,
+retains possibly sent calls as unknown without resend, and may progress only
+proven-unsent calls under current invocation approval, infer authority and
+egress permission. Expiry or cancellation blocks unsent calls without erasing
+sent-call observation and cleanup. This extends the existing Model call owner;
+it does not add a parallel scheduler or journal. The normative scope, provider
+binding and original-evidence rules are in the
+[Run protocol](../spec/protocols/run.md#model-invocation-approval).
+
+Finite `read` selectors and adopted bootstrap profile content remain unchanged.
+Invoking a Model requires an explicit finite `infer` grant or the existing
+current-and-future semantics of `{all: true}`. Normal rotation of a credential
+secret alone does not change the admitted nonsecret provider binding; changes
+to tenant, security principal, route or request shaping do.
 
 A deferred preparation or acquisition decision becomes a `prepare_attempt`
 Checkpoint. Preparation is two-phase: the account outcome and any immediate

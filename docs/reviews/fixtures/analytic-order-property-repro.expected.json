@@ -1,0 +1,13 @@
+{
+  "rows": [
+    {"id": 1, "original_score": 20, "payload": {"score": 5}, "pos": 2},
+    {"id": 2, "original_score": 10, "payload": {"score": 30}, "pos": 1},
+    {"id": 3, "original_score": null, "payload": {"score": 15}, "pos": 3}
+  ],
+  "columns": [
+    {"name": "id", "contract": {"type": "number", "nullable": false}},
+    {"name": "original_score", "contract": {"type": "number", "nullable": true}},
+    {"name": "payload", "contract": {"type": "object", "nullable": false, "fields": {"score": {"type": "number", "nullable": false}}, "additional_properties": false}},
+    {"name": "pos", "contract": {"type": "number", "nullable": false}}
+  ]
+}
