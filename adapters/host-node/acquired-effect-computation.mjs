@@ -11,12 +11,11 @@ import {runCapturedEffectComputation} from './entry.mjs';
 import {openNodeComposedInferProvider} from './infer-operation.mjs';
 import {openNodeInferCaptureCustody} from './infer-capture-custody.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
-import {withLocalExecutionPauseHandler} from '../local-node/retained-store.mjs';
 
 export async function openAcquiredEffectComputation({moon, owner, acquired,
   sourceProfile, registry, values, fragment, ordered, sourceAccess,
   signal, now, retainComputationOwner, infer, store, principalId, faultInjection,
-  observe, sourceContinuation, computeConfigurations = {}, modelController,
+  observe, sourceContinuation, computeConfigurations = {}, withComputePauseHandler, modelController,
   submission, existingModel, modelClaim, parentResume, modelJournalPort}) {
   const count = moon?.clientProgramEffectAcquisitionCount?.(acquired.prepared);
   const sourceFree = count === 0;
@@ -264,8 +263,11 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       const dag = moon.strategyHostRun(moon.clientProgramLocalEffectHostRuntime(checkedHost));
       for (const [task, captured] of captures.entries()) captured.capture.retainTask(dag, task);
     }
-    const modelConfiguration = component === undefined ? computeConfigurations.local
-      : withLocalExecutionPauseHandler(computeConfigurations.local, async boundary => {
+    if (component !== undefined && typeof withComputePauseHandler !== 'function') {
+      throw new TypeError('ModelPauseConfigurationMissing');
+    }
+    const configurations = component === undefined ? computeConfigurations
+      : withComputePauseHandler(computeConfigurations, async boundary => {
         const operation = component.operation();
         if (operation === undefined || inferCapture === undefined) throw new Error('ModelPauseOwnerMissing');
         if (boundary.status === 'settling') {
@@ -305,7 +307,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
           cleanupPending: true, cleanupHandle};
       });
     execution = await runCapturedEffectComputation(checkedHost,
-      {...computeConfigurations, local: modelConfiguration,
+      {...configurations,
         authorization: multiple ? undefined : sourceAccess?.authorization}, signal);
     unresolved = false;
     if (execution.status === 'host-tasks-waiting') {

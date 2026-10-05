@@ -114,7 +114,9 @@ priv struct BoundedUnnestState {
   mut item_count : Int
   mut synthetic : Bool
   mut column : Int
-  mut checked_row : Array[@admitted.CheckedValue]
+  mut checked_row : Array[@admitted.Value]
+  mut output_recheck : @admitted.RecheckCursor?
+  mut output_charge : BoundedOutputRowCharge?
   mut emitted : Int
   max_rows : Int
 }
@@ -167,6 +169,14 @@ fn fail_bounded_unnest(
 
 ///|
 fn cleanup_bounded_unnest_state(state : BoundedUnnestState) -> Bool {
+  if state.output_recheck is Some(cursor) {
+    @admitted.cancel_recheck_runtime_value(cursor)
+    state.output_recheck = None
+  }
+  if state.output_charge is Some(cursor) {
+    cleanup_bounded_output_row_charge(cursor)
+    state.output_charge = None
+  }
   if state.output is Some(output) {
     cancel_admitted_output(output) |> ignore
     state.output = None
@@ -380,6 +390,20 @@ fn bounded_unnest_step(
         used += 1
       }
       BuildCell => {
+        if state.output_recheck is Some(cursor) {
+          match @admitted.advance_recheck_runtime_value(cursor) {
+            RecheckContinue => ()
+            RecheckFailed =>
+              return fail_bounded_unnest(Rows(InvalidRows), progress, used + 1)
+            RecheckComplete(checked, _, _) => {
+              state.output_recheck = None
+              state.checked_row.push(checked.value)
+              state.column += 1
+            }
+          }
+          used += 1
+          continue
+        }
         if state.column == output_width {
           state.phase = CommitRow
           continue
@@ -420,26 +444,60 @@ fn bounded_unnest_step(
           !spend_control(state.control, 1) {
           return fail_bounded_unnest(Rows(RowLimit), progress, used)
         }
-        guard checked_ordered_output_value(
-            value,
-            field.contract,
-            state.admitted_limits,
-          )
-          is Some(checked) else {
-          return fail_bounded_unnest(Rows(InvalidRows), progress, used)
+        if bounded_small_output_value(value) {
+          guard checked_ordered_output_value(
+              value,
+              field.contract,
+              state.admitted_limits,
+            )
+            is Some(checked) else {
+            return fail_bounded_unnest(Rows(InvalidRows), progress, used)
+          }
+          state.checked_row.push(checked.value)
+          state.column += 1
+        } else {
+          guard start_ordered_output_value_recheck(
+              value,
+              field.contract,
+              state.admitted_limits,
+            )
+            is Some(cursor) else {
+            return fail_bounded_unnest(Rows(InvalidRows), progress, used)
+          }
+          state.output_recheck = Some(cursor)
         }
-        state.checked_row.push(checked)
-        state.column += 1
         used += 1
       }
       CommitRow => {
         guard state.output is Some(output) else {
           return fail_bounded_unnest(InvalidExecution, progress, used)
         }
-        match append_admitted_output(output, state.checked_row) {
-          Err(issue) =>
+        if state.output_charge is None {
+          match
+            start_bounded_output_row_charge(
+              output,
+              state.checked_row,
+              state.workspace,
+            ) {
+            Err(OutputCapture(issue)) =>
+              return fail_bounded_unnest(Capture(issue), progress, used + 1)
+            Err(OutputWorkspace) =>
+              return fail_bounded_unnest(Rows(RowLimit), progress, used + 1)
+            Ok(cursor) => state.output_charge = Some(cursor)
+          }
+          used += 1
+          continue
+        }
+        match advance_bounded_output_row_charge(state.output_charge.unwrap()) {
+          Err(OutputCapture(issue)) =>
             return fail_bounded_unnest(Capture(issue), progress, used + 1)
-          Ok(_) => ()
+          Err(OutputWorkspace) =>
+            return fail_bounded_unnest(Rows(RowLimit), progress, used + 1)
+          Ok(false) => {
+            used += 1
+            continue
+          }
+          Ok(true) => state.output_charge = None
         }
         release_slots(state.workspace, state.checked_row.length())
         state.checked_row = []
@@ -590,6 +648,8 @@ fn start_bounded_unnest_input(
     synthetic: false,
     column: 0,
     checked_row: [],
+    output_recheck: None,
+    output_charge: None,
     emitted: 0,
     max_rows,
   }

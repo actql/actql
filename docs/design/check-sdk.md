@@ -844,7 +844,8 @@ independent supplied-value violations remain public.
 
 This coordinated extension changes the registered `actql-check-reason/0.1`
 body, its identity pins, validators and SDK wire types. The Subgraph extension
-changes only the reason-schema CID; the outcome-schema body and CID remain unchanged.
+changes the reason-schema CID and the outcome-schema CID because the latter
+embeds the exact reason pin. Outcome fields and verdict semantics remain unchanged.
 It leaves `actql-diagnostics/0.1` unchanged. Mixed schema pins are rejected by
 existing contract validation; there is no compatibility adapter.
 

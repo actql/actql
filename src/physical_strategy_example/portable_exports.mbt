@@ -98,6 +98,44 @@ pub fn application_acquisition(
 
 ///|
 #cfg(not(target="js"))
+pub fn application_select_acquisition(
+  app : Application,
+  query_json : String,
+  evidence_json : String,
+  two_receipt_json : String,
+  priority : Array[Int],
+) -> ApplicationAcquisitionSelection raise {
+  core_application_select_acquisition(
+    app, query_json, evidence_json, two_receipt_json, priority,
+  )
+}
+
+///|
+#cfg(not(target="js"))
+pub fn application_acquisition_selection_native(
+  selected : ApplicationAcquisitionSelection,
+) -> @acquisition_host.NativeHostConfiguration? {
+  core_application_acquisition_selection_native(selected)
+}
+
+///|
+#cfg(not(target="js"))
+pub fn application_acquisition_selection_broad(
+  selected : ApplicationAcquisitionSelection,
+) -> @acquisition_host.BroadHostConfiguration? {
+  core_application_acquisition_selection_broad(selected)
+}
+
+///|
+#cfg(not(target="js"))
+pub fn application_acquisition_selection_document(
+  selected : ApplicationAcquisitionSelection,
+) -> String {
+  core_application_acquisition_selection_document(selected)
+}
+
+///|
+#cfg(not(target="js"))
 pub fn application_graph(app : Application) -> @strategy.CheckedDAG {
   core_application_graph(app)
 }

@@ -468,7 +468,7 @@ fn verify_append_filter_resources(
   assert_eq(complete, should_complete)
   assert_eq(failed, !should_complete)
   if should_complete {
-    assert_eq(work, 69L)
+    assert_eq(work, 78L)
     assert_eq(local_managed_test_rows(operations), ["{\"id\":2}", "{\"id\":3}"])
   } else {
     assert_true((operations.output_row)(0) is Err(_))
@@ -521,13 +521,14 @@ fn verify_append_filter_resources(
 
 ///|
 test "ordinary append filter chain admits exact work and workspace" {
-  // Append: 17 input transitions, one field, three row/cell/commit triples,
-  // and finalization = 28 steps. One handoff precedes filter's 40 steps.
+  // Append: 17 input transitions, one field, three rows with one begin,
+  // one cell, and four output-charge transitions, then finalization = 37
+  // steps. One handoff precedes filter's 40 steps, reporting 78 total.
   // Filter control costs 3 input rows + 3 * (1 row + 3 snapshot + 8
-  // predicate units) + 4 output-name units = 43. Thus 28 + 1 + 43 = 72.
+  // predicate units) + 4 output-name units = 43. Thus 37 + 1 + 43 = 81.
   // Workspace peaks at ten: append's metadata and rows, or filter's three
   // metadata slots, three input roots, snapshot, frame and continuation.
-  verify_append_filter_resources(72, 10, true)
-  verify_append_filter_resources(71, 10, false)
-  verify_append_filter_resources(72, 9, false)
+  verify_append_filter_resources(81, 10, true)
+  verify_append_filter_resources(80, 10, false)
+  verify_append_filter_resources(81, 9, false)
 }

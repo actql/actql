@@ -1,0 +1,50 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "adopt-single-base-normalization-0c9f74fb66ec",
+  "kind": "change",
+  "revision": "0c9f74fb66ecade08ea96b3ec461415723acc1ac",
+  "parents": [
+    "6ec5252fbf04adcb1fb9593fc4156e3656b7a4c3"
+  ],
+  "changes": [
+    {
+      "path": "proofs/relation-pipeline/current-foundation.md",
+      "before": [
+        {
+          "revision": "6ec5252fbf04adcb1fb9593fc4156e3656b7a4c3",
+          "digest": "10e78d81fb3d85fb5c460aa99420f25919ce584afa376486805470e9db2860cc",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "a20113be00cfd16c7cb0fbd35632a13f46cf0e74230fd626b528622fb8fce85f",
+      "afterMode": "100644",
+      "reason": "Document, implement and test explicit digest-bound normalization of exact redundant singleton merge-base metadata while retaining immutable originals and every Git source and dependency obligation."
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation.mjs",
+      "before": [
+        {
+          "revision": "6ec5252fbf04adcb1fb9593fc4156e3656b7a4c3",
+          "digest": "a75ef3d6894ee6e29b12603ac885bcf0306c0f7a58ea6047dc49c798ac8192e1",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "33b11cfedc97ef788da6ee3194f25c44845f3e64bbbfac37ea0328c10a754518",
+      "afterMode": "100644",
+      "reason": "Document, implement and test explicit digest-bound normalization of exact redundant singleton merge-base metadata while retaining immutable originals and every Git source and dependency obligation."
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation.test.mjs",
+      "before": [
+        {
+          "revision": "6ec5252fbf04adcb1fb9593fc4156e3656b7a4c3",
+          "digest": "fe92caa81246c59ca752149a89e64a659821bbdd9727f2afa194b24714d48159",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "02c5e43dfc4e003410f159a70a5cc6bbf53cf2e733bcb09f3c7f50eabc4e2e40",
+      "afterMode": "100644",
+      "reason": "Document, implement and test explicit digest-bound normalization of exact redundant singleton merge-base metadata while retaining immutable originals and every Git source and dependency obligation."
+    }
+  ]
+}

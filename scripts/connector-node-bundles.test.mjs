@@ -34,7 +34,11 @@ test('Node installation touches only the configured module subset', async () => 
   const registration = {};
   const task = {};
   let executions = 0;
+  let taskReads = 0;
   const moon = new Proxy({
+    strategyHostTask: value => {
+      assert.equal(value, task); taskReads++; return 0;
+    },
     strategyHostBeginManagedFailureProgress: () => ({}),
     strategyHostRecordManagedFailureAdditionalClosed: () => true,
     strategyHostRecordManagedFailureOperationsCloseAttempted: () => true,
@@ -68,6 +72,7 @@ test('Node installation touches only the configured module subset', async () => 
   assert.equal(entries[0].registration, registration);
   await entries[0].run(task);
   assert.equal(executions, 1);
+  assert.equal(taskReads, 1);
   assert.equal(entries[0].finish, undefined);
   assert.ok(Object.isFrozen(entries));
 });

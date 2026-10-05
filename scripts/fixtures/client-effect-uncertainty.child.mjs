@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as sdk from '../../packages/sdk/index.mjs';
-import {connectEmbeddedLocal} from './embedded-local.mjs';
+import {connectEmbeddedLocal} from '../../adapters/host-node/embedded-local.mjs';
 
 const [path] = process.argv.slice(2);
 const installation = JSON.parse(readFileSync(path, 'utf8'));
