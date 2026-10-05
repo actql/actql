@@ -82,6 +82,16 @@ functions, casts and the `OVER` subset follow the adopted profile. New query
 overloads and numeric domains are rejected before a Program is issued.
 Expression text is never concatenated and reparsed with the legacy dialect.
 
+`LIMIT` and `OFFSET` accept an exact integer literal or a whole named
+parameter. Names lower to the ordinary `take.count` and `take.offset` Parameter
+slots; declarations and values follow existing Program checking, with no
+Frontend evaluation, coercion or default for an invalid/missing binding.
+Omitted OFFSET is the literal zero. The current common `take` contract still
+requires a positive count, a nonnegative offset, safe integers and proven input
+order. GoogleSQL also allows zero count and more general constant expressions;
+these remain coverage gaps, not restrictions of GoogleSQL. Row-dependent and
+arithmetic operands are rejected by this implemented literal/parameter subset.
+
 In the implemented inline `OVER` profile, numeric `ROWS BETWEEN` boundaries
 accept an integer literal or a whole named parameter, for example
 `ROWS BETWEEN @before PRECEDING AND @after FOLLOWING`. Direction remains
