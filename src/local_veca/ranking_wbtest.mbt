@@ -9,9 +9,9 @@ test "ranking workspace checks every derived width" {
 ///|
 test "ranking workspace retains exact and one-short boundaries" {
   let required = ranking_workspace(4, 1, 2, 3, 3).unwrap()
-  assert_eq(required, 124)
-  assert_eq(ranking_workspace(4, 1, 2, 3, 2), Some(122))
-  assert_eq(ranking_workspace(0, 1, 2, 3, 2), Some(38))
+  assert_eq(required, 138)
+  assert_eq(ranking_workspace(4, 1, 2, 3, 2), Some(136))
+  assert_eq(ranking_workspace(0, 1, 2, 3, 2), Some(52))
   assert_true(required - 1 < required)
 }
 

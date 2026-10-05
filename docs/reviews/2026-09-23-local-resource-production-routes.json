@@ -10112,6 +10112,34 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/local_veca/ranking_wbtest.mbt",
           "fixture": "ranking comparison yields within group candidate and tie prefixes"
+        },
+        {
+          "role": "ranking_output_logical_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "ranking output rows keep independent logical value limits"
+        },
+        {
+          "role": "ranking_output_row_stop_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "ranking output recheck and charge retain custody until stopped"
+        },
+        {
+          "role": "ranking_output_shared_limits",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/admitted_output_row_steps_wbtest.mbt",
+          "fixture": "row output cursor distinguishes temporary workspace and logical one-short limits"
+        },
+        {
+          "role": "ranking_output_shared_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/admitted_output_row_steps_wbtest.mbt",
+          "fixture": "row output cursor releases partial recheck and measurement exactly once"
         }
       ],
       "environment_tests": [
