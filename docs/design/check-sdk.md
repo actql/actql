@@ -712,6 +712,29 @@ association. The helper is explicitly UTF-16, not an LSP server or edit applicat
 `explainCheckReason` provides safe English summaries/hints; unknown codes have an
 explicit generic explanation and confer no retry or execution permission.
 
+`explainCheckOutcome` formats the existing validated public outcome branch. A
+completed report explanation binds verdict, scope and context reference, with
+a complete account of discharged and outstanding obligations. A failed explanation retains any bound partial
+report as partial and never verified. Unavailable carries only its safe problem
+and correlation reference, without report binding. The helper preserves unknown
+problem codes as unknown within their received branch; malformed envelopes or
+unsupported variants have no explanation. It does not infer outcomes from
+problem codes, messages, severity or HTTP status.
+
+Analysis-budget exhaustion can be a completed/undetermined report. The separate
+reserved reporting budget can fail to construct that envelope, producing
+failed/`check_report_unbounded` without a partial report. The safe explanation
+directs reporting-capacity review to the checking-context owner for the original
+scope, without blaming input authors or reducing the checked scope. Checking
+verification provides no execution, cancellation or release conclusion.
+
+This SDK-only presentation adds no wire fields, schema identifiers, Host input
+retention or retrieval API. It does not alter `actql-diagnostics/0.1` or
+`actql-check-outcome/0.1`. A schema-valid parsed copy can receive safe prose
+without authenticating its origin or recovering original-input custody. Location
+resolution and any editor application still require their own submitted
+identity/revision association. These helpers apply no edits or automatic retries.
+
 The Host adds no document database, persistent input store, history or re-fetch
 API for checking. The existing request envelope/source limit is retained: 65,536
 UTF-16 source code units at request validation and 65,536 original source bytes
@@ -813,10 +836,40 @@ body and dependent outcome schema identities, validators and SDK wire types.
 It leaves `actql-diagnostics/0.1` unchanged. Mixed schema pins are rejected by
 existing contract validation; there is no compatibility adapter.
 
+### External Effect uncertainty presentation
+
+`explainEffectUncertainty` binds the exact validated public SDK Run-state
+response to its original Run reference. A `needs_reconciliation` observation
+with an Owner-issued `reconcile` Effect-name list has a typed explanation;
+the other `reconcile_run` branch does not acquire an invented Effect list.
+The explanation copies those names, the received physical-stop fact and its
+optional control revision into an immutable weak association. An absent
+control observation remains unknown. The control revision is local to that
+component and does not certify atomicity across owners. Old explanations
+remain observations of their original response, with read-only current-status
+advice; no revision is used as an authorization grant or write precondition.
+
+The helper has no transport or mutation side effect and adds no Host input
+storage, provider evidence, Effect ledger or public input hash. It does not
+infer rollback, resource release, execution success or permission to resend
+from computation stop. Its advice is the existing `status` operation on the
+original Run, requiring current authority if explicitly called. It does not
+advertise reconciliation availability: an installed Host without that
+operation can still report unresolved Effects. Connecting authorized
+reconciliation to that Host belongs to the existing Effect/execution owner.
+
+This SDK presentation addition leaves `actql-run-state/0.1`,
+`actql-diagnostics/0.1` and the public check contracts unchanged. It does not
+establish the complete S9 authorized-reconciliation path or the cumulative
+S1–S9/X1–X17/invariant completion gate.
+
 ### Run cancellation explanations
 
 `explainCancellation(result)` returns immutable read-only advice for the exact
 response or uncertain error produced by this SDK's `Execution.cancel()` call.
+The SDK detaches each validated cancellation response, so a Local port reusing
+its response object cannot change an earlier result's Run, kind, revision or
+explanation.
 Validated `accepted`, `already_requested` and `already_terminal` observations
 retain the Host's control revision. The summary distinguishes recording a
 cancellation request, an existing request and a Run already terminal for

@@ -98,6 +98,34 @@ the endpoint and Host-reported scope for investigation, but does not grant
 access or authorize looking up the request through a different Workspace or
 embedded Host root. Reconnect never submits automatically.
 
+`explainEffectUncertainty(state)` explains an exact validated `Execution.status`,
+`wait` or `reconcile` response whose Owner reports `needs_reconciliation` with
+`next_action.kind === 'reconcile'`. It retains the Owner-issued Effect names
+together with the original Run reference, so a name is never an unscoped write
+identity. `physicalStop` is confirmed only by that response's control observation;
+missing control or an unknown stop remains unknown. `controlRevision`, when
+present, belongs to the Run-control observation. It does not certify an atomic
+snapshot across Effect, publication, cancellation or resource owners.
+
+```js
+import {explainEffectUncertainty} from '@actql/sdk';
+
+const state = await execution.status();
+const explanation = explainEffectUncertainty(state);
+// Display the unresolved Effects and physical stop separately. Any explicit
+// follow-up status request must use the original Client and current authority.
+```
+
+The helper performs no transport or write, and its only advice is to observe
+the original Run's current status. It does not promise that the Host offers
+reconciliation, authorize resubmission, infer rollback or assert resource
+release. The immutable explanation preserves what this response reported;
+later observations do not rewrite it. Copied/deserialized states, malformed
+responses, other Run-state branches and user-created errors have no association
+and return `undefined`. This weak association adds no Host storage, execution
+ledger, provider details or public hash. An application retaining a response
+or explanation retains that snapshot; no fixed retention period is imposed.
+
 Connected Local uses a Local Host endpoint. Cloud-owned Hybrid selects at
 least one registered Runner; local-owned Hybrid names its already registered
 Cloud assistance connection with `cloudConnectionRef`. Both Hybrid forms
@@ -357,9 +385,10 @@ Graph, VecA/TEA or Effect surface is implemented.
 ## Checking authored input
 
 ```js
-import {getCheckInput, resolveCheckLocation, explainCheckReason} from '@actql/sdk';
+import {getCheckInput, resolveCheckLocation, explainCheckReason, explainCheckOutcome} from '@actql/sdk';
 
 const outcome = await client.check('SELECT @missing AS n', {format: 'sql'});
+console.log(explainCheckOutcome(outcome));
 if (outcome.outcome === 'completed') {
   const {scope, context_ref, verdict, reasons, requirements} = outcome.report;
   for (const reason of [...reasons, ...requirements]) {
@@ -371,6 +400,27 @@ if (outcome.outcome === 'completed') {
   const submitted = getCheckInput(outcome, 'source');
 }
 ```
+
+`explainCheckOutcome(value)` validates the existing public envelope and describes
+its reported branch. A completed explanation keeps the verdict together with
+scope, context reference and `completeness: 'complete'`. A failed explanation
+keeps any bound partial report explicitly partial; it cannot verify. An
+unavailable explanation contains a correlation reference and no report or
+verdict. Unknown problem codes retain their branch with a generic explanation;
+malformed envelopes and unsupported variants return `undefined`.
+
+Analysis exhaustion may still produce a completed, undetermined report. Failure
+to construct the bounded report instead produces `failed` with
+`check_report_unbounded`; its hint asks the checking-context owner to review
+reporting capacity for the original scope. Neither describes an input violation.
+Verification describes checking only; execution, cancellation and release have
+their own owners and results.
+
+This formatter can describe a schema-valid parsed copy without the original
+input. It does not authenticate that copy, restore locations, apply edits or
+authorize another operation. Location helpers still require the exact SDK
+response and its original submitted snapshot. Explanations are immutable, safe
+English text; they do not expose private causes or inspect error messages.
 
 A completed check may be invalid or undetermined. Its verdict is always bound to
 scope/context and does not start or authorize a Run. Wrong supplied types expose
@@ -497,6 +547,9 @@ existing contract validation; there is no compatibility adapter.
 
 `explainCancellation(result)` returns immutable read-only advice for the exact
 response or uncertain error produced by this SDK's `Execution.cancel()` call.
+The SDK detaches each validated cancellation response, so a Local port reusing
+its response object cannot change an earlier result's Run, kind, revision or
+explanation.
 Validated `accepted`, `already_requested` and `already_terminal` observations
 retain the Host's control revision. The summary distinguishes recording a
 cancellation request, an existing request and a Run already terminal for

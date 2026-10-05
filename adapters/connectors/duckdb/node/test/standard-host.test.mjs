@@ -62,37 +62,16 @@ import {
 } from '../../../../host-node/result-access.mjs';
 import {canonical, hash as canonicalHash} from './typed-catalog.mjs';
 import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
-import {deltaApplicationScenario} from
+import {deltaApplicationScenario, deltaDiffScenario} from
   '../../../../../scripts/fixtures/property-graph-delta-application.mjs';
+import {publicationResultExportLimits, standardPublicationPlan} from
+  './publication-plan-fixture.mjs';
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
   maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
   memoryBytes: 128 * 1024 * 1024, threads: 1 };
-const publicationResultExportLimits = Object.freeze({
-  maxResultFields: 10,
-  maxResultMappingWork: 1000,
-  maxResultOrderWork: 10000,
-  maxResultWorkspaceEntries: 100,
-  maxRows: 100,
-  maxValueNodes: 10000,
-  maxValueTextBytes: 100000,
-  maxValueDepth: 64,
-  maxValueWork: 100000,
-  maxWireBytes: 100000,
-  maxWireNodes: 10000,
-  maxWireDepth: 64,
-  maxColumns: 10,
-  maxOrderWork: 10000,
-  maxLogicalWireBytes: 100000,
-  maxLogicalWireNodes: 10003,
-  maxLogicalWireDepth: 66,
-  maxSchemaFields: 10,
-  maxSchemaBytes: 100000,
-  maxSchemaNodes: 10000,
-  maxSchemaDepth: 64,
-  maxBatchBytes: 4096,
-});
+
 
 // Read a completed run's Named Result through the existing publication
 // export, which reads managed and captured outputs alike, and return its
@@ -181,183 +160,7 @@ function sgaEnvironmentArguments(args) {
   ];
 }
 
-function standardPublicationPlan(
-  runtime,
-  programDefinitionCid,
-  resultCount,
-  attemptId,
-) {
-  const control = runtime.publicationControl;
-  const contractLimits = Object.freeze({
-    maxWireBytes: 100000,
-    maxNodes: 10000,
-    maxDepth: 64,
-  });
-  const effectiveDataPolicyCid = hash('effective-policy');
-  const template = control.sealRunEvidence(
-    'bound_invocation_template',
-    JSON.stringify({
-      version: 'actql-bound-invocation-template/0.1',
-      program_definition_cid: programDefinitionCid,
-      parameter_values_cid: hash('parameter-values'),
-      invocation_bindings_cid: hash('invocation-bindings'),
-      check_environment_cid: hash('check-environment'),
-      grammar_manifest_cid: hash('grammar-manifest'),
-      required_profile_contracts: [],
-      barrier_contract_manifest_cid: hash('barrier-contract-manifest'),
-      source_evidence: 'unbound',
-    }),
-    contractLimits,
-  );
-  const compiledPlan = control.seal('compiled_plan', JSON.stringify({
-    version: 'actql-compiled-plan/0.1',
-    compiler_version: 'compiler-test-0.1',
-    aoa_ir_version: 'aoa-ir-test-0.1',
-    executable_plan_cid: hash('executable-plan'),
-    program_definition_cid: programDefinitionCid,
-    program_semantics_cid: hash('program-semantics'),
-    aoa_contract_cid: hash('aoa-contract'),
-    aoa_logical_cid: hash('aoa-logical'),
-  }), contractLimits);
-  const prepared = control.sealRunEvidence(
-    'prepared_invocation',
-    JSON.stringify({
-      version: 'actql-prepared-invocation/0.1',
-      invocation_template_cid: template.identity,
-      compiled_plan_cid: compiledPlan.identity,
-      execution_context_cid: hash('execution-context'),
-      host_policy_cid: hash('host-policy'),
-      policy_decision: 'allow',
-      expires_at: '2026-09-18T03:00:00.000Z',
-    }),
-    contractLimits,
-  );
-  const authorization = control.sealRunEvidence(
-    'run_authorization',
-    JSON.stringify({
-      version: 'actql-run-authorization/0.1',
-      prepared_invocation_cid: prepared.identity,
-      execution_context_cid: hash('execution-context'),
-      host_policy_cid: hash('host-policy'),
-      decision: 'allowed',
-    }),
-    contractLimits,
-  );
-  const admission = control.admitRunPublication(
-    template,
-    prepared,
-    authorization,
-    compiledPlan,
-  );
-  const runDefinition = control.issueRunDefinition(admission, {
-    scopeId: 'standard-publication-scope',
-    runId: `standard-publication-${attemptId}`,
-    inputArtifactSetCid: hash('input-artifact-set'),
-    createdAt: '2026-09-18T00:00:00.000Z',
-    validUntil: '2026-09-18T02:30:00.000Z',
-  }, contractLimits);
-  const observation = control.sealRunEvidence(
-    'observation_set',
-    JSON.stringify({
-      version: 'actql-observation-set/0.1',
-      invocation_template_cid: template.identity,
-      source_evidence_cids: [],
-      captured_input_artifact_cids: [],
-      consistency: 'no_external_sources',
-      capture_started_at: null,
-      capture_completed_at: null,
-      replayability: {
-        materialized: false,
-        availability_evidence_cids: [],
-      },
-      data_policy_cid: effectiveDataPolicyCid,
-    }),
-    contractLimits,
-  );
-  const invocation = control.issueRunInvocation(
-    template,
-    observation,
-    contractLimits,
-  );
-  const retention = control.seal(
-    'result_retention_policy',
-    JSON.stringify({
-      version: 'actql-result-retention-policy/0.1',
-      retention_contract_cid: hash('retention-contract'),
-      effective_data_policy_cid: effectiveDataPolicyCid,
-      available_until: '2026-09-18T01:00:00.000Z',
-      delete_by: '2026-09-18T02:00:00.000Z',
-      extension_ceiling_at: '2026-09-18T03:00:00.000Z',
-      metadata_retention_policy_cid: hash('metadata-retention'),
-      metadata_delete_by: '2026-09-18T04:00:00.000Z',
-      clock_contract_cid: hash('clock-contract'),
-    }),
-    contractLimits,
-  );
-  const normalizationJournal = control.sealRunEvidence(
-    'normalization_journal',
-    JSON.stringify({
-      version: 'actql-normalization-journal/0.1',
-      rule_catalog_cid: hash('rule-catalog'),
-      entries: [],
-    }),
-    contractLimits,
-  );
-  const authoringContext = control.sealRunEvidence(
-    'authoring_context',
-    JSON.stringify({
-      version: 'actql-authoring-context/0.1',
-      program_definition_cid: programDefinitionCid,
-      annotations: [],
-    }),
-    contractLimits,
-  );
-  return Object.freeze({
-    admission,
-    runDefinition,
-    invocation,
-    observation,
-    normalizationJournal,
-    authoringContext,
-    results: Object.freeze(Array.from({length: resultCount}, (_, index) =>
-      Object.freeze({
-        retention,
-        evidenceContext: Object.freeze({
-          computationContractCid: hash(`checked-computation-${index}`),
-          inputRelationCids: Object.freeze([]),
-          scopeCid: hash(`result-scope-${index}`),
-          effectiveDataPolicyCid,
-          authorityScopeCid: hash('authority-scope'),
-        }),
-      }))),
-    receiptEvidence: Object.freeze({
-      bindings: Object.freeze([]),
-      sourceEvidence: Object.freeze([]),
-      modelEvidence: Object.freeze([]),
-      barrierAttemptReceiptCids: Object.freeze([]),
-    }),
-    captureEvidence: Object.freeze({
-      pendingSourceStateAdvances: Object.freeze([]),
-      modelEvidence: Object.freeze([]),
-    }),
-    request: Object.freeze({
-      namespaceId: 'namespace-a',
-      authorityScopeCid: hash('authority-scope'),
-      publicationPolicyCid: hash('publication-policy'),
-      publicationTargetCid: hash('publication-target'),
-      requestedAt: '2026-09-18T00:00:00.000Z',
-    }),
-    attempt: Object.freeze({
-      attemptId,
-      fenceCid: hash('publication-fence'),
-      externalIdempotencyKey: undefined,
-      startedAt: '2026-09-18T00:00:01.000Z',
-    }),
-    outputLimits: publicationResultExportLimits,
-    contractLimits,
-    now: () => '2026-09-18T00:00:02.000Z',
-  });
-}
+
 const hash = value => `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
 
 // Conformance-only contribution body. It uses the selected product
@@ -576,7 +379,7 @@ async function subgraphHostCancellation() {
 test('fused Subgraph stops after construction and positive selection work through the Local Host driver',
   {timeout:30_000}, () => subgraphHostCancellation());
 
-async function deltaHostCancellation(phase) {
+async function deltaHostCancellation(phase, diff = false) {
   // Use the installed common Program/Plan/provider, not a test-only Delta
   // provider or pre-decoded replacement. Observe real operations as in the
   // existing Host cancellation corpus; the proxy supplies no result/state.
@@ -584,7 +387,9 @@ async function deltaHostCancellation(phase) {
     '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js')));
   const fixture = JSON.parse(await readFile(join(root,
     'scripts/fixtures/property-graph-presence.program.json'), 'utf8'));
-  const {document} = deltaApplicationScenario(fixture, 'node_rows');
+  const {document} = diff ? deltaDiffScenario(fixture, 'node_rows')
+    : deltaApplicationScenario(fixture, 'node_rows');
+  const targetTask = diff ? 6 : 5;
   const environmentBody = JSON.parse(await readFile(join(root,
     'spec/local-check-environment.json'), 'utf8'));
   delete environmentBody.evidence_bundle_cid;
@@ -630,12 +435,12 @@ async function deltaHostCancellation(phase) {
       starts.push(task);
       const operations = checked(target.strategyModule_local_ManagedStart(configuration));
       return {$tag:1,_0:new Proxy(operations, {get(owner, name, ownerReceiver) {
-        if (task !== 5 || !['advance','request_cancel','execution_stopped','cleanup_refresh'].includes(name)) {
+        if (task !== targetTask || !['advance','request_cancel','execution_stopped','cleanup_refresh'].includes(name)) {
           return Reflect.get(owner, name, ownerReceiver);
         }
         if (name === 'advance') return quantum => {
           // Narrow the real bounded operation's quantum, not its work/state.
-          const result = owner.advance(Math.min(quantum, phase === 'application' ? 32 : 1));
+          const result = owner.advance(Math.min(quantum, phase === 'conversion' ? 1 : 32));
           const poll = checked(result);
           deltaPolls.push(poll);
           // Input conversion/handoff report zero progress. Positive progress
@@ -663,12 +468,13 @@ async function deltaHostCancellation(phase) {
     assert.equal(scheduled, true);
     assert.equal(delivered, true);
     assert(workAtDelivery > 0n, 'cancel is delivered only after actual Delta work');
-    if (phase === 'application') assert(deltaPolls.some(poll=>poll.progress > 0n),
-      'bounded application, not merely conversion, made progress before cancellation');
+    if (phase !== 'conversion') assert(deltaPolls.some(poll=>poll.progress > 0n),
+      'bounded Delta kernel, not merely conversion, made progress before cancellation');
     assert.equal(execution.status, 'host-tasks-failed');
     assert.equal(execution.failure?.name, 'AbortError');
-    assert.deepEqual(starts, [0,1,2,3,4,5]);
-    assert.deepEqual(execution.completed.map(value=>value.task), [0,1,2,3,4]);
+    const expectedStarts = Array.from({length:targetTask + 1},(_,task)=>task);
+    assert.deepEqual(starts, expectedStarts);
+    assert.deepEqual(execution.completed.map(value=>value.task), expectedStarts.slice(0,-1));
     assert(deltaPolls.every(poll=>poll.complete === false), 'no partial Delta output is completed');
     assert(lifecycle.some(event=>event.name === 'request_cancel' && event.delivered));
     assert(lifecycle.some(event=>event.name === 'execution_stopped' && event.result === true && event.delivered));
@@ -679,7 +485,7 @@ async function deltaHostCancellation(phase) {
       assert.equal(execution.cleanupPending(), false);
       // Holdings is the monotonic allocation count, not live capacity. Keep
       // that accounting history while returning all held/reserved bytes.
-      assert.equal(execution.usage().holdings, 5n);
+      assert.equal(execution.usage().holdings, BigInt(targetTask));
       assert.equal(execution.usage().heldBytes, 0n);
       assert.equal(execution.usage().reservedRetentionBytes, 0n);
       assert.equal(execution.usage().reservedTransferBytes, 0n);
@@ -689,7 +495,8 @@ async function deltaHostCancellation(phase) {
       await execution.close();
       assert.equal(await execution.cleanup(), true);
       assert.equal(deltaPolls.length, settledPollCount, 'cleanup does not resume Compute');
-      assert.deepEqual(starts, [0,1,2,3,4,5], 'cleanup does not start a new task');
+      assert.deepEqual(starts, Array.from({length:targetTask + 1},(_,task)=>task),
+        'cleanup does not start a new task');
       assert.deepEqual(execution.usage(), settledUsage, 'duplicate close does not change resource accounting');
     }
   }
@@ -699,6 +506,8 @@ test('Delta application stops after positive work through the installed Local Ho
   {timeout:30_000}, () => deltaHostCancellation('conversion'));
 test('Delta application stops after positive work through the installed Local Host during bounded application',
   {timeout:30_000}, () => deltaHostCancellation('application'));
+test('Graph diff stops after positive work through the installed Local Host without publishing Delta',
+  {timeout:30_000}, () => deltaHostCancellation('diff', true));
 
 test('standard native and broad Node Hosts own verification through real capture and consumer', async () => {
   const exec = promisify(execFile);

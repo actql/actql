@@ -50,7 +50,8 @@ const profile = {version: 'actql-client-host/0.1', mode: 'local',
     maxRetainedValueBytes: 4096, maxRows: 10, maxBatchRows: 10,
     maxBatchRetainedValueBytes: 2048}};
 
-async function fixture(t, transport, loss, {physicalStart = false, terminal = false, reply = null} = {}) {
+async function fixture(t, transport, loss, {physicalStart = false, terminal = false,
+  reply = null, runId = 'saved-run', cancelResponseCache} = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-cancel-loss-'));
   const journal = openClientRequestJournal(directory);
   let database, server, client;
@@ -74,7 +75,7 @@ async function fixture(t, transport, loss, {physicalStart = false, terminal = fa
     'sha256:d526e372e357f6bbd1d804e385fc8d88fad9e538ec5a70058f1205af9a0a7d9d');
   const runDefinition = publicationControl.seal('run_definition',
     JSON.stringify({version: 'actql-run-definition/0.1',
-      scope_id: 'namespace-a-scope', run_id: 'saved-run',
+      scope_id: 'namespace-a-scope', run_id: runId,
       compiled_plan_cid: cid('1'), invocation_template_cid: cid('2'),
       authorization_context_cid: cid('3'), input_artifact_set_cid: cid('4'),
       created_at: '2026-09-24T00:00:00.000Z',
@@ -147,7 +148,8 @@ async function fixture(t, transport, loss, {physicalStart = false, terminal = fa
     },
     maxRowBytes: 1024,
   };
-  const alterReply = value => reply === 'foreign_ref'
+  const alterReply = value => cancelResponseCache !== undefined
+    ? Object.assign(cancelResponseCache, value) : reply === 'foreign_ref'
     ? {...value, ref: {...value.ref, runDefinitionCid: cid('f')}}
     : reply === 'malformed' ? {}
     : reply === 'response_object' ? new Response('{}') : value;
@@ -186,7 +188,7 @@ async function fixture(t, transport, loss, {physicalStart = false, terminal = fa
           return response;
         };
       }
-      if (operation === 'cancel' && reply !== null) {
+      if (operation === 'cancel' && (reply !== null || cancelResponseCache !== undefined)) {
         const end = response.end;
         response.end = function(data, ...args) {
           assert.equal(response.statusCode, 200);
@@ -280,6 +282,47 @@ for (const transport of ['in-process', 'http']) {
 
 
 for (const transport of ['in-process', 'https']) {
+  test(`${transport}: reused cancellation replies preserve each original Run observation`, async t => {
+    // Reuse a Local port's response object, or its HTTPS serializer input,
+    // while both cancellations still pass through the actual journal owner.
+    const cancelResponseCache = {};
+    const a = await fixture(t, transport, undefined, {
+      physicalStart: true, runId: 'cache-run-a', cancelResponseCache});
+    const b = await fixture(t, transport, undefined, {
+      physicalStart: true, runId: 'cache-run-b', cancelResponseCache});
+    assert.notDeepEqual(a.execution.ref, b.execution.ref);
+    const expected = f => ({observation: 'accepted',
+      revision: f.before[0].revision + 1,
+      summary: 'The Host recorded a Run cancellation request. Refresh Run state for physical stop, Effects and release.',
+      next: {operation: 'status', ref: {...f.execution.ref}}});
+    const first = await a.execution.cancel();
+    const second = await b.execution.cancel();
+    assert.deepEqual(sdk.explainCancellation(first), expected(a), '[check-mutation:cancel-custody]');
+    assert.deepEqual(sdk.explainCancellation(second), expected(b), '[check-mutation:cancel-custody]');
+    assert.notEqual(first, second);
+    assert.deepEqual(first, {kind: 'accepted', ref: a.execution.ref,
+      revision: a.before[0].revision + 1});
+    assert.deepEqual(second, {kind: 'accepted', ref: b.execution.ref,
+      revision: b.before[0].revision + 1});
+    const repeated = await a.execution.cancel();
+    assert.deepEqual(sdk.explainCancellation(repeated), {...expected(a),
+      observation: 'already_requested',
+      summary: 'The Host reports an existing Run cancellation request. Refresh Run state for physical stop, Effects and release.'});
+    assert.deepEqual(sdk.explainCancellation(first), expected(a), '[check-mutation:cancel-custody]');
+    assert.deepEqual(sdk.explainCancellation(second), expected(b), '[check-mutation:cancel-custody]');
+    assert.equal(sdk.explainCancellation({...first}), undefined);
+    for (const f of [a, b]) {
+      assert.deepEqual(f.stored(), [{...f.before[0], cancellation_requested: 1,
+        revision: f.before[0].revision + 1}]);
+      const state = await f.execution.status();
+      assert.equal(state.status, 'running');
+      assert.equal(state.control.physical_stop, 'unknown');
+      assert.equal(state.control.cancellation_requested, true);
+    }
+    assert.deepEqual(a.counts(), {cancelCalls: 2, submits: 0});
+    assert.deepEqual(b.counts(), {cancelCalls: 1, submits: 0});
+  });
+
   test(`${transport}: Run cancellation explanations retain recorded control facts`, async t => {
     const f = await fixture(t, transport, undefined, {physicalStart: true});
     const accepted = await f.execution.cancel();

@@ -1254,6 +1254,94 @@ pub fn Journal::acquire_destination_reader(
 }
 
 ///|
+/// Validate an existing borrow without creating a material, reader claim or
+/// reservation. All observations share one journal transaction.
+pub fn Journal::validate_destination_reader(
+  self : Journal,
+  request : @transfer.RemoteTransferRequest,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+  reader_id : String,
+) -> Result[Unit, NativeRemoteTransferJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let reader_key = match destination_reader_key(request, reader_id) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match self.database.begin_immediate() {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  let checked = self.validate_destination_reader_snapshot(
+    request, receipt, reader_key, reader_id,
+  )
+  match checked {
+    Err(issue) => {
+      ignore(self.database.rollback())
+      Err(issue)
+    }
+    Ok(_) =>
+      match self.database.commit() {
+        Ok(_) => Ok(())
+        Err(issue) => {
+          ignore(self.database.rollback())
+          Err(Physical(issue))
+        }
+      }
+  }
+}
+
+///|
+fn Journal::validate_destination_reader_snapshot(
+  self : Journal,
+  request : @transfer.RemoteTransferRequest,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+  reader_key : String,
+  reader_id : String,
+) -> Result[Unit, NativeRemoteTransferJournalIssue] {
+  let key = match self.require_committed_destination(request, receipt) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match self.database.read("remote_transfer_destination_material", key) {
+    Ok(value) =>
+      match parse_destination_material(value, receipt) {
+        Some(DestinationMaterialActive) => ()
+        Some(_) => return Err(RecoveryRequired)
+        None => return Err(StateCollision)
+      }
+    Err(@sqlite.NotFound) => return Err(RecoveryRequired)
+    Err(issue) => return Err(Physical(issue))
+  }
+  match self.database.read("remote_transfer_destination_reader", reader_key) {
+    Ok(value) =>
+      if value.revision == 0L &&
+        destination_reader_matches(
+          value.body,
+          request,
+          receipt,
+          reader_id,
+          true,
+        ) {
+        Ok(())
+      } else if destination_reader_matches(
+          value.body,
+          request,
+          receipt,
+          reader_id,
+          false,
+        ) {
+        Err(RecoveryRequired)
+      } else {
+        Err(StateCollision)
+      }
+    Err(@sqlite.NotFound) => Err(RecoveryRequired)
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
 pub fn Journal::release_destination_reader(
   self : Journal,
   request : @transfer.RemoteTransferRequest,
