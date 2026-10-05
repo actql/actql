@@ -3,7 +3,8 @@
 /// Local chain owns intermediate completions until the model consumer ends.
 /// No ModelTask provider is invoked by input preparation.
 struct ClientInferInputExecution {
-  prefix : @local.ManagedProviderExecution
+  prefix : @local.ManagedProviderExecution?
+  retained_input : ClientInferRetainedInput?
   sequence : @execution.GeneratedSequence
   infer_step : Int
   owner : @lower.BoundPrepared
@@ -30,6 +31,7 @@ pub(all) enum ClientInferInputIssue {
   Mapping(@execution.InferPreparationIssue)
   ProducerRead(@execution.ProducerReadIssue)
   Capture(@query.CapturedSourceIssue)
+  RetainedInput(ClientInferRetainedInputIssue)
 }
 
 ///|
@@ -205,7 +207,8 @@ fn start_client_infer_input_sequence(
     Err(issue) => return Err(Local(issue))
   }
   Ok({
-    prefix,
+    prefix: Some(prefix),
+    retained_input: None,
     sequence,
     infer_step: step,
     owner,
@@ -301,10 +304,11 @@ pub fn advance_client_infer_input(
     return Ok(Stopped(work=active.work))
   }
   if !active.prefix_done {
-    let poll = match @local.advance_managed_provider(active.prefix, quantum) {
+    guard active.prefix is Some(prefix) else { return Err(InvalidLimits) }
+    let poll = match @local.advance_managed_provider(prefix, quantum) {
       Ok(value) => value
       Err(issue) => {
-        active.stopped = @local.managed_provider_stopped(active.prefix)
+        active.stopped = @local.managed_provider_stopped(prefix)
         return Err(Local(issue))
       }
     }
@@ -358,6 +362,14 @@ pub fn advance_client_infer_input(
         active.stopped = true
         Ok(Stopped(work=active.work))
       }
+      @local.Waiting(work~, ..) | @local.Settling(_, work~, ..) => {
+        // The checked Compute-only prefix cannot own a Model call. Reject an
+        // unexpected pause without pretending its physical owner has stopped.
+        active.work += work
+        @local.cancel_managed_provider(prefix) |> ignore
+        active.stopped = @local.managed_provider_stopped(prefix)
+        Err(UnsupportedProgram)
+      }
       @local.CarrierComplete(_, work~, ..) => {
         active.work += work
         active.stopped = true
@@ -396,8 +408,8 @@ pub fn cancel_client_infer_input(active : ClientInferInputExecution) -> Bool {
   active.cancelled = true
   if active.prefix_done {
     @bounded.request_cancel(active.control) |> ignore
-  } else {
-    @local.cancel_managed_provider(active.prefix) |> ignore
+  } else if active.prefix is Some(prefix) {
+    @local.cancel_managed_provider(prefix) |> ignore
   }
   true
 }
@@ -427,10 +439,15 @@ pub fn cleanup_client_infer_input(
       Err(issue) => return Err(Mapping(issue))
     }
   }
-  match @local.cleanup_managed_provider(active.prefix) {
-    Ok(true) => ()
-    Ok(false) => return Ok(false)
-    Err(issue) => return Err(Local(issue))
+  if active.prefix is Some(prefix) {
+    match @local.cleanup_managed_provider(prefix) {
+      Ok(true) => ()
+      Ok(false) => return Ok(false)
+      Err(issue) => return Err(Local(issue))
+    }
+  }
+  if active.retained_input is Some(retained) {
+    close_client_infer_retained_input(retained) |> ignore
   }
   active.reclaimed = true
   active.completed_input = None

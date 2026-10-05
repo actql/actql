@@ -209,10 +209,9 @@ function validateSourceInventory(wire) {
 
 function admissionEvidenceShape(value) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
-  const keys = Object.keys(value).sort().join(',');
-  if (!['authorization,prepared', 'authorization,prepared,sourceInventory',
-    'authorization,prepared,resultPolicyOriginal',
-    'authorization,prepared,resultPolicyOriginal,sourceInventory'].includes(keys) ||
+  if (Object.keys(value).some(key => !['authorization', 'prepared',
+    'sourceInventory', 'resultPolicyOriginal', 'modelOriginalRunWire'].includes(key)) ||
+      !Object.hasOwn(value, 'prepared') || !Object.hasOwn(value, 'authorization') ||
       typeof value.prepared !== 'string' || typeof value.authorization !== 'string') return false;
   if (value.sourceInventory !== undefined) validateSourceInventory(value.sourceInventory);
   if (value.resultPolicyOriginal !== undefined &&
@@ -223,6 +222,18 @@ function admissionEvidenceShape(value) {
        value.resultPolicyOriginal.kind !== 'data_policy' ||
        typeof value.resultPolicyOriginal.cid !== 'string' ||
        typeof value.resultPolicyOriginal.wire !== 'string')) return false;
+  if (value.modelOriginalRunWire !== undefined) {
+    if (typeof value.modelOriginalRunWire !== 'string') return false;
+    let original;
+    try { original = JSON.parse(value.modelOriginalRunWire); } catch { return false; }
+    if (original === null || typeof original !== 'object' || Array.isArray(original) ||
+        Object.keys(original).sort().join(',') !==
+          'boundInvocationTemplateWire,compiledPlanWire,preparedInvocationWire,runAuthorizationWire,runDefinitionWire' ||
+        Object.values(original).some(wire => typeof wire !== 'string' || wire === '') ||
+        canonicalJson(original) !== value.modelOriginalRunWire ||
+        original.preparedInvocationWire !== value.prepared ||
+        original.runAuthorizationWire !== value.authorization) return false;
+  }
   return true;
 }
 
@@ -282,11 +293,16 @@ function retainedRunFacts(row, publicationControl, maxWireBytes) {
         row.observed_terminal_outcome)) {
     fail('ClientRequestJournalCorrupt');
   }
+  const runAdmissionEvidence = retainedEvidence(row);
+  if (runAdmissionEvidence?.modelOriginalRunWire !== undefined &&
+      JSON.parse(runAdmissionEvidence.modelOriginalRunWire).runDefinitionWire !== row.run_definition_wire) {
+    fail('ClientRequestJournalCorrupt');
+  }
   return Object.freeze({
     runDefinition: retainedRunDefinition(row, publicationControl,
       maxWireBytes),
     resultNames: retainedResultNames(row),
-    runAdmissionEvidence: retainedEvidence(row),
+    runAdmissionEvidence,
     cancellationRequested: row.cancellation_requested === 1,
     physicalCloseConfirmed: row.physical_close_confirmed === 1,
     dispatchReserved: row.dispatch_reserved === 1,
@@ -515,6 +531,10 @@ export function openClientRequestJournal(directory, {
     }
     const admissionEvidence = evidenceJson(runAdmissionEvidence,
       maxRunDefinitionWireBytes);
+    if (runAdmissionEvidence?.modelOriginalRunWire !== undefined &&
+        JSON.parse(runAdmissionEvidence.modelOriginalRunWire).runDefinitionWire !== runDefinitionWire) {
+      fail('InvalidClientRunAdmissionEvidence');
+    }
     return transact('accept', 'ClientRequestAcceptanceUnknown',
       error => typeof error?.code === 'string' &&
         error.code.startsWith('ClientRequest'), () => {

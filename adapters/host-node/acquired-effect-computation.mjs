@@ -11,11 +11,13 @@ import {runCapturedEffectComputation} from './entry.mjs';
 import {openNodeComposedInferProvider} from './infer-operation.mjs';
 import {openNodeInferCaptureCustody} from './infer-capture-custody.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
+import {withLocalExecutionPauseHandler} from '../local-node/retained-store.mjs';
 
 export async function openAcquiredEffectComputation({moon, owner, acquired,
   sourceProfile, registry, values, fragment, ordered, sourceAccess,
   signal, now, retainComputationOwner, infer, store, principalId, faultInjection,
-  observe, sourceContinuation, computeConfigurations = {}}) {
+  observe, sourceContinuation, computeConfigurations = {}, modelController,
+  submission, existingModel, modelClaim, parentResume, modelJournalPort}) {
   const count = moon?.clientProgramEffectAcquisitionCount?.(acquired.prepared);
   const sourceFree = count === 0;
   const multiple = count === 2;
@@ -33,6 +35,10 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
   let checkedHost;
   let recovery;
   let inferCapture;
+  let modelContinuation;
+  let modelToken;
+  let modelPlan;
+  let modelRecord = existingModel;
   let ledger;
   const diagnostic = diagnosticObserver(observe);
   const observeUsage = (name, facts = {}) => {
@@ -60,6 +66,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       catch (error) { failure = error; }
       try { if (settled) await inferCapture?.custody.close(); }
       catch (error) { failure ??= error; }
+      if (settled) modelContinuation?.close();
       if (failure !== undefined) observeUsage('effect_computation_cleanup_pending');
       if (failure !== undefined) throw failure;
     },
@@ -103,6 +110,18 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
   retainComputationOwner(custody);
   try {
     signal?.throwIfAborted();
+    if (infer !== undefined) {
+      if (modelController === undefined) throw new Error('InstalledModelJournalRequired');
+      const runId = acquired.control.runDefinitionRunId(acquired.runDefinition);
+      const taskIndex = moon.clientProgramInferPlanBoundary(infer.graph)._0;
+      modelRecord ??= modelController.discover(runId).find(record => record.inventory.taskIndex === taskIndex);
+      if (modelRecord !== undefined) {
+        modelToken = await modelController.prime(modelRecord);
+        if (!sourceFree && sourceContinuation?.restoringModel !== true) {
+          throw new Error('ModelSourceCaptureRestoreRequired');
+        }
+      }
+    }
     const sources = [];
     for (let task = 0; task < count; task++) {
       const occurrence = {stage: task, input: 0, task};
@@ -197,11 +216,17 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
         acquired.allowed, acquired.runDefinition, acquired.resultDataPolicy,
         acquired.resultDataPolicyLimits);
       const plan = {compiled, runDefinition: acquired.runDefinition};
+      modelPlan = plan;
+      const restoredInput = modelToken === undefined ? undefined : {
+        token: modelToken, snapshot: modelToken.snapshot,
+        sendMask: modelController.state(modelRecord.inventory).slots.map(slot => slot.state === 'Unsent'),
+        savedScope: modelController.savedScope(plan, acquired.prepared, infer, modelToken),
+      };
       component = openNodeComposedInferProvider({moon, selected: infer, sources,
-        control: acquired.control, plan, principalId, signal, now,
+        control: acquired.control, plan, principalId, signal, now, durableCalls: true, restoredInput,
         retainOperation(operation) {
           inferCapture = openNodeInferCaptureCustody({moon, control: acquired.control,
-            operation, plan, store, storeAuthorityCid: acquired.storeAuthorityCid,
+            operation, plan, store, storeAuthorityCid: acquired.storeAuthorityCid, durableCalls: true,
             sourceEvidence: evidence.map(source => acquired.control.admitRunEvidence(
               'source_evidence', source.sourceEvidenceWire,
               {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100})),
@@ -239,10 +264,62 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       const dag = moon.strategyHostRun(moon.clientProgramLocalEffectHostRuntime(checkedHost));
       for (const [task, captured] of captures.entries()) captured.capture.retainTask(dag, task);
     }
+    const modelConfiguration = component === undefined ? computeConfigurations.local
+      : withLocalExecutionPauseHandler(computeConfigurations.local, async boundary => {
+        const operation = component.operation();
+        if (operation === undefined || inferCapture === undefined) throw new Error('ModelPauseOwnerMissing');
+        if (boundary.status === 'settling') {
+          const settlement = operation.pendingSettlement();
+          const slot = operation.settlementSlot(settlement);
+          const entry = modelContinuation?.entry(slot);
+          if (entry === undefined || slot !== boundary.slot) throw new Error('ModelPauseSettlementMismatch');
+          await inferCapture.persistSettlement(settlement, entry);
+          return {action: 'resume'};
+        }
+        if (boundary.status !== 'waiting') throw new Error('InvalidModelPause');
+        if (modelContinuation === undefined) {
+          const preparedCallSet = operation.preparedCallSet();
+          if (preparedCallSet === undefined) throw new Error('ModelPausePreparedOwnerMissing');
+          const sourceClosure = await sourceContinuation?.retainAll();
+          modelContinuation = await modelController.open({operation, preparedCallSet,
+            plan: modelPlan, selected: infer, principalId,
+            declaredResults: moon.clientProgramEffectCompilationResultNames(acquired.compilation),
+            submission, signal, existing: modelRecord, claim: modelClaim, parentResume,
+            journalPort: modelJournalPort, sourceContinuation: sourceClosure});
+          inferCapture.configureModelJournal({observe: modelContinuation.observe, entry: modelContinuation.entry});
+          if (modelRecord !== undefined) return {action: 'resume'};
+        }
+        const decision = await modelContinuation.authorize();
+        if (decision.status === 'dispatch') return {action: 'resume'};
+        if (decision.status !== 'waiting_checkpoint') throw new Error('InvalidModelPauseDecision');
+        // Stop/cleanup the retained Model owner before Local settles its
+        // reservation. This handle never calls operation.run or a provider.
+        const cleanupHandle = Object.freeze({
+          status: () => ({pending: inferCapture.custody.cleanupPending()}),
+          async retry() {
+            await inferCapture.custody.close();
+            return inferCapture.custody.cleanup();
+          },
+        });
+        return {action: 'waiting_checkpoint', checkpoint: decision.checkpoint,
+          cleanupPending: true, cleanupHandle};
+      });
     execution = await runCapturedEffectComputation(checkedHost,
-      {...computeConfigurations,
+      {...computeConfigurations, local: modelConfiguration,
         authorization: multiple ? undefined : sourceAccess?.authorization}, signal);
     unresolved = false;
+    if (execution.status === 'host-tasks-waiting') {
+      return Object.freeze({status: 'waiting_checkpoint', checkpoint: execution.checkpoint,
+        execution, checkedHost, cleanupOwner: custody});
+    }
+    if (execution.status !== 'host-tasks-completed' && component?.operation()?.physicalStopped()) {
+      await inferCapture.persistStoppedAttempts();
+    }
+    if (execution.status !== 'host-tasks-completed' && component !== undefined &&
+        modelController.unresolved(acquired.control.runDefinitionRunId(acquired.runDefinition))) {
+      return Object.freeze({status: 'needs_reconciliation', modelUnknown: true,
+        execution, checkedHost, cleanupOwner: custody});
+    }
     if (execution.status !== 'host-tasks-completed') {
       throw component?.failure() ?? execution.failure ?? new Error('InstalledEffectComputationFailed');
     }
