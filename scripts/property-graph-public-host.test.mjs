@@ -446,9 +446,45 @@ function presenceWholeDistinctScenario(empty) {
   return {document,before,expected};
 }
 
-for (const mode of ['local','remote']) for (const profile of ['graph','presence-filter','presence-selection','selector-derive','relation-subgraph','presence-keyed-distinct','presence-whole-distinct']) {
+function deltaApplicationScenario(projection, failure) {
+  const document = structuredClone(presenceFixture);
+  document.id = `delta-${projection}-${failure ?? 'valid'}`;
+  const [tag,contractCid,contract,beforeNodes,beforeEdges] = JSON.parse(presenceSnapshot);
+  // Author the change independently of the kernel: one property replacement
+  // and removal of just the second parallel edge. Definitions, typed key
+  // components, the omitted M.p and explicit N:2.p NULL do not change.
+  const afterNodes = structuredClone(beforeNodes);
+  afterNodes[1].props.p = 8;
+  const afterEdges = [beforeEdges[0]];
+  const target = canonicalText([tag,contractCid,contract,afterNodes,afterEdges]);
+  const delta = {version:'actql-graph-delta/0.1',graph_contract_cid:contractCid,
+    base_graph_cid:presenceSnapshotCid,
+    target_graph_cid:'sha256:'+createHash('sha256').update(target).digest('hex'),
+    nodes:{add:[],remove:[],update:[{before:beforeNodes[1],after:afterNodes[1]}]},
+    edges:{add:[],remove:[beforeEdges[1]],update:[]}};
+  if (failure === 'wrong-base') delta.base_graph_cid = 'sha256:'+'0'.repeat(64);
+  if (failure === 'wrong-target') delta.target_graph_cid = presenceSnapshotCid;
+  const steps = document.stages[0].steps;
+  steps.splice(4,steps.length-4,
+    {from:'companies',derive:{delta:{literal:failure === 'malformed' ? {} : delta}},as:'changes'},
+    {from:'g',apply_graph_delta:{with:'changes',field:'delta'},as:'applied'},
+    {from:'applied',[projection]:true,as:'rows'},
+    {filter:'labels IS NOT NULL',as:'filtered'},
+    {select:projection === 'node_rows' ? ['id','labels'] : ['id','src','dst','labels','edge_key','tenant_key'],as:'projected'});
+  const fields = steps.at(-1).select;
+  document.stages[0].results.out.fields = fields;
+  const retained = projection === 'node_rows'
+    ? presenceRows.node_rows.map((row,index)=>index === 1 ? {...row,p:8} : row)
+    : presenceRows.edge_rows.slice(0,1);
+  const expected = retained.map(row=>Object.fromEntries(fields.map(field=>[field,row[field]])));
+  return {document,target,retained,expected,fields};
+}
+
+for (const mode of ['local','remote']) for (const profile of ['graph','presence-filter','presence-selection','selector-derive','relation-subgraph','presence-keyed-distinct','presence-whole-distinct','delta-application']) {
   const name = profile === 'graph'
     ? `keyed constructor and TRAIL reach public Named Results through ${mode}`
+    : profile === 'delta-application'
+      ? `complete Delta application survives Graph and Relation Store reload through ${mode}`
     : profile === 'relation-subgraph'
       ? `external Relation-selected subgraph survives Store reload and public Named Results through ${mode}`
     : profile === 'presence-keyed-distinct'
@@ -522,6 +558,51 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
       client = await connect({mode,endpoint:`https://127.0.0.1:${server.address().port}/`,token:'synthetic-test-token'});
     }
     t.after(() => client.close());
+    if (profile === 'delta-application') {
+      for (const projection of ['node_rows','edge_rows']) {
+        const {document,target,retained,expected,fields} = deltaApplicationScenario(projection);
+        const run = await client.aql(canonicalText(document),
+          {format:'json',requestId:`${document.id}-${mode}`});
+        const state = await run.wait();
+        assert.equal(state.status,'succeeded',JSON.stringify(state));
+        assert.deepEqual(await run.result('answer').all(),expected);
+        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
+        assert.deepEqual((await run.result('answer').describe()).columns.map(column=>column.name),fields);
+        assert.deepEqual(snapshots.get(run.ref.runDefinitionCid),
+          [[3,presenceSnapshot],[5,target]].map(([task,bytes])=>({
+            task,cid:'sha256:'+createHash('sha256').update(bytes).digest('hex'),
+            bytes:Buffer.byteLength(bytes),verifiedReadBytes:Buffer.byteLength(bytes),
+            sourceReleased:true,restored:true,temporaryBodyReclaimed:true,
+          })));
+        // Observe the full sparse rows before projection, through the real
+        // Relation Store. Missing, NULL and value must not be reconstructed
+        // from the final result, nor from a Graph-only snapshot roundtrip.
+        const observed = relationSnapshots.get(run.ref.runDefinitionCid);
+        // Sparse node filtering retains a separate selected-operation output.
+        // The dense edge suffix stays fused; its bridge output is still saved
+        // and revoked before that suffix, without inventing another checkpoint.
+        for (const task of projection === 'node_rows' ? [6,7] : [6]) {
+          const bytes = canonicalText(retained);
+          assert.deepEqual(observed.find(entry=>entry.task === task),{
+            task,cid:cid(retained),bytes:Buffer.byteLength(bytes),
+            verifiedReadBytes:Buffer.byteLength(bytes),rows:retained.length,
+            sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true,
+          });
+        }
+        assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
+      }
+      for (const failure of ['malformed','wrong-base','wrong-target']) {
+        const {document} = deltaApplicationScenario('node_rows',failure);
+        const run = await client.aql(canonicalText(document),
+          {format:'json',requestId:`${document.id}-${mode}`});
+        const state = await run.wait();
+        assert.equal(state.status,'failed',JSON.stringify(state));
+        assert.equal(state.control.physical_stop,'confirmed');
+        await assert.rejects(run.result('answer').all());
+        assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
+      }
+      return;
+    }
     if (profile === 'relation-subgraph') {
       for (const [empty,subset,external] of [[false,false],[true,false],[false,true],
         [false,false,true],[true,false,true],[false,true,true]]) {
