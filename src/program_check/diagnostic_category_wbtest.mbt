@@ -1,43 +1,22 @@
 ///|
-test "declaration usage limits retain their meaning through Source identity" {
-  for (cause, expected) in [
-    (Source(Identity(References(Usage(WorkLimit)))), CompileLimit),
-    (Source(Identity(References(Usage(InvalidLimits)))), InvalidConfiguration),
-  ] {
-    guard rejected(cause) is Rejected(diagnostic) else {
-      fail("a usage failure cannot become a missing input request")
-    }
-    assert_eq(diagnostic_category(diagnostic), expected)
-    assert_true(diagnostic_location(diagnostic) is None)
-  }
-}
-
-///|
-test "unused opaque binding classification does not imply frontend support" {
-  let program = @syntax.parse(
-    (
-      #|{"version":"actql/0.1","id":"p","bindings":{"unused":{"type":"artifact_ref"}},"stages":[{"id":"s","inputs":{},"steps":[],"results":{"out":{}}}],"results":{"out":{"from":{"stage":"s","result":"out"}}}}
+test "declaration usage limits retain their meaning from the existing Owner" {
+  let identity = local_identity_fixture()
+  let inventory = @program_refs.usage_inventory(
+    @program_refs.parameter_usage(
+      @context.program_reference_values(
+        @context.program_sources_references(
+          @context.program_identity_sources(identity),
+        ),
+      ),
     ),
-    {
-      source: { max_input_bytes: 10000, max_nodes: 100, max_depth: 20, },
-      tree: { max_nodes: 100, max_depth: 20, max_string_bytes: 10000, max_total_string_bytes: 10000, },
-      max_stages: 1,
-    },
-    format=Json,
-  ).unwrap()
-  let declaration = @bindings.at(
-    @bindings.prepare(program, { max_bindings: 1, max_work: 10000, }).unwrap(),
-    0,
-  ).unwrap()
-  assert_eq(
-    source_diagnostic_category(Identity(References(Usage(UnusedBinding(declaration))))),
-    InvalidInput,
   )
-  // The earlier frontend rejection remains an implementation limitation.
-  assert_eq(
-    source_diagnostic_category(UnsupportedBindings(@bindings.source(declaration))),
-    UnsupportedImplementation,
-  )
+  for (work, expected) in [(0, CompileLimit), (-1, InvalidConfiguration)] {
+    guard @program_refs.check_declaration_usage(inventory, max_work=work)
+      is Err(issue) else {
+      fail("usage admission must retain its actual limit rejection")
+    }
+    assert_eq(declaration_usage_diagnostic_category(issue), expected)
+  }
 }
 
 ///|

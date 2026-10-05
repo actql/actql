@@ -297,10 +297,7 @@ fn source_diagnostic_category(issue : SourceFailure) -> DiagnosticCategory {
     SourceView(Binding(Binding(error))) => parameter_diagnostic_category(error)
     // Declaration use is the existing complete Program inventory's decision.
     // Its budget/settings failures must never become author errors.
-    Identity(References(Usage(UnusedParameter(_) | UnusedBinding(_)))) =>
-      InvalidInput
-    Identity(References(Usage(WorkLimit))) => CompileLimit
-    Identity(References(Usage(InvalidLimits))) => InvalidConfiguration
+    Identity(References(Usage(issue))) => declaration_usage_diagnostic_category(issue)
     Requests(InvalidLimits)
     | Checks(InvalidLimits)
     | Identity(InvalidLimits)
@@ -364,6 +361,17 @@ fn source_diagnostic_category(issue : SourceFailure) -> DiagnosticCategory {
     | SourceView(Context(InvalidLimits))
     | SourceView(Context(Stages(InvalidLimits))) => InvalidConfiguration
     _ => UnclassifiedFailure
+  }
+}
+
+///|
+fn declaration_usage_diagnostic_category(
+  issue : @program_refs.UsageIssue,
+) -> DiagnosticCategory {
+  match issue {
+    UnusedParameter(_) | UnusedBinding(_) => InvalidInput
+    WorkLimit => CompileLimit
+    InvalidLimits => InvalidConfiguration
   }
 }
 
