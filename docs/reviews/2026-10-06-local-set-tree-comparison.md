@@ -53,34 +53,43 @@ node scripts/local-checks.mjs test moon -- --target js \
   remain selected. Both production route entries require the three new roles;
   a regression removes each role separately and requires rejection.
 
-## Public retained path: unresolved
+## Public retained path: failure attribution and follow-up
 
 Only `local-node` and `run-host-core` were rebuilt before the ordinary installed
 Host diagnostic. The interval caller succeeded, but the new nested Set Program
 did not publish (`run-PgLOqO`, `focused-test-SvttGu`, 1/2). Shortening the operands
 also failed, so this is not evidence of a long-comparison work failure.
 
-An isolated test-process module hook exposed the actual existing exception:
-`CapturedRunPublicationFailed` wraps `StrategyNotComplete`; its execution has
-`MoonBitHostFailure` caused by `Execution(ForeignCandidate)`. The first prepared
-task has index zero and fails at `strategyModule_local_Dispatch`, before positive
-Compute progress (`run-Uji4Rs`, `focused-test-OS9GgJ`). Product modules were not
-edited, and the hook is not retained in the reproduction.
+The first diagnostic was reported as task-zero `Execution(ForeignCandidate)`
+(`run-Uji4Rs`, `focused-test-OS9GgJ`). That attribution was incorrect: reading
+the full trace showed five completed tasks and the start of final Sort task 5.
+The positive-incomplete-poll hook can remain silent for a small completed task;
+its absence did not establish absence of Compute progress.
 
-[The pending reproduction](../../adapters/host-node/public-set-value-retention.reproduction.mjs)
+Subsequent test-process-only instrumentation checked the actual candidate and
+ordered input bindings at every start; both checks passed for tasks 0 through 5.
+Task 5 returned `Execution(Physical(RetentionLimit))` before lifecycle start.
+The ledger held 188,434,240 bytes and attempted to reserve 37,686,848 more under
+its 200,000,000-byte default floor (`run-HipDXL`, `focused-test-pfTJCO`). These
+hooks added logging only and were never product code or passing acceptance.
+
+[The ordinary Host regression](../../adapters/host-node/public-set-value-retention.test.mjs)
 uses one Values prefix, a filtered right input, Set, Unnest, guaranteed scalar
 projection and authored sort, followed by two consumer tasks. It contains the
-four independent expected Result arrays. Run it explicitly through the focused
-Node wrapper; it currently fails the success assertion. It is deliberately not
-imported by the passing installation suite or cited as execution evidence.
-The earlier two-Values-prefix form fails at the same boundary. No identity
-check, obligation, policy limit or publication order was weakened to pass it.
+four independent expected Result arrays. Its former pending reproduction failed
+before the capacity follow-up; it now belongs to the normal installation suite.
+No identity check, obligation, policy limit or publication order was weakened.
 
-Next work is to isolate which exact candidate/input binding fails at the zero
-task start, then connect the existing Owner. This unit does not establish
-ordinary nested Set retained publication, public comparison-phase cancellation,
-or a completed retained route. Wasm/native, packed/HTTP, full Core and integrated
-CI were not executed for this unit. Registered targets are not executed results.
+The [capacity follow-up](2026-10-06-local-retained-store-capacity.md) accounts
+for the installed Store import/output envelope before opening the Run. It adds
+ordinary nested Set retained publication evidence at its own source revision,
+not retroactively at the comparison component's SHA. Its later test-only
+follow-up certifies an actual nested UTF-16 scanning barrier and cancels the
+ordinary public retained Run at that barrier, checking pre-stop input custody,
+confirmed stop, unpublished Results, snapshot reclamation and no redispatch.
+A full retained-route completion claim remains unestablished.
+Wasm/native, packed/HTTP, full Core and integrated CI were not executed for this
+unit. Registered targets are not executed results.
 
 The base is the unmerged #506 interval comparison branch. Preserve that
 dependency until main adopts it; the eventual merge target is main.
