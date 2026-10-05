@@ -1,6 +1,7 @@
 ///|
 fn graph_diff_provider_fixture(
   removal? : Bool = false,
+  empty? : Bool = false,
 ) -> (
   @lower.BoundPrepared,
   @carrier_runtime.ProducerView,
@@ -9,7 +10,28 @@ fn graph_diff_provider_fixture(
   @graphs.Completed,
 ) {
   let graph_owner = snapshot_fixture_owner()
-  let graph = snapshot_handoff_source(graph_owner)
+  let graph = if empty {
+    if removal {
+      abort("empty and edge-removal fixtures are mutually exclusive")
+    }
+    // Independently authored empty snapshot, with the same declared schema.
+    // Its CID was calculated from these bytes using Node crypto, not snapshot.
+    let body = "[\"actql-property-graph-snapshot/0.1\",\"sha256:6a0fe1664c431e3b0835ccaf2fff3569e99492ae427eab4ccb65d34096ce604d\"," +
+      snapshot_fixture_schema() +
+      ",[],[]]"
+    let active = snapshot_start(
+      graph_owner,
+      body,
+      expected="sha256:b432ac9e6035853bc1e8a7cfcdadd4a98f04f5aeefa279f4287204f33e9f0fec",
+    ).unwrap()
+    guard snapshot_terminal(active) is @local_bridge.Complete(output, ..) else {
+      abort("independent empty snapshot fixture")
+    }
+    @local_bridge.cleanup_rows_to_graph(active).unwrap() |> ignore
+    output
+  } else {
+    snapshot_handoff_source(graph_owner)
+  }
   let target = if removal {
     let active = snapshot_start(
       graph_owner,
@@ -62,6 +84,119 @@ fn graph_diff_provider_fixture(
     @graphs.prepare_producer_read(owner, 1, graph_owner, target).unwrap(),
   ).unwrap()
   (owner, left, right, graph, target)
+}
+
+///|
+test "Graph diff provider matches independent kernel row admission and completion work" {
+  let (owner, left, right, graph, _) = graph_diff_provider_fixture(empty=true)
+  // These constants count the independently authored empty fixture, never a
+  // baseline execution. See the companion work-breakdown review for the tree
+  // inventory and each existing owner's continuation charges.
+  let snapshot = 2L
+  let body_start = 3L
+  // The ASCII wire has 824 scalars: 824 preflight steps plus its end check,
+  // followed by 86 grammar transitions. Preflight is not free preparation.
+  let parse = 824L + 1L + 86L
+  let decode = 103L
+  let json_admission = 355L
+  let assemble = 1L
+  let delta_recheck = 35L
+  let kernel = 2L * (snapshot + body_start + parse + decode + json_admission) +
+    assemble +
+    delta_recheck
+  let row_start = 1L
+  // Begin/read=2; Delta recheck=35; name=1; value measurement=31;
+  // commit/end-of-input/seal=3. Completion authority is separate from import.
+  let row_admission = 2L + 35L + 1L + 31L + 3L
+  let completion = 1L
+  let total = kernel + row_start + row_admission + completion
+  assert_eq((kernel, row_admission, total), (2784L, 72L, 2858L))
+  for selected in [false, true] {
+    let generated = task_test_generated(owner)
+    let generated = if selected {
+      @execution.select_generated_sequence_step(generated, 0).unwrap()
+    } else {
+      generated
+    }
+    for
+      (ceiling, quantum) in [
+        (kernel, 1),
+        (kernel + row_start, 1),
+        (total - completion, 1),
+        (total, 1),
+        (total, 64),
+      ] {
+      let active = start_delta_provider(
+        delta_provider_fixture(),
+        generated,
+        [
+          @local_connector.managed_provider_carrier_input(left),
+          @local_connector.managed_provider_carrier_input(right),
+        ],
+        1,
+        10000,
+        work=ceiling.to_int(),
+      ).unwrap()
+      let mut used = 0L
+      let mut terminal = false
+      for _ in 0..<3000 {
+        match
+          @local_connector.advance_managed_provider(active, quantum).unwrap() {
+          @local_connector.Continue(work~, ..) => used += work
+          @local_connector.Complete(output, work~, ..) => {
+            used += work
+            assert_eq(ceiling, total)
+            assert_eq(used, total)
+            assert_eq(@execution.completed_row_count(output), 1)
+            let expected = "{\"delta\":" +
+              graph_delta_empty_actions()
+              .replace(
+                old=snapshot_fixture_cid(),
+                new="sha256:b432ac9e6035853bc1e8a7cfcdadd4a98f04f5aeefa279f4287204f33e9f0fec",
+              )
+              .replace(
+                old=snapshot_fixture_cid(),
+                new="sha256:b432ac9e6035853bc1e8a7cfcdadd4a98f04f5aeefa279f4287204f33e9f0fec",
+              ) +
+              "}"
+            let expected = @identity.stringify_value(
+              @identity.from_json(@json.parse(expected), 10000, 100, 10000),
+              10000,
+              10000,
+              100,
+            )
+            assert_eq(
+              @execution.completed_output_row_wire(output, 0, 10000, 10000, 100).unwrap(),
+              expected,
+            )
+            terminal = true
+            break
+          }
+          @local_connector.Failed(_, work~, ..) => {
+            used += work
+            assert_true(ceiling < total)
+            terminal = true
+            break
+          }
+          _ => abort("unexpected independent Graph diff work terminal")
+        }
+      }
+      assert_true(terminal)
+      assert_eq(used, ceiling)
+      assert_eq(
+        @local_connector.managed_provider_cumulative_work(active),
+        Ok(ceiling),
+      )
+      assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
+      assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
+      assert_eq(
+        @local_connector.managed_provider_cumulative_work(active),
+        Ok(ceiling),
+      )
+      assert_true(@graphs.completed_available(graph))
+    }
+  }
+  assert_true(@graphs.discard_completed(graph))
 }
 
 ///|
