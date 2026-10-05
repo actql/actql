@@ -151,6 +151,36 @@ test('Pool public key evidence requires an actual suite connection', () => {
     'VecA pool_vectors: Pool key public fixture is not suite-connected'));
 });
 
+test('nearest requires stepped key limits, stop and public Store evidence', () => {
+  for (const suffix of ['quantum', 'limits', 'stop_cleanup', 'public_barrier']) {
+    const role = `nearest_long_keys_${suffix}`;
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === 'nearest');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`VecA nearest: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'nearest');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'nearest_long_keys_public_store');
+  }), /VecA nearest: nearest key public Store fixture is missing/u);
+});
+
+test('nearest public key evidence requires an actual suite connection', () => {
+  const file = join(root, 'adapters/host-node/embedded-installation.test.mjs');
+  const sources = Object.freeze({...sourceTemplate,
+    [file]: Object.freeze({...sourceTemplate[file],
+      text: sourceTemplate[file].text.replace(
+        "import './public-nearest-key-retention.test.mjs';", '')}),
+  });
+  const result = validateResourceAccounting({root, manifest: manifestTemplate,
+    routes: routesTemplate, sources});
+  assert.ok(result.errors.includes(
+    'VecA nearest: nearest key public fixture is not suite-connected'));
+});
+
 test('interval join requires stepped Text comparison boundary evidence', () => {
   for (const role of [
     'interval_long_text_compare_quantum_order',

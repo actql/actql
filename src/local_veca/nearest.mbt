@@ -113,6 +113,8 @@ priv struct NearestState {
   mut identity_probe : Int
   mut current_field : (@schema.FieldName, @value.CheckedValue)?
   mut identity_values : Array[@value.CheckedValue?]
+  mut validated_identities : Array[@value.CheckedValue]
+  mut key_comparison : @value.BoundedKeyComparison?
   mut source_vector : @value.CheckedValue?
   mut candidates : Array[NearestRecord]
   mut queries : Array[NearestRecord]
@@ -303,6 +305,7 @@ fn begin_nearest_record(state : NearestState) -> Unit {
   state.identity_probe = 0
   state.current_field = None
   state.identity_values = []
+  state.validated_identities = []
   state.source_vector = None
   state.phase = InitializeIdentitySlots
 }
@@ -362,17 +365,24 @@ fn finish_nearest_record(state : NearestState) -> Result[Unit, NearestIssue] {
     @value.element_count(components) == input.dimensions else {
     return Err(InvalidNearestRecord(state.reading_queries, state.record))
   }
-  let identities : Array[@value.CheckedValue] = []
-  for value in state.identity_values {
-    guard value is Some(value) else {
-      return Err(InvalidNearestRecord(state.reading_queries, state.record))
-    }
-    match @value.compare_key_values(value, value) {
-      Ok(_) => identities.push(value)
-      Err(issue) => return Err(NearestKeyOrder(issue))
-    }
+  let index = state.validated_identities.length()
+  guard index < state.identity_values.length() &&
+    state.identity_values[index] is Some(value) else {
+    return Err(InvalidNearestRecord(state.reading_queries, state.record))
   }
-  current_records(state).push({ identities, vector, })
+  match compare_nearest_values(state, value, value) {
+    Ok(None) => return Ok(())
+    Ok(Some(_)) => state.validated_identities.push(value)
+    Err(issue) => return Err(issue)
+  }
+  if state.validated_identities.length() < input.identity_count {
+    return Ok(())
+  }
+  current_records(state).push({
+    identities: state.validated_identities,
+    vector,
+  })
+  state.validated_identities = []
   state.identity_values = []
   state.source_vector = None
   state.record += 1
@@ -466,6 +476,35 @@ fn merge_nearest_record(state : NearestState) -> Unit {
 }
 
 ///|
+/// Scan one unit under the common typed key owner. Pending comparisons keep
+/// their phase, record pair and component index until the cursor completes.
+fn compare_nearest_values(
+  state : NearestState,
+  left : @value.CheckedValue,
+  right : @value.CheckedValue,
+) -> Result[Int?, NearestIssue] {
+  let active = match state.key_comparison {
+    Some(value) => value
+    None => {
+      let value = match @value.start_bounded_key_comparison(left, right) {
+        Ok(value) => value
+        Err(issue) => return Err(NearestKeyOrder(issue))
+      }
+      state.key_comparison = Some(value)
+      value
+    }
+  }
+  match @value.advance_bounded_key_comparison(active, 1) {
+    Ok(@value.KeyComparisonContinue(_)) => Ok(None)
+    Ok(@value.KeyComparisonComplete(order~, ..)) => {
+      state.key_comparison = None
+      Ok(Some(order))
+    }
+    Err(issue) => Err(NearestKeyOrder(issue))
+  }
+}
+
+///|
 fn compare_nearest_record(state : NearestState) -> Result[Unit, NearestIssue] {
   let left = state.sorting[state.left_index]
   let right = state.sorting[state.right_index]
@@ -474,12 +513,14 @@ fn compare_nearest_record(state : NearestState) -> Result[Unit, NearestIssue] {
     return Ok(())
   }
   let comparison = match
-    @value.compare_key_values(
+    compare_nearest_values(
+      state,
       left.identities[state.tie_index],
       right.identities[state.tie_index],
     ) {
-    Ok(value) => value
-    Err(issue) => return Err(NearestKeyOrder(issue))
+    Ok(Some(value)) => value
+    Ok(None) => return Ok(())
+    Err(issue) => return Err(issue)
   }
   if comparison < 0 {
     emit_nearest_record_merge(state, true)
@@ -531,12 +572,14 @@ fn validate_nearest_unique(state : NearestState) -> Result[Unit, NearestIssue] {
       )
     }
     let compared = match
-      @value.compare_key_values(
+      compare_nearest_values(
+        state,
         left.identities[state.tie_index],
         right.identities[state.tie_index],
       ) {
-      Ok(value) => value
-      Err(issue) => return Err(NearestKeyOrder(issue))
+      Ok(Some(value)) => value
+      Ok(None) => return Ok(())
+      Err(issue) => return Err(issue)
     }
     if compared == 0 {
       state.tie_index += 1
@@ -646,12 +689,14 @@ fn compare_nearest_score(state : NearestState) -> Result[Unit, NearestIssue] {
     return Ok(())
   }
   let comparison = match
-    @value.compare_key_values(
+    compare_nearest_values(
+      state,
       left_id[state.tie_index],
       right_id[state.tie_index],
     ) {
-    Ok(value) => value
-    Err(issue) => return Err(NearestKeyOrder(issue))
+    Ok(Some(value)) => value
+    Ok(None) => return Ok(())
+    Err(issue) => return Err(issue)
   }
   if comparison < 0 {
     emit_nearest_score_merge(state, true)
@@ -1032,6 +1077,8 @@ fn cleanup_nearest_state(state : NearestState) -> Bool {
     state.live.val = false
   }
   state.identity_values = []
+  state.validated_identities = []
+  state.key_comparison = None
   state.candidates = []
   state.queries = []
   state.sorting = []
@@ -1245,6 +1292,8 @@ fn start_nearest_producers(
     identity_probe: 0,
     current_field: None,
     identity_values: [],
+    validated_identities: [],
+    key_comparison: None,
     source_vector: None,
     candidates: [],
     queries: [],
