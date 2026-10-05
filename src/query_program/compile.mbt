@@ -1028,18 +1028,18 @@ fn lower_aggregate_resolved(
         argument,
         @query.expression_root(argument),
       ).unwrap()
-      match root.kind {
-        Reference(path) =>
-          match resolve(path) {
-            Some(field) => entries.push(("field", construction.text(field)))
-            None => raise Abort(UnknownColumn)
-          }
-        _ =>
+      let field = match root.kind {
+        Reference(path) => resolve(path)
+        _ => None
+      }
+      match field {
+        Some(field) => entries.push(("field", construction.text(field)))
+        None =>
           entries.push(
             (
               "expr",
               match
-                @expression.append(
+                @expression.append_with_properties(
                   argument,
                   resolve,
                   construction.builder,
@@ -1211,7 +1211,7 @@ fn lower_analytic_call(
           (
             "expr",
             match
-              @expression.append(
+              @expression.append_with_properties(
                 argument,
                 resolve,
                 construction.builder,

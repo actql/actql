@@ -1,4 +1,31 @@
-# Object paths at the two-input JOIN boundary
+# JOIN property paths: integrated public acceptance
+
+## 2026-10-05 integration
+
+The final integration retains the original nullable-property JOIN Frontend
+repair, duplicate rows, alias and qualified-input ordering, LEFT JOIN, typed
+empty output, zero Source reads and the explicit JOIN output bound of 12.
+The source fixture and both reproduction inputs are unchanged.
+
+The common repair is implemented once in PR #396. A Relation-only source-free
+DAG with a shared Values producer and a binary consumer now reaches the existing
+selected-operation and exact managed-input checks. The existing graph expansion
+retains one producer, both real operation ports, the original checked owners,
+Result identities and cleanup lifecycle. It does not duplicate source evaluation
+or change the 536,870,912-byte execution ceiling. The former ten-step chain's
+601,096,960-byte reservation accurately described its retained child lifetimes;
+this repair changes the physical plan rather than that capacity arithmetic.
+
+This branch adopts the completed #381 integration, which includes #396, through
+normal Git history. All three corpus registrations remain present and every
+final PR base remains `actql/actql:main`. Merge order is #396, then #381, then
+#391; no PR is merged into a dependency branch.
+
+The final PR body records exact source SHA, commands, raw receipts, tarball
+digests and unverified coverage. The report below retains historical findings.
+
+## Historical report
+
 
 ## Scope and baseline
 
