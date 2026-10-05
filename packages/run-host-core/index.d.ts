@@ -862,6 +862,26 @@ export function inspectTaskProgress(prepared: PreparedProgram,
       executionScope: readonly string[]}>[];
   }>;
 
+/** An unpublished snapshot. Start claims must come from trusted saved Host state.
+ * This does not commit a Run, publish a Result, stop execution or release custody. */
+export function projectTaskSiteRun(prepared: PreparedProgram,
+  compilation: TaskCompilation, admission: RunAdmission,
+  definition: RunDefinition, authority: string, durableWires: readonly string[],
+  observedAt: string, cancellationRequested?: boolean,
+  claimedTaskKeys?: readonly string[]): Readonly<{
+    stateWire: string; publicationReady: boolean;
+    nextTask: number | undefined; executionComplete: boolean; cleanupComplete: boolean;
+    resultTasks: readonly number[];
+    execution: 'unobserved' | 'running' | 'settled' | 'failed' | 'cancelled' | 'unknown';
+    tasks: readonly Readonly<{ordinal: number; taskKey: string;
+      execution: 'unobserved' | 'accepted' | 'provisioning' | 'running' |
+        'settled' | 'failed' | 'cancelled' | 'unknown';
+      cleanup: 'unobserved' | 'active' | 'releasing' | 'released' |
+        'unknown' | 'force_lost' | 'recovered_after_loss';
+      revision: number; dispatchCid: string | undefined; executionScope: readonly string[];
+      nextWork: 'none' | 'cleanup' | 'publication' | 'reconcile' | 'cancel' | 'release'}>[];
+  }>;
+
 /** Authenticated storage is supplied by the Host; this grants no execution. */
 export function projectSiteRun(prepared: PreparedProgram,
   compilation: ValuesCompilation | TaskCompilation, admission: RunAdmission,

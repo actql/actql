@@ -2,6 +2,9 @@
 /// Checked task observations restored from the trusted Coordinator's durable
 /// records. This is a snapshot, not a scheduler, ledger, start claim or borrow.
 pub struct ClientRemoteTaskProgress {
+  definition : @publication.PublicationContract
+  result_names : Array[String]
+  completed : Array[Bool]
   keys : Array[String]
   requests : Array[@remote.DispatchRequest?]
   observations : Array[@remote.CoordinatorExecutionObservation?]
@@ -144,6 +147,9 @@ pub fn inspect_client_remote_task_progress(
     result_tasks.push(task)
   }
   Ok({
+    definition,
+    result_names: client_task_run_binding_result_names(binding),
+    completed,
     keys,
     requests,
     observations,
