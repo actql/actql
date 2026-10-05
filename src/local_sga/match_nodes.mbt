@@ -732,6 +732,7 @@ fn start_match_nodes_read(
   let accepted = Ref(false)
   let scratch_slots = Ref(0)
   let port_result = match source {
+    Accumulated(_) => return Err(InvalidMatchNodesKernel)
     Stored(read) if @lifecycle.producer_read_reference_matches_input(
         @graph.producer_read_carrier_reference(read),
         owner,

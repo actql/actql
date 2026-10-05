@@ -27,6 +27,38 @@ struct PropertyGraphDefinition {
 }
 
 ///|
+/// The scalar descriptor embedded in Graph identity, not the full value
+/// contract. Nullability and text extents do not change this descriptor.
+pub(all) enum PropertyKeyDescriptor {
+  NumberKey
+  TextKey
+  BooleanKey
+  DateKey
+  TimestampKey
+  DecimalKey(precision~ : Int, scale~ : Int)
+  ResourceKey(resource_kind~ : String)
+  ArtifactKey(media_type~ : String?)
+} derive(Eq, Debug)
+
+///|
+/// Shared by constructor admission, identity encoding and structural checking.
+pub fn property_key_descriptor(
+  contract : @value.Contract,
+) -> PropertyKeyDescriptor? {
+  match contract.shape {
+    @value.Number => Some(NumberKey)
+    @value.Text(_) => Some(TextKey)
+    @value.Boolean => Some(BooleanKey)
+    @value.Date => Some(DateKey)
+    @value.Timestamp => Some(TimestampKey)
+    @value.Decimal(precision~, scale~) => Some(DecimalKey(precision~, scale~))
+    @value.ResourceRef(resource_kind~) => Some(ResourceKey(resource_kind~))
+    @value.ArtifactRef(media_type~) => Some(ArtifactKey(media_type~))
+    _ => None
+  }
+}
+
+///|
 pub(all) enum PropertyGraphIssue {
   InvalidLimits
   InvalidName
@@ -135,7 +167,7 @@ pub fn property_node_definition_usage(
       return Err(LimitExceeded)
     }
     work -= 1
-    if !@value.key_comparable(contract, contract) {
+    if property_key_descriptor(contract) is None {
       return Err(InvalidKey)
     }
   }

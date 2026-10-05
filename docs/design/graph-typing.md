@@ -5,8 +5,13 @@ Conditional query identity propagation is described in
 
 `graph_typing` currently checks `normalize_graph`, `degree`, `components` and
 `graph_bounds`, plus binary `graphs_equal` and `graph_diff` through dedicated
-closed-contract checkers. Structural `graft_graph`, `union_graphs` and
-`subtract_graphs` use the same pair admission and pipeline operand resolution.
+closed-contract checkers. Structural `graft_graph` and `subtract_graphs` use
+pair admission and pipeline operand resolution. `union_graphs` retains an
+ordered multi-input check with named definition/property alignment, exact
+identity-bearing definition spelling and key descriptors, and one operation-wide
+resource scope. Each input occurrence remains distinct even when its immutable
+storage is shared. Endpoint collisions and property strategy failures are
+runtime obligations; an accepted Plan is not evidence of successful composition.
 The normative owner is [Graph operations](../spec/language.md#graph-operations).
 This is not the complete SGA operation family or an evaluator.
 
@@ -526,7 +531,11 @@ accumulator object. These are future execution checks, not admitted backend
 resource contracts or evidence that the numerical evaluator has run. Profile
 selection remains a separate static check.
 
-## Structural graph composition
+## Historical structural graph typing
+
+This section describes the historical tuple-profile checker. It is not the
+current Property Graph execution contract or an external AoA dependency. The
+current named-definition union boundary is specified below.
 
 Binary structural operations retain both input occurrences, including repeated
 references to one input. They require compatible complete identity/property
@@ -593,6 +602,43 @@ Node/edge upper bounds include repeated occurrences; an unknown bound prevents
 a sum claim on that axis. Scalar syntax remains supported, and subtraction and
 graft remain binary. This implements existing Language and operation-binding
 rules; it does not implement their runtime strategies or lowering.
+
+## Current named-definition union
+
+The current checker admits one domain and the same named node/edge definition
+sets. Definition/property declaration order may differ; checked folds preserve
+the left declarations and retain right definition/field indexes by name. Raw
+definition spelling and each ordered key's identity descriptor must match
+exactly. Case-insensitive name resolution does not merge `N` and `n` identities;
+Artifact media-type differences do not authorize rekeying. Label/property sets,
+key-column correspondence and endpoint definition metadata must agree. Property
+types, nullable and extents use the existing joins, widened where a strategy's
+result requires it. This restricted admission is not a new identity law.
+
+Inputs are ordered occurrences, including repeated references. The runtime
+applies the declared left fold without reassociation or elision: three inputs
+with shared numeric value 2 produce 6 under `number_sum`. One-sided records are
+copied with their typed keys and properties; shared records use checked field
+alignment and the selected property strategy. Default `exact_equal` admits
+equal NULLs. Numeric/set strategies reject invalid shared operands instead of
+converting them to NULL. Same-edge identities must have exactly equal typed
+source and destination identities; conflicting endpoints fail with no output.
+Different edge identities sharing endpoints remain parallel edges.
+
+The existing bounded session owns private fold state and borrows each input
+view by exact occurrence. Cumulative work and admitted row/value traffic span
+all folds; prior and successor private generations overlap until successor
+completion. Stop/failure never publishes the staged Graph or reclaims borrowed
+inputs. The existing output, Store, snapshot and Relation owners retain their
+own completion/cleanup responsibilities.
+
+The installed provider's `UnionPolicy` separates transient cursor slot ceilings
+and execution-byte reservation from ordinary Graph input/value quotas. The Node
+installation reserves its configured union workspace before task selection;
+invalid or overflowing capacity is rejected. These installed ceilings and the
+logical cursor inventory are not a physical heap theorem or a Graph-wide bound.
+Hosts supplying no union policy retain their explicit Graph workspace limit,
+including typed failure when it cannot accommodate the cursor.
 
 ## Graph Delta typing
 

@@ -9,6 +9,7 @@ import {canonicalText} from './check-canonical-json.mjs';
 import {propertyGraphPresenceOracle, deltaApplicationScenario as deltaScenario,
   deltaRelationCompositionScenario, deltaDiffScenario} from
   './fixtures/property-graph-delta-application.mjs';
+import {unionGraphScenario} from './fixtures/property-graph-union.mjs';
 
 // The same independent oracle runs against source and repository-external
 // tarballs. The packed branch imports no checkout implementation or toolchain.
@@ -438,9 +439,11 @@ function deltaApplicationScenario(projection, failure) {
   return deltaScenario(presenceFixture, projection, failure);
 }
 
-for (const mode of ['local','remote']) for (const profile of ['graph','presence-filter','presence-selection','selector-derive','relation-subgraph','presence-keyed-distinct','presence-whole-distinct','presence-group','delta-application','delta-relation-composition','delta-diff']) {
+for (const mode of ['local','remote']) for (const profile of ['graph','presence-filter','presence-selection','selector-derive','relation-subgraph','presence-keyed-distinct','presence-whole-distinct','presence-group','delta-application','delta-relation-composition','delta-diff','graph-union']) {
   const name = profile === 'graph'
     ? `keyed constructor and TRAIL reach public Named Results through ${mode}`
+    : profile === 'graph-union'
+      ? `Property Graph union preserves occurrences and sparse rows through Store reload and public ${mode}`
     : profile === 'delta-diff'
       ? `Graph diff Delta survives Relation Store reload and reapplication through ${mode}`
     : profile === 'delta-relation-composition'
@@ -522,6 +525,43 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
       client = await connect({mode,endpoint:`https://127.0.0.1:${server.address().port}/`,token:'synthetic-test-token'});
     }
     t.after(() => client.close());
+    if (profile === 'graph-union') {
+      for (const projection of ['node_rows','edge_rows']) for (const numeric of [false,true]) for (const empty of [false,true]) {
+        const {document,graphSnapshots,relationSnapshots:expectedStores,fields,expected} =
+          unionGraphScenario(presenceFixture,projection,{numeric,empty});
+        const run = await client.aql(canonicalText(document),{format:'json',requestId:`${document.id}-${mode}`});
+        const state = await run.wait();
+        assert.equal(state.status,'succeeded',JSON.stringify(state));
+        // Preserve the independently specified canonical Graph row order on
+        // both initial read and reattach; sorting actual results hides damage.
+        assert.deepEqual(await run.result('answer').all(),expected);
+        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
+        assert.deepEqual((await run.result('answer').describe()).columns.map(column=>column.name),fields);
+        assert.deepEqual(snapshots.get(run.ref.runDefinitionCid),graphSnapshots.map(([task,bytes])=>({
+          task,cid:'sha256:'+createHash('sha256').update(bytes).digest('hex'),
+          bytes:Buffer.byteLength(bytes),verifiedReadBytes:Buffer.byteLength(bytes),
+          sourceReleased:true,restored:true,temporaryBodyReclaimed:true,
+        })));
+        const observed = relationSnapshots.get(run.ref.runDefinitionCid);
+        for (const [task,rows] of expectedStores) {
+          const bytes = canonicalText(rows);
+          assert.deepEqual(observed.find(entry=>entry.task === task),{
+            task,cid:cid(rows),bytes:Buffer.byteLength(bytes),verifiedReadBytes:Buffer.byteLength(bytes),rows:rows.length,
+            sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true,
+          },`union retained task ${task}`);
+        }
+        assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
+      }
+      const {document} = unionGraphScenario(presenceFixture,'node_rows');
+      document.stages[0].steps[6].union_graphs.extra = true;
+      const before = physicalSteps.length;
+      const requestId = `union-extra-field-${mode}`;
+      await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+        error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
+      assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+      assert.deepEqual(physicalSteps.slice(before),[]);
+      return;
+    }
     if (profile === 'delta-diff') {
       for (const projection of ['node_rows','edge_rows']) for (const unchanged of [false,true]) {
         const {document,delta,target,retained,expected,fields} =

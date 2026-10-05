@@ -157,6 +157,7 @@ pub enum CheckedOperation {
   GraphEquality(right~ : Target, checked~ : @graph.CheckedPropertyEquality)
   GraphNormalize(@graph.CheckedNormalize)
   GraphDelta(right~ : Target, checked~ : @graph.CheckedDelta)
+  GraphUnion(inputs~ : Array[Target], checked~ : @graph.CheckedUnion)
   GraphComponents(@graph.CheckedComponents)
   Subgraph(selector~ : Target?, checked~ : @graph.CheckedSubgraph)
   Traverse(selector~ : Target?, checked~ : @graph.CheckedTraverse)

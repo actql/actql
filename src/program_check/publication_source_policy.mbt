@@ -980,6 +980,16 @@ fn prepare_target_source_policy(
             })
             1
           }
+          @pipeline.GraphUnion(inputs~, ..) => {
+            identity_charge(budget, 1)
+            carrier_steps.push({
+              step: index,
+              operation: step.operation,
+              unknown_provenance: true,
+            })
+            unknown = true
+            inputs.length()
+          }
           @pipeline.GraphDelta(..) => {
             // Both ordered operands contribute to the result. Until exact
             // Delta field provenance is connected, do not grant a stronger
