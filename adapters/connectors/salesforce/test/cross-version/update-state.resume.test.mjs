@@ -12,9 +12,8 @@ import {execFileSync} from 'node:child_process';
 import {mkdir, readFile, readdir, rm, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import test from 'node:test';
-import {connectEmbeddedLocal} from '../../../../host-node/embedded-local.mjs';
-import {approve, digests, hostAuthorization, openHost, openOrg,
-  runtimeBundleCid, secret, terminal, waitFor} from './update-state.mjs';
+import {approve, digests, localStep, openHost, openOrg, runtimeBundleCid,
+  terminal, waitFor} from './update-state.mjs';
 
 // Run by run-cross-version.mjs, which generates the state. Without it the
 // acceptance fails: an unproduced state is incomplete, never skipped.
@@ -229,29 +228,27 @@ for (const [kind, write] of Object.entries(kindWrites)) {
 }
 
 // --- Embedded Local resumes the same saved state ---------------------------
-async function settledLocal(t, context, ref) {
-  const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
-    durability: 'durable', installation: {
-      directory: context.installation.directory,
-      sourceProfilePath: context.installation.sourceProfilePath,
-      resolveSourceSecret: secret,
-      effectProfilePath: context.installation.effectProfilePath,
-      resolveEffectSecret: secret,
-      authorization: hostAuthorization(context.orgId, context.keys,
-        {local: true})}});
-  t.after(() => client.close());
-  const attached = await client.attach(ref);
-  return waitFor(async () => {
-    const current = await attached.status();
-    return terminal.includes(current.status) ? current : undefined;
-  }, {attempts: 2400});
+// Each resume is its own process: the Embedded Local Host lives as long as
+// its process, so the step settles the Run and exits before the root is
+// removed.
+async function settledLocal(context, ref) {
+  const refPath = join(context.installation.directory, '..',
+    'local-ref.json');
+  await writeFile(refPath, JSON.stringify(ref));
+  const printed = await localStep('settle', {installation:
+    context.installation, orgId: context.orgId, keys: context.keys,
+  refPath});
+  return JSON.parse(printed.trim().split('\n').at(-1));
 }
 
 test('Local: approval saved: the approved Set is sent exactly once', {skip},
   async t => {
     const {context, writes, ref} = await restore(t, 'local-approval-saved');
-    const state = await settledLocal(t, context, ref);
+    const state = await settledLocal(context, ref);
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
+    assert.deepEqual(writes(), ['a00000000000001']);
+    // A further restart sends nothing more.
+    assert.equal((await settledLocal(context, ref)).status, 'succeeded');
     assert.deepEqual(writes(), ['a00000000000001']);
   });
 
@@ -259,7 +256,7 @@ test('Local: unknown after the send started: never resent', {skip},
   async t => {
     const {context, writes, ref} = await restore(t,
       'local-unknown-after-send');
-    const state = await settledLocal(t, context, ref);
+    const state = await settledLocal(context, ref);
     assert.equal(state.status, 'needs_reconciliation', JSON.stringify(state));
     assert.deepEqual(writes(), []);
   });

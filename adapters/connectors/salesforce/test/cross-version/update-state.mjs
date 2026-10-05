@@ -240,11 +240,12 @@ export function localStep(step, {installation, orgId, keys, program,
   const child = execFile(process.execPath, [fileURLToPath(new URL(
     './update-state.local-child.mjs', import.meta.url))],
   {env: {...process.env, ACTQL_CROSS_VERSION_LOCAL: config}});
-  child.stdout?.resume();
+  let stdout = '';
+  child.stdout?.on('data', chunk => { stdout += chunk; });
   child.stderr?.resume();
   if (step === 'resume') return child;
   return new Promise((resolveStep, rejectStep) => child.once('exit', code =>
-    code === 0 ? resolveStep() : rejectStep(new Error(`LocalStep ${step} ${code}`))));
+    code === 0 ? resolveStep(stdout) : rejectStep(new Error(`LocalStep ${step} ${code}`))));
 }
 
 export async function waitFor(check, {attempts = 800} = {}) {
