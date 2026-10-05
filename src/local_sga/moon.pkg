@@ -14,6 +14,9 @@ import {
   "actql/actql/value_admission" @value,
   "actql/actql/value_contract" @contract,
   "actql/actql/bounded_graph_diff" @delta,
+  "actql/actql/encode_core" @encode,
+  "actql/actql/decode_core" @decode,
+  "actql/actql/source_value" @source,
 }
 
 import {

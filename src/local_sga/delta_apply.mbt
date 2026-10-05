@@ -24,6 +24,8 @@ struct DeltaApplyExecution {
 ///|
 pub(all) enum DeltaApplyIssue {
   InvalidDeltaApplyKernel
+  DeltaApplyInvalidInput
+  DeltaApplyWorkspaceLimit
   DeltaApplyInputUnavailable
   DeltaApplyControlWorkLimit
   DeltaApplyKernel(@delta.Issue)
