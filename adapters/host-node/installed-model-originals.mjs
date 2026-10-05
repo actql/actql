@@ -1,7 +1,7 @@
 // Original Run admission bytes for fixed Model custody and cancellation.
 // This packaging is not admission: the common Model original-Run reader
 // re-admits every leaf and their exact linkage before the journal uses it.
-import {canonicalJson} from './local-account-config.mjs';
+import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 
 export function originalModelRunWire(compiled, runDefinition) {
   const originals = {

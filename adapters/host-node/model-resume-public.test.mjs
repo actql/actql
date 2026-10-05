@@ -14,6 +14,25 @@ import {setTimeout as pause} from 'node:timers/promises';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {scopedModelHolding} from '../../scripts/fixtures/model-custody-fixture.mjs';
+const packedInputs = process.env.ACTQL_MODEL_ACCEPTANCE_INPUTS;
+const acceptance = packedInputs === undefined ? {
+  runtime: {
+    client: new URL('../../packages/node/index.mjs', import.meta.url).href,
+    httpHost: new URL('./embedded-local.mjs', import.meta.url).href,
+    inferFixture: new URL('../../scripts/fixtures/installed-infer-fixture.mjs', import.meta.url).href,
+    providerFixture: new URL('../../scripts/fixtures/model-provider-binding-fixture.mjs', import.meta.url).href,
+    environment: fileURLToPath(new URL('../../spec/local-check-environment.json', import.meta.url)),
+    sourceObserver: new URL('../../scripts/fixtures/two-source-public-query.mjs', import.meta.url).href,
+    sourceEnvironment: fileURLToPath(new URL('./fixtures/query-amount-environment.json', import.meta.url)),
+    duckdbPackage: new URL('../connectors/duckdb/node/package.json', import.meta.url).href,
+  },
+} : JSON.parse(readFileSync(packedInputs, 'utf8'));
+if (packedInputs === undefined) {
+  // Prepare only the source installation. Packed acceptance has its own fresh
+  // npm installation and must never repair it with checkout dependency links.
+  const {prepareSourceNodeClient} = await import('./fixtures/source-node-client.mjs');
+  await prepareSourceNodeClient({assemble: true});
+}
 
 const processFixture = fileURLToPath(new URL('../../scripts/fixtures/model-resume-public-process.mjs', import.meta.url));
 const expectedRows = (count = 1, acquired = false) => [
@@ -23,9 +42,12 @@ const expectedRows = (count = 1, acquired = false) => [
 ].slice(0, count);
 
 async function fixture(t, options = {}) {
-  // Match the provider's physical path even when macOS tmpdir is a symlink.
-  const root = await realpath(await mkdtemp(join(tmpdir(), 'actql-public-model-resume-')));
-  t.after(() => rm(root, {recursive: true, force: true}));
+  // Bind the fixture to the actual directory before authoring its Source
+  // profile. macOS /var and /private/var aliases must not confuse observation.
+  const scratch = await realpath(acceptance.scratch ?? tmpdir());
+  const root = await mkdtemp(join(scratch, 'actql-public-model-resume-'));
+  if (acceptance.preserveArtifacts === true) t.diagnostic(`Model recovery artifacts: ${root}`);
+  else t.after(() => rm(root, {recursive: true, force: true}));
   if (options.transport === 'https') execFileSync('openssl', [
     'req', '-x509', '-nodes', '-newkey', 'rsa:2048', '-keyout', 'host.key',
     '-out', 'host.crt', '-days', '1', '-subj', '/CN=localhost',
@@ -40,7 +62,7 @@ async function fixture(t, options = {}) {
       for (const name of ['ACTQL_LOCAL_STATE_DIR', 'ACTQL_LOCAL_SOURCE_PROFILE',
         'ACTQL_LOCAL_EFFECT_PROFILE']) delete env[name];
       const result = spawnSync(process.execPath, [processFixture], {
-        input: JSON.stringify({...options, root, phase, ...changes}),
+        input: JSON.stringify({...options, runtime: acceptance.runtime, root, phase, ...changes}),
         encoding: 'utf8', timeout: 45_000, maxBuffer: 4 * 1024 * 1024,
         env,
       });
@@ -114,6 +136,78 @@ function savedEvidence(f, ordinal, role, expectedState = 'SavedSuccess') {
 }
 
 for (const transport of ['local', 'https']) {
+  for (const [name, inputTexts] of [
+    ['Unicode and CR', ['e\u0301', '\u00e9', '\r']],
+    ['LF, CRLF and nested strings', ['\n', '\r\n', 'nested e\u0301 \u00e9\r\n\r\n']],
+  ]) {
+    test(`public Model ${transport}: exact ${name} survives saved input and process restart`, async t => {
+      const f = await fixture(t, {transport, count: 3, inputTexts});
+      const waiting = f.phase('wait');
+      const originals = f.journal().scopes[0].originals_json;
+      assertSends(f, []);
+      const approved = f.phase('approve');
+      assertSameRun(waiting, approved);
+      assert.equal(approved.status, 'succeeded');
+      assert.deepEqual(approved.rows, expectedRows(3));
+      assertSends(f, inputTexts);
+      assert.equal(f.journal().scopes[0].originals_json, originals);
+      for (const ordinal of [0, 1, 2]) {
+        assert.equal(savedEvidence(f, ordinal, 'model_slot_capture').outcome, 'ok');
+      }
+      const resumed = f.phase('resume-again');
+      assertSameRun(waiting, resumed);
+      assert.equal(resumed.status, 'succeeded');
+      assert.deepEqual(resumed.rows, expectedRows(3));
+      assertSends(f, inputTexts);
+      assert.equal(f.journal().scopes[0].originals_json, originals);
+    });
+  }
+
+  test(`public Model ${transport}: immediate Allow records a sent unknown before provider invocation`, async t => {
+    const f = await fixture(t, {transport, immediate: true, count: 3});
+    const crash = f.phase('immediate-crash-unknown', {}, 77);
+    assert.equal(crash.boundary, 'provider_response_lost');
+    assertSends(f, ['alpha', 'bravo']);
+    const before = f.journal();
+    assert.equal(before.checkpoints.length, 0);
+    assert.deepEqual(slotStates(before), ['SavedSuccess', 'EnteredUnknown', 'Unsent']);
+    assert.equal(before.attempts[1].state, 'EnteredUnknown',
+      'the physical provider exits before returning, so its entry must already be durable');
+    const inventory = JSON.parse(before.scopes[0].inventory_json);
+    const resumed = f.phase('resume');
+    assert.equal(resumed.runId, before.scopes[0].run_id);
+    assert.equal(resumed.ref.runDefinitionCid, inventory.runDefinitionCid);
+    assert.equal(resumed.status, 'needs_reconciliation');
+    assert.equal(resumed.rows, undefined);
+    assertSends(f, ['alpha', 'bravo', 'charlie']);
+    assert.deepEqual(slotStates(f.journal()), ['SavedSuccess', 'EnteredUnknown', 'SavedSuccess']);
+    assert.equal(savedEvidence(f, 0, 'model_slot_capture').outcome, 'ok');
+    const again = f.phase('resume-again');
+    assertSameRun(resumed, again);
+    assert.equal(again.status, 'needs_reconciliation');
+    assertSends(f, ['alpha', 'bravo', 'charlie']);
+  });
+
+  test(`public Model ${transport}: cancellation retains a sent unknown across restart`, async t => {
+    const f = await fixture(t, {transport, count: 3});
+    const waiting = f.phase('wait');
+    f.phase('approve-crash-unknown', {}, 77);
+    assertSends(f, ['alpha', 'bravo']);
+    assert.deepEqual(slotStates(f.journal()), ['SavedSuccess', 'EnteredUnknown', 'Unsent']);
+    await pause(1100);
+    const cancelled = f.phase('cancel-unknown');
+    assertSameRun(waiting, cancelled);
+    assert.equal(cancelled.status, 'needs_reconciliation');
+    assertSends(f, ['alpha', 'bravo']);
+    assert.deepEqual(slotStates(f.journal()), ['SavedSuccess', 'EnteredUnknown', 'Unsent']);
+    assert.equal(savedEvidence(f, 0, 'model_slot_capture').outcome, 'ok');
+    const replay = f.phase('resume');
+    assertSameRun(waiting, replay);
+    assert.equal(replay.status, 'needs_reconciliation');
+    assertSends(f, ['alpha', 'bravo']);
+    assert.equal(f.journal().fences.length, 1);
+  });
+
   test(`public Model ${transport}: immediate Allow finishes once across process restart`, async t => {
     const f = await fixture(t, {transport, immediate: true});
     const finished = f.phase('immediate');
@@ -191,79 +285,98 @@ for (const transport of ['local', 'https']) {
   });
 }
 
-for (const onNonSuccess of ['outcomes', 'fail']) {
-  test(`public Model: saved/unknown/unsent crash preserves uncertainty under ${onNonSuccess}`, async t => {
-    const f = await fixture(t, {count: 3, onNonSuccess});
+for (const transport of ['local', 'https']) {
+  for (const onNonSuccess of ['outcomes', 'fail']) {
+    test(`public Model ${transport}: saved/unknown/unsent crash preserves uncertainty under ${onNonSuccess}`, async t => {
+      const f = await fixture(t, {transport, count: 3, onNonSuccess});
+      const waiting = f.phase('wait');
+      f.phase('approve-crash-unknown', {}, 77);
+      assertSends(f, ['alpha', 'bravo']);
+      assert.deepEqual(slotStates(f.journal()), ['SavedSuccess', 'EnteredUnknown', 'Unsent']);
+      await pause(1100);
+      const replay = f.phase('resume');
+      assertSameRun(waiting, replay);
+      assert.equal(replay.status, 'needs_reconciliation');
+      assert.equal(replay.rows, undefined);
+      assertSends(f, onNonSuccess === 'outcomes' ? ['alpha', 'bravo', 'charlie'] : ['alpha', 'bravo']);
+      assert.deepEqual(slotStates(f.journal()), ['SavedSuccess', 'EnteredUnknown',
+        onNonSuccess === 'outcomes' ? 'SavedSuccess' : 'Unsent']);
+      const again = f.phase('resume-again');
+      assertSameRun(waiting, again);
+      assert.equal(again.status, 'needs_reconciliation');
+      assertSends(f, onNonSuccess === 'outcomes' ? ['alpha', 'bravo', 'charlie'] : ['alpha', 'bravo']);
+    });
+  }
+
+  test(`public Model ${transport}: waiting cancellation awaits the current physical stop`, async t => {
+    const f = await fixture(t, {transport});
+    const cancelled = f.phase('cancel-before-stop');
+    const beforeStop = f.read('cancel-before-stop-observation.json');
+    assert.equal(beforeStop.status, 'waiting_checkpoint');
+    assert.equal(beforeStop.control.cancellation_requested, true);
+    assert.equal(beforeStop.control.physical_stop, 'unknown');
+    assert.equal(cancelled.status, 'cancelled');
+    assertSends(f, []);
+    assert.equal(f.journal().fences.length, 1);
+    const replay = f.phase('resume');
+    assertSameRun(cancelled, replay);
+    assert.equal(replay.status, 'cancelled');
+    assertSends(f, []);
+  });
+
+  test(`public Model ${transport}: cancellation of a waiting Run fences all sends across restart`, async t => {
+    const f = await fixture(t, {transport});
     const waiting = f.phase('wait');
-    f.phase('approve-crash-unknown', {}, 77);
-    assertSends(f, ['alpha', 'bravo']);
-    assert.deepEqual(slotStates(f.journal()), ['SavedSuccess', 'EnteredUnknown', 'Unsent']);
-    await pause(1100);
+    const cancelled = f.phase('cancel');
+    assertSameRun(waiting, cancelled);
+    assert.equal(cancelled.status, 'cancelled');
+    assertSends(f, []);
     const replay = f.phase('resume');
     assertSameRun(waiting, replay);
-    assert.equal(replay.status, 'needs_reconciliation');
-    assert.equal(replay.rows, undefined);
-    assertSends(f, onNonSuccess === 'outcomes' ? ['alpha', 'bravo', 'charlie'] : ['alpha', 'bravo']);
-    assert.deepEqual(slotStates(f.journal()), ['SavedSuccess', 'EnteredUnknown',
-      onNonSuccess === 'outcomes' ? 'SavedSuccess' : 'Unsent']);
-    const again = f.phase('resume-again');
-    assertSameRun(waiting, again);
-    assert.equal(again.status, 'needs_reconciliation');
-    assertSends(f, onNonSuccess === 'outcomes' ? ['alpha', 'bravo', 'charlie'] : ['alpha', 'bravo']);
+    assert.equal(replay.status, 'cancelled');
+    assertSends(f, []);
+    assert.equal(f.journal().fences.length, 1);
   });
+
+  test(`public Model ${transport}: cancellation after one saved response retains it and prevents later sends`, async t => {
+    const f = await fixture(t, {transport, count: 3});
+    const waiting = f.phase('wait');
+    const cancelled = f.phase('approve-cancel-saved');
+    assertSameRun(waiting, cancelled);
+    assert.equal(cancelled.status, 'cancelled');
+    assertSends(f, ['alpha']);
+    assert.deepEqual(slotStates(f.journal()), ['SavedSuccess', 'Unsent', 'Unsent']);
+    assert.equal(savedEvidence(f, 0, 'model_slot_capture').outcome, 'ok');
+    assert.equal(f.phase('resume').status, 'cancelled');
+    assertSends(f, ['alpha']);
+  });
+
+  test(`public Model ${transport}: expired Checkpoint cannot cause a provider send after restart`, async t => {
+    const f = await fixture(t, {transport, checkpointTtlMs: 1000});
+    const waiting = f.phase('wait');
+    await pause(1100);
+    const replay = f.phase('probe');
+    assertSameRun(waiting, replay);
+    assert.notEqual(replay.status, 'succeeded');
+    assertSends(f, []);
+    assert.deepEqual(slotStates(f.journal()), ['Unsent']);
+    assert.equal(f.journal().checkpoints[0].closure, 'expired');
+  });
+
+  test(`public Model ${transport}: approving an old provider scope never authorizes a replacement binding`, async t => {
+    const f = await fixture(t, {transport});
+    const waiting = f.phase('wait');
+    const original = f.journal().scopes[0];
+    const replay = f.phase('approve-replacement-probe', {providerRevision: 'public-model-fixture-2'});
+    assertSameRun(waiting, replay);
+    assert.notEqual(replay.status, 'succeeded');
+    assertSends(f, []);
+    assert.deepEqual(slotStates(f.journal()), ['Unsent']);
+    assert.equal(f.journal().scopes[0].scope_cid, original.scope_cid);
+    assert.equal(f.journal().scopes[0].originals_json, original.originals_json);
+  });
+
 }
-
-test('public Model: cancellation of a waiting Run fences all sends across restart', async t => {
-  const f = await fixture(t);
-  const waiting = f.phase('wait');
-  const cancelled = f.phase('cancel');
-  assertSameRun(waiting, cancelled);
-  assert.equal(cancelled.status, 'cancelled');
-  assertSends(f, []);
-  const replay = f.phase('resume');
-  assertSameRun(waiting, replay);
-  assert.equal(replay.status, 'cancelled');
-  assertSends(f, []);
-  assert.equal(f.journal().fences.length, 1);
-});
-
-test('public Model: cancellation after one saved response retains it and prevents later sends', async t => {
-  const f = await fixture(t, {count: 3});
-  const waiting = f.phase('wait');
-  const cancelled = f.phase('approve-cancel-saved');
-  assertSameRun(waiting, cancelled);
-  assert.equal(cancelled.status, 'cancelled');
-  assertSends(f, ['alpha']);
-  assert.deepEqual(slotStates(f.journal()), ['SavedSuccess', 'Unsent', 'Unsent']);
-  assert.equal(savedEvidence(f, 0, 'model_slot_capture').outcome, 'ok');
-  assert.equal(f.phase('resume').status, 'cancelled');
-  assertSends(f, ['alpha']);
-});
-
-test('public Model: expired Checkpoint cannot cause a provider send after restart', async t => {
-  const f = await fixture(t, {checkpointTtlMs: 1000});
-  const waiting = f.phase('wait');
-  await pause(1100);
-  const replay = f.phase('probe');
-  assertSameRun(waiting, replay);
-  assert.notEqual(replay.status, 'succeeded');
-  assertSends(f, []);
-  assert.deepEqual(slotStates(f.journal()), ['Unsent']);
-  assert.equal(f.journal().checkpoints[0].closure, 'expired');
-});
-
-test('public Model: approving an old provider scope never authorizes a replacement binding', async t => {
-  const f = await fixture(t);
-  const waiting = f.phase('wait');
-  const original = f.journal().scopes[0];
-  const replay = f.phase('approve-replacement-probe', {providerRevision: 'public-model-fixture-2'});
-  assertSameRun(waiting, replay);
-  assert.notEqual(replay.status, 'succeeded');
-  assertSends(f, []);
-  assert.deepEqual(slotStates(f.journal()), ['Unsent']);
-  assert.equal(f.journal().scopes[0].scope_cid, original.scope_cid);
-  assert.equal(f.journal().scopes[0].originals_json, original.originals_json);
-});
 
 test('public Model: immediate Allow partial crash uses the same journal and never repeats its saved send', async t => {
   const f = await fixture(t, {immediate: true, count: 3});
@@ -302,9 +415,9 @@ test('public acquired Model: Source approval and frozen input remain separate fr
 });
 
 
-for (const refusal of ['denyInfer', 'denyEgress']) {
-  test(`public Model: current ${refusal} fences an approved unsent scope on restart`, async t => {
-    const f = await fixture(t);
+for (const transport of ['local', 'https']) for (const refusal of ['denyInfer', 'denyEgress']) {
+  test(`public Model ${transport}: current ${refusal} fences an approved unsent scope on restart`, async t => {
+    const f = await fixture(t, {transport});
     const waiting = f.phase('wait');
     const before = f.journal().scopes[0];
     const replay = f.phase('approve-refused-probe', {[refusal]: true});
