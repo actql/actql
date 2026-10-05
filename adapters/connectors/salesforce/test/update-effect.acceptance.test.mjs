@@ -6,6 +6,7 @@
 // the update path moves to the common author interface and must hold, unchanged,
 // after it.
 import assert from 'node:assert/strict';
+import {DatabaseSync} from 'node:sqlite';
 import test from 'node:test';
 import {effectProgram} from './installed-salesforce-effect.fixture.mjs';
 import {numberText} from './salesforce-effect-site.fixture.mjs';
@@ -180,5 +181,103 @@ test('a reply lost after the org applied the update is unknown and never resent'
       const current = await again.status();
       return terminal.includes(current.status) ? current : undefined;
     })).status, 'needs_reconciliation');
+    assert.equal(setup.writes().length, 1);
+  });
+
+// Wait until the Run's physical work and its cleanup are confirmed stopped.
+const stopped = attached => waitFor(async () => {
+  const current = await attached.status();
+  return current.control?.physical_stop === 'confirmed' ? current : undefined;
+});
+
+// The first close of a journal of `module` fails; every close is counted.
+function failFirstClose(t, module) {
+  const original = DatabaseSync.prototype.close;
+  const injected = new Error('InjectedJournalCloseFailure');
+  const counts = {attempts: 0, failed: 0};
+  DatabaseSync.prototype.close = function () {
+    if (new Error().stack.includes(module)) {
+      counts.attempts++;
+      if (counts.failed === 0) {
+        counts.failed++;
+        throw injected;
+      }
+    }
+    return original.call(this);
+  };
+  const restore = () => { DatabaseSync.prototype.close = original; };
+  t.after(restore);
+  return {injected, counts, restore};
+}
+
+// The installed Host's cleanup: a journal close that fails while the Host
+// shuts down keeps the release pending, with its original error, and the
+// Host's cleanup handle retries it without any provider I/O. The public Run
+// state is checked separately from the internal release.
+test('a failed journal close at Host shutdown is retried without provider I/O',
+  async t => {
+    const setup = await readComputeEffectInstallation(t);
+    const first = await setup.openHost();
+    const {execution} = await submit(setup, first, nameProgram(setup,
+      ['a00000000000001']), 'update-cleanup');
+    await approveStopped(setup, first, execution);
+    const {host, attached} = await resumed(setup, execution);
+    await stopped(attached);
+    const seen = setup.org.seen.length;
+    const fault = failFirstClose(t, 'sqlite-credential-journal.mjs');
+    let pending;
+    await assert.rejects(host.close(), error => {
+      pending = error;
+      assert.equal(error.code, 'InstalledHostCleanupPending');
+      assert.ok(error.cleanupErrors.some(item =>
+        item.error === fault.injected));
+      assert.ok(error.cleanupHandle.status().pending.length > 0);
+      return true;
+    });
+    // Internal release: the same handle's retry completes it.
+    await pending.cleanupHandle.retry();
+    assert.deepEqual(pending.cleanupHandle.status().pending, []);
+    fault.restore();
+    assert.equal(setup.org.seen.length, seen);
+    // Public state: the Run stays succeeded with its one write.
+    const after = await setup.openHost();
+    const again = await (await after.as('owner-token')).attach(execution.ref);
+    assert.equal((await again.status()).status, 'succeeded');
+    assert.equal(setup.writes().length, 1);
+  });
+
+// The recovered Effect Ledger handle is released by the Host's recovery
+// custody after the Run settles. A close that fails there stays that owner's
+// pending cleanup and is retried by the Host, with no provider I/O and no
+// change to the Run's public state.
+test('a failed close of the recovered Ledger handle is retried by the Host',
+  async t => {
+    const setup = await readComputeEffectInstallation(t);
+    const first = await setup.openHost();
+    const {execution} = await submit(setup, first, nameProgram(setup,
+      ['a00000000000001']), 'update-ledger-cleanup');
+    await approveStopped(setup, first, execution);
+    const host = await setup.openHost();
+    const fault = failFirstClose(t, 'effect-ledger.mjs');
+    const attached = await (await host.as('owner-token'))
+      .attach(execution.ref);
+    const state = await waitFor(async () => {
+      const current = await attached.status();
+      return terminal.includes(current.status) ? current : undefined;
+    });
+    // Public state: settled, written once.
+    assert.equal(state.status, 'succeeded', JSON.stringify(state));
+    assert.equal(setup.writes().length, 1);
+    const seen = setup.org.seen.length;
+    // Internal release: the failed first close is retried by its owner
+    // before the Host completes its shutdown.
+    await host.close();
+    assert.equal(fault.counts.failed, 1);
+    assert.ok(fault.counts.attempts >= 2);
+    fault.restore();
+    assert.equal(setup.org.seen.length, seen);
+    const after = await setup.openHost();
+    const again = await (await after.as('owner-token')).attach(execution.ref);
+    assert.equal((await again.status()).status, 'succeeded');
     assert.equal(setup.writes().length, 1);
   });

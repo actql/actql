@@ -97,8 +97,10 @@ test('a denied commit or check read writes nothing',
     const cases = [
       ['commit', org => [recordEntry(org, 'read'),
         recordEntry(org, 'effect', 'deny')], 'ExecutionAuthorizationDenied'],
+      // Update Sets run on the Host's installed row Effect, whose common
+      // owner refuses the undecided target read.
       ['check read', org => [recordEntry(org, 'effect')],
-        'SalesforceEffectTargetReadNotAuthorized'],
+        'InstalledRowEffectCheckNotAuthorized'],
     ];
     for (const [label, entries, code] of cases) {
       const installation = await installedEffect(t, {writes: [update]});
@@ -224,7 +226,7 @@ test('a recovered Ledger handle whose close fails stays pending until its owner 
       () => undefined, error => error);
     // The primary failure is kept; the factory leaves the retained handle to
     // its owner.
-    assert.equal(failure?.code, 'SalesforceEffectInstallationChanged');
+    assert.equal(failure?.code, 'InstalledRowEffectInstallationChanged');
     assert.equal(owners.length, 1);
     assert.equal(owners[0].cleanupPending(), true);
     const counts = failLedgerCloses(t, 1);
@@ -278,13 +280,13 @@ test('a restarted Set is refused before any write when one target changed',
           'External_Key__c']}];
         await installation.publish({writes});
         return {writes};
-      }, 'SalesforceEffectMappingNotInstalled'],
+      }, 'InstalledRowEffectMappingNotInstalled'],
       ['Site generation', async installation => {
         await installation.writeSite({...installation.siteDocument,
           siteGeneration: 2});
         await installation.publish();
         return {};
-      }, 'SalesforceEffectInstallationChanged'],
+      }, 'InstalledRowEffectInstallationChanged'],
       ['target', async installation => {
         installation.org.setTargetName('changed-after-preview');
         return {};
@@ -293,7 +295,7 @@ test('a restarted Set is refused before any write when one target changed',
       // so the Preview's capability no longer matches.
       ['runtime', async () => ({options: {
         runtimeBundleCid: `sha256:${'c'.repeat(64)}`}}),
-      'SalesforceEffectInstallationChanged'],
+      'InstalledRowEffectInstallationChanged'],
     ];
     for (const [label, change, code] of changes) {
       const {installation, state, accepted, continuation} =
@@ -405,7 +407,7 @@ test('each member writes only under its own tuple\'s commit decision for the Set
       const failure = await host.run(updateProgram(host.installed.mappings),
         `commit-${label.replaceAll(' ', '-')}`).then(() => undefined,
         error => error);
-      assert.ok(['SalesforceEffectCommitNotAuthorized',
+      assert.ok(['InstalledRowEffectCommitNotAuthorized',
         'SalesforceCredentialGrantNotAuthorized'].includes(failure?.code),
       `${label}: ${failure?.code}`);
       assert.equal(writesOf(installation.org).length, 0, label);
