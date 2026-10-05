@@ -113,7 +113,7 @@ export function admitNativeOwnerObservations(observations, taskHoldings, selecte
     assert.equal(after.unconfirmedEnvironments, 0,
       'NativeResidentTransactionUnconfirmed');
     const body = candidates[index].body;
-    assert(Array.isArray(body) && body[0] === 'actql-policy-candidates/0.2' &&
+    assert(Array.isArray(body) && body[0] === 'actql-policy-candidates/0.1' &&
       Array.isArray(body[5]), 'InvalidNativePlannerProjection');
     const choice = choices[index];
     assert.equal(choice.name, selected[index], 'NativeExecutionSelectionChanged');

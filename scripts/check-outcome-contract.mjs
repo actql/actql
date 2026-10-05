@@ -9,6 +9,9 @@ const path = 'spec/contracts/actql-protocol-schemas.json';
 const code = {type: 'string', pattern: '^[a-z][a-z0-9_]{0,63}$'};
 const opaqueRef = {type: 'string', minLength: 1, maxLength: 128,
   pattern: '^[A-Za-z0-9:_-]+$'};
+// The body's ordinary CID is checked by the generated consumer boundary.
+// A constant equal to this schema's own CID would create a cyclic preimage.
+const schemaCid = {type: 'string', pattern: '^sha256:[0-9a-f]{64}$'};
 
 const documentId = {enum: ['source', 'parameter_declarations', 'parameters']};
 const revision = {type: 'string', pattern: '^rev:[0-9a-f]{64}$'};
@@ -34,7 +37,11 @@ const typeName = {enum: ['null', 'boolean', 'number', 'string', 'array', 'object
 const lexicalIssues = ['unexpected_end', 'unexpected_token', 'invalid_escape',
   'invalid_scalar', 'empty_identifier', 'unterminated_comment', 'invalid_number', 'invalid_parameter'];
 const graphIssues = ['invalid_kind', 'invalid_output_rows'];
+const subgraphIssues = ['invalid_node_selector'];
 const expressionIssues = ['unknown_reference', 'invalid_arguments', 'invalid_number', 'expected_boolean'];
+const frameIssues = ['invalid_bounds'];
+const scalarDomains = ['positive_safe_integer', 'nonnegative_safe_integer', 'unit_fraction',
+  'finite_number', 'duration', 'positive_milliseconds', 'signed_milliseconds', 'timestamp'];
 export const checkReasonSchema = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
   $id: 'https://smooth.dev/schemas/actql-check-reason-0.1.json',
@@ -53,21 +60,51 @@ export const checkReasonSchema = {
         required: ['parameter', 'constraint'],
         properties: {parameter: parameterName,
           constraint: {enum: ['numeric', 'duration', 'array_length', 'array_size']}}},
+      {type: 'object', additionalProperties: false, required: ['parameter', 'domain'],
+        properties: {parameter: parameterName, domain: {enum: scalarDomains}}},
       {type: 'object', additionalProperties: false, required: ['operation', 'issue'],
         properties: {operation: {const: 'components'}, issue: {enum: graphIssues}}},
+      {type: 'object', additionalProperties: false, required: ['operation', 'issue'],
+        properties: {operation: {const: 'subgraph'}, issue: {enum: subgraphIssues}}},
       {type: 'object', additionalProperties: false, required: ['issue'],
-        properties: {issue: {enum: [...new Set([...lexicalIssues, ...expressionIssues])]}}},
+        properties: {issue: {enum: [...new Set([...lexicalIssues, ...expressionIssues, ...frameIssues])]}}},
     ]}},
   allOf: [
+    // Known locations retain the input domain described by their reason.
+    // Position remains optional when the existing owner cannot establish it.
+    {if: {properties: {code: {enum: ['query_syntax_invalid', 'parameter_undeclared']}}},
+      then: {properties: {location: {properties: {kind: {const: 'text'},
+        document_id: {const: 'source'}}}}}},
+    {if: {properties: {code: {enum: ['supplied_value_type_mismatch',
+      'supplied_value_constraint_violation', 'supplied_value_invalid', 'supplied_parameters_invalid']}}},
+      then: {properties: {location: {properties: {kind: {const: 'structured'},
+        document_id: {const: 'parameters'}}}}}},
+    {if: {properties: {code: {enum: ['parameter_declarations_invalid', 'parameter_value_required']}}},
+      then: {properties: {location: {properties: {kind: {const: 'structured'},
+        document_id: {const: 'parameter_declarations'}}}}}},
     {if: {properties: {code: {const: 'supplied_value_type_mismatch'}}},
       then: {required: ['facts'], properties: {facts: {required: ['actual_type']}}}},
+    {if: {properties: {code: {const: 'parameter_default_type_mismatch'}}},
+      then: {required: ['facts'], properties: {facts: {required: ['actual_type']},
+        location: {properties: {kind: {const: 'structured'},
+          document_id: {const: 'parameter_declarations'}}}}}},
     {if: {properties: {code: {const: 'parameter_undeclared'}}},
       then: {required: ['facts'], properties: {facts: {required: ['parameter'], allOf: [
-        {not: {required: ['expected_type']}}, {not: {required: ['constraint']}}]}}}},
+        {not: {required: ['expected_type']}}, {not: {required: ['constraint']}}, {not: {required: ['domain']}}]}}}},
     {if: {properties: {code: {const: 'parameter_value_required'}}},
       then: {required: ['facts'], properties: {facts: {required: ['expected_type'], not: {required: ['actual_type']}}}}},
+    {if: {properties: {code: {const: 'parameter_unused'}}},
+      then: {required: ['facts'], properties: {
+        facts: {type: 'object', additionalProperties: false,
+          required: ['parameter'], properties: {parameter: parameterName}},
+        location: {properties: {kind: {const: 'structured'},
+          document_id: {const: 'parameter_declarations'}}}}}},
     {if: {properties: {code: {const: 'supplied_value_constraint_violation'}}},
       then: {required: ['facts'], properties: {facts: {required: ['constraint']}}}},
+    {if: {properties: {code: {const: 'operation_parameter_invalid'}}},
+      then: {required: ['facts'], properties: {facts: {required: ['domain']},
+        location: {properties: {kind: {const: 'structured'},
+          document_id: {enum: ['parameters', 'parameter_declarations']}}}}}},
     {if: {properties: {code: {const: 'query_lexical_invalid'}}},
       then: {required: ['facts'], properties: {facts: {required: ['issue'], properties: {issue: {enum: lexicalIssues}}},
         location: {properties: {kind: {const: 'text'}}}}}},
@@ -75,11 +112,16 @@ export const checkReasonSchema = {
       then: {required: ['facts'], properties: {facts: {required: ['issue'],
         properties: {issue: {enum: expressionIssues}}},
         location: {properties: {kind: {const: 'text'}}}}}},
+    {if: {properties: {code: {const: 'query_frame_invalid'}}},
+      then: {required: ['facts'], properties: {facts: {required: ['issue'],
+        properties: {issue: {enum: frameIssues}}},
+        location: {properties: {kind: {const: 'text'}, document_id: {const: 'source'}}}}}},
     {if: {properties: {code: {const: 'graph_operation_invalid'}}},
       then: {required: ['facts'], properties: {facts: {required: ['operation', 'issue'],
-        properties: {operation: {const: 'components'}, issue: {enum: graphIssues}}},
+        properties: {operation: {enum: ['components', 'subgraph']},
+          issue: {enum: [...graphIssues, ...subgraphIssues]}}},
         location: {properties: {kind: {const: 'text'}}}}}},
-    {if: {properties: {code: {not: {enum: ['supplied_value_type_mismatch', 'parameter_value_required', 'parameter_undeclared', 'supplied_value_constraint_violation', 'query_lexical_invalid', 'query_expression_invalid', 'graph_operation_invalid']}}}},
+    {if: {properties: {code: {not: {enum: ['supplied_value_type_mismatch', 'parameter_default_type_mismatch', 'parameter_value_required', 'parameter_undeclared', 'parameter_unused', 'supplied_value_constraint_violation', 'query_lexical_invalid', 'query_expression_invalid', 'query_frame_invalid', 'graph_operation_invalid', 'operation_parameter_invalid']}}}},
       then: {not: {required: ['facts']}}},
   ],
 };
@@ -141,28 +183,32 @@ export function checkOutcomeSchema() {
     title: 'actql-check-outcome-0.1',
     oneOf: [
       {type: 'object', additionalProperties: false,
-        required: ['outcome', 'report', 'version', 'reason_schema_cid'],
+        required: ['outcome', 'report', 'version', 'reason_schema_cid', 'outcome_schema_cid'],
         properties: {
           outcome: {const: 'completed'},
           report: report(['invalid', 'undetermined', 'verified']),
+          outcome_schema_cid: schemaCid,
           reason_schema_cid: {const: checkReasonSchemaCid},
           version: {const: 'actql-check-outcome/0.1'}}},
       // A partial report can never verify.
       {type: 'object', additionalProperties: false,
-        required: ['outcome', 'problem', 'version', 'reason_schema_cid'],
+        required: ['outcome', 'problem', 'version', 'reason_schema_cid', 'outcome_schema_cid', 'correlation_ref'],
         properties: {
           outcome: {const: 'failed'},
           partial_report: report(['invalid', 'undetermined']),
           problem,
+          correlation_ref: opaqueRef,
+          outcome_schema_cid: schemaCid,
           reason_schema_cid: {const: checkReasonSchemaCid},
           version: {const: 'actql-check-outcome/0.1'}}},
       // No verdict, report, scope or context field.
       {type: 'object', additionalProperties: false,
-        required: ['correlation_ref', 'outcome', 'problem', 'version', 'reason_schema_cid'],
+        required: ['correlation_ref', 'outcome', 'problem', 'version', 'reason_schema_cid', 'outcome_schema_cid'],
         properties: {
           correlation_ref: opaqueRef,
           outcome: {const: 'unavailable'},
           problem,
+          outcome_schema_cid: schemaCid,
           reason_schema_cid: {const: checkReasonSchemaCid},
           version: {const: 'actql-check-outcome/0.1'}}},
     ],
@@ -190,18 +236,21 @@ export function checkCheckOutcomeSchema(registry) {
     machineCid(registry.artifact_schemas));
 }
 
+const generatedPins = () =>
+  '// Generated by scripts/check-outcome-contract.mjs --write.\n\n///|\n' +
+  'let check_reason_schema_cid = ' + JSON.stringify(checkReasonSchemaCid) + '\n\n///|\n' +
+  'let check_outcome_schema_cid = ' + JSON.stringify(machineCid(checkOutcomeSchema())) + '\n';
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const registry = JSON.parse(readFileSync(path, 'utf8'));
   if (process.argv.includes('--write')) {
     applyCheckOutcomeSchema(registry);
     writeFileSync(path, JSON.stringify(registry, null, 2) + '\n');
     writeFileSync('src/connectors_builtin_node/check_reason_schema.generated.mbt',
-      '// Generated by scripts/check-outcome-contract.mjs --write.\n\n///|\n' +
-      'let check_reason_schema_cid = ' + JSON.stringify(checkReasonSchemaCid) + '\n');
+      generatedPins());
   }
   checkCheckOutcomeSchema(registry);
   assert.equal(readFileSync(
     'src/connectors_builtin_node/check_reason_schema.generated.mbt', 'utf8'),
-  '// Generated by scripts/check-outcome-contract.mjs --write.\n\n///|\n' +
-    'let check_reason_schema_cid = ' + JSON.stringify(checkReasonSchemaCid) + '\n');
+  generatedPins());
 }
