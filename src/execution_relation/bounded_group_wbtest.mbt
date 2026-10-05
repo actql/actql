@@ -174,17 +174,34 @@ test "bounded group rechecks raw text output across cancellable steps" {
     }
   }
   assert_true(rechecking)
-  assert_true(
-    advance_bounded_group_execution(execution, 1).unwrap()
-    is BoundedGroupContinue(..),
-  )
+  // Advance the node check and one TextUnits chunk before cancelling.
+  for _ in 0..<2 {
+    assert_true(
+      advance_bounded_group_execution(execution, 1).unwrap()
+      is BoundedGroupContinue(..),
+    )
+  }
   assert_true(bounded_group_rechecking_output(execution))
+  assert_false(execution.accepted.val)
+  assert_true(execution.state.rows.val is None)
+  assert_true(
+    execution.state.output is Some(output) && output.buffer.rows.is_empty(),
+  )
+  assert_true(execution.state.output_pending is None)
   assert_true(@bounded.request_cancel(control))
   assert_true(
     advance_bounded_group_execution(execution, 1).unwrap()
     is BoundedGroupStopped(_, ..),
   )
   assert_true(cleanup_bounded_group_execution(execution).unwrap())
+  assert_false(execution.accepted.val)
+  assert_true(execution.state.rows.val is None)
+  assert_true(execution.state.output is None)
+  assert_true(execution.state.output_recheck is None)
+  assert_true(execution.state.output_measure is None)
+  assert_true(execution.state.output_pending is None)
+  assert_true(execution.state.output_row.is_empty())
+  assert_eq(execution.state.workspace.live, 0)
   assert_true(completed_output_available(source))
   let (_, started, source) = bounded_relation_start(
     schema, rows, operation, "group_0", false,

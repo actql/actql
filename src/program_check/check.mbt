@@ -110,6 +110,8 @@ fn check_supported_source(
               | "graph_bounds"
               | "graphs_equal"
               | "normalize_graph"
+              | "apply_graph_delta"
+              | "graph_diff"
               | "components"
               | "to_vectors"
               | "normalize_vectors"

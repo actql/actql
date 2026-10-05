@@ -56,6 +56,8 @@ enum Source {
 ///|
 pub enum Poll {
   Continue(work~ : Int64)
+  Waiting(work~ : Int64)
+  Settling(Int, work~ : Int64)
   Complete(@relation.CompletedOutput, work~ : Int64)
   Failed(Issue, work~ : Int64)
   Stopped(work~ : Int64)
@@ -77,6 +79,7 @@ pub struct Execution {
   mut rows : @relation.PreparedInferRows?
   mut identity : @relation.CompletedRelationIdentityScan?
   mut call_scope : @publication_host.ClientInferCallScope?
+  mut saved_call_scope : @publication_host.ClientInferSavedCallScope?
   mut model : @model.ModelExecution?
   mut capture : @model.ModelCaptureBundle?
   mut output : @model.ModelOutputPreparation?
@@ -93,6 +96,8 @@ pub struct Execution {
   mut output_uses : Int
   mut run_binding : ExecutionRunBinding?
   mut dispatch_admission : @publication_host.ClientInferDispatchAdmission?
+  mut durable_calls : Bool
+  mut model_send_mask : Array[Bool]?
   mut quantity_capacity : @model.ModelQuantityCapacity?
   mut physical_preflight : @model.ModelPhysicalPreflight?
   mut egress_admission : @publication_host.ClientInferEgressAdmission?
@@ -459,6 +464,7 @@ fn start_occurrence(
     rows: None,
     identity: None,
     call_scope: None,
+    saved_call_scope: None,
     model: None,
     capture: None,
     output: None,
@@ -474,6 +480,8 @@ fn start_occurrence(
     output_uses: 0,
     run_binding: None,
     dispatch_admission: None,
+    durable_calls: false,
+    model_send_mask: None,
     quantity_capacity: None,
     physical_preflight: None,
     egress_admission: None,
@@ -614,6 +622,8 @@ fn begin_model(active : Execution) -> Poll {
         active.limits.model,
         call_scope=active.call_scope,
         dispatch_admission=active.dispatch_admission,
+        durable_calls=active.durable_calls,
+        send_mask=active.model_send_mask,
         quantity_capacity=active.quantity_capacity,
         physical_preflight=active.physical_preflight,
         egress_admission=active.egress_admission,
@@ -758,18 +768,25 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
         @input.client_infer_completed_input(active.input) is Some(completed) else {
         return fail(active, InvalidAdvance)
       }
-      active.call_scope = match
-        @publication_host.issue_client_infer_occurrence_call_scope(
-          active.occurrence,
-          plan,
-          completed,
-          receipt,
-          100000,
-          10000,
-          100,
-          captured=active.acquired_input,
-          sources=active.composed_sources,
-        ) {
+      let scoped = match active.saved_call_scope {
+        Some(saved) =>
+          @publication_host.restore_client_infer_call_scope(
+            saved, completed, receipt,
+          )
+        None =>
+          @publication_host.issue_client_infer_occurrence_call_scope(
+            active.occurrence,
+            plan,
+            completed,
+            receipt,
+            100000,
+            10000,
+            100,
+            captured=active.acquired_input,
+            sources=active.composed_sources,
+          )
+      }
+      active.call_scope = match scoped {
         Ok(value) => Some(value)
         Err(issue) => return fail(active, CallScope(issue))
       }
@@ -786,6 +803,18 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
             return fail(active, InvalidAdvance)
           }
           Continue(work=active.work)
+        }
+        Ok(@model.Waiting(_, work)) => {
+          if !account(active, work) {
+            return fail(active, InvalidAdvance)
+          }
+          Waiting(work=active.work)
+        }
+        Ok(@model.Settling(slot, _, work)) => {
+          if !account(active, work) {
+            return fail(active, InvalidAdvance)
+          }
+          Settling(slot, work=active.work)
         }
         Ok(@model.Completed(capture, _, work)) => {
           if !account(active, work) {
@@ -900,6 +929,8 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
       }
       let work = match poll {
         @local.Continue(work~, ..)
+        | @local.Waiting(work~, ..)
+        | @local.Settling(_, work~, ..)
         | @local.Complete(_, work~, ..)
         | @local.Failed(_, work~, ..)
         | @local.Stopped(work~, ..)
@@ -912,6 +943,10 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
       }
       match poll {
         @local.Continue(..) => Continue(work=active.work)
+        // A Compute-only suffix has no approval/custody boundary. Preserve
+        // its owner for cancellation and cleanup if an invalid provider pauses.
+        @local.Waiting(..) | @local.Settling(_, ..) =>
+          fail(active, InvalidAdvance)
         @local.Complete(output, ..) => {
           if active.cancelled {
             return stopped(active)
@@ -957,6 +992,14 @@ pub fn advance(active : Execution, quantum : Int) -> Result[Poll, Issue] {
 
 ///|
 pub fn cancel(active : Execution) -> Bool {
+  if active.cancelled &&
+    !active.reclaimed &&
+    active.phase is Model &&
+    active.model is Some(model) {
+    // A second stop observation after per-call custody is acknowledged must
+    // finish the already-fenced child; it never authorizes another send.
+    @model.request_model_cancel(model) |> ignore
+  }
   if active.cancelled || active.reclaimed || active.phase is Terminal {
     return false
   }
@@ -1013,6 +1056,8 @@ pub fn execution_stopped(active : Execution) -> Bool {
 pub fn poll_kind(poll : Poll) -> String {
   match poll {
     Continue(_) => "continue"
+    Waiting(_) => "waiting"
+    Settling(_, ..) => "settling"
     Complete(_, ..) => "complete"
     Failed(_, ..) => "failed"
     Stopped(_) => "stopped"

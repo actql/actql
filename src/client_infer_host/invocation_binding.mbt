@@ -46,6 +46,12 @@ pub fn bind_run(
     physical_equal(plan, selected) else {
     return Err(ForeignRun)
   }
+  if active.saved_call_scope is Some(saved) &&
+    !@publication_host.client_infer_saved_call_scope_matches_run(
+      saved, compiled, definition,
+    ) {
+    return Err(ForeignRun)
+  }
   if active.reclaimed || active.cancelled || active.advancing {
     return Err(IncompleteExecution)
   }

@@ -122,6 +122,8 @@ pub struct LocalManagedInputTransfer[T] {
 ///|
 pub(all) struct LocalManagedAdvance {
   complete : Bool
+  waiting : Bool
+  settlement : Int?
   progress : Int64
   work : Int64
 }
@@ -1125,7 +1127,13 @@ pub fn[T] start_local_managed_dispatch(
       return Err(Configuration(InvalidLimits))
     }
     if execution_finished.val {
-      return Ok({ complete: true, progress: 0L, work: 0L, })
+      return Ok({
+        complete: true,
+        waiting: false,
+        settlement: None,
+        progress: 0L,
+        work: 0L,
+      })
     }
     for index, input in relation_inputs {
       if !(input is SuppliedRelationInput(_)) && reads[index] is None {
@@ -1208,7 +1216,40 @@ pub fn[T] start_local_managed_dispatch(
             if progress < 0L || work <= 0L || work > quantum.to_int64() {
               Err(Configuration(InvalidLimits))
             } else {
-              Ok({ complete: false, progress, work, })
+              Ok({
+                complete: false,
+                waiting: false,
+                settlement: None,
+                progress,
+                work,
+              })
+            }
+          Ok(@local.Waiting(progress~, work~)) =>
+            if progress < 0L || work < 0L || work > quantum.to_int64() {
+              Err(Configuration(InvalidLimits))
+            } else {
+              Ok({
+                complete: false,
+                waiting: true,
+                settlement: None,
+                progress,
+                work,
+              })
+            }
+          Ok(@local.Settling(slot, progress~, work~)) =>
+            if slot < 0 ||
+              progress < 0L ||
+              work < 0L ||
+              work > quantum.to_int64() {
+              Err(Configuration(InvalidLimits))
+            } else {
+              Ok({
+                complete: false,
+                waiting: false,
+                settlement: Some(slot),
+                progress,
+                work,
+              })
             }
           Ok(@local.Complete(output, progress~, work~)) => {
             if progress < 0L || work < 0L || work > quantum.to_int64() {
@@ -1228,7 +1269,13 @@ pub fn[T] start_local_managed_dispatch(
                 @execution.close_managed_producer_bridge(bridge)
               }
             }
-            Ok({ complete: true, progress, work, })
+            Ok({
+              complete: true,
+              waiting: false,
+              settlement: None,
+              progress,
+              work,
+            })
           }
           Ok(@local.CarrierComplete(material, progress~, work~)) => {
             if progress < 0L ||
@@ -1244,7 +1291,13 @@ pub fn[T] start_local_managed_dispatch(
                 @execution.close_managed_producer_bridge(bridge)
               }
             }
-            Ok({ complete: true, progress, work, })
+            Ok({
+              complete: true,
+              waiting: false,
+              settlement: None,
+              progress,
+              work,
+            })
           }
           Ok(@local.Failed(issue, progress~, work~)) => {
             if progress < 0L || work < 0L || work > quantum.to_int64() {
@@ -1293,7 +1346,12 @@ pub fn[T] start_local_managed_dispatch(
       }
       while !execution_finished.val {
         match advance(1024) {
-          Ok(_) => ()
+          Ok(observation) =>
+            if observation.waiting || observation.settlement is Some(_) {
+              // A synchronous caller cannot supply asynchronous custody.
+              // Leave the owner available to a bounded Host or explicit stop.
+              return Err(Configuration(InputUnavailable))
+            }
           Err(issue) => return Err(issue)
         }
       }
@@ -1424,6 +1482,8 @@ pub fn[T] start_local_managed_dispatch(
       if work == quantum {
         return Ok({
           complete: false,
+          waiting: false,
+          settlement: None,
           progress: finalization_progress(),
           work: work.to_int64(),
         })
@@ -1459,6 +1519,8 @@ pub fn[T] start_local_managed_dispatch(
       if work == quantum {
         return Ok({
           complete: false,
+          waiting: false,
+          settlement: None,
           progress: finalization_progress(),
           work: work.to_int64(),
         })
@@ -1533,6 +1595,8 @@ pub fn[T] start_local_managed_dispatch(
               if !ready {
                 return Ok({
                   complete: false,
+                  waiting: false,
+                  settlement: None,
                   progress: finalization_progress(),
                   work: work.to_int64(),
                 })
@@ -1604,6 +1668,8 @@ pub fn[T] start_local_managed_dispatch(
       if finalization_identity.val < identity_requirements.length() {
         return Ok({
           complete: false,
+          waiting: false,
+          settlement: None,
           progress: finalization_progress(),
           work: work.to_int64(),
         })
@@ -1665,6 +1731,8 @@ pub fn[T] start_local_managed_dispatch(
         work == quantum {
         return Ok({
           complete: false,
+          waiting: false,
+          settlement: None,
           progress: finalization_progress(),
           work: work.to_int64(),
         })
@@ -1707,6 +1775,8 @@ pub fn[T] start_local_managed_dispatch(
       if work == quantum {
         return Ok({
           complete: false,
+          waiting: false,
+          settlement: None,
           progress: finalization_progress(),
           work: work.to_int64(),
         })
@@ -1735,6 +1805,8 @@ pub fn[T] start_local_managed_dispatch(
         work == quantum {
         return Ok({
           complete: false,
+          waiting: false,
+          settlement: None,
           progress: finalization_progress(),
           work: work.to_int64(),
         })
@@ -1759,6 +1831,8 @@ pub fn[T] start_local_managed_dispatch(
       if finalization_deadline.val < deadlines.length() {
         return Ok({
           complete: false,
+          waiting: false,
+          settlement: None,
           progress: finalization_progress(),
           work: work.to_int64(),
         })
@@ -1766,6 +1840,8 @@ pub fn[T] start_local_managed_dispatch(
       finalization_ready.val = true
       Ok({
         complete: true,
+        waiting: false,
+        settlement: None,
         progress: finalization_progress(),
         work: work.to_int64(),
       })
@@ -1912,7 +1988,7 @@ pub fn[T] start_local_managed_dispatch(
     carrier_material: fn() { carrier.val },
     prepare_relation_snapshot: fn(storage_released) {
       // Retain checked Graph row bridges, sparse selections, derived and
-      // grouped rows, and node traversals. Operation keys come from the
+      // grouped rows, Delta rows, and node traversals. Operation keys come from the
       // checked owner, not caller-supplied names.
       let prepared = @lower.bound_preparation(
         @execution.generated_sequence_owner(setup.sequence),
@@ -1931,7 +2007,8 @@ pub fn[T] start_local_managed_dispatch(
             graph_rows = true
           } else if key == "REL.derive" ||
             key == "REL.distinct" ||
-            key == "REL.groupBy" {
+            key == "REL.groupBy" ||
+            key == "SGA.diff" {
             graph_rows = true
           } else if (
               key == "REL.where" ||
@@ -2295,6 +2372,8 @@ pub fn[T] start_local_managed_dispatch(
         }
         Ok({
           complete: observation.complete,
+          waiting: false,
+          settlement: None,
           progress: observation.progress,
           work: delta,
         })

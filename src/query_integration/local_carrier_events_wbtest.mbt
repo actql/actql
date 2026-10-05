@@ -1747,6 +1747,10 @@ test "registered Events provider advances and reclaims one typed pipeline" {
       @local_connector.CarrierComplete(_, ..) =>
         fail("provider returned a Carrier output")
       @local_connector.Failed(_, ..) => fail("provider failed")
+      @local_connector.Waiting(..) =>
+        fail("synchronous provider unexpectedly waited")
+      @local_connector.Settling(_, ..) =>
+        fail("synchronous provider unexpectedly requested settlement")
       @local_connector.Stopped(..) => fail("provider stopped")
     }
   }
@@ -1798,6 +1802,10 @@ test "registered Events provider returns retained Carrier material" {
       @local_connector.CarrierComplete(value, ..) => material = Some(value)
       @local_connector.Complete(_, ..) => fail("provider returned rows")
       @local_connector.Failed(_, ..) => fail("provider failed")
+      @local_connector.Waiting(..) =>
+        fail("synchronous provider unexpectedly waited")
+      @local_connector.Settling(_, ..) =>
+        fail("synchronous provider unexpectedly requested settlement")
       @local_connector.Stopped(..) => fail("provider stopped")
     }
   }
@@ -1853,6 +1861,10 @@ test "registered sequence provider consumes exact Events Carrier" {
       @local_connector.CarrierComplete(value, ..) => material = Some(value)
       @local_connector.Complete(_, ..) => fail("bridge returned rows")
       @local_connector.Failed(_, ..) => fail("bridge provider failed")
+      @local_connector.Waiting(..) =>
+        fail("synchronous provider unexpectedly waited")
+      @local_connector.Settling(_, ..) =>
+        fail("synchronous provider unexpectedly requested settlement")
       @local_connector.Stopped(..) => fail("bridge provider stopped")
     }
   }
@@ -1931,6 +1943,10 @@ test "registered sequence provider consumes exact Events Carrier" {
       @local_connector.CarrierComplete(_, ..) =>
         fail("sequence returned a Carrier")
       @local_connector.Failed(_, ..) => fail("sequence provider failed")
+      @local_connector.Waiting(..) =>
+        fail("synchronous provider unexpectedly waited")
+      @local_connector.Settling(_, ..) =>
+        fail("synchronous provider unexpectedly requested settlement")
       @local_connector.Stopped(..) => fail("sequence provider stopped")
     }
   }
@@ -1947,6 +1963,10 @@ test "registered sequence provider consumes exact Events Carrier" {
       @local_connector.CarrierComplete(_, ..) =>
         fail("sequence returned a Carrier")
       @local_connector.Failed(_, ..) => fail("sequence provider failed")
+      @local_connector.Waiting(..) =>
+        fail("synchronous provider unexpectedly waited")
+      @local_connector.Settling(_, ..) =>
+        fail("synchronous provider unexpectedly requested settlement")
       @local_connector.Stopped(..) => fail("sequence provider stopped")
     }
   }
@@ -2020,6 +2040,10 @@ test "registered Events provider consumes exact Carrier in two sessions" {
         source_material = Some(value)
       @local_connector.Complete(_, ..) => fail("bridge returned rows")
       @local_connector.Failed(_, ..) => fail("bridge provider failed")
+      @local_connector.Waiting(..) =>
+        fail("synchronous provider unexpectedly waited")
+      @local_connector.Settling(_, ..) =>
+        fail("synchronous provider unexpectedly requested settlement")
       @local_connector.Stopped(..) => fail("bridge provider stopped")
     }
   }
@@ -2082,6 +2106,10 @@ test "registered Events provider consumes exact Carrier in two sessions" {
       @local_connector.CarrierComplete(value, ..) => first_output = Some(value)
       @local_connector.Complete(_, ..) => fail("session returned rows")
       @local_connector.Failed(_, ..) => fail("first session failed")
+      @local_connector.Waiting(..) =>
+        fail("synchronous provider unexpectedly waited")
+      @local_connector.Settling(_, ..) =>
+        fail("synchronous provider unexpectedly requested settlement")
       @local_connector.Stopped(..) => fail("first session stopped")
     }
   }
@@ -2101,6 +2129,10 @@ test "registered Events provider consumes exact Carrier in two sessions" {
       @local_connector.CarrierComplete(value, ..) => second_output = Some(value)
       @local_connector.Complete(_, ..) => fail("session returned rows")
       @local_connector.Failed(_, ..) => fail("second session failed")
+      @local_connector.Waiting(..) =>
+        fail("synchronous provider unexpectedly waited")
+      @local_connector.Settling(_, ..) =>
+        fail("synchronous provider unexpectedly requested settlement")
       @local_connector.Stopped(..) => fail("second session stopped")
     }
   }
@@ -2156,6 +2188,10 @@ test "registered Events provider shares Carrier with Bridge consumer" {
         source_material = Some(value)
       @local_connector.Complete(_, ..) => fail("bridge returned rows")
       @local_connector.Failed(_, ..) => fail("bridge provider failed")
+      @local_connector.Waiting(..) =>
+        fail("synchronous provider unexpectedly waited")
+      @local_connector.Settling(_, ..) =>
+        fail("synchronous provider unexpectedly requested settlement")
       @local_connector.Stopped(..) => fail("bridge provider stopped")
     }
   }
@@ -2213,6 +2249,10 @@ test "registered Events provider shares Carrier with Bridge consumer" {
         session_output = Some(value)
       @local_connector.Complete(_, ..) => fail("session returned rows")
       @local_connector.Failed(_, ..) => fail("session failed")
+      @local_connector.Waiting(..) =>
+        fail("synchronous provider unexpectedly waited")
+      @local_connector.Settling(_, ..) =>
+        fail("synchronous provider unexpectedly requested settlement")
       @local_connector.Stopped(..) => fail("session stopped")
     }
   }
@@ -2230,6 +2270,10 @@ test "registered Events provider shares Carrier with Bridge consumer" {
       @local_connector.CarrierComplete(_, ..) =>
         fail("projection returned a Carrier")
       @local_connector.Failed(_, ..) => fail("projection failed")
+      @local_connector.Waiting(..) =>
+        fail("synchronous provider unexpectedly waited")
+      @local_connector.Settling(_, ..) =>
+        fail("synchronous provider unexpectedly requested settlement")
       @local_connector.Stopped(..) => fail("projection stopped")
     }
   }
@@ -2308,6 +2352,10 @@ test "selected Events transforms retain original checked coordinates" {
         @local_connector.CarrierComplete(value, ..) => produced = Some(value)
         @local_connector.Complete(_, ..) => fail("producer returned rows")
         @local_connector.Failed(_, ..) => fail("producer failed")
+        @local_connector.Waiting(..) =>
+          fail("synchronous provider unexpectedly waited")
+        @local_connector.Settling(_, ..) =>
+          fail("synchronous provider unexpectedly requested settlement")
         @local_connector.Stopped(..) => fail("producer stopped")
       }
     }
@@ -2358,6 +2406,10 @@ test "selected Events transforms retain original checked coordinates" {
           session_output = Some(value)
         @local_connector.Complete(_, ..) => fail("session returned rows")
         @local_connector.Failed(_, ..) => fail("session failed")
+        @local_connector.Waiting(..) =>
+          fail("synchronous provider unexpectedly waited")
+        @local_connector.Settling(_, ..) =>
+          fail("synchronous provider unexpectedly requested settlement")
         @local_connector.Stopped(..) => fail("session stopped")
       }
     }
@@ -2413,6 +2465,10 @@ test "selected Events transforms retain original checked coordinates" {
         @local_connector.CarrierComplete(_, ..) =>
           fail("projection returned Carrier")
         @local_connector.Failed(_, ..) => fail("projection failed")
+        @local_connector.Waiting(..) =>
+          fail("synchronous provider unexpectedly waited")
+        @local_connector.Settling(_, ..) =>
+          fail("synchronous provider unexpectedly requested settlement")
         @local_connector.Stopped(..) => fail("projection stopped")
       }
     }

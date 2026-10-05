@@ -1,20 +1,36 @@
 ///|
-test "unconnected Graph Delta cannot supply singleton publication evidence" {
+test "connected Graph Delta does not invent singleton publication order" {
   let graph = property_query_graph()
   for right in ["a", "b"] {
+    let checked = @pipeline.check_carriers(
+      cursor(
+        "[{\"graph_diff\":{\"with\":\"" +
+        right +
+        "\"},\"from\":\"a\"},{\"select\":[\"delta\"]},{\"filter\":{\"literal\":false}},{\"take\":1,\"as\":\"out\"}]",
+      ),
+      [("a", graph), ("b", graph)],
+      None,
+      None,
+      ranking_limits(),
+    ).unwrap()
+    let result = @relation_results.check(
+      checked,
+      cursor("{\"answer\":{\"from\":\"out\",\"fields\":[\"delta\"]}}"),
+      limits(),
+    ).unwrap()
+    assert_eq(@relation_results.count(result), 1)
     assert_true(
-      @pipeline.check_carriers(
-        cursor(
-          "[{\"graph_diff\":{\"with\":\"" +
-          right +
-          "\"},\"from\":\"a\"},{\"select\":[\"delta\"]},{\"filter\":{\"literal\":false}},{\"take\":1,\"as\":\"out\"}]",
-        ),
-        [("a", graph), ("b", graph)],
-        None,
-        None,
-        ranking_limits(),
+      @pipeline.row_count(checked, Step(0)) is Some({ upper: 1L, exact: true, }),
+    )
+    assert_true(@pipeline.take_order(checked, 3) is None)
+    assert_true(
+      @relation_results.resolve_publication_order(
+        result,
+        0,
+        max_work=10000,
+        max_text_bytes=10000,
       )
-      is Err({ kind: Graph(@graph.UnsupportedGraphOperation), .. }),
+      is Err({ kind: UnresolvedOrder, .. }),
     )
   }
 }

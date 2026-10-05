@@ -39,6 +39,10 @@ pub fn bind_invocation(Execution, @run_publication_host.ClientCompiledRun, @run_
 
 pub fn bind_issued_invocation(Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, ObservationIssuance) -> Result[InvocationBinding, InvocationBindingIssue]
 
+pub fn bind_model_dispatch(Execution, @model_execution.ModelPreparedCallSet, @run_publication_host.ClientInferDispatchAdmission, (@model_execution.ModelCallEntry) -> Bool) -> Result[Unit, InvocationBindingIssue]
+
+pub fn bind_model_scope(Execution, @model_execution.ModelPreparedCallSet, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.ModelInvocationBoundary) -> Result[@run_publication.BoundModelInvocationScope, InvocationBindingIssue]
+
 pub fn bind_physical_preflight(Execution, (@model_execution.ModelRequest) -> Result[@model_execution.ModelRequestPreflight, @model_execution.ModelExecutionIssue]) -> Result[Unit, Issue]
 
 pub fn bind_quantity_capacity(Execution, @model_execution.ModelQuantityCapacity) -> Result[Unit, Issue]
@@ -46,6 +50,8 @@ pub fn bind_quantity_capacity(Execution, @model_execution.ModelQuantityCapacity)
 pub fn bind_run(Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, InvocationBindingIssue]
 
 pub fn call_scope(Execution) -> @run_publication_host.ClientInferCallScope?
+
+pub fn call_settlement(Execution) -> @model_execution.ModelCallSettlement?
 
 pub fn cancel(Execution) -> Bool
 
@@ -67,6 +73,8 @@ pub fn execution_quantity_usage(Execution) -> @physical_resources.QuantityUsage?
 
 pub fn execution_stopped(Execution) -> Bool
 
+pub fn export_prepared_input(Execution, @model_execution.ModelPreparedCallSet, String) -> Result[@client_local_host.ClientInferRetainedInputExport, @client_local_host.ClientInferRetainedInputIssue]
+
 pub fn finish_result_publication(ResultPublication) -> Result[@run_publication_host.PublicationOutputExport, ResultPublicationIssue]
 
 pub fn handoff_pending(Execution) -> Bool
@@ -87,6 +95,8 @@ pub fn local_component(Execution, (Issue) -> @connector_sdk.FixedComputeIssue, r
 
 pub fn matches(Execution, @run_publication_host.PreparedClientProgram) -> Bool
 
+pub fn model_cleanup_progress(Execution) -> Int
+
 pub fn observation_issuance_value(ObservationIssuance) -> (@run_publication.RunEvidenceValue, @run_publication.PublicationContract)?
 
 pub fn output(OutputUse) -> @execution_relation.CompletedOutput?
@@ -94,6 +104,16 @@ pub fn output(OutputUse) -> @execution_relation.CompletedOutput?
 pub fn poll_issue(Poll) -> Issue?
 
 pub fn poll_kind(Poll) -> String
+
+pub fn prepared_call_set(Execution) -> @model_execution.ModelPreparedCallSet?
+
+pub fn prepared_input_export_matches(Execution, @model_execution.ModelPreparedCallSet, @client_local_host.ClientInferRetainedInputExport) -> Bool
+
+pub fn prepared_input_scope_snapshot(Execution, @model_execution.ModelPreparedCallSet) -> Result[String, @run_publication_host.ClientInferCallScopeIssue]
+
+pub fn prepared_input_unit_id(Execution, @model_execution.ModelPreparedCallSet) -> String?
+
+pub fn read_saved_input_scope(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, () -> Bool) -> Result[@run_publication_host.ClientInferSavedCallScope, @run_publication_host.ClientInferCallScopeIssue]
 
 pub fn release_invocation_binding(InvocationBinding) -> Bool
 
@@ -103,7 +123,11 @@ pub fn release_result_publication(ResultPublication) -> Bool
 
 pub fn request_preflight_pending(Execution) -> Bool
 
+pub fn require_model_call_entry(Execution) -> Result[Unit, InvocationBindingIssue]
+
 pub fn restoring(Execution) -> Bool
+
+pub fn restrict_model_send_slots(Execution, Array[Bool]) -> Result[Unit, InvocationBindingIssue]
 
 pub fn result_publication_selection(ResultPublication) -> @run_publication_host.ClientResultTransformation?
 
@@ -119,6 +143,10 @@ pub fn start_observation_issuance(Execution, @physical_resources.Ledger, Observa
 
 pub fn start_replay(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.VerifiedModelCapture, Limits, @run_publication_host.ClientInferPlanGraph, acquired_input? : @run_publication_host.ClientInferCapturedInput?, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
 
+pub fn start_restored_composed_input(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, @model_execution.ModelProvider, String, String, String, Array[String], () -> Bool, Limits, sources? : @run_publication_host.ClientInferComposedSources?, saved_scope? : @run_publication_host.ClientInferSavedCallScope?) -> Result[Execution, Issue]
+
+pub fn start_restored_input(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelProvider, @run_publication_host.ClientInferPlanGraph, String, String, String, Array[String], () -> Bool, Limits, acquired_input? : @run_publication_host.ClientInferCapturedInput?, saved_scope? : @run_publication_host.ClientInferSavedCallScope?, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
+
 pub fn start_restored_replay(@run_publication_host.PreparedClientProgram, Int, String, String, @run_publication.ModelCaptureBundleRead, Limits, @run_publication_host.ClientInferPlanGraph, acquired_input? : @run_publication_host.ClientInferCapturedInput?, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
 
 pub fn start_restored_slot_replay(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelSlotReplayRead, Limits, @run_publication_host.ClientInferPlanGraph, acquired_input? : @run_publication_host.ClientInferCapturedInput?, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
@@ -126,6 +154,10 @@ pub fn start_restored_slot_replay(@run_publication_host.PreparedClientProgram, I
 pub fn start_result_publication(InvocationBinding, Int, @run_publication_host.PublicationOutputExportLimits) -> Result[ResultPublication, ResultPublicationIssue]
 
 pub fn stopped_attempt_count(Execution) -> Int?
+
+pub fn stopped_attempt_slot(Execution, Int) -> Int?
+
+pub fn unknown_calls(Execution) -> Bool
 
 // Errors
 
@@ -142,6 +174,7 @@ pub struct Execution {
   mut rows : @execution_relation.PreparedInferRows?
   mut identity : @execution_relation.CompletedRelationIdentityScan?
   mut call_scope : @run_publication_host.ClientInferCallScope?
+  mut saved_call_scope : @run_publication_host.ClientInferSavedCallScope?
   mut model : @model_execution.ModelExecution?
   mut capture : @model_execution.ModelCaptureBundle?
   mut output : @model_execution.ModelOutputPreparation?
@@ -158,6 +191,8 @@ pub struct Execution {
   mut output_uses : Int
   mut run_binding : ExecutionRunBinding?
   mut dispatch_admission : @run_publication_host.ClientInferDispatchAdmission?
+  mut durable_calls : Bool
+  mut model_send_mask : Array[Bool]?
   mut quantity_capacity : @model_execution.ModelQuantityCapacity?
   mut physical_preflight : ((@model_execution.ModelRequest) -> Result[@model_execution.ModelRequestPreflight, @model_execution.ModelExecutionIssue])?
   mut egress_admission : @run_publication_host.ClientInferEgressAdmission?
@@ -240,6 +275,8 @@ type Phase
 
 pub enum Poll {
   Continue(work~ : Int64)
+  Waiting(work~ : Int64)
+  Settling(Int, work~ : Int64)
   Complete(@execution_relation.CompletedOutput, work~ : Int64)
   Failed(Issue, work~ : Int64)
   Stopped(work~ : Int64)

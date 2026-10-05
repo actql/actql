@@ -2,8 +2,74 @@
 /// Typed projection only: values already own normalized text and sorted keys.
 /// Writing into a caller-owned bounded writer also charges the enclosing output.
 priv enum EmitFrame {
+  Visit(CanonicalValue)
   ArrayRest(EmitArrayCursor)
   ObjectRest(EmitObjectCursor)
+}
+
+///|
+/// Existing canonical emission, resumed one node, key or container end at a
+/// time. The caller owns the bounded writer and aggregate output accounting.
+struct CanonicalEmit {
+  pending : Array[EmitFrame]
+  output : @encode.Writer
+}
+
+///|
+pub fn start_emit(
+  value : CanonicalValue,
+  output : @encode.Writer,
+) -> CanonicalEmit {
+  { pending: [Visit(value)], output, }
+}
+
+///|
+pub fn cancel_emit(cursor : CanonicalEmit) -> Unit {
+  cursor.pending.clear()
+}
+
+///|
+pub fn advance_emit(cursor : CanonicalEmit) -> Bool raise @encode.EncodeFailure {
+  let pending = cursor.pending
+  let output = cursor.output
+  guard pending.pop() is Some(frame) else { return true }
+  match frame {
+    Visit(current) =>
+      match current {
+        Null => @encode.null_value(output)
+        Bool(value) => @encode.bool_value(output, value)
+        Number(value) => @encode.number_value(output, value)
+        String(value) => @encode.string_value(output, value)
+        Array(frozen) => {
+          @encode.begin_array(output)
+          pending.push(ArrayRest({ values: frozen, index: 0, }))
+        }
+        Object(frozen) => {
+          @encode.begin_object(output)
+          pending.push(ObjectRest({ values: frozen, index: 0, }))
+        }
+      }
+    ArrayRest(rest) =>
+      if rest.index < rest.values.values.length() {
+        let child = rest.values.values[rest.index]
+        rest.index += 1
+        pending.push(ArrayRest(rest))
+        pending.push(Visit(child))
+      } else {
+        @encode.end_array(output)
+      }
+    ObjectRest(rest) =>
+      if rest.index < rest.values.values.length() {
+        let (key, child) = rest.values.values[rest.index]
+        @encode.key(output, key)
+        rest.index += 1
+        pending.push(ObjectRest(rest))
+        pending.push(Visit(child))
+      } else {
+        @encode.end_object(output)
+      }
+  }
+  pending.is_empty()
 }
 
 ///|
@@ -23,51 +89,9 @@ pub fn emit_value(
   value : CanonicalValue,
   output : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
-  let pending : Array[EmitFrame] = []
-  let mut current = value
-  let mut visiting = true
-  while visiting || !pending.is_empty() {
-    if visiting {
-      visiting = false
-      match current {
-        Null => @encode.null_value(output)
-        Bool(value) => @encode.bool_value(output, value)
-        Number(value) => @encode.number_value(output, value)
-        String(value) => @encode.string_value(output, value)
-        Array(frozen) => {
-          @encode.begin_array(output)
-          pending.push(ArrayRest({ values: frozen, index: 0, }))
-        }
-        Object(frozen) => {
-          @encode.begin_object(output)
-          pending.push(ObjectRest({ values: frozen, index: 0, }))
-        }
-      }
-    } else {
-      let frame = pending[pending.length() - 1]
-      match frame {
-        ArrayRest(cursor) =>
-          if cursor.index < cursor.values.values.length() {
-            current = cursor.values.values[cursor.index]
-            cursor.index += 1
-            visiting = true
-          } else {
-            ignore(pending.pop())
-            @encode.end_array(output)
-          }
-        ObjectRest(cursor) =>
-          if cursor.index < cursor.values.values.length() {
-            let (key, value) = cursor.values.values[cursor.index]
-            @encode.key(output, key)
-            current = value
-            cursor.index += 1
-            visiting = true
-          } else {
-            ignore(pending.pop())
-            @encode.end_object(output)
-          }
-      }
-    }
+  let cursor = start_emit(value, output)
+  while !advance_emit(cursor) {
+    ()
   }
 }
 

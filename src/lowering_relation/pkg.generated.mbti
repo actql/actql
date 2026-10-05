@@ -297,6 +297,10 @@ pub fn fragment_request_row_limits(FragmentRequest) -> FragmentRowLimits?
 
 pub fn fragment_row_limits_valid(FragmentRowLimits) -> Bool
 
+pub fn graph_delta_checked(PreparedGraphDelta) -> @graph_typing.CheckedDelta
+
+pub fn graph_delta_output_carrier(PreparedGraphDelta) -> @carrier_contract.Carrier
+
 pub fn graph_diagnostic_bounds(PreparedGraphDiagnostic) -> (Int64?, Int64?, Int64?)?
 
 pub fn graph_diagnostic_component_max_output_rows(PreparedGraphDiagnostic) -> Int64?
@@ -1226,6 +1230,10 @@ pub(all) enum GraphConstructionIssue {
   InvalidPropertyGraphConstruction
 } derive(Eq, @debug.Debug)
 
+pub(all) enum GraphDeltaIssue {
+  InvalidGraphDeltaWiring
+} derive(Eq, @debug.Debug)
+
 pub(all) enum GraphDiagnosticIssue {
   InvalidGraphDiagnosticLimits
   InvalidGraphDiagnosticWiring
@@ -1462,6 +1470,7 @@ pub enum Payload {
   GraphDegreeRows(@graph_typing.CheckedDegree)
   GraphEqualityRows(@graph_typing.CheckedPropertyEquality)
   GraphNormalizeValue(@graph_typing.CheckedNormalize)
+  GraphDeltaValue(@graph_typing.CheckedDelta)
   GraphComponentsRows(@graph_typing.CheckedComponents)
   GraphSubgraphValue(@graph_typing.CheckedSubgraph)
   GraphTraverseRows(@graph_typing.CheckedTraverse)
@@ -1534,6 +1543,8 @@ pub(all) enum PreparedFrameBoundary {
   PreparedFollowing(Int64)
   PreparedUnboundedFollowing
 } derive(Eq, @debug.Debug)
+
+type PreparedGraphDelta
 
 type PreparedGraphDiagnostic
 
@@ -1619,6 +1630,7 @@ pub enum PreparedStep {
   GraphSubgraphStep(PreparedGraphSubgraph)
   GraphEqualityStep(PreparedGraphEquality)
   GraphNormalizeStep(Int)
+  GraphDeltaStep(PreparedGraphDelta)
   GraphTraverseStep(PreparedGraphTraverse)
   PropertyGraphConstructionStep(PreparedPropertyGraphConstruction)
   VectorStep(PreparedVector)
@@ -1712,6 +1724,7 @@ pub(all) enum SequenceIssue {
   GraphSubgraphFailure(Int, GraphSubgraphIssue)
   GraphEqualityFailure(Int, GraphEqualityIssue)
   GraphTraverseFailure(Int, GraphTraverseIssue)
+  GraphDeltaFailure(Int, GraphDeltaIssue)
   GraphConstructionFailure(Int, GraphConstructionIssue)
   VectorFailure(Int, VectorIssue)
   EventFailure(Int, EventIssue)

@@ -416,7 +416,8 @@ console.log(JSON.stringify(published.mappings.map(mapping =>
     'graph-edge-infer-effect.program.template.json',
     'graph-node-infer-effect-duplicate-key.program.template.json',
     'graph-node-infer-effect-null-property.program.template.json',
-    'installed-infer-fixture.mjs', 'two-source-public-query.mjs',
+    'installed-infer-fixture.mjs', 'model-provider-binding-fixture.mjs',
+    'two-source-public-query.mjs',
     'public-query-input.mjs', ...optionalEffectFixtureFiles]) {
     await writeFile(join(root, name), await readFile(join(repository,
       'scripts/fixtures', name)));

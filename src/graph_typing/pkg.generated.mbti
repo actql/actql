@@ -7,6 +7,7 @@ import {
   "actql/actql/expression_syntax",
   "actql/actql/expression_text",
   "actql/actql/expression_typing",
+  "actql/actql/graph_contract",
   "actql/actql/parameter_binding",
   "actql/actql/relation_append",
   "actql/actql/relation_schema",
@@ -18,11 +19,15 @@ import {
 }
 
 // Values
+pub fn check_apply_graph_delta(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, @graph_contract.CheckedContract?, Limits) -> Result[CheckedDelta, Issue]
+
 pub fn check_components(@decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedComponents, Issue]
 
 pub fn check_degree(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedDegree, Issue]
 
 pub fn check_graph_bounds(@decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedGraphBounds, Issue]
+
+pub fn check_graph_diff(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedDelta, Issue]
 
 pub fn check_match(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedMatch, MatchIssue]
 
@@ -71,6 +76,20 @@ pub fn degree_pending_count(CheckedDegree) -> Int
 pub fn degree_source(CheckedDegree) -> @decode_core.Cursor
 
 pub fn degree_usage(CheckedDegree) -> Usage
+
+pub fn delta_graph(CheckedDelta) -> @graph_contract.CheckedContract
+
+pub fn delta_operation(CheckedDelta) -> DeltaOperation
+
+pub fn delta_output(CheckedDelta) -> @carrier_contract.Carrier
+
+pub fn delta_pending_at(CheckedDelta, Int) -> DeltaObligation?
+
+pub fn delta_pending_count(CheckedDelta) -> Int
+
+pub fn delta_source(CheckedDelta) -> @decode_core.Cursor
+
+pub fn delta_usage(CheckedDelta) -> Usage
 
 pub fn graph_bounds_input(CheckedGraphBounds) -> @carrier_contract.Carrier
 
@@ -319,6 +338,8 @@ type CheckedComponents
 
 type CheckedDegree
 
+type CheckedDelta
+
 type CheckedGraphBounds
 
 type CheckedMatch
@@ -368,6 +389,20 @@ pub enum Count {
   Parameter(String)
 }
 
+pub(all) enum DeltaObligation {
+  AdmitDeltaGraphs
+  ResolveDeltaResources
+  EnforceDeltaRelationRows
+  AdmitExactlyOneDeltaRow
+  AdmitDeltaActions
+  VerifyDeltaBaseBeforeTarget
+} derive(Eq, @debug.Debug)
+
+pub(all) enum DeltaOperation {
+  Difference
+  Application(@relation_schema.FieldName)
+} derive(Eq, @debug.Debug)
+
 pub(all) enum DiagnosticObligation {
   AdmitDiagnosticGraph
   ResolveDiagnosticResources
@@ -406,6 +441,7 @@ pub(all) enum IssueKind {
   UnknownDeltaField(String)
   UntypedDeltaField(String)
   InvalidDeltaType
+  DeltaContractMismatch
   UnknownConstructionField(String)
   InvalidConstructionIdentity
   InvalidConstructionLabel

@@ -1069,6 +1069,20 @@ test('a directly created Run exits through a checked transition', async t => {
     {code: 'RunStateConflict'});
 });
 
+
+test('a running Run records its owner-confirmed stopped cancellation without a Checkpoint', async t => {
+  const {open} = await workspace(t);
+  const journal = open();
+  journal.createRun({runId: 'run-stopped-cancel', declaredResults: ['tickets']});
+  // This storage port receives an observed outcome, never the cancellation
+  // request itself. Public Host tests retain the physical-stop proof boundary.
+  const ended = journal.finishRun('run-stopped-cancel', {status: 'cancelled'});
+  assert.equal(ended.status, 'cancelled');
+  assert.equal(ended.runState.status, 'cancelled');
+  assert.throws(() => journal.finishRun('run-stopped-cancel', {status: 'succeeded'}),
+    {code: 'RunStateConflict'});
+});
+
 function storedWire(journal, checkpointCid) {
   const database = new DatabaseSync(journal.path, {readOnly: true});
   try {
@@ -1228,7 +1242,7 @@ test('a decision-subject binding is stored next to its Checkpoint',
       null);
   });
 
-test('a journal created before the decision-subject column is upgraded',
+test('a prior private layout without decision-subject storage is refused unchanged',
   async t => {
     const {open} = await workspace(t);
     const first = open();
@@ -1236,17 +1250,20 @@ test('a journal created before the decision-subject column is upgraded',
     first.close();
     const database = new DatabaseSync(first.path);
     database.exec('ALTER TABLE checkpoints DROP COLUMN decision_subject_cid');
+    database.prepare('UPDATE journal_metadata SET value = ? WHERE key = ?')
+      .run('actql-checkpoint-journal/0.1', 'schema_version');
+    const retained = database.prepare('SELECT checkpoint_wire FROM checkpoints WHERE checkpoint_cid = ?')
+      .get(waiting.checkpointCid).checkpoint_wire;
     database.close();
-    const journal = open();
-    assert.equal(journal.inspect(waiting.checkpointCid).decisionSubjectCid,
-      null);
-    const next = journal.persistCheckpoint({
-      body: effectBody({runId: 'run-2'}), priorStatus: 'running',
-      declaredResults: ['tickets'], authorities, binding,
-      decisionSubjectCid: cid('9'),
-    });
-    assert.equal(journal.inspect(next.checkpointCid).decisionSubjectCid,
-      cid('9'));
+    const before = readFileSync(first.path);
+    assert.throws(() => open(), {code: 'UnsupportedCheckpointJournal'});
+    assert.deepEqual(readFileSync(first.path), before);
+    const unchanged = new DatabaseSync(first.path);
+    assert.equal(unchanged.prepare('SELECT checkpoint_wire FROM checkpoints WHERE checkpoint_cid = ?')
+      .get(waiting.checkpointCid).checkpoint_wire, retained);
+    assert.equal(unchanged.prepare('PRAGMA table_info(checkpoints)').all()
+      .some(column => column.name === 'decision_subject_cid'), false);
+    unchanged.close();
   });
 
 for (const admitted of [false, true]) {
@@ -1617,7 +1634,7 @@ test('the commit decision rereads trusted time after slow authentication',
     assert.equal(lapsing.currentResume(waiting.checkpointCid), undefined);
   });
 
-test('a journal created before the requested-claims column is upgraded',
+test('a prior private layout without requested-claims storage is refused unchanged',
   async t => {
     const {open} = await workspace(t);
     const first = open();
@@ -1626,20 +1643,19 @@ test('a journal created before the requested-claims column is upgraded',
     const database = new DatabaseSync(first.path);
     database.exec('ALTER TABLE checkpoints DROP COLUMN requested_claims_json');
     database.exec('DROP TABLE resume_admissions');
+    database.prepare('UPDATE journal_metadata SET value = ? WHERE key = ?')
+      .run('actql-checkpoint-journal/0.1', 'schema_version');
+    const retained = database.prepare('SELECT checkpoint_wire FROM checkpoints WHERE checkpoint_cid = ?')
+      .get(waiting.checkpointCid).checkpoint_wire;
     database.close();
-    const journal = open();
-    assert.deepEqual(journal.inspect(waiting.checkpointCid).requestedClaims,
-      []);
-    assert.throws(() => journal.persistCheckpoint({
-      body: effectBody({runId: 'run-2'}), priorStatus: 'running',
-      declaredResults: ['tickets'], authorities, binding,
-      requestedClaims: ['a', 'a'],
-    }), {code: 'InvalidRequestedClaims'});
-    // An idempotent retry must name the same requested claims.
-    assert.throws(() => journal.persistCheckpoint({
-      body: effectBody(), priorStatus: 'running', declaredResults: ['tickets'],
-      authorities, binding, requestedClaims: ['effect_scope_approved'],
-    }), {code: 'CheckpointConflict'});
+    const before = readFileSync(first.path);
+    assert.throws(() => open(), {code: 'UnsupportedCheckpointJournal'});
+    assert.deepEqual(readFileSync(first.path), before);
+    const unchanged = new DatabaseSync(first.path);
+    assert.equal(unchanged.prepare('SELECT checkpoint_wire FROM checkpoints WHERE checkpoint_cid = ?')
+      .get(waiting.checkpointCid).checkpoint_wire, retained);
+    assert.equal(unchanged.prepare("SELECT name FROM sqlite_schema WHERE name = 'resume_admissions'").get(), undefined);
+    unchanged.close();
   });
 
 test('pending Checkpoints page by a stable cursor; resumable preparations and their Runs are listed',
