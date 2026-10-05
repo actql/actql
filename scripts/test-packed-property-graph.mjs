@@ -5,6 +5,7 @@ import {copyFile, mkdir, readFile, writeFile} from 'node:fs/promises';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
+import {nodeTestArguments, assertTestExecution} from './test-execution.mjs';
 import {CLIENT_PACKAGES, checkoutState, packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
 import {certificates} from '../adapters/site-node/https-agent-harness.mjs';
 
@@ -26,12 +27,13 @@ const scratch = await createOwnedScratch({
 const root = scratch.path;
 const environment = {...process.env,npm_config_cache:packedNpmCache(root)};
 let sequence = 0;
-async function run(command, args, cwd = root, env = environment) {
+async function run(command, args, cwd = root, env = environment, verifyTests = false) {
   const result = spawnSync(command,args,{cwd,env,encoding:'utf8',timeout:600_000});
   await writeFile(join(root,`${++sequence}.log`),`${result.stdout ?? ''}\n${result.stderr ?? ''}`);
   if (result.error || result.status !== 0) throw new Error(
     `${command} ${args.join(' ')} failed (status ${result.status}); evidence: ${root}`,
     {cause:result.error});
+  if (verifyTests) assertTestExecution('node',command,args,result);
   return result.stdout;
 }
 for (const name of CLIENT_PACKAGES) await packedClientPackage({repository,name,destination:root,
@@ -52,13 +54,13 @@ await copyFile(join(repository,'docs/reviews/2026-09-19-sga-veca-tea-local-cover
   join(root,'local-family-coverage.json'));
 await mkdir(join(root,'tls'));
 await certificates(join(root,'tls'));
-const output = await run(process.execPath,['--test',
+const output = await run(process.execPath,nodeTestArguments([
   ...(selectorDeriveOnly ? ['--test-name-pattern','selector property derive'] : []),
   ...(deltaApplicationOnly ? ['--test-name-pattern','complete Delta application'] : []),
   ...(deltaRelationOnly ? ['--test-name-pattern','Delta Relation DISTINCT and GROUP'] : []),
-  'property-graph-public-host.test.mjs'],root,
+  'property-graph-public-host.test.mjs']),root,
   {...environment,ACTQL_PROPERTY_GRAPH_PACKED:'1',
-    PATH:[dirname(process.execPath),'/usr/bin','/bin'].join(':')});
+    PATH:[dirname(process.execPath),'/usr/bin','/bin'].join(':')},true);
 const digests = {};
 for (const name of CLIENT_PACKAGES) {
   const file = `actql-${name}-0.0.0-development.tgz`;
