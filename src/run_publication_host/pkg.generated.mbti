@@ -348,6 +348,18 @@ pub fn client_publication_witness_bodies(ClientPublicationWitnesses) -> Array[St
 
 pub fn client_publication_witness_cids(ClientPublicationWitnesses) -> Array[String]
 
+pub fn client_remote_task_progress_cleanup_complete(ClientRemoteTaskProgress) -> Bool
+
+pub fn client_remote_task_progress_execution_complete(ClientRemoteTaskProgress) -> Bool
+
+pub fn client_remote_task_progress_fields(ClientRemoteTaskProgress) -> Array[Array[String]]
+
+pub fn client_remote_task_progress_next_task(ClientRemoteTaskProgress) -> Int?
+
+pub fn client_remote_task_progress_result_tasks(ClientRemoteTaskProgress) -> Array[Int]
+
+pub fn client_remote_task_progress_scopes(ClientRemoteTaskProgress) -> Array[Array[String]]
+
 pub fn client_request_authority_scope_cid(ClientRequestIdentity) -> String
 
 pub fn client_request_caller_id(ClientRequestIdentity) -> String
@@ -525,6 +537,8 @@ pub fn emit_prepared_client_values_pipeline(PreparedClientProgram, Int, @lowerin
 pub fn emit_prepared_client_values_unit_source(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[String, ClientValuesUnitSourceIssue]
 
 pub fn encode_plan_fact_manifest_identity(String, Int, Int, Int) -> Result[PlanFactManifestIdentity, PlanFactManifestIdentityIssue]
+
+pub fn inspect_client_remote_task_progress(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, String, Array[@remote_site_protocol.DurableCoordinatorDispatchRecord]) -> Result[ClientRemoteTaskProgress, ClientRemoteTaskProgressIssue]
 
 pub fn install_client_retained_input_current(() -> @execution_site.ExecutionSite, () -> String, () -> Int64, (ClientRetainedInputProducer, @remote_transfer.RemoteTransferRequest) -> Bool) -> ClientRetainedInputCurrent
 
@@ -1411,6 +1425,25 @@ pub(all) enum ClientQueryRequirementIssue {
   Sequence(@execution_query.QuerySequenceIssue)
   Material(@query_planning.QueryMaterialIssue)
   Requirement(@query_planning.QueryRequirementIssue)
+}
+
+pub struct ClientRemoteTaskProgress {
+  keys : Array[String]
+  requests : Array[@remote_site_protocol.DispatchRequest?]
+  observations : Array[@remote_site_protocol.CoordinatorExecutionObservation?]
+  next_task : Int?
+  execution_complete : Bool
+  cleanup_complete : Bool
+  result_tasks : Array[Int]
+}
+
+pub(all) enum ClientRemoteTaskProgressIssue {
+  Run(ClientTaskRunBindingIssue)
+  UnsupportedGraph
+  Fragment(ClientTaskFragmentIssue)
+  ForeignObservation
+  DuplicateTask
+  Protocol(@remote_site_protocol.DispatchIssue)
 }
 
 type ClientRequestIdentity derive(Eq, @debug.Debug)

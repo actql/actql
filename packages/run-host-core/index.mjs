@@ -2059,6 +2059,37 @@ export function openResultDeliveryControl() {
   });
 }
 
+/** Inspect checked task readiness. A snapshot grants no start or input custody. */
+export function inspectTaskProgress(prepared, compilation, admission, definition,
+  authority, durableWires) {
+  const compiled = requireHandle(taskCompilations, compilation);
+  const admitted = requireHandle(admissions, admission);
+  if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
+    throw new TypeError('ForeignRunHostCompilation');
+  }
+  if (typeof authority !== 'string' || !Array.isArray(durableWires) ||
+      durableWires.some(wire => typeof wire !== 'string')) {
+    throw new TypeError('InvalidRunHostTaskProgress');
+  }
+  checkRunBinding(prepared, admission, definition);
+  const value = checked(owner.clientValuesHostInspectTaskProgress(
+    requireHandle(preparations, prepared), compiled.value, admitted.value,
+    requireHandle(definitions, definition), authority, durableWires),
+  'RunHostTaskProgressRejected');
+  const scopes = owner.clientValuesHostTaskProgressScopes(value);
+  const next = owner.clientValuesHostTaskProgressNext(value);
+  return Object.freeze({
+    nextTask: next < 0 ? undefined : next,
+    executionComplete: owner.clientValuesHostTaskProgressExecutionComplete(value),
+    cleanupComplete: owner.clientValuesHostTaskProgressCleanupComplete(value),
+    resultTasks: Object.freeze(owner.clientValuesHostTaskProgressResultTasks(value)),
+    tasks: Object.freeze(owner.clientValuesHostTaskProgressFields(value).map((row, index) =>
+      Object.freeze({ordinal: Number(row[0]), taskKey: row[1], execution: row[2],
+        cleanup: row[3], revision: Number(row[4]), dispatchCid: row[5] || undefined,
+        executionScope: Object.freeze(scopes[index])}))),
+  });
+}
+
 /** Project an admitted durable Site record bound to this checked Run. */
 export function projectSiteRun(prepared, compilation, admission, definition,
   authority, durableWire, observedAt, cancellationRequested = false,
