@@ -9362,6 +9362,12 @@ async function exerciseStrategyGraph(
       ? [{id: 1, tag: retainedOutputText}] : [];
     stage.results.r.fields = ['id', 'tag'];
   }
+  // Derive retains both the original Text and its computed copy in one row.
+  // Keep their combined size below the existing 1,000-byte value envelope.
+  const retainedDerivedText = 'x'.repeat(400);
+  const retainedLongTextDerive = structuredClone(retainedLongTextAppend);
+  retainedLongTextDerive.stages.find(stage => stage.id === 'cross_left')
+    .steps[0].values.rows[0].tag = retainedDerivedText;
   const retainedBinaryFork = (source, fields) => {
     const program = structuredClone(source);
     const producer = program.stages.find(stage => stage.id === 'crossed');
@@ -9828,6 +9834,12 @@ async function exerciseStrategyGraph(
     {name: 'append-long-text-filter', source: retainedBinaryChain(
       retainedLongTextAppend, [{filter: 'id > 0'}], ['id', 'tag']),
     expected: [{id: 1, tag: retainedOutputText}], fields: ['id', 'tag']},
+    {name: 'append-long-text-derive-select', source: retainedBinaryChain(
+      retainedLongTextDerive,
+      [{derive: {copy: 'tag'}}, {select: ['copy', 'id', 'tag']}],
+      ['copy', 'id', 'tag']),
+    expected: [{copy: retainedDerivedText, id: 1, tag: retainedDerivedText}],
+    fields: ['copy', 'id', 'tag']},
     {name: 'unpivot-long-text-filter-select', source: retainedUnaryChain(
       [{unpivot: {columns: ['jan'], keep: ['id', 'tag'],
         name_column: 'metric', value_column: 'amount'}}],
