@@ -17,17 +17,18 @@ const root = fileURLToPath(new URL('../../', import.meta.url));
 const exec = promisify(execFile);
 const [baselinePath, outputPath, condition, ...extra] = process.argv.slice(2);
 assert(baselinePath && outputPath && !extra.length &&
-  (condition === undefined || ['--matched-first-use', '--retained-continuation', '--retained-text-1000'].includes(condition)),
+  (condition === undefined || ['--matched-first-use', '--retained-continuation', '--retained-text-1000', '--retained-preflight'].includes(condition)),
   'ExpectedNativePreparationBaselineAndOutput');
 const continuation = condition === '--retained-continuation';
-const retainedText = condition === '--retained-text-1000';
+const preflight = condition === '--retained-preflight';
+const retainedText = condition === '--retained-text-1000' || preflight;
 const matchedFirstUse = condition !== undefined;
 const destination = resolve(outputPath);
 assert(destination !== root && !destination.startsWith(root + sep), 'NativeComparisonOutputInsideCheckout');
 const beforeBinary = resolve(baselinePath);
-const baselineRevision = continuation ? 'fe0b68242d9e240494e85ecb0438f74f55855c88'
+const baselineRevision = (continuation || preflight) ? 'fe0b68242d9e240494e85ecb0438f74f55855c88'
   : 'f8c6876389430490cdfd09c3e576d77c6d227d06';
-const beforeDigest = continuation ? '2152155cc13ae8003df3c8b46a13ae45edf4a567554d579a440332475dd18f80'
+const beforeDigest = (continuation || preflight) ? '2152155cc13ae8003df3c8b46a13ae45edf4a567554d579a440332475dd18f80'
   : '18c389007dcdd78638895b9b3d6a88c36783a342c8a1667ffe8a8c849a5a9830';
 assert.equal(await sha256File(beforeBinary), beforeDigest, 'NativeAsciiBaselineChanged');
 const afterBinary = join(root, '_build/native/release/build/cmd/native_retained_case_probe/native_retained_case_probe.exe');
@@ -37,16 +38,21 @@ const git = async args => (await exec('git', args, {cwd: root})).stdout.trim();
 const revision = await git(['rev-parse', 'HEAD']);
 // These fixed experiments use archived builds, not a guessed current-HEAD
 // build. A later documentation/controller revision cannot retag the binary.
-const compiledSourceRevision = continuation ? '09b003893564cd01d4ff36ae4a6b2302839bd852'
+const compiledSourceRevision = preflight ? '9c74a5b6686ebb87fa7726ed763eeda447541846'
+  : continuation ? '09b003893564cd01d4ff36ae4a6b2302839bd852'
   : 'fe0b68242d9e240494e85ecb0438f74f55855c88';
 assert.equal(await git(['diff', '--name-only', compiledSourceRevision, revision, '--', 'src']), '',
   'NativePreparationCompiledSourceChanged');
-assert.equal(afterDigest, continuation
+assert.equal(afterDigest, preflight
+  ? '0bcb9cf3cb82a7d4ce1abde7c493c7bef02f7cedb8528bdbab1e43f04571b347'
+  : continuation
   ? 'c60bcc58aa831f91167fe06246ae3c13e7e5e538e05d21a34ada84165a4c2543'
   : '2152155cc13ae8003df3c8b46a13ae45edf4a567554d579a440332475dd18f80',
   'NativePreparationCompiledBinaryChanged');
 const sourceChanges = (await git(['diff', '--name-only', baselineRevision, revision, '--', 'src'])).split('\n').filter(Boolean);
-assert.deepEqual(sourceChanges.sort(), continuation
+assert.deepEqual(sourceChanges.sort(), preflight
+  ? ['src/execution_relation/retained_row_decode.mbt', 'src/execution_relation/retained_row_decode_wbtest.mbt']
+  : continuation
   ? ['src/canonical_json/cursor_admission_wbtest.mbt', 'src/canonical_json/encode.mbt']
   : ['src/sha256/incremental_wbtest.mbt', 'src/sha256/sha256.mbt']);
 const unchanged = async () => {
@@ -60,16 +66,17 @@ const fixture = retainedText ? retainedCase(workloads[2], 'text-1024', 1000)
   : retainedCase(workloads[0], 'narrow', 100);
 const directory = await mkdtemp(join(tmpdir(), 'actql-native-ascii-word-'));
 const database = join(directory, 'source.duckdb');
-const label = continuation ? 'canonical-continuation-rewrap' : 'native-ascii-word-loop';
+const label = preflight ? 'retained-preflight-iterator' : continuation ? 'canonical-continuation-rewrap' : 'native-ascii-word-loop';
 const pairs = [];
 const warmups = [];
 const basis = {revision, compiledSourceRevision, baselineRevision, beforeDigest, afterDigest, sourceChanges,
-  change: continuation ? 'Retain a container continuation without rewrapping it per child; exact advance schedule unchanged'
+  change: preflight ? 'Scan retained JSON shape with bounded UTF-16 indices; UTF-8, JSON syntax, typed admission and all owner/identity checks remain'
+    : continuation ? 'Retain a container continuation without rewrapping it per child; exact advance schedule unchanged'
     : 'Four checked ASCII units per word without the inner loop',
   caseId: fixture.id, limits: fixture.limits,
   method: '21 predeclared alternating pairs; fresh Native processes; one immutable source; OS-cache coldness uncontrolled',
   firstUseCondition: matchedFirstUse
-    ? 'One fully admitted unmeasured launch per binary before all 21 pairs. Its full cost and observations are retained separately. Both binary images have prior use; this does not establish OS-cache coldness or explain the original external delay.'
+    ? 'One fully admitted unmeasured launch per binary before all 21 pairs. Its full cost and observations are retained separately. Both binary images have prior use before measured pairs; this does not establish OS-cache coldness or explain the original external delay.'
     : 'No explicit prelaunch; preserve all first-use observations',
   host: 'native', providedAcquisition: ['native'],
   computeConditions: retainedText
