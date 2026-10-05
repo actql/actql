@@ -16,10 +16,10 @@ const expected = [{json_null: {$json: null}, sql_null: null,
   json_boolean: {$json: true}, boolean: true,
   json_object: {$json: {a: 1, 'e\u0301': null}}, json_array: {$json: [null, false]}}];
 export const jsonLiteralSourceSuccesses = [
-  {name: 'json-source-all-roots-and-sql-null', text: source, expected, columns, sourceReadCount: 0},
-  {name: 'json-source-empty-schema', text: source + ' WHERE FALSE', expected: [], columns,
+  {name: 'json-source-all-roots-and-sql-null', format: 'sql', text: source, expected, columns, sourceReadCount: 0},
+  {name: 'json-source-empty-schema', format: 'sql', text: source + ' WHERE FALSE', expected: [], columns,
     sourceReadCount: 0},
-  {name: 'json-source-null-is-data', text:
+  {name: 'json-source-null-is-data', format: 'sql', text:
     `SELECT JSON 'null' AS j |> WHERE j IS NOT NULL |> SELECT j`,
   expected: [{j: {$json: null}}], columns: [{name: 'j', contract: {type: 'json', nullable: false}}],
   sourceReadCount: 0},
@@ -29,4 +29,4 @@ export const jsonLiteralSourceRefusals = [
   ['overflow', "SELECT JSON '1e400' AS j"],
   ['malformed-json', `SELECT JSON '{"a":}' AS j`],
   ['json-depth', "SELECT JSON '" + '['.repeat(501) + 'null' + ']'.repeat(501) + "' AS j"],
-].map(([name, text]) => ({name: 'json-source-' + name, text, sourceReadCount: 0}));
+].map(([name, text]) => ({name: 'json-source-' + name, format: 'sql', text, sourceReadCount: 0}));
