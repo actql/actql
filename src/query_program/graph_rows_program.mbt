@@ -6,6 +6,7 @@ fn script_has_graph_rows(query : @query.Query) -> Bool {
     }
     if call.operation == "node_rows" ||
       call.operation == "edge_rows" ||
+      script_graph_diagnostic_fields(call.operation) is Some(_) ||
       call.operation == "graphs_equal" ||
       call.operation == "traverse" {
       return true
@@ -141,6 +142,15 @@ fn lower_script_graph_rows(
     }
     if row_input is Some(_) {
       raise Abort(UnsupportedGraph)
+    }
+    if script_graph_diagnostic_fields(call.operation) is Some(fields) {
+      row_input = Some(
+        lower_script_graph_diagnostic(
+          construction, query, call, current, fields, limits, steps, reserved,
+        ),
+      )
+      current = row_input.unwrap().name
+      continue
     }
     if call.operation == "graphs_equal" {
       row_input = Some(

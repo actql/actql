@@ -402,6 +402,30 @@ use normal scope, expression, order and Result lowering. DATA adds no copy,
 acquisition or execution owner. A Graph-preserving normalize call still needs
 an adapted common consumer; source lowering alone does not authorize it.
 
+The existing Graph diagnostic operations also enter ordinary Relation processing:
+
+```aql
+DATA stats = FROM g |> degree(direction: "out");
+FROM stats |> WHERE degree > 0 |> SELECT node, degree |> RESULT active
+FROM g |> graph_bounds(max_nodes: 10, max_edges: @edge_limit)
+  |> SELECT kind, node_id, actual, max |> RESULT violations
+FROM g |> components(kind: "strong", max_output_rows: 100)
+  |> SELECT node_id, component_id, component_size |> RESULT groups
+```
+
+Each line terminating in RESULT is a separate query example. The Pipe's left
+Graph supplies the existing operation input. Bodies, typed parameter references
+and authored guards are preserved for the common checker and owner; omitted
+required arguments and invalid values are not replaced with defaults. Diagnostic
+thresholds select violations, rather than raising execution-resource ceilings.
+The Relation scopes are exactly `node, degree`, `kind, node_id, actual, max`, and
+`node_id, component_id, component_size`, respectively. Graph identity types,
+nullable bounds `node_id`, component identity/order, selected capacity and
+atomic guard failures follow the existing machine contracts. DATA reuses the
+producer; old Graph columns do not reappear after the Relation transition.
+These source connections do not establish support for other Graph operations
+or waive the common admission and execution obligations.
+
 The node emission of `traverse` also enters ordinary Relation processing:
 
 ```aql
