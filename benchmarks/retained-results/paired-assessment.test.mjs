@@ -103,3 +103,20 @@ test('source-open comparison separates database preparation from the complete Na
   assert.throws(() => assessPairedTiming(pairs, {...config, comparator: 'baseline-actql',
     field: 'databasePreparationMs'}), /InvalidTimingAssessment/);
 });
+
+
+test('Native algorithm preparation improvement cannot substitute for complete-cycle improvement', () => {
+  const comparator = 'native-ascii-word-loop';
+  const pairs = Array.from({length: 21}, (_, index) => ({index, caseId: 'fixed/narrow/100',
+    order: index % 2 ? ['retained-actql', comparator] : [comparator, 'retained-actql'],
+    samples: {[comparator]: {status: 'completed', processCycleMs: 30, applicationPreparationMs: 6},
+      'retained-actql': {status: 'completed', processCycleMs: 30, applicationPreparationMs: 4}}}));
+  const options = {comparator, mode: 'difference', threshold: 0, minimumPairs: 21};
+  assert.equal(assessPairedTiming(pairs, {...options, field: 'processCycleMs'}).upper, 0);
+  assert(Math.abs(assessPairedTiming(pairs, {...options, field: 'applicationPreparationMs'}).upper + 2) < 1e-12);
+  assert.throws(() => assessPairedTiming(pairs, {...options, field: 'benchmarkCycleMs'}), /InvalidTimingAssessment/);
+  assert.throws(() => assessPairedTiming(pairs, {...options, comparator: 'baseline-actql',
+    field: 'applicationPreparationMs'}), /InvalidTimingAssessment/);
+  delete pairs[5].samples[comparator].applicationPreparationMs;
+  assert.equal(assessPairedTiming(pairs, {...options, field: 'applicationPreparationMs'}).status, 'incomplete');
+});

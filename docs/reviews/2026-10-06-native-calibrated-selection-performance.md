@@ -253,7 +253,7 @@ The original comparator order also alternates inside each before/after series.
 | --- | ---: | ---: | --- |
 | Entire benchmark pair, including evidence checks and independent execution | -32.281 ms | -57.525 to -13.343 ms | Evidence-processing improvement |
 | Native prepare/execute/cleanup plus profile qualification | -2.481 ms | -6.832 to +0.741 ms | Indeterminate |
-| Native physical execution | -0.305 ms | -2.316 to +1.610 ms | Indeterminate |
+| Native probe entry through final result identity | -0.305 ms | -2.316 to +1.610 ms | Indeterminate |
 | Within-Run warm interval | +0.415 ms | +0.074 to +0.757 ms | Slower in this sample |
 | Native physical cleanup | +0.041 ms | -0.023 to +0.101 ms | Indeterminate |
 
@@ -295,3 +295,48 @@ fixed source and the same seven-module release digest recorded above:
 The subsequent documentation commit does not rerun or retag these observations.
 Full Core, packed, other targets and a full matrix remain unexecuted. Draft and
 unverified GitHub CI status remain separate from these bounded local results.
+
+
+## Bounded ASCII-word experiment
+
+The first two macOS `sample` attempts produced empty call graphs, including a
+100-load diagnostic lasting about 647 ms inside application preparation. Their
+successful sampler exit status is not CPU evidence. The original raw receipt is
+preserved; a separate analysis corrects its initial `sampled` classification.
+The temporary repeated-load probe source was restored byte-for-byte, and its
+binary is kept separately from the original release artifact.
+
+A 100-call JS profile of the same portable application builder recorded 1,386
+samples at the unchanged `f8c687638` compiled source. Inclusive counts were 580
+under Program checking and 416 under runtime-fragment preparation; these overlap
+and are not additive. SHA-256 ASCII absorption and compression were observed as
+self-time hotspots. This ranks an investigation, not a Native CPU attribution.
+Raw profile: `_build/repro/portable-preparation-f8c687638.cpuprofile`,
+`sha256:de536a501647e3b3581b527114839e107873e9f7c7b7a002c235a5a678eee59d`.
+
+The implementation experiment changes only `sha256.update_ascii_range`: build a
+word from four checked UTF-16 units without its four-iteration inner loop. A
+combined high-bit check closes the state if any unit is non-ASCII. Every input
+unit is still read, the same 64-byte block/schedule is retained, and length,
+partial-block, finalization and invalid-range handling are unchanged. No digest
+cache, new allocation, normalization rule, Owner or admission bypass is added.
+Fragment regeneration and all value/CID integrity checks remain intact.
+
+Before measurement, fix 21 alternating pairs of the existing 100-row/narrow
+Native resident case. Compare the archived original release binary at
+`f8c6876389430490cdfd09c3e576d77c6d227d06` with the new fixed-source release.
+Use identical explicit control estimates (Local/fresh 1000 ms, resident default
+1 ms) on both sides, not a relabeled measured cost profile. Require actual
+resident selection, identical actual planner/Owner facts and holdings, the
+independent fixture's expected identities, unchanged source bytes and confirmed
+cleanup on every leg. Report application preparation, library/database,
+acquisition, capture, Compute/result identity, task reuse, cleanup and complete
+parent cycle separately; charge per-leg full-binary hashing and admission.
+Source creation is common preparation and is reported separately. No phase-only
+improvement establishes whole-cycle improvement. The existing calibrated
+release/equivalent-obligation gate remains a separate current-source acceptance.
+
+The `execution_us` clock starts at probe entry and includes application and
+acquisition preparation through final identity. Earlier table labels calling it
+physical execution were inaccurate; the raw observations are preserved and the
+labels above are corrected. Actual enclosing/nested phases remain separate.
