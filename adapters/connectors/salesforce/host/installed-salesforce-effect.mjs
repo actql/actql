@@ -334,7 +334,7 @@ export function salesforceEffectTargetReadInventory({moon, prepared, unit,
 // projections of one Run over the common owners.
 export async function loadInstalledSalesforceEffect(profile, {root,
   principalId, moon, salesforceMoon, baseEnvironmentWire, runtimeBundleCid,
-  resolveSecret, ledgerRoot, openCredentialJournal, openRowEffectLedger}) {
+  resolveSecret, ledgerRoot, openCredentialJournal}) {
   const checkedProfile = checkInstalledSalesforceEffectProfile(profile);
   if (!text(baseEnvironmentWire) || !text(ledgerRoot) ||
       !isAbsolute(ledgerRoot)) {
@@ -356,7 +356,7 @@ export async function loadInstalledSalesforceEffect(profile, {root,
     return await installedSalesforceEffect({moon, salesforceMoon, site,
       installed, ledgerRoot, connectorId: checkedProfile.connectorId,
       accountConfiguration: checkedProfile.accountConfigurationWire,
-      runtimeBundleCid, openRowEffectLedger});
+      runtimeBundleCid});
   } catch (error) {
     // The load's own failure stays primary; an incomplete Site release
     // travels with it to the caller.
@@ -366,7 +366,7 @@ export async function loadInstalledSalesforceEffect(profile, {root,
 
 async function installedSalesforceEffect({moon, salesforceMoon, site,
   installed, ledgerRoot, connectorId, accountConfiguration,
-  runtimeBundleCid, openRowEffectLedger: openRowLedger}) {
+  runtimeBundleCid}) {
   let occurrence = 0;
   const nextOccurrence = label => `effect-${label}-${Date.now()}-${
     occurrence++}`;
@@ -387,8 +387,7 @@ async function installedSalesforceEffect({moon, salesforceMoon, site,
     continuationBinding: installed.generationCid,
     installation: installedConnectors.find(entry =>
       entry.registration === site.connectorRegistration),
-    ledgerRoot, ...(openRowLedger === undefined ? {} :
-      {openLedger: openRowLedger}),
+    ledgerRoot,
     driver: salesforceWriteDriver({salesforceMoon, site,
       mappingOf: mappingCid => installed.mappings.find(mapping =>
         mapping.mappingCid === mappingCid),

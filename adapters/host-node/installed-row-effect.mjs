@@ -218,7 +218,7 @@ export async function createInstalledRowEffect({moon, mappings,
   environmentWire, connectorId, connectorRegistration, connectorRevision,
   connection, site, authorization, runtimeBundleCid, bindingCid, driver,
   ledgerRoot, installation, continuationBinding = bindingCid,
-  openLedger: openLedgerAt = openEffectLedger, limits: suppliedLimits}) {
+  limits: suppliedLimits}) {
   const limits = Object.freeze({...defaultLimits, ...suppliedLimits});
   const owned = checkDriver(driver);
   const profile = profileOf(installation);
@@ -232,8 +232,7 @@ export async function createInstalledRowEffect({moon, mappings,
       typeof site.issueReadGrant !== 'function' ||
       typeof authorization?.authorize !== 'function' ||
       !cidPattern.test(runtimeBundleCid ?? '') ||
-      !text(bindingCid) || !text(continuationBinding) || !text(ledgerRoot) ||
-      typeof openLedgerAt !== 'function') {
+      !text(bindingCid) || !text(continuationBinding) || !text(ledgerRoot)) {
     fail('InvalidInstalledRowEffect');
   }
   const installed = Object.freeze(mappings.map(mapping => {
@@ -251,7 +250,7 @@ export async function createInstalledRowEffect({moon, mappings,
   }));
   await mkdir(ledgerRoot, {recursive: true, mode: 0o700});
   const effect = runtimeCore(moon).effectApplicationControl;
-  const openLedger = identity => openLedgerAt({moon, root: ledgerRoot,
+  const openLedger = identity => openEffectLedger({moon, root: ledgerRoot,
     authorityScopeCid: moon.clientRequestAuthorityScopeCid(identity),
     callerRequestId: moon.clientRequestCallerId(identity),
     maxEntryBytes: 1_000_000});
