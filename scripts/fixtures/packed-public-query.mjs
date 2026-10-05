@@ -32,6 +32,8 @@ import {joinPropertySuccesses, joinPropertyRefusals}
   from './join-property-source-input.mjs';
 import {orderPropertySuccesses, orderPropertyRefusals}
   from './order-property-source-input.mjs';
+import {analyticOrderObjectReproduction, analyticOrderSuccesses, analyticOrderRefusals, analyticOrderExecutionFailures}
+  from './analytic-order-source-input.mjs';
 import {analyticPropertySuccesses, analyticPropertyRefusals}
   from './analytic-property-source-input.mjs';
 import {groupSelectScopeSuccesses, groupSelectScopeRefusals}
@@ -43,6 +45,7 @@ import {implicitPropertySuccesses, implicitPropertyRefusals}
 import {groupPropertySuccesses, groupPropertyRefusals}
   from './group-property-source-input.mjs';
 import {uniquePublicQueryCases} from './public-query-cases.mjs';
+import {publicQueryProfiles} from './public-query-profiles.mjs';
 import {quotedIdentifierSuccesses, quotedIdentifierRefusals}
   from './quoted-identifier-source-input.mjs';
 import {orderOrdinalSuccesses, orderOrdinalRefusals}
@@ -102,9 +105,11 @@ const dataOnly = process.env.ACTQL_TEST_RELATION_DATA_ONLY === '1';
 const acquiredDataOnly = process.env.ACTQL_TEST_ACQUIRED_DATA_ONLY === '1';
 const dataSetStrategyOnly = process.env.ACTQL_TEST_DATA_SET_STRATEGY_ONLY === '1';
 const orderPropertyOnly = process.env.ACTQL_TEST_ORDER_PROPERTY_ONLY === '1';
+const analyticProfilesOnly = process.env.ACTQL_TEST_ANALYTIC_PROFILES_ONLY === '1';
+const analyticOrderOnly = process.env.ACTQL_TEST_ANALYTIC_ORDER_ONLY === '1';
 const joinPropertyOnly = process.env.ACTQL_TEST_JOIN_PROPERTY_ONLY === '1';
 const analyticFrameParameterOnly = process.env.ACTQL_TEST_ANALYTIC_FRAME_PARAMETER_ONLY === '1';
-const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || joinPropertyOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || analyticFrameParameterOnly;
+const scopeOnly = analyticFrameParameterOnly || joinPropertyOnly || analyticProfilesOnly || analyticOrderOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const joinChain = JSON.parse(await readFile('join-chain-cases.json', 'utf8'));
 const groupScope = JSON.parse(await readFile('group-scope-cases.json', 'utf8'));
@@ -121,7 +126,16 @@ const dataSetStrategyInputs = {
     ]}}}],
   refusals: [],
 };
+// Retain the original generated Program as a reproduction, not an independent
+// expected Program. Both source and JSON use the same hand-authored rows/types.
+const analyticOrderInputs = [...analyticOrderSuccesses,
+  analyticOrderObjectReproduction(await readFile('analytic-order-property-repro.program.json', 'utf8'))];
 const scopeInputs = analyticFrameParameterOnly ? {successes: analyticFrameParameterSuccesses, refusals: analyticFrameParameterRefusals}
+  : analyticProfilesOnly ? {
+  successes: [...analyticOrderInputs, ...analyticPropertySuccesses],
+  refusals: [...analyticOrderRefusals, ...analyticPropertyRefusals],
+  executionFailures: analyticOrderExecutionFailures}
+  : analyticOrderOnly ? {successes: analyticOrderInputs, refusals: analyticOrderRefusals, executionFailures: analyticOrderExecutionFailures}
   : joinPropertyOnly ? {successes: joinPropertySuccesses, refusals: joinPropertyRefusals}
   : aggregatePropertyOnly ? {successes: aggregatePropertySuccesses, refusals: aggregatePropertyRefusals}
   : analyticPropertyOnly ? {successes: analyticPropertySuccesses, refusals: analyticPropertyRefusals}
@@ -165,6 +179,9 @@ const scopeInputs = analyticFrameParameterOnly ? {successes: analyticFrameParame
   refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...relationDataRefusals, ...acquiredDataRefusals, ...propertyGraphSourceRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals, ...groupStarRefusals, ...groupOrdinalRefusals],
   executionFailures: [...pipeResultExecutionFailures, ...propertyGraphSourceExecutionFailures]};
 if (!scopeOnly) {
+  scopeInputs.successes.push(...analyticOrderInputs);
+  scopeInputs.refusals.push(...analyticOrderRefusals);
+  scopeInputs.executionFailures.push(...analyticOrderExecutionFailures);
   scopeInputs.successes.push(...joinPropertySuccesses);
   scopeInputs.refusals.push(...joinPropertyRefusals);
   scopeInputs.successes.push(...analyticFrameParameterSuccesses);
@@ -221,6 +238,15 @@ if (scopedOrderOnly) {
   assert.equal(scopeInputs.successes.length, 4);
   assert.equal(scopeInputs.refusals.length, 1);
 }
+// Host profiles are immutable within an installation. Keep each fixture's
+// declared analytic envelope, including when the full corpus combines profiles.
+for (const {name: profileName, capacity: analyticCapacity, inputs: profileInputs}
+  of publicQueryProfiles(scopeInputs)) {
+const scopeInputs = profileInputs;
+if (analyticFrameParameterOnly) assert.deepEqual(analyticCapacity, analyticFrameParameterCapacity);
+const suffix = profileName === 'standard' ? '' : `-${profileName}`;
+const localDirectory = resolve(`local-state${suffix}`);
+const remoteDirectory = resolve(`remote-state${suffix}`);
 const expectedQueryRuns = scopeInputs.successes.length + (scopeInputs.executionFailures?.length ?? 0);
 const expectedSourceReads = [...scopeInputs.successes, ...(scopeInputs.executionFailures ?? [])]
   .reduce((count, item) => count + (item.sourceReadCount ?? item.sourceReadSessionCount ?? 1), 0);
@@ -234,23 +260,15 @@ const canonical = value => Array.isArray(value)
     : JSON.stringify(value);
 const environment = JSON.parse(await readFile('source-environment.json', 'utf8'));
 const base = JSON.parse(await readFile('base-environment.json', 'utf8'));
-environment.host_policy_profile = base.host_policy_profile;
-// The analytic corpus uses the independently declared ceilings already used
-// by the installed Node and Native client fixtures. Ordinary Host defaults
-// continue to leave analytic admission unresolved unless a Host declares it.
-Object.assign(environment.host_policy_profile.capacity, {
-  ...analyticFrameParameterCapacity,
-  max_analytic_input_wire_bytes: 10000,
-  max_analytic_output_wire_bytes: 10000,
-  max_analytic_partition_wire_bytes: 10000,
-});
+environment.host_policy_profile = {...base.host_policy_profile,
+  capacity: {...base.host_policy_profile.capacity, ...analyticCapacity}};
 environment.connector_capabilities[0].capability_contract_cids.push(
   'sha256:5cbd39d6847336c5961e222b083ca1395ab68be466ac69cadfbf7021cf617b89');
 environment.connector_capabilities[0].capability_contract_cids.sort();
 delete environment.evidence_bundle_cid;
 environment.evidence_bundle_cid = 'sha256:' + createHash('sha256')
   .update(canonical(environment)).digest('hex');
-const database = resolve('records.duckdb');
+const database = resolve(`records${suffix}.duckdb`);
 const {DuckDBInstance, DuckDBPreparedStatement, DuckDBConnection,
   DuckDBExtractedStatements} = createRequire(
   new URL('./node_modules/@actql/local-node/package.json', import.meta.url))(
@@ -274,7 +292,7 @@ try {
   for (const row of sourceRows) {
     await connection.run('INSERT INTO records VALUES (?, ?)', [row.id, row.amount]);
   }
-  for (const {targets} of scopeOnly ? [] : exactTargetPairs) {
+  for (const {targets} of scopeOnly || profileName !== 'standard' ? [] : exactTargetPairs) {
     for (const target of targets) {
       if (target.schema !== 'main') await connection.run(`CREATE SCHEMA "${target.schema}"`);
       await connection.run(`CREATE TABLE ${physicalSqlName(target)}(id DOUBLE, amount DOUBLE)`);
@@ -309,7 +327,7 @@ async function prepareCase(rows = sourceRows) {
   }
 }
 const view = environment.source_views[0];
-const sourceProfilePath = resolve('source-profile.json');
+const sourceProfilePath = resolve(`source-profile${suffix}.json`);
 await writeFile(sourceProfilePath, canonical({
   acquisitionPlanning: {policy: 'priority', priority: ['nativeQuery', 'broadQuery']},
     version: 'actql-installed-duckdb-source/0.1', database,
@@ -404,7 +422,7 @@ async function exercisePublicCheck(options) {
   console.log(`packed public check ${options.mode} passed`);
 }
 await exercisePublicCheck({mode: 'local', owner: 'local', durability: 'durable',
-  installation: {directory: resolve('local-state'), sourceProfilePath}});
+  installation: {directory: localDirectory, sourceProfilePath}});
 // Extend the same public harness; no second lifecycle/fault matrix. Each
 // physical spelling has independently authored rows and its own explicit Host.
 async function exerciseExactPhysicalTargets() {
@@ -468,15 +486,15 @@ const recordString = mode => item => {
   if (item.name === 'exact-string-values') retainedStrings[mode] = item;
 };
 await exercisePublicQueryInput(connect, {mode: 'local', owner: 'local',
-  durability: 'durable', installation: {directory: resolve('local-state'),
+  durability: 'durable', installation: {directory: localDirectory,
     sourceProfilePath}}, {requestPrefix: 'packed-local',
-  observe: observe('local-state'), prepareCase, completedCase: recordString('local'), ...scopeInputs});
-assert.equal(observe('local-state')().acceptedRuns, expectedQueryRuns);
+  observe: observe(localDirectory), prepareCase, completedCase: recordString('local'), ...scopeInputs});
+assert.equal(observe(localDirectory)().acceptedRuns, expectedQueryRuns);
 assert.ok(sourceIo >= expectedSourceReads);
-console.log('packed raw SQL/Pipe Embedded Local acceptance passed');
+console.log(`packed raw SQL/Pipe Embedded Local ${profileName} acceptance passed`);
 const beforeRemote = sourceIo;
 const host = await openInstalledRemoteHttpHost({
-  directory: resolve('remote-state'), sourceProfilePath,
+  directory: remoteDirectory, sourceProfilePath,
   authenticate: header => header === 'Bearer fixture-token'
     ? userInfo().username : undefined,
 });
@@ -489,11 +507,11 @@ try {
   await exercisePublicQueryInput(connect, {mode: 'remote',
     endpoint: `https://127.0.0.1:${server.address().port}/`,
     token: 'fixture-token', durability: 'durable'},
-  {requestPrefix: 'packed-http', observe: observe('remote-state'), prepareCase, completedCase: recordString('remote'), ...scopeInputs});
-  assert.equal(observe('remote-state')().acceptedRuns, expectedQueryRuns);
+  {requestPrefix: 'packed-http', observe: observe(remoteDirectory), prepareCase, completedCase: recordString('remote'), ...scopeInputs});
+  assert.equal(observe(remoteDirectory)().acceptedRuns, expectedQueryRuns);
   assert.ok(sourceIo >= beforeRemote + expectedSourceReads);
-  console.log('packed raw SQL/Pipe HTTP acceptance passed');
-  if (!scopeOnly) await exerciseExactPhysicalTargets();
+  console.log(`packed raw SQL/Pipe HTTP ${profileName} acceptance passed`);
+  if (!scopeOnly && profileName === 'standard') await exerciseExactPhysicalTargets();
 } finally {
   server.closeAllConnections();
   await new Promise(resolve => server.close(resolve));
@@ -505,6 +523,7 @@ try {
 if (retainedStrings.local && retainedStrings.remote) {
   await writeFile('retained-string-results.json', JSON.stringify(retainedStrings));
 
+}
 }
 if (!scopeOnly) await import('./packed-two-source-public-query.mjs');
 }

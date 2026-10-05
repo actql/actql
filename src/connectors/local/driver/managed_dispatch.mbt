@@ -1912,7 +1912,7 @@ pub fn[T] start_local_managed_dispatch(
     carrier_material: fn() { carrier.val },
     prepare_relation_snapshot: fn(storage_released) {
       // Retain checked Graph row bridges, sparse selections, derived and
-      // grouped rows, and node traversals. Operation keys come from the
+      // grouped rows, Delta rows, and node traversals. Operation keys come from the
       // checked owner, not caller-supplied names.
       let prepared = @lower.bound_preparation(
         @execution.generated_sequence_owner(setup.sequence),
@@ -1931,7 +1931,8 @@ pub fn[T] start_local_managed_dispatch(
             graph_rows = true
           } else if key == "REL.derive" ||
             key == "REL.distinct" ||
-            key == "REL.groupBy" {
+            key == "REL.groupBy" ||
+            key == "SGA.diff" {
             graph_rows = true
           } else if (
               key == "REL.where" ||
