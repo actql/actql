@@ -446,11 +446,12 @@ fn carrier_segment_prefix_end(
         }
         Some(@pipeline.Input(source)) => {
           found_external_input = true
-          // A Carrier consumer can have a retained Relation selector on its
-          // secondary port. That read requires selected execution even when
-          // a later MATCH would otherwise keep the Carrier prefix fused.
-          // Constructor inputs alone do not establish this boundary.
-          if input > 0 &&
+          // A retained secondary Relation requires selected execution even
+          // when an earlier Carrier transform or later MATCH prefers fusion.
+          // Nearest already binds both Stage inputs in its fused provider;
+          // its external Relation peer alone does not require a split.
+          if !(@lower.payload(node) is @lower.NearestValue(_)) &&
+            input > 0 &&
             @lower.node_accepts_managed_relation_view(node, input) &&
             @lower.node_accepts_managed_carrier_view(node, 0) &&
             @lower.node_input_target(node, 0) is Some(@pipeline.Step(primary)) &&
