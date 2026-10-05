@@ -388,14 +388,22 @@ for (const [entrance, open] of Object.entries(entrances)) {
           const outcome = await client.check('SELECT 1 AS n', {format, ...options});
           assert.equal(outcome.outcome, 'completed');
           assert.equal(outcome.report.verdict, 'invalid', '[check-mutation:unused-verdict]');
-          assert.deepEqual(outcome.report.reasons, [{code: 'program_invalid'}],
+          const declarationInput = getCheckInput(outcome, 'parameter_declarations');
+          assert.deepEqual(outcome.report.reasons, [{code: 'parameter_unused',
+            facts: {parameter: 'minimum'}, location: {kind: 'structured',
+              document_id: 'parameter_declarations', revision: declarationInput.revision,
+              pointer: '/minimum'}}],
             '[check-mutation:unused-reason]');
           assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
           assert.deepEqual(outcome.report.requirements, []);
           assert.equal(getCheckInput(outcome, 'source').text, 'SELECT 1 AS n');
           assert.equal(explainCheckReason(outcome.report.reasons[0]).kind, 'known');
-          // No authored span or condition-specific facts are manufactured here.
-          assert.equal(outcome.report.reasons[0].location, undefined);
+          const location = outcome.report.reasons[0].location;
+          assert.equal(resolveCheckLocation(outcome, location).input, declarationInput);
+          assert.equal(resolveCheckLocation(outcome, {...location,
+            revision: `rev:${'0'.repeat(64)}`}), undefined);
+          assert.equal(resolveCheckLocation(structuredClone(outcome), location), undefined);
+          assert.equal(getCheckInput(structuredClone(outcome), 'parameter_declarations'), undefined);
           const corrected = await client.check('SELECT @minimum AS n', {format, ...options});
           assert.equal(corrected.report.verdict, 'verified');
           assert.deepEqual(corrected.report.reasons, []);
@@ -403,6 +411,50 @@ for (const [entrance, open] of Object.entries(entrances)) {
       }
     }
     for (const client of clients) client.assertNoExecution();
+  });
+
+  test(`${entrance}: unused Parameter explanations retain original custody without exposing values`, async t => {
+    const client = await open(t, configurations.allowed);
+    const text = "-- café cafe\u0301 😀\r\nSELECT 1 AS n";
+    const parameterDeclarations = {unused: {type: 'string', default: 'private-default-cafe\u0301\r\n'}};
+    const original = structuredClone(parameterDeclarations);
+    const outcome = await client.check(text, {format: 'sql', parameterDeclarations});
+    parameterDeclarations.unused.default = 'edited-after-check';
+    const input = getCheckInput(outcome, 'parameter_declarations');
+    assert.deepEqual(input.value, original);
+    assert.equal(getCheckInput(outcome, 'source').text, text);
+    assert.equal(outcome.report.verdict, 'invalid', '[check-mutation:unused-custody-verdict]');
+    assert.deepEqual(outcome.report.reasons, [{code: 'parameter_unused', facts: {parameter: 'unused'},
+      location: {kind: 'structured', document_id: 'parameter_declarations',
+        revision: input.revision, pointer: '/unused'}}], '[check-mutation:unused-custody-reason]');
+    assert.equal(JSON.stringify(outcome).includes('private-default'), false,
+      '[check-mutation:unused-disclosure]');
+    assert.deepEqual(explainCheckReason(outcome.report.reasons[0]), {kind: 'known',
+      summary: 'A declared parameter is not used by the complete Program.',
+      hint: 'Remove the unused declaration or reference the parameter in the Program, then check again.'});
+    const oversizedName = 'x'.repeat(257);
+    const bounded = await client.check('SELECT 1 AS n', {format: 'sql',
+      parameterDeclarations: {[oversizedName]: {type: 'number', default: 7}}});
+    assert.equal(bounded.report.verdict, 'invalid');
+    assert.deepEqual(bounded.report.reasons, [{code: 'program_invalid'}]);
+    const missing = await client.check('SELECT 1 AS n', {format: 'sql',
+      parameterDeclarations: {unused: {type: 'number'}}});
+    assert.equal(missing.report.verdict, 'undetermined');
+    assert.deepEqual(missing.report.reasons, []);
+    assert.deepEqual(missing.report.coverage.limits, [{code: 'bound_values_missing'}]);
+    const protectedOutcomes = [];
+    for (const configuration of [configurations.absent, configurations.denied]) {
+      const protectedClient = await open(t, configuration);
+      const protectedOutcome = await protectedClient.check('SELECT id FROM records', {format: 'sql',
+        parameterDeclarations: {unused: {type: 'number', default: 7}}});
+      assert.equal(protectedOutcome.report.verdict, 'undetermined');
+      assert.deepEqual(protectedOutcome.report.reasons, []);
+      assert.deepEqual(protectedOutcome.report.coverage, {limits: [], unresolved: protectedSource});
+      protectedOutcomes.push(withoutContext(protectedOutcome));
+      protectedClient.assertNoExecution();
+    }
+    assert.deepEqual(protectedOutcomes[0], protectedOutcomes[1]);
+    client.assertNoExecution();
   });
 
   test(`${entrance}: non-Boolean predicates retain the common checker's requirement`, async t => {

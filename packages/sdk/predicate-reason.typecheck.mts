@@ -44,3 +44,14 @@ const privateDefault: Reason = {code: 'parameter_default_type_mismatch', facts: 
 // @ts-expect-error Structured diagnostics cannot claim a text source document.
 const wrongDefaultDocument: Reason = {code: 'parameter_default_type_mismatch', facts: {parameter: 'minimum', expected_type: 'number', actual_type: 'string'}, location: {kind: 'structured', document_id: 'source', revision: `rev:${'1'.repeat(64)}`, pointer: '/minimum/default'}};
 void unknownDefaultType; void privateDefault; void wrongDefaultDocument;
+
+
+const unusedReason: Reason = {code: 'parameter_unused', facts: {parameter: 'minimum'},
+  location: {kind: 'structured', document_id: 'parameter_declarations',
+    revision: `rev:${'1'.repeat(64)}`, pointer: '/minimum'}};
+explainCheckReason(unusedReason);
+// @ts-expect-error Parameter facts never carry a submitted default value.
+const privateUnused: Reason = {code: 'parameter_unused', facts: {parameter: 'minimum', value: 'private-default'}};
+// @ts-expect-error Structured locations cannot designate the text source input.
+const wrongUnusedDocument: Reason = {code: 'parameter_unused', facts: {parameter: 'minimum'}, location: {kind: 'structured', document_id: 'source', revision: `rev:${'1'.repeat(64)}`, pointer: '/minimum'}};
+void privateUnused; void wrongUnusedDocument;
