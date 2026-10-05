@@ -45,7 +45,8 @@ fn operation_count_contract(
     @pipeline.Projection(_) => ClassificationOnly
     // Delta's graph/action ceilings are not yet selected here. Retain the
     // common transfer root without borrowing the constructor's count proof;
-    // unresolved Delta resource obligations still prevent Plan completion.
+    // runtime Delta resource admission remains mandatory. A typed execution
+    // requirement is not a count proof or evidence of successful admission.
     @pipeline.GraphDelta(..) => ClassificationOnly
     @pipeline.Nearest(..) | @pipeline.Ranking(_) | @pipeline.TextRank(..) =>
       Ranking

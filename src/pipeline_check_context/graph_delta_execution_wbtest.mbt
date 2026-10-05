@@ -51,7 +51,7 @@ fn delta_execution_site(
 }
 
 ///|
-test "Delta execution requirements bind every pending rule to exact typed operand roles" {
+test "Delta requirements separate the static profile from exact typed runtime operand roles" {
   let policy = property_execution_policy()
   for
     (body, right, rules) in [
@@ -85,6 +85,18 @@ test "Delta execution requirements bind every pending rule to exact typed operan
     assert_eq(@graph.delta_pending_count(operation), rules.length())
     for index, rule in rules {
       let site = delta_execution_site(pipeline, index)
+      if rule == AdmitGraphOperands {
+        assert_eq(
+          @pipeline.operation_profile_requirement(site.requirement),
+          Some(@pipeline.PropertyGraph),
+        )
+        assert_true(graph_delta_execution_check(site, policy) is Ok(None))
+        assert_true(
+          direct_execution_candidate(site, policy, Ok(None), Ok(None))
+          is Ok(None),
+        )
+        continue
+      }
       guard graph_delta_execution_check(site, policy)
         is Ok(Some(GraphDeltaExecution(check))) else {
         abort("Delta runtime requirement was left unresolved")

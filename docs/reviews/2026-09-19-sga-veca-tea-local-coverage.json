@@ -83,14 +83,14 @@
       "subtract_graphs": "blocked",
       "subgraph": "partial",
       "graphs_equal": "partial",
-      "apply_graph_delta": "blocked",
+      "apply_graph_delta": "partial",
       "mean_graphs": "blocked",
       "property_graph": "partial",
       "graph": "blocked",
       "node_rows": "partial",
       "edge_rows": "partial"
     },
-    "completion_rule": "Historical tuple-profile suites do not discharge current Graph coverage. Partial evidence is limited to the current constructor, definition-selected MATCH/TRAIL, bounds, degree, components, subgraph and equality paths recorded below; it does not establish all normative variants or all SGA execution. Blocked means typed refusal before Run admission, acquisition I/O and dispatch."
+    "completion_rule": "Historical tuple-profile suites do not discharge current Graph coverage. Partial evidence is limited to the current constructor, definition-selected MATCH/TRAIL, bounds, degree, components, subgraph and equality paths, plus typed Delta planning and explicitly configured provider tests recorded below; it does not establish all normative variants, public Delta acceptance or all SGA execution. Blocked means typed refusal before Run admission, acquisition I/O and dispatch."
   },
   "operations": [
     {
@@ -1950,11 +1950,22 @@
       "output": "graph",
       "canonical": ["SGA.apply_delta"],
       "variants": ["valid delta", "wrong base", "empty delta", "CID validation"],
-      "status": "blocked",
+      "status": "partial",
       "owner": "local-sga",
-      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "blocker": "Current complete-record application reaches the typed formal task Plan and the explicitly configured managed Graph provider. Standard Client installation, packed Local/HTTPS acceptance and current three-target execution remain unverified. The installed Delta limits are not a count proof or a machine-independent total-heap theorem. Historical tuple-profile resource evidence is not current completion.",
       "completed_layers": ["contract"],
-      "layer_evidence": [],
+      "layer_evidence": [
+        {
+          "scope": "current_typed_delta_plan_and_configured_managed_provider_only",
+          "targets": ["js"],
+          "evidence": [
+            "src/query_integration/property_graph_delta_plan_wbtest.mbt",
+            "src/query_integration/property_graph_delta_input_wbtest.mbt",
+            "src/query_integration/property_graph_delta_provider_wbtest.mbt"
+          ],
+          "limits": "Formal Plan issuance retains runtime checks. These focused fixtures do not establish standard Client installation, public Named Result acceptance, full resource assurance or all targets."
+        }
+      ],
       "historical_implementation_evidence": [
         {
           "scope": "atomic_delta_kernel_and_managed_provider",

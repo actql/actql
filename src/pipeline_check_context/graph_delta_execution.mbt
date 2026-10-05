@@ -48,7 +48,10 @@ fn graph_delta_execution_check(
     return Err(ForeignOccurrence(site.step))
   }
   let rule = match pending {
-    @graph.AdmitDeltaGraphs => AdmitGraphOperands
+    // The existing profile linker owns this requirement. Data admission remains
+    // mandatory in the selected provider; a second resolution would reject the
+    // ordinary Program before it can select that provider.
+    @graph.AdmitDeltaGraphs => return Ok(None)
     @graph.ResolveDeltaResources => RequireDeltaResources
     @graph.EnforceDeltaRelationRows => EnforceDeltaRows
     @graph.AdmitExactlyOneDeltaRow => RequireExactlyOneDeltaRow
