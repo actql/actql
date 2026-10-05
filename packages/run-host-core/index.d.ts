@@ -12,6 +12,7 @@ declare const runEvidenceBrand: unique symbol;
 declare const capturedSnapshotBrand: unique symbol;
 declare const materialHoldsBrand: unique symbol;
 declare const retainedInputEdgeBrand: unique symbol;
+declare const retainedInputProducerBrand: unique symbol;
 
 export interface ResultMaterialHolds {
   readonly [materialHoldsBrand]: true;
@@ -571,6 +572,20 @@ export function retainedTaskInputEdgeFacts(edge: RetainedTaskInputEdge): Readonl
   consumerLogicalCid: string;
   consumerInputPort: string;
   physicalSchemaCid: string;
+}>;
+/** Accepted producer evidence; independent current Transfer custody is required. */
+export interface RetainedInputProducer {
+  readonly [retainedInputProducerBrand]: true;
+}
+/** An atomic current snapshot from the trusted Host's existing Coordinator owner. */
+export function prepareRetainedInputProducer(edge: RetainedTaskInputEdge,
+  readCurrent: () => Readonly<{authority: string;
+    durableRecordWire: string}>): RetainedInputProducer;
+export function retainedInputProducerAvailable(producer: RetainedInputProducer): boolean;
+export function retainedInputProducerFacts(producer: RetainedInputProducer): Readonly<{
+  dispatch: Readonly<{cid: string; wire: string}>;
+  evidence: Readonly<{cid: string; wire: string}>;
+  subject: Readonly<{cid: string; wire: string}>;
 }>;
 export function issueTaskDispatch(prepared: PreparedProgram,
   compilation: TaskCompilation, admission: RunAdmission,

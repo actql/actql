@@ -3,11 +3,12 @@ import type {DeliveryContractView, PublicationContract,
   PublicationRecordContract, PublicIndexEntryContract,
   ResultDeliveryControl, PreparedProgram, ValuesCompilation,
   RunAdmission, RunDefinition, CheckEnvironment, RetainedTaskInputEdge,
-  TaskCompilation} from '@actql/run-host-core';
+  TaskCompilation, RetainedInputProducer} from '@actql/run-host-core';
 import {issueUnpublishedRunStateWire, issuePublicationAttempt,
   issuePublicationRecord, validatePublicationRecordTransition,
   issueSourceFreeRunMaterials, prepareRetainedTaskInputEdge,
-  retainedTaskInputEdgeFacts} from
+  retainedTaskInputEdgeFacts, prepareRetainedInputProducer,
+  retainedInputProducerAvailable, retainedInputProducerFacts} from
   '@actql/run-host-core';
 
 declare const control: ResultDeliveryControl;
@@ -27,6 +28,16 @@ declare const definition: RunDefinition;
 declare const environment: CheckEnvironment;
 declare const taskCompilation: TaskCompilation;
 declare const edge: RetainedTaskInputEdge;
+declare const producer: RetainedInputProducer;
+prepareRetainedInputProducer(edge, () => ({authority: 'scope', durableRecordWire: '{}'}));
+retainedInputProducerAvailable(producer);
+retainedInputProducerFacts(producer);
+// @ts-expect-error Saved bytes alone cannot install a trusted current owner port.
+prepareRetainedInputProducer(edge, {authority: 'scope', durableRecordWire: '{}'});
+// @ts-expect-error An edge has no completed producer custody.
+retainedInputProducerAvailable(edge);
+// @ts-expect-error A canonical evidence projection is not the owned producer.
+retainedInputProducerAvailable(retainedInputProducerFacts(producer));
 retainedTaskInputEdgeFacts(edge);
 prepareRetainedTaskInputEdge(prepared, taskCompilation, admission,
   definition, 1, 0);

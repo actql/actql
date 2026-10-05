@@ -1,6 +1,7 @@
 import * as owner from './dist/client_values_host_abi.js';
 
 const retainedInputEdges = new WeakMap();
+const retainedInputProducers = new WeakMap();
 import {publicationAction} from './publication-action.mjs';
 
 const environments = new WeakMap();
@@ -977,6 +978,48 @@ export function retainedTaskInputEdgeFacts(edge) {
   return Object.freeze({runDefinitionCid, producerTaskKey, producerOutputPort,
     producerLogicalCid, carrierContractCid, consumerTaskKey,
     consumerLogicalCid, consumerInputPort, physicalSchemaCid});
+}
+
+/** The trusted Host must read its current durable Coordinator owner here. */
+export function prepareRetainedInputProducer(edge, readCurrent) {
+  const ownedEdge = requireHandle(retainedInputEdges, edge);
+  if (typeof readCurrent !== 'function') {
+    throw new TypeError('InvalidRunHostRetainedProducerCurrent');
+  }
+  const current = () => {
+    const value = readCurrent();
+    if (value === null || typeof value !== 'object' || Array.isArray(value) ||
+        Object.keys(value).sort().join('\0') !== 'authority\0durableRecordWire' ||
+        typeof value.authority !== 'string' ||
+        typeof value.durableRecordWire !== 'string') {
+      throw new TypeError('InvalidRunHostRetainedProducerCurrent');
+    }
+    return [value.authority, value.durableRecordWire];
+  };
+  const producer = checked(owner.clientValuesHostRetainedInputProducer(
+    ownedEdge, current), 'RunHostRetainedProducerRejected');
+  return handle(retainedInputProducers, producer, 'retained-input-producer');
+}
+
+export function retainedInputProducerAvailable(producer) {
+  return owner.clientValuesHostRetainedInputProducerAvailable(
+    requireHandle(retainedInputProducers, producer));
+}
+
+/** Historical canonical evidence; it grants no read, borrow or dispatch. */
+export function retainedInputProducerFacts(producer) {
+  const values = checked(owner.clientValuesHostRetainedInputProducerFacts(
+    requireHandle(retainedInputProducers, producer)),
+  'RunHostRetainedProducerRejected');
+  if (!Array.isArray(values) || values.length !== 6 ||
+      !values.every(value => typeof value === 'string')) {
+    throw new Error('InvalidRunHostRetainedProducerProjection');
+  }
+  const [dispatchCid, dispatchWire, evidenceCid, evidenceWire,
+    subjectCid, subjectWire] = values;
+  return Object.freeze({dispatch: Object.freeze({cid: dispatchCid, wire: dispatchWire}),
+    evidence: Object.freeze({cid: evidenceCid, wire: evidenceWire}),
+    subject: Object.freeze({cid: subjectCid, wire: subjectWire})});
 }
 
 export function issueTaskDispatch(prepared, compilation, admission,
