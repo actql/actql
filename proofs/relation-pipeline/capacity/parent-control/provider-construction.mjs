@@ -2,17 +2,18 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { hash } from '../../inventory.mjs';
 import { fieldLayout } from '../backing/native-extent.mjs';
+import { checkConstructionSourceReview, constructionSourceReview } from './provider-construction-source-review.mjs';
 const profile = JSON.parse(readFileSync(new URL('./provider-construction.json', import.meta.url)));
 export function providerConstructionBound(read) {
   assert.equal(profile.version, 'actql-native-provider-construction/0.1');
+  const sourceReview = checkConstructionSourceReview(profile, read);
   for (const p of profile.providers) {
     const source = read(p.path).toString();
-    assert.equal(hash(source), p.sourceDigest, `Unreviewed provider constructor ${p.name}`);
+    const digest = p.name === 'selected_relation_provider' ? constructionSourceReview.selectedDigest : p.sourceDigest;
+    assert.equal(hash(source), digest, `Unreviewed provider constructor ${p.name}`);
     const constructor = source.slice(source.indexOf(`fn ${p.name}(`));
     assert(constructor.includes(`${p.binding}(`), `Changed provider binding ${p.name}`);
   }
-  for (const [path, digest] of Object.entries(profile.sourcePremises))
-    assert.equal(hash(read(path)), digest, `Changed provider representation premise ${path}`);
   const source = read('src/connectors/local/selected_relation_provider.mbt').toString();
   const list = source.match(/for\s+provider in \[([\s\S]*?)\]\s*\{/);
   assert(list);
@@ -28,7 +29,7 @@ export function providerConstructionBound(read) {
   const family = 24; // Array owner; its zero-length backing is process-static.
   const bytes = profile.bounds.providerRecords * (record + 4 * callback) + candidates + family;
   assert.equal(bytes, 2344);
-  return { subject: profile.scope, providerCount: 11, recordBytes: record, callbackBytes: callback,
+  return { subject: profile.scope, sourceReview, providerCount: 11, recordBytes: record, callbackBytes: callback,
     callbackCount: 44, candidateContainerBytes: candidates, defaultFamilyBytes: family, bytes,
     unit: 'conditional pinned native requested header and payload bytes',
     premises: ['four pointer-sized ManagedProvider fields',
