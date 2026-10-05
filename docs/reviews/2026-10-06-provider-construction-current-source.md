@@ -99,6 +99,12 @@ G's independent branch starts from integrated main
 Graph product changes. The original `provider-construction.json` remains
 byte-for-byte unchanged (`cf00b1b46f2ce78e37ab22eb14872dbfb63c1607c0382fc27124fa6b1ff0dc71`).
 
+This is an immutable historical evidence input, not an executable compatibility
+path. Current admission always requires the current-source supplement. An old
+product source cannot fall back to the historical pin; the refusal is tested.
+The listed main/union/subtraction sources are explicitly reviewed current
+development variants, not support for older runtime contracts or snapshots.
+
 `provider-construction-source-review.json` records exact reviewed source
 variants and change subjects. Its checker requires all three original wrapper
 bodies, the original selected factory outside accepts, and the entire historical
