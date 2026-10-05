@@ -15,6 +15,8 @@ import './embedded-target-cancel.test.mjs';
 // The ordinary installed retained path includes long wire keys and values.
 import './public-wire-retention.test.mjs';
 import './public-membership-retention.test.mjs';
+// Public binding-row retention, real Store reload and post-progress stop.
+import './public-binding-retention.test.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from
   './embedded-local.mjs';
 import {installedEffectIdentity} from './installed-effect.mjs';

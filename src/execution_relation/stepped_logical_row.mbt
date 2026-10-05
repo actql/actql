@@ -174,7 +174,10 @@ fn[T : RowValues] advance_stepped_logical_row_impl(
   if cursor.wire is Some(wire) {
     match advance_stepped_runtime_wire(wire) {
       Err(Workspace) => return Err(RowLimit)
-      Err(Encoding(_)) => {
+      Err(Encoding(issue)) => {
+        // The cursor retains the exact cause; this boundary intentionally
+        // projects every encoding failure to the existing row diagnostic.
+        ignore(issue)
         budget.failed = true
         return Err(LogicalRows(ValueMeasure(WireMeasureFailure)))
       }

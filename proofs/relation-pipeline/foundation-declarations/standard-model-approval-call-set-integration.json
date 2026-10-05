@@ -1,0 +1,96 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "standard-model-approval-call-set-integration",
+  "kind": "resolution",
+  "revision": "e8ac53e715c2cd41d4dfe0fca52d8f4bead4b87d",
+  "parents": [
+    "6125cbb031bf3ce4a59b18df4f28cfec287d030f",
+    "bede33b19d56cc20c8834f27e832223f604f7697"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "6125cbb031bf3ce4a59b18df4f28cfec287d030f",
+          "digest": "0f9044f72618df11933262007e360182e3d02066a8e812639a1cd67e6595a9c8",
+          "mode": "100644"
+        },
+        {
+          "revision": "bede33b19d56cc20c8834f27e832223f604f7697",
+          "digest": "dd38a08f5423a613fc63461d45822b1aa860b869f57bfd0f8819db5b1fa8a0eb",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "dd38a08f5423a613fc63461d45822b1aa860b869f57bfd0f8819db5b1fa8a0eb",
+      "afterMode": "100644",
+      "reason": "Integrate the current Model call-set dependency while retaining the prepared owner and existing distribution gates."
+    }
+  ],
+  "mergeBases": [
+    "3c443c5bf3483170aa941feac767650a76b532f2",
+    "3d5f9f2568f8247c45a182295bbe5500f5479954"
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-3877b637406b",
+    "adopt-63b114ad524b",
+    "adopt-678626b010b4",
+    "adopt-7427f7f09276",
+    "adopt-9a7c592a8ed9",
+    "adopt-b480cffb6e6d",
+    "adopt-bf2d058c21c1",
+    "adopt-f24288853c19",
+    "adopt-sga-query-contract",
+    "ci-mandatory-preflight",
+    "frontend-sga-main-integration",
+    "frontend-unified-graph-source-integration",
+    "github-issue-read-registration",
+    "github-issue-source-acceptance-registration",
+    "graph-composition-fixture-registration",
+    "main-pr233-package-resolution",
+    "model-invocation-checkpoint-registration",
+    "packed-composed-infer-effect-acceptance",
+    "pr164-main-a32-verification-resolution",
+    "pr164-main4f-runtime-check-resolution",
+    "pr164-property-graph-source",
+    "public-column-published-main-resolution",
+    "public-text-computation-bridge-ci",
+    "read-progress-current-main-resolution",
+    "remove-duplicate-runtime-package-checks",
+    "resident-cancellation-issuer-registration",
+    "resident-cancellation-native-registration",
+    "resident-source-native-registration",
+    "resolve-cancellation-foundation-main-5caeccc79",
+    "resolve-composition-custody-main-maximal-bases",
+    "resolve-composition-frontend-latest-main",
+    "resolve-composition-infer-main-maximal-bases",
+    "resolve-composition-resident-source-main",
+    "resolve-composition-reviewed-supplements-main",
+    "resolve-expression-diagnostics-main-d134-maximal-bases",
+    "resolve-frontend-graph-label-dependency-5fa4bc547",
+    "resolve-frontend-graph-row-input-main-0e1516677",
+    "resolve-frontend-group-ordinals-parent-bf39d807d",
+    "resolve-github-issue-driver-main-5dcef9189",
+    "resolve-github-issue-source-main",
+    "resolve-graph-composition-accepted-effect-main-1edb1560c",
+    "resolve-graph-composition-cancellation-main",
+    "resolve-graph-composition-current-main-d8dd3a918",
+    "resolve-graph-composition-resident-cleanup-main",
+    "resolve-graph-composition-text-main",
+    "resolve-graph-policy-source-approval-main-13c0d39d2",
+    "resolve-graph-retention-policy-main-e3ecb26c9",
+    "resolve-join-property-main-e2e27d-maximal-bases",
+    "resolve-model-checkpoint-main-db141961",
+    "resolve-model-checkpoint-main-e26f7500",
+    "resolve-resident-cancel-foundation-7b5a8048",
+    "resolve-resident-source-latest-main",
+    "scoped-session-acquisition-main-resolution",
+    "sdk-cancel-response-loss-registration",
+    "sdk-jsonl-row-refusal-main-resolution",
+    "sdk-jsonl-row-refusal-registration",
+    "sdk-read-progress-registration",
+    "sdk-submission-explanation-acceptance-registration",
+    "source-free-effect-retention-original-regression"
+  ]
+}
