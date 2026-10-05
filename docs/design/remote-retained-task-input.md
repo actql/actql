@@ -6,6 +6,25 @@ joins the original admitted Run to the checked producer fragment/output port
 and consumer fragment/input port. The fragment identities retain the checked
 schema and ordered computation. Resolving this edge issues no start claim.
 
+The portable Run Host package exposes this edge as an opaque
+`RetainedTaskInputEdge`, not a caller-authored port projection. Cloud producer
+admission uses `prepare_client_coordinator_retained_input_producer`: the existing
+Coordinator Owner must have durably accepted the exact dispatch, managed-output
+evidence, subject and measurement, with active cleanup custody. It does not
+construct a Site journal from a Coordinator observation.
+
+The trusted Host installs an atomic current-record port. Every availability
+check consults that port and the existing Coordinator observation Owner again;
+reconstruction may supply an equivalent recovered record, but another attempt,
+missing observation or begun cleanup cannot supply current producer custody.
+The package adapter re-admits the current durable record and its history against
+the current Coordinator authority. The port must read the existing trusted
+Owner, not retain the first successful wire as a permanent authorization. Host
+callers retain the durable revision fence across awaited physical handoffs.
+Producer evidence alone establishes neither current Site generation and grants
+nor an independent destination holding; the existing retained-input Current
+and Transfer Owners still admit those separately before consumer dispatch.
+
 Relation ports retain their checked Carrier contract, while physical output
 admission separately derives the complete field-map schema through the existing
 Relation schema Owner. An ordinary row object contract and the field-map schema

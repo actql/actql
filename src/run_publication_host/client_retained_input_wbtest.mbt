@@ -47,6 +47,7 @@ fn retained_input_completed(
   attempt : Int,
   generation : Int,
   schema : String,
+  measurement_cid? : String = retained_input_cid("b"),
 ) -> (
   @remote.DispatchRecord,
   @remote.RemoteExecutionEvidence,
@@ -107,7 +108,7 @@ fn retained_input_completed(
     retained_input_cid("7"),
     retained_input_cid("8"),
     retained_input_cid("9"),
-    retained_input_cid("b"),
+    measurement_cid,
     1,
     8L,
   ).unwrap()

@@ -128,7 +128,12 @@ const retainEffectUncertainty = (state, ref) => {
       state.next_action.kind === 'reconcile') {
     // A Local port may reuse a cached object for another observation/Run.
     // Each returned SDK response must keep its own original association.
-    state = structuredClone(state);
+    try { state = structuredClone(state); }
+    catch { fail('InvalidHostRunState'); }
+    // A Local value can lose fields when copied. Retain only a validated
+    // copied reconciliation state, before reading or explaining its facts.
+    if (!validRunState(state) || state.status !== 'needs_reconciliation' ||
+        state.next_action.kind !== 'reconcile') fail('InvalidHostRunState');
     effectUncertainties.set(state, freezeInput({
       observation: 'effect_outcome_unknown',
       summary: 'External Effect outcomes are unknown. Computation stop does not establish their outcome or resource release.',
