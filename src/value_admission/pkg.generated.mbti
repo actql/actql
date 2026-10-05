@@ -142,6 +142,8 @@ pub fn start_canonical_conversion(@canonical_json.CanonicalValue, Limits, contra
 
 pub fn start_complete_equality(CheckedValue, CheckedValue, Limits) -> Result[CompleteEquality, CompleteEqualityIssue]
 
+pub fn start_recheck_runtime_text(String, @value_contract.Contract, Limits) -> RecheckCursor?
+
 pub fn start_recheck_runtime_value(Value, @value_contract.Contract, Limits) -> RecheckCursor?
 
 pub fn start_wire_emit(Value, @encode_core.Writer) -> WireEmitCursor

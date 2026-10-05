@@ -132,3 +132,43 @@ test "runtime recheck preserves admitted decimal coefficients" {
     is None,
   )
 }
+
+///|
+test "runtime text recheck advances in bounded chunks with exact usage" {
+  let contract = @contract.string_contract(
+    nullable=false,
+    min_length=Some(130L),
+    max_codepoints=Some(130L),
+    max_utf8_bytes=Some(134L),
+  ).unwrap()
+  let mut text = ""
+  for _ in 0..<128 {
+    text = text + "a"
+  }
+  text = text + "é😀"
+  let limits : Limits = { max_nodes: 1, max_depth: 0, max_text_bytes: 134, }
+  let cursor = start_recheck_runtime_text(text, contract, limits).unwrap()
+  for _ in 0..<3 {
+    assert_true(advance_recheck_runtime_value(cursor) is RecheckContinue)
+  }
+  assert_true(advance_recheck_runtime_value(cursor) is RecheckContinue)
+  assert_true(
+    advance_recheck_runtime_value(cursor) is RecheckComplete(_, 1, 134),
+  )
+  let one_short = start_recheck_runtime_text(text, contract, {
+    ..limits,
+    max_text_bytes: 133,
+  }).unwrap()
+  for _ in 0..<3 {
+    assert_true(advance_recheck_runtime_value(one_short) is RecheckContinue)
+  }
+  assert_true(advance_recheck_runtime_value(one_short) is RecheckFailed)
+  let malformed = String::from_array([(0xd800).unsafe_to_char()])
+  let invalid = start_recheck_runtime_text(
+    malformed,
+    @contract.primitive(@contract.StringType, nullable=false),
+    limits,
+  ).unwrap()
+  assert_true(advance_recheck_runtime_value(invalid) is RecheckContinue)
+  assert_true(advance_recheck_runtime_value(invalid) is RecheckFailed)
+}
