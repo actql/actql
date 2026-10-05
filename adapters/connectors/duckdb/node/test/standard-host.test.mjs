@@ -62,7 +62,7 @@ import {
 } from '../../../../host-node/result-access.mjs';
 import {canonical, hash as canonicalHash} from './typed-catalog.mjs';
 import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
-import {deltaApplicationScenario} from
+import {deltaApplicationScenario, deltaDiffScenario} from
   '../../../../../scripts/fixtures/property-graph-delta-application.mjs';
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
@@ -576,7 +576,7 @@ async function subgraphHostCancellation() {
 test('fused Subgraph stops after construction and positive selection work through the Local Host driver',
   {timeout:30_000}, () => subgraphHostCancellation());
 
-async function deltaHostCancellation(phase) {
+async function deltaHostCancellation(phase, diff = false) {
   // Use the installed common Program/Plan/provider, not a test-only Delta
   // provider or pre-decoded replacement. Observe real operations as in the
   // existing Host cancellation corpus; the proxy supplies no result/state.
@@ -584,7 +584,9 @@ async function deltaHostCancellation(phase) {
     '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js')));
   const fixture = JSON.parse(await readFile(join(root,
     'scripts/fixtures/property-graph-presence.program.json'), 'utf8'));
-  const {document} = deltaApplicationScenario(fixture, 'node_rows');
+  const {document} = diff ? deltaDiffScenario(fixture, 'node_rows')
+    : deltaApplicationScenario(fixture, 'node_rows');
+  const targetTask = diff ? 6 : 5;
   const environmentBody = JSON.parse(await readFile(join(root,
     'spec/local-check-environment.json'), 'utf8'));
   delete environmentBody.evidence_bundle_cid;
@@ -630,12 +632,12 @@ async function deltaHostCancellation(phase) {
       starts.push(task);
       const operations = checked(target.strategyModule_local_ManagedStart(configuration));
       return {$tag:1,_0:new Proxy(operations, {get(owner, name, ownerReceiver) {
-        if (task !== 5 || !['advance','request_cancel','execution_stopped','cleanup_refresh'].includes(name)) {
+        if (task !== targetTask || !['advance','request_cancel','execution_stopped','cleanup_refresh'].includes(name)) {
           return Reflect.get(owner, name, ownerReceiver);
         }
         if (name === 'advance') return quantum => {
           // Narrow the real bounded operation's quantum, not its work/state.
-          const result = owner.advance(Math.min(quantum, phase === 'application' ? 32 : 1));
+          const result = owner.advance(Math.min(quantum, phase === 'conversion' ? 1 : 32));
           const poll = checked(result);
           deltaPolls.push(poll);
           // Input conversion/handoff report zero progress. Positive progress
@@ -663,12 +665,13 @@ async function deltaHostCancellation(phase) {
     assert.equal(scheduled, true);
     assert.equal(delivered, true);
     assert(workAtDelivery > 0n, 'cancel is delivered only after actual Delta work');
-    if (phase === 'application') assert(deltaPolls.some(poll=>poll.progress > 0n),
-      'bounded application, not merely conversion, made progress before cancellation');
+    if (phase !== 'conversion') assert(deltaPolls.some(poll=>poll.progress > 0n),
+      'bounded Delta kernel, not merely conversion, made progress before cancellation');
     assert.equal(execution.status, 'host-tasks-failed');
     assert.equal(execution.failure?.name, 'AbortError');
-    assert.deepEqual(starts, [0,1,2,3,4,5]);
-    assert.deepEqual(execution.completed.map(value=>value.task), [0,1,2,3,4]);
+    const expectedStarts = Array.from({length:targetTask + 1},(_,task)=>task);
+    assert.deepEqual(starts, expectedStarts);
+    assert.deepEqual(execution.completed.map(value=>value.task), expectedStarts.slice(0,-1));
     assert(deltaPolls.every(poll=>poll.complete === false), 'no partial Delta output is completed');
     assert(lifecycle.some(event=>event.name === 'request_cancel' && event.delivered));
     assert(lifecycle.some(event=>event.name === 'execution_stopped' && event.result === true && event.delivered));
@@ -679,7 +682,7 @@ async function deltaHostCancellation(phase) {
       assert.equal(execution.cleanupPending(), false);
       // Holdings is the monotonic allocation count, not live capacity. Keep
       // that accounting history while returning all held/reserved bytes.
-      assert.equal(execution.usage().holdings, 5n);
+      assert.equal(execution.usage().holdings, BigInt(targetTask));
       assert.equal(execution.usage().heldBytes, 0n);
       assert.equal(execution.usage().reservedRetentionBytes, 0n);
       assert.equal(execution.usage().reservedTransferBytes, 0n);
@@ -689,7 +692,8 @@ async function deltaHostCancellation(phase) {
       await execution.close();
       assert.equal(await execution.cleanup(), true);
       assert.equal(deltaPolls.length, settledPollCount, 'cleanup does not resume Compute');
-      assert.deepEqual(starts, [0,1,2,3,4,5], 'cleanup does not start a new task');
+      assert.deepEqual(starts, Array.from({length:targetTask + 1},(_,task)=>task),
+        'cleanup does not start a new task');
       assert.deepEqual(execution.usage(), settledUsage, 'duplicate close does not change resource accounting');
     }
   }
@@ -699,6 +703,8 @@ test('Delta application stops after positive work through the installed Local Ho
   {timeout:30_000}, () => deltaHostCancellation('conversion'));
 test('Delta application stops after positive work through the installed Local Host during bounded application',
   {timeout:30_000}, () => deltaHostCancellation('application'));
+test('Graph diff stops after positive work through the installed Local Host without publishing Delta',
+  {timeout:30_000}, () => deltaHostCancellation('diff', true));
 
 test('standard native and broad Node Hosts own verification through real capture and consumer', async () => {
   const exec = promisify(execFile);

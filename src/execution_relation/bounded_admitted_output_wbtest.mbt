@@ -15,6 +15,36 @@ fn stepped_output_fixture(
 }
 
 ///|
+test "bounded output import transfers accepted rows once without cleanup erasing them" {
+  let (_, active) = stepped_output_fixture(
+    { max_nodes: 6, max_text_bytes: 10, max_depth: 2, max_work: 16, },
+    26,
+    7,
+  )
+  assert_true(take_admitted_output_preparation_rows(active) is None)
+  let mut complete = false
+  for _ in 0..<26 {
+    match advance_admitted_output_preparation(active, 1).unwrap() {
+      AdmittedOutputContinue(..) => ()
+      AdmittedOutputComplete(_, ..) => {
+        complete = true
+        break
+      }
+      _ => fail("row handoff import failed")
+    }
+  }
+  assert_true(complete)
+  let rows = take_admitted_output_preparation_rows(active).unwrap()
+  assert_eq(rows.rows.length(), 2)
+  assert_eq(active.state.workspace.live, 0)
+  assert_true(take_admitted_output_preparation_rows(active) is None)
+  assert_true(admitted_output_preparation_rows(active) is None)
+  assert_true(cleanup_admitted_output_preparation(active).unwrap())
+  assert_eq(rows.rows.length(), 2)
+  assert_eq(admitted_output_usage(rows), { nodes: 6, text_bytes: 10, work: 16, })
+}
+
+///|
 test "bounded output import preserves exact logical charges and admits cells incrementally" {
   let limits : ValueLimits = {
     max_nodes: 6,
