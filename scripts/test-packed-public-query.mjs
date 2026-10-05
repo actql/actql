@@ -44,6 +44,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/group-ordinal-source-input.mjs', 'group-ordinal-source-input.mjs'],
   ['scripts/fixtures/order-ordinal-source-input.mjs', 'order-ordinal-source-input.mjs'],
   ['scripts/fixtures/distinct-order-source-input.mjs', 'distinct-order-source-input.mjs'],
+  ['scripts/fixtures/order-property-source-input.mjs', 'order-property-source-input.mjs'],
   ['scripts/fixtures/group-select-scope-source-input.mjs', 'group-select-scope-source-input.mjs'],
   ['scripts/fixtures/having-projection-source-input.mjs', 'having-projection-source-input.mjs'],
   ['scripts/fixtures/implicit-property-source-input.mjs', 'implicit-property-source-input.mjs'],
@@ -169,6 +170,9 @@ if (process.argv.includes('--group-star-only')) {
 if (process.argv.includes('--group-scope-only')) {
   runtimeEnvironment.ACTQL_TEST_GROUP_SCOPE_ONLY = '1';
 }
+if (process.argv.includes('--order-property-only')) {
+  runtimeEnvironment.ACTQL_TEST_ORDER_PROPERTY_ONLY = '1';
+}
 if (process.argv.includes('--group-select-scope-only')) {
   runtimeEnvironment.ACTQL_TEST_GROUP_SELECT_SCOPE_ONLY = '1';
 }
@@ -249,7 +253,7 @@ const narrowPublicQuery = process.argv.some(flag => ['--source-free-only',
   '--graph-projection-property-only',
   '--graph-property-predicate-only',
   '--group-property-only',
-  '--order-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--group-star-only', '--group-ordinal-only',
+  '--order-property-only', '--order-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--group-star-only', '--group-ordinal-only',
   '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only', '--two-source-only',
   '--relation-data-only', '--acquired-data-only',
   '--data-set-strategy-only', '--property-graph-source-only', '--graph-rows-only'].includes(flag));
@@ -297,13 +301,14 @@ if (!process.argv.some(flag => ['--alias-scope-only', '--scoped-order-only', '--
   '--graph-projection-property-only',
   '--graph-property-predicate-only',
   '--group-property-only',
-  '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only',
+  '--order-property-only', '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only',
   '--relation-data-only', '--acquired-data-only', '--data-set-strategy-only', '--two-source-only',
   '--property-graph-source-only', '--graph-rows-only'].includes(flag))) {
   console.log(run(process.execPath, ['string-values-restart.mjs'], root,
     runtimeEnvironment, 120000).trimEnd());
 }
 if (process.argv.includes('--order-ordinal-only') ||
+    process.argv.includes('--order-property-only') ||
     process.argv.includes('--graph-projection-property-only') ||
     process.argv.includes('--graph-property-predicate-only') ||
     process.argv.includes('--group-property-only') ||
