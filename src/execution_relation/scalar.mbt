@@ -267,18 +267,26 @@ pub fn binary(
         Ok(n) => n
         Err(e) => return Err(e)
       }
-      match op {
-        Equal => Ok(Boolean(cmp == 0))
-        NotEqual => Ok(Boolean(cmp != 0))
-        IsDistinctFrom => Ok(Boolean(cmp != 0))
-        Less => Ok(Boolean(cmp < 0))
-        LessEqual => Ok(Boolean(cmp <= 0))
-        Greater => Ok(Boolean(cmp > 0))
-        GreaterEqual => Ok(Boolean(cmp >= 0))
-        NullIf => Ok(if cmp == 0 { Null } else { left })
-        Add | Subtract | Multiply | Divide | Modulo => Err(InvalidOperand)
-      }
+      binary_comparison_result(op, left, cmp)
     }
+  }
+}
+
+///|
+fn binary_comparison_result(
+  op : @lower.BinaryOperator,
+  left : Value,
+  compared : Int,
+) -> Result[Value, ScalarIssue] {
+  match op {
+    Equal => Ok(Boolean(compared == 0))
+    NotEqual | IsDistinctFrom => Ok(Boolean(compared != 0))
+    Less => Ok(Boolean(compared < 0))
+    LessEqual => Ok(Boolean(compared <= 0))
+    Greater => Ok(Boolean(compared > 0))
+    GreaterEqual => Ok(Boolean(compared >= 0))
+    NullIf => Ok(if compared == 0 { Null } else { left })
+    Add | Subtract | Multiply | Divide | Modulo => Err(InvalidOperand)
   }
 }
 

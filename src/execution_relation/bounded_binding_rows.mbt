@@ -407,26 +407,16 @@ fn bounded_row_comparison_step_with(
     }
     3 => {
       let compared = match (left, right) {
-        (Text(a), Text(b)) =>
-          if cursor.offset < a.length() && cursor.offset < b.length() {
-            let a_unit = a[cursor.offset]
-            let b_unit = b[cursor.offset]
-            if a_unit == b_unit {
-              cursor.offset += 1
-              return Ok(None)
-            }
-            if a_unit < b_unit {
-              -1
-            } else {
-              1
-            }
-          } else if a.length() < b.length() {
-            -1
-          } else if a.length() > b.length() {
-            1
-          } else {
-            0
-          }
+        (Text(a), Text(b)) => {
+          let (compared, offset) = bounded_utf16_comparison_step(
+            a,
+            b,
+            cursor.offset,
+          )
+          cursor.offset = offset
+          guard compared is Some(compared) else { return Ok(None) }
+          compared
+        }
         (Null, Null) => 0
         (Null, _) => if order.nulls_first { -1 } else { 1 }
         (_, Null) => if order.nulls_first { 1 } else { -1 }

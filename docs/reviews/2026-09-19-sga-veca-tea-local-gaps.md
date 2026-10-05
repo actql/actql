@@ -1304,6 +1304,40 @@ comparison/concatenation and long object-field/reference wire transitions
 remain distinct work; no general expression cancellation guarantee is inferred
 from the bounded result-measurement connection alone.
 
+Long Text binary expressions now resume operand byte charging and canonical
+UTF-16 comparison inside the existing expression frame. The shared code-unit
+primitive is also used by bounded row and complete-value comparison; scalar
+operator results retain the same shared mapping. Small operands keep their
+existing path. The pending comparison reserves two cursor handles before
+construction and keeps both operand roots until completion or frame cleanup.
+Suspension does not add semantic work, reconsume operands or restart a scan.
+The original operand byte charge covers comparison; the normal final Return
+still consumes its existing control transition.
+
+The unchanged parent failed the 4096-character equal-prefix regression at its
+single-advance charge bound (`run-OnIKoO` / `focused-test-wHU4oi`, 0/1).
+Independent 256-character vectors fix 1032/1031 logical work, 516/515 live
+bytes and 11/10 measurement workspace slots. Without logical retention, six
+semantic transitions and the nine field-name bytes plus 512 operand bytes fix
+527/526 control; pending comparison custody fixes 2/1 workspace. The vectors
+cover every comparison operator, NULL, prefix length and supplementary/BMP
+UTF-16 order, both stepped and drained. Cleanup during each charging phase and
+the equal-prefix walk preserves borrowed roots and consumed work. A checked
+bounded filter receives cancellation during the comparison, reports stop
+before cleanup, publishes no partial output and leaves its caller input alive.
+An ordinary Program runs the long comparison filter at quantum one and feeds
+two independently released Compute consumers with fixed expected rows.
+
+The changed comparison/frame/row fixtures, shared aggregate comparison caller
+and ordinary managed unary Host cases passed 142 focused JS tests
+(`run-pXhVmG` / `focused-test-5Ho0pD`) before this documentation update. Workers
+and Node Host fixture sources are regenerated from the changed Program helper.
+This does not establish a new-source real Node retained-Store or packed
+publication result, Wasm/native execution, Linux integration, or a general
+expression cancellation guarantee. Intrinsic concatenation and long
+object-field/reference wire transitions remain separate work. Whole-operation
+assurance counts are unchanged.
+
 #### Retained Relation obligation chains
 
 The retained materializing lane now binds checked obligations to the exact
