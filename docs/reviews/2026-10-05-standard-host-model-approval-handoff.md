@@ -41,15 +41,25 @@ and restart; the independent assessment expectation remains unchanged.
 The independent expectation remains the original assessment row:
 `[{"assessment":{"input_key":{"id":"a"},"outcome":"ok","value":{"reason":null,"risk":"high"}}}]`.
 Expected physical calls are zero before approval, one after approval, and no
-additional call after both Host and execution processes have exited. The
+additional call after the Host and execution owner have exited. In this
+single-INFER fixture they are co-resident in each child process; all three
+child processes exit between phases. This is not evidence for a deployment
+with separate Host and worker PIDs. The
 recorded request/Run identity must survive all phases. The focused selector
 does not remove these phases from the ordinary packed runner.
 
 Run the bounded producer/consumer using the existing local-check supervisor:
 `node scripts/test-packed-single-infer.mjs --approval-only --keep-artifacts`.
 The retained command evidence records the exact source SHA, package tarball
-digests, child commands and output. No pristine latest-SHA packed success is
-claimed until that invocation succeeds.
+digests, child commands and output.
+
+At clean SHA `b6d253a4f94fd39a481aa6bf4b9a714e8cf40310`, the bounded invocation
+passed both transports and all three phases (`run-aaw1bN`,
+`public-query-evidence-gwpLha`). Its completed summary records five fresh
+prepack producers, the external installation, six successful child commands,
+and each tarball digest. Both transports retained the same request/Run and
+independent row while physical calls remained 0→1→1. This is local packed
+evidence for that SHA, not hosted CI success or a claim about later revisions.
 
 ## Limited checks and remaining boundaries
 
@@ -62,8 +72,10 @@ Receipts live in this worktree's `_build/local-checks/attempts/` and
 
 Source acceptance inherited from #363 is not fresh-packed acceptance. The
 existing mixed saved/unknown/unsent, expiry, replacement and cancellation tests
-now select Local and HTTPS, without a second process fixture. These extended
-selections have not yet been executed at the new HEAD. The independent
+now select Local and HTTPS, without a second process fixture. The Local
+sent-unknown cancellation/restart case passed after dependency preparation
+(`run-XBQG4m`, `focused-test-A0xngD`), with tracked fixture changes present.
+The remaining extended selections have not yet been executed. The independent
 Model/Effect approval case covers HTTPS with Host reopening in one process.
 External HTTPS mixed unknown, full-process Effect restart, current provider
 replacement/expiry/cancellation, and public confirmation of the newly agreed conditional common
@@ -116,3 +128,12 @@ the fixture had installed a signer without granting review read access
 `CheckpointReviewDenied`). The fixture now explicitly grants its owner review
 read access, as the existing installed acceptance does. Product review and
 signer checks remain unchanged.
+
+The source recovery harness now explicitly prepares the ordinary Node package
+exports using private per-package workspace links and the existing pinned
+DuckDB dependency. It assembles and checks ignored adapter copies with the
+existing builder, without another MoonBit build or changes to borrowed root
+dependencies. Earlier source attempts failed before Model execution on absent
+`@actql/sdk` (`run-1cS6Tm`) and absent `@duckdb/node-api` (`run-DB4lhm`).
+These preparation failures are distinct from product recovery failures and
+do not establish packed acceptance for a later SHA.

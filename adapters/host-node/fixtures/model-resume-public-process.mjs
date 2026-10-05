@@ -9,11 +9,13 @@ import {userInfo} from 'node:os';
 import {join} from 'node:path';
 import {inspect} from 'node:util';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
-import {connect, RequestHeld} from '../../../packages/node/index.mjs';
+import {prepareSourceNodeClient} from './source-node-client.mjs';
 import {openInstalledRemoteHttpHost} from '../embedded-local.mjs';
 import {canonical, cid, configuration} from '../../../scripts/fixtures/installed-infer-fixture.mjs';
 import {providerBindingOriginals} from '../../../scripts/fixtures/model-provider-binding-fixture.mjs';
 import {observeTwoSourceProvider} from '../../../scripts/fixtures/two-source-public-query.mjs';
+
+const {connect, RequestHeld} = await prepareSourceNodeClient();
 
 const options = JSON.parse(readFileSync(0, 'utf8'));
 const {root, phase, transport = 'local', count = 1, acquired = false,

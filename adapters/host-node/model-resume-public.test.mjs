@@ -14,6 +14,11 @@ import {setTimeout as pause} from 'node:timers/promises';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {scopedModelHolding} from '../../scripts/fixtures/model-custody-fixture.mjs';
+import {prepareSourceNodeClient} from './fixtures/source-node-client.mjs';
+
+// The distribution gate prepares the runtime; this prepares its public package
+// dependencies and ignored adapter copies, without another MoonBit build.
+await prepareSourceNodeClient({assemble: true});
 
 const processFixture = fileURLToPath(new URL('./fixtures/model-resume-public-process.mjs', import.meta.url));
 const expectedRows = (count = 1, acquired = false) => [
