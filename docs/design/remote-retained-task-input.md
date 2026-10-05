@@ -348,3 +348,32 @@ reported plan alone does not publish a Result or release either task.
 
 Native callers without this installed checked producer planning port reject
 the operation explicitly and retain the producer responsibility.
+
+The retained-transfer poll operation carries the exact saved intent, plan and
+original producer request. The Run Host issuer revalidates current producer and
+movement authority before producing that envelope. Recognition and canonical
+admission alone do not grant physical access. The resident control process
+relays it only to the matching live producer holder. Movement-enabled holders
+also require an explicit `--retained-input-root`, opened before execution,
+alongside all three movement delegation identities. The ordinary path with
+none of these settings remains valid. No transport or capacity ceiling is
+increased for this profile.
+
+The holder retains one existing Direct Transfer Owner for the checked edge.
+Bounded rounds advance exact chunks; an identical reoffer resumes that Owner,
+and another plan is refused while the responsibility is held. Receiver commit
+produces a canonical retained-input result containing the saved plan identity,
+the existing Transfer record reply and its exact destination receipt. The
+result snapshots these historical facts. A report retry can repost those same
+bytes without reading Source or payload again, even after current permission
+expires. Such reporting cannot revive receiver custody or permit a consumer.
+
+The Coordinator must durably admit the exact report through its existing Owner
+before acknowledging acceptance. Historical report admission is distinct from
+current binding issuance: current Transfer custody, Site generation, grants,
+borrow and start claim remain independently required. Transfer cleanup does
+not itself release committed receiver material. The holder's receiver cleanup
+waits for its existing material Owner to confirm reclamation before returning
+the Site reservation; producer and Named Result responsibilities remain
+separate. Reconstructing a lost holder requires saved original plan, receiver
+custody and reservation responsibility, rather than a new Source execution.

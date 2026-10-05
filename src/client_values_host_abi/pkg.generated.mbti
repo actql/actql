@@ -25,6 +25,8 @@ pub fn client_values_host_admit_retained_input_intent(@run_publication_host.Clie
 
 pub fn client_values_host_admit_retained_input_plan(@run_publication_host.ClientRetainedInputProducer, @remote_site_protocol.RemoteRetainedInputIntent, String, String, (String, String, String) -> Bool, () -> String, () -> Int64, (String, String) -> Bool, Int, Int, Int64) -> Result[ClientValuesHostRetainedInputPlan, @run_publication_host.ClientRetainedTaskInputIssue]
 
+pub fn client_values_host_admit_retained_input_result(ClientValuesHostRetainedInputPlan, String, String) -> Result[@remote_site_protocol.RemoteRetainedInputResult, @run_publication_host.ClientRetainedTaskInputIssue]
+
 pub fn client_values_host_admit_retained_task_input(ClientValuesHostRetainedTaskInput, String, String) -> Result[ClientValuesHostRetainedTaskInput, @run_publication_host.ClientRetainedTaskInputIssue]
 
 pub fn client_values_host_admit_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, String, String) -> Result[@run_publication.RunPublicationAdmission, ClientValuesHostRunAdmissionIssue]
@@ -298,6 +300,10 @@ pub fn client_values_host_retained_input_producer(@run_publication_host.ClientRe
 pub fn client_values_host_retained_input_producer_available(@run_publication_host.ClientRetainedInputProducer) -> Bool
 
 pub fn client_values_host_retained_input_producer_facts(@run_publication_host.ClientRetainedInputProducer) -> Result[Array[String], @remote_site_protocol.DispatchIssue]
+
+pub fn client_values_host_retained_input_result_facts(@remote_site_protocol.RemoteRetainedInputResult) -> Result[Array[String], @run_publication_host.ClientRetainedTaskInputIssue]
+
+pub fn client_values_host_retained_input_transfer_envelope(ClientValuesHostRetainedInputPlan) -> Result[String, @run_publication_host.ClientRetainedTaskInputIssue]
 
 pub fn client_values_host_retained_task_input_facts(ClientValuesHostRetainedTaskInput) -> Array[String]
 

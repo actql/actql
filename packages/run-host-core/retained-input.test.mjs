@@ -15,7 +15,8 @@ import {admitEnvironment, prepare, compileTasks, taskExecutionShape, taskKeys,
   retainedInputProducerAvailable, retainedInputProducerFacts,
   prepareRetainedInputIntent, admitRetainedInputIntent, retainedInputIntentFacts,
   retainedInputPlanEnvelope, admitRetainedInputPlan, validateRetainedInputPlan,
-  retainedInputPlanFacts,
+  retainedInputPlanFacts, retainedInputTransferEnvelope, admitRetainedInputResult,
+  retainedInputResultFacts,
   prepareRetainedTaskInput, admitRetainedTaskInput, validateRetainedTaskInput,
   retainedTaskInputFacts, issueRetainedTaskDispatch}
   from './index.mjs';
@@ -543,4 +544,95 @@ test('retained input refuses disappearing Transfer custody across admission and 
   assert.throws(() => prepareRetainedTaskInput(fixture.producer, fixture.receipt,
     'receiver-use', {...fixture.current, authorized: () => Promise.resolve(true)}, inputLimits),
   {message: 'InvalidRunHostRetainedAuthorization'});
+});
+
+
+// Independent protocol response only: actual receiver bytes and cleanup have
+// separate Native evidence. This fixture cannot establish current custody.
+function retainedResultFixture(fixture, changes = {}) {
+  const body = {destination_receipt_cid: fixture.receipt.cid,
+    destination_receipt_json: fixture.receipt.wire,
+    dispatch_request_cid: fixture.completed.issued.cid,
+    intent_cid: fixture.savedIntent.cid, plan_cid: fixture.reply.cid,
+    transfer_reply_json: identifyRetainedWire({requestCid: fixture.requestWire.cid,
+      state: [3, 2, 0, 1, 0, 1, 1, 1, 1]}).wire,
+    transfer_request_cid: fixture.requestWire.cid,
+    version: 'actql-remote-retained-input-result/0.1', ...changes};
+  return identifyRetainedWire(body);
+}
+
+test('retained transfer envelope joins original plan and refuses revoked delivery before send', () => {
+  const fixture = retainedPlanFixture(run());
+  const plan = admitRetainedInputPlan(fixture.intent, fixture.reply, fixture.planCurrent, planLimits);
+  const before = fixture.wire();
+  const body = JSON.parse(retainedInputTransferEnvelope(plan));
+  assert.deepEqual(body, {dispatch_request_cid: fixture.completed.issued.cid,
+    intent_cid: fixture.savedIntent.cid, intent_json: fixture.savedIntent.wire,
+    plan_cid: fixture.reply.cid, plan_json: fixture.reply.wire,
+    request_json: fixture.completed.issued.wire,
+    version: 'actql-remote-poll-retained-input-transfer/0.1'});
+  assert.equal(fixture.wire(), before);
+  let sent = 0;
+  fixture.authorized(false);
+  assert.throws(() => {retainedInputTransferEnvelope(plan); sent++;},
+    {code: 'RunHostRetainedInputPlanRejected'});
+  assert.equal(sent, 0);
+  fixture.authorized(true);
+  fixture.completed.observe([3, 2, 1, 1, 0], 6);
+  assert.throws(() => {retainedInputTransferEnvelope(plan); sent++;},
+    {code: 'RunHostRetainedInputPlanRejected'});
+  assert.equal(sent, 0);
+});
+
+test('retained result restores exact immutable receipt without authorizing current input', () => {
+  const fixture = retainedPlanFixture(run());
+  const plan = admitRetainedInputPlan(fixture.intent, fixture.reply, fixture.planCurrent, planLimits);
+  const saved = retainedResultFixture(fixture);
+  const before = fixture.wire();
+  const result = admitRetainedInputResult(plan, saved);
+  const facts = retainedInputResultFacts(result);
+  assert.equal(facts.cid, saved.cid);
+  assert.equal(facts.wire, saved.wire);
+  assert.equal(facts.planCid, fixture.reply.cid);
+  assert.deepEqual(facts.receipt, fixture.receipt);
+  assert.equal(facts.transferReply.requestCid, fixture.requestWire.cid);
+  assert.equal(fixture.wire(), before);
+  assert(Object.isFrozen(result));
+  assert(Object.isFrozen(facts));
+  assert(Object.isFrozen(facts.transferReply));
+  assert(Object.isFrozen(facts.receipt));
+  // A committed historical report does not replace the current Transfer Owner.
+  assert.throws(() => prepareRetainedTaskInput(fixture.producer, facts.receipt,
+    'receiver-use', fixture.current, inputLimits), {code: 'RunHostRetainedTaskInputRejected'});
+  fixture.authorized(false);
+  assert.deepEqual(retainedInputResultFacts(admitRetainedInputResult(plan, saved)), facts);
+  assert.throws(() => retainedInputTransferEnvelope(plan), {code: 'RunHostRetainedInputPlanRejected'});
+  assert.throws(() => validateRetainedTaskInput(result), {message: 'ForeignRunHostHandle'});
+  assert.equal(fixture.wire(), before);
+});
+
+test('retained result refuses uncommitted and substituted reports and forged handles', () => {
+  const fixture = retainedPlanFixture(run());
+  const plan = admitRetainedInputPlan(fixture.intent, fixture.reply, fixture.planCurrent, planLimits);
+  const saved = retainedResultFixture(fixture);
+  for (const changes of [{plan_cid: cid('f')}, {intent_cid: cid('f')},
+    {dispatch_request_cid: cid('f')}, {transfer_request_cid: cid('f')},
+    {destination_receipt_cid: cid('f')},
+    {transfer_reply_json: identifyRetainedWire({requestCid: fixture.requestWire.cid,
+      state: [0, 0, 0, 0, 0, 0, 0, 1, 0]}).wire}]) {
+    assert.throws(() => admitRetainedInputResult(plan, retainedResultFixture(fixture, changes)),
+      {code: 'RunHostRetainedInputResultRejected'});
+  }
+  assert.throws(() => admitRetainedInputResult(plan, {...saved, wire: saved.wire + ' '}),
+    {code: 'RunHostRetainedInputResultRejected'});
+  for (const malformed of [{}, {...saved, extra: true}, {...saved, cid: 1}]) {
+    assert.throws(() => admitRetainedInputResult(plan, malformed),
+      {message: 'InvalidRunHostRetainedInputResultWire'});
+  }
+  for (const forged of [fixture.intent, fixture.reply, retainedInputPlanFacts(plan)]) {
+    assert.throws(() => retainedInputTransferEnvelope(forged), {message: 'ForeignRunHostHandle'});
+  }
+  for (const forged of [plan, saved, retainedInputResultFacts(admitRetainedInputResult(plan, saved))]) {
+    assert.throws(() => retainedInputResultFacts(forged), {message: 'ForeignRunHostHandle'});
+  }
 });

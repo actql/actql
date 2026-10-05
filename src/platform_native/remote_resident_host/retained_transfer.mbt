@@ -35,6 +35,7 @@ pub struct ResidentRetainedTransfer {
   mut pending : @runtime.NativeRemoteOutputManifestChunk?
   mut source_finished : Bool
   mut receipt_cid : String?
+  mut result : @remote.RemoteRetainedInputResult?
   mut cleanup_material : @transfer_client.NativeRemoteDestinationMaterialUse?
   mut cleanup_started : Bool
   mut reclaimed : Bool
@@ -110,6 +111,7 @@ pub fn prepare_resident_retained_transfer(
     pending: None,
     source_finished: false,
     receipt_cid: None,
+    result: None,
     cleanup_material: None,
     cleanup_started: false,
     reclaimed: false,
@@ -324,7 +326,32 @@ fn ResidentRetainedTransfer::remember_receipt(
     return Err(ForeignProducer)
   }
   self.receipt_cid = Some(cid)
+  if self.result is None && self.plan is Some((_, plan)) {
+    let record = match self.journal.require(self.request) {
+      Ok(value) => value
+      Err(issue) => return Err(Journal(issue))
+    }
+    self.result = Some(
+      match
+        @remote.prepare_remote_retained_input_result(plan, record, receipt) {
+        Ok(value) => value
+        Err(_) => return Err(ForeignProducer)
+      },
+    )
+  }
   Ok(())
+}
+
+///|
+/// The immutable committed receiver report. Retrying this historical evidence
+/// does not read payloads, start a consumer or establish current availability.
+pub fn ResidentRetainedTransfer::result(
+  self : ResidentRetainedTransfer,
+) -> Result[@remote.RemoteRetainedInputResult, ResidentRetainedTransferIssue] {
+  match self.result {
+    Some(value) => Ok(value)
+    None => Err(CleanupPending)
+  }
 }
 
 ///|
