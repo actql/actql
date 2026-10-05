@@ -521,9 +521,22 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
     }
     t.after(() => client.close());
     if (profile === 'delta-relation-composition') {
-      for (const operation of ['keyed-distinct','whole-distinct','group','edge-group']) {
+      for (const [operation,emptyTarget] of [
+        ['keyed-distinct',false],['whole-distinct',false],['group',false],['edge-group',false],
+        ['group',true],['edge-group',true],
+      ]) {
         const {document,target,retained,derived,output,expected,fields,columns} =
-          deltaRelationCompositionScenario(presenceFixture,operation);
+          deltaRelationCompositionScenario(presenceFixture,operation,{emptyTarget});
+        if (emptyTarget) {
+          // An ignored fixture option must not turn this into a duplicate
+          // populated case. Empty data retains the admitted declaration body.
+          const [,contractCid,contract,nodes,edges] = JSON.parse(target);
+          assert.deepEqual([nodes,edges],[[],[]]);
+          assert.deepEqual(contract,presenceContract);
+          assert.equal(contractCid,cid(presenceContract));
+          assert.deepEqual(retained,[]);
+          assert.deepEqual(expected,[]);
+        }
         const run = await client.aql(canonicalText(document),
           {format:'json',requestId:`${document.id}-${mode}`});
         const state = await run.wait();

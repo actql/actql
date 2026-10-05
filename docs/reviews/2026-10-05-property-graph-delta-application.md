@@ -122,6 +122,10 @@ The public test checks Local/HTTPS ordered initial read, reattach, metadata,
 Graph snapshot reload, Relation Store reload and temporary cleanup. A dead-branch
 reference to Conditional p in GROUP must still reject before Run admission or
 physical work. This is not INFER/Effect acceptance or additional kernel coverage.
+It also applies an independently authored removal of every node and edge, then
+checks empty node/edge GROUP streams after the same Store reload boundaries.
+The empty target retains the constructor's contract/domain and declaration-derived
+column names/types/nullability; it does not infer schema from observed rows.
 Select only this follow-up with `--delta-relation-only` on the existing packed
 Property Graph runner; the clean-source/package-manifest checks still apply.
 

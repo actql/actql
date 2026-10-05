@@ -83,6 +83,7 @@ const acceptance = {
     'keyed DISTINCT and GROUP coalesce the Required constant key while optional cells remain absent NULL or values',
     'whole-row DISTINCT preserves typed identities and complete sparse rows instead of comparing only that key',
     'Graph and sparse intermediate Relation Store source revocation verified reload and temporary cleanup',
+    'Delta removes all nodes and edges while empty GROUP and retained streams keep declaration-derived schema',
     'independent ordered Named Result initial read reattach and declaration-derived aggregate schema',
     'dead-branch Conditional aggregate reference refused before Run admission and physical work',
   ] : selectorDeriveOnly ? [
