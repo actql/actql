@@ -709,6 +709,26 @@ Editor session/version custody remains with the editor integration: it associate
 the submitted snapshot with its open buffer and compares current identity,
 revision and text before rendering there. A reopened session cannot replace that
 association. The helper is explicitly UTF-16, not an LSP server or edit applicator.
+The public `operation_parameter_invalid` reason projects the existing scalar
+Owner's demand into closed parameter/domain facts. It explains positive or
+nonnegative safe integers, unit fractions, finite numbers, durations,
+positive/signed milliseconds and timestamps. It does not evaluate a value again
+or claim which individual condition within that domain failed. Unsupported
+safe-integer minima and names without an original admitted caller binding retain
+the generic proven-invalid fallback.
+The initial admitted binder supplies the input origin. A submitted value has a
+`parameters` pointer; a selected default has a `parameter_declarations` pointer.
+Exact pointers use the existing admitted source cursors and preserving original
+key reader. Missing origins omit location. SQL token ranges and internal
+requirement indexes are not reconstructed. The SDK resolves that pointer only
+against the response's retained original input/revision; copied responses and
+changed revisions acquire no position or edit authority.
+The Host retains these existing bounded bindings/cursors during this check and
+releases the extra reference when findings projection returns; it adds no durable
+input storage or retention period. The existing request byte limits, parameter
+count, node/depth/text admission limits, and report budget still apply. English
+and Japanese presentation revisions change independently of schema identity.
+
 The public `query_frame_invalid` reason carries closed
 `facts.issue: "invalid_bounds"` only when the common checker returns the typed
 `Closure(Operations(Frames(InvalidFrame(_))))` cause. The checker closes the

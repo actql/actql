@@ -40,6 +40,8 @@ const graphIssues = ['invalid_kind', 'invalid_output_rows'];
 const subgraphIssues = ['invalid_node_selector'];
 const expressionIssues = ['unknown_reference', 'invalid_arguments', 'invalid_number', 'expected_boolean'];
 const frameIssues = ['invalid_bounds'];
+const scalarDomains = ['positive_safe_integer', 'nonnegative_safe_integer', 'unit_fraction',
+  'finite_number', 'duration', 'positive_milliseconds', 'signed_milliseconds', 'timestamp'];
 export const checkReasonSchema = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
   $id: 'https://smooth.dev/schemas/actql-check-reason-0.1.json',
@@ -58,6 +60,8 @@ export const checkReasonSchema = {
         required: ['parameter', 'constraint'],
         properties: {parameter: parameterName,
           constraint: {enum: ['numeric', 'duration', 'array_length', 'array_size']}}},
+      {type: 'object', additionalProperties: false, required: ['parameter', 'domain'],
+        properties: {parameter: parameterName, domain: {enum: scalarDomains}}},
       {type: 'object', additionalProperties: false, required: ['operation', 'issue'],
         properties: {operation: {const: 'components'}, issue: {enum: graphIssues}}},
       {type: 'object', additionalProperties: false, required: ['operation', 'issue'],
@@ -86,7 +90,7 @@ export const checkReasonSchema = {
           document_id: {const: 'parameter_declarations'}}}}}},
     {if: {properties: {code: {const: 'parameter_undeclared'}}},
       then: {required: ['facts'], properties: {facts: {required: ['parameter'], allOf: [
-        {not: {required: ['expected_type']}}, {not: {required: ['constraint']}}]}}}},
+        {not: {required: ['expected_type']}}, {not: {required: ['constraint']}}, {not: {required: ['domain']}}]}}}},
     {if: {properties: {code: {const: 'parameter_value_required'}}},
       then: {required: ['facts'], properties: {facts: {required: ['expected_type'], not: {required: ['actual_type']}}}}},
     {if: {properties: {code: {const: 'parameter_unused'}}},
@@ -97,6 +101,10 @@ export const checkReasonSchema = {
           document_id: {const: 'parameter_declarations'}}}}}},
     {if: {properties: {code: {const: 'supplied_value_constraint_violation'}}},
       then: {required: ['facts'], properties: {facts: {required: ['constraint']}}}},
+    {if: {properties: {code: {const: 'operation_parameter_invalid'}}},
+      then: {required: ['facts'], properties: {facts: {required: ['domain']},
+        location: {properties: {kind: {const: 'structured'},
+          document_id: {enum: ['parameters', 'parameter_declarations']}}}}}},
     {if: {properties: {code: {const: 'query_lexical_invalid'}}},
       then: {required: ['facts'], properties: {facts: {required: ['issue'], properties: {issue: {enum: lexicalIssues}}},
         location: {properties: {kind: {const: 'text'}}}}}},
@@ -113,7 +121,7 @@ export const checkReasonSchema = {
         properties: {operation: {enum: ['components', 'subgraph']},
           issue: {enum: [...graphIssues, ...subgraphIssues]}}},
         location: {properties: {kind: {const: 'text'}}}}}},
-    {if: {properties: {code: {not: {enum: ['supplied_value_type_mismatch', 'parameter_default_type_mismatch', 'parameter_value_required', 'parameter_undeclared', 'parameter_unused', 'supplied_value_constraint_violation', 'query_lexical_invalid', 'query_expression_invalid', 'query_frame_invalid', 'graph_operation_invalid']}}}},
+    {if: {properties: {code: {not: {enum: ['supplied_value_type_mismatch', 'parameter_default_type_mismatch', 'parameter_value_required', 'parameter_undeclared', 'parameter_unused', 'supplied_value_constraint_violation', 'query_lexical_invalid', 'query_expression_invalid', 'query_frame_invalid', 'graph_operation_invalid', 'operation_parameter_invalid']}}}},
       then: {not: {required: ['facts']}}},
   ],
 };

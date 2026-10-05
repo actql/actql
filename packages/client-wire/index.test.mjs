@@ -615,3 +615,27 @@ test('independent check envelopes require outcome identity and safe Problem corr
     }
   }
 });
+
+test('independent operation parameter reasons retain closed domains and input locations', () => {
+  const reasons = JSON.parse(readFileSync(new URL('./fixtures/check-operation-parameter-reasons.json', import.meta.url), 'utf8'));
+  const original = JSON.parse(readFileSync(new URL('./fixtures/check-outcome-pins.verified.json', import.meta.url), 'utf8'));
+  const outcome = reason => ({...original, report: {...original.report, verdict: 'invalid', reasons: [reason]}});
+  for (const reason of reasons) {
+    assert.equal(validCheckOutcome(outcome(reason)), true);
+    for (const invalid of [{code: reason.code}, {...reason, facts: {}},
+      {...reason, facts: {...reason.facts, domain: 'private_provider_domain'}},
+      {...reason, facts: {...reason.facts, value: 0}},
+      {...reason, facts: {...reason.facts, requirement_index: 0}},
+      {code: 'parameter_undeclared', facts: reason.facts},
+      {code: 'future_operation_parameter', facts: reason.facts},
+      {...reason, location: {kind: 'text', document_id: 'source',
+        revision: original.report.inputs[0].revision, start_byte: 0, end_byte: 1, precision: 'exact'}}]) {
+      assert.equal(validCheckOutcome(outcome(invalid)), false);
+    }
+  }
+  assert.equal(validCheckOutcome(outcome({code: 'future_operation_parameter'})), true);
+  for (const prior of [
+    {reason_schema_cid: 'sha256:15d4d9b93f6e22c50256271ba09d09ba5da6a2a7105e118af2ad224a0591feac'},
+    {outcome_schema_cid: 'sha256:506730273187b8d1bb3b7a5bd1a446eaffe3007da615c637bd461743e4e0a1b6'},
+  ]) assert.equal(validCheckOutcome({...outcome(reasons[0]), ...prior}), false);
+});

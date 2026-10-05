@@ -10,6 +10,10 @@ const cancellationAcceptance = 'adapters/host-node/client-cancel-response-loss.t
 const checkAcceptance = 'adapters/host-node/client-check.test.mjs';
 const sdkAcceptance = 'packages/sdk/index.test.mjs';
 const expected = (phase, assertion = 'submission-input') => {
+  if (phase === 'check-operation-parameter') return ['local', 'http'].map(entrance => ({
+    name: `${entrance}: operation parameter violations explain owned domains and input origins`,
+    assertions: [{id: assertion, operator: 'deepStrictEqual'}],
+  }));
   if (phase === 'check-frame-explanation') return ['local', 'http'].map(entrance => ({
     name: `${entrance}: check explains owned invalid frame bounds`,
     assertions: [{id: assertion, operator: 'deepStrictEqual'}],
@@ -88,6 +92,9 @@ const expected = (phase, assertion = 'submission-input') => {
   }));
 };
 const mutations = [
+  ['check operation parameter explanation loses its positive lower bound',
+    'Supply an integer from 1 through 9007199254740991.',
+    'Supply any finite number.', 'check-operation-parameter', 'operation-parameter-explanation'],
   ['check frame explanation loses its owned interval condition',
     'The analytic ROWS frame boundaries do not form a valid interval.',
     'The query violates an unspecified contract.',

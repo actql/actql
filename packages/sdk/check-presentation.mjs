@@ -40,6 +40,24 @@ const japanese = Object.freeze(Object.fromEntries(Object.entries({
     '宣言された値を補い、束縛された入力全体を再検査してください。'],
   'reason.parameter_default_type_mismatch': ['パラメータの既定値が宣言された型と一致しません。',
     '宣言された型に合わせて既定値を修正し、再検査してください。'],
+  'reason.operation_parameter_invalid': ['パラメータが演算のscalar領域に違反しています。',
+    '示された演算領域に従って、渡した値または使用された既定値を修正してください。'],
+  'scalar.positive_safe_integer': ['演算パラメータには正のsafe integerが必要です。',
+    '1以上9007199254740991以下の整数を渡してください。'],
+  'scalar.nonnegative_safe_integer': ['演算パラメータには非負のsafe integerが必要です。',
+    '0以上9007199254740991以下の整数を渡してください。負のゼロは受理されません。'],
+  'scalar.unit_fraction': ['演算パラメータには0以上1以下の有限な割合が必要です。',
+    '両端を含む0以上1以下の数値を渡してください。負のゼロは受理されません。'],
+  'scalar.finite_number': ['演算パラメータには有限な数値が必要です。',
+    '有限な数値を渡してください。負のゼロは受理されません。'],
+  'scalar.duration': ['演算パラメータには受理可能なdurationが必要です。',
+    '正のASCII数字にms・s・m・h・dを続けた、空白のない文字列を渡してください。ミリ秒値はsafe integerの範囲内である必要があります。'],
+  'scalar.positive_milliseconds': ['演算パラメータには正のsafe integerミリ秒または受理可能なdurationが必要です。',
+    '正のsafe integerミリ秒値、またはms・s・m・h・dを使った正のduration文字列を渡してください。'],
+  'scalar.signed_milliseconds': ['演算パラメータには符号付きsafe integerミリ秒または受理可能なdurationが必要です。',
+    '-9007199254740991以上9007199254740991以下で負のゼロを除く整数ミリ秒値、または正のduration文字列を渡してください。'],
+  'scalar.timestamp': ['演算パラメータには受理可能なtimestamp値が必要です。',
+    'timestamp宣言の契約で受理される、nullでないtimestamp値を渡してください。'],
   'reason.program_invalid': ['入力が検査対象のProgram契約に違反しています。', '選択された契約に従って入力を修正してください。'],
   'reason.bound_values_missing': ['必要な束縛入力が不足しています。', '宣言された入力を補い、再検査してください。'],
   'reason.implementation_limit': ['この検査実装では未充足条件を解消できません。',
@@ -82,7 +100,7 @@ export function getCheckPresentationInfo(options) {
     const requested = options?.locale;
     if (requested === 'ja' || requested === 'ja-JP') locale = 'ja';
   } catch { /* Locale lookup cannot hide a validated observation. */ }
-  return Object.freeze({locale, translationRevision: `2026-10-06.${locale}.2`});
+  return Object.freeze({locale, translationRevision: `2026-10-06.${locale}.3`});
 }
 
 export function localizeCheck(key, english, options) {
