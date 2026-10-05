@@ -429,6 +429,14 @@ and remain undetermined in bound-input scope. Unsupported checking and budget
 exhaustion are not author errors. Inaccessible and absent installed Source aliases
 share unresolved coverage; an independent public violation remains visible.
 
+The SDK detaches each validated check response before binding input snapshots
+and freezing the received observation. A Local Host can reuse its response
+objects; later replies cannot replace an earlier outcome, context, input or
+location association. Completed and failed partial reports keep their own
+submitted inputs. Unavailable responses provide no bound report or snapshot.
+Uncloneable replies or replies whose copied shape violates the wire contract
+fail with `InvalidHostCheckOutcome` before acquiring an input association.
+
 Locations use the immutable original input snapshot, not the latest editor buffer.
 `resolveCheckLocation` returns `undefined` for a copied report, missing snapshot,
 stale revision, changed content, invalid byte boundary or a structured pointer

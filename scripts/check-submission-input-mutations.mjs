@@ -9,6 +9,17 @@ const acceptance = 'adapters/host-node/client-submission-input.test.mjs';
 const cancellationAcceptance = 'adapters/host-node/client-cancel-response-loss.test.mjs';
 const checkAcceptance = 'adapters/host-node/client-check.test.mjs';
 const expected = (phase, assertion = 'submission-input') => {
+  if (phase === 'check-shape') {
+    return [{name: 'local: check reply custody refuses uncloneable values and copied shape loss',
+      assertions: [{id: assertion, operator: 'strictEqual'}]}];
+  }
+  if (phase === 'check-custody') {
+    return ['preserve original syntax inputs and positions',
+      'retain structured and partial input custody'].map(name => ({
+      name: `local: reused check replies ${name}`,
+      assertions: [{id: assertion, operator: 'strictEqual'}],
+    }));
+  }
   if (phase.startsWith('cancellation-clone:')) return [{
     name: `in-process: cancellation ${phase.slice('cancellation-clone:'.length)} retains original Run uncertainty`,
     assertions: [{id: assertion, operator: 'strictEqual'}],
@@ -123,10 +134,21 @@ const mutations = [
     '  if (!validCheckOutcome(outcome)) return undefined;', '',
     'check-outcome-validation', 'check-outcome-invalid'],
 
+  ['check response reuse overwrites original input custody',
+    '      try { outcome = structuredClone(outcome); }\n' +
+      "      catch { fail('InvalidHostCheckOutcome'); }\n", '',
+    'check-custody', 'check-response-custody'],
+
+  ['copied check response loses its wire shape without refusal',
+    "      catch { fail('InvalidHostCheckOutcome'); }\n" +
+      "      if (!validCheckOutcome(outcome)) fail('InvalidHostCheckOutcome');",
+    "      catch { fail('InvalidHostCheckOutcome'); }",
+    'check-shape', 'check-copied-shape'],
+
 ];
 const accepted = (phase, assertion) => {
   const tests = expected(phase, assertion);
-  const file = phase.startsWith('check-outcome-') ? checkAcceptance
+  const file = phase.startsWith('check-') ? checkAcceptance
     : phase.startsWith('cancellation-') ? cancellationAcceptance : acceptance;
   const result = spawnSync(process.execPath, ['scripts/local-checks.mjs', 'test', 'node',
     '--timeout-seconds', '120', '--', '--test-name-pattern',

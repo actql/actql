@@ -1136,6 +1136,127 @@ const propertyGraphLaw = JSON.parse(await readFile(join(repository,
 const fixtureCid = value => `sha256:${createHash('sha256')
   .update(canonicalText(value)).digest('hex')}`;
 
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: reused check replies preserve original syntax inputs and positions`, async t => {
+    const cache = {};
+    const client = await contextClient(t, entrance, absentEnvironment, {mutateCheckReply(outcome) {
+      for (const key of Object.keys(cache)) delete cache[key];
+      return Object.assign(cache, outcome);
+    }});
+    const first = await client.check('SELECT', {format: 'sql'});
+    assert.equal(first.outcome, 'completed');
+    assert.equal(first.report.verdict, 'invalid');
+    const original = getCheckInput(first, 'source');
+    const location = first.report.reasons[0].location;
+    assert.deepEqual(location, {kind: 'text', document_id: 'source', revision: original.revision,
+      start_byte: 6, end_byte: 6, precision: 'exact'});
+    assert.equal(original.text, 'SELECT');
+    assert.equal(Object.isFrozen(first), true);
+    assert.equal(Object.isFrozen(cache), false, '[check-mutation:check-response-custody]');
+    assert.equal(Object.isFrozen(cache.report), false, '[check-mutation:check-response-custody]');
+    const text = "\ufeffSELECT 'é😀e\u0301' AS x,\r\n";
+    const second = await client.check(text, {format: 'sql'});
+    const next = getCheckInput(second, 'source');
+    assert.equal(second.report.verdict, 'invalid');
+    assert.notEqual(first, second);
+    assert.notEqual(first.report.context_ref, second.report.context_ref);
+    assert.notEqual(original.revision, next.revision);
+    assert.equal(next.text, text);
+    assert.deepEqual(second.report.reasons[0].location, {kind: 'text', document_id: 'source',
+      revision: next.revision, start_byte: 29, end_byte: 29, precision: 'exact'});
+    assert.deepEqual(resolveCheckTextRange(second, second.report.reasons[0].location).range,
+      {start: {line: 1, character: 0}, end: {line: 1, character: 0}});
+    const verified = await client.check('SELECT 1 AS n', {format: 'sql'});
+    assert.equal(verified.report.verdict, 'verified');
+    assert.equal(first.report.verdict, 'invalid');
+    assert.equal(getCheckInput(first, 'source'), original);
+    assert.equal(resolveCheckLocation(first, location).input, original);
+    assert.deepEqual(resolveCheckTextRange(first, location).range,
+      {start: {line: 0, character: 6}, end: {line: 0, character: 6}});
+    assert.equal(resolveCheckLocation(first, location, next), undefined);
+    assert.equal(resolveCheckTextRange(first, location, next), undefined);
+    assert.equal(resolveCheckLocation(structuredClone(first), location), undefined);
+    assert.equal(Object.isFrozen(cache), false, '[check-mutation:check-response-custody]');
+  });
+
+  test(`${entrance}: reused check replies retain structured and partial input custody`, async t => {
+    const cache = {};
+    let reporting = 'completed';
+    const client = await contextClient(t, entrance, absentEnvironment, {mutateCheckReply(outcome) {
+      // Reporting-failure injection carries the exact real checker report.
+      const received = reporting === 'partial' ? {version: outcome.version,
+        reason_schema_cid: outcome.reason_schema_cid, outcome: 'failed',
+        problem: {code: 'check_internal'}, partial_report: outcome.report}
+        : reporting === 'unavailable' ? {version: outcome.version,
+          reason_schema_cid: outcome.reason_schema_cid, outcome: 'unavailable',
+          problem: {code: 'check_unavailable'}, correlation_ref: 'fixture-unavailable'} : outcome;
+      for (const key of Object.keys(cache)) delete cache[key];
+      return Object.assign(cache, received);
+    }});
+    const parameters = {x: 'original-secret'};
+    const options = {format: 'sql', parameterDeclarations: {x: {type: 'number'}}, parameters};
+    const first = await client.check('SELECT @x AS n', options);
+    assert.equal(first.report.verdict, 'invalid');
+    assert.deepEqual(first.report.reasons[0].facts,
+      {parameter: 'x', expected_type: 'number', actual_type: 'string'});
+    const original = getCheckInput(first, 'parameters');
+    const location = first.report.reasons[0].location;
+    assert.deepEqual(location, {kind: 'structured', document_id: 'parameters',
+      revision: original.revision, pointer: '/x'});
+    assert.equal(JSON.stringify(first).includes('original-secret'), false);
+    assert.equal(Object.isFrozen(cache), false, '[check-mutation:check-response-custody]');
+    parameters.x = 1;
+    const second = await client.check('SELECT @x AS n', options);
+    assert.equal(second.report.verdict, 'verified');
+    const next = getCheckInput(second, 'parameters');
+    assert.deepEqual(next.value, {x: 1});
+    assert.notEqual(next.revision, original.revision);
+    assert.notEqual(first.report.context_ref, second.report.context_ref);
+    assert.deepEqual(getCheckInput(first, 'parameters').value, {x: 'original-secret'});
+    assert.equal(resolveCheckLocation(first, location, next), undefined);
+    reporting = 'partial';
+    const partial = await client.check('SELECT @x AS n', {...options, parameters: {x: 'original-secret'}});
+    assert.equal(partial.outcome, 'failed');
+    assert.equal(partial.partial_report.verdict, 'invalid');
+    const partialInput = getCheckInput(partial, 'parameters');
+    const partialLocation = partial.partial_report.reasons[0].location;
+    assert.deepEqual(resolveCheckLocation(partial, partialLocation).input.value, {x: 'original-secret'});
+    reporting = 'unavailable';
+    const unavailable = await client.check('SELECT @x AS n', options);
+    assert.equal(unavailable.outcome, 'unavailable');
+    assert.equal(getCheckInput(unavailable, 'source'), undefined);
+    assert.equal(unavailable.report, undefined);
+    assert.equal(unavailable.partial_report, undefined);
+    assert.equal(getCheckInput(partial, 'parameters'), partialInput);
+    assert.equal(partial.outcome, 'failed');
+    assert.equal(resolveCheckLocation(partial, partialLocation).input, partialInput);
+    assert.equal(first.outcome, 'completed');
+    assert.equal(first.report.verdict, 'invalid');
+    assert.equal(getCheckInput(first, 'parameters'), original);
+    assert.deepEqual(resolveCheckLocation(first, location).input.value, {x: 'original-secret'});
+    assert.equal(resolveCheckLocation(structuredClone(partial), partialLocation), undefined);
+  });
+}
+
+test('local: check reply custody refuses uncloneable values and copied shape loss', async t => {
+  for (const kind of ['proxy', 'date']) {
+    const client = await contextClient(t, 'local', absentEnvironment, {mutateCheckReply(outcome) {
+      // Both values satisfy the incoming shape; copying must preserve a valid
+      // plain public envelope before the SDK associates any original input.
+      const received = kind === 'proxy' ? new Proxy(outcome, {}) : Object.assign(new Date(0), outcome);
+      assert.equal(validCheckOutcome(received), true);
+      return received;
+    }});
+    let refused = false;
+    try { await client.check('SELECT', {format: 'sql'}); }
+    catch (cause) {
+      if (cause?.code !== 'InvalidHostCheckOutcome') throw cause;
+      refused = true;
+    }
+    assert.equal(refused, true, '[check-mutation:check-copied-shape]');
+  }
+});
+
 test('the admitted checker exposes exact selections without private Source inventories', () => {
   const flags = ['text_time', 'veca', 'rela', 'sga', 'tea', 'calendar', 'text_rank'];
   for (const enabled of [undefined, ...flags]) {
