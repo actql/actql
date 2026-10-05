@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFile, writeFile} from 'node:fs/promises';
+import {DatabaseSync} from 'node:sqlite';
 import {join} from 'node:path';
 import test from 'node:test';
 import './effect-target-read-inventory.test.mjs';
@@ -182,6 +183,64 @@ async function capturedSet(t, {writes = [update, other],
   return {installation, state, accepted,
     continuation: started.value.continuation};
 }
+
+// Make the next `failures` closes of an Effect Ledger database fail, and
+// count every attempt and successful close made from the Ledger.
+function failLedgerCloses(t, failures) {
+  const original = DatabaseSync.prototype.close;
+  const counts = {attempts: 0, closes: 0};
+  DatabaseSync.prototype.close = function () {
+    if (!new Error().stack.includes('effect-ledger.mjs')) {
+      return original.call(this);
+    }
+    counts.attempts++;
+    if (failures > 0) {
+      failures--;
+      throw Object.assign(new Error('InjectedLedgerCloseFailure'),
+        {code: 'InjectedLedgerCloseFailure'});
+    }
+    const closed = original.call(this);
+    counts.closes++;
+    return closed;
+  };
+  t.after(() => { DatabaseSync.prototype.close = original; });
+  return counts;
+}
+
+test('a recovered Ledger handle whose close fails stays pending until its owner retries',
+  async t => {
+    const {installation, state, accepted, continuation} =
+      await capturedSet(t);
+    // The Host now runs another runtime, so recovery is refused after the
+    // handle is retained (the capability no longer matches).
+    const second = await effectHost(t, installation, state, {
+      effect: await installation.load({}, {
+        runtimeBundleCid: `sha256:${'c'.repeat(64)}`})});
+    const seen = installation.org.seen.length;
+    const owners = [];
+    const failure = await second.resume('restart-set',
+      accepted.ref.runDefinitionCid, continuation,
+      {retainRecoveryOwner: owner => owners.push(owner)}).then(
+      () => undefined, error => error);
+    // The primary failure is kept; the factory leaves the retained handle to
+    // its owner.
+    assert.equal(failure?.code, 'SalesforceEffectInstallationChanged');
+    assert.equal(owners.length, 1);
+    assert.equal(owners[0].cleanupPending(), true);
+    const counts = failLedgerCloses(t, 1);
+    // A failed close keeps the responsibility.
+    await assert.rejects(owners[0].cleanup(),
+      {code: 'InjectedLedgerCloseFailure'});
+    assert.equal(owners[0].cleanupPending(), true);
+    // The same owner's retry releases it, exactly once.
+    assert.equal(await owners[0].cleanup(), true);
+    assert.equal(owners[0].cleanupPending(), false);
+    assert.equal(await owners[0].cleanup(), true);
+    await owners[0].close();
+    assert.deepEqual(counts, {attempts: 2, closes: 1});
+    assert.equal(installation.org.seen.length, seen);
+    assert.equal(writesOf(installation.org).length, 0);
+  });
 
 test('a captured Set continues after a restart and never writes twice',
   async t => {

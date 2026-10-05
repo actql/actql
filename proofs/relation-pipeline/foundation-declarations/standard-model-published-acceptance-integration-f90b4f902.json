@@ -1,0 +1,168 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "standard-model-published-acceptance-integration-f90b4f902",
+  "kind": "resolution",
+  "revision": "f90b4f9023e5017e79e50733c6b4654a1c137cb1",
+  "parents": [
+    "b56e2a2cd7b03ea226ea9cec7e172bd9c90485ee",
+    "daf96a3e7f45ba70d6b99706fa12b1bd6db0f794"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "b56e2a2cd7b03ea226ea9cec7e172bd9c90485ee",
+          "digest": "26b2b364664a03d09a410f5c98d28fe2ce6c13ddbea46e0a93495037dc5b6367",
+          "mode": "100644"
+        },
+        {
+          "revision": "daf96a3e7f45ba70d6b99706fa12b1bd6db0f794",
+          "digest": "26b2b364664a03d09a410f5c98d28fe2ce6c13ddbea46e0a93495037dc5b6367",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "26b2b364664a03d09a410f5c98d28fe2ce6c13ddbea46e0a93495037dc5b6367",
+      "afterMode": "100644",
+      "reason": "Preserve both ordinary integrations of the published Model acceptance and current main; bind the union of all maximal-common-ancestor obligations without changing existing records or product expectations."
+    },
+    {
+      "path": "proofs/relation-pipeline/current-foundation.md",
+      "before": [
+        {
+          "revision": "b56e2a2cd7b03ea226ea9cec7e172bd9c90485ee",
+          "digest": "a20113be00cfd16c7cb0fbd35632a13f46cf0e74230fd626b528622fb8fce85f",
+          "mode": "100644"
+        },
+        {
+          "revision": "daf96a3e7f45ba70d6b99706fa12b1bd6db0f794",
+          "digest": "a20113be00cfd16c7cb0fbd35632a13f46cf0e74230fd626b528622fb8fce85f",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "a20113be00cfd16c7cb0fbd35632a13f46cf0e74230fd626b528622fb8fce85f",
+      "afterMode": "100644",
+      "reason": "Preserve both ordinary integrations of the published Model acceptance and current main; bind the union of all maximal-common-ancestor obligations without changing existing records or product expectations."
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation.mjs",
+      "before": [
+        {
+          "revision": "b56e2a2cd7b03ea226ea9cec7e172bd9c90485ee",
+          "digest": "33b11cfedc97ef788da6ee3194f25c44845f3e64bbbfac37ea0328c10a754518",
+          "mode": "100644"
+        },
+        {
+          "revision": "daf96a3e7f45ba70d6b99706fa12b1bd6db0f794",
+          "digest": "33b11cfedc97ef788da6ee3194f25c44845f3e64bbbfac37ea0328c10a754518",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "33b11cfedc97ef788da6ee3194f25c44845f3e64bbbfac37ea0328c10a754518",
+      "afterMode": "100644",
+      "reason": "Preserve both ordinary integrations of the published Model acceptance and current main; bind the union of all maximal-common-ancestor obligations without changing existing records or product expectations."
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation.test.mjs",
+      "before": [
+        {
+          "revision": "b56e2a2cd7b03ea226ea9cec7e172bd9c90485ee",
+          "digest": "02c5e43dfc4e003410f159a70a5cc6bbf53cf2e733bcb09f3c7f50eabc4e2e40",
+          "mode": "100644"
+        },
+        {
+          "revision": "daf96a3e7f45ba70d6b99706fa12b1bd6db0f794",
+          "digest": "02c5e43dfc4e003410f159a70a5cc6bbf53cf2e733bcb09f3c7f50eabc4e2e40",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "02c5e43dfc4e003410f159a70a5cc6bbf53cf2e733bcb09f3c7f50eabc4e2e40",
+      "afterMode": "100644",
+      "reason": "Preserve both ordinary integrations of the published Model acceptance and current main; bind the union of all maximal-common-ancestor obligations without changing existing records or product expectations."
+    }
+  ],
+  "mergeBases": [
+    "7fc407f289ba15e5911a63979f1e743600533f4a",
+    "eb74d7b65d0f338ef5862a7d9cd7397744a08eaa"
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-3877b637406b",
+    "adopt-63b114ad524b",
+    "adopt-678626b010b4",
+    "adopt-7427f7f09276",
+    "adopt-9a7c592a8ed9",
+    "adopt-b480cffb6e6d",
+    "adopt-bf2d058c21c1",
+    "adopt-f24288853c19",
+    "adopt-model-installed-execution-a0dc67b",
+    "adopt-sga-query-contract",
+    "adopt-single-base-normalization-0c9f74fb66ec",
+    "ci-mandatory-preflight",
+    "complete-missing-protected-source-paths",
+    "convergent-foundation-declarations",
+    "frontend-sga-main-integration",
+    "frontend-unified-graph-source-integration",
+    "github-issue-read-registration",
+    "github-issue-source-acceptance-registration",
+    "graph-composition-fixture-registration",
+    "immutable-late-resolution-supplements",
+    "issue-180-foundation-composition",
+    "issue-180-invalid-version-fixture",
+    "main-pr233-package-resolution",
+    "model-invocation-checkpoint-registration",
+    "multi-maximal-base-obligations",
+    "mutation-workspace-isolation",
+    "packed-composed-infer-effect-acceptance",
+    "pr164-main-a32-verification-resolution",
+    "pr164-main4f-runtime-check-resolution",
+    "pr164-property-graph-source",
+    "public-column-published-main-resolution",
+    "public-text-computation-bridge-ci",
+    "read-progress-current-main-resolution",
+    "remove-duplicate-runtime-package-checks",
+    "resident-cancellation-issuer-registration",
+    "resident-cancellation-native-registration",
+    "resident-source-native-registration",
+    "resolve-cancellation-foundation-main-5caeccc79",
+    "resolve-composition-custody-main-maximal-bases",
+    "resolve-composition-frontend-latest-main",
+    "resolve-composition-infer-main-maximal-bases",
+    "resolve-composition-resident-source-main",
+    "resolve-composition-reviewed-supplements-main",
+    "resolve-expression-diagnostics-main-d134-maximal-bases",
+    "resolve-frontend-graph-label-dependency-5fa4bc547",
+    "resolve-frontend-graph-row-input-main-0e1516677",
+    "resolve-frontend-group-ordinals-parent-bf39d807d",
+    "resolve-github-issue-driver-main-5dcef9189",
+    "resolve-github-issue-source-main",
+    "resolve-graph-composition-accepted-effect-main-1edb1560c",
+    "resolve-graph-composition-cancellation-main",
+    "resolve-graph-composition-current-main-d8dd3a918",
+    "resolve-graph-composition-resident-cleanup-main",
+    "resolve-graph-composition-text-main",
+    "resolve-graph-policy-source-approval-main-13c0d39d2",
+    "resolve-graph-retention-policy-main-e3ecb26c9",
+    "resolve-host-owner-main-7081dedfd",
+    "resolve-join-property-main-e2e27d-maximal-bases",
+    "resolve-model-checkpoint-main-db141961",
+    "resolve-model-checkpoint-main-e26f7500",
+    "resolve-model-installed-execution-main-90babd81d",
+    "resolve-resident-cancel-foundation-7b5a8048",
+    "resolve-resident-source-latest-main",
+    "scoped-session-acquisition-main-resolution",
+    "sdk-cancel-response-loss-registration",
+    "sdk-effect-uncertainty-registration",
+    "sdk-jsonl-row-refusal-main-resolution",
+    "sdk-jsonl-row-refusal-registration",
+    "sdk-read-progress-registration",
+    "sdk-submission-explanation-acceptance-registration",
+    "separate-resolution-rehearsal-from-regression",
+    "source-free-effect-retention-original-regression",
+    "standard-model-approval-call-set-integration",
+    "standard-model-approval-dispatch-regressions",
+    "standard-model-confirmed-cancellation-regressions",
+    "standard-model-current-main-integration",
+    "standard-model-installed-continuation-integration"
+  ]
+}

@@ -76,8 +76,11 @@ test "pool charges every long key comparison independent of quantum" {
   let owner = pool_owner(producer)
   // Two admissions: 546; scratch: 2; identity sort: 132;
   // duplicate checks: 130; group sort: 132; group boundaries: 131;
-  // two output groups: 20. No successful-run measurement supplies this limit.
-  let exact = 1093
+  // two output groups: 20. Each new append has 31 base polls plus
+  // three additional 64-unit polls for the 129-unit identity and three for
+  // its group value: 37 per group. Total: 1093 + 2 * 37 = 1167.
+  // No successful-run measurement supplies this limit.
+  let exact = 1167
   for quantum in [1, 7, 256] {
     let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
     let execution = start_pool_with_control_work_limit(
@@ -85,7 +88,7 @@ test "pool charges every long key comparison independent of quantum" {
       sequence(owner),
       0,
       input,
-      limits(work=10000, workspace=23),
+      limits(work=10000, workspace=68),
       8192L,
       fn() { true },
       exact,
@@ -100,6 +103,8 @@ test "pool charges every long key comparison independent of quantum" {
           assert_eq(work, exact.to_int64())
           let storage = @records.completed_storage(output).unwrap()
           assert_eq(@storage.record_count(storage), 2)
+          // Two records retain the original 18 logical construction units each.
+          assert_eq(@storage.construction_work(storage), 36)
           for (index, suffix) in [(0, "a"), (1, "b")] {
             assert_true(
               pool_field(storage, index, "group").value is @value.Text(text) &&
@@ -137,17 +142,19 @@ test "pool long keys enforce exact control and structural workspace limits" {
   let owner = pool_owner(producer)
   let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
   // Two sort buffers of two four-slot records, five output slots,
-  // and two collected key slots: 16 + 5 + 2 = 23.
+  // and two collected key slots: 16 + 5 + 2 = 23. Pending append adds
+  // fixed 8, two slots for each of three fields (6), one identity (1),
+  // and three depth-ten stacks (30): 45. Total workspace: 68.
   assert_true(
     start_pool_with_control_work_limit(
       @bounded.control(),
       sequence(owner),
       0,
       input,
-      limits(work=10000, workspace=22),
+      limits(work=10000, workspace=67),
       8192L,
       fn() { true },
-      1093,
+      1167,
     )
     is Err(PoolWorkspaceLimit),
   )
@@ -157,10 +164,10 @@ test "pool long keys enforce exact control and structural workspace limits" {
       sequence(owner),
       0,
       input,
-      limits(work=10000, workspace=23),
+      limits(work=10000, workspace=68),
       8192L,
       fn() { true },
-      1092,
+      1166,
     ).unwrap()
     let mut failed = false
     let mut polls = 0
@@ -168,7 +175,7 @@ test "pool long keys enforce exact control and structural workspace limits" {
       polls += 1
       match advance_pool(execution, quantum).unwrap() {
         PoolContinue(..) => ()
-        PoolFailed(PoolWorkLimit, work=1092L, ..) => failed = true
+        PoolFailed(PoolWorkLimit, work=1166L, ..) => failed = true
         _ => fail("one-short must fail with the typed control work limit")
       }
     }
@@ -198,10 +205,10 @@ test "pool retains borrowed keys through scan cancellation and cleanup" {
       sequence(owner),
       0,
       input,
-      limits(work=10000, workspace=23),
+      limits(work=10000, workspace=68),
       8192L,
       fn() { true },
-      1093,
+      1167,
     ).unwrap()
     for _ in 0..<barrier {
       assert_true(advance_pool(execution, 1).unwrap() is PoolContinue(..))

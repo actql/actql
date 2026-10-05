@@ -157,8 +157,10 @@ for (const entrance of ['local', 'https']) {
         assert.deepEqual(f.counts(), {submits: committed ? 1 : 0, issues: committed ? 1 : 0});
         if (committed) {
           assert.equal(stored[0].caller_request_id, 'saved-request');
+          // Independently assembled current Values Program semantics and
+          // Definition preimages include the adopted expression contract.
           assert.equal(stored[0].program_definition_cid,
-            'sha256:f3514c8f22c6d72818a167ca3341b3c945397042351c51a5982d7abc881a298c');
+            'sha256:1be70a67bfbb6438998862777b118114f9c091a9bb4312a14963dd85edc228cd');
           assert.equal(stored[0].dispatch_reserved, 0);
           assert.equal(stored[0].physical_start_reserved, 0);
         }
@@ -214,4 +216,103 @@ for (const entrance of ['local', 'https']) {
       });
     }
   }
+}
+
+for (const entrance of ['local', 'https']) {
+  test(`${entrance}: bound count input refusal precedes Run acceptance`, async t => {
+    const f = await fixture(t, entrance);
+    const program = {version: 'actql/0.1', id: 'bound-count',
+      params: {n: {type: 'number', nullable: true}}, stages: [{id: 'main', inputs: {},
+        steps: [{values: {schema: {id: {type: 'number', nullable: false}}, rows: [{id: 1}]}, as: 'rows'},
+          {take: {$param: 'n'}, as: 'selected'}],
+        results: {out: {from: 'selected', fields: ['id']}}}],
+      results: {out: {from: {stage: 'main', result: 'out'}}}};
+    for (const [index, n] of [0, -1, 1.5, 9007199254740992, null].entries()) {
+      for (const kind of ['program', 'aql-json']) {
+        const options = {requestId: `${kind}-${index}`, parameters: {n}};
+        await assert.rejects(kind === 'program' ? f.client.start(program, options)
+          : f.client.aql(JSON.stringify(program), {...options, format: 'json'}),
+        error => {
+          assert.equal(error.code, 'ClientProgramRejected', '[check-mutation:bound-count-category]');
+          return true;
+        });
+        assert.deepEqual(f.counts(), {submits: 0, issues: 0});
+        assert.deepEqual(f.stored(), []);
+      }
+    }
+    await assert.rejects(f.client.start(program, {requestId: 'missing-count'}),
+      {code: 'ClientProgramNeedsInputs'});
+    assert.deepEqual(f.counts(), {submits: 0, issues: 0});
+    assert.deepEqual(f.stored(), []);
+  });
+}
+
+
+for (const entrance of ['local', 'https']) {
+  test(`${entrance}: temporal input refusal precedes Run acceptance`, async t => {
+    const f = await fixture(t, entrance);
+    for (const field of ['size', 'step', 'offset']) {
+      const program = {version: 'actql/0.1', id: 'temporal-input',
+        params: {n: {type: 'number'}}, stages: [{id: 'main', inputs: {},
+          steps: [{values: {schema: {id: {type: 'number', nullable: false}},
+            rows: [{id: 1}]}, as: 'rows'},
+          {row_window: {time: 'id', kind: 'sliding', size: 1, step: 1,
+            [field]: {$param: 'n'}}, as: 'selected'}],
+          results: {out: {from: 'selected', fields: ['id']}}}],
+        results: {out: {from: {stage: 'main', result: 'out'}}}};
+      const invalid = field === 'offset' ? [1.5, 9007199254740992]
+        : [0, -1, 1.5, 9007199254740992];
+      for (const [index, n] of invalid.entries()) {
+        for (const kind of ['program', 'aql-json']) {
+          const options = {requestId: `${field}-${kind}-${index}`, parameters: {n}};
+          await assert.rejects(kind === 'program' ? f.client.start(program, options)
+            : f.client.aql(JSON.stringify(program), {...options, format: 'json'}),
+          error => {
+            assert.equal(error.code, 'ClientProgramRejected', '[check-mutation:temporal-input-category]');
+            return true;
+          });
+          assert.deepEqual(f.counts(), {submits: 0, issues: 0});
+          assert.deepEqual(f.stored(), []);
+        }
+      }
+      for (const kind of ['program', 'aql-json']) {
+        const options = {requestId: `${field}-${kind}-missing`, parameters: {}};
+        await assert.rejects(kind === 'program' ? f.client.start(program, options)
+          : f.client.aql(JSON.stringify(program), {...options, format: 'json'}),
+        {code: 'ClientProgramNeedsInputs'});
+        await assert.rejects(kind === 'program'
+          ? f.client.start(program, {...options, parameters: {n: null}})
+          : f.client.aql(JSON.stringify(program), {...options, parameters: {n: null}, format: 'json'}),
+        {code: 'ClientProgramRejected'});
+      }
+      assert.deepEqual(f.counts(), {submits: 0, issues: 0});
+      assert.deepEqual(f.stored(), []);
+    }
+  });
+}
+
+
+for (const entrance of ['local', 'https']) {
+  test(`${entrance}: valid signed temporal offsets preserve Run acceptance`, async t => {
+    const f = await fixture(t, entrance);
+    for (const [index, n] of [-1, 0, 1].entries()) {
+      const program = {version: 'actql/0.1', id: 'signed-temporal-input',
+        params: {n: {type: 'number'}}, stages: [{id: 'main', inputs: {},
+          steps: [{values: {schema: {id: {type: 'number', nullable: false}},
+            rows: [{id: 1}]}, as: 'rows'},
+          {row_window: {time: 'id', kind: 'sliding', size: 1, step: 1,
+            offset: {$param: 'n'}}, as: 'selected'}],
+          results: {out: {from: 'selected', fields: ['id']}}}],
+        results: {out: {from: {stage: 'main', result: 'out'}}}};
+      for (const kind of ['program', 'aql-json']) {
+        const options = {requestId: `signed-${kind}-${index}`, parameters: {n}};
+        const result = await (kind === 'program' ? f.client.start(program, options)
+          : f.client.aql(JSON.stringify(program), {...options, format: 'json'}));
+        assert.equal(typeof result.ref.runDefinitionCid, 'string');
+        assert.equal(sdk.explainSubmission(result).observation, 'run_reference_received');
+      }
+      assert.deepEqual(f.counts(), {submits: (index + 1) * 2, issues: (index + 1) * 2});
+      assert.equal(f.stored().length, (index + 1) * 2);
+    }
+  });
 }

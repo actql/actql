@@ -1746,6 +1746,45 @@ pub fn pin_durable_direct_destination_material(
 }
 
 ///|
+/// Restore the existing Direct receiver cleanup duty, without reviving a
+/// returned borrow. The journal checks the exact committed receipt and excludes
+/// live readers before admitting or resuming reclaim. This grants no payload
+/// access and works after a lost cleanup reply or process reconstruction.
+pub fn recover_durable_direct_destination_cleanup(
+  journal : @journal.Journal,
+  root : @filesystem.Root,
+  request : @transfer.RemoteTransferRequest,
+  expected_receipt_cid : String,
+) -> Result[NativeRemoteDestinationMaterialUse, NativeRemoteTransferClientIssue] {
+  if @transfer.request_route(request) != @transfer.DirectStream {
+    return Err(InvalidRequest)
+  }
+  let receipt = match journal.inspect_destination_receipt(request) {
+    Ok(Some(value)) if @transfer.destination_receipt_cid(value) ==
+      expected_receipt_cid => value
+    Ok(_) => return Err(ReconciliationRequired)
+    Err(issue) => return Err(Durable(issue))
+  }
+  match journal.begin_destination_material_reclaim(request, receipt) {
+    Ok(_) => ()
+    Err(issue) => return Err(Durable(issue))
+  }
+  Ok({
+    journal,
+    root,
+    request,
+    receipt,
+    use_id: "direct-destination",
+    reader_id: "receiver-cleanup:" + @transfer.request_cid(request),
+    allocations: [],
+    generations: [],
+    reading: false,
+    validated: false,
+    released: true,
+  })
+}
+
+///|
 fn pin_durable_destination_material(
   journal : @journal.Journal,
   root : @filesystem.Root,

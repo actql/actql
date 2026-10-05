@@ -39,10 +39,24 @@ test('100 rows: actual resident/fresh/Local choices, cheaper capacity refusal an
       database, fixture.workload, fixture.layout, String(fixture.rows)],
       {cwd: root, timeout: fixture.limits.timeoutMs});
       for (const [label, settings] of [
-        ['resident', {residentPolicy: true}],
-        ['fresh', {residentPolicy: false}],
-        ['local', {residentPolicy: false, localRates: ['1', '1', '1'],
+        ['resident', {residentPolicy: true, phaseObserver: true}],
+        ['resident-profiled', {residentPolicy: true, phaseObserver: true,
+          residentEstimates: {preparationMilliseconds: '2', cleanupMilliseconds: '3',
+            taskMilliseconds: ['4', '5', '6'], importMilliseconds: ['7', '8', '9', null]}}],
+        ['resident-unknown', {residentPolicy: true, phaseObserver: true,
+          residentEstimates: {preparationMilliseconds: '2', cleanupMilliseconds: '3',
+            taskMilliseconds: ['4', '5', '6'], importMilliseconds: [null, null, null, null]}}],
+        ['fresh', {residentPolicy: false, phaseObserver: true}],
+        ['local', {residentPolicy: false, phaseObserver: true, localRates: ['1', '1', '1'],
           nativeRates: ['2147483647', '2147483647', '2147483647']}],
+        ['fresh-then-resident', {residentPolicy: true, phaseObserver: true,
+          localRates: ['1000000', '1000000', '1000000'], nativeRates: ['1', '1', '1000000'],
+          residentEstimates: {preparationMilliseconds: '1', cleanupMilliseconds: '1',
+            taskMilliseconds: ['1000000', '1000000', '1'], importMilliseconds: ['1', '1', '1', null]}}],
+        ['local-then-resident', {residentPolicy: true, phaseObserver: true,
+          localRates: ['1', '1000000', '1000000'], nativeRates: ['1000000', '1000000', '1000000'],
+          residentEstimates: {preparationMilliseconds: '1', cleanupMilliseconds: '1',
+            taskMilliseconds: ['1000000', '1', '1'], importMilliseconds: ['1', '1', '1', null]}}],
         // Three Compute attempts fit; resident preparation/import would need
         // five. Its lower estimate must not override the actual attempt cap.
         ['bounded', {residentPolicy: true, attemptCap: 4}],
@@ -55,14 +69,20 @@ test('100 rows: actual resident/fresh/Local choices, cheaper capacity refusal an
           database, directory: child,
           localRates: ['1000', '1000', '1000'], nativeRates: ['1000', '1000', '1000'],
           ...settings});
-        if (label === 'reject') {
+        if (label === 'reject' || label === 'resident-unknown') {
           let failure;
           try {await exec(invocation.binary, invocation.arguments,
             {cwd: root, timeout: fixture.limits.timeoutMs});}
           catch (error) {failure = error;}
           assert(failure, 'InsufficientAttemptsAccepted');
           assert.match(failure.stdout, /strategy-terminal:no-strategy/);
-          assert.match(failure.stdout, /strategy-rejection:[0-9]+:attempt:/);
+          if (label === 'reject') {
+            assert.match(failure.stdout, /strategy-rejection:[0-9]+:attempt:/);
+          } else {
+            // Unknown candidate durations defer offline ranking. Do not
+            // replace missing import observations with invented rates.
+            assert.match(failure.stdout, /compute-candidates:/);
+          }
           const observations = nativeOwnerObservations(failure.stdout);
           assert(observations.owners.every(owner => owner.attempts === 0 &&
             owner.holdings === 0), 'RejectedPlanEnteredCompute');
@@ -84,10 +104,12 @@ test('100 rows: actual resident/fresh/Local choices, cheaper capacity refusal an
           const execution = await executeNativeDirectProduct(invocation,
             {root, timeoutMs: fixture.limits.timeoutMs});
           const product = admitNativeDirectProduct(fixture, invocation, execution);
-          assert(product.ownerCorrespondence.observations.choices.every(choice =>
-            choice.resident === (label === 'resident')));
-          assert.deepEqual(product.selected, Array(3).fill(
-            label === 'local' ? 'local' : 'duckdb'),
+          const residentSelected = label === 'resident' || label === 'resident-profiled';
+          assert.deepEqual(product.ownerCorrespondence.observations.choices.map(choice => choice.resident),
+            label === 'fresh-then-resident' ? [false, false, true] :
+              label === 'local-then-resident' ? [false, true, true] : Array(3).fill(residentSelected));
+          assert.deepEqual(product.selected, label === 'local-then-resident'
+            ? ['local', 'duckdb', 'duckdb'] : Array(3).fill(label === 'local' ? 'local' : 'duckdb'),
           JSON.stringify({label, explanations: product.ownerCorrespondence.observations.explanations}));
           if (label === 'bounded') {
             assert(product.ownerCorrespondence.observations.explanations.every(
@@ -100,7 +122,46 @@ test('100 rows: actual resident/fresh/Local choices, cheaper capacity refusal an
             'MissingCheaperCandidateCapacityRefusal');
           }
           assert.deepEqual(product.ownerCorrespondence.attempts.map(attempt =>
-            attempt.physicalAttempts), label === 'resident' ? [3, 1, 1] : [1, 1, 1]);
+            attempt.physicalAttempts), label === 'fresh-then-resident' ? [1, 1, 3] :
+              label === 'local-then-resident' ? [1, 3, 2] : residentSelected ? [3, 1, 1] : [1, 1, 1]);
+          if (label === 'fresh-then-resident' || label === 'local-then-resident') {
+            assert.deepEqual(product.physicalPhases.intervals.filter(item => item.phase === 'import')
+              .map(item => item.producer), label === 'fresh-then-resident' ? [1] : [0, 1]);
+            const phases = product.physicalPhases.intervals.map(item => [item.task, item.phase]);
+            assert.deepEqual(phases, label === 'fresh-then-resident'
+              ? [[3, 'environment'], [3, 'import'], [3, 'compute']]
+              : [[2, 'environment'], [2, 'import'], [2, 'compute'], [3, 'import'], [3, 'compute']]);
+          }
+          if (residentSelected) {
+            assert.deepEqual(product.physicalPhases.intervals.map(item => item.phase),
+              ['environment', 'import', 'compute', 'compute', 'compute']);
+            assert.equal(product.physicalPhases.intervals[1].producer, 0);
+          }
+          if (settings.phaseObserver) {
+            assert.deepEqual(product.physicalPhases.taskExecutionIntervals.map(item => item.task), [1, 2, 3]);
+            assert.deepEqual(product.physicalPhases.taskReleaseIntervals.map(item => item.task)
+              .sort((a, b) => a - b), [1, 2, 3]);
+          }
+          if (label === 'resident-profiled') {
+            // Compare independently supplied rates with the actual serialized
+            // pre-execution offers, not with selectionInput echoed by the probe.
+            const offers = product.ownerCorrespondence.observations.candidates[0].body[5]
+              .flatMap(candidate => candidate[5].filter(Boolean))
+              .filter(offer => offer[9] !== null);
+            assert.deepEqual([...new Set(offers.map(offer => offer[0]))].sort(), [1, 2, 3]);
+            for (const offer of offers) {
+              assert.equal(offer[8][0][1], settings.residentEstimates.taskMilliseconds[offer[0] - 1],
+                'ResidentTaskEstimateNotBoundToActualOffer');
+              const profile = offer[9];
+              assert.equal(profile[1].lines[0].milliseconds,
+                settings.residentEstimates.preparationMilliseconds);
+              assert.equal(profile[2].lines[0].milliseconds,
+                settings.residentEstimates.cleanupMilliseconds);
+              assert.deepEqual(profile[3].map(item => item[0].lines[0].milliseconds),
+                settings.residentEstimates.importMilliseconds,
+                'ResidentImportEstimatesNotBoundToActualOffer');
+            }
+          }
           // Exact independent rows/CID and per-stage cardinalities are checked by
           // product admission; this observer only adds the owner correspondence.
           closed(product.ownerCorrespondence.observations);

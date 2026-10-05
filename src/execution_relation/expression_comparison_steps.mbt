@@ -37,7 +37,7 @@ fn advance_binary_comparison(
     return Ok(None)
   }
   let comparison_operator = match state.op {
-    Add | Subtract | Multiply | Divide | Modulo => false
+    Add | Subtract | Multiply | Divide | Modulo | In | NotIn => false
     _ => true
   }
   let result = if comparison_operator &&

@@ -1,6 +1,7 @@
 import {createHash} from 'node:crypto';
 import {createReadStream} from 'node:fs';
 import {join} from 'node:path';
+import assert from 'node:assert/strict';
 
 // Generated release modules loaded by the two measured legs, including the
 // parent/child process and retained-store bridges. Build outputs are ignored
@@ -15,17 +16,29 @@ const modules = Object.freeze([
   'retained_host_bridge/retained_host_bridge.js',
 ]);
 
-export async function releaseArtifactDigest(checkout) {
+// Read every byte on every invocation. A bounded 1 MiB stream reduces the
+// per-chunk asynchronous overhead for the Native binary without caching an
+// earlier identity or loading the entire binary into the parent heap.
+export async function sha256File(path, chunkBytes = 1024 * 1024) {
+  // Only the previous and current bounded read sizes are experimental controls.
+  // This input cannot substitute a supplied digest or skip reading an artifact.
+  assert([64 * 1024, 1024 * 1024].includes(chunkBytes), 'InvalidArtifactReadChunkBytes');
+  const hash = createHash('sha256');
+  for await (const bytes of createReadStream(path, {highWaterMark: chunkBytes})) {
+    hash.update(bytes);
+  }
+  return hash.digest('hex');
+}
+
+export async function releaseArtifactDigest(checkout, chunkBytes) {
   const manifest = [];
   for (const name of modules) {
-    const hash = createHash('sha256');
     const path = join(checkout, '_build/js/release/build', name);
     try {
-      for await (const bytes of createReadStream(path)) hash.update(bytes);
+      manifest.push([name, await sha256File(path, chunkBytes)]);
     } catch (error) {
       throw new Error(`MissingOrUnreadableReleaseArtifact:${name}`, {cause: error});
     }
-    manifest.push([name, hash.digest('hex')]);
   }
   return createHash('sha256').update(JSON.stringify(manifest)).digest('hex');
 }

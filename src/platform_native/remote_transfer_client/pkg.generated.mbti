@@ -51,6 +51,8 @@ pub fn reclaim_durable_destination_material(NativeRemoteDestinationMaterialUse) 
 
 pub fn reclaim_durable_store_destination_material(NativeRemoteDestinationMaterialUse) -> Result[Bool, NativeRemoteTransferClientIssue]
 
+pub fn recover_durable_direct_destination_cleanup(@remote_transfer_journal.Journal, @filesystem.Root, @remote_transfer.RemoteTransferRequest, String) -> Result[NativeRemoteDestinationMaterialUse, NativeRemoteTransferClientIssue]
+
 pub fn release_destination_material_use(NativeRemoteDestinationMaterialUse) -> Result[Bool, NativeRemoteTransferClientIssue]
 
 pub fn retry_transfer_send_failure_cleanup(NativeRemoteTransferSendFailure) -> Bool

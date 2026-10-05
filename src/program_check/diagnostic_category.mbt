@@ -187,7 +187,8 @@ fn graph_match_diagnostic_category(
     Structure(ContractMismatch(IncompatibleContracts(_, _))) => InvalidInput
     Structure(IncompleteGraph | ContractMismatch(_))
     | Typing(InvalidScope(_)) => UnclassifiedFailure
-    Value(UnsupportedReference) => UnsupportedImplementation
+    Structure(UnsupportedGraphOperation) | Value(UnsupportedReference) =>
+      UnsupportedImplementation
     Structure(_)
     | Typing(_)
     | Value(_)
@@ -295,6 +296,23 @@ fn source_diagnostic_category(issue : SourceFailure) -> DiagnosticCategory {
     | Registration(LocalInputs(BudgetExceeded)) => CompileLimit
     Declarations(Declarations(error)) => parameter_diagnostic_category(error)
     SourceView(Binding(Binding(error))) => parameter_diagnostic_category(error)
+    SourceView(
+      Context(
+        Stages(
+          RowCapacity(
+            Construction(
+              _,
+              _,
+              Application(InvalidBoundCount | InvalidBoundMilliseconds(_))
+            )
+          )
+        )
+      )
+    ) => InvalidInput
+    // Declaration use is the existing complete Program inventory's decision.
+    // Its budget/settings failures must never become author errors.
+    Identity(References(Usage(issue))) =>
+      declaration_usage_diagnostic_category(issue)
     Requests(InvalidLimits)
     | Checks(InvalidLimits)
     | Identity(InvalidLimits)
@@ -362,6 +380,17 @@ fn source_diagnostic_category(issue : SourceFailure) -> DiagnosticCategory {
 }
 
 ///|
+fn declaration_usage_diagnostic_category(
+  issue : @references.UsageIssue,
+) -> DiagnosticCategory {
+  match issue {
+    UnusedParameter(_) | UnusedBinding(_) => InvalidInput
+    WorkLimit => CompileLimit
+    InvalidLimits => InvalidConfiguration
+  }
+}
+
+///|
 fn closure_diagnostic_category(
   issue : ConstructionFailure,
 ) -> DiagnosticCategory {
@@ -382,7 +411,7 @@ fn closure_diagnostic_category(
         | Calendar(BudgetExceeded)
         | Profiles(BudgetExceeded)
         | Index(BudgetExceeded) => CompileLimit
-        Scalars(InvalidValue(_, _)) => InvalidInput
+        Scalars(InvalidValue(_, _)) | Frames(InvalidFrame(_)) => InvalidInput
         _ => UnclassifiedFailure
       }
     InvalidLimits => InvalidConfiguration
