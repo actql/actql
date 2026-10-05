@@ -48,6 +48,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/quoted-identifier-source-input.mjs', 'quoted-identifier-source-input.mjs'],
   ['scripts/fixtures/distinct-order-source-input.mjs', 'distinct-order-source-input.mjs'],
   ['scripts/fixtures/order-property-source-input.mjs', 'order-property-source-input.mjs'],
+  ['scripts/fixtures/join-property-source-input.mjs', 'join-property-source-input.mjs'],
   ['scripts/fixtures/analytic-property-source-input.mjs', 'analytic-property-source-input.mjs'],
   ['scripts/fixtures/group-select-scope-source-input.mjs', 'group-select-scope-source-input.mjs'],
   ['scripts/fixtures/having-projection-source-input.mjs', 'having-projection-source-input.mjs'],
@@ -206,6 +207,9 @@ if (process.argv.includes('--aggregate-property-only')) {
 if (process.argv.includes('--group-scope-only')) {
   runtimeEnvironment.ACTQL_TEST_GROUP_SCOPE_ONLY = '1';
 }
+if (process.argv.includes('--join-property-only')) {
+  runtimeEnvironment.ACTQL_TEST_JOIN_PROPERTY_ONLY = '1';
+}
 if (process.argv.includes('--order-property-only')) {
   runtimeEnvironment.ACTQL_TEST_ORDER_PROPERTY_ONLY = '1';
 }
@@ -286,7 +290,7 @@ if (process.argv.includes('--cancellation-only')) {
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
 const narrowPublicQuery = process.argv.some(flag => ['--source-free-only',
-  '--analytic-frame-parameter-only', '--aggregate-property-only', '--analytic-property-only', '--graph-match-only',
+  '--analytic-frame-parameter-only', '--join-property-only', '--aggregate-property-only', '--analytic-property-only', '--graph-match-only',
   '--graph-diagnostics-only',
   '--graph-projection-property-only',
   '--graph-property-predicate-only',
@@ -335,7 +339,7 @@ if (plannerSelectionOnly || twoSourceExampleOnly) return;
 // its Store. Restore retained Results in a new process without resubmission.
 // Narrow selections without the String fixture have no retained String Run.
 // Keep restart acceptance for full/source-free selections that create it.
-if (!process.argv.some(flag => ['--analytic-frame-parameter-only', '--aggregate-property-only', '--analytic-property-only', '--quoted-identifiers-only', '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
+if (!process.argv.some(flag => ['--analytic-frame-parameter-only', '--join-property-only', '--aggregate-property-only', '--analytic-property-only', '--quoted-identifiers-only', '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
   '--graph-match-only',
   '--graph-diagnostics-only',
   '--graph-projection-property-only',
@@ -351,6 +355,7 @@ if (process.argv.includes('--analytic-frame-parameter-only') ||
     process.argv.includes('--order-ordinal-only') ||
     process.argv.includes('--subgraph-only') ||
     process.argv.includes('--graph-match-only') ||
+    process.argv.includes('--join-property-only') ||
     process.argv.includes('--graph-diagnostics-only') ||
     process.argv.includes('--analytic-property-only') ||
     process.argv.includes('--quoted-identifiers-only') ||

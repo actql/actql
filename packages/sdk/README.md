@@ -446,6 +446,20 @@ separate contract. Original snapshots remain weakly associated with the response
 retaining a response or a retrieved snapshot retains its submitted input.
 
 
+### Predicate type explanations
+
+The registered `query_expression_invalid` reason also carries
+`facts.issue: "expected_boolean"` for the common Relation checker's
+`ExpectedBoolean` rejection. The SDK explains that a predicate requires Boolean
+type and suggests a Boolean condition such as a comparison. It does not reveal
+the submitted value or invent an actual type absent from the retained issue.
+
+The checker-facing span does not retain authored/generated provenance, so this
+projection omits the location. A lowered Program path is not an original SQL
+position. Absent and inaccessible Source dependencies stop before dependent
+predicate checking and retain equivalent protected unresolved coverage.
+The verdict still comes from the common checker; explanations are advisory.
+
 ### Graph components argument explanations
 
 The public `graph_operation_invalid` reason carries closed facts
@@ -470,3 +484,37 @@ This coordinated extension changes the registered `actql-check-reason/0.1`
 body and dependent outcome schema identities, validators and SDK wire types.
 It leaves `actql-diagnostics/0.1` unchanged. Mixed schema pins are rejected by
 existing contract validation; there is no compatibility adapter.
+
+### Run cancellation explanations
+
+`explainCancellation(result)` returns immutable read-only advice for the exact
+response or uncertain error produced by this SDK's `Execution.cancel()` call.
+Validated `accepted`, `already_requested` and `already_terminal` observations
+retain the Host's control revision. The summary distinguishes recording a
+cancellation request, an existing request and a Run already terminal for
+cancellation. Each provides a `status` target for the same retained Run
+reference. Cancellation acceptance establishes no physical-stop, external
+Effect outcome or resource-release fact.
+
+Transport loss, malformed replies and differently bound replies retain an
+`outcome_unknown` explanation without a fabricated recorded revision. An HTTP
+`Response` object returned through Local is also an invalid representation with
+an unknown cancellation outcome; its existing SDK error is preserved. Changing
+an error code/message or a returned response after the call does not change
+its bound explanation. Handwritten, parsed or copied objects have no SDK
+association. Local failures before the send boundary and typed Host refusals
+retain their existing errors without a fabricated cancellation observation.
+The accessor performs no I/O or automatic retry and retains no provider cause.
+The association lasts only while its SDK result is retained; no timeout or
+persistent Host custody is added.
+
+This is presentation over the existing Client–Host cancellation contract.
+No wire/schema/CID, cancellation ledger or execution semantics is replaced.
+The current public Run cancellation response has no cancellation-operation
+identity or exact-operation lookup. A Run status refresh cannot reconcile a
+particular lost cancellation; it only observes current Run state under current
+authorization. The existing control owner must provide that operation's
+identity, immutable intent, revision conflicts and reconciliation contract
+before the complete cancellation-outcome design can be exposed. A recorded
+physical-start/close control fixture does not prove delayed live-worker stop
+or external Effect reconciliation.

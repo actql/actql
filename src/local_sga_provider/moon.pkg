@@ -3,6 +3,8 @@ supported_targets = "+js+wasm+native"
 import {
   "actql/actql/bounded_execution" @bounded,
   "actql/actql/bounded_graph_snapshot" @snapshot,
+  "actql/actql/bounded_graph_diff" @delta_kernel,
+  "actql/actql/graph_typing" @graph_type,
   "actql/actql/decode_core" @decode,
   "actql/actql/carrier_contract" @carrier,
   "actql/actql/connector_sdk" @connector,
