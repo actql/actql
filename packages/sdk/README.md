@@ -602,3 +602,32 @@ identity, immutable intent, revision conflicts and reconciliation contract
 before the complete cancellation-outcome design can be exposed. A recorded
 physical-start/close control fixture does not prove delayed live-worker stop
 or external Effect reconciliation.
+
+
+### Unused Parameter explanations
+
+`parameter_unused` projects the common checker's typed `UnusedParameter`
+rejection after complete Program checking. Its closed facts contain only the
+caller-owned declaration name. The SDK suggests removing the declaration or
+referencing the parameter, rather than supplying another value.
+
+The optional structured location belongs to the original submitted
+`parameter_declarations` map and its call-bound revision. Lowering copies
+these declarations into generated Program cursors; those copied paths are
+never exposed as original input locations. Original names are admitted ASCII
+identifiers. Unknown provenance omits a location, and an oversized name retains
+the safe `program_invalid` fallback. No default, supplied value or Source
+identity is added to the explanation. A copied response has no original-input
+custody; a missing or different revision cannot resolve a location.
+
+This does not independently scan for parameter references. Missing bindings,
+protected Source dependencies, unsupported operations and analysis budgets
+retain the existing common checker's classifications. They do not acquire an
+unused-declaration verdict before that Owner reaches the usage decision.
+
+The coordinated extension changes the `actql-check-reason/0.1` schema body,
+reason CID and the `actql-check-outcome/0.1` schema CID that embeds it. Host,
+validators, generated wire types, SDK and independent fixtures are updated
+together; mixed pins are rejected. `actql-diagnostics/0.1` remains unchanged.
+There is no compatibility adapter, new parser, Host input persistence or
+retrieval API. Existing per-call input custody and destruction conditions apply.

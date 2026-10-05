@@ -17,6 +17,7 @@ priv enum CheckFinding {
   DeclarationViolation(String?)
   ConstraintViolation(String, String, String?)
   UndeclaredParameter(String, (Int, Int)?)
+  UnusedParameter(String, String?)
   RequiredValue(String, String)
   // An obligation that cannot be discharged from disclosable evidence.
   Unresolved(String)
@@ -411,6 +412,12 @@ fn check_source_findings(
               None => None
             }
             findings.push(UndeclaredParameter(name, range))
+          } else if check_unused_parameter_finding(
+              diagnostic,
+              context.parameter_declarations,
+            )
+            is Some(finding) {
+            findings.push(finding)
           } else {
             findings.push(check_program_finding(diagnostic))
           }
@@ -606,6 +613,40 @@ fn check_program_finding(
 }
 
 ///|
+/// Usage is decided by the common checker. Lowering copies declarations into
+/// generated Program cursors, so locations must come from this call's original
+/// admitted declaration owner rather than the rejected copy's Program path.
+fn check_unused_parameter_finding(
+  diagnostic : @program_check.CheckDiagnostic,
+  original : @parameter_binding.Declarations?,
+) -> CheckFinding? {
+  guard @program_check.diagnostic_cause(diagnostic)
+    is Source(Identity(References(Usage(UnusedParameter(rejected))))) &&
+    rejected.name.length() <= 256 &&
+    original is Some(original) else {
+    return None
+  }
+  for declaration in @parameter_binding.declarations(original) {
+    if declaration.name == rejected.name {
+      let path = @decode.cursor_path(
+        @parameter_binding.declaration_source(declaration),
+      )
+      // Declaration names are admitted ASCII identifiers. Only the original
+      // standalone map's owned member path can acquire a structured location.
+      let pointer = if path.length() == 1 &&
+        path[0] is Key(name) &&
+        name == declaration.name {
+        check_supplied_pointer(path)
+      } else {
+        None
+      }
+      return Some(UnusedParameter(declaration.name, pointer))
+    }
+  }
+  None
+}
+
+///|
 /// Public verdict from disclosable evidence only.
 fn check_verdict(findings : Array[CheckFinding]) -> String {
   if findings
@@ -622,7 +663,8 @@ fn check_verdict(findings : Array[CheckFinding]) -> String {
       | SuppliedViolation(_)
       | DeclarationViolation(_)
       | ConstraintViolation(_, _, _)
-      | UndeclaredParameter(_, _))
+      | UndeclaredParameter(_, _)
+      | UnusedParameter(_, _))
     }) {
     "invalid"
   } else if findings.is_empty() {
@@ -671,6 +713,7 @@ fn write_check_report(
       ConstraintViolation(_, _, _) =>
         Some("supplied_value_constraint_violation")
       UndeclaredParameter(_, _) => Some("parameter_undeclared")
+      UnusedParameter(_, _) => Some("parameter_unused")
       _ => None
     }
   })
@@ -816,6 +859,24 @@ fn write_check_report(
               documents.source_revision,
               start,
               end,
+            )
+          }
+          break
+        }
+      }
+    }
+    if code == "parameter_unused" {
+      for finding in findings {
+        if finding is UnusedParameter(name, pointer) {
+          @encode.key(writer, "facts")
+          @encode.begin_object(writer)
+          @encode.key(writer, "parameter")
+          @encode.string_value(writer, name)
+          @encode.end_object(writer)
+          if documents.declarations_revision is Some(revision) &&
+            pointer is Some(pointer) {
+            write_check_structured_location(
+              writer, "parameter_declarations", revision, pointer,
             )
           }
           break
