@@ -13,6 +13,8 @@ declare const capturedSnapshotBrand: unique symbol;
 declare const materialHoldsBrand: unique symbol;
 declare const retainedInputEdgeBrand: unique symbol;
 declare const retainedInputProducerBrand: unique symbol;
+declare const retainedInputIntentBrand: unique symbol;
+declare const retainedInputPlanBrand: unique symbol;
 declare const retainedTaskInputBrand: unique symbol;
 
 export interface ResultMaterialHolds {
@@ -589,8 +591,7 @@ export function retainedInputProducerFacts(producer: RetainedInputProducer): Rea
   subject: Readonly<{cid: string; wire: string}>;
 }>;
 /** Current trusted Owner ports; saved evidence is never its own authority. */
-export interface RetainedInputCurrent {
-  readonly readTransfer: () => string;
+export interface RetainedInputPlanCurrent {
   readonly siteBindingCurrent: (siteKey: string, generation: number,
     runtimeBundleCid: string) => boolean;
   readonly authority: () => string;
@@ -598,6 +599,48 @@ export interface RetainedInputCurrent {
   readonly authorized: (producerDispatchCid: string,
     transferRequestWire: string) => boolean;
 }
+/** The actual receiver record exists only after physical handoff. */
+export interface RetainedInputCurrent extends RetainedInputPlanCurrent {
+  readonly readTransfer: () => string;
+}
+export interface RetainedInputTransferPolicy {
+  readonly destinationGrantCid: string;
+  readonly routeCapabilityCid: string;
+  readonly sourceGrantCid: string;
+  readonly transferAttempt: string;
+  readonly transferExpiresUnixMs: bigint;
+  readonly transferMaxBytes: bigint;
+}
+export interface RetainedInputIntent {
+  readonly [retainedInputIntentBrand]: true;
+}
+export interface RetainedInputPlan {
+  readonly [retainedInputPlanBrand]: true;
+}
+export interface RetainedInputPlanLimits {
+  readonly maxChunks: number;
+  readonly maxManifestBytes: number;
+  readonly maxReferencedBytes: bigint;
+}
+export function prepareRetainedInputIntent(producer: RetainedInputProducer,
+  policy: RetainedInputTransferPolicy): RetainedInputIntent;
+export function admitRetainedInputIntent(producer: RetainedInputProducer,
+  saved: Readonly<{cid: string; wire: string}>): RetainedInputIntent;
+/** Historical wire alone is neither authority nor a physical input binding. */
+export function retainedInputIntentFacts(intent: RetainedInputIntent): Readonly<{
+  cid: string; wire: string;
+}>;
+export function retainedInputPlanEnvelope(intent: RetainedInputIntent): string;
+export function admitRetainedInputPlan(intent: RetainedInputIntent,
+  saved: Readonly<{cid: string; wire: string}>, current: RetainedInputPlanCurrent,
+  limits: RetainedInputPlanLimits): RetainedInputPlan;
+/** Revalidate current Owners across persistence and before delivery. */
+export function validateRetainedInputPlan(plan: RetainedInputPlan): void;
+export function retainedInputPlanFacts(plan: RetainedInputPlan): Readonly<{
+  cid: string; wire: string;
+  transfer: Readonly<{cid: string; wire: string}>;
+  manifest: Readonly<{cid: string; wire: string}>;
+}>;
 export interface RetainedInputLimits {
   readonly maxChunks: number;
   readonly maxManifestBytes: number;

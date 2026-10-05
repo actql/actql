@@ -21,6 +21,10 @@ pub fn client_values_host_admit_request_identity(String, String, String, String,
 
 pub fn client_values_host_admit_result_material_holds(String) -> @run_publication.ResultMaterialHolds raise ClientValuesHostDeliveryIssue
 
+pub fn client_values_host_admit_retained_input_intent(@run_publication_host.ClientRetainedInputProducer, String, String) -> Result[@remote_site_protocol.RemoteRetainedInputIntent, @run_publication_host.ClientRetainedTaskInputIssue]
+
+pub fn client_values_host_admit_retained_input_plan(@run_publication_host.ClientRetainedInputProducer, @remote_site_protocol.RemoteRetainedInputIntent, String, String, (String, String, String) -> Bool, () -> String, () -> Int64, (String, String) -> Bool, Int, Int, Int64) -> Result[ClientValuesHostRetainedInputPlan, @run_publication_host.ClientRetainedTaskInputIssue]
+
 pub fn client_values_host_admit_retained_task_input(ClientValuesHostRetainedTaskInput, String, String) -> Result[ClientValuesHostRetainedTaskInput, @run_publication_host.ClientRetainedTaskInputIssue]
 
 pub fn client_values_host_admit_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, String, String) -> Result[@run_publication.RunPublicationAdmission, ClientValuesHostRunAdmissionIssue]
@@ -185,6 +189,8 @@ pub fn client_values_host_prepare_result_delivery_serializer(String, String, Arr
 
 pub fn client_values_host_prepare_result_material_holds_step(@run_publication.ResultMaterialHolds, String, String) -> @run_publication.ResultMaterialHolds raise ClientValuesHostDeliveryIssue
 
+pub fn client_values_host_prepare_retained_input_intent(@run_publication_host.ClientRetainedInputProducer, String, String, String, String, Int64, Int64) -> Result[@remote_site_protocol.RemoteRetainedInputIntent, @run_publication_host.ClientRetainedTaskInputIssue]
+
 pub fn client_values_host_prepare_retained_task_dispatch(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication_host.ClientRequestIdentity, Int, Int, String, String, Int, String, String, String, String, String, String, String, String, ClientValuesHostRetainedTaskInput) -> Result[@remote_site_protocol.DispatchRequest, @run_publication_host.ClientRetainedTaskDispatchIssue]
 
 pub fn client_values_host_prepare_retained_task_input(@run_publication_host.ClientRetainedInputProducer, () -> String, String, String, String, (String, String, String) -> Bool, () -> String, () -> Int64, (String, String) -> Bool, Int, Int, Int64, Int) -> Result[ClientValuesHostRetainedTaskInput, @run_publication_host.ClientRetainedTaskInputIssue]
@@ -281,6 +287,12 @@ pub fn client_values_host_retained_input_edge(@run_publication_host.PreparedClie
 
 pub fn client_values_host_retained_input_edge_facts(@run_publication_host.ClientRetainedInputEdge) -> Array[String]
 
+pub fn client_values_host_retained_input_intent_facts(@remote_site_protocol.RemoteRetainedInputIntent) -> Array[String]
+
+pub fn client_values_host_retained_input_plan_envelope(@run_publication_host.ClientRetainedInputProducer, @remote_site_protocol.RemoteRetainedInputIntent) -> Result[String, @run_publication_host.ClientRetainedTaskInputIssue]
+
+pub fn client_values_host_retained_input_plan_facts(ClientValuesHostRetainedInputPlan) -> Result[Array[String], @run_publication_host.ClientRetainedTaskInputIssue]
+
 pub fn client_values_host_retained_input_producer(@run_publication_host.ClientRetainedInputEdge, () -> Array[String]) -> Result[@run_publication_host.ClientRetainedInputProducer, @run_publication_host.ClientRetainedInputIssue]
 
 pub fn client_values_host_retained_input_producer_available(@run_publication_host.ClientRetainedInputProducer) -> Bool
@@ -335,6 +347,8 @@ pub fn client_values_host_validate_publication_chain(@run_publication.Publicatio
 
 pub fn client_values_host_validate_publication_record_transition(@run_publication.PublicationContract?, @run_publication.PublicationContract, Bool) -> Result[Unit, @run_publication.PublicationTransitionIssue]
 
+pub fn client_values_host_validate_retained_input_plan(ClientValuesHostRetainedInputPlan) -> Result[Unit, @run_publication_host.ClientRetainedTaskInputIssue]
+
 pub fn client_values_host_validate_retained_task_input(ClientValuesHostRetainedTaskInput) -> Result[Unit, @run_publication_host.ClientRetainedTaskInputIssue]
 
 // Errors
@@ -377,6 +391,13 @@ pub(all) enum ClientValuesHostPreparationIssue {
 pub(all) enum ClientValuesHostPublicationSnapshotIssue {
   InvalidObservation
   Projection(@run_publication.PublicationSnapshotIssue)
+}
+
+pub struct ClientValuesHostRetainedInputPlan {
+  producer : @run_publication_host.ClientRetainedInputProducer
+  intent : @remote_site_protocol.RemoteRetainedInputIntent
+  plan : @remote_site_protocol.RemoteRetainedInputPlan
+  current : @run_publication_host.ClientRetainedInputCurrent
 }
 
 pub struct ClientValuesHostRetainedTaskInput {
