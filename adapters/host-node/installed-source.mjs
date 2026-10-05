@@ -206,11 +206,17 @@ export async function loadInstalledSource(path, {root, principalId, moon,
   const {providerProfile, queryAliases} = splitSourceAliasProfile(profile);
   const {entry, module} = await selectInstallation(profile);
   const checked = module.check(providerProfile);
-  const adapter = verifyInstalledConnectorRegistration(entry,
-    await module.load(checked, {root, principalId, moon, baseEnvironmentWire,
-      resolveSecret, installation: entry,
-      ...await providerRuntime(entry, runtimeUrl)}));
-  return Object.freeze({...adapter, queryAliases});
+  const adapter = await module.load(checked, {root, principalId, moon,
+    baseEnvironmentWire, resolveSecret, installation: entry,
+    ...await providerRuntime(entry, runtimeUrl)});
+  try {
+    verifyInstalledConnectorRegistration(entry, adapter);
+    return Object.freeze({...adapter, queryAliases});
+  } catch (cause) {
+    // The caller cannot own an adapter until validation returns it.
+    throw await retainInstalledHostInitializationFailure(cause,
+      {sourceProfile: adapter});
+  }
 }
 
 // Installation inventory is bounded and inert. Only a checked acquisition

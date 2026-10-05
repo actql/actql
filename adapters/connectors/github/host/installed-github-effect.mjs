@@ -18,6 +18,8 @@ import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
+import {retainInstalledHostInitializationFailure} from
+  '../../../host-node/installed-host-cleanup.mjs';
 import {createInstalledRowEffect} from
   '../../../host-node/installed-row-effect.mjs';
 import {rowSourceCheckEnvironment, rowSourceMapping} from
@@ -170,13 +172,13 @@ export async function loadInstalledGitHubEffect(profile, {root, principalId,
     declared, mappings.map(mapping => mapping.body));
   const opened = await openGitHubSite(checked, site, {root, principalId,
     moon, runtimeBundleCid, resolveSecret, publication, installation});
-  const repository = Object.freeze({nodeId: publication.repository.node_id,
-    databaseId: publication.repository.id,
-    nameWithOwner: `${site.owner}/${site.repo}`});
-  const boundaryCid = cid({version: 'actql-github-comment-boundary/0.1',
-    api_origin: site.apiOrigin, repository_id: publication.repository.id,
-    repository_node_id: publication.repository.node_id});
   try {
+    const repository = Object.freeze({nodeId: publication.repository.node_id,
+      databaseId: publication.repository.id,
+      nameWithOwner: `${site.owner}/${site.repo}`});
+    const boundaryCid = cid({version: 'actql-github-comment-boundary/0.1',
+      api_origin: site.apiOrigin, repository_id: publication.repository.id,
+      repository_node_id: publication.repository.node_id});
     return await createInstalledRowEffect({moon,
       mappings: mappings.map(mapping => ({
         resource: mapping.target.split('/').at(-1),
@@ -218,8 +220,8 @@ export async function loadInstalledGitHubEffect(profile, {root, principalId,
         footprint: () => ({providerNamespace: registration,
           resourceKind: 'issue_comment', boundaryCid}),
       }});
-  } catch (error) {
-    opened.site.close();
-    throw error;
+  } catch (cause) {
+    throw await retainInstalledHostInitializationFailure(cause,
+      {installedEffect: opened.site});
   }
 }

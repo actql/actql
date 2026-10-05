@@ -154,3 +154,31 @@ test('the row source Site refuses an undeclared response header before any crede
     await assert.rejects(openRowSourceCredentialSite({profile: {},
       responseHeaders: 'link'}), {code: 'InvalidRowSourceCredentialSite'});
   });
+
+test('invalid declared response headers refuse before opening the credential journal',
+  async t => {
+    const root = await mkdtemp(join(tmpdir(), 'actql-row-site-invalid-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const key = generateKeyPairSync('ed25519');
+    await writeFile(join(root, 'credential.key'), key.privateKey.export({
+      type: 'pkcs8', format: 'pem'}));
+    let opens = 0;
+    const options = {
+      profile: {credentialPrivateKeyPath: join(root, 'credential.key'),
+        credentialAuthorityId: 'authority-a', credentialKeyId: 'key-a',
+        journalRoot: join(root, 'journal'),
+        resourceOrigin: 'https://api.example.test', namespaceId: 'namespace-a',
+        environment: 'test', siteKey: 'site-a', siteGeneration: 1},
+      principalId: 'principal-a', connection: 'example:connection',
+      connectorRegistration: 'example', connectorRevision: 'example/0.1',
+      runtimeBundleCid: `sha256:${'a'.repeat(64)}`, commonMoon: moon,
+      authorization: {issued: () => false, context: {contextCid: 'context'}},
+      resolveSecret: async () => 'x', admitsApprovalTarget: () => false,
+      openCredentialJournal: () => { opens++; return {close() {}}; },
+    };
+    for (const responseHeaders of ['link', ['link', ''], ['link', 3]]) {
+      await assert.rejects(openRowSourceCredentialSite({...options,
+        responseHeaders}), {code: 'InvalidRowSourceCredentialSite'});
+    }
+    assert.equal(opens, 0);
+  });

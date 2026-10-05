@@ -138,6 +138,11 @@ export async function openRowSourceCredentialSite({profile, principalId,
       typeof admitsApprovalTarget !== 'function') {
     fail('InvalidRowSourceCredentialSite');
   }
+  if (!Array.isArray(responseHeaders) ||
+      responseHeaders.some(name => !text(name))) {
+    fail('InvalidRowSourceCredentialSite');
+  }
+  const declaredHeaders = new Set(responseHeaders);
   let privateKey;
   try {
     privateKey = createPrivateKey(await readFile(profile.credentialPrivateKeyPath,
@@ -179,11 +184,6 @@ export async function openRowSourceCredentialSite({profile, principalId,
       keyId: profile.credentialKeyId, privateKey}), control);
     return Object.freeze({grant, scope});
   }
-  if (!Array.isArray(responseHeaders) ||
-      responseHeaders.some(name => !text(name))) {
-    fail('InvalidRowSourceCredentialSite');
-  }
-  const declaredHeaders = new Set(responseHeaders);
   const callResource = options => {
     for (const operation of options?.operations?.values?.() ?? []) {
       for (const name of operation?.responseHeaders ?? []) {
