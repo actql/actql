@@ -437,3 +437,41 @@ existing bounded local guard for this one fixed case. Primary assessment remains
 the complete parent cycle; probe preparation, entry-to-result, task and cleanup
 clocks remain separate. Retain an indeterminate result rather than rerunning
 until a favorable interval appears.
+
+Matched-condition result, controller revision
+`c619179b8b2297943574ce527e2d9524c121159d`, compiled source still `fe0b68242`:
+all 44 product/Owner admissions succeeded. Common source preparation was
+`236.924 ms`. Prelaunch complete parent cycles were `61.453 / 51.761 ms`, with
+Native process intervals `45.962 / 41.840 ms` and entry-through-result clocks
+`36.476 / 32.417 ms`; these costs remain separate from the measured series.
+
+| Boundary, after minus before | Mean | 95% paired interval | Result |
+| --- | ---: | ---: | --- |
+| Complete parent cycle | -0.523 ms | -3.480 to +2.894 ms | Indeterminate |
+| Native entry through result identity | -0.289 ms | -1.389 to +0.747 ms | Indeterminate |
+| Application preparation | +0.013 ms | -0.364 to +0.324 ms | Indeterminate |
+| Within-Run task intervals | -0.262 ms | -0.685 to +0.193 ms | Indeterminate |
+| Compute through result identity | -0.465 ms | -1.124 to +0.254 ms | Indeterminate |
+| Physical cleanup | -0.032 ms | -0.154 to +0.075 ms | Indeterminate |
+
+This repeated-launch condition does not demonstrate the required runtime
+improvement. It neither invalidates the original raw series nor explains its
+external first-use gap. Do not rerun this condition until it becomes favorable,
+report the first series alone as the algorithm's effect, or close #170 from
+these observations. The next implementation needs a cause supported by the
+actual Native application/Compute/identity boundaries; the portable JS CPU
+profile alone is insufficient.
+
+Bounded receipt: `run-GdRh6O`; command:
+
+```sh
+node benchmarks/retained-results/run-native-ascii-word-comparison.mjs \
+  _build/repro/native-probe-f8c687638.exe \
+  /private/tmp/g507-native-ascii-matched-c619179b8.json --matched-first-use
+```
+
+Run inside the existing `runLocalCheck` guard with a 120-second budget. Preserved
+original: `_build/repro/ascii-matched-c619179b8.json`, 13,073,809 bytes,
+`sha256:6bdf7fdc327f323d08fa61a7c53a66529e52ed1422e36636d1f27b8bea7f908c`.
+No rebuild, full matrix, new broad verification or CI retry was performed for
+this unchanged compiled binary.
