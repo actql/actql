@@ -70,7 +70,43 @@ and source/overlay checks, not actual Native lifecycle evidence.
 An initial sandbox rejection occurred before test execution and is not a test
 failure. The same command succeeded with the existing process-ownership guard.
 
-Five conditional Lean propositions were previously checked against the model
-diff (`run-nmdqSj`); the observer changes do not change those propositions.
-Actual Native observation of this new container is pending. No new full Core,
+At clean source `455c7bb2587d396bd4e657361c0e4b0a30f52e15`, one Native
+`pair:filter/distinct` diagnostic used the existing bounded supervisor:
+
+```sh
+env MOON_HOME=<pinned MoonBit home> PATH=<pinned MoonBit home>/bin:$PATH \
+  node --input-type=module -e '
+import {runLocalCheck} from "./scripts/local-checks-guard.mjs";
+process.exitCode = await runLocalCheck({root:process.cwd(),heavy:true,
+  timeoutSeconds:180,graceSeconds:5,steps:[{
+    name:"one Native parent completed-output custody case",
+    command:process.execPath,
+    args:["proofs/relation-pipeline/capacity/parent-control/run.mjs"]
+  }]});'
+```
+
+Receipt `_build/local-checks/attempts/run-uGMgho` records timeout/exit 124,
+complete captured streams, and released locks. It did not obtain a passed
+Native case or an executed binary receipt. No automatic retry or budget increase
+was performed. This is not a detected mutation or a Native acceptance success.
+
+The model subprocess preceding Native compilation checked all five conditional
+Lean propositions on that exact clean source. Its immutable log and receipt are
+`.artifacts/relation-pipeline/capacity/parent-control-probe/models/`:
+
+- log `c0e06bebe299515c66a4509a48268ce3146148d06f63ce9ada474b24cc53e324.log`;
+- receipt `134325913b01e7a5a815882e72af1a751a6484e4f96b41860e93c268da7e5f33.json`;
+- original source digest `79f2cc368df03abe4f73c5d9f9bb8de999e277a32ea56872e3fc0fa1ac9e3f26`.
+
+After supervisor termination, the complete overlay was compared byte-for-byte
+with the overlay reconstructed from that clean Git revision before restoring
+all seven source paths and removing four exact generated observers. The restored
+source snapshot equals the model receipt's original source digest. The fixture
+was retained, rather than treating this as successful executor closure: its
+bytes equal the archived fixture and its inode is preserved in
+`run-uGMgho/retained-fixture.mbt`, with `fixture-custody.json` recording identity,
+digest, and the timeout boundary. The original archived fixture and input remain
+in `.artifacts/relation-pipeline/1791242443059-74007-0000-parent-control-startup-native.*`.
+
+Actual Native lifecycle/custody acceptance remains pending. No new full Core,
 packed, cross-target, mutation, or performance campaign has been performed.
