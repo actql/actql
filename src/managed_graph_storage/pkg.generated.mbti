@@ -9,6 +9,8 @@ import {
 }
 
 // Values
+pub fn advance_property_snapshot_append(PropertySnapshotAppend, Int) -> PropertySnapshotAppendPoll
+
 pub fn append_property_edge(Builder, Int, Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
 
 pub fn append_property_node(Builder, Int, Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
@@ -16,6 +18,10 @@ pub fn append_property_node(Builder, Int, Array[@value_admission.CheckedValue], 
 pub fn append_property_snapshot_edge(Builder, @decode_core.Cursor, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, Issue]
 
 pub fn append_property_snapshot_node(Builder, @decode_core.Cursor, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, Issue]
+
+pub fn available(Storage) -> Bool
+
+pub fn builder_accepts_output(Builder, @carrier_contract.Graph, Limits) -> Bool
 
 pub fn builder_construction_work(Builder) -> Int
 
@@ -25,6 +31,8 @@ pub fn builder_measured_input_value_bytes(Builder) -> Int
 
 pub fn builder_node_count(Builder) -> Int
 
+pub fn builder_owns_storage(Builder, Storage) -> Bool
+
 pub fn builder_retained_value_bytes(Builder) -> Int
 
 pub fn builder_workspace_slots(Builder) -> Int
@@ -32,6 +40,8 @@ pub fn builder_workspace_slots(Builder) -> Int
 pub fn cancel(Builder) -> Bool
 
 pub fn carrier(Storage) -> @carrier_contract.Carrier
+
+pub fn cleanup_property_snapshot_append(PropertySnapshotAppend) -> Unit
 
 pub fn construction_work(Storage) -> Int
 
@@ -81,9 +91,13 @@ pub fn node_typed_key_at(Storage, Int, Int) -> @value_admission.CheckedValue?
 
 pub fn prepare(@carrier_contract.Carrier, Mode, Limits) -> Result[Builder, Issue]
 
+pub fn property_snapshot_append_workspace_slots(@carrier_contract.Graph, Limits) -> Int?
+
 pub fn retained_value_bytes(Storage) -> Int
 
 pub fn retained_workspace_slots(Storage) -> Int
+
+pub fn start_property_snapshot_append(Builder, @decode_core.Cursor, edge~ : Bool, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[PropertySnapshotAppend, Issue]
 
 // Errors
 
@@ -125,6 +139,14 @@ pub(all) struct Limits {
 pub(all) enum Mode {
   DeclaredNodes
 } derive(Eq, @debug.Debug)
+
+type PropertySnapshotAppend
+
+pub enum PropertySnapshotAppendPoll {
+  PropertySnapshotAppendContinue(work~ : Int)
+  PropertySnapshotAppendComplete(work~ : Int)
+  PropertySnapshotAppendFailed(Issue, work~ : Int)
+}
 
 type Storage
 
