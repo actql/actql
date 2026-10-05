@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:d31093d562f8ccdf18d4af58afe218d4aefba8e2ce6004ceda28fb10d3965d0e",
+  "artifact_registry_cid": "sha256:e384d0926df7bce1d446658face7789786952bdbc5c182361b6c7046ce887c6e",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10713,7 +10713,7 @@
     "model_prompt": "sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204",
     "model_retry_policy": "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c",
     "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55",
-    "check_outcome": "sha256:3022a1bfadaab076c2fb116ccdca5de59451dd349fb6df6cc3adcd7905675cb0",
+    "check_outcome": "sha256:a5dd8a6e4a3c5411d97b4d4a5f333992c655c038534352e701257a4c28baea4d",
     "check_reason": "sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d",
     "model_provider_binding": "sha256:a4a37e0016403b483aa267dca7aae6c682940d2b23343b95defbcac2a1ca92b3",
     "model_invocation_scope": "sha256:2ae55fd7143e29dc3468123dbea9979c65f0aeac9adc392098db87679ebf88c3"
@@ -75949,7 +75949,8 @@
             "outcome",
             "report",
             "version",
-            "reason_schema_cid"
+            "reason_schema_cid",
+            "outcome_schema_cid"
           ],
           "properties": {
             "outcome": {
@@ -77547,6 +77548,10 @@
                 }
               }
             },
+            "outcome_schema_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
             "reason_schema_cid": {
               "const": "sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d"
             },
@@ -77562,7 +77567,9 @@
             "outcome",
             "problem",
             "version",
-            "reason_schema_cid"
+            "reason_schema_cid",
+            "outcome_schema_cid",
+            "correlation_ref"
           ],
           "properties": {
             "outcome": {
@@ -79172,6 +79179,16 @@
                 }
               }
             },
+            "correlation_ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9:_-]+$"
+            },
+            "outcome_schema_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
             "reason_schema_cid": {
               "const": "sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d"
             },
@@ -79188,7 +79205,8 @@
             "outcome",
             "problem",
             "version",
-            "reason_schema_cid"
+            "reason_schema_cid",
+            "outcome_schema_cid"
           ],
           "properties": {
             "correlation_ref": {
@@ -79212,6 +79230,10 @@
                   "pattern": "^[a-z][a-z0-9_]{0,63}$"
                 }
               }
+            },
+            "outcome_schema_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
               "const": "sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d"

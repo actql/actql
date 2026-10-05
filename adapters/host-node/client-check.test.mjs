@@ -19,7 +19,7 @@ import {connect, getCheckInput, resolveCheckLocation, resolveCheckTextRange, exp
 import * as frontierSDK from '../../packages/sdk/index.mjs';
 
 import * as sdk from '../../packages/sdk/index.mjs';
-import {validCheckOutcome, checkReasonSchemaCid} from '../../packages/client-wire/index.mjs';
+import {validCheckOutcome, checkReasonSchemaCid, checkOutcomeSchemaCid} from '../../packages/client-wire/index.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {createNodeAuthorizationGate} from './authorization.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
@@ -324,7 +324,7 @@ for (const entrance of ['local', 'http']) {
         calls++;
         if (mode === 'unknown') outcome.report.requirements[0].code = 'future_requirement';
         else if (mode === 'partial') return {version: outcome.version,
-          reason_schema_cid: outcome.reason_schema_cid, outcome: 'failed',
+          reason_schema_cid: outcome.reason_schema_cid, outcome_schema_cid: outcome.outcome_schema_cid, outcome: 'failed', correlation_ref: 'corr:fixture',
           problem: {code: 'check_internal'}, partial_report: outcome.report};
         else outcome.report.requirements[0].facts.expected_type = 42;
         return outcome;
@@ -358,11 +358,12 @@ const withoutContext = (outcome, expectedAssertion) => {
     ? undefined : `[check-mutation:${expectedAssertion}]`);
   assert.match(outcome.report.context_ref, contextRef);
   assert.equal(outcome.reason_schema_cid, checkReasonSchemaCid);
+  assert.equal(outcome.outcome_schema_cid, checkOutcomeSchemaCid);
   assert.equal(outcome.report.inputs[0].document_id, 'source');
   for (const input of outcome.report.inputs) assert.match(input.revision, /^rev:[0-9a-f]{64}$/u);
   // These original fixtures compare classification/coverage. Exact public
   // locations and retained inputs have their own independent vectors below.
-  const {reason_schema_cid, ...envelope} = outcome;
+  const {reason_schema_cid, outcome_schema_cid, ...envelope} = outcome;
   const {inputs, requirements, ...report} = outcome.report;
   return {...envelope, report: {...report, context_ref: '<ctx>',
     reasons: report.reasons.map(({location, facts, ...reason}) =>
@@ -1366,6 +1367,58 @@ for (const entrance of ['local', 'http']) {
     }
   });
 
+  test(`${entrance}: check Problems retain opaque attempt correlation`, async t => {
+    const client = await contextClient(t, entrance, absentEnvironment);
+    const parameterDeclarations = Object.fromEntries(Array.from({length: 512}, (_, i) =>
+      [`p${String(i).padStart(3, '0')}`, {type: 'number'}]));
+    const options = {format: 'sql', parameterDeclarations, parameters: {}};
+    const first = await client.check('SELECT 1 AS n', options);
+    assert.equal(first.outcome, 'failed');
+    assert.equal(first.problem.code, 'check_report_unbounded');
+    assert.equal(typeof first.correlation_ref, 'string', '[check-mutation:check-problem-correlation]');
+    assert.match(first.correlation_ref, /^corr:[0-9a-f]{32}$/u);
+    const second = await client.check('SELECT 1 AS n', options);
+    assert.notEqual(second.correlation_ref, first.correlation_ref,
+      '[check-mutation:check-problem-attempt]');
+    assert.equal(sdk.explainCheckOutcome(first).correlationRef, first.correlation_ref,
+      '[check-mutation:check-problem-explanation]');
+    assert.equal(sdk.explainCheckOutcome(structuredClone(first)).correlationRef, first.correlation_ref);
+    for (const outcome of [first, second]) {
+      assert.equal(Object.hasOwn(outcome, 'report'), false);
+      assert.equal(Object.hasOwn(outcome, 'partial_report'), false);
+      assert.equal(Object.hasOwn(outcome, 'context_ref'), false);
+      assert.equal(getCheckInput(outcome, 'source'), undefined);
+      assert.equal(Object.hasOwn(sdk.explainCheckOutcome(outcome), 'next'), false);
+    }
+  });
+
+  test(`${entrance}: check outcome pins refuse mismatches with unchanged reason identity`, async t => {
+    const declarations = Object.fromEntries(Array.from({length: 512}, (_, i) =>
+      [`p${String(i).padStart(3, '0')}`, {type: 'number'}]));
+    for (const failed of [false, true]) {
+      for (const mutation of ['missing', 'different']) {
+        const client = await contextClient(t, entrance, absentEnvironment, {
+          mutateCheckTransportReply(outcome) {
+            assert.equal(outcome.outcome, failed ? 'failed' : 'completed');
+            assert.equal(outcome.reason_schema_cid, checkReasonSchemaCid);
+            if (mutation === 'missing') delete outcome.outcome_schema_cid;
+            else outcome.outcome_schema_cid = 'sha256:' + '0'.repeat(64);
+            return outcome;
+          },
+        });
+        let refused = false;
+        try {
+          await client.check('SELECT 1 AS n', {format: 'sql',
+            ...(failed ? {parameterDeclarations: declarations, parameters: {}} : {})});
+        } catch (cause) {
+          if (cause?.code !== 'InvalidHostCheckOutcome') throw cause;
+          refused = true;
+        }
+        assert.equal(refused, true, '[check-mutation:check-outcome-pin]');
+      }
+    }
+  });
+
   test(`${entrance}: check outcome explanations preserve reporting boundaries`, async t => {
     const client = await contextClient(t, entrance, absentEnvironment,
       {maxRequestBytes: 262144});
@@ -1375,12 +1428,14 @@ for (const entrance of ['local', 'http']) {
       [`p${String(i).padStart(3, '0')}`, {type: 'number'}]));
     const unbounded = await client.check('SELECT 1 AS n', {format: 'sql',
       parameterDeclarations: declarations, parameters: {}});
+    assert.match(unbounded.correlation_ref, /^corr:[0-9a-f]{32}$/u);
     assert.deepEqual(unbounded, {version: 'actql-check-outcome/0.1',
-      reason_schema_cid: checkReasonSchemaCid, outcome: 'failed',
+      reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid,
+      outcome: 'failed', correlation_ref: unbounded.correlation_ref,
       problem: {code: 'check_report_unbounded'}});
     assert.equal(typeof sdk.explainCheckOutcome, 'function',
       '[check-mutation:check-outcome-explanation]');
-    assert.deepEqual(sdk.explainCheckOutcome(unbounded), {outcome: 'failed',
+    assert.deepEqual(sdk.explainCheckOutcome(unbounded), {outcome: 'failed', correlationRef: unbounded.correlation_ref,
       problem: {kind: 'known', code: 'check_report_unbounded'},
       summary: 'The reporting budget could not produce a complete bound check report.',
       hint: 'Ask the checking-context owner to review reporting capacity for the original checking scope.'},
@@ -1429,15 +1484,15 @@ for (const entrance of ['local', 'http']) {
       // Fault injection into the real Host boundary. These two shapes are
       // schema acceptance evidence, not claims of a natural Owner failure.
       mutateCheckReply: outcome => branch === 'partial' ? {
-        version: outcome.version, reason_schema_cid: outcome.reason_schema_cid,
-        outcome: 'failed', problem: {code: 'check_internal'}, partial_report: outcome.report,
-      } : {version: outcome.version, reason_schema_cid: outcome.reason_schema_cid,
+        version: outcome.version, reason_schema_cid: outcome.reason_schema_cid, outcome_schema_cid: outcome.outcome_schema_cid,
+        outcome: 'failed', correlation_ref: 'corr:fixture', problem: {code: 'check_internal'}, partial_report: outcome.report,
+      } : {version: outcome.version, reason_schema_cid: outcome.reason_schema_cid, outcome_schema_cid: outcome.outcome_schema_cid,
         outcome: 'unavailable', correlation_ref: 'corr:check-fixture',
         problem: {code: 'check_unavailable'}},
     });
     const partial = await client.check('SELECT', {format: 'sql'});
     const explanation = sdk.explainCheckOutcome(partial);
-    assert.deepEqual(explanation, {outcome: 'failed',
+    assert.deepEqual(explanation, {outcome: 'failed', correlationRef: 'corr:fixture',
       problem: {kind: 'known', code: 'check_internal'},
       summary: 'An internal checking failure prevented a complete bound check report.',
       hint: 'Ask the checking-context owner to investigate the reporting failure.',
@@ -1540,10 +1595,10 @@ for (const entrance of ['local', 'http']) {
     const client = await contextClient(t, entrance, absentEnvironment, {mutateCheckReply(outcome) {
       // Reporting-failure injection carries the exact real checker report.
       const received = reporting === 'partial' ? {version: outcome.version,
-        reason_schema_cid: outcome.reason_schema_cid, outcome: 'failed',
+        reason_schema_cid: outcome.reason_schema_cid, outcome_schema_cid: outcome.outcome_schema_cid, outcome: 'failed', correlation_ref: 'corr:fixture',
         problem: {code: 'check_internal'}, partial_report: outcome.report}
         : reporting === 'unavailable' ? {version: outcome.version,
-          reason_schema_cid: outcome.reason_schema_cid, outcome: 'unavailable',
+          reason_schema_cid: outcome.reason_schema_cid, outcome_schema_cid: outcome.outcome_schema_cid, outcome: 'unavailable',
           problem: {code: 'check_unavailable'}, correlation_ref: 'fixture-unavailable'} : outcome;
       for (const key of Object.keys(cache)) delete cache[key];
       return Object.assign(cache, received);
@@ -1761,8 +1816,8 @@ for (const entrance of ['local', 'http']) {
             assert.notEqual(document, undefined);
             findings[0].location = {kind: 'structured', document_id: documentId,
               revision: document.revision, pointer: ''};
-            return partial ? {version: outcome.version, reason_schema_cid: outcome.reason_schema_cid,
-              outcome: 'failed', problem: {code: 'check_internal'}, partial_report: report}
+            return partial ? {version: outcome.version, reason_schema_cid: outcome.reason_schema_cid, outcome_schema_cid: outcome.outcome_schema_cid,
+              outcome: 'failed', correlation_ref: 'corr:fixture', problem: {code: 'check_internal'}, partial_report: report}
               : {...outcome, report};
           },
         });
@@ -1831,8 +1886,8 @@ for (const entrance of ['local', 'http']) {
       const mutate = edit => outcome => {
         const report = structuredClone(outcome.report);
         edit(report);
-        return partial ? {version: outcome.version, reason_schema_cid: outcome.reason_schema_cid,
-          outcome: 'failed', problem: {code: 'check_internal'}, partial_report: report}
+        return partial ? {version: outcome.version, reason_schema_cid: outcome.reason_schema_cid, outcome_schema_cid: outcome.outcome_schema_cid,
+          outcome: 'failed', correlation_ref: 'corr:fixture', problem: {code: 'check_internal'}, partial_report: report}
           : {...outcome, report};
       };
       const arrayOptions = {format: 'sql',
@@ -2455,10 +2510,12 @@ test('fixed-key owners give byte-equal outcomes for absent, denied and ' +
 test('an unsupported format is a failure without a verdict', async () => {
   const check = await installation(installNodeClientCheck,
     configurations.denied);
-  assert.deepEqual(await check({principalId: owner,
+  const outcome = await check({principalId: owner,
     input: {text: 'SELECT id FROM records', format: 'json'},
-    parameters: null}), {outcome: 'failed',
-    problem: {code: 'check_format_unsupported'}, reason_schema_cid: checkReasonSchemaCid,
+    parameters: null});
+  assert.match(outcome.correlation_ref, /^corr:[0-9a-f]{32}$/u);
+  assert.deepEqual(outcome, {outcome: 'failed', correlation_ref: outcome.correlation_ref,
+    problem: {code: 'check_format_unsupported'}, reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid,
     version: 'actql-check-outcome/0.1'});
 });
 
@@ -2470,24 +2527,25 @@ test('the public outcome contract keeps verdicts bound and partial ' +
       unresolved: []}};
   const version = 'actql-check-outcome/0.1';
   const reason_schema_cid = checkReasonSchemaCid;
-  assert.equal(validCheckOutcome({outcome: 'completed', report, version, reason_schema_cid}),
+  const outcome_schema_cid = checkOutcomeSchemaCid;
+  assert.equal(validCheckOutcome({outcome: 'completed', report, version, reason_schema_cid, outcome_schema_cid}),
     true);
   for (const key of ['context_ref', 'scope']) {
     const {[key]: _removed, ...unbound} = report;
     assert.equal(validCheckOutcome({outcome: 'completed', report: unbound,
-      version, reason_schema_cid}), false, key);
+      version, reason_schema_cid, outcome_schema_cid}), false, key);
   }
-  assert.equal(validCheckOutcome({outcome: 'failed',
+  assert.equal(validCheckOutcome({outcome: 'failed', correlation_ref: 'corr:fixture',
     partial_report: {...report, verdict: 'invalid',
       reasons: [{code: 'supplied_value_invalid'}]},
-    problem: {code: 'check_internal'}, version, reason_schema_cid}), true);
-  assert.equal(validCheckOutcome({outcome: 'failed',
+    problem: {code: 'check_internal'}, version, reason_schema_cid, outcome_schema_cid}), true);
+  assert.equal(validCheckOutcome({outcome: 'failed', correlation_ref: 'corr:fixture',
     partial_report: {...report, verdict: 'verified',
       coverage: {limits: [], unresolved: []}},
-    problem: {code: 'check_internal'}, version, reason_schema_cid}), false);
+    problem: {code: 'check_internal'}, version, reason_schema_cid, outcome_schema_cid}), false);
   assert.equal(validCheckOutcome({outcome: 'unavailable',
     correlation_ref: 'corr:a', problem: {code: 'check_unavailable'},
-    report, version, reason_schema_cid}), false);
+    report, version, reason_schema_cid, outcome_schema_cid}), false);
 });
 
 // Each mutation is one plausible change to the Host owner. Its module is
@@ -2552,6 +2610,7 @@ test('http: the pinned pre-extension SDK refuses the current Host contract', asy
     ['ea67efe6c4adbb17353eea61f06a3fdfc52dd91b', 'sha256:1565f0b7e8e32f70d97905797ccc37a872b08116c0ef3d9599e4e4509b568621'],
     ['c4bdfd21416f02aa13a2ac1d7614ef398dec7b31', 'sha256:16c81ff351a5c3d1fa56757c3c9936a68fd7014c81137e8efa1c54988a61c961'],
     ['5d52b3a970984f3cdad554b9030a0c25fa8ac887', 'sha256:ac08ebfd20b15d7ee4898039c94f3d089baaaeb693b319d241b3e0fe6adec4a6'],
+    ['7f4a8167a0e6492b61478c805a77f3f583b0cd2f', 'sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d'],
   ]) {
     const historical = path => execFileSync('git', ['show', `${revision}:${path}`],
       {cwd: repository, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024});
@@ -2641,7 +2700,7 @@ test('http: SDK rejects contradictory evidence injected into a real verified rep
       mutation = value => ({...value, report: {...value.report, coverage}});
       await assert.rejects(check(), {code: 'InvalidHostCheckOutcome'});
     }
-    mutation = value => ({version: value.version, outcome: 'failed',
+    mutation = value => ({version: value.version, outcome: 'failed', correlation_ref: 'corr:fixture',
       problem: {code: 'check_internal'}, partial_report: value.report});
     await assert.rejects(check(), {code: 'InvalidHostCheckOutcome'});
   });

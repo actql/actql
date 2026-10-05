@@ -9,6 +9,14 @@ const acceptance = 'adapters/host-node/client-submission-input.test.mjs';
 const cancellationAcceptance = 'adapters/host-node/client-cancel-response-loss.test.mjs';
 const checkAcceptance = 'adapters/host-node/client-check.test.mjs';
 const expected = (phase, assertion = 'submission-input') => {
+  if (phase === 'check-problem-explanation') return ['local', 'http'].map(entrance => ({
+    name: `${entrance}: check Problems retain opaque attempt correlation`,
+    assertions: [{id: assertion, operator: 'strictEqual'}],
+  }));
+  if (phase === 'check-schema-pin') return ['local', 'http'].map(entrance => ({
+    name: `${entrance}: check outcome pins refuse mismatches with unchanged reason identity`,
+    assertions: [{id: assertion, operator: 'strictEqual'}],
+  }));
   if (phase === 'check-location-domain') return ['local', 'http'].map(entrance => ({
     name: `${entrance}: known check locations reject another submitted document`,
     assertions: [{id: assertion, operator: 'deepStrictEqual'}],
@@ -170,6 +178,15 @@ const mutations = [
       "      catch { fail('InvalidHostCheckOutcome'); }",
     'check-location-domain', 'known-location-domain'],
 
+  ['check Problem explanation loses its opaque correlation',
+    "return freezeInput({outcome: 'failed', summary, hint,\n      correlationRef: outcome.correlation_ref,",
+    "return freezeInput({outcome: 'failed', summary, hint,",
+    'check-problem-explanation', 'check-problem-explanation'],
+  ['check outcome bypasses its schema identity pin',
+    'valid(value, schemas.check_outcome) && value.outcome_schema_cid === checkOutcomeSchemaCid;',
+    'valid(value, schemas.check_outcome);',
+    'check-schema-pin', 'check-outcome-pin'],
+
   ['frontier comparison discards the bound context',
     'return structuralKey(left) === structuralKey(right);',
     'return structuralKey({...left, contextRef: "ignored"}) === structuralKey({...right, contextRef: "ignored"});',
@@ -204,16 +221,22 @@ if (args.length && (args.length !== 2 || args[0] !== '--match' || !args[1])) {
 }
 const selected = mutations.filter(([name]) => args.length === 0 || name.includes(args[1]));
 if (!selected.length) throw new Error('No SDK mutations selected');
-const original = readFileSync(path, 'utf8');
+const mutationPath = phase => phase === 'check-schema-pin'
+  ? 'packages/client-wire/client-host.generated.js' : path;
+const originals = new Map(selected.map(([, , , phase]) => mutationPath(phase))
+  .map(file => [file, readFileSync(file, 'utf8')]));
 const results = [];
 try {
   for (const [name, from, to, phase, assertion] of selected) {
+    const file = mutationPath(phase);
+    const original = originals.get(file);
     if (original.split(from).length !== 2) throw new Error(`Mutation anchor not unique: ${name}`);
-    writeFileSync(path, original.replace(from, to));
+    writeFileSync(file, original.replace(from, to));
     results.push({name, phase, rejected: !accepted(phase, assertion)});
+    writeFileSync(file, original);
   }
 } finally {
-  writeFileSync(path, original);
+  for (const [file, original] of originals) writeFileSync(file, original);
 }
 const restorations = new Map(selected.map(([, , , phase, assertion]) =>
   [phase + ':' + (assertion ?? 'submission-input'), {phase, assertion}]));

@@ -1028,3 +1028,25 @@ An uncloneable response or an invalid copied shape fails the existing transport
 contract check before any association. This changes neither the checker verdict
 nor the Host's scope/context or disclosure projection. No new source hash,
 persistence, retrieval API, compatibility route or execution state is added.
+
+### Reporting Problem references and outcome identity
+
+A failed check carries an opaque `correlation_ref` for its reporting attempt,
+including when the reserved report budget cannot produce a complete envelope.
+The Host allocates that reference independently of input bytes, context,
+authorization and protected Source inventories, before asynchronous checking.
+The existing projection preserves it through checker/reporting failure; the
+Host's invalid-producer fallback retains the same attempt reference. It is not
+a source revision, context reference, retry identity or retrieval permission.
+The SDK's safe failed-outcome explanation exposes it as `correlationRef`, even
+for a transport copy with no original-input custody. It confers no action.
+
+Every check outcome also carries `outcome_schema_cid`, separately from
+`reason_schema_cid`. The reason contract can remain unchanged when an outcome
+field changes. Consumers therefore validate both current pins, including empty
+verified reports, partial reports and unavailable outcomes. The outcome CID is
+the ordinary registered schema body's identity. Its schema constrains the wire
+CID syntax, and the generated consumer guard compares the value with the
+registered expected CID; the CID preimage does not contain its own constant.
+Missing/foreign pins fail contract validation. No old execution or adapter
+path supplies a successful fallback.

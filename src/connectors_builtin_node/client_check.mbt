@@ -50,12 +50,13 @@ pub fn client_program_check_source(
   source_revision : String,
   declarations_revision : String?,
   parameters_revision : String?,
+  correlation_ref : String,
 ) -> String {
   let findings : Array[CheckFinding] = []
   let stop = check_source_findings(
     findings, document, format, environment, visible_publication, declarations, parameters,
   )
-  check_outcome_json(findings, stop, context_ref, {
+  check_outcome_json(findings, stop, context_ref, correlation_ref, {
     source_revision,
     source_bytes: @utf8.encode(document).length(),
     declarations_revision,
@@ -88,6 +89,8 @@ pub fn client_program_check_unavailable(correlation_ref : String) -> String {
     @encode.end_object(writer)
     @encode.key(writer, "reason_schema_cid")
     @encode.string_value(writer, check_reason_schema_cid)
+    @encode.key(writer, "outcome_schema_cid")
+    @encode.string_value(writer, check_outcome_schema_cid)
     @encode.key(writer, "version")
     @encode.string_value(writer, check_outcome_version)
     @encode.end_object(writer)
@@ -1040,6 +1043,7 @@ fn check_outcome_json(
   findings : Array[CheckFinding],
   stop : CheckStop,
   context_ref : String,
+  correlation_ref : String,
   documents : CheckDocuments,
 ) -> String {
   try {
@@ -1059,6 +1063,8 @@ fn check_outcome_json(
         )
       }
       Failed(problem) => {
+        @encode.key(writer, "correlation_ref")
+        @encode.string_value(writer, correlation_ref)
         @encode.key(writer, "outcome")
         @encode.string_value(writer, "failed")
         // A partial report is only ever invalid, never verified or a guess.
@@ -1077,17 +1083,43 @@ fn check_outcome_json(
     }
     @encode.key(writer, "reason_schema_cid")
     @encode.string_value(writer, check_reason_schema_cid)
+    @encode.key(writer, "outcome_schema_cid")
+    @encode.string_value(writer, check_outcome_schema_cid)
     @encode.key(writer, "version")
     @encode.string_value(writer, check_outcome_version)
     @encode.end_object(writer)
     @encode.finish(writer)
   } catch {
-    _ =>
-      "{\"outcome\":\"failed\",\"problem\":{\"code\":\"check_report_unbounded\"},\"reason_schema_cid\":\"" +
-      check_reason_schema_cid +
-      "\",\"version\":\"" +
-      check_outcome_version +
-      "\"}"
+    _ => check_failed_json("check_report_unbounded", correlation_ref)
+  }
+}
+
+///|
+/// A separately bounded Problem envelope survives report-budget exhaustion.
+/// The correlation reference was allocated by the Host for this attempt.
+fn check_failed_json(problem : String, correlation_ref : String) -> String {
+  try {
+    let writer = @encode.writer(1024, 16, 4)
+    @encode.begin_object(writer)
+    @encode.key(writer, "correlation_ref")
+    @encode.string_value(writer, correlation_ref)
+    @encode.key(writer, "outcome")
+    @encode.string_value(writer, "failed")
+    @encode.key(writer, "problem")
+    @encode.begin_object(writer)
+    @encode.key(writer, "code")
+    @encode.string_value(writer, problem)
+    @encode.end_object(writer)
+    @encode.key(writer, "reason_schema_cid")
+    @encode.string_value(writer, check_reason_schema_cid)
+    @encode.key(writer, "outcome_schema_cid")
+    @encode.string_value(writer, check_outcome_schema_cid)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, check_outcome_version)
+    @encode.end_object(writer)
+    @encode.finish(writer)
+  } catch {
+    _ => abort("CheckFailedEncoding")
   }
 }
 

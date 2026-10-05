@@ -278,6 +278,7 @@ export function explainCheckOutcome(outcome) {
       : ['A complete bound check report could not be issued; this problem code has no supported explanation.',
         'Ask the checking-context owner to investigate; a partial report does not verify the input.'];
     return freezeInput({outcome: 'failed', summary, hint,
+      correlationRef: outcome.correlation_ref,
       problem: {kind: known ? 'known' : 'unknown', code: outcome.problem.code},
       ...(outcome.partial_report === undefined ? {} : {
         report: reportExplanation(outcome.partial_report, 'partial')})});

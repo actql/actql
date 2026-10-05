@@ -19,7 +19,7 @@ type CheckReportExplanation<C extends 'complete' | 'partial'> = Readonly<{
 }>;
 export type CheckOutcomeExplanation = Readonly<{summary: string; hint: string}> & (
   Readonly<{outcome: 'completed'; report: CheckReportExplanation<'complete'>}> |
-  Readonly<{outcome: 'failed'; report?: CheckReportExplanation<'partial'>;
+  Readonly<{outcome: 'failed'; correlationRef: string; report?: CheckReportExplanation<'partial'>;
     problem: Readonly<{kind: 'known' | 'unknown'; code: string}>}> |
   Readonly<{outcome: 'unavailable'; correlationRef: string;
     problem: Readonly<{kind: 'known' | 'unknown'; code: string}>}>);

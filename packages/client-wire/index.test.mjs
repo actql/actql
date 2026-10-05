@@ -552,7 +552,7 @@ test('independent known reasons retain their original input domains', () => {
       reasons: requirement ? [] : [reason], requirements: requirement ? [reason] : [],
       coverage: {limits: requirement ? [{code: 'bound_values_missing'}] : [], unresolved: []}};
     const outcome = report => ({version: 'actql-check-outcome/0.1',
-      reason_schema_cid: fixture.reason_schema_cid, outcome: 'completed', report});
+      reason_schema_cid: fixture.reason_schema_cid, outcome_schema_cid: fixture.outcome_schema_cid, outcome: 'completed', report});
     assert.equal(validCheckOutcome(outcome(report)), true, 'Unavailable positions remain optional.');
     for (const document of fixture.inputs) {
       const location = {kind: document.kind, document_id: document.document_id,
@@ -563,12 +563,38 @@ test('independent known reasons retain their original input domains', () => {
         requirements: requirement ? [located] : []};
       const expected = allowedDocuments.includes(document.document_id);
       const complete = outcome(locatedReport);
-      const partial = {version: complete.version, reason_schema_cid: complete.reason_schema_cid,
-        outcome: 'failed', problem: {code: 'check_internal'}, partial_report: locatedReport};
+      const partial = {version: complete.version, reason_schema_cid: complete.reason_schema_cid, outcome_schema_cid: complete.outcome_schema_cid,
+        outcome: 'failed', correlation_ref: 'corr:fixture', problem: {code: 'check_internal'}, partial_report: locatedReport};
       assert.equal(validCheckOutcome(complete), expected,
         `${reason.code}: ${document.document_id} completed`);
       assert.equal(validCheckOutcome(partial), expected,
         `${reason.code}: ${document.document_id} partial`);
+    }
+  }
+});
+
+test('independent check envelopes require outcome identity and safe Problem correlation', () => {
+  for (const name of ['check-reporting-failure.json', 'check-outcome-pins.verified.json']) {
+    const original = JSON.parse(readFileSync(new URL(`./fixtures/${name}`, import.meta.url), 'utf8'));
+    assert.equal(validCheckOutcome(original), true);
+    for (const change of [
+      value => { delete value.outcome_schema_cid; },
+      value => { value.outcome_schema_cid = 'sha256:' + '0'.repeat(64); },
+      value => { value.outcome_schema_cid = value.reason_schema_cid; },
+      value => { value.outcome_schema_cid = 'sha256:3022a1bfadaab076c2fb116ccdca5de59451dd349fb6df6cc3adcd7905675cb0'; },
+    ]) {
+      const changed = structuredClone(original); change(changed);
+      assert.equal(validCheckOutcome(changed), false);
+    }
+    if (original.outcome === 'failed') {
+      for (const correlation of [undefined, '', 'a'.repeat(129), 'private value\n']) {
+        const changed = {...original, correlation_ref: correlation};
+        if (correlation === undefined) delete changed.correlation_ref;
+        assert.equal(validCheckOutcome(changed), false);
+      }
+      assert.equal(validCheckOutcome({...original, report: {verdict: 'verified'}}), false);
+    } else {
+      assert.equal(validCheckOutcome({...original, correlation_ref: 'corr:unrelated'}), false);
     }
   }
 });

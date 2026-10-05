@@ -8,13 +8,13 @@ import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {createServer} from 'node:http';
-import {checkReasonSchemaCid} from '@actql/client-wire';
+import {checkReasonSchemaCid, checkOutcomeSchemaCid} from '@actql/client-wire';
 import {connect, ClientError, getCheckInput, getSubmissionInput, explainSubmission, resolveCheckLocation, explainCheckReason, explainCheckOutcome} from './index.mjs';
 
 test('check outcome explanations preserve unknown problems and reject malformed reports', () => {
-  const metadata = {version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid};
+  const metadata = {version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid};
   for (const code of ['future_reporting_failure', 'verified', 'check_unavailable', 'constructor']) {
-    const explanation = explainCheckOutcome({...metadata, outcome: 'failed', problem: {code}});
+    const explanation = explainCheckOutcome({...metadata, outcome: 'failed', correlation_ref: 'corr:fixture', problem: {code}});
     assert.equal(explanation.outcome, 'failed');
     assert.deepEqual(explanation.problem, {kind: 'unknown', code});
     assert.equal(explanation.report, undefined);
@@ -28,7 +28,7 @@ test('check outcome explanations preserve unknown problems and reject malformed 
   const report = {context_ref: 'ctx:fixture', scope: {kind: 'bound_input'}, verdict: 'undetermined',
     inputs: [{document_id: 'source', revision: 'rev:' + '1'.repeat(64), kind: 'text', byte_length: 6}],
     reasons: [], requirements: [], coverage: {limits: [{code: 'implementation_limit'}], unresolved: []}};
-  const partial = explainCheckOutcome({...metadata, outcome: 'failed', problem: {code: 'future'},
+  const partial = explainCheckOutcome({...metadata, outcome: 'failed', correlation_ref: 'corr:fixture', problem: {code: 'future'},
     partial_report: report});
   assert.deepEqual(partial.report, {completeness: 'partial', verdict: 'undetermined',
     scope: {kind: 'bound_input'}, contextRef: 'ctx:fixture'});
@@ -36,7 +36,7 @@ test('check outcome explanations preserve unknown problems and reject malformed 
   assert.equal(partial.report.scope.kind, 'bound_input');
   assert.equal(Object.isFrozen(partial.report.scope), true);
   for (const malformed of [undefined, {}, {...metadata, outcome: 'future'},
-    {...metadata, outcome: 'failed', problem: {code: 'check_internal', message: 'private'}},
+    {...metadata, outcome: 'failed', correlation_ref: 'corr:fixture', problem: {code: 'check_internal', message: 'private'}},
     {...metadata, outcome: 'unavailable', correlation_ref: 'corr:fixture',
       problem: {code: 'check_unavailable'}, partial_report: report},
     {...metadata, outcome: 'completed', report: {...report, scope: {kind: 'bound_input'},
@@ -148,7 +148,7 @@ test('check rejects a location inside an original UTF-8 scalar', async t => {
   let start = 9;
   mock.method(globalThis, 'fetch', async url => url.pathname.endsWith('/connect')
     ? Response.json(profile) : Response.json({version: 'actql-check-outcome/0.1',
-      reason_schema_cid: checkReasonSchemaCid, outcome: 'completed', report: {
+      reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'completed', report: {
         context_ref: 'ctx:fixture', scope: {kind: 'bound_input'}, verdict: 'invalid',
         inputs: [{document_id: 'source', kind: 'text', revision, byte_length: 18}],
         reasons: [{code: 'query_syntax_invalid', location: {kind: 'text',
@@ -192,7 +192,7 @@ test('review wire budget covers maximum base64 without relaxing body limits',
 test('check refuses a Host verdict that contradicts its own evidence',
   async t => {
     const version = 'actql-check-outcome/0.1';
-    const report = (verdict, reasons, limits, unresolved) => ({version, reason_schema_cid: checkReasonSchemaCid,
+    const report = (verdict, reasons, limits, unresolved) => ({version, reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid,
       outcome: 'completed', report: {context_ref: 'ctx:a', requirements: [], inputs: [{document_id: 'source', revision: 'rev:' + '1'.repeat(64), kind: 'text', byte_length: 13}],
         scope: {kind: 'bound_input'}, verdict, reasons,
         coverage: {limits, unresolved}}});
@@ -215,7 +215,7 @@ test('check refuses a Host verdict that contradicts its own evidence',
       report('invalid', [], limit, []),
       report('undetermined', violation, limit, []),
       report('undetermined', [], [], []),
-      {version, reason_schema_cid: checkReasonSchemaCid, outcome: 'failed', problem: {code: 'check_internal'},
+      {version, reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'failed', correlation_ref: 'corr:fixture', problem: {code: 'check_internal'},
         partial_report: report('invalid', [], [], open).report},
     ]) {
       reply = inconsistent;
@@ -1176,7 +1176,7 @@ test('check retains detached submitted inputs while credentials are pending', as
     if (url.pathname.endsWith('/connect')) return Response.json(profile);
     sent = JSON.parse(request.body);
     return Response.json({version: 'actql-check-outcome/0.1',
-      reason_schema_cid: checkReasonSchemaCid, outcome: 'completed', report: {
+      reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'completed', report: {
         context_ref: 'ctx:fixture', scope: {kind: 'bound_input'}, verdict: 'invalid',
         inputs: [
           {document_id: 'source', kind: 'text', revision: 'rev:' + '1'.repeat(64), byte_length: 13},
