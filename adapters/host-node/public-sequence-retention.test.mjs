@@ -5,12 +5,8 @@ import {tmpdir, userInfo} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {inspect} from 'node:util';
-import {connectEmbeddedLocal} from '../../../adapters/host-node/embedded-local.mjs';
-import {canonicalJson} from '../../../adapters/host-node/local-account-config.mjs';
-
-// Pending public-route reproduction, not a passing release assertion. Current
-// preparation rejects SequenceCollection(MissingApplication(1)) before Compute.
-// Keep the independent expected rows for the existing-owner connection work.
+import {connectEmbeddedLocal} from './embedded-local.mjs';
+import {canonicalJson} from './local-account-config.mjs';
 
 test('public retained sequence orders long identities and compound Text keys',
   {timeout: 60_000}, async t => {
@@ -83,33 +79,38 @@ test('public retained sequence orders long identities and compound Text keys',
     const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, retainedRelationOutput: true, authorization}});
     t.after(() => client.close());
-    const source = JSON.stringify(program);
-    const options = {format: 'json', requestId: 'public-sequence'};
-    const execution = await client.aql(source, options).catch(error => {
-      assert.fail(inspect(error, {depth: 8}));
-    });
-    const state = await execution.wait({signal: AbortSignal.timeout(45_000)});
-    assert.equal(state.status, 'succeeded', JSON.stringify(state));
-    const expected = [
-      {aux, end_id: id(2), end_time_ms: 2, key: group(1), match_end_ms: 2,
-        match_start_ms: 1, start_id: id(1), start_time_ms: 1},
-      {aux, end_id: id(3), end_time_ms: 3, key: group(1), match_end_ms: 3,
-        match_start_ms: 1, start_id: id(1), start_time_ms: 1},
-      {aux: null, end_id: id(4), end_time_ms: 4, key: group(2), match_end_ms: 4,
-        match_start_ms: 3, start_id: id(5), start_time_ms: 3},
-    ];
-    for (const name of ['published', 'consumed_a', 'consumed_b']) {
-      assert.deepEqual(await execution.result(name).all(), expected, name);
+    for (const empty of [false, true]) {
+      const submitted = structuredClone(program);
+      if (empty) submitted.stages[0].steps[0].values.rows = [];
+      submitted.id = empty ? 'public-sequence-empty' : 'public-sequence';
+      const source = JSON.stringify(submitted);
+      const options = {format: 'json', requestId: submitted.id};
+      const execution = await client.aql(source, options).catch(error => {
+        assert.fail(inspect(error, {depth: 8}));
+      });
+      const state = await execution.wait({signal: AbortSignal.timeout(45_000)});
+      assert.equal(state.status, 'succeeded', JSON.stringify(state));
+      const expected = empty ? [] : [
+        {aux, end_id: id(2), end_time_ms: 2, key: group(1), match_end_ms: 2,
+          match_start_ms: 1, start_id: id(1), start_time_ms: 1},
+        {aux, end_id: id(3), end_time_ms: 3, key: group(1), match_end_ms: 3,
+          match_start_ms: 1, start_id: id(1), start_time_ms: 1},
+        {aux: null, end_id: id(4), end_time_ms: 4, key: group(2), match_end_ms: 4,
+          match_start_ms: 3, start_id: id(5), start_time_ms: 3},
+      ];
+      for (const name of ['published', 'consumed_a', 'consumed_b']) {
+        assert.deepEqual(await execution.result(name).all(), expected, name);
+      }
+      assert.ok(outputRepresentations?.some(value =>
+        value.representation === 'retained-file'));
+      assert.ok(advances > 0);
+      assert.equal(completions, empty ? 2 : 1);
+      const savedAdvances = advances;
+      const repeated = await client.aql(source, options);
+      assert.deepEqual(repeated.ref, execution.ref);
+      assert.deepEqual(await repeated.result('published').all(), expected);
+      assert.equal(advances, savedAdvances);
+      assert.equal(completions, empty ? 2 : 1);
+      assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
     }
-    assert.ok(outputRepresentations?.some(value =>
-      value.representation === 'retained-file'));
-    assert.ok(advances > 0);
-    assert.equal(completions, 1);
-    const savedAdvances = advances;
-    const repeated = await client.aql(source, options);
-    assert.deepEqual(repeated.ref, execution.ref);
-    assert.deepEqual(await repeated.result('published').all(), expected);
-    assert.equal(advances, savedAdvances);
-    assert.equal(completions, 1);
-    assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
   });

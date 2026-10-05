@@ -26,6 +26,16 @@ establish the public configuration connection, not retained output for every
 installed source or two-source Program variant. Full CI and Native Host cancellation
 remain separate verification units.
 
+The source-free public retained path now also prepares Values -> Sequence ->
+authored sort -> select with two downstream consumer stages. Ordinary checking
+derives both existing selected Host Sequence limits before application; authored
+guards can narrow them, while supplied foreign coordinates remain rejected.
+The installed Host fixture reads all three independent ordered Named Results,
+reuses the same request without new Compute progress, and includes empty input.
+This connection is separate from Events Sequence and acquired inputs. Exact
+public-phase cancellation and broader chain/failure coverage are not implied.
+See the [Sequence boundary record](2026-10-06-local-sequence-comparison.md).
+
 Two independently installed GitHub row sources can now occupy the two checked
 captured input tasks of one retained-output Program. The Host prepares each
 source at its own occurrence, checks both capacities against one Local ledger,
@@ -5541,9 +5551,9 @@ quantum-invariant control work, exact/one-short reservations and cancellation
 inside each comparison phase. Pending child-sort state is reclaimed only after
 its stop is confirmed.
 
-This does not complete the ordinary installed public Sequence route. Its
-source-free preparation currently fails before Compute with
-`SequenceCollection(MissingApplication(1))`; the conformance route's supplied
-capacity evidence is not proof of that public connection. The independent
-public reproduction and precise scope are retained in the
+At the comparison-only revision, source-free public preparation failed before
+Compute with `SequenceCollection(MissingApplication(1))`. The subsequent
+capacity-admission change connects both existing Host claims, and the same
+public Program now publishes its retained producer and two consumer Results.
+The failed evidence and the newer passing boundary are distinguished in the
 [Sequence boundary record](2026-10-06-local-sequence-comparison.md).

@@ -59,21 +59,22 @@ Local wrapper evidence remains under `_build/local-checks/attempts` and
 `_build/focused-evidence`. These JS results are not Wasm/native, packed,
 retained-history integration, or hosted CI evidence.
 
-## Unconnected ordinary public route
+## Public preparation counterexample at the comparison-only revision
 
-The ordinary installed Host reproduction is retained separately in
-[sequence-public-retention.mjs](reproductions/sequence-public-retention.mjs).
+The ordinary installed Host reproduction was retained separately at #497.
+It is now connected to the normal suite as
+[public-sequence-retention.test.mjs](../../adapters/host-node/public-sequence-retention.test.mjs).
 It has independently authored producer/two-consumer expectations, a real
 retained Store, an authored total sort, and same-request reuse assertions.
-It is **pending**, not connected to the passing release suite or counted as
-public acceptance:
+At the comparison-only revision it was **pending**, not counted as public
+acceptance. Its original command was:
 
 ```sh
 node scripts/local-checks.mjs test node -- \
   docs/reviews/reproductions/sequence-public-retention.mjs
 ```
 
-The execution stops during ordinary preparation, before any Sequence Compute.
+That revision stopped during ordinary preparation, before any Sequence Compute.
 The public projection reports `SubmissionUnknown` caused by
 `ClientHostFailure` (500). Temporary local inspection of the actual ingress
 cause identified `CheckDiagnostic` -> `SourceView` -> `CapacityStageIssue` ->
@@ -82,8 +83,8 @@ cause identified `CheckDiagnostic` -> `SourceView` -> `CapacityStageIssue` ->
 contract was not changed. The runtime packages `local-node` and `run-host-core`
 were prepared from the changed comparison source. Bundles remain untracked.
 
-The existing standard Host conformance path supplies exact Sequence capacity
-applications. The installed ordinary source-free preparation path does not yet
+The existing standard Host conformance path supplied exact Sequence capacity
+applications. The installed ordinary source-free preparation path did not yet
 derive/pass that application. Its owner requires one for every Sequence step,
 including unused steps. The next connection must provide the existing policy
 and match/output claims to that owner, retain exact bindings and publication
@@ -94,3 +95,54 @@ claims public-phase cancellation, fresh-process replay, or full Local completion
 
 D owns #465 Run cancellation finalization; A's separate fixed-SHA review was
 posted there. This kernel unit does not duplicate or block D/H's corrections.
+
+## Follow-up: ordinary retained Sequence capacity admission
+
+`derive_program_capacity` now calls `derive_sequence_limits` after the existing
+Values/row/Join/Traversal preparation. For each uncovered Sequence definition it
+uses `capacity_host_witness.extend_resolved_limits` to issue the selected Host's
+two engine-atomic scopes: `sequence:checked-step:N:matches-per-key` and
+`sequence:checked-step:N:output`. It retains their actual table coordinates and
+registers the existing `ConsumerRequest.Sequence`. Coverage still requires
+unused steps; imported occurrences keep the existing expansion and owners.
+
+No schema, law, pin, capacity ceiling, or operation algorithm changes. Supplied
+applications are not replaced or repaired. The normal consumer still rejects
+foreign policy, swapped scopes and incorrect step subjects. Authored guards are
+bound by the existing preparation and effective-limit owners, not this helper.
+The generated interface adds only typed missing-ceiling/resolution failures.
+
+Focused JS checks passed 11/11 (`run-0oArjU`, `focused-test-HeGZao`), including
+Host 3/7 versus authored 2/3, empty/unused occurrences, imported coverage,
+idempotent reuse, foreign coordinates, and unchanged row/search/Traversal
+consumers. The isolated registration reuse pass has independently calculated
+work 6/5 (two material slots, one supplied consumer, three steps), no new
+metadata, and typed `BudgetExceeded` for one-short. This is not a whole-Run
+budget or a claim that every admission limit was isolated independently.
+
+The same public counterexample now passes preparation, bounded execution,
+retained-file output, all three independent ordered Named Results, request
+reuse without additional progress/completion, and temporary Carrier file
+reclamation (`run-sSVh9B`, `focused-test-jvP9MP`, 1/1). The follow-up fixture
+also includes an empty Program and is imported by the installed Host suite.
+The final targeted Node selection passed 2/2 (`run-9JGrwM`,
+`focused-test-hX3gJQ`):
+
+```sh
+node scripts/local-checks.mjs test node -- \
+  adapters/host-node/public-sequence-retention.test.mjs \
+  adapters/host-node/public-membership-retention.test.mjs
+```
+
+Only `local-node` and `run-host-core` were prepared from this final production
+source. No prepared runtime inputs changed after that test. The submitted source
+SHA and exact correspondence to these local results are recorded in the PR.
+The original failed evidence is preserved rather than rewritten as success.
+
+This connects a source-free Values -> Sequence -> authored sort -> select
+Program and its two consumer stages. Other acquired inputs, Events Sequence,
+all chain shapes, public cancellation in an exact comparison phase,
+fresh-process reuse, full Core, Wasm/native, packed and final required CI remain
+separate evidence. Existing kernel resource/cancellation evidence is reused
+only for the same registered bounded provider; it is not relabelled public Run
+cancellation evidence. D/H's correctness fixes remain independent.
