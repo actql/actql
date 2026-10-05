@@ -9,6 +9,7 @@ fn acquisition_runtime_case(
   cancel_receiver? : Bool = false,
   deny_after_admission? : Bool = false,
   consumer_start_expiry? : Bool = false,
+  cancel_producer_before_handoff? : Bool = false,
 ) -> Unit raise {
   guard resident_compute_prerequisites() is Some((library_path, root_path)) else {
     return
@@ -113,55 +114,55 @@ fn acquisition_runtime_case(
     )
     is Err(@resident.ForeignInput),
   )
+  let environment = @host.admit_client_check_environment(
+    resident_effect_source_environment,
+    "sha256:feb4443bd80a5e95c14e195113219eeb2e24bdd12e424d1ba00c1295f5c53554",
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let wire = @host.issue_client_task_run_materials(
+    prepared,
+    compilation,
+    materials.admission,
+    definition,
+    environment,
+    resident_effect_source_environment,
+    resident_compute_document,
+    None,
+  ).unwrap()
+  let envelope = @remote.remote_poll_dispatch_materials_json(
+    dispatch, binding, wire,
+  ).unwrap()
+  journal.retain_dispatch_envelope(dispatch, envelope).unwrap()
+  journal.accept(dispatch).unwrap() |> ignore
+  let admission : @resident.ResidentRunAdmission = {
+    source: Some((source.source_ref, source.source_contract_cid)),
+    expressions: { text_time: false, veca: false, },
+    operations: {
+      rela: true,
+      sga: false,
+      tea: false,
+      calendar: false,
+      text_rank: false,
+    },
+    manifests: @host.admit_client_compilation_manifests(
+      @environment.compiler_grammar_manifest_wire(),
+      @environment.compiler_barrier_contract_manifest_wire(),
+      10000,
+      1000,
+      20,
+    ).unwrap(),
+    limits: {
+      preparation: @host.client_standard_program_preparation_limits(),
+      sequence: @host.client_standard_values_sequence_limits(),
+      max_sequence_steps: 1000,
+      max_sequence_work: 1000,
+      max_evidence_bytes: 1000000,
+      max_evidence_nodes: 100000,
+      max_evidence_depth: 100,
+    },
+  }
   let (runtime, completion) = if through_resident {
-    let environment = @host.admit_client_check_environment(
-      resident_effect_source_environment,
-      "sha256:feb4443bd80a5e95c14e195113219eeb2e24bdd12e424d1ba00c1295f5c53554",
-      { text_time: false, veca: false, },
-      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-    ).unwrap()
-    let wire = @host.issue_client_task_run_materials(
-      prepared,
-      compilation,
-      materials.admission,
-      definition,
-      environment,
-      resident_effect_source_environment,
-      resident_compute_document,
-      None,
-    ).unwrap()
-    let envelope = @remote.remote_poll_dispatch_materials_json(
-      dispatch, binding, wire,
-    ).unwrap()
-    journal.retain_dispatch_envelope(dispatch, envelope).unwrap()
-    journal.accept(dispatch).unwrap() |> ignore
-    let admission : @resident.ResidentRunAdmission = {
-      source: Some((source.source_ref, source.source_contract_cid)),
-      expressions: { text_time: false, veca: false, },
-      operations: {
-        rela: true,
-        sga: false,
-        tea: false,
-        calendar: false,
-        text_rank: false,
-      },
-      manifests: @host.admit_client_compilation_manifests(
-        @environment.compiler_grammar_manifest_wire(),
-        @environment.compiler_barrier_contract_manifest_wire(),
-        10000,
-        1000,
-        20,
-      ).unwrap(),
-      limits: {
-        preparation: @host.client_standard_program_preparation_limits(),
-        sequence: @host.client_standard_values_sequence_limits(),
-        max_sequence_steps: 1000,
-        max_sequence_work: 1000,
-        max_evidence_bytes: 1000000,
-        max_evidence_nodes: 100000,
-        max_evidence_depth: 100,
-      },
-    }
     let executed = match
       @resident.execute_resident_attempt(
         journal,
@@ -285,6 +286,7 @@ fn acquisition_runtime_case(
   if through_consumer {
     acquisition_runtime_transfer_consumer(
       materials,
+      admission,
       configuration,
       compilation,
       caller,
@@ -301,6 +303,7 @@ fn acquisition_runtime_case(
       cancel_receiver~,
       deny_after_admission~,
       consumer_start_expiry~,
+      cancel_producer_before_handoff~,
     )
     assert_true(@host.client_retained_input_producer_available(producer))
     assert_eq(acquisitions.val, 1)
@@ -384,5 +387,14 @@ test "resident consumer expiry at the exclusive start boundary keeps caller borr
     true,
     through_resident=true,
     consumer_start_expiry=true,
+  )
+}
+
+///|
+test "durable producer cancellation withholds retained handoff before consumer start" {
+  acquisition_runtime_case(
+    true,
+    through_resident=true,
+    cancel_producer_before_handoff=true,
   )
 }
