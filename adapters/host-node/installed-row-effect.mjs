@@ -71,6 +71,8 @@ import {issueCompletedEffectfulComputationEvidence,
 import {installedConnectors} from
   '../connectors-builtin/installations.generated.mjs';
 import {canonicalJson} from './local-account-config.mjs';
+import {canonicalJson as canonicalValueJson} from
+  '../../packages/sdk/host-port.mjs';
 import {preparePinnedEffectSourceHoldings, preparePinnedEffectSourceSet,
   retainPinnedEffectDependencyPayloads} from './effect-input-export.mjs';
 import {verifyPinnedEffectPlan} from './effect-plan-verify.mjs';
@@ -116,7 +118,11 @@ const cidPattern = /^sha256:[0-9a-f]{64}$/u;
 const cid = value => `sha256:${createHash('sha256')
   .update(canonicalJson(value)).digest('hex')}`;
 const pendingCid = `sha256:${'0'.repeat(64)}`;
-const sameValue = (left, right) => canonicalJson(left) === canonicalJson(right);
+// Data values (row values, targets, outcomes) keep their exact text: they
+// are compared and stored through the value encoder. The configuration
+// encoder, which normalizes text, serves only identity preimages here.
+const sameValue = (left, right) =>
+  canonicalValueJson(left) === canonicalValueJson(right);
 
 const exportLimits = output => [output.maxResultFields,
   output.maxResultMappingWork, output.maxResultOrderWork,
@@ -488,7 +494,7 @@ export async function createInstalledRowEffect({moon, mappings,
     }
     const recorded = ledger.recordAdmittedRowOutcome({claim,
       preview: applyPreview, memberIndex, previewRowIndex: rowIndex,
-      outcomeWire: canonicalJson(outcome)});
+      outcomeWire: canonicalValueJson(outcome)});
     const terminal = ledger.commitAdmittedRowOutcome({claim,
       preview: applyPreview, memberIndex, previewRowIndex: rowIndex});
     return Object.freeze({outcomeReceipt: recorded.receipt,
@@ -825,7 +831,7 @@ export async function createInstalledRowEffect({moon, mappings,
       const key = keys[memberIndex][rowIndex];
       const locator = effect.logicalItemLocator(requestScope,
         unit.programId, unit.stageId, member.effect_id,
-        canonicalJson(change.target_row_identity), limits.locator.maxBytes,
+        canonicalValueJson(change.target_row_identity), limits.locator.maxBytes,
         limits.key.maxBytes, limits.key.maxNodes, limits.key.maxDepth);
       const canonicalRequestCid = entries[memberIndex][rowIndex].requestCid;
       const basis = effect.ledgerBasis(requestScope, locator, key, unitCid,

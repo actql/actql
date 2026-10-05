@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
+import {execFile} from 'node:child_process';
 import {readFile, writeFile} from 'node:fs/promises';
 import {DatabaseSync} from 'node:sqlite';
 import {join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import './effect-target-read-inventory.test.mjs';
 import {accountConfiguration, effectHost, effectProgram, installedEffect,
@@ -826,3 +828,25 @@ test('an unknown row is never resent after a restart', async t => {
   assert.equal(writesOf(installation.org).length, 1);
   assert.equal(installation.org.records()[0].Name, 'a00000000000001');
 });
+
+// The common owner compares data values by their exact text, never by a
+// configuration normalization: a request whose value or target differs from
+// the Program only by Unicode normalization is refused before any send, and a
+// provider outcome is stored with its exact text. Each scenario wraps the
+// real driver in its own process (see row-effect-value-identity.child.mjs).
+for (const scenario of ['value', 'target', 'outcome']) {
+  test(`installed row Effect keeps exact data values: ${scenario}`,
+    async () => {
+      const child = fileURLToPath(new URL(
+        './row-effect-value-identity.child.mjs', import.meta.url));
+      // The child is its own test run, not a subtest of this one.
+      const {NODE_TEST_CONTEXT: _parent, ...env} = process.env;
+      const {code, stdout} = await new Promise(resolve => execFile(
+        process.execPath, ['--experimental-test-module-mocks', '--test',
+          child], {env: {...env, ACTQL_ROW_VALUE_SCENARIO: scenario},
+          timeout: 300_000},
+        (error, out) => resolve({code: error?.code ?? 0, stdout: out})));
+      assert.equal(code, 0, stdout);
+      assert.match(stdout, /^# pass 1$/mu, stdout);
+    });
+}
