@@ -216,6 +216,18 @@ test('ranking requires stepped comparison limits, roots and public Store evidenc
   }), /VecA merge_rankings: ranking key public Store fixture is missing/u);
 });
 
+test('ranking output requires its logical limits and shared cursor custody evidence', () => {
+  for (const role of ['ranking_output_logical_limits',
+    'ranking_output_row_stop_cleanup', 'ranking_output_shared_limits',
+    'ranking_output_shared_cleanup']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === 'merge_rankings');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`VecA merge_rankings: ${role} fixture is missing`, 'u'));
+  }
+});
+
 test('ranking public evidence requires an actual suite connection', () => {
   const file = join(root, 'adapters/host-node/embedded-installation.test.mjs');
   const sources = Object.freeze({...sourceTemplate,

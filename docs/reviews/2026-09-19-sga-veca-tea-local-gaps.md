@@ -5711,3 +5711,25 @@ admission. Checked-cell rechecks, field-name matching, output rechecks and row
 append/measurement still have synchronous paths. Whole-Run exact Ledger budgets,
 packed/HTTP, Wasm/native and new Store-failure campaigns are not established.
 See the [ranking scanning record](2026-10-06-local-ranking-key-scanning.md).
+
+### Ranking resumable output admission
+
+Ranking output now resolves one authored group position at a time and drives
+the existing shared row cursor for contract recheck and logical measurement.
+This supersedes the output-admission residual in the preceding historical
+comparison unit; input checked-cell rechecks and name matching remain separate
+work. The existing Session retains roots through confirmed stop and releases
+them once. No new completion or publication owner is introduced.
+
+Independent numeric bounds are 212/211 control work and 117/116 structural
+slots; long nullable group/tie bounds are 14081/14080 and 136/135. Two long-Text
+rows retain the same logical allowance: twelve nodes, 1064 text bytes and 1076
+work. Core barriers cover first-row recheck, first-row logical charge and
+second-row recheck after a commit. An atomic whole-row mutation is rejected.
+
+The public regression uses the existing retained RRF producer/two-consumer
+Program and its group-comparison cancellation barrier. It is not evidence of
+a public output-phase stop barrier. Whole-Run exact Ledger limits, packed/HTTP,
+Wasm/native, wall-clock stop latency and new Store-failure campaigns remain
+unverified in this unit. See the
+[ranking output record](2026-10-06-local-ranking-output-admission.md).

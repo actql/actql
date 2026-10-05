@@ -1398,6 +1398,11 @@ export function validateResourceAccounting({
       if (!environmentRoles.has('ranking_long_keys_public_store')) {
         fail(`${label}: ranking key public Store fixture is missing`);
       }
+      for (const role of ['ranking_output_logical_limits',
+        'ranking_output_row_stop_cleanup', 'ranking_output_shared_limits',
+        'ranking_output_shared_cleanup']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
     }
     const sharedRules = route.shared_resource_rule ?? {};
     if (route.family === 'RelA' && route.operation === 'filter' &&

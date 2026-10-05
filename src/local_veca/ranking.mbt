@@ -67,7 +67,9 @@ priv enum RankingPhase {
   CopyOutputPass
   EmitOutput
   ReadOutputField
-  CommitOutput
+  ResolveOutputGroup
+  StartOutputRow
+  EmitOutputRow
   FinishRanking
 }
 
@@ -130,7 +132,10 @@ priv struct RankingState {
   mut emit_rank : Int
   mut emitted_group : Array[@value.CheckedValue]?
   mut output_field : Int
-  mut output_values : Array[@value.CheckedValue]
+  mut output_values : Array[@value.Value]
+  mut output_group_index : Int
+  mut output_row : @execution.AdmittedOutputRowCursor?
+  output_row_units : Ref[Int]
   output_field_slots : Ref[Int]
   mut control_work_remaining : Int
 }
@@ -232,6 +237,7 @@ struct RankingExecution {
   scratch_slots : Ref[Int]
   output_field_slots : Ref[Int]
   comparison_units : Ref[Int]
+  output_row_units : Ref[Int]
   max_noninterruptible_value_nodes : Int
   max_noninterruptible_value_bytes : Int
 }
@@ -288,10 +294,13 @@ fn ranking_workspace(
   logical_inputs : Int,
   physical_inputs : Int,
 ) -> Int? {
+  // Output keys are flat KeyComparable values. The row scope needs width+1
+  // borrowed slots and one shared text-measurement frame: (by+3)+2.
   guard ranking_checked_add(by, tie) is Some(key_width) &&
     ranking_checked_add(key_width, 8) is Some(record_width) &&
     ranking_checked_add(key_width, 5) is Some(output_width) &&
-    ranking_checked_add(key_width, 28) is Some(fixed_width) &&
+    ranking_checked_add(key_width, 36) is Some(fixed_width) &&
+    ranking_checked_add(by, 5) is Some(row_slots) &&
     ranking_checked_multiply(rows, record_width) is Some(records) &&
     ranking_checked_multiply(rows, output_width) is Some(outputs) &&
     ranking_checked_add(records, rows) is Some(first) &&
@@ -300,19 +309,11 @@ fn ranking_workspace(
     ranking_checked_multiply(physical_inputs, 2) is Some(port_slots) &&
     ranking_checked_add(logical_inputs, port_slots) is Some(input_slots) &&
     ranking_checked_add(third, input_slots) is Some(fourth) &&
-    ranking_checked_add(fourth, fixed_width) is Some(total) else {
+    ranking_checked_add(fourth, fixed_width) is Some(fifth) &&
+    ranking_checked_add(fifth, row_slots) is Some(total) else {
     return None
   }
   Some(total)
-}
-
-///|
-fn ranking_output_value(
-  value : @value.CheckedValue,
-  contract : @contract.Contract,
-  limits : @value.Limits,
-) -> @value.CheckedValue? {
-  @value.recheck_runtime_value(value.value, contract, limits)
 }
 
 ///|
@@ -871,20 +872,6 @@ fn merge_ranking_output(state : RankingState) -> Result[Unit, RankingIssue] {
 }
 
 ///|
-fn ranking_group_value(
-  state : RankingState,
-  row : FusedRanking,
-  name : String,
-) -> @value.CheckedValue? {
-  for index, expected in state.by {
-    if name == expected {
-      return row.group.get(index)
-    }
-  }
-  None
-}
-
-///|
 fn begin_ranking_result(state : RankingState) -> Result[Bool?, RankingIssue] {
   let row = state.fused[state.emit_index]
   let same_group = match state.emitted_group {
@@ -909,6 +896,17 @@ fn begin_ranking_result(state : RankingState) -> Result[Bool?, RankingIssue] {
 }
 
 ///|
+fn append_ranking_output_field(
+  state : RankingState,
+  value : @value.Value,
+) -> Unit {
+  state.output_values.push(value)
+  state.output_field_slots.val += 1
+  state.output_field += 1
+  state.phase = ReadOutputField
+}
+
+///|
 fn read_ranking_output_field(
   state : RankingState,
 ) -> Result[Unit, RankingIssue] {
@@ -918,35 +916,52 @@ fn read_ranking_output_field(
   }
   let name = @schema.reference_name(field.name)
   let value = if name == state.candidate_name {
-    ranking_output_value(row.candidate, field.contract, state.value_limits)
+    Some(row.candidate.value)
   } else if name == "score" {
-    @value.checked_number_value(row.score, field.contract)
-  } else if name == "rank" {
-    @value.checked_number_value(state.emit_rank.to_double(), field.contract)
-  } else {
-    ranking_group_value(state, row, name).bind(value => {
-      ranking_output_value(value, field.contract, state.value_limits)
+    @value.checked_number_value(row.score, field.contract).map(value => {
+      value.value
     })
+  } else if name == "rank" {
+    @value.checked_number_value(state.emit_rank.to_double(), field.contract).map(value => {
+        value.value
+      },
+    )
+  } else {
+    state.output_group_index = 0
+    state.phase = ResolveOutputGroup
+    return Ok(())
   }
   guard value is Some(value) else { return Err(InvalidRankingKernel) }
-  state.output_values.push(value)
-  state.output_field_slots.val += 1
-  state.output_field += 1
+  append_ranking_output_field(state, value)
   Ok(())
 }
 
 ///|
-fn commit_ranking_output(state : RankingState) -> Result[Unit, RankingIssue] {
-  guard state.output is Some(output) else { return Err(InvalidRankingKernel) }
-  match @execution.append_admitted_output(output, state.output_values) {
-    Ok(_) => {
-      state.output_values = []
-      state.output_field_slots.val = 0
-      state.emit_index += 1
-      state.phase = EmitOutput
-      Ok(())
+fn resolve_ranking_output_group(
+  state : RankingState,
+) -> Result[Unit, RankingIssue] {
+  guard @schema.field_at(state.output_schema, state.output_field) is Some(field) &&
+    state.output_group_index < state.by.length() else {
+    return Err(InvalidRankingKernel)
+  }
+  let index = state.output_group_index
+  state.output_group_index += 1
+  if @schema.reference_name(field.name) == state.by[index] {
+    guard state.fused[state.emit_index].group.get(index) is Some(value) else {
+      return Err(InvalidRankingKernel)
     }
-    Err(issue) => Err(RankingOutput(issue))
+    append_ranking_output_field(state, value.value)
+  }
+  Ok(())
+}
+
+///|
+fn ranking_output_row_issue(
+  issue : @execution.AdmittedOutputRowIssue,
+) -> RankingIssue {
+  match issue {
+    @execution.OutputRowCapture(issue) => RankingOutput(issue)
+    @execution.OutputRowWorkspace => RankingWorkspaceLimit
   }
 }
 
@@ -1217,13 +1232,61 @@ fn ranking_step(
             Err(issue) => return @bounded.Failed(issue, progress, used)
           }
         } else {
-          state.phase = CommitOutput
+          state.phase = StartOutputRow
         }
-      CommitOutput => {
+      ResolveOutputGroup => {
         used += 1
-        match commit_ranking_output(state) {
-          Ok(_) => progress += 1
+        match resolve_ranking_output_group(state) {
+          Ok(_) => ()
           Err(issue) => return @bounded.Failed(issue, progress, used)
+        }
+      }
+      StartOutputRow => {
+        used += 1
+        guard state.output is Some(output) else {
+          return @bounded.Failed(InvalidRankingKernel, progress, used)
+        }
+        match
+          @execution.start_admitted_output_row(output, state.by.length() + 5, column => {
+            state.output_values.get(column)
+          }) {
+          Ok(row) => {
+            state.output_row = Some(row)
+            state.phase = EmitOutputRow
+          }
+          Err(issue) =>
+            return @bounded.Failed(
+              ranking_output_row_issue(issue),
+              progress,
+              used,
+            )
+        }
+      }
+      EmitOutputRow => {
+        used += 1
+        state.output_row_units.val += 1
+        guard state.output_row is Some(row) else {
+          return @bounded.Failed(InvalidRankingKernel, progress, used)
+        }
+        match @execution.advance_admitted_output_row(row) {
+          Ok(false) => ()
+          Ok(true) => {
+            if !@execution.cleanup_admitted_output_row(row) {
+              return @bounded.Failed(RankingWorkspaceLimit, progress, used)
+            }
+            state.output_row = None
+            state.output_values = []
+            state.output_field_slots.val = 0
+            state.emit_index += 1
+            progress += 1
+            state.phase = EmitOutput
+          }
+          Err(issue) =>
+            return @bounded.Failed(
+              ranking_output_row_issue(issue),
+              progress,
+              used,
+            )
         }
       }
       FinishRanking => {
@@ -1252,6 +1315,13 @@ fn ranking_step(
 
 ///|
 fn cleanup_ranking_state(state : RankingState) -> Bool {
+  if state.output_row is Some(row) {
+    if !@execution.cleanup_admitted_output_row(row) {
+      return false
+    }
+    state.output_row = None
+  }
+  state.output_row_units.val = 0
   if state.output is Some(output) {
     @execution.cancel_admitted_output(output) |> ignore
     state.output = None
@@ -1544,6 +1614,9 @@ pub fn start_ranking_inputs(
     emitted_group: None,
     output_field: 0,
     output_values: [],
+    output_group_index: 0,
+    output_row: None,
+    output_row_units: Ref(0),
     output_field_slots,
     control_work_remaining: control_work_limit,
   }
@@ -1564,6 +1637,7 @@ pub fn start_ranking_inputs(
     scratch_slots,
     output_field_slots,
     comparison_units: state.comparison_units,
+    output_row_units: state.output_row_units,
     max_noninterruptible_value_nodes: limits.max_nodes,
     max_noninterruptible_value_bytes: limits.max_text_bytes,
   })
@@ -1622,6 +1696,12 @@ pub fn ranking_comparison_units(value : RankingExecution) -> Int {
 /// Output fields retained by the current bounded row assembly phase.
 pub fn ranking_output_field_slots(value : RankingExecution) -> Int {
   value.output_field_slots.val
+}
+
+///|
+/// Charged shared row-cursor polls, cleared by stopped cleanup.
+pub fn ranking_output_row_units(value : RankingExecution) -> Int {
+  value.output_row_units.val
 }
 
 ///|
