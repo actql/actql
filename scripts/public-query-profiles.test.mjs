@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
-import {analyticOrderSuccesses, analyticOrderRefusals, analyticOrderExecutionFailures}
+import {analyticOrderObjectReproduction, analyticOrderSuccesses, analyticOrderRefusals, analyticOrderExecutionFailures}
   from './fixtures/analytic-order-source-input.mjs';
 import {analyticPropertySuccesses, analyticPropertyRefusals}
   from './fixtures/analytic-property-source-input.mjs';
@@ -56,7 +56,7 @@ test('unknown profile fails rather than silently using a different envelope', ()
 test('packed driver retains analytic order, analytic property, aggregate and Subgraph routes', async () => {
   const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  for (const stem of ['analytic-order', 'analytic-property', 'aggregate-property', 'subgraph']) {
+  for (const stem of ['analytic-order', 'analytic-property', 'aggregate-property', 'subgraph', 'join-property']) {
     assert.ok(driver.includes(`['scripts/fixtures/${stem}-source-input.mjs', '${stem}-source-input.mjs']`));
     assert.ok(driver.includes(`process.argv.includes('--${stem}-only')`));
     assert.ok(fixture.includes(`ACTQL_TEST_${stem.replaceAll('-', '_').toUpperCase()}_ONLY`));
@@ -65,4 +65,23 @@ test('packed driver retains analytic order, analytic property, aggregate and Sub
   assert.ok(fixture.includes('of publicQueryProfiles(scopeInputs)'));
   assert.ok(driver.includes("process.argv.includes('--analytic-profiles-only')"));
   assert.ok(fixture.includes('ACTQL_TEST_ANALYTIC_PROFILES_ONLY'));
+});
+
+test('original object JSON reproduction retains independent rows, types and declared profile', async () => {
+  const text = await readFile(new URL('../docs/reviews/fixtures/analytic-order-property-repro.program.json', import.meta.url), 'utf8');
+  const expected = JSON.parse(await readFile(new URL('../docs/reviews/fixtures/analytic-order-property-repro.expected.json', import.meta.url), 'utf8'));
+  const input = JSON.parse(await readFile(new URL('../docs/reviews/fixtures/analytic-order-property-repro.input.json', import.meta.url), 'utf8'));
+  const fixture = analyticOrderObjectReproduction(text);
+  assert.equal(fixture.text, text, 'the original emitted Program must not be rewritten');
+  assert.equal(fixture.format, 'json');
+  assert.equal(fixture.hostProfile, 'analytic-order');
+  assert.equal(fixture.parameterDeclarations, undefined, 'machine Program owns its declarations');
+  assert.deepEqual(fixture.parameters, input.parameters);
+  assert.deepEqual(fixture.expected, expected.rows);
+  assert.deepEqual(fixture.columns, expected.columns);
+  assert.equal(JSON.parse(text).stages[0].steps.length, 17);
+  const groups = publicQueryProfiles({...inputs, successes: [...inputs.successes, fixture]});
+  const order = groups.find(item => item.name === 'analytic-order');
+  assert.equal(order.inputs.successes.length, 11);
+  assert.deepEqual(order.capacity, capacity(1048576));
 });

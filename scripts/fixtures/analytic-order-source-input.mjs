@@ -102,3 +102,13 @@ analyticOrderRefusals.push({name: 'analytic-order-refuse-parameter-type', hostPr
 export const analyticOrderExecutionFailures = [{name: 'analytic-order-division-failure', hostProfile: 'analytic-order',
   format: 'sql', text: 'SELECT id, ROW_NUMBER() OVER (ORDER BY id / (id - id), id) AS pos FROM records',
   resultNames: ['answer'], sourceReadSessionCount: 1}];
+
+// The previously emitted JSON is a fixed failure reproduction. Its expected
+// result comes from the independently authored source fixture, never execution.
+export function analyticOrderObjectReproduction(text) {
+  const source = analyticOrderSuccesses.find(item =>
+    item.name === 'analytic-order-nullable-property-input');
+  const {parameterDeclarations, ...fixture} = source;
+  return {...fixture, name: 'analytic-order-nullable-property-original-json',
+    format: 'json', text};
+}

@@ -7,7 +7,7 @@ completion of the analytic profile.
 
 ## Main integration and fixture profiles
 
-Main `40340e5be89d53f3e862b3580d1fa3fcc9129a12` adds the common source-free
+Main `40340e5be89d53f3e862b3580d1fa3fcc9129a12` added the common source-free
 Relation DAG selection from #396 and canonical property expression emission.
 The existing branch incorporates that source through a normal merge without
 changing the 536,870,912-byte execution budget or the independent expectations.
@@ -20,7 +20,12 @@ profile, including in a combined corpus. The default corpus retains main's
 profile. No wider envelope overwrites another fixture's declared limits.
 
 `--analytic-profiles-only` selects both complete analytic corpora, including
-the nullable-object positive below, refusals and the expected division failure.
+the nullable-object positive below, its unchanged original generated JSON
+reproduction, refusals and the expected division failure. Expectations remain
+independently authored; the reproduction is not treated as an expected Program.
+The follow-up merge includes main
+`036dbd5d24a3448568256c3e33867c215e8eac9d`, preserving the JOIN fixture route
+and its property-aware compiler behavior.
 Existing analytic-order, analytic-property, aggregate-property and Subgraph
 routes remain registered. Current exact-HEAD verification belongs to the PR's
 validation record; the original observations below retain their original SHAs.
