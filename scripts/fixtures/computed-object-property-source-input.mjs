@@ -15,6 +15,10 @@ const parameters = {p1: {score: 20, nested: {score: 11}},
   p2: {score: 10, nested: null}, p3: null, p4: {score: null, nested: {score: null}},
   o1: {score: 5, nested: null}, o2: {score: 30, nested: {score: 22}},
   o3: {score: 15, nested: {score: 33}}, o4: {score: 25, nested: null}};
+const suppliedParameters = names => ({
+  parameterDeclarations: Object.fromEntries(names.map(name => [name, parameterDeclarations[name]])),
+  parameters: Object.fromEntries(names.map(name => [name, parameters[name]])),
+});
 const data = 'DATA objects = SELECT id, '
   + 'CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, '
   + 'CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other '
@@ -90,7 +94,8 @@ export const computedObjectPropertySuccesses = [
   }),
   success('empty-typed', 'SELECT id, COALESCE(payload, other).score AS score FROM objects ORDER BY id',
     {sourceRows: [], expected: []}),
-  success('lazy-case-receiver', '', {text: 'SELECT id, (CASE WHEN id > 0 THEN @o1 '
+  success('lazy-case-receiver', '', {...suppliedParameters(['o1', 'p1', 'p2']),
+    text: 'SELECT id, (CASE WHEN id > 0 THEN @o1 '
     + 'ELSE (CASE WHEN id / (id - id) = 0 THEN @p1 ELSE @p2 END) END).score AS score '
     + 'FROM records WHERE id > 0 ORDER BY id',
   expected: [{id: 1, score: 5}, {id: 2, score: 5}, {id: 2, score: 5},
@@ -107,5 +112,5 @@ export const computedObjectPropertyRefusals = [
 export const computedObjectPropertyExecutionFailures = [{
   name: 'computed-object-property-demanded-receiver-failure', format: 'sql',
   text: 'SELECT id, (CASE WHEN id / (id - id) = 0 THEN @p1 ELSE @p2 END).score AS score FROM records',
-  parameterDeclarations, parameters, resultNames: ['answer'], sourceReadSessionCount: 1,
+  ...suppliedParameters(['p1', 'p2']), resultNames: ['answer'], sourceReadSessionCount: 1,
 }];

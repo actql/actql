@@ -70,6 +70,17 @@ must not demand its failing branch; a demanded receiver failure must publish
 no Result. Missing properties, scalar receivers, removed ranges, sibling alias
 access and duplicate leaf names must reject before Run admission and Source I/O.
 
+At clean revision `68c145b06cee27898527fc0bb060d6826be13e70`, guard
+`run-m68nsk` passed JS syntax 92/92, expression lowering 14/14, property
+callers 75/75 and Node fixtures 11/11. Normal five-package prepack succeeded.
+Packed Local passed the first eight controls, then rejected the lazy CASE
+fixture before Run admission. The normal built bridge retained a parameter
+declaration rejection: those two CASE fixtures inherited unrelated declarations
+from the DATA corpus. Only their authored declaration/value sets were narrowed
+to the referenced names. CASE branches, types, values, source rows, expected
+rows, ordering and installed limits did not change. This initial Local result
+does not establish HTTPS or acceptance at a later revision.
+
 The corpus is registered in the ordinary packed driver and has a focused
 `--computed-object-property-only` selection. Existing public acceptance checks
 Named Result rows, descriptions, attach, same-request resubmission and lookup,

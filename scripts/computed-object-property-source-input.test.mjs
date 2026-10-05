@@ -55,6 +55,11 @@ test('independent machine control uses existing typed property and checked param
   assert.equal(groups[0].name, 'standard');
   assert.deepEqual(['successes', 'refusals', 'executionFailures']
     .map(kind => groups[0].inputs[kind].length), [9, 5, 1]);
+  const lazy = successes.find(item => item.name.endsWith('lazy-case-receiver'));
+  assert.deepEqual(Object.keys(lazy.parameterDeclarations).sort(), ['o1', 'p1', 'p2']);
+  assert.deepEqual(Object.keys(lazy.parameters).sort(), ['o1', 'p1', 'p2']);
+  assert.deepEqual(Object.keys(failures[0].parameterDeclarations).sort(), ['p1', 'p2']);
+  assert.deepEqual(Object.keys(failures[0].parameters).sort(), ['p1', 'p2']);
 });
 
 test('computed receiver corpus runs in the ordinary packed route as well as a focused selection', async () => {
