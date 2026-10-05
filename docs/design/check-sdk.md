@@ -747,3 +747,36 @@ The first supported boundary is bound-input checking. Template-only checking,
 fix application, report retrieval, LSP conversion and execution/Delivery outcome
 explanations remain separate work. The input-report connection does not claim
 the design's S1–S9/X1–X17/invariant completion gate.
+
+
+### Run cancellation explanations
+
+`explainCancellation(result)` returns immutable read-only advice for the exact
+response or uncertain error produced by this SDK's `Execution.cancel()` call.
+Validated `accepted`, `already_requested` and `already_terminal` observations
+retain the Host's control revision. The summary distinguishes recording a
+cancellation request, an existing request and a Run already terminal for
+cancellation. Each provides a `status` target for the same retained Run
+reference. Cancellation acceptance establishes no physical-stop, external
+Effect outcome or resource-release fact.
+
+Transport loss, malformed replies and differently bound replies retain an
+`outcome_unknown` explanation without a fabricated recorded revision. Changing
+an error code/message or a returned response after the call does not change
+its bound explanation. Handwritten, parsed or copied objects have no SDK
+association. Local failures before the send boundary and typed Host refusals
+retain their existing errors without a fabricated cancellation observation.
+The accessor performs no I/O or automatic retry and retains no provider cause.
+The association lasts only while its SDK result is retained; no timeout or
+persistent Host custody is added.
+
+This is presentation over the existing Client–Host cancellation contract.
+No wire/schema/CID, cancellation ledger or execution semantics is replaced.
+The current public Run cancellation response has no cancellation-operation
+identity or exact-operation lookup. A Run status refresh cannot reconcile a
+particular lost cancellation; it only observes current Run state under current
+authorization. The existing control owner must provide that operation's
+identity, immutable intent, revision conflicts and reconciliation contract
+before the complete cancellation-outcome design can be exposed. A recorded
+physical-start/close control fixture does not prove delayed live-worker stop
+or external Effect reconciliation.
