@@ -303,9 +303,14 @@
           "facets": ["finite_stop_observation", "cleanup_owner"],
           "path": "src/query_integration/property_graph_subtraction_wbtest.mbt",
           "fixture": "property Graph subtraction cancellation after positive work preserves borrowed input custody"
+        },
+        {
+          "facets": ["finite_stop_observation", "cleanup_owner"],
+          "path": "src/query_integration/property_graph_union_custody_wbtest.mbt",
+          "fixture": "Host subtraction keeps both borrowed occurrences and cleanup reservation through false error and retry"
         }
       ],
-      "profile_scope": "Current keyed constructor, MATCH and TRAIL resource/custody evidence and current diff/union/subtraction logical work/workspace/cancellation boundaries. Composition retains checked fold/alignment arrays, borrowed input occurrences, private record/set cursors and overlapping predecessor/successor Stores in the existing reservation and cleanup scope. Subtraction adds a boolean fold mode and an endpoint-closure phase reusing the Builder's existing node-identity map; it creates no separate closure set. Route registration and configured cursor/workspace ceilings are not a physical-byte or total-Graph-heap theorem. Subtraction Host cleanup-failure/retry and full allocation correspondence remain unverified. Blocked Graph consumers have no current resource-completeness claim."
+      "profile_scope": "Current keyed constructor, MATCH and TRAIL resource/custody evidence and current diff/union/subtraction logical work/workspace/cancellation boundaries. Composition retains checked fold/alignment arrays, borrowed input occurrences, private record/set cursors and overlapping predecessor/successor Stores in the existing reservation and cleanup scope. Subtraction adds a boolean fold mode and an endpoint-closure phase reusing the Builder's existing node-identity map; it creates no separate closure set. The shared Host fixture covers cleanup false/error/retry without early reservation or borrowed-input disposal. Route registration and configured cursor/workspace ceilings are not a physical-byte or total-Graph-heap theorem; full allocation correspondence remains unverified. Blocked Graph consumers have no current resource-completeness claim."
     },
     "tea_events": {
       "work_unit": "one event field, sort comparison, membership, candidate pair, pattern cell, identity scalar, or output append",

@@ -7757,6 +7757,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/property_graph_subtraction_wbtest.mbt",
           "fixture": "property Graph subtraction snapshot reload restores retained nodes after independent edge removal"
+        },
+        {
+          "role": "subtract_host_cleanup_failure_retry_custody",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_union_custody_wbtest.mbt",
+          "fixture": "Host subtraction keeps both borrowed occurrences and cleanup reservation through false error and retry"
         }
       ]
     },

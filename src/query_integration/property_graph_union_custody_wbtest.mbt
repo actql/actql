@@ -1,11 +1,16 @@
 ///|
-test "Host union keeps repeated input holdings and cleanup reservation through false error and retry" {
-  // Reuse the existing checked Host fixture; add only the union occurrence
-  // before its MATCH consumer. The Source/capture and driver owners are unchanged.
+fn graph_composition_cleanup_fixture(
+  operation : String,
+  input_count : Int,
+) -> Unit raise {
+  // Both checked composition operations use the existing Host fixture and
+  // cleanup owner. The Source/capture and driver owners are unchanged.
   let program = current_graph_relation_program("current_filter")
     .replace(
       old="{\"match_nodes\":",
-      new="{\"from\":\"g\",\"union_graphs\":{\"with\":[\"g\",\"g\"]},\"as\":\"combined\"},{\"from\":\"combined\",\"match_nodes\":",
+      new="{\"from\":\"g\"," +
+        operation +
+        ",\"as\":\"combined\"},{\"from\":\"combined\",\"match_nodes\":",
     )
     .replace(
       old="\"results\":{\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}",
@@ -30,7 +35,7 @@ test "Host union keeps repeated input holdings and cleanup reservation through f
   )
   let graph = @strategy.captured_dag_graph(run)
   assert_eq(@strategy.graph_task_count(graph), 8)
-  assert_eq(@strategy.graph_task_input_count(graph, 3), Some(3))
+  assert_eq(@strategy.graph_task_input_count(graph, 3), Some(input_count))
   assert_eq(@strategy.graph_task_selected_step(graph, 3), Some(1))
   assert_true(
     @strategy.configure_captured_managed_identity_policy(
@@ -128,7 +133,7 @@ test "Host union keeps repeated input holdings and cleanup reservation through f
     installed,
     run,
     3,
-    Array::makei(3, _ => {
+    Array::makei(input_count, _ => {
       @local_driver.local_managed_carrier_output(construction, material)
     }),
     [],
@@ -207,4 +212,16 @@ test "Host union keeps repeated input holdings and cleanup reservation through f
   assert_eq(final_usage.held_bytes, 0L)
   assert_eq(attempts.val, 3)
   @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "Host union keeps repeated input holdings and cleanup reservation through false error and retry" {
+  graph_composition_cleanup_fixture(
+    "\"union_graphs\":{\"with\":[\"g\",\"g\"]}", 3,
+  )
+}
+
+///|
+test "Host subtraction keeps both borrowed occurrences and cleanup reservation through false error and retry" {
+  graph_composition_cleanup_fixture("\"subtract_graphs\":{\"with\":\"g\"}", 2)
 }
