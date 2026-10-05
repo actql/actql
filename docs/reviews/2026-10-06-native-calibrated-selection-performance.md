@@ -134,3 +134,77 @@ No full Core, packed, cross-target or performance matrix was run. The earlier
 Draft push's automatic CI stopped before its selector could execute because of
 GitHub payments/spending-limit failure; it is neither runtime acceptance nor a
 product failure. The PR remains Draft and performance improvement remains open.
+
+## Follow-up: reduce evidence-processing cost without weakening identity
+
+The CPU diagnostic re-admitted the unchanged recorded profile ten times; full
+profile checks took about 7 ms initially and about 2 ms thereafter. This does not
+establish current Native timing. The pair's qualification also hashes the 12 MB
+Native binary. Seven fixed alternating hash-only diagnostics checked every byte
+with 64 KiB and 1 MiB reads, retaining the same digest. The larger read size
+reduced this diagnostic cost. The implementation now shares `sha256File` across
+release modules and Native/source checks; it reads every byte on every call,
+never caches a digest or accepts a caller-supplied hash. Only these two bounded
+read sizes are available as experiment controls. Read size is not a parent or
+child heap bound and does not change any ledger reservation.
+
+At clean `a3b9680f290d19c03c3d116f1bdb87f1edfee795`, a new three-round
+calibration and one seven-pair selection comparison again passed the unchanged
+equivalent-obligation gate. The qualified Native-cycle difference was
+`-1.659 ms`, 95% interval `[-7.932, +6.359]`: indeterminate. This is a selection
+comparison, not an isolated before/after measurement of the read-size change.
+It is retained rather than presented as successful Native improvement.
+
+The causal control experiment at clean
+`21b245869ce1844ae240e770441094a67735dd9b` therefore uses the same calibration,
+binary, source, fixture, limits and actual planner selection on both sides.
+Both sides select three Local tasks, re-admit actual Owner/holding observations,
+and independently execute the equivalent-obligations comparator. The only
+changed input is full-byte read size: 64 KiB before, 1 MiB after. Seven alternating
+pairs were fixed before execution; no failed or unfavorable pair is omitted.
+The original comparator order also alternates inside each before/after series.
+
+| Boundary (after minus before) | Mean | 95% paired interval | Result |
+| --- | ---: | ---: | --- |
+| Entire benchmark pair, including evidence checks and independent execution | -32.281 ms | -57.525 to -13.343 ms | Evidence-processing improvement |
+| Native prepare/execute/cleanup plus profile qualification | -2.481 ms | -6.832 to +0.741 ms | Indeterminate |
+| Native physical execution | -0.305 ms | -2.316 to +1.610 ms | Indeterminate |
+| Within-Run warm interval | +0.415 ms | +0.074 to +0.757 ms | Slower in this sample |
+| Native physical cleanup | +0.041 ms | -0.023 to +0.101 ms | Indeterminate |
+
+Both seven-pair series passed independent obligation/Owner admission and their
+unchanged applicable warm/cold gates. This is a measured reduction in benchmark
+evidence-processing cost, not a Native query algorithm speedup or completion of
+the performance task. Source preparation was `173.535 ms` shared by both series;
+offline calibration was `3,013.768 ms`. Every leg starts fresh Native and Node
+processes; OS cache coldness is uncontrolled. Nothing amortizes calibration into
+a first-request claim. The earlier SHA's observations are not used as matched
+timing samples for this SHA.
+
+The next Native-runtime investigation is the observed startup/preparation
+boundary. One actual after leg spent about 6.2 ms loading the library, 3.0 ms
+opening the database and 5.0 ms between database-open and acquisition-start,
+versus 2.2 ms after strategy-execute through output admission. These are one
+leg's boundary observations, not a demonstrated root cause or universal cost.
+Inspect that existing preparation path before proposing a runtime change. Keep
+D/H/A's correctness boundaries and the retained input/identity obligations.
+
+Evidence remains local, with the unchanged Native binary compiled at #493's
+fixed source and the same seven-module release digest recorded above:
+
+- CPU/hash-only diagnostics: `run-6piWkN` / `run-IPS4bN`.
+- At `a3b9680f2`: calibration `run-uOnMVA`; selection `run-JDmYRU`.
+- At `21b245869`: calibration `run-tgZD0Z`; controlled comparison `run-hIVjpj`.
+- Focused artifact/statistical/series checks: 10/10 on the precommit working
+  diff, `run-aPWiE7`, focused `focused-test-kS8c7x`. The first added statistic
+  assertion failed only from binary floating-point rounding and was corrected
+  to the existing tests' `1e-12` precision; real thresholds were unchanged.
+- `_build/repro/artifacts-21b245869.json` records commands and exact digests.
+  Controlled calibration: `calibration-21b245869.json`,
+  `sha256:b9737afdfae7d7b4694c3aa8273a86a884d0f18686370619f5c7bcc4b3dfb7f2`.
+  Controlled comparison: `artifact-read-comparison-21b245869.json`,
+  `sha256:2faef3ce2cd0dcd30fe15ff7a6eb9d84dcb1a7636c97599160080323b5afdb47`.
+
+The subsequent documentation commit does not rerun or retag these observations.
+Full Core, packed, other targets and a full matrix remain unexecuted. Draft and
+unverified GitHub CI status remain separate from these bounded local results.
