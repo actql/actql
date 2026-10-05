@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:7d0322a8c5f7293ff00dc7ff6fc130f923085686b7081f09675cdcce19079651",
+  "artifact_registry_cid": "sha256:3b6c9cdba7ccf7ab1dad9b08c72039d186e36c2dde89b3923698d85d331b8dda",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10713,8 +10713,8 @@
     "model_prompt": "sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204",
     "model_retry_policy": "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c",
     "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55",
-    "check_outcome": "sha256:33d8966f95dcc4f955c88ac3e4a7e102e79e6c0991ce3ccf0182795aeda053b5",
-    "check_reason": "sha256:2b4925513d195c5debf4e059140ab737c7f5d6d92ab6280c3b8cdefe0b00c2b5"
+    "check_outcome": "sha256:66ded4e9fb1e863a81aa4ed110d7ba65e1e0776cf1a04aee2b1b0903d25c8a7c",
+    "check_reason": "sha256:01c234321105135fa577b40c78b2a99324667389c1f61cfc18b3a3ed05d272a1"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -76258,6 +76258,25 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
+                              "operation",
+                              "issue"
+                            ],
+                            "properties": {
+                              "operation": {
+                                "const": "components"
+                              },
+                              "issue": {
+                                "enum": [
+                                  "invalid_kind",
+                                  "invalid_output_rows"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
                               "issue"
                             ],
                             "properties": {
@@ -76469,6 +76488,46 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "graph_operation_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "operation",
+                                "issue"
+                              ],
+                              "properties": {
+                                "operation": {
+                                  "const": "components"
+                                },
+                                "issue": {
+                                  "enum": [
+                                    "invalid_kind",
+                                    "invalid_output_rows"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "not": {
                                 "enum": [
                                   "supplied_value_type_mismatch",
@@ -76476,7 +76535,8 @@
                                   "parameter_undeclared",
                                   "supplied_value_constraint_violation",
                                   "query_lexical_invalid",
-                                  "query_expression_invalid"
+                                  "query_expression_invalid",
+                                  "graph_operation_invalid"
                                 ]
                               }
                             }
@@ -76709,6 +76769,25 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
+                              "operation",
+                              "issue"
+                            ],
+                            "properties": {
+                              "operation": {
+                                "const": "components"
+                              },
+                              "issue": {
+                                "enum": [
+                                  "invalid_kind",
+                                  "invalid_output_rows"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
                               "issue"
                             ],
                             "properties": {
@@ -76920,6 +76999,46 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "graph_operation_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "operation",
+                                "issue"
+                              ],
+                              "properties": {
+                                "operation": {
+                                  "const": "components"
+                                },
+                                "issue": {
+                                  "enum": [
+                                    "invalid_kind",
+                                    "invalid_output_rows"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "not": {
                                 "enum": [
                                   "supplied_value_type_mismatch",
@@ -76927,7 +77046,8 @@
                                   "parameter_undeclared",
                                   "supplied_value_constraint_violation",
                                   "query_lexical_invalid",
-                                  "query_expression_invalid"
+                                  "query_expression_invalid",
+                                  "graph_operation_invalid"
                                 ]
                               }
                             }
@@ -76966,7 +77086,7 @@
               }
             },
             "reason_schema_cid": {
-              "const": "sha256:2b4925513d195c5debf4e059140ab737c7f5d6d92ab6280c3b8cdefe0b00c2b5"
+              "const": "sha256:01c234321105135fa577b40c78b2a99324667389c1f61cfc18b3a3ed05d272a1"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -77397,6 +77517,25 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
+                              "operation",
+                              "issue"
+                            ],
+                            "properties": {
+                              "operation": {
+                                "const": "components"
+                              },
+                              "issue": {
+                                "enum": [
+                                  "invalid_kind",
+                                  "invalid_output_rows"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
                               "issue"
                             ],
                             "properties": {
@@ -77608,6 +77747,46 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "graph_operation_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "operation",
+                                "issue"
+                              ],
+                              "properties": {
+                                "operation": {
+                                  "const": "components"
+                                },
+                                "issue": {
+                                  "enum": [
+                                    "invalid_kind",
+                                    "invalid_output_rows"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "not": {
                                 "enum": [
                                   "supplied_value_type_mismatch",
@@ -77615,7 +77794,8 @@
                                   "parameter_undeclared",
                                   "supplied_value_constraint_violation",
                                   "query_lexical_invalid",
-                                  "query_expression_invalid"
+                                  "query_expression_invalid",
+                                  "graph_operation_invalid"
                                 ]
                               }
                             }
@@ -77848,6 +78028,25 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
+                              "operation",
+                              "issue"
+                            ],
+                            "properties": {
+                              "operation": {
+                                "const": "components"
+                              },
+                              "issue": {
+                                "enum": [
+                                  "invalid_kind",
+                                  "invalid_output_rows"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
                               "issue"
                             ],
                             "properties": {
@@ -78059,6 +78258,46 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "graph_operation_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "operation",
+                                "issue"
+                              ],
+                              "properties": {
+                                "operation": {
+                                  "const": "components"
+                                },
+                                "issue": {
+                                  "enum": [
+                                    "invalid_kind",
+                                    "invalid_output_rows"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "not": {
                                 "enum": [
                                   "supplied_value_type_mismatch",
@@ -78066,7 +78305,8 @@
                                   "parameter_undeclared",
                                   "supplied_value_constraint_violation",
                                   "query_lexical_invalid",
-                                  "query_expression_invalid"
+                                  "query_expression_invalid",
+                                  "graph_operation_invalid"
                                 ]
                               }
                             }
@@ -78117,7 +78357,7 @@
               }
             },
             "reason_schema_cid": {
-              "const": "sha256:2b4925513d195c5debf4e059140ab737c7f5d6d92ab6280c3b8cdefe0b00c2b5"
+              "const": "sha256:01c234321105135fa577b40c78b2a99324667389c1f61cfc18b3a3ed05d272a1"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -78158,7 +78398,7 @@
               }
             },
             "reason_schema_cid": {
-              "const": "sha256:2b4925513d195c5debf4e059140ab737c7f5d6d92ab6280c3b8cdefe0b00c2b5"
+              "const": "sha256:01c234321105135fa577b40c78b2a99324667389c1f61cfc18b3a3ed05d272a1"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -78380,6 +78620,25 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "operation",
+                "issue"
+              ],
+              "properties": {
+                "operation": {
+                  "const": "components"
+                },
+                "issue": {
+                  "enum": [
+                    "invalid_kind",
+                    "invalid_output_rows"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "issue"
               ],
               "properties": {
@@ -78591,6 +78850,46 @@
           "if": {
             "properties": {
               "code": {
+                "const": "graph_operation_invalid"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "facts"
+            ],
+            "properties": {
+              "facts": {
+                "required": [
+                  "operation",
+                  "issue"
+                ],
+                "properties": {
+                  "operation": {
+                    "const": "components"
+                  },
+                  "issue": {
+                    "enum": [
+                      "invalid_kind",
+                      "invalid_output_rows"
+                    ]
+                  }
+                }
+              },
+              "location": {
+                "properties": {
+                  "kind": {
+                    "const": "text"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
                 "not": {
                   "enum": [
                     "supplied_value_type_mismatch",
@@ -78598,7 +78897,8 @@
                     "parameter_undeclared",
                     "supplied_value_constraint_violation",
                     "query_lexical_invalid",
-                    "query_expression_invalid"
+                    "query_expression_invalid",
+                    "graph_operation_invalid"
                   ]
                 }
               }

@@ -1,0 +1,529 @@
+{
+  "id": "fixture.query_pair",
+  "results": {
+    "answer": {
+      "from": {
+        "result": "rows",
+        "stage": "main"
+      }
+    }
+  },
+  "stages": [
+    {
+      "id": "main",
+      "inputs": {},
+      "results": {
+        "rows": {
+          "fields": [
+            "node_key",
+            "p"
+          ],
+          "from": "aql_script_result"
+        }
+      },
+      "steps": [
+        {
+          "as": "aql_script_seed_2",
+          "values": {
+            "rows": [
+              {
+                "aql_source_free_unit": true
+              }
+            ],
+            "schema": {
+              "aql_source_free_unit": {
+                "nullable": false,
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        {
+          "derive": {
+            "aql_query_expr_0": {
+              "literal": 3
+            },
+            "aql_query_expr_1": {
+              "cast": {
+                "target": {
+                  "type": "number"
+                },
+                "value": {
+                  "literal": null
+                }
+              }
+            }
+          },
+          "from": "aql_script_seed_2"
+        },
+        {
+          "as": "aql_data_set_term_1",
+          "select": [
+            {
+              "node_key": "aql_query_expr_0"
+            },
+            {
+              "p": "aql_query_expr_1"
+            }
+          ]
+        },
+        {
+          "as": "aql_script_seed_4",
+          "values": {
+            "rows": [
+              {
+                "aql_source_free_unit": true
+              }
+            ],
+            "schema": {
+              "aql_source_free_unit": {
+                "nullable": false,
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        {
+          "derive": {
+            "aql_query_expr_0": {
+              "literal": 2
+            },
+            "aql_query_expr_1": {
+              "literal": 20
+            }
+          },
+          "from": "aql_script_seed_4"
+        },
+        {
+          "as": "aql_data_set_term_3",
+          "select": [
+            {
+              "node_key": "aql_query_expr_0"
+            },
+            {
+              "p": "aql_query_expr_1"
+            }
+          ]
+        },
+        {
+          "append": {
+            "with": "aql_data_set_term_3"
+          },
+          "as": "aql_data_set_combined_5",
+          "from": "aql_data_set_term_1"
+        },
+        {
+          "as": "aql_script_seed_7",
+          "values": {
+            "rows": [
+              {
+                "aql_source_free_unit": true
+              }
+            ],
+            "schema": {
+              "aql_source_free_unit": {
+                "nullable": false,
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        {
+          "derive": {
+            "aql_query_expr_0": {
+              "literal": 1
+            },
+            "aql_query_expr_1": {
+              "literal": 10
+            }
+          },
+          "from": "aql_script_seed_7"
+        },
+        {
+          "as": "aql_data_set_term_6",
+          "select": [
+            {
+              "node_key": "aql_query_expr_0"
+            },
+            {
+              "p": "aql_query_expr_1"
+            }
+          ]
+        },
+        {
+          "append": {
+            "with": "aql_data_set_term_6"
+          },
+          "as": "aql_data_set_combined_8",
+          "from": "aql_data_set_combined_5"
+        },
+        {
+          "as": "aql_data_0",
+          "from": "aql_data_set_combined_8",
+          "select": [
+            "node_key",
+            "p"
+          ]
+        },
+        {
+          "as": "aql_script_seed_11",
+          "values": {
+            "rows": [
+              {
+                "aql_source_free_unit": true
+              }
+            ],
+            "schema": {
+              "aql_source_free_unit": {
+                "nullable": false,
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        {
+          "derive": {
+            "aql_query_expr_0": {
+              "literal": 11
+            },
+            "aql_query_expr_1": {
+              "literal": 1
+            },
+            "aql_query_expr_2": {
+              "literal": 2
+            },
+            "aql_query_expr_3": {
+              "literal": 20
+            }
+          },
+          "from": "aql_script_seed_11"
+        },
+        {
+          "as": "aql_data_set_term_10",
+          "select": [
+            {
+              "edge_key": "aql_query_expr_0"
+            },
+            {
+              "src_key": "aql_query_expr_1"
+            },
+            {
+              "dst_key": "aql_query_expr_2"
+            },
+            {
+              "w": "aql_query_expr_3"
+            }
+          ]
+        },
+        {
+          "as": "aql_script_seed_13",
+          "values": {
+            "rows": [
+              {
+                "aql_source_free_unit": true
+              }
+            ],
+            "schema": {
+              "aql_source_free_unit": {
+                "nullable": false,
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        {
+          "derive": {
+            "aql_query_expr_0": {
+              "literal": 10
+            },
+            "aql_query_expr_1": {
+              "literal": 1
+            },
+            "aql_query_expr_2": {
+              "literal": 2
+            },
+            "aql_query_expr_3": {
+              "literal": 10
+            }
+          },
+          "from": "aql_script_seed_13"
+        },
+        {
+          "as": "aql_data_set_term_12",
+          "select": [
+            {
+              "edge_key": "aql_query_expr_0"
+            },
+            {
+              "src_key": "aql_query_expr_1"
+            },
+            {
+              "dst_key": "aql_query_expr_2"
+            },
+            {
+              "w": "aql_query_expr_3"
+            }
+          ]
+        },
+        {
+          "append": {
+            "with": "aql_data_set_term_12"
+          },
+          "as": "aql_data_set_combined_14",
+          "from": "aql_data_set_term_10"
+        },
+        {
+          "as": "aql_script_seed_16",
+          "values": {
+            "rows": [
+              {
+                "aql_source_free_unit": true
+              }
+            ],
+            "schema": {
+              "aql_source_free_unit": {
+                "nullable": false,
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        {
+          "derive": {
+            "aql_query_expr_0": {
+              "literal": 12
+            },
+            "aql_query_expr_1": {
+              "literal": 2
+            },
+            "aql_query_expr_2": {
+              "literal": 3
+            },
+            "aql_query_expr_3": {
+              "literal": 40
+            }
+          },
+          "from": "aql_script_seed_16"
+        },
+        {
+          "as": "aql_data_set_term_15",
+          "select": [
+            {
+              "edge_key": "aql_query_expr_0"
+            },
+            {
+              "src_key": "aql_query_expr_1"
+            },
+            {
+              "dst_key": "aql_query_expr_2"
+            },
+            {
+              "w": "aql_query_expr_3"
+            }
+          ]
+        },
+        {
+          "append": {
+            "with": "aql_data_set_term_15"
+          },
+          "as": "aql_data_set_combined_17",
+          "from": "aql_data_set_combined_14"
+        },
+        {
+          "as": "aql_script_seed_19",
+          "values": {
+            "rows": [
+              {
+                "aql_source_free_unit": true
+              }
+            ],
+            "schema": {
+              "aql_source_free_unit": {
+                "nullable": false,
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        {
+          "derive": {
+            "aql_query_expr_0": {
+              "literal": 13
+            },
+            "aql_query_expr_1": {
+              "literal": 2
+            },
+            "aql_query_expr_2": {
+              "literal": 2
+            },
+            "aql_query_expr_3": {
+              "literal": 30
+            }
+          },
+          "from": "aql_script_seed_19"
+        },
+        {
+          "as": "aql_data_set_term_18",
+          "select": [
+            {
+              "edge_key": "aql_query_expr_0"
+            },
+            {
+              "src_key": "aql_query_expr_1"
+            },
+            {
+              "dst_key": "aql_query_expr_2"
+            },
+            {
+              "w": "aql_query_expr_3"
+            }
+          ]
+        },
+        {
+          "append": {
+            "with": "aql_data_set_term_18"
+          },
+          "as": "aql_data_set_combined_20",
+          "from": "aql_data_set_combined_17"
+        },
+        {
+          "as": "aql_data_9",
+          "from": "aql_data_set_combined_20",
+          "select": [
+            "edge_key",
+            "src_key",
+            "dst_key",
+            "w"
+          ]
+        },
+        {
+          "as": "aql_data_21",
+          "property_graph": {
+            "edges": [
+              {
+                "from": "aql_data_9",
+                "key": [
+                  "edge_key"
+                ],
+                "labels": [
+                  {
+                    "name": "R",
+                    "properties": {
+                      "columns": [
+                        {
+                          "from": "w",
+                          "to": "w"
+                        }
+                      ],
+                      "mode": "columns"
+                    }
+                  }
+                ],
+                "name": "E",
+                "source": {
+                  "definition": "N",
+                  "key": [
+                    "src_key"
+                  ]
+                },
+                "target": {
+                  "definition": "N",
+                  "key": [
+                    "dst_key"
+                  ]
+                }
+              }
+            ],
+            "nodes": [
+              {
+                "from": "aql_data_0",
+                "key": [
+                  "node_key"
+                ],
+                "labels": [
+                  {
+                    "name": "Node",
+                    "properties": {
+                      "columns": [
+                        {
+                          "from": "p",
+                          "to": "p"
+                        }
+                      ],
+                      "mode": "columns"
+                    }
+                  }
+                ],
+                "name": "N"
+              }
+            ],
+            "version": "actql-property-graph-constructor/0.1"
+          }
+        },
+        {
+          "as": "aql_sga_23",
+          "from": "aql_data_21",
+          "node_rows": true
+        },
+        {
+          "filter": {
+            "lte": [
+              {
+                "field": "node_key"
+              },
+              {
+                "literal": 2
+              }
+            ]
+          },
+          "from": "aql_sga_23"
+        },
+        {
+          "as": "aql_data_22",
+          "select": [
+            "id"
+          ]
+        },
+        {
+          "as": "aql_sga_24",
+          "from": "aql_data_21",
+          "subgraph": {
+            "nodes": {
+              "from": "aql_data_22",
+              "id": "id"
+            }
+          }
+        },
+        {
+          "as": "aql_sga_25",
+          "from": "aql_sga_24",
+          "node_rows": true
+        },
+        {
+          "from": "aql_sga_25",
+          "select": [
+            "node_key",
+            "p"
+          ]
+        },
+        {
+          "sort": [
+            {
+              "dir": "asc",
+              "field": "node_key",
+              "nulls": "first"
+            }
+          ]
+        },
+        {
+          "as": "aql_script_result",
+          "select": [
+            "node_key",
+            "p"
+          ]
+        }
+      ]
+    }
+  ],
+  "version": "actql/0.1"
+}
