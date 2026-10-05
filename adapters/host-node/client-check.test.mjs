@@ -235,6 +235,38 @@ const protectedSource = [{boundary: 'source_resolution',
   reason: 'unresolved_protected'}];
 
 for (const [entrance, open] of Object.entries(entrances)) {
+  test(`${entrance}: complete Programs reject unused Parameter declarations`, async t => {
+    const clients = [];
+    for (const configuration of [configurations.absent, configurations.denied,
+      configurations.allowed]) clients.push(await open(t, configuration));
+    // Usage is the common Owner's complete Program decision. A literal default
+    // supplies a value but does not make an otherwise unused declaration used.
+    for (const format of ['sql', 'aql-text']) {
+      for (const options of [
+        {parameterDeclarations: {minimum: {type: 'number', default: 7}}},
+        {parameterDeclarations: {minimum: {type: 'number'}}, parameters: {minimum: 7}},
+      ]) {
+        for (const client of clients) {
+          const outcome = await client.check('SELECT 1 AS n', {format, ...options});
+          assert.equal(outcome.outcome, 'completed');
+          assert.equal(outcome.report.verdict, 'invalid', '[check-mutation:unused-verdict]');
+          assert.deepEqual(outcome.report.reasons, [{code: 'program_invalid'}],
+            '[check-mutation:unused-reason]');
+          assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+          assert.deepEqual(outcome.report.requirements, []);
+          assert.equal(getCheckInput(outcome, 'source').text, 'SELECT 1 AS n');
+          assert.equal(explainCheckReason(outcome.report.reasons[0]).kind, 'known');
+          // No authored span or condition-specific facts are manufactured here.
+          assert.equal(outcome.report.reasons[0].location, undefined);
+          const corrected = await client.check('SELECT @minimum AS n', {format, ...options});
+          assert.equal(corrected.report.verdict, 'verified');
+          assert.deepEqual(corrected.report.reasons, []);
+        }
+      }
+    }
+    for (const client of clients) client.assertNoExecution();
+  });
+
   test(`${entrance}: non-Boolean predicates retain the common checker's requirement`, async t => {
     const client = await open(t, configurations.allowed);
     for (const text of ['SELECT id FROM records WHERE id', 'SELECT id FROM records WHERE 1']) {
