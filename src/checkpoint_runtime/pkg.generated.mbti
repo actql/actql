@@ -9,13 +9,15 @@ import {
 // Values
 pub const RESUME_REVALIDATION_FAILED_CODE : String = "ACTQL_E_RESUME_REVALIDATION_FAILED"
 
-pub fn admit_checkpoint_resolution(SealedCheckpoint, String, String?, HostAuthentication, Array[ReviewerAuthority], String, WireLimits) -> Result[AdmittedResolution, ResolutionIssue]
+pub fn admit_checkpoint_resolution(SealedCheckpoint, String, String?, HostAuthentication, Array[ReviewerAuthority], String, WireLimits, model_binding? : ModelCheckpointBinding) -> Result[AdmittedResolution, ResolutionIssue]
 
 pub fn admit_checkpoint_wire(String, WireLimits) -> Result[SealedCheckpoint, CheckpointIssue]
 
-pub fn admit_immediate_resolution(CheckpointRequest, String, String?, HostAuthentication, Array[ReviewerAuthority], String, WireLimits) -> Result[ImmediateAdmittedResolution, ResolutionIssue]
+pub fn admit_immediate_resolution(CheckpointRequest, String, String?, HostAuthentication, Array[ReviewerAuthority], String, WireLimits, model_binding? : ModelCheckpointBinding) -> Result[ImmediateAdmittedResolution, ResolutionIssue]
 
 pub fn admit_run_state_wire(String, WireLimits) -> Result[RunStateView, RunStateWireIssue]
+
+pub fn bind_model_checkpoint(SealedCheckpoint, @run_publication.BoundModelInvocationScope, @run_publication.RunEvidenceValue) -> Result[ModelCheckpointBinding, ResolutionIssue]
 
 pub fn checkpoint_artifact_type(CheckpointKind) -> String
 
@@ -31,6 +33,12 @@ pub fn checkpoint_requirements_valid(CheckpointKind, Array[CheckpointRequirement
 
 pub fn confirm_checkpoint_persisted(SealedCheckpoint, String) -> Result[PersistedCheckpoint, CheckpointIssue]
 
+pub fn confirm_immediate_model_invocation_grant_wire(ModelCheckpointBinding, String, String, WireLimits) -> Result[ModelInvocationGrant, ResolutionIssue]
+
+pub fn confirm_model_invocation_grant(ModelCheckpointBinding, PersistedCheckpoint, VerifiedResolution, String, String, WireLimits) -> Result[ModelInvocationGrant, ResolutionIssue]
+
+pub fn confirm_model_invocation_grant_wire(ModelCheckpointBinding, PersistedCheckpoint, String, String, WireLimits) -> Result[ModelInvocationGrant, ResolutionIssue]
+
 pub fn decide_resolution_commit(SealedCheckpoint, CheckpointClosure, VerifiedResolution) -> ResolutionCommitAction
 
 pub fn decide_resume_claim(ResumeIntentView, String, Int64, Int64, ResumeBinding, ResumeBinding) -> Result[ResumeClaimAction, ResumeIssue]
@@ -44,6 +52,18 @@ pub fn issue_revalidation_failed_run_state(String, String, Array[String], Array[
 pub fn issue_waiting_exit_run_state(String, String, Array[String], Array[String], WireLimits) -> Result[String, RunStateWireIssue]
 
 pub fn issue_waiting_run_state(PersistedCheckpoint, String, Array[String], WireLimits) -> Result[String, RunStateWireIssue]
+
+pub fn model_invocation_grant_checkpoint_cid(ModelInvocationGrant) -> String
+
+pub fn model_invocation_grant_current(ModelInvocationGrant, String) -> Bool
+
+pub fn model_invocation_grant_expires_at(ModelInvocationGrant) -> String
+
+pub fn model_invocation_grant_resolution_cid(ModelInvocationGrant) -> String
+
+pub fn model_invocation_grant_scope(ModelInvocationGrant) -> @run_publication.BoundModelInvocationScope
+
+pub fn model_invocation_grant_verified_resolution_cid(ModelInvocationGrant) -> String
 
 pub fn parse_checkpoint_kind(String) -> CheckpointKind?
 
@@ -123,6 +143,7 @@ pub(all) enum CheckpointKind {
   ReadAccess
   DataEgress
   CostScope
+  ModelInvocation
   EffectSet
 } derive(Eq, @debug.Debug)
 
@@ -186,6 +207,14 @@ pub struct ImmediateResolution {
   verified_at : String
   wire : String
 } derive(Eq, @debug.Debug)
+
+pub struct ModelCheckpointBinding {
+  // private fields
+}
+
+pub struct ModelInvocationGrant {
+  // private fields
+}
 
 pub struct PersistedCheckpoint {
   artifact : SealedCheckpoint
