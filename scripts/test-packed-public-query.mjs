@@ -250,6 +250,7 @@ if (process.argv.includes('--cancellation-only')) {
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
 const narrowPublicQuery = process.argv.some(flag => ['--source-free-only',
+  '--graph-match-only',
   '--graph-projection-property-only',
   '--graph-property-predicate-only',
   '--group-property-only',
@@ -298,6 +299,7 @@ if (plannerSelectionOnly || twoSourceExampleOnly) return;
 // Narrow selections without the String fixture have no retained String Run.
 // Keep restart acceptance for full/source-free selections that create it.
 if (!process.argv.some(flag => ['--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
+  '--graph-match-only',
   '--graph-projection-property-only',
   '--graph-property-predicate-only',
   '--group-property-only',
@@ -308,6 +310,7 @@ if (!process.argv.some(flag => ['--alias-scope-only', '--scoped-order-only', '--
     runtimeEnvironment, 120000).trimEnd());
 }
 if (process.argv.includes('--order-ordinal-only') ||
+    process.argv.includes('--graph-match-only') ||
     process.argv.includes('--graph-projection-property-only') ||
     process.argv.includes('--graph-property-predicate-only') ||
     process.argv.includes('--group-property-only') ||
