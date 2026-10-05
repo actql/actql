@@ -43,6 +43,7 @@ priv struct AnalyticEvaluation[T] {
   mut measure_next : Int
   ordinals : Map[String, Int]
   input_roots : Array[ExpressionRootLease]
+  mut input_logical : SteppedLogicalRow[IndexedRow[T]]?
   partitions : Array[ColumnOrder]
   peer_order : Array[ColumnOrder]
   complete : Array[ColumnOrder]
@@ -96,6 +97,8 @@ priv struct AnalyticEvaluation[T] {
   mut row : Array[Value]
   mut row_retention : SteppedRowRetention?
   mut row_retained : Bool
+  mut output_logical : SteppedLogicalRow[Array[Value]]?
+  mut logical_row_retained : Bool
   mut closed : Bool
 }
 
@@ -149,6 +152,7 @@ fn[T : RelationRows] start_analytic_evaluation(
     measure_next: 0,
     ordinals: Map([]),
     input_roots: [],
+    input_logical: None,
     partitions: [],
     peer_order: [],
     complete: [],
@@ -207,6 +211,8 @@ fn[T : RelationRows] start_analytic_evaluation(
     row: [],
     row_retention: None,
     row_retained: false,
+    output_logical: None,
+    logical_row_retained: false,
     closed: false,
   }
 }
@@ -243,6 +249,14 @@ fn[T] close_analytic_evaluation(state : AnalyticEvaluation[T]) -> Unit {
   if state.row_retention is Some(cursor) {
     close_stepped_row_retention(cursor)
     state.row_retention = None
+  }
+  if state.input_logical is Some(cursor) {
+    close_stepped_logical_row(cursor)
+    state.input_logical = None
+  }
+  if state.output_logical is Some(cursor) {
+    close_stepped_logical_row(cursor)
+    state.output_logical = None
   }
   state.row = []
   state.closed = true
@@ -553,7 +567,7 @@ fn[T : RelationRows] advance_analytic_evaluation_impl(
       s.index += 1
       Ok(None)
     }
-    // Input logical roots, one row per advance.
+    // Input logical roots, retaining large cells across bounded advances.
     3 => {
       guard s.scope is Some(value) else {
         s.index = 0
@@ -569,12 +583,33 @@ fn[T : RelationRows] advance_analytic_evaluation_impl(
       if RowValues::value_count(source) != s.names.length() {
         return Err(InvalidRows)
       }
-      if !reserve_slots(s.workspace, 1) {
+      if s.input_logical is None && !reserve_slots(s.workspace, 1) {
         return Err(RowLimit)
       }
-      let root = match retain_logical_row(value.budget, s.names, source) {
-        Ok(root) => root
-        Err(issue) => return Err(LogicalRows(issue))
+      let root = if s.input_logical is Some(cursor) {
+        if !spend_control(s.control, 1) {
+          return Err(RowLimit)
+        }
+        match advance_stepped_logical_row(cursor) {
+          Err(issue) => return Err(issue)
+          Ok(None) => return Ok(None)
+          Ok(Some(root)) => {
+            s.input_logical = None
+            root
+          }
+        }
+      } else if bounded_small_logical_row(s.names, source) {
+        match retain_logical_row(value.budget, s.names, source) {
+          Ok(root) => root
+          Err(issue) => return Err(LogicalRows(issue))
+        }
+      } else {
+        match
+          start_stepped_logical_row(value.budget, s.names, source, s.workspace) {
+          Err(issue) => return Err(issue)
+          Ok(cursor) => s.input_logical = Some(cursor)
+        }
+        return Ok(None)
       }
       let lease = match register_scope_root(value, root) {
         Ok(lease) => lease
@@ -1654,6 +1689,7 @@ fn[T : RelationRows] analytic_advance_output(
     }
     s.row = []
     s.row_retained = false
+    s.logical_row_retained = false
     s.inner = 0
     return Ok(None)
   }
@@ -1759,11 +1795,49 @@ fn[T : RelationRows] analytic_advance_output(
       return Ok(None)
     }
   }
-  if s.scope is Some(value) {
-    match
-      row_event_output(value, s.output_names, s.row, [], s.input_roots[source]) {
-      Ok(_) => ()
-      Err(issue) => return Err(issue)
+  if s.scope is Some(value) && !s.logical_row_retained {
+    if s.output_logical is Some(cursor) {
+      if !spend_control(s.control, 1) {
+        return Err(RowLimit)
+      }
+      match advance_stepped_logical_row(cursor) {
+        Err(issue) => return Err(issue)
+        Ok(None) => return Ok(None)
+        Ok(Some(root)) => {
+          s.output_logical = None
+          match
+            row_event_retained_output(value, root, [], s.input_roots[source]) {
+            Err(issue) => return Err(issue)
+            Ok(_) => s.logical_row_retained = true
+          }
+        }
+      }
+      return Ok(None)
+    }
+    if bounded_small_logical_row(s.output_names, s.row) {
+      match
+        row_event_output(
+          value,
+          s.output_names,
+          s.row,
+          [],
+          s.input_roots[source],
+        ) {
+        Ok(_) => s.logical_row_retained = true
+        Err(issue) => return Err(issue)
+      }
+    } else {
+      match
+        start_stepped_logical_row(
+          value.budget,
+          s.output_names,
+          s.row,
+          s.workspace,
+        ) {
+        Ok(cursor) => s.output_logical = Some(cursor)
+        Err(issue) => return Err(issue)
+      }
+      return Ok(None)
     }
   }
   match (s.accept_row)(s.row, source) {

@@ -1,6 +1,16 @@
 ///|
 fn local_values_analytic_program(variant : String) -> String {
   let (schema, rows, functions, fields, reordered) = match variant {
+    "long_text" =>
+      (
+        "{\"amount\":{\"type\":\"number\",\"nullable\":false}," +
+        "\"group\":{\"type\":\"string\",\"nullable\":false}," +
+        "\"id\":{\"type\":\"number\",\"nullable\":false}}",
+        "[{\"amount\":7,\"group\":\"" + String::make(512, 'g') + "\",\"id\":1}]",
+        "{\"position\":{\"fn\":\"row_number\"}}",
+        "[\"amount\",\"group\",\"id\",\"position\"]",
+        "[\"position\",\"id\",\"group\",\"amount\"]",
+      )
     "baseline" =>
       (
         "{\"amount\":{\"type\":\"number\",\"nullable\":true}," +
@@ -99,13 +109,20 @@ fn local_values_analytic_program(variant : String) -> String {
       )
     _ => abort("unknown Local analytic fixture")
   }
+  let frame = if variant == "long_text" {
+    ""
+  } else {
+    "\"frame\":{\"start\":\"unbounded_preceding\",\"end\":\"current_row\"},"
+  }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{\"minimum\":{\"type\":\"number\",\"nullable\":false}},\"stages\":[" +
   "{\"id\":\"a\",\"inputs\":{\"remote\":{\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}}," +
   "{\"id\":\"analytic_rows\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":" +
   schema +
   ",\"rows\":" +
   rows +
-  "},\"as\":\"seed\"},{\"from\":\"seed\",\"analytic\":{\"partition_by\":[\"group\"],\"order_by\":[{\"id\":\"asc\"}],\"frame\":{\"start\":\"unbounded_preceding\",\"end\":\"current_row\"},\"functions\":" +
+  "},\"as\":\"seed\"},{\"from\":\"seed\",\"analytic\":{\"partition_by\":[\"group\"],\"order_by\":[{\"id\":\"asc\"}]," +
+  frame +
+  "\"functions\":" +
   functions +
   "},\"as\":\"analytic_out\"}" +
   (if variant == "numeric_take" {
@@ -133,6 +150,7 @@ fn run_local_managed_analytic_case(
   variant : String,
   expected : Array[String],
   reordered : Array[String],
+  minimum_advances? : Int = 4,
 ) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     local_values_analytic_chain=true,
@@ -186,7 +204,7 @@ fn run_local_managed_analytic_case(
     execution_advances=Some(producer_advances),
     require_provider=true,
   )
-  assert_true(producer_advances.val > 4)
+  assert_true(producer_advances.val > minimum_advances)
   let rows = local_managed_test_rows(producer_ops)
   assert_eq(rows, expected)
 
@@ -240,6 +258,17 @@ fn run_local_managed_analytic_case(
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.held_bytes, 0L)
   @mock.close_mock_query_issuer(issuer)
+}
+
+///|
+test "Local managed analytic retains long Text through two downstream Computes" {
+  let text = String::make(512, 'g')
+  run_local_managed_analytic_case(
+    "long_text",
+    ["{\"amount\":7,\"group\":\"" + text + "\",\"id\":1,\"position\":1}"],
+    ["{\"position\":1,\"id\":1,\"group\":\"" + text + "\",\"amount\":7}"],
+    minimum_advances=64,
+  )
 }
 
 ///|
