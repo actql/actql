@@ -62,10 +62,11 @@ test "complete fragment candidate matches independently constructed contract vec
   assert_true(physical_equal(candidate.material, material))
   assert_true(physical_equal(candidate.contract, contract))
   // Independently built from the specified request/graph/root/limit forms and
-  // hashed with Node SHA-256, not obtained by regenerating product expectations.
+  // hashed with Python hashlib, not obtained from product output. The complete
+  // fixed body is in portability/corpus/expression-fragment-identities.json.
   assert_eq(
     candidate.artifact.cid,
-    "sha256:7b931b676d3bf8cddd593d27e5c37a4b7180d6a653998e56c571b1b2640012ed",
+    "sha256:cb951447c0b929beed22554835c2e3817aeb8b943d181e01b0c0e8a4a630ae7e",
   )
   assert_eq(candidate.artifact.bytes, 2774)
   assert_true(

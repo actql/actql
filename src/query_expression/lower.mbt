@@ -352,8 +352,8 @@ fn append_resolved(
                 value = lowering.form(
                   "property",
                   lowering.object([
-                    ("value", value),
                     ("name", lowering.add(String(part.value))),
+                    ("value", value),
                   ]),
                 )
               }

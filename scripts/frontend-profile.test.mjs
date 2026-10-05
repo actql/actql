@@ -63,12 +63,21 @@ test('machine Program vocabulary matches the current closed inventory', () => {
   // separately selected keyed machine constructor has a frontend spelling.
   assert.deepEqual([...operations, 'property_graph'].sort(), [...manifest.operations].sort());
   // PR-0 is a frozen historical observation, not the live compilation manifest.
-  const {grammar_manifest_cid: _oldCid, ...oldBody} = baseline.grammar_manifest;
+  const {grammar_manifest_cid: _oldCid,
+    expression_contract_cid: oldExpression, ...oldBody} = baseline.grammar_manifest;
   const {grammar_manifest_cid: _newCid, structural_text_grammar_sha256: grammar,
     structural_text_rules_sha256: rules,
     query_text_grammar_sha256: queryGrammar,
     query_text_rules_sha256: queryRules, source_grammar_cid: sourceGrammar,
-    operations: currentOperations, ...unchangedBody} = manifest;
+    operations: currentOperations, expression_contract_cid: currentExpression,
+    ...unchangedBody} = manifest;
+  const expressions = json('spec/contracts/actql-expressions.json');
+  assert.equal(currentExpression, machineCid(expressions));
+  // The adopted shared membership exception changes the current contract,
+  // while the PR-0 baseline continues to identify the original law body.
+  const priorExpressions = structuredClone(expressions);
+  delete priorExpressions.laws.membership;
+  assert.equal(oldExpression, machineCid(priorExpressions));
   const currentProgram = json('spec/contracts/actql-protocol-schemas.json')
     .artifact_schemas.executable_plan.properties.execution_material.properties.program;
   assert.equal(machineCid(currentProgram), sourceGrammar);
@@ -164,10 +173,14 @@ test('independent fixtures and historical CID oracles retain their baseline byte
   assert.match(baseline.base_sha, /^[a-f0-9]{40}$/u);
   assert.deepEqual(baseline.toolchain, json('toolchain.json'));
   for (const fixture of [...baseline.fixtures, ...baseline.existing_identity_oracles]) {
-    // PR-0 is frozen. Its old String-normalizing oracle remains byte-for-byte
-    // available, while the active corpus follows the adopted exact-value law.
-    const path = fixture.path === 'portability/corpus/parameter-identities.json'
-      ? 'spec/frontend/historical/parameter-identities-pr0.json' : fixture.path;
+    // PR-0 remains byte-for-byte available. Active identities follow the
+    // adopted String-value and common membership laws, not Frontend output.
+    const historical = {
+      'portability/corpus/parameter-identities.json': 'parameter-identities-pr0.json',
+      'portability/corpus/stage-definition.json': 'stage-definition-pr0.json',
+      'portability/corpus/local-unit-stage-body.json': 'local-unit-stage-body-pr0.json',
+    }[fixture.path];
+    const path = historical ? `spec/frontend/historical/${historical}` : fixture.path;
     assert.equal(hash(read(path)), fixture.sha256, fixture.path);
   }
   for (const fixture of baseline.fixtures) {

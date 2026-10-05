@@ -1,7 +1,49 @@
-# Grouped scalar IN atoms: frontend fix and common execution handoff
+# Grouped scalar IN atoms and shared membership execution
 
-Status: frontend lowering and ordinary checking verified; positive public IN
-execution is incomplete. This is not a completed scalar-expression profile.
+## Shared execution update
+
+The current change integrates main `ded488baccbdd37892fce3a03ac158f33d676348`
+and implements `in` and `not_in` in the common typed lowering and execution
+owners. Grouped atoms still retain their original parameter/sign normalization;
+no equality/OR expansion or Frontend-only execution rule is introduced.
+
+The approved [common membership law](../spec/language.md#membership-semantics)
+treats a NULL array and an empty array as the empty set. IN is false and NOT IN
+is true on that set, including a NULL left operand. `[NULL]` remains nonempty.
+Both operands are evaluated once, including failures on an empty-set query.
+The runtime scan uses common exact scalar equality, bounded per-item control
+work, full operand logical charges, and the existing temporary-root owner.
+A match does not discount later logical work or discard required operands.
+
+Typing excludes container nullability and proves nonnullable Boolean for a
+`max_items: 0` collection. The specification, machine law, dependent contract
+pins and independent identities change together without a version bump.
+Canonical normalization still does not fold away expression demand, failure,
+work or identity. SQL `IN ()`, unsupported UNNEST and subqueries are not added.
+The historical Frontend baseline bytes remain available unchanged while the
+active law-dependent identities use independently recomputed expectations.
+
+Focused JS verification on this source union passed 195 expression-typing
+and 226 lowering tests; a 34-test runtime/caller selection; 755 Frontend and
+identity tests; 1,145 shared execution and pipeline-identity tests; and four
+query-integration pin callers. These selections overlap and are not a summed
+suite count. Ninety focused Node contract/identity checks pass, including two
+complete independent preimages for the law-dependent ordered-node and fragment
+fixtures. An intermediate 1,141/1,145 run exposed four stale fixed CIDs; their
+explicit preimages were independently rebuilt before the successful rerun.
+
+The ordinary public corpus contains 17 positive and seven refusal cases,
+including direct false/true/NULL SELECT results in JSON, SQL and Pipe, NULL-item
+match precedence, and supported JSON empty/NULL-array boundaries. Fresh packed
+Local/HTTPS results, exact source SHA and package digests are reported on
+[PR #435](https://github.com/actql/actql/pull/435). Focused JS and Node checks do
+not establish complete Core, Wasm/native, full packed-corpus or CI success.
+
+## Historical frontend-only evidence
+
+The rest of this report records the earlier frontend-only revision and its
+then-missing common execution dependency. Those failure results are retained
+as historical evidence, not the current implementation status.
 
 ## Fixed source and completion boundary
 

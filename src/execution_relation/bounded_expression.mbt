@@ -33,8 +33,8 @@ pub fn start_expression_execution(
 }
 
 ///|
-/// Advance exactly one semantic expression transition. Vector score and
-/// concatenation component loops therefore remain observable and cancellable.
+/// Advance exactly one semantic expression transition. Membership comparisons,
+/// vector score and concatenation loops remain observable and cancellable.
 pub fn advance_expression_execution(
   execution : ExpressionExecution,
 ) -> Result[ExpressionExecutionPoll, EvalIssue] {

@@ -7,7 +7,7 @@ priv struct Point {
 
 ///|
 priv struct Parser {
-  source : String
+  mut source : String
   source_path : String
   limits : ParseLimits
   normalize_text : Bool
