@@ -426,7 +426,7 @@ producer; old Graph columns do not reappear after the Relation transition.
 These source connections do not establish support for other Graph operations
 or waive the common admission and execution obligations.
 
-The node emission of `traverse` also enters ordinary Relation processing:
+Both emissions of `traverse` enter ordinary Relation processing:
 
 ```aql
 DATA seeds = FROM g |> node_rows() |> SELECT id AS element;
@@ -444,12 +444,19 @@ argument, including an empty `edge_types` list and explicit output/hop bounds.
 Numeric arguments use the same literal admission as query expressions.
 The common checker owns selector membership, identity/type checks, path mode,
 predicates, finite hop bounds, fixed non-NULL output contracts and capacity.
-The output names are `start_id`, `node_id`, `depth`; no uniqueness or presence
+For `emit: 'nodes'`, the output names are `start_id`, `node_id`, `depth`.
+For `emit: 'paths'`, they are `start_id`, `end_id`, `hop_count`, `node_ids`,
+`edge_ids`. Path identity arrays retain complete definition-scoped typed
+identities, including distinct parallel-edge keys. Path eligibility, exact-path
+deduplication and canonical enumeration remain common traversal contracts;
+the Frontend neither converts paths to minimum-depth nodes nor sorts them
+implicitly. No uniqueness or presence
 proof is manufactured by the Frontend. A DATA binding of that output can
 continue through ordinary Relation operations without expanding its producer.
 
-This connection requires explicit `emit: 'nodes'`. Path emission and direct
-installed selector Sources remain unconnected source forms and are rejected
+This connection requires explicit literal `emit: 'nodes'` or `emit: 'paths'`.
+Omitted, unknown and parameter-valued emission cannot supply a static column
+scope and are rejected. Direct installed selector Sources remain unconnected and are rejected
 before Run admission. Installed selectors need the existing checked
 acquisition/share boundary; the Frontend cannot replace it with repeated reads.
 These are current implementation gaps, not new limits on the common traversal

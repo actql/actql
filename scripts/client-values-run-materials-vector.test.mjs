@@ -440,8 +440,15 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('5ece7453ce5f14cae14389ce1f999bff6fbc1a65cb0f1a3d719c438818795cb9'),
     cid(aoaContract), dependencies, barrierCid).run.run_definition_cid,
     pin('d93f8e21b7eae3d9efc48616b4a641f0c063bd9ccad0f5fd71cfa095a3bcd687'));
-  assert.equal(current.run.run_definition_cid,
+  // Keep both merged parents' current vectors with their own grammar pins.
+  assert.equal(vector(pin('eb1e2c6f90ed75c3bd443ce1a5f91097c41e13e7a6cc08ccc04bdbdf57476c10'),
+    cid(aoaContract), dependencies, barrierCid).run.run_definition_cid,
     pin('86f88781a706f347aaad843f81412335878da151c4258856290b93b1e99b9989'));
+  assert.equal(vector(pin('6eadd94b7226575a88196089cb8a63fe54e0a01630d1dfbf7252806f3474d36e'),
+    cid(aoaContract), dependencies, barrierCid).run.run_definition_cid,
+    pin('205f8330784cae5c7af4cde8f6269e947b46d1f679ed1653512f3e8ef6b7d829'));
+  assert.equal(current.run.run_definition_cid,
+    pin('012fc2e9a94494173838836f5347a3d2e2aa1cd87d8f3da01a8410ce7cd32a9d'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');
