@@ -213,3 +213,28 @@ no approval Checkpoint. Reopening the same request preserves the Run and
 observes the saved response without retransmitting either prior call. Both
 source Local/HTTPS cases passed (`run-31SwSO`, `focused-test-Jvdf2l`, tracked
 changes present); their packed execution remains unverified at this point.
+
+At clean SHA `1d3d76a42ac8b594d8f35881234f178fb52dac5f`, the normal runner
+passed all 16 prior Local/HTTPS phases and all six recovery tests
+(`run-oNHX5u`, `public-query-evidence-9ZBWkz`). Its completed summary records
+23 successful commands, the clean revision and all five freshly produced
+tarball digests, independently read back from the retained bytes. The earlier
+recovery-only and tracked-change results above remain attributed to their
+own revisions.
+
+## Independent Model and Effect approval across processes
+
+The existing packed Salesforce composition harness now includes an
+`infer-model-approval` case by default; `--model-approval-only` narrows to it.
+It submits the unchanged authored two-Source/JOIN/INFER/Effect Program using
+the public Client and independently expected rows/columns. Both the Host and
+credential Site bind the same delegated Model account configuration.
+
+Six fresh processes per transport cover Model Waiting, committed Model
+approval, separate Effect Waiting, committed Effect approval, execution and
+same-request replay. Expected physical Model inputs are empty in the first
+two phases and `[100, 200]` thereafter; writes are `[0, 0, 0, 0, 1, 1]`;
+Source read sessions are `[2, 0, 0, 0, 0, 0]`. Repeating Model approval cannot
+approve the separate Effect Checkpoint. Checkpoint subjects, restored
+request/ref/Run and retained Named Result types remain explicitly checked.
+This new selection has not yet been executed; it is not acceptance success.
