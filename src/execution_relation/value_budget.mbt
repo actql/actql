@@ -252,12 +252,12 @@ fn clear_stepped_measure(cursor : SteppedValueMeasure) -> Unit {
 }
 
 ///|
-fn step_stepped_measure_text(
-  cursor : SteppedValueMeasure,
+// Share the finite UTF-16 walk; each owner keeps its own existing charges.
+fn step_bounded_text_measure(
   text : String,
   position : Int,
-  budget : ValueBudget,
-) -> Bool {
+  charge : (Int) -> Bool,
+) -> Int? {
   let mut index = position
   let end = position + Int::min(64, text.length() - position)
   while index < end {
@@ -269,26 +269,46 @@ fn step_stepped_measure_text(
       2
     } else if unit >= 0xd800 && unit <= 0xdbff {
       if index + 1 >= text.length() {
-        return false
+        return None
       }
       let trailing = text[index + 1].to_int()
       if trailing < 0xdc00 || trailing > 0xdfff {
-        return false
+        return None
       }
       units = 2
       4
     } else if unit >= 0xdc00 && unit <= 0xdfff {
-      return false
+      return None
     } else {
       3
     }
-    if width > budget.limits.max_text_bytes - budget.text ||
-      width > remaining_value_work(budget) {
-      return false
+    if !charge(width) {
+      return None
     }
-    budget.text += width
-    budget.work += width
     index += units
+  }
+  Some(index)
+}
+
+///|
+fn step_stepped_measure_text(
+  cursor : SteppedValueMeasure,
+  text : String,
+  position : Int,
+  budget : ValueBudget,
+) -> Bool {
+  guard step_bounded_text_measure(text, position, width => {
+      if width > budget.limits.max_text_bytes - budget.text ||
+        width > remaining_value_work(budget) {
+        false
+      } else {
+        budget.text += width
+        budget.work += width
+        true
+      }
+    })
+    is Some(index) else {
+    return false
   }
   index == text.length() ||
   push_stepped_measure(cursor, SteppedTextNext(text, index))

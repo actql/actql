@@ -84,6 +84,67 @@ fn require_resident_source_identity(
 }
 
 ///|
+/// The role comes from the original checked graph, not a transport-selected
+/// task count or a fabricated producer Result definition.
+priv enum ResidentSourceDispatchRole {
+  PublicSourceResult
+  InternalSourceProducer
+}
+
+///|
+fn resident_source_dispatch_role(
+  materials : @host.ClientRunMaterials,
+  request : @remote.DispatchRequest,
+) -> Result[ResidentSourceDispatchRole, ResidentSourceIssue] {
+  let prepared = materials.prepared
+  guard materials.compilation is @host.Tasks(compilation) else {
+    return Err(UnsupportedSource)
+  }
+  let graph = @host.prepared_client_graph(prepared)
+  let count = @strategy.graph_task_count(graph)
+  if (count != 1 && count != 2) ||
+    @strategy.graph_program_has_effects(graph) ||
+    @host.prepared_client_acquisition_count(prepared) != 1 ||
+    @host.prepared_client_result_count(prepared) != 1 ||
+    @strategy.graph_result_task(graph, 0) != Some(count - 1) ||
+    @strategy.graph_task_target(graph, 0) is Some(_) ||
+    (count == 2 && @strategy.graph_task_target(graph, 1) is None) ||
+    @host.bind_client_task_run(
+      prepared,
+      compilation,
+      materials.admission,
+      materials.run_definition,
+    )
+    is Err(_) {
+    return Err(UnsupportedSource)
+  }
+  let fragment = match
+    @host.issue_prepared_client_task_fragment(
+      prepared,
+      0,
+      @host.client_standard_values_sequence_limits(),
+      1000000,
+      100000,
+      100,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Fragment(issue))
+  }
+  if @remote.dispatch_request_task_scope(request) !=
+    (
+      @publication.publication_contract_identity(materials.run_definition),
+      @host.client_task_fragment_node_id(fragment),
+    ) {
+    return Err(ForeignInput)
+  }
+  if count == 1 {
+    Ok(PublicSourceResult)
+  } else {
+    Ok(InternalSourceProducer)
+  }
+}
+
+///|
 fn install_resident_source_executor(
   materials : @host.ClientRunMaterials,
   compilation : @host.ClientTaskCompilation,
@@ -92,16 +153,76 @@ fn install_resident_source_executor(
   execution : ResidentExecution,
   source : ResidentSourceConfiguration,
   current_time : () -> String,
+  observe? : (ResidentSourceComputeEvent) -> Bool,
 ) -> Result[
-  (@output.NativeRemoteStandardTaskExecutor, String),
+  (@output.NativeRemoteStandardTaskExecutor, String?),
   ResidentSourceIssue,
 ] {
+  let role = match resident_source_dispatch_role(materials, request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if role is InternalSourceProducer {
+    return install_resident_acquisition_task_executor(
+      materials,
+      compilation,
+      binding,
+      request,
+      execution,
+      source,
+      current_time,
+      observe?,
+    ).map(executor => (executor, None))
+  }
+  let prepared = materials.prepared
+  let inventory = match
+    @publication.prepare_checked_publication_inventory(
+      @host.prepared_client_identity(prepared).program_definition_cid,
+      @host.client_task_compilation_result_names(compilation),
+      [0],
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Inventory(issue))
+  }
+  let result_definition_cid = match
+    @publication.checked_publication_inventory_definition_cid(inventory, 0) {
+    Ok(value) => value
+    Err(issue) => return Err(Inventory(issue))
+  }
+  install_resident_acquisition_task_executor(
+    materials,
+    compilation,
+    binding,
+    request,
+    execution,
+    source,
+    current_time,
+    observe?,
+  ).map(executor => (executor, Some(result_definition_cid)))
+}
+
+///|
+/// Install the checked acquisition task through the existing Runtime. Its
+/// internal output can feed a dependent task without inventing a public Result,
+/// executing the consumer, or opening the configured Source at installation.
+pub fn install_resident_acquisition_task_executor(
+  materials : @host.ClientRunMaterials,
+  compilation : @host.ClientTaskCompilation,
+  binding : @remote.RemoteInputBinding,
+  request : @remote.DispatchRequest,
+  execution : ResidentExecution,
+  source : ResidentSourceConfiguration,
+  current_time : () -> String,
+  observe? : (ResidentSourceComputeEvent) -> Bool,
+) -> Result[@output.NativeRemoteStandardTaskExecutor, ResidentSourceIssue] {
   let prepared = materials.prepared
   let graph = @host.prepared_client_graph(prepared)
-  if @strategy.graph_task_count(graph) != 1 ||
+  let count = @strategy.graph_task_count(graph)
+  if (count != 1 && count != 2) ||
     @host.prepared_client_acquisition_count(prepared) != 1 ||
     @host.prepared_client_result_count(prepared) != 1 ||
-    @strategy.graph_result_task(graph, 0) != Some(0) ||
+    @strategy.graph_result_task(graph, 0) != Some(count - 1) ||
+    (count == 2 && @strategy.graph_task_target(graph, 1) is None) ||
     @strategy.graph_task_target(graph, 0) is Some(_) ||
     @host.bind_client_task_run(
       prepared,
@@ -196,105 +317,115 @@ fn install_resident_source_executor(
   if @remote.dispatch_request_task_scope(request) != (definition_cid, task_key) {
     return Err(ForeignInput)
   }
-  let inventory = match
-    @publication.prepare_checked_publication_inventory(
-      @host.prepared_client_identity(prepared).program_definition_cid,
-      @host.client_task_compilation_result_names(compilation),
-      [0],
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Inventory(issue))
-  }
-  let result_definition_cid = match
-    @publication.checked_publication_inventory_definition_cid(inventory, 0) {
-    Ok(value) => value
-    Err(issue) => return Err(Inventory(issue))
-  }
   let failure = fn(code : String, cleanup : () -> Bool) {
     @output.prepare_native_remote_standard_input_failure(code, cleanup).unwrap()
   }
   // Only the common runtime calls this factory, after admission, lifetime
   // recheck, exclusive start claim and the single executor-entry observation.
-  let factory = @output.register_native_remote_standard_bound_run_factory(
-    binding,
-    () => {
-      let started = current_time()
-      let runtime = match
-        @duckdb_native.open_native_read_only_source_acquisition(
-          physical,
-          setup,
-          source.library,
-          @remote.dispatch_request_identity(request),
-        ) {
-        Ok(value) => value
-        Err(_) => return Err(failure("source-open", () => true))
-      }
-      let close = () => {
-        @duckdb_native.close_native_acquisition_runtime(runtime)
-        true
-      }
-      if @duckdb_native.execute_native_acquisition_runtime(runtime) is Err(_) {
-        return Err(failure("source-acquire", close))
-      }
-      let completed = current_time()
-      guard @duckdb_native.native_acquisition_runtime_source_capture(runtime)
-        is Ok(capture) &&
-        @duckdb_host.native_host_source_capture_source(capture)
-        is Ok(captured_source) else {
-        return Err(failure("source-capture", close))
-      }
-      let limits = execution.limits.output.output_export
-      guard @query.identify_captured_source_relation(
-          captured_source,
-          limits.max_rows,
-          limits.values,
-          limits.payload_wire,
-          limits.logical_wire,
-          limits.schema,
-          limits.max_batch_bytes,
-        )
-        is Ok(identity) &&
-        @host.issue_captured_source_input_logical(
-          graph, captured_source, identity, requirement,
-        )
-        is Ok(logical) &&
-        @duckdb_host.issue_native_host_source_evidence(
-          capture, context, identity, logical, authority, policy, completed,
-        )
-        is Ok(evidence) else {
-        return Err(failure("source-observation", close))
-      }
-      let captured = match
-        @host.open_prepared_captured_client_run(
-          prepared,
-          captured_source,
-          source.ledger,
-        ) {
-        Ok(value) => value
-        Err(_) => return Err(failure("source-retention", close))
-      }
-      match
-        @output.prepare_native_remote_standard_acquired_run_owner(
-          captured,
-          0,
-          close,
-          source_observation=Some(dispatch => {
-            @remote.prepare_remote_source_observation(
-              dispatch, 0, evidence, logical, started, completed,
-            )
-          }),
-        ) {
-        Ok(value) => Ok(value)
-        Err(_) =>
-          Err(
-            failure("source-owner", () => {
-              @strategy.stop_captured_dag(captured)
-              close()
-            }),
+  let factory = match
+    @output.register_native_remote_standard_dispatch_run_factory(
+      request,
+      binding,
+      () => {
+        if observe is Some(record) && !record(AcquisitionEntered) {
+          return Err(failure("source-open", () => true))
+        }
+        let started = current_time()
+        let runtime = match
+          @duckdb_native.open_native_read_only_source_acquisition(
+            physical,
+            setup,
+            source.library,
+            @remote.dispatch_request_identity(request),
+          ) {
+          Ok(value) => value
+          Err(_) => return Err(failure("source-open", () => true))
+        }
+        let close = () => {
+          @duckdb_native.close_native_acquisition_runtime(runtime)
+          true
+        }
+        if @duckdb_native.execute_native_acquisition_runtime(runtime) is Err(_) {
+          return Err(failure("source-acquire", close))
+        }
+        let completed = current_time()
+        guard @duckdb_native.native_acquisition_runtime_source_capture(runtime)
+          is Ok(capture) &&
+          @duckdb_host.native_host_source_capture_source(capture)
+          is Ok(captured_source) else {
+          return Err(failure("source-capture", close))
+        }
+        if observe is Some(record) && !record(ProducerCaptured) {
+          return Err(failure("source-capture", close))
+        }
+        let limits = execution.limits.output.output_export
+        guard @query.identify_captured_source_relation(
+            captured_source,
+            limits.max_rows,
+            limits.values,
+            limits.payload_wire,
+            limits.logical_wire,
+            limits.schema,
+            limits.max_batch_bytes,
           )
-      }
-    },
-  )
+          is Ok(identity) &&
+          @host.issue_captured_source_input_logical(
+            graph, captured_source, identity, requirement,
+          )
+          is Ok(logical) &&
+          @duckdb_host.issue_native_host_source_evidence(
+            capture, context, identity, logical, authority, policy, completed,
+          )
+          is Ok(evidence) else {
+          return Err(failure("source-observation", close))
+        }
+        let captured = match
+          @host.open_prepared_captured_client_run(
+            prepared,
+            captured_source,
+            source.ledger,
+          ) {
+          Ok(value) => value
+          Err(_) => return Err(failure("source-retention", close))
+        }
+        let observation = Some(dispatch => {
+          @remote.prepare_remote_source_observation(
+            dispatch, 0, evidence, logical, started, completed,
+          )
+        })
+        // A public Source Result still needs its checked Result projection.
+        // A producer feeding another task exports its exact internal task port.
+        let owned = if count == 1 {
+          @output.prepare_native_remote_standard_acquired_run_owner(
+            captured,
+            0,
+            close,
+            source_observation=observation,
+          )
+        } else {
+          @output.prepare_native_remote_standard_acquired_task_owner(
+            captured,
+            0,
+            captured_source,
+            close,
+            source_observation=observation,
+          )
+        }
+        match owned {
+          Ok(value) => Ok(value)
+          Err(_) =>
+            Err(
+              failure("source-owner", () => {
+                @strategy.stop_captured_dag(captured)
+                close()
+              }),
+            )
+        }
+      },
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Standard(issue))
+  }
   match
     @output.install_native_remote_standard_bound_task_executor(
       definition_cid,
@@ -303,7 +434,7 @@ fn install_resident_source_executor(
       factory,
       execution.limits.output,
     ) {
-    Ok(executor) => Ok((executor, result_definition_cid))
+    Ok(executor) => Ok(executor)
     Err(issue) => Err(Standard(issue))
   }
 }

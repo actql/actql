@@ -395,11 +395,13 @@ test "presence input cancellation and cumulative limits release the same buffer"
 }
 
 ///|
-fn presence_output_owner() -> @lower.BoundPrepared {
+fn presence_output_owner(
+  schema? : @schema.Schema = presence_test_schema(),
+) -> @lower.BoundPrepared {
   // The existing Carrier projection supplies a genuine checked conditional
   // Step port. This fixture tests common retention, not a new Graph executor.
   let events = @carrier.events(
-    @carrier.typed_rows(presence_test_schema()),
+    @carrier.typed_rows(schema),
     id=Unqualified("id"),
     time=Unqualified("id"),
   ).unwrap()

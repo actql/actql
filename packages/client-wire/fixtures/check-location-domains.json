@@ -1,0 +1,174 @@
+{
+  "reason_schema_cid": "sha256:3204b8f2edb377120d3139f380fc3c49541ff34b7117430de4ed52e0f826025f",
+  "inputs": [
+    {
+      "document_id": "source",
+      "revision": "rev:1111111111111111111111111111111111111111111111111111111111111111",
+      "kind": "text",
+      "byte_length": 6
+    },
+    {
+      "document_id": "parameter_declarations",
+      "revision": "rev:2222222222222222222222222222222222222222222222222222222222222222",
+      "kind": "structured",
+      "byte_length": 29
+    },
+    {
+      "document_id": "parameters",
+      "revision": "rev:3333333333333333333333333333333333333333333333333333333333333333",
+      "kind": "structured",
+      "byte_length": 19
+    }
+  ],
+  "cases": [
+    {
+      "reason": {
+        "code": "query_syntax_invalid"
+      },
+      "allowedDocuments": [
+        "source"
+      ]
+    },
+    {
+      "reason": {
+        "code": "parameter_undeclared",
+        "facts": {
+          "parameter": "minimum"
+        }
+      },
+      "allowedDocuments": [
+        "source"
+      ]
+    },
+    {
+      "reason": {
+        "code": "supplied_value_type_mismatch",
+        "facts": {
+          "parameter": "minimum",
+          "expected_type": "number",
+          "actual_type": "string"
+        }
+      },
+      "allowedDocuments": [
+        "parameters"
+      ]
+    },
+    {
+      "reason": {
+        "code": "supplied_value_constraint_violation",
+        "facts": {
+          "parameter": "minimum",
+          "constraint": "numeric"
+        }
+      },
+      "allowedDocuments": [
+        "parameters"
+      ]
+    },
+    {
+      "reason": {
+        "code": "supplied_value_invalid"
+      },
+      "allowedDocuments": [
+        "parameters"
+      ]
+    },
+    {
+      "reason": {
+        "code": "supplied_parameters_invalid"
+      },
+      "allowedDocuments": [
+        "parameters"
+      ]
+    },
+    {
+      "reason": {
+        "code": "parameter_declarations_invalid"
+      },
+      "allowedDocuments": [
+        "parameter_declarations"
+      ]
+    },
+    {
+      "reason": {
+        "code": "parameter_value_required",
+        "facts": {
+          "parameter": "minimum",
+          "expected_type": "number"
+        }
+      },
+      "allowedDocuments": [
+        "parameter_declarations"
+      ]
+    },
+    {
+      "reason": {
+        "code": "parameter_default_type_mismatch",
+        "facts": {
+          "parameter": "minimum",
+          "expected_type": "number",
+          "actual_type": "string"
+        }
+      },
+      "allowedDocuments": [
+        "parameter_declarations"
+      ]
+    },
+    {
+      "reason": {
+        "code": "parameter_unused",
+        "facts": {
+          "parameter": "minimum"
+        }
+      },
+      "allowedDocuments": [
+        "parameter_declarations"
+      ]
+    },
+    {
+      "reason": {
+        "code": "query_lexical_invalid",
+        "facts": {
+          "issue": "unexpected_token"
+        }
+      },
+      "allowedDocuments": [
+        "source"
+      ]
+    },
+    {
+      "reason": {
+        "code": "query_expression_invalid",
+        "facts": {
+          "issue": "unknown_reference"
+        }
+      },
+      "allowedDocuments": [
+        "source"
+      ]
+    },
+    {
+      "reason": {
+        "code": "graph_operation_invalid",
+        "facts": {
+          "operation": "components",
+          "issue": "invalid_kind"
+        }
+      },
+      "allowedDocuments": [
+        "source"
+      ]
+    },
+    {
+      "reason": {
+        "code": "future_code"
+      },
+      "allowedDocuments": [
+        "source",
+        "parameter_declarations",
+        "parameters"
+      ]
+    }
+  ],
+  "outcome_schema_cid": "sha256:e82160288635a2047646ae956dbba116224b1c64b03231b6c4245d43a6cecc5c"
+}

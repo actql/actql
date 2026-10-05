@@ -1884,8 +1884,74 @@
       }
     },
     {
-      "requirement_id": "actql.protocol.contracts/check-outcome.check-must-not-be-relabelled",
+      "requirement_id": "actql.protocol.contracts/check-outcome.operation-domain-facts",
       "statement_sha256": "4ee4d3f60528cfb55359cbff8353b79193faa97a598a292858e923dd5212b583",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "ranked-search-contract",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/check-outcome.operation-domain-owned-cause",
+      "statement_sha256": "f833ba8d9e1c248969831bae70f8c026818d6e5af38e2704a36fe459d546c2c5",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "ranked-search-contract",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/check-outcome.operation-domain-input-origin",
+      "statement_sha256": "79845e9e20b235410fa2b24aabca6d0d2ec3f540602e6deb5ffa46f869a3673a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "ranked-search-contract",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/check-outcome.check-must-not-be-relabelled",
+      "statement_sha256": "683ecbfca4c681068dd4eb5480a47afaa76354c51a853ae76463274b9e474296",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "ranked-search-contract",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/check-outcome.frame-reason-facts",
+      "statement_sha256": "e19cca87c34aacec774ce4fd8cba91842d009918ce0bfc366b0c2350221bfcb1",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "ranked-search-contract",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/check-outcome.frame-reason-owned-cause",
+      "statement_sha256": "bad83ea4167fea7b5fe40d192dbe1244f3784ac99a786241a1a7a9e4d959d5ff",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "ranked-search-contract",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/check-outcome.frame-index-is-not-authored-location",
+      "statement_sha256": "6ad82a4f7a41fc87f24c6e0743dd8985d17a4cd8fac3e61f18e16d3acabd5c8b",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -2050,7 +2116,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "633e396413a6bc071c47edcbc7483f72f3a3eeca64226112d7b48025ee2a9dcf",
+      "statement_sha256": "dd36a0bf06bc763a447b7252b4f86e2f182d7c51ba102b95579be1552ca6a6bc",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

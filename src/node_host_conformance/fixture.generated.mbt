@@ -1306,6 +1306,16 @@ fn local_unpivot_program() -> String {
 /// Fixture owner: query_integration/local_managed_analytic_wbtest.mbt
 fn local_values_analytic_program(variant : String) -> String {
   let (schema, rows, functions, fields, reordered) = match variant {
+    "long_text" =>
+      (
+        "{\"amount\":{\"type\":\"number\",\"nullable\":false}," +
+        "\"group\":{\"type\":\"string\",\"nullable\":false}," +
+        "\"id\":{\"type\":\"number\",\"nullable\":false}}",
+        "[{\"amount\":7,\"group\":\"" + String::make(512, 'g') + "\",\"id\":1}]",
+        "{\"position\":{\"fn\":\"row_number\"}}",
+        "[\"amount\",\"group\",\"id\",\"position\"]",
+        "[\"position\",\"id\",\"group\",\"amount\"]",
+      )
     "baseline" =>
       (
         "{\"amount\":{\"type\":\"number\",\"nullable\":true}," +
@@ -1404,13 +1414,20 @@ fn local_values_analytic_program(variant : String) -> String {
       )
     _ => abort("unknown Local analytic fixture")
   }
+  let frame = if variant == "long_text" {
+    ""
+  } else {
+    "\"frame\":{\"start\":\"unbounded_preceding\",\"end\":\"current_row\"},"
+  }
   "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{\"minimum\":{\"type\":\"number\",\"nullable\":false}},\"stages\":[" +
   "{\"id\":\"a\",\"inputs\":{\"remote\":{\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}}," +
   "{\"id\":\"analytic_rows\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":" +
   schema +
   ",\"rows\":" +
   rows +
-  "},\"as\":\"seed\"},{\"from\":\"seed\",\"analytic\":{\"partition_by\":[\"group\"],\"order_by\":[{\"id\":\"asc\"}],\"frame\":{\"start\":\"unbounded_preceding\",\"end\":\"current_row\"},\"functions\":" +
+  "},\"as\":\"seed\"},{\"from\":\"seed\",\"analytic\":{\"partition_by\":[\"group\"],\"order_by\":[{\"id\":\"asc\"}]," +
+  frame +
+  "\"functions\":" +
   functions +
   "},\"as\":\"analytic_out\"}" +
   (if variant == "numeric_take" {
@@ -1938,8 +1955,18 @@ fn local_values_unary_program(kind : String) -> String {
     "filter_structured" =>
       "{\"filter\":{\"gt\":[{\"field\":\"id\"},{\"$param\":\"minimum\"}]},\"as\":\"out\"}"
     "filter_null" => "{\"filter\":\"amount > 0\",\"as\":\"out\"}"
+    "filter_long_text" =>
+      "{\"filter\":{\"eq\":[{\"literal\":\"" +
+      String::make(256, 'g') +
+      "\"},{\"literal\":\"" +
+      String::make(256, 'g') +
+      "\"}]},\"as\":\"out\"}"
     "filter_failure" => "{\"filter\":\"false AND 1 / 0 > 0\",\"as\":\"out\"}"
     "derive_map" => "{\"derive\":{\"next\":\"id + $minimum\"},\"as\":\"out\"}"
+    "derive_long_text" =>
+      "{\"derive\":{\"copy\":{\"literal\":\"" +
+      String::make(256, 'g') +
+      "\"}},\"as\":\"out\"}"
     "derive_empty" => "{\"derive\":{},\"as\":\"out\"}"
     "derive_failure" => "{\"derive\":{\"unused\":\"1 / 0\"},\"as\":\"out\"}"
     "derive_ordered" =>
@@ -1965,6 +1992,7 @@ fn local_values_unary_program(kind : String) -> String {
   let fields = match kind {
     "select" => "[\"total\",\"id\"]"
     "derive_map" => "[\"id\",\"amount\",\"next\"]"
+    "derive_long_text" => "[\"id\",\"amount\",\"copy\"]"
     "derive_ordered" => "[\"id\",\"amount\",\"saved\",\"next\"]"
     "rename_swap" => "[\"amount\",\"id\"]"
     "rename" => "[\"id\",\"total\"]"

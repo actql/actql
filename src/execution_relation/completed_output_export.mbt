@@ -929,6 +929,17 @@ pub fn bind_completed_output_export(
 }
 
 ///|
+/// Bind the same exact row receipt carried by a logical Relation export.
+/// This preserves the original completion and all receiving-grant checks;
+/// a logical identity alone never authorizes retained representation.
+pub fn bind_completed_relation_export(
+  receipt : CompletedRelationExportReceipt,
+  material : RetainedOutputMaterial,
+) -> Result[CompletedOutput, CompletedExportIssue] {
+  bind_completed_output_export(receipt.rows, material)
+}
+
+///|
 fn bind_completed_export_material(
   receipt : CompletedOutputExportReceipt,
   material : RetainedOutputMaterial,
