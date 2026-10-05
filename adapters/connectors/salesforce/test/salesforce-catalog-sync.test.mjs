@@ -3102,9 +3102,13 @@ test('Site rejects a provider value that violates the selected field type',
     })});
     const plan = await queryProjection(setup);
     let delivered = 0;
-    await assert.rejects(readSalesforceQuery(queryRequest(setup, plan, {
+    const failure = await readSalesforceQuery(queryRequest(setup, plan, {
       consumePage: async () => { delivered += 1; },
-    })), {code: 'MoonBitHostFailure'});
+    })).then(() => undefined, error => error);
+    // A typed violation naming the field and kind, never the value.
+    assert.equal(failure?.code, 'SalesforceValueViolation');
+    assert.deepEqual(failure.violation, {expected_type: 'string',
+      field: 'Id', kind: 'type', resource: 'Account'});
     assert.equal(delivered, 0);
     assert.equal(setup.seen.filter(entry => entry.path?.includes('/query'))
       .length, 1);
