@@ -2,6 +2,7 @@
 package "actql/actql/local_sga_provider"
 
 import {
+  "actql/actql/bounded_graph_diff",
   "actql/actql/bounded_graph_snapshot",
   "actql/actql/connectors/local",
   "actql/actql/decode_core",
@@ -10,11 +11,16 @@ import {
 }
 
 // Values
-pub fn provider(@managed_graph_storage.Limits, Int64, @execution_relation.ExecutionCapacity, snapshot_policy? : SnapshotPolicy?) -> @local.ManagedProvider
+pub fn provider(@managed_graph_storage.Limits, Int64, @execution_relation.ExecutionCapacity, snapshot_policy? : SnapshotPolicy?, delta_policy? : DeltaPolicy?) -> @local.ManagedProvider
 
 // Errors
 
 // Types and methods
+pub(all) struct DeltaPolicy {
+  limits : @bounded_graph_diff.Limits
+  workspace_bytes : Int64
+}
+
 pub(all) struct SnapshotPolicy {
   serialization : @bounded_graph_snapshot.Limits
   read : @decode_core.Limits

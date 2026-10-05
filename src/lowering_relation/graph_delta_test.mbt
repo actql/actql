@@ -56,10 +56,13 @@ test "Delta lowering retains ordered Graph inputs and the formal contract CID" {
     @encode.finish(writer),
     "[{\"id\":\"graph_diff_0\",\"in\":[\"input_0\",\"input_1\"],\"op\":\"SGA.diff\",\"params\":{\"graph_contract_cid\":\"sha256:ad5cb6732d059d85e5d6581974006b9cb551e2704d0260e82ceebc43015db667\"}}]",
   )
-  // Do not claim selected execution until its resource/custody boundary exists.
+  // Difference remains unselected; application capability is not a diff
+  // resource/custody receipt.
   assert_false(
     @lowering_relation.node_supports_selected_managed_execution(node),
   )
+  assert_false(@lowering_relation.node_can_split_carrier_transform(node))
+  assert_false(@lowering_relation.node_accepts_managed_relation_view(node, 1))
 }
 
 ///|
@@ -108,4 +111,13 @@ test "Delta application lowering binds the selected Relation field without repar
     @encode.finish(writer),
     "[{\"id\":\"apply_graph_delta_0\",\"in\":[\"input_0\",\"input_1\"],\"op\":\"SGA.apply_delta\",\"params\":{\"field\":\"changes\",\"graph_contract_cid\":\"sha256:ad5cb6732d059d85e5d6581974006b9cb551e2704d0260e82ceebc43015db667\"}}]",
   )
+  let node = @lowering_relation.node_at(prepared, 0).unwrap()
+  // Registered selected execution still requires the installed provider and
+  // the enclosing Plan's independently resolved resources.
+  assert_true(@lowering_relation.node_supports_selected_managed_execution(node))
+  assert_true(@lowering_relation.node_can_split_carrier_transform(node))
+  assert_true(@lowering_relation.node_accepts_managed_carrier_view(node, 0))
+  assert_false(@lowering_relation.node_accepts_managed_carrier_view(node, 1))
+  assert_false(@lowering_relation.node_accepts_managed_relation_view(node, 0))
+  assert_true(@lowering_relation.node_accepts_managed_relation_view(node, 1))
 }
