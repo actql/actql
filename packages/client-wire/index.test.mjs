@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {checkpointLimits, clientHostOperations, clientSourceFormats, isClientSubmitRejection,
-  validCheckpointPage,
+  validCheckpointPage, validCheckOutcome,
   validCheckpointReview, validClientAdmission, validClientBody,
   validClientConnection, validClientProfile, validDeliveryAttemptLookup,
   validHeldRequest, validRequestCancellation, validRequestLookup, validResolveResults, validRunRef,
@@ -495,5 +495,22 @@ test('Resource discovery requests and replies stay within their bounds', () => {
   ]) {
     assert.equal(validResourcePeek({...reply, ...change}, peekExpected),
       false, JSON.stringify(change));
+  }
+});
+
+test('independent default mismatch fixture binds closed facts to the declaration revision', () => {
+  const original = JSON.parse(readFileSync(new URL(
+    './fixtures/check-default-type.invalid.json', import.meta.url), 'utf8'));
+  assert.equal(validCheckOutcome(original), true);
+  for (const update of [
+    answer => { answer.report.reasons[0].location.document_id = 'parameters'; },
+    answer => { answer.report.reasons[0].location.revision = `rev:${'6'.repeat(64)}`; },
+    answer => { delete answer.report.reasons[0].facts.actual_type; },
+    answer => { answer.report.reasons[0].facts.value = 'private-default'; },
+    answer => { answer.report.verdict = 'verified'; },
+    answer => { answer.reason_schema_cid = 'sha256:6c1c1eb6f5d8ac67e831f7c49ef8b2defe598c951ef542b12360e1356037ce76'; },
+  ]) {
+    const changed = structuredClone(original); update(changed);
+    assert.equal(validCheckOutcome(changed), false);
   }
 });

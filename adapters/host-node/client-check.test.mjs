@@ -411,15 +411,15 @@ for (const [entrance, open] of Object.entries(entrances)) {
 
   test(`${entrance}: invalid declarations retain only their owned submitted locations`, async t => {
     const client = await open(t, configurations.denied);
-    for (const [declaration, pointer] of [
+    for (const [declaration, pointer, typedDefault = false] of [
       [{options: {type: 'number', minimum: 1, default: 0}}, '/options/default'],
       [{options: {type: 'object', fields: {count: {type: 'number'}},
-        default: {count: 'private-value'}}}, '/options/default/count'],
+        default: {count: 'private-value'}}}, '/options/default/count', true],
       [{options: {type: 'number', future: 'private-value'}}, '/options/future'],
       [{options: {type: 'number', meta: {actql_private: 'private-value'}}},
         '/options/meta/actql_private'],
       [{options: {type: 'object', fields: {'/a~~//é': {type: 'number'}},
-        default: {'/a~~//é': 'private-value'}}}, '/options/default/~1a~0~0~1~1é'],
+        default: {'/a~~//é': 'private-value'}}}, '/options/default/~1a~0~0~1~1é', true],
       [{'a~~//é': {type: 'number'}}, '/a~0~0~1~1é'],
       [{}, ''],
     ]) {
@@ -431,7 +431,9 @@ for (const [entrance, open] of Object.entries(entrances)) {
       const location = {kind: 'structured', document_id: 'parameter_declarations',
         revision: input.revision, pointer};
       assert.deepEqual(outcome.report.reasons,
-        [{code: 'parameter_declarations_invalid', location}], '[check-mutation:declaration-location]');
+        [{...(typedDefault ? {code: 'parameter_default_type_mismatch',
+          facts: {parameter: 'options', expected_type: 'number', actual_type: 'string'}}
+          : {code: 'parameter_declarations_invalid'}), location}], '[check-mutation:declaration-location]');
       assert.equal(resolveCheckLocation(outcome, location).input, input);
       assert.equal(resolveCheckLocation(outcome, location,
         {...input, value: {options: {type: 'number'}}}), undefined);
@@ -440,15 +442,18 @@ for (const [entrance, open] of Object.entries(entrances)) {
       assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
     }
     // The reader's missing-member path does not name a submitted node.
-    for (const declaration of [
-      {options: {default: 0}},
-      {options: {type: 'object', fields: {count: {type: 'number'}}, default: {}}},
-      {options: {type: 'object', fields: {['a'.repeat(4096)]: {type: 'number'}},
+    for (const [declaration, reason] of [
+      [{options: {default: 0}}, {code: 'parameter_declarations_invalid'}],
+      [{options: {type: 'object', fields: {count: {type: 'number'}}, default: {}}},
+        {code: 'parameter_declarations_invalid'}],
+      [{options: {type: 'object', fields: {['a'.repeat(4096)]: {type: 'number'}},
         default: {['a'.repeat(4096)]: 'private-value'}}},
+      {code: 'parameter_default_type_mismatch', facts: {parameter: 'options',
+        expected_type: 'number', actual_type: 'string'}}],
     ]) {
       const outcome = await client.check('SELECT 1 AS n', {format: 'sql',
         parameterDeclarations: declaration});
-      assert.deepEqual(outcome.report.reasons, [{code: 'parameter_declarations_invalid'}]);
+      assert.deepEqual(outcome.report.reasons, [reason]);
     }
     client.assertNoExecution();
   });
@@ -1172,6 +1177,47 @@ const emptyEnvironment = JSON.parse(await readFile(join(repository,
 const absentEnvironment = withPolicy(emptyEnvironment, sourceEnvironment.host_policy_profile);
 
 for (const entrance of ['local', 'http']) {
+  test(`${entrance}: default type violations retain declaration input and the owned leaf type`, async t => {
+    const client = await contextClient(t, entrance, absentEnvironment);
+    const cases = [
+      [{minimum: {type: 'number', default: 'private-default'}}, 'minimum',
+        '/minimum/default', 'number', 'string'],
+      [{payload: {type: 'object', fields: {rows: {type: 'array', items: {type: 'number'}}},
+        default: {rows: ['private-default']}}}, 'payload', '/payload/default/rows/0', 'number', 'string'],
+      [{payload: {type: 'object', fields: {'x/~': {type: 'number'}},
+        default: {'x/~': 'private-default'}}}, 'payload', '/payload/default/x~1~0', 'number', 'string'],
+      [{payload: {type: 'object', fields: {'e\u0301/~😀': {type: 'number'}},
+        default: {'e\u0301/~😀': 'private-default'}}}, 'payload',
+      '/payload/default/e\u0301~1~0😀', 'number', 'string'],
+      [{minimum: {type: 'number', nullable: false, default: null}}, 'minimum',
+        '/minimum/default', 'number', 'null'],
+    ];
+    for (const [parameterDeclarations, parameter, pointer, expected_type, actual_type] of cases) {
+      const original = structuredClone(parameterDeclarations);
+      const outcome = await client.check('SELECT 1 AS n', {format: 'sql', parameterDeclarations});
+      assert.equal(outcome.outcome, 'completed');
+      assert.equal(outcome.report.verdict, 'invalid', '[check-mutation:default-verdict]');
+      const input = getCheckInput(outcome, 'parameter_declarations');
+      assert.deepEqual(input.value, original);
+      assert.deepEqual(outcome.report.reasons, [{code: 'parameter_default_type_mismatch',
+        facts: {parameter, expected_type, actual_type}, location: {
+          document_id: 'parameter_declarations', revision: input.revision,
+          kind: 'structured', pointer}}], '[check-mutation:default-reason]');
+      assert.deepEqual(outcome.report.requirements, []);
+      assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+      assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location).input, input);
+      assert.equal(JSON.stringify(outcome).includes('private-default'), false);
+      assert.deepEqual(explainCheckReason(outcome.report.reasons[0]), {kind: 'known',
+        summary: 'A parameter default does not match its declared type.',
+        hint: 'Correct the default to match the declared type, then check again.'});
+    }
+    const valid = await client.check('SELECT @minimum AS n', {format: 'sql',
+      parameterDeclarations: {minimum: {type: 'number', default: 7}}});
+    assert.equal(valid.report.verdict, 'verified', JSON.stringify(valid.report));
+    assert.deepEqual(valid.report.reasons, []);
+    assert.deepEqual(valid.report.requirements, []);
+  });
+
   test(`${entrance}: Subgraph selector violations preserve the common Owner reason`, async t => {
     const client = await contextClient(t, entrance, absentEnvironment);
     const prefix = 'DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH ' +

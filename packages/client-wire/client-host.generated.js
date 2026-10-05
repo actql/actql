@@ -2215,6 +2215,37 @@ const schemas = {
                       "if": {
                         "properties": {
                           "code": {
+                            "const": "parameter_default_type_mismatch"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "actual_type"
+                            ]
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "parameter_declarations"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
                             "const": "parameter_undeclared"
                           }
                         }
@@ -2426,6 +2457,7 @@ const schemas = {
                             "not": {
                               "enum": [
                                 "supplied_value_type_mismatch",
+                                "parameter_default_type_mismatch",
                                 "parameter_value_required",
                                 "parameter_undeclared",
                                 "supplied_value_constraint_violation",
@@ -2747,6 +2779,37 @@ const schemas = {
                       "if": {
                         "properties": {
                           "code": {
+                            "const": "parameter_default_type_mismatch"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "actual_type"
+                            ]
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "parameter_declarations"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
                             "const": "parameter_undeclared"
                           }
                         }
@@ -2958,6 +3021,7 @@ const schemas = {
                             "not": {
                               "enum": [
                                 "supplied_value_type_mismatch",
+                                "parameter_default_type_mismatch",
                                 "parameter_value_required",
                                 "parameter_undeclared",
                                 "supplied_value_constraint_violation",
@@ -3093,7 +3157,7 @@ const schemas = {
             ]
           },
           "reason_schema_cid": {
-            "const": "sha256:6c1c1eb6f5d8ac67e831f7c49ef8b2defe598c951ef542b12360e1356037ce76"
+            "const": "sha256:ceb2a05aa8eee7b8c62fc9e734d5488e1c3b9ddd4fc57bbbd1b419cb2bb88261"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -3516,6 +3580,37 @@ const schemas = {
                       "if": {
                         "properties": {
                           "code": {
+                            "const": "parameter_default_type_mismatch"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "actual_type"
+                            ]
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "parameter_declarations"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
                             "const": "parameter_undeclared"
                           }
                         }
@@ -3727,6 +3822,7 @@ const schemas = {
                             "not": {
                               "enum": [
                                 "supplied_value_type_mismatch",
+                                "parameter_default_type_mismatch",
                                 "parameter_value_required",
                                 "parameter_undeclared",
                                 "supplied_value_constraint_violation",
@@ -4048,6 +4144,37 @@ const schemas = {
                       "if": {
                         "properties": {
                           "code": {
+                            "const": "parameter_default_type_mismatch"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "actual_type"
+                            ]
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "parameter_declarations"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
                             "const": "parameter_undeclared"
                           }
                         }
@@ -4259,6 +4386,7 @@ const schemas = {
                             "not": {
                               "enum": [
                                 "supplied_value_type_mismatch",
+                                "parameter_default_type_mismatch",
                                 "parameter_value_required",
                                 "parameter_undeclared",
                                 "supplied_value_constraint_violation",
@@ -4406,7 +4534,7 @@ const schemas = {
             }
           },
           "reason_schema_cid": {
-            "const": "sha256:6c1c1eb6f5d8ac67e831f7c49ef8b2defe598c951ef542b12360e1356037ce76"
+            "const": "sha256:ceb2a05aa8eee7b8c62fc9e734d5488e1c3b9ddd4fc57bbbd1b419cb2bb88261"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -4447,7 +4575,7 @@ const schemas = {
             }
           },
           "reason_schema_cid": {
-            "const": "sha256:6c1c1eb6f5d8ac67e831f7c49ef8b2defe598c951ef542b12360e1356037ce76"
+            "const": "sha256:ceb2a05aa8eee7b8c62fc9e734d5488e1c3b9ddd4fc57bbbd1b419cb2bb88261"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -5487,7 +5615,7 @@ const operationKeys = {
   ]
 };
 
-export const checkReasonSchemaCid = "sha256:6c1c1eb6f5d8ac67e831f7c49ef8b2defe598c951ef542b12360e1356037ce76";
+export const checkReasonSchemaCid = "sha256:ceb2a05aa8eee7b8c62fc9e734d5488e1c3b9ddd4fc57bbbd1b419cb2bb88261";
 function valid(value, schema) {
   if (schema.$ref) return valid(value, schemas[schema.$ref]);
   if (schema.oneOf && schema.oneOf.filter(rule => valid(value, rule)).length !== 1) return false;

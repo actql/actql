@@ -31,3 +31,16 @@ if (outcome.outcome === 'completed') {
     }
   }
 }
+
+const defaultReason: Reason = {code: 'parameter_default_type_mismatch',
+  facts: {parameter: 'minimum', expected_type: 'number', actual_type: 'string'},
+  location: {kind: 'structured', document_id: 'parameter_declarations',
+    revision: `rev:${'1'.repeat(64)}`, pointer: '/minimum/default'}};
+explainCheckReason(defaultReason);
+// @ts-expect-error Default facts cannot carry an unregistered actual type.
+const unknownDefaultType: Reason = {code: 'parameter_default_type_mismatch', facts: {parameter: 'minimum', expected_type: 'number', actual_type: 'private_provider_type'}};
+// @ts-expect-error Default facts never carry submitted values.
+const privateDefault: Reason = {code: 'parameter_default_type_mismatch', facts: {parameter: 'minimum', expected_type: 'number', actual_type: 'string', value: 'private-default'}};
+// @ts-expect-error Structured diagnostics cannot claim a text source document.
+const wrongDefaultDocument: Reason = {code: 'parameter_default_type_mismatch', facts: {parameter: 'minimum', expected_type: 'number', actual_type: 'string'}, location: {kind: 'structured', document_id: 'source', revision: `rev:${'1'.repeat(64)}`, pointer: '/minimum/default'}};
+void unknownDefaultType; void privateDefault; void wrongDefaultDocument;
