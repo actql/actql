@@ -20,7 +20,15 @@ fn carrier_work(
 fn carrier_node_supports_selected_execution(
   node : @lower.PreparedNode,
   work : Ref[Int],
+  analytic? : Bool = false,
 ) -> Bool raise CarrierWorkStop {
+  // Source-free Relation DAGs may hand an analytic occurrence to the already
+  // registered bounded group provider. That provider retains the exact
+  // order, frame, expression-context and numeric admission checks. Other
+  // analytic shapes keep their existing fused ownership decision.
+  if analytic && @lower.payload(node) is @lower.Analytic(_) {
+    return true
+  }
   // The lowering capability query scans aggregate descriptors. Reserve its
   // bounded scan before entering it, including unsupported count profiles.
   if @lower.payload(node) is @lower.CountGroup(checked) &&
@@ -289,6 +297,7 @@ fn carrier_segment_prefix_end(
       intermediate_result = true
     }
   }
+  let mut source_free_relation_dag = false
   if stage == 0 {
     if !graph.source_free_root {
       return None
@@ -298,6 +307,7 @@ fn carrier_segment_prefix_end(
     let mut carrier_relation_consumer = false
     let mut relation_only = true
     let mut values_roots = 0
+    let mut binary_relation_consumer = false
     for step in 0..<count {
       carrier_work(work)
       guard @lower.node_at(prepared, step) is Some(node) else { return None }
@@ -327,6 +337,9 @@ fn carrier_segment_prefix_end(
       if @lower.preparation_carrier_at(prepared, @pipeline.Step(step))
         is Some(output) &&
         @carrier.kind(output) == @carrier.RelationKind {
+        if @lower.node_input_count(node) == 2 {
+          binary_relation_consumer = true
+        }
         for input in 0..<@lower.node_input_count(node) {
           carrier_work(work)
           match @lower.node_input_target(node, input) {
@@ -344,16 +357,19 @@ fn carrier_segment_prefix_end(
         }
       }
     }
-    // Independent Values roots cannot be realized as one linear pipeline.
-    // Let a Relation-only DAG reach the existing selected-provider and exact
-    // per-edge checks below; root count alone never authorizes a split.
-    let independent_relations = relation_only && values_roots > 1
+    // Independent Values roots and branches joined from one shared Values
+    // root need exact operation ports. Let these Relation-only DAGs reach the
+    // selected-provider and per-edge checks below; shape alone cannot split.
+    // A unary nonlinear Values suffix still retains its existing refusal.
+    let relation_dag = relation_only &&
+      (values_roots > 1 || (values_roots > 0 && binary_relation_consumer))
+    source_free_relation_dag = relation_dag
     // A source-free Carrier prefix needs segmentation when a later typed
     // Carrier-to-Relation step or an intermediate Result needs independent
     // ownership. Carrier-only prefixes without either retain fused execution.
     if !values_source ||
       (
-        !independent_relations &&
+        !relation_dag &&
         (
           (!carrier_construction && !intermediate_result) ||
           (!carrier_relation_consumer && !intermediate_result)
@@ -386,7 +402,11 @@ fn carrier_segment_prefix_end(
   for step in 0..<count {
     carrier_work(work)
     guard @lower.node_at(prepared, step) is Some(node) else { return None }
-    if !carrier_node_supports_selected_execution(node, work) {
+    if !carrier_node_supports_selected_execution(
+        node,
+        work,
+        analytic=source_free_relation_dag,
+      ) {
       all_selected = false
       break
     }
