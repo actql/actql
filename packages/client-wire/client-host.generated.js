@@ -2182,7 +2182,8 @@ const schemas = {
                                 "invalid_parameter",
                                 "unknown_reference",
                                 "invalid_arguments",
-                                "expected_boolean"
+                                "expected_boolean",
+                                "invalid_bounds"
                               ]
                             }
                           }
@@ -2531,6 +2532,44 @@ const schemas = {
                       "if": {
                         "properties": {
                           "code": {
+                            "const": "query_frame_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "invalid_bounds"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
                             "const": "graph_operation_invalid"
                           }
                         }
@@ -2585,6 +2624,7 @@ const schemas = {
                                 "supplied_value_constraint_violation",
                                 "query_lexical_invalid",
                                 "query_expression_invalid",
+                                "query_frame_invalid",
                                 "graph_operation_invalid"
                               ]
                             }
@@ -2867,7 +2907,8 @@ const schemas = {
                                 "invalid_parameter",
                                 "unknown_reference",
                                 "invalid_arguments",
-                                "expected_boolean"
+                                "expected_boolean",
+                                "invalid_bounds"
                               ]
                             }
                           }
@@ -3216,6 +3257,44 @@ const schemas = {
                       "if": {
                         "properties": {
                           "code": {
+                            "const": "query_frame_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "invalid_bounds"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
                             "const": "graph_operation_invalid"
                           }
                         }
@@ -3270,6 +3349,7 @@ const schemas = {
                                 "supplied_value_constraint_violation",
                                 "query_lexical_invalid",
                                 "query_expression_invalid",
+                                "query_frame_invalid",
                                 "graph_operation_invalid"
                               ]
                             }
@@ -3404,7 +3484,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d"
+            "const": "sha256:15d4d9b93f6e22c50256271ba09d09ba5da6a2a7105e118af2ad224a0591feac"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -3795,7 +3875,8 @@ const schemas = {
                                 "invalid_parameter",
                                 "unknown_reference",
                                 "invalid_arguments",
-                                "expected_boolean"
+                                "expected_boolean",
+                                "invalid_bounds"
                               ]
                             }
                           }
@@ -4144,6 +4225,44 @@ const schemas = {
                       "if": {
                         "properties": {
                           "code": {
+                            "const": "query_frame_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "invalid_bounds"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
                             "const": "graph_operation_invalid"
                           }
                         }
@@ -4198,6 +4317,7 @@ const schemas = {
                                 "supplied_value_constraint_violation",
                                 "query_lexical_invalid",
                                 "query_expression_invalid",
+                                "query_frame_invalid",
                                 "graph_operation_invalid"
                               ]
                             }
@@ -4480,7 +4600,8 @@ const schemas = {
                                 "invalid_parameter",
                                 "unknown_reference",
                                 "invalid_arguments",
-                                "expected_boolean"
+                                "expected_boolean",
+                                "invalid_bounds"
                               ]
                             }
                           }
@@ -4829,6 +4950,44 @@ const schemas = {
                       "if": {
                         "properties": {
                           "code": {
+                            "const": "query_frame_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "invalid_bounds"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
                             "const": "graph_operation_invalid"
                           }
                         }
@@ -4883,6 +5042,7 @@ const schemas = {
                                 "supplied_value_constraint_violation",
                                 "query_lexical_invalid",
                                 "query_expression_invalid",
+                                "query_frame_invalid",
                                 "graph_operation_invalid"
                               ]
                             }
@@ -5035,7 +5195,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d"
+            "const": "sha256:15d4d9b93f6e22c50256271ba09d09ba5da6a2a7105e118af2ad224a0591feac"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -5081,7 +5241,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d"
+            "const": "sha256:15d4d9b93f6e22c50256271ba09d09ba5da6a2a7105e118af2ad224a0591feac"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -6121,8 +6281,8 @@ const operationKeys = {
   ]
 };
 
-export const checkReasonSchemaCid = "sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d";
-export const checkOutcomeSchemaCid = "sha256:a5dd8a6e4a3c5411d97b4d4a5f333992c655c038534352e701257a4c28baea4d";
+export const checkReasonSchemaCid = "sha256:15d4d9b93f6e22c50256271ba09d09ba5da6a2a7105e118af2ad224a0591feac";
+export const checkOutcomeSchemaCid = "sha256:506730273187b8d1bb3b7a5bd1a446eaffe3007da615c637bd461743e4e0a1b6";
 function valid(value, schema) {
   if (schema.$ref) return valid(value, schemas[schema.$ref]);
   if (schema.oneOf && schema.oneOf.filter(rule => valid(value, rule)).length !== 1) return false;

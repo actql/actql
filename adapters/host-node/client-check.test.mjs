@@ -1204,6 +1204,7 @@ const contextKey = new Uint8Array(32).fill(7);
 async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
   closed = false, connectionAllowed = true,
   sdkConnect = connect,
+  sdkConnectInProcess = connectInProcess,
   maxRequestBytes = 65536,
   mutateCheckReply,
   mutateCheckTransportReply,
@@ -1234,7 +1235,7 @@ async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
     maxRowBytes: 1024, maxRequestBytes};
   if (entrance === 'local') {
     const port = createNodeInProcessClientHost(configuration);
-    const client = await connectInProcess({mode, owner: mode},
+    const client = await sdkConnectInProcess({mode, owner: mode},
       mutateCheckTransportReply ? {async perform(operation, body, signal) {
         const value = await port.perform(operation, body, signal);
         return operation === 'check' ? mutateCheckTransportReply(value) : value;
@@ -1262,6 +1263,87 @@ async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
   return client;
 }
 
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: check explains owned invalid frame bounds`, async t => {
+    const client = await contextClient(t, entrance, sourceEnvironment,
+      {aliases: [alias], readOutcome: 'allow'});
+    const declarations = {before: {type: 'number', nullable: false},
+      after: {type: 'number', nullable: false}};
+    for (const [direction, parameters] of [
+      ['PRECEDING', {before: 1, after: 2}],
+      ['FOLLOWING', {before: 2, after: 1}],
+    ]) {
+      const text = 'SELECT FIRST_VALUE(amount) OVER '
+        + `(ORDER BY id ROWS BETWEEN @before ${direction} AND @after ${direction}) AS first FROM records`;
+      const outcome = await client.check(text, {format: 'sql',
+        parameterDeclarations: declarations, parameters});
+      assert.equal(outcome.outcome, 'completed');
+      assert.equal(outcome.report.verdict, 'invalid', JSON.stringify(outcome));
+      assert.deepEqual(outcome.report.reasons, [{code: 'query_frame_invalid',
+        facts: {issue: 'invalid_bounds'}}], 'check-frame-reason');
+      assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+      assert.deepEqual(outcome.report.requirements, []);
+      assert.equal(Object.hasOwn(outcome.report.reasons[0], 'location'), false);
+      assert.deepEqual(explainCheckReason(outcome.report.reasons[0]), {kind: 'known',
+        summary: 'The analytic ROWS frame boundaries do not form a valid interval.',
+        hint: 'For two PRECEDING boundaries, the start distance must be at least the end distance; for two FOLLOWING boundaries, it must be at most the end distance.'},
+        '[check-mutation:check-frame-explanation]');
+      assert.deepEqual(explainCheckReason(outcome.report.reasons[0], {locale: 'ja'}), {kind: 'known',
+        summary: 'analytic ROWS frameの境界が有効な区間になっていません。',
+        hint: '両境界がPRECEDINGなら開始距離を終了距離以上に、両境界がFOLLOWINGなら開始距離を終了距離以下にしてください。'});
+    }
+  });
+}
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: SDK rejects malformed frame facts from an actual check reply`, async t => {
+    let mutation = value => value;
+    const client = await contextClient(t, entrance, sourceEnvironment,
+      {aliases: [alias], readOutcome: 'allow',
+        mutateCheckTransportReply: value => mutation(value)});
+    const check = () => client.check('SELECT FIRST_VALUE(amount) OVER '
+      + '(ORDER BY id ROWS BETWEEN @before PRECEDING AND @after PRECEDING) AS first FROM records',
+      {format: 'sql', parameterDeclarations: {before: {type: 'number', nullable: false},
+        after: {type: 'number', nullable: false}}, parameters: {before: 1, after: 2}});
+    assert.deepEqual((await check()).report.reasons[0].facts, {issue: 'invalid_bounds'});
+    for (const facts of [undefined, {}, {issue: 'reversed_preceding'},
+      {issue: 'invalid_bounds', requirement_index: 0}, {issue: 'expected_boolean'}]) {
+      mutation = value => ({...value, report: {...value.report,
+        reasons: [{...value.report.reasons[0], facts}]}});
+      await assert.rejects(check(), {code: 'InvalidHostCheckOutcome'});
+    }
+  });
+
+  test(`${entrance}: protected frames retain safe independent violations`, async t => {
+    const clients = [
+      await contextClient(t, entrance, sourceEnvironment, {aliases: []}),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'deny'}),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'allow', closed: true}),
+    ];
+    const text = 'SELECT FIRST_VALUE(amount) OVER '
+      + '(ORDER BY id ROWS BETWEEN @before PRECEDING AND @after PRECEDING) AS first FROM records';
+    const declarations = {before: {type: 'number', nullable: false},
+      after: {type: 'number', nullable: false}};
+    for (const parameters of [{before: 1, after: 2}, {before: 'private-frame-value', after: 2}]) {
+      const outcomes = await Promise.all(clients.map(client => client.check(text,
+        {format: 'sql', parameterDeclarations: declarations, parameters})));
+      assert.deepEqual(outcomes[0], outcomes[1], 'check-frame-disclosure');
+      assert.deepEqual(outcomes[0], outcomes[2], 'check-frame-disclosure');
+      const invalid = typeof parameters.before === 'string';
+      const report = outcomes[0].report;
+      assert.equal(report.verdict, invalid ? 'invalid' : 'undetermined');
+      assert.deepEqual(report.coverage, {limits: [],
+        unresolved: [{boundary: 'source_resolution', reason: 'unresolved_protected'}]});
+      assert.deepEqual(report.reasons.map(({code, facts}) => ({code, ...(facts ? {facts} : {})})),
+        invalid ? [{code: 'supplied_value_type_mismatch',
+          facts: {parameter: 'before', expected_type: 'number', actual_type: 'string'}}] : []);
+      assert.equal(JSON.stringify(outcomes).includes('private-frame-value'), false);
+      assert.equal(report.reasons.some(reason => reason.code === 'query_frame_invalid'), false);
+      if (invalid) assert.equal(resolveCheckLocation(outcomes[0], report.reasons[0].location).pointer, '/before');
+    }
+  });
+}
+
 const withPolicy = (wire, host_policy_profile) => {
   const {evidence_bundle_cid, ...body} = structuredClone(wire);
   body.host_policy_profile = structuredClone(host_policy_profile);
@@ -1271,6 +1353,32 @@ const withPolicy = (wire, host_policy_profile) => {
 const emptyEnvironment = JSON.parse(await readFile(join(repository,
   'spec/local-check-environment.json'), 'utf8'));
 const absentEnvironment = withPolicy(emptyEnvironment, sourceEnvironment.host_policy_profile);
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: check accepts ordered and equal frame boundaries`, async t => {
+    const wire = withPolicy(sourceEnvironment, {capacity: {
+      ...sourceEnvironment.host_policy_profile.capacity,
+      max_analytic_input_wire_bytes: 10000, max_analytic_output_wire_bytes: 10000,
+      max_analytic_partition_wire_bytes: 10000, max_analytic_frame_memberships: 10000,
+    }});
+    const client = await contextClient(t, entrance, wire, {aliases: [alias], readOutcome: 'allow'});
+    for (const [direction, parameters] of [
+      ['PRECEDING', {before: 2, after: 1}], ['FOLLOWING', {before: 1, after: 2}],
+      ['PRECEDING', {before: 1, after: 1}], ['FOLLOWING', {before: 1, after: 1}],
+    ]) {
+      const text = 'SELECT FIRST_VALUE(amount) OVER '
+        + `(ORDER BY id ROWS BETWEEN @before ${direction} AND @after ${direction}) AS first FROM records`;
+      const outcome = await client.check(text, {format: 'sql',
+        parameterDeclarations: {before: {type: 'number', nullable: false},
+          after: {type: 'number', nullable: false}}, parameters});
+      assert.equal(outcome.outcome, 'completed');
+      assert.equal(outcome.report.verdict, 'verified', JSON.stringify(outcome));
+      assert.deepEqual(outcome.report.reasons, []);
+      assert.deepEqual(outcome.report.requirements, []);
+      assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+    }
+  });
+}
 
 for (const entrance of ['local', 'http']) {
   test(`${entrance}: check locales retain protected equivalence and frontier`, async t => {
@@ -1383,7 +1491,7 @@ for (const entrance of ['local', 'http']) {
       assert.equal(JSON.stringify(outcome), original);
       assert.equal(requests, count, 'Presentation performs no additional check or execution I/O');
       assert.deepEqual(sdk.getCheckPresentationInfo({locale: 'ja'}),
-        {locale: 'ja', translationRevision: '2026-10-06.ja.1'});
+        {locale: 'ja', translationRevision: '2026-10-06.ja.2'});
     }
     const declarations = Object.fromEntries(Array.from({length: 512}, (_, i) =>
       [`p${String(i).padStart(3, '0')}`, {type: 'number'}]));
@@ -2729,37 +2837,45 @@ for (const [name, [from, to]] of Object.entries(mutations)) {
 }
 
 
-test('http: the pinned pre-extension SDK refuses the current Host contract', async t => {
-  // Load immutable historical consumers for this negative acceptance only.
-  // No historical implementation or compatibility adapter ships in the product.
-  for (const [revision, expectedCid] of [
-    ['ea67efe6c4adbb17353eea61f06a3fdfc52dd91b', 'sha256:1565f0b7e8e32f70d97905797ccc37a872b08116c0ef3d9599e4e4509b568621'],
-    ['c4bdfd21416f02aa13a2ac1d7614ef398dec7b31', 'sha256:16c81ff351a5c3d1fa56757c3c9936a68fd7014c81137e8efa1c54988a61c961'],
-    ['5d52b3a970984f3cdad554b9030a0c25fa8ac887', 'sha256:ac08ebfd20b15d7ee4898039c94f3d089baaaeb693b319d241b3e0fe6adec4a6'],
-    ['7f4a8167a0e6492b61478c805a77f3f583b0cd2f', 'sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d'],
-  ]) {
-    const historical = path => execFileSync('git', ['show', `${revision}:${path}`],
-      {cwd: repository, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024});
-    const moduleUrl = source => `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`;
-    const hostWire = moduleUrl(historical('packages/client-wire/client-host.generated.js'));
-    const publicationWire = moduleUrl(historical('packages/client-wire/publication.generated.js'));
-    const wire = moduleUrl(historical('packages/client-wire/index.mjs')
-      .replaceAll("'./client-host.generated.js'", JSON.stringify(hostWire))
-      .replaceAll("'./publication.generated.js'", JSON.stringify(publicationWire)));
-    const checkpoints = moduleUrl(historical('packages/sdk/checkpoints.mjs')
-      .replace("'@actql/client-wire'", JSON.stringify(wire)));
-    const previous = await import(moduleUrl(historical('packages/sdk/index.mjs')
-      .replace("'@actql/client-wire'", JSON.stringify(wire))
-      .replace("'./checkpoints.mjs'", JSON.stringify(checkpoints))));
-    const oldWire = await import(wire);
-    assert.equal(oldWire.checkReasonSchemaCid, expectedCid);
-    const client = await contextClient(t, 'http', absentEnvironment,
-      {sdkConnect: previous.connect});
-    for (const text of ['SELECT 1 AS n', "SELECT '\\q' AS x", 'SELECT CONCAT() AS n']) {
-      await assert.rejects(client.check(text, {format: 'sql'}), {code: 'InvalidHostCheckOutcome'});
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: the pinned pre-extension SDK refuses the current Host contract`, async t => {
+    // Load immutable historical consumers for this negative acceptance only.
+    // No historical implementation or compatibility adapter ships in the product.
+    for (const [revision, expectedCid] of [
+      ['ea67efe6c4adbb17353eea61f06a3fdfc52dd91b', 'sha256:1565f0b7e8e32f70d97905797ccc37a872b08116c0ef3d9599e4e4509b568621'],
+      ['c4bdfd21416f02aa13a2ac1d7614ef398dec7b31', 'sha256:16c81ff351a5c3d1fa56757c3c9936a68fd7014c81137e8efa1c54988a61c961'],
+      ['5d52b3a970984f3cdad554b9030a0c25fa8ac887', 'sha256:ac08ebfd20b15d7ee4898039c94f3d089baaaeb693b319d241b3e0fe6adec4a6'],
+      ['7f4a8167a0e6492b61478c805a77f3f583b0cd2f', 'sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d'],
+      ['47fd48576a1c4f48ebd0ce949e821e302a420cba', 'sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d'],
+    ]) {
+      const historical = path => execFileSync('git', ['show', `${revision}:${path}`],
+        {cwd: repository, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024});
+      const moduleUrl = source => `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`;
+      const hostWire = moduleUrl(historical('packages/client-wire/client-host.generated.js'));
+      const publicationWire = moduleUrl(historical('packages/client-wire/publication.generated.js'));
+      const wire = moduleUrl(historical('packages/client-wire/index.mjs')
+        .replaceAll("'./client-host.generated.js'", JSON.stringify(hostWire))
+        .replaceAll("'./publication.generated.js'", JSON.stringify(publicationWire)));
+      const checkpoints = moduleUrl(historical('packages/sdk/checkpoints.mjs')
+        .replace("'@actql/client-wire'", JSON.stringify(wire)));
+      let previousSource = historical('packages/sdk/index.mjs');
+      if (previousSource.includes("'./check-presentation.mjs'")) {
+        previousSource = previousSource.replaceAll("'./check-presentation.mjs'",
+          JSON.stringify(moduleUrl(historical('packages/sdk/check-presentation.mjs'))));
+      }
+      const previous = await import(moduleUrl(previousSource
+        .replace("'@actql/client-wire'", JSON.stringify(wire))
+        .replace("'./checkpoints.mjs'", JSON.stringify(checkpoints))));
+      const oldWire = await import(wire);
+      assert.equal(oldWire.checkReasonSchemaCid, expectedCid);
+      const client = await contextClient(t, entrance, absentEnvironment,
+        {sdkConnect: previous.connect, sdkConnectInProcess: previous.connectInProcess});
+      for (const text of ['SELECT 1 AS n', "SELECT '\\q' AS x", 'SELECT CONCAT() AS n']) {
+        await assert.rejects(client.check(text, {format: 'sql'}), {code: 'InvalidHostCheckOutcome'});
+      }
     }
-  }
-});
+  });
+}
 
 test('http: SDK rejects malformed expression facts from an actual check reply', async t => {
   let mutation = value => value;
@@ -2808,6 +2924,10 @@ test('http: SDK rejects contradictory evidence injected into a real verified rep
     };
     await assert.rejects(check(), {code: 'InvalidHostCheckOutcome'});
     mutation = value => ({...value, reason_schema_cid: 'sha256:' + '0'.repeat(64)});
+    await assert.rejects(check(), {code: 'InvalidHostCheckOutcome'});
+    mutation = value => ({...value,
+      reason_schema_cid: 'sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d',
+      outcome_schema_cid: 'sha256:a5dd8a6e4a3c5411d97b4d4a5f333992c655c038534352e701257a4c28baea4d'});
     await assert.rejects(check(), {code: 'InvalidHostCheckOutcome'});
     mutation = value => ({...value,
       reason_schema_cid: 'sha256:1565f0b7e8e32f70d97905797ccc37a872b08116c0ef3d9599e4e4509b568621'});

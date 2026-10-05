@@ -17,7 +17,7 @@ test('check presentation revisions are immutable and separate from schema identi
     [{locale: 'ja'}, 'ja'], [{locale: 'ja-JP'}, 'ja'], [{locale: 'fr'}, 'en'],
     [{get locale() { throw new Error('private locale cause'); }}, 'en']]) {
     const info = getCheckPresentationInfo(options);
-    assert.deepEqual(info, {locale, translationRevision: `2026-10-06.${locale}.1`});
+    assert.deepEqual(info, {locale, translationRevision: `2026-10-06.${locale}.2`});
     assert.equal(Object.isFrozen(info), true);
     assert.equal(Object.hasOwn(info, 'reasonSchemaCid'), false);
     assert.equal(Object.hasOwn(info, 'outcomeSchemaCid'), false);

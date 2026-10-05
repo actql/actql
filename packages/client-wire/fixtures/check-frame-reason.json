@@ -1,0 +1,4 @@
+{
+  "code": "query_frame_invalid",
+  "facts": {"issue": "invalid_bounds"}
+}

@@ -39,6 +39,7 @@ const lexicalIssues = ['unexpected_end', 'unexpected_token', 'invalid_escape',
 const graphIssues = ['invalid_kind', 'invalid_output_rows'];
 const subgraphIssues = ['invalid_node_selector'];
 const expressionIssues = ['unknown_reference', 'invalid_arguments', 'invalid_number', 'expected_boolean'];
+const frameIssues = ['invalid_bounds'];
 export const checkReasonSchema = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
   $id: 'https://smooth.dev/schemas/actql-check-reason-0.1.json',
@@ -62,7 +63,7 @@ export const checkReasonSchema = {
       {type: 'object', additionalProperties: false, required: ['operation', 'issue'],
         properties: {operation: {const: 'subgraph'}, issue: {enum: subgraphIssues}}},
       {type: 'object', additionalProperties: false, required: ['issue'],
-        properties: {issue: {enum: [...new Set([...lexicalIssues, ...expressionIssues])]}}},
+        properties: {issue: {enum: [...new Set([...lexicalIssues, ...expressionIssues, ...frameIssues])]}}},
     ]}},
   allOf: [
     // Known locations retain the input domain described by their reason.
@@ -103,12 +104,16 @@ export const checkReasonSchema = {
       then: {required: ['facts'], properties: {facts: {required: ['issue'],
         properties: {issue: {enum: expressionIssues}}},
         location: {properties: {kind: {const: 'text'}}}}}},
+    {if: {properties: {code: {const: 'query_frame_invalid'}}},
+      then: {required: ['facts'], properties: {facts: {required: ['issue'],
+        properties: {issue: {enum: frameIssues}}},
+        location: {properties: {kind: {const: 'text'}, document_id: {const: 'source'}}}}}},
     {if: {properties: {code: {const: 'graph_operation_invalid'}}},
       then: {required: ['facts'], properties: {facts: {required: ['operation', 'issue'],
         properties: {operation: {enum: ['components', 'subgraph']},
           issue: {enum: [...graphIssues, ...subgraphIssues]}}},
         location: {properties: {kind: {const: 'text'}}}}}},
-    {if: {properties: {code: {not: {enum: ['supplied_value_type_mismatch', 'parameter_default_type_mismatch', 'parameter_value_required', 'parameter_undeclared', 'parameter_unused', 'supplied_value_constraint_violation', 'query_lexical_invalid', 'query_expression_invalid', 'graph_operation_invalid']}}}},
+    {if: {properties: {code: {not: {enum: ['supplied_value_type_mismatch', 'parameter_default_type_mismatch', 'parameter_value_required', 'parameter_undeclared', 'parameter_unused', 'supplied_value_constraint_violation', 'query_lexical_invalid', 'query_expression_invalid', 'query_frame_invalid', 'graph_operation_invalid']}}}},
       then: {not: {required: ['facts']}}},
   ],
 };

@@ -709,6 +709,17 @@ Editor session/version custody remains with the editor integration: it associate
 the submitted snapshot with its open buffer and compares current identity,
 revision and text before rendering there. A reopened session cannot replace that
 association. The helper is explicitly UTF-16, not an LSP server or edit applicator.
+The public `query_frame_invalid` reason carries closed
+`facts.issue: "invalid_bounds"` only when the common checker returns the typed
+`Closure(Operations(Frames(InvalidFrame(_))))` cause. The checker closes the
+parameter-bound interval; the Frontend and SDK do not repeat that check.
+Its internal requirement index is neither an authored span nor an original
+input JSON pointer, so this projection omits a position. Source visibility
+still precedes checking: a protected dependency produces the existing generic
+unresolved boundary, while an independently public supplied-value violation
+remains visible. The coordinated reason and outcome schema identities change;
+the existing diagnostics contract is unchanged.
+
 `explainCheckReason` provides safe English summaries/hints; unknown codes have an
 explicit generic explanation and confer no retry or execution permission.
 
