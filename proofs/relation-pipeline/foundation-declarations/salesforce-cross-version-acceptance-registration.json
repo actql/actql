@@ -2,21 +2,21 @@
   "version": "actql-foundation-declaration/0.1",
   "id": "salesforce-cross-version-acceptance-registration",
   "kind": "change",
-  "revision": "a5b864f8dacede1871f893ae3c263a8def4fbe26",
+  "revision": "bf0388b4ce50101b867c18e5aee5aa9c5e8a53bc",
   "parents": [
-    "d1c73ec00722cb433b3ce759e3d454f7df1f48c7"
+    "195c1b2a2d4553081decd89f3b6f8a606b67713a"
   ],
   "changes": [
     {
       "path": "package.json",
       "before": [
         {
-          "revision": "d1c73ec00722cb433b3ce759e3d454f7df1f48c7",
-          "digest": "2ffb7546962a9034fa2f2f0b1b01892cfa83f9a151fbc028c549e79d87bc6f28",
+          "revision": "195c1b2a2d4553081decd89f3b6f8a606b67713a",
+          "digest": "ce8ec3b39c9f180c490acba8dd25a6d91c7fe4f5ca96b8aa3187dc8706119e69",
           "mode": "100644"
         }
       ],
-      "afterDigest": "174823fac038c32de6b8d8eaee4e977853086387fcd683c8f7650c2dc319390f",
+      "afterDigest": "d5306da27bbadecc4653ca7e04d6c390664c55ddcb886f8ff38984efc59b0f34",
       "afterMode": "100644",
       "reason": "Register the Salesforce Effect cross-version acceptance, which generates Host state with the pinned previous version and resumes it with the current checkout. Preserve every existing test command, proof gate, corpus, mutation and foundation owner unchanged."
     }

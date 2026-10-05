@@ -6,7 +6,7 @@ This record covers the move of Salesforce record updates onto the Host's provide
 
 `npm run test:salesforce-cross-version` (`adapters/connectors/salesforce/test/cross-version/run-cross-version.mjs`) runs the whole comparison in one temporary root:
 
-1. Check out the pinned previous version (`a5ebf3da0b409088660e8f83cd0aadd708149e44`, the latest `main` before the move) in a temporary worktree.
+1. Check out the pinned previous version (`64046e37a1cadb2148edeab7cbf85b96d125b518`, the latest `main` before the move) in a temporary worktree.
 2. Add only this checkout's test tooling: the generator, its state module, its Host and Local children, and the test org. The run refuses if `git status` shows any product path changed there.
 3. Install that checkout's own dependencies and build its own MoonBit runtime. Build this checkout's runtime as well.
 4. Compare the two standard runtime bundles (`connectors_builtin_node.js`). If they differ, the run fails and asks for a re-pin: Salesforce's capability binds the runtime, and a Run captured by another runtime is refused by design.
