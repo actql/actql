@@ -569,6 +569,16 @@ pub fn client_program_imported_effect_relation_bodies(@run_publication_host.Clie
 
 pub fn client_program_imported_effect_scope_json(@run_publication_host.ClientEffectImportedEvidence) -> String
 
+pub fn client_program_infer_approval_input_export_begin(@client_infer_host.Execution, Int) -> Result[@execution_relation.CompletedOutputExport, @client_infer_host.Issue]
+
+pub fn client_program_infer_approval_input_export_cancel(@execution_relation.CompletedOutputExport) -> Unit
+
+pub fn client_program_infer_approval_input_export_finish(@execution_relation.CompletedOutputExport) -> Result[(@execution_relation.CompletedRelationExportReceipt, String), @execution_relation.CompletedExportIssue]
+
+pub fn client_program_infer_approval_input_export_next(@execution_relation.CompletedOutputExport) -> Result[String?, @execution_relation.CompletedExportIssue]
+
+pub fn client_program_infer_approval_input_export_release(@execution_relation.CompletedRelationExportReceipt) -> Unit
+
 pub fn client_program_infer_attempt_evidence(@client_infer_host.Execution, Int) -> Result[@model_execution.ModelAttemptEvidence, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_infer_attempt_leaf(@model_execution.ModelAttemptEvidence, String) -> @run_publication.RunEvidenceValue?
@@ -1230,6 +1240,8 @@ pub fn client_program_start_model_output(@client_local_host.ClientInferInputExec
 pub fn client_program_start_restored_infer_replay(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @run_publication.ModelCaptureBundleRead, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
 pub fn client_program_start_restored_infer_slot_replay(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelSlotReplayRead, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
+
+pub fn client_program_start_restored_prepared_infer_execution(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelProvider, @execution_relation.CompletedOutput, String, String, (@model_execution.ModelCallEntry) -> Bool) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
 pub fn client_program_start_scoped_entered_infer_execution(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelProvider, String, String, (@model_execution.ModelCallEntry) -> Bool, Bool) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 

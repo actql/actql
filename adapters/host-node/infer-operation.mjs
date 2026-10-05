@@ -14,6 +14,7 @@ const activeOperations = new WeakMap();
 export function openNodeInferOperation({moon, preparedProgram, step, graph,
   registry, values, fragment, ordered, provider, savedCapture, savedSlots, quantityCapacity,
   physicalPreflight, egressAdmission, computeSuffix, acquiredInput, composedInput,
+  restoredInput,
   signal, quantum = 256, observeProgress, deferDispatch = false, enterCall}) {
   if (!Number.isSafeInteger(quantum) || quantum < 1 || quantum > 2147483647 ||
       [provider, savedCapture, savedSlots].filter(value => value !== undefined)
@@ -58,6 +59,11 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         provider === undefined || composedInput !== undefined))) {
     throw new TypeError('InvalidInstalledInferEntry');
   }
+  if (restoredInput !== undefined && (!deferDispatch ||
+      typeof enterCall !== 'function' || acquiredInput !== undefined ||
+      composedInput !== undefined || provider === undefined)) {
+    throw new TypeError('InvalidRestoredPreparedInferInput');
+  }
   let entryFailure;
   let entryFlight;
   const enterOriginal = entry => {
@@ -84,7 +90,11 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       return false;
     }
   };
-  const active = checked(composedInput !== undefined
+  const active = checked(restoredInput !== undefined
+    ? moon.clientProgramStartRestoredPreparedInferExecution(preparedProgram,
+      step, graph, registry, values, provider, restoredInput, fragment, ordered,
+      enterOriginal)
+    : composedInput !== undefined
     ? moon.clientProgramStartComposedInferExecution(composedInput.occurrence,
       graph, composedInput.prefix, composedInput.inputs, provider,
       composedInput.sources)
@@ -173,6 +183,17 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       throw new Error('InferPreparedCallSetUnavailable');
     }
     retainedCallSet = Object.freeze({inputWire, inputReceipt, count,
+      // Borrow an independent bounded exporter. Its receipt may be retained
+      // by Store conversion without consuming the original call-scope receipt.
+      beginInputExport(maxBatchBytes) {
+        if (!waiting || closing || reclaimed ||
+            !Number.isSafeInteger(maxBatchBytes) || maxBatchBytes < 1 ||
+            maxBatchBytes > 2147483647) {
+          throw new Error('InferPreparedCallSetUnavailable');
+        }
+        return checked(moon.clientProgramInferApprovalInputExportBegin(active,
+          maxBatchBytes));
+      },
       binding: Object.freeze({providerId: binding._0, taskCid: binding._1,
         fixedRequestCid: binding._2}),
       slotWire(index) {

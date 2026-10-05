@@ -3,7 +3,7 @@
 /// Local chain owns intermediate completions until the model consumer ends.
 /// No ModelTask provider is invoked by input preparation.
 struct ClientInferInputExecution {
-  prefix : @local.ManagedProviderExecution
+  prefix : @local.ManagedProviderExecution?
   sequence : @execution.GeneratedSequence
   infer_step : Int
   owner : @lower.BoundPrepared
@@ -169,6 +169,7 @@ fn start_client_infer_input_sequence(
   execution : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
   mapping : @execution.InferPreparationLimits,
+  restored_input? : @execution.CompletedOutput? = None,
 ) -> Result[ClientInferInputExecution, ClientInferInputIssue] {
   if mapping.max_work < 0 || execution.max_work < 0 {
     return Err(InvalidLimits)
@@ -188,21 +189,47 @@ fn start_client_infer_input_sequence(
     Ok(value) => value
     Err(issue) => return Err(ClientInferInputIssue::Preparation(issue))
   }
-  guard @local.local_bounded_relation_provider(execution, measurement, sequence)
-    is Some(provider) else {
-    return Err(UnsupportedProgram)
+  // A restored input must carry the actual receiving completion. This bind
+  // rejects foreign occurrences and representations before mapping any row.
+  let control = @bounded.control()
+  let restored_mapping = match restored_input {
+    None => None
+    Some(output) => {
+      let bound = match
+        @execution.bind_infer_completed_input(
+          expressions, owner, target, output,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Mapping(issue))
+      }
+      match @execution.start_infer_rows_preparation(control, bound, mapping) {
+        Ok(value) => Some(value)
+        Err(issue) => return Err(Mapping(issue))
+      }
+    }
   }
-  let prefix = match
-    @local.start_managed_provider_with_inputs_and_execution(
-      provider,
-      sequence,
-      inputs,
-      execution.rows.max_rows,
-      measurement.max_bytes,
-      execution,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Local(issue))
+  let prefix = if restored_input is Some(_) {
+    None
+  } else {
+    guard @local.local_bounded_relation_provider(
+        execution, measurement, sequence,
+      )
+      is Some(provider) else {
+      return Err(UnsupportedProgram)
+    }
+    let prefix = match
+      @local.start_managed_provider_with_inputs_and_execution(
+        provider,
+        sequence,
+        inputs,
+        execution.rows.max_rows,
+        measurement.max_bytes,
+        execution,
+      ) {
+      Ok(value) => Some(value)
+      Err(issue) => return Err(Local(issue))
+    }
+    prefix
   }
   Ok({
     prefix,
@@ -212,16 +239,60 @@ fn start_client_infer_input_sequence(
     target,
     expressions,
     limits: mapping,
-    control: @bounded.control(),
-    mapping: None,
+    control,
+    mapping: restored_mapping,
     rows: None,
-    completed_input: None,
-    prefix_done: false,
+    completed_input: restored_input,
+    prefix_done: restored_input is Some(_),
     stopped: false,
     cancelled: false,
     reclaimed: false,
     work: 0L,
   })
+}
+
+///|
+/// Map a Store-readmitted completion through the normal checked INFER input
+/// owner without executing its prefix again. The caller retains the admitted
+/// receiving completion and physical Store custody until this consumer ends.
+/// CIDs or caller-authored rows cannot substitute for this opaque completion.
+pub fn start_client_restored_infer_input(
+  prepared : @publication_host.PreparedClientProgram,
+  task : Int,
+  step : Int,
+  input : @execution.CompletedOutput,
+  registry_body : String,
+  values_body : String,
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  mapping : @execution.InferPreparationLimits,
+  fragment_body? : String? = None,
+  ordered_body? : String? = None,
+) -> Result[ClientInferInputExecution, ClientInferInputIssue] {
+  if @publication_host.client_infer_prefix_owner(prepared, task, step) is None {
+    return Err(UnsupportedProgram)
+  }
+  guard prepare_client_infer_prefix(
+      prepared,
+      task,
+      step,
+      registry_body,
+      values_body,
+      fragment_body~,
+      ordered_body~,
+    )
+    is Some(sequence) else {
+    return Err(UnsupportedProgram)
+  }
+  start_client_infer_input_sequence(
+    sequence,
+    step,
+    [],
+    execution,
+    measurement,
+    mapping,
+    restored_input=Some(input),
+  )
 }
 
 ///|
@@ -301,10 +372,11 @@ pub fn advance_client_infer_input(
     return Ok(Stopped(work=active.work))
   }
   if !active.prefix_done {
-    let poll = match @local.advance_managed_provider(active.prefix, quantum) {
+    guard active.prefix is Some(prefix) else { return Err(InvalidLimits) }
+    let poll = match @local.advance_managed_provider(prefix, quantum) {
       Ok(value) => value
       Err(issue) => {
-        active.stopped = @local.managed_provider_stopped(active.prefix)
+        active.stopped = @local.managed_provider_stopped(prefix)
         return Err(Local(issue))
       }
     }
@@ -396,8 +468,8 @@ pub fn cancel_client_infer_input(active : ClientInferInputExecution) -> Bool {
   active.cancelled = true
   if active.prefix_done {
     @bounded.request_cancel(active.control) |> ignore
-  } else {
-    @local.cancel_managed_provider(active.prefix) |> ignore
+  } else if active.prefix is Some(prefix) {
+    @local.cancel_managed_provider(prefix) |> ignore
   }
   true
 }
@@ -427,10 +499,12 @@ pub fn cleanup_client_infer_input(
       Err(issue) => return Err(Mapping(issue))
     }
   }
-  match @local.cleanup_managed_provider(active.prefix) {
-    Ok(true) => ()
-    Ok(false) => return Ok(false)
-    Err(issue) => return Err(Local(issue))
+  if active.prefix is Some(prefix) {
+    match @local.cleanup_managed_provider(prefix) {
+      Ok(true) => ()
+      Ok(false) => return Ok(false)
+      Err(issue) => return Err(Local(issue))
+    }
   }
   active.reclaimed = true
   active.completed_input = None

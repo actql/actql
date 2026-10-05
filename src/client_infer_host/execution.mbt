@@ -293,6 +293,7 @@ fn start_owned(
   ordered_body? : String? = None,
   defer_dispatch? : Bool = false,
   enter_call? : ((@model.ModelCallEntry) -> Bool)? = None,
+  restored_input? : @relation.CompletedOutput? = None,
 ) -> Result[Execution, Issue] {
   guard @publication_host.prepared_client_infer_execution_occurrence(
       prepared, step,
@@ -307,6 +308,9 @@ fn start_owned(
     is None {
     return Err(CallScope(ForeignInput))
   }
+  if restored_input is Some(_) && acquired_input is Some(_) {
+    return Err(CallScope(ForeignInput))
+  }
   start_occurrence(
     occurrence,
     Some(prepared),
@@ -315,7 +319,21 @@ fn start_owned(
     limits,
     plan,
     limits => {
-      if acquired_input is Some(captured) {
+      if restored_input is Some(completed) {
+        @input.start_client_restored_infer_input(
+          prepared,
+          0,
+          step,
+          completed,
+          registry,
+          values,
+          limits.input,
+          limits.measurement,
+          limits.mapping,
+          fragment_body~,
+          ordered_body~,
+        )
+      } else if acquired_input is Some(captured) {
         let input_source = @publication_host.client_infer_captured_input_source(
           captured, prepared, step,
         ).unwrap()
@@ -350,6 +368,41 @@ fn start_owned(
     acquired_input~,
     defer_dispatch~,
     enter_call~,
+  )
+}
+
+///|
+/// Resume preparation from a receiving completion restored by the existing
+/// Store/Relation admission owners. Ordinary prefix execution is not repeated;
+/// mapping, identity, call inventory and current dispatch use the same owners.
+/// The caller retains input custody until this execution is reclaimed.
+pub fn start_restored_prepared_input(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  registry : String,
+  values : String,
+  provider : @model.ModelProvider,
+  input : @relation.CompletedOutput,
+  limits : Limits,
+  plan : @publication_host.ClientInferPlanGraph,
+  enter_call : (@model.ModelCallEntry) -> Bool,
+  fragment_body? : String? = None,
+  ordered_body? : String? = None,
+) -> Result[Execution, Issue] {
+  start_owned(
+    prepared,
+    step,
+    registry,
+    values,
+    Physical(provider),
+    @publication_host.client_infer_plan_graph_request_cid(plan),
+    limits,
+    Some(plan),
+    fragment_body~,
+    ordered_body~,
+    defer_dispatch=true,
+    enter_call=Some(enter_call),
+    restored_input=Some(input),
   )
 }
 

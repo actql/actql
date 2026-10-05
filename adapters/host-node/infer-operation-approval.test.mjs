@@ -19,6 +19,17 @@ function fixture({count = 1, onSlot} = {}) {
       calls.enterOriginal = args.at(-2);
       return ok(active);
     },
+    clientProgramStartRestoredPreparedInferExecution(...args) {
+      calls.restoredStarts = (calls.restoredStarts ?? 0) + 1;
+      calls.restoredInput = args[6];
+      calls.enterOriginal = args.at(-1);
+      return ok(active);
+    },
+    clientProgramInferApprovalInputExportBegin(owner, maxBatchBytes) {
+      assert.equal(owner, active);
+      calls.exports = (calls.exports ?? 0) + 1;
+      return ok({maxBatchBytes});
+    },
     clientProgramInferCallEntryOriginals: () => ({_0: 0, _1: 'call',
       _2: 'attempt', _3: 'authority'}),
     clientProgramAdvanceInferExecution(owner) {
@@ -193,6 +204,45 @@ test('deferred Model operation stops and cleans up without approval', async () =
   assert.equal(calls.entries, 0);
   assert.equal(calls.cleaned, 1);
   assert.equal(operation.preparedCallSet(), undefined);
+});
+
+test('restored prepared input uses the existing restoration entry and retains export access only while waiting', async () => {
+  const {moon, calls, inputReceipt} = fixture();
+  const restoredInput = {};
+  const operation = openNodeInferOperation({moon, preparedProgram: {}, step: 2,
+    graph: {}, registry: 'registry', values: 'values', fragment: 'fragment',
+    ordered: 'ordered', provider: {}, restoredInput, deferDispatch: true,
+    enterCall: () => true});
+  const waiting = await operation.run();
+  assert.equal(calls.starts, 0);
+  assert.equal(calls.restoredStarts, 1);
+  assert.equal(calls.restoredInput, restoredInput);
+  assert.equal(waiting.callSet.inputReceipt, inputReceipt);
+  assert.deepEqual(waiting.callSet.beginInputExport(16384), {maxBatchBytes: 16384});
+  assert.equal(calls.exports, 1);
+  for (const limit of [0, -1, 1.5, Infinity, 2147483648]) {
+    assert.throws(() => waiting.callSet.beginInputExport(limit),
+      /InferPreparedCallSetUnavailable/);
+  }
+  assert.equal(calls.exports, 1);
+  await operation.close();
+  assert.throws(() => waiting.callSet.beginInputExport(16384),
+    /InferPreparedCallSetUnavailable/);
+  assert.equal(calls.entries, 0);
+  assert.equal(calls.cleaned, 1);
+});
+
+test('restored input cannot select an ordinary or composed execution fallback', () => {
+  const {moon, calls} = fixture();
+  const base = {moon, preparedProgram: {}, step: 2, graph: {},
+    registry: 'registry', values: 'values', provider: {}, restoredInput: {},
+    enterCall: () => true, deferDispatch: true};
+  for (const override of [{deferDispatch: false}, {enterCall: undefined},
+    {acquiredInput: {}}, {composedInput: {}}]) {
+    assert.throws(() => openNodeInferOperation({...base, ...override}), TypeError);
+  }
+  assert.equal(calls.starts, 0);
+  assert.equal(calls.restoredStarts, undefined);
 });
 
 test('call inventory materialization observes cancellation between slots', async () => {

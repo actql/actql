@@ -403,6 +403,35 @@ pub fn client_program_infer_prepared_call_set(
 }
 
 ///|
+#export_name("clientProgramStartRestoredPreparedInferExecution")
+pub fn client_program_start_restored_prepared_infer_execution(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  graph : @publication_host.ClientInferPlanGraph,
+  registry : String,
+  values : String,
+  provider : @model.ModelProvider,
+  input : @execution.CompletedOutput,
+  fragment : String,
+  ordered : String,
+  enter_call : (@model.ModelCallEntry) -> Bool,
+) -> Result[@infer_host.Execution, @infer_host.Issue] {
+  @infer_host.start_restored_prepared_input(
+    prepared,
+    step,
+    registry,
+    values,
+    provider,
+    input,
+    @infer_host.standard_limits(),
+    graph,
+    enter_call,
+    fragment_body=Some(fragment),
+    ordered_body=Some(ordered),
+  )
+}
+
+///|
 #export_name("clientProgramInferPreparedCallCount")
 pub fn client_program_infer_prepared_call_count(
   set : @model.PreparedModelCallSet,
@@ -448,6 +477,50 @@ pub fn client_program_infer_prepared_slot_wire(
   @model.prepared_model_call_set_slot(set, index).map(
     @publication.run_evidence_value_json,
   )
+}
+
+///|
+#export_name("clientProgramInferApprovalInputExportBegin")
+pub fn client_program_infer_approval_input_export_begin(
+  active : @infer_host.Execution,
+  max_batch_bytes : Int,
+) -> Result[@execution.CompletedOutputExport, @infer_host.Issue] {
+  @infer_host.prepare_model_approval_input_export(active, max_batch_bytes)
+}
+
+///|
+#export_name("clientProgramInferApprovalInputExportNext")
+pub fn client_program_infer_approval_input_export_next(
+  value : @execution.CompletedOutputExport,
+) -> Result[String?, @execution.CompletedExportIssue] {
+  @execution.next_completed_output_export(value)
+}
+
+///|
+#export_name("clientProgramInferApprovalInputExportFinish")
+pub fn client_program_infer_approval_input_export_finish(
+  value : @execution.CompletedOutputExport,
+) -> Result[
+  (@execution.CompletedRelationExportReceipt, String),
+  @execution.CompletedExportIssue,
+] {
+  @execution.finish_completed_relation_export(value)
+}
+
+///|
+#export_name("clientProgramInferApprovalInputExportCancel")
+pub fn client_program_infer_approval_input_export_cancel(
+  value : @execution.CompletedOutputExport,
+) -> Unit {
+  @execution.cancel_completed_output_export(value)
+}
+
+///|
+#export_name("clientProgramInferApprovalInputExportRelease")
+pub fn client_program_infer_approval_input_export_release(
+  receipt : @execution.CompletedRelationExportReceipt,
+) -> Unit {
+  @execution.cancel_completed_relation_export_receipt(receipt)
 }
 
 ///|

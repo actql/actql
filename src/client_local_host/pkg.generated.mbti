@@ -171,6 +171,8 @@ pub fn start_client_infer_suffix(@execution_relation.GeneratedSequence, Array[@e
 
 pub fn start_client_query_residual(@execution_query.QuerySequence, @execution_query.QueryReceipt, () -> Bool, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int, Int, max_name_bytes~ : Int) -> Result[@local.ManagedProviderExecution, ClientQueryResidualIssue]
 
+pub fn start_client_restored_infer_input(@run_publication_host.PreparedClientProgram, Int, Int, @execution_relation.CompletedOutput, String, String, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.InferPreparationLimits, fragment_body? : String?, ordered_body? : String?) -> Result[ClientInferInputExecution, ClientInferInputIssue]
+
 // Errors
 
 // Types and methods

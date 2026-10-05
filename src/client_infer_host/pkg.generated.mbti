@@ -96,6 +96,8 @@ pub fn poll_issue(Poll) -> Issue?
 
 pub fn poll_kind(Poll) -> String
 
+pub fn prepare_model_approval_input_export(Execution, Int) -> Result[@execution_relation.CompletedOutputExport, Issue]
+
 pub fn prepared_model_call_set(Execution) -> @model_execution.PreparedModelCallSet?
 
 pub fn release_invocation_binding(InvocationBinding) -> Bool
@@ -125,6 +127,8 @@ pub fn start_composed(@run_publication_host.ClientInferOccurrence, @run_publicat
 pub fn start_observation_issuance(Execution, @physical_resources.Ledger, ObservationIssuanceLimits) -> Result[ObservationIssuance, Issue]
 
 pub fn start_replay(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.VerifiedModelCapture, Limits, @run_publication_host.ClientInferPlanGraph, acquired_input? : @run_publication_host.ClientInferCapturedInput?, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
+
+pub fn start_restored_prepared_input(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelProvider, @execution_relation.CompletedOutput, Limits, @run_publication_host.ClientInferPlanGraph, (@model_execution.ModelCallEntry) -> Bool, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
 
 pub fn start_restored_replay(@run_publication_host.PreparedClientProgram, Int, String, String, @run_publication.ModelCaptureBundleRead, Limits, @run_publication_host.ClientInferPlanGraph, acquired_input? : @run_publication_host.ClientInferCapturedInput?, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
 
