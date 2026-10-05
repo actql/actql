@@ -6,6 +6,7 @@ pub struct ClientRetainedInputEdge {
   producer : ClientTaskFragmentNode
   consumer : ClientTaskFragmentNode
   input_port : String
+  producer_schema_cid : String
   producer_owner : @lower.BoundPrepared
   program : @context.ProgramSourceIdentity
 }
@@ -96,6 +97,28 @@ pub fn prepare_client_retained_input_edge(
   if sort != producer.output_carrier || contract != producer.output_contract_cid {
     return Err(ContractMismatch)
   }
+  // A Relation field-map schema is not its ordinary row object contract.
+  // Keep the checked Carrier port contract above and derive physical schema
+  // admission independently through the existing Relation schema owner.
+  let producer_schema_cid = match @carrier.kind(carrier) {
+    RelationKind => {
+      guard @carrier.relation_rows(carrier) is Some(rows) &&
+        @carrier.complete_schema(rows) is Some(schema) else {
+        return Err(ContractMismatch)
+      }
+      match
+        @execution.identify_relation_schema(schema, {
+          max_fields: 100000,
+          max_bytes: 1000000,
+          max_nodes: 100000,
+          max_depth: 100,
+        }) {
+        Ok(identity) => @execution.relation_schema_cid(identity)
+        Err(_) => return Err(ContractMismatch)
+      }
+    }
+    GraphKind | EventsKind | VectorsKind => contract
+  }
   guard @strategy.graph_task_owner(graph, producer_task) is Some(producer_owner) else {
     return Err(MissingEdge)
   }
@@ -104,6 +127,7 @@ pub fn prepare_client_retained_input_edge(
     producer,
     consumer,
     input_port,
+    producer_schema_cid,
     producer_owner,
     program: @checked.source_identity(@strategy.graph_program(graph)),
   })
@@ -127,7 +151,7 @@ pub fn prepare_client_retained_input_producer(
       subject, evidence, request,
     ) ||
     @remote.remote_managed_output_subject_projection(subject)[4] !=
-    edge.producer.output_contract_cid {
+    edge.producer_schema_cid {
     return Err(ForeignProducer)
   }
   let value = { edge, record, evidence, subject, }
@@ -178,6 +202,16 @@ pub fn client_retained_input_edge_projection(
     value.consumer.logical_cid,
     value.input_port,
   ]
+}
+
+///|
+/// Physical output schema expected by the checked producer edge. For Relation
+/// this is the complete field-map identity, separate from the Carrier port's
+/// ordinary row object contract retained by the edge projection.
+pub fn client_retained_input_edge_schema_cid(
+  value : ClientRetainedInputEdge,
+) -> String {
+  value.producer_schema_cid
 }
 
 ///|

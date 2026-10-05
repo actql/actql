@@ -3,10 +3,11 @@ test "ordered node identity covers complete graph step while source excludes mac
   let params = params_for(",{\"derive\":[{\"old\":\"a\"},{\"a\":\"old + 1\"}]}")
   let artifact = prepare_ordered_node_artifact(params, registry_limits()).unwrap()
   assert_true(physical_equal(artifact.params, params))
-  // Independently assembled {id,in,op,params}, hashed with Node SHA-256.
+  // Independently assembled {id,in,op,params}, hashed with Python hashlib.
+  // Complete fixed body: portability/corpus/expression-fragment-identities.json.
   assert_eq(
     artifact.graph.cid,
-    "sha256:184a9ccd00ea30cefc64519b67f9e69c56113a4b15a86ca2ddda349e463b1b55",
+    "sha256:45961666ce15c01a481fc383d390b4b1f86b152d0fb918bf4ccc69aeb4733755",
   )
   let source = @identity.stringify_value(
     artifact.source.value,

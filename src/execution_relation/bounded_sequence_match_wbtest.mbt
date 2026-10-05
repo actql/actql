@@ -380,8 +380,10 @@ fn finish_bounded_sequence(
 test "bounded sequence work boundary charges output before row allocation" {
   // Fixed five-row, two-pattern fixture: field resolution, two indexed
   // orders, identity checks, demanded predicates, matches, and emitted rows
-  // consume 621 logical work units. Do not derive this limit from the kernel.
-  let required = 621
+  // consume 621 logical work units before output key probes. Three output
+  // rows each probe one key for all seven fields, adding 21 charged units.
+  // Do not derive this limit from the kernel.
+  let required = 642
   let (_, exact, _) = bounded_sequence_fixture(max_work=required)
   assert_true(
     finish_bounded_sequence(exact) is BoundedSequenceMatchComplete(_, ..),

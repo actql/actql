@@ -51,7 +51,7 @@ const profile = {version: 'actql-client-host/0.1', mode: 'local',
     maxBatchRetainedValueBytes: 2048}};
 
 async function fixture(t, transport, loss, {physicalStart = false, terminal = false,
-  reply = null, runId = 'saved-run', cancelResponseCache} = {}) {
+  reply = null, runId = 'saved-run', cancelResponseCache, transformCancelReply} = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-cancel-loss-'));
   const journal = openClientRequestJournal(directory);
   let database, server, client;
@@ -148,7 +148,8 @@ async function fixture(t, transport, loss, {physicalStart = false, terminal = fa
     },
     maxRowBytes: 1024,
   };
-  const alterReply = value => cancelResponseCache !== undefined
+  const alterReply = value => transformCancelReply !== undefined
+    ? transformCancelReply(value) : cancelResponseCache !== undefined
     ? Object.assign(cancelResponseCache, value) : reply === 'foreign_ref'
     ? {...value, ref: {...value.ref, runDefinitionCid: cid('f')}}
     : reply === 'malformed' ? {}
@@ -280,6 +281,49 @@ for (const transport of ['in-process', 'http']) {
     });
 }
 
+
+for (const [scenario, transformCancelReply] of [
+  ['clone erases fields', value => Object.assign(new Date(0), value)],
+  ['clone throws', value => new Proxy(value, {})],
+  ...['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].map(field =>
+    [`clone changes ${field}`, value => {
+      const original = value.ref[field];
+      let reads = 0;
+      return {...value, ref: Object.defineProperty({...value.ref}, field, {
+        enumerable: true,
+        // The schema check and Run comparison see the issued field. Cloning
+        // receives a different, still well-formed field from the Local getter.
+        get: () => ++reads <= 2 ? original
+          : field === 'namespaceId' ? 'foreign-namespace' : cid('f'),
+      })};
+    }]),
+]) {
+  test(`in-process: cancellation ${scenario} retains original Run uncertainty`, async t => {
+    const f = await fixture(t, 'in-process', undefined, {
+      physicalStart: true, transformCancelReply});
+    const ref = {...f.execution.ref};
+    const result = await f.execution.cancel().then(value => ({value}), error => ({error}));
+    assert.equal(result.error?.code, 'InvalidHostCancellation', '[check-mutation:cancel-clone-invalid]');
+    const expected = {observation: 'outcome_unknown',
+      summary: 'The Run cancellation outcome is unknown. The request may have been recorded.',
+      next: {operation: 'status', ref}};
+    assert.deepEqual(sdk.explainCancellation(result.error), expected, '[check-mutation:cancel-clone-uncertainty]');
+    assert.equal(sdk.explainCancellation({...result.error}), undefined);
+    assert.deepEqual(f.execution.ref, ref);
+    assert.deepEqual(f.operations, ['connect', 'attach', 'cancel']);
+    const committed = [{...f.before[0], cancellation_requested: 1,
+      revision: f.before[0].revision + 1}];
+    assert.deepEqual(f.stored(), committed);
+    const state = await f.execution.status();
+    assert.equal(state.status, 'running');
+    assert.equal(state.control.physical_stop, 'unknown');
+    assert.equal(state.control.cancellation_requested, true);
+    assert.deepEqual(sdk.explainCancellation(result.error), expected);
+    assert.deepEqual(f.stored(), committed);
+    assert.deepEqual(f.counts(), {cancelCalls: 1, submits: 0});
+    assert.deepEqual(f.operations, ['connect', 'attach', 'cancel', 'status']);
+  });
+}
 
 for (const transport of ['in-process', 'https']) {
   test(`${transport}: reused cancellation replies preserve each original Run observation`, async t => {
