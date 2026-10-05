@@ -902,3 +902,84 @@ run [37374138984](https://github.com/actql/actql/actions/runs/37374138984) compl
 with failure. Its selector had no executed steps; GitHub's check annotation says
 recent account payments failed or the spending limit must be increased. This is
 not a product-test failure or successful CI acceptance. No retry was requested.
+
+
+### Actual Compute output boundary and existing bounded batch connection
+
+At clean base `a92abf409f3b79c5c25bc04a5dc4cad8c50cb448`, temporarily wrap
+existing calls inside `execute_native_compute_query` with monotonic clocks.
+Three source files (Native Compute, its package imports, probe flush) changed
+only for this diagnosis. Each original call executes exactly once, including
+its failure. Flush after the physical interval; all clock/closure overhead
+remains in elapsed time. This is not CPU attribution or a matched comparison.
+Selected build `run-ucH984` succeeded (114 incremental build tasks), binary
+13,269,456 bytes,
+`sha256:7d0bf2331c58d0061293979b3bf23579dc5d5d6257db0dcab22fb86b143c4920`.
+
+The first runner (`run-leluOU`) completed existing product/Owner admission but
+failed its diagnostic count assertion: it assumed 64-row transport chunks.
+Actual transport delivers two chunks/task (not sixteen). That runner did not
+persist stdout before its assertion; keep its failure rather than claim a
+successful diagnostic. Correct the independent count condition to
+`next = chunks + tasks`, `drain = rows + chunks`, `append = rows`, and exactly
+one prepare/execute/begin/finish/seal per task. Save the original observation
+before assertions, so later admission failures cannot erase it. No product or
+fixture expectation is weakened. The corrected one-case diagnostic succeeded
+(`run-REQUAh`) with three actual resident tasks, five attempts, three holdings,
+exact result/identity/work and final zero reservations.
+
+| Existing call, across all three tasks | Calls | Observed elapsed (ms) |
+| --- | ---: | ---: |
+| Prepare query | 3 | 0.109 |
+| Execute query | 3 | 0.351 |
+| Fields JSON / decode fields | 3 each | 0.002 / 0.041 |
+| Begin stream | 3 | 0.028 |
+| Query next, including native transport serialization | 9 | 6.706 |
+| Decode transport | 6 | 11.760 |
+| Receive physical chunk | 6 | 3.253 |
+| Drain one canonical row | 3,006 | 24.316 |
+| Retained append, including UTF-8 encoding and write | 3,000 | 6.220 |
+| Finish portable stream / append tail | 3 each | 0.025 / 0.007 |
+| Seal retained file | 3 | 11.394 |
+
+Three enclosing Compute intervals are 21.278 / 22.539 / 26.080 ms; these are
+not added to the nested call times. Empty 3,000 clock pairs total 37.208 us;
+this does not measure all wrapper overhead and is not subtracted. Parent cycle
+186.186 ms, source preparation 173.579 ms, admission 8.728 ms remain separately.
+Protected `_build/repro/compute-subphases-a92abf409/` contains original and
+instrumented bytes, patch, both controllers, failed count report, binary and
+manifest. Successful observation is 178,864 bytes,
+`sha256:a3c276479afb7f9292d34809a7087659e03407b59913eafdc4685c845318cd2d`.
+Restore all three source files and the usual `2152155c...` binary before the
+product candidate. No diagnostic helper/API is delivered.
+
+The candidate connects Native output to the **existing**
+`drain_duckdb_compute_stream_batch` using the installed byte ceiling and
+`min(64, output.max_chunk_rows)`. Portable row admission, canonical hash,
+logical value/measurement work, pending chunk backpressure, finish and exact
+material staging remain owned by their existing implementations. The batch
+interface checks conservative scalar bounds before grouping within its writer ceiling; scalar
+upper bounds use actual admitted cells without trusting measured maxima.
+Native still awaits each storage append before asking for another batch, seals
+only after full stream identity, and stages the same exact retained material.
+No new buffer, reservation/Owner, public API or old-mode fallback is added.
+Keep seal durability and input availability/receipt checks. A/D/H/dot code is
+not changed. This connection's performance and current-SHA acceptance remain
+unverified until the selected checks and fixed release experiment below.
+
+Predeclare the same method: archived `fe0b68242` before, clean candidate release
+after, one fully admitted prelaunch per binary, 21 alternating pairs on the
+existing 1,000-row text case. Pin the actual compiled source, binary digest and
+one changed runtime file. Keep source/prelaunch/full-parent costs and all nested
+phases separately. The complete-parent 95% interval must be below zero; do not
+rerun withdrawn candidates or extend samples to obtain favorable results.
+
+
+Candidate portable boundary selection passed **7/7 JS** (`run-FEWKk9`,
+`focused-test-g9XkDh`): existing canonical batch byte caps, undrained overwrite/
+finish refusal, terminal physical/storage limits, cumulative measurement and
+escaped/non-ASCII scalar bounds. The first invocation lacked the explicit
+pinned toolchain PATH (`run-xnKeRO`, ENOENT, no tests); exclude it from success.
+These JS checks establish only the portable receiver, not the Native connection.
+The product diff is one existing Native call site, with no generated interface
+change. Whole-process/child runtime heap bounds remain outside this acceptance.
