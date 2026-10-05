@@ -9,15 +9,16 @@ import {userInfo} from 'node:os';
 import {join} from 'node:path';
 import {inspect} from 'node:util';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
-import {prepareSourceNodeClient} from './source-node-client.mjs';
-import {openInstalledRemoteHttpHost} from '../embedded-local.mjs';
-import {canonical, cid, configuration} from '../../../scripts/fixtures/installed-infer-fixture.mjs';
-import {providerBindingOriginals} from '../../../scripts/fixtures/model-provider-binding-fixture.mjs';
-import {observeTwoSourceProvider} from '../../../scripts/fixtures/two-source-public-query.mjs';
-
-const {connect, RequestHeld} = await prepareSourceNodeClient();
-
 const options = JSON.parse(readFileSync(0, 'utf8'));
+// Source and packed acceptance supply ordinary public entry points explicitly.
+// A missing installation is an error, never a fallback to checkout internals.
+const {runtime} = options;
+assert.ok(runtime && typeof runtime.client === 'string' &&
+  typeof runtime.httpHost === 'string' && typeof runtime.environment === 'string');
+const {connect, RequestHeld} = await import(runtime.client);
+const {openInstalledRemoteHttpHost} = await import(runtime.httpHost);
+const {canonical, cid, configuration} = await import(runtime.inferFixture);
+const {providerBindingOriginals} = await import(runtime.providerFixture);
 const {root, phase, transport = 'local', count = 1, acquired = false,
   checkpointTtlMs = 120_000, providerRevision = 'public-model-fixture-1'} = options;
 const owner = userInfo().username;
@@ -38,7 +39,7 @@ if (!existsSync(path('keys.json'))) {
 const keys = read('keys.json');
 const signer = {keyId: 'model-reviewer-key', reviewerId: 'model-reviewer',
   sign: bytes => sign(null, bytes, keys.reviewerPrivate)};
-const base = JSON.parse(readFileSync(new URL('../../../spec/local-check-environment.json', import.meta.url), 'utf8'));
+const base = JSON.parse(readFileSync(runtime.environment, 'utf8'));
 const configured = configuration(base);
 const environment = JSON.parse(configured.installation.environmentWire);
 const {contract_cid: ignoredTask, ...task} = environment.model_task_contracts[0];
@@ -84,7 +85,8 @@ const accountConfiguration = canonical({version: 'actql-execution-account-config
 let sourceProfilePath;
 let sourceObservation;
 if (acquired) {
-  const source = JSON.parse(readFileSync(new URL('./query-amount-environment.json', import.meta.url), 'utf8'));
+  const {observeTwoSourceProvider} = await import(runtime.sourceObserver);
+  const source = JSON.parse(readFileSync(runtime.sourceEnvironment, 'utf8'));
   const policy = source.contract_registry.find(value => value.kind === 'data_policy');
   const {cid: oldPolicy, ...policyBody} = policy;
   assert.equal(cid(policyBody), oldPolicy);
@@ -122,7 +124,7 @@ if (acquired) {
   source.evidence_bundle_cid = cid(source);
   const database = path('records.duckdb');
   const initialize = !existsSync(database);
-  const duckdb = createRequire(new URL('../../connectors/duckdb/node/package.json', import.meta.url))('@duckdb/node-api');
+  const duckdb = createRequire(runtime.duckdbPackage)('@duckdb/node-api');
   const {DuckDBInstance} = duckdb;
   if (initialize || options.changeSource) {
     const instance = await DuckDBInstance.create(database);

@@ -14,11 +14,25 @@ import {setTimeout as pause} from 'node:timers/promises';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {scopedModelHolding} from '../../scripts/fixtures/model-custody-fixture.mjs';
-import {prepareSourceNodeClient} from './fixtures/source-node-client.mjs';
-
-// The distribution gate prepares the runtime; this prepares its public package
-// dependencies and ignored adapter copies, without another MoonBit build.
-await prepareSourceNodeClient({assemble: true});
+const packedInputs = process.env.ACTQL_MODEL_ACCEPTANCE_INPUTS;
+const acceptance = packedInputs === undefined ? {
+  runtime: {
+    client: new URL('../../packages/node/index.mjs', import.meta.url).href,
+    httpHost: new URL('./embedded-local.mjs', import.meta.url).href,
+    inferFixture: new URL('../../scripts/fixtures/installed-infer-fixture.mjs', import.meta.url).href,
+    providerFixture: new URL('../../scripts/fixtures/model-provider-binding-fixture.mjs', import.meta.url).href,
+    environment: fileURLToPath(new URL('../../spec/local-check-environment.json', import.meta.url)),
+    sourceObserver: new URL('../../scripts/fixtures/two-source-public-query.mjs', import.meta.url).href,
+    sourceEnvironment: fileURLToPath(new URL('./fixtures/query-amount-environment.json', import.meta.url)),
+    duckdbPackage: new URL('../connectors/duckdb/node/package.json', import.meta.url).href,
+  },
+} : JSON.parse(readFileSync(packedInputs, 'utf8'));
+if (packedInputs === undefined) {
+  // Prepare only the source installation. Packed acceptance has its own fresh
+  // npm installation and must never repair it with checkout dependency links.
+  const {prepareSourceNodeClient} = await import('./fixtures/source-node-client.mjs');
+  await prepareSourceNodeClient({assemble: true});
+}
 
 const processFixture = fileURLToPath(new URL('./fixtures/model-resume-public-process.mjs', import.meta.url));
 const expectedRows = (count = 1, acquired = false) => [
@@ -28,8 +42,9 @@ const expectedRows = (count = 1, acquired = false) => [
 ].slice(0, count);
 
 async function fixture(t, options = {}) {
-  const root = await mkdtemp(join(tmpdir(), 'actql-public-model-resume-'));
-  t.after(() => rm(root, {recursive: true, force: true}));
+  const root = await mkdtemp(join(acceptance.scratch ?? tmpdir(), 'actql-public-model-resume-'));
+  if (acceptance.preserveArtifacts === true) t.diagnostic(`Model recovery artifacts: ${root}`);
+  else t.after(() => rm(root, {recursive: true, force: true}));
   if (options.transport === 'https') execFileSync('openssl', [
     'req', '-x509', '-nodes', '-newkey', 'rsa:2048', '-keyout', 'host.key',
     '-out', 'host.crt', '-days', '1', '-subj', '/CN=localhost',
@@ -44,7 +59,7 @@ async function fixture(t, options = {}) {
       for (const name of ['ACTQL_LOCAL_STATE_DIR', 'ACTQL_LOCAL_SOURCE_PROFILE',
         'ACTQL_LOCAL_EFFECT_PROFILE']) delete env[name];
       const result = spawnSync(process.execPath, [processFixture], {
-        input: JSON.stringify({...options, root, phase, ...changes}),
+        input: JSON.stringify({...options, runtime: acceptance.runtime, root, phase, ...changes}),
         encoding: 'utf8', timeout: 45_000, maxBuffer: 4 * 1024 * 1024,
         env,
       });

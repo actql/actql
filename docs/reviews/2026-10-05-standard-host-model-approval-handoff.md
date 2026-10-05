@@ -152,3 +152,27 @@ dependencies. Earlier source attempts failed before Model execution on absent
 `@actql/sdk` (`run-1cS6Tm`) and absent `@duckdb/node-api` (`run-DB4lhm`).
 These preparation failures are distinct from product recovery failures and
 do not establish packed acceptance for a later SHA.
+
+## Packed mixed-call recovery
+
+The ordinary packed single-INFER runner also executes the existing public
+recovery harness for both Local and HTTPS, under both `outcomes` and `fail`.
+`--recovery-only` narrows to those four cases; it does not create another job or
+remove them from the default runner. The same five tarballs and private npm
+installation serve approval and recovery acceptance.
+
+The shared child fixture now receives explicit public package entry points
+and independently authored fixture files. Source tests prepare only their
+private source dependencies; packed tests import `@actql/node` and
+`@actql/local-node/http-host` outside the checkout. There is no fallback on a
+failed package import, and neither path replaces the execution owner.
+
+Each case records a saved first response, a sent second call with its response
+lost, and a third call that was initially unsent. Repeated process restoration
+must retain the same Run, never resend the unknown or saved call, and obey the
+authored policy for the unsent third call. Independent SQLite and encrypted
+Store inspections pin the saved/unknown/unsent states and actual provider call
+log. Packed fixture custody remains with the retained acceptance artifacts.
+The focused source HTTPS `outcomes` case passed after the entry-point refactor
+(`run-wkC233`, `focused-test-8s16Vl`, tracked changes present). The new packed
+selection is not yet claimed successful.
