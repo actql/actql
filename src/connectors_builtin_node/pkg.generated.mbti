@@ -256,7 +256,7 @@ pub fn client_program_check_recovered_effect_apply_semantics(@run_publication.Ef
 
 pub fn client_program_check_run_binding(@run_publication_host.PreparedClientProgram, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Bool
 
-pub fn client_program_check_source(String, String, @program_check.CheckEnvironment, String, String?, String?, String, String, String?, String?) -> String
+pub fn client_program_check_source(String, String, @program_check.CheckEnvironment, String, String?, String?, String, String, String?, String?, String) -> String
 
 pub fn client_program_check_source_free_local_effect_preview_identities(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, String, String, String, Array[@run_publication_host.ClientEffectLocalIdentity], Int, Int, Int) -> Result[Unit, @run_publication_host.ClientEffectLocalIdentityIssue]
 
@@ -1319,6 +1319,8 @@ pub fn client_request_relation(@run_publication_host.ClientRequestIdentity, @run
 pub fn client_request_scope_cid(@run_publication_host.ClientRequestIdentity) -> String
 
 pub fn client_run_cancellation_action(@run_publication.PublicationContract, String, Bool, Bool, Bool) -> Int
+
+pub fn client_run_cancellation_confirmed(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Bool
 
 pub fn client_run_control_observation(Int, Bool, Bool, Bool, Bool) -> String raise ClientProgramRunStateIssue
 

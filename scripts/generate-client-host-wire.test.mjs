@@ -50,7 +50,7 @@ test('generated check validator rejects contradictory evidence and partial verif
       '../packages/client-wire/client-host.generated.js');
     const report = {context_ref: 'ctx:fixture', requirements: [], inputs: [{document_id: 'source', revision: 'rev:' + '1'.repeat(64), kind: 'text', byte_length: 1}], scope: {kind: 'bound_input'},
       verdict: 'verified', reasons: [], coverage: {limits: [], unresolved: []}};
-    const outcome = report => ({version: 'actql-check-outcome/0.1', reason_schema_cid: protocol.artifact_schema_cids.check_reason,
+    const outcome = report => ({version: 'actql-check-outcome/0.1', reason_schema_cid: protocol.artifact_schema_cids.check_reason, outcome_schema_cid: protocol.artifact_schema_cids.check_outcome,
       outcome: 'completed', report});
     assert.equal(valid(outcome(report)), true);
     for (const changed of [
@@ -62,7 +62,7 @@ test('generated check validator rejects contradictory evidence and partial verif
       {...report, verdict: 'undetermined'},
       {...report, verdict: 'undetermined', reasons: [{code: 'future_violation'}]},
     ]) assert.equal(valid(outcome(changed)), false, JSON.stringify(changed));
-    assert.equal(valid({version: 'actql-check-outcome/0.1', reason_schema_cid: protocol.artifact_schema_cids.check_reason, outcome: 'failed',
+    assert.equal(valid({version: 'actql-check-outcome/0.1', reason_schema_cid: protocol.artifact_schema_cids.check_reason, outcome_schema_cid: protocol.artifact_schema_cids.check_outcome, outcome: 'failed', correlation_ref: 'corr:fixture',
       problem: {code: 'future_problem'}, partial_report: report}), false);
     assert.equal(valid(outcome({...report, verdict: 'invalid',
       reasons: [{code: 'future_violation'}]})), true);
@@ -71,7 +71,7 @@ test('generated check validator rejects contradictory evidence and partial verif
   });
 
 test('typed public facts are closed and locations bind declared input revisions', async () => {
-  const {validCheckOutcome: valid, checkReasonSchemaCid} = await import(
+  const {validCheckOutcome: valid, checkReasonSchemaCid, checkOutcomeSchemaCid} = await import(
     '../packages/client-wire/index.mjs');
   const revision = 'rev:' + '2'.repeat(64);
   const location = {kind: 'structured', document_id: 'parameters', revision,
@@ -79,7 +79,7 @@ test('typed public facts are closed and locations bind declared input revisions'
   const reason = {code: 'supplied_value_type_mismatch', location,
     facts: {parameter: 'minimum', expected_type: 'number', actual_type: 'string'}};
   const outcome = reason => ({version: 'actql-check-outcome/0.1',
-    reason_schema_cid: checkReasonSchemaCid, outcome: 'completed', report: {
+    reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'completed', report: {
       context_ref: 'ctx:fixture', scope: {kind: 'bound_input'}, verdict: 'invalid',
       inputs: [{document_id: 'source', kind: 'text', revision, byte_length: 6},
         {document_id: 'parameters', kind: 'structured', revision, byte_length: 20}],
@@ -93,6 +93,31 @@ test('typed public facts are closed and locations bind declared input revisions'
     {...reason, location: {...location, pointer: '/bad~escape'}},
   ]) assert.equal(valid(outcome(changed)), false, JSON.stringify(changed));
   assert.equal(valid(outcome({code: 'future_code'})), true);
+  const defaultLocation = {...location, document_id: 'parameter_declarations',
+    pointer: '/minimum/default'};
+  const defaultReason = {...reason, code: 'parameter_default_type_mismatch',
+    location: defaultLocation};
+  const defaultOutcome = value => {
+    const answer = outcome(value);
+    answer.report.inputs.push({document_id: 'parameter_declarations', kind: 'structured',
+      revision, byte_length: 58});
+    return answer;
+  };
+  assert.equal(valid(defaultOutcome(defaultReason)), true);
+  const {location: _defaultLocation, ...unlocatedDefault} = defaultReason;
+  assert.equal(valid(defaultOutcome(unlocatedDefault)), true);
+  for (const changed of [
+    {code: defaultReason.code}, {...defaultReason, facts: {}},
+    {...defaultReason, facts: {parameter: 'minimum', expected_type: 'number'}},
+    {...defaultReason, facts: {...defaultReason.facts, value: 'private-default'}},
+    {...defaultReason, facts: {...defaultReason.facts, actual_type: 'private-default'}},
+    {...defaultReason, location},
+    {...defaultReason, location: {...defaultLocation, revision: 'rev:' + '3'.repeat(64)}},
+    {...defaultReason, location: {...defaultLocation, kind: 'text', pointer: undefined,
+      start_byte: 0, end_byte: 1, precision: 'exact'}},
+    {...defaultReason, code: 'parameter_declarations_invalid'},
+    {...defaultReason, code: 'future_code'},
+  ]) assert.equal(valid(defaultOutcome(changed)), false, '[check-mutation:default-schema]');
   const constraint = {code: 'supplied_value_constraint_violation', location,
     facts: {parameter: 'minimum', constraint: 'numeric'}};
   assert.equal(valid(outcome(constraint)), true);
@@ -124,6 +149,16 @@ test('typed public facts are closed and locations bind declared input revisions'
   for (const issue of ['invalid_kind', 'invalid_output_rows']) {
     assert.equal(valid(outcome({...graph, facts: {...graph.facts, issue}})), true);
   }
+  const selector = {code: 'graph_operation_invalid',
+    facts: {operation: 'subgraph', issue: 'invalid_node_selector'}};
+  assert.equal(valid(outcome(selector)), true);
+  for (const changed of [
+    {code: selector.code}, {...selector, facts: {operation: 'subgraph'}},
+    {...selector, facts: {operation: 'components', issue: 'invalid_node_selector'}},
+    {...selector, facts: {operation: 'subgraph', issue: 'invalid_output_rows'}},
+    {...selector, facts: {...selector.facts, value: 'private_selector'}},
+    {...selector, code: 'program_invalid'}, {...selector, code: 'future_code'},
+  ]) assert.equal(valid(outcome(changed)), false, '[check-mutation:subgraph-schema]');
   for (const changed of [
     {code: graph.code}, {...graph, facts: {issue: 'invalid_kind'}},
     {...graph, facts: {operation: 'subgraph', issue: 'invalid_kind'}},

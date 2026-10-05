@@ -8,6 +8,8 @@ import {promisify} from 'node:util';
 import {managedCaseConfiguration, nativeRegisteredResidentOffer} from
   './managed-configuration.mjs';
 import {nativeOwnerObservations, admitNativeOwnerObservations} from './native-owner-observations.mjs';
+import {admitNativePhysicalPhases, nativePreparationObservations} from './native-physical-phases.mjs';
+import {nativeResidentEstimateArguments} from './native-resident-estimates.mjs';
 import {registeredLocalEligibility} from './candidate-eligibility.mjs';
 import {workloads} from './fixtures.mjs';
 import {productAcquisitionMetadata} from
@@ -22,10 +24,18 @@ import {productAcquisitionMetadata} from
 // override only.
 export async function prepareNativeDirectProduct({root, fixture, database,
   directory, nativeMs = '1000', localRates, nativeRates,
-  residentPolicy = nativeRegisteredResidentOffer, stopAfterTask,
+  residentPolicy = nativeRegisteredResidentOffer, stopAfterTask, phaseObserver = false,
+  sourceReadOnly = true,
+  residentEstimates,
   attemptCap = 12}) {
   assert(existsSync(database), 'NativeProductSourceUnavailable');
   assert(typeof residentPolicy === 'boolean', 'InvalidNativeResidentPolicy');
+  assert(typeof phaseObserver === 'boolean', 'InvalidNativePhaseObserver');
+  assert(typeof sourceReadOnly === 'boolean', 'InvalidNativeSourceReadOnly');
+  assert(residentEstimates === undefined || residentPolicy,
+    'NativeResidentEstimatesWithoutOffers');
+  const residentArguments = nativeResidentEstimateArguments(residentEstimates,
+    fixture.workload === workloads[1] ? 4 : 3);
   assert(Number.isSafeInteger(attemptCap) && attemptCap > 0 && attemptCap <= 12,
     'InvalidNativeDiagnosticAttemptCap');
   const text = path => readFile(join(root, path), 'utf8');
@@ -69,7 +79,7 @@ export async function prepareNativeDirectProduct({root, fixture, database,
   const localEligible = registeredLocalEligibility(fixture).eligible;
   const expected = fixture.identity();
   return Object.freeze({binary, expected, finalTask, localEligible,
-    executionCap: limits.execution_bytes, attemptCap,
+    executionCap: limits.execution_bytes, attemptCap, phaseObserver, sourceReadOnly,
     arguments: Object.freeze([
       '--application-root', directory,
       '--database', database,
@@ -82,6 +92,9 @@ export async function prepareNativeDirectProduct({root, fixture, database,
       '--stop-after-task', stopAfterTask === undefined ? '-' : String(stopAfterTask),
       '--local-eligible', String(localEligible),
       '--resident-policy', String(residentPolicy),
+      '--source-read-only', String(sourceReadOnly),
+      ...(phaseObserver ? ['--phase-observer', 'true'] : []),
+      ...residentArguments,
       '--local-task-ms', localRates?.join(',') ?? '-',
       '--native-task-ms', nativeRates?.join(',') ?? '-',
       '--source-rows', String(data.source_rows),
@@ -122,6 +135,7 @@ export async function executeNativeDirectProduct(invocation, {root, timeoutMs}) 
   assert.deepEqual(taskIntervals.map(value => value.task),
     Array.from({length: invocation.finalTask}, (_, index) => index + 1));
   return Object.freeze({record, taskIntervals, stdout,
+    preparation: nativePreparationObservations(stdout, invocation.sourceReadOnly),
     ownerObservations: nativeOwnerObservations(stdout),
     selections: stdout.split('\n').filter(line => line.startsWith('selection:')),
     taskUsages: stdout.split('\n').filter(line => line.startsWith('task-usage:')),
@@ -129,6 +143,8 @@ export async function executeNativeDirectProduct(invocation, {root, timeoutMs}) 
       .filter(line => line.startsWith('task-measurement-scope:')),
     taskHoldings: stdout.split('\n').filter(line => line.startsWith('task-holding:')),
     taskResidents: stdout.split('\n').filter(line => line.startsWith('task-resident:')),
+    physicalPhaseEvents: stdout.split('\n').filter(line => line.startsWith('physical-phase-event:'))
+      .map(line => JSON.parse(line.slice('physical-phase-event:'.length))),
     processCycleMs, stderr});
 }
 
@@ -231,8 +247,14 @@ export function admitNativeDirectProduct(fixture, invocation, execution) {
     BigInt(owner.reservedExecutionBytes) <= invocation.executionCap &&
     owner.attempts <= invocation.attemptCap),
   'NativeOwnerExceedsDeclaredExecutionCap');
+  const physicalPhases = invocation.phaseObserver
+    ? admitNativePhysicalPhases({events: execution.physicalPhaseEvents,
+      ownerCorrespondence, taskIntervals, cleanupMicroseconds: record.cleanup_us}) : undefined;
+  assert(invocation.phaseObserver || execution.physicalPhaseEvents.length === 0,
+    'UnexpectedNativePhysicalPhaseObserver');
   return Object.freeze({record, taskIntervals, taskUsages, taskHoldings,
-    acquisitionChoice, ownerCorrespondence, selections, selected: ids.map(task => selected.get(task)),
+    acquisitionChoice, ownerCorrespondence, physicalPhases, preparation: execution.preparation,
+    selections, selected: ids.map(task => selected.get(task)),
     acquisitionEvidenceMetadata,
     executionMs: record.execution_us / 1000,
     cleanupMs: record.cleanup_us / 1000,

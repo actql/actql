@@ -19,17 +19,55 @@ type CheckReportExplanation<C extends 'complete' | 'partial'> = Readonly<{
 }>;
 export type CheckOutcomeExplanation = Readonly<{summary: string; hint: string}> & (
   Readonly<{outcome: 'completed'; report: CheckReportExplanation<'complete'>}> |
-  Readonly<{outcome: 'failed'; report?: CheckReportExplanation<'partial'>;
+  Readonly<{outcome: 'failed'; correlationRef: string; report?: CheckReportExplanation<'partial'>;
     problem: Readonly<{kind: 'known' | 'unknown'; code: string}>}> |
   Readonly<{outcome: 'unavailable'; correlationRef: string;
     problem: Readonly<{kind: 'known' | 'unknown'; code: string}>}>);
 /** Safe presentation of a schema-admitted outcome; no input association or execution authority. */
-export declare function explainCheckOutcome(outcome: unknown): CheckOutcomeExplanation | undefined;
+export type CheckExplanationOptions = Readonly<{locale?: string}>;
+/** The selected translation revision, separate from reason/outcome schema identity. */
+export declare function getCheckPresentationInfo(options?: CheckExplanationOptions):
+  Readonly<{locale: 'en' | 'ja'; translationRevision: string}>;
+export declare function explainCheckOutcome(outcome: unknown,
+  options?: CheckExplanationOptions): CheckOutcomeExplanation | undefined;
 export type CheckInput = Readonly<{documentId: string; revision: string}> & (
   Readonly<{kind: 'text'; text: string}> | Readonly<{kind: 'structured'; value: unknown}>);
 /** Available only for the exact response of this SDK check call. */
 export declare function getCheckInput(outcome: CheckOutcome, documentId: string,
   revision?: string): CheckInput | undefined;
+type CompletedCheckReport = Extract<CheckOutcome, {outcome: 'completed'}>['report'];
+type ParameterRequirementFacts = Readonly<Pick<Extract<
+  CompletedCheckReport['requirements'][number]['facts'], {expected_type: string}>,
+  'parameter' | 'expected_type'>>;
+/** The known public parameter Requirements, not a complete future obligation list. */
+export type CheckRequirementFrontier = Readonly<{
+  contextRef: string;
+  reasonSchemaCid: string;
+  scope: CompletedCheckReport['scope'];
+  requirements: readonly Readonly<{
+    code: CompletedCheckReport['requirements'][number]['code'];
+    facts: ParameterRequirementFacts;
+  }>[];
+  coverage: CompletedCheckReport['coverage'];
+}>;
+/** Copied, partial and uninterpretable reports have no comparable frontier. */
+export declare function getCheckRequirementFrontier(outcome: CheckOutcome): CheckRequirementFrontier | undefined;
+/** Structural set equality within the same bound scope/context; never verification. */
+export declare function equalCheckRequirementFrontiers(first: CheckOutcome, second: CheckOutcome): boolean | undefined;
+export type CheckSupplementationDecision = Readonly<{kind: 'more_checks'}> |
+  Readonly<{kind: 'stop'; reason: 'frontier_unavailable' | 'no_known_supplement' |
+    'unchanged_frontier' | 'attempt_budget'}>;
+export interface CheckSupplementationSession {
+  /** Explicit read-only check; no automatic I/O, supplement write or execution. */
+  check(text: string, options: Parameters<Client['check']>[1]): Promise<Readonly<{
+    outcome: CheckOutcome;
+    attempts: number;
+    decision: CheckSupplementationDecision;
+  }>>;
+}
+/** A total attempt cap also applies when the bound context keeps changing. */
+export declare function createCheckSupplementationSession(client: Pick<Client, 'check'>,
+  options: Readonly<{maxAttempts: number}>): CheckSupplementationSession;
 export type SubmissionInput = Readonly<{
   requestId: string;
   kind: 'program' | 'aql';
@@ -75,7 +113,8 @@ export declare function resolveCheckTextRange(outcome: CheckOutcome,
       end: Readonly<{line: number; character: number}>;
     }>;
   }>) | undefined;
-export declare function explainCheckReason(reason: Readonly<{code: string; facts?: unknown}>):
+export declare function explainCheckReason(reason: Readonly<{code: string; facts?: unknown}>,
+  options?: CheckExplanationOptions):
   Readonly<{kind: 'known' | 'unknown'; summary: string; hint?: string}>;
 
 type ConnectedEndpoint = Readonly<{
