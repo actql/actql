@@ -1,5 +1,25 @@
 # Standard Host Model approval: first vertical slice
 
+## Follow-up after #465 adoption
+
+#465 was merged at `58e671087e1dabee34b0fcbb36dd0ab4a529909a` with
+its three immutable proof supplements. Its adoption review records full-history
+success at `de3abafc012ca3682d68d63d001e365a2e6cc393`; the earlier timed-out
+history attempts below remain historical observations, not current failures.
+The additional continuation-original regression and correction are a separate
+small follow-up targeting main, retaining those supplements and introductions.
+
+Before that main integration, clean `4292bc31f836dfcc1eac48ad8dfe0f1bca0591d9`
+passed fresh-packed Local/HTTPS acceptance: eight selected original-value and
+waiting-cancellation cases plus the existing independent Model/Effect approval
+cases (`run-D2ls9G`). Five producer and consumer digests agree. Receipts are
+`model-originals-pack-siGmWr`, `public-query-evidence-e7Ihqy` and
+`actql-packed-salesforce-d2oAwo` under `worktrees/.codex-scratch`, with independent
+readback `/private/tmp/actql-d-465-4292bc31-verification.json`. The initial
+consumer omitted a fixture import and failed before cases (`run-xEAcdk`);
+the corrected consumer reused that same verified producer without repacking.
+These results apply to 4292bc31, not to the later main integration or CI.
+
 ## Original bytes in the Model Checkpoint continuation
 
 The fixed-input snapshot and invocation originals preserved text, but
