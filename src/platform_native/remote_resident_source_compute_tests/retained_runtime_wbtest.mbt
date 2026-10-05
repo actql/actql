@@ -9,8 +9,8 @@ fn retained_runtime_required_env(name : String) -> String {
 ///|
 /// This signed component is the existing Native test fixture. It establishes
 /// real bundle/journal/Runtime admission, not a distributed resident binary or
-/// public Cloud acceptance. The producer completion remains the explicit
-/// protocol fixture in retained_compute_wbtest.mbt.
+/// public Cloud acceptance. Acquisition Runtime callers supply actual producer
+/// evidence; retained_compute_wbtest.mbt supplies its explicit protocol fixture.
 fn retained_compute_through_runtime(
   materials : @host.ClientRunMaterials,
   configuration : @resident.ResidentSourceComputeConfiguration,
