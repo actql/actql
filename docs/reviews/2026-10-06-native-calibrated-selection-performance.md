@@ -516,3 +516,37 @@ hash/files/process/admission costs, source and both prelaunch costs, actual
 planner/Owner correspondence and all phase intervals. This isolates the emitter
 candidate from the earlier ASCII change. Preserve indeterminate results and
 the original separate gate thresholds; do not rerun to find a favorable result.
+
+The continuation experiment completed at clean
+`09b003893564cd01d4ff36ae4a6b2302839bd852`. Native binary: 12,405,216 bytes,
+`sha256:c60bcc58aa831f91167fe06246ae3c13e7e5e538e05d21a34ada84165a4c2543`.
+All 44 admissions succeeded, but the primary complete-parent difference was
+`+1.754 ms`, 95% `[+0.300, +4.003]`: it failed the reduction criterion. Native
+entry-through-result difference was `+0.083 ms`, `[-0.322, +0.593]`; application
+preparation `-0.112 ms`, `[-0.306, +0.079]`; task, Compute/identity and cleanup
+differences were also indeterminate. Do not infer an internal algorithm
+regression from the external-time difference or advertise a preparation gain.
+
+Common source preparation was `146.905 ms`. Full prelaunch parent cycles were
+`561.977 / 427.592 ms`, Native process intervals `521.792 / 417.945 ms`, compared
+with entry-through-result clocks `40.782 / 31.417 ms`. These large external
+gaps recurred even for previously used binaries, so calling the cause simply
+the first-ever image use would be unsupported. Costs and raw observations are
+preserved, not folded into a favorable subset.
+
+The candidate is **not adopted**: restore both canonical emitter/cursor files
+to the `fe0b68242` bytes and restore the normal release binary with its verified
+`2152155c…` digest. The experiment commit, full binary, measurements and controller
+remain reproducible; no production value/emitter boundary change remains from
+this candidate. Working-diff semantic checks are evidence for the tested
+candidate, not a claim of current-HEAD execution. No extra calibration/full gate
+was run for a rejected performance candidate.
+
+Receipts: selected release `run-RDptSZ` (79 dependency tasks), statistical check
+`7/7` (`run-XYpJNv`, `focused-test-Si6WUo`), paired comparison `run-JX5d0r`.
+Original: `_build/repro/continuation-comparison-09b003893.json`, 13,074,279 bytes,
+`sha256:7a85bd2bc2574b64915515e9dad2765261aced9ef89cdfb017840cdd2df3ff55`.
+Source/binary/command manifest: `_build/repro/artifacts-09b003893.json`.
+The runtime-performance objective remains unmet. Do not repeat the same test
+until favorable; use these Native boundaries to choose the next cause or a
+justified larger existing case, keeping the same comparison obligations.

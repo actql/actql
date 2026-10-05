@@ -32,12 +32,9 @@ pub fn cancel_emit(cursor : CanonicalEmit) -> Unit {
 pub fn advance_emit(cursor : CanonicalEmit) -> Bool raise @encode.EncodeFailure {
   let pending = cursor.pending
   let output = cursor.output
-  // Keep a container's continuation in place between children. Rewrapping
-  // it on every advance adds allocation without changing the node/key work.
-  guard pending.last() is Some(frame) else { return true }
+  guard pending.pop() is Some(frame) else { return true }
   match frame {
-    Visit(current) => {
-      ignore(pending.pop())
+    Visit(current) =>
       match current {
         Null => @encode.null_value(output)
         Bool(value) => @encode.bool_value(output, value)
@@ -52,14 +49,13 @@ pub fn advance_emit(cursor : CanonicalEmit) -> Bool raise @encode.EncodeFailure 
           pending.push(ObjectRest({ values: frozen, index: 0, }))
         }
       }
-    }
     ArrayRest(rest) =>
       if rest.index < rest.values.values.length() {
         let child = rest.values.values[rest.index]
         rest.index += 1
+        pending.push(ArrayRest(rest))
         pending.push(Visit(child))
       } else {
-        ignore(pending.pop())
         @encode.end_array(output)
       }
     ObjectRest(rest) =>
@@ -67,9 +63,9 @@ pub fn advance_emit(cursor : CanonicalEmit) -> Bool raise @encode.EncodeFailure 
         let (key, child) = rest.values.values[rest.index]
         @encode.key(output, key)
         rest.index += 1
+        pending.push(ObjectRest(rest))
         pending.push(Visit(child))
       } else {
-        ignore(pending.pop())
         @encode.end_object(output)
       }
   }
