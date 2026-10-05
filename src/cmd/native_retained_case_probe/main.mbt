@@ -141,6 +141,11 @@ fn native_strategy_issue_name(
         @host.Physical(@host.ImportRows) => "start-import-rows"
         @host.Physical(@host.ImportColumns) => "start-import-columns"
         @host.Physical(@host.ImportCells) => "start-import-cells"
+        @host.Physical(@host.RuntimeState) => "start-physical-state"
+        @host.Physical(@host.RetainedFile(_)) => "start-retained-file"
+        @host.Physical(@host.RetainedImport(_)) => "start-retained-import"
+        @host.Physical(@host.ResidentImport(_)) => "start-resident-import"
+        @host.Physical(@host.Runtime(_)) => "start-physical-runtime"
         @host.Physical(_) => "start-physical"
         @host.Strategy(run) =>
           match run {
