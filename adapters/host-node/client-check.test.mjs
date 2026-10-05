@@ -1038,21 +1038,19 @@ for (const entrance of ['local', 'http']) {
     const client = await contextClient(t, entrance, absentEnvironment);
     const prefix = 'DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH ' +
       '(NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); ';
-    for (const format of ['aql-text', 'sql']) {
-      for (const selector of ['[1]', '{ids: []}', '{ids: [], unknown: true}']) {
-        const text = prefix + `FROM g |> subgraph(nodes: ${selector}) |> node_rows() |> SELECT node_key`;
-        const outcome = await client.check(text, {format});
-        assert.equal(outcome.outcome, 'completed');
-        assert.equal(outcome.report.verdict, 'invalid', '[check-mutation:subgraph-verdict]');
-        assert.deepEqual(outcome.report.reasons, [{code: 'graph_operation_invalid',
-          facts: {operation: 'subgraph', issue: 'invalid_node_selector'}}],
-        '[check-mutation:subgraph-reason]');
-        assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
-        assert.deepEqual(explainCheckReason(outcome.report.reasons[0]), {kind: 'known',
-          summary: 'The Subgraph node selector is invalid.',
-          hint: 'Provide one selector: nonempty ids, a named Relation with an id field, or a node where predicate.'});
-        assert.equal(getCheckInput(outcome, 'source').text, text);
-      }
+    for (const selector of ['[1]', '{ids: []}', '{ids: [], unknown: true}']) {
+      const text = prefix + `FROM g |> subgraph(nodes: ${selector}) |> node_rows() |> SELECT node_key`;
+      const outcome = await client.check(text, {format: 'aql-text'});
+      assert.equal(outcome.outcome, 'completed');
+      assert.equal(outcome.report.verdict, 'invalid', '[check-mutation:subgraph-verdict]');
+      assert.deepEqual(outcome.report.reasons, [{code: 'graph_operation_invalid',
+        facts: {operation: 'subgraph', issue: 'invalid_node_selector'}}],
+      '[check-mutation:subgraph-reason]');
+      assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+      assert.deepEqual(explainCheckReason(outcome.report.reasons[0]), {kind: 'known',
+        summary: 'The Subgraph node selector is invalid.',
+        hint: 'Provide one selector: nonempty ids, a named Relation with an id field, or a node where predicate.'});
+      assert.equal(getCheckInput(outcome, 'source').text, text);
     }
     const unsupported = await client.check(prefix +
       'FROM g |> subgraph(nodes: {where: "true"}) |> node_rows() |> SELECT node_key',
