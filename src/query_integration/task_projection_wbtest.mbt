@@ -240,11 +240,30 @@ test "captured tasks retain selected aggregate output ceilings" {
     local_values_group_chain=true,
     local_values_group_variant="collections",
   )
-  assert_eq(@strategy.captured_task_aggregate_output_count(run, 2), Some(2))
+  let graph = @strategy.captured_dag_graph(run)
+  let aggregate_task = @strategy.graph_stage_target_task(
+    graph,
+    2,
+    @pipeline.Step(1),
+  ).unwrap()
+  let assertion_task = @strategy.graph_stage_target_task(
+    graph,
+    2,
+    @pipeline.Step(0),
+  ).unwrap()
+  assert_true(aggregate_task != assertion_task)
+  assert_eq(
+    @strategy.captured_task_aggregate_output_count(run, assertion_task),
+    Some(0),
+  )
+  assert_eq(
+    @strategy.captured_task_aggregate_output_count(run, aggregate_task),
+    Some(2),
+  )
   assert_eq(
     @strategy.captured_task_aggregate_output_limit(
       run,
-      2,
+      aggregate_task,
       1,
       "items",
       @connector.array_items_output_unit(),
@@ -254,7 +273,7 @@ test "captured tasks retain selected aggregate output ceilings" {
   assert_eq(
     @strategy.captured_task_aggregate_output_limit(
       run,
-      2,
+      aggregate_task,
       1,
       "text",
       @connector.string_bytes_output_unit(),
@@ -264,7 +283,7 @@ test "captured tasks retain selected aggregate output ceilings" {
   assert_eq(
     @strategy.captured_task_aggregate_output_limit(
       run,
-      2,
+      aggregate_task,
       1,
       "items",
       @connector.string_bytes_output_unit(),
@@ -273,7 +292,7 @@ test "captured tasks retain selected aggregate output ceilings" {
   )
   assert_eq(@strategy.captured_task_aggregate_output_count(run, 1), Some(0))
   @strategy.stop_captured_dag(run)
-  for task in 0..<5 {
+  for task in 0..<@strategy.graph_task_count(graph) {
     @strategy.close_captured_task_output(run, task)
   }
   @mock.close_mock_query_issuer(issuer)
