@@ -37,7 +37,7 @@ pub struct ResidentRetainedTransfer {
 }
 
 ///|
-/// Construction performs no physical read, write or reservation. The caller
+/// Construction performs no payload read, payload write or reservation. The caller
 /// retains this exact owner on failure and serializes its methods; it cannot
 /// create a second active owner for the same receiver responsibility.
 pub fn prepare_resident_retained_transfer(
@@ -149,6 +149,11 @@ pub fn ResidentRetainedTransfer::advance(
     Ok(value) => value
     Err(issue) => return Err(Destination(issue))
   }
+  // Current authorization and expiry can change while journal I/O runs.
+  match self.require_current() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   if @transfer.record_is_destination_committed(record) {
     // Reconstructed committed custody needs no source read or new Transfer.
     match self.remember_receipt() {
@@ -156,7 +161,7 @@ pub fn ResidentRetainedTransfer::advance(
       Err(issue) => return Err(issue)
     }
     self.source_finished = true
-    return Ok(true)
+    return self.require_current().map(_ => true)
   }
   if self.reader is None {
     self.reader = Some(
@@ -182,12 +187,20 @@ pub fn ResidentRetainedTransfer::advance(
   }
   if !self.source_finished {
     if self.pending is None {
+      match self.require_current() {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
       self.pending = match reader.next() {
         Ok(value) => value
         Err(issue) => return Err(Output(issue))
       }
     }
     if self.pending is Some(chunk) {
+      match self.require_current() {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
       match
         @transfer_client.write_durable_direct_destination_chunk(
           self.journal,
@@ -234,12 +247,23 @@ pub fn ResidentRetainedTransfer::advance(
         return Ok(false)
       }
       match self.remember_receipt() {
-        Ok(_) => Ok(true)
+        Ok(_) => self.require_current().map(_ => true)
         Err(issue) => Err(issue)
       }
     }
     Err(issue) => Err(Destination(issue))
   }
+}
+
+///|
+fn ResidentRetainedTransfer::require_current(
+  self : ResidentRetainedTransfer,
+) -> Result[Unit, ResidentRetainedTransferIssue] {
+  @host.validate_client_retained_input_transfer_current(
+    self.producer,
+    self.request,
+    self.current,
+  ).map_err(issue => Input(issue))
 }
 
 ///|

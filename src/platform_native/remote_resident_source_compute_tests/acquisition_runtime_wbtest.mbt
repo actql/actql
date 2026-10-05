@@ -7,6 +7,7 @@ fn acquisition_runtime_case(
   through_consumer : Bool,
   through_resident? : Bool = false,
   cancel_receiver? : Bool = false,
+  deny_after_admission? : Bool = false,
 ) -> Unit raise {
   guard resident_compute_prerequisites() is Some((library_path, root_path)) else {
     return
@@ -296,6 +297,7 @@ fn acquisition_runtime_case(
       root_path,
       name,
       cancel_receiver~,
+      deny_after_admission~,
     )
     assert_true(@host.client_retained_input_producer_available(producer))
     assert_eq(acquisitions.val, 1)
@@ -362,4 +364,13 @@ test "ordinary resident producer bytes transfer to the original consumer without
 ///|
 test "resident producer keeps its Source while partial receiver handoff cancels and reclaims" {
   acquisition_runtime_case(true, through_resident=true, cancel_receiver=true)
+}
+
+///|
+test "resident retained handoff rechecks grants after receiver admission before payload write" {
+  acquisition_runtime_case(
+    true,
+    through_resident=true,
+    deny_after_admission=true,
+  )
 }

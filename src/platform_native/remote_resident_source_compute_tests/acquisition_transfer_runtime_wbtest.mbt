@@ -18,6 +18,7 @@ fn acquisition_runtime_transfer_consumer(
   root_path : String,
   name : String,
   cancel_receiver? : Bool = false,
+  deny_after_admission? : Bool = false,
 ) -> Unit raise {
   let reader = producer_runtime
     .open_output_manifest_reader(producer_dispatch, material_id, 128)
@@ -55,7 +56,14 @@ fn acquisition_runtime_transfer_consumer(
     () => site,
     () => retained_compute_cid("c"),
     () => 1791158400000L,
-    (_, _) => authorized.val,
+    (_, _) => {
+      authorized.val &&
+      (
+        !deny_after_admission ||
+        destination_journal.require(request)
+        is Err(@journal.Physical(@sqlite.NotFound))
+      )
+    },
   )
   let transfer = @resident.prepare_resident_retained_transfer(
     producer_runtime, producer_dispatch, producer, request, common_current, site,
@@ -72,6 +80,39 @@ fn acquisition_runtime_transfer_consumer(
     0L,
   )
   authorized.val = true
+  if deny_after_admission {
+    assert_true(
+      transfer.advance() is Err(@resident.Input(@host.AuthorizationUnavailable)),
+    )
+    assert_eq(@site.site_status(site)[6], before[6] + physical.referenced_bytes)
+    assert_eq(
+      destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
+      physical.referenced_bytes,
+    )
+    assert_true(
+      destination_journal
+      .inspect_destination_allocation_if_present(
+        request, "direct-destination", 0,
+      )
+      .unwrap()
+      is None,
+    )
+    assert_true(transfer.reclaim().unwrap())
+    assert_false(transfer.reclaim().unwrap())
+    assert_true(
+      @transfer.direct_transfer_cleanup_confirmed(
+        destination_journal.require(request).unwrap(),
+      ),
+    )
+    assert_eq(@site.site_status(site)[6], before[6])
+    assert_eq(
+      destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
+      0L,
+    )
+    assert_true(@host.client_retained_input_producer_available(producer))
+    assert_true(destination_journal.close())
+    return
+  }
   assert_false(transfer.advance().unwrap())
   assert_eq(@site.site_status(site)[6], before[6] + physical.referenced_bytes)
   authorized.val = false
