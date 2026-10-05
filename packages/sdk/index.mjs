@@ -140,7 +140,7 @@ export function explainCheckReason(reason) {
     parameter_value_required: ['A declared parameter value is missing.', 'Supply the declared value and check the complete bound input again.'],
     program_invalid: ['The input violates the checked Program contract.', 'Correct the input under the selected contract.'],
     bound_values_missing: ['Required bound inputs are missing.', 'Supply the declared inputs and check again.'],
-    implementation_limit: ['This checking implementation cannot discharge an obligation.', 'Use a checking implementation that supports the allowed construct.'],
+    implementation_limit: ['This checking implementation cannot discharge an obligation.', 'Ask the checking-context owner to review support for the submitted construct.'],
     analysis_budget_exhausted: ['The analysis budget was exhausted.', 'Ask the checking-context owner to review the analysis budget.'],
     check_unclassified: ['The checker could not establish a classified conclusion.', 'Ask the checking-context owner to investigate.'],
     unresolved_protected: ['Source resolution cannot be established from the disclosed context.', 'Ask the Source or checking-context owner to review the published context.'],
@@ -170,6 +170,16 @@ export function explainCheckReason(reason) {
   if (reason?.code === 'query_expression_invalid' && typeof issue === 'string' &&
       Object.hasOwn(expressionExplanations, issue)) {
     const [summary, hint] = expressionExplanations[issue];
+    return Object.freeze({kind: 'known', summary, hint});
+  }
+  const graphExplanations = {
+    invalid_kind: ['The components kind is invalid.', 'Choose weak or strong for components kind.'],
+    invalid_output_rows: ['The components output row limit is invalid.', 'Supply a positive safe integer for components max_output_rows.'],
+  };
+  if (reason?.code === 'graph_operation_invalid' &&
+      reason?.facts?.operation === 'components' && typeof issue === 'string' &&
+      Object.hasOwn(graphExplanations, issue)) {
+    const [summary, hint] = graphExplanations[issue];
     return Object.freeze({kind: 'known', summary, hint});
   }
   const constraintHints = {

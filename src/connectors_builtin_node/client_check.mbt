@@ -10,6 +10,7 @@ priv enum CheckFinding {
   SyntaxViolation(Int, Int)
   LexicalViolation(String, (Int, Int)?)
   ExpressionViolation(String, (Int, Int)?)
+  GraphViolation(String)
   TypeViolation(String, String, String, String?)
   SuppliedViolation(String?)
   DeclarationViolation(String?)
@@ -316,15 +317,13 @@ fn check_source_findings(
             { issue: InvalidLimits | Construction(_) | Admission(_), .. }
           )
         ) => return Failed("check_internal")
+        // This lowerer issue conflates unknown names with unsupported forms.
+        // Without a distinct input violation it cannot justify author blame.
+        QueryLowering(Expression({ issue: UnsupportedFunction, .. })) =>
+          findings.push(Limit("implementation_limit"))
         QueryLowering(
           Expression(
-            {
-              issue: UnknownReference
-              | UnsupportedFunction
-              | InvalidArguments
-              | InvalidNumber,
-              ..
-            }
+            { issue: UnknownReference | InvalidArguments | InvalidNumber, .. }
           )
         ) => findings.push(check_query_finding(issue))
         // Host query context, not the caller's input.
@@ -363,6 +362,7 @@ fn check_source_findings(
       | SyntaxViolation(_, _)
       | LexicalViolation(_, _)
       | ExpressionViolation(_, _)
+      | GraphViolation(_)
       | TypeViolation(_, _, _, _)
       | SuppliedViolation(_)
       | DeclarationViolation(_)
@@ -406,7 +406,7 @@ fn check_source_findings(
             }
             findings.push(UndeclaredParameter(name, range))
           } else {
-            findings.push(Violation("program_invalid"))
+            findings.push(check_program_finding(diagnostic))
           }
         MissingInput => findings.push(Limit("bound_values_missing"))
         UnsupportedImplementation =>
@@ -545,6 +545,28 @@ fn check_declarations(
 }
 
 ///|
+fn check_program_finding(
+  diagnostic : @program_check.CheckDiagnostic,
+) -> CheckFinding {
+  if @program_check.diagnostic_cause(diagnostic)
+    is Source(SourceView(Program(Program(Pipeline(_, issue))))) &&
+    issue.path.length() == 6 &&
+    issue.path[0] is Key("stages") &&
+    issue.path[1] is Index(_) &&
+    issue.path[2] is Key("steps") &&
+    issue.path[3] is Index(_) &&
+    issue.path[4] is Key("components") {
+    match (issue.kind, issue.path[5]) {
+      (Graph(InvalidBody), Key("kind")) => return GraphViolation("invalid_kind")
+      (Graph(InvalidCount), Key("max_output_rows")) =>
+        return GraphViolation("invalid_output_rows")
+      _ => ()
+    }
+  }
+  Violation("program_invalid")
+}
+
+///|
 /// Public verdict from disclosable evidence only.
 fn check_verdict(findings : Array[CheckFinding]) -> String {
   if findings
@@ -555,6 +577,7 @@ fn check_verdict(findings : Array[CheckFinding]) -> String {
       | SyntaxViolation(_, _)
       | LexicalViolation(_, _)
       | ExpressionViolation(_, _)
+      | GraphViolation(_)
       | TypeViolation(_, _, _, _)
       | SuppliedViolation(_)
       | DeclarationViolation(_)
@@ -599,6 +622,7 @@ fn write_check_report(
       SyntaxViolation(_, _) => Some("query_syntax_invalid")
       LexicalViolation(_, _) => Some("query_lexical_invalid")
       ExpressionViolation(_, _) => Some("query_expression_invalid")
+      GraphViolation(_) => Some("graph_operation_invalid")
       TypeViolation(_, _, _, _) => Some("supplied_value_type_mismatch")
       SuppliedViolation(_) => Some("supplied_value_invalid")
       DeclarationViolation(_) => Some("parameter_declarations_invalid")
@@ -716,6 +740,22 @@ fn write_check_report(
               end,
             )
           }
+          break
+        }
+      }
+    }
+    if code == "graph_operation_invalid" {
+      for finding in findings {
+        if finding is GraphViolation(issue) {
+          @encode.key(writer, "facts")
+          @encode.begin_object(writer)
+          @encode.key(writer, "issue")
+          @encode.string_value(writer, issue)
+          @encode.key(writer, "operation")
+          @encode.string_value(writer, "components")
+          @encode.end_object(writer)
+          // The checker-facing span does not retain authored origin kind
+          // or argument precision. Do not publish it as an exact input range.
           break
         }
       }

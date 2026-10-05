@@ -256,3 +256,226 @@ test "analytic preparation enforces exact entry and name budgets" {
     is Err(@lowering_relation.AnalyticFailure(_)),
   )
 }
+
+///|
+test "analytic canonical node orders retained nested property source" {
+  let kernel = analytic_kernel(
+    "\"analytic\":{\"partition_by\":[],\"order_by\":[{\"id\":\"asc\"}]," +
+    "\"functions\":{\"z\":{\"fn\":\"lag\",\"expr\":{" +
+    "\"property\":{\"value\":{\"object\":{\"score\":{\"field\":\"amount\"}}},\"name\":\"score\"}}}," +
+    "\"a\":{\"fn\":\"lead\",\"expr\":\"amount + 1\"}}}",
+  )
+  let writer = @encode.writer(100000, 10000, 100)
+  @lowering_relation.emit_kernel_node(kernel, writer)
+  let wire = @encode.finish(writer)
+  assert_true(
+    wire.contains(
+      "\"property\":{\"name\":\"score\",\"value\":{\"object\":{\"score\":{\"field\":\"amount\"}}}}",
+    ),
+    msg=wire,
+  )
+}
+
+///|
+test "analytic canonical source shares exact node and work limits across calls" {
+  let owner = analytic_owner(
+    "\"analytic\":{\"partition_by\":[],\"order_by\":[{\"id\":\"asc\"}]," +
+    "\"functions\":{\"z\":{\"fn\":\"lag\",\"expr\":{" +
+    "\"property\":{\"value\":{\"object\":{\"score\":{\"field\":\"amount\"}}},\"name\":\"score\"}}}," +
+    "\"a\":{\"fn\":\"lead\",\"expr\":\"amount + 1\"}}}",
+  )
+  let limits = expression_limits()
+  let (_, remaining) = @lowering_relation.prepare_analytic(
+    owner, 0, 100, 1000, limits,
+  ).unwrap()
+  let nodes = limits.max_nodes - remaining.max_nodes
+  let work = limits.max_work - remaining.max_work
+  let exact = { ..limits, max_nodes: nodes, max_work: work, }
+  let (_, empty) = @lowering_relation.prepare_analytic(
+    owner, 0, 100, 1000, exact,
+  ).unwrap()
+  assert_eq(empty.max_nodes, 0)
+  assert_eq(empty.max_work, 0)
+  for
+    short in [
+      { ..exact, max_nodes: nodes - 1, },
+      { ..exact, max_work: work - 1, },
+    ] {
+    assert_true(
+      @lowering_relation.prepare_analytic(owner, 0, 100, 1000, short)
+      is Err(@lowering_relation.AnalyticExpressionFailure(_)),
+    )
+  }
+}
+
+///|
+test "analytic canonical source leaves ordinary retained projection unchanged" {
+  let kernel = analytic_kernel(
+    "\"analytic\":{\"partition_by\":[],\"order_by\":[{\"id\":\"asc\"}]," +
+    "\"functions\":{\"out\":{\"fn\":\"lag\",\"expr\":{" +
+    "\"property\":{\"value\":{\"object\":{\"score\":{\"field\":\"amount\"}}},\"name\":\"score\"}}}}}",
+  )
+  let analytic = @lowering_relation.kernel_analytic(kernel).unwrap()
+  let call = @lowering_relation.analytic_call_at(analytic, 0).unwrap()
+  guard @lowering_relation.analytic_call_function(call)
+    is @lowering_relation.PreparedLag(expression, _) else {
+    fail("lag")
+  }
+  let writer = @encode.writer(100000, 10000, 100)
+  @lowering_relation.emit_expression_source(expression, writer)
+  assert_eq(
+    @encode.finish(writer),
+    "{\"property\":{\"value\":{\"object\":{\"score\":{\"field\":\"amount\"}}},\"name\":\"score\"}}",
+  )
+}
+
+///|
+test "analytic canonical source covers nested arguments and aggregate filters" {
+  let property = "{\"property\":{\"value\":{\"property\":{\"value\":{\"object\":{\"inner\":{\"object\":{\"score\":{\"field\":\"amount\"}}}}},\"name\":\"inner\"}},\"name\":\"score\"}}"
+  let canonical = "{\"property\":{\"name\":\"score\",\"value\":{\"property\":{\"name\":\"inner\",\"value\":{\"object\":{\"inner\":{\"object\":{\"score\":{\"field\":\"amount\"}}}}}}}}}"
+  let body = "\"analytic\":{\"partition_by\":[],\"order_by\":[{\"id\":\"asc\"}]," +
+    "\"frame\":{\"start\":\"unbounded_preceding\",\"end\":\"current_row\"},\"functions\":{" +
+    "\"z\":{\"fn\":\"sum\",\"expr\":" +
+    property +
+    ",\"filter\":{\"not_null\":" +
+    property +
+    "}}," +
+    "\"last\":{\"fn\":\"last_value\",\"expr\":" +
+    property +
+    "}," +
+    "\"first\":{\"fn\":\"first_value\",\"expr\":" +
+    property +
+    "}}}"
+  let writer = @encode.writer(100000, 10000, 100)
+  @lowering_relation.emit_kernel_node(analytic_kernel(body), writer)
+  assert_eq(
+    @encode.finish(writer),
+    "{\"id\":\"analytic_0\",\"in\":[\"input_0\"],\"op\":\"REL.analytic\",\"params\":{" +
+    "\"frame\":{\"end\":\"current_row\",\"start\":\"unbounded_preceding\"},\"functions\":{" +
+    "\"first\":{\"expr\":" +
+    canonical +
+    ",\"fn\":\"first_value\"}," +
+    "\"last\":{\"expr\":" +
+    canonical +
+    ",\"fn\":\"last_value\"}," +
+    "\"z\":{\"expr\":" +
+    canonical +
+    ",\"filter\":{\"not_null\":" +
+    canonical +
+    "},\"fn\":\"sum\"}}," +
+    "\"order_by\":[{\"dir\":\"asc\",\"field\":\"id\",\"nulls\":\"last\"}],\"partition_by\":[]}}",
+  )
+}
+
+///|
+test "analytic canonical source keeps literal objects opaque and parameter references" {
+  let declarations = @parameter.read_declarations(
+    Some(cursor("{\"n\":{\"type\":\"number\",\"nullable\":false}}")),
+    { max_parameters: 1, max_nodes: 10, max_depth: 10, max_text_bytes: 100, },
+  ).unwrap()
+  let values = match
+    @parameter.bind(declarations, Some(cursor("{\"n\":2}")), {
+      max_nodes: 10,
+      max_depth: 10,
+      max_text_bytes: 100,
+    }).unwrap() {
+    Ready(values) => values
+    NeedsBindings(_) => abort("fixture is bound")
+  }
+  let owner = analytic_owner(
+    "\"analytic\":{\"partition_by\":[],\"order_by\":[{\"id\":\"asc\"}],\"functions\":{" +
+    "\"p\":{\"fn\":\"lag\",\"expr\":{\"$param\":\"n\"}}," +
+    "\"data\":{\"fn\":\"lag\",\"expr\":{\"literal\":{\"z\":[true,null,3],\"if\":{\"$param\":\"business\"},\"a\":\"é\"}}}}}",
+    declarations=Some(declarations),
+    values=Some(values),
+  )
+  let kernel = @lowering_relation.prepare_kernel(
+    owner,
+    0,
+    max_bindings=100,
+    max_name_bytes=1000,
+    expression_limits(),
+  ).unwrap()
+  let writer = @encode.writer(100000, 10000, 100)
+  @lowering_relation.emit_kernel_node(kernel, writer)
+  assert_eq(
+    @encode.finish(writer),
+    "{\"id\":\"analytic_0\",\"in\":[\"input_0\"],\"op\":\"REL.analytic\",\"params\":{\"functions\":{" +
+    "\"data\":{\"expr\":{\"literal\":{\"a\":\"é\",\"if\":{\"$param\":\"business\"},\"z\":[true,null,3]}},\"fn\":\"lag\",\"offset\":1}," +
+    "\"p\":{\"expr\":{\"$param\":\"n\"},\"fn\":\"lag\",\"offset\":1}}," +
+    "\"order_by\":[{\"dir\":\"asc\",\"field\":\"id\",\"nulls\":\"last\"}],\"partition_by\":[]}}",
+  )
+}
+
+///|
+test "analytic canonical preparation shares limits across sequence steps" {
+  let first = "\"analytic\":{\"partition_by\":[],\"order_by\":[{\"id\":\"asc\"}],\"functions\":{\"a\":{\"fn\":\"lag\",\"expr\":\"amount + 1\"}}}"
+  let second = "\"analytic\":{\"partition_by\":[],\"order_by\":[{\"id\":\"asc\"}],\"functions\":{\"b\":{\"fn\":\"lag\",\"expr\":\"amount + 1\"}}}"
+  let owner = analytic_owner(first + "},{" + second)
+  let limits = expression_limits()
+  let (_, after_first) = @lowering_relation.prepare_analytic(
+    owner, 0, 100, 1000, limits,
+  ).unwrap()
+  let (_, after_both) = @lowering_relation.prepare_analytic(
+    owner, 1, 100, 1000, after_first,
+  ).unwrap()
+  let exact = {
+    ..limits,
+    max_nodes: limits.max_nodes - after_both.max_nodes,
+    max_work: limits.max_work - after_both.max_work,
+  }
+  assert_true(
+    @lowering_relation.prepare_sequence(owner, {
+      ..sequence_limits(),
+      expressions: exact,
+    })
+    is Ok(_),
+  )
+  for
+    short in [
+      { ..exact, max_nodes: exact.max_nodes - 1, },
+      { ..exact, max_work: exact.max_work - 1, },
+    ] {
+    assert_true(
+      @lowering_relation.prepare_sequence(owner, {
+        ..sequence_limits(),
+        expressions: short,
+      })
+      is Err(_),
+    )
+  }
+}
+
+///|
+test "analytic source ordering preserves semantic expression depth limits" {
+  for
+    (expression, depth) in [
+      ("{\"field\":\"amount\"}", 0),
+      (
+        "{\"property\":{\"value\":{\"object\":{\"score\":{\"field\":\"amount\"}}},\"name\":\"score\"}}",
+        2,
+      ),
+    ] {
+    let owner = analytic_owner(
+      "\"analytic\":{\"partition_by\":[],\"order_by\":[{\"id\":\"asc\"}],\"functions\":{\"out\":{\"fn\":\"lag\",\"expr\":" +
+      expression +
+      "}}}",
+    )
+    assert_true(
+      @lowering_relation.prepare_analytic(owner, 0, 100, 1000, {
+        ..expression_limits(),
+        max_depth: depth,
+      })
+      is Ok(_),
+    )
+    if depth > 0 {
+      assert_true(
+        @lowering_relation.prepare_analytic(owner, 0, 100, 1000, {
+          ..expression_limits(),
+          max_depth: depth - 1,
+        })
+        is Err(_),
+      )
+    }
+  }
+}

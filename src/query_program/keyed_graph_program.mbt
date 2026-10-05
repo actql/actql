@@ -219,6 +219,7 @@ fn lower_script_keyed_graph_query(
   reserved : Array[String],
   output : String,
   retained : Array[RetainedResult],
+  known? : Array[Input] = [],
 ) -> Input raise Abort {
   guard @query.graph_query(query) is Some(pattern_query) &&
     pattern_query.pattern is Some(pattern) else {
@@ -230,7 +231,13 @@ fn lower_script_keyed_graph_query(
     raise Abort(UnknownRelation)
   }
   let graph = lower_script_graph_calls(
-    construction, query, input_graph, steps, reserved,
+    construction,
+    query,
+    input_graph,
+    limits,
+    steps,
+    reserved,
+    known~,
   )
   let query = @query.after_graph_calls(query)
   let mut projected = false

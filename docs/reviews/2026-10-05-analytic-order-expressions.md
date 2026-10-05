@@ -1,7 +1,29 @@
 # Analytic ORDER BY expression connection
 
-Status: Frontend implementation and partial public acceptance; Draft until the
-nullable-object case completes. This is not completion of the analytic profile.
+Status: Original implementation and acceptance history, followed by main
+integration below. The failed pre-integration campaign remains historical
+failure evidence; it must not be relabeled as current acceptance. This is not
+completion of the analytic profile.
+
+## Main integration and fixture profiles
+
+Main `40340e5be89d53f3e862b3580d1fa3fcc9129a12` adds the common source-free
+Relation DAG selection from #396 and canonical property expression emission.
+The existing branch incorporates that source through a normal merge without
+changing the 536,870,912-byte execution budget or the independent expectations.
+
+The packed corpus assigns every analytic-order fixture its original three
+1,048,576-byte wire ceilings and 10,000 frame memberships. Analytic-property
+fixtures retain main's 10,000-byte ceilings and 10,000 frame memberships.
+Separate immutable Local and authenticated HTTPS Host installations run each
+profile, including in a combined corpus. The default corpus retains main's
+profile. No wider envelope overwrites another fixture's declared limits.
+
+`--analytic-profiles-only` selects both complete analytic corpora, including
+the nullable-object positive below, refusals and the expected division failure.
+Existing analytic-order, analytic-property, aggregate-property and Subgraph
+routes remain registered. Current exact-HEAD verification belongs to the PR's
+validation record; the original observations below retain their original SHAs.
 
 ## Counterexample and adopted boundary
 

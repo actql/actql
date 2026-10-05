@@ -2,14 +2,8 @@
 // The id=0 row distinguishes retained WHERE from an unconditional capture.
 const number = {type: 'number', nullable: false};
 const nullableNumber = {...number, nullable: true};
-// The common analytic envelope requires explicit installed Host ceilings.
-// These bound this test profile; the shared 512 MiB execution budget is intact.
-export const analyticOrderCapacity = {
-  max_analytic_input_wire_bytes: 1048576,
-  max_analytic_output_wire_bytes: 1048576,
-  max_analytic_partition_wire_bytes: 1048576,
-  max_analytic_frame_memberships: 10000,
-};
+import {analyticOrderCapacity} from './public-query-profiles.mjs';
+export {analyticOrderCapacity};
 const column = (name, contract = number) => ({name, contract});
 const sourceRows = [{id: 3, amount: 20}, {id: 1, amount: 10},
   {id: 2, amount: null}, {id: 4, amount: 20}, {id: 0, amount: 99}];
@@ -39,7 +33,7 @@ const program = {version: 'actql/0.1', id: 'fixture.analytic_order_expression',
     results: {rows: {from: 'ordered', fields: ['id', 'amount', 'pos']}}}],
   results: {answer: {from: {stage: 'main', result: 'rows'}}}};
 const success = (name, text, extra = {}) => ({name: 'analytic-order-' + name,
-  format: 'sql', text, sourceRows, expected, columns, sourceReadSessionCount: 1,
+  hostProfile: 'analytic-order', format: 'sql', text, sourceRows, expected, columns, sourceReadSessionCount: 1,
   ...extra});
 const ascending = [{id: 1, amount: -10, pos: 1}, {id: 2, amount: null, pos: 4},
   {id: 3, amount: -20, pos: 2}, {id: 4, amount: -20, pos: 3}];
@@ -101,10 +95,10 @@ export const analyticOrderRefusals = [
   ['removed-range', 'FROM records AS old |> AS current |> SELECT ROW_NUMBER() OVER (ORDER BY old.amount + 1) AS pos'],
   ['missing', 'SELECT ROW_NUMBER() OVER (ORDER BY missing + 1) AS pos FROM records'],
   ['missing-declaration', 'SELECT ROW_NUMBER() OVER (ORDER BY id + @offset) AS pos FROM records'],
-].map(([name, text]) => ({name: 'analytic-order-refuse-' + name, format: 'aql-text', text}));
-analyticOrderRefusals.push({name: 'analytic-order-refuse-parameter-type', format: 'sql',
+].map(([name, text]) => ({name: 'analytic-order-refuse-' + name, hostProfile: 'analytic-order', format: 'aql-text', text}));
+analyticOrderRefusals.push({name: 'analytic-order-refuse-parameter-type', hostProfile: 'analytic-order', format: 'sql',
   text: 'SELECT ROW_NUMBER() OVER (ORDER BY id + @offset) AS pos FROM records',
   parameterDeclarations: {offset: number}, parameters: {offset: 'secret-value'}});
-export const analyticOrderExecutionFailures = [{name: 'analytic-order-division-failure',
+export const analyticOrderExecutionFailures = [{name: 'analytic-order-division-failure', hostProfile: 'analytic-order',
   format: 'sql', text: 'SELECT id, ROW_NUMBER() OVER (ORDER BY id / (id - id), id) AS pos FROM records',
   resultNames: ['answer'], sourceReadSessionCount: 1}];
