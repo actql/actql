@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createPrivateKey, generateKeyPairSync, sign, verify} from
   'node:crypto';
 import {readFileSync} from 'node:fs';
-import {connect, ClientError, RequestHeld, getSubmissionInput} from './index.mjs';
+import {connect, ClientError, RequestHeld, getSubmissionInput, explainSubmission} from './index.mjs';
 import {canonicalJson, contentCid, signedAnswer} from './checkpoints.mjs';
 
 const vectors = JSON.parse(readFileSync(new URL(
@@ -139,6 +139,15 @@ test('a held submit is a control result, not a failure or unknown submission',
     assert.equal(getSubmissionInput(error).requestId, 'saved-a');
     assert.equal(getSubmissionInput(error).lookupContext.scopeRef, 'scope-a');
     assert.equal(Object.isFrozen(getSubmissionInput(error)), true);
+    const explanation = explainSubmission(error);
+    assert.deepEqual(explanation, {observation: 'request_held',
+      summary: 'The Host returned a held-request response. Look up the current request state.',
+      next: {operation: 'lookupRequest', requestId: 'saved-a',
+        lookupContext: {endpoint: 'https://host.example/', scopeRef: 'scope-a'}}});
+    error.code = 'SubmissionUnknown';
+    error.held = {kind: 'found', ref: {runDefinitionCid: cid('9')}};
+    assert.equal(explainSubmission(error), explanation);
+    assert.equal(explainSubmission(new RequestHeld(held)), undefined);
     assert.deepEqual(await client.lookupRequest('saved-a'), held);
     // A held reply for another request is not accepted as held.
     mock.restoreAll();

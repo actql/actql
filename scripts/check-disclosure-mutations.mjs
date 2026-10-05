@@ -23,7 +23,7 @@ const mutations = [
     'if findings\n    .iter()\n    .any(finding => {\n' +
     '      finding\n      is (Violation(_)\n      | SyntaxViolation(_, _)\n' +
     '      | LexicalViolation(_, _)\n' +
-    '      | QueryViolation(_, _)\n' +
+    '      | ExpressionViolation(_, _)\n' +
     '      | TypeViolation(_, _, _, _)\n      | SuppliedViolation(_)\n' +
     '      | DeclarationViolation(_)\n' +
     '      | ConstraintViolation(_, _, _)\n' +
@@ -64,13 +64,11 @@ const mutations = [
     'return ConstraintViolation(name, constraint, pointer)',
     'return SuppliedViolation(pointer)'],
   ['an unresolved column loses its retained authored location',
-    '    Some(origin) =>\n      QueryViolation(\n' +
-    '        @source_origin.start(origin).byte_offset,\n' +
-    '        @source_origin.end(origin).byte_offset,\n      )',
-    '    Some(_) => Violation("query_invalid")'],
+    'return ExpressionViolation(code, range)',
+    'return ExpressionViolation(code, None)'],
   ['an unresolved column starts one byte after its authored token',
-    '        @source_origin.start(origin).byte_offset,',
-    '        @source_origin.start(origin).byte_offset + 1,'],
+    '            @source_origin.start(origin).byte_offset,',
+    '            @source_origin.start(origin).byte_offset + 1,'],
   ['a lexical escape is assigned to another issue family',
     'InvalidEscape => "invalid_escape"', 'InvalidEscape => "unexpected_end"'],
   ['a lexical violation loses its owned source position',
@@ -129,6 +127,48 @@ const mutations = [
     '        // Other failures of generated construction/admission and invalid',
     '        ) => {\n          findings.clear()\n          findings.push(Limit("analysis_budget_exhausted"))\n        }\n' +
     '        // Other failures of generated construction/admission and invalid'],
+  ['an expression diagnostic is assigned to another issue family',
+    'UnknownReference => Some("unknown_reference")',
+    'UnknownReference => Some("invalid_arguments")'],
+  ['an expression diagnostic loses its authored range',
+    'return ExpressionViolation(code, range)',
+    'return ExpressionViolation(code, None)'],
+  ['an expression diagnostic fabricates a protected reference violation',
+    'QueryLowering(UnknownRelation) =>\n' +
+    '          findings.push(Unresolved("source_resolution"))',
+    'QueryLowering(UnknownRelation) => {\n' +
+    '          findings.push(Unresolved("source_resolution"))\n' +
+    '          findings.push(ExpressionViolation("unknown_reference", Some((7, 14))))\n' +
+    '        }'],
+  ['an expression diagnostic is reported as an analysis limit',
+    'return ExpressionViolation(code, range)',
+    'return Limit("analysis_budget_exhausted")'],
+  ['an unsupported function is reported as an authored violation',
+    '        QueryLowering(Expression({ issue: UnsupportedFunction, .. })) =>\n' +
+    '          findings.push(Limit("implementation_limit"))',
+    '        QueryLowering(Expression({ issue: UnsupportedFunction, .. })) =>\n' +
+    '          findings.push(Violation("query_invalid"))'],
+  ['an unsupported function is reported as a checker failure',
+    '        QueryLowering(Expression({ issue: UnsupportedFunction, .. })) =>\n' +
+    '          findings.push(Limit("implementation_limit"))',
+    '        QueryLowering(Expression({ issue: UnsupportedFunction, .. })) =>\n' +
+    '          return Failed("check_internal")'],
+  ['an unsupported function is silently verified',
+    '        QueryLowering(Expression({ issue: UnsupportedFunction, .. })) =>\n' +
+    '          findings.push(Limit("implementation_limit"))',
+    '        QueryLowering(Expression({ issue: UnsupportedFunction, .. })) => ()'],
+  ['an unsupported function hides an independent supplied violation',
+    '        QueryLowering(Expression({ issue: UnsupportedFunction, .. })) =>\n' +
+    '          findings.push(Limit("implementation_limit"))',
+    '        QueryLowering(Expression({ issue: UnsupportedFunction, .. })) => {\n' +
+    '          findings.clear()\n          findings.push(Limit("implementation_limit"))\n        }'],
+  ['an unsupported function limit is fabricated behind protected resolution',
+    'QueryLowering(UnknownRelation) =>\n' +
+    '          findings.push(Unresolved("source_resolution"))',
+    'QueryLowering(UnknownRelation) => {\n' +
+    '          findings.push(Unresolved("source_resolution"))\n' +
+    '          findings.push(Limit("implementation_limit"))\n        }'],
+
 ];
 
 const strict = id => ({id, operator: 'strictEqual'});
@@ -182,6 +222,18 @@ const targets = [
   ['expression construction limits remain undetermined', [strict('expression-budget-outcome')]],
   ['expression construction limits remain undetermined', [strict('expression-budget-verdict')]],
   ['expression construction limits remain undetermined', [strict('expression-budget-mixed')]],
+  ['typed expression explanations retain original source ranges',
+    [strict('expression-outcome'), strict('expression-verdict'), deep('expression-reason')]],
+  ['typed expression explanations retain original source ranges',
+    [strict('expression-outcome'), strict('expression-verdict'), deep('expression-reason')]],
+  ['typed expression explanations retain original source ranges', [deep('expression-protected')]],
+  ['typed expression explanations retain original source ranges', [strict('expression-verdict')]],
+  ['unsupported function lowering remains an implementation limit', [strict('function-limit-verdict')]],
+  ['unsupported function lowering remains an implementation limit', [strict('function-limit-outcome')]],
+  ['unsupported function lowering remains an implementation limit', [strict('function-limit-verdict')]],
+  ['unsupported function lowering remains an implementation limit', [strict('function-limit-mixed')]],
+  ['unsupported function lowering remains an implementation limit', [deep('function-limit-protected')]],
+
 ];
 
 // Reuse the common reporter and nonzero-execution evidence. A process failure
