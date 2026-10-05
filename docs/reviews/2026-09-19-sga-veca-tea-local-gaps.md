@@ -1158,6 +1158,36 @@ storage; the component regression covers that distinct representation.
 New-source Host execution, other targets and Linux CI remain separately
 recorded obligations, not inferred from these JS checks.
 
+General Group, analytic and pivot output retention now advances the existing
+value-measurement cursor for large cells, long field names and wide schemas.
+The private row cursor reserves its handle and traversal frames before
+allocation and keeps failed or unfinished traversal with the enclosing cleanup
+owner. A finite small-row path preserves the existing scalar charges. General
+Group additionally builds a wide output projection one cell per advance.
+Neither numeric occurrence sealing nor aggregate algorithms change.
+
+The independent nested fixture requires six nodes, 137 bytes, depth four and
+143 work units. A wide Group row requires eleven nodes, 4,119 bytes and 4,130
+work units; analytic and pivot copied-Text rows require respectively six/three
+nodes, 4,127/4,105 bytes and 4,133/4,108 work units. Each exact and typed
+one-short node, byte, depth and work limit is checked without deriving the
+expectation from execution. The shared traversal also checks three versus two
+workspace slots, partially charged cleanup and idempotent close. Direct owner
+tests resume each operation through a real Text chunk, then close before its
+first output callback and preserve the borrowed source. These are component
+cleanup checks, not Host cancellation
+delivery evidence.
+
+The focused JS aggregate and analytic managed-caller selection passes 39 tests.
+New retained Group, analytic and pivot long-Text cases use the existing real
+Store publication and two-consumer harness; their source-SHA execution remains
+separate evidence. This does not certify synchronous wire emission or logical
+expression-event measurement, and does not promote whole-operation assurance.
+The broader selected callers still have three Group fixture failures and a
+Nest 35-slot exact-workspace failure, reproduced independently at the unchanged
+parent `b2da55d77784d8d1317ab35ccc1303c585f33507`. They remain explicit
+regression obligations; the passing selection does not hide those failures.
+
 #### Retained Relation obligation chains
 
 The retained materializing lane now binds checked obligations to the exact
