@@ -2372,6 +2372,7 @@ assert.deepEqual(Object.keys(metadata.inputs).sort(), [
   'node_modules/@actql/client-wire/client-host.generated.js',
   'node_modules/@actql/client-wire/index.mjs',
   'node_modules/@actql/client-wire/publication.generated.js',
+  'node_modules/@actql/sdk/check-presentation.mjs',
   'node_modules/@actql/sdk/checkpoints.mjs',
   'node_modules/@actql/sdk/index.mjs',
 ]);

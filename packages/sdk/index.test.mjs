@@ -1,5 +1,6 @@
 import './check-requirement-frontier.test.mjs';
 import './check-locations.test.mjs';
+import './check-presentation.test.mjs';
 import './effect-uncertainty.test.mjs';
 import test, {mock} from 'node:test';
 import assert from 'node:assert/strict';
@@ -9,7 +10,75 @@ import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {createServer} from 'node:http';
 import {checkReasonSchemaCid, checkOutcomeSchemaCid} from '@actql/client-wire';
-import {connect, ClientError, getCheckInput, getSubmissionInput, explainSubmission, resolveCheckLocation, explainCheckReason, explainCheckOutcome} from './index.mjs';
+import {connect, ClientError, getCheckInput, getSubmissionInput, explainSubmission, resolveCheckLocation, explainCheckReason, explainCheckOutcome, getCheckPresentationInfo} from './index.mjs';
+
+test('check presentation revisions are immutable and separate from schema identity', () => {
+  for (const [options, locale] of [[undefined, 'en'], [{locale: 'en'}, 'en'],
+    [{locale: 'ja'}, 'ja'], [{locale: 'ja-JP'}, 'ja'], [{locale: 'fr'}, 'en'],
+    [{get locale() { throw new Error('private locale cause'); }}, 'en']]) {
+    const info = getCheckPresentationInfo(options);
+    assert.deepEqual(info, {locale, translationRevision: `2026-10-06.${locale}.1`});
+    assert.equal(Object.isFrozen(info), true);
+    assert.equal(Object.hasOwn(info, 'reasonSchemaCid'), false);
+    assert.equal(Object.hasOwn(info, 'outcomeSchemaCid'), false);
+  }
+});
+
+test('localized unknown reasons and problems never hide malformed protocol values', () => {
+  const fixture = JSON.parse(readFileSync(new URL('../client-wire/fixtures/check-reporting-failure.json', import.meta.url), 'utf8'));
+  const failure = {...fixture, problem: {code: 'future_reporting_failure'}};
+  const explanation = explainCheckOutcome(failure, {locale: 'ja'});
+  assert.deepEqual(explanation.problem, {kind: 'unknown', code: 'future_reporting_failure'});
+  assert.equal(explanation.correlationRef, 'corr:independent-reporting-failure');
+  assert.equal(explanation.summary,
+    '束縛された検査報告全体を作成できませんでした。この問題コードに対応する説明はありません。');
+  assert.equal(Object.hasOwn(explanation, 'next'), false);
+  assert.deepEqual(explainCheckReason({code: 'future_reason'}, {locale: 'ja'}),
+    {kind: 'unknown', summary: 'この理由に対応する説明はありません。'});
+  for (const broken of [{...failure, outcome: 'future_outcome'},
+    {...failure, correlation_ref: undefined}, {...failure, problem: {code: 42}}]) {
+    assert.equal(explainCheckOutcome(broken, {locale: 'ja'}), undefined);
+  }
+  const known = JSON.parse(readFileSync(new URL('../client-wire/fixtures/check-default-type.invalid.json', import.meta.url), 'utf8'));
+  known.report.reasons[0].facts.actual_type = 42;
+  assert.equal(explainCheckOutcome(known, {locale: 'ja'}), undefined,
+    'Malformed known facts remain a malformed outcome, not a translated unknown reason');
+});
+
+test('localized partial and unavailable fixtures preserve their incomplete boundaries', () => {
+  const metadata = JSON.parse(readFileSync(new URL('../client-wire/fixtures/check-reporting-failure.json', import.meta.url), 'utf8'));
+  const invalid = JSON.parse(readFileSync(new URL('../client-wire/fixtures/check-default-type.invalid.json', import.meta.url), 'utf8'));
+  const partial = explainCheckOutcome({...metadata, problem: {code: 'check_internal'},
+    partial_report: invalid.report}, {locale: 'ja'});
+  assert.equal(partial.outcome, 'failed');
+  assert.equal(partial.report.verdict, 'invalid');
+  assert.equal(partial.report.completeness, 'partial');
+  assert.equal(partial.report.contextRef, invalid.report.context_ref);
+  assert.equal(partial.correlationRef, 'corr:independent-reporting-failure');
+  assert.equal(partial.summary, '検査内部の失敗により、束縛された検査報告全体を作成できませんでした。');
+  const unavailable = explainCheckOutcome({...metadata, outcome: 'unavailable',
+    problem: {code: 'check_unavailable'}}, {locale: 'ja'});
+  assert.equal(unavailable.outcome, 'unavailable');
+  assert.equal(unavailable.correlationRef, 'corr:independent-reporting-failure');
+  assert.equal(unavailable.summary, '安全な公開報告に必要な検査範囲と文脈を利用できません。');
+  for (const explanation of [partial, unavailable]) assert.equal(Object.hasOwn(explanation, 'next'), false);
+  for (const key of ['report', 'scope', 'contextRef', 'verdict']) {
+    assert.equal(Object.hasOwn(unavailable, key), false);
+  }
+});
+
+test('missing or malformed translation data falls back to the same safe English text', async () => {
+  const source = readFileSync(new URL('./check-presentation.mjs', import.meta.url), 'utf8');
+  const anchor = "'reason.query_syntax_invalid': ['クエリの構文が不正です。',\n" +
+    "    '位置が示されている場合は、その位置のクエリ構文を修正してください。']";
+  assert.equal(source.split(anchor).length, 2);
+  const english = ['The query syntax is invalid.', 'Correct the query syntax at the reported location when available.'];
+  for (const replacement of ["'unrelated': ['missing']", "'reason.query_syntax_invalid': [42]",
+    "'reason.query_syntax_invalid': ['', '']"]) {
+    const module = await import(`data:text/javascript;base64,${Buffer.from(source.replace(anchor, replacement)).toString('base64')}`);
+    assert.deepEqual(module.localizeCheck('reason.query_syntax_invalid', english, {locale: 'ja'}), english);
+  }
+});
 
 test('check outcome explanations preserve unknown problems and reject malformed reports', () => {
   const metadata = {version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid};

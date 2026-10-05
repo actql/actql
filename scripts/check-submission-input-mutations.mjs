@@ -9,6 +9,12 @@ const acceptance = 'adapters/host-node/client-submission-input.test.mjs';
 const cancellationAcceptance = 'adapters/host-node/client-cancel-response-loss.test.mjs';
 const checkAcceptance = 'adapters/host-node/client-check.test.mjs';
 const expected = (phase, assertion = 'submission-input') => {
+  if (phase === 'check-locale-control' || phase === 'check-locale-fallback') {
+    return ['local', 'http'].map(entrance => ({
+      name: `${entrance}: check locales preserve observations and safe fallback`,
+      assertions: [{id: assertion, operator: 'deepStrictEqual'}],
+    }));
+  }
   if (phase === 'check-problem-explanation') return ['local', 'http'].map(entrance => ({
     name: `${entrance}: check Problems retain opaque attempt correlation`,
     assertions: [{id: assertion, operator: 'strictEqual'}],
@@ -73,6 +79,13 @@ const expected = (phase, assertion = 'submission-input') => {
   }));
 };
 const mutations = [
+  ['check locale changes an observed invalid verdict into verification',
+    "report: reportExplanation(outcome.report, 'complete')",
+    "report: {...reportExplanation(outcome.report, 'complete'), verdict: options?.locale === 'ja' ? 'verified' : outcome.report.verdict}",
+    'check-locale-control', 'check-locale-control'],
+  ['check unsupported locale loses its safe English fallback',
+    "if (requested === 'ja' || requested === 'ja-JP') locale = 'ja';",
+    "locale = 'ja';", 'check-locale-fallback', 'check-locale-fallback'],
   ['unknown submit loses its original input',
     '  if (input) submissionInputs.set(result, input);', '', 'after-commit'],
   ['original supplied parameters are replaced by null',
@@ -222,7 +235,8 @@ if (args.length && (args.length !== 2 || args[0] !== '--match' || !args[1])) {
 const selected = mutations.filter(([name]) => args.length === 0 || name.includes(args[1]));
 if (!selected.length) throw new Error('No SDK mutations selected');
 const mutationPath = phase => phase === 'check-schema-pin'
-  ? 'packages/client-wire/client-host.generated.js' : path;
+  ? 'packages/client-wire/client-host.generated.js'
+  : phase === 'check-locale-fallback' ? 'packages/sdk/check-presentation.mjs' : path;
 const originals = new Map(selected.map(([, , , phase]) => mutationPath(phase))
   .map(file => [file, readFileSync(file, 'utf8')]));
 const results = [];
