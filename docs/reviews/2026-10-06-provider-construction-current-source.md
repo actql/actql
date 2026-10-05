@@ -61,8 +61,9 @@ scalar callbacks. Neither is a complete constructor, parent or Graph heap bound.
 
 ## Required supplement and remaining acceptance
 
-Keep the original recipe and archived facts. Add a reviewed current-source
-supplement which binds the original recipe, actual change revisions, exact
+Retain the original recipe in Git history and preserve archived facts. Update
+the active recipe and add a reviewed current-source supplement which binds the
+historical recipe digest, actual change revisions, exact
 source digests, wrapper bodies, constructor captures and same-source Native
 census. Reject an unreviewed capture, field, factory count or source change;
 do not turn every poll or Graph change into a wildcard allowance. Preserve
@@ -96,12 +97,17 @@ It is source analysis, not a new Native execution or a passing mandatory test.
 
 G's independent branch starts from integrated main
 `d093bcedf8b64b5d7b3e8fdecc988310c51bff90`. It does not include either C PR's
-Graph product changes. The original `provider-construction.json` remains
-byte-for-byte unchanged (`cf00b1b46f2ce78e37ab22eb14872dbfb63c1607c0382fc27124fa6b1ff0dc71`).
+Graph product changes. The active `provider-construction.json` now pins the
+current selected constructor, managed representation and reviewed main generated
+source. Its current digest is
+`bc1b9a7460e864c1787dd8140f9caf76bb983c94c136109cf41e30bd18c72580`.
+The original recipe remains in Git history with digest
+`cf00b1b46f2ce78e37ab22eb14872dbfb63c1607c0382fc27124fa6b1ff0dc71`.
 
-This is an immutable historical evidence input, not an executable compatibility
-path. Current admission always requires the current-source supplement. An old
-product source cannot fall back to the historical pin; the refusal is tested.
+Historical digests are comparison provenance, not executable compatibility
+inputs. Current admission requires both the current recipe and the current-source
+supplement. Restoring either the old recipe or an old product source is rejected;
+both refusals are tested. There is no selected-provider historical-pin override.
 The listed main/union/subtraction sources are explicitly reviewed current
 development variants, not support for older runtime contracts or snapshots.
 
@@ -142,3 +148,19 @@ Native bytes nor this source test is a parent/Graph/pipeline capacity upper boun
 The C adoption head still needs its full mandatory file, including its own
 Graph-specific rejection case. #485 remains pending that adoption and the
 separate completed-output lifetime correspondence; #501 retains #485 dependency.
+
+## Active recipe update
+
+The earlier supplement left historical source pins in the active recipe and
+selected the current constructor pin in the checker. That indirection has been
+removed: each provider is checked against its active recipe pin. Historical
+managed/generated pins now appear only as explicit provenance of the reviewed
+source delta, not as acceptable current inputs. Exact main/union/subtraction
+development variants continue to require the independent current-source review.
+
+After the update, the complete source-premise file passed **10/10 Node** in
+`run-MiUw1f`, focused `focused-test-Q9qgjV`, on a working diff over
+`84ffa82c63d910acf81e935c140fb261cc925df3`. This includes restoring the actual
+historical recipe and requiring rejection. This is a new local working-diff
+result; it is not a new Native census, C adoption result or hosted CI success.
+The completed-output lifetime and scalar extent obligations remain open.

@@ -2,15 +2,14 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { hash } from '../../inventory.mjs';
 import { fieldLayout } from '../backing/native-extent.mjs';
-import { checkConstructionSourceReview, constructionSourceReview } from './provider-construction-source-review.mjs';
+import { checkConstructionSourceReview } from './provider-construction-source-review.mjs';
 const profile = JSON.parse(readFileSync(new URL('./provider-construction.json', import.meta.url)));
 export function providerConstructionBound(read) {
   assert.equal(profile.version, 'actql-native-provider-construction/0.1');
   const sourceReview = checkConstructionSourceReview(profile, read);
   for (const p of profile.providers) {
     const source = read(p.path).toString();
-    const digest = p.name === 'selected_relation_provider' ? constructionSourceReview.selectedDigest : p.sourceDigest;
-    assert.equal(hash(source), digest, `Unreviewed provider constructor ${p.name}`);
+    assert.equal(hash(source), p.sourceDigest, `Unreviewed provider constructor ${p.name}`);
     const constructor = source.slice(source.indexOf(`fn ${p.name}(`));
     assert(constructor.includes(`${p.binding}(`), `Changed provider binding ${p.name}`);
   }

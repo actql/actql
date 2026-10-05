@@ -49,7 +49,7 @@ export function managedBeforePausePolls(source) {
 export function checkConstructionSourceReview(profile, read) {
   const review = constructionSourceReview;
   assert.equal(review.version, 'actql-provider-construction-source-review/0.1');
-  assert.equal(hash(read(recipePath)), review.originalRecipeDigest, 'Changed original provider recipe');
+  assert.equal(hash(read(recipePath)), review.currentRecipeDigest, 'Changed current provider recipe');
   const selectedPath = 'src/connectors/local/selected_relation_provider.mbt';
   const managedPath = 'src/connectors/local/managed_provider.mbt';
   const generatedPath = 'src/execution_relation/generated_sequence.mbt';
@@ -63,7 +63,10 @@ export function checkConstructionSourceReview(profile, read) {
   }
   assert.equal(hash(selectedFactoryOutsideAccepts(selected)), review.selectedFactoryOutsideAcceptsDigest,
     'Changed selected construction outside accepts');
-  assert.equal(hash(managedBeforePausePolls(managed)), profile.sourcePremises[managedPath],
+  assert.equal(profile.sourcePremises[managedPath], review.managedDigest, 'Recipe does not bind current managed source');
+  assert.equal(profile.sourcePremises[generatedPath], review.generatedVariants[0].digest,
+    'Recipe does not bind the reviewed main generated source');
+  assert.equal(hash(managedBeforePausePolls(managed)), review.historicalSourcePremises[managedPath],
     'Waiting/Settling changed more than the reviewed poll representation');
   const variant = review.generatedVariants.find(item => item.digest === hash(generated));
   assert(variant, `Changed provider representation premise ${generatedPath}`);
@@ -71,9 +74,10 @@ export function checkConstructionSourceReview(profile, read) {
   for (const name of ['GraphSubgraphStep', 'GraphDeltaStep', ...variant.additionalExclusions]) {
     priorGenerated = replaceOnce(priorGenerated, `      | @lower.${name}(_)\n`);
   }
-  assert.equal(hash(priorGenerated), profile.sourcePremises[generatedPath],
+  assert.equal(hash(priorGenerated), review.historicalSourcePremises[generatedPath],
     'Graph exclusions changed Relation preparation outside the reviewed false branch');
-  return {reviewDigest: hash(reviewBytes), recipeDigest: review.originalRecipeDigest,
+  return {reviewDigest: hash(reviewBytes), recipeDigest: review.currentRecipeDigest,
+    historicalRecipeDigest: review.originalRecipeDigest,
     selectedDigest: hash(selected), managedDigest: hash(managed), generatedDigest: hash(generated),
     reviewedGeneratedRevision: variant.revision,
     scope: 'exact current construction source correspondence; callback execution and completed-output custody excluded',

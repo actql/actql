@@ -1,6 +1,11 @@
 {
   "version": "actql-provider-construction-source-review/0.1",
+  "currentRecipeDigest": "bc1b9a7460e864c1787dd8140f9caf76bb983c94c136109cf41e30bd18c72580",
   "originalRecipeDigest": "cf00b1b46f2ce78e37ab22eb14872dbfb63c1607c0382fc27124fa6b1ff0dc71",
+  "historicalSourcePremises": {
+    "src/connectors/local/managed_provider.mbt": "40b1b803e586d1dbce5eb0dabc9888d57ae0eb28bebbcee7e0d3b4fd5fa00950",
+    "src/execution_relation/generated_sequence.mbt": "1a2df7350b1227ede42556733faf8ecd22abd77919b946ce47848f196d5aec69"
+  },
   "introductionRevision": "58fd19eade59cf3bcbf6a859c9821471346e3b41",
   "historicalReviewRevision": "7d7cc6cfc6e7b46379fc85c8ac223bd380cbd200",
   "selectedDigest": "7662c1e802515661034647ae045a03bccfdd69f25d88710ae467f644c14a3b9a",

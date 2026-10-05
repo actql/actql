@@ -195,10 +195,19 @@ test('current construction does not accept a historical pin as a current-source 
   assert.throws(() => providerConstructionBound(p => p === path ? original : read(p)),
     /Unreviewed provider constructor/);
   const recipe = 'proofs/relation-pipeline/capacity/parent-control/provider-construction.json';
+  const oldRecipe = historical(recipe, constructionSourceReview.historicalReviewRevision);
+  assert.equal(hash(oldRecipe), constructionSourceReview.originalRecipeDigest);
+  assert.throws(() => providerConstructionBound(p => p === recipe ? oldRecipe : read(p)),
+    /Changed current provider recipe/);
+  const current = JSON.parse(read(recipe));
+  const bound = providerConstructionBound(read);
+  assert.equal(current.providers[0].sourceDigest, bound.sourceReview.selectedDigest);
+  assert.equal(current.sourcePremises['src/connectors/local/managed_provider.mbt'], bound.sourceReview.managedDigest);
+  assert.equal(bound.sourceReview.recipeDigest, hash(read(recipe)));
   const changed = JSON.parse(read(recipe));
   changed.bounds.callbackReferenceCaptures++;
   assert.throws(() => providerConstructionBound(p => p === recipe ? Buffer.from(JSON.stringify(changed)) : read(p)),
-    /Changed original provider recipe/);
+    /Changed current provider recipe/);
 });
 
 test('new fields, captures and pause work branches remain unreviewed source changes', () => {
