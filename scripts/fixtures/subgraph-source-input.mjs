@@ -120,7 +120,7 @@ export const subgraphSourceSuccesses = [
     'FROM g |> subgraph(nodes: {from: selected, id: "id"})' + tail(true),
     true, [{edge_key: 13, w: 30}]),
   textCase('edge-predicate-parameter', selected('node_key <= 2') +
-    'FROM g |> subgraph(nodes: {from: selected, id: "id"}, edges: {gt: [{field: "w"}, {literal: @minimum}]})' + tail(true),
+    'FROM g |> subgraph(nodes: {from: selected, id: "id"}, edges: {gt: [{field: "w"}, @minimum]})' + tail(true),
     true, filteredEdges, {parameterDeclarations: {minimum: {type: 'number'}}, parameters: {minimum: 10}}),
   textCase('duplicate-selector-identities', selected('node_key <= 2').replace('selected', 'chosen') +
     'DATA selected = SELECT id FROM chosen UNION ALL SELECT id FROM chosen; ' +
@@ -162,6 +162,11 @@ export const subgraphSourceRefusals = [
   // unchanged larger source with TaskLimit before durable Run admission.
   {name: 'subgraph-task-profile-bound', format: 'aql-text', text: taskBoundSource +
     selected('node_key <= 2') + 'FROM g |> subgraph(nodes: {from: selected, id: "id"})' + tail(false)},
+  // literal is opaque data, not a wrapper that evaluates parameter syntax.
+  {name: 'subgraph-object-literal-is-not-scalar-parameter', format: 'aql-text',
+    text: prefix + selected('node_key <= 2') +
+      'FROM g |> subgraph(nodes: {from: selected, id: "id"}, edges: {gt: [{field: "w"}, {literal: @minimum}]})' + tail(true),
+    parameterDeclarations: {minimum: {type: 'number'}}, parameters: {minimum: 10}},
 ];
 const collidingControl = JSON.parse(program(false, false));
 collidingControl.stages[0].steps[2].property_graph.nodes[0].labels[0].properties =

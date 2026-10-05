@@ -49,6 +49,31 @@ test "Subgraph source preserves its Relation selector in an independent complete
 }
 
 ///|
+test "Subgraph predicate parameters preserve the independent expression Program" {
+  let script = @query.parse_query_script(
+    "DATA n = SELECT 1 AS node_key, 7 AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p))); DATA selected = FROM g |> node_rows() |> SELECT id; DATA slice = FROM g |> subgraph(nodes: {from: selected, id: 'id'}, edges: {gt: [@p, {literal: 0}]}); FROM slice |> node_rows() |> SELECT p, node_key",
+    syntax_limits(),
+  ).unwrap()
+  let actual = compile_query_script(
+    script,
+    {
+      ..fixture_context(),
+      inputs: [],
+      parameter_declarations: Some(number_parameter_declarations()),
+    },
+    construction_limits(),
+  ).unwrap()
+  let expected = @program.parse(
+    (
+      #|{"version":"actql/0.1","id":"fixture.query_pair","params":{"p":{"type":"number"}},"stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_1"},{"from":"aql_script_seed_1","derive":{"aql_query_expr_0":{"literal":1},"aql_query_expr_1":{"literal":7}}},{"select":[{"node_key":"aql_query_expr_0"},{"p":"aql_query_expr_1"}],"as":"aql_data_0"},{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_data_0","key":["node_key"],"labels":[{"name":"Person","properties":{"mode":"columns","columns":[{"from":"p","to":"p"}]}}]}],"edges":[]},"as":"aql_data_2"},{"from":"aql_data_2","node_rows":true,"as":"aql_sga_4"},{"from":"aql_sga_4","select":["id"],"as":"aql_data_3"},{"from":"aql_data_2","subgraph":{"nodes":{"from":"aql_data_3","id":"id"},"edges":{"gt":[{"$param":"p"},{"literal":0}]}},"as":"aql_sga_6"},{"from":"aql_sga_6","node_rows":true,"as":"aql_sga_7"},{"from":"aql_sga_7","select":["p","node_key"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["p","node_key"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
+  ).unwrap()
+  assert_eq(semantic(actual), semantic(expected))
+}
+
+///|
 test "Subgraph source preserves predicates across inline, DATA and MATCH boundaries" {
   let prefix = graph_rows_prefix() +
     "DATA selected = FROM g |> node_rows() |> WHERE node_key = 1 |> SELECT id; "

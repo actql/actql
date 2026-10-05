@@ -61,7 +61,7 @@ grammar, schema, pin, stored identity or version changes.
 ## Independent public obligations
 
 The [authored fixture](../../scripts/fixtures/subgraph-source-input.mjs) contains
-**13 positive cases, 15 preparation refusals and one execution failure**.
+**13 positive cases, 16 preparation refusals and one execution failure**.
 Two complete JSON controls use direct Values; the source uses ordinary
 SELECT/UNION producers. Structures and CIDs may differ, while the independently
 specified meaning must agree. No harness modifies a lowered Program.
@@ -175,3 +175,33 @@ both once. These inputs are deliberately chosen within the existing task
 profile; they do not establish execution of the retained larger input or
 permit changing a submitted query to fit a budget. Fresh execution of the
 bounded cases remains pending until recorded below.
+
+## Main integration and opaque-literal correction
+
+Main `3d21f2c8ccbe055aa792bdffdaab2b85770cf0c4` (#421) was normally merged
+without conflicts in `e14685a4bee3b04b567ac9b76593fc599092ac5f`. Its Graph
+normal cases and precise refusals are retained; this branch does not restore
+obsolete equality/components unsupported expectations or change nearest/Events
+input ports. Integrated focused JS checks passed **20/20** (`run-UMKUjT`,
+`focused-test-fJxOCL`), and the existing public corpus checks passed **2/2**
+(`run-piqW6K`, `focused-test-ng88CO`).
+
+The fresh e14685 campaign (`run-OXm8k5`, `public-query-evidence-lpQhpI`)
+passed both JSON controls and eight text cases through Local Named Results:
+subset, induced parallel edges, quoted DATA/normalization/edge predicate,
+nullable property, static-label MATCH, typed empty nodes/edges and endpoint
+exclusion. It then refused the parameter case before admission; later cases
+and Subgraph HTTPS were not reached.
+
+One retained-installation diagnostic (`run-rTZfap`) identified the normal
+checker refusal at `steps/24/subgraph/edges/gt/1`, expecting an author-orderable
+scalar. The original fixture incorrectly authored `{literal: @minimum}`.
+Common expression literals are opaque: lowering correctly preserved the
+object `{"literal":{"$param":"minimum"}}`, not a scalar parameter read.
+This is an authored-input error, not a common owner or Frontend defect.
+The positive source now uses `gt: [{field: "w"}, @minimum]`, lowering to the
+existing expression parameter reference directly. Expected rows/contracts are
+unchanged. The original object-literal form is retained as a preparation
+refusal with the same declaration/value, rather than changing literal semantics.
+The logging-only disposable adapter was again restored byte-for-byte; the
+diagnostic is not a pristine execution pass.
