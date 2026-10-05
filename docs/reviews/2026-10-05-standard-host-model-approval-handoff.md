@@ -58,8 +58,12 @@ Source acceptance inherited from #363 is not fresh-packed acceptance. Its
 mixed saved/unknown/unsent tests currently cover Local only; the independent
 Model/Effect approval case covers HTTPS with Host reopening in one process.
 External HTTPS mixed unknown, full-process Effect restart, current provider
-replacement/expiry/cancellation, and the newly agreed conditional common
+replacement/expiry/cancellation, and public confirmation of the newly agreed conditional common
 Running-to-Cancelled terminal predicate remain separate unfinished checks.
+Four independent missing-condition Host counterexamples failed before the
+terminal guard (`run-4j2WfD`, `focused-test-OcCa6K`) and passed afterward with
+the existing Waiting checks (19 cases, `run-E5jlFc`, `focused-test-Pz9QyV`).
+Durable fence readback remains to be tested after runtime preparation.
 
 The retained-history scan previously stopped at inherited singleton
 `mergeBases` in `resolve-model-checkpoint-main-db141961.json` and

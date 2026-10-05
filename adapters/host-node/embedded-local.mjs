@@ -51,7 +51,7 @@ import {createDiagnosticObserver} from
   '../host-common/diagnostic-observer.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
-import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
+import {installNodeClientDispatchOwner, confirmNodeRunCancellation} from './client-dispatch-owner.mjs';
 import {createInstalledHostShutdown,
   retainInstalledHostInitializationFailure} from
   './installed-host-cleanup.mjs';
@@ -2087,9 +2087,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
                   store, principalId, signal, retainExecution, beginPhysicalWork,
                   submission: token.snapshot.submission, existingModel: record, modelClaim: claim});
               },
-              observeStopped: () => journal.markPhysicalClose(ref,
-                journal.lookupRunDefinition(ref, moon, control)?.cancellationRequested === true &&
-                !checkpoints.journal.hasUnresolvedModelCalls(runId) ? 'cancelled' : null),
+              observeStopped: async () => journal.markPhysicalClose(ref,
+                await confirmNodeRunCancellation({ref, journal, store, checkpoints,
+                  moon, control, cleanupConfirmed: true}) ? 'cancelled' : null),
             });
           };
           const flight = runRestoredModel().then(async result => {
@@ -2131,11 +2131,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
               checkpoints.journal.finishRun(runId, {status: 'succeeded',
                 runStateWire: JSON.stringify(published)});
             }
-          }).catch(error => {
+          }).catch(async error => {
             const code = error?.code ?? error?.message;
             const stopped = journal.lookupRunDefinition(ref, moon, control);
-            if (stopped?.cancellationRequested === true && stopped.physicalCloseConfirmed === true &&
-                !checkpoints.journal.hasUnresolvedModelCalls(runId)) {
+            if (stopped?.physicalCloseConfirmed === true &&
+                await confirmNodeRunCancellation({ref, journal, store, checkpoints,
+                  moon, control, cleanupConfirmed: true})) {
               const state = checkpoints.journal.getRunState(runId);
               if (claim !== undefined && state?.status === 'resuming' && leaseFailure === undefined) {
                 checkpoints.journal.completeResume(claim, {status: 'cancelled'});

@@ -188,7 +188,7 @@ distribution[3] = distribution[3].replace(
 // Keep these adapter regressions separate from public packed acceptance.
 distribution[3] = distribution[3].replace(
   'adapters/host-node/client-dispatch-owner.test.mjs ',
-  'adapters/host-node/client-dispatch-owner.test.mjs adapters/host-node/infer-operation-approval.test.mjs adapters/host-node/infer-dispatch-waiting.test.mjs ',
+  'adapters/host-node/client-dispatch-owner.test.mjs adapters/host-node/infer-operation-approval.test.mjs adapters/host-node/client-confirmed-cancellation.test.mjs adapters/host-node/infer-dispatch-waiting.test.mjs ',
 );
 
 // The issued-retention original regression is part of the existing prepared

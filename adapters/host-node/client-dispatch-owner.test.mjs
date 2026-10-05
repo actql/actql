@@ -14,8 +14,11 @@ function inferDispatchFixture(runInfer) {
   const owner = installNodeClientDispatchOwner({
     moon: {clientProgramOpenSourceFreeLocalHost() {
       assert.fail('A model barrier must not open the Values fallback');
-    }}, control: {},
+    }}, control: {runDefinitionRunId: () => 'infer-run'},
     journal: {reservePhysicalStart() { claims++; return true; },
+      lookupRunDefinition: () => ({cancellationRequested: true, revision: 1,
+        runDefinition: plan.runDefinition}),
+      lookupReconciliationState: () => undefined,
       markPhysicalClose: (...args) => stopped.push(args),
       markPreDispatchFailure: () => stopped.push([ref, 'not_started'])},
     store: {confirmCommittedIndex: async () => committed ? {} : undefined},

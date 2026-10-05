@@ -9,6 +9,32 @@ import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 
+// Terminal observation only, never a send or cancellation permission. The
+// physical owner calls this after confirmed stop and temporary reclamation;
+// restored observers use their persisted physical-close confirmation.
+export async function confirmNodeRunCancellation({ref, journal, store,
+  checkpoints, moon, control, cleanupConfirmed}) {
+  if (cleanupConfirmed !== true || typeof journal.lookupRunDefinition !== 'function' ||
+      typeof journal.lookupReconciliationState !== 'function') return false;
+  const before = journal.lookupRunDefinition(ref, moon, control);
+  if (before?.cancellationRequested !== true) return false;
+  const runId = control.runDefinitionRunId(before.runDefinition);
+  const model = checkpoints?.journal;
+  const inventory = model?.discoverModelCallSets({runId, limit: 1}) ?? [];
+  if (inventory.length !== 0 &&
+      model.modelCancellationFenced?.(runId, ref.runDefinitionCid) !== true) return false;
+  if (model?.hasUnresolvedModelCalls(runId) === true ||
+      journal.lookupReconciliationState(ref) !== undefined ||
+      model?.getRunState?.(runId)?.status === 'needs_reconciliation') return false;
+  if (await store.confirmCommittedIndex(ref) !== undefined) return false;
+  // Publication inspection is asynchronous. A changed request observation
+  // must be re-evaluated rather than sealed as a terminal cancellation.
+  const after = journal.lookupRunDefinition(ref, moon, control);
+  return after?.cancellationRequested === true && after.revision === before.revision &&
+    model?.hasUnresolvedModelCalls(runId) !== true &&
+    journal.lookupReconciliationState(ref) === undefined;
+}
+
 export function installNodeClientDispatchOwner({moon, control, journal,
   store, checkpoints, startRun, hostConnection, beforeDispatch, observed,
   prepareAcquisition, planFor, sourceProfile, registry, values, fragment,
@@ -92,6 +118,11 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   }
 
   async function observeStop(entry) {
+    if (entry.terminalOutcome === 'cancelled' &&
+        !await confirmNodeRunCancellation({ref: entry.ref, journal, store,
+          checkpoints, moon, control, cleanupConfirmed: true})) {
+      entry.terminalOutcome = null;
+    }
     if (entry.observeStopped !== undefined) {
       // An Effect continuation may stop its in-process Compute while its Run
       // waits for approval. Only that common Run owner can publish the
@@ -106,8 +137,11 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       publicationCommitted =
         await store.confirmCommittedIndex(entry.ref) !== undefined;
     }
+    const cancelled = entry.abort.signal.aborted && !publicationCommitted &&
+      await confirmNodeRunCancellation({ref: entry.ref, journal, store,
+        checkpoints, moon, control, cleanupConfirmed: true});
     journal.markPhysicalClose(entry.ref, publicationCommitted ? null :
-      entry.abort.signal.aborted ? 'cancelled' : 'failed');
+      entry.abort.signal.aborted ? cancelled ? 'cancelled' : null : 'failed');
     entry.stopObservationPending = false;
     entry.stopObserved = true;
   }
@@ -173,11 +207,11 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       // this physical end; it does not confirm an unowned Compute attempt.
       if (!entry.computeStartAttempted) entry.stopObservationPending = true;
     }
-    if (entry.stopObservationPending) await observeStop(entry);
     await settleCleanupHandle(entry);
     if (entry.unresolvedCleanup) {
       throw new Error('ClientDispatchCleanupOwnerMissing');
     }
+    if (entry.stopObservationPending) await observeStop(entry);
     if (entry.failureObservationPending) {
       journal.markPreDispatchFailure(entry.ref);
       entry.failureObservationPending = false;
