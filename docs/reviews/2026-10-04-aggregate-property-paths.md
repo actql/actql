@@ -1,4 +1,25 @@
-# Nullable object paths in aggregate arguments
+# Aggregate property paths: integrated public acceptance
+
+## 2026-10-05 integration
+
+This PR retains the Frontend aggregate-property connection and the reviewed
+literal-bound expectation repair: SQL `A`/`B` output has `max_utf8_bytes: 1`,
+while the independently declared JSON schema remains unbounded.
+
+The current integration adopts PR #396 through normal Git history. The shared
+analytic canonical-emission and source-free Relation-DAG planning corrections
+are implemented there once; this PR does not carry a separate implementation.
+The final target remains `actql/actql:main`, with #396 merged before this PR.
+The existing eight positives and four refusals, including the final OVER case,
+remain in the normal packed Local/HTTPS corpus under the unchanged execution
+budget. Both aggregate and analytic fixture registrations are preserved.
+
+The final PR body records the tested source SHA, commands, raw receipt IDs,
+distribution digests and unverified coverage. The report below is historical
+and retains the original observations for comparison.
+
+## Historical report
+
 
 ## Baseline and existing contract
 
