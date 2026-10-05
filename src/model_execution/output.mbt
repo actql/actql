@@ -33,6 +33,7 @@ fn model_output_cell(
       Success(index) =>
         state.captures.get(index).map(value => value.value.value)
       NoResponseFailure(_) => Some(@admitted.null_value())
+      UnresolvedUnknown => None
     }
   }
   for key in 0..<@infer.key_count(owner) {

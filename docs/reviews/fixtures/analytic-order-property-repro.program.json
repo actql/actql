@@ -1,0 +1,324 @@
+{
+  "id": "adhoc.query",
+  "params": {
+    "a": {
+      "fields": {
+        "score": {
+          "nullable": false,
+          "type": "number"
+        }
+      },
+      "nullable": true,
+      "type": "object"
+    },
+    "b": {
+      "fields": {
+        "score": {
+          "nullable": false,
+          "type": "number"
+        }
+      },
+      "nullable": true,
+      "type": "object"
+    },
+    "c": {
+      "fields": {
+        "score": {
+          "nullable": false,
+          "type": "number"
+        }
+      },
+      "nullable": true,
+      "type": "object"
+    },
+    "oa": {
+      "fields": {
+        "score": {
+          "nullable": false,
+          "type": "number"
+        }
+      },
+      "nullable": false,
+      "type": "object"
+    },
+    "ob": {
+      "fields": {
+        "score": {
+          "nullable": false,
+          "type": "number"
+        }
+      },
+      "nullable": false,
+      "type": "object"
+    },
+    "oc": {
+      "fields": {
+        "score": {
+          "nullable": false,
+          "type": "number"
+        }
+      },
+      "nullable": false,
+      "type": "object"
+    }
+  },
+  "results": {
+    "answer": {
+      "from": {
+        "result": "rows",
+        "stage": "main"
+      }
+    }
+  },
+  "stages": [
+    {
+      "id": "main",
+      "inputs": {},
+      "results": {
+        "rows": {
+          "fields": [
+            "id",
+            "original_score",
+            "payload",
+            "pos"
+          ],
+          "from": "aql_script_result"
+        }
+      },
+      "steps": [
+        {
+          "as": "aql_script_seed_2",
+          "values": {
+            "rows": [
+              {
+                "aql_source_free_unit": true
+              }
+            ],
+            "schema": {
+              "aql_source_free_unit": {
+                "nullable": false,
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        {
+          "derive": {
+            "aql_query_expr_0": {
+              "literal": 2
+            },
+            "aql_query_expr_1": {
+              "$param": "a"
+            },
+            "aql_query_expr_2": {
+              "$param": "oa"
+            }
+          },
+          "from": "aql_script_seed_2"
+        },
+        {
+          "as": "aql_data_set_term_1",
+          "select": [
+            {
+              "id": "aql_query_expr_0"
+            },
+            {
+              "payload": "aql_query_expr_1"
+            },
+            {
+              "other": "aql_query_expr_2"
+            }
+          ]
+        },
+        {
+          "as": "aql_script_seed_4",
+          "values": {
+            "rows": [
+              {
+                "aql_source_free_unit": true
+              }
+            ],
+            "schema": {
+              "aql_source_free_unit": {
+                "nullable": false,
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        {
+          "derive": {
+            "aql_query_expr_0": {
+              "literal": 1
+            },
+            "aql_query_expr_1": {
+              "$param": "b"
+            },
+            "aql_query_expr_2": {
+              "$param": "ob"
+            }
+          },
+          "from": "aql_script_seed_4"
+        },
+        {
+          "as": "aql_data_set_term_3",
+          "select": [
+            {
+              "id": "aql_query_expr_0"
+            },
+            {
+              "payload": "aql_query_expr_1"
+            },
+            {
+              "other": "aql_query_expr_2"
+            }
+          ]
+        },
+        {
+          "append": {
+            "with": "aql_data_set_term_3"
+          },
+          "as": "aql_data_set_combined_5",
+          "from": "aql_data_set_term_1"
+        },
+        {
+          "as": "aql_script_seed_7",
+          "values": {
+            "rows": [
+              {
+                "aql_source_free_unit": true
+              }
+            ],
+            "schema": {
+              "aql_source_free_unit": {
+                "nullable": false,
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        {
+          "derive": {
+            "aql_query_expr_0": {
+              "literal": 3
+            },
+            "aql_query_expr_1": {
+              "$param": "c"
+            },
+            "aql_query_expr_2": {
+              "$param": "oc"
+            }
+          },
+          "from": "aql_script_seed_7"
+        },
+        {
+          "as": "aql_data_set_term_6",
+          "select": [
+            {
+              "id": "aql_query_expr_0"
+            },
+            {
+              "payload": "aql_query_expr_1"
+            },
+            {
+              "other": "aql_query_expr_2"
+            }
+          ]
+        },
+        {
+          "append": {
+            "with": "aql_data_set_term_6"
+          },
+          "as": "aql_data_set_combined_8",
+          "from": "aql_data_set_combined_5"
+        },
+        {
+          "as": "aql_data_0",
+          "from": "aql_data_set_combined_8",
+          "select": [
+            "id",
+            "payload",
+            "other"
+          ]
+        },
+        {
+          "derive": {
+            "aql_analytic_sort_4": {
+              "add": [
+                {
+                  "property": {
+                    "name": "score",
+                    "value": {
+                      "field": "payload"
+                    }
+                  }
+                },
+                {
+                  "literal": 1
+                }
+              ]
+            }
+          },
+          "from": "aql_data_0"
+        },
+        {
+          "analytic": {
+            "functions": {
+              "pos": {
+                "fn": "row_number"
+              }
+            },
+            "order_by": [
+              {
+                "dir": "asc",
+                "field": "aql_analytic_sort_4",
+                "nulls": "last"
+              },
+              {
+                "dir": "asc",
+                "field": "id",
+                "nulls": "first"
+              }
+            ],
+            "partition_by": []
+          }
+        },
+        {
+          "derive": {
+            "aql_query_expr_1": {
+              "property": {
+                "name": "score",
+                "value": {
+                  "field": "payload"
+                }
+              }
+            }
+          }
+        },
+        {
+          "select": [
+            "id",
+            {
+              "original_score": "aql_query_expr_1"
+            },
+            {
+              "payload": "other"
+            },
+            "pos"
+          ]
+        },
+        {
+          "as": "aql_script_result",
+          "sort": [
+            {
+              "dir": "asc",
+              "field": "id",
+              "nulls": "first"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "version": "actql/0.1"
+}

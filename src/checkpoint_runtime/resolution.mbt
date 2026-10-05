@@ -383,6 +383,7 @@ fn check_evidence(
   actor : String,
   expected_authority_scope_cid : String,
   limits : WireLimits,
+  model_binding : ModelCheckpointBinding?,
 ) -> @json.CanonicalValue raise ResolutionFailure {
   let value = match parse_wire(wire, limits) {
     Some(value) => value
@@ -454,6 +455,16 @@ fn check_evidence(
         raise ResolutionFailed(ResolutionInvalidField(nested + "claim"))
       }
       let prepared = cid_field(approval, "prepared_invocation_cid", nested)
+      if request.kind == ModelInvocation {
+        guard model_binding is Some(binding) &&
+          binding.checkpoint.checkpoint_cid == checkpoint.checkpoint_cid else {
+          raise ResolutionFailed(EvidenceMismatch("model_checkpoint_binding"))
+        }
+        if prepared !=
+          @publication.model_invocation_scope_prepared_cid(binding.scope) {
+          raise ResolutionFailed(EvidenceMismatch("prepared_invocation_cid"))
+        }
+      }
       if request.kind == RunScope && prepared != request.required_artifact_cid {
         raise ResolutionFailed(EvidenceMismatch("prepared_invocation_cid"))
       }
@@ -513,6 +524,7 @@ fn admit_resolution_body(
   authorities : Array[ReviewerAuthority],
   verified_at : String,
   limits : WireLimits,
+  model_binding : ModelCheckpointBinding?,
 ) -> AdmittedResolution raise ResolutionFailure {
   if !valid_limits(limits) {
     raise ResolutionFailed(ResolutionInvalidLimits)
@@ -571,6 +583,7 @@ fn admit_resolution_body(
           resolution.actor,
           authentication.expected_authority_scope_cid,
           limits,
+          model_binding,
         ),
       )
     (Some(_), None) => raise ResolutionFailed(EvidenceRequired)
@@ -647,11 +660,12 @@ pub fn admit_checkpoint_resolution(
   authorities : Array[ReviewerAuthority],
   verified_at : String,
   limits : WireLimits,
+  model_binding? : ModelCheckpointBinding,
 ) -> Result[AdmittedResolution, ResolutionIssue] {
   Ok(
     admit_resolution_body(
       checkpoint, resolution_wire, approval_evidence_wire, authentication, authorities,
-      verified_at, limits,
+      verified_at, limits, model_binding,
     ),
   ) catch {
     ResolutionFailed(issue) => Err(issue)
@@ -771,6 +785,7 @@ pub fn admit_immediate_resolution(
   authorities : Array[ReviewerAuthority],
   verified_at : String,
   limits : WireLimits,
+  model_binding? : ModelCheckpointBinding,
 ) -> Result[ImmediateAdmittedResolution, ResolutionIssue] {
   if !valid_limits(limits) {
     return Err(ResolutionInvalidLimits)
@@ -781,8 +796,14 @@ pub fn admit_immediate_resolution(
   }
   match
     admit_checkpoint_resolution(
-      subject, resolution_wire, approval_evidence_wire, authentication, authorities,
-      verified_at, limits,
+      subject,
+      resolution_wire,
+      approval_evidence_wire,
+      authentication,
+      authorities,
+      verified_at,
+      limits,
+      model_binding?,
     ) {
     Ok(admitted) => Ok({ admitted, })
     Err(issue) => Err(issue)
@@ -890,8 +911,11 @@ fn resumed_approval_body(
   let approval = object_of(
     evidence, "compatibility_approval", "approval_evidence.",
   )
-  let effect = string_field(evidence, "kind") ==
-    Some(checkpoint_kind_token(EffectSet))
+  guard string_field(evidence, "kind") is Some(kind_token) &&
+    parse_checkpoint_kind(kind_token) is Some(kind) else {
+    raise ResolutionFailed(EvidenceMismatch("kind"))
+  }
+  let effect = kind == EffectSet
   let (claims, expires_at) = if effect {
     match string_list_field(approval, "claims") {
       Some(claims) => (claims, None)

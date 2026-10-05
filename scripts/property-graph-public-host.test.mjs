@@ -6,7 +6,8 @@ import {userInfo} from 'node:os';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import test from 'node:test';
 import {canonicalText} from './check-canonical-json.mjs';
-import {propertyGraphPresenceOracle, deltaApplicationScenario as deltaScenario} from
+import {propertyGraphPresenceOracle, deltaApplicationScenario as deltaScenario,
+  deltaRelationCompositionScenario, deltaDiffScenario} from
   './fixtures/property-graph-delta-application.mjs';
 
 // The same independent oracle runs against source and repository-external
@@ -437,9 +438,13 @@ function deltaApplicationScenario(projection, failure) {
   return deltaScenario(presenceFixture, projection, failure);
 }
 
-for (const mode of ['local','remote']) for (const profile of ['graph','presence-filter','presence-selection','selector-derive','relation-subgraph','presence-keyed-distinct','presence-whole-distinct','presence-group','delta-application']) {
+for (const mode of ['local','remote']) for (const profile of ['graph','presence-filter','presence-selection','selector-derive','relation-subgraph','presence-keyed-distinct','presence-whole-distinct','presence-group','delta-application','delta-relation-composition','delta-diff']) {
   const name = profile === 'graph'
     ? `keyed constructor and TRAIL reach public Named Results through ${mode}`
+    : profile === 'delta-diff'
+      ? `Graph diff Delta survives Relation Store reload and reapplication through ${mode}`
+    : profile === 'delta-relation-composition'
+      ? `Delta Relation DISTINCT and GROUP survive Store reload through ${mode}`
     : profile === 'delta-application'
       ? `complete Delta application survives Graph and Relation Store reload through ${mode}`
     : profile === 'relation-subgraph'
@@ -517,6 +522,104 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
       client = await connect({mode,endpoint:`https://127.0.0.1:${server.address().port}/`,token:'synthetic-test-token'});
     }
     t.after(() => client.close());
+    if (profile === 'delta-diff') {
+      for (const projection of ['node_rows','edge_rows']) for (const unchanged of [false,true]) {
+        const {document,delta,target,retained,expected,fields} =
+          deltaDiffScenario(presenceFixture,projection,{unchanged});
+        const run = await client.aql(canonicalText(document),
+          {format:'json',requestId:`${document.id}-${mode}`});
+        const state = await run.wait();
+        assert.equal(state.status,'succeeded',JSON.stringify(state));
+        assert.deepEqual(await run.result('answer').all(),expected);
+        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
+        assert.deepEqual((await run.result('answer').describe()).columns.map(column=>column.name),fields);
+        assert.deepEqual(snapshots.get(run.ref.runDefinitionCid),
+          [[3,presenceSnapshot],[5,target],[7,target]].map(([task,bytes])=>({
+            task,cid:'sha256:'+createHash('sha256').update(bytes).digest('hex'),
+            bytes:Buffer.byteLength(bytes),verifiedReadBytes:Buffer.byteLength(bytes),
+            sourceReleased:true,restored:true,temporaryBodyReclaimed:true,
+          })));
+        const observed = relationSnapshots.get(run.ref.runDefinitionCid);
+        // The generated Delta itself crosses the real Relation Store; final
+        // Graph equivalence alone cannot prove its exact actions or custody.
+        for (const [task,rows] of [[6,[{delta}]],[8,retained]]) {
+          const bytes = canonicalText(rows);
+          assert.deepEqual(observed.find(entry=>entry.task === task),{
+            task,cid:cid(rows),bytes:Buffer.byteLength(bytes),
+            verifiedReadBytes:Buffer.byteLength(bytes),rows:rows.length,
+            sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true,
+          },`Graph diff retained task ${task}`);
+        }
+        assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
+      }
+      const {document} = deltaDiffScenario(presenceFixture,'node_rows');
+      document.stages[0].steps[6].graph_diff.extra = true;
+      const requestId = `delta-diff-extra-field-${mode}`;
+      const before = physicalSteps.length;
+      await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+        error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
+      assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+      assert.deepEqual(physicalSteps.slice(before),[]);
+      return;
+    }
+    if (profile === 'delta-relation-composition') {
+      for (const [operation,emptyTarget] of [
+        ['keyed-distinct',false],['whole-distinct',false],['group',false],['edge-group',false],
+        ['group',true],['edge-group',true],
+      ]) {
+        const {document,target,retained,derived,output,expected,fields,columns} =
+          deltaRelationCompositionScenario(presenceFixture,operation,{emptyTarget});
+        if (emptyTarget) {
+          // An ignored fixture option must not turn this into a duplicate
+          // populated case. Empty data retains the admitted declaration body.
+          const [,contractCid,contract,nodes,edges] = JSON.parse(target);
+          assert.deepEqual([nodes,edges],[[],[]]);
+          assert.deepEqual(contract,presenceContract);
+          assert.equal(contractCid,cid(presenceContract));
+          assert.deepEqual(retained,[]);
+          assert.deepEqual(expected,[]);
+        }
+        const run = await client.aql(canonicalText(document),
+          {format:'json',requestId:`${document.id}-${mode}`});
+        const state = await run.wait();
+        assert.equal(state.status,'succeeded',JSON.stringify(state));
+        assert.deepEqual(await run.result('answer').all(),expected);
+        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
+        const observedColumns = (await run.result('answer').describe()).columns;
+        assert.deepEqual(observedColumns.map(column=>column.name),fields);
+        if (columns) assert.deepEqual(observedColumns,columns);
+        else assert.deepEqual(observedColumns[1],{name:'bucket',contract:number});
+        assert.deepEqual(snapshots.get(run.ref.runDefinitionCid),
+          [[3,presenceSnapshot],[5,target]].map(([task,bytes])=>({
+            task,cid:'sha256:'+createHash('sha256').update(bytes).digest('hex'),
+            bytes:Buffer.byteLength(bytes),verifiedReadBytes:Buffer.byteLength(bytes),
+            sourceReleased:true,restored:true,temporaryBodyReclaimed:true,
+          })));
+        // Do not infer intermediate optional cells from a dense final Result.
+        // The real Store revokes each saved output before verified reload.
+        const observed = relationSnapshots.get(run.ref.runDefinitionCid);
+        const expectedStores = operation === 'edge-group' ? [[6,retained]]
+          : [[6,retained],[7,derived],[8,output]];
+        for (const [task,rows] of expectedStores) {
+          const bytes = canonicalText(rows);
+          assert.deepEqual(observed.find(entry=>entry.task === task),{
+            task,cid:cid(rows),bytes:Buffer.byteLength(bytes),
+            verifiedReadBytes:Buffer.byteLength(bytes),rows:rows.length,
+            sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true,
+          },`${operation} retained task ${task}`);
+        }
+        assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
+      }
+      const {document} = deltaRelationCompositionScenario(presenceFixture,'group');
+      document.stages[0].steps[8].group.aggregates.m.expr = 'if(false, p, bucket)';
+      const requestId = `delta-conditional-group-${mode}`;
+      const before = physicalSteps.length;
+      await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+        error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
+      assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+      assert.deepEqual(physicalSteps.slice(before),[]);
+      return;
+    }
     if (profile === 'delta-application') {
       for (const projection of ['node_rows','edge_rows']) {
         const {document,target,retained,expected,fields} = deltaApplicationScenario(projection);

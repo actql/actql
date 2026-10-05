@@ -17,7 +17,7 @@ const id = {name: 'id', contract: number};
 const previous = {name: 'previous', contract: nullableNumber};
 const previousRows = [{id: 1, previous: null}, {id: 2, previous: 20}, {id: 3, previous: 10}];
 const textCase = (name, tail, expected = previousRows, extra = {}) => ({
-  name: 'analytic-property-' + name, format: 'aql-text', text: data + tail,
+  name: 'analytic-property-' + name, hostProfile: 'analytic-property', format: 'aql-text', text: data + tail,
   parameterDeclarations, parameters, expected, columns: [id, previous],
   sourceReadCount: 0, ...extra,
 });
@@ -33,7 +33,7 @@ const program = {version: 'actql/0.1', id: 'fixture.analytic_property',
   ], results: {rows: {from: 'selected', fields: ['id', 'previous']}}}],
   results: {answer: {from: {stage: 'main', result: 'rows'}}}};
 export const analyticPropertySuccesses = [
-  {name: 'analytic-property-independent-json', format: 'json', text: JSON.stringify(program),
+  {name: 'analytic-property-independent-json', hostProfile: 'analytic-property', format: 'json', text: JSON.stringify(program),
     expected: previousRows, columns: [id, previous], sourceReadCount: 0},
   textCase('sql-lag', 'SELECT id, LAG(payload.score) OVER (ORDER BY id) AS previous FROM objects ORDER BY id'),
   textCase('pipe-quoted-lead',
@@ -88,7 +88,7 @@ const nestedProgram = {version: 'actql/0.1', id: 'fixture.analytic_nested',
   ], results: {rows: {from: 'selected', fields: ['id', 'previous']}}}],
   results: {answer: {from: {stage: 'main', result: 'rows'}}}};
 analyticPropertySuccesses.push(
-  {name: 'analytic-property-nested-independent-json', format: 'json',
+  {name: 'analytic-property-nested-independent-json', hostProfile: 'analytic-property', format: 'json',
     text: JSON.stringify(nestedProgram), expected: previousRows,
     columns: [id, previous], sourceReadCount: 0},
   textCase('nested-sql',
@@ -106,5 +106,5 @@ export const analyticPropertyRefusals = [
   'SELECT other AS invented, LAG(invented.score) OVER (ORDER BY id) AS previous FROM objects',
   'SELECT FIRST_VALUE(payload.score) OVER (ORDER BY id) AS value FROM objects',
   'SELECT LAG(payload.score, -1) OVER (ORDER BY id) AS previous FROM objects',
-].map((tail, index) => ({name: 'analytic-property-invalid-' + index,
+].map((tail, index) => ({name: 'analytic-property-invalid-' + index, hostProfile: 'analytic-property',
   format: 'aql-text', text: data + tail, parameterDeclarations, parameters}));
