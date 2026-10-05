@@ -35,6 +35,19 @@ the Join and two downstream consumer Named Results to the real retained Store,
 and reads them again after Host reopen without provider I/O. Later-source
 failure, cancellation after the first capture, and a failed cleanup followed
 by retry leave no partial Result or lost holding and do not reacquire a source.
+An awaited Host test hook at the bounded Join advance also delivers
+cancellation after positive Compute progress with both captures live. Neither
+input cleanup starts before that advance is released; the cancelled Run
+confirms physical stop, publishes no Result, releases both captures, and
+does not reacquire on same-request resend.
+This selected row-file task uses the same `localStrategyContribution.run` and
+`prepareLocalRetainedOutput` writer as the retained binary-chain append and
+finalize fault harness. Two public HTTPS cases now lose the acknowledgement
+after actual Store append and after actual seal, respectively. Both leave the
+Join and consumer Results unavailable, reclaim the writer and two acquired
+inputs, and avoid another writer entry or provider read on same-request resend.
+These are acknowledgement-loss faults at the selected writer boundary, not a
+claim about every possible OS write error or the mixed-provider variant.
 The existing two-DuckDB-source retained route remains covered separately.
 The same public HTTPS fixture now combines a GitHub row source and a DuckDB
 source in both Program acquisition orders. Each run reads its independent
@@ -48,11 +61,57 @@ the typed `GitHubReadRowLimit`, publishes nothing, and a same-request resend
 does not fetch again. This proves the connector's total-row ceiling through
 the public route; it does not isolate the downstream row-capture ceiling,
 which is also 100 in this installation.
+The same installed source now feeds a selected bounded Relation group followed
+by a filter and sort in one Compute task. The public HTTPS Host reads numeric
+COUNT, SUM, and AVG groups and two distinct consumer Results from the real
+retained Store against literal expectations. A second Program filters all
+acquired rows before a global group and observes count zero with null SUM/AVG.
+Both committed Results remain readable after Host reopen without another
+source read. This is a source-to-numeric-group connection proof, not an
+independent Host-wide exact/one-short budget or capture ceiling proof.
 The checked Program-to-RowAcquisition owner has a separate 2/1 capture-row
 boundary test: the same two-row page passes with capacity two and yields a
 capture, while capacity one gives typed `CaptureLimit` and cannot finish or
 expose a partial capture. This isolates the common capture owner but is not
 a public retained-Store 2/1 configuration test.
+An installed Salesforce source also supplies an exact retained Relation to a
+later Events Stage. The normal HTTPS Host selects the source, derives a
+non-null numeric clock, runs `to_events` and `watermark_events`, and reads the
+formal `events` Bridge followed by a same-Stage Relation filter and two
+consumers from the real Store against independent ordered rows. The acquired
+row task uses retained-file output;
+the Carrier tasks use managed material. A repeated request and reopened Host
+do not reacquire the source. Duplicate event identities fail after capture
+without publishing a partial Result. An arithmetic failure in the Relation
+filter after the formal Events Bridge likewise leaves no published Result or
+retained Carrier snapshot. Cancellation at the captured-input handoff reclaims
+its file without a second read. This path does not claim that
+a nullable Salesforce datetime can directly serve as the non-null Event clock,
+nor does the handoff cancellation prove cancellation inside a TEA kernel.
+The installed GitHub Issues source provides a separate non-null numeric Event
+clock from issue numbers. An HTTPS Program retains that acquired input, runs
+`to_events` and a fixed `window_events` transform, and publishes the formal
+`events` Bridge and a later consumer with independent ordered window rows.
+Reading the committed Result after Host reopen does not repeat either source
+page. This is a fixed-window route with a genuine varying source clock, not
+evidence for other TEA window variants or in-kernel cancellation of an
+externally acquired input.
+Two separately captured GitHub sources also feed the retained-file Join task,
+then `to_events`, fixed windowing, the formal Bridge, and a same-Stage Relation
+filter. The public Host reads the windowed Result and its consumer after two
+acquisition completions, observes both row-file and managed representations,
+and reopens the committed Result without another source request. This proves
+that particular two-source-to-Carrier chain, not every Join or TEA variant.
+The same Program shape with a failing post-Bridge Relation filter also leaves
+the Result unavailable. An injected first-input cleanup failure retains its
+holding until Host cleanup retry succeeds, with neither source reacquired.
+The public Host reports `CapturedRunPublicationFailed`; this fixture does not
+inspect the inner arithmetic issue or prove Compute entrypoint non-reexecution.
+The same retained Join-to-Events route also accepts a GitHub capture paired
+with a DuckDB capture. Its fixed-window and consumer Results match independent
+ordered rows after Host reopen, without another read from either provider.
+This adds mixed-provider Carrier evidence, not a Store writer fault or
+post-progress Compute cancellation for the mixed-provider variant.
 For a row connector with multiple declared views, the two-installation Host
 now carries each view's source reference and read tuple into Check disclosure
 and pre-acquisition Checkpoint selection. The installed source still prepares

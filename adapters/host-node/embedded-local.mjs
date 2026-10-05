@@ -300,7 +300,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       ? installLocalRetainedStore : installLocalSnapshotStore;
     localSnapshotConfiguration = installStore((_key, bytes, frame) =>
       createLocalRetainedStore({parentDirectory:snapshotDirectory,
-        capacityBytes:bytes,maxFrameBytes:frame,maxEntries:1}));
+        capacityBytes:bytes,maxFrameBytes:frame,maxEntries:1}),
+    authorization?.faultInjection);
     journal = openClientRequestJournal(journalDirectory);
     if ((effectInstallation !== undefined || modelInstallation !== undefined) &&
         effectInstallation?.privateEvidenceKey === undefined) {

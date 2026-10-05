@@ -1506,6 +1506,191 @@ const temporalProgram = JSON.stringify({version: 'actql/0.1',
   ],
   results: {records: {from: {stage: 'compute', result: 'r'}}}});
 
+const retainedSalesforceEventsDocument = () => ({version: 'actql/0.1',
+  id: 'salesforce-retained-events',
+    stages: [{id: 'acquire', inputs: {remote: {connector: 'crm-main',
+      resource: 'Test_Record__c'}}, steps: [
+      {filter: "Id <> 'none'", as: 'filtered'},
+      {select: ['Id', 'Due_At__c', 'Name'], as: 'captured'},
+    ], results: {r: {from: 'captured', fields: ['Id', 'Due_At__c', 'Name']}}},
+    {id: 'events', inputs: {rows: {result: {stage: 'acquire', result: 'r'}}},
+      steps: [
+        {from: 'rows', derive: {clock: '0'}, as: 'clocked'},
+        {from: 'clocked', to_events: {id: 'Id', time: 'clock'}, as: 'source'},
+        {from: 'source', watermark_events: {watermark_ms: 1, policy: 'mark'},
+          as: 'marked'},
+        {from: 'marked', events: true, as: 'out'},
+        {from: 'out', filter: "Name <> 'none'", as: 'filtered'},
+      ], results: {r: {from: 'filtered', fields: ['Id', 'Due_At__c', 'Name',
+        'clock', 'watermark_ms', 'late', 'watermark_decision']}}},
+    {id: 'consumer_a', inputs: {x: {result: {stage: 'events', result: 'r'}}},
+      steps: [{select: ['Id', 'Name'], as: 'out'}],
+      results: {r: {from: 'out', fields: ['Id', 'Name']}}},
+    {id: 'consumer_b', inputs: {x: {result: {stage: 'events', result: 'r'}}},
+      steps: [{select: ['Name'], as: 'out'}],
+      results: {r: {from: 'out', fields: ['Name']}}}],
+    results: {
+      published: {from: {stage: 'events', result: 'r'}},
+      consumed_a: {from: {stage: 'consumer_a', result: 'r'}},
+      consumed_b: {from: {stage: 'consumer_b', result: 'r'}},
+    }});
+
+const retainedEventRecords = [
+  {Id: 'a00000000000001', Name: 'first', External_Key__c: 'key-1',
+    Due_Date__c: '2024-05-22', Due_At__c: '2012-07-12T17:49:01.123+0000'},
+  {Id: 'a00000000000002', Name: 'second', External_Key__c: 'key-2',
+    Due_Date__c: '2024-05-23', Due_At__c: '2012-07-13T17:49:01.123+0000'},
+];
+
+test('retained Salesforce rows feed the formal Events Bridge', async t => {
+  const observations = [];
+  const setup = await installation(t, {temporalFields: true,
+    retainedRelationOutput: true, storedRecords: retainedEventRecords});
+  await setup.publish();
+  const {client, close} = await setup.open({authorization: checkpointAuthorization({
+    observe(name, detail) { observations.push({name, detail}); },
+  })});
+  const document = retainedSalesforceEventsDocument();
+  const execution = await client.aql(JSON.stringify(document),
+    {format: 'json', requestId: 'salesforce-retained-events'});
+  assert.equal((await execution.wait()).status, 'succeeded');
+  assert.deepEqual(await execution.result('published').all(), [
+    {Id: 'a00000000000001', Due_At__c: '2012-07-12T17:49:01.123Z',
+      Name: 'first', clock: 0, watermark_ms: 1, late: true,
+      watermark_decision: 'mark'},
+    {Id: 'a00000000000002', Due_At__c: '2012-07-13T17:49:01.123Z',
+      Name: 'second', clock: 0, watermark_ms: 1, late: true,
+      watermark_decision: 'mark'},
+  ]);
+  assert.deepEqual(await execution.result('consumed_a').all(), [
+    {Id: 'a00000000000001', Name: 'first'},
+    {Id: 'a00000000000002', Name: 'second'},
+  ]);
+  assert.deepEqual(await execution.result('consumed_b').all(), [
+    {Name: 'first'}, {Name: 'second'},
+  ]);
+  assert.equal(setup.queries().length, 1);
+  const resent = await client.aql(JSON.stringify(document),
+    {format: 'json', requestId: 'salesforce-retained-events'});
+  assert.deepEqual(resent.ref, execution.ref);
+  assert.equal(setup.queries().length, 1);
+  await close();
+  const reopened = await setup.open({authorization: checkpointAuthorization()});
+  const attached = await reopened.client.attach(execution.ref);
+  assert.deepEqual(await attached.result('published').all(), [
+    {Id: 'a00000000000001', Due_At__c: '2012-07-12T17:49:01.123Z',
+      Name: 'first', clock: 0, watermark_ms: 1, late: true,
+      watermark_decision: 'mark'},
+    {Id: 'a00000000000002', Due_At__c: '2012-07-13T17:49:01.123Z',
+      Name: 'second', clock: 0, watermark_ms: 1, late: true,
+      watermark_decision: 'mark'},
+  ]);
+  assert.equal(setup.queries().length, 1);
+  assert.equal(observations.filter(item => item.name ===
+    'acquisition_completed').length, 1);
+  const representations = observations.filter(item => item.name ===
+    'computed').at(-1)?.detail.outputRepresentations;
+  assert.ok(representations?.some(item => item.representation ===
+    'retained-file'));
+  assert.ok(representations.some(item => item.representation ===
+    'managed-local-memory'));
+});
+
+test('retained Salesforce Events failure publishes no partial Result',
+  async t => {
+    const setup = await installation(t, {retainedRelationOutput: true,
+      temporalFields: true, storedRecords: retainedEventRecords.map(record =>
+        ({...record, Name: 'same'}))});
+    await setup.publish();
+    const {client, close} = await setup.open({authorization:
+      checkpointAuthorization()});
+    const document = retainedSalesforceEventsDocument();
+    document.id = 'salesforce-retained-events-duplicate';
+    document.stages[1].steps[1].to_events.id = 'Name';
+    const requestId = 'salesforce-retained-events-duplicate';
+    const execution = await client.aql(JSON.stringify(document),
+      {format: 'json', requestId});
+    const state = await execution.wait();
+    assert.equal(state.status, 'failed', JSON.stringify(state));
+    assert.equal(state.result_available, false);
+    await assert.rejects(execution.result('published').all());
+    assert.equal(setup.queries().length, 1);
+    assert.deepEqual(await readdir(join(setup.root, 'state',
+      'carrier-snapshots')), []);
+    const resent = await client.aql(JSON.stringify(document),
+      {format: 'json', requestId});
+    assert.deepEqual(resent.ref, execution.ref);
+    assert.equal(setup.queries().length, 1);
+    await close();
+    const reopened = await setup.open({authorization: checkpointAuthorization()});
+    const attached = await reopened.client.attach(execution.ref);
+    assert.equal((await attached.wait()).status, 'failed');
+    assert.equal(setup.queries().length, 1);
+  });
+
+test('retained Salesforce Events later filter failure keeps no Result',
+  async t => {
+    const setup = await installation(t, {retainedRelationOutput: true,
+      temporalFields: true, storedRecords: retainedEventRecords});
+    await setup.publish();
+    const {client, close} = await setup.open({authorization:
+      checkpointAuthorization()});
+    const document = retainedSalesforceEventsDocument();
+    document.id = 'salesforce-retained-events-later-failure';
+    document.stages[1].steps[4].filter = 'clock / (clock - clock) > 0';
+    const requestId = 'salesforce-retained-events-later-failure';
+    const execution = await client.aql(JSON.stringify(document),
+      {format: 'json', requestId});
+    const state = await execution.wait();
+    assert.equal(state.status, 'failed', JSON.stringify(state));
+    assert.equal(state.result_available, false);
+    await assert.rejects(execution.result('published').all());
+    assert.equal(setup.queries().length, 1);
+    assert.deepEqual(await readdir(join(setup.root, 'state',
+      'carrier-snapshots')), []);
+    await close();
+    const reopened = await setup.open({authorization: checkpointAuthorization()});
+    const attached = await reopened.client.attach(execution.ref);
+    assert.equal((await attached.wait()).status, 'failed');
+    assert.equal(setup.queries().length, 1);
+  });
+
+test('retained Salesforce Events input stays owned through cancellation',
+  async t => {
+    let reachedCapture;
+    const captured = new Promise(resolve => { reachedCapture = resolve; });
+    let releaseCapture;
+    const pause = new Promise(resolve => { releaseCapture = resolve; });
+    t.after(() => releaseCapture());
+    const setup = await installation(t, {retainedRelationOutput: true,
+      temporalFields: true, storedRecords: retainedEventRecords});
+    await setup.publish();
+    const {client} = await setup.open({authorization: checkpointAuthorization({
+      faultInjection(name) {
+        if (name === 'acquisition_completed') {
+          reachedCapture();
+          return pause;
+        }
+      },
+    })});
+    const document = retainedSalesforceEventsDocument();
+    document.id = 'salesforce-retained-events-cancel';
+    const requestId = 'salesforce-retained-events-cancel';
+    const execution = await client.aql(JSON.stringify(document),
+      {format: 'json', requestId});
+    await captured;
+    assert.equal(setup.queries().length, 1);
+    await client.cancelRequest(requestId);
+    releaseCapture();
+    const state = await execution.wait();
+    assert.equal(state.status, 'cancelled', JSON.stringify(state));
+    assert.equal(state.result_available, false);
+    await assert.rejects(execution.result('published').all());
+    assert.equal(setup.queries().length, 1);
+    assert.deepEqual(await readdir(join(setup.root, 'state',
+      'carrier-snapshots')), []);
+  });
+
 test('Salesforce dates and UTC datetimes reach the Named Result as the same values',
   async t => {
     const setup = await installation(t, {temporalFields: true});
