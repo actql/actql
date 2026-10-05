@@ -91,3 +91,9 @@ The retained-history scan previously stopped at inherited singleton
 preserved and the concrete error was reported on #363. It is neither a product
 failure nor a successful history verification. Required hosted CI remains
 unverified during the billing outage; no rerun or merge is requested.
+The read-only scan at `68adb76c36a48a2dcf1fc5b886aefdca8f190bcb` reached its
+120-second supervisor budget without an assertion result (`run-7sc0u9`). This
+does not establish the current first history error or a successful scan.
+The attempted fresh-packed invocation at
+`99a990fdc3cbf875bb93a33dddb6720a800078f0` was refused by the occupied shared
+heavy lock before its producer started (`run-2JfzwS`). No lock was removed.
