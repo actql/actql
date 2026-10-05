@@ -46,6 +46,7 @@ fn[T : IndexedRows] start_stable_order(
       phase: -1,
       offset: 0,
       charge: { offset: 0, next: 0, remaining: 0, },
+      tree: None,
     },
     phase: 0,
     cursor: 0,
