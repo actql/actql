@@ -1097,10 +1097,28 @@ providers still use these same kernels. New long-Text Join/Sequence publication
 cases use the existing real Store and two-consumer Host harness; their source
 SHA execution evidence is recorded separately from the parent expansion run.
 The selected JS temporal kernels and retained-provider caller tests pass 40
-tests. That result is not yet retained Store Host execution, packed acceptance,
+tests. The retained Store Host test also passed at
+`5c703b5f008e9f62e251d7444d3a6bd01b6b621c`, including the three long-Text
+temporal publication chains and two consumers. This is not packed acceptance,
 Wasm/native or Linux CI evidence for the temporal output changes.
 Other temporal initialization and comparison boundaries remain governed by
 their existing evidence, not inferred from these output-only regressions.
+
+The shared binding-row owner now rechecks large computed output cells through
+the existing resumable runtime cursor, for both dense and presence rows.
+Unchanged admitted projection cells retain exact-proof reuse. A cancelled or
+failed recheck remains owned until cleanup, and presence rows preserve absent
+columns rather than replacing them with NULL.
+The shared derived-output fixture uses independent literal row envelopes:
+the dense seven-field row has eight nodes, 825 bytes and 833 work units; the
+presence row has four nodes, 404 bytes and 408 work units, including one absent
+field. Exact limits and each typed one-short node/byte/work rejection pass,
+as does cancellation after a real Text recheck chunk with borrowed inputs still
+available after cleanup. The selected binding-row and presence JS tests pass
+94 tests. A retained Append/derive/select Host case adds a computed 400-byte
+Text copy, producer publication and two consumers; execution on its submitted
+source SHA is recorded separately. These output tests do not certify the
+whole expression evaluator or direct publication of conditional columns.
 
 #### Retained Relation obligation chains
 

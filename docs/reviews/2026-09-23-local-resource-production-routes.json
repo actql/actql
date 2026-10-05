@@ -1010,6 +1010,28 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
           "fixture": "bounded selected derive stops after work without publication"
+        },
+        {
+          "role": "derive_large_output_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_derived_output_wbtest.mbt",
+          "fixture": "derived output keeps literal exact and one-short occurrence budgets"
+        },
+        {
+          "role": "derive_large_output_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_derived_output_wbtest.mbt",
+          "fixture": "derived output recheck yields before dense and presence row publication"
         }
       ],
       "environment_tests": [
@@ -1026,6 +1048,15 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "split-values-derive-in-flight"
+        },
+        {
+          "role": "derive_large_output_retained_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "append-long-text-derive-select"
         }
       ],
       "path_assurance": {
