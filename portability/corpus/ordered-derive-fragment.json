@@ -1,7 +1,7 @@
 {
   "version": "actql-ordered-derive-fragment-vectors/0.1",
-  "extension_cid": "sha256:5c42162fa5adc40007f7e4630fa30e835c0dce20f74785be074f4490aff522de",
-  "expected_aoa_node_cid": "sha256:eb85b4efa2b74d96a6a3284a165537788618bee9c3a9d3c38d7a88d0e3c5aa63",
+  "extension_cid": "sha256:18c717048b5ca41eca1be358683b26fba7f9c19ca70abe7ee1051aaa84bf6c62",
+  "expected_aoa_node_cid": "sha256:3450035bd1f23d2992b6579a09c266f30627edc616d0ffa0d7c5ab786a81e14e",
   "source_step": {
     "id": "derive",
     "in": ["input"],
@@ -17,7 +17,7 @@
     "in": ["input"],
     "op": "REL.derive",
     "params": {
-      "row_kernel_contract_cid": "sha256:5c42162fa5adc40007f7e4630fa30e835c0dce20f74785be074f4490aff522de",
+      "row_kernel_contract_cid": "sha256:18c717048b5ca41eca1be358683b26fba7f9c19ca70abe7ee1051aaa84bf6c62",
       "bindings": [
         {"name": "amount", "expr": {"op": "add", "body": [{"op": "field", "body": "amount"}, {"op": "literal", "body": 1}]}},
         {"name": "copy", "expr": {"op": "field", "body": "amount"}}
@@ -36,8 +36,8 @@
     },
     {
       "id": "graph_step",
-      "canonical": "{\"id\":\"derive\",\"in\":[\"input\"],\"op\":\"REL.derive\",\"params\":{\"bindings\":[{\"expr\":{\"body\":[{\"body\":\"amount\",\"op\":\"field\"},{\"body\":1,\"op\":\"literal\"}],\"op\":\"add\"},\"name\":\"amount\"},{\"expr\":{\"body\":\"amount\",\"op\":\"field\"},\"name\":\"copy\"}],\"references\":[{\"at\":\"/bindings/0/expr/body/0\",\"target\":{\"input_field\":\"amount\"}},{\"at\":\"/bindings/1/expr\",\"target\":{\"prior_slot\":0}}],\"row_kernel_contract_cid\":\"sha256:5c42162fa5adc40007f7e4630fa30e835c0dce20f74785be074f4490aff522de\"}}",
-      "cid": "sha256:eb85b4efa2b74d96a6a3284a165537788618bee9c3a9d3c38d7a88d0e3c5aa63"
+      "canonical": "{\"id\":\"derive\",\"in\":[\"input\"],\"op\":\"REL.derive\",\"params\":{\"bindings\":[{\"expr\":{\"body\":[{\"body\":\"amount\",\"op\":\"field\"},{\"body\":1,\"op\":\"literal\"}],\"op\":\"add\"},\"name\":\"amount\"},{\"expr\":{\"body\":\"amount\",\"op\":\"field\"},\"name\":\"copy\"}],\"references\":[{\"at\":\"/bindings/0/expr/body/0\",\"target\":{\"input_field\":\"amount\"}},{\"at\":\"/bindings/1/expr\",\"target\":{\"prior_slot\":0}}],\"row_kernel_contract_cid\":\"sha256:18c717048b5ca41eca1be358683b26fba7f9c19ca70abe7ee1051aaa84bf6c62\"}}",
+      "cid": "sha256:3450035bd1f23d2992b6579a09c266f30627edc616d0ffa0d7c5ab786a81e14e"
     }
   ]
 }

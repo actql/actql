@@ -500,6 +500,7 @@ fn resident_compute_open(
         Acquisition(_) => "physical acquisition open"
         Execution(_) => "physical acquisition execution"
         Capture => "capture"
+        RetainedInput(_) => "retained input"
         Run(_) => "captured Run"
         Dispatch(_) => "standard dispatch"
         Compute(_) => "Native compute open"

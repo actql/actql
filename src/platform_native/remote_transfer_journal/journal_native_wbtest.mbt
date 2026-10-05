@@ -221,6 +221,12 @@ test "committed destination readers durably block reclaim" {
   ).unwrap()
   first.commit_destination_receipt(receipt, request).unwrap() |> ignore
   assert_true(first.reserve_destination_holding(request, 5L, 1L).unwrap())
+  assert_true(
+    first.validate_destination_reader(request, receipt, "reader-a")
+    is Err(RecoveryRequired),
+  )
+  // Validation neither restores a missing material nor consumes a reader slot.
+  assert_eq(first.destination_capacity_usage().unwrap().reserved_bytes, 5L)
   match first.acquire_destination_reader(request, receipt, "reader-a") {
     Ok(value) => assert_true(value)
     Err(UnsupportedTarget) => fail("destination reader target unsupported")
@@ -231,6 +237,17 @@ test "committed destination readers durably block reclaim" {
     Err(RecoveryRequired) => fail("destination reader requires recovery")
     Err(MaterialInUse) => fail("destination reader unexpectedly in use")
   }
+  first.validate_destination_reader(request, receipt, "reader-a").unwrap()
+  second.validate_destination_reader(request, receipt, "reader-a").unwrap()
+  let foreign = @transfer.prepare_destination_receipt(request, "other-material").unwrap()
+  assert_true(
+    first.validate_destination_reader(request, foreign, "reader-a")
+    is Err(StateCollision),
+  )
+  assert_true(
+    first.validate_destination_reader(request, receipt, "absent-reader")
+    is Err(RecoveryRequired),
+  )
   assert_false(
     second.acquire_destination_reader(request, receipt, "reader-a").unwrap(),
   )
@@ -240,6 +257,10 @@ test "committed destination readers durably block reclaim" {
   )
   assert_true(
     second.release_destination_reader(request, receipt, "reader-a").unwrap(),
+  )
+  assert_true(
+    first.validate_destination_reader(request, receipt, "reader-a")
+    is Err(RecoveryRequired),
   )
   assert_false(
     first.release_destination_reader(request, receipt, "reader-a").unwrap(),
@@ -264,6 +285,9 @@ test "committed destination readers durably block reclaim" {
   assert_false(
     second.finish_destination_material_reclaim(request, receipt, true).unwrap(),
   )
+  assert_false(
+    first.begin_destination_material_reclaim(request, receipt).unwrap(),
+  )
   assert_eq(first.destination_capacity_usage().unwrap().reserved_bytes, 0L)
   assert_true(first.close())
   assert_true(second.close())
@@ -276,6 +300,10 @@ test "committed destination readers durably block reclaim" {
     5L,
     max_destination_readers=2L,
   ).unwrap()
+  assert_true(
+    reopened.validate_destination_reader(request, receipt, "reader-a")
+    is Err(RecoveryRequired),
+  )
   assert_true(
     reopened.acquire_destination_reader(request, receipt, "reader-c")
     is Err(RecoveryRequired),

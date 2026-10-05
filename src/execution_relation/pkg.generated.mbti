@@ -1175,6 +1175,8 @@ pub fn supplied_relation_read_same_binding(SuppliedRelationRead, SuppliedRelatio
 
 pub fn supplied_relation_read_schema(SuppliedRelationRead) -> @relation_schema.Schema
 
+pub fn take_admitted_output_preparation_rows(AdmittedOutputPreparation) -> AdmittedOutputRows?
+
 pub fn trusted_output_carrier_input(@managed_carrier_runtime.ProducerReadReference) -> TrustedOutputInput
 
 pub fn trusted_output_relation_input(ProducerRead) -> TrustedOutputInput

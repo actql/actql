@@ -1,0 +1,9 @@
+{
+  "version": "actql-foundation-single-base-normalization/0.1",
+  "id": "normalize-model-single-base-e26f7500",
+  "target": {
+    "id": "resolve-model-checkpoint-main-e26f7500",
+    "digest": "de4f9c4b52729b924f1fe9e6043e644bcc30bd19bd47ed752c31d3585565e723"
+  },
+  "reason": "The immutable Model integration declaration redundantly includes its sole maximal merge base. Verify that exact base against the complete Git history, retain the original bytes, and normalize only this redundant metadata. Preserve every source, parent, path, mode and dependency obligation."
+}

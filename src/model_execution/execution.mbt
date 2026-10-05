@@ -88,6 +88,8 @@ pub(all) enum ModelExecutionIssue {
   InvocationEvidence(@publication.RunEvidenceValueIssue)
   Authorization(@publication_host.ClientInferDispatchIssue)
   Egress(@publication_host.ClientInferEgressIssue)
+  CallEntryRefused
+  UnknownCalls
 } derive(Eq, Debug)
 
 ///|
@@ -121,11 +123,14 @@ pub(all) struct ModelCaptureBundle {
 priv enum AdoptedModelSlot {
   Success(Int)
   NoResponseFailure(ModelProviderFailure)
+  UnresolvedUnknown
 }
 
 ///|
 pub(all) enum ModelObservation {
   Continue(Int64, Int64)
+  Waiting(Int64, Int64)
+  Settling(Int, Int64, Int64)
   Completed(ModelCaptureBundle, Int64, Int64)
   Failed(ModelExecutionIssue, Int64, Int64)
   Stopped(@bounded.StopReason, Int64, Int64)
@@ -165,16 +170,30 @@ struct ModelState {
   limits : ModelExecutionLimits
   quantity_capacity : ModelQuantityCapacity?
   call_scope : @publication_host.ClientInferCallScope?
-  dispatch_admission : @publication_host.ClientInferDispatchAdmission?
+  mut dispatch_admission : @publication_host.ClientInferDispatchAdmission?
   egress_admission : @publication_host.ClientInferEgressAdmission?
-  attempts : Array[ModelAttemptTrace]
+  attempts : Map[Int, ModelAttemptTrace]
+  attempt_slots : Array[Int]
+  restored_calls : Map[Int, RestoredModelCall]
+  unknown_calls : Map[Int, Bool]
   ledger : @resources.Ledger
-  reservations : Array[@resources.Reservation]
+  reservations : Map[Int, @resources.Reservation]
+  send_mask : Array[Bool]?
+  mut reservation_next_slot : Int
   requests : Array[PreparedModelRequest]
   physical_preflight : ModelPhysicalPreflight?
   physical_cursors : Array[ModelRequestPreflight]
-  physical_plans : Array[ModelPhysicalRequestPlan]
+  physical_plans : Map[Int, ModelPhysicalRequestPlan]
+  mut physical_next_slot : Int
+  mut physical_pending : ModelRequestPreflight?
   mut physical_cleanup_index : Int
+  durable_calls : Bool
+  mut enter_call : ((ModelCallEntry) -> Bool)?
+  mut entering : ModelCallEntry?
+  mut prepared_call_set : ModelPreparedCallSet?
+  mut settlement_pending : Int?
+  mut stop_requested : Bool
+  mut observing_response : Bool
   outcomes : Array[AdoptedModelSlot]
   mut request : ModelRequestPreparation?
   captures : Array[ModelSlotCapture]
@@ -200,6 +219,8 @@ pub struct ModelExecution {
   mut token : @bounded.Token
   control : @bounded.Control
   state : ModelState
+  mut progress : Int64
+  mut work : Int64
 }
 
 ///|
@@ -277,6 +298,9 @@ fn advance_model(
   if @bounded.stop_requested(reader) is Some(reason) {
     return @bounded.Stopped(reason, 0, 0)
   }
+  if state.stop_requested && !state.observing_response {
+    return @bounded.Stopped(@bounded.Cancelled, 0, 0)
+  }
   if quantum < 1 {
     return @bounded.Failed(InvalidLimits, 0, 0)
   }
@@ -293,15 +317,24 @@ fn advance_model(
       state.phase = PrepareRequests
       return @bounded.Continue(1, 1)
     }
-    if state.reservations.length() <
+    if state.reservation_next_slot <
       @relation.prepared_infer_rows_count(state.rows) {
+      let ordinal = state.reservation_next_slot
+      if !model_slot_send_eligible(state, ordinal) {
+        state.reservation_next_slot += 1
+        return @bounded.Continue(1, 1)
+      }
       match
         @resources.reserve_attempt(
           state.ledger,
           state.limits.max_request_bytes + state.limits.max_response_bytes,
           state.limits.max_request_bytes +
           state.limits.max_response_bytes +
-          (if state.dispatch_admission is Some(_) { 81920L } else { 0L }),
+          (if state.dispatch_admission is Some(_) || state.durable_calls {
+            81920L
+          } else {
+            0L
+          }),
           if state.physical_preflight is Some(_) {
             physical_preflight_metadata_bytes
           } else {
@@ -309,10 +342,11 @@ fn advance_model(
           },
           quantities=state.quantity_capacity.map(value => value.per_attempt),
         ) {
-        Ok(value) => state.reservations.push(value)
+        Ok(value) => state.reservations[ordinal] = value
         Err(issue) => return @bounded.Failed(Ledger(issue), 1, 1)
       }
-      if state.reservations.length() ==
+      state.reservation_next_slot += 1
+      if state.reservation_next_slot ==
         @relation.prepared_infer_rows_count(state.rows) {
         state.phase = PrepareRequests
       }
@@ -359,7 +393,11 @@ fn advance_model(
       Err(issue) => return @bounded.Failed(issue, 1, 1)
       Ok(None) => return @bounded.Continue(1, 1)
       Ok(Some(evidence)) => {
-        if (state.source is Restored(_) || state.source is RestoredSlots(_)) &&
+        if (
+            state.source is Restored(_) ||
+            state.source is RestoredSlots(_) ||
+            state.restored_calls.contains(state.next_slot)
+          ) &&
           (
             state.restored_evidence is None ||
             @publication.run_evidence_value_identity(
@@ -369,7 +407,8 @@ fn advance_model(
           ) {
           return @bounded.Failed(OutputIdentity, 1, 1)
         }
-        if state.source is RestoredSlots(_) {
+        if state.source is RestoredSlots(_) ||
+          state.restored_calls.contains(state.next_slot) {
           guard state.restored_binding is Some(binding) else {
             return @bounded.Failed(OutputIdentity, 1, 1)
           }
@@ -406,6 +445,19 @@ fn advance_model(
     return @bounded.Failed(OutputIdentity, 1, 1)
   }
   let request = prepared.request
+  if state.durable_calls &&
+    state.restored_calls.get(state.next_slot) is Some(saved) {
+    return advance_partial_model_restore(state, saved, prepared)
+  }
+  if state.durable_calls && state.unknown_calls.contains(state.next_slot) {
+    state.outcomes.push(UnresolvedUnknown)
+    state.next_slot += 1
+    if @infer.result_mode(@relation.prepared_infer_rows_owner(state.rows))
+      is Fail {
+      return @bounded.Failed(UnknownCalls, 1, 1)
+    }
+    return @bounded.Continue(1, 1)
+  }
   if state.source is Replay(capture) {
     return advance_model_capture_replay(state, capture, prepared)
   }
@@ -418,7 +470,10 @@ fn advance_model(
   guard state.source is Provider(provider) else {
     return @bounded.Failed(OutputIdentity, 1, 1)
   }
-  let reservation = state.reservations[state.next_slot]
+  guard model_slot_send_eligible(state, state.next_slot) &&
+    state.reservations.get(state.next_slot) is Some(reservation) else {
+    return @bounded.Failed(CallEntryRefused, 1, 1)
+  }
   let attempt = if state.dispatch_admission is Some(admission) {
     guard prepared.call is Some(call) else {
       return @bounded.Failed(RequestIdentity, 1, 1)
@@ -452,15 +507,46 @@ fn advance_model(
     Err(issue) => return @bounded.Failed(Ledger(issue), 1, 1)
     Ok(_) => ()
   }
-  if attempt is Some(attempt) {
-    state.attempts.push(attempt)
-  }
   if state.quantity_capacity is Some(_) {
     match @resources.mark_quantities_uncertain(state.ledger, reservation) {
       Err(issue) => return @bounded.Failed(Ledger(issue), 1, 1)
       Ok(_) => ()
     }
   }
+  // The Host's synchronous callback durably records this exact owner-issued
+  // attempt. It is the final fallible admission before the retained provider
+  // call. No asynchronous boundary or fresh request construction follows it.
+  if state.durable_calls {
+    guard state.prepared_call_set is Some(prepared_set) &&
+      state.enter_call is Some(enter) &&
+      attempt is Some(trace) &&
+      state.dispatch_admission is Some(admission) else {
+      return @bounded.Failed(CallEntryRefused, 1, 1)
+    }
+    let entry = {
+      prepared: prepared_set,
+      slot: state.next_slot,
+      trace,
+      admission,
+    }
+    state.entering = Some(entry)
+    let admitted = enter(entry)
+    state.entering = None
+    if !admitted {
+      return @bounded.Failed(CallEntryRefused, 1, 1)
+    }
+  }
+  if attempt is Some(attempt) {
+    state.attempts[state.next_slot] = attempt
+    state.attempt_slots.push(state.next_slot)
+  }
+  // A cancellation delivered by a synchronous entry observer cannot start I/O.
+  // Once provider entry begins, however, returned response custody survives
+  // cancellation and is verified/persisted before physical cleanup completes.
+  if state.stop_requested {
+    return @bounded.Stopped(@bounded.Cancelled, 1, 1)
+  }
+  state.observing_response = state.durable_calls
   let invoked = match state.physical_preflight {
     None => (provider.invoke)(request)
     Some(_) => {
@@ -473,6 +559,7 @@ fn advance_model(
   let response = match invoked {
     Ok(value) => value
     Err(issue) => {
+      state.observing_response = false
       if @bounded.stop_requested(reader) is Some(reason) {
         return @bounded.Stopped(reason, 1, 1)
       }
@@ -548,6 +635,8 @@ pub fn start_model_execution(
   quantity_capacity? : ModelQuantityCapacity? = None,
   physical_preflight? : ModelPhysicalPreflight? = None,
   egress_admission? : @publication_host.ClientInferEgressAdmission? = None,
+  durable_calls? : Bool = false,
+  send_mask? : Array[Bool]? = None,
 ) -> Result[ModelExecution, ModelExecutionIssue] {
   start_model_owned(
     rows,
@@ -559,6 +648,8 @@ pub fn start_model_execution(
     quantity_capacity~,
     physical_preflight~,
     egress_admission~,
+    durable_calls~,
+    send_mask~,
   )
 }
 
@@ -573,6 +664,8 @@ fn start_model_owned(
   quantity_capacity? : ModelQuantityCapacity? = None,
   physical_preflight? : ModelPhysicalPreflight? = None,
   egress_admission? : @publication_host.ClientInferEgressAdmission? = None,
+  durable_calls? : Bool = false,
+  send_mask? : Array[Bool]? = None,
 ) -> Result[ModelExecution, ModelExecutionIssue] {
   if egress_admission is Some(admission) &&
     !(call_scope is Some(scope) &&
@@ -594,7 +687,7 @@ fn start_model_owned(
     limits.value_limits.max_text_bytes < 0 {
     return Err(InvalidLimits)
   }
-  if dispatch_admission is Some(_) &&
+  if (dispatch_admission is Some(_) || durable_calls) &&
     limits.max_request_bytes + limits.max_response_bytes >
     9223372036854775807L - 81920L {
     return Err(InvalidLimits)
@@ -649,10 +742,13 @@ fn start_model_owned(
       Ok(_) => ()
     }
   }
+  if send_mask is Some(mask) && (!durable_calls || mask.length() != count) {
+    return Err(RequestIdentity)
+  }
   guard @relation.acquire_prepared_infer_rows(rows) is Some(input_use) else {
     return Err(OutputIdentity)
   }
-  let reservations : Array[@resources.Reservation] = []
+  let reservations : Map[Int, @resources.Reservation] = Map([])
   let state : ModelState = {
     rows,
     input_use,
@@ -664,14 +760,28 @@ fn start_model_owned(
     call_scope,
     dispatch_admission,
     egress_admission,
-    attempts: [],
+    attempts: Map([]),
+    attempt_slots: [],
+    restored_calls: Map([]),
+    unknown_calls: Map([]),
     ledger,
     reservations,
+    send_mask: send_mask.map(mask => mask.copy()),
+    reservation_next_slot: 0,
     requests: [],
     physical_preflight,
     physical_cursors: [],
-    physical_plans: [],
+    physical_plans: Map([]),
+    physical_next_slot: 0,
+    physical_pending: None,
     physical_cleanup_index: 0,
+    durable_calls,
+    enter_call: None,
+    entering: None,
+    prepared_call_set: None,
+    settlement_pending: None,
+    stop_requested: false,
+    observing_response: false,
     outcomes: [],
     request: None,
     captures: [],
@@ -694,7 +804,7 @@ fn start_model_owned(
     cleanup_model_physical_preflight,
     _ => true,
   )
-  Ok({ session, token, control, state, })
+  Ok({ session, token, control, state, progress: 0L, work: 0L, })
 }
 
 ///|
@@ -702,10 +812,37 @@ pub fn advance_model_execution(
   execution : ModelExecution,
   quantum : Int,
 ) -> Result[ModelObservation, ModelExecutionIssue] {
+  if quantum < 1 {
+    return Err(InvalidLimits)
+  }
+  let state = execution.state
+  if state.durable_calls &&
+    !state.reclaimed &&
+    !@bounded.session_stopped(execution.session) {
+    if state.settlement_pending is Some(slot) {
+      return Ok(Settling(slot, execution.progress, execution.work))
+    }
+    if !state.stop_requested &&
+      state.phase is DispatchSlot &&
+      (
+        state.prepared_call_set is None ||
+        state.prepared_call_set.unwrap().scope is None ||
+        (
+          state.next_slot < state.requests.length() &&
+          !state.restored_calls.contains(state.next_slot) &&
+          !state.unknown_calls.contains(state.next_slot) &&
+          (state.enter_call is None || state.dispatch_admission is None)
+        )
+      ) {
+      return Ok(Waiting(execution.progress, execution.work))
+    }
+  }
   match @bounded.advance(execution.session, execution.token, quantum) {
     Err(issue) => Err(Session(issue))
     Ok(@bounded.ContinueWith(token, progress~, work~)) => {
       execution.token = token
+      execution.progress = progress
+      execution.work = work
       Ok(Continue(progress, work))
     }
     Ok(@bounded.Completed(bundle, progress~, work~)) => {
@@ -725,6 +862,16 @@ pub fn advance_model_execution(
 
 ///|
 pub fn request_model_cancel(execution : ModelExecution) -> Bool {
+  execution.state.stop_requested = true
+  if execution.state.durable_calls &&
+    (
+      execution.state.observing_response ||
+      execution.state.settlement_pending is Some(_)
+    ) {
+    // Sending is fenced immediately; finishing an already-returned observation
+    // is a bounded cleanup duty and does not authorize another provider call.
+    return true
+  }
   @bounded.request_cancel(execution.control)
 }
 
@@ -795,7 +942,7 @@ pub fn cleanup_model_execution(
         execution.state.request = None
       }
       execution.state.phase = Reclaimed
-      for reservation in execution.state.reservations {
+      for (_, reservation) in execution.state.reservations {
         if @resources.reservation_open(reservation) {
           @resources.settle_reservation(execution.state.ledger, reservation)
           |> ignore
@@ -812,6 +959,12 @@ pub fn cleanup_model_execution(
       execution.state.physical_plans.clear()
       execution.state.physical_cursors.clear()
       execution.state.outcomes.clear()
+      for (_, saved) in execution.state.restored_calls {
+        if saved.bundle is Some(bundle) {
+          @publication.release_model_capture_bundle_read(bundle) |> ignore
+        }
+      }
+      execution.state.restored_calls.clear()
       if execution.state.source is Replay(capture) {
         capture.owner.state.output_uses -= 1
       }

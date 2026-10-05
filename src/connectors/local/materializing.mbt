@@ -411,7 +411,14 @@ pub fn execute_local_materializing_attempt(
   // Drains the same bounded execution for Hosts that own no event loop.
   while true {
     match advance_local_materializing_attempt(attempt, 256) {
-      Ok(advance) => if advance.complete { break Ok(()) }
+      Ok(advance) => {
+        if advance.complete {
+          break Ok(())
+        }
+        if advance.waiting || advance.settlement is Some(_) {
+          break Err(State)
+        }
+      }
       Err(issue) => break Err(issue)
     }
   } nobreak {
@@ -422,6 +429,8 @@ pub fn execute_local_materializing_attempt(
 ///|
 pub(all) struct LocalMaterializingAdvance {
   complete : Bool
+  waiting : Bool
+  settlement : Int?
   progress : Int64
   work : Int64
 }
@@ -530,7 +539,33 @@ pub fn advance_local_materializing_attempt(
     }
     Ok(Continue(progress~, work~)) =>
       if bounded(progress, work, false) {
-        Ok({ complete: false, progress, work, })
+        Ok({
+          complete: false,
+          waiting: false,
+          settlement: None,
+          progress,
+          work,
+        })
+      } else {
+        close_local_materializing_attempt(attempt)
+        Err(Candidate(InvalidLimits))
+      }
+    Ok(Waiting(progress~, work~)) =>
+      if bounded(progress, work, true) {
+        Ok({ complete: false, waiting: true, settlement: None, progress, work, })
+      } else {
+        close_local_materializing_attempt(attempt)
+        Err(Candidate(InvalidLimits))
+      }
+    Ok(Settling(slot, progress~, work~)) =>
+      if slot >= 0 && bounded(progress, work, true) {
+        Ok({
+          complete: false,
+          waiting: false,
+          settlement: Some(slot),
+          progress,
+          work,
+        })
       } else {
         close_local_materializing_attempt(attempt)
         Err(Candidate(InvalidLimits))
@@ -550,7 +585,7 @@ pub fn advance_local_materializing_attempt(
           return Err(Candidate(ForeignPreparation))
         }
         attempt.output = Some(anchored)
-        Ok({ complete: true, progress, work, })
+        Ok({ complete: true, waiting: false, settlement: None, progress, work, })
       } else {
         close_local_materializing_attempt(attempt)
         Err(Candidate(InvalidLimits))

@@ -1,0 +1,30 @@
+{
+  "version": "actql/0.1",
+  "id": "fixture.analytic_envelope",
+  "stages": [
+    {
+      "id": "main",
+      "inputs": {},
+      "steps": [
+        {
+          "values": {
+            "schema": {"id": {"type": "number", "nullable": false}},
+            "rows": [{"id": 1}]
+          },
+          "as": "input"
+        },
+        {
+          "from": "input",
+          "analytic": {
+            "partition_by": [],
+            "order_by": [{"field": "id", "dir": "asc", "nulls": "first"}],
+            "functions": {"previous": {"fn": "lag", "expr": {"field": "id"}}}
+          },
+          "as": "calculated"
+        }
+      ],
+      "results": {"rows": {"from": "calculated", "fields": ["id", "previous"]}}
+    }
+  ],
+  "results": {"answer": {"from": {"stage": "main", "result": "rows"}}}
+}

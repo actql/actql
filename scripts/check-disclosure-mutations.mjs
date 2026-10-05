@@ -183,6 +183,24 @@ const mutations = [
     '          findings.push(Unresolved("source_resolution"))\n' +
     '          findings.push(Limit("implementation_limit"))\n        }'],
 
+  ['a non-Boolean predicate is reported as an implementation limit',
+    'return ExpressionViolation("expected_boolean", None)',
+    'return Limit("implementation_limit")'],
+  ['a non-Boolean predicate loses its owned requirement',
+    'return ExpressionViolation("expected_boolean", None)',
+    'return Violation("program_invalid")'],
+  ['a non-Boolean predicate invents an original SQL range',
+    'return ExpressionViolation("expected_boolean", None)',
+    'return ExpressionViolation("expected_boolean", Some((0, 1)))'],
+  ['a non-Boolean predicate is fabricated behind protected resolution',
+    'QueryLowering(UnknownRelation) =>\n' +
+    '          findings.push(Unresolved("source_resolution"))',
+    'QueryLowering(UnknownRelation) => {\n' +
+    '          findings.push(Unresolved("source_resolution"))\n' +
+    '          findings.push(ExpressionViolation("expected_boolean", None))\n        }'],
+  ['a non-Boolean predicate exposes a private value as its code',
+    'return ExpressionViolation("expected_boolean", None)',
+    'return Violation("private_predicate_value")'],
 ];
 
 const strict = id => ({id, operator: 'strictEqual'});
@@ -250,7 +268,11 @@ const targets = [
   ['unsupported function lowering remains an implementation limit', [strict('function-limit-verdict')]],
   ['unsupported function lowering remains an implementation limit', [strict('function-limit-mixed')]],
   ['unsupported function lowering remains an implementation limit', [deep('function-limit-protected')]],
-
+  ["non-Boolean predicates retain the common checker's requirement", [strict('predicate-verdict')]],
+  ["non-Boolean predicates retain the common checker's requirement", [deep('predicate-reason')]],
+  ["non-Boolean predicates retain the common checker's requirement", [deep('predicate-reason')]],
+  ["non-Boolean predicates retain the common checker's requirement", [deep('predicate-disclosure')]],
+  ["non-Boolean predicates retain the common checker's requirement", [deep('predicate-reason')]],
 ];
 
 // Reuse the common reporter and nonzero-execution evidence. A process failure

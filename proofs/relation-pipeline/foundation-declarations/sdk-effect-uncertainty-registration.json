@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "sdk-effect-uncertainty-registration",
+  "kind": "change",
+  "revision": "f33bd50c8cbe7f99e4fb632b29b4af784b82b784",
+  "parents": [
+    "77ba71aa642d1081f047132e59ef18ebf17a787c"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "77ba71aa642d1081f047132e59ef18ebf17a787c",
+          "digest": "f5b869bdc533acc74590c41dfe363183a3d9e656abbdf0934e8f760e85462916",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "d34affacbafc049271ae2a385c6848c40065fe80e45303bcde0aa6e9e86d0867",
+      "afterMode": "100644",
+      "reason": "Register actual installed Local/TLS HTTPS external Effect uncertainty acceptance and its strict bounded SDK mutation checks in the existing Client distribution gate. Preserve all inherited commands, proof gates, independent fixtures and historical declarations."
+    }
+  ]
+}
