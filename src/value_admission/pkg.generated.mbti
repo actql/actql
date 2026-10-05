@@ -154,6 +154,8 @@ pub fn timestamp_epoch_milliseconds(String) -> Int64?
 
 pub fn typed_key_order_text(CheckedValue) -> Result[String, KeyOrderIssue]
 
+pub fn wire_emit_pending_frames(WireEmitCursor) -> Int
+
 // Errors
 
 // Types and methods
