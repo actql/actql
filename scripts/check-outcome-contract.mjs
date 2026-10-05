@@ -62,6 +62,18 @@ export const checkReasonSchema = {
         properties: {issue: {enum: [...new Set([...lexicalIssues, ...expressionIssues])]}}},
     ]}},
   allOf: [
+    // Known locations retain the input domain described by their reason.
+    // Position remains optional when the existing owner cannot establish it.
+    {if: {properties: {code: {enum: ['query_syntax_invalid', 'parameter_undeclared']}}},
+      then: {properties: {location: {properties: {kind: {const: 'text'},
+        document_id: {const: 'source'}}}}}},
+    {if: {properties: {code: {enum: ['supplied_value_type_mismatch',
+      'supplied_value_constraint_violation', 'supplied_value_invalid', 'supplied_parameters_invalid']}}},
+      then: {properties: {location: {properties: {kind: {const: 'structured'},
+        document_id: {const: 'parameters'}}}}}},
+    {if: {properties: {code: {enum: ['parameter_declarations_invalid', 'parameter_value_required']}}},
+      then: {properties: {location: {properties: {kind: {const: 'structured'},
+        document_id: {const: 'parameter_declarations'}}}}}},
     {if: {properties: {code: {const: 'supplied_value_type_mismatch'}}},
       then: {required: ['facts'], properties: {facts: {required: ['actual_type']}}}},
     {if: {properties: {code: {const: 'parameter_default_type_mismatch'}}},

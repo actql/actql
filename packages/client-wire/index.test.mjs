@@ -538,3 +538,37 @@ test('independent unused Parameter fixture requires closed facts and original de
     assert.equal(validCheckOutcome(changed), false);
   }
 });
+
+test('independent known reasons retain their original input domains', () => {
+  // Authored independently: SELECT; {minimum: {type: 'number'}};
+  // {minimum: 'wrong'}. Revisions are literal opaque fixture identities.
+  const fixture = JSON.parse(readFileSync(new URL(
+    './fixtures/check-location-domains.json', import.meta.url), 'utf8'));
+  for (const {reason, allowedDocuments} of fixture.cases) {
+    const requirement = reason.code === 'parameter_value_required';
+    const report = {context_ref: 'ctx:independent-location-domain',
+      scope: {kind: 'bound_input'}, inputs: fixture.inputs,
+      verdict: requirement ? 'undetermined' : 'invalid',
+      reasons: requirement ? [] : [reason], requirements: requirement ? [reason] : [],
+      coverage: {limits: requirement ? [{code: 'bound_values_missing'}] : [], unresolved: []}};
+    const outcome = report => ({version: 'actql-check-outcome/0.1',
+      reason_schema_cid: fixture.reason_schema_cid, outcome: 'completed', report});
+    assert.equal(validCheckOutcome(outcome(report)), true, 'Unavailable positions remain optional.');
+    for (const document of fixture.inputs) {
+      const location = {kind: document.kind, document_id: document.document_id,
+        revision: document.revision, ...(document.kind === 'text'
+          ? {start_byte: 6, end_byte: 6, precision: 'exact'} : {pointer: '/minimum'})};
+      const located = {...reason, location};
+      const locatedReport = {...report, reasons: requirement ? [] : [located],
+        requirements: requirement ? [located] : []};
+      const expected = allowedDocuments.includes(document.document_id);
+      const complete = outcome(locatedReport);
+      const partial = {version: complete.version, reason_schema_cid: complete.reason_schema_cid,
+        outcome: 'failed', problem: {code: 'check_internal'}, partial_report: locatedReport};
+      assert.equal(validCheckOutcome(complete), expected,
+        `${reason.code}: ${document.document_id} completed`);
+      assert.equal(validCheckOutcome(partial), expected,
+        `${reason.code}: ${document.document_id} partial`);
+    }
+  }
+});
