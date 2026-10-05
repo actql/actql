@@ -5733,3 +5733,27 @@ a public output-phase stop barrier. Whole-Run exact Ledger limits, packed/HTTP,
 Wasm/native, wall-clock stop latency and new Store-failure campaigns remain
 unverified in this unit. See the
 [ranking output record](2026-10-06-local-ranking-output-admission.md).
+
+### Ranking resumable input admission
+
+Ranking now drives the common value-admission cursor before binding each
+completed or supplied input field, including unused nested columns. Vector
+components and JSON data Text also yield inside that shared cursor without
+changing their logical admission usage or normalizing data. The existing
+Session retains pending input custody until confirmed stop and one cleanup.
+
+Independent current numeric boundaries are 236/235 control and 137/136 slots;
+long group/tie boundaries are 14193/14192 and 156/155. They supersede the
+historical pre-input-cursor totals above. A 257-item unused Array covers
+574/573 control, 78/77 workspace, 258/257 nodes, three quanta and cancellation
+inside its recheck. An atomic-drain mutation is rejected.
+
+The ordinary retained Host reads producer/two-consumer ordered RRF Results,
+reuses the same request without dispatch and cancels inside an unused
+129-item Array recheck. The public literals fit the unchanged 1000-byte
+construction policy; the larger lower-level admission boundary remains.
+The gate requires the shared/operator input evidence and actual suite import.
+Object field names and authored field binding remain synchronous residuals.
+Whole-Run exact Ledger limits, packed/HTTP, Wasm/native and new Store-failure
+campaigns are not newly claimed. See the
+[ranking input record](2026-10-06-local-ranking-input-admission.md).

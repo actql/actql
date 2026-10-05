@@ -477,6 +477,7 @@ export function validateResourceAccounting({
       const suiteDirectory = {
         'moon:query_integration': 'query_integration',
         'moon:execution_relation': 'execution_relation',
+        'moon:value_admission': 'value_admission',
         'moon:local_sga': 'local_sga',
         'moon:local_tea': 'local_tea',
         'moon:local_veca': 'local_veca',
@@ -1402,6 +1403,13 @@ export function validateResourceAccounting({
         'ranking_output_row_stop_cleanup', 'ranking_output_shared_limits',
         'ranking_output_shared_cleanup']) {
         if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      for (const role of ['ranking_input_value_limits_stop_cleanup',
+        'ranking_input_shared_vector', 'ranking_input_shared_json_text']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('ranking_input_public_store')) {
+        fail(`${label}: ranking input public Store fixture is missing`);
       }
     }
     const sharedRules = route.shared_resource_rule ?? {};

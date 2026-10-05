@@ -10,21 +10,27 @@ import {canonicalJson} from './local-account-config.mjs';
 
 const fields = ['id', 'q', 'rank', 'score', 'segment'];
 const names = ['published', 'consumed_a', 'consumed_b'];
+// Two [1,...] literals of 129 entries total 518 canonical bytes, below the
+// unchanged 1,000-byte nested Values policy, and require 261 recheck polls.
+const unusedItems = 129;
 const expectedRows = prefix => [1, 2].map(id => ({
   id, q: null, rank: id, score: id === 1 ? 1 : 2 / 3, segment: prefix + 's',
 }));
 
-function program(id, prefix) {
+function program(id, prefix, unused = false) {
   const schema = {
     q: {type: 'number', nullable: true},
     segment: {type: 'string', nullable: true},
     id: {type: 'number', nullable: false},
     rank: {type: 'number', nullable: false},
   };
+  if (unused) schema.zz_unused = {type: 'array', nullable: false,
+    items: {type: 'number', nullable: false}, max_items: unusedItems};
   return {version: 'actql/0.1', id, stages: [
     ...['left', 'right'].map(name => ({id: name, inputs: {},
       steps: [{values: {schema, rows: [2, 1].map(id => ({
         q: null, segment: prefix + 's', id, rank: id,
+        ...(unused ? {zz_unused: Array.from({length: unusedItems}, () => 1)} : {}),
       }))}, as: 'out'}], results: {r: {from: 'out', fields: Object.keys(schema)}},
     })),
     {id: 'ranking', inputs: {
@@ -45,8 +51,9 @@ function program(id, prefix) {
   }};
 }
 
-async function runPublicRankingBarrier(t) {
+async function runPublicRankingBarrier(t, {unused = false} = {}) {
     const prefix = 'x'.repeat(512);
+    const fixtureId = unused ? 'public-ranking-input' : 'public-ranking-key';
     const expected = expectedRows(prefix);
     const directory = await mkdtemp(join(tmpdir(), 'actql-public-ranking-key-'));
     const barrier = Promise.withResolvers();
@@ -81,8 +88,11 @@ async function runPublicRankingBarrier(t) {
         advances++;
         if (cancelling) trace.push({...detail});
         if (!cancelling || detail.task !== 2) return;
-        // Quantum 256 ends after input field reads and inside the first
-        // 513-code-unit group self-comparison. No output row can commit yet.
+        // Ordinary keys: quantum 256 ends inside the first group comparison.
+        // With zz_unused, initialization and id/q/rank/segment cost 23,
+        // then the array read costs one. Its 232 recheck polls at this
+        // boundary cannot exhaust a 129-element array (261 polls).
+        // Neither fixture can commit an output row at this boundary.
         assert.equal(detail.work, '256');
         assert.equal(detail.progress, '0');
         barrier.resolve();
@@ -97,8 +107,8 @@ async function runPublicRankingBarrier(t) {
     };
     client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, retainedRelationOutput: true, authorization}});
-    const source = JSON.stringify(program('public-ranking-key', prefix));
-    const options = {format: 'json', requestId: 'public-ranking-key'};
+    const source = JSON.stringify(program(fixtureId, prefix, unused));
+    const options = {format: 'json', requestId: fixtureId};
     const execution = await client.aql(source, options).catch(error => {
       assert.fail(inspect(error, {depth: 8}));
     });
@@ -117,8 +127,8 @@ async function runPublicRankingBarrier(t) {
     assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
 
     cancelling = true;
-    const cancel = await client.aql(JSON.stringify(program('public-ranking-key-cancel', prefix)),
-      {format: 'json', requestId: 'public-ranking-key-cancel'});
+    const cancel = await client.aql(JSON.stringify(program(fixtureId + '-cancel', prefix, unused)),
+      {format: 'json', requestId: fixtureId + '-cancel'});
     await Promise.race([barrier.promise,
       cancel.wait({signal: AbortSignal.timeout(10_000)}).then(state => {
         throw new Error(`ranking missed bounded barrier: ${inspect({state, trace}, {depth: 6})}`);
@@ -150,3 +160,6 @@ async function runPublicRankingBarrier(t) {
 
 test('public retained ranking publishes and cancels inside long group comparison',
   {timeout: 45_000}, t => runPublicRankingBarrier(t));
+
+test('public retained ranking publishes and cancels inside unused array recheck',
+  {timeout: 45_000}, t => runPublicRankingBarrier(t, {unused: true}));
