@@ -86,9 +86,11 @@ const projectProgram = (right, params) => ({
       {select: ['amount', 'id'], as: 'captured'}],
     results: {source: {from: 'captured', fields: ['amount', 'id']}}},
   {id: 'main', inputs: {records: {result: {stage: 'capture', result: 'source'}}},
-    steps: [{from: 'records', derive: [
-      {included: {in: [{field: 'amount'}, right]}},
-      {excluded: {not_in: [{field: 'amount'}, right]}}]},
+    // Both expressions read the same input snapshot, as SELECT does. The
+    // existing generic public task emitter does not yet encode ordered bindings.
+    steps: [{from: 'records', derive: {
+      included: {in: [{field: 'amount'}, right]},
+      excluded: {not_in: [{field: 'amount'}, right]}}},
     {select: ['id', 'included', 'excluded']},
     {sort: [{field: 'id', dir: 'asc', nulls: 'first'}], as: 'ordered'}],
     results: {rows: {from: 'ordered', fields: ['id', 'included', 'excluded']}}}],

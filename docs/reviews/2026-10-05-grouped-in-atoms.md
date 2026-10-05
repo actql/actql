@@ -38,6 +38,25 @@ empty `params` object. The helper now omits absent declarations; an independent
 fixture guard and installed ordinary preparation check cover that correction.
 The failed candidate remains distinct from successful final acceptance.
 
+The next candidate exposed a separate pre-existing public task boundary:
+`Compilation -> Plan -> TaskGraph -> Fragment -> Pipeline -> Encoding`.
+The generic task emitter rejects `OrderedBindings` in
+`src/lowering_relation/kernel_encode.mbt`; the independently authored
+[ordered true/false control](fixtures/membership-public-ordered-boolean.program.json)
+fails identically without IN. This observation used unchanged installed packages
+from source SHA `e03630969c1ef2691a5167453685dcc08920add0`. The emitter blob
+`e7b8fc2a00bcf83339c7459c95433729573789d5` is identical at that SHA and original
+PR head `36b272f37cb23e643ef6cfde722184bc619c0688`. Preparation succeeds, but
+ordinary task compilation returns the typed Encoding chain before a Run or
+provider acquisition is started. The public JSON projections
+therefore use independently authored snapshot derive maps, matching simultaneous
+SELECT semantics with exactly the same rows and truth-value expectations.
+This is not a test-time rewrite of compiler output and does not claim public
+ordered-derive publication support. The core admitted ordered-row kernel remains
+a distinct execution entry: the dedicated membership test now passes its
+true/false/NULL rows through that existing admitted API. This does not certify
+all JSON derive forms at the public boundary. Both failed packed attempts are retained separately.
+
 The ordinary public corpus contains 17 positive and seven refusal cases,
 including direct false/true/NULL SELECT results in JSON, SQL and Pipe, NULL-item
 match precedence, and supported JSON empty/NULL-array boundaries. Fresh packed

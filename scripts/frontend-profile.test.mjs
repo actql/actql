@@ -238,6 +238,11 @@ test('membership machine controls never emit empty parameter declarations', () =
     const program = JSON.parse(item.text);
     if (Object.hasOwn(program, 'params'))
       assert.ok(Object.keys(program.params).length > 0, item.name);
+    for (const step of program.stages.flatMap(stage => stage.steps))
+      if (Object.hasOwn(step, 'derive')) {
+        assert.equal(Array.isArray(step.derive), false, item.name);
+        assert.deepEqual(Object.keys(step.derive).sort(), ['excluded', 'included']);
+      }
   }
   assert.ok(controls.some(item => !Object.hasOwn(JSON.parse(item.text), 'params')));
   assert.ok(controls.some(item => Object.hasOwn(JSON.parse(item.text), 'params')));

@@ -1,0 +1,102 @@
+{
+  "version": "actql/0.1",
+  "id": "fixture.common_membership",
+  "stages": [
+    {
+      "id": "capture",
+      "inputs": {
+        "remote": {
+          "connector": "crm/main",
+          "resource": "r"
+        }
+      },
+      "steps": [
+        {
+          "from": "remote",
+          "filter": {
+            "literal": true
+          }
+        },
+        {
+          "select": [
+            "amount",
+            "id"
+          ],
+          "as": "captured"
+        }
+      ],
+      "results": {
+        "source": {
+          "from": "captured",
+          "fields": [
+            "amount",
+            "id"
+          ]
+        }
+      }
+    },
+    {
+      "id": "main",
+      "inputs": {
+        "records": {
+          "result": {
+            "stage": "capture",
+            "result": "source"
+          }
+        }
+      },
+      "steps": [
+        {
+          "from": "records",
+          "derive": [
+            {
+              "included": {
+                "literal": true
+              }
+            },
+            {
+              "excluded": {
+                "literal": false
+              }
+            }
+          ]
+        },
+        {
+          "select": [
+            "id",
+            "included",
+            "excluded"
+          ]
+        },
+        {
+          "sort": [
+            {
+              "field": "id",
+              "dir": "asc",
+              "nulls": "first"
+            }
+          ],
+          "as": "ordered"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "ordered",
+          "fields": [
+            "id",
+            "included",
+            "excluded"
+          ]
+        }
+      }
+    }
+  ],
+  "results": {
+    "answer": {
+      "from": {
+        "stage": "main",
+        "result": "rows"
+      }
+    }
+  }
+}

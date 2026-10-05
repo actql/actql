@@ -404,3 +404,44 @@ test "membership backend admission compares scalar domains with array items" {
     )
   }
 }
+
+///|
+test "membership also executes through the admitted ordered row kernel" {
+  let sequence = prepared_sequence(
+    row_owner(
+      ",{\"derive\":[{\"included\":\"a IN (1, NULL)\"},{\"excluded\":\"a NOT IN (1, NULL)\"}]},{\"select\":[\"included\",\"excluded\"]}",
+    ),
+  )
+  // These named Boolean output rows occupy at most 46 canonical bytes; the
+  // shared helper's 31-byte arithmetic-fixture default is not this contract.
+  let context = ordered_sequence_fragment_context(
+    sequence,
+    10000L,
+    limits=Some({
+      max_input_rows: 2L,
+      max_value_bytes: 64L,
+      max_live_value_bytes: 256L,
+      max_work: 10000L,
+    }),
+  )
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    sequence,
+    [context],
+    ["select_2"],
+    100000,
+    10000,
+  ).unwrap()
+  let result = execute_generated_sequence(generated, [], {
+    rows: run_limits(),
+    max_work: 100000,
+    max_frames: 100,
+  }).unwrap()
+  let output = test_row_output(completed_output(result, Step(2)).unwrap())
+  assert_eq(output.names, ["included", "excluded"])
+  assert_eq(output.rows.length(), 2)
+  membership_assert(output.rows[0][0], Some(true))
+  membership_assert(output.rows[0][1], Some(false))
+  membership_assert(output.rows[1][0], None)
+  membership_assert(output.rows[1][1], None)
+}
