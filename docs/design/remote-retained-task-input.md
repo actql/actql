@@ -189,3 +189,18 @@ public Result definition. Public Output admission consequently refuses that
 internal output; it remains available under its original managed-output
 evidence for the separate retained-input Transfer. This route does not grant a
 consumer start claim or admit a consumer using the producer's input binding.
+
+The portable retained-input handle installs ports to the existing current
+Transfer, Site and authorization owners. It re-admits the current durable
+Transfer record and exact destination receipt before issuing a binding, when
+restoring saved binding bytes, and before and after consumer dispatch issuance.
+Canonical equality ties restoration to the original producer and checked edge.
+The historical binding projection grants no borrow, physical payload access or
+start claim. Admission creates no reservation and cannot refund one.
+
+The current Site port verifies identity, generation, runtime bundle and
+availability using the trusted live owner; it does not instantiate a Site from
+saved fields. The existing Native constructor delegates to its actual execution
+Site. Authority, current lifetime and both Transfer grants remain separate
+checks. Across asynchronous Cloud persistence and delivery, the caller must
+retain its existing Owner revision fence and revalidate before sending.

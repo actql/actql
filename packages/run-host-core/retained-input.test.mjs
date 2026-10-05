@@ -4,6 +4,7 @@ import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {residentSourceEnvironment} from '../../scripts/fixtures/resident-source.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
+import * as transfer from '../transfer-core/index.mjs';
 import {admitDispatchJson, createJournal, prepareIntent, admissionDurableJson,
   admitDurableJson, commitIntent, admitResponseJson, prepareResponseObservation,
   responseDurableJson, commitTransition} from '../coordinator-core/index.mjs';
@@ -11,7 +12,9 @@ import {admitEnvironment, prepare, compileTasks, taskExecutionShape, taskKeys,
   issueAllowedTaskRun, issueTaskRunDefinition, privateRunDefinition,
   prepareRetainedTaskInputEdge, retainedTaskInputEdgeFacts, taskInputBinding,
   prepareTaskRequest, issueTaskDispatch, prepareRetainedInputProducer,
-  retainedInputProducerAvailable, retainedInputProducerFacts}
+  retainedInputProducerAvailable, retainedInputProducerFacts,
+  prepareRetainedTaskInput, admitRetainedTaskInput, validateRetainedTaskInput,
+  retainedTaskInputFacts, issueRetainedTaskDispatch}
   from './index.mjs';
 
 // The ordinary two-stage Program has one checked Source producer and one
@@ -97,7 +100,7 @@ test('retained edge rejects absent edges, foreign Run owners and forged handles'
   }
 });
 
-function coordinatorProducerFixture(original, taskAttempt = 1) {
+function coordinatorProducerFixture(original, taskAttempt = 1, manifestCid = cid('7')) {
   const authority = cid('c');
   const selection = {taskAttempt, dispatchId: `producer-${taskAttempt}`,
     siteKey: 'site-a', siteGeneration: 1, runtimeBundleCid: cid('a'),
@@ -129,7 +132,7 @@ function coordinatorProducerFixture(original, taskAttempt = 1) {
   const subject = identified({dispatch_request_cid: issued.cid,
     holding_evidence_cid: holding.cid, logical_view_cid: cid('5'),
     managed_profile_cid: cid('6'), material_generation: 'producer-material',
-    measurement_evidence_cid: measurement.cid, physical_manifest_cid: cid('7'),
+    measurement_evidence_cid: measurement.cid, physical_manifest_cid: manifestCid,
     representation_codec_cid: cid('8'), result_schema_cid:
       'sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513',
     retained_bytes: '8', row_count: 1, version: 'actql-remote-managed-output-subject/0.1'});
@@ -155,7 +158,7 @@ function coordinatorProducerFixture(original, taskAttempt = 1) {
     commitTransition(transition);
   };
   return {current: () => ({authority, durableRecordWire}), observe,
-    issued, evidence, subject};
+    issued, evidence, subject, selection, authority};
 }
 
 test('retained producer uses exact durable Coordinator evidence and rechecks current cleanup', () => {
@@ -223,4 +226,160 @@ test('retained producer rejects replaced attempts, foreign authority and missing
     assert.throws(() => prepareRetainedInputProducer(original.edge(), read),
       {message: 'InvalidRunHostRetainedProducerCurrent'});
   }
+});
+
+
+const identified = body => {
+  const wire = canonicalText(body);
+  return {wire, cid: `sha256:${createHash('sha256').update(wire).digest('hex')}`};
+};
+const inputLimits = {maxChunks: 1, maxManifestBytes: 4096,
+  maxReferencedBytes: 8n, maxBindingBytes: 32768};
+
+function retainedTransferFixture(original) {
+  const manifest = identified({chunks: [{byte_length: 8, cid: cid('a'), row_count: 1}],
+    codec_contract_cid: cid('8'), row_count: 1,
+    schema_contract_cid: retainedTaskInputEdgeFacts(original.edge()).physicalSchemaCid,
+    version: 'actql-managed-physical-manifest/0.1', view_contract_cid: cid('5')});
+  const completed = coordinatorProducerFixture(original, 1, manifest.cid);
+  completed.observe([3, 2, 0, 1, 0], 5);
+  const producer = prepareRetainedInputProducer(original.edge(), completed.current);
+  const requestWire = identified({codec_contract_cid: cid('8'),
+    coordinator_authority: completed.authority, destination_grant_cid: cid('b'),
+    destination_site_generation: 1, destination_site_key: 'site-a',
+    expires_unix_ms: '2000000000000', max_bytes: '8', physical_manifest_cid: manifest.cid,
+    route: 'direct', route_capability_cid: cid('c'),
+    schema_contract_cid: JSON.parse(manifest.wire).schema_contract_cid,
+    source_grant_cid: cid('d'), source_material_generation: 'producer-material',
+    source_site_generation: 1, source_site_key: 'site-a', transfer_attempt: 'transfer-1',
+    version: 'actql-remote-transfer-request/0.1', view_contract_cid: cid('5')});
+  const request = transfer.admitEnvelopeJson(canonicalText({manifest: manifest.wire,
+    request: requestWire.wire}), requestWire.cid, manifest.cid, inputLimits);
+  const record = transfer.openRecord(request);
+  let durable = transfer.recordDurableJson(record);
+  const persist = transition => {
+    const next = transfer.transitionDurableJson(transition);
+    transfer.admitDurableJson(next, inputLimits);
+    durable = next;
+    transfer.commitTransition(transition);
+  };
+  // These are protocol Owner tests only. Independent receipt/manifest values
+  // do not claim Native bytes, physical holding or execution acceptance.
+  const receipt = identified({destination_grant_cid: cid('b'),
+    destination_material_generation: 'receiver-material', destination_site_generation: 1,
+    destination_site_key: 'site-a', physical_manifest_cid: manifest.cid,
+    request_cid: requestWire.cid, version: 'actql-remote-transfer-destination-receipt/0.1'});
+  let siteCurrent = true, authorized = true, now = 1900000000000n;
+  const current = {
+    readTransfer: () => durable,
+    siteBindingCurrent: (key, generation, bundle) => siteCurrent && key === 'site-a' &&
+      generation === 1 && bundle === completed.selection.runtimeBundleCid,
+    authority: () => completed.authority,
+    nowUnixMs: () => now,
+    authorized: (producerCid, wire) => authorized && producerCid === completed.issued.cid &&
+      wire === requestWire.wire,
+  };
+  return {completed, producer, record, requestWire, receipt, current, persist,
+    commit: () => {
+      persist(transfer.prepareStart(record));
+      persist(transfer.prepareSourceSettled(record, true, false));
+      persist(transfer.prepareDestinationCommit(record));
+    },
+    siteCurrent: value => {siteCurrent = value;}, authorized: value => {authorized = value;},
+    clock: value => {now = value;}, wire: () => durable};
+}
+
+const issueConsumer = (original, fixture, input, selection = fixture.completed.selection) =>
+  issueRetainedTaskDispatch(original.prepared, original.compilation, original.admission,
+    original.definition, prepareTaskRequest(original.prepared, original.compilation,
+      fixture.completed.authority, 'original-request'), 1,
+    {...selection, dispatchId: 'consumer-1'}, input);
+
+test('retained consumer dispatch joins exact committed destination and restores current custody', () => {
+  const original = run();
+  const fixture = retainedTransferFixture(original);
+  const prepareInput = (receipt = fixture.receipt, current = fixture.current) =>
+    prepareRetainedTaskInput(fixture.producer, receipt, 'receiver-use', current, inputLimits);
+  assert.throws(() => prepareInput(), {code: 'RunHostRetainedTaskInputRejected'});
+  fixture.commit();
+  for (const changes of [{destination_material_generation: 'producer-material'},
+    {destination_site_generation: 2}, {request_cid: cid('f')}]) {
+    assert.throws(() => prepareInput(identified({...JSON.parse(fixture.receipt.wire), ...changes})),
+      {code: 'RunHostRetainedTaskInputRejected'});
+  }
+  assert.throws(() => prepareInput(fixture.receipt,
+    {...fixture.current, authority: () => cid('f')}),
+  {code: 'RunHostRetainedTaskInputRejected'});
+  const input = prepareInput();
+  validateRetainedTaskInput(input);
+  const saved = retainedTaskInputFacts(input);
+  const dispatch = issueConsumer(original, fixture, input);
+  const body = JSON.parse(dispatch.wire);
+  assert.equal(body.run_definition_cid, privateRunDefinition(original.definition).cid);
+  assert.equal(body.task_key, taskKeys(original.prepared, original.compilation)[1]);
+  assert.notEqual(dispatch.cid, fixture.completed.issued.cid);
+  // New restored ports read the re-admitted existing record: no new Transfer,
+  // producer execution, borrow or reservation is created by binding admission.
+  const recovered = transfer.restoreDurable(transfer.admitDurableJson(fixture.wire(), inputLimits));
+  const restored = admitRetainedTaskInput(fixture.producer, saved, fixture.receipt,
+    'receiver-use', {...fixture.current, readTransfer: () => transfer.recordDurableJson(recovered)},
+    inputLimits);
+  assert.deepEqual(retainedTaskInputFacts(restored), saved);
+  assert.deepEqual(issueConsumer(original, fixture, restored), dispatch);
+  assert.throws(() => admitRetainedTaskInput(fixture.producer,
+    {...saved, wire: saved.wire.replace('receiver-use', 'foreign-use')}, fixture.receipt,
+    'receiver-use', fixture.current, inputLimits), {code: 'RunHostRetainedTaskInputRejected'});
+  for (const [set, value] of [[fixture.siteCurrent, false], [fixture.authorized, false],
+    [fixture.clock, 2000000000000n]]) {
+    set(value);
+    assert.throws(() => validateRetainedTaskInput(input), {code: 'RunHostRetainedTaskInputRejected'});
+    assert.throws(() => issueConsumer(original, fixture, input),
+      {code: 'RunHostRetainedTaskDispatchRejected'});
+    fixture.siteCurrent(true); fixture.authorized(true); fixture.clock(1900000000000n);
+  }
+  for (const selected of [{...fixture.completed.selection, siteGeneration: 2},
+    {...fixture.completed.selection, siteKey: 'other-site'}]) {
+    assert.throws(() => issueConsumer(original, fixture, input, selected),
+      {code: 'RunHostRetainedTaskDispatchRejected'});
+  }
+  const foreign = run(document.replace('id > 2', 'id > 1'));
+  assert.throws(() => issueConsumer(foreign, fixture, input),
+    {code: 'RunHostRetainedTaskDispatchRejected'});
+  fixture.completed.observe([3, 2, 1, 1, 0], 6);
+  assert.throws(() => issueConsumer(original, fixture, input),
+    {code: 'RunHostRetainedTaskDispatchRejected'});
+  assert.deepEqual(retainedTaskInputFacts(input), saved);
+});
+
+test('retained input refuses disappearing Transfer custody across admission and dispatch', () => {
+  const original = run();
+  const fixture = retainedTransferFixture(original);
+  fixture.commit();
+  let reads = 0;
+  assert.throws(() => prepareRetainedTaskInput(fixture.producer, fixture.receipt,
+    'receiver-use', {...fixture.current, readTransfer: () =>
+      ++reads === 1 ? fixture.wire() : '{}'}, inputLimits),
+  {code: 'RunHostRetainedTaskInputRejected'});
+  assert.equal(reads, 2);
+  const input = prepareRetainedTaskInput(fixture.producer, fixture.receipt,
+    'receiver-use', fixture.current, inputLimits);
+  let currentWire = fixture.wire();
+  let stopDuringDispatch = false;
+  const inputWithPort = prepareRetainedTaskInput(fixture.producer, fixture.receipt,
+    'receiver-use', {...fixture.current, readTransfer: () => currentWire,
+      authorized: (...args) => {
+        const allowed = fixture.current.authorized(...args);
+        if (stopDuringDispatch) currentWire = '{}';
+        return allowed;
+      }}, inputLimits);
+  stopDuringDispatch = true;
+  assert.throws(() => issueConsumer(original, fixture, inputWithPort),
+    {code: 'RunHostRetainedTaskDispatchRejected'});
+  for (const forged of [fixture.producer, retainedTaskInputFacts(input), {}]) {
+    assert.throws(() => validateRetainedTaskInput(forged), {message: 'ForeignRunHostHandle'});
+  }
+  // A registered current port returning a Promise cannot silently authorize.
+  assert.throws(() => prepareRetainedTaskInput(fixture.producer, fixture.receipt,
+    'receiver-use', {...fixture.current, authorized: () => Promise.resolve(true)}, inputLimits),
+  {message: 'InvalidRunHostRetainedAuthorization'});
 });

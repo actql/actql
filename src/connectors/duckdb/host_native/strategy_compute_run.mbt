@@ -193,6 +193,7 @@ fn native_strategy_compute_task_usage(
 /// call retries only owners that remain unresolved.
 pub fn close_native_strategy_compute_run(
   run : NativeStrategyComputeRun,
+  observe_phase? : (NativeStandardStrategyPhaseEvent) -> Unit,
 ) -> Result[Bool, NativeStrategyComputeCleanupIssue] {
   run.accepting = false
   let mut pending = false
@@ -200,7 +201,15 @@ pub fn close_native_strategy_compute_run(
   for offset in 0..<run.entries.length() {
     let entry = run.entries[run.entries.length() - offset - 1]
     if !entry.released {
-      match close_native_strategy_compute_runtime(entry.runtime) {
+      let phase = TaskRelease(entry.runtime.task_index)
+      if observe_phase is Some(observe) {
+        observe(Begin(phase))
+      }
+      let closed = close_native_strategy_compute_runtime(entry.runtime)
+      if observe_phase is Some(observe) {
+        observe(End(phase, closed is Ok(true)))
+      }
+      match closed {
         Ok(true) => entry.released = true
         Ok(false) => pending = true
         Err(issue) => {
