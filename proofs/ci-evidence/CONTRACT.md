@@ -155,13 +155,26 @@ receipt from that archive, and validate its original run/attempt/job/revision.
 An unpacked receipt plus a caller's assertion that it was downloaded is
 insufficient. Archive contents are data; never execute code from them.
 
-Initial cross-revision origins are successful, completed same-repository
-`push` runs on main, from the selected workflow and trusted ancestor checkpoint.
+Cross-revision origins are successful, completed same-repository main integration
+runs, from the selected workflow and trusted ancestor checkpoint. Historical
+`push` and current `workflow_dispatch` triggers are accepted, without changing
+original receipt bytes or relabeling one trigger as another. Receipts, the final
+report and independent API metadata must agree on the actual trigger, including
+metadata re-reads. A manual branch run cannot supply a protected main origin.
+
 The full checkpoint requires successful final `check`, every full family and
-all three core targets. The workflow's `focused-tests` job belongs only to the
+all three core targets. Under the approved manual workflow's macOS opt-in policy,
+only `native-macos` may be skipped, with its unique completed job still bound to
+the same run/attempt/revision. Missing, failed or cancelled macOS jobs reject,
+as does skipping any other full family. This does not establish macOS execution
+when that optional job is skipped. Historical push checkpoints still require
+successful macOS execution. The workflow's `focused-tests` job belongs only to the
 alternative narrow profile and is not a full-checkpoint obligation. Its skip
 does not exempt any full family or permit a focused run to certify itself as
 full; exact workflow policy, ancestry, run and attempt checks still apply.
+Probe-only, performance-only and partial dispatches fail this job inventory.
+Every main dispatch executes the registered actions fresh; dispatch itself never
+authorizes reuse or makes its current run its own ancestor checkpoint.
 PR/fork artifacts cannot become protected reusable origins. A fresh receipt for
 the current PR must match the current run/attempt/revision and successful job;
 it does not become a main origin until independently published on main.
