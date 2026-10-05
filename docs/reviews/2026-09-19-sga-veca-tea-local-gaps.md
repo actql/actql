@@ -765,9 +765,9 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Registered operations | 69 |
-| Executable production routes | 63 |
-| Typed pre-execution refusals (not execution success) | 6 |
-| Operation-specific boundary records | 63 |
+| Executable production routes | 64 |
+| Typed pre-execution refusals (not execution success) | 5 |
+| Operation-specific boundary records | 64 |
 | Four-role lifecycle assurance | 62 |
 | Full route work/workspace assurance | 62 |
 | Path-scoped work/workspace assurance | 114 |
@@ -3165,15 +3165,15 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | Coverage state | Count |
 |---|---:|
 | `contract` | 40/40 |
-| `checker` | 28/40 |
-| `lowering` | 28/40 |
-| `kernel` | 28/40 |
-| `managed` | 28/40 |
-| `standard_host` | 26/40 |
-| `consumer_lifetime` | 26/40 |
-| `resources` | 33/40 |
-| `cancellation` | 33/40 |
-| `publication` | 26/40 |
+| `checker` | 30/40 |
+| `lowering` | 30/40 |
+| `kernel` | 30/40 |
+| `managed` | 30/40 |
+| `standard_host` | 27/40 |
+| `consumer_lifetime` | 27/40 |
+| `resources` | 35/40 |
+| `cancellation` | 35/40 |
+| `publication` | 27/40 |
 | `three_targets` | 20/40 |
 | complete operations | 19/40 |
 | open operations | 21/40 |

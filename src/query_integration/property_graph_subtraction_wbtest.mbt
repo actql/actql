@@ -299,3 +299,151 @@ test "formal Graph subtraction Plan retains binary occurrence order and its nati
     is Ok(_),
   )
 }
+
+///|
+test "property Graph subtraction snapshot reload restores retained nodes after independent edge removal" {
+  let owner = snapshot_fixture_owner()
+  let source = snapshot_handoff_source(owner)
+  let receiver = subtraction_receiver(
+    owner,
+    merge=",\"merge\":{\"node_properties\":{\"name\":\"exact_equal\"}}",
+  )
+  let views = [0, 1].map(index => {
+    @graphs.producer_read_view(
+      @graphs.prepare_producer_read(receiver, index, owner, source).unwrap(),
+    ).unwrap()
+  })
+  let provider = @local_sga_provider.provider(
+    subtraction_storage_limits(),
+    65536L,
+    @execution.execution_capacity(4096L, 65536L).unwrap(),
+    snapshot_policy=Some({
+      serialization: snapshot_caps(),
+      read: {
+        max_nodes: 10000,
+        max_depth: 100,
+        max_string_bytes: 100000,
+        max_total_string_bytes: 100000,
+      },
+      maximum_bytes: 100000,
+      maximum_frame_bytes: 100000,
+      workspace_bytes: 1000000L,
+    }),
+  )
+  let selected = @execution.select_generated_sequence_step(
+    task_test_generated(receiver),
+    0,
+  ).unwrap()
+  let active = start_delta_provider(
+    provider,
+    selected,
+    views.map(@local_connector.managed_provider_carrier_input),
+    10,
+    10000,
+  ).unwrap()
+  let mut output = None
+  for _ in 0..<10000 {
+    match @local_connector.advance_managed_provider(active, 7).unwrap() {
+      @local_connector.Continue(..) => ()
+      @local_connector.CarrierComplete(material, ..) => {
+        output = Some(material)
+        break
+      }
+      _ => fail("snapshot-enabled subtraction failed")
+    }
+  } nobreak {
+    fail("snapshot-enabled subtraction did not finish")
+  }
+  let material = output.unwrap()
+  assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
+  assert_true(@graphs.discard_completed(source))
+  assert_true(@carrier_runtime.material_available(material))
+  let snapshot = @carrier_runtime.material_prepare_snapshot(material)
+    .unwrap()
+    .unwrap()
+  let saved = StringBuilder()
+  let mut save_complete = false
+  for _ in 0..<10000 {
+    let poll = (snapshot.advance_save)(7).unwrap()
+    saved.write_string((snapshot.take_output)().unwrap())
+    if poll.complete {
+      save_complete = true
+      break
+    }
+  }
+  assert_true(save_complete)
+  let content = (snapshot.content)().unwrap()
+  // Explicit node equality retains the node; the empty edge strategy removes
+  // both independent edges. SHA-256 is calculated from these authored records
+  // with Node crypto, not from the product serializer or observed output.
+  assert_eq(saved.to_string(), snapshot_fixture_body(keys=[]))
+  assert_eq(
+    content.cid,
+    "sha256:7599fde388b2cbd65ea868ff1eaee1c6a4b712764ce015d709e399cb4dfef80b",
+  )
+  let consumer = keyed_graph_receiver(receiver, body="[{\"node_rows\":true}]")
+  (snapshot.release_source)(content.cid).unwrap()
+  assert_false(@carrier_runtime.material_available(material))
+  assert_true(
+    @carrier_runtime.material_prepare_view(material, consumer, 0, receiver)
+    is Err(_),
+  )
+  (snapshot.begin_reload)(saved.to_string(), () => true).unwrap()
+  let mut reload_complete = false
+  for _ in 0..<10000 {
+    if (snapshot.advance_reload)(7).unwrap().complete {
+      reload_complete = true
+      break
+    }
+  }
+  assert_true(reload_complete)
+  let restored = (snapshot.take_material)().unwrap()
+  let view = @carrier_runtime.material_prepare_view(
+    restored, consumer, 0, receiver,
+  ).unwrap()
+  assert_eq(@carrier_runtime.producer_view_node_count(view), Some(1))
+  assert_eq(@carrier_runtime.producer_view_edge_count(view), Some(0))
+  assert_true(
+    @carrier_runtime.producer_view_node_key(view, 0, 0).unwrap().value
+    is @admitted.Number(1),
+  )
+  assert_true(
+    @carrier_runtime.producer_view_node_property(view, 0, 0).unwrap().value
+    is @admitted.Text("one"),
+  )
+  let projecting = start_delta_provider(
+    delta_provider_fixture(delta_policy=None),
+    @execution.select_generated_sequence_step(task_test_generated(consumer), 0).unwrap(),
+    [@local_connector.managed_provider_carrier_input(view)],
+    10,
+    10000,
+  ).unwrap()
+  let mut relation = None
+  for _ in 0..<10000 {
+    match @local_connector.advance_managed_provider(projecting, 7).unwrap() {
+      @local_connector.Continue(..) => ()
+      @local_connector.Complete(output, ..) => {
+        relation = Some(output)
+        break
+      }
+      _ =>
+        fail("reloaded subtraction did not reach the ordinary Relation owner")
+    }
+  } nobreak {
+    fail("reloaded subtraction projection did not finish")
+  }
+  let relation = relation.unwrap()
+  assert_eq(@execution.completed_row_count(relation), 1)
+  assert_eq(
+    @execution.completed_output_row_wire(relation, 0, 10000, 10000, 50).unwrap(),
+    "{\"id\":" +
+    snapshot_fixture_identity("N", 1) +
+    ",\"labels\":[\"Node\",\"Person\"],\"name\":\"one\"}",
+  )
+  assert_true(@local_connector.cleanup_managed_provider(projecting).unwrap())
+  assert_true(@carrier_runtime.reclaim_material(restored))
+  for _ in 0..<2 {
+    (snapshot.cleanup)().unwrap() |> ignore
+  }
+  assert_true((snapshot.cleanup)().unwrap())
+}

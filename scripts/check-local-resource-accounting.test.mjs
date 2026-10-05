@@ -106,7 +106,18 @@ test('resource audit fixtures are reclaimed on success, rejection, and setup fai
 });
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /69 operations, 5 implementation profiles, 63 production routes mapped, 6 typed pre-execution refusals \(not execution success\), 63 with operation-specific boundary records, 62 with four-role boundary evidence, 62 with full work\/workspace assurance, 114 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /69 operations, 5 implementation profiles, 64 production routes mapped, 5 typed pre-execution refusals \(not execution success\), 64 with operation-specific boundary records, 62 with four-role boundary evidence, 62 with full work\/workspace assurance, 114 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+});
+
+test('subtraction resource route requires its independent work boundary and actual shared dispatcher', () => {
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(value => value.family === 'SGA' && value.operation === 'subtract_graphs');
+    route.boundary_tests = route.boundary_tests.filter(value => value.role !== 'subtract_empty_work_exact_one_short_and_cleanup');
+  }), /SGA subtract_graphs: structural Graph cumulative-work evidence is missing/);
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(value => value.family === 'SGA' && value.operation === 'subtract_graphs');
+    route.dispatch.marker = '@sga.uninstalled_subtraction(';
+  }), /SGA subtract_graphs: dispatch marker does not reach production source/);
 });
 
 test('union resource route retains independent work and actual Host cleanup custody evidence', () => {
