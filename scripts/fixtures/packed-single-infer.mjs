@@ -16,15 +16,20 @@ import {canonical, cid, configuration, program, expected} from
 const mode = process.argv[2];
 const transport = process.argv[3] ?? 'local';
 const approval = mode.startsWith('approval-');
+const stopped = mode.startsWith('approval-stop-');
+const waiting = mode.endsWith('-wait');
+const replaying = mode.endsWith('-replay');
 // The deferred path must retain these exact data bytes across custody/restart.
 const approvalText = 'urgent e\u0301 \u00e9\r\nline';
 const submittedProgram = structuredClone(program);
 if (approval) submittedProgram.stages[0].steps[0].values.rows[0].text = approvalText;
 assert.ok(['success', 'cancel', 'failure', 'capture', 'replay',
-  'approval-wait', 'approval-approve', 'approval-replay'].includes(mode));
+  'approval-wait', 'approval-approve', 'approval-replay',
+  'approval-stop-wait', 'approval-stop-cancel',
+  'approval-stop-replay'].includes(mode));
 assert.ok(['local', 'http'].includes(transport));
 const root = join(process.cwd(), transport,
-  approval ? 'approval' : mode === 'replay' ? 'capture' : mode);
+  stopped ? 'approval-stop' : approval ? 'approval' : mode === 'replay' ? 'capture' : mode);
 // Fixture signer/report files must not prepopulate an unadmitted Host root.
 const hostRoot = approval ? join(root, 'host') : root;
 const certificateRoot = join(process.cwd(), transport);
@@ -41,6 +46,7 @@ const keyMaterial = approval && existsSync(keyPath)
 if (approval && !existsSync(keyPath)) writeFileSync(keyPath,
   JSON.stringify(keyMaterial), {mode: 0o600});
 const authorization = {
+  leaseMs: 1000,
   reviewReaders: [userInfo().username],
   hostKey: {keyId: 'packed-host', privateKey: keyMaterial.privateKey},
   reviewers: [{keyId: 'packed-reviewer', reviewerId: 'packed-reviewer',
@@ -63,9 +69,20 @@ const authorization = {
 let calls = 0;
 let run;
 let cancelled = false;
+let physicalStopConfirmed = mode !== 'approval-stop-cancel';
+let releasePhysicalStop;
+const physicalStop = new Promise(resolve => { releasePhysicalStop = resolve; });
+let stopBeforeAcknowledgement;
 let started;
 const ready = new Promise(resolve => { started = resolve; });
 authorization.faultInjection = async name => {
+  if (mode === 'approval-stop-cancel' && name === 'infer_model_settlement_committed' && !cancelled) {
+    await ready;
+    await run.cancel();
+    cancelled = true;
+    // Keep the real dispatch operation live until the fixture acknowledges stop.
+    await physicalStop;
+  }
   if (mode === 'capture' && name === 'infer_capture_committed') {
     assert.equal(calls, 1);
     writeFileSync(join(process.cwd(), `capture-boundary-${transport}.json`),
@@ -103,7 +120,7 @@ const installationOptions = {directory: hostRoot, authorization,
             calls++;
             appendFileSync(join(process.cwd(), 'provider-calls.jsonl'),
               `${JSON.stringify({mode, taskCid, transport})}\n`);
-            assert.ok(!['replay', 'approval-replay', 'approval-wait'].includes(mode),
+            assert.ok(mode !== 'replay' && !replaying && !waiting,
               'saved response or unsent approval cannot dispatch');
             assert.equal(moon.clientProgramModelRequestInput(request, 'text'),
               approval ? JSON.stringify(approvalText) : '"urgent"');
@@ -111,7 +128,11 @@ const installationOptions = {directory: hostRoot, authorization,
               '{"reason":null,"risk":"high"}', 'packed-risk-model',
               'packed-request', 1n, mode === 'failure' ? 1000n : 2n,
               new Date().toISOString());
-          }))}), () => true),
+          }))}), () => {
+            if (stopped) writeFileSync(join(root, 'physical-stop.json'),
+              JSON.stringify({confirmed: physicalStopConfirmed, calls}));
+            return physicalStopConfirmed;
+          }),
     }]};
 let host, server;
 let client;
@@ -142,7 +163,7 @@ try {
   started();
   if (approval) {
     const recordPath = join(root, 'approval-run.json');
-    if (mode === 'approval-wait') {
+    if (waiting) {
       const deadline = Date.now() + 20_000;
       let summary;
       do {
@@ -164,26 +185,52 @@ try {
     } else {
       const saved = JSON.parse(readFileSync(recordPath, 'utf8'));
       assert.deepEqual(run.ref, saved.ref);
-      if (mode === 'approval-approve') {
+      if (['approval-approve', 'approval-stop-cancel'].includes(mode)) {
         const resolved = await client.resolveCheckpoints([{checkpoint: saved.summary,
           decision: 'approved'}], {signer: {keyId: 'packed-reviewer',
           reviewerId: 'packed-reviewer', sign: bytes => sign(null, bytes, keyMaterial.privateKey)}});
         assert.equal(resolved.results[0].status, 'committed');
       }
       const deadline = Date.now() + 20_000;
+      if (mode === 'approval-stop-cancel') {
+        while (!cancelled && Date.now() < deadline)
+          await new Promise(resolve => setTimeout(resolve, 20));
+        assert.equal(cancelled, true);
+        stopBeforeAcknowledgement = (await run.status()).status;
+        assert.notEqual(stopBeforeAcknowledgement, 'cancelled');
+        assert.notEqual(stopBeforeAcknowledgement, 'succeeded');
+        assert.equal(calls, 1);
+        physicalStopConfirmed = true;
+        releasePhysicalStop();
+        let terminal;
+        do {
+          terminal = await run.status();
+          if (terminal.status === 'cancelled') break;
+          await new Promise(resolve => setTimeout(resolve, 20));
+        } while (Date.now() < deadline);
+        assert.equal(terminal.status, 'cancelled');
+        assert.equal(terminal.run_id, saved.runId);
+        assert.equal(JSON.parse(readFileSync(join(root, 'physical-stop.json'))).confirmed, true);
+        await assert.rejects(run.result('answer').all());
+        console.log(JSON.stringify({mode, transport, beforePhysicalStop: stopBeforeAcknowledgement, afterPhysicalStop: terminal.status, calls}));
+      } else {
       let state;
       do {
         state = await run.wait();
-        if (state.status === 'succeeded') break;
+        if (state.status === (stopped ? 'cancelled' : 'succeeded')) break;
         assert.ok(['running', 'resuming', 'waiting_checkpoint'].includes(state.status), JSON.stringify(state));
         await new Promise(resolve => setTimeout(resolve, 20));
       } while (Date.now() < deadline);
-      assert.equal(state.status, 'succeeded');
+      assert.equal(state.status, stopped ? 'cancelled' : 'succeeded');
       assert.equal(state.run_id, saved.runId);
-      assert.deepEqual(await run.result('answer').all(), expected);
+      if (stopped) {
+        await assert.rejects(run.result('answer').all());
+        assert.equal(JSON.parse(readFileSync(join(root, 'physical-stop.json'))).confirmed, true);
+      } else assert.deepEqual(await run.result('answer').all(), expected);
       assert.equal(calls, mode === 'approval-approve' ? 1 : 0);
       console.log(JSON.stringify({mode, transport, status: state.status, calls,
         ref: run.ref, runId: state.run_id}));
+      }
     }
   } else {
   let terminal = await run.wait();
