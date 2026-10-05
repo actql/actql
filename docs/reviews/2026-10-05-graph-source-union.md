@@ -75,12 +75,96 @@ Regeneration commands, in order:
 The independent Run and SGA expectations are separately authored/rehashed;
 these commands do not infer expected behavior from runtime output.
 
-## Remaining acceptance
+## Packed acceptance of the combined source
 
-These are combined-source focused checks, not a fresh packed Host campaign.
-The prior named-match Local/HTTPS campaign belongs to source `907e3af...`, and
-the path branch's earlier reports belong to their recorded sources. Neither
-is relabeled as acceptance of this union. Fresh combined packed Local/HTTPS,
-normal required CI and the applicable cross-target coverage remain unverified.
-No full Core, Wasm/native, proof, performance or manual CI rerun was performed.
-The PR remains Draft; no PR was merged and main was not modified.
+Verified clean source: `093107685a8cbcbffeb05c6e63de003e6539a509`.
+This adds one public named-match → DATA selector → traversal-path case and two
+corresponding preparation refusals to the existing path corpus. The existing
+independent constructor definition preimage supplies its identity domain; the
+expected TRAIL output contains the two permutations of the distinct self-loop
+edge identities. No product output supplies this oracle.
+
+The earlier named-match campaign at `907e3af...` and the path branch's earlier
+reports remain evidence for their own recorded sources. They are not relabeled
+as acceptance of the combined source.
+
+Both commands ran serially through `runLocalCheck` with the shared heavy-check
+lock, pinned MoonBit `0.10.12+1634b282e`, and Node `22.23.2` (the supported
+Node >=22 profile). These were scoped campaigns, not the complete packed suite:
+
+```sh
+node scripts/test-packed-public-query.mjs --graph-traverse-paths-only --keep-artifacts
+node ../.codex-scratch/b-graph-union-retained-acceptance.mjs ../.codex-scratch/public-query-evidence-Evoqhi
+```
+
+| Campaign, on each of Embedded Local and public HTTPS | Successful inputs | Preparation refusals |
+| --- | ---: | ---: |
+| Traversal nodes | 5 | 7 |
+| Traversal paths, including the composed named match | 9 | 13 |
+| Named matches | 10 | 14 |
+| Total per transport | 24 | 34 |
+
+Every successful input reached Named Result rows and `Result.describe()` with
+the complete independently authored ordered column/type/nullability contracts.
+Expectations retain parallel-edge multiplicity, ordered path identity arrays,
+WALK/TRAIL/ACYCLIC distinctions, NULL properties, typed empty Results, explicit
+parameters and authored column order. Relations without an authored ORDER BY
+are compared as multisets. Resend, attach and repeat Result reads preserve Run
+identity without extra admission or Source I/O. Every preparation refusal
+preserves the observed admission/provider-I/O counters. No transformed Program,
+replacement checker, executor, capacity increase or legacy Graph is used.
+
+The first campaign performed ordinary `npm pack`/prepack and a new installation
+outside the repository. Its receipt has clean source, all successful commands,
+complete output and no evidence errors. The second campaign verifies that exact
+source and the retained tarball SHA-256 digests, copies the same installed
+packages into a private external root, and runs the unchanged `acceptance.mjs`
+with `ACTQL_TEST_GRAPH_MATCH_ONLY=1` and a fresh Store. It does not pack/build
+again or change the library/test bytes. The package boundary audit still runs.
+
+Retained evidence (under `/Users/t14i/workspace/20260822/worktrees`):
+
+- `.codex-scratch/public-query-evidence-Evoqhi`: normal pack/install, traversal
+  Local/HTTPS, README Local/HTTPS, public-check boundaries and expected missing
+  generated-asset refusal; command receipt **passed**, **complete**, source
+  **clean**. Guard: `actql-frontend-graph-match-rows/_build/local-checks/attempts/run-TkDRIu`.
+- `.codex-scratch/public-query-evidence-8oqs8K`: unchanged named-match corpus,
+  copied retained installation and fresh Store; receipt **passed**, **complete**,
+  source **clean**. Guard: `actql-frontend-graph-match-rows/_build/local-checks/attempts/run-jjqkY9`.
+  `artifacts/reuse.json` records the producer and installation used. The exact
+  scratch runner remains at `.codex-scratch/b-graph-union-retained-acceptance.mjs`.
+
+Both receipts bind the following tarballs to the same clean source:
+
+| Package | SHA-256 |
+| --- | --- |
+| `@actql/client-wire` | `a8d1f2a63ed08d3378765fbee905fb72233d19e66e8ce77d6f1398ae45dbe8b7` |
+| `@actql/sdk` | `a42baf2456b366d3a761f01cce27292ae1dcee13c8ce6113a3b70896bedd4e97` |
+| `@actql/run-host-core` | `c656633e8c8963c89ab0c62780f571ec68470904f2130c71679661f2c85aa887` |
+| `@actql/local-node` | `f41cf31b8ee0d19dfaebbd6cfe978c9295dd222f992ac4c9d0ef090709f56559` |
+| `@actql/node` | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+The two existing combined lowering/checker regressions passed **2/2** through
+`node scripts/local-checks.mjs test moon -- --target js src/query_program/graph_match_paths_integration_test.mbt`.
+This focused run preceded the fixture commit and is recorded as a dirty-tree
+run, not relabeled a clean-commit run. Its evidence is
+`actql-frontend-graph-match-rows/_build/focused-evidence/focused-test-rwfXS5`
+(guard `run-nimUlA`). JavaScript syntax and whitespace checks pass.
+
+Two unsuccessful setup attempts remain separate from product verification:
+the initial filename was mistakenly passed as a test-name filter; the nonzero
+test guard rejected the zero-test run (`run-Lde1rc`). The first retained-install
+attempt used an external node_modules link; the unchanged package boundary
+audit refused it before running a product case (`public-query-evidence-ZvHEFs`,
+`run-aKEyWW`). Copying the verified installation into the consumer root resolved
+that setup error; the audit was not disabled. Neither attempt is counted as a
+successful campaign.
+
+## Remaining review and CI
+
+The named-match PR remains stacked on the unmerged traversal-path PR #409.
+These scoped JS/public Host results do not establish fresh acceptance of #409's
+different HEAD, full Core, Wasm/native, proof/performance or the full packed
+corpus. Normal required CI remains unverified. Evidence-only documentation
+after the verified source does not constitute another runtime campaign.
+The PR remains Draft; no manual CI rerun, PR merge or main modification was made.
