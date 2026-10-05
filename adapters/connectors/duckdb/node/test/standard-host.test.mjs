@@ -9290,7 +9290,9 @@ async function exerciseStrategyGraph(
     return program;
   };
   const retainedLongTextAppend = structuredClone(externalAppendProgram);
-  const retainedOutputText = 'x'.repeat(4096);
+  // The shared Host fixture admits at most 1,000 canonical bytes per value.
+  // This still crosses eight 64-unit output chunks without changing policy.
+  const retainedOutputText = 'x'.repeat(512);
   for (const stage of retainedLongTextAppend.stages.filter(stage =>
     stage.id === 'cross_left' || stage.id === 'cross_right')) {
     stage.steps[0].values.schema.tag = {type: 'string', nullable: false};
