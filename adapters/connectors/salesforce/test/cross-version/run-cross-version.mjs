@@ -30,6 +30,7 @@ const repository = fileURLToPath(new URL('../../../../../', import.meta.url));
 const tooling = [
   'adapters/connectors/salesforce/test/cross-version/update-state.mjs',
   'adapters/connectors/salesforce/test/cross-version/update-state.host-child.mjs',
+  'adapters/connectors/salesforce/test/cross-version/update-state.local-child.mjs',
   'adapters/connectors/salesforce/test/cross-version/generate-update-state.mjs',
   'adapters/connectors/salesforce/test/salesforce-effect-site.fixture.mjs',
 ];
@@ -65,9 +66,10 @@ try {
   for (const path of tooling) {
     cpSync(join(repository, path), join(previous, path));
   }
-  const changed = output('git', ['status', '--porcelain'], previous)
-    .split('\n').filter(Boolean)
-    .map(line => line.slice(3))
+  // Each NUL-separated entry is two status characters, a space and a path.
+  const changed = execFileSync('git', ['status', '--porcelain', '-z'],
+    {cwd: previous, encoding: 'utf8'}).split('\0').filter(Boolean)
+    .map(entry => entry.slice(3))
     .filter(path => !path.startsWith('adapters/connectors/salesforce/test/'));
   if (changed.length !== 0) {
     fail(`product paths differ from ${PREVIOUS_VERSION}: ${changed.join(', ')}`);

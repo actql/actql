@@ -15,17 +15,22 @@ import {execFileSync} from 'node:child_process';
 import {mkdir, rm, writeFile} from 'node:fs/promises';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {readFileSync} from 'node:fs';
 import {STATE_VERSION, approve, digests, install, kindProgram, kindWrites,
-  newKeys, openHost, openOrg, runtimeBundleCid, startHostProcess,
+  localStep, newKeys, openHost, openOrg, runtimeBundleCid, startHostProcess,
   waitFor} from './update-state.mjs';
 
 const repository = fileURLToPath(new URL('../../../../../', import.meta.url));
 const output = resolve(process.argv[2] ?? '');
 if (!process.argv[2]) throw new Error('Usage: generate-update-state.mjs <output>');
 
-// The org's stored records; the phases update Name to the record's Id.
-const records = [1, 2, 3].map(index => ({Id: `a0000000000000${index}`,
-  Name: `record-${index}`, External_Key__c: `key-${index}`}));
+// The org's stored records; the phases update Name to the record's Id. For
+// upserts, a record's external key is its Id, so the external-key target the
+// row names is the stored record the org answers for it.
+const recordsFor = kind => [1, 2, 3].map(index => ({
+  Id: `a0000000000000${index}`, Name: `record-${index}`,
+  External_Key__c: kind === 'upsert' ? `a0000000000000${index}`
+    : `key-${index}`}));
 
 function issueOrgCertificates(directory) {
   const openssl = (...args) => execFileSync('openssl', args,
@@ -67,7 +72,9 @@ async function phase(name, ids, drive) {
   const heldWrite = new Promise(resolveHeld => { held = resolveHeld; });
   const holdWrites = name.endsWith('unknown-after-send') ? [1]
     : name === 'response-saved' ? [2] : [];
-  const org = await openOrg(t, {port: 0, certificateDirectory: tls, records,
+  const org = await openOrg(t, {port: 0, certificateDirectory: tls,
+    records: recordsFor(kindOf(name)),
+    writeOperation: kindOf(name) === 'upsert' ? 'upsert' : 'update',
     holdWrites, onHeldWrite: held});
   try {
     const installation = await install({root, org, keys,
@@ -87,7 +94,8 @@ async function phase(name, ids, drive) {
           'generate-update-state.mjs <output>'},
       runtime_bundle_cid: await runtimeBundleCid(),
       root, org: {origin: org.origin, port: new URL(org.origin).port,
-        org_id: org.orgId},
+        org_id: org.orgId,
+        write_operation: kindOf(name) === 'upsert' ? 'upsert' : 'update'},
       request: {ids, ref: requestRef},
       expected: {
         writes_during_generation: org.seen.filter(item =>
@@ -178,6 +186,31 @@ for (const kind of ['create', 'upsert']) {
       return execution.ref;
     }));
 }
+// The same update captured through Embedded Local. (An Embedded Local Host
+// attached to a Run an HTTPS Host captured was observed to stay `resuming`,
+// so the Local path keeps its own captured state.)
+const localContext = (context, ids) => ({...context,
+  program: kindProgram('update', context.installation.mappingRef, ids),
+  refPath: join(context.installation.directory, '..', 'local-ref.json')});
+results.push(await phase('local-approval-saved', ['a00000000000001'],
+  async (context, ids) => {
+    const local = localContext(context, ids);
+    await localStep('submit', local);
+    await localStep('answer', local);
+    return JSON.parse(readFileSync(local.refPath, 'utf8'));
+  }));
+results.push(await phase('local-unknown-after-send', ['a00000000000001'],
+  async (context, ids) => {
+    const local = localContext(context, ids);
+    await localStep('submit', local);
+    await localStep('answer', local);
+    const child = localStep('resume', local);
+    const exited = new Promise(resolveExit => child.once('exit', resolveExit));
+    await context.heldWrite;
+    child.kill('SIGKILL');
+    await exited;
+    return JSON.parse(readFileSync(local.refPath, 'utf8'));
+  }));
 console.log(JSON.stringify(results.map(result => ({phase: result.phase,
   writes: result.expected.writes_during_generation,
   runtime: result.runtime_bundle_cid})), null, 2));

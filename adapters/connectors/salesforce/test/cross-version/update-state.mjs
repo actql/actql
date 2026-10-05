@@ -69,12 +69,14 @@ export function newKeys() {
 }
 
 // The Host's Checkpoint authorization over `keys`. Approvals do not expire
-// within any test's lifetime.
-export const hostAuthorization = (orgId, keys) => ({
+// within any test's lifetime. On Embedded Local (`local`), the reviewer is
+// the local owner.
+export const hostAuthorization = (orgId, keys, {local = false} = {}) => ({
   accountConfiguration: accountConfiguration(orgId),
   reviewers: [{keyId: 'reviewer-key', reviewerId: 'reviewer',
-    principalId: 'reviewer-principal', publicKey: keys.reviewerPublic}],
-  reviewReaders: ['reviewer-principal'],
+    principalId: local ? owner : 'reviewer-principal',
+    publicKey: keys.reviewerPublic}],
+  reviewReaders: [local ? owner : 'reviewer-principal'],
   hostKey: {keyId: 'host-key', privateKey: keys.hostPrivate},
   leaseMs: 10_000, resumeAfterAnswer: false,
   checkpointTtlMs: 100 * 365 * 24 * 60 * 60 * 1000});
@@ -82,12 +84,13 @@ export const hostAuthorization = (orgId, keys) => ({
 // The local org at `port` with the certificates in `certificateDirectory`
 // (issued for ten years when absent) and the stored records.
 export function openOrg(t, {port, certificateDirectory, records,
-  holdWrites = [], onHeldWrite}) {
+  holdWrites = [], onHeldWrite, writeOperation = 'update'}) {
   return openSalesforceEffectSiteFixture(t, {commonMoon, salesforceMoon,
     runInvocationCid: cid('1'), dispatchRequestCid: cid('2'),
     statefulRecords: true, storedRecords: records.map(record => ({...record})),
     storedOrder: records.map((_, index) => index + 1), port,
-    certificateDirectory, certificateDays: 3650, holdWrites, onHeldWrite});
+    certificateDirectory, certificateDays: 3650, holdWrites, onHeldWrite,
+    writeOperation});
 }
 
 // The installed write of each kind: a Result-backed create, an update and an
@@ -226,6 +229,22 @@ export function startHostProcess({installation, orgId, keys}) {
   child.stdout?.resume();
   child.stderr?.resume();
   return child;
+}
+
+// Run one Embedded Local step in a child process; `resume` is returned
+// running, for the caller to kill.
+export function localStep(step, {installation, orgId, keys, program,
+  refPath}) {
+  const config = JSON.stringify({installation, orgId, keys, step, program,
+    refPath});
+  const child = execFile(process.execPath, [fileURLToPath(new URL(
+    './update-state.local-child.mjs', import.meta.url))],
+  {env: {...process.env, ACTQL_CROSS_VERSION_LOCAL: config}});
+  child.stdout?.resume();
+  child.stderr?.resume();
+  if (step === 'resume') return child;
+  return new Promise((resolveStep, rejectStep) => child.once('exit', code =>
+    code === 0 ? resolveStep() : rejectStep(new Error(`LocalStep ${step} ${code}`))));
 }
 
 export async function waitFor(check, {attempts = 800} = {}) {

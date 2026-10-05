@@ -43,7 +43,8 @@ async function restore(t, phase, {alter} = {}) {
   const keys = JSON.parse(await readFile(join(root, 'keys.json'), 'utf8'));
   const org = await openOrg(t, {port: Number(manifest.org.port),
     certificateDirectory: join(root, 'org-tls'),
-    records: manifest.expected.records_after_generation});
+    records: manifest.expected.records_after_generation,
+    writeOperation: manifest.org.write_operation});
   const installation = {directory: join(root, 'state'),
     sourceProfilePath: join(root, 'source-profile.json'),
     effectProfilePath: join(root, 'effect-profile.json')};
@@ -236,7 +237,8 @@ async function settledLocal(t, context, ref) {
       resolveSourceSecret: secret,
       effectProfilePath: context.installation.effectProfilePath,
       resolveEffectSecret: secret,
-      authorization: hostAuthorization(context.orgId, context.keys)}});
+      authorization: hostAuthorization(context.orgId, context.keys,
+        {local: true})}});
   t.after(() => client.close());
   const attached = await client.attach(ref);
   return waitFor(async () => {
@@ -247,7 +249,7 @@ async function settledLocal(t, context, ref) {
 
 test('Local: approval saved: the approved Set is sent exactly once', {skip},
   async t => {
-    const {context, writes, ref} = await restore(t, 'approval-saved');
+    const {context, writes, ref} = await restore(t, 'local-approval-saved');
     const state = await settledLocal(t, context, ref);
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
     assert.deepEqual(writes(), ['a00000000000001']);
@@ -255,7 +257,8 @@ test('Local: approval saved: the approved Set is sent exactly once', {skip},
 
 test('Local: unknown after the send started: never resent', {skip},
   async t => {
-    const {context, writes, ref} = await restore(t, 'unknown-after-send');
+    const {context, writes, ref} = await restore(t,
+      'local-unknown-after-send');
     const state = await settledLocal(t, context, ref);
     assert.equal(state.status, 'needs_reconciliation', JSON.stringify(state));
     assert.deepEqual(writes(), []);
