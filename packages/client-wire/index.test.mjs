@@ -573,6 +573,23 @@ test('independent known reasons retain their original input domains', () => {
   }
 });
 
+test('independent frame reasons reject malformed facts and foreign locations', () => {
+  const reason = JSON.parse(readFileSync(new URL('./fixtures/check-frame-reason.json', import.meta.url), 'utf8'));
+  const original = JSON.parse(readFileSync(new URL('./fixtures/check-outcome-pins.verified.json', import.meta.url), 'utf8'));
+  const outcome = value => ({...original, report: {...original.report, verdict: 'invalid', reasons: [value]}});
+  assert.equal(validCheckOutcome(outcome(reason)), true);
+  for (const invalid of [
+    {code: reason.code}, {...reason, facts: {}},
+    {...reason, facts: {issue: 'reversed_preceding'}},
+    {...reason, facts: {issue: 'invalid_bounds', requirement_index: 0}},
+    {...reason, facts: {issue: 'expected_boolean'}},
+    {...reason, location: {kind: 'structured', document_id: 'parameters',
+      revision: original.report.inputs[0].revision, pointer: ''}},
+    {code: 'future_frame_reason', facts: reason.facts},
+  ]) assert.equal(validCheckOutcome(outcome(invalid)), false);
+  assert.equal(validCheckOutcome(outcome({code: 'future_frame_reason'})), true);
+});
+
 test('independent check envelopes require outcome identity and safe Problem correlation', () => {
   for (const name of ['check-reporting-failure.json', 'check-outcome-pins.verified.json']) {
     const original = JSON.parse(readFileSync(new URL(`./fixtures/${name}`, import.meta.url), 'utf8'));

@@ -10,6 +10,10 @@ const cancellationAcceptance = 'adapters/host-node/client-cancel-response-loss.t
 const checkAcceptance = 'adapters/host-node/client-check.test.mjs';
 const sdkAcceptance = 'packages/sdk/index.test.mjs';
 const expected = (phase, assertion = 'submission-input') => {
+  if (phase === 'check-frame-explanation') return ['local', 'http'].map(entrance => ({
+    name: `${entrance}: check explains owned invalid frame bounds`,
+    assertions: [{id: assertion, operator: 'deepStrictEqual'}],
+  }));
   if (phase === 'check-locale-snapshot') return [{
     name: 'check locale lookup cannot replace a copied observation during presentation',
     assertions: [{id: assertion, operator: 'strictEqual'}],
@@ -84,6 +88,10 @@ const expected = (phase, assertion = 'submission-input') => {
   }));
 };
 const mutations = [
+  ['check frame explanation loses its owned interval condition',
+    'The analytic ROWS frame boundaries do not form a valid interval.',
+    'The query violates an unspecified contract.',
+    'check-frame-explanation', 'check-frame-explanation'],
   ['check locale changes an observed invalid verdict into verification',
     "return freezeInput({outcome: 'completed', summary, hint, report});",
     "return freezeInput({outcome: 'completed', summary, hint, report: {...report, verdict: options?.locale === 'ja' ? 'verified' : report.verdict}});",

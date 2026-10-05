@@ -303,6 +303,8 @@ export function explainCheckReason(reason, options) {
   const explanations = {
     query_syntax_invalid: ['The query syntax is invalid.', 'Correct the query syntax at the reported location when available.'],
     query_expression_invalid: ['An expression violates its reference, argument or numeric contract.', 'Correct the expression under the selected query contract.'],
+    query_frame_invalid: ['The analytic ROWS frame boundaries do not form a valid interval.',
+      'Choose frame boundaries in start-to-end order; PRECEDING distances decrease and FOLLOWING distances increase.'],
     query_lexical_invalid: ['A query token violates its lexical syntax.', 'Correct the token at the reported location when available.'],
     parameter_undeclared: ['The query refers to an undeclared parameter.', 'Declare the parameter or correct its reference; a value alone cannot declare it.'],
     parameter_unused: ['A declared parameter is not used by the complete Program.',

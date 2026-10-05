@@ -1,6 +1,6 @@
 {
   "version": "actql-check-outcome/0.1",
-  "reason_schema_cid": "sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d",
+  "reason_schema_cid": "sha256:15d4d9b93f6e22c50256271ba09d09ba5da6a2a7105e118af2ad224a0591feac",
   "outcome": "completed",
   "report": {
     "context_ref": "ctx:independent-default-fixture",
@@ -44,5 +44,5 @@
       "unresolved": []
     }
   },
-  "outcome_schema_cid": "sha256:a5dd8a6e4a3c5411d97b4d4a5f333992c655c038534352e701257a4c28baea4d"
+  "outcome_schema_cid": "sha256:506730273187b8d1bb3b7a5bd1a446eaffe3007da615c637bd461743e4e0a1b6"
 }

@@ -10,6 +10,7 @@ priv enum CheckFinding {
   SyntaxViolation(Int, Int)
   LexicalViolation(String, (Int, Int)?)
   ExpressionViolation(String, (Int, Int)?)
+  FrameViolation
   GraphViolation(String, String)
   TypeViolation(String, String, String, String?)
   DefaultTypeViolation(String, String, String, String?)
@@ -371,6 +372,7 @@ fn check_source_findings(
       | SyntaxViolation(_, _)
       | LexicalViolation(_, _)
       | ExpressionViolation(_, _)
+      | FrameViolation
       | GraphViolation(_, _)
       | TypeViolation(_, _, _, _)
       | DefaultTypeViolation(_, _, _, _)
@@ -576,6 +578,12 @@ fn check_program_finding(
   diagnostic : @program_check.CheckDiagnostic,
 ) -> CheckFinding {
   if @program_check.diagnostic_cause(diagnostic)
+    is Closure(Operations(Frames(InvalidFrame(_)))) {
+    // The existing closure Owner proves the bound frame violation. Its
+    // requirement index is not an authored span or a public input pointer.
+    return FrameViolation
+  }
+  if @program_check.diagnostic_cause(diagnostic)
     is Source(SourceView(Program(Program(Pipeline(_, issue))))) &&
     issue.path.length() >= 6 &&
     issue.path[0] is Key("stages") &&
@@ -660,6 +668,7 @@ fn check_verdict(findings : Array[CheckFinding]) -> String {
       | SyntaxViolation(_, _)
       | LexicalViolation(_, _)
       | ExpressionViolation(_, _)
+      | FrameViolation
       | GraphViolation(_, _)
       | TypeViolation(_, _, _, _)
       | DefaultTypeViolation(_, _, _, _)
@@ -707,6 +716,7 @@ fn write_check_report(
       SyntaxViolation(_, _) => Some("query_syntax_invalid")
       LexicalViolation(_, _) => Some("query_lexical_invalid")
       ExpressionViolation(_, _) => Some("query_expression_invalid")
+      FrameViolation => Some("query_frame_invalid")
       GraphViolation(_, _) => Some("graph_operation_invalid")
       TypeViolation(_, _, _, _) => Some("supplied_value_type_mismatch")
       DefaultTypeViolation(_, _, _, _) =>
@@ -831,6 +841,13 @@ fn write_check_report(
           break
         }
       }
+    }
+    if code == "query_frame_invalid" {
+      @encode.key(writer, "facts")
+      @encode.begin_object(writer)
+      @encode.key(writer, "issue")
+      @encode.string_value(writer, "invalid_bounds")
+      @encode.end_object(writer)
     }
     if code == "graph_operation_invalid" {
       for finding in findings {

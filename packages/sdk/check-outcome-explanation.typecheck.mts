@@ -16,6 +16,12 @@ info.locale = 'en';
 explainCheckOutcome({} as CheckOutcome, {locale: 'ja', scope: 'template'});
 
 declare const outcome: CheckOutcome;
+type CompletedReport = Extract<CheckOutcome, {outcome: 'completed'}>['report'];
+const frameFacts: NonNullable<CompletedReport['reasons'][number]['facts']> = {issue: 'invalid_bounds'};
+void frameFacts;
+// @ts-expect-error A frame reason does not expose the internal closure index.
+const privateFrameFacts: NonNullable<CompletedReport['reasons'][number]['facts']> = {issue: 'invalid_bounds', requirement_index: 0};
+void privateFrameFacts;
 const explanation = explainCheckOutcome(outcome);
 if (explanation?.outcome === 'completed') {
   const verdict: 'invalid' | 'undetermined' | 'verified' = explanation.report.verdict;
