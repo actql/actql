@@ -619,6 +619,7 @@ fn prepare_checked_dag_owned(
   if requirements > work {
     return Err(WorkLimit)
   }
+  work -= requirements
   let operations : Array[Array[TaskOperationRequirement]] = Array::makei(
     count,
     _ => [],
@@ -737,6 +738,10 @@ fn prepare_checked_dag_owned(
   let wiring = @context.program_incoming_wiring(incoming)
   let results : Array[CheckedResultOccurrence] = []
   for index in 0..<@results.export_count(wiring) {
+    if work == 0 {
+      return Err(WorkLimit)
+    }
+    work -= 1
     let result_export = @results.export_at(wiring, index).unwrap()
     let task = @stages.stage_index(
       @results.stage_port_source(@results.export_stage(result_export)),

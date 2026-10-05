@@ -94,7 +94,11 @@ test "sequence consumes independent per-key and output Host limits on both Carri
             (@capacity_sequence_limit.MatchesPerKey, 3L, 0),
             (OutputRows, 7L, 1),
           ] {
-          let limit = @capacity_sequence_limit.limit(checked, scope)
+          let limit = @capacity_sequence_limit.host_limit(checked, scope)
+          let mixed = @wire.program_claim_mixed(@host.source_claims(sources)).unwrap()
+          assert_true(
+            physical_equal(limit, @wire.mixed_limit_at(mixed, index).unwrap()),
+          )
           assert_eq(
             @arithmetic.minimum_value(@wire.limit_minimum(limit)),
             value,

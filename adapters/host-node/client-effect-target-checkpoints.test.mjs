@@ -135,3 +135,79 @@ test('an expired committed target approval cannot prepare another read or comput
   await assert.rejects(f.owner(checkpoints), {code: 'ApprovalExpired'});
   assert.equal(checkpoints.journal.hasStartedResume(view.checkpointCid), false);
 });
+
+for (const target of [0, 1]) {
+  for (const approved of [false, true]) {
+    test(`cancel target ${target} ${approved ? 'after approval before entry' : 'while waiting'} survives restart`, async t => {
+      const f = await fixture(t);
+      let checkpoints = await f.open();
+      let owner = await f.owner(checkpoints);
+      await owner.prepare();
+      if (target === 1) {
+        const first = await f.answer(checkpoints, 'target-run-target-0');
+        owner.close();
+        owner = await f.owner(checkpoints, await f.claim(checkpoints, first));
+        await owner.prepare();
+      }
+      owner.close();
+      let resume;
+      if (approved) {
+        const view = await f.answer(checkpoints, `target-run-target-${target}`);
+        // Deterministic approval-committed/before-physical-entry barrier.
+        // Even a claim obtained before cancellation must be fenced.
+        resume = await f.claim(checkpoints, view);
+        assert.equal(checkpoints.journal.getRunState('target-run').status, 'resuming');
+        assert.equal(checkpoints.journal.hasStartedResume(view.checkpointCid), false);
+      }
+      assert.equal(checkpoints.cancelEffectContinuation('target-run', cid('7')), false);
+      assert.equal(checkpoints.cancelEffectContinuation('target-run', cid('6')), true);
+      assert.equal(checkpoints.journal.getRunState('target-run').status, 'cancelled');
+      if (resume !== undefined) assert.throws(resume.assertCurrent);
+      await f.close(checkpoints);
+      checkpoints = await f.open();
+      assert.equal(checkpoints.effectRunState('target-run', cid('6')).status, 'cancelled');
+      assert.equal(checkpoints.journal.activeRunCheckpoint('target-run'), undefined);
+      assert.equal(checkpoints.cancelEffectContinuation('target-run', cid('6')), false);
+      const claim = () => checkpoints.journal.claimResume('target-run', {
+        claimant: 'restarted-host', leaseMs: 60_000, binding: checkpoints.binding,
+        preserveStarted: true});
+      if (!approved && target === 0) {
+        assert.throws(claim, {code: 'ResumeIntentNotFound'});
+      } else {
+        assert.notEqual(claim().action, 'claimed');
+      }
+      for (const view of checkpoints.journal.listRunCheckpoints()) {
+        assert.equal(checkpoints.journal.hasStartedResume(view.checkpointCid), false);
+      }
+    });
+  }
+}
+
+test('cancellation preserves an entered target continuation and its unknown observation across restart', async t => {
+  const f = await fixture(t);
+  let checkpoints = await f.open();
+  let owner = await f.owner(checkpoints);
+  await owner.prepare();
+  const first = await f.answer(checkpoints, 'target-run-target-0');
+  owner.close();
+  owner = await f.owner(checkpoints, await f.claim(checkpoints, first));
+  await owner.prepare();
+  const second = await f.answer(checkpoints, 'target-run-target-1');
+  owner.close();
+  owner = await f.owner(checkpoints, await f.claim(checkpoints, second));
+  assert.deepEqual(await owner.prepare(), {status: 'ready'});
+  owner.enterComputation();
+  assert.equal(checkpoints.cancelEffectContinuation('target-run', cid('6')), false);
+  assert.equal(checkpoints.hasUnresolvedEffectTargetStart('target-run', cid('6')), true);
+  assert.equal(checkpoints.hasUnresolvedSourceStart('target-run', cid('6')), false);
+  owner.close();
+  await f.close(checkpoints);
+  checkpoints = await f.open();
+  assert.equal(checkpoints.journal.getRunState('target-run').status, 'resuming');
+  assert.equal(checkpoints.journal.activeRunCheckpoint('target-run').checkpointCid,
+    second.checkpointCid);
+  assert.equal(checkpoints.hasUnresolvedEffectTargetStart('target-run', cid('6')), true);
+  assert.equal(checkpoints.cancelEffectContinuation('target-run', cid('6')), false);
+  // Retention has not retired the original unknown continuation.
+  assert.equal((await checkpoints.effectTargetContinuation(second)).pending_target, 1);
+});

@@ -22,6 +22,7 @@ const mutations = [
   ['an unresolved obligation is reported as a violation',
     'if findings\n    .iter()\n    .any(finding => {\n' +
     '      finding\n      is (Violation(_)\n      | SyntaxViolation(_, _)\n' +
+    '      | LexicalViolation(_, _)\n' +
     '      | QueryViolation(_, _)\n' +
     '      | TypeViolation(_, _, _, _)\n      | SuppliedViolation(_)\n' +
     '      | DeclarationViolation(_)\n' +
@@ -31,14 +32,16 @@ const mutations = [
     'if findings.iter().any(finding => !(finding is Limit(_))) {\n' +
     '    "invalid"'],
   ['an exhausted construction budget is reported as a failure',
-    '          )\n        ) => findings.push(Limit("analysis_budget_exhausted"))',
-    '          )\n        ) => return Failed("check_internal")'],
+    '        ) => findings.push(Limit("analysis_budget_exhausted"))\n' +
+    '        // The Program built from accepted source: never blamed on the author.',
+    '        ) => return Failed("check_internal")\n' +
+    '        // The Program built from accepted source: never blamed on the author.'],
   ['a supplied-value budget is reported as a violation',
     'Budget => findings.push(Limit("analysis_budget_exhausted"))',
     'Budget => findings.push(Violation("supplied_value_invalid"))'],
   ['a missing value is reported as a violation',
-    'Ok(NeedsBindings(missing)) => {\n            findings.push(Limit("bound_values_missing"))',
-    'Ok(NeedsBindings(missing)) => {\n            findings.push(Violation("bound_values_missing"))'],
+    'Ok(NeedsBindings(missing)) => {\n        findings.push(Limit("bound_values_missing"))',
+    'Ok(NeedsBindings(missing)) => {\n        findings.push(Violation("bound_values_missing"))'],
   ['an authored UTF-8 location is shifted by one byte',
     '@encode.number_value(writer, start.to_double())',
     '@encode.number_value(writer, (start + 1).to_double())'],
@@ -68,12 +71,64 @@ const mutations = [
   ['an unresolved column starts one byte after its authored token',
     '        @source_origin.start(origin).byte_offset,',
     '        @source_origin.start(origin).byte_offset + 1,'],
+  ['a lexical escape is assigned to another issue family',
+    'InvalidEscape => "invalid_escape"', 'InvalidEscape => "unexpected_end"'],
+  ['a lexical violation loses its owned source position',
+    'let range = diagnostic.span.map(span => (span.start_byte, span.end_byte))',
+    'let range : (Int, Int)? = None'],
+  ['a lexical violation loses its typed explanation',
+    'LexicalViolation(_, _) => Some("query_lexical_invalid")',
+    'LexicalViolation(_, _) => Some("query_syntax_invalid")'],
   ['an invalid declaration loses its owned location',
     'findings.push(DeclarationViolation(pointer))',
     'findings.push(DeclarationViolation(None))'],
   ['an invalid declaration points at the root instead of its failing member',
     'writer, "parameter_declarations", revision, pointer,',
     'writer, "parameter_declarations", revision, "",'],
+  ['a source byte budget is treated as a syntax violation',
+    'issue is (Limit(_) | Source(@source_origin.InputLimit))',
+    'issue is Limit(_)'],
+  ['a source byte budget becomes invalid after declaration exhaustion',
+    'Err(QuerySyntax(diagnostic)) =>\n' +
+    '              if check_syntax_budget(diagnostic.issue) {',
+    'Err(QuerySyntax(diagnostic)) =>\n' +
+    '              if diagnostic.issue is Limit(_) {'],
+  ['absent declarations skip independently supplied binding',
+    '  if supplied_admitted {',
+    '  if supplied_admitted && context.parameter_declarations is Some(_) {'],
+  ['absent declarations lose the supplied member location',
+    'let fallback = SuppliedViolation(pointer)',
+    'let fallback = SuppliedViolation(None)'],
+  ['absent declarations discard a safe violation beside a protected Source',
+    'QueryLowering(UnknownRelation) =>\n' +
+    '          findings.push(Unresolved("source_resolution"))',
+    'QueryLowering(UnknownRelation) => {\n' +
+    '          if context.parameter_declarations is None { findings.clear() }\n' +
+    '          findings.push(Unresolved("source_resolution"))\n' +
+    '        }'],
+  ['original structured keys are replaced by admitted spellings',
+    'original.push(@source.Key(name))',
+    'original.push(@source.Key(key))'],
+  ['an expression lowerer budget is reported as invalid input',
+    '        ) => findings.push(Limit("analysis_budget_exhausted"))\n' +
+    '        // Other failures of generated construction/admission and invalid',
+    '        ) => findings.push(Violation("query_invalid"))\n' +
+    '        // Other failures of generated construction/admission and invalid'],
+  ['an expression lowerer budget is reported as checker failure',
+    '        ) => findings.push(Limit("analysis_budget_exhausted"))\n' +
+    '        // Other failures of generated construction/admission and invalid',
+    '        ) => return Failed("check_internal")\n' +
+    '        // Other failures of generated construction/admission and invalid'],
+  ['an expression lowerer budget is silently verified',
+    '        ) => findings.push(Limit("analysis_budget_exhausted"))\n' +
+    '        // Other failures of generated construction/admission and invalid',
+    '        ) => ()\n' +
+    '        // Other failures of generated construction/admission and invalid'],
+  ['an expression lowerer budget hides independent input violations',
+    '        ) => findings.push(Limit("analysis_budget_exhausted"))\n' +
+    '        // Other failures of generated construction/admission and invalid',
+    '        ) => {\n          findings.clear()\n          findings.push(Limit("analysis_budget_exhausted"))\n        }\n' +
+    '        // Other failures of generated construction/admission and invalid'],
 ];
 
 const strict = id => ({id, operator: 'strictEqual'});
@@ -104,10 +159,29 @@ const targets = [
     [strict('column-outcome'), strict('column-verdict'), deep('column-location')]],
   ['unresolved column expressions retain authored source positions',
     [strict('column-outcome'), strict('column-verdict'), deep('column-location')]],
+  ...Array.from({length: 3}, () =>
+    ['typed lexical explanations retain the submitted token position',
+      [strict('lexical-outcome'), strict('lexical-verdict'), deep('lexical-reason')]]),
   ['invalid declarations retain only their owned submitted locations',
     [strict('declaration-outcome'), deep('declaration-location')]],
   ['invalid declarations retain only their owned submitted locations',
     [strict('declaration-outcome'), deep('declaration-location')]],
+  ...Array.from({length: 2}, () =>
+    ['source byte exhaustion is a limit of the original bound check',
+      [strict('source-byte-outcome'), strict('source-byte-verdict'),
+        deep('source-byte-reasons'), deep('source-byte-coverage')]]),
+  ['absent declarations still bind independently supplied input',
+    [strict('absent-binding-verdict')]],
+  ['absent declarations still bind independently supplied input',
+    [deep('absent-binding-location')]],
+  ['absent declarations still bind independently supplied input',
+    [strict('absent-binding-verdict')]],
+  ['structured locations keep original key spellings after admission',
+    [deep('original-key-location')]],
+  ['expression construction limits remain undetermined', [strict('expression-budget-verdict')]],
+  ['expression construction limits remain undetermined', [strict('expression-budget-outcome')]],
+  ['expression construction limits remain undetermined', [strict('expression-budget-verdict')]],
+  ['expression construction limits remain undetermined', [strict('expression-budget-mixed')]],
 ];
 
 // Reuse the common reporter and nonzero-execution evidence. A process failure
@@ -170,27 +244,34 @@ const accepted = target => {
   return mutationAcceptance(result, expected);
 };
 
-export function checkDisclosureMutations() {
+export function checkDisclosureMutations(match) {
+  const selected = mutations.map((mutation, index) => ({mutation, target: targets[index]}))
+    .filter(({mutation: [name]}) => match === undefined || name.includes(match));
+  if (selected.length === 0) throw new Error('No disclosure mutations selected');
   const original = readFileSync(path, 'utf8');
   const results = [];
   try {
-    for (const [index, [name, from, to]] of mutations.entries()) {
+    for (const {mutation: [name, from, to], target} of selected) {
       if (original.split(from).length !== 2) {
         throw new Error(`Mutation anchor not unique: ${name}`);
       }
       writeFileSync(path, original.replace(from, to));
       build();
-      results.push({name, rejected: !accepted(targets[index])});
+      results.push({name, rejected: !accepted(target)});
     }
   } finally {
     writeFileSync(path, original);
     build();
   }
-  const restored = targets.every(target => accepted(target));
+  const restored = selected.every(({target}) => accepted(target));
   console.log(JSON.stringify({mutations: results, restoredAccepted: restored}, null, 2));
   if (!restored || results.some(result => !result.rejected)) process.exitCode = 1;
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  checkDisclosureMutations();
+  const args = process.argv.slice(2);
+  if (args.length && (args.length !== 2 || args[0] !== '--match' || !args[1])) {
+    throw new Error('Usage: check-disclosure-mutations.mjs [--match name-substring]');
+  }
+  checkDisclosureMutations(args[1]);
 }
