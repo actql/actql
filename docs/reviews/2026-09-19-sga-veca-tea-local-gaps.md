@@ -1066,6 +1066,21 @@ remains a pre-execution rejection control.
 The above is local route evidence. A final verification SHA and Linux CI result
 are not claimed by this document.
 
+The bounded Append, Set and Cross Join output owners now recheck large copied
+cells with the shared runtime cursor and charge row field names and values with
+the existing stepped measurement before committing the private row. A scalar
+or statically small container keeps a finite fast path. The shared binary
+fixture uses independent limits for one numeric/Text row (three nodes, 4,101
+UTF-8 bytes and 4,104 output work units), tests one-short limits and temporary
+frame capacity, and cancels inside both Text recheck and output charge. A copied
+256-element array additionally stops after output child measurement starts.
+The ordinary Append/filter chain now requires 81 work units and reports 78
+bounded transitions, including nine newly exposed row-output transitions;
+the ten-slot structural workspace bound is unchanged. This updates the earlier
+72-unit/69-transition fixture above. Existing retained Store Host routes remain
+connection controls; running those boundaries on the new source SHA and Linux
+CI is separate from the focused kernel and managed-chain evidence.
+
 #### Retained Relation obligation chains
 
 The retained materializing lane now binds checked obligations to the exact

@@ -35,6 +35,7 @@ fn bounded_append_fixture(
   left_rows? : String = "[{\"id\":1},{\"id\":2}]",
   right_rows? : String = "[{\"id\":3}]",
   input_nodes? : Int = 1000,
+  output_values? : ValueLimits = run_limits().output_values,
 ) -> (
   @bounded.Control,
   Result[BoundedAppendExecution, BoundedAppendIssue],
@@ -117,7 +118,7 @@ fn bounded_append_fixture(
       max_depth: 100,
       max_work: 10000,
     },
-    run_limits().output_values,
+    output_values,
     max_work,
     100,
     max_entries,
