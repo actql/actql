@@ -63,6 +63,14 @@ fn sync_delta(
     }
     let next = match step.operation {
       Unary(op) => transfer_delta(b, source, previous, op)
+      GraphDelta(checked~, ..) => {
+        let next = empty_delta()
+        if @graph.delta_operation(checked) is Difference {
+          charge(b, source, "delta")
+          next.fields["delta"] = @graph.delta_graph(checked)
+        }
+        next
+      }
       _ => empty_delta()
     }
     evidence.push(next)

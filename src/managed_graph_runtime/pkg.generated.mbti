@@ -56,6 +56,10 @@ pub fn evidence_workspace_slots(Evidence) -> Int
 
 pub fn finish_output(OutputBuilder) -> Result[Completed, Issue]
 
+pub fn finish_output_storage(OutputBuilder, @managed_graph_storage.Storage) -> Result[Completed, Issue]
+
+pub fn output_storage_builder(OutputBuilder) -> @managed_graph_storage.Builder?
+
 pub fn output_workspace_slots(OutputBuilder) -> Int
 
 pub fn prepare_output(@lowering_relation.BoundPrepared, @pipeline_typing.Target, @managed_graph_storage.Mode, @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[OutputBuilder, Issue]

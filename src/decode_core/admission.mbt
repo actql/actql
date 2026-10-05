@@ -62,19 +62,74 @@ fn text_charge(
 /// Copy a bounded raw Node tree. No normalization or numeric/domain validation
 /// is performed. Concurrent mutation of the input during admission is unsupported.
 pub fn admit(root : @source.Node, limits : Limits) -> Result[Cursor, Issue] {
+  let admission = match start_admission(root, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  while true {
+    match advance_admission(admission, 64) {
+      Ok(AdmissionContinue(..)) => ()
+      Ok(AdmissionComplete(cursor, ..)) => return Ok(cursor)
+      Ok(AdmissionFailed(issue, ..)) => return Err(issue)
+      Err(_) => abort("invalid synchronous admission state")
+    }
+  } nobreak {
+    abort("unreachable admission state")
+  }
+}
+
+///|
+struct Admission {
+  limits : Limits
+  mut tree : Array[OwnedNode]
+  work : Array[Work]
+  mut remaining_text : Int
+  mut deepest : Int
+  mut largest_string : Int
+  mut terminal : Bool
+}
+
+///|
+pub(all) enum AdmissionControlIssue {
+  InvalidQuantum
+  Terminal
+} derive(Eq, Debug)
+
+///|
+pub enum AdmissionPoll {
+  AdmissionContinue(work~ : Int)
+  AdmissionComplete(Cursor, work~ : Int)
+  AdmissionFailed(Issue, work~ : Int)
+}
+
+///|
+pub fn start_admission(
+  root : @source.Node,
+  limits : Limits,
+) -> Result[Admission, Issue] {
   if limits.max_nodes < 0 ||
     limits.max_depth < 0 ||
     limits.max_string_bytes < 0 ||
     limits.max_total_string_bytes < 0 {
     return Err({ kind: InvalidLimits, path: [], span: root.span, })
   }
-  let tree : Array[OwnedNode] = []
-  let work : Array[Work] = [Visit(root, -1, Root, 0)]
-  let mut remaining_text = limits.max_total_string_bytes
-  let mut deepest = 0
-  let mut largest_string = 0
-  while work.length() > 0 {
-    let task = work.pop().unwrap()
+  Ok({
+    limits,
+    tree: [],
+    work: [Visit(root, -1, Root, 0)],
+    remaining_text: limits.max_total_string_bytes,
+    deepest: 0,
+    largest_string: 0,
+    terminal: false,
+  })
+}
+
+///|
+fn Admission::step(admission : Admission) -> Result[Unit, Issue] {
+  let tree = admission.tree
+  let work = admission.work
+  let limits = admission.limits
+  if work.pop() is Some(task) {
     match task {
       Visit(node, parent, edge, parent_depth) => {
         if tree.length() >= limits.max_nodes {
@@ -89,17 +144,20 @@ pub fn admit(root : @source.Node, limits : Limits) -> Result[Cursor, Issue] {
           return Err(at(tree, parent, edge, node.span, BudgetExceeded))
         }
         let depth = parent_depth + (if is_container { 1 } else { 0 })
-        deepest = Int::max(deepest, depth)
+        admission.deepest = Int::max(admission.deepest, depth)
         let remaining_nodes = limits.max_nodes - tree.length() - 1
         let value : OwnedValue = match node.value {
           @source.Null => Null
           @source.Bool(value) => Bool(value)
           @source.Number(value) => Number(value)
           @source.String(value) => {
-            match text_charge(value, limits, remaining_text) {
+            match text_charge(value, limits, admission.remaining_text) {
               Ok(size) => {
-                remaining_text -= size
-                largest_string = Int::max(largest_string, size)
+                admission.remaining_text -= size
+                admission.largest_string = Int::max(
+                  admission.largest_string,
+                  size,
+                )
               }
               Err(kind) => return Err(at(tree, parent, edge, node.span, kind))
             }
@@ -146,10 +204,13 @@ pub fn admit(root : @source.Node, limits : Limits) -> Result[Cursor, Issue] {
         if next < fields.length() {
           let field = fields[next]
           let edge = Field(field.key, field.key_span)
-          match text_charge(field.key, limits, remaining_text) {
+          match text_charge(field.key, limits, admission.remaining_text) {
             Ok(size) => {
-              remaining_text -= size
-              largest_string = Int::max(largest_string, size)
+              admission.remaining_text -= size
+              admission.largest_string = Int::max(
+                admission.largest_string,
+                size,
+              )
             }
             Err(kind) =>
               return Err(at(tree, parent, edge, field.key_span, kind))
@@ -162,14 +223,55 @@ pub fn admit(root : @source.Node, limits : Limits) -> Result[Cursor, Issue] {
         }
     }
   }
-  Ok({
-    tree,
-    index: 0,
-    usage: {
-      nodes: tree.length(),
-      depth: deepest,
-      largest_string_bytes: largest_string,
-      total_string_bytes: limits.max_total_string_bytes - remaining_text,
-    },
-  })
+  Ok(())
+}
+
+///|
+/// One existing copy/admission continuation per work unit. Partial trees never
+/// escape; immutable cursor ownership transfers only at successful completion.
+pub fn advance_admission(
+  admission : Admission,
+  quantum : Int,
+) -> Result[AdmissionPoll, AdmissionControlIssue] {
+  if quantum < 1 {
+    return Err(InvalidQuantum)
+  }
+  if admission.terminal {
+    return Err(Terminal)
+  }
+  let mut used = 0
+  while used < quantum {
+    used += 1
+    if admission.step() is Err(issue) {
+      cancel_admission(admission)
+      return Ok(AdmissionFailed(issue, work=used))
+    }
+    if admission.work.is_empty() {
+      let tree = admission.tree
+      // Transfer the owned index without a synchronous whole-tree copy. The
+      // continuation must not clear it during a later duplicate cancellation.
+      admission.tree = []
+      let cursor : Cursor = {
+        tree,
+        index: 0,
+        usage: {
+          nodes: tree.length(),
+          depth: admission.deepest,
+          largest_string_bytes: admission.largest_string,
+          total_string_bytes: admission.limits.max_total_string_bytes -
+          admission.remaining_text,
+        },
+      }
+      admission.terminal = true
+      return Ok(AdmissionComplete(cursor, work=used))
+    }
+  }
+  Ok(AdmissionContinue(work=used))
+}
+
+///|
+pub fn cancel_admission(admission : Admission) -> Unit {
+  admission.work.clear()
+  admission.tree.clear()
+  admission.terminal = true
 }

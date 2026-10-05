@@ -71,6 +71,30 @@ fn selected_graph_snapshot_policy() -> @local_sga_provider.SnapshotPolicy {
 }
 
 ///|
+/// Delta input conversion and application use the installed Graph provider.
+/// These are private runtime ceilings/reservations, not a count law, a saved
+/// admission receipt, or a machine-independent total-memory proof.
+fn selected_graph_delta_policy() -> @local_sga_provider.DeltaPolicy {
+  let snapshot = selected_graph_snapshot_policy()
+  {
+    limits: {
+      max_workspace_slots: 2000000,
+      max_output_nodes: 10000,
+      max_output_text_bytes: 10000,
+      max_output_depth: 100,
+      max_identity_bytes: snapshot.serialization.max_identity_bytes,
+      // Base-body and complete-before decoding coexist with input conversion
+      // and staged output. Delta uses the smaller installed value-node ceiling
+      // rather than borrowing the larger standalone snapshot read ceiling.
+      max_identity_nodes: snapshot.serialization.value_limits.max_nodes,
+      max_identity_depth: snapshot.serialization.max_identity_depth,
+      value_limits: snapshot.serialization.value_limits,
+    },
+    workspace_bytes: 67108864L,
+  }
+}
+
+///|
 fn installed_client_family_providers(
   capacity : @execution.ExecutionCapacity,
 ) -> Array[@local.ManagedProvider] {
@@ -81,6 +105,7 @@ fn installed_client_family_providers(
       10000L,
       capacity,
       snapshot_policy=Some(selected_graph_snapshot_policy()),
+      delta_policy=Some(selected_graph_delta_policy()),
     ),
     @local_tea_provider.provider(records, 100000L, capacity),
     @local_tea_provider.time_series_provider(records, capacity),
@@ -127,6 +152,7 @@ fn selected_client_sga_providers(
           10000L,
           sequence_capacity,
           snapshot_policy=Some(selected_graph_snapshot_policy()),
+          delta_policy=Some(selected_graph_delta_policy()),
         ),
       ])
     None => None
