@@ -109,3 +109,10 @@ key into the unadmitted Host root. Signer/report files now stay in the parent
 fixture directory, outside the approval Host root; the Host format guard is
 unchanged. The failed installation, original receipts and key custody remain
 retained. This is not Model approval success.
+At `f0ea85ad1b6844ca868d797e38cd61b13fbf7dd0`, the Local Run reached durable
+Waiting with no provider call, then correctly refused artifact review because
+the fixture had installed a signer without granting review read access
+(`run-kbUH96`, `public-query-evidence-M6FufZ`, command 007,
+`CheckpointReviewDenied`). The fixture now explicitly grants its owner review
+read access, as the existing installed acceptance does. Product review and
+signer checks remain unchanged.

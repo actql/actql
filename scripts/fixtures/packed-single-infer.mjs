@@ -41,6 +41,7 @@ const keyMaterial = approval && existsSync(keyPath)
 if (approval && !existsSync(keyPath)) writeFileSync(keyPath,
   JSON.stringify(keyMaterial), {mode: 0o600});
 const authorization = {
+  reviewReaders: [userInfo().username],
   hostKey: {keyId: 'packed-host', privateKey: keyMaterial.privateKey},
   reviewers: [{keyId: 'packed-reviewer', reviewerId: 'packed-reviewer',
     principalId: userInfo().username,
