@@ -5569,3 +5569,18 @@ also publishes independent ordered producer/two-consumer Results with long keys,
 duplicates and NULL non-matching; request reuse performs no additional Compute.
 Public comparison-phase stop latency and Wasm/native execution are not newly
 claimed. See the [interval boundary record](2026-10-06-local-interval-comparison.md).
+
+### Set recursive comparison boundary and pending public connection
+
+EXCEPT/INTERSECT now retain accounted admitted-value comparison frames rather
+than walking a complete Array/Object/Vector inside one poll. Focused JS evidence
+preserves ALL/DISTINCT survivors, order and logical work across quanta, isolated
+exact/one-short comparison limits, and root/scratch ownership through confirmed
+stop and single cleanup. This partitions operator scanning, not retention
+measurement. Other recursive comparator callers are not yet covered.
+
+The ordinary source-free nested Set -> Unnest -> projection Program still fails
+at the first dispatch with typed `Execution(ForeignCandidate)` before comparison
+progress. Its pending reproduction and independent expected rows are retained;
+the failure is not counted as public execution evidence. No whole-route or
+Local completion claim is added. See the [Set boundary record](2026-10-06-local-set-tree-comparison.md).

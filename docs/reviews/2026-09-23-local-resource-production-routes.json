@@ -5877,6 +5877,27 @@
       },
       "boundary_tests": [
         {
+          "role": "except_nested_compare_quantum_order",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_set_nested_comparison_wbtest.mbt",
+          "fixture": "nested set preserves all variants and logical work across quanta"
+        },
+        {
+          "role": "except_nested_compare_work_workspace",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_set_nested_comparison_wbtest.mbt",
+          "fixture": "nested comparison preserves independently calculated work and frame limits"
+        },
+        {
+          "role": "except_nested_compare_stop_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_set_nested_comparison_wbtest.mbt",
+          "fixture": "nested set retains borrowed roots and frames until confirmed stop"
+        },
+        {
           "role": "except_empty_schema_workspace_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -6009,6 +6030,27 @@
         "symbol": "set_provider"
       },
       "boundary_tests": [
+        {
+          "role": "intersect_nested_compare_quantum_order",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_set_nested_comparison_wbtest.mbt",
+          "fixture": "nested set preserves all variants and logical work across quanta"
+        },
+        {
+          "role": "intersect_nested_compare_work_workspace",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_set_nested_comparison_wbtest.mbt",
+          "fixture": "nested comparison preserves independently calculated work and frame limits"
+        },
+        {
+          "role": "intersect_nested_compare_stop_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_set_nested_comparison_wbtest.mbt",
+          "fixture": "nested set retains borrowed roots and frames until confirmed stop"
+        },
         {
           "role": "intersect_empty_schema_workspace_exact_one_short",
           "suite": "moon:execution_relation",

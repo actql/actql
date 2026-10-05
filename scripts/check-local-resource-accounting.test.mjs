@@ -48,6 +48,19 @@ function run(...args) {
   return (result.errors.length ? result.errors.join('\n') : result.output) + '\n';
 }
 
+test('Set requires nested comparison boundary evidence for both operations', () => {
+  for (const operation of ['except', 'intersect']) {
+    for (const suffix of ['quantum_order', 'work_workspace', 'stop_cleanup']) {
+      const role = `${operation}_nested_compare_${suffix}`;
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(entry => entry.family === 'RelA' &&
+          entry.operation === operation);
+        route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+      }), new RegExp(`RelA ${operation}: ${role} fixture is missing`, 'u'));
+    }
+  }
+});
+
 test('interval join requires stepped Text comparison boundary evidence', () => {
   for (const role of [
     'interval_long_text_compare_quantum_order',
