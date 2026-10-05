@@ -270,6 +270,8 @@ pub fn operation_obligations_selector(OperationObligations) -> @graph_typing.Che
 
 pub fn operation_obligations_source(OperationObligations) -> @decode_core.Cursor
 
+pub fn operation_obligations_subgraph(OperationObligations) -> @graph_typing.CheckedSubgraph?
+
 pub fn operation_order_demand(OperationObligation) -> OperationOrderDemand?
 
 pub fn operation_profile_adopted_law_at(OperationProfile, Int) -> AdoptedOperationLaw?
@@ -466,6 +468,7 @@ pub enum CheckedOperation {
   GraphEquality(right~ : Target, checked~ : @graph_typing.CheckedPropertyEquality)
   GraphNormalize(@graph_typing.CheckedNormalize)
   GraphComponents(@graph_typing.CheckedComponents)
+  Subgraph(selector~ : Target?, checked~ : @graph_typing.CheckedSubgraph)
   Traverse(selector~ : Target?, checked~ : @graph_typing.CheckedTraverse)
   PropertyGraphConstruction(inputs~ : Array[Target], checked~ : @graph_typing.CheckedPropertyConstruction)
   Vector(@vector_typing.CheckedVector)
@@ -536,6 +539,7 @@ pub(all) enum ExpressionConsumer {
   AnalyticArgument(String)
   SequencePredicate(Int)
   GraphMatchPredicate
+  GraphSubgraphEdgePredicate
   GraphTraverseEdgePredicate(Int)
   GraphTraverseNodePredicate(Int)
   InferInput(Int)
@@ -715,6 +719,7 @@ pub(all) enum OperationObligation {
   PropertyEqualityRequirement(@graph_typing.PropertyEqualityObligation)
   NormalizeRequirement(@graph_typing.NormalizeObligation)
   ComponentsRequirement(@graph_typing.ComponentsObligation)
+  SubgraphRequirement(@graph_typing.SubgraphObligation)
   TraverseRequirement(@graph_typing.TraverseObligation)
   SelectorRequirement(@graph_typing.SelectorObligation)
   ConstructionRequirement(@graph_typing.ConstructionObligation)

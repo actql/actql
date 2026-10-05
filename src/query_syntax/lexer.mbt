@@ -185,7 +185,7 @@ fn Scanner::quoted(
       }
       return (result, annotation_compatible)
     }
-    if (!triple && (n == 0x0a || n == 0x0d)) || (delimiter == 0x60 && n < 0x20) {
+    if delimiter != 0x60 && !triple && (n == 0x0a || n == 0x0d) {
       raise LexicalAbort(UnexpectedToken, self.byte_offset)
     }
     // Plain query strings forbid raw newlines, not every control scalar.
@@ -222,20 +222,20 @@ fn Scanner::quoted(
         }
         match escaped {
           0x5c => 0x5c
-          0x27 | 0x22 if delimiter != 0x60 => escaped
+          0x27 | 0x22 => escaped
           0x60 => 0x60
-          0x61 if delimiter != 0x60 => 0x07
-          0x62 if delimiter != 0x60 => 0x08
-          0x66 if delimiter != 0x60 => 0x0c
-          0x6e if delimiter == 0x27 || delimiter == 0x22 => 0x0a
-          0x72 if delimiter == 0x27 || delimiter == 0x22 => 0x0d
-          0x74 if delimiter == 0x27 || delimiter == 0x22 => 0x09
-          0x76 if delimiter != 0x60 => 0x0b
-          0x3f if delimiter != 0x60 => 0x3f
-          0x78 | 0x58 if delimiter != 0x60 => self.escaped_scalar(2)
-          // The pinned GoogleSQL STRING decoder accepts exactly three
+          0x61 => 0x07
+          0x62 => 0x08
+          0x66 => 0x0c
+          0x6e => 0x0a
+          0x72 => 0x0d
+          0x74 => 0x09
+          0x76 => 0x0b
+          0x3f => 0x3f
+          0x78 | 0x58 => self.escaped_scalar(2)
+          // The pinned GoogleSQL STRING/identifier decoder accepts three
           // octal digits, with the first limited to 0..3 (maximum \\377).
-          0x30..=0x33 if delimiter != 0x60 => {
+          0x30..=0x33 => {
             let mut value = escaped - 0x30
             for _ in 0..<2 {
               let next = match self.peek() {
@@ -252,7 +252,7 @@ fn Scanner::quoted(
           _ => raise LexicalAbort(InvalidEscape, at)
         }
       }
-    } else if triple && n == 0x0d {
+    } else if (triple || delimiter == 0x60) && n == 0x0d {
       // Source newline interpretation follows the pinned GoogleSQL decoder.
       // This does not normalize a decoded \\r or a stored String value.
       ignore(self.advance())
@@ -262,9 +262,6 @@ fn Scanner::quoted(
       0x0a
     } else {
       self.advance()
-    }
-    if delimiter == 0x60 && (scalar == 0x0a || scalar == 0x0d) {
-      raise LexicalAbort(InvalidScalar, self.byte_offset)
     }
     self.budget.charge(
       LiteralBytes,

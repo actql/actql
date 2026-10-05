@@ -2177,6 +2177,7 @@ pub(all) enum OperationExecutionCheck {
   GraphMatchExecution(GraphMatchCheck)
   GraphEqualityExecution(GraphEqualityCheck)
   GraphDiagnosticExecution(GraphDiagnosticCheck)
+  SubgraphExecution(SubgraphExecutionCheck)
   GraphNormalizeExecution(GraphNormalizeCheck)
   VectorExecution(VectorCheck)
   NearestExecution(NearestCheck)
@@ -3201,6 +3202,27 @@ pub enum StatisticalLaw {
   PopulationStandardDeviation
   SampleStandardDeviation
 }
+
+pub struct SubgraphExecutionCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  graph : @pipeline_typing.Target
+  relation : @pipeline_typing.Target?
+  operation : @graph_typing.CheckedSubgraph
+  rule : SubgraphExecutionRule
+  policy : @capacity_policy.Policy
+  output_nodes : @capacity_policy.Ceiling
+  output_edges : @capacity_policy.Ceiling
+}
+
+pub(all) enum SubgraphExecutionRule {
+  AdmitSubgraphGraph
+  InduceSubgraphEndpoints
+  FilterSubgraphEdges
+  PreserveSubgraphIdentities
+  PreserveSubgraphPolicy
+  EnforceSubgraphResources
+} derive(Eq, @debug.Debug)
 
 type TextBoundResolution
 

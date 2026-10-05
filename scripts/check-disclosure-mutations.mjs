@@ -22,6 +22,7 @@ const mutations = [
   ['an unresolved obligation is reported as a violation',
     'if findings\n    .iter()\n    .any(finding => {\n' +
     '      finding\n      is (Violation(_)\n      | SyntaxViolation(_, _)\n' +
+    '      | LexicalViolation(_, _)\n' +
     '      | QueryViolation(_, _)\n' +
     '      | TypeViolation(_, _, _, _)\n      | SuppliedViolation(_)\n' +
     '      | DeclarationViolation(_)\n' +
@@ -39,8 +40,8 @@ const mutations = [
     'Budget => findings.push(Limit("analysis_budget_exhausted"))',
     'Budget => findings.push(Violation("supplied_value_invalid"))'],
   ['a missing value is reported as a violation',
-    'Ok(NeedsBindings(missing)) => {\n            findings.push(Limit("bound_values_missing"))',
-    'Ok(NeedsBindings(missing)) => {\n            findings.push(Violation("bound_values_missing"))'],
+    'Ok(NeedsBindings(missing)) => {\n        findings.push(Limit("bound_values_missing"))',
+    'Ok(NeedsBindings(missing)) => {\n        findings.push(Violation("bound_values_missing"))'],
   ['an authored UTF-8 location is shifted by one byte',
     '@encode.number_value(writer, start.to_double())',
     '@encode.number_value(writer, (start + 1).to_double())'],
@@ -70,12 +71,44 @@ const mutations = [
   ['an unresolved column starts one byte after its authored token',
     '        @source_origin.start(origin).byte_offset,',
     '        @source_origin.start(origin).byte_offset + 1,'],
+  ['a lexical escape is assigned to another issue family',
+    'InvalidEscape => "invalid_escape"', 'InvalidEscape => "unexpected_end"'],
+  ['a lexical violation loses its owned source position',
+    'let range = diagnostic.span.map(span => (span.start_byte, span.end_byte))',
+    'let range : (Int, Int)? = None'],
+  ['a lexical violation loses its typed explanation',
+    'LexicalViolation(_, _) => Some("query_lexical_invalid")',
+    'LexicalViolation(_, _) => Some("query_syntax_invalid")'],
   ['an invalid declaration loses its owned location',
     'findings.push(DeclarationViolation(pointer))',
     'findings.push(DeclarationViolation(None))'],
   ['an invalid declaration points at the root instead of its failing member',
     'writer, "parameter_declarations", revision, pointer,',
     'writer, "parameter_declarations", revision, "",'],
+  ['a source byte budget is treated as a syntax violation',
+    'issue is (Limit(_) | Source(@source_origin.InputLimit))',
+    'issue is Limit(_)'],
+  ['a source byte budget becomes invalid after declaration exhaustion',
+    'Err(QuerySyntax(diagnostic)) =>\n' +
+    '              if check_syntax_budget(diagnostic.issue) {',
+    'Err(QuerySyntax(diagnostic)) =>\n' +
+    '              if diagnostic.issue is Limit(_) {'],
+  ['absent declarations skip independently supplied binding',
+    '  if supplied_admitted {',
+    '  if supplied_admitted && context.parameter_declarations is Some(_) {'],
+  ['absent declarations lose the supplied member location',
+    'let fallback = SuppliedViolation(pointer)',
+    'let fallback = SuppliedViolation(None)'],
+  ['absent declarations discard a safe violation beside a protected Source',
+    'QueryLowering(UnknownRelation) =>\n' +
+    '          findings.push(Unresolved("source_resolution"))',
+    'QueryLowering(UnknownRelation) => {\n' +
+    '          if context.parameter_declarations is None { findings.clear() }\n' +
+    '          findings.push(Unresolved("source_resolution"))\n' +
+    '        }'],
+  ['original structured keys are replaced by admitted spellings',
+    'original.push(@source.Key(name))',
+    'original.push(@source.Key(key))'],
   ['an expression lowerer budget is reported as invalid input',
     '        ) => findings.push(Limit("analysis_budget_exhausted"))\n' +
     '        // Other failures of generated construction/admission and invalid',
@@ -126,10 +159,25 @@ const targets = [
     [strict('column-outcome'), strict('column-verdict'), deep('column-location')]],
   ['unresolved column expressions retain authored source positions',
     [strict('column-outcome'), strict('column-verdict'), deep('column-location')]],
+  ...Array.from({length: 3}, () =>
+    ['typed lexical explanations retain the submitted token position',
+      [strict('lexical-outcome'), strict('lexical-verdict'), deep('lexical-reason')]]),
   ['invalid declarations retain only their owned submitted locations',
     [strict('declaration-outcome'), deep('declaration-location')]],
   ['invalid declarations retain only their owned submitted locations',
     [strict('declaration-outcome'), deep('declaration-location')]],
+  ...Array.from({length: 2}, () =>
+    ['source byte exhaustion is a limit of the original bound check',
+      [strict('source-byte-outcome'), strict('source-byte-verdict'),
+        deep('source-byte-reasons'), deep('source-byte-coverage')]]),
+  ['absent declarations still bind independently supplied input',
+    [strict('absent-binding-verdict')]],
+  ['absent declarations still bind independently supplied input',
+    [deep('absent-binding-location')]],
+  ['absent declarations still bind independently supplied input',
+    [strict('absent-binding-verdict')]],
+  ['structured locations keep original key spellings after admission',
+    [deep('original-key-location')]],
   ['expression construction limits remain undetermined', [strict('expression-budget-verdict')]],
   ['expression construction limits remain undetermined', [strict('expression-budget-outcome')]],
   ['expression construction limits remain undetermined', [strict('expression-budget-verdict')]],
