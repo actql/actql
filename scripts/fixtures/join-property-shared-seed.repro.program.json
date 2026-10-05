@@ -1,0 +1,165 @@
+{
+  "id": "adhoc.query",
+  "params": {
+    "a": {
+      "fields": {
+        "score": {
+          "nullable": false,
+          "type": "number"
+        }
+      },
+      "nullable": true,
+      "type": "object"
+    },
+    "b": {
+      "fields": {
+        "score": {
+          "nullable": false,
+          "type": "number"
+        }
+      },
+      "nullable": true,
+      "type": "object"
+    }
+  },
+  "results": {
+    "answer": {
+      "from": {
+        "result": "rows",
+        "stage": "main"
+      }
+    }
+  },
+  "stages": [
+    {
+      "id": "main",
+      "inputs": {},
+      "results": {
+        "rows": {
+          "fields": [
+            "score"
+          ],
+          "from": "aql_join_output_5"
+        }
+      },
+      "steps": [
+        {
+          "as": "aql_script_seed_1",
+          "values": {
+            "rows": [
+              {
+                "aql_source_free_unit": true
+              }
+            ],
+            "schema": {
+              "aql_source_free_unit": {
+                "nullable": false,
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        {
+          "derive": {
+            "aql_query_expr_0": {
+              "literal": 1
+            }
+          },
+          "from": "aql_script_seed_1"
+        },
+        {
+          "as": "aql_data_0",
+          "select": [
+            {
+              "id": "aql_query_expr_0"
+            }
+          ]
+        },
+        {
+          "derive": {
+            "aql_query_expr_0": {
+              "literal": 1
+            },
+            "aql_query_expr_1": {
+              "$param": "a"
+            }
+          },
+          "from": "aql_data_0"
+        },
+        {
+          "as": "aql_data_2",
+          "select": [
+            {
+              "id": "aql_query_expr_0"
+            },
+            {
+              "payload": "aql_query_expr_1"
+            }
+          ]
+        },
+        {
+          "derive": {
+            "aql_query_expr_0": {
+              "literal": 1
+            },
+            "aql_query_expr_1": {
+              "$param": "b"
+            }
+          },
+          "from": "aql_data_0"
+        },
+        {
+          "as": "aql_data_3",
+          "select": [
+            {
+              "id": "aql_query_expr_0"
+            },
+            {
+              "other": "aql_query_expr_1"
+            }
+          ]
+        },
+        {
+          "as": "aql_join_raw_6",
+          "from": "aql_data_2",
+          "join": {
+            "kind": "inner",
+            "max_output_rows": 1,
+            "on": [
+              {
+                "left": "id",
+                "right": "id"
+              }
+            ],
+            "select": {
+              "aql_join_input_5": "left.payload"
+            },
+            "with": "aql_data_3"
+          }
+        },
+        {
+          "as": "aql_join_derived_8",
+          "derive": {
+            "score": {
+              "property": {
+                "name": "score",
+                "value": {
+                  "field": "aql_join_input_5"
+                }
+              }
+            }
+          },
+          "from": "aql_join_raw_6"
+        },
+        {
+          "as": "aql_join_output_5",
+          "from": "aql_join_derived_8",
+          "select": [
+            "score"
+          ]
+        }
+      ]
+    }
+  ],
+  "version": "actql/0.1"
+}

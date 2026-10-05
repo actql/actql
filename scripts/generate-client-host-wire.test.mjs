@@ -107,7 +107,7 @@ test('typed public facts are closed and locations bind declared input revisions'
   const expression = {code: 'query_expression_invalid', facts: {issue: 'invalid_number'},
     location: {kind: 'text', document_id: 'source', revision,
       start_byte: 0, end_byte: 6, precision: 'exact'}};
-  for (const issue of ['unknown_reference', 'invalid_arguments', 'invalid_number']) {
+  for (const issue of ['unknown_reference', 'invalid_arguments', 'invalid_number', 'expected_boolean']) {
     assert.equal(valid(outcome({...expression, facts: {issue}})), true);
     assert.equal(valid(outcome({code: expression.code, facts: {issue}})), true);
   }
@@ -119,6 +119,20 @@ test('typed public facts are closed and locations bind declared input revisions'
     {...expression, location}, {...expression, code: 'query_invalid'},
     {...expression, code: 'future_code'},
   ]) assert.equal(valid(outcome(changed)), false, '[check-mutation:expression-schema]');
+  const graph = {code: 'graph_operation_invalid',
+    facts: {operation: 'components', issue: 'invalid_kind'}};
+  for (const issue of ['invalid_kind', 'invalid_output_rows']) {
+    assert.equal(valid(outcome({...graph, facts: {...graph.facts, issue}})), true);
+  }
+  for (const changed of [
+    {code: graph.code}, {...graph, facts: {issue: 'invalid_kind'}},
+    {...graph, facts: {operation: 'subgraph', issue: 'invalid_kind'}},
+    {...graph, facts: {operation: 'components', issue: 'unknown_reference'}},
+    {...graph, facts: {operation: 'components', issue: 'future_issue'}},
+    {...graph, facts: {...graph.facts, value: 'private_kind'}},
+    {...graph, code: 'program_invalid'}, {...graph, code: 'future_code'},
+    {...graph, code: 'query_expression_invalid'}, {...graph, location},
+  ]) assert.equal(valid(outcome(changed)), false, '[check-mutation:graph-schema]');
   const lexical = {code: 'query_lexical_invalid', facts: {issue: 'invalid_escape'},
     location: {kind: 'text', document_id: 'source', revision,
       start_byte: 6, end_byte: 6, precision: 'exact'}};

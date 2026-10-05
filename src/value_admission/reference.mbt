@@ -59,12 +59,6 @@ pub(all) enum ReferenceIssue {
 } derive(Eq, Debug)
 
 ///|
-priv struct ReferenceCursorUsage {
-  mut nodes : Int
-  mut text_bytes : Int
-}
-
-///|
 pub fn bind_reference_issuer(
   validate : (@contract.Contract, String) -> Bool,
   authorize : (String) -> Bool,
@@ -97,133 +91,61 @@ fn valid_reference_cid(value : String) -> Bool {
 }
 
 ///|
-fn json_string_equals(value : Json?, expected : String) -> Bool {
-  value is Some(String(actual)) && actual == expected
-}
-
-///|
-fn charge_reference_cursor_text(
-  text : String,
-  limits : ReferenceLimits,
-  usage : ReferenceCursorUsage,
+fn reference_string_equals(
+  value : @identity.CanonicalValue?,
+  expected : String,
 ) -> Bool {
-  if usage.text_bytes > limits.max_bytes {
-    return false
-  }
-  match @scalar.admit_utf8_length(text, limits.max_bytes - usage.text_bytes) {
-    Ok(bytes) => {
-      usage.text_bytes += bytes
-      true
-    }
-    Err(_) => false
-  }
-}
-
-///|
-fn reference_cursor_json(
-  cursor : @decode.Cursor,
-  limits : ReferenceLimits,
-  usage : ReferenceCursorUsage,
-  parent_depth : Int,
-) -> Result[Json, ReferenceIssue] {
-  if usage.nodes >= limits.max_nodes {
-    return Err(InvalidWire)
-  }
-  usage.nodes += 1
-  match @decode.view(cursor) {
-    @decode.NullValue => Ok(Json::null())
-    @decode.BoolValue(value) => Ok(Json::boolean(value))
-    @decode.NumberValue(value) => Ok(Json::number(value))
-    @decode.TextValue(value) =>
-      if charge_reference_cursor_text(value, limits, usage) {
-        Ok(Json::string(value))
-      } else {
-        Err(InvalidWire)
-      }
-    @decode.ArrayValue(items) => {
-      if parent_depth >= limits.max_depth {
-        return Err(InvalidWire)
-      }
-      let values = []
-      for item in items {
-        match reference_cursor_json(item, limits, usage, parent_depth + 1) {
-          Ok(value) => values.push(value)
-          Err(issue) => return Err(issue)
-        }
-      }
-      Ok(Json::array(values))
-    }
-    @decode.ObjectValue(view) => {
-      if parent_depth >= limits.max_depth {
-        return Err(InvalidWire)
-      }
-      let names = match @decode.object_field_names(cursor) {
-        Ok(value) => value
-        Err(_) => return Err(InvalidWire)
-      }
-      let fields : Map[String, Json] = Map([])
-      for name in names {
-        if !charge_reference_cursor_text(name, limits, usage) {
-          return Err(InvalidWire)
-        }
-        guard @decode.lookup(view, name) is Some(child) else {
-          return Err(InvalidWire)
-        }
-        match reference_cursor_json(child, limits, usage, parent_depth + 1) {
-          Ok(value) => fields[name] = value
-          Err(issue) => return Err(issue)
-        }
-      }
-      Ok(Json::object(fields))
-    }
-  }
+  value is Some(@identity.String(actual)) && actual == expected
 }
 
 ///|
 fn reference_identity(
   contract : @contract.Contract,
-  parsed : Json,
+  envelope : @identity.CanonicalValue,
 ) -> Result[(String, ReferenceDomain), ReferenceIssue] {
-  guard parsed is Object(fields) else { return Err(InvalidWire) }
+  guard envelope is @identity.Object(_) else { return Err(InvalidWire) }
+  let get = name => @identity.object_field(envelope, name)
+  let count = @identity.object_field_count(envelope).unwrap()
   match contract.shape {
     @contract.ResourceRef(resource_kind~) => {
-      if fields.length() != 8 ||
-        !json_string_equals(fields.get("$actql_ref"), "resource") ||
-        !json_string_equals(fields.get("version"), "actql-resource-ref/0.1") ||
-        !json_string_equals(fields.get("resource_kind"), resource_kind) ||
-        !(fields.get("provider_namespace") is Some(String(provider_space)) &&
+      if count != 8 ||
+        !reference_string_equals(get("$actql_ref"), "resource") ||
+        !reference_string_equals(get("version"), "actql-resource-ref/0.1") ||
+        !reference_string_equals(get("resource_kind"), resource_kind) ||
+        !(get("provider_namespace") is Some(@identity.String(provider_space)) &&
         !provider_space.is_empty()) ||
-        !(fields.get("provider_identity_cid") is Some(String(provider)) &&
+        !(get("provider_identity_cid") is Some(@identity.String(provider)) &&
         valid_reference_cid(provider)) ||
-        !(fields.get("authority_scope_cid") is Some(String(authority)) &&
+        !(get("authority_scope_cid") is Some(@identity.String(authority)) &&
         valid_reference_cid(authority)) ||
-        !(fields.get("boundary_cid") is Some(String(boundary)) &&
+        !(get("boundary_cid") is Some(@identity.String(boundary)) &&
         valid_reference_cid(boundary)) {
         return Err(ContractMismatch)
       }
-      guard fields.get("identity_cid") is Some(String(identity)) &&
+      guard get("identity_cid") is Some(@identity.String(identity)) &&
         valid_reference_cid(identity) else {
         return Err(InvalidIdentity)
       }
       Ok((identity, Resource(resource_kind)))
     }
     @contract.ArtifactRef(media_type~) => {
-      if fields.length() != 5 ||
-        !json_string_equals(fields.get("$actql_ref"), "artifact") ||
-        !json_string_equals(fields.get("version"), "actql-artifact-ref/0.1") ||
-        !(fields.get("media_type") is Some(String(media)) && !media.is_empty()) ||
-        !(fields.get("metadata") is Some(Object(_))) {
+      if count != 5 ||
+        !reference_string_equals(get("$actql_ref"), "artifact") ||
+        !reference_string_equals(get("version"), "actql-artifact-ref/0.1") ||
+        !(get("media_type") is Some(@identity.String(media)) &&
+        !media.is_empty()) ||
+        !(get("metadata") is Some(@identity.Object(_))) {
         return Err(ContractMismatch)
       }
       if media_type is Some(required) &&
-        !json_string_equals(fields.get("media_type"), required) {
+        !reference_string_equals(get("media_type"), required) {
         return Err(ContractMismatch)
       }
-      guard fields.get("artifact_ref_cid") is Some(String(identity)) &&
+      guard get("artifact_ref_cid") is Some(@identity.String(identity)) &&
         valid_reference_cid(identity) else {
         return Err(InvalidIdentity)
       }
-      guard fields.get("media_type") is Some(String(media)) else {
+      guard get("media_type") is Some(@identity.String(media)) else {
         return Err(ContractMismatch)
       }
       Ok((identity, Artifact(media)))
@@ -255,7 +177,19 @@ fn issue_parsed_reference(
   ) catch {
     _ => return Err(InvalidWire)
   }
-  let (identity, domain) = match reference_identity(contract, parsed) {
+  admit_reference_envelope(issuer, contract, envelope, canonical)
+}
+
+///|
+// Canonical conversion and issuer-owned authority checks are separate stages.
+// Both synchronous and resumed entry points use this exact authority boundary.
+fn admit_reference_envelope(
+  issuer : ReferenceIssuer,
+  contract : @contract.Contract,
+  envelope : @identity.CanonicalValue,
+  canonical : String,
+) -> Result[CheckedValue, ReferenceIssue] {
+  let (identity, domain) = match reference_identity(contract, envelope) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -301,20 +235,23 @@ fn issue_reference_cursor_usage(
   cursor : @decode.Cursor,
   limits : ReferenceLimits,
 ) -> Result[(CheckedValue, Int, Int), ReferenceIssue] {
-  if limits.max_bytes < 0 ||
-    limits.max_nodes < 1 ||
-    limits.max_depth < 0 ||
-    limits.max_text_units < 0 {
-    return Err(InvalidLimits)
-  }
-  let usage = { nodes: 0, text_bytes: 0, }
-  let parsed = match reference_cursor_json(cursor, limits, usage, 0) {
-    Ok(value) => value
+  let admission = match
+    start_reference_admission(issuer, contract, cursor, limits) {
+    Ok(admission) => admission
     Err(issue) => return Err(issue)
   }
-  match issue_parsed_reference(issuer, contract, parsed, limits) {
-    Ok(value) => Ok((value, usage.nodes, usage.text_bytes))
-    Err(issue) => Err(issue)
+  // Convenience callers drain the same stages. They do not advertise this
+  // complete traversal as one bounded execution poll.
+  while true {
+    match advance_reference_admission(admission) {
+      ReferenceAdmissionContinue => ()
+      ReferenceAdmissionComplete(checked, nodes, text) =>
+        return Ok((checked, nodes, text))
+      ReferenceAdmissionFailed(issue) => return Err(issue)
+      ReferenceAdmissionTerminal => return Err(InvalidWire)
+    }
+  } nobreak {
+    Err(InvalidWire)
   }
 }
 
@@ -412,12 +349,4 @@ pub fn reference_same_issuer(
   right : ReferenceValue,
 ) -> Bool {
   physical_equal(left.issuer.token, right.issuer.token)
-}
-
-///|
-fn emit_reference(
-  value : ReferenceValue,
-  output : @encode.Writer,
-) -> Unit raise @encode.EncodeFailure {
-  @identity.emit_value(value.envelope, output)
 }

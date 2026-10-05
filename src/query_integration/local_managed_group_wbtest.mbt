@@ -96,7 +96,9 @@ fn start_local_managed_test_task_operations(
       fail("Local managed start implementation failed")
     Err(Execution(Physical(issue))) =>
       fail(
-        "Local managed start physical failed: " +
+        "Local managed task " +
+        task.to_string() +
+        " physical failed: " +
         (match issue {
           @resources.InvalidLimits => "invalid limits"
           @resources.PlanningLimit => "planning limit"
@@ -534,9 +536,27 @@ fn run_local_managed_group_case(
   second_expected : Array[String],
   activation? : Bool = false,
 ) -> Unit raise {
+  let split = variant == "collections" ||
+    variant == "numeric_filter" ||
+    variant == "numeric_regroup"
   let (run, issuer) = captured_graph_fixture(
     local_values_group_chain=true,
     local_values_group_variant=variant,
+    // This fixture retains every completed allocation through both consumers.
+    // A split stage adds a fifth output (each reserves at most 8 MB), rather
+    // than the four outputs covered by the shared fixture's 32 MB limit.
+    ledger_limits=if split {
+      Some({
+        planning_work: 10000,
+        attempts: 10,
+        holdings: 10,
+        transfer_bytes: 300000L,
+        retained_bytes: 40000000L,
+        execution_bytes: 134217728L,
+      })
+    } else {
+      None
+    },
   )
   let grant = if activation {
     @strategy.require_captured_task_activation(run)
@@ -544,51 +564,82 @@ fn run_local_managed_group_case(
   } else {
     None
   }
+  let graph = @strategy.captured_dag_graph(run)
+  let same_stage = variant == "keyed_same_stage" ||
+    variant == "count_if_same_stage"
+  let group_stage = if same_stage { 1 } else { 2 }
+  let group_tasks = []
+  for task in 0..<@strategy.graph_task_count(graph) {
+    if @strategy.graph_task_unit_index(graph, task) == Some(group_stage) &&
+      (
+        !same_stage ||
+        @strategy.graph_task_target(graph, task) == Some(@pipeline.Step(1))
+      ) {
+      group_tasks.push(task)
+    }
+  }
+  assert_eq(group_tasks.length(), if split { 2 } else { 1 })
+  let first_task = @strategy.graph_stage_target_task(
+    graph,
+    group_stage + 1,
+    @pipeline.Step(0),
+  ).unwrap()
+  let second_task = @strategy.graph_stage_target_task(
+    graph,
+    group_stage + 2,
+    @pipeline.Step(0),
+  ).unwrap()
   if variant == "numeric" ||
     variant == "numeric_filter" ||
     variant == "numeric_regroup" {
-    let graph = @strategy.captured_dag_graph(run)
-    let expected_slots = if variant == "numeric_regroup" { 4 } else { 2 }
-    assert_eq(
-      @strategy.graph_task_numeric_observation_count(graph, 2),
-      Some(expected_slots),
-    )
-    let first = @strategy.graph_task_numeric_observation_at(graph, 2, 0).unwrap()
-    let second = @strategy.graph_task_numeric_observation_at(graph, 2, 1).unwrap()
-    assert_eq(@strategy.task_numeric_observation_step(first), 0)
-    assert_eq(@strategy.task_numeric_observation_name(first), "mean")
-    assert_eq(@strategy.task_numeric_observation_step(second), 0)
-    assert_eq(@strategy.task_numeric_observation_name(second), "total")
-    if variant == "numeric_regroup" {
-      let third = @strategy.graph_task_numeric_observation_at(graph, 2, 2).unwrap()
-      let fourth = @strategy.graph_task_numeric_observation_at(graph, 2, 3).unwrap()
-      assert_eq(@strategy.task_numeric_observation_step(third), 1)
-      assert_eq(@strategy.task_numeric_observation_name(third), "mean")
-      assert_eq(@strategy.task_numeric_observation_step(fourth), 1)
-      assert_eq(@strategy.task_numeric_observation_name(fourth), "total")
-    }
     let numeric_steps : Array[Int] = []
-    @execution.generated_sequence_all_steps(dispatch_test_generated(run)[1], fn(
-      step,
-    ) {
-      match step {
-        @lower.RowStep(kernel) =>
-          if @lower.kernel_group(kernel) is Some(_) {
-            numeric_steps.push(@lower.kernel_step(kernel))
-          }
-        _ => ()
+    let generated_steps : Array[Int] = []
+    for task in group_tasks {
+      let count = @strategy.graph_task_numeric_observation_count(graph, task).unwrap()
+      assert_eq(
+        count,
+        if variant == "numeric_filter" && task == group_tasks[1] {
+          0
+        } else {
+          2
+        },
+      )
+      if count > 0 {
+        let first = @strategy.graph_task_numeric_observation_at(graph, task, 0).unwrap()
+        let second = @strategy.graph_task_numeric_observation_at(graph, task, 1).unwrap()
+        let step = if variant == "numeric_regroup" && task == group_tasks[1] {
+          1
+        } else {
+          0
+        }
+        assert_eq(@strategy.task_numeric_observation_step(first), step)
+        assert_eq(@strategy.task_numeric_observation_step(second), step)
+        assert_eq(@strategy.task_numeric_observation_name(first), "mean")
+        assert_eq(@strategy.task_numeric_observation_name(second), "total")
+        numeric_steps.push(step)
       }
-      true
-    })
-    |> ignore
-    assert_eq(
-      numeric_steps,
-      if variant == "numeric_regroup" {
-        [0, 1]
-      } else {
-        [0]
-      },
-    )
+      // Generated sequences retain the source-stage kernels; selection is
+      // carried by each task. Inspect that shared sequence only once.
+      if task == group_tasks[0] {
+        @execution.generated_sequence_all_steps(
+          dispatch_test_generated(run)[task - 1],
+          fn(step) {
+            match step {
+              @lower.RowStep(kernel) =>
+                if @lower.kernel_group(kernel) is Some(_) {
+                  generated_steps.push(@lower.kernel_step(kernel))
+                }
+              _ => ()
+            }
+            true
+          },
+        )
+        |> ignore
+      }
+    }
+    let expected = if variant == "numeric_regroup" { [0, 1] } else { [0] }
+    assert_eq(numeric_steps, expected)
+    assert_eq(generated_steps, expected)
   }
   let registry = search_registry()
   let limits = dispatch_test_limits()
@@ -715,7 +766,6 @@ fn run_local_managed_group_case(
   let value_rows = local_managed_test_rows(value_ops)
   assert_eq(value_rows, input_expected)
 
-  let group_live = Ref(true)
   let bounded_global = variant == "empty_global" ||
     variant == "global_counts" ||
     variant == "global_count_if" ||
@@ -738,34 +788,46 @@ fn run_local_managed_group_case(
     variant == "numeric" ||
     variant == "numeric_filter" ||
     variant == "numeric_regroup"
-  let execution_advances = Ref(0)
-  let (group_ops, groups) = run_local_managed_test_task(
-    installed,
-    run,
-    2,
-    [values],
-    [value_rows],
-    2,
-    group_live,
-    execution_quantum=if bounded_global { 1 } else { 0 },
-    execution_advances=Some(execution_advances),
-    require_provider=bounded_global,
-    grant?,
-  )
-  if bounded_global {
-    assert_true(execution_advances.val > 1)
+  // Execute every selected task owned by the GROUP stage. Its assertion,
+  // aggregate, filter, and second aggregate may now have independent owners.
+  let intermediates : Array[
+    (Int, @local_driver.LocalManagedDispatchOperations[Int], Ref[Bool]),
+  ] = []
+  let mut groups = values
+  let mut group_rows = value_rows
+  for task in group_tasks {
+    let live = Ref(true)
+    let execution_advances = Ref(0)
+    let (ops, output) = run_local_managed_test_task(
+      installed,
+      run,
+      task,
+      [groups],
+      [group_rows],
+      task,
+      live,
+      execution_quantum=if bounded_global { 1 } else { 0 },
+      execution_advances=Some(execution_advances),
+      require_provider=bounded_global,
+      grant?,
+    )
+    if bounded_global {
+      assert_true(execution_advances.val > 1)
+    }
+    intermediates.push((task, ops, live))
+    groups = output
+    group_rows = local_managed_test_rows(ops)
   }
-  let group_rows = local_managed_test_rows(group_ops)
   assert_eq(group_rows, group_expected)
 
   let first_live = Ref(true)
   let (first_ops, first) = run_local_managed_test_task(
     installed,
     run,
-    3,
+    first_task,
     [groups],
     [group_rows],
-    3,
+    first_task,
     first_live,
     grant?,
   )
@@ -775,10 +837,10 @@ fn run_local_managed_group_case(
   let (second_ops, second) = run_local_managed_test_task(
     installed,
     run,
-    4,
+    second_task,
     [groups],
     [group_rows],
-    4,
+    second_task,
     second_live,
     grant?,
   )
@@ -787,7 +849,7 @@ fn run_local_managed_group_case(
   assert_true(@execution.managed_completed_output_available(second))
 
   first_live.val = false
-  @strategy.close_captured_task_output(run, 3)
+  @strategy.close_captured_task_output(run, first_task)
   (first_ops.close)()
   (first_ops.cleanup_refresh)() |> ignore
   assert_false(@execution.managed_completed_output_available(first))
@@ -795,13 +857,16 @@ fn run_local_managed_group_case(
   assert_true(@execution.managed_completed_output_available(groups))
 
   second_live.val = false
-  @strategy.close_captured_task_output(run, 4)
+  @strategy.close_captured_task_output(run, second_task)
   (second_ops.close)()
   (second_ops.cleanup_refresh)() |> ignore
-  group_live.val = false
-  @strategy.close_captured_task_output(run, 2)
-  (group_ops.close)()
-  (group_ops.cleanup_refresh)() |> ignore
+  for index = intermediates.length() - 1; index >= 0; index = index - 1 {
+    let (task, ops, live) = intermediates[index]
+    live.val = false
+    @strategy.close_captured_task_output(run, task)
+    (ops.close)()
+    (ops.cleanup_refresh)() |> ignore
+  }
   value_live.val = false
   @strategy.close_captured_task_output(run, 1)
   (value_ops.close)()

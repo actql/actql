@@ -80,6 +80,7 @@ fn prepare_ordered_budgets(
       @lower.GraphDiagnosticStep(_) => return Err(InputSet)
       @lower.GraphEqualityStep(_) => return Err(InputSet)
       @lower.GraphNormalizeStep(_) => return Err(InputSet)
+      @lower.GraphDeltaStep(_) => return Err(InputSet)
       @lower.PropertyGraphConstructionStep(_) => return Err(InputSet)
       @lower.VectorStep(_) => return Err(InputSet)
       @lower.EventStep(_) => return Err(InputSet)

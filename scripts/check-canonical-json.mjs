@@ -87,7 +87,18 @@ export function generateTests(fixtures) {
     const source = JSON.stringify(f.value);
     const points = [...source];
     const chunks = [];
-    for (let i = 0; i < points.length; i += 1024) chunks.push(literal(points.slice(i, i + 1024).join('')));
+    // Keep owned identifiers contiguous in generated source so source scanners
+    // see the same version as the JSON value, rather than a truncated prefix.
+    const identifiers = [...source.matchAll(/\b(?:(?:actql|aoa)[A-Za-z0-9_.-]*\/v?[0-9]+(?:\.[0-9]+)*(?:[-+][A-Za-z0-9.-]+)?|(?:actql|aoa)\.[A-Za-z0-9_.-]+\.v[0-9]+(?:\.[0-9]+)*(?:[-+][A-Za-z0-9.-]+)?|urn:(?:actql|aoa):[A-Za-z0-9_.:-]+:[0-9]+(?:\.[0-9]+)*(?:[-+][A-Za-z0-9.-]+)?)/gu)]
+      .map(match => ({start: [...source.slice(0, match.index)].length,
+        end: [...source.slice(0, match.index + match[0].length)].length}));
+    for (let i = 0, boundary = 1024; i < points.length; boundary += 1024) {
+      let end = Math.min(boundary, points.length);
+      const split = identifiers.find(token => token.start > i && token.start < end && end < token.end);
+      if (split) end = split.start;
+      chunks.push(literal(points.slice(i, end).join('')));
+      i = end;
+    }
     const limits = budget(f.value);
     const bytes = Buffer.byteLength(expected);
     lines.push(
