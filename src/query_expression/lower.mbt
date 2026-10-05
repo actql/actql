@@ -361,6 +361,14 @@ fn append_resolved(
               value
             }
           }
+        Property(child, name) =>
+          lowering.form(
+            "property",
+            lowering.object([
+              ("name", lowering.add(String(name.value))),
+              ("value", nodes[child]),
+            ]),
+          )
         ParameterReference(name) => {
           parameter = true
           lowering.form("$param", lowering.add(String(name)))

@@ -74,6 +74,7 @@ fn retained_transfer_edge() -> @publication_host.ClientRetainedInputEdge {
 fn retained_transfer_fixture(
   committed : Bool,
   edge? : @publication_host.ClientRetainedInputEdge? = None,
+  release? : Ref[(() -> Unit)?]? = None,
 ) -> (
   @publication_host.ClientRetainedInputProducer,
   @transfer.RemoteTransferRecord,
@@ -166,6 +167,14 @@ fn retained_transfer_fixture(
     @remote.prepare_durable_execution_evidence(record, evidence).unwrap(),
     true,
   ).unwrap()
+  if release is Some(callback) {
+    callback.val = Some(() => {
+      @remote.commit_dispatch_transition(
+        @remote.prepare_begin_remote_release(record).unwrap(),
+        true,
+      ).unwrap()
+    })
+  }
   let producer = @publication_host.prepare_client_retained_input_producer(
     edge, record, evidence, subject,
   ).unwrap()
@@ -222,6 +231,53 @@ fn retained_transfer_current(
     () => authority,
     () => 1791158400000L,
     (_, _) => true,
+  )
+}
+
+///|
+test "retained Transfer preflight checks current grants without asserting receiver commit" {
+  let (producer, transfer, receipt, site) = retained_transfer_fixture(false)
+  let request = @transfer.record_request(transfer)
+  let authorized = Ref(true)
+  let current = @publication_host.install_client_retained_input_current(
+    () => site,
+    () => standard_transfer_input_cid("c"),
+    () => 1791158400000L,
+    (_, _) => authorized.val,
+  )
+  @publication_host.validate_client_retained_input_transfer_current(
+    producer, request, current,
+  ).unwrap()
+  // Request admission must not loosen the existing binding commit boundary.
+  assert_true(
+    @publication_host.prepare_client_retained_task_input(
+      producer, transfer, receipt, "use-a", current, 262144,
+    )
+    is Err(@publication_host.TransferNotCommitted),
+  )
+  let before = @site.site_status(site)
+  authorized.val = false
+  assert_true(
+    @publication_host.validate_client_retained_input_transfer_current(
+      producer, request, current,
+    )
+    is Err(@publication_host.AuthorizationUnavailable),
+  )
+  let after = @site.site_status(site)
+  assert_eq(before[6], after[6])
+  assert_eq(before[7], after[7])
+  authorized.val = true
+  let expired = @publication_host.install_client_retained_input_current(
+    () => site,
+    () => standard_transfer_input_cid("c"),
+    () => 4102444800001L,
+    (_, _) => true,
+  )
+  assert_true(
+    @publication_host.validate_client_retained_input_transfer_current(
+      producer, request, expired,
+    )
+    is Err(@publication_host.TransferExpired),
   )
 }
 
@@ -689,4 +745,34 @@ test "owned retained input issues only its exact checked consumer dispatch" {
     )
     is Err(@publication_host.UnsupportedTask),
   )
+}
+
+///|
+test "retained Transfer refuses producer release during current authorization" {
+  let release : Ref[(() -> Unit)?] = Ref(None)
+  let (producer, transfer, _, site) = retained_transfer_fixture(
+    false,
+    release=Some(release),
+  )
+  let request = @transfer.record_request(transfer)
+  let before = @site.site_status(site)
+  let current = @publication_host.install_client_retained_input_current(
+    () => site,
+    () => standard_transfer_input_cid("c"),
+    () => 1791158400000L,
+    (_, _) => {
+      release.val.unwrap()()
+      true
+    },
+  )
+  assert_true(
+    @publication_host.validate_client_retained_input_transfer_current(
+      producer, request, current,
+    )
+    is Err(@publication_host.ProducerUnavailable),
+  )
+  assert_false(
+    @publication_host.client_retained_input_producer_available(producer),
+  )
+  assert_eq(@site.site_status(site)[6], before[6])
 }

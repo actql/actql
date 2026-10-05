@@ -55,6 +55,7 @@ export function buildClientHostWire(registry, protocol) {
     `const schemas = ${JSON.stringify(schemas, null, 2)};\n` +
     `const operationKeys = ${JSON.stringify(registry.operations, null, 2)};\n\n` +
     `export const checkReasonSchemaCid = ${JSON.stringify(protocol.artifact_schema_cids.check_reason)};\n` +
+    `export const checkOutcomeSchemaCid = ${JSON.stringify(protocol.artifact_schema_cids.check_outcome)};\n` +
     structuralValidatorSource() +
     `export const clientHostOperations = Object.freeze(` +
     `Object.keys(operationKeys));\n` +
@@ -67,7 +68,7 @@ export function buildClientHostWire(registry, protocol) {
     `export const validRunStateShape = value => ` +
     `valid(value, schemas.run_state);\n` +
     `export const validCheckOutcomeShape = value => ` +
-    `valid(value, schemas.check_outcome);\n`;
+    `valid(value, schemas.check_outcome) && value.outcome_schema_cid === checkOutcomeSchemaCid;\n`;
   const native = nativeClientWire(schemas, rules);
   const types = `// Generated from the registered Client–Host machine contract.\n` +
     `export type ClientHostOperation = ${operations.map(([name]) =>

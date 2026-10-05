@@ -397,6 +397,12 @@ fn same_expression(
         }
         pending.push((a_child, b_child))
       }
+      (Property(a_child, a_name), Property(b_child, b_name)) => {
+        if a_name.value != b_name.value {
+          return false
+        }
+        pending.push((a_child, b_child))
+      }
       _ => if a != b { return false }
     }
   }
@@ -781,6 +787,7 @@ fn output_name(
               }
               raise Abort(UnknownColumn)
             }
+            Property(_, name) => name.value
             _ => raise Abort(UnsupportedProjection)
           }
         None => raise Abort(UnsupportedProjection)
@@ -1007,6 +1014,7 @@ fn lower_aggregate_resolved(
   max_work : Int,
   max_collection_items : Int64,
   max_collection_bytes : Int64,
+  order_fields? : Array[String]? = None,
 ) -> @builder.Node raise Abort {
   let name = match call.function_name {
     "COUNT" => "count"
@@ -1080,17 +1088,23 @@ fn lower_aggregate_resolved(
       ),
     )
     let order : Array[@builder.Node] = []
-    for term in call.order_by {
+    for index in 0..<call.order_by.length() {
+      let term = call.order_by[index]
       let root = @query.expression_node(
         term.expression,
         @query.expression_root(term.expression),
       ).unwrap()
-      guard root.kind is Reference(path) else {
-        raise Abort(UnsupportedAggregate)
-      }
-      let field = match resolve(path) {
-        Some(field) => field
-        None => raise Abort(UnknownColumn)
+      let field = match order_fields {
+        Some(fields) => fields[index]
+        None => {
+          guard root.kind is Reference(path) else {
+            raise Abort(UnsupportedAggregate)
+          }
+          match resolve(path) {
+            Some(field) => field
+            None => raise Abort(UnknownColumn)
+          }
+        }
       }
       order.push(
         construction.object([
@@ -1119,6 +1133,7 @@ fn lower_aggregate(
   max_work : Int,
   max_collection_items : Int64,
   max_collection_bytes : Int64,
+  order_fields? : Array[String]? = None,
 ) -> @builder.Node raise Abort {
   lower_aggregate_resolved(
     construction,
@@ -1127,6 +1142,7 @@ fn lower_aggregate(
     max_work,
     max_collection_items,
     max_collection_bytes,
+    order_fields~,
   )
 }
 
@@ -1266,7 +1282,7 @@ fn same_analytic_window(
     return false
   }
   for index in 0..<left.partition_by.length() {
-    if !same_path(left.partition_by[index], right.partition_by[index]) {
+    if !same_expression(left.partition_by[index], right.partition_by[index]) {
       return false
     }
   }
@@ -1294,11 +1310,10 @@ fn lower_analytic(
 ) -> @builder.Node raise Abort {
   let call = projections[0].analytic.unwrap()
   let partitions : Array[@builder.Node] = []
-  for path in call.window.partition_by {
-    let field = match resolve(path) {
-      Some(field) => field
-      None => raise Abort(UnknownColumn)
-    }
+  for expression in call.window.partition_by {
+    let field = analytic_order_field(
+      construction, expression, resolve, reserved, evaluated, derives, max_work,
+    )
     partitions.push(construction.text(field))
   }
   let order : Array[@builder.Node] = []
@@ -2047,14 +2062,19 @@ fn compile_steps(
           // in star expansion. Validate against keys, before aggregate slots.
           raise Abort(UnsupportedGrouping)
         }
-        if !derives.is_empty() {
-          let derive_step : Array[(String, @builder.Node)] = []
-          if entries.length() == 1 {
-            derive_step.push(entries[0])
-            entries.clear()
+        let order_reserved = active_fields.copy() + key_names
+        for projection in projections {
+          if projection.name is Some(name) {
+            order_reserved.push(name.value)
           }
-          derive_step.push(("derive", construction.object(derives)))
-          step_entries.push(derive_step)
+        }
+        let order_evaluated : Array[(@query.Expression, String)] = []
+        let resolve_aggregate = path => {
+          if scoped {
+            pipe_slot(path, input_visible, input_ranges)
+          } else {
+            resolve_column(path, query, input, active_fields)
+          }
         }
         let aggregates : Array[(String, @builder.Node)] = []
         let result_fields : Array[String] = []
@@ -2071,6 +2091,10 @@ fn compile_steps(
                 aggregates.any(entry => entry.0 == name) {
                 raise Abort(DuplicateOutput)
               }
+              let order_fields = aggregate_order_fields(
+                construction, call, resolve_aggregate, order_reserved, order_evaluated,
+                derives, max_work,
+              )
               aggregates.push(
                 (
                   name,
@@ -2082,11 +2106,19 @@ fn compile_steps(
                       max_work,
                       max_collection_items,
                       max_collection_bytes,
+                      order_fields=Some(order_fields),
                     )
                   } else {
                     lower_aggregate(
-                      construction, call, query, input, active_fields, max_work,
-                      max_collection_items, max_collection_bytes,
+                      construction,
+                      call,
+                      query,
+                      input,
+                      active_fields,
+                      max_work,
+                      max_collection_items,
+                      max_collection_bytes,
+                      order_fields=Some(order_fields),
                     )
                   },
                 ),
@@ -2095,6 +2127,15 @@ fn compile_steps(
             }
             None => ()
           }
+        }
+        if !derives.is_empty() {
+          let derive_step : Array[(String, @builder.Node)] = []
+          if entries.length() == 1 {
+            derive_step.push(entries[0])
+            entries.clear()
+          }
+          derive_step.push(("derive", construction.object(derives)))
+          step_entries.push(derive_step)
         }
         entries.push(
           (
@@ -2485,6 +2526,7 @@ fn compile_steps(
                       @query.expression_root(expression),
                     ).unwrap().kind {
                     Reference(path) => path.last().unwrap().value
+                    Property(_, name) => name.value
                     _ => raise Abort(UnsupportedProjection)
                   }
               }
@@ -5263,8 +5305,10 @@ fn join_reference_paths(
   while pending.pop() is Some(index) {
     match @query.expression_node(expression, index).unwrap().kind {
       Reference(path) => paths.push(path)
-      Parenthesized(child) | Unary(_, child) | Cast(child, _) =>
-        pending.push(child)
+      Parenthesized(child)
+      | Unary(_, child)
+      | Cast(child, _)
+      | Property(child, _) => pending.push(child)
       Binary(_, left, right) => {
         pending.push(right)
         pending.push(left)
@@ -5331,9 +5375,11 @@ fn joined_projection(
     let name = match projection.name {
       Some(value) => value.value
       None =>
-        match reference {
-          Some(path) => path.last().unwrap().value
-          None => raise Abort(UnsupportedJoin)
+        match
+          @query.expression_node(expression, @query.expression_root(expression)).unwrap().kind {
+          Reference(path) => path.last().unwrap().value
+          Property(_, name) => name.value
+          _ => raise Abort(UnsupportedJoin)
         }
     }
     if output.any(field => ascii_upper(field) == ascii_upper(name)) {

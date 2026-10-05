@@ -24,21 +24,24 @@ try {
   const profilePath = process.env.ACTQL_NATIVE_CALIBRATION_PROFILE;
   const nativeEstimateProfile = profilePath
     ? JSON.parse(await readFile(profilePath, 'utf8')) : undefined;
+  const residentPath = process.env.ACTQL_NATIVE_RESIDENT_CALIBRATION_PROFILE;
+  const nativeResidentEstimateProfile = residentPath
+    ? JSON.parse(await readFile(residentPath, 'utf8')) : undefined;
   const pair = await runNativeDirectPair({checkout: root, fixture, database,
-    directory, index: 0, nativeEstimateProfile});
+    directory, index: 0, nativeEstimateProfile, nativeResidentEstimateProfile});
   assert.equal(pair.status, 'diagnostic-completed');
   assert.equal(pair.identityEqual, true);
   assert.equal(pair.metadataEqual, true);
   assert.equal(pair.stageRowsEqual, true);
   assert.equal(pair.stageContentsEqual, true);
-  assert.equal(pair.acceptanceEligible, Boolean(nativeEstimateProfile));
-  if (nativeEstimateProfile) {
+  assert.equal(pair.acceptanceEligible, Boolean(nativeEstimateProfile || nativeResidentEstimateProfile));
+  if (nativeEstimateProfile || nativeResidentEstimateProfile) {
     assert.equal(pair.nativeObligationAdmission?.accepted, true);
     assert.equal(pair.selectionProfile.admitted, true);
   }
   // A calibrated profile may select a different admitted physical plan.
   // runNativeDirectPair already verifies its exact ordinary selection.
-  if (!nativeEstimateProfile) {
+  if (!nativeEstimateProfile && !nativeResidentEstimateProfile) {
     assert.deepEqual(pair.native.selected, ['local', 'local', 'local']);
   }
   console.log('Direct Native product and independent assembly agree');

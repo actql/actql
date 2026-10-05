@@ -72,9 +72,12 @@ pub(all) enum ClientRetainedTaskInputIssue {
 }
 
 ///|
-fn retained_task_input_current(
+/// Validate the exact producer occurrence and current Transfer grants before
+/// physical handoff. A valid request is neither destination commit nor borrow
+/// evidence. Cleanup remains allowed through its already acquired owners.
+pub fn validate_client_retained_input_transfer_current(
   producer : ClientRetainedInputProducer,
-  transfer_record : @transfer.RemoteTransferRecord,
+  request : @transfer.RemoteTransferRequest,
   current : ClientRetainedInputCurrent,
 ) -> Result[Unit, ClientRetainedTaskInputIssue] {
   if !client_retained_input_producer_available(producer) {
@@ -83,7 +86,6 @@ fn retained_task_input_current(
   let current_authority = (current.authority)()
   let dispatch = client_retained_input_producer_dispatch(producer)
   let scope = @remote.dispatch_request_execution_scope(dispatch)
-  let request = @transfer.record_request(transfer_record)
   let facts = @transfer.request_projection(request)
   if !(current.site_binding_current)(scope[0], scope[1], scope[2]) ||
     facts[2] != scope[0] ||
@@ -117,6 +119,29 @@ fn retained_task_input_current(
   }
   if !(current.authorized)(producer, request) {
     return Err(AuthorizationUnavailable)
+  }
+  // Authorization can re-enter the producer owner and begin its release.
+  // Do not admit receiver work from the earlier availability observation.
+  if !client_retained_input_producer_available(producer) {
+    return Err(ProducerUnavailable)
+  }
+  Ok(())
+}
+
+///|
+fn retained_task_input_current(
+  producer : ClientRetainedInputProducer,
+  transfer_record : @transfer.RemoteTransferRecord,
+  current : ClientRetainedInputCurrent,
+) -> Result[Unit, ClientRetainedTaskInputIssue] {
+  match
+    validate_client_retained_input_transfer_current(
+      producer,
+      @transfer.record_request(transfer_record),
+      current,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   if !@transfer.record_is_destination_committed(transfer_record) {
     return Err(TransferNotCommitted)

@@ -8,7 +8,38 @@ const path = 'packages/sdk/index.mjs';
 const acceptance = 'adapters/host-node/client-submission-input.test.mjs';
 const cancellationAcceptance = 'adapters/host-node/client-cancel-response-loss.test.mjs';
 const checkAcceptance = 'adapters/host-node/client-check.test.mjs';
+const sdkAcceptance = 'packages/sdk/index.test.mjs';
 const expected = (phase, assertion = 'submission-input') => {
+  if (phase === 'check-operation-parameter') return ['local', 'http'].map(entrance => ({
+    name: `${entrance}: operation parameter violations explain owned domains and input origins`,
+    assertions: [{id: assertion, operator: 'deepStrictEqual'}],
+  }));
+  if (phase === 'check-frame-explanation') return ['local', 'http'].map(entrance => ({
+    name: `${entrance}: check explains owned invalid frame bounds`,
+    assertions: [{id: assertion, operator: 'deepStrictEqual'}],
+  }));
+  if (phase === 'check-locale-snapshot') return [{
+    name: 'check locale lookup cannot replace a copied observation during presentation',
+    assertions: [{id: assertion, operator: 'strictEqual'}],
+  }];
+  if (phase === 'check-locale-control' || phase === 'check-locale-fallback') {
+    return ['local', 'http'].map(entrance => ({
+      name: `${entrance}: check locales preserve observations and safe fallback`,
+      assertions: [{id: assertion, operator: 'deepStrictEqual'}],
+    }));
+  }
+  if (phase === 'check-problem-explanation') return ['local', 'http'].map(entrance => ({
+    name: `${entrance}: check Problems retain opaque attempt correlation`,
+    assertions: [{id: assertion, operator: 'strictEqual'}],
+  }));
+  if (phase === 'check-schema-pin') return ['local', 'http'].map(entrance => ({
+    name: `${entrance}: check outcome pins refuse mismatches with unchanged reason identity`,
+    assertions: [{id: assertion, operator: 'strictEqual'}],
+  }));
+  if (phase === 'check-location-domain') return ['local', 'http'].map(entrance => ({
+    name: `${entrance}: known check locations reject another submitted document`,
+    assertions: [{id: assertion, operator: 'deepStrictEqual'}],
+  }));
   if (phase === 'check-shape') {
     return [{name: 'local: check reply custody refuses uncloneable values and copied shape loss',
       assertions: [{id: assertion, operator: 'strictEqual'}]}];
@@ -61,6 +92,29 @@ const expected = (phase, assertion = 'submission-input') => {
   }));
 };
 const mutations = [
+  ['check operation parameter explanation loses its positive lower bound',
+    'Supply an integer from 1 through 9007199254740991.',
+    'Supply any finite number.', 'check-operation-parameter', 'operation-parameter-explanation'],
+  ['check frame explanation loses its owned interval condition',
+    'The analytic ROWS frame boundaries do not form a valid interval.',
+    'The query violates an unspecified contract.',
+    'check-frame-explanation', 'check-frame-explanation'],
+  ['check locale changes an observed invalid verdict into verification',
+    "return freezeInput({outcome: 'completed', summary, hint, report});",
+    "return freezeInput({outcome: 'completed', summary, hint, report: {...report, verdict: options?.locale === 'ja' ? 'verified' : report.verdict}});",
+    'check-locale-control', 'check-locale-control'],
+  ['check unsupported locale loses its safe English fallback',
+    "if (requested === 'ja' || requested === 'ja-JP') locale = 'ja';",
+    "locale = 'ja';", 'check-locale-fallback', 'check-locale-fallback'],
+  ['check locale reads copied observation fields after locale lookup',
+    "const report = reportExplanation(outcome.report, 'complete');\n" +
+      "    const [summary, hint] = localizeCheck(`completed.${report.verdict}`,\n" +
+      "      explanations[report.verdict], options);",
+    "const verdict = outcome.report.verdict;\n" +
+      "    const [summary, hint] = localizeCheck(`completed.${verdict}`,\n" +
+      "      explanations[verdict], options);\n" +
+      "    const report = reportExplanation(outcome.report, 'complete');",
+    'check-locale-snapshot', 'check-locale-snapshot'],
   ['unknown submit loses its original input',
     '  if (input) submissionInputs.set(result, input);', '', 'after-commit'],
   ['original supplied parameters are replaced by null',
@@ -155,6 +209,26 @@ const mutations = [
     "      catch { fail('InvalidHostCheckOutcome'); }",
     'check-shape', 'check-copied-shape'],
 
+  ['check response accepts a known location in another input document',
+    "      if (!validCheckOutcome(outcome)) fail('InvalidHostCheckOutcome');\n" +
+      "      // Own this call's value before binding or freezing it. A Local Host may\n" +
+      "      // reuse its response object without replacing a previous SDK observation.\n" +
+      "      try { outcome = structuredClone(outcome); }\n" +
+      "      catch { fail('InvalidHostCheckOutcome'); }\n" +
+      "      if (!validCheckOutcome(outcome)) fail('InvalidHostCheckOutcome');",
+    "      try { outcome = structuredClone(outcome); }\n" +
+      "      catch { fail('InvalidHostCheckOutcome'); }",
+    'check-location-domain', 'known-location-domain'],
+
+  ['check Problem explanation loses its opaque correlation',
+    "return freezeInput({outcome: 'failed', summary, hint, correlationRef, problem,",
+    "return freezeInput({outcome: 'failed', summary, hint, problem,",
+    'check-problem-explanation', 'check-problem-explanation'],
+  ['check outcome bypasses its schema identity pin',
+    'valid(value, schemas.check_outcome) && value.outcome_schema_cid === checkOutcomeSchemaCid;',
+    'valid(value, schemas.check_outcome);',
+    'check-schema-pin', 'check-outcome-pin'],
+
   ['frontier comparison discards the bound context',
     'return structuralKey(left) === structuralKey(right);',
     'return structuralKey({...left, contextRef: "ignored"}) === structuralKey({...right, contextRef: "ignored"});',
@@ -175,7 +249,8 @@ const mutations = [
 ];
 const accepted = (phase, assertion) => {
   const tests = expected(phase, assertion);
-  const file = phase.startsWith('frontier-') || phase.startsWith('check-') ? checkAcceptance
+  const file = phase === 'check-locale-snapshot' ? sdkAcceptance
+    : phase.startsWith('frontier-') || phase.startsWith('check-') ? checkAcceptance
     : phase.startsWith('cancellation-') ? cancellationAcceptance : acceptance;
   const result = spawnSync(process.execPath, ['scripts/local-checks.mjs', 'test', 'node',
     '--timeout-seconds', '120', '--', '--test-name-pattern',
@@ -189,16 +264,23 @@ if (args.length && (args.length !== 2 || args[0] !== '--match' || !args[1])) {
 }
 const selected = mutations.filter(([name]) => args.length === 0 || name.includes(args[1]));
 if (!selected.length) throw new Error('No SDK mutations selected');
-const original = readFileSync(path, 'utf8');
+const mutationPath = phase => phase === 'check-schema-pin'
+  ? 'packages/client-wire/client-host.generated.js'
+  : phase === 'check-locale-fallback' ? 'packages/sdk/check-presentation.mjs' : path;
+const originals = new Map(selected.map(([, , , phase]) => mutationPath(phase))
+  .map(file => [file, readFileSync(file, 'utf8')]));
 const results = [];
 try {
   for (const [name, from, to, phase, assertion] of selected) {
+    const file = mutationPath(phase);
+    const original = originals.get(file);
     if (original.split(from).length !== 2) throw new Error(`Mutation anchor not unique: ${name}`);
-    writeFileSync(path, original.replace(from, to));
+    writeFileSync(file, original.replace(from, to));
     results.push({name, phase, rejected: !accepted(phase, assertion)});
+    writeFileSync(file, original);
   }
 } finally {
-  writeFileSync(path, original);
+  for (const [file, original] of originals) writeFileSync(file, original);
 }
 const restorations = new Map(selected.map(([, , , phase, assertion]) =>
   [phase + ':' + (assertion ?? 'submission-input'), {phase, assertion}]));
