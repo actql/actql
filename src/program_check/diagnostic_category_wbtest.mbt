@@ -20,6 +20,48 @@ test "declaration usage limits retain their meaning from the existing Owner" {
 }
 
 ///|
+test "known invalid operation frames retain input classification and typed causes" {
+  for
+    (start, end) in [
+      ("{\"preceding\":{\"$param\":\"n\"}}", "{\"preceding\":2}"),
+      ("{\"following\":2}", "{\"following\":{\"$param\":\"n\"}}"),
+    ] {
+    try {
+      ignore(
+        local_construction_fixture(
+          { work: 10000000, bytes: 1000000, nodes: 100000, depth: 100, },
+          through_check=true,
+          parameters=true,
+          supplied=Some(supplied_fixture("{\"n\":1}")),
+          analytic_limit=Some(1000),
+          producer_suffix=",{\"analytic\":{\"partition_by\":[],\"order_by\":[{\"id\":\"asc\"}],\"frame\":{\"start\":" +
+            start +
+            ",\"end\":" +
+            end +
+            "},\"functions\":{\"answer\":{\"fn\":\"first_value\",\"expr\":\"value\"}}}},{\"select\":[\"id\",{\"value\":\"answer\"}],\"as\":\"selected\"}",
+          producer_result_from="selected",
+          extra_step_budget=3,
+        ),
+      )
+      fail("reversed frame produced a checked Program")
+    } catch {
+      Closure(Operations(Frames(InvalidFrame(_)))) as cause => {
+        guard rejected(cause) is Rejected(diagnostic) else {
+          fail("frame checking rejection became an input request")
+        }
+        assert_eq(diagnostic_category(diagnostic), InvalidInput)
+        assert_true(
+          diagnostic_cause(diagnostic)
+          is Closure(Operations(Frames(InvalidFrame(_)))),
+        )
+        assert_true(diagnostic_location(diagnostic) is None)
+      }
+      error => raise error
+    }
+  }
+}
+
+///|
 test "Graph query categories retain typed input limits and unknown failures" {
   let cases : Array[(@graph.MatchIssueKind, DiagnosticCategory)] = [
     (Structure(InvalidCount), InvalidInput),
@@ -44,6 +86,7 @@ test "Graph query categories retain typed input limits and unknown failures" {
     (Typing(BudgetExceeded), CompileLimit),
     (Value(BudgetExceeded), CompileLimit),
     (Value(UnsupportedReference), UnsupportedImplementation),
+    (Structure(UnsupportedGraphOperation), UnsupportedImplementation),
     (Structure(IncompleteGraph), UnclassifiedFailure),
     (Typing(InvalidScope("internal")), UnclassifiedFailure),
   ]
