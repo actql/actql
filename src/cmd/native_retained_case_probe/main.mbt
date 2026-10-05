@@ -609,7 +609,11 @@ fn main {
     _ => abort("invalid source read-only mode")
   }
   println(
-    "source-open-mode:" + if source_read_only { "read-only" } else { "read-write" },
+    if source_read_only {
+      "source-open-mode:read-only"
+    } else {
+      "source-open-mode:read-write"
+    },
   )
   let phase_events : Array[
     (@host.NativeStandardStrategyPhaseEvent, Int64, Int64),
