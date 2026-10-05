@@ -429,6 +429,37 @@ and remain undetermined in bound-input scope. Unsupported checking and budget
 exhaustion are not author errors. Inaccessible and absent installed Source aliases
 share unresolved coverage; an independent public violation remains visible.
 
+`getCheckRequirementFrontier(outcome)` retains the known public parameter
+Requirements of this exact completed SDK response. `equalCheckRequirementFrontiers(a, b)`
+compares their bound scope, opaque context reference, reason schema, typed
+obligation set and outstanding coverage. Requirement order, duplicates, fact-key
+order and optional presentation locations do not establish progress. Changed
+bindings or declarations change the bound context even when the remaining
+parameter names and expected types are identical. The returned observation is
+immutable; copied or partial reports are not comparable. The current closed
+wire schema rejects unknown Requirement codes and malformed known facts.
+
+```js
+import {createCheckSupplementationSession} from '@actql/sdk';
+const checks = createCheckSupplementationSession(client, {maxAttempts: 3});
+const result = await checks.check('SELECT @x AS n', {
+  format: 'sql', parameterDeclarations: {x: {type: 'number'}}, parameters: {},
+});
+// Present the unchanged Owner outcome, including its scope and verdict.
+console.log(result.outcome, result.decision);
+// After obtaining a value, explicitly call checks.check with the new bindings.
+```
+
+The session issues only the caller's explicit read-only checks. It stops after
+an unchanged frontier, a non-comparable response, no known supplementation path,
+or the total attempt cap, including across changing contexts. Failed attempts
+consume that cap; concurrent calls refuse before another attempt. A stopped
+session refuses further calls before transport I/O. `more_checks` indicates
+remaining local attempt capacity, not verification, progress, permission to
+execute or authority to write supplements. Per-call Owner analysis/reporting
+budgets still apply; the session does not measure total server work. It creates
+no submission lifecycle, Host input storage, public hash or new wire contract.
+
 The SDK detaches each validated check response before binding input snapshots
 and freezing the received observation. A Local Host can reuse its response
 objects; later replies cannot replace an earlier outcome, context, input or

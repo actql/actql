@@ -12,6 +12,7 @@ import {reviewBytesMatchCid, contentCid, checkedSigner, signedAnswer} from './ch
 // The response owns only a weak association to this call's immutable inputs.
 // A parsed/copied report has no such association and cannot resolve a location.
 const checkInputs = new WeakMap();
+const checkFrontiers = new WeakMap();
 // Original request data is available only through explicit SDK access, never
 // by serializing an error or Run handle. It does not establish acceptance.
 const submissionInputs = new WeakMap();
@@ -36,6 +37,78 @@ export function getCheckInput(outcome, documentId, revision) {
   const input = checkInputs.get(outcome)?.get(documentId);
   return input && (revision === undefined || input.revision === revision)
     ? input : undefined;
+}
+
+// Compare typed public obligations, never translated explanations or severity.
+const structuralKey = value => value !== null && typeof value === 'object'
+  ? Array.isArray(value) ? '[' + value.map(structuralKey).join(',') + ']'
+    : '{' + Object.keys(value).sort().map(key =>
+      JSON.stringify(key) + ':' + structuralKey(value[key])).join(',') + '}'
+  : JSON.stringify(value);
+const unordered = values => [...new Map(values.map(value =>
+  [structuralKey(value), value])).entries()].sort(([left], [right]) =>
+  left < right ? -1 : left > right ? 1 : 0).map(([, value]) => value);
+
+export function getCheckRequirementFrontier(outcome) {
+  if (!checkInputs.has(outcome) || outcome.outcome !== 'completed') return undefined;
+  if (checkFrontiers.has(outcome)) return checkFrontiers.get(outcome);
+  const report = outcome.report;
+  // These are the currently exposed typed Requirements. Unknown obligations
+  // cannot supply a structural admission condition for supplementation.
+  if (report.requirements.some(reason => reason.code !== 'parameter_value_required')) return undefined;
+  const frontier = freezeInput({contextRef: report.context_ref,
+    reasonSchemaCid: outcome.reason_schema_cid,
+    scope: {...report.scope}, requirements: unordered(report.requirements.map(({code, facts}) =>
+      ({code, facts}))),
+    coverage: {limits: unordered(report.coverage.limits),
+      unresolved: unordered(report.coverage.unresolved)}});
+  checkFrontiers.set(outcome, frontier);
+  return frontier;
+}
+
+export function equalCheckRequirementFrontiers(first, second) {
+  const left = getCheckRequirementFrontier(first);
+  const right = getCheckRequirementFrontier(second);
+  if (!left || !right) return undefined;
+  return structuralKey(left) === structuralKey(right);
+}
+
+// This bounds read-only checking, not an authoritative supplement write.
+export function createCheckSupplementationSession(client, {maxAttempts} = {}) {
+  if (typeof client?.check !== 'function' || !Number.isSafeInteger(maxAttempts) || maxAttempts < 1) {
+    fail('InvalidCheckSupplementationSession');
+  }
+  let attempts = 0, checking = false, previous, stopped;
+  return Object.freeze({
+    async check(text, options) {
+      if (checking) fail('CheckSupplementationBusy');
+      if (stopped || attempts >= maxAttempts) {
+        throw new ClientError('CheckSupplementationStopped', {
+          decision: stopped ?? Object.freeze({kind: 'stop', reason: 'attempt_budget'}),
+          attempts, maxAttempts});
+      }
+      checking = true;
+      attempts++;
+      try {
+        const outcome = await client.check(text, options);
+        const frontier = getCheckRequirementFrontier(outcome);
+        let reason;
+        if (!frontier) reason = 'frontier_unavailable';
+        else if (outcome.report.verdict !== 'undetermined' || frontier.requirements.length === 0) {
+          reason = 'no_known_supplement';
+        } else if (previous && structuralKey(previous) === structuralKey(frontier)) {
+          reason = 'unchanged_frontier';
+        } else if (attempts >= maxAttempts) reason = 'attempt_budget';
+        const decision = Object.freeze(reason === undefined
+          ? {kind: 'more_checks'} : {kind: 'stop', reason});
+        if (decision.kind === 'stop') stopped = decision;
+        previous = frontier;
+        return Object.freeze({outcome, attempts, decision});
+      } finally {
+        checking = false;
+      }
+    },
+  });
 }
 
 export function getSubmissionInput(result) {
