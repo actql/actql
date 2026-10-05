@@ -38,6 +38,21 @@ const scratch = new URL(packed ? './state/' : '../_build/property-graph-public-h
 await mkdir(scratch, {recursive:true});
 const cid = value => 'sha256:' + createHash('sha256').update(canonicalText(value)).digest('hex');
 
+// These authored Relation fixtures declare the following identity columns as
+// JSON and the path columns as ARRAY<JSON>. Apply the common JSON cell wire to
+// their independent semantic oracles, including retained Relation bytes. This
+// does not infer types from product rows or change Graph/Delta identity bodies.
+const graphIdentityRowWire = rows => rows.map(row => {
+  const wire = {...row};
+  for (const name of ['id','src','dst','start_id','end_id','node_id']) {
+    if (Object.hasOwn(row,name) && row[name] !== null) wire[name] = {$json:row[name]};
+  }
+  for (const name of ['node_ids','edge_ids']) {
+    if (Object.hasOwn(row,name)) wire[name] = row[name].map(value => ({$json:value}));
+  }
+  return wire;
+});
+
 // Independent definition preimage: source aliases become ordered occurrences;
 // input data is an inline VALUES definition here, not a bound Artifact or Run.
 const constructor = structuredClone(fixture.stages[0].steps[2].property_graph);
@@ -541,8 +556,8 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
           {format:'json',requestId:`${document.id}-${mode}`});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
-        assert.deepEqual(await run.result('answer').all(),expected);
-        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
+        assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
+        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),graphIdentityRowWire(expected));
         const observedColumns = (await run.result('answer').describe()).columns;
         assert.deepEqual(observedColumns.map(column=>column.name),fields);
         if (columns) assert.deepEqual(observedColumns,columns);
@@ -559,9 +574,9 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
         const expectedStores = operation === 'edge-group' ? [[6,retained]]
           : [[6,retained],[7,derived],[8,output]];
         for (const [task,rows] of expectedStores) {
-          const bytes = canonicalText(rows);
+          const bytes = canonicalText(graphIdentityRowWire(rows));
           assert.deepEqual(observed.find(entry=>entry.task === task),{
-            task,cid:cid(rows),bytes:Buffer.byteLength(bytes),
+            task,cid:cid(graphIdentityRowWire(rows)),bytes:Buffer.byteLength(bytes),
             verifiedReadBytes:Buffer.byteLength(bytes),rows:rows.length,
             sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true,
           },`${operation} retained task ${task}`);
@@ -585,8 +600,8 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
           {format:'json',requestId:`${document.id}-${mode}`});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
-        assert.deepEqual(await run.result('answer').all(),expected);
-        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
+        assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
+        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),graphIdentityRowWire(expected));
         assert.deepEqual((await run.result('answer').describe()).columns.map(column=>column.name),fields);
         assert.deepEqual(snapshots.get(run.ref.runDefinitionCid),
           [[3,presenceSnapshot],[5,target]].map(([task,bytes])=>({
@@ -602,9 +617,9 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
         // The dense edge suffix stays fused; its bridge output is still saved
         // and revoked before that suffix, without inventing another checkpoint.
         for (const task of projection === 'node_rows' ? [6,7] : [6]) {
-          const bytes = canonicalText(retained);
+          const bytes = canonicalText(graphIdentityRowWire(retained));
           assert.deepEqual(observed.find(entry=>entry.task === task),{
-            task,cid:cid(retained),bytes:Buffer.byteLength(bytes),
+            task,cid:cid(graphIdentityRowWire(retained)),bytes:Buffer.byteLength(bytes),
             verifiedReadBytes:Buffer.byteLength(bytes),rows:retained.length,
             sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true,
           });
@@ -631,8 +646,8 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
           {format:'json',requestId:`${document.id}-${mode}`});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
-        assert.deepEqual(await run.result('answer').all(),expected);
-        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
+        assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
+        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),graphIdentityRowWire(expected));
         assert.deepEqual((await run.result('answer').describe()).columns.map(column=>column.name),columns);
         assert.deepEqual(snapshots.get(run.ref.runDefinitionCid),[[graphTasks[0],full],[graphTasks[1],full],[graphTasks[2],snapshot]].map(([task,bytes])=>({
           task,cid:cid(JSON.parse(bytes)),bytes:Buffer.byteLength(bytes),verifiedReadBytes:Buffer.byteLength(bytes),
@@ -640,8 +655,8 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
         })));
         const streams = relationTasks.map(task=>[task,retained]);
         assert.deepEqual(relationSnapshots.get(run.ref.runDefinitionCid),streams.map(([task,rows])=>{
-          const bytes=canonicalText(rows);
-          return {task,cid:cid(rows),bytes:Buffer.byteLength(bytes),verifiedReadBytes:Buffer.byteLength(bytes),
+          const bytes=canonicalText(graphIdentityRowWire(rows));
+          return {task,cid:cid(graphIdentityRowWire(rows)),bytes:Buffer.byteLength(bytes),verifiedReadBytes:Buffer.byteLength(bytes),
             rows:rows.length,sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true};
         }));
         assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
@@ -655,15 +670,15 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
           {format:'json',requestId:`${document.id}-${mode}`});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
-        assert.deepEqual(await run.result('answer').all(),expected);
-        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
+        assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
+        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),graphIdentityRowWire(expected));
         assert.deepEqual((await run.result('answer').describe()).columns,
           [{name:'person_key',contract:number},
             {name:'m',contract:{type:'number',nullable:true}},{name:'n',contract:number}]);
         assert.deepEqual(relationSnapshots.get(run.ref.runDefinitionCid),
           [[4,before],[5,expected]].map(([task,rows])=>{
-            const bytes = canonicalText(rows);
-            return {task,cid:cid(rows),bytes:Buffer.byteLength(bytes),
+            const bytes = canonicalText(graphIdentityRowWire(rows));
+            return {task,cid:cid(graphIdentityRowWire(rows)),bytes:Buffer.byteLength(bytes),
               verifiedReadBytes:Buffer.byteLength(bytes),rows:rows.length,
               sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true};
           }));
@@ -698,14 +713,14 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
           {format:'json',requestId:`${document.id}-${mode}`});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
-        assert.deepEqual(await run.result('answer').all(),expected);
-        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
+        assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
+        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),graphIdentityRowWire(expected));
         assert.deepEqual((await run.result('answer').describe()).columns,
           [{name:'person_key',contract:number}]);
         assert.deepEqual(relationSnapshots.get(run.ref.runDefinitionCid),
           [[4,before],[5,whole ? before : expected]].map(([task,rows])=>{
-            const bytes = canonicalText(rows);
-            return {task,cid:cid(rows),bytes:Buffer.byteLength(bytes),
+            const bytes = canonicalText(graphIdentityRowWire(rows));
+            return {task,cid:cid(graphIdentityRowWire(rows)),bytes:Buffer.byteLength(bytes),
               verifiedReadBytes:Buffer.byteLength(bytes),rows:rows.length,
               sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true};
           }));
@@ -746,8 +761,8 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
           {format:'json',requestId:`${document.id}-${mode}`});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
-        assert.deepEqual(await run.result('answer').all(),expected);
-        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
+        assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
+        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),graphIdentityRowWire(expected));
         const columns = (await run.result('answer').describe()).columns;
         assert.deepEqual(columns.map(column=>column.name),['id','z']);
         assert.equal(columns[1].contract.nullable,projection === 'node_rows');
@@ -756,8 +771,8 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
           : selector === 'fixture' ? [[3,retained],[4,retained],[5,derived]]
           : [[4,retained],[6,derived]];
         assert.deepEqual(relationSnapshots.get(run.ref.runDefinitionCid),stages.map(([task,rows])=>{
-          const bytes=canonicalText(rows);
-          return {task,cid:cid(rows),bytes:Buffer.byteLength(bytes),verifiedReadBytes:Buffer.byteLength(bytes),
+          const bytes=canonicalText(graphIdentityRowWire(rows));
+          return {task,cid:cid(graphIdentityRowWire(rows)),bytes:Buffer.byteLength(bytes),verifiedReadBytes:Buffer.byteLength(bytes),
             rows:rows.length,sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true};
         }));
       }
@@ -783,16 +798,16 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
           {format:'json',requestId:`${document.id}-${mode}`});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
-        assert.deepEqual(await run.result('answer').all(),expected);
-        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
+        assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
+        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),graphIdentityRowWire(expected));
         assert.deepEqual((await run.result('answer').describe()).columns.map(column=>column.name),
           ['id','labels','person_key']);
         // Save each sparse intermediate through the real Relation Store,
         // revoke source cell access, and reload before the next operation.
         assert.deepEqual(relationSnapshots.get(run.ref.runDefinitionCid),
           expectedSnapshots.map((rows,index)=>{
-            const bytes = canonicalText(rows);
-            return {task:4+index,cid:cid(rows),bytes:Buffer.byteLength(bytes),
+            const bytes = canonicalText(graphIdentityRowWire(rows));
+            return {task:4+index,cid:cid(graphIdentityRowWire(rows)),bytes:Buffer.byteLength(bytes),
               verifiedReadBytes:Buffer.byteLength(bytes),rows:rows.length,
               sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true};
           }));
@@ -847,7 +862,7 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
     // once; the two ordered two-hop permutations survive. No order is invented.
     const expected = [[10,11],[11,10]].map(keys => ({start_id:identity('N',1),end_id:identity('N',1),
       hop_count:2,node_ids:[identity('N',1),identity('N',1),identity('N',1)],edge_ids:keys.map(key=>identity('E',key))}));
-    assert.deepEqual(rows.map(canonicalText).sort(),expected.map(canonicalText).sort());
+    assert.deepEqual(rows.map(canonicalText).sort(),graphIdentityRowWire(expected).map(canonicalText).sort());
     await assertSnapshot(paths);
 
     // Definitions, not sample values or IS NOT NULL, determine row presence.
@@ -880,7 +895,7 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
         : [10,11].map(key=>({id:presenceIdentity('E',[key,'a'],['number','string']),labels:['Link']}));
       // node_rows/edge_rows preserve canonical Graph identity order. Compare
       // the ordered oracle directly; sorting would hide a transport regression.
-      assert.deepEqual(actual,expected);
+      assert.deepEqual(actual,graphIdentityRowWire(expected));
       assert.deepEqual((await projected.result('answer').describe()).columns.map(column=>column.name),['id','labels']);
       // The installed route saves the Graph, revokes its source, reloads it,
       // and feeds ordinary Relation projection before public publication.
@@ -888,28 +903,28 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
       // This is Relation retention, not the preceding Graph snapshot. The
       // exact full stream is saved, original cell access is refused, then the
       // same completion is imported and only guaranteed columns are projected.
-      const stream = canonicalText(presenceRows[projection]);
+      const stream = canonicalText(graphIdentityRowWire(presenceRows[projection]));
       assert.deepEqual(relationSnapshots.get(projected.ref.runDefinitionCid),[
-        {task:4,cid:cid(presenceRows[projection]),bytes:Buffer.byteLength(stream),
+        {task:4,cid:cid(graphIdentityRowWire(presenceRows[projection])),bytes:Buffer.byteLength(stream),
           verifiedReadBytes:Buffer.byteLength(stream),rows:presenceRows[projection].length,
           sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true},
       ]);
-      assert.deepEqual(await (await client.attach(projected.ref)).result('answer').all(),expected);
+      assert.deepEqual(await (await client.attach(projected.ref)).result('answer').all(),graphIdentityRowWire(expected));
     }
     for (const projection of ['node_rows','edge_rows']) for (const [empty,alternate] of [[false,false],[true,false],[false,true]]) {
       const {document,retained,expected,snapshot,key} = definitionScenario(projection,empty,alternate);
       const run = await client.aql(canonicalText(document),{format:'json',requestId:`${document.id}-${alternate}-${mode}`});
       const state = await run.wait();
       assert.equal(state.status,'succeeded',JSON.stringify(state));
-      assert.deepEqual(await run.result('answer').all(),expected);
-      assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
+      assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
+      assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),graphIdentityRowWire(expected));
       const columns = (await run.result('answer').describe()).columns;
       assert.deepEqual(columns.map(column=>column.name),['id',key,'value']);
       assert.deepEqual(columns[2].contract,projection==='node_rows' && !alternate ? {type:'number',nullable:true} : number);
       await assertSnapshot(run,3,'sha256:'+createHash('sha256').update(snapshot).digest('hex'),snapshot);
-      const stream = canonicalText(retained);
+      const stream = canonicalText(graphIdentityRowWire(retained));
       assert.deepEqual(relationSnapshots.get(run.ref.runDefinitionCid),[
-        {task:4,cid:cid(retained),bytes:Buffer.byteLength(stream),verifiedReadBytes:Buffer.byteLength(stream),
+        {task:4,cid:cid(graphIdentityRowWire(retained)),bytes:Buffer.byteLength(stream),verifiedReadBytes:Buffer.byteLength(stream),
           rows:retained.length,sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true},
       ]);
     }
@@ -928,15 +943,15 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
       const run = await client.aql(canonicalText(document),{format:'json',requestId:`${document.id}-${mode}`});
       const state = await run.wait();
       assert.equal(state.status,'succeeded',JSON.stringify(state));
-      assert.deepEqual(await run.result('answer').all(),expected);
-      assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
+      assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
+      assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),graphIdentityRowWire(expected));
       const columns = (await run.result('answer').describe()).columns;
       assert.deepEqual(columns.map(column=>column.name),['id','value']);
       assert.deepEqual(columns[1].contract,projection==='node_rows' ? {type:'number',nullable:true} : number);
       await assertSnapshot(run,3,'sha256:'+createHash('sha256').update(snapshot).digest('hex'),snapshot);
-      const stream = canonicalText(retained);
+      const stream = canonicalText(graphIdentityRowWire(retained));
       assert.deepEqual(relationSnapshots.get(run.ref.runDefinitionCid),[
-        {task:4,cid:cid(retained),bytes:Buffer.byteLength(stream),verifiedReadBytes:Buffer.byteLength(stream),
+        {task:4,cid:cid(graphIdentityRowWire(retained)),bytes:Buffer.byteLength(stream),verifiedReadBytes:Buffer.byteLength(stream),
           rows:retained.length,sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true},
       ]);
     }
@@ -1019,16 +1034,16 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
       assert.equal(state.status,'succeeded',JSON.stringify(state));
       const expected = scenario.rows.map(({start_key,node_key,depth})=>({
         start_id:traversalIdentity('N',start_key),node_id:traversalIdentity('N',node_key),depth}));
-      assert.deepEqual(await traversed.result('answer').all(),expected,scenario.name);
+      assert.deepEqual(await traversed.result('answer').all(),graphIdentityRowWire(expected),scenario.name);
       assert.deepEqual((await traversed.result('answer').describe()).columns.map(column=>column.name),
         ['start_id','node_id','depth']);
       await assertSnapshot(traversed,2,cid(JSON.parse(traversalSnapshot)),traversalSnapshot);
-      const stream=canonicalText(expected);
+      const stream=canonicalText(graphIdentityRowWire(expected));
       assert.deepEqual(relationSnapshots.get(traversed.ref.runDefinitionCid),[
-        {task:scenario.relation_start ? 4 : 3,cid:cid(expected),bytes:Buffer.byteLength(stream),verifiedReadBytes:Buffer.byteLength(stream),
+        {task:scenario.relation_start ? 4 : 3,cid:cid(graphIdentityRowWire(expected)),bytes:Buffer.byteLength(stream),verifiedReadBytes:Buffer.byteLength(stream),
           rows:expected.length,sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true},
       ]);
-      assert.deepEqual(await (await client.attach(traversed.ref)).result('answer').all(),expected,scenario.name);
+      assert.deepEqual(await (await client.attach(traversed.ref)).result('answer').all(),graphIdentityRowWire(expected),scenario.name);
     }
   });
 }
