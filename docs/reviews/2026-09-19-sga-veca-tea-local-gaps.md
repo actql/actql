@@ -765,12 +765,12 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Registered operations | 69 |
-| Executable production routes | 60 |
-| Typed pre-execution refusals (not execution success) | 9 |
-| Operation-specific boundary records | 60 |
-| Four-role lifecycle assurance | 59 |
-| Full route work/workspace assurance | 59 |
-| Path-scoped work/workspace assurance | 111 |
+| Executable production routes | 61 |
+| Typed pre-execution refusals (not execution success) | 8 |
+| Operation-specific boundary records | 61 |
+| Four-role lifecycle assurance | 60 |
+| Full route work/workspace assurance | 60 |
+| Path-scoped work/workspace assurance | 112 |
 | Selected-only assurance | 1 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -960,6 +960,15 @@ Result. The retained producer and two consumers then publish the fixed order
 work or intermediate ownership model. This is not blanket admission of
 order-sensitive children with unresolved ties.
 
+Partitioned `top_k_by` now uses that same one-task fork when its exact
+candidate-key assertion and selected bounded provider apply. The authored
+Append output has distinct IDs and two `origin` partitions; the ranked result
+feeds both a filtered branch and a second projection before the branches
+rejoin. The retained Store Host checks the producer and two consumer Named
+Results against the independent ordered IDs `[4,2,4]`; the focused fixture
+checks memory and retained selection, task identity, and final cleanup. This
+does not admit a missing candidate key or replace the selected ranking kernel.
+
 The same selected fork owner accepts bounded `lag`, `watermark_rows`, and
 `json_pick` children when their checked Relation inputs and obligations match.
 Three separate authored Append forks filter on `previous`, `watermark_late`,
@@ -992,6 +1001,15 @@ the existing bounded group provider; it does not mark every analytic as an
 independently splittable task.
 These routes do not extend the numeric SUM/AVG profile or prove every frame
 and pivot variant.
+
+The checked fixed Row Window followed by Window Group also stays in the
+existing one-task bounded fork. Its grouped count output is filtered on `n`,
+reused by a second projection, and appended before retention. With input
+IDs `[1,2,3,4]` and width 2, the standard Host reads the producer and two
+consumer Named Results from the real Store in the fixed window-start order
+`[2,0,2,4]`, with counts `[2,1,2,1]`. The focused memory/retained fixture
+checks the same physical task and cleanup. This adds product evidence for
+the existing provider, not support for every window shape or aggregate.
 
 The same existing bounded owner also executes a checked Nest after Append,
 then reuses its nested output in two branches before rejoining. The Nest
@@ -3025,14 +3043,14 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | Coverage state | Count |
 |---|---:|
 | `contract` | 40/40 |
-| `checker` | 26/40 |
-| `lowering` | 26/40 |
-| `kernel` | 26/40 |
-| `managed` | 26/40 |
+| `checker` | 27/40 |
+| `lowering` | 27/40 |
+| `kernel` | 27/40 |
+| `managed` | 27/40 |
 | `standard_host` | 25/40 |
 | `consumer_lifetime` | 25/40 |
-| `resources` | 31/40 |
-| `cancellation` | 31/40 |
+| `resources` | 32/40 |
+| `cancellation` | 32/40 |
 | `publication` | 25/40 |
 | `three_targets` | 20/40 |
 | complete operations | 19/40 |
@@ -3472,7 +3490,35 @@ typed Relation input and consumes that exact delta as its second input. The
 applied Graph reaches two overlapping downstream Relation consumers and the
 formal Named Result publication path on JS, Wasm, and native. Independent
 release and retryable cleanup return execution, retention, and held-byte
-ledgers to zero. `apply_graph_delta` is complete.
+ledgers to zero. That completion claim describes the historical tuple profile,
+not the current Property Graph implementation.
+
+The current complete-record path uses the formal Property Graph snapshot CID
+and the checked Graph/Relation mixed input ports. Conversion, one-use handoff,
+application and completion share one bounded work owner. Current portable
+fixtures cover exact/one-short control work, cancellation at the handoff,
+borrowed-input lifetime, invalid installed capacity/overflow and repeat cleanup.
+Source public Local/HTTPS acceptance saves and reloads both the Graph and the
+intermediate Relation, preserving parallel-edge identity, composite key aliases
+and omission versus explicit NULL. Malformed, wrong-base and wrong-target
+inputs fail without exposing a partial result and confirm physical stop and
+temporary resource reclamation. Focused clean-revision packed Local/HTTPS and
+selected JS/Wasm/native Delta checks are revision-bound evidence, not a full
+SGA campaign. The real installed Local Host also delivers timer cancellation
+after positive work in conversion and, separately, after bounded application
+progress. Both cases withhold Delta completion, confirm physical stop and
+return held/reserved bytes without resuming Compute on repeated cleanup.
+This is not SDK cancel-response-loss or cleanup-I/O-failure acceptance.
+The registered managed Delta route now checks independently calculated exact
+combined logical workspace (71,951 slots) and one-short rejection before work,
+for both ordinary and selected sequences. Its fixture includes simultaneous
+Relation conversion, snapshot indexes, base-body admission, provisional Storage,
+complete-before comparison, staged output and action-identity continuations.
+The registered four-role and work/workspace records name these current fixtures;
+they do not establish that Wasm/native or hosted CI ran at a later source SHA.
+Published final-revision acceptance and source/physical-resource assurance
+remain separate obligations. The installed Delta workspace is a logical
+reservation, not a count proof or a total-heap theorem.
 Reach retains its typed start identity, direction, and finite depth.
 Its two stable output-ordering phases now resume typed identity comparisons
 one bounded unit at a time. A long common-prefix fixture checks quantum-one

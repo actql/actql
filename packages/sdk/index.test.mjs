@@ -27,6 +27,14 @@ test('constraint explanations use owned families without choosing a failed numer
   'Correct the value to satisfy the declared constraint family.');
 });
 
+test('Boolean predicate explanations retain the requirement without exposing input text', () => {
+  assert.deepEqual(explainCheckReason({code: 'query_expression_invalid',
+    facts: {issue: 'expected_boolean', value: 'private-predicate'}}),
+  {kind: 'known', summary: 'A predicate must have Boolean type.',
+    hint: 'Use a Boolean condition, such as a comparison, in the predicate.'});
+  assert.equal(explainCheckReason({code: 'future_code', facts: {issue: 'expected_boolean'}}).kind, 'unknown');
+});
+
 test('Graph explanations require a known operation and owned issue', () => {
   assert.deepEqual(explainCheckReason({code: 'graph_operation_invalid',
     facts: {operation: 'components', issue: 'invalid_kind'}}),
@@ -1158,11 +1166,30 @@ test('check retains detached submitted inputs while credentials are pending', as
 });
 
 // Compile an independent public consumer, including invalid reference/write uses.
+test('typed predicate diagnostics remain accessible through the SDK contract', () => {
+  execFileSync(process.execPath, [fileURLToPath(new URL(
+    '../../node_modules/typescript/bin/tsc', import.meta.url)),
+  '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
+  '--target', 'ES2022', fileURLToPath(new URL(
+    './predicate-reason.typecheck.mts', import.meta.url))],
+  {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
+});
+
 test('typed submission explanations preserve reference roles and read-only targets', () => {
   execFileSync(process.execPath, [fileURLToPath(new URL(
     '../../node_modules/typescript/bin/tsc', import.meta.url)),
   '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
   '--target', 'ES2022', fileURLToPath(new URL(
     './submission-explanation.typecheck.mts', import.meta.url))],
+  {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
+});
+
+
+test('typed cancellation explanations preserve observation-only targets', () => {
+  execFileSync(process.execPath, [fileURLToPath(new URL(
+    '../../node_modules/typescript/bin/tsc', import.meta.url)),
+  '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
+  '--target', 'ES2022', fileURLToPath(new URL(
+    './cancellation-explanation.typecheck.mts', import.meta.url))],
   {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
 });
