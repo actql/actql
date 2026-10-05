@@ -994,6 +994,7 @@ fn[T : RelationRows] run_sequence_steps(
         evaluate(i, kernel, parent.table, child.table)
       }
       @lower.GraphMatchStep(_) => return Err(InputSet)
+      @lower.GraphSubgraphStep(_) => return Err(InputSet)
       @lower.GraphTraverseStep(_) => return Err(InputSet)
       @lower.GraphDiagnosticStep(_) => return Err(InputSet)
       @lower.GraphNormalizeStep(_) => return Err(InputSet)

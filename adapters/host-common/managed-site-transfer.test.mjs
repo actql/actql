@@ -167,7 +167,8 @@ function coreFor(input, logicalMaterial, events = []) {
     transferRecordSiteHoldingRelease(progress) {
       if (!progress.destinationHoldingAcquired ||
           !progress.destinationReclaimed ||
-          !progress.transfer.released) return false;
+          (progress.transfer.completed ? !progress.transfer.released :
+            progress.transfer.reservationOpen)) return false;
       progress.destinationHoldingReleased = true;
       return true;
     },
@@ -211,12 +212,13 @@ function coreFor(input, logicalMaterial, events = []) {
         return 12;
       }
       if (transfer.reservationOpen) return 9;
+      if (!siteHoldingReleased) return 11;
       return 12;
     },
   });
 }
 
-function setup(provider, sourceSite = site('source'), destinationSite = site('destination')) {
+function setup(provider, sourceSite = site('source'), destinationSite = site('destination'), control = siteControl) {
   const contribution = Object.freeze({
     registration: Object.freeze({}),
     managedSelectionKey: 'consumer',
@@ -229,7 +231,7 @@ function setup(provider, sourceSite = site('source'), destinationSite = site('de
       contract: managedMemoryTransferContract,
       ...provider,
     }),
-  }), [contribution], siteControl);
+  }), [contribution], control);
   return {sourceSite, destinationSite, contribution, installation};
 }
 
@@ -1019,3 +1021,67 @@ test('in-process transfer between unprotected Sites is covered', async () => {
   assert.equal(gate.counters().coveredOperations, 1);
   assert.equal(hostCalls, 0);
 });
+
+for (const releaseFails of [false, true]) {
+  test(`completion refusal releases the Site holding${releaseFails ? ' after a failed release' : ' acquired before the receipt'}`, async () => {
+    const input = {}, logicalMaterial = {}, sourceMaterial = {};
+    let closed = false;
+    let releaseCalls = 0;
+    const releaseFailure = new Error('Site holding release failed');
+    const control = {
+      ...siteControl,
+      releaseHolding(value) {
+        releaseCalls++;
+        if (releaseFails && releaseCalls === 1) throw releaseFailure;
+        return siteControl.releaseHolding(value);
+      },
+    };
+    const context = setup({
+      estimate: () => estimate,
+      async copy() {
+        return {
+          material: {}, generation: {}, rows: 1, batches: 1,
+          maxBatchRows: 1, maxBatchBytes: 64, bytes: 0n, retainedBytes: 8n,
+          status: () => ({released: closed}),
+          async close() { closed = true; },
+        };
+      },
+    }, undefined, undefined, control);
+    const {candidate} = candidateFor(context, sourceMaterial, logicalMaterial);
+    const events = [];
+    const failure = Object.assign(new Error('source output revoked'), {code: 'MissingOutput'});
+    const core = {
+      ...coreFor(input, logicalMaterial, events),
+      transferComplete() { throw failure; },
+    };
+    const coordinator = createManagedSiteTransferCoordinator({}, core, context.installation);
+    const error = await coordinator.resolve(candidate, [input]).catch(value => value);
+    assert.equal(error.primaryFailure, failure);
+    assert.equal(error.cleanupPending, true);
+    assert.equal(executionSiteStatus(context.destinationSite).holdings, 1);
+    beginExecutionSiteTeardown(context.destinationSite);
+    assert.equal(executionSiteStatus(context.destinationSite).teardownComplete, false);
+    if (releaseFails) {
+      const pending = await error.cleanupHandle.retry();
+      assert.equal(pending.pending, true);
+      assert(pending.errors.includes(releaseFailure));
+      assert.equal(executionSiteStatus(context.destinationSite).holdings, 1);
+      assert.equal(executionSiteStatus(context.destinationSite).teardownComplete, false);
+    }
+    assert.equal((await error.cleanupHandle.retry()).pending, false);
+    assert.equal(closed, true);
+    assert.equal(events.filter(([name]) => name === 'abort').length, 1);
+    assert.equal(events.some(([name]) => name === 'release'), false);
+    assert.equal(executionSiteStatus(context.sourceSite).activeTransfers, 0);
+    assert.equal(executionSiteStatus(context.destinationSite).activeTransfers, 0);
+    assert.equal(executionSiteStatus(context.destinationSite).holdings, 0);
+    assert.equal(executionSiteStatus(context.destinationSite).heldBytes, 0n);
+    assert.equal(executionSiteStatus(context.destinationSite).cleanupResponsibilities, 0);
+    assert.equal(executionSiteStatus(context.destinationSite).reservedRetentionBytes, 0n);
+    assert.equal(executionSiteStatus(context.destinationSite).reservedExecutionBytes, 0n);
+    assert.equal(executionSiteStatus(context.destinationSite).teardownComplete, true);
+    assert.equal((await error.cleanupHandle.retry()).pending, false);
+    assert.equal(events.filter(([name]) => name === 'abort').length, 1);
+    assert.equal(releaseCalls, releaseFails ? 2 : 1);
+  });
+}

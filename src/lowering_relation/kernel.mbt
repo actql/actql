@@ -344,6 +344,7 @@ fn prepare_kernel_measured(
     | GraphEqualityRows(_)
     | GraphNormalizeValue(_)
     | GraphComponentsRows(_)
+    | GraphSubgraphValue(_)
     | GraphTraverseRows(_)
     | PropertyGraphConstructionValue(_)
     | VectorValue(_)

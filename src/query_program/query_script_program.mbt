@@ -227,6 +227,7 @@ pub fn compile_query_script(
                 reserved,
                 output,
                 known~,
+                graphs~,
               )
               known = known.filter(input => {
                 !(input.relation.length() == 1 &&
@@ -344,6 +345,7 @@ pub fn compile_query_script(
           reserved,
           "aql_script_result",
           known=stage_known,
+          graphs~,
           retained=Some(retained),
         )
       } else if @query.graph_query(current) is Some(_) {

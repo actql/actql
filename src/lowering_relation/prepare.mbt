@@ -67,6 +67,7 @@ pub enum Payload {
   GraphEqualityRows(@graph.CheckedPropertyEquality)
   GraphNormalizeValue(@graph.CheckedNormalize)
   GraphComponentsRows(@graph.CheckedComponents)
+  GraphSubgraphValue(@graph.CheckedSubgraph)
   GraphTraverseRows(@graph.CheckedTraverse)
   PropertyGraphConstructionValue(@graph.CheckedPropertyConstruction)
   VectorValue(@vector.CheckedVector)
@@ -224,6 +225,7 @@ pub fn operation(value : PreparedNode) -> String {
     GraphEqualityRows(_) => "SGA.equal"
     GraphNormalizeValue(_) => "SGA.normalize"
     GraphComponentsRows(_) => "SGA.components"
+    GraphSubgraphValue(_) => "SGA.subgraph"
     GraphTraverseRows(_) => "SGA.traverse"
     PropertyGraphConstructionValue(_) => "BRIDGE.rows.to_property_graph"
     VectorValue(value) =>
@@ -302,6 +304,7 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     GraphEquality(checked~, ..) => Some(GraphEqualityRows(checked))
     GraphNormalize(value) => Some(GraphNormalizeValue(value))
     GraphComponents(value) => Some(GraphComponentsRows(value))
+    Subgraph(checked~, ..) => Some(GraphSubgraphValue(checked))
     Traverse(checked~, ..) => Some(GraphTraverseRows(checked))
     Pool(value) => Some(PoolValue(value))
     Nearest(checked~, ..) => Some(NearestValue(checked))
@@ -432,6 +435,16 @@ pub fn prepare(
       GraphEqualityRows(_) => ("graphs_equal", 2)
       GraphNormalizeValue(_) => ("normalize_graph", 1)
       GraphComponentsRows(_) => ("components", 1)
+      GraphSubgraphValue(checked) =>
+        (
+          "subgraph",
+          if @graph.selector_form(@graph.subgraph_nodes(checked))
+            is @graph.RelationIds(..) {
+            2
+          } else {
+            1
+          },
+        )
       GraphTraverseRows(checked) =>
         (
           "traverse",
@@ -642,6 +655,7 @@ pub fn prepare(
       | GraphDegreeRows(_)
       | GraphEqualityRows(_)
       | GraphComponentsRows(_) => None
+      GraphSubgraphValue(_) => None
       GraphNormalizeValue(_) => None
       GraphTraverseRows(_) => None
       PropertyGraphConstructionValue(_) => None

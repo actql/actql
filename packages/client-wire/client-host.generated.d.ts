@@ -335,6 +335,8 @@ export type WireCheckOutcomeShape = Readonly<{
 }> | Readonly<{
   parameter: string;
   constraint: "numeric" | "duration" | "array_length" | "array_size";
+}> | Readonly<{
+  issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter";
 }>;
 }>[];
   requirements: readonly Readonly<{
@@ -364,6 +366,8 @@ export type WireCheckOutcomeShape = Readonly<{
 }> | Readonly<{
   parameter: string;
   constraint: "numeric" | "duration" | "array_length" | "array_size";
+}> | Readonly<{
+  issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter";
 }>;
 }>[];
   scope: Readonly<{
@@ -371,7 +375,7 @@ export type WireCheckOutcomeShape = Readonly<{
 }>;
   verdict: "invalid" | "undetermined" | "verified";
 }>;
-  reason_schema_cid: "sha256:1565f0b7e8e32f70d97905797ccc37a872b08116c0ef3d9599e4e4509b568621";
+  reason_schema_cid: "sha256:16c81ff351a5c3d1fa56757c3c9936a68fd7014c81137e8efa1c54988a61c961";
   version: "actql-check-outcome/0.1";
 }> | Readonly<{
   outcome: "failed";
@@ -419,6 +423,8 @@ export type WireCheckOutcomeShape = Readonly<{
 }> | Readonly<{
   parameter: string;
   constraint: "numeric" | "duration" | "array_length" | "array_size";
+}> | Readonly<{
+  issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter";
 }>;
 }>[];
   requirements: readonly Readonly<{
@@ -448,6 +454,8 @@ export type WireCheckOutcomeShape = Readonly<{
 }> | Readonly<{
   parameter: string;
   constraint: "numeric" | "duration" | "array_length" | "array_size";
+}> | Readonly<{
+  issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter";
 }>;
 }>[];
   scope: Readonly<{
@@ -458,7 +466,7 @@ export type WireCheckOutcomeShape = Readonly<{
   problem: Readonly<{
   code: string;
 }>;
-  reason_schema_cid: "sha256:1565f0b7e8e32f70d97905797ccc37a872b08116c0ef3d9599e4e4509b568621";
+  reason_schema_cid: "sha256:16c81ff351a5c3d1fa56757c3c9936a68fd7014c81137e8efa1c54988a61c961";
   version: "actql-check-outcome/0.1";
 }> | Readonly<{
   correlation_ref: string;
@@ -466,7 +474,7 @@ export type WireCheckOutcomeShape = Readonly<{
   problem: Readonly<{
   code: string;
 }>;
-  reason_schema_cid: "sha256:1565f0b7e8e32f70d97905797ccc37a872b08116c0ef3d9599e4e4509b568621";
+  reason_schema_cid: "sha256:16c81ff351a5c3d1fa56757c3c9936a68fd7014c81137e8efa1c54988a61c961";
   version: "actql-check-outcome/0.1";
 }>;
 export type WireCheckLocationShape = Readonly<{
