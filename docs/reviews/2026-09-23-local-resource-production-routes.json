@@ -7356,16 +7356,29 @@
         {
           "role": "subgraph_selected_host_in_flight_cancel",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "retained-relation-selected-subgraph-in-flight"
         },
         {
           "role": "subgraph_retained_named_results",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "retained-relation-selected-subgraph"
+        },
+        {
+          "role": "subgraph_fused_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "fused Subgraph stops after construction and positive selection work through the Local Host driver"
         }
       ],
       "path_assurance": {
@@ -7374,6 +7387,12 @@
           "one_short_limit": "subgraph_view_limits_cancel_cleanup",
           "in_flight_cancel": "subgraph_selected_host_in_flight_cancel",
           "cleanup": "subgraph_view_limits_cancel_cleanup"
+        },
+        "entrypoint": {
+          "exact_limit": "subgraph_stored_limits_cancel_cleanup",
+          "one_short_limit": "subgraph_stored_limits_cancel_cleanup",
+          "in_flight_cancel": "subgraph_fused_host_in_flight_cancel",
+          "cleanup": "subgraph_stored_limits_cancel_cleanup"
         }
       },
       "resource_assurance": {
@@ -7386,9 +7405,19 @@
             "exact_limit": "subgraph_view_limits_cancel_cleanup",
             "one_short_limit": "subgraph_view_limits_cancel_cleanup"
           }
+        },
+        "entrypoint": {
+          "work": {
+            "exact_limit": "subgraph_stored_limits_cancel_cleanup",
+            "one_short_limit": "subgraph_stored_limits_cancel_cleanup"
+          },
+          "workspace": {
+            "exact_limit": "subgraph_stored_limits_cancel_cleanup",
+            "one_short_limit": "subgraph_stored_limits_cancel_cleanup"
+          }
         }
       },
-      "notes": "The selected same-Stage Graph/Relation route reaches retained Store and has delivered cancellation. The cross-Stage selector has focused Plan and source public Local/HTTPS reload evidence, with fresh packed acceptance and integrated-SHA CI pending. The fused production route lacks delivered Host cancellation proof. Neither complete route is assured."
+      "notes": "Stored and view entrypoints have independent exact/one-short work and workspace checks. The selected route has installed Host cancellation. The fused two-operation provider is driven by the real Local Host polling and failure/cleanup driver through conformance-only dispatch plumbing; a timer is delivered after constructor completion and positive Subgraph progress. This is not a public Run/packed acceptance claim. Shared inputs remain available after cleanup."
     },
     {
       "inventory": "families",
