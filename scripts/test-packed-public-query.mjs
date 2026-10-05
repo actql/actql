@@ -43,6 +43,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/group-star-source-input.mjs', 'group-star-source-input.mjs'],
   ['scripts/fixtures/group-ordinal-source-input.mjs', 'group-ordinal-source-input.mjs'],
   ['scripts/fixtures/order-ordinal-source-input.mjs', 'order-ordinal-source-input.mjs'],
+  ['scripts/fixtures/quoted-identifier-source-input.mjs', 'quoted-identifier-source-input.mjs'],
   ['scripts/fixtures/distinct-order-source-input.mjs', 'distinct-order-source-input.mjs'],
   ['scripts/fixtures/order-property-source-input.mjs', 'order-property-source-input.mjs'],
   ['scripts/fixtures/group-select-scope-source-input.mjs', 'group-select-scope-source-input.mjs'],
@@ -136,6 +137,9 @@ if (process.argv.includes('--graph-rows-only')) {
 }
 if (process.argv.includes('--order-ordinal-only')) {
   runtimeEnvironment.ACTQL_TEST_ORDER_ORDINAL_ONLY = '1';
+}
+if (process.argv.includes('--quoted-identifiers-only')) {
+  runtimeEnvironment.ACTQL_TEST_QUOTED_IDENTIFIERS_ONLY = '1';
 }
 if (process.argv.includes('--source-free-only')) {
   runtimeEnvironment.ACTQL_TEST_SOURCE_FREE_ONLY = '1';
@@ -253,7 +257,7 @@ const narrowPublicQuery = process.argv.some(flag => ['--source-free-only',
   '--graph-projection-property-only',
   '--graph-property-predicate-only',
   '--group-property-only',
-  '--order-property-only', '--order-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--group-star-only', '--group-ordinal-only',
+  '--quoted-identifiers-only', '--order-property-only', '--order-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--group-star-only', '--group-ordinal-only',
   '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only', '--two-source-only',
   '--relation-data-only', '--acquired-data-only',
   '--data-set-strategy-only', '--property-graph-source-only', '--graph-rows-only'].includes(flag));
@@ -297,7 +301,7 @@ if (plannerSelectionOnly || twoSourceExampleOnly) return;
 // its Store. Restore retained Results in a new process without resubmission.
 // Narrow selections without the String fixture have no retained String Run.
 // Keep restart acceptance for full/source-free selections that create it.
-if (!process.argv.some(flag => ['--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
+if (!process.argv.some(flag => ['--quoted-identifiers-only', '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
   '--graph-projection-property-only',
   '--graph-property-predicate-only',
   '--group-property-only',
@@ -308,6 +312,7 @@ if (!process.argv.some(flag => ['--alias-scope-only', '--scoped-order-only', '--
     runtimeEnvironment, 120000).trimEnd());
 }
 if (process.argv.includes('--order-ordinal-only') ||
+    process.argv.includes('--quoted-identifiers-only') ||
     process.argv.includes('--order-property-only') ||
     process.argv.includes('--graph-projection-property-only') ||
     process.argv.includes('--graph-property-predicate-only') ||
