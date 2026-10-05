@@ -2,6 +2,7 @@ import * as owner from './dist/client_values_host_abi.js';
 
 const retainedInputEdges = new WeakMap();
 const retainedInputProducers = new WeakMap();
+const retainedTaskInputs = new WeakMap();
 import {publicationAction} from './publication-action.mjs';
 
 const environments = new WeakMap();
@@ -1020,6 +1021,127 @@ export function retainedInputProducerFacts(producer) {
   return Object.freeze({dispatch: Object.freeze({cid: dispatchCid, wire: dispatchWire}),
     evidence: Object.freeze({cid: evidenceCid, wire: evidenceWire}),
     subject: Object.freeze({cid: subjectCid, wire: subjectWire})});
+}
+
+const retainedCurrentKeys = ['readTransfer', 'siteBindingCurrent', 'authority',
+  'nowUnixMs', 'authorized'];
+
+/** Ports must query existing current owners, never the saved binding itself. */
+export function prepareRetainedTaskInput(producer, receipt, destinationUseId,
+  current, limits) {
+  const owned = requireHandle(retainedInputProducers, producer);
+  if (receipt === null || typeof receipt !== 'object' || Array.isArray(receipt) ||
+      Object.keys(receipt).sort().join('\0') !== 'cid\0wire' ||
+      typeof receipt.cid !== 'string' || typeof receipt.wire !== 'string' ||
+      typeof destinationUseId !== 'string' || !destinationUseId ||
+      current === null || typeof current !== 'object' || Array.isArray(current) ||
+      Object.keys(current).sort().join('\0') !== [...retainedCurrentKeys].sort().join('\0') ||
+      retainedCurrentKeys.some(key => typeof current[key] !== 'function')) {
+    throw new TypeError('InvalidRunHostRetainedInputCurrent');
+  }
+  if (limits === null || typeof limits !== 'object' || Array.isArray(limits) ||
+      Object.keys(limits).sort().join('\0') !==
+        'maxBindingBytes\0maxChunks\0maxManifestBytes\0maxReferencedBytes' ||
+      ['maxBindingBytes', 'maxChunks', 'maxManifestBytes'].some(key =>
+        !Number.isSafeInteger(limits[key]) || limits[key] < 1 || limits[key] > 2147483647) ||
+      typeof limits.maxReferencedBytes !== 'bigint' || limits.maxReferencedBytes < 1n ||
+      limits.maxReferencedBytes > 9223372036854775807n) {
+    throw new TypeError('InvalidRunHostRetainedInputLimits');
+  }
+  // Capture the installed functions so replacing properties cannot replace an
+  // Owner port; each invocation still reads that Owner's current live state.
+  const {readTransfer, siteBindingCurrent, authority, nowUnixMs, authorized} = current;
+  const stringResult = (read, code) => () => {
+    const value = read();
+    if (typeof value !== 'string') throw new TypeError(code);
+    return value;
+  };
+  const booleanResult = (value, code) => {
+    if (typeof value !== 'boolean') throw new TypeError(code);
+    return value;
+  };
+  const input = checked(owner.clientValuesHostPrepareRetainedTaskInput(owned,
+    stringResult(readTransfer, 'InvalidRunHostRetainedTransferCurrent'),
+    receipt.wire, receipt.cid, destinationUseId,
+    (key, generation, bundle) => booleanResult(
+      siteBindingCurrent(key, Number(generation), bundle),
+      'InvalidRunHostRetainedSiteCurrent'),
+    stringResult(authority, 'InvalidRunHostRetainedAuthority'),
+    () => {
+      const value = nowUnixMs();
+      if (typeof value !== 'bigint' || value < 0n || value > 9223372036854775807n) {
+        throw new TypeError('InvalidRunHostRetainedClock');
+      }
+      return value;
+    },
+    (dispatchCid, transferRequestWire) => booleanResult(
+      authorized(dispatchCid, transferRequestWire),
+      'InvalidRunHostRetainedAuthorization'),
+    limits.maxChunks, limits.maxManifestBytes, limits.maxReferencedBytes,
+    limits.maxBindingBytes), 'RunHostRetainedTaskInputRejected');
+  return handle(retainedTaskInputs, input, 'retained-task-input');
+}
+
+/** Restore the exact saved binding against newly installed current owners. */
+export function admitRetainedTaskInput(producer, saved, receipt,
+  destinationUseId, current, limits) {
+  if (saved === null || typeof saved !== 'object' || Array.isArray(saved) ||
+      Object.keys(saved).sort().join('\0') !== 'cid\0wire' ||
+      typeof saved.cid !== 'string' || typeof saved.wire !== 'string') {
+    throw new TypeError('InvalidRunHostRetainedTaskInputWire');
+  }
+  const restored = prepareRetainedTaskInput(producer, receipt, destinationUseId,
+    current, limits);
+  const value = checked(owner.clientValuesHostAdmitRetainedTaskInput(
+    requireHandle(retainedTaskInputs, restored), saved.wire, saved.cid),
+  'RunHostRetainedTaskInputRejected');
+  return handle(retainedTaskInputs, value, 'retained-task-input');
+}
+
+export function validateRetainedTaskInput(input) {
+  checked(owner.clientValuesHostValidateRetainedTaskInput(
+    requireHandle(retainedTaskInputs, input)), 'RunHostRetainedTaskInputRejected');
+}
+
+/** Historical wire grants no physical material access or start claim. */
+export function retainedTaskInputFacts(input) {
+  const values = owner.clientValuesHostRetainedTaskInputFacts(
+    requireHandle(retainedTaskInputs, input));
+  if (!Array.isArray(values) || values.length !== 2 ||
+      !values.every(value => typeof value === 'string')) {
+    throw new Error('InvalidRunHostRetainedTaskInputProjection');
+  }
+  return Object.freeze({cid: values[0], wire: values[1]});
+}
+
+export function issueRetainedTaskDispatch(prepared, compilation, admission,
+  definition, request, task, selection, input) {
+  if (!Number.isSafeInteger(task) || task < 0 || task > 2147483647 ||
+      selection === null || typeof selection !== 'object' || Array.isArray(selection) ||
+      Object.keys(selection).sort().join('\0') !== [...siteSelectionKeys].sort().join('\0') ||
+      !Number.isSafeInteger(selection.taskAttempt) ||
+      !Number.isSafeInteger(selection.siteGeneration) ||
+      siteSelectionKeys.slice(1).filter(key => key !== 'siteGeneration')
+        .some(key => typeof selection[key] !== 'string')) {
+    throw new TypeError('InvalidRunHostSiteSelection');
+  }
+  const compiled = requireHandle(taskCompilations, compilation);
+  const admitted = requireHandle(admissions, admission);
+  if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
+    throw new TypeError('ForeignRunHostCompilation');
+  }
+  const dispatch = checked(owner.clientValuesHostPrepareRetainedTaskDispatch(
+    requireHandle(preparations, prepared), compiled.value, admitted.value,
+    requireHandle(definitions, definition), requireHandle(requests, request),
+    task, selection.taskAttempt, selection.dispatchId, selection.siteKey,
+    selection.siteGeneration, selection.runtimeBundleCid,
+    selection.connectorRegistration, selection.connectorRevision,
+    selection.strategyRevision, selection.obligationsCid, selection.budgetCid,
+    selection.evidenceIssuerCapabilityCid, selection.grantCid,
+    requireHandle(retainedTaskInputs, input)), 'RunHostRetainedTaskDispatchRejected');
+  return Object.freeze({cid: owner.clientValuesHostDispatchCid(dispatch),
+    wire: checked(owner.clientValuesHostDispatchWire(dispatch),
+      'RunHostRetainedTaskDispatchRejected')});
 }
 
 export function issueTaskDispatch(prepared, compilation, admission,

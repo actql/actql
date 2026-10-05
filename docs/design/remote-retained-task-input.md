@@ -160,3 +160,19 @@ dispatch with an equal input binding cannot reuse that borrow. Compute completio
 keeps the input borrowed while output readers remain active. Formal output
 release closes the captured Run and returns its borrow, after which the separate
 destination and producer cleanup Owners can release their holdings and capacity.
+
+
+The portable retained-input handle installs ports to the existing current
+Transfer, Site and authorization owners. It re-admits the current durable
+Transfer record and exact destination receipt before issuing a binding, when
+restoring saved binding bytes, and before and after consumer dispatch issuance.
+Canonical equality ties restoration to the original producer and checked edge.
+The historical binding projection grants no borrow, physical payload access or
+start claim. Admission creates no reservation and cannot refund one.
+
+The current Site port verifies identity, generation, runtime bundle and
+availability using the trusted live owner; it does not instantiate a Site from
+saved fields. The existing Native constructor delegates to its actual execution
+Site. Authority, current lifetime and both Transfer grants remain separate
+checks. Across asynchronous Cloud persistence and delivery, the caller must
+retain its existing Owner revision fence and revalidate before sending.
