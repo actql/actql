@@ -82,15 +82,17 @@ Both keep the existing registered case limits and independent expected CID.
    reserved execution bytes. Close returned that reservation; duplicate close
    left the accounting unchanged.
 2. Local task 1 followed by resident tasks 2 and 3: task 2 completed after one
-   actual import of producer 1. Task 3 then received the same rejection. Before
+   actual import of producer 0. Task 3 then received the same rejection. Before
    close there were four physical attempts and two holdings; close returned all
    tracked capacities, and duplicate close left them unchanged.
 
-The diagnostic currently collapses several physical issues into `start-physical`;
-the exact underlying issue and whether the same transition fails through a
-public Run remain unconfirmed. Do not infer a public Run defect or completed
-handoff acceptance from these probe observations. No shared Owner, Ledger cleanup,
-cancellation or bounded-expression accounting change is included here.
+At `7c9b8698d42ddee4e5e97efd08bdb6c9017dcfd5`, the probe preserved a more precise
+fixed rejection category: both failures were `start-physical-state`, and the
+buffered boundary events located the failure in producer 1 import. That replay
+also established the producer 0 import in the second case; these stages are not
+a simple producer-0/1/2 chain. Whether the same failure occurs through a public
+Run was not tested. No shared Owner, Ledger cleanup, cancellation or
+bounded-expression accounting change is included here.
 
 To reproduce the first transition, write the following nonsecret experiment
 profile to a temporary file outside the checkout:
@@ -114,11 +116,47 @@ Saved raw observations are
 digest is `sha256:0b3f96706089395ac7a9c1a9750a412df04dd24fe745f89c4a04b3f29a20781b`;
 the second is `sha256:beba79530f3a406e1a8537a76285f63872b1a74409a0f479fbab170c5242f3fc`.
 
+## Connector correction and same-case success
+
+The Native retained-storage resolver compared the storage's original output
+with `captured_task_output` by object address. The latter returns a fresh
+liveness-restricted wrapper each time. It therefore fails that exact-object
+comparison even when the same owned material is still available.
+
+At `71721b500a65f6cb347db843b45fb9c9d6cba97b`, the connector uses the existing
+`producer_storage_retained_material` and `retained_completed_material_matches`
+APIs, followed by the existing installed-file resolver. Run task/target and
+current liveness checks remain; an equal value, CID, pathname or separate copy
+cannot satisfy the physical-material identity check. No shared execution API,
+Owner or capacity formula changed.
+
+The selected release build passed (`_build/local-checks/attempts/run-c8MDbi`).
+Binary digest:
+`sha256:b46fe908c4a4304daf37eeb34ce9180722acc331200e65beb4c8ad09b846849c`.
+The expanded real 100-row acceptance passed 1/1, with ten settings including both
+transitions. Receipt: `_build/local-checks/attempts/run-VhYrtk`; focused receipt:
+`_build/focused-evidence/focused-test-5PBO57`.
+
+The original 1,000-row commands also succeeded without changing their profiles,
+limits or independent expected result:
+
+- Fresh/fresh/resident: producer 1 import succeeded; per-task attempts `[1,1,3]`.
+- Local/resident/resident: producer 0 then producer 1 imports succeeded; per-task
+  attempts `[1,3,2]`.
+
+Both passed ordinary diagnostic output/holding/release admission, including
+unchanged accounting after duplicate close. Raw receipts are
+`_build/repro/resident-fresh-prefix-2-71721b500.jsonl` and
+`_build/repro/resident-local-prefix-1-71721b500.jsonl`; exact commands and digests
+are in `_build/repro/71721b500-native-artifacts.json`. This closes the observed
+connector mismatch, not public Run or performance acceptance.
+
 ## Remaining work and ownership
 
-- G: identify the Native transition's precise rejection without relaxing limits,
-  then obtain the required producer-import observations. If correction crosses
-  shared Owner or accounting contracts, hand the fixed counterexample to A/H.
+- G: use the now-working transitions to obtain the required producer-import
+  observations for a measured duration profile. Unknown unused producer slots
+  must not be filled with arbitrary rates. If another correction crosses shared
+  Owner or accounting contracts, hand the fixed counterexample to A/H.
 - G: align time coverage before admitting a measured resident profile. Existing
   enclosing task intervals include planner work; resident physical intervals
   exclude preparation/import and final Run cleanup. They cannot be compared as
