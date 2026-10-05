@@ -836,6 +836,33 @@ body and dependent outcome schema identities, validators and SDK wire types.
 It leaves `actql-diagnostics/0.1` unchanged. Mixed schema pins are rejected by
 existing contract validation; there is no compatibility adapter.
 
+### External Effect uncertainty presentation
+
+`explainEffectUncertainty` binds the exact validated public SDK Run-state
+response to its original Run reference. A `needs_reconciliation` observation
+with an Owner-issued `reconcile` Effect-name list has a typed explanation;
+the other `reconcile_run` branch does not acquire an invented Effect list.
+The explanation copies those names, the received physical-stop fact and its
+optional control revision into an immutable weak association. An absent
+control observation remains unknown. The control revision is local to that
+component and does not certify atomicity across owners. Old explanations
+remain observations of their original response, with read-only current-status
+advice; no revision is used as an authorization grant or write precondition.
+
+The helper has no transport or mutation side effect and adds no Host input
+storage, provider evidence, Effect ledger or public input hash. It does not
+infer rollback, resource release, execution success or permission to resend
+from computation stop. Its advice is the existing `status` operation on the
+original Run, requiring current authority if explicitly called. It does not
+advertise reconciliation availability: an installed Host without that
+operation can still report unresolved Effects. Connecting authorized
+reconciliation to that Host belongs to the existing Effect/execution owner.
+
+This SDK presentation addition leaves `actql-run-state/0.1`,
+`actql-diagnostics/0.1` and the public check contracts unchanged. It does not
+establish the complete S9 authorized-reconciliation path or the cumulative
+S1–S9/X1–X17/invariant completion gate.
+
 ### Run cancellation explanations
 
 `explainCancellation(result)` returns immutable read-only advice for the exact
