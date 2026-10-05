@@ -2046,7 +2046,8 @@ const schemas = {
                                 "invalid_number",
                                 "invalid_parameter",
                                 "unknown_reference",
-                                "invalid_arguments"
+                                "invalid_arguments",
+                                "expected_boolean"
                               ]
                             }
                           }
@@ -2224,7 +2225,8 @@ const schemas = {
                                 "enum": [
                                   "unknown_reference",
                                   "invalid_arguments",
-                                  "invalid_number"
+                                  "invalid_number",
+                                  "expected_boolean"
                                 ]
                               }
                             }
@@ -2554,7 +2556,8 @@ const schemas = {
                                 "invalid_number",
                                 "invalid_parameter",
                                 "unknown_reference",
-                                "invalid_arguments"
+                                "invalid_arguments",
+                                "expected_boolean"
                               ]
                             }
                           }
@@ -2732,7 +2735,8 @@ const schemas = {
                                 "enum": [
                                   "unknown_reference",
                                   "invalid_arguments",
-                                  "invalid_number"
+                                  "invalid_number",
+                                  "expected_boolean"
                                 ]
                               }
                             }
@@ -2929,7 +2933,7 @@ const schemas = {
             ]
           },
           "reason_schema_cid": {
-            "const": "sha256:01c234321105135fa577b40c78b2a99324667389c1f61cfc18b3a3ed05d272a1"
+            "const": "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -3299,7 +3303,8 @@ const schemas = {
                                 "invalid_number",
                                 "invalid_parameter",
                                 "unknown_reference",
-                                "invalid_arguments"
+                                "invalid_arguments",
+                                "expected_boolean"
                               ]
                             }
                           }
@@ -3477,7 +3482,8 @@ const schemas = {
                                 "enum": [
                                   "unknown_reference",
                                   "invalid_arguments",
-                                  "invalid_number"
+                                  "invalid_number",
+                                  "expected_boolean"
                                 ]
                               }
                             }
@@ -3807,7 +3813,8 @@ const schemas = {
                                 "invalid_number",
                                 "invalid_parameter",
                                 "unknown_reference",
-                                "invalid_arguments"
+                                "invalid_arguments",
+                                "expected_boolean"
                               ]
                             }
                           }
@@ -3985,7 +3992,8 @@ const schemas = {
                                 "enum": [
                                   "unknown_reference",
                                   "invalid_arguments",
-                                  "invalid_number"
+                                  "invalid_number",
+                                  "expected_boolean"
                                 ]
                               }
                             }
@@ -4194,7 +4202,7 @@ const schemas = {
             }
           },
           "reason_schema_cid": {
-            "const": "sha256:01c234321105135fa577b40c78b2a99324667389c1f61cfc18b3a3ed05d272a1"
+            "const": "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -4235,7 +4243,7 @@ const schemas = {
             }
           },
           "reason_schema_cid": {
-            "const": "sha256:01c234321105135fa577b40c78b2a99324667389c1f61cfc18b3a3ed05d272a1"
+            "const": "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -5275,7 +5283,7 @@ const operationKeys = {
   ]
 };
 
-export const checkReasonSchemaCid = "sha256:01c234321105135fa577b40c78b2a99324667389c1f61cfc18b3a3ed05d272a1";
+export const checkReasonSchemaCid = "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa";
 function valid(value, schema) {
   if (schema.$ref) return valid(value, schemas[schema.$ref]);
   if (schema.oneOf && schema.oneOf.filter(rule => valid(value, rule)).length !== 1) return false;

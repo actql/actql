@@ -21,6 +21,8 @@ const submissionExplanations = new WeakMap();
 // Validated observations keep only a weak, immutable presentation snapshot.
 // This is not an Effect ledger or a certificate joining Owner revisions.
 const effectUncertainties = new WeakMap();
+// Presentation retains validated Run-control observations, not another owner.
+const cancellationExplanations = new WeakMap();
 const utf8 = new TextEncoder();
 const freezeInput = value => {
   if (value !== null && typeof value === 'object') {
@@ -62,6 +64,24 @@ const retainEffectUncertainty = (state, ref) => {
     }));
   }
   return state;
+};
+
+export function explainCancellation(result) {
+  return cancellationExplanations.get(result);
+}
+
+const retainCancellationExplanation = (result, context, observation, revision) => {
+  if (!context) return result;
+  const summaries = {
+    accepted: 'The Host recorded a Run cancellation request. Refresh Run state for physical stop, Effects and release.',
+    already_requested: 'The Host reports an existing Run cancellation request. Refresh Run state for physical stop, Effects and release.',
+    already_terminal: 'The Host reports the Run is already terminal for cancellation. Refresh Run state for Effect and release details.',
+    outcome_unknown: 'The Run cancellation outcome is unknown. The request may have been recorded.',
+  };
+  cancellationExplanations.set(result, freezeInput({observation,
+    ...(revision === undefined ? {} : {revision}), summary: summaries[observation],
+    next: {operation: 'status', ref: context.ref}}));
+  return result;
 };
 
 const submissionLookupExplanation = (observation, input) => freezeInput({
@@ -186,6 +206,7 @@ export function explainCheckReason(reason) {
     return Object.freeze({kind: 'known', summary, hint});
   }
   const expressionExplanations = {
+    expected_boolean: ['A predicate must have Boolean type.', 'Use a Boolean condition, such as a comparison, in the predicate.'],
     unknown_reference: ['An expression reference cannot be resolved in the checked scope.', 'Use a declared reference from the disclosed query context.'],
     invalid_arguments: ['Expression arguments violate the selected operation contract.', 'Correct the argument count or form required by the selected operation.'],
     invalid_number: ['A numeric expression is outside the admitted numeric domain.', 'Use a finite number in the admitted precision and signed-zero domain.'],
@@ -428,7 +449,7 @@ export async function connectInProcess(options, port) {
 
 async function connectSelected(selected, port) {
   let closed = false;
-  const exchange = async (operation, body = {}, signal, submitContext) => {
+  const exchange = async (operation, body = {}, signal, submitContext, cancellationContext) => {
     if (closed) fail('ClientClosed');
     if (port !== undefined) {
       let request;
@@ -436,7 +457,10 @@ async function connectSelected(selected, port) {
       catch { fail('InvalidClientPayload'); }
       try {
         const value = await port.perform(operation, request, signal);
-        if (value instanceof Response) fail('InvalidLocalHostPortResponse');
+        if (value instanceof Response) {
+          throw retainCancellationExplanation(new ClientError('InvalidLocalHostPortResponse'),
+            cancellationContext, 'outcome_unknown');
+        }
         return value;
       }
       catch (cause) {
@@ -449,7 +473,8 @@ async function connectSelected(selected, port) {
         if (cause instanceof ClientError) {
           throw cause;
         }
-        throw new ClientError('ClientTransportUnknown', {cause});
+        throw retainCancellationExplanation(new ClientError('ClientTransportUnknown', {cause}),
+          cancellationContext, 'outcome_unknown');
       }
     }
     let payload;
@@ -476,7 +501,8 @@ async function connectSelected(selected, port) {
       if (operation === 'submit') {
         throw submissionUnknown(submitContext, cause);
       }
-      throw new ClientError('ClientTransportUnknown', {cause});
+      throw retainCancellationExplanation(new ClientError('ClientTransportUnknown', {cause}),
+          cancellationContext, 'outcome_unknown');
     }
     if (!response.ok) {
       let error;
@@ -508,12 +534,15 @@ async function connectSelected(selected, port) {
     const ref = Object.freeze({...admission.ref});
     const runProfile = Object.freeze({...confirmed,
       durability: admission.durability});
-    const runRequest = (operation, body = {}, signal) =>
-      exchange(operation, {ref, ...body}, signal);
-    const readControl = async (operation, body, signal) => {
-      const response = await runRequest(operation, body, signal);
+    const runRequest = (operation, body = {}, signal, cancellationContext) =>
+      exchange(operation, {ref, ...body}, signal, undefined, cancellationContext);
+    const readControl = async (operation, body, signal, cancellationContext) => {
+      const response = await runRequest(operation, body, signal, cancellationContext);
       try { return await controlValue(response); }
-      catch (cause) { throw new ClientError('InvalidHostResponse', {cause}); }
+      catch (cause) {
+        throw retainCancellationExplanation(new ClientError('InvalidHostResponse', {cause}),
+          cancellationContext, 'outcome_unknown');
+      }
     };
 
     const result = name => {
@@ -790,14 +819,16 @@ async function connectSelected(selected, port) {
         return retainEffectUncertainty(state, ref);
       },
       cancel: async ({signal} = {}) => {
-        const response = await readControl('cancel', {}, signal);
+        const context = freezeInput({ref: {...ref}});
+        const response = await readControl('cancel', {}, signal, context);
         if (!validCancellation(response) ||
             response.ref.namespaceId !== ref.namespaceId ||
             response.ref.authorityScopeCid !== ref.authorityScopeCid ||
             response.ref.runDefinitionCid !== ref.runDefinitionCid) {
-          fail('InvalidHostCancellation');
+          throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),
+            context, 'outcome_unknown');
         }
-        return response;
+        return retainCancellationExplanation(response, context, response.kind, response.revision);
       },
       // The Run's current state after the Host's reconciliation attempt. An
       // unknown Effect outcome stays `needs_reconciliation` until the Host
