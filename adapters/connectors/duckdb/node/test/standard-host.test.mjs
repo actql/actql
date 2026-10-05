@@ -494,6 +494,88 @@ async function runDelayedManagedStop(
   }
 }
 
+async function subgraphHostCancellation() {
+  // Prepare a real fused provider separately from the public planner, which
+  // selects individual Graph steps. Dispatch plumbing is explicitly a fixture;
+  // the bounded execution and Local Host cancellation driver are production.
+  const exec = promisify(execFile);
+  await exec('moon', ['build', '--target', 'js', '--release',
+    'src/connectors_builtin_node', 'src/connectors/duckdb/conformance'], {cwd:root});
+  const moon = await import(pathToFileURL(join(root,
+    '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js')));
+  const values = {schema:{node_key:{type:'number',nullable:false}},
+    rows:Array.from({length:8}, (_, index)=>({node_key:index+1}))};
+  const definition = {name:'N',key:['node_key'],labels:[]};
+  const constructor = {version:'actql-property-graph-constructor/0.1',
+    nodes:[{...definition,from:'rows'}],edges:[]};
+  // Independently authored definition preimage; no executed Graph supplies
+  // expected identity or cancellation progress.
+  const domain = canonicalHash({
+    constructor:{...constructor,nodes:[{...definition,input_occurrence:0}]},
+    producer_definitions:[{producer:{body:{values},dependencies:[]},projection:null}],
+    version:'actql-property-graph-definition/0.1',
+  });
+  const registry = await readFile(join(root, 'spec/dependencies/aoa-pipeline-registry.json'), 'utf8');
+  const aoa = JSON.parse(await readFile(join(root, 'spec/contracts/actql-aoa.json'), 'utf8'));
+  const fixture = await import(pathToFileURL(join(root,
+    '_build/js/release/build/connectors/duckdb/conformance/conformance.js')));
+  const fused = checked(fixture.subgraphCancelCreate(JSON.stringify([{values,as:'rows'}]),
+    JSON.stringify([{property_graph:{...constructor,nodes:[{...definition,from:'prior'}]},as:'g'},
+      {from:'g',subgraph:{nodes:{ids:values.rows.map(({node_key})=>({
+        definition:'N',domain,key:[node_key],key_types:[{kind:'number'}],
+      }))},edges:'true'},as:'slice'}]), registry,
+    JSON.stringify(aoa.execution_contracts['REL.values']),
+    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1'])));
+  let progress = 0n, advances = 0, delivered = false;
+  const abort = new AbortController();
+  const operations = {
+    inputs:[],
+    advance() {
+      const [status, rows, work] = fixture.subgraphCancelAdvance(fused);
+      advances++;
+      progress += rows;
+      if (!delivered && progress > 8n) {
+        setTimeout(() => { delivered = true; abort.abort(); }, 0);
+      }
+      return {$tag:1,_0:{complete:status === 1n,progress:rows,work}};
+    },
+    request_cancel() { assert.equal(delivered,true); return fixture.subgraphCancelRequest(fused); },
+    execution_stopped() { return fixture.subgraphCancelStopped(fused); },
+    close() { fixture.subgraphCancelCleanup(fused); },
+    cleanup_refresh() { return fixture.subgraphCancelCleanup(fused); },
+    settle() { assert.equal(fixture.subgraphCancelStopped(fused),true); return {$tag:1,_0:undefined}; },
+    complete() { assert.fail('cancelled fused Subgraph must not publish'); },
+  };
+  // Only dispatch/registration plumbing is a fixture. The provider, Host
+  // polling loop, timer delivery and failure/cleanup progression are real.
+  const runtime = new Proxy(moon,{get(target,name,receiver) {
+    if (name === 'strategyModule_local_Registration') return ()=>({});
+    if (name === 'strategyHostRegistrationSelectionKey') return ()=>'subgraph-conformance';
+    if (name === 'strategyModule_local_Dispatch') return ()=>({$tag:1,_0:operations});
+    return Reflect.get(target,name,receiver);
+  }});
+  try {
+    await assert.rejects(localStrategyContribution(runtime,undefined,checked).run(
+      undefined,abort.signal), {name:'AbortError'});
+    assert.equal(delivered,true);
+    assert(progress > 8n, 'Subgraph progresses after all 8 constructor rows');
+    assert.equal(fixture.subgraphCancelStopped(fused),true);
+    assert.equal(fixture.subgraphCancelInputAvailable(fused),true);
+    const settledAdvances = advances;
+    assert.equal(fixture.subgraphCancelCleanup(fused),true);
+    assert.equal(fixture.subgraphCancelCleanup(fused),true);
+    assert.equal(advances,settledAdvances,'cleanup never resumes execution');
+    assert.equal(fixture.subgraphCancelInputAvailable(fused),true);
+  } finally {
+    fixture.subgraphCancelRequest(fused);
+    if (!fixture.subgraphCancelStopped(fused)) fixture.subgraphCancelAdvance(fused);
+    fixture.subgraphCancelCleanup(fused);
+  }
+}
+
+test('fused Subgraph stops after construction and positive selection work through the Local Host driver',
+  {timeout:30_000}, () => subgraphHostCancellation());
+
 async function deltaHostCancellation(phase, diff = false) {
   // Use the installed common Program/Plan/provider, not a test-only Delta
   // provider or pre-decoded replacement. Observe real operations as in the
