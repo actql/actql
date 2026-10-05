@@ -223,6 +223,85 @@ test "property lowering resolves a scope prefix without flattening names" {
 }
 
 ///|
+test "macro and property resolution share one bounded expression tree" {
+  let expression = fixture("NODE_ID(a) IS NOT NULL AND a.payload.score > @min")
+  let builder = @builder.create(
+    @query.expression_document(expression),
+    limits().construction,
+  ).unwrap()
+  let root = append_with_macros(
+    expression,
+    path => {
+      if path.length() == 2 &&
+        path[0].value == "a" &&
+        path[1].value == "payload" {
+        Some("payload_slot")
+      } else {
+        None
+      }
+    },
+    (path, argument) => {
+      if path.length() == 1 &&
+        path[0].value == "NODE_ID" &&
+        argument.length() == 1 &&
+        argument[0].value == "a" {
+        Some(Field("identity_slot"))
+      } else {
+        None
+      }
+    },
+    builder,
+    10000,
+    resolve_properties=true,
+  ).unwrap()
+  let source = @builder.finish(builder, root).unwrap()
+  let admitted = @expression.admit(@builder.cursor(source), limits().expression).unwrap()
+  let writer = @encode.writer(100000, 10000, 100)
+  @expression.emit_source(admitted, writer)
+  assert_eq(
+    @encode.finish(writer),
+    "{\"and\":[{\"not\":{\"is_null\":{\"field\":\"identity_slot\"}}},{\"gt\":[{\"property\":{\"name\":\"score\",\"value\":{\"field\":\"payload_slot\"}}},{\"$param\":\"min\"}]}]}",
+  )
+}
+
+///|
+test "macro property opt-in preserves default resolution and charges prefix work" {
+  let expression = fixture("a.payload.score")
+  let resolve = (path : Array[@query.NamePart]) => {
+    if path.length() == 2 {
+      Some("payload_slot")
+    } else {
+      None
+    }
+  }
+  let legacy = @builder.create(
+    @query.expression_document(expression),
+    limits().construction,
+  ).unwrap()
+  assert_true(
+    append_with_macros(expression, resolve, (_, _) => None, legacy, 10000)
+    is Err({ issue: UnknownReference, origin: Some(_), }),
+  )
+  @builder.discard(legacy)
+  let bounded = @builder.create(
+    @query.expression_document(expression),
+    limits().construction,
+  ).unwrap()
+  assert_true(
+    append_with_macros(
+      expression,
+      resolve,
+      (_, _) => None,
+      bounded,
+      1,
+      resolve_properties=true,
+    )
+    is Err({ issue: WorkLimit, origin: Some(_), }),
+  )
+  @builder.discard(bounded)
+}
+
+///|
 test "Named numeric arguments share query literal admission" {
   for
     (token, expected) in [

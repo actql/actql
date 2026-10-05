@@ -49,18 +49,25 @@ export const checkReasonSchema = {
         required: ['parameter', 'constraint'],
         properties: {parameter: parameterName,
           constraint: {enum: ['numeric', 'duration', 'array_length', 'array_size']}}},
+      {type: 'object', additionalProperties: false, required: ['issue'],
+        properties: {issue: {enum: ['unexpected_end', 'unexpected_token',
+          'invalid_escape', 'invalid_scalar', 'empty_identifier',
+          'unterminated_comment', 'invalid_number', 'invalid_parameter']}}},
     ]}},
   allOf: [
     {if: {properties: {code: {const: 'supplied_value_type_mismatch'}}},
       then: {required: ['facts'], properties: {facts: {required: ['actual_type']}}}},
     {if: {properties: {code: {const: 'parameter_undeclared'}}},
-      then: {required: ['facts'], properties: {facts: {allOf: [
+      then: {required: ['facts'], properties: {facts: {required: ['parameter'], allOf: [
         {not: {required: ['expected_type']}}, {not: {required: ['constraint']}}]}}}},
     {if: {properties: {code: {const: 'parameter_value_required'}}},
       then: {required: ['facts'], properties: {facts: {required: ['expected_type'], not: {required: ['actual_type']}}}}},
     {if: {properties: {code: {const: 'supplied_value_constraint_violation'}}},
       then: {required: ['facts'], properties: {facts: {required: ['constraint']}}}},
-    {if: {properties: {code: {not: {enum: ['supplied_value_type_mismatch', 'parameter_value_required', 'parameter_undeclared', 'supplied_value_constraint_violation']}}}},
+    {if: {properties: {code: {const: 'query_lexical_invalid'}}},
+      then: {required: ['facts'], properties: {facts: {required: ['issue']},
+        location: {properties: {kind: {const: 'text'}}}}}},
+    {if: {properties: {code: {not: {enum: ['supplied_value_type_mismatch', 'parameter_value_required', 'parameter_undeclared', 'supplied_value_constraint_violation', 'query_lexical_invalid']}}}},
       then: {not: {required: ['facts']}}},
   ],
 };

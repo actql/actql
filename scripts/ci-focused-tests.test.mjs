@@ -227,3 +227,15 @@ test('full success checkpoint accepts focused-only job skipped but requires ever
   jobs.find(job => job.name === 'core (native)').conclusion = 'skipped';
   assert.equal((await resolveMainBaseline(options)).baseSha, null);
 });
+
+test('Draft reuses only the existing reviewed owning JS family and never earns a merge pass', () => {
+  const value = validateSelection(selection([change()], {draft: true}));
+  assert.equal(value.profile, 'draft-focused');
+  assert.deepEqual(value.focusedTests, selection().focusedTests);
+  assert.equal(selection([change()], {draft: false}).profile, 'focused-tests');
+  assert.throws(() => verifyGate({sourceRevision: head, selection: value}, results(value),
+    {sourceRevision: head, event: 'pull_request', draft: true}), /awaiting ready_for_review/u);
+  assert.equal(selection([change(), change('src/connector_sdk/api.mbt')], {draft: true}).profile, 'draft');
+  for (const bad of [{...value, event: 'workflow_dispatch'}, {...value, macos: true}, {...value, targets: ['js', 'wasm', 'native']},
+    {...value, focusedTests: {...value.focusedTests, files: []}}]) assert.throws(() => validateSelection(bad));
+});

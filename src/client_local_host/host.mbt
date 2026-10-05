@@ -493,3 +493,36 @@ pub fn open_multi_captured_local_host(
     acquisition_ledger=Some(ledger),
   )
 }
+
+///|
+/// Two captured inputs use their original ledger and retained Relation output.
+/// No second acquisition or Compute owner is created for the output mode.
+pub fn open_multi_captured_local_retained_host(
+  prepared : @publication_host.PreparedClientProgram,
+  sources : Array[(Int, @query.CapturedInputSource)],
+  ledger : @resources.Ledger,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  provider_factory? : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ] = _ => [],
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
+  open_checked_local_host(
+    prepared,
+    None,
+    registry_body,
+    values_body,
+    1L,
+    0L,
+    0L,
+    0L,
+    fragment_body~,
+    ordered_body~,
+    provider_factory~,
+    retained_output=true,
+    captured_sources=sources,
+    acquisition_ledger=Some(ledger),
+  )
+}

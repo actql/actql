@@ -104,6 +104,22 @@ test('typed public facts are closed and locations bind declared input revisions'
     {...constraint, code: 'parameter_undeclared'},
     {...constraint, code: 'future_code'},
   ]) assert.equal(valid(outcome(changed)), false, '[check-mutation:constraint-schema]');
+  const lexical = {code: 'query_lexical_invalid', facts: {issue: 'invalid_escape'},
+    location: {kind: 'text', document_id: 'source', revision,
+      start_byte: 6, end_byte: 6, precision: 'exact'}};
+  assert.equal(valid(outcome(lexical)), true);
+  const {location: _omitted, ...unlocated} = lexical;
+  assert.equal(valid(outcome(unlocated)), true, 'unowned locations may be omitted');
+  for (const changed of [
+    {code: 'query_lexical_invalid'},
+    {...lexical, facts: {}},
+    {...lexical, facts: {issue: 'future_issue'}},
+    {...lexical, facts: {...lexical.facts, token: 'private text'}},
+    {...lexical, location},
+    {...lexical, code: 'parameter_undeclared'},
+    {...lexical, code: 'future_code'},
+    {...lexical, code: 'query_syntax_invalid'},
+  ]) assert.equal(valid(outcome(changed)), false, '[check-mutation:lexical-schema]');
 });
 
 

@@ -9,6 +9,7 @@ pub(all) enum ExpressionConsumer {
   AnalyticArgument(String)
   SequencePredicate(Int)
   GraphMatchPredicate
+  GraphSubgraphEdgePredicate
   GraphTraverseEdgePredicate(Int)
   GraphTraverseNodePredicate(Int)
   InferInput(Int)
@@ -260,6 +261,13 @@ pub fn collect_expression_slots(
             @graph.match_predicate(operation),
             GraphMatchPredicate,
           )
+        Subgraph(checked~, ..) =>
+          slot_predicate(
+            c,
+            step,
+            @graph.subgraph_edges(checked),
+            GraphSubgraphEdgePredicate,
+          )
         Traverse(checked~, ..) =>
           for i in 0..<@graph.traverse_hop_count(checked) {
             let hop = @graph.traverse_hop_at(checked, i).unwrap()
@@ -292,6 +300,7 @@ pub fn collect_expression_slots(
         | Projection(_)
         | GraphBounds(_)
         | GraphDegree(_)
+        | GraphEquality(..)
         | GraphNormalize(_)
         | GraphComponents(_)
         | PropertyGraphConstruction(..)

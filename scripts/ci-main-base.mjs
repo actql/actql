@@ -10,6 +10,11 @@ export const policyPaths = Object.freeze(['.github', 'scripts/ci-targets.mjs', '
 const gitDefault = args => execFileSync('git', args, {encoding: 'utf8', maxBuffer: 1024 * 1024});
 const positive = value => Number.isSafeInteger(value) && value > 0;
 
+// Historical main pushes and current manual integration runs can supply
+// originals. The trigger alone never replaces full job/policy authentication.
+export const isMainEvidenceEvent = (event, branch) =>
+  branch === 'main' && ['push', 'workflow_dispatch'].includes(event);
+
 // Existing ephemeral workflow token only. The caller must have actions:read;
 // no credentials are created, saved, or included in error messages/plan output.
 export function actionsReader({repository, token, fetchImpl = fetch}) {
@@ -30,15 +35,15 @@ export function actionsReader({repository, token, fetchImpl = fetch}) {
 export function fullCheckpointJobs(gateJobs) {
   assert(Array.isArray(gateJobs) && gateJobs.includes('preflight') && gateJobs.includes('core'), 'Invalid gate policy');
   // The focused-only profile is an alternative to full execution, not a
-  // missing full-family obligation. Every full family still requires success;
-  // do not generalize this exclusion to arbitrary skipped jobs.
+  // missing full-family obligation. Manual macOS opt-in is checked separately;
+  // do not generalize these exceptions to arbitrary skipped or missing jobs.
   return ['check', ...gateJobs.filter(name => name !== 'focused-tests')
     .flatMap(name => name === 'core' ? ['core (js)', 'core (wasm)', 'core (native)'] : [name])];
 }
 
 function validRun(run, {repository, repositoryId, workflowId, ancestors}) {
   return positive(run?.id) && positive(run.run_attempt) && run.workflow_id === workflowId
-    && run.path === workflowPath && run.event === 'push' && run.head_branch === 'main'
+    && run.path === workflowPath && isMainEvidenceEvent(run.event, run.head_branch)
     && run.repository?.id === repositoryId && run.repository?.full_name === repository
     && run.head_repository?.id === repositoryId && sha.test(run.head_sha ?? '') && ancestors.includes(run.head_sha)
     && run.status === 'completed' && run.conclusion === 'success';
@@ -48,7 +53,9 @@ function successfulJobs(data, run, requiredJobs) {
   return requiredJobs.every(name => {
     const jobs = data.jobs.filter(job => job.name === name);
     return jobs.length === 1 && jobs[0].run_id === run.id && jobs[0].run_attempt === run.run_attempt
-      && jobs[0].head_sha === run.head_sha && jobs[0].status === 'completed' && jobs[0].conclusion === 'success';
+      && jobs[0].head_sha === run.head_sha && jobs[0].status === 'completed'
+      && (jobs[0].conclusion === 'success' ||
+        run.event === 'workflow_dispatch' && name === 'native-macos' && jobs[0].conclusion === 'skipped');
   });
 }
 
@@ -69,7 +76,7 @@ export async function resolveMainBaseline({testedSha, repository, repositoryId, 
     assert(policy.every(entry => sha.test(entry.object)), 'Missing policy identity');
     const workflow = await request('/actions/workflows/ci.yml');
     assert(positive(workflow?.id) && workflow.path === workflowPath && workflow.state === 'active', 'Unknown CI workflow');
-    const runs = await request(`/actions/workflows/${workflow.id}/runs?branch=main&event=push&status=success&per_page=${maxRuns}`);
+    const runs = await request(`/actions/workflows/${workflow.id}/runs?branch=main&status=success&per_page=${maxRuns}`);
     assert(Array.isArray(runs?.workflow_runs) && runs.workflow_runs.length <= maxRuns, 'Invalid run inventory');
     const candidates = runs.workflow_runs.filter(run => validRun(run, {repository, repositoryId, workflowId: workflow.id, ancestors}))
       .sort((a, b) => ancestors.indexOf(a.head_sha) - ancestors.indexOf(b.head_sha));
@@ -81,7 +88,8 @@ export async function resolveMainBaseline({testedSha, repository, repositoryId, 
       // Re-read after jobs to reject a run that was re-run while inspected.
       const current = await request(`/actions/runs/${run.id}`);
       if (!validRun(current, {repository, repositoryId, workflowId: workflow.id, ancestors})
-        || current.id !== run.id || current.head_sha !== run.head_sha || current.run_attempt !== run.run_attempt) continue;
+        || current.id !== run.id || current.head_sha !== run.head_sha || current.run_attempt !== run.run_attempt
+        || current.event !== run.event) continue;
       return {baseSha: run.head_sha, testedSha, runId: run.id, runAttempt: run.run_attempt,
         workflowId: workflow.id, policy, reason: 'Cumulative changes since fully verified main ancestor'};
     }

@@ -217,6 +217,7 @@ fn derive_logical_orders(
       | GraphBounds(_)
       | GraphDegree(_)
       | GraphComponents(_)
+      | Subgraph(..)
       | Traverse(..) => true
       // The typed Graph row Bridge must complete the existing bounded sort
       // by admitted Graph identity before it can complete its Relation.
