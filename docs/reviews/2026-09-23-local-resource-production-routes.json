@@ -2361,6 +2361,20 @@
       },
       "boundary_tests": [
         {
+          "role": "pivot_stepped_output_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/stepped_row_retention_wbtest.mbt",
+          "fixture": "analytic and pivot keep independent exact long output limits"
+        },
+        {
+          "role": "pivot_stepped_output_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/stepped_row_retention_wbtest.mbt",
+          "fixture": "group analytic and pivot yield before accepting long copied output"
+        },
+        {
           "role": "pivot_fixed_sequence_work_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -2436,6 +2450,13 @@
           ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "ordinary-pivot-in-flight"
+        },
+        {
+          "role": "pivot_retained_long_text_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "pivot-long-text-filter-select"
         }
       ],
       "path_assurance": {
@@ -3807,6 +3828,20 @@
       },
       "boundary_tests": [
         {
+          "role": "group_stepped_wide_output_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/stepped_row_retention_wbtest.mbt",
+          "fixture": "wide group output is constructed one cell at a time with exact charges"
+        },
+        {
+          "role": "group_stepped_output_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/stepped_row_retention_wbtest.mbt",
+          "fixture": "group analytic and pivot yield before accepting long copied output"
+        },
+        {
           "role": "group_fixed_sequence_work_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -4358,6 +4393,13 @@
           ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "same-stage-count-if-in-flight"
+        },
+        {
+          "role": "group_retained_long_text_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "group-long-text-filter-select"
         },
         {
           "role": "direct_group_host_timer",
@@ -6383,6 +6425,20 @@
       },
       "boundary_tests": [
         {
+          "role": "analytic_stepped_output_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/stepped_row_retention_wbtest.mbt",
+          "fixture": "analytic and pivot keep independent exact long output limits"
+        },
+        {
+          "role": "analytic_stepped_output_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/stepped_row_retention_wbtest.mbt",
+          "fixture": "group analytic and pivot yield before accepting long copied output"
+        },
+        {
           "role": "analytic_empty_work_workspace_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -6428,6 +6484,13 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "analytic_retained_long_text_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "analytic-long-text-filter-select"
+        },
         {
           "role": "analytic_ordinary_host_timer",
           "suite": "node:duckdb_standard_host",

@@ -10054,6 +10054,17 @@ async function exerciseStrategyGraph(
     ], fields: [
       'id', 'time', 'watermark_decision', 'watermark_late', 'watermark_ms',
     ]},
+    {name: 'group-long-text-filter-select', source: retainedUnaryChain(
+      [{group: {by: ['tag'], aggregates: {
+        maximum: {fn: 'max', field: 'amount'},
+      }}}], [{filter: 'maximum > 0'}, {select: ['maximum', 'tag']}],
+      ['maximum', 'tag'], [{id: 1, amount: 7, tag: 'g'.repeat(512)}], {
+        id: {type: 'number', nullable: false},
+        amount: {type: 'number', nullable: false},
+        tag: {type: 'string', nullable: false},
+      }),
+    expected: [{maximum: 7, tag: 'g'.repeat(512)}],
+    fields: ['maximum', 'tag']},
     {name: 'group-filter-select', source: retainedUnaryChain(
       [{group: {by: ['id'], aggregates: {n: {fn: 'count'}}}}],
       [{filter: 'n > 0'}, {select: ['id', 'n']}],
@@ -10124,6 +10135,17 @@ async function exerciseStrategyGraph(
     expected: [1, 2, 3, 4].map(id =>
       ({id, window_start: 0, window_end: 10})),
     fields: ['id', 'window_start', 'window_end']},
+    {name: 'analytic-long-text-filter-select', source: retainedUnaryChain(
+      [{analytic: {
+        partition_by: ['tag'], order_by: [{id: 'asc'}],
+        functions: {position: {fn: 'row_number'}},
+      }}], [{filter: 'position > 0'}, {select: ['id', 'position', 'tag']}],
+      ['id', 'position', 'tag'], [{id: 1, tag: 'g'.repeat(512)}], {
+        id: {type: 'number', nullable: false},
+        tag: {type: 'string', nullable: false},
+      }),
+    expected: [{id: 1, position: 1, tag: 'g'.repeat(512)}],
+    fields: ['id', 'position', 'tag']},
     {name: 'analytic-filter-select', source: retainedUnaryChain(
       [{analytic: {
         partition_by: [], order_by: [{id: 'asc'}],
@@ -10147,6 +10169,19 @@ async function exerciseStrategyGraph(
     expected: [
       {id: 1, total: 2}, {id: 2, total: 5}, {id: 3, total: 9},
     ], fields: ['id', 'total']},
+    {name: 'pivot-long-text-filter-select', source: retainedUnaryChain(
+      [{pivot: {
+        index: ['tag'], column: 'status', values: ['open'],
+        value: 'amount', aggregate: 'count',
+      }}], [{filter: 'open > 0'}, {select: ['open', 'tag']}],
+      ['open', 'tag'], [{id: 1, amount: 7, status: 'open',
+        tag: 'g'.repeat(512)}], {
+        id: {type: 'number', nullable: false},
+        amount: {type: 'number', nullable: false},
+        status: {type: 'string', nullable: false},
+        tag: {type: 'string', nullable: false},
+      }),
+    expected: [{open: 1, tag: 'g'.repeat(512)}], fields: ['open', 'tag']},
     {name: 'pivot-filter-select', source: retainedUnaryChain(
       [{pivot: {
         index: ['id'], column: 'status', values: ['a', 'b'],
