@@ -1366,6 +1366,13 @@ export function validateResourceAccounting({
       }
     }
     if (route.family === 'VecA' && route.operation === 'pool_vectors') {
+      for (const role of ['pool_relation_input_limits_stop_cleanup',
+        'pool_relation_input_shared_vector']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('pool_relation_input_public_store')) {
+        fail(`${label}: Pool Relation input public Store fixture is missing`);
+      }
       for (const suffix of ['quantum', 'limits', 'stop_cleanup', 'public_barrier']) {
         const role = `pool_long_keys_${suffix}`;
         if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
@@ -1375,6 +1382,13 @@ export function validateResourceAccounting({
       }
     }
     if (route.family === 'VecA' && route.operation === 'nearest') {
+      for (const role of ['nearest_relation_input_limits_stop_cleanup',
+        'nearest_relation_input_shared_vector']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('nearest_relation_input_public_store')) {
+        fail(`${label}: nearest Relation input public Store fixture is missing`);
+      }
       for (const suffix of ['quantum', 'limits', 'stop_cleanup', 'public_barrier']) {
         const role = `nearest_long_keys_${suffix}`;
         if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);

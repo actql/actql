@@ -69,6 +69,7 @@ priv enum NearestPhase {
   BeginInputRecord
   InitializeIdentitySlots
   ReadInputField
+  RecheckInputField
   MatchInputIdentity
   FinishInputRecord
   ValidateInputComponent
@@ -109,6 +110,7 @@ priv struct NearestState {
   metric : @numeric.Metric
   k : Int
   value_limits : @value.Limits
+  mut input_recheck : (@schema.FieldName, @value.RecheckCursor)?
   mut phase : NearestPhase
   mut reading_queries : Bool
   mut record : Int
@@ -211,6 +213,7 @@ fn nearest_workspace(
   queries : Int,
   candidate_ids : Int,
   query_ids : Int,
+  recheck_slots? : Int = 0,
 ) -> Int? {
   // Identity scratch is used while reading inputs, then reused for the two
   // provisional composite output identities. Those phases never overlap.
@@ -232,7 +235,8 @@ fn nearest_workspace(
     nearest_checked_add(second, record_scratch) is Some(third) &&
     nearest_checked_add(candidate_ids, query_ids) is Some(identity_slots) &&
     nearest_checked_add(identity_slots, 16) is Some(fixed_slots) &&
-    nearest_checked_add(third, fixed_slots) is Some(total) else {
+    nearest_checked_add(third, fixed_slots) is Some(fourth) &&
+    nearest_checked_add(fourth, recheck_slots) is Some(total) else {
     return None
   }
   Some(total)
@@ -269,22 +273,10 @@ fn nearest_input_field(
   input : NearestInputView,
   record : Int,
   field : Int,
-  limits : @value.Limits,
 ) -> (@schema.FieldName, @value.CheckedValue)? {
   match input.source {
-    RelationProducer(read) => {
-      let schema_field = @schema.field_at(
-        @execution.producer_read_schema(read),
-        field,
-      )
-      let value = @execution.producer_read_checked_cell(
-        read, record, field, limits,
-      )
-      match (schema_field, value) {
-        (Some(schema_field), Some(value)) => Some((schema_field.name, value))
-        _ => None
-      }
-    }
+    // Relation input is authorized only by the completed common recheck.
+    RelationProducer(_) => None
     CarrierProducer(view) =>
       match @carrier_runtime.producer_view_record_field(view, record, field) {
         Ok(value) => Some(value)
@@ -325,15 +317,29 @@ fn begin_nearest_record(state : NearestState) -> Unit {
 ///|
 fn read_nearest_field(state : NearestState) -> Result[Unit, NearestIssue] {
   let input = current_input(state)
-  guard nearest_input_field(
-      input,
-      state.record,
-      state.field,
-      state.value_limits,
-    )
+  if input.source is RelationProducer(read) {
+    guard relation_cell_recheck(read, state.record, state.field, state.value_limits)
+      is Some(pending) else {
+      return Err(InvalidNearestRecord(state.reading_queries, state.record))
+    }
+    state.input_recheck = Some(pending)
+    state.phase = RecheckInputField
+    return Ok(())
+  }
+  guard nearest_input_field(input, state.record, state.field)
     is Some((name, value)) else {
     return Err(InvalidNearestRecord(state.reading_queries, state.record))
   }
+  bind_nearest_field(state, name, value)
+}
+
+///|
+fn bind_nearest_field(
+  state : NearestState,
+  name : @schema.FieldName,
+  value : @value.CheckedValue,
+) -> Result[Unit, NearestIssue] {
+  let input = current_input(state)
   if @schema.reference_name(name) == input.component_name {
     if state.source_vector is Some(_) {
       return Err(InvalidNearestRecord(state.reading_queries, state.record))
@@ -887,6 +893,26 @@ fn nearest_step(
           state.phase = FinishInputRecord
         }
       }
+      RecheckInputField => {
+        used += 1
+        guard state.input_recheck is Some((name, cursor)) else {
+          return @bounded.Failed(InvalidNearestKernel, progress, used)
+        }
+        match @value.advance_recheck_runtime_value(cursor) {
+          @value.RecheckContinue => ()
+          @value.RecheckComplete(checked, _, _) => {
+            state.input_recheck = None
+            match bind_nearest_field(state, name, checked) {
+              Ok(_) => ()
+              Err(issue) => return @bounded.Failed(issue, progress, used)
+            }
+          }
+          @value.RecheckFailed =>
+            return @bounded.Failed(
+              InvalidNearestRecord(state.reading_queries, state.record), progress, used,
+            )
+        }
+      }
       MatchInputIdentity => {
         used += 1
         match match_nearest_identity(state) {
@@ -1152,6 +1178,11 @@ fn nearest_step(
 
 ///|
 fn cleanup_nearest_state(state : NearestState) -> Bool {
+  if state.input_recheck is Some((_, cursor)) {
+    @value.cancel_recheck_runtime_value(cursor)
+    state.input_recheck = None
+  }
+  state.current_field = None
   if state.output_row is Some(row) {
     @execution.cleanup_admitted_output_row(row) |> ignore
     state.output_row = None
@@ -1318,11 +1349,22 @@ fn start_nearest_producers(
     output_rows <= max_rows else {
     return Err(NearestOutputLimit)
   }
-  guard nearest_workspace(
+  // One pending Relation recheck is reused across both ports. Already
+  // admitted Carrier views keep their existing control/workspace contract.
+  let has_relation = candidate_input.source is RelationProducer(_) ||
+    query_input.source is RelationProducer(_)
+  let recheck_slots = if has_relation {
+    nearest_checked_add(limits.max_depth, 10)
+  } else {
+    Some(0)
+  }
+  guard recheck_slots is Some(recheck_slots) &&
+    nearest_workspace(
       candidate_count,
       query_count,
       candidate_input.identity_count,
       query_input.identity_count,
+      recheck_slots~,
     )
     is Some(workspace) &&
     workspace <= max_workspace_slots else {
@@ -1379,6 +1421,7 @@ fn start_nearest_producers(
       max_depth: limits.max_depth,
       max_text_bytes: limits.max_text_bytes,
     },
+    input_recheck: None,
     phase: BeginInputRecord,
     reading_queries: false,
     record: 0,

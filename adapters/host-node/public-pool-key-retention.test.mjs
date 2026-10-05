@@ -15,18 +15,28 @@ const expected = ['a', 'b'].map(suffix => ({
   group: prefix + suffix, embedding: [1, 2], member_count: 1,
 }));
 
-function program(id) {
+function program(id, direct = false) {
+  const schema = {
+    id: {type: 'number', nullable: false},
+    group: {type: 'string', nullable: false},
+    embedding: {type: 'vector', dimensions: 2, nullable: false},
+    ...(direct ? {zz_unused: {type: 'array', nullable: false, max_items: 129,
+      items: {type: 'number', nullable: false}}} : {}),
+  };
   return {version: 'actql/0.1', id, stages: [
-    {id: 'values', inputs: {}, steps: [{values: {schema: {
-      id: {type: 'number', nullable: false},
-      group: {type: 'string', nullable: false},
-      embedding: {type: 'vector', dimensions: 2, nullable: false},
-    }, rows: ['b', 'a'].map((suffix, index) => ({
+    {id: 'values', inputs: {}, steps: [{values: {schema,
+      rows: ['b', 'a'].map((suffix, index) => ({
       id: index + 1, group: prefix + suffix, embedding: [1, 2],
-    }))}, as: 'out'}], results: {r: {from: 'out',
-      fields: ['id', 'group', 'embedding']}}},
+      ...(direct ? {zz_unused: Array.from({length: 129}, () => 1)} : {}),
+    }))}, as: 'out'}, ...(direct ? [
+      {from: 'out', assert_rows: {unique_by: ['id']}, as: 'keyed'},
+    ] : [])], results: {r: {from: direct ? 'keyed' : 'out',
+      fields: Object.keys(schema)}}},
     {id: 'bridge', inputs: {rows: {result: {stage: 'values', result: 'r'}}},
-      steps: [{to_vectors: {id: 'id', vector: 'embedding'}, as: 'source'},
+      steps: direct ? [
+        {pool_vectors: {vector: 'embedding', by: ['group'], method: 'sum'}, as: 'pooled'},
+        {from: 'pooled', vectors: true, as: 'out'},
+      ] : [{to_vectors: {id: 'id', vector: 'embedding'}, as: 'source'},
         {from: 'source', pool_vectors: {by: ['group'], method: 'sum'}, as: 'pooled'},
         {from: 'pooled', vectors: true, as: 'out'}],
       results: {r: {from: 'out', fields}}},
@@ -41,8 +51,7 @@ function program(id) {
   }};
 }
 
-test('public retained Pool publishes and cancels inside long group validation',
-  {timeout: 45_000}, async t => {
+async function runPublicPoolBarrier(t, {direct = false} = {}) {
     const directory = await mkdtemp(join(tmpdir(), 'actql-public-pool-key-'));
     const barrier = Promise.withResolvers();
     const released = Promise.withResolvers();
@@ -58,6 +67,7 @@ test('public retained Pool publishes and cancels inside long group validation',
     let dispatches = 0;
     let completions = 0;
     let representations;
+    const fixtureId = direct ? 'public-pool-input' : 'public-pool-key';
     const trace = [];
     let prefixComplete = false;
     const keys = generateKeyPairSync('ed25519');
@@ -78,15 +88,16 @@ test('public retained Pool publishes and cancels inside long group validation',
         advances++;
         if (cancelling) trace.push({...detail});
         if (!cancelling || detail.task !== 1) return;
-        if (!prefixComplete) {
+        if (!direct && !prefixComplete) {
           assert.equal(detail.progress, '2');
           assert.equal(detail.work, '8');
           prefixComplete = true;
           return;
         }
-        // The fused task first completes to_vectors, then starts Pool.
-        // The matching Pool fixture proves these first 256 units
-        // stop in ValidateGroups, before the 513-code-unit key is consumed.
+        // Carrier mode stops in long group validation after the bridge.
+        // Relation mode has an unused array requiring 261 recheck polls;
+        // other field/control units leave fewer than 256 for that array.
+        // Neither first quantum can commit a Pool record or output group.
         assert.equal(detail.work, '256');
         assert.equal(detail.progress, '0');
         barrier.resolve();
@@ -101,8 +112,8 @@ test('public retained Pool publishes and cancels inside long group validation',
     };
     client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, retainedRelationOutput: true, authorization}});
-    const source = JSON.stringify(program('public-pool-key'));
-    const options = {format: 'json', requestId: 'public-pool-key'};
+    const source = JSON.stringify(program(fixtureId, direct));
+    const options = {format: 'json', requestId: fixtureId};
     const execution = await client.aql(source, options);
     const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
     assert.equal(state.status, 'succeeded', inspect(state, {depth: 6}));
@@ -118,8 +129,8 @@ test('public retained Pool publishes and cancels inside long group validation',
     assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
 
     cancelling = true;
-    const cancel = await client.aql(JSON.stringify(program('public-pool-key-cancel')),
-      {format: 'json', requestId: 'public-pool-key-cancel'});
+    const cancel = await client.aql(JSON.stringify(program(fixtureId + '-cancel', direct)),
+      {format: 'json', requestId: fixtureId + '-cancel'});
     await barrier.promise;
     const atBarrier = advances;
     const retainedAtBarrier = await readdir(join(directory, 'carrier-snapshots'));
@@ -144,4 +155,10 @@ test('public retained Pool publishes and cancels inside long group validation',
     assert.equal(advances, atBarrier);
     assert.equal(dispatches, 2);
     assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
-  });
+}
+
+test('public retained Pool publishes and cancels inside long group validation',
+  {timeout: 45_000}, t => runPublicPoolBarrier(t));
+
+test('public retained Pool admits Relation input and cancels inside unused array',
+  {timeout: 45_000}, t => runPublicPoolBarrier(t, {direct: true}));

@@ -181,6 +181,33 @@ test('nearest public key evidence requires an actual suite connection', () => {
     'VecA nearest: nearest key public fixture is not suite-connected'));
 });
 
+test('VecA Relation input requires nested limits, shared scans and public custody evidence', () => {
+  for (const [operation, prefix, publicName] of [
+    ['nearest', 'nearest', 'nearest'], ['pool_vectors', 'pool', 'Pool'],
+  ]) {
+    for (const suffix of ['limits_stop_cleanup', 'shared_vector']) {
+      const role = `${prefix}_relation_input_${suffix}`;
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(entry => entry.family === 'VecA' &&
+          entry.operation === operation);
+        route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+      }), new RegExp(`VecA ${operation}: ${role} fixture is missing`, 'u'));
+    }
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === operation);
+      route.environment_tests = route.environment_tests.filter(item =>
+        item.role !== `${prefix}_relation_input_public_store`);
+    }), new RegExp(`VecA ${operation}: ${publicName} Relation input public Store fixture is missing`, 'u'));
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === operation);
+      route.boundary_tests.find(item =>
+        item.role === `${prefix}_relation_input_shared_vector`).suite = 'moon:local_veca';
+    }), new RegExp(`VecA ${operation}: boundary evidence must be suite-connected on all targets`, 'u'));
+  }
+});
+
 test('nearest output requires its shared cursor and operator boundary evidence', () => {
   for (const role of ['nearest_output_row_stop_cleanup',
     'nearest_output_public_barrier', 'nearest_output_composite_order',

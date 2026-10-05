@@ -5754,6 +5754,34 @@ reuses the same request without dispatch and cancels inside an unused
 construction policy; the larger lower-level admission boundary remains.
 The gate requires the shared/operator input evidence and actual suite import.
 Object field names and authored field binding remain synchronous residuals.
+
+### Pool and Nearest resumable Relation input admission
+
+The Relation input branches of Pool and Nearest now retain the existing common
+value recheck across bounded resumes, including unused columns. Ranking shares
+the same private staging helper. Exact checked producer bindings and Carrier
+generation reads remain unchanged; no implicit array conversion or synchronous
+fallback is added. Each Relation execution reserves one reusable cursor before
+output preparation and retains caller inputs until confirmed stop and cleanup.
+
+Independent scalar control/workspace boundaries are now Pool **41/40, 38/37**
+and Relation Nearest **66/65, 51/50**. A 257-item unused Array independently
+requires **561/560** Pool control with **31/30** workspace, or **1104/1103**
+Nearest control with **43/42** workspace. Input node allowance **258/257**,
+quanta one/seven/256 and stopped cleanup are tested. These supersede prior
+Relation-branch scalar totals only; admitted Carrier totals stay unchanged.
+
+Ordinary installed Host fixtures publish through a real retained Store, read
+three explicit Named Results, reuse the same request without dispatch and
+deliver cancellation inside unused-array admission. Existing Carrier and
+output cancellation fixtures remain successful. Evidence roles are required
+per operation, with removal and foreign-suite mutations rejecting.
+
+This closes the tested Relation input value walk, not Pool's output-record
+encoding, member-ID encoding, Object/name scans, whole-Run exact accounting or
+all Local retention. Focused JS caller and public Host results, independent
+limits and unverified coverage are recorded in the
+[input admission record](2026-10-06-local-vector-input-admission.md).
 Whole-Run exact Ledger limits, packed/HTTP, Wasm/native and new Store-failure
 campaigns are not newly claimed. See the
 [ranking input record](2026-10-06-local-ranking-input-admission.md).

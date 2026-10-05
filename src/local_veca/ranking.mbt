@@ -215,23 +215,8 @@ fn ranking_input_recheck(
     return None
   }
   match value {
-    RankingProducer(read) => {
-      guard @execution.producer_read_cell(read, row, column) is Some(cell) else {
-        return None
-      }
-      if cell is @execution.Text(text) {
-        return @value.start_recheck_runtime_text(text, field.contract, limits)
-      }
-      let raw = match cell {
-        @execution.Null => Some(@value.null_value())
-        @execution.Boolean(boolean) => Some(@value.boolean_value(boolean))
-        @execution.Number(number) => @value.number_value(number)
-        @execution.Captured(raw) => Some(raw)
-        @execution.Text(_) => None
-      }
-      guard raw is Some(raw) else { return None }
-      @value.start_recheck_runtime_value(raw, field.contract, limits)
-    }
+    RankingProducer(read) =>
+      relation_cell_recheck(read, row, column, limits).map(pair => pair.1)
     RankingSupplied(read) => {
       guard @execution.supplied_relation_read_cell(read, row, column)
         is Some(raw) else {
