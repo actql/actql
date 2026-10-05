@@ -104,6 +104,7 @@ pub fn completeness_scope(v : CompletenessRequirement) -> CompletenessScope {
         | GraphNormalize(_)
         | GraphDelta(..)
         | GraphUnion(..)
+        | GraphSubtraction(..)
         | GraphComponents(_)
         | Subgraph(..)
         | Traverse(..)

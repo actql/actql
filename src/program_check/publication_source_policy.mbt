@@ -990,10 +990,10 @@ fn prepare_target_source_policy(
             unknown = true
             inputs.length()
           }
-          @pipeline.GraphDelta(..) => {
+          @pipeline.GraphDelta(..) | @pipeline.GraphSubtraction(..) => {
             // Both ordered operands contribute to the result. Until exact
-            // Delta field provenance is connected, do not grant a stronger
-            // publication proof merely because checking retained a contract.
+            // Delta/subtraction field provenance is connected, do not grant a
+            // stronger publication proof merely because checking retained a contract.
             identity_charge(budget, 1)
             carrier_steps.push({
               step: index,

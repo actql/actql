@@ -41,6 +41,16 @@ pub fn operation_profile_requirement(
         | AdmitDeltaActions
         | VerifyDeltaBaseBeforeTarget => None
       }
+    SubtractionRequirement(o) =>
+      match o {
+        AdmitSubtractionInputs => Some(PropertyGraph)
+        PreserveSubtractionIdentities
+        | CheckSubtractionEdgeEndpoints
+        | ApplySubtractionPropertyStrategies
+        | InduceSubtractionEndpoints
+        | CanonicalSubtractionOrder
+        | ResolveSubtractionResources => None
+      }
     UnionRequirement(o) =>
       match o {
         AdmitUnionInputs => Some(PropertyGraph)

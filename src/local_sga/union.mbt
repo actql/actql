@@ -11,6 +11,7 @@ priv struct UnionState {
   owner : @lower.BoundPrepared
   step : Int
   checked : @graph_type.CheckedUnion
+  subtraction : Bool
   inputs : Array[GraphReadSource]
   limits : @storage.Limits
   storage_bytes : Int64
@@ -207,6 +208,7 @@ fn union_step(
           builder,
           limits,
           state.remaining,
+          subtraction=state.subtraction,
         ) {
         Ok(active) => Some(active)
         Err(issue) => {
@@ -327,10 +329,54 @@ pub fn start_union_views(
   available : () -> Bool,
   control_work_limit? : Int? = None,
 ) -> Result[UnionExecution, UnionIssue] {
-  let owner = @lower.sequence_owner(sequence)
-  guard @lower.sequence_step(sequence, step)
-    is Some(@lower.GraphUnionStep(prepared)) else {
+  guard @lower.sequence_step(sequence, step) is Some(@lower.GraphUnionStep(_)) else {
     return Err(InvalidUnionFold)
+  }
+  start_graph_composition_views(
+    control, sequence, step, inputs, limits, storage_bytes, available, control_work_limit,
+  )
+}
+
+///|
+/// Uses the same bounded execution/cleanup owner as union, but can enter only
+/// the checked subtraction step. Historical union permission is not reused.
+pub fn start_subtraction_views(
+  control : @bounded.Control,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  inputs : Array[@lifecycle.ProducerView],
+  limits : @storage.Limits,
+  storage_bytes : Int64,
+  available : () -> Bool,
+  control_work_limit? : Int? = None,
+) -> Result[UnionExecution, UnionIssue] {
+  guard @lower.sequence_step(sequence, step)
+    is Some(@lower.GraphSubtractionStep(_)) else {
+    return Err(InvalidUnionFold)
+  }
+  start_graph_composition_views(
+    control, sequence, step, inputs, limits, storage_bytes, available, control_work_limit,
+  )
+}
+
+///|
+/// Select semantics only from the checked sequence variant. Transport/provider
+/// code cannot supply a subtraction flag or replace the ordered input owner.
+pub fn start_graph_composition_views(
+  control : @bounded.Control,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  inputs : Array[@lifecycle.ProducerView],
+  limits : @storage.Limits,
+  storage_bytes : Int64,
+  available : () -> Bool,
+  control_work_limit : Int?,
+) -> Result[UnionExecution, UnionIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  let (prepared, subtraction) = match @lower.sequence_step(sequence, step) {
+    Some(@lower.GraphUnionStep(prepared)) => (prepared, false)
+    Some(@lower.GraphSubtractionStep(prepared)) => (prepared, true)
+    _ => return Err(InvalidUnionFold)
   }
   let checked = @lower.graph_union_checked(prepared)
   if inputs.length() != @graph_type.union_input_count(checked) ||
@@ -357,6 +403,7 @@ pub fn start_union_views(
     owner,
     step,
     checked,
+    subtraction,
     inputs: sources,
     limits,
     storage_bytes,

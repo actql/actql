@@ -260,6 +260,8 @@ pub fn operation_obligations_graph_delta(OperationObligations) -> @graph_typing.
 
 pub fn operation_obligations_graph_normalize(OperationObligations) -> @graph_typing.CheckedNormalize?
 
+pub fn operation_obligations_graph_subtraction(OperationObligations) -> @graph_typing.CheckedSubtraction?
+
 pub fn operation_obligations_graph_union(OperationObligations) -> @graph_typing.CheckedUnion?
 
 pub fn operation_obligations_match(OperationObligations) -> @graph_typing.CheckedMatch?
@@ -473,6 +475,7 @@ pub enum CheckedOperation {
   GraphNormalize(@graph_typing.CheckedNormalize)
   GraphDelta(right~ : Target, checked~ : @graph_typing.CheckedDelta)
   GraphUnion(inputs~ : Array[Target], checked~ : @graph_typing.CheckedUnion)
+  GraphSubtraction(right~ : Target, checked~ : @graph_typing.CheckedSubtraction)
   GraphComponents(@graph_typing.CheckedComponents)
   Subgraph(selector~ : Target?, checked~ : @graph_typing.CheckedSubgraph)
   Traverse(selector~ : Target?, checked~ : @graph_typing.CheckedTraverse)
@@ -726,6 +729,7 @@ pub(all) enum OperationObligation {
   NormalizeRequirement(@graph_typing.NormalizeObligation)
   DeltaRequirement(@graph_typing.DeltaObligation)
   UnionRequirement(@graph_typing.UnionObligation)
+  SubtractionRequirement(@graph_typing.SubtractionObligation)
   ComponentsRequirement(@graph_typing.ComponentsObligation)
   SubgraphRequirement(@graph_typing.SubgraphObligation)
   TraverseRequirement(@graph_typing.TraverseObligation)

@@ -1010,18 +1010,67 @@ fn check_impl(
       current = Some(target)
       continue
     }
-    if key == "graft_graph" || key == "subtract_graphs" {
+    if key == "subtract_graphs" {
       let object = match
-        @decode.closed_object(
+        @decode.closed_object(operation_body, ["with", "merge"]) {
+        Ok(object) => object
+        Err(_) => fail(operation_body, InvalidBody)
+      }
+      let at = match @decode.required(object, "with") {
+        Ok(at) => at
+        Err(_) => fail(operation_body, InvalidBody)
+      }
+      let right = resolve_target(b, at, names)
+      let checked = match
+        @graph.check_subtraction(
           operation_body,
-          if key == "apply_graph_delta" {
-            ["with", "field"]
-          } else if key == "subtract_graphs" {
-            ["with", "merge"]
-          } else {
-            ["with"]
+          carrier(input, inputs, steps),
+          carrier(right, inputs, steps),
+          {
+            max_work: b.work,
+            max_nodes: b.nodes,
+            max_text_bytes: b.text,
+            max_depth: limits.max_depth,
           },
         ) {
+        Ok(checked) => checked
+        Err(issue) =>
+          raise Stop({
+            kind: Graph(issue.kind),
+            source: operation_body,
+            path: issue.path.copy(),
+            span: issue.span,
+            range: None,
+          })
+      }
+      let used = @graph.subtraction_usage(checked)
+      b.work -= used.work
+      b.nodes -= used.nodes
+      b.text -= used.text_bytes
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation: GraphSubtraction(right~, checked~),
+        output: @graph.subtraction_output(checked),
+        connections: {
+          entries: [
+            { role: Left, target: input, },
+            { role: Right, target: right, },
+          ],
+        },
+        window: None,
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
+    }
+    if key == "graft_graph" {
+      let object = match @decode.closed_object(operation_body, ["with"]) {
         Ok(object) => object
         Err(_) => fail(operation_body, InvalidBody)
       }
@@ -1030,15 +1079,8 @@ fn check_impl(
         Err(_) => fail(operation_body, InvalidBody)
       }
       ignore(resolve_target(b, at, names))
-      if key == "apply_graph_delta" {
-        let field = match @decode.required(object, "field") {
-          Ok(field) => field
-          Err(_) => fail(operation_body, InvalidBody)
-        }
-        ignore(read_name(b, field))
-      }
-      // The sole Graph is keyed. These consumers have no current implementation,
-      // and cannot issue an old tuple output, comparison or Delta permission.
+      // Graft has no current realization. It cannot issue an old tuple output
+      // or reuse the checked permission of a supported structural composition.
       match carrier(input, inputs, steps) {
         @carrier.GraphValue(_) =>
           fail(operation_body, Graph(@graph.UnsupportedGraphOperation))
@@ -2259,7 +2301,7 @@ fn check_impl(
         | IntervalJoin(right~, ..)
         | AsOfJoin(right~, ..) =>
           [{ role: Left, target: input, }, { role: Right, target: right, }]
-        GraphDelta(right~, ..) =>
+        GraphDelta(right~, ..) | GraphSubtraction(right~, ..) =>
           [{ role: Left, target: input, }, { role: Right, target: right, }]
       },
     }

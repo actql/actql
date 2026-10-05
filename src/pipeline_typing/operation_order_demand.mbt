@@ -70,6 +70,7 @@ pub fn operation_order_demand(v : OperationObligation) -> OperationOrderDemand? 
     | NormalizeRequirement(_)
     | DeltaRequirement(_)
     | UnionRequirement(_)
+    | SubtractionRequirement(_)
     | ComponentsRequirement(_)
     | SubgraphRequirement(_)
     | TraverseRequirement(_)

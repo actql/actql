@@ -126,6 +126,9 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     GraphUnionValue(checked) =>
       operation(node) == "SGA.union_structural" &&
       node.input_targets.length() == @graph.union_input_count(checked)
+    GraphSubtractionValue(_) =>
+      operation(node) == "SGA.diff_structural" &&
+      node.input_targets.length() == 2
     GraphComponentsRows(_) => operation(node) == "SGA.components"
     GraphDeltaValue(checked) =>
       match @graph.delta_operation(checked) {
@@ -247,6 +250,10 @@ pub fn node_can_split_carrier_transform(node : PreparedNode) -> Bool {
   (
     node.payload is GraphUnionValue(_) &&
     operation(node) == "SGA.union_structural"
+  ) ||
+  (
+    node.payload is GraphSubtractionValue(_) &&
+    operation(node) == "SGA.diff_structural"
   ) ||
   (
     node.payload is GraphDeltaValue(checked) &&

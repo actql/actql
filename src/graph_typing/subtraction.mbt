@@ -7,6 +7,44 @@ struct CheckedSubtraction {
 }
 
 ///|
+pub(all) enum SubtractionObligation {
+  AdmitSubtractionInputs
+  PreserveSubtractionIdentities
+  CheckSubtractionEdgeEndpoints
+  ApplySubtractionPropertyStrategies
+  InduceSubtractionEndpoints
+  CanonicalSubtractionOrder
+  ResolveSubtractionResources
+} derive(Eq, Debug)
+
+///|
+pub fn subtraction_pending_count(_ : CheckedSubtraction) -> Int {
+  7
+}
+
+///|
+pub fn subtraction_pending_at(
+  _ : CheckedSubtraction,
+  index : Int,
+) -> SubtractionObligation? {
+  match index {
+    0 => Some(AdmitSubtractionInputs)
+    1 => Some(PreserveSubtractionIdentities)
+    2 => Some(CheckSubtractionEdgeEndpoints)
+    3 => Some(ApplySubtractionPropertyStrategies)
+    4 => Some(InduceSubtractionEndpoints)
+    5 => Some(CanonicalSubtractionOrder)
+    6 => Some(ResolveSubtractionResources)
+    _ => None
+  }
+}
+
+///|
+pub fn subtraction_source(value : CheckedSubtraction) -> @decode.Cursor {
+  union_source(value.composition)
+}
+
+///|
 pub fn check_subtraction(
   source : @decode.Cursor,
   left : @carrier.Carrier,

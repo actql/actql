@@ -309,6 +309,12 @@ pub fn subtraction_composition(CheckedSubtraction) -> CheckedUnion
 
 pub fn subtraction_output(CheckedSubtraction) -> @carrier_contract.Carrier
 
+pub fn subtraction_pending_at(CheckedSubtraction, Int) -> SubtractionObligation?
+
+pub fn subtraction_pending_count(CheckedSubtraction) -> Int
+
+pub fn subtraction_source(CheckedSubtraction) -> @decode_core.Cursor
+
 pub fn subtraction_usage(CheckedSubtraction) -> Usage
 
 pub fn traverse_bounds(CheckedTraverse) -> (Double, Double)
@@ -636,6 +642,16 @@ pub(all) enum SubgraphObligation {
   PreserveSubgraphPolicyAndScope
   ResolveSubgraphResources
   ResolveSubgraphProfile
+} derive(Eq, @debug.Debug)
+
+pub(all) enum SubtractionObligation {
+  AdmitSubtractionInputs
+  PreserveSubtractionIdentities
+  CheckSubtractionEdgeEndpoints
+  ApplySubtractionPropertyStrategies
+  InduceSubtractionEndpoints
+  CanonicalSubtractionOrder
+  ResolveSubtractionResources
 } derive(Eq, @debug.Debug)
 
 type TraversalHop
