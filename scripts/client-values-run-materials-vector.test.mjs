@@ -467,8 +467,12 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('2afc5d41a26a51589b3ad3b647c08dae6ebdb8f135834c227ab97bfd6197bf8a'),
     historicalAoA, dependencies, barrierCid).run.run_definition_cid,
     pin('975bce1f654d8967d1f28f3370e3a89cf27c40745749f99d5bebca82bc5d7e15'));
+  // The common typed JSON dependency is a retained predecessor of the text entry.
+  assert.equal(vector(pin('f0f51ba98d23a0b498cf8f4688b64bd77fc30f0702d9a28397efea5c9d758ea7'),
+    cid(aoaContract),revised,barrierCid,identities).run.run_definition_cid,
+  pin('809c490a2351d8c474cd9fe8edecd84ebcee7aca6bd25b19128691b35133d790'));
   assert.equal(current.run.run_definition_cid,
-    pin('809c490a2351d8c474cd9fe8edecd84ebcee7aca6bd25b19128691b35133d790'));
+    pin('83fb73f606755fc6d8c9237c28efda808c4f1870c9963d3e3675ee8c8e3d9ec7'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');

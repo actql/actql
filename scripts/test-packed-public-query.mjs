@@ -40,6 +40,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/packed-readme-quickstart.mjs', 'readme-acceptance.mjs'],
   ['scripts/fixtures/public-query-input.mjs', 'public-query-input.mjs'],
   ['scripts/fixtures/public-query-cases.mjs', 'public-query-cases.mjs'],
+  ['scripts/fixtures/json-literal-source-input.mjs', 'json-literal-source-input.mjs'],
   ['scripts/fixtures/typed-json-literal-input.mjs', 'typed-json-literal-input.mjs'],
   ['scripts/fixtures/group-star-source-input.mjs', 'group-star-source-input.mjs'],
   ['scripts/fixtures/aggregate-property-source-input.mjs', 'aggregate-property-source-input.mjs'],
@@ -129,6 +130,9 @@ await writeFile(join(root, 'quickstart.mjs'), quickstart.client);
 const runtimeEnvironment = {...environment,
   PATH: `${dirname(process.execPath)}:/usr/bin:/bin`,
   NODE_EXTRA_CA_CERTS: join(root, 'remote.crt')};
+if (process.argv.includes('--json-literal-source-only')) {
+  runtimeEnvironment.ACTQL_TEST_JSON_LITERAL_SOURCE_ONLY = '1';
+}
 if (process.argv.includes('--typed-json-literal-only')) {
   runtimeEnvironment.ACTQL_TEST_TYPED_JSON_LITERAL_ONLY = '1';
 }
@@ -289,7 +293,7 @@ if (process.argv.includes('--cancellation-only')) {
 }
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
-const narrowPublicQuery = process.argv.some(flag => ['--typed-json-literal-only', '--source-free-only',
+const narrowPublicQuery = process.argv.some(flag => ['--json-literal-source-only', '--typed-json-literal-only', '--source-free-only',
   '--join-property-only', '--aggregate-property-only', '--analytic-property-only', '--graph-match-only',
   '--graph-diagnostics-only',
   '--graph-projection-property-only',
@@ -339,7 +343,7 @@ if (plannerSelectionOnly || twoSourceExampleOnly) return;
 // its Store. Restore retained Results in a new process without resubmission.
 // Narrow selections without the String fixture have no retained String Run.
 // Keep restart acceptance for full/source-free selections that create it.
-if (!process.argv.some(flag => ['--typed-json-literal-only', '--join-property-only', '--aggregate-property-only', '--analytic-property-only', '--quoted-identifiers-only', '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
+if (!process.argv.some(flag => ['--json-literal-source-only', '--typed-json-literal-only', '--join-property-only', '--aggregate-property-only', '--analytic-property-only', '--quoted-identifiers-only', '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
   '--graph-match-only',
   '--graph-diagnostics-only',
   '--graph-projection-property-only',
@@ -351,7 +355,8 @@ if (!process.argv.some(flag => ['--typed-json-literal-only', '--join-property-on
   console.log(run(process.execPath, ['string-values-restart.mjs'], root,
     runtimeEnvironment, 120000).trimEnd());
 }
-if (process.argv.includes('--typed-json-literal-only') ||
+if (process.argv.includes('--json-literal-source-only') ||
+    process.argv.includes('--typed-json-literal-only') ||
     process.argv.includes('--order-ordinal-only') ||
     process.argv.includes('--subgraph-only') ||
     process.argv.includes('--graph-match-only') ||

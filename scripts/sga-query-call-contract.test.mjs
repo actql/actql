@@ -57,13 +57,15 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   // role, combined with the adopted Frontend text rules. Retain both
   // parents' historical rule digests rather than rebinding their identities.
   assert.equal(body.query_text_grammar_sha256,
-    '7cd11ce7c1e58b585756ef3c8ac0eb078cf2bbb7003086263f665e26251b7f0e');
+    '8a2aae156e85f5aa5378ff2470b3cd8a08d024d26685bdbe09e77d221f5fcb7d');
   assert.equal(body.query_text_rules_sha256,
-    '6e19ee2d70f3c97104b0faff22b8f5d8e37ab021bff6555555bb018bac0f564a');
+    '2e68573bf29ae8e6b40dd506a1a69aaaaaa3586cbf02faec983b7a05e1be8766');
   assert.equal(body.source_grammar_cid,
     'sha256:cefbc719deb477390be03d777795035462f2c8ba55352560d88ee30a74302cef');
   // Freeze predecessor dependencies; new expression semantics must not rebind old vectors.
   const preJsonBody = {...body,
+    query_text_grammar_sha256: '7cd11ce7c1e58b585756ef3c8ac0eb078cf2bbb7003086263f665e26251b7f0e',
+    query_text_rules_sha256: '6e19ee2d70f3c97104b0faff22b8f5d8e37ab021bff6555555bb018bac0f564a',
     source_grammar_cid: 'sha256:487b95656a825703baa75f2e108ac94d3d8a38fa113bb2ef12a3532cac2654ae',
     expression_contract_cid: 'sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb',
     expression_text_rules_sha256: '997601c137dc1ef2d6d63585d5930aae7f5c39efb54aa56ffbe59b068e2f68c2'};
@@ -117,7 +119,11 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.equal(cid({...preJsonBody, query_text_rules_sha256:
     '1591310fc6d0f8e53b01dcb646a5f22e717f53a825a00d8600c6aa3e31cb008b'}),
     'sha256:2afc5d41a26a51589b3ad3b647c08dae6ebdb8f135834c227ab97bfd6197bf8a');
-  const expected = 'sha256:f0f51ba98d23a0b498cf8f4688b64bd77fc30f0702d9a28397efea5c9d758ea7';
+  assert.equal(cid({...body,
+    query_text_grammar_sha256: preJsonBody.query_text_grammar_sha256,
+    query_text_rules_sha256: preJsonBody.query_text_rules_sha256}),
+  'sha256:f0f51ba98d23a0b498cf8f4688b64bd77fc30f0702d9a28397efea5c9d758ea7');
+  const expected = 'sha256:c13d62b368063e2a1e96fec1b2ff833c32815d2b2c16ee26c822ee40f1a9bc77';
   assert.equal(cid(preJsonBody), 'sha256:88b3e10e85fa88630900251773eb7b2fe5eb00e0714f3668843145fd82e68a8c');
   assert.equal(cid(historicalBody),
     'sha256:2a5854a264c13c65bf7c2ecbc6f59f9ec09e0c590aacc1c8aed6ec247da80067');

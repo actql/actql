@@ -1,5 +1,7 @@
 import {subgraphSourceSuccesses, subgraphSourceRefusals, subgraphSourceExecutionFailures}
   from './subgraph-source-input.mjs';
+import {jsonLiteralSourceSuccesses, jsonLiteralSourceRefusals}
+  from './json-literal-source-input.mjs';
 import {typedJsonLiteralSuccesses, typedJsonLiteralRefusals}
   from './typed-json-literal-input.mjs';
 // Copied unchanged into the external tarball installation by the driver.
@@ -70,6 +72,7 @@ import {graphDiagnosticSourceSuccesses, graphDiagnosticSourceRefusals, graphDiag
 if (process.env.ACTQL_TEST_TWO_SOURCE_ONLY === '1') {
   await import('./packed-two-source-public-query.mjs');
 } else {
+const jsonSourceOnly = process.env.ACTQL_TEST_JSON_LITERAL_SOURCE_ONLY === '1';
 const typedJsonOnly = process.env.ACTQL_TEST_TYPED_JSON_LITERAL_ONLY === '1';
 const propertyGraphOnly = process.env.ACTQL_TEST_PROPERTY_GRAPH_SOURCE_ONLY === "1";
 const graphPropertyPredicateOnly = process.env.ACTQL_TEST_GRAPH_PROPERTY_PREDICATE_ONLY === '1';
@@ -104,7 +107,7 @@ const acquiredDataOnly = process.env.ACTQL_TEST_ACQUIRED_DATA_ONLY === '1';
 const dataSetStrategyOnly = process.env.ACTQL_TEST_DATA_SET_STRATEGY_ONLY === '1';
 const orderPropertyOnly = process.env.ACTQL_TEST_ORDER_PROPERTY_ONLY === '1';
 const joinPropertyOnly = process.env.ACTQL_TEST_JOIN_PROPERTY_ONLY === '1';
-const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || typedJsonOnly || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || joinPropertyOnly;
+const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || jsonSourceOnly || typedJsonOnly || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || joinPropertyOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const joinChain = JSON.parse(await readFile('join-chain-cases.json', 'utf8'));
 const groupScope = JSON.parse(await readFile('group-scope-cases.json', 'utf8'));
@@ -121,7 +124,8 @@ const dataSetStrategyInputs = {
     ]}}}],
   refusals: [],
 };
-const scopeInputs = typedJsonOnly ? {successes: typedJsonLiteralSuccesses, refusals: typedJsonLiteralRefusals}
+const scopeInputs = jsonSourceOnly ? {successes: jsonLiteralSourceSuccesses, refusals: jsonLiteralSourceRefusals}
+  : typedJsonOnly ? {successes: typedJsonLiteralSuccesses, refusals: typedJsonLiteralRefusals}
   : joinPropertyOnly ? {successes: joinPropertySuccesses, refusals: joinPropertyRefusals}
   : aggregatePropertyOnly ? {successes: aggregatePropertySuccesses, refusals: aggregatePropertyRefusals}
   : analyticPropertyOnly ? {successes: analyticPropertySuccesses, refusals: analyticPropertyRefusals}
@@ -165,6 +169,8 @@ const scopeInputs = typedJsonOnly ? {successes: typedJsonLiteralSuccesses, refus
   refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...relationDataRefusals, ...acquiredDataRefusals, ...propertyGraphSourceRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals, ...groupStarRefusals, ...groupOrdinalRefusals],
   executionFailures: [...pipeResultExecutionFailures, ...propertyGraphSourceExecutionFailures]};
 if (!scopeOnly) {
+  scopeInputs.successes.push(...jsonLiteralSourceSuccesses);
+  scopeInputs.refusals.push(...jsonLiteralSourceRefusals);
   scopeInputs.successes.push(...typedJsonLiteralSuccesses);
   scopeInputs.refusals.push(...typedJsonLiteralRefusals);
   scopeInputs.successes.push(...joinPropertySuccesses);

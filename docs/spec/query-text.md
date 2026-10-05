@@ -82,6 +82,20 @@ functions, casts and the `OVER` subset follow the adopted profile. New query
 overloads and numeric domains are rejected before a Program is issued.
 Expression text is never concatenated and reparsed with the legacy dialect.
 
+`JSON` followed by a STRING literal constructs a typed JSON value in ordinary
+SQL and Pipe expressions. The STRING chunks use the decoding rules above;
+their concatenated text is passed unchanged to the common
+`{typed_literal:{type:"json",value:text}}` expression. The common owner parses
+and checks every JSON root, including null, number, string, boolean, object
+and array. JSON null is a non-SQL-NULL JSON value; `NULL` retains SQL NULL
+semantics. JSON scalars do not acquire ordinary scalar types.
+
+The selected [common JSON profile](../design/typed-json-literals.md) retains
+the first duplicate decoded key and exact strings/keys, rejects precision
+loss, and applies complete-input size/node/depth ceilings. Unsupported wide
+numbers are refused rather than rounded. The JSON parser and runtime are not
+duplicated in the Frontend. JSON literals are not limited to Graph Delta.
+
 ## Scope and lowering
 
 `WHERE` and siblings in one SELECT list see the input snapshot, not aliases
