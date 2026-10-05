@@ -162,7 +162,7 @@ test "check rejects unsupported or malformed later steps without a partial resul
       ("[{\"reach\":{}}]", false),
       ("[{\"shortest_path\":{}}]", false),
       ("[{\"graft_graph\":{}}]", false),
-      ("[{\"union_graphs\":{}}]", false),
+      ("[{\"union_graphs\":{}}]", true),
       ("[{\"subtract_graphs\":{}}]", false),
       ("[{\"mean_graphs\":{}}]", false),
       ("[{\"to_vectors\":{}}]", true),
