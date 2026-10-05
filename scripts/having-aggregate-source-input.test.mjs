@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
-import {havingAggregateProgram, havingSingleJoinProgram, havingAggregateSuccesses, havingAggregateRefusals,
+import {havingAggregateProgram, havingSingleJoinProgram, havingPropertyOrderProgram, havingAggregateSuccesses, havingAggregateRefusals,
   havingAggregateExecutionFailures} from './fixtures/having-aggregate-source-input.mjs';
 
 test('HAVING fixtures distinguish input multiplicity, NULL and pre-group alias values', () => {
@@ -47,4 +47,21 @@ test('HAVING aggregate cases join the ordinary packed corpus and a focused selec
   assert.ok(driver.includes("['scripts/fixtures/having-aggregate-source-input.mjs', 'having-aggregate-source-input.mjs']"));
   const end = driver.slice(driver.indexOf('if (plannerSelectionOnly || twoSourceExampleOnly ||'));
   assert.match(end, /process\.argv\.includes\('--having-aggregate-only'\).*?return;/su);
+});
+
+test('hidden property order distinguishes HAVING aliases from selected input slots', () => {
+  const cases = new Map(havingAggregateSuccesses.map(item => [item.name, item]));
+  const alias = cases.get('having-aggregate-property-alias-input-collision');
+  assert.deepEqual(alias.expected, [{n: 5, payload: {score: 5}, original: 'b|b|a|c'}]);
+  assert.deepEqual(cases.get('having-aggregate-property-qualified-input-control').expected, []);
+  assert.deepEqual(alias.parameters.o1, {score: 5});
+  assert.equal(alias.parameters.p3, null);
+  assert.equal(alias.parameters.p4.score, null);
+  assert.deepEqual(JSON.parse(cases.get('having-aggregate-property-independent-json').text), havingPropertyOrderProgram);
+  assert.deepEqual(havingPropertyOrderProgram.stages[1].steps[3].group.aggregates.n, {fn: 'count'});
+  assert.deepEqual(havingPropertyOrderProgram.stages[1].steps[4].filter,
+    {eq: [{field: 'hidden'}, {literal: 'b|b|a|c'}]});
+  assert.deepEqual(havingPropertyOrderProgram.stages[1].steps[5], {select: ['n'], as: 'out'});
+  assert.deepEqual(havingPropertyOrderProgram.stages[0].steps[0].filter,
+    {gt: [{field: 'id'}, {literal: 0}]});
 });

@@ -2108,6 +2108,7 @@ fn compile_steps(
           }
         }
         let derives : Array[(String, @builder.Node)] = []
+        let hidden_order_derives : Array[(String, @builder.Node)] = []
         let key_names : Array[String] = []
         let key_display_names : Array[String] = []
         let by : Array[@builder.Node] = []
@@ -2396,6 +2397,9 @@ fn compile_steps(
               known.push((call, projection.name.unwrap().value, false))
             }
           }
+          // HAVING uses its resolved SELECT aliases; its order expressions must
+          // not reuse projections cached in the SELECT aggregate input scope.
+          let hidden_order_evaluated : Array[(@query.Expression, String)] = []
           for (name, call) in hidden_calls {
             let mut reuse : String? = None
             for (previous, slot, hidden) in known {
@@ -2421,12 +2425,21 @@ fn compile_steps(
                 } else {
                   name.value
                 }
+                let order_fields = aggregate_order_fields(
+                  construction, call, resolve, order_reserved, hidden_order_evaluated,
+                  hidden_order_derives, max_work,
+                )
                 aggregates.push(
                   (
                     slot,
                     lower_aggregate_resolved(
-                      construction, call, resolve, max_work, max_collection_items,
+                      construction,
+                      call,
+                      resolve,
+                      max_work,
+                      max_collection_items,
                       max_collection_bytes,
+                      order_fields=Some(order_fields),
                     ),
                   ),
                 )
@@ -2438,13 +2451,18 @@ fn compile_steps(
             having_aggregate_slots.push((name.value, slot))
           }
         }
-        if !derives.is_empty() {
+        // Property order can depend on a SELECT alias evaluated above. Common
+        // derive fields share an input snapshot, so emit the dependency next.
+        for fields in [derives, hidden_order_derives] {
+          if fields.is_empty() {
+            continue
+          }
           let derive_step : Array[(String, @builder.Node)] = []
           if entries.length() == 1 {
             derive_step.push(entries[0])
             entries.clear()
           }
-          derive_step.push(("derive", construction.object(derives)))
+          derive_step.push(("derive", construction.object(fields)))
           step_entries.push(derive_step)
         }
         entries.push(

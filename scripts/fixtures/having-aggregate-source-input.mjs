@@ -1,3 +1,6 @@
+import {aggregatePropertyOrderProgram, aggregatePropertyOrderSuccesses}
+  from './aggregate-property-order-source-input.mjs';
+
 // Authored from grouped input multiplicity, TRUE-only filtering and alias
 // scope. Expectations do not come from the compiler or execution output.
 const number = {type: 'number', nullable: false};
@@ -81,3 +84,38 @@ export const havingAggregateExecutionFailures = [{
   text: 'SELECT id FROM records GROUP BY id HAVING SUM(1 / 0) > 0',
   resultNames: ['answer'], sourceReadSessionCount: 1,
 }];
+
+// Reuse the unchanged authored object/NULL input fixture, not product output.
+// Selected aggregate orders see input payload; HAVING orders prefer its alias.
+const propertyBase = aggregatePropertyOrderSuccesses.find(item => item.name === 'aggregate-property-order-sql');
+const propertyPrefix = propertyBase.text.slice(0, propertyBase.text.lastIndexOf('SELECT STRING_AGG'));
+const propertyControl = structuredClone(aggregatePropertyOrderProgram);
+propertyControl.id = 'fixture.having_property_order';
+const main = propertyControl.stages[1];
+main.steps[3] = {group: {by: [], aggregates: {n: {fn: 'count'},
+  hidden: aggregatePropertyOrderProgram.stages[1].steps[3].group.aggregates.names}}};
+main.steps.push({filter: {eq: [{field: 'hidden'}, {literal: 'b|b|a|c'}]}},
+  {select: ['n'], as: 'out'});
+main.results.rows.fields = ['n'];
+export const havingPropertyOrderProgram = propertyControl;
+const propertySuccess = (name, tail, extra = {}) => ({...propertyBase,
+  name: 'having-aggregate-property-' + name, text: propertyPrefix + tail,
+  expected: [{n: 5}], columns: columns(['n']), ...extra});
+const collision = "SELECT COUNT(*) AS n, @o1 AS payload, STRING_AGG(name, '|' ORDER BY payload.score NULLS LAST, id) AS original FROM objects HAVING STRING_AGG(name, '|' ORDER BY ";
+const collisionColumns = [columnCount(), {name: 'payload', contract: propertyControl.params.o1},
+  {name: 'original', contract: {type: 'string', nullable: true}}];
+function columnCount() { return {name: 'n', contract: number}; }
+havingAggregateSuccesses.push(
+  propertySuccess('independent-json', '', {format: 'json', text: JSON.stringify(propertyControl),
+    parameterDeclarations: undefined}),
+  propertySuccess('hidden-order', "SELECT COUNT(*) AS n FROM objects HAVING STRING_AGG(name, '|' ORDER BY payload.score NULLS LAST, id) = 'b|b|a|c'"),
+  propertySuccess('alias-input-collision', collision + "payload.score NULLS LAST, id) = 'a|b|b|c'",
+    {expected: [{n: 5, payload: {score: 5}, original: 'b|b|a|c'}], columns: collisionColumns}),
+  propertySuccess('qualified-input-control', collision + "objects.payload.score NULLS LAST, id) = 'a|b|b|c'",
+    {expected: [], columns: collisionColumns}),
+);
+for (const [index, receiver] of ['payload.missing', 'id.score'].entries()) {
+  havingAggregateRefusals.push({name: 'having-aggregate-property-refuse-' + index,
+    format: 'aql-text', text: propertyPrefix + "SELECT COUNT(*) AS n FROM objects HAVING STRING_AGG(name, '|' ORDER BY " + receiver + " NULLS LAST, id) = 'b|b|a|c'",
+    parameterDeclarations: propertyBase.parameterDeclarations, parameters: propertyBase.parameters});
+}
