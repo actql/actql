@@ -15,8 +15,9 @@ pub(all) enum LogicalMeasureIssue {
 
 ///|
 /// Resumable logical measurement: one traversal frame per advance for the
-/// work weight and host node/depth limits, then one wire frame per advance
-/// for the canonical byte size. `measure_logical_value` drains this state.
+/// work weight and host node/depth limits, with finite Text chunks, then one
+/// wire frame per advance for canonical bytes. `measure_logical_value` drains
+/// this state; bounded callers retain it instead of draining a whole cell.
 priv struct LogicalMeasureCursor {
   value : Value
   max_work : Int64
@@ -25,9 +26,10 @@ priv struct LogicalMeasureCursor {
   max_depth : Int
   mut remaining : Int64
   stack : Array[MeasureFrame]
+  mut text : (String, Int)?
   mut nodes : Int
   mut writer : @encode.Writer?
-  mut emit : @admitted.WireEmitCursor?
+  mut emit : IdentityWireCursor?
   mut done : Bool
 }
 
@@ -42,8 +44,12 @@ fn logical_measure_charge(cursor : LogicalMeasureCursor, n : Int64) -> Bool {
 
 ///|
 fn logical_measure_text(cursor : LogicalMeasureCursor, s : String) -> Bool {
-  // Host strings and decoder lengths are Int-indexed. This bounded scan
-  // allocates no UTF-8 copy and cannot charge beyond the remaining allowance.
+  // Small strings retain their finite fast path. Long strings are borrowed
+  // until their shared UTF-8 walk completes across subsequent advances.
+  if s.length() > 64 {
+    cursor.text = Some((s, 0))
+    return true
+  }
   let cap = if cursor.remaining > 2147483647L {
     2147483647
   } else {
@@ -78,6 +84,7 @@ fn start_logical_measure(
     max_depth,
     remaining: max_work,
     stack: [],
+    text: None,
     nodes: 0,
     writer: None,
     emit: None,
@@ -101,10 +108,14 @@ fn start_logical_measure(
 /// Release every pending frame and wire state.
 fn clear_logical_measure(cursor : LogicalMeasureCursor) -> Unit {
   cursor.stack.clear()
+  cursor.text = None
   if cursor.emit is Some(emit) {
-    @admitted.cancel_wire_emit(emit)
+    cancel_identity_wire(emit)
   }
   cursor.emit = None
+  if cursor.writer is Some(writer) {
+    @encode.cancel_writer(writer)
+  }
   cursor.writer = None
   cursor.done = true
 }
@@ -128,6 +139,16 @@ fn advance_logical_measure(
 fn advance_logical_measure_impl(
   cursor : LogicalMeasureCursor,
 ) -> Result[LogicalValueMeasure?, LogicalMeasureIssue] {
+  if cursor.text is Some((text, index)) {
+    guard step_bounded_text_measure(text, index, bytes => {
+        logical_measure_charge(cursor, bytes.to_int64())
+      })
+      is Some(next) else {
+      return Err(LogicalWorkLimit)
+    }
+    cursor.text = if next == text.length() { None } else { Some((text, next)) }
+    return Ok(None)
+  }
   // Traversal: one frame per advance.
   if cursor.stack.pop() is Some(frame) {
     match frame {
@@ -227,21 +248,23 @@ fn advance_logical_measure_impl(
         _ => return Err(WireMeasureFailure)
       }
       cursor.writer = Some(writer)
-      match cursor.value {
-        Captured(v) => {
-          cursor.emit = Some(@admitted.start_wire_emit(v, writer))
-          return Ok(None)
-        }
-        scalar =>
-          emit_runtime_value(scalar, writer) catch {
+      if cursor.value is Captured(_) ||
+        (cursor.value is Text(text) && text.length() > 64) {
+        cursor.emit = Some(
+          identity_scan_emit(cursor.value, writer) catch {
             _ => return Err(WireMeasureFailure)
-          }
+          },
+        )
+        return Ok(None)
+      }
+      emit_runtime_value(cursor.value, writer) catch {
+        _ => return Err(WireMeasureFailure)
       }
       writer
     }
   }
   if cursor.emit is Some(emit) {
-    let finished = @admitted.advance_wire_emit(emit) catch {
+    let finished = advance_identity_wire(emit) catch {
       _ => return Err(WireMeasureFailure)
     }
     if !finished {
