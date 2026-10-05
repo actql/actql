@@ -354,6 +354,8 @@ async function subgraphHostCancellation() {
   const runtime = new Proxy(moon,{get(target,name,receiver) {
     if (name === 'strategyModule_local_Registration') return ()=>({});
     if (name === 'strategyHostRegistrationSelectionKey') return ()=>'subgraph-conformance';
+    // Task identity is dispatch plumbing in this isolated provider fixture.
+    if (name === 'strategyHostTask') return ()=>0;
     if (name === 'strategyModule_local_Dispatch') return ()=>({$tag:1,_0:operations});
     return Reflect.get(target,name,receiver);
   }});
