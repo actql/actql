@@ -1147,6 +1147,20 @@ fn analytic_boundary(
       construction.object([
         ("following", construction.add(Number(distance.to_double()))),
       ])
+    PrecedingParameter(name) =>
+      construction.object([
+        (
+          "preceding",
+          construction.object([("$param", construction.text(name))]),
+        ),
+      ])
+    FollowingParameter(name) =>
+      construction.object([
+        (
+          "following",
+          construction.object([("$param", construction.text(name))]),
+        ),
+      ])
   }
 }
 
@@ -1162,7 +1176,7 @@ fn lower_analytic_call(
       if call.window.frame is None {
         raise Abort(UnsupportedAnalytic)
       }
-      if !["COUNT", "SUM", "AVG", "MIN", "MAX"].contains(
+      if !["COUNT", "COUNTIF", "SUM", "AVG", "MIN", "MAX"].contains(
           aggregate.function_name,
         ) {
         raise Abort(UnsupportedAnalytic)
@@ -2238,7 +2252,7 @@ fn compile_steps(
           step_entries.push(derive_step)
         }
         let value = match
-          @expression.append(
+          @expression.append_with_properties(
             predicate,
             path => {
               having_column(

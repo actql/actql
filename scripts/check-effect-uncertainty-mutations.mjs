@@ -19,6 +19,11 @@ const custodyCases = [{
   name: 'Local response reuse cannot rebind an earlier Effect explanation to another Run',
   assertions: [{id: 'effect-custody', operator: 'deepStrictEqual'}],
 }];
+const copiedShapeCases = kinds => ['status', 'wait', 'reconcile'].flatMap(operation =>
+  kinds.map(kind => ({
+    name: `Local ${operation}: Effect custody refuses ${kind} clone failure or shape loss`,
+    assertions: [{id: 'effect-copied-shape', operator: 'strictEqual'}],
+  })));
 const mutations = [
   ['an unresolved Effect is presented as successful',
     "observation: 'effect_outcome_unknown',", "observation: 'succeeded',", boundary, publicCases],
@@ -34,7 +39,14 @@ const mutations = [
     "physicalStop: state.control?.physical_stop ?? 'unknown',",
     "physicalStop: 'confirmed',", unit, controlCases],
   ['a reused Local response rebinds an earlier observation to another Run',
-    '    state = structuredClone(state);', '', unit, custodyCases],
+    '    try { state = structuredClone(state); }', '    try {}', unit, custodyCases],
+  ['a Local Effect reply clone failure loses the SDK refusal',
+    "    catch { fail('InvalidHostRunState'); }",
+    '    catch (error) { throw error; }', unit, copiedShapeCases(['proxy'])],
+  ['a copied Local Effect reply loses validation before its facts are retained',
+    "    if (!validRunState(state) || state.status !== 'needs_reconciliation' ||\n" +
+      "        state.next_action.kind !== 'reconcile') fail('InvalidHostRunState');",
+    '', unit, copiedShapeCases(['date', 'control-date', 'action-date'])],
 ];
 
 const accepted = (file, expected) => {
@@ -55,6 +67,7 @@ try {
   }
 } finally { writeFileSync(path, original); }
 const restoredAccepted = accepted(boundary, publicCases) &&
-  accepted(unit, controlCases) && accepted(unit, custodyCases);
+  accepted(unit, controlCases) && accepted(unit, custodyCases) &&
+  accepted(unit, copiedShapeCases(['proxy', 'date', 'control-date', 'action-date']));
 console.log(JSON.stringify({mutations: results, restoredAccepted}, null, 2));
 if (!restoredAccepted || results.some(result => !result.rejected)) process.exitCode = 1;

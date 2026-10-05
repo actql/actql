@@ -45,6 +45,7 @@ struct Writer {
   mut remaining_nodes : Int
   max_depth : Int
   mut root_written : Bool
+  mut string_active : Bool
   mut closed : Bool
 }
 
@@ -89,6 +90,7 @@ fn create_writer(
     remaining_nodes: max_nodes,
     max_depth,
     root_written: false,
+    string_active: false,
     closed: false,
   }
 }
@@ -150,6 +152,7 @@ pub fn drain_hash_output(w : Writer) -> String raise EncodeFailure {
 /// Idempotent, including failed writers; cancellation cannot finalize output.
 pub fn cancel_writer(w : Writer) -> Unit {
   w.closed = true
+  w.string_active = false
   w.frames.clear()
   match w.output {
     TextOutput(text) => text.reset()
@@ -236,6 +239,14 @@ fn active(w : Writer) -> Unit raise EncodeFailure {
 }
 
 ///|
+fn idle(w : Writer) -> Unit raise EncodeFailure {
+  active(w)
+  if w.string_active {
+    fail(w, InvalidStructure)
+  }
+}
+
+///|
 fn ascii(w : Writer, text : String) -> Unit raise EncodeFailure {
   if text.length() > w.remaining_bytes {
     fail(w, OutputLimit)
@@ -254,10 +265,14 @@ fn ascii(w : Writer, text : String) -> Unit raise EncodeFailure {
 }
 
 ///|
-fn quoted(w : Writer, text : String) -> Unit raise EncodeFailure {
-  ascii(w, "\"")
-  let mut i = 0
-  while i < text.length() {
+fn quoted_contents(
+  w : Writer,
+  text : String,
+  start : Int,
+  end : Int,
+) -> Int raise EncodeFailure {
+  let mut i = start
+  while i < end {
     let unit = text[i].to_int()
     if unit >= 32 && unit < 128 && unit != 34 && unit != 92 {
       // Bounded ASCII spans avoid a builder append and buffer reservation for
@@ -270,7 +285,7 @@ fn quoted(w : Writer, text : String) -> Unit raise EncodeFailure {
       }
       let bound = Int::min(256, capacity)
       let start = i
-      while i < text.length() && i - start <= bound {
+      while i < end && i - start <= bound {
         let next = text[i].to_int()
         if next < 32 || next >= 128 || next == 34 || next == 92 {
           break
@@ -337,6 +352,13 @@ fn quoted(w : Writer, text : String) -> Unit raise EncodeFailure {
     }
     i += 1
   }
+  i
+}
+
+///|
+fn quoted(w : Writer, text : String) -> Unit raise EncodeFailure {
+  ascii(w, "\"")
+  quoted_contents(w, text, 0, text.length()) |> ignore
   ascii(w, "\"")
 }
 
@@ -369,7 +391,7 @@ fn ascii_span(
 
 ///|
 fn value_start(w : Writer) -> Unit raise EncodeFailure {
-  active(w)
+  idle(w)
   if w.remaining_nodes <= 0 {
     fail(w, OutputLimit)
   }
@@ -469,6 +491,65 @@ pub fn string_value(w : Writer, value : String) -> Unit raise EncodeFailure {
 }
 
 ///|
+/// Exclusive unfinished string emission into the existing writer. The cursor
+/// borrows the source and keeps the writer's aggregate limits; it is not a
+/// second buffer or a separately finalizable document.
+struct StringEmitCursor {
+  writer : Writer
+  text : String
+  mut position : Int
+  mut done : Bool
+}
+
+///|
+pub fn start_string_value(
+  w : Writer,
+  text : String,
+) -> StringEmitCursor raise EncodeFailure {
+  value_start(w)
+  ascii(w, "\"")
+  w.string_active = true
+  { writer: w, text, position: 0, done: false, }
+}
+
+///|
+/// Emit up to 64 UTF-16 units, completing a crossing surrogate pair, using
+/// the same escaping, byte limits and sinks as synchronous string emission.
+pub fn advance_string_value(
+  cursor : StringEmitCursor,
+) -> Bool raise EncodeFailure {
+  if cursor.done {
+    raise ClosedWriter
+  }
+  let w = cursor.writer
+  active(w)
+  if !w.string_active {
+    fail(w, InvalidStructure)
+  }
+  let end = cursor.position +
+    Int::min(64, cursor.text.length() - cursor.position)
+  cursor.position = quoted_contents(w, cursor.text, cursor.position, end)
+  if cursor.position == cursor.text.length() {
+    ascii(w, "\"")
+    w.string_active = false
+    cursor.done = true
+    true
+  } else {
+    false
+  }
+}
+
+///|
+/// Cancel only an unfinished cursor. The caller still owns the writer, but
+/// its incomplete string can never be finalized or continued by another owner.
+pub fn cancel_string_value(cursor : StringEmitCursor) -> Unit {
+  if !cursor.done {
+    cursor.done = true
+    cancel_writer(cursor.writer)
+  }
+}
+
+///|
 pub fn begin_array(w : Writer) -> Unit raise EncodeFailure {
   value_start(w)
   if w.frames.length() >= w.max_depth {
@@ -492,7 +573,7 @@ pub fn begin_object(w : Writer) -> Unit raise EncodeFailure {
 
 ///|
 pub fn key(w : Writer, name : String) -> Unit raise EncodeFailure {
-  active(w)
+  idle(w)
   if w.frames.is_empty() {
     fail(w, InvalidStructure)
   }
@@ -522,7 +603,7 @@ pub fn key(w : Writer, name : String) -> Unit raise EncodeFailure {
 
 ///|
 pub fn end_array(w : Writer) -> Unit raise EncodeFailure {
-  active(w)
+  idle(w)
   match w.frames.last() {
     Some(ArrayItems(_)) => {
       ignore(w.frames.pop())
@@ -535,7 +616,7 @@ pub fn end_array(w : Writer) -> Unit raise EncodeFailure {
 
 ///|
 pub fn end_object(w : Writer) -> Unit raise EncodeFailure {
-  active(w)
+  idle(w)
   match w.frames.last() {
     Some(ObjectKey(_, _)) => {
       ignore(w.frames.pop())
@@ -606,7 +687,7 @@ pub fn writer_progress(w : Writer) -> (Int, Int, Int) raise EncodeFailure {
 
 ///|
 fn finish_state(w : Writer) -> Unit raise EncodeFailure {
-  active(w)
+  idle(w)
   if !w.root_written || !w.frames.is_empty() {
     fail(w, InvalidStructure)
   }

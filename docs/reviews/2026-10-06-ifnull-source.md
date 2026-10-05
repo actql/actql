@@ -1,5 +1,36 @@
 # IFNULL source connection
 
+## Current-main integration review
+
+Normally integrate `7df035b21079379ca5bcdccaf45adb1b2091cd1e` into the
+preserved IFNULL branch. Resolve the eleven conflict paths by retaining both
+normative paragraphs and all IFNULL, HAVING, COUNTIF and frame public selections.
+The metadata and current compiler pins are generated from the combined bodies;
+the complete grammar document import introduced by #495 is preserved.
+
+The independent Run vector retains main's pre-membership and current vectors,
+plus the earlier IFNULL and Graph-difference source closures. The combined
+grammar manifest is `sha256:c7db9149ce04b3f85a273f97b5e4b1647e62e352484fb56309f5a347744fe37b`;
+the independently assembled current Run is
+`sha256:2624f666695d785e72040453976d086dc98e7778ac5dfeb5a75ba93cc8f67891`.
+Neither expected identity comes from the product issuer. The narrow COUNTIF
+registration guard now checks membership in the selector rather than requiring
+its flag to be first; every corpus and isolation obligation remains checked.
+
+Focused integration attempt `run-a9V8oZ` passed IFNULL 3/3, the Run consumer
+1/1, and Node fixture/profile/independent preimage tests 23/23. Read-only
+compilation metadata, document imports, specification-family and 370 canonical
+identities passed. Its first attempt (`run-CK7VAV`) found two stale assertions
+and is retained separately. The old public success at `45bccfa...` is still
+evidence for that exact SHA, not for the integration. Current clean-SHA
+publication, actual history and narrow public results follow in the PR.
+
+The #463 integration remains a separate common-law unit: this merge does not
+adopt typed-JSON changes or overwrite its branch. Its current pins must be
+generated from its own combined law/body after integration, while preserving
+both historical generations. No shared work/holding or Effect meaning changes
+are made here.
+
 Base: `eb74d7b65d0f338ef5862a7d9cd7397744a08eaa` (main). Owner: B.
 Scope: public SQL/Pipe expressions to the existing common `coalesce` operation.
 

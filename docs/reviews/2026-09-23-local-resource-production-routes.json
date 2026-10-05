@@ -6425,6 +6425,20 @@
       },
       "boundary_tests": [
         {
+          "role": "analytic_stepped_wire_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/analytic_envelope_progress_wbtest.mbt",
+          "fixture": "analytic stepped Text keeps independent exact wire envelope limits"
+        },
+        {
+          "role": "analytic_stepped_wire_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/analytic_envelope_progress_wbtest.mbt",
+          "fixture": "analytic closes input partition and output wire custody mid Text"
+        },
+        {
           "role": "analytic_stepped_output_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],

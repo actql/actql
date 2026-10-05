@@ -16,9 +16,10 @@ pub struct ClientRetainedInputEdge {
 /// Current physical custody must still be admitted by the Transfer owner.
 pub struct ClientRetainedInputProducer {
   edge : ClientRetainedInputEdge
-  record : @remote.DispatchRecord
+  request : @remote.DispatchRequest
   evidence : @remote.RemoteExecutionEvidence
   subject : @remote.RemoteManagedOutputSubject
+  available : () -> Bool
 }
 
 ///|
@@ -154,7 +155,68 @@ pub fn prepare_client_retained_input_producer(
     edge.producer_schema_cid {
     return Err(ForeignProducer)
   }
-  let value = { edge, record, evidence, subject, }
+  let value = {
+    edge,
+    request,
+    evidence,
+    subject,
+    available: () => {
+      client_retained_site_producer_available(record, evidence, subject)
+    },
+  }
+  if !client_retained_input_producer_available(value) {
+    return Err(ProducerUnavailable)
+  }
+  Ok(value)
+}
+
+///|
+/// Use the Coordinator's accepted observation, without constructing a Site
+/// record or granting access to its material. The current-record port belongs
+/// to the trusted Host owner; callers must retain its durable revision fence
+/// across physical handoffs. Missing current custody fails closed.
+pub fn prepare_client_coordinator_retained_input_producer(
+  edge : ClientRetainedInputEdge,
+  request : @remote.DispatchRequest,
+  evidence : @remote.RemoteExecutionEvidence,
+  subject : @remote.RemoteManagedOutputSubject,
+  measurement : @remote.RemoteManagedOutputMeasurement,
+  current : () -> @remote.CoordinatorDispatchIntentRecord?,
+) -> Result[ClientRetainedInputProducer, ClientRetainedInputIssue] {
+  if @remote.dispatch_request_task_scope(request) !=
+    (edge.run_definition_cid, edge.producer.node_id) ||
+    !@remote.remote_managed_output_subject_matches_evidence(
+      subject, evidence, request,
+    ) ||
+    @remote.remote_managed_output_subject_projection(subject)[4] !=
+    edge.producer_schema_cid {
+    return Err(ForeignProducer)
+  }
+  let value = {
+    edge,
+    request,
+    evidence,
+    subject,
+    available: () => {
+      guard current() is Some(record) else { return false }
+      if !@remote.coordinator_managed_output_matches(
+          record, request, evidence, subject, measurement,
+        ) {
+        return false
+      }
+      let authority = @remote.dispatch_request_journal_key(request)[0]
+      match
+        @remote.coordinator_execution_observation(
+          record,
+          authority,
+          edge.run_definition_cid,
+          edge.producer.node_id,
+        ) {
+        Ok(observation) => observation.cleanup == Some(@remote.CleanupActive)
+        Err(_) => false
+      }
+    },
+  }
   if !client_retained_input_producer_available(value) {
     return Err(ProducerUnavailable)
   }
@@ -167,21 +229,30 @@ pub fn prepare_client_retained_input_producer(
 pub fn client_retained_input_producer_available(
   value : ClientRetainedInputProducer,
 ) -> Bool {
-  if !@remote.remote_completion_evidence_available(value.record) {
+  (value.available)()
+}
+
+///|
+fn client_retained_site_producer_available(
+  record : @remote.DispatchRecord,
+  evidence : @remote.RemoteExecutionEvidence,
+  subject : @remote.RemoteManagedOutputSubject,
+) -> Bool {
+  if !@remote.remote_completion_evidence_available(record) {
     return false
   }
-  let (_, state, cleanup, _, _) = @remote.dispatch_record_state(value.record)
+  let (_, state, cleanup, _, _) = @remote.dispatch_record_state(record)
   if cleanup != @remote.CleanupActive {
     return false
   }
   let (material, holding, _, _) = @remote.remote_managed_output_subject_retention(
-    value.subject,
+    subject,
   )
   match state {
     @remote.EvidenceDurable(saved_material, saved_holding, saved_evidence) =>
       material == saved_material &&
       holding == saved_holding &&
-      saved_evidence == @remote.remote_execution_evidence_cid(value.evidence)
+      saved_evidence == @remote.remote_execution_evidence_cid(evidence)
     _ => false
   }
 }
@@ -218,7 +289,7 @@ pub fn client_retained_input_edge_schema_cid(
 pub fn client_retained_input_producer_dispatch(
   value : ClientRetainedInputProducer,
 ) -> @remote.DispatchRequest {
-  @remote.dispatch_record_request(value.record)
+  value.request
 }
 
 ///|

@@ -24,11 +24,13 @@ const mutations = [
     '      finding\n      is (Violation(_)\n      | SyntaxViolation(_, _)\n' +
     '      | LexicalViolation(_, _)\n' +
     '      | ExpressionViolation(_, _)\n' +
-    '      | GraphViolation(_)\n' +
-    '      | TypeViolation(_, _, _, _)\n      | SuppliedViolation(_)\n' +
+    '      | GraphViolation(_, _)\n' +
+    '      | TypeViolation(_, _, _, _)\n' +
+    '      | DefaultTypeViolation(_, _, _, _)\n      | SuppliedViolation(_)\n' +
     '      | DeclarationViolation(_)\n' +
     '      | ConstraintViolation(_, _, _)\n' +
-    '      | UndeclaredParameter(_, _))\n    }) {\n' +
+    '      | UndeclaredParameter(_, _)\n' +
+    '      | UnusedParameter(_, _))\n    }) {\n' +
     '    "invalid"',
     'if findings.iter().any(finding => !(finding is Limit(_))) {\n' +
     '    "invalid"'],
@@ -145,17 +147,17 @@ const mutations = [
     'return ExpressionViolation(code, range)',
     'return Limit("analysis_budget_exhausted")'],
   ['a Graph components violation is reported as an implementation limit',
-    'return GraphViolation("invalid_kind")',
+    'return GraphViolation("components", "invalid_kind")',
     'return Limit("implementation_limit")'],
   ['a Graph components violation loses its typed facts',
-    'return GraphViolation("invalid_kind")',
+    'return GraphViolation("components", "invalid_kind")',
     'return Violation("program_invalid")'],
   ['a Graph components violation invents an authored SQL range',
-    '@encode.string_value(writer, "components")\n          @encode.end_object(writer)',
-    '@encode.string_value(writer, "components")\n          @encode.end_object(writer)\n' +
+    '@encode.string_value(writer, operation)\n          @encode.end_object(writer)',
+    '@encode.string_value(writer, operation)\n          @encode.end_object(writer)\n' +
     '          write_check_text_location(writer, documents.source_revision, 0, 1)'],
   ['a Graph components violation exposes a private value as a code',
-    'return GraphViolation("invalid_kind")',
+    'return GraphViolation("components", "invalid_kind")',
     'return Violation("private_kind_value")'],
   ['an unsupported function is reported as an authored violation',
     '        QueryLowering(Expression({ issue: UnsupportedFunction, .. })) =>\n' +
@@ -201,6 +203,56 @@ const mutations = [
   ['a non-Boolean predicate exposes a private value as its code',
     'return ExpressionViolation("expected_boolean", None)',
     'return Violation("private_predicate_value")'],
+  ['a Subgraph selector violation is reported as an implementation limit',
+    'return GraphViolation("subgraph", "invalid_node_selector")',
+    'return Limit("implementation_limit")'],
+  ['a Subgraph selector violation loses its typed facts',
+    'return GraphViolation("subgraph", "invalid_node_selector")',
+    'return Violation("program_invalid")'],
+  ['a Subgraph selector violation invents an authored SQL range',
+    '@encode.string_value(writer, operation)\n          @encode.end_object(writer)',
+    '@encode.string_value(writer, operation)\n          @encode.end_object(writer)\n' +
+    '          if operation == "subgraph" {\n' +
+    '            write_check_text_location(writer, documents.source_revision, 0, 1)\n' +
+    '          }'],
+  ['a Subgraph selector violation exposes a private value as its code',
+    'return GraphViolation("subgraph", "invalid_node_selector")',
+    'return Violation("private_selector_value")'],
+  ['an unsupported Subgraph selector is reported as invalid input',
+    'UnsupportedImplementation =>\n          findings.push(Limit("implementation_limit"))',
+    'UnsupportedImplementation =>\n          findings.push(Violation("program_invalid"))'],
+  ['a Subgraph selector violation is fabricated behind protected resolution',
+    'QueryLowering(UnknownRelation) =>\n' +
+    '          findings.push(Unresolved("source_resolution"))',
+    'QueryLowering(UnknownRelation) => {\n' +
+    '          findings.push(Unresolved("source_resolution"))\n' +
+    '          findings.push(GraphViolation("subgraph", "invalid_node_selector"))\n        }'],
+  ['a default type violation loses its typed explanation facts',
+    'Some(DefaultTypeViolation(name, expected, actual, pointer))',
+    'Some(DeclarationViolation(pointer))'],
+  ['a default type violation loses its owned declaration location',
+    'Some(DefaultTypeViolation(name, expected, actual, pointer))',
+    'Some(DefaultTypeViolation(name, expected, actual, None))'],
+  ['a default type violation reports the root type instead of its leaf',
+    'guard check_type_facts(source, value, path, 2) is Some((expected, actual)) else',
+    'guard check_type_facts(source, value, [], 0) is Some((expected, actual)) else'],
+  ['a default type violation is reported as an analysis limit',
+    'Some(DefaultTypeViolation(name, expected, actual, pointer))',
+    'Some(Limit("analysis_budget_exhausted"))'],
+  ['an unused Parameter loses its typed explanation',
+    'return Some(UnusedParameter(declaration.name, pointer))',
+    'return Some(Violation("program_invalid"))'],
+  ['an unused Parameter loses its original declaration location',
+    'return Some(UnusedParameter(declaration.name, pointer))',
+    'return Some(UnusedParameter(declaration.name, None))'],
+  ['an unused Parameter exposes an unrelated private value as its name',
+    'return Some(UnusedParameter(declaration.name, pointer))',
+    'return Some(UnusedParameter("private-default", pointer))'],
+
+  ['an unused Parameter is reported as an analysis limit',
+    'return Some(UnusedParameter(declaration.name, pointer))',
+    'return Some(Limit("analysis_budget_exhausted"))'],
+
 ];
 
 const strict = id => ({id, operator: 'strictEqual'});
@@ -273,6 +325,17 @@ const targets = [
   ["non-Boolean predicates retain the common checker's requirement", [deep('predicate-reason')]],
   ["non-Boolean predicates retain the common checker's requirement", [deep('predicate-disclosure')]],
   ["non-Boolean predicates retain the common checker's requirement", [deep('predicate-reason')]],
+  ...Array.from({length: 5}, () =>
+    ['Subgraph selector violations preserve the common Owner reason',
+      [strict('subgraph-verdict'), deep('subgraph-reason'), strict('subgraph-limit-verdict')]]),
+  ['Subgraph selector violations preserve the common Owner reason', [deep('subgraph-protected')]],
+  ...Array.from({length: 4}, () =>
+    ['default type violations retain declaration input and the owned leaf type',
+      [strict('default-verdict'), deep('default-reason')]]),
+  ...Array.from({length: 4}, () =>
+    ['unused Parameter explanations retain original custody without exposing values',
+      [strict('unused-custody-verdict'), deep('unused-custody-reason'), strict('unused-disclosure')]]),
+
 ];
 
 // Reuse the common reporter and nonzero-execution evidence. A process failure

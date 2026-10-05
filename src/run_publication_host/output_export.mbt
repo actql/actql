@@ -25,6 +25,7 @@ pub(all) enum PublicationOutputExportIssue {
   Evidence(@publication.ResultEvidenceIssuanceIssue)
   Artifact(@publication.ResultArtifactIssuanceIssue)
   Capture(@publication.CapturedRunIssuanceIssue)
+  Source(@query.CapturedSourceIssue)
 }
 
 ///|
@@ -87,6 +88,44 @@ pub fn prepare_publication_output_export(
     artifact: None,
   })
   .map_err(issue => Output(issue))
+}
+
+///|
+/// Export the exact completed acquisition task before its dependent Compute.
+/// This is an internal task port, not another Named Result or Run. The existing
+/// capture Owner retains its physical bytes and the caller retains the Run
+/// until the export and every downstream borrow are finished.
+pub fn prepare_acquired_task_publication_export(
+  run : @strategy.CapturedDAG,
+  task : Int,
+  source : @query.CapturedInputSource,
+  limits : PublicationOutputExportLimits,
+) -> Result[PublicationOutputExport, PublicationOutputExportIssue] {
+  if !@strategy.captured_task_source_matches(run, task, source) {
+    return Err(Output(ForeignMaterial))
+  }
+  @query.prepare_captured_source_relation_export(
+    source,
+    limits.max_rows,
+    limits.values,
+    limits.payload_wire,
+    limits.logical_wire,
+    limits.schema,
+    limits.max_batch_bytes,
+  )
+  .map(stream => {
+    stream,
+    retained: None,
+    replay_values: limits.values,
+    replay_wire: limits.payload_wire,
+    max_batch_bytes: limits.max_batch_bytes,
+    definition: None,
+    declared_fields: None,
+    receipt: None,
+    evidence: None,
+    artifact: None,
+  })
+  .map_err(issue => Source(issue))
 }
 
 ///|
