@@ -356,10 +356,16 @@ export type WireCheckOutcomeShape = Readonly<{
   parameter: string;
   constraint: "numeric" | "duration" | "array_length" | "array_size";
 }> | Readonly<{
+  parameter: string;
+  domain: "positive_safe_integer" | "nonnegative_safe_integer" | "unit_fraction" | "finite_number" | "duration" | "positive_milliseconds" | "signed_milliseconds" | "timestamp";
+}> | Readonly<{
   operation: "components";
   issue: "invalid_kind" | "invalid_output_rows";
 }> | Readonly<{
-  issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean";
+  operation: "subgraph";
+  issue: "invalid_node_selector";
+}> | Readonly<{
+  issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean" | "invalid_bounds";
 }>;
 }>[];
   requirements: readonly Readonly<{
@@ -390,10 +396,16 @@ export type WireCheckOutcomeShape = Readonly<{
   parameter: string;
   constraint: "numeric" | "duration" | "array_length" | "array_size";
 }> | Readonly<{
+  parameter: string;
+  domain: "positive_safe_integer" | "nonnegative_safe_integer" | "unit_fraction" | "finite_number" | "duration" | "positive_milliseconds" | "signed_milliseconds" | "timestamp";
+}> | Readonly<{
   operation: "components";
   issue: "invalid_kind" | "invalid_output_rows";
 }> | Readonly<{
-  issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean";
+  operation: "subgraph";
+  issue: "invalid_node_selector";
+}> | Readonly<{
+  issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean" | "invalid_bounds";
 }>;
 }>[];
   scope: Readonly<{
@@ -401,7 +413,8 @@ export type WireCheckOutcomeShape = Readonly<{
 }>;
   verdict: "invalid" | "undetermined" | "verified";
 }>;
-  reason_schema_cid: "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa";
+  outcome_schema_cid: string;
+  reason_schema_cid: "sha256:3204b8f2edb377120d3139f380fc3c49541ff34b7117430de4ed52e0f826025f";
   version: "actql-check-outcome/0.1";
 }> | Readonly<{
   outcome: "failed";
@@ -450,10 +463,16 @@ export type WireCheckOutcomeShape = Readonly<{
   parameter: string;
   constraint: "numeric" | "duration" | "array_length" | "array_size";
 }> | Readonly<{
+  parameter: string;
+  domain: "positive_safe_integer" | "nonnegative_safe_integer" | "unit_fraction" | "finite_number" | "duration" | "positive_milliseconds" | "signed_milliseconds" | "timestamp";
+}> | Readonly<{
   operation: "components";
   issue: "invalid_kind" | "invalid_output_rows";
 }> | Readonly<{
-  issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean";
+  operation: "subgraph";
+  issue: "invalid_node_selector";
+}> | Readonly<{
+  issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean" | "invalid_bounds";
 }>;
 }>[];
   requirements: readonly Readonly<{
@@ -484,10 +503,16 @@ export type WireCheckOutcomeShape = Readonly<{
   parameter: string;
   constraint: "numeric" | "duration" | "array_length" | "array_size";
 }> | Readonly<{
+  parameter: string;
+  domain: "positive_safe_integer" | "nonnegative_safe_integer" | "unit_fraction" | "finite_number" | "duration" | "positive_milliseconds" | "signed_milliseconds" | "timestamp";
+}> | Readonly<{
   operation: "components";
   issue: "invalid_kind" | "invalid_output_rows";
 }> | Readonly<{
-  issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean";
+  operation: "subgraph";
+  issue: "invalid_node_selector";
+}> | Readonly<{
+  issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean" | "invalid_bounds";
 }>;
 }>[];
   scope: Readonly<{
@@ -498,7 +523,9 @@ export type WireCheckOutcomeShape = Readonly<{
   problem: Readonly<{
   code: string;
 }>;
-  reason_schema_cid: "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa";
+  correlation_ref: string;
+  outcome_schema_cid: string;
+  reason_schema_cid: "sha256:3204b8f2edb377120d3139f380fc3c49541ff34b7117430de4ed52e0f826025f";
   version: "actql-check-outcome/0.1";
 }> | Readonly<{
   correlation_ref: string;
@@ -506,7 +533,8 @@ export type WireCheckOutcomeShape = Readonly<{
   problem: Readonly<{
   code: string;
 }>;
-  reason_schema_cid: "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa";
+  outcome_schema_cid: string;
+  reason_schema_cid: "sha256:3204b8f2edb377120d3139f380fc3c49541ff34b7117430de4ed52e0f826025f";
   version: "actql-check-outcome/0.1";
 }>;
 export type WireCheckLocationShape = Readonly<{
