@@ -104,7 +104,7 @@ async ({root, directory, run, recordTarball}) => {
       env: {...runtimeEnv, ACTQL_MODEL_ACCEPTANCE_INPUTS: inputs}, timeout: 360000});
     const checked = assertTestExecution('node', process.execPath, args,
       {status: 0, stdout});
-    assert.equal(checked.counts.passed, 32,
+    assert.equal(checked.counts.passed, 36,
       'The existing Source-free Model recovery boundary matrix must execute');
     console.log(stdout.trimEnd());
   }

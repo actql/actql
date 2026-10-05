@@ -502,6 +502,8 @@ pub fn client_values_run_binding_result_name(ClientValuesRunBinding) -> String
 
 pub fn client_values_run_binding_task_key(ClientValuesRunBinding) -> String
 
+pub fn confirm_client_run_cancellation(ClientRunCancellationFacts) -> Bool
+
 pub fn emit_prepared_client_program_definition(PreparedClientProgram, Int, Int, Int) -> Result[String, ClientIdentityMaterialIssue]
 
 pub fn emit_prepared_client_program_semantics(PreparedClientProgram, Int, Int, Int) -> Result[String, ClientIdentityMaterialIssue]
@@ -1546,6 +1548,19 @@ pub(all) enum ClientRunCancellationAction {
   AlreadyRequested
   AlreadyTerminal
 } derive(Eq, @debug.Debug)
+
+pub(all) struct ClientRunCancellationFacts {
+  cancellation_requested : Bool
+  model_fence_required : Bool
+  model_fenced : Bool
+  unresolved_model_calls : Bool
+  unresolved_effects : Bool
+  reconciliation_required : Bool
+  publication_committed : Bool
+  physical_stop_confirmed : Bool
+  cleanup_confirmed : Bool
+  revision_unchanged : Bool
+}
 
 pub(all) enum ClientRunCompilation {
   Values(ClientValuesCompilation)

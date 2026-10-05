@@ -12,31 +12,47 @@ import {checked} from '../host-common/runtime-result.mjs';
 // Terminal observation only, never a send or cancellation permission. The
 // physical owner calls this after confirmed stop and temporary reclamation;
 // restored observers use their persisted physical-close confirmation.
-export async function confirmNodeRunCancellation({ref, journal, store,
-  checkpoints, moon, control, cleanupConfirmed}) {
-  if (cleanupConfirmed !== true || typeof journal.lookupRunDefinition !== 'function' ||
-      typeof journal.lookupReconciliationState !== 'function') return false;
+async function collectNodeRunStop({ref, journal, store,
+  checkpoints, moon, control, cleanupConfirmed, physicalStopConfirmed = false}) {
+  if (typeof journal?.lookupRunDefinition !== 'function' ||
+      typeof journal?.lookupReconciliationState !== 'function') return {cancelled: false};
   const before = journal.lookupRunDefinition(ref, moon, control);
-  if (before?.cancellationRequested !== true) return false;
+  if (before === undefined) return {cancelled: false};
   const runId = control.runDefinitionRunId(before.runDefinition);
   const model = checkpoints?.journal;
-  const inventory = model?.discoverModelCallSets({runId, limit: 1}) ?? [];
-  if (inventory.length !== 0 &&
-      model.modelCancellationFenced?.(runId, ref.runDefinitionCid) !== true) return false;
-  if (model?.hasUnresolvedModelCalls(runId) === true ||
-      journal.lookupReconciliationState(ref) !== undefined ||
-      model?.getRunState?.(runId)?.status === 'needs_reconciliation') return false;
-  if (await store.confirmCommittedIndex(ref) !== undefined) return false;
+  const publicationCommitted = await store.confirmCommittedIndex(ref) !== undefined;
   // Publication inspection is asynchronous. A changed request observation
   // must be re-evaluated rather than sealed as a terminal cancellation.
   const after = journal.lookupRunDefinition(ref, moon, control);
-  return after?.cancellationRequested === true && after.revision === before.revision &&
-    model?.hasUnresolvedModelCalls(runId) !== true &&
-    journal.lookupReconciliationState(ref) === undefined;
+  // Collect fresh synchronous facts after the await, then hand the terminal
+  // decision to the same common Run owner for normal and restored execution.
+  const cancelled = control.runCancellationConfirmed({
+    cancellationRequested: after?.cancellationRequested === true,
+    modelFenceRequired: (model?.discoverModelCallSets({runId, limit: 1}) ?? []).length !== 0,
+    modelFenced: model?.modelCancellationFenced?.(runId, ref.runDefinitionCid) === true,
+    unresolvedModelCalls: model?.hasUnresolvedModelCalls(runId) === true,
+    unresolvedEffects: journal.lookupReconciliationState(ref) !== undefined,
+    reconciliationRequired: model?.getRunState?.(runId)?.status === 'needs_reconciliation',
+    publicationCommitted,
+    physicalStopConfirmed: physicalStopConfirmed === true,
+    cleanupConfirmed: cleanupConfirmed === true,
+    revisionUnchanged: after?.revision === before.revision,
+  });
+  return {cancelled, publicationCommitted, revision: after?.revision,
+    revisionUnchanged: after?.revision === before.revision};
+}
+
+export async function confirmNodeRunCancellation(facts) {
+  return (await collectNodeRunStop(facts)).cancelled;
 }
 
 export async function observeNodeRestoredModelStop(facts) {
-  const cancelled = await confirmNodeRunCancellation(facts);
+  return observeNodeRunStop(facts, {failureObserved: false});
+}
+
+async function observeNodeRunStop(facts, {failureObserved}) {
+  if (facts.physicalStopConfirmed !== true || facts.cleanupConfirmed !== true) return;
+  const observation = await collectNodeRunStop(facts);
   // The asynchronous publication inspection may overlap another confirmed
   // observer. Preserve its immutable physical-stop record, including a
   // nonterminal stop from an earlier phase of this same Run. The common
@@ -44,7 +60,14 @@ export async function observeNodeRestoredModelStop(facts) {
   const retained = facts.journal.lookupRunDefinition(facts.ref,
     facts.moon, facts.control);
   if (retained?.physicalCloseConfirmed === true) return;
-  facts.journal.markPhysicalClose(facts.ref, cancelled ? 'cancelled' : null);
+  const unchanged = retained?.revision === observation.revision;
+  if (!unchanged || observation.revisionUnchanged !== true) {
+    // Retain the same physical owner for a later inspection. A changed intent
+    // must not become an immutable nonterminal stop that suppresses its outcome.
+    throw new Error('ClientRunStopObservationChanged');
+  }
+  facts.journal.markPhysicalClose(facts.ref, observation.publicationCommitted ? null :
+    observation.cancelled ? 'cancelled' : failureObserved && retained?.cancellationRequested !== true ? 'failed' : null);
 }
 
 export function installNodeClientDispatchOwner({moon, control, journal,
@@ -132,7 +155,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   async function observeStop(entry) {
     if (entry.terminalOutcome === 'cancelled' &&
         !await confirmNodeRunCancellation({ref: entry.ref, journal, store,
-          checkpoints, moon, control, cleanupConfirmed: true})) {
+          checkpoints, moon, control, cleanupConfirmed: true, physicalStopConfirmed: true})) {
       entry.terminalOutcome = null;
     }
     if (entry.observeStopped !== undefined) {
@@ -144,16 +167,9 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       entry.stopObserved = true;
       return;
     }
-    let publicationCommitted = entry.publicationCommitted === true;
-    if (!publicationCommitted) {
-      publicationCommitted =
-        await store.confirmCommittedIndex(entry.ref) !== undefined;
-    }
-    const cancelled = entry.abort.signal.aborted && !publicationCommitted &&
-      await confirmNodeRunCancellation({ref: entry.ref, journal, store,
-        checkpoints, moon, control, cleanupConfirmed: true});
-    journal.markPhysicalClose(entry.ref, publicationCommitted ? null :
-      entry.abort.signal.aborted ? cancelled ? 'cancelled' : null : 'failed');
+    await observeNodeRunStop({ref: entry.ref, journal, store, checkpoints,
+      moon, control, cleanupConfirmed: true, physicalStopConfirmed: true},
+    {failureObserved: !entry.abort.signal.aborted});
     entry.stopObservationPending = false;
     entry.stopObserved = true;
   }

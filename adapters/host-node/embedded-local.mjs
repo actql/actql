@@ -2094,7 +2094,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
                   submission: token.snapshot.submission, existingModel: record, modelClaim: claim});
               },
               observeStopped: () => observeNodeRestoredModelStop({ref,
-                journal, store, checkpoints, moon, control, cleanupConfirmed: true}),
+                journal, store, checkpoints, moon, control, cleanupConfirmed: true,
+                physicalStopConfirmed: true}),
             });
           };
           const flight = runRestoredModel().then(async result => {
@@ -2141,7 +2142,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
             const stopped = journal.lookupRunDefinition(ref, moon, control);
             if (stopped?.physicalCloseConfirmed === true &&
                 await confirmNodeRunCancellation({ref, journal, store, checkpoints,
-                  moon, control, cleanupConfirmed: true})) {
+                  moon, control, cleanupConfirmed: true,
+                  physicalStopConfirmed: stopped.physicalCloseConfirmed}) &&
+                journal.lookupRunDefinition(ref, moon, control)?.revision === stopped.revision) {
               const state = checkpoints.journal.getRunState(runId);
               if (claim !== undefined && state?.status === 'resuming' && leaseFailure === undefined) {
                 checkpoints.journal.completeResume(claim, {status: 'cancelled'});

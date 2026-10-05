@@ -1,22 +1,33 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import * as cancellationMoon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
 // Reuse the existing distribution-client gate for bounded two-source owners.
 import './two-source-capture-boundaries.test.mjs';
 import './two-source-public-host.test.mjs';
+
+const stopControl = {runDefinitionRunId: () => 'fixture-run',
+  runCancellationConfirmed: runtimeCore(cancellationMoon).publicationControl.runCancellationConfirmed};
+const stopFacts = (cancellationRequested = false) => ({
+  lookupRunDefinition: () => ({cancellationRequested, revision: 1,
+    runDefinition: {wire: 'definition'}, physicalCloseConfirmed: false}),
+  lookupReconciliationState: () => undefined,
+});
 
 function inferDispatchFixture(runInfer) {
   const ref = {runDefinitionCid: 'infer-dispatch-owner'};
   const preparedProgram = {};
   const plan = {kind: 'infer', runDefinition: {wire: 'definition'}};
   const stopped = [];
-  let claims = 0, committed = false;
+  let claims = 0, committed = false, cancellationRequested = false;
   const owner = installNodeClientDispatchOwner({
     moon: {clientProgramOpenSourceFreeLocalHost() {
       assert.fail('A model barrier must not open the Values fallback');
-    }}, control: {runDefinitionRunId: () => 'infer-run'},
+    }}, control: {runDefinitionRunId: () => 'infer-run',
+      runCancellationConfirmed: runtimeCore(cancellationMoon).publicationControl.runCancellationConfirmed},
     journal: {reservePhysicalStart() { claims++; return true; },
-      lookupRunDefinition: () => ({cancellationRequested: true, revision: 1,
+      lookupRunDefinition: () => ({cancellationRequested, revision: 1,
         runDefinition: plan.runDefinition}),
       lookupReconciliationState: () => undefined,
       markPhysicalClose: (...args) => stopped.push(args),
@@ -31,7 +42,11 @@ function inferDispatchFixture(runInfer) {
     requestId: 'infer-request'};
   const accepted = {ref, runDefinition: plan.runDefinition,
     dispatchReserved: false, cancellationRequested: false};
-  return {owner, ref, preparedProgram, plan, stopped,
+  const owned = {...owner, cancel(ref) {
+    cancellationRequested = true;
+    owner.cancel(ref);
+  }};
+  return {owner: owned, ref, preparedProgram, plan, stopped,
     claims: () => claims, commit: () => { committed = true; },
     start: () => owner.start(submission, {}, accepted, {})};
 }
@@ -185,8 +200,9 @@ test('diagnostic failure cannot stop Compute or bypass required ownership',
         cleanupPending: () => false};
       const owner = installNodeClientDispatchOwner({
         moon: {clientProgramOpenSourceFreeLocalHost: () => ({})},
-        control: {},
+        control: stopControl,
         journal: {reservePhysicalStart: () => true,
+          ...stopFacts(),
           markPhysicalClose: (...args) => stopped.push(args)},
         store: {confirmCommittedIndex: async () => ({})},
         startRun: async () => ({kind: 'reserved', ref}),
@@ -241,8 +257,9 @@ test('publication ownership survives a wrapped error and cleanup retry',
     };
     const owner = installNodeClientDispatchOwner({
       moon: {clientProgramOpenSourceFreeLocalHost: () => ({})},
-      control: {},
+      control: stopControl,
       journal: {reservePhysicalStart: () => true,
+        ...stopFacts(),
         markPhysicalClose: (...args) => stopped.push(args)},
       store: {confirmCommittedIndex: async () => {
         if (!publicationReadable) throw new Error('StoreObservationFailure');
@@ -300,8 +317,9 @@ test('dispatch owner retains failed cleanup and retries without Compute',
     };
     const owner = installNodeClientDispatchOwner({
       moon: {clientProgramOpenSourceFreeLocalHost: () => ({})},
-      control: {},
+      control: stopControl,
       journal: {
+        ...stopFacts(),
         reservePhysicalStart: () => true,
         markPhysicalClose: (...args) => stopped.push(args),
       },
@@ -480,7 +498,8 @@ test('Effect dispatch barrier gates both execution and refusal', async () => {
     releaseCancelled = resolve;
   });
   const cancelled = installNodeClientDispatchOwner({
-    beforeDispatch: () => cancellationBarrier});
+    beforeDispatch: () => cancellationBarrier, control: stopControl,
+    journal: stopFacts(true), store: {confirmCommittedIndex: async () => undefined}});
   const cancelledFlight = cancelled.track(ref, {
     run() { assert.fail('Cancellation before the barrier cannot dispatch'); },
     observeStopped: value => stopped.push(value),
@@ -502,8 +521,9 @@ function acquiringOwner(open) {
   const access = {authorization: {}};
   const owner = installNodeClientDispatchOwner({
     moon: {clientProgramAcquisitionCount: () => 1},
-    control: {},
+    control: stopControl,
     journal: {reservePhysicalStart: () => true,
+      ...stopFacts(),
       markPhysicalClose: (...args) => stopped.push(args)},
     store: {confirmCommittedIndex: async () => undefined},
     startRun: async () => ({kind: 'reserved', ref}),

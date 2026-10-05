@@ -136,6 +136,33 @@ function savedEvidence(f, ordinal, role, expectedState = 'SavedSuccess') {
 }
 
 for (const transport of ['local', 'https']) {
+  for (const [name, inputTexts] of [
+    ['Unicode and CR', ['e\u0301', '\u00e9', '\r']],
+    ['LF, CRLF and nested strings', ['\n', '\r\n', 'nested e\u0301 \u00e9\r\n\r\n']],
+  ]) {
+    test(`public Model ${transport}: exact ${name} survives saved input and process restart`, async t => {
+      const f = await fixture(t, {transport, count: 3, inputTexts});
+      const waiting = f.phase('wait');
+      const originals = f.journal().scopes[0].originals_json;
+      assertSends(f, []);
+      const approved = f.phase('approve');
+      assertSameRun(waiting, approved);
+      assert.equal(approved.status, 'succeeded');
+      assert.deepEqual(approved.rows, expectedRows(3));
+      assertSends(f, inputTexts);
+      assert.equal(f.journal().scopes[0].originals_json, originals);
+      for (const ordinal of [0, 1, 2]) {
+        assert.equal(savedEvidence(f, ordinal, 'model_slot_capture').outcome, 'ok');
+      }
+      const resumed = f.phase('resume-again');
+      assertSameRun(waiting, resumed);
+      assert.equal(resumed.status, 'succeeded');
+      assert.deepEqual(resumed.rows, expectedRows(3));
+      assertSends(f, inputTexts);
+      assert.equal(f.journal().scopes[0].originals_json, originals);
+    });
+  }
+
   test(`public Model ${transport}: immediate Allow records a sent unknown before provider invocation`, async t => {
     const f = await fixture(t, {transport, immediate: true, count: 3});
     const crash = f.phase('immediate-crash-unknown', {}, 77);

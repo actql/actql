@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {installNodeClientDispatchOwner,
-  observeNodeRestoredModelStop} from './client-dispatch-owner.mjs';
+  observeNodeRestoredModelStop, confirmNodeRunCancellation} from './client-dispatch-owner.mjs';
+const commonDecision = runtimeCore(moon).publicationControl.runCancellationConfirmed;
 
 // Terminal Host boundary with explicit journal/Store doubles. Each missing
 // fact is independent of the others; an AbortSignal is never cancellation
@@ -16,18 +19,27 @@ function fixture(changes = {}) {
   let confirmStop;
   const stop = new Promise(resolve => { confirmStop = resolve; });
   const owner = installNodeClientDispatchOwner({moon: {},
-    control: {runDefinitionRunId: () => 'run'},
+    control: {runDefinitionRunId: () => 'run', runCancellationConfirmed: commonDecision},
     journal: {reservePhysicalStart: () => true,
       lookupRunDefinition: () => ({cancellationRequested: facts.accepted,
-        revision: 1, runDefinition: {wire: 'definition'}}),
+        revision: facts.revision ?? 1, runDefinition: {wire: 'definition'},
+        physicalCloseConfirmed: facts.physicalCloseConfirmed ?? false,
+        observedTerminalOutcome: facts.observedTerminalOutcome ?? null}),
       lookupReconciliationState: () => facts.effectUnknown ? 'unknown Effect' : undefined,
-      markPhysicalClose: (_ref, outcome) => observed.push(outcome)},
+      markPhysicalClose: (_ref, outcome) => {
+        assert.equal(facts.physicalCloseConfirmed ?? false, false,
+          'a racing observer already sealed the physical stop');
+        observed.push(outcome);
+      }},
     checkpoints: {heldOrigin: () => false, acquisitionAccess: () => undefined,
       releaseAcquisition() {},
       journal: {discoverModelCallSets: () => [{}],
         modelCancellationFenced: () => facts.fenced,
         hasUnresolvedModelCalls: () => facts.modelUnknown}},
-    store: {confirmCommittedIndex: async () => facts.published ? {} : undefined},
+    store: {confirmCommittedIndex: async () => {
+      facts.inspectPublication?.(facts);
+      return facts.published ? {} : undefined;
+    }},
     startRun: async () => ({kind: 'reserved', ref}),
     hostConnection: () => true,
     planFor: () => ({kind: 'infer', runDefinition: {wire: 'definition'}}),
@@ -47,6 +59,61 @@ function fixture(changes = {}) {
       runDefinition: {wire: 'definition'}, dispatchReserved: false,
       cancellationRequested: false}, {})};
 }
+
+for (const outcome of [null, 'cancelled']) {
+  test(`normal Model stop preserves a racing ${outcome} physical observation`, async () => {
+    const f = fixture({inspectPublication(facts) {
+      facts.revision = 2;
+      facts.physicalCloseConfirmed = true;
+      facts.observedTerminalOutcome = outcome;
+    }});
+    await f.start(); await f.ready;
+    f.owner.cancel(f.ref);
+    await f.owner.drain();
+    assert.deepEqual(f.observed, []);
+  });
+}
+
+for (const changed of ['fence', 'lifecycle']) {
+  test(`cancellation rereads Model ${changed} after publication inspection`, async () => {
+    let fenced = true, status = 'running';
+    const accepted = {cancellationRequested: true, revision: 1,
+      runDefinition: {wire: 'original'}};
+    assert.equal(await confirmNodeRunCancellation({
+      ref: {runDefinitionCid: 'definition'},
+      journal: {lookupRunDefinition: () => accepted,
+        lookupReconciliationState: () => undefined},
+      control: {runDefinitionRunId: () => 'run', runCancellationConfirmed: commonDecision},
+      cleanupConfirmed: true, physicalStopConfirmed: true,
+      checkpoints: {journal: {discoverModelCallSets: () => [{}],
+        modelCancellationFenced: () => fenced,
+        hasUnresolvedModelCalls: () => false, getRunState: () => ({status})}},
+      store: {async confirmCommittedIndex() {
+        if (changed === 'fence') fenced = false;
+        else status = 'needs_reconciliation';
+        return undefined;
+      }},
+    }), false);
+  });
+}
+
+test('a changed cancellation revision retains the same stop owner for retry', async () => {
+  let raced = false;
+  const f = fixture({inspectPublication(facts) {
+    if (raced) return;
+    raced = true;
+    facts.revision = 2;
+  }});
+  await f.start(); await f.ready;
+  f.owner.cancel(f.ref);
+  await f.owner.operation(f.ref);
+  assert.deepEqual(f.observed, []);
+  assert.notEqual(f.owner.operation(f.ref), undefined);
+  await f.owner.drain();
+  assert.deepEqual(f.observed, ['cancelled']);
+  await f.owner.drain();
+  assert.deepEqual(f.observed, ['cancelled']);
+});
 
 for (const [name, changes] of [
   ['accepted current Run cancellation', {accepted: false}],
@@ -111,10 +178,10 @@ for (const outcome of [null, 'cancelled']) {
       },
     };
     await observeNodeRestoredModelStop({ref: {runDefinitionCid: 'definition'},
-      journal, control: {runDefinitionRunId: () => 'run'},
+      journal, control: {runDefinitionRunId: () => 'run', runCancellationConfirmed: commonDecision},
       checkpoints: {journal: {discoverModelCallSets: () => [{}],
         modelCancellationFenced: () => true, hasUnresolvedModelCalls: () => false}},
-      cleanupConfirmed: true,
+      cleanupConfirmed: true, physicalStopConfirmed: true,
       store: {async confirmCommittedIndex() {
         // Another confirmed observer commits during the asynchronous Store read.
         retained = {...retained, revision: 2, physicalCloseConfirmed: true,

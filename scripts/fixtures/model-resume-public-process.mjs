@@ -57,8 +57,11 @@ const modelInstallation = {...configured.installation,
   environmentWire: canonical({...environment, evidence_bundle_cid: cid(environment)}),
   executionContracts: [{modelTaskCid: taskCid, cid: cid(execution),
     bodyWire: canonical({...execution, self_cid: cid(execution)})}]};
-const fixtureInputs = ['alpha', 'bravo', 'charlie'].slice(0, count);
-const fixtureRisk = {alpha: 'high', bravo: 'low', charlie: 'medium'};
+const fixtureInputs = options.inputTexts ?? ['alpha', 'bravo', 'charlie'].slice(0, count);
+assert.equal(fixtureInputs.length, count);
+assert.equal(new Set(fixtureInputs).size, count);
+const fixtureRisk = new Map(fixtureInputs.map((text, index) =>
+  [text, ['high', 'low', 'medium'][index]]));
 const program = {version: 'actql/0.1', id: 'public-model-resume', stages: [{id: 'main',
   inputs: acquired ? {source: {connector: 'crm/main', resource: 'r'}} : {},
   steps: [
@@ -205,8 +208,9 @@ const installation = {directory: path('host'), modelInstallation, authorization,
           log('provider-calls.jsonl', {text, providerRevision, phase});
           if (['approve-crash-unknown', 'immediate-crash-unknown'].includes(phase) &&
               text === 'bravo') crash('provider_response_lost', {text});
-          return moon.clientProgramModelResponse(request, JSON.stringify({reason: null, risk: fixtureRisk[text]}),
-            'packed-risk-model', `public-request-${text}`, 1n, options.usageOverflow ? 1000n : 2n, new Date().toISOString());
+          return moon.clientProgramModelResponse(request, JSON.stringify({reason: null, risk: fixtureRisk.get(text)}),
+            'packed-risk-model', options.inputTexts === undefined ? `public-request-${text}` :
+              `public-request-${fixtureInputs.indexOf(text)}`, 1n, options.usageOverflow ? 1000n : 2n, new Date().toISOString());
         }))}), () => true),
   }];
   }};
