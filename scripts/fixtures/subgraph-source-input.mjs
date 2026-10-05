@@ -16,11 +16,11 @@ const edges = [
 ];
 const constructor = {version: 'actql-property-graph-constructor/0.1',
   nodes: [{name: 'N', from: 'n', key: ['node_key'],
-    labels: [{name: 'Node', properties: properties(['node_key', 'p'])}]}],
+    labels: [{name: 'Node', properties: properties(['p'])}]}],
   edges: [{name: 'E', from: 'e', key: ['edge_key'],
     source: {definition: 'N', key: ['src_key']},
     target: {definition: 'N', key: ['dst_key']},
-    labels: [{name: 'R', properties: properties(['edge_key', 'w'])}]}]};
+    labels: [{name: 'R', properties: properties(['w'])}]}]};
 const construction = [
   {values: {schema: {node_key: number, p: nullableNumber}, rows: nodes}, as: 'n'},
   {values: {schema: Object.fromEntries(['edge_key', 'src_key', 'dst_key', 'w']
@@ -48,9 +48,9 @@ const prefix = 'DATA n = SELECT 3 AS node_key, CAST(NULL AS FLOAT64) AS p ' +
   'UNION ALL SELECT 10 AS edge_key, 1 AS src_key, 2 AS dst_key, 10 AS w ' +
   'UNION ALL SELECT 12 AS edge_key, 2 AS src_key, 3 AS dst_key, 40 AS w ' +
   'UNION ALL SELECT 13 AS edge_key, 2 AS src_key, 2 AS dst_key, 30 AS w; ' +
-  'DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (node_key, p)) ' +
+  'DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p)) ' +
   'EDGE TABLES (e AS E KEY (edge_key) SOURCE KEY (src_key) REFERENCES N ' +
-  'DESTINATION KEY (dst_key) REFERENCES N LABEL R PROPERTIES (edge_key, w))); ';
+  'DESTINATION KEY (dst_key) REFERENCES N LABEL R PROPERTIES (w))); ';
 const selected = predicate => 'DATA selected = FROM g |> node_rows() |> WHERE ' +
   predicate + ' |> SELECT id; ';
 const tail = edgeOutput => ' |> ' + (edgeOutput ? 'edge_rows() |> SELECT edge_key, w |> ORDER BY edge_key'
@@ -71,7 +71,7 @@ const canonical = value => Array.isArray(value) ? '[' + value.map(canonical).joi
     : JSON.stringify(value);
 const singleConstructor = {version: 'actql-property-graph-constructor/0.1',
   nodes: [{name: 'N', input_occurrence: 0, key: ['node_key'],
-    labels: [{name: 'Node', properties: properties(['node_key', 'p'])}]}], edges: []};
+    labels: [{name: 'Node', properties: properties(['p'])}]}], edges: []};
 const singleProducer = {body: {select: [{node_key: 'aql_query_expr_0'}, {p: 'aql_query_expr_1'}]},
   dependencies: [{body: {derive: {aql_query_expr_0: {literal: 1}, aql_query_expr_1: {literal: 7}}},
     dependencies: [{body: {values: {schema: {aql_source_free_unit: {type: 'boolean', nullable: false}},
@@ -97,9 +97,10 @@ export const subgraphSourceSuccesses = [
   textCase('nullable-property', selected('node_key >= 2') +
     'FROM g |> subgraph(nodes: {from: selected, id: "id"})' + tail(false),
     false, [{node_key: 2, p: 20}, {node_key: 3, p: null}]),
-  textCase('match-label-after-selection', selected('node_key <= 2') +
+  {...textCase('match-label-after-selection', selected('node_key <= 2') +
     'FROM GRAPH g |> subgraph(nodes: {from: selected, id: "id"}) |> MATCH WALK (a:Node) ' +
-    '|> SELECT a.node_key AS node_key, a.p AS p |> ORDER BY node_key |> RESULT answer', false, nodeSubset),
+    '|> SELECT a.p AS p |> ORDER BY p |> RESULT answer', false, nodeSubset),
+    results: {answer: {rows: [{p: 10}, {p: 20}], columns: [{name: 'p', contract: nullableNumber}]}}},
   textCase('empty-typed-nodes', selected('FALSE') +
     'FROM g |> subgraph(nodes: {from: selected, id: "id"})' + tail(false), false, []),
   textCase('empty-typed-edges', selected('FALSE') +
@@ -112,7 +113,7 @@ export const subgraphSourceSuccesses = [
     'FROM g |> subgraph(nodes: {from: selected, id: "id"})' + tail(true), true, inducedEdges),
   {name: 'subgraph-explicit-typed-identity', format: 'aql-text',
     text: 'DATA n = SELECT 1 AS node_key, 7 AS p; DATA g = PROPERTY GRAPH ' +
-      '(NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (node_key, p))); ' +
+      '(NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p))); ' +
       'FROM g |> subgraph(nodes: {ids: [' + JSON.stringify(singleIdentity) + ']})' + tail(false),
     results: {answer: {rows: [{node_key: 1, p: 7}], columns:
       [{name: 'node_key', contract: number}, {name: 'p', contract: number}]}}, sourceReadCount: 0},
@@ -138,6 +139,11 @@ export const subgraphSourceRefusals = [
   {name: 'subgraph-after-relation-transition', format: 'aql-text', text: prefix +
     'FROM g |> node_rows() |> subgraph(nodes: {ids: []}) |> SELECT node_key |> RESULT answer'},
 ];
+const collidingControl = JSON.parse(program(false, false));
+collidingControl.stages[0].steps[2].property_graph.nodes[0].labels[0].properties =
+  properties(['node_key', 'p']);
+subgraphSourceRefusals.push({name: 'subgraph-key-property-row-collision', format: 'json',
+  text: JSON.stringify(collidingControl)});
 // Membership is data-dependent. The common identity admission may accept JSON,
 // but no node has this scalar identity; execution must fail without a Result.
 export const subgraphSourceExecutionFailures = [{

@@ -61,7 +61,7 @@ grammar, schema, pin, stored identity or version changes.
 ## Independent public obligations
 
 The [authored fixture](../../scripts/fixtures/subgraph-source-input.mjs) contains
-**12 positive cases, 13 preparation refusals and one execution failure**.
+**12 positive cases, 14 preparation refusals and one execution failure**.
 Two complete JSON controls use direct Values; the source uses ordinary
 SELECT/UNION producers. Structures and CIDs may differ, while the independently
 specified meaning must agree. No harness modifies a lowered Program.
@@ -110,3 +110,33 @@ on Embedded Local and HTTPS. Cases are registered in its default corpus, with
   the billing outage or claim local success as CI success. Full Core,
   Wasm/native, all packed, proof and performance campaigns are not local
   requirements for this connection unit. No merge is performed.
+
+## Authored control correction before execution acceptance
+
+The first clean `16e301aa7b7bc97589211e3aa5c283de2b4d71d2` campaign
+(`run-G8TuuS`, `public-query-evidence-vwYiWk`) passed the README/control
+smokes, then refused the first independent JSON before execution. Two focused
+ordinary checker controls (`run-k6MImL`, `focused-test-RrjlyU`, **0/2**)
+identified `Projection(OutputCollision(Unqualified("node_key")))`.
+
+This is consistent with the existing [Graph row contract](../spec/language.md)
+`graph-rows.collisions-and-unknown-evidence`: a property must not collide with
+a retained key alias in this Bridge. Constructing key-valued properties and
+projecting every Graph column are distinct contracts. This finding is not a
+new Subgraph or Frontend defect, and the common collision rule is not relaxed.
+
+The Subgraph controls now expose `p`/`w` properties alongside the original
+`node_key`/`edge_key` components. Rows, parallel edge keys, predicate values,
+NULLs, selected elements and their expected order remain unchanged. The keyed
+MATCH case exposes its selected `p` property with independently expected values
+10/20; numeric key projection remains covered through the row Bridge cases.
+The valid explicit identity preimage is coordinated with the authored property
+selection, never copied from a product identity. The original complete
+[colliding JSON](../../scripts/fixtures/subgraph-property-key-collision.repro.program.json)
+is retained separately, and the same collision is a public preparation refusal.
+It is not silently reclassified as a successful control.
+
+The corrected independent JSON controls pass the ordinary checker **2/2**
+(`run-JEzyeD`, `focused-test-p4WngX`). Their expected result rows/contracts
+remain independently authored. This is preparation evidence, not a packed
+execution pass; the clean committed-source acceptance below is still required.
