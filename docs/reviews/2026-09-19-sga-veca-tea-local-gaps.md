@@ -960,6 +960,15 @@ Result. The retained producer and two consumers then publish the fixed order
 work or intermediate ownership model. This is not blanket admission of
 order-sensitive children with unresolved ties.
 
+Partitioned `top_k_by` now uses that same one-task fork when its exact
+candidate-key assertion and selected bounded provider apply. The authored
+Append output has distinct IDs and two `origin` partitions; the ranked result
+feeds both a filtered branch and a second projection before the branches
+rejoin. The retained Store Host checks the producer and two consumer Named
+Results against the independent ordered IDs `[4,2,4]`; the focused fixture
+checks memory and retained selection, task identity, and final cleanup. This
+does not admit a missing candidate key or replace the selected ranking kernel.
+
 The same selected fork owner accepts bounded `lag`, `watermark_rows`, and
 `json_pick` children when their checked Relation inputs and obligations match.
 Three separate authored Append forks filter on `previous`, `watermark_late`,
@@ -992,6 +1001,15 @@ the existing bounded group provider; it does not mark every analytic as an
 independently splittable task.
 These routes do not extend the numeric SUM/AVG profile or prove every frame
 and pivot variant.
+
+The checked fixed Row Window followed by Window Group also stays in the
+existing one-task bounded fork. Its grouped count output is filtered on `n`,
+reused by a second projection, and appended before retention. With input
+IDs `[1,2,3,4]` and width 2, the standard Host reads the producer and two
+consumer Named Results from the real Store in the fixed window-start order
+`[2,0,2,4]`, with counts `[2,1,2,1]`. The focused memory/retained fixture
+checks the same physical task and cleanup. This adds product evidence for
+the existing provider, not support for every window shape or aggregate.
 
 The same existing bounded owner also executes a checked Nest after Append,
 then reuses its nested output in two branches before rejoining. The Nest

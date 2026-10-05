@@ -8048,6 +8048,30 @@ async function exerciseStrategyGraph(
       {from: 'joined', select: ['id'], as: 'raw_ids'},
       {from: 'greater', append: {with: 'raw_ids'}, as: 'out'},
     ];
+  const branchedWindowGroupProgram = structuredClone(externalAppendProgram);
+  const windowGroupForkFields = ['n', 'window_start', 'window_end'];
+  const windowGroupFork = branchedWindowGroupProgram.stages.find(stage =>
+    stage.id === 'crossed');
+  windowGroupFork.steps = [
+    {from: 'l', append: {with: 'r'}, as: 'appended'},
+    {from: 'appended', row_window: {
+      kind: 'fixed', time: 'id', size: 2,
+    }, as: 'windowed'},
+    {from: 'windowed', window_group: {
+      by: [], aggregates: {n: {fn: 'count'}},
+    }, as: 'grouped'},
+    {from: 'grouped', filter: 'n >= 2', as: 'selected'},
+    {from: 'grouped', select: windowGroupForkFields, as: 'raw_groups'},
+    {from: 'selected', append: {with: 'raw_groups'}, as: 'out'},
+  ];
+  windowGroupFork.results.r.fields = windowGroupForkFields;
+  for (const consumer of branchedWindowGroupProgram.stages.filter(stage =>
+    stage.id.startsWith('external_cross_consumer_'))) {
+    const fields = consumer.id.endsWith('_a')
+      ? windowGroupForkFields : [...windowGroupForkFields].reverse();
+    consumer.steps[0].select = fields;
+    consumer.results.r.fields = fields;
+  }
   const branchedSourceForkProgram = structuredClone(externalAppendProgram);
   branchedSourceForkProgram.stages.find(stage => stage.id === 'crossed').steps = [
     {from: 'l', append: {with: 'r'}, as: 'appended'},
@@ -8135,6 +8159,25 @@ async function exerciseStrategyGraph(
     from: 'ranked_greater', append: {with: 'deduped_less'}, as: 'joined',
   };
   branchedRankedSteps.push({from: 'joined', select: ['id'], as: 'out'});
+  const branchedPartitionedTopKProgram = structuredClone(branchedRankedProgram);
+  const partitionedRight = branchedPartitionedTopKProgram.stages.find(stage =>
+    stage.id === 'cross_right');
+  partitionedRight.steps[0].values.rows = [3, 4].map(id =>
+    ({id, origin: 'right'}));
+  const partitionedProducer = branchedPartitionedTopKProgram.stages.find(
+    stage => stage.id === 'crossed');
+  partitionedProducer.steps = [
+    {from: 'l', append: {with: 'r'}, as: 'appended'},
+    {from: 'appended', assert_rows: {unique_by: ['id']}, as: 'unique'},
+    {from: 'unique', top_k_by: {
+      partition_by: ['origin'], k: 1, by: [{id: 'desc'}],
+    }, as: 'ranked'},
+    {from: 'ranked', filter: 'id >= 4', as: 'selected'},
+    {from: 'selected', select: ['id'], as: 'selected_ids'},
+    {from: 'ranked', select: ['id'], as: 'raw_ids'},
+    {from: 'selected_ids', append: {with: 'raw_ids'}, as: 'out'},
+  ];
+  partitionedProducer.results.r.fields = ['id'];
   const branchedRowTransformPrograms = [
     'lag', 'watermark', 'json-pick', 'row-window', 'unpivot', 'unnest',
     'pivot', 'analytic', 'nest',
@@ -9730,6 +9773,13 @@ async function exerciseStrategyGraph(
       fields: ['id', 'matched']},
     {name: 'append-inner-join-fork', source: branchedInnerJoinChildProgram,
       expected: [2, 1, 2].map(id => ({id})), fields: ['id']},
+    {name: 'append-window-group-fork', source: branchedWindowGroupProgram,
+      expected: [
+        {n: 2, window_start: 2, window_end: 4},
+        {n: 1, window_start: 0, window_end: 2},
+        {n: 2, window_start: 2, window_end: 4},
+        {n: 1, window_start: 4, window_end: 6},
+      ], fields: windowGroupForkFields},
     {name: 'append-source-fork-join', source: branchedSourceForkProgram,
       expected: [1, 2, 3, 4, 2].map(id => ({id})), fields: ['id']},
     {name: 'append-fork-group-join', source: branchedGroupProgram,
@@ -9744,6 +9794,9 @@ async function exerciseStrategyGraph(
       expected: [4, 3, 1, 2].map(id => ({id})), fields: ['id']},
     {name: 'append-fork-top-k-dedupe-join', source: branchedRankedProgram,
       expected: [4, 3, 1, 2].map(id => ({id})), fields: ['id']},
+    {name: 'append-fork-partitioned-top-k-join',
+      source: branchedPartitionedTopKProgram,
+      expected: [4, 2, 4].map(id => ({id})), fields: ['id']},
     ...branchedRowTransformPrograms.map(([name, source]) => ({
       name: name === 'analytic' ? 'analytic-append-fork-join'
         : `append-fork-${name}-join`, source,
