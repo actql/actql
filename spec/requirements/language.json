@@ -1918,7 +1918,7 @@
     },
     {
       "requirement_id": "actql.language/scalar-expressions.function-0-1-result-to-number-string-canonical",
-      "statement_sha256": "3ab0fe3c2b6d3718100114c347e3c7a13468de111c8c4cbd4812aa4d82803e76",
+      "statement_sha256": "c3ecec437a998eefe1db6777b1a9f344a25e7b5164cdc375b9fb9729767e8351",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -2128,6 +2128,17 @@
     {
       "requirement_id": "actql.language/predicates.null-equality-must-not-be-inferred-from-an-equality-comparison",
       "statement_sha256": "ea7bdf5a5a8dbbb2479f8d1590fda36799bb384bc293fbe688037a72d0b2f285",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "predicates",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/predicates.membership-boundary-results",
+      "statement_sha256": "2f01a806491d320ff4b38968564b71e0aa01970da05c3b8a43f64c3aa4f70e53",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -8595,7 +8606,7 @@
     },
     {
       "requirement_id": "actql.language/machine-contracts.exact-artifacts",
-      "statement_sha256": "faa1da8b547f52574da594886403dc8646533460926e693e347fdea421bb49ce",
+      "statement_sha256": "106b92a1f3ecb96bb42a7b8817fe854f163ed566777ac905e794efad2a6953f5",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

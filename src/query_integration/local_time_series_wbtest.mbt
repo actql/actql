@@ -112,9 +112,9 @@ test "registered time-series provider emits a bounded UTC grid" {
         fail("time-series provider returned a Carrier output")
       @local_connector.Failed(_, ..) => fail("time-series provider failed")
       @local_connector.Waiting(..) =>
-        fail("non-INFER provider unexpectedly waited")
+        fail("synchronous provider unexpectedly waited")
       @local_connector.Settling(_, ..) =>
-        fail("non-INFER provider unexpectedly settled")
+        fail("synchronous provider unexpectedly requested settlement")
       @local_connector.Stopped(..) => fail("time-series provider stopped")
     }
   }

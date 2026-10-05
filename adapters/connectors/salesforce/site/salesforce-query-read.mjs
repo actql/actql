@@ -193,7 +193,7 @@ export async function readSalesforceQuery(options) {
     acceptPage: (path, body) => {
       const result = moon.salesforceQueryReadAcceptPage(read, path, body);
       const violation = result?.$tag === 0
-        ? moon.salesforceQueryReadValueViolation?.(plan, result._0)
+        ? moon.salesforceQueryReadValueViolation(plan, result._0)
         : undefined;
       if (typeof violation === 'string') {
         throw Object.assign(new Error('SalesforceValueViolation'), {
