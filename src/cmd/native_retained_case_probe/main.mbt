@@ -66,6 +66,48 @@ fn task_rates_option(
 }
 
 ///|
+fn resident_estimates_option(
+  matches : @argparse.Matches,
+  task_count : Int,
+) -> @example.NativeResidentEstimateProfile? {
+  let names = [
+    "resident-task-ms", "resident-prepare-ms", "resident-cleanup-ms", "resident-import-ms",
+  ]
+  let missing = names.filter(name => required(matches, name) == "-")
+  if missing.length() == names.length() {
+    return None
+  }
+  if !missing.is_empty() {
+    abort("incomplete resident estimates")
+  }
+  let imports = required(matches, "resident-import-ms").split(",").to_array()
+  if imports.length() != task_count + 1 {
+    abort("incorrect resident import estimate count")
+  }
+  let import_milliseconds : Array[Int64?] = imports.map(part => {
+    if part == "?" {
+      None
+    } else {
+      let ms : Int64 = @string.from_str(part) catch {
+        _ => abort("invalid resident import estimate")
+      }
+      if ms < 1L || ms > 2147483647L {
+        abort("out-of-range resident import estimate")
+      }
+      Some(ms)
+    }
+  })
+  Some({
+    preparation_milliseconds: int64_option(matches, "resident-prepare-ms"),
+    cleanup_milliseconds: int64_option(matches, "resident-cleanup-ms"),
+    task_milliseconds: task_rates_option(
+      matches, "resident-task-ms", task_count,
+    ),
+    import_milliseconds,
+  })
+}
+
+///|
 fn rejection_name(issue : @resources.LedgerIssue?) -> String {
   match issue {
     None => "feasible"
@@ -99,6 +141,11 @@ fn native_strategy_issue_name(
         @host.Physical(@host.ImportRows) => "start-import-rows"
         @host.Physical(@host.ImportColumns) => "start-import-columns"
         @host.Physical(@host.ImportCells) => "start-import-cells"
+        @host.Physical(@host.RuntimeState) => "start-physical-state"
+        @host.Physical(@host.RetainedFile(_)) => "start-retained-file"
+        @host.Physical(@host.RetainedImport(_)) => "start-retained-import"
+        @host.Physical(@host.ResidentImport(_)) => "start-resident-import"
+        @host.Physical(@host.Runtime(_)) => "start-physical-runtime"
         @host.Physical(_) => "start-physical"
         @host.Strategy(run) =>
           match run {
@@ -443,6 +490,47 @@ fn phase_boundary(name : String, start : @bench.Timestamp) -> Unit {
 }
 
 ///|
+fn emit_native_phase_observations(
+  events : Array[(@host.NativeStandardStrategyPhaseEvent, Int64, Int64)],
+) -> Unit {
+  for (event, elapsed, overhead) in events {
+    let (phase, boundary, success) = match event {
+      @host.Begin(phase) => (phase, "begin", "null")
+      @host.End(phase, success) => (phase, "end", success.to_string())
+    }
+    let (name, task, producer) = match phase {
+      @host.SelectedTaskExecution(task) => ("task", task, "null")
+      @host.ResidentEnvironment(task) => ("environment", task, "null")
+      @host.ResidentInputImport(task, producer) =>
+        ("import", task, producer.to_string())
+      @host.ResidentTask(task) => ("compute", task, "null")
+      @host.TaskRelease(task) => ("task-release", task, "null")
+      @host.ResidentDatabaseClose(index) =>
+        ("environment-close", 0, index.to_string())
+      @host.ResidentEnvironmentRelease(index) =>
+        ("environment-release", 0, index.to_string())
+    }
+    println(
+      "physical-phase-event:{\"phase\":\"" +
+      name +
+      "\",\"task\":" +
+      task.to_string() +
+      ",\"producer\":" +
+      producer +
+      ",\"boundary\":\"" +
+      boundary +
+      "\",\"success\":" +
+      success +
+      ",\"elapsedMicroseconds\":" +
+      elapsed.to_string() +
+      ",\"observerMicroseconds\":" +
+      overhead.to_string() +
+      "}",
+    )
+  }
+}
+
+///|
 fn main {
   let execution_start = @bench.monotonic_clock_start()
   let command = @argparse.Command("actql-native-retained-case-probe", options=[
@@ -457,6 +545,12 @@ fn main {
     @argparse.OptionArg("attempt-cap", default_values=["12"]),
     @argparse.OptionArg("local-eligible", default_values=["true"]),
     @argparse.OptionArg("resident-policy", default_values=["false"]),
+    @argparse.OptionArg("phase-observer", default_values=["false"]),
+    @argparse.OptionArg("source-read-only", default_values=["true"]),
+    @argparse.OptionArg("resident-task-ms", default_values=["-"]),
+    @argparse.OptionArg("resident-prepare-ms", default_values=["-"]),
+    @argparse.OptionArg("resident-cleanup-ms", default_values=["-"]),
+    @argparse.OptionArg("resident-import-ms", default_values=["-"]),
     @argparse.OptionArg("local-task-ms", default_values=["-"]),
     @argparse.OptionArg("native-task-ms", default_values=["-"]),
     @argparse.OptionArg("source-rows", required=true),
@@ -502,12 +596,48 @@ fn main {
     "false" => false
     _ => abort("invalid resident policy")
   }
+  let phase_observer = match required(matches, "phase-observer") {
+    "true" => true
+    "false" => false
+    _ => abort("invalid phase observer")
+  }
+  // Acquisition reads an immutable source. The explicit read-write control
+  // reproduces the previous preparation mode in the bounded paired experiment.
+  let source_read_only = match required(matches, "source-read-only") {
+    "true" => true
+    "false" => false
+    _ => abort("invalid source read-only mode")
+  }
+  println(
+    if source_read_only {
+      "source-open-mode:read-only"
+    } else {
+      "source-open-mode:read-write"
+    },
+  )
+  let phase_events : Array[
+    (@host.NativeStandardStrategyPhaseEvent, Int64, Int64),
+  ] = []
+  let observe_phase : ((@host.NativeStandardStrategyPhaseEvent) -> Unit)? = if phase_observer {
+    Some(event => {
+      let before = @bench.monotonic_clock_start()
+      let elapsed = @bench.monotonic_clock_end(execution_start).to_int64()
+      let overhead = @bench.monotonic_clock_end(before).to_int64()
+      phase_events.push((event, elapsed, overhead))
+    })
+  } else {
+    None
+  }
   let local_task_ms = task_rates_option(
     matches, "local-task-ms", expected_tasks,
   )
   let native_task_ms = task_rates_option(
     matches, "native-task-ms", expected_tasks,
   )
+  let resident_estimates = resident_estimates_option(matches, expected_tasks)
+  if !resident_policy && resident_estimates is Some(_) {
+    abort("resident estimates require resident offers")
+  }
   if (!local_eligible && !local_task_ms.is_empty()) ||
     (!native_task_ms.is_empty() && local_eligible && local_task_ms.is_empty()) {
     abort("incomplete task estimate profile")
@@ -570,7 +700,7 @@ fn main {
         memory_bytes: execution_cap,
         threads: 1,
         external_access: false,
-        read_only: false,
+        read_only: source_read_only,
       },
       path=database_path,
     )
@@ -748,6 +878,7 @@ fn main {
     resident_policy,
     local_task_ms~,
     native_task_ms~,
+    resident_estimates?,
     local_eligible~,
   ) catch {
     _ => abort("native strategy dispatch rejected")
@@ -783,15 +914,22 @@ fn main {
       // The configured transport admits at most 512 rows per physical frame.
       max_chunk_rows: Int::min(task_rows, 512),
     },
+    observe_phase?,
   ).unwrap()
   phase_boundary("strategy-execute", execution_start)
   let execution = execute_timed_native_strategy_run(
     run, dispatch, captured, ledger, stop_after_task,
   )
+  // Flush only after the physical work interval: diagnostic output is not
+  // charged to environment, import or Compute durations. Clock/buffer overhead
+  // remains part of the enclosing process measurement.
+  emit_native_phase_observations(phase_events)
+  phase_events.clear()
   if execution is Err(_) {
     close_observed_run(run, ledger, 0)
     @host.close_native_acquisition_runtime(acquisition)
     @strategy.stop_captured_dag(captured)
+    emit_native_phase_observations(phase_events)
   }
   match execution {
     Ok(_) => ()
@@ -851,6 +989,7 @@ fn main {
     @host.close_native_acquisition_runtime(acquisition)
     @strategy.stop_captured_dag(captured)
     phase_boundary("stopped-cleanup-end", execution_start)
+    emit_native_phase_observations(phase_events)
     println(
       "{\"status\":\"stopped-between-tasks\",\"completed_tasks\":" +
       task.to_string() +
@@ -931,6 +1070,7 @@ fn main {
     abort("invalid cleanup interval")
   }
   phase_boundary("cleanup-end", execution_start)
+  emit_native_phase_observations(phase_events)
   println(
     "{\"task_count\":" +
     task.to_string() +

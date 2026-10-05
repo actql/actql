@@ -1,0 +1,46 @@
+{
+  "version": "actql-check-outcome/0.1",
+  "reason_schema_cid": "sha256:3204b8f2edb377120d3139f380fc3c49541ff34b7117430de4ed52e0f826025f",
+  "outcome": "completed",
+  "report": {
+    "context_ref": "ctx:independent-unused-fixture",
+    "scope": {
+      "kind": "bound_input"
+    },
+    "verdict": "invalid",
+    "inputs": [
+      {
+        "document_id": "source",
+        "revision": "rev:5555555555555555555555555555555555555555555555555555555555555555",
+        "kind": "text",
+        "byte_length": 13
+      },
+      {
+        "document_id": "parameter_declarations",
+        "revision": "rev:6666666666666666666666666666666666666666666666666666666666666666",
+        "kind": "structured",
+        "byte_length": 41
+      }
+    ],
+    "reasons": [
+      {
+        "code": "parameter_unused",
+        "facts": {
+          "parameter": "minimum"
+        },
+        "location": {
+          "document_id": "parameter_declarations",
+          "revision": "rev:6666666666666666666666666666666666666666666666666666666666666666",
+          "kind": "structured",
+          "pointer": "/minimum"
+        }
+      }
+    ],
+    "requirements": [],
+    "coverage": {
+      "limits": [],
+      "unresolved": []
+    }
+  },
+  "outcome_schema_cid": "sha256:e82160288635a2047646ae956dbba116224b1c64b03231b6c4245d43a6cecc5c"
+}

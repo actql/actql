@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
+import {dirname, relative} from 'node:path';
 import test from 'node:test';
 import {machineCid} from './actql-spec-family.mjs';
+import {canonicalText, generateTests} from './check-canonical-json.mjs';
 import {verifyInferenceBarrierSchema} from './inference-barrier-contract.mjs';
 import {expectedCompilationManifests,
   verifyCompilationManifests} from './compilation-manifests.mjs';
@@ -101,6 +103,35 @@ test('pinned manifests close over their source contracts and exact schemas', () 
     expected.barrier);
   assert.deepEqual(read('spec/contracts/actql-compilation-manifests.json'),
     expected.contract);
+});
+
+test('current manifest metadata and canonical fixtures bind the complete document', () => {
+  const family = read('spec/spec-family.json');
+  const generated = readFileSync(
+    'src/canonical_json/identity_vectors.generated_test.mbt', 'utf8');
+  for (const path of ['spec/manifests/actql-grammar-0.1.json',
+    'spec/manifests/actql-barrier-contracts-0.1.json']) {
+    const document = read(path);
+    // The registered machine import hashes the complete document, including
+    // its self CID. It is not the manifest's self-field-free identity.
+    const completeCid = sha(canonicalText(document));
+    const selfCid = document.grammar_manifest_cid ??
+      document.barrier_contract_manifest_cid;
+    assert.notEqual(completeCid, selfCid);
+    const owners = family.documents.flatMap(owner =>
+      (owner.machine_contracts ?? []).filter(ref =>
+        ref.path === path && ref.pointer === '').map(ref => ({owner, ref})));
+    assert.equal(owners.length, 1, `one manifest owner: ${path}`);
+    const [{owner, ref}] = owners;
+    assert.equal(ref.cid, completeCid, `stale complete manifest pin: ${path}`);
+    assert.ok(readFileSync(owner.path, 'utf8').includes(
+      `<!-- machine-import: ${relative(dirname(owner.path), path)}# ${completeCid} -->`),
+    `stale normative manifest import: ${path}`);
+    const fixture = generateTests([{id: `contract ${path}#`,
+      value: document, cid: completeCid}]);
+    assert.ok(generated.includes(fixture.slice(fixture.indexOf('///|'))),
+      `stale current canonical manifest fixture: ${path}`);
+  }
 });
 
 test('inference barrier binds the existing model Plan and adjacent fragment', () => {

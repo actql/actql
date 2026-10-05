@@ -1,0 +1,58 @@
+[
+  {
+    "code": "operation_parameter_invalid",
+    "facts": {
+      "parameter": "before",
+      "domain": "positive_safe_integer"
+    }
+  },
+  {
+    "code": "operation_parameter_invalid",
+    "facts": {
+      "parameter": "offset",
+      "domain": "nonnegative_safe_integer"
+    }
+  },
+  {
+    "code": "operation_parameter_invalid",
+    "facts": {
+      "parameter": "fraction",
+      "domain": "unit_fraction"
+    }
+  },
+  {
+    "code": "operation_parameter_invalid",
+    "facts": {
+      "parameter": "number",
+      "domain": "finite_number"
+    }
+  },
+  {
+    "code": "operation_parameter_invalid",
+    "facts": {
+      "parameter": "duration",
+      "domain": "duration"
+    }
+  },
+  {
+    "code": "operation_parameter_invalid",
+    "facts": {
+      "parameter": "step",
+      "domain": "positive_milliseconds"
+    }
+  },
+  {
+    "code": "operation_parameter_invalid",
+    "facts": {
+      "parameter": "watermark",
+      "domain": "signed_milliseconds"
+    }
+  },
+  {
+    "code": "operation_parameter_invalid",
+    "facts": {
+      "parameter": "time",
+      "domain": "timestamp"
+    }
+  }
+]
