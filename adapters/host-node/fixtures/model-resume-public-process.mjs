@@ -303,7 +303,7 @@ try {
       assert.equal(resolution.results[0].status, 'committed');
     } else if (phase === 'duplicate') {
       resolution = await client.resolveCheckpoints(read('model_invocation-signed.json'));
-    } else if (phase === 'cancel') await run.cancel();
+    } else if (phase === 'cancel' || phase === 'cancel-unknown') await run.cancel();
     if (phase === 'approve-source') {
       const found = await until(async () => {
         const lookup = await client.lookupRequest('public-model-resume');
@@ -317,6 +317,12 @@ try {
       const state = await run.status();
       assert.equal(state.run_id, summary.subject.runId);
       output({summary, runId: state.run_id, status: state.status, resolution});
+    } else if (phase === 'cancel-unknown') {
+      const state = await until(async () => {
+        const current = await run.status();
+        return current.status === 'needs_reconciliation' ? current : undefined;
+      });
+      output({runId: state.run_id, status: state.status});
     } else if (phase === 'probe' || phase.endsWith('-probe')) {
       await new Promise(resolve => setTimeout(resolve, 250));
       const state = await run.status();

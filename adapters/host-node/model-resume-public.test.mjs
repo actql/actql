@@ -120,7 +120,7 @@ for (const transport of ['local', 'https']) {
     assertSends(f, ['alpha', 'bravo']);
     assert.deepEqual(slotStates(f.journal()), ['SavedSuccess', 'EnteredUnknown', 'Unsent']);
     await pause(1100);
-    const cancelled = f.phase('cancel');
+    const cancelled = f.phase('cancel-unknown');
     assertSameRun(waiting, cancelled);
     assert.equal(cancelled.status, 'needs_reconciliation');
     assertSends(f, ['alpha', 'bravo']);
