@@ -22,7 +22,7 @@ const expectedExplanation = (ref, revision) => ({
 
 const localObservation = path => new Promise((resolve, reject) => {
   execFile(process.execPath, [fileURLToPath(new URL(
-    './client-effect-uncertainty.child.mjs', import.meta.url)), path],
+    '../../scripts/fixtures/client-effect-uncertainty.child.mjs', import.meta.url)), path],
   {timeout: 30_000}, (error, stdout, stderr) => {
     if (error) { reject(Object.assign(error, {stdout, stderr})); return; }
     try { resolve(JSON.parse(stdout.trim().split('\n').at(-1))); }

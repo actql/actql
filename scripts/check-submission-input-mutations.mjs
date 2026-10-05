@@ -20,6 +20,10 @@ const expected = (phase, assertion = 'submission-input') => {
       assertions: [{id: assertion, operator: 'strictEqual'}],
     }));
   }
+  if (phase.startsWith('cancellation-clone:')) return [{
+    name: `in-process: cancellation ${phase.slice('cancellation-clone:'.length)} retains original Run uncertainty`,
+    assertions: [{id: assertion, operator: 'strictEqual'}],
+  }];
   if (phase === 'cancellation-custody') return [{
     name: 'in-process: reused cancellation replies preserve each original Run observation',
     assertions: [{id: assertion, operator: 'deepStrictEqual'}],
@@ -96,8 +100,22 @@ const mutations = [
     "        if (value instanceof Response) fail('InvalidLocalHostPortResponse');",
     'cancellation-unknown', 'cancel-unknown-explanation'],
   ['cancellation response reuse changes an earlier Run observation',
-    'const received = structuredClone(response);', 'const received = response;',
+    'received = structuredClone(response);', 'received = response;',
     'cancellation-custody', 'cancel-custody'],
+  ['cancellation clone failure leaks an unassociated error',
+    'try { received = structuredClone(response); }',
+    'received = structuredClone(response); try {}',
+    'cancellation-clone:clone throws', 'cancel-clone-invalid'],
+  ['cancellation clone erasure bypasses shape validation',
+    'if (!validCancellation(received) ||',
+    'if (false ||',
+    'cancellation-clone:clone erases fields', 'cancel-clone-invalid'],
+  ...['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].map(field => [
+    `cancellation clone bypasses ${field} association`,
+    `received.ref.${field} !== ref.${field}`,
+    'false',
+    `cancellation-clone:clone changes ${field}`, 'cancel-clone-invalid',
+  ]),
   ['check reporting budget is blamed on an invalid input',
     'The reporting budget could not produce a complete bound check report.',
     'The submitted input is invalid.', 'check-outcome-reporting', 'check-outcome-explanation'],

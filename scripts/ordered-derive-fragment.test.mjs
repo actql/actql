@@ -106,3 +106,26 @@ test('source and graph schemas distinguish closed params without changing legacy
   assert.equal(valid(schemas.source_params,{bindings:[{name:'x',expr:{literal:{op:'field',body:'missing',$param:'data'}}}]}),true);
   for(const bad of [{...v.graph_step,extra:1},{...v.graph_step,in:[]},{...v.graph_step,in:['input','other']}])assert.equal(valid(schemas.node_preimage,bad),false);
 });
+
+// Fixed bodies are independently assembled from authored row operations and
+// capacity forms, then hashed with Python json/hashlib. No runtime output is
+// used to manufacture these expected identities.
+const identities = read('portability/corpus/expression-fragment-identities.json');
+for (const fixture of identities.cases) test(`independent ${fixture.id} retains its complete fixed identity`, () => {
+  assert.deepEqual(JSON.parse(fixture.canonical), fixture.body);
+  assert.equal(Buffer.byteLength(fixture.canonical), fixture.bytes);
+  assert.equal('sha256:' + createHash('sha256').update(fixture.canonical).digest('hex'), fixture.cid);
+  assert.equal(machineCid(fixture.body), fixture.cid);
+  if (fixture.id === 'ordered_node') {
+    assert.equal(fixture.body.params.row_kernel_contract_cid,
+      machineCid(aoa.execution_contracts['REL.derive.ordered']));
+    for (const name of ['ordered_node', 'ordered_binding', 'fragment_ordered'])
+      assert.ok(readFileSync(`src/execution_relation/${name}_wbtest.mbt`, 'utf8').includes(fixture.cid));
+  } else {
+    assert.equal(fixture.id, 'complete_fragment');
+    assert.equal(fixture.body.expression_contract_cid, machineCid(expressions));
+    assert.ok(readFileSync('src/execution_relation/fragment_candidate_wbtest.mbt', 'utf8').includes(fixture.cid));
+    assert.equal(fixture.body.request.pipeline.steps[0].params.exprs.x.literal, 7);
+    assert.deepEqual(fixture.body.roots[0].contract, {type: 'number', nullable: false});
+  }
+});
