@@ -16,6 +16,7 @@ import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {isAbsolute, join} from 'node:path';
 import {canonicalJson} from './local-account-config.mjs';
+import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {installedConnectors} from
   '../connectors-builtin/installations.generated.mjs';
 import {installedConnectorFor, installedEffectTable,
@@ -110,21 +111,26 @@ export async function loadInstalledEffect(path, {root, principalId, moon,
   if (path === undefined) return undefined;
   const profile = await readProfile(path);
   const {entry, module} = await selectInstallation(profile);
-  const installed = verifyInstalledConnectorRegistration(entry,
-    await module.load(module.check(profile), {root, principalId, moon,
-      baseEnvironmentWire, resolveSecret, installation: entry,
-      ledgerRoot: join(root, 'state', 'effects', 'ledger'),
-      ...await providerRuntime(entry, runtimeUrl)}));
-  if (typeof installed?.prepareCaptured !== 'function' ||
-      typeof installed.prepareRecovered !== 'function' ||
-      typeof installed.environmentWire !== 'string') {
-    refuse('InvalidInstalledEffectInstallation');
+  const installed = await module.load(module.check(profile), {root,
+    principalId, moon, baseEnvironmentWire, resolveSecret, installation: entry,
+    ledgerRoot: join(root, 'state', 'effects', 'ledger'),
+    ...await providerRuntime(entry, runtimeUrl)});
+  try {
+    verifyInstalledConnectorRegistration(entry, installed);
+    if (typeof installed?.prepareCaptured !== 'function' ||
+        typeof installed.prepareRecovered !== 'function' ||
+        typeof installed.environmentWire !== 'string') {
+      refuse('InvalidInstalledEffectInstallation');
+    }
+    return Object.freeze({environmentWire: installed.environmentWire,
+      connectorBindings: installed.connectorBindings,
+      targetReadInventory: installed.targetReadInventory,
+      targetReadAuthorization: installed.targetReadAuthorization,
+      prepareCaptured: installed.prepareCaptured,
+      prepareRecovered: installed.prepareRecovered,
+      close: () => installed.close()});
+  } catch (cause) {
+    throw await retainInstalledHostInitializationFailure(cause,
+      {installedEffect: installed});
   }
-  return Object.freeze({environmentWire: installed.environmentWire,
-    connectorBindings: installed.connectorBindings,
-    targetReadInventory: installed.targetReadInventory,
-    targetReadAuthorization: installed.targetReadAuthorization,
-    prepareCaptured: installed.prepareCaptured,
-    prepareRecovered: installed.prepareRecovered,
-    close: () => installed.close()});
 }

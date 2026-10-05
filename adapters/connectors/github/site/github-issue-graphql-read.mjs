@@ -46,14 +46,16 @@ function checkLimits(limits) {
 // Read the published repository's Issues. `repository` is the publication's
 // `{nodeId, databaseId, nameWithOwner}`; `authorizationFor(index)` returns
 // the credential authorization of the next request after rechecking the
-// current read decision; `consumePage(rows, page)` receives each accepted
-// page before the next request.
+// current read decision; `chargePage(body)` charges each received body before
+// provider parsing or refusal. `consumePage(rows, page, {charge})` consumes
+// that exact admission ticket before the next request.
 export async function readGitHubIssuesByNode({moon, repository,
   filters = {state: 'all', labels: []}, credential, callResource,
-  authorizationFor, limits, consumePage, signal}) {
+  authorizationFor, limits, chargePage, consumePage, signal}) {
   if (!moon || typeof moon.githubIssuesRequestJson !== 'function' ||
       typeof authorizationFor !== 'function' || !credential ||
       typeof callResource !== 'function' ||
+      (chargePage !== undefined && typeof chargePage !== 'function') ||
       typeof repository?.nodeId !== 'string' ||
       !Number.isSafeInteger(repository.databaseId) ||
       typeof repository.nameWithOwner !== 'string') {
@@ -88,6 +90,7 @@ export async function readGitHubIssuesByNode({moon, repository,
     if (request.refused) stopped('InvalidGitHubReadRequest',
       {refusal: request.refused});
     let response;
+    let charge;
     try {
       const authorization = await authorizationFor(accepted.length);
       signal?.throwIfAborted();
@@ -98,6 +101,8 @@ export async function readGitHubIssuesByNode({moon, repository,
         responseHeaders, maxRequestBytes: owned.maxRequestBytes,
         maxResponseBytes: owned.maxBytes, signal,
       });
+      // Charge the full envelope, including refused or malformed bodies.
+      charge = await chargePage?.(response.body);
     } catch (cause) {
       stopped(cause?.code ?? 'GitHubReadInterrupted', {cause});
     }
@@ -124,7 +129,7 @@ export async function readGitHubIssuesByNode({moon, repository,
       stopped('GitHubReadRowLimit');
     }
     if (consumePage !== undefined) {
-      try { await consumePage(current.rows, page); }
+      try { await consumePage(current.rows, page, Object.freeze({charge})); }
       catch (cause) {
         stopped(cause?.code ?? 'GitHubPageNotAdmitted', {cause});
       }

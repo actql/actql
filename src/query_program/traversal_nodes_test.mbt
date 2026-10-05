@@ -84,7 +84,7 @@ test "Graph traversal retains malformed authored bodies for common refusal" {
   for
     tail in [
       "traverse(start: {from: undeclared, id: 'element'}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'nodes')",
-      "traverse(start: {from: seeds, id: 'element'}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'paths')",
+      "traverse(start: {from: seeds, id: 'element'}, direction: 'out', min_hops: 0, max_hops: 1, path_mode: 'trail', emit: 'invented')",
     ] {
     let parsed = @query.parse_query_script(
       traversal_nodes_source() + "FROM g |> " + tail,

@@ -66,8 +66,8 @@ every declared column occurs in every row. Ordinary object value contracts keep
 their exact required-field rules.
 
 The execution profile permits projection, Required-only filter/derive expressions,
-Required-key sort, proven-order take, Required-key DISTINCT and complete-row
-DISTINCT on conditional inputs. Every syntactic
+Required-key sort, proven-order take, Required-key DISTINCT, complete-row
+DISTINCT and GROUP on conditional inputs. Every syntactic
 expression reference and authored sort key must be Required,
 including references in lazy/dead branches; runtime samples and `IS NOT NULL`
 do not provide a presence proof. Graph definition/label selection derives its
@@ -99,7 +99,17 @@ to a present NULL. Its private index comparison places omission before present
 cells solely to group equal rows, discards that index order and emits survivors
 in first-occurrence order. Typed presence failure remains a failure rather than
 omission; no scalar represents missingness. This does not permit an authored
-Conditional reference or prove stable order. Selection and retained presence
+Conditional reference or prove stable order.
+GROUP requires guaranteed group keys and every aggregate argument, filter and
+aggregate-local order reference, including dead expression branches. Both the
+selected exact-count and general-group providers admit and charge the complete
+sparse input before aggregation. Expression snapshots omit absent unreferenced
+cells rather than reading them as NULL. The result follows the existing dense
+GROUP schema, nullability, empty-input and canonical group-order contracts;
+input Conditional columns are not propagated as undeclared output columns.
+Its existing row/completion and Store export/import owners retain the aggregate
+result independently of the consumed input's unused presence states.
+Selection and retained presence
 slots use the existing bounded row workspace and cleanup path. Other row consumers reject conditional inputs rather than rebuilding
 their schema as dense or filling absent cells with NULL. Public Results require
 required selected and ordering columns.

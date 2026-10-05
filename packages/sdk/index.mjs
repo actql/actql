@@ -16,6 +16,8 @@ const checkInputs = new WeakMap();
 // by serializing an error or Run handle. It does not establish acceptance.
 const submissionInputs = new WeakMap();
 const submissionContexts = new WeakMap();
+// Presentation is bound by the validated submit branch, never an error string.
+const submissionExplanations = new WeakMap();
 const utf8 = new TextEncoder();
 const freezeInput = value => {
   if (value !== null && typeof value === 'object') {
@@ -34,6 +36,19 @@ export function getCheckInput(outcome, documentId, revision) {
 export function getSubmissionInput(result) {
   return submissionInputs.get(result);
 }
+
+export function explainSubmission(result) {
+  return submissionExplanations.get(result);
+}
+
+const submissionLookupExplanation = (observation, input) => freezeInput({
+  observation,
+  summary: observation === 'acceptance_unknown'
+    ? 'Submission acceptance is unknown. Work may already have started.'
+    : 'The Host returned a held-request response. Look up the current request state.',
+  next: {operation: 'lookupRequest', requestId: input.requestId,
+    lookupContext: input.lookupContext},
+});
 
 const structuredNodeExists = (value, pointer) => {
   if (typeof pointer !== 'string' || pointer.length > 4096 ||
@@ -113,6 +128,7 @@ export function resolveCheckTextRange(outcome, location, currentInput) {
 export function explainCheckReason(reason) {
   const explanations = {
     query_syntax_invalid: ['The query syntax is invalid.', 'Correct the query syntax at the reported location when available.'],
+    query_expression_invalid: ['An expression violates its reference, argument or numeric contract.', 'Correct the expression under the selected query contract.'],
     query_lexical_invalid: ['A query token violates its lexical syntax.', 'Correct the token at the reported location when available.'],
     parameter_undeclared: ['The query refers to an undeclared parameter.', 'Declare the parameter or correct its reference; a value alone cannot declare it.'],
     query_invalid: ['The query violates its language or name-resolution contract.', 'Correct the query using its declared names and visible context.'],
@@ -146,6 +162,16 @@ export function explainCheckReason(reason) {
     const [summary, hint] = lexicalExplanations[issue];
     return Object.freeze({kind: 'known', summary, hint});
   }
+  const expressionExplanations = {
+    unknown_reference: ['An expression reference cannot be resolved in the checked scope.', 'Use a declared reference from the disclosed query context.'],
+    invalid_arguments: ['Expression arguments violate the selected operation contract.', 'Correct the argument count or form required by the selected operation.'],
+    invalid_number: ['A numeric expression is outside the admitted numeric domain.', 'Use a finite number in the admitted precision and signed-zero domain.'],
+  };
+  if (reason?.code === 'query_expression_invalid' && typeof issue === 'string' &&
+      Object.hasOwn(expressionExplanations, issue)) {
+    const [summary, hint] = expressionExplanations[issue];
+    return Object.freeze({kind: 'known', summary, hint});
+  }
   const constraintHints = {
     numeric: 'Supply a number satisfying the declared integer, minimum and maximum constraints.',
     duration: 'Supply a string in the admitted duration format.',
@@ -177,6 +203,8 @@ const submissionUnknown = (context, cause) => {
   const result = new ClientError('SubmissionUnknown', {...context, cause});
   const input = submissionContexts.get(context);
   if (input) submissionInputs.set(result, input);
+  if (input) submissionExplanations.set(result,
+    submissionLookupExplanation('acceptance_unknown', input));
   return result;
 };
 const readFailure = (cause, attemptId, rowsYielded) => new ClientError(
@@ -776,6 +804,8 @@ async function connectSelected(selected, port) {
           {checkpoint: Object.freeze({...admitted.checkpoint})})}),
       context.lookupContext);
       submissionInputs.set(held, snapshot);
+      submissionExplanations.set(held,
+        submissionLookupExplanation('request_held', snapshot));
       throw held;
     }
     let result;
@@ -784,6 +814,11 @@ async function connectSelected(selected, port) {
       throw submissionUnknown(context, cause);
     }
     submissionInputs.set(result, snapshot);
+    submissionExplanations.set(result, freezeInput({
+      observation: 'run_reference_received',
+      summary: 'The Host returned a validated Run reference. Check the current Run state for execution progress.',
+      next: {operation: 'status', ref: result.ref},
+    }));
     return result;
   };
   return Object.freeze({

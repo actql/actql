@@ -1,5 +1,12 @@
 # Proposal: provider-neutral row capture for installed SaaS sources
 
+Historical baseline: the Salesforce Read execution/capture path described below
+is superseded by [the completed Read migration](2026-10-04-salesforce-neutral-read.md).
+Its retired files and exports are an inventory of the earlier implementation,
+not current entry points. Salesforce Effect and overall connector-authoring
+completion remain separate.
+
+
 Connection point for the connector author foundation (S2), published for
 review before implementation because it touches the common capture owner.
 Base: #298. Consumers: the GitHub Issue read (#301, #312) and the Salesforce

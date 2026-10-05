@@ -1,13 +1,12 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/client_row_source_host" @rows,
   "actql/actql/connectors/salesforce/catalog",
   "actql/actql/query_planning" @planning,
   "actql/actql/execution_query" @query,
   "actql/actql/execution_relation" @execution,
   "actql/actql/lowering_relation" @lower,
-  "actql/actql/connector_sdk" @connector,
-  "actql/actql/physical_cost" @cost,
   "actql/actql/relation_schema" @schema,
   "actql/actql/value_contract" @contract,
   "actql/actql/sourceview_resolution" @sourcequery,
@@ -15,6 +14,4 @@ import {
   "actql/actql/relation_typing" @relation,
   "actql/actql/value_admission" @admitted,
   "actql/actql/encode_core" @encode,
-  "actql/actql/check_environment" @environment,
-  "actql/actql/run_publication" @publication,
 }

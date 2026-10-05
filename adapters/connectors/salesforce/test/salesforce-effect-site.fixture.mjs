@@ -97,10 +97,17 @@ export async function openSalesforceEffectSiteFixture(t, {
   numberFields = false,
   // The Host's logical connection id the Site declares under.
   connectorId = 'crm-main',
-  // An HTTP status every query request is answered with instead of rows.
+  // An HTTP status selected query requests answer with instead of rows.
   queryFailureStatus,
+  // Restrict the injected query failure to this 1-based request, if set.
+  queryFailureOnRequest,
   // Records a query answers instead of the three stored ones.
   storedRecords,
+  // Bounded locator pages and exact reply faults for public Read acceptance.
+  queryPageSize,
+  queryResponse = body => body,
+  // Resource-specific records for distinguishing two checked source views.
+  recordsByResource,
   // Further writable objects shaped like Test_Record__c.
   writableObjects: extraWritable = [],
   // The 1-based sequence numbers of record writes the org rejects with a
@@ -170,6 +177,7 @@ export async function openSalesforceEffectSiteFixture(t, {
     item.method === 'POST' || (item.method === 'PATCH' && item.path !==
       '/services/data/v62.0/composite/sobjects')).length;
   let nameCreateable = true;
+  const queryPages = new Map();
   const server = createServer({cert, key}, (request, response) => {
     const observed = {method: request.method, path: request.url,
       authorization: request.headers.authorization};
@@ -179,8 +187,20 @@ export async function openSalesforceEffectSiteFixture(t, {
       return;
     }
     const prefix = '/services/data/v62.0/';
+    if (request.method === 'GET' && request.url?.startsWith(`${prefix}query/01gFIXTURE`)) {
+      const offset = Number(request.url.slice(`${prefix}query/01gFIXTURE`.length));
+      const records = queryPages.get(offset);
+      if (records === undefined) { response.writeHead(404).end(); return; }
+      response.writeHead(200, {'content-type': 'application/json'});
+      response.end(replyJson(queryResponse(records)));
+      return;
+    }
     if (queryFailureStatus !== undefined && request.method === 'GET' &&
-        request.url?.startsWith(`${prefix}query?q=`)) {
+        request.url?.startsWith(`${prefix}query?q=`) &&
+        (queryFailureOnRequest === undefined ||
+          seen.filter(item => item.method === 'GET' &&
+            item.path?.startsWith(`${prefix}query?q=`)).length ===
+          queryFailureOnRequest)) {
       response.writeHead(queryFailureStatus, {'content-type': 'application/json'});
       response.end('[{"errorCode":"SERVER_UNAVAILABLE"}]');
       return;
@@ -191,29 +211,39 @@ export async function openSalesforceEffectSiteFixture(t, {
       const soql = decodeURIComponent(request.url.slice(
         `${prefix}query?q=`.length));
       const match =
-        /^SELECT ([A-Za-z_,]+) FROM Test_Record__c( ORDER BY Id)?(?: LIMIT ([0-9]+))?$/u
+        /^SELECT ([A-Za-z_,]+) FROM ([A-Za-z_][A-Za-z_0-9]*)( ORDER BY Id)?(?: LIMIT ([0-9]+))?$/u
           .exec(soql);
-      if (match === null) {
+      if (match === null || !writable.includes(match[2])) {
         response.writeHead(400, {'content-type': 'application/json'});
         response.end('[{"errorCode":"MALFORMED_QUERY"}]');
         return;
       }
-      const stored = state !== undefined ? (match[2] === undefined
+      const stored = state !== undefined ? (match[3] === undefined
         ? [...state.values()]
         : [...state.values()].sort((a, b) => a.Id < b.Id ? -1 : 1))
-        : storedRecords ?? (match[2] === undefined ? storedOrder
+        : recordsByResource?.[match[2]] ?? storedRecords ??
+          (match[3] === undefined ? storedOrder
         : [...storedOrder].sort()).map(index => ({
         Id: `a0000000000000${index}`,
         Name: `record-${index}`, External_Key__c: `key-${index}`,
         ...(temporalFields ? temporalValues[index] : {}),
         ...(numberFields ? numberValues[index] : {})}));
-      const records = stored.slice(0, match[3] === undefined
-        ? stored.length : Number(match[3])).map(record =>
-        Object.fromEntries([['attributes', {type: 'Test_Record__c'}],
+      const records = stored.slice(0, match[4] === undefined
+        ? stored.length : Number(match[4])).map(record =>
+        Object.fromEntries([['attributes', {type: match[2]}],
           ...match[1].split(',').map(name => [name, record[name] ?? null])]));
       response.writeHead(200, {'content-type': 'application/json'});
-      response.end(replyJson({totalSize: records.length, done: true,
-        records}), () => onQuery?.(orgRecords()));
+      const size = queryPageSize ?? records.length;
+      const page = offset => {
+        const end = Math.min(records.length, offset + size);
+        return {totalSize: records.length, done: end === records.length,
+          ...(end < records.length ? {nextRecordsUrl: `${prefix}query/01gFIXTURE${end}`} : {}),
+          records: records.slice(offset, end)};
+      };
+      if (size > 0) for (let offset = size; offset < records.length; offset += size) {
+        queryPages.set(offset, page(offset));
+      }
+      response.end(replyJson(queryResponse(page(0))), () => onQuery?.(orgRecords()));
       return;
     }
     if (request.method === 'GET' && request.url ===
