@@ -89,6 +89,9 @@ priv enum NearestPhase {
   CompareScoreIdentity
   CopyScorePass
   BeginEmit
+  BuildQueryIdentity
+  BuildCandidateIdentity
+  StartOutputRow
   EmitResult
   FinishNearest
 }
@@ -138,6 +141,11 @@ priv struct NearestState {
   mut scores : Array[NearestScore]
   mut score_scratch : Array[NearestScore?]
   mut emit_index : Int
+  mut query_output_identity : @value.Value?
+  mut candidate_output_identity : @value.Value?
+  mut identity_builder : @value.ObjectBuilder?
+  mut output_identity_index : Int
+  mut output_row : @execution.AdmittedOutputRowCursor?
   mut control_work_remaining : Int
 }
 
@@ -204,6 +212,10 @@ fn nearest_workspace(
   candidate_ids : Int,
   query_ids : Int,
 ) -> Int? {
+  // Identity scratch is used while reading inputs, then reused for the two
+  // provisional composite output identities. Those phases never overlap.
+  // Eight additional fixed slots cover the four-field row and its traversal
+  // frames; output values themselves use the existing logical output budget.
   guard nearest_checked_add(candidate_ids, 2) is Some(candidate_width) &&
     nearest_checked_add(query_ids, 2) is Some(query_width) &&
     nearest_checked_multiply(candidates, candidate_width)
@@ -219,7 +231,7 @@ fn nearest_workspace(
     nearest_checked_add(first, scores) is Some(second) &&
     nearest_checked_add(second, record_scratch) is Some(third) &&
     nearest_checked_add(candidate_ids, query_ids) is Some(identity_slots) &&
-    nearest_checked_add(identity_slots, 8) is Some(fixed_slots) &&
+    nearest_checked_add(identity_slots, 16) is Some(fixed_slots) &&
     nearest_checked_add(third, fixed_slots) is Some(total) else {
     return None
   }
@@ -709,78 +721,101 @@ fn compare_nearest_score(state : NearestState) -> Result[Unit, NearestIssue] {
 }
 
 ///|
-fn nearest_identity_value(
-  identities : Array[@value.CheckedValue],
-  contract : @contract.Contract,
-  limits : @value.Limits,
-) -> @value.CheckedValue? {
-  if identities.length() == 1 {
-    return @value.recheck_runtime_value(identities[0].value, contract, limits)
+fn build_nearest_output_identity(
+  state : NearestState,
+  query : Bool,
+) -> Result[Unit, NearestIssue] {
+  let identities = if query {
+    state.queries[state.query_index].identities
+  } else {
+    state.candidates[state.scores[state.emit_index].candidate].identities
   }
-  let fields : Array[(String, @value.Value)] = []
-  for index, identity in identities {
-    fields.push((index.to_string(), identity.value))
+  let name = if query { "query_id" } else { "candidate_id" }
+  guard @schema.lookup(state.output_schema, @schema.Unqualified(name))
+    is Some(contract) else {
+    return Err(InvalidNearestKernel)
   }
-  guard @value.object_value(fields) is Some(object) else { return None }
-  @value.recheck_runtime_value(object, contract, limits)
+  let value = if identities.length() == 1 {
+    Some(identities[0].value)
+  } else {
+    guard contract.shape is @contract.Object(fields) &&
+      @contract.field_count(fields) == identities.length() &&
+      identities.length() < state.value_limits.max_nodes else {
+      return Err(InvalidNearestKernel)
+    }
+    if state.identity_builder is None {
+      guard @value.prepare_object_value(identities.length()) is Some(builder) else {
+        return Err(InvalidNearestKernel)
+      }
+      state.identity_builder = Some(builder)
+      state.output_identity_index = 0
+      return Ok(())
+    }
+    let builder = state.identity_builder.unwrap()
+    if state.output_identity_index < identities.length() {
+      guard @contract.field_at(fields, state.output_identity_index)
+        is Some(field) &&
+        field.name.length() <= 10 &&
+        @scalar.read_decimal_int64(field.name) is Ok(index) &&
+        index >= 0L &&
+        index < identities.length().to_int64() &&
+        index.to_string() == field.name &&
+        @value.append_object_field(
+          builder,
+          field.name,
+          identities[index.to_int()].value,
+        ) else {
+        return Err(InvalidNearestKernel)
+      }
+      state.output_identity_index += 1
+      return Ok(())
+    }
+    let value = @value.finish_object_value(builder)
+    state.identity_builder = None
+    value
+  }
+  guard value is Some(value) else { return Err(InvalidNearestKernel) }
+  if query {
+    state.query_output_identity = Some(value)
+    state.phase = BuildCandidateIdentity
+  } else {
+    state.candidate_output_identity = Some(value)
+    state.phase = StartOutputRow
+  }
+  Ok(())
 }
 
 ///|
-fn emit_nearest_result(state : NearestState) -> Result[Unit, NearestIssue] {
-  guard state.output is Some(output) &&
-    @schema.lookup(state.output_schema, @schema.Unqualified("query_id"))
-    is Some(query_contract) &&
-    @schema.lookup(state.output_schema, @schema.Unqualified("candidate_id"))
-    is Some(candidate_contract) &&
-    @schema.lookup(state.output_schema, @schema.Unqualified("score"))
-    is Some(score_contract) &&
-    @schema.lookup(state.output_schema, @schema.Unqualified("rank"))
-    is Some(rank_contract) else {
-    return Err(InvalidNearestKernel)
+fn nearest_output_cell(state : NearestState, column : Int) -> @value.Value? {
+  guard @schema.field_at(state.output_schema, column) is Some(field) else {
+    return None
   }
-  let query = state.queries[state.query_index]
-  let score = state.scores[state.emit_index]
-  let candidate = state.candidates[score.candidate]
-  guard nearest_identity_value(
-      query.identities,
-      query_contract,
-      state.value_limits,
-    )
-    is Some(query_id) &&
-    nearest_identity_value(
-      candidate.identities,
-      candidate_contract,
-      state.value_limits,
-    )
-    is Some(candidate_id) &&
-    @value.checked_number_value(score.score, score_contract)
-    is Some(score_value) &&
-    @value.checked_number_value(
-      (state.emit_index + 1).to_double(),
-      rank_contract,
-    )
-    is Some(rank) else {
-    return Err(InvalidNearestKernel)
+  match @schema.reference_name(field.name) {
+    "query_id" => state.query_output_identity
+    "candidate_id" => state.candidate_output_identity
+    "score" =>
+      @value.checked_number_value(
+        state.scores[state.emit_index].score,
+        field.contract,
+      ).map(value => value.value)
+    "rank" =>
+      @value.checked_number_value(
+        (state.emit_index + 1).to_double(),
+        field.contract,
+      ).map(value => value.value)
+    _ => None
   }
-  let supplied : Array[@value.CheckedValue] = []
-  for field_index in 0..<@schema.field_count(state.output_schema) {
-    guard @schema.field_at(state.output_schema, field_index) is Some(field) else {
-      return Err(InvalidNearestKernel)
-    }
-    match @schema.reference_name(field.name) {
-      "query_id" => supplied.push(query_id)
-      "candidate_id" => supplied.push(candidate_id)
-      "score" => supplied.push(score_value)
-      "rank" => supplied.push(rank)
-      _ => return Err(InvalidNearestKernel)
-    }
-  }
-  match @execution.append_admitted_output(output, supplied) {
-    Ok(_) => {
-      state.emit_index += 1
-      Ok(())
-    }
-    Err(issue) => Err(NearestOutput(issue))
+}
+
+///|
+fn nearest_output_row_issue(
+  issue : @execution.AdmittedOutputRowIssue,
+) -> NearestIssue {
+  match issue {
+    @execution.OutputRowCapture(@execution.InvalidCheckedRow) =>
+      InvalidNearestKernel
+    @execution.OutputRowCapture(issue) => NearestOutput(issue)
+    @execution.OutputRowWorkspace => NearestWorkspaceLimit
   }
 }
 
@@ -1026,20 +1061,69 @@ fn nearest_step(
         }
       BeginEmit =>
         if state.emit_index < Int::min(state.k, state.scores.length()) {
-          state.phase = EmitResult
+          state.query_output_identity = None
+          state.candidate_output_identity = None
+          state.output_identity_index = 0
+          state.phase = BuildQueryIdentity
         } else {
           state.query_index += 1
           state.scores = []
           state.phase = BeginQuery
         }
+      BuildQueryIdentity | BuildCandidateIdentity => {
+        used += 1
+        match
+          build_nearest_output_identity(
+            state,
+            state.phase is BuildQueryIdentity,
+          ) {
+          Ok(_) => ()
+          Err(issue) => return @bounded.Failed(issue, progress, used)
+        }
+      }
+      StartOutputRow => {
+        used += 1
+        guard state.output is Some(output) else {
+          return @bounded.Failed(InvalidNearestKernel, progress, used)
+        }
+        match
+          @execution.start_admitted_output_row(output, 8, column => {
+            nearest_output_cell(state, column)
+          }) {
+          Ok(row) => {
+            state.output_row = Some(row)
+            state.phase = EmitResult
+          }
+          Err(issue) =>
+            return @bounded.Failed(
+              nearest_output_row_issue(issue),
+              progress,
+              used,
+            )
+        }
+      }
       EmitResult => {
         used += 1
-        match emit_nearest_result(state) {
-          Ok(_) => {
+        guard state.output_row is Some(row) else {
+          return @bounded.Failed(InvalidNearestKernel, progress, used)
+        }
+        match @execution.advance_admitted_output_row(row) {
+          Ok(true) => {
+            @execution.cleanup_admitted_output_row(row) |> ignore
+            state.output_row = None
+            state.query_output_identity = None
+            state.candidate_output_identity = None
+            state.emit_index += 1
             progress += 1
             state.phase = BeginEmit
           }
-          Err(issue) => return @bounded.Failed(issue, progress, used)
+          Ok(false) => ()
+          Err(issue) =>
+            return @bounded.Failed(
+              nearest_output_row_issue(issue),
+              progress,
+              used,
+            )
         }
       }
       FinishNearest => {
@@ -1068,6 +1152,16 @@ fn nearest_step(
 
 ///|
 fn cleanup_nearest_state(state : NearestState) -> Bool {
+  if state.output_row is Some(row) {
+    @execution.cleanup_admitted_output_row(row) |> ignore
+    state.output_row = None
+  }
+  if state.identity_builder is Some(builder) {
+    @value.cancel_object_value(builder) |> ignore
+    state.identity_builder = None
+  }
+  state.query_output_identity = None
+  state.candidate_output_identity = None
   if state.output is Some(output) {
     @execution.cancel_admitted_output(output) |> ignore
     state.output = None
@@ -1317,6 +1411,11 @@ fn start_nearest_producers(
     scores: [],
     score_scratch: [],
     emit_index: 0,
+    query_output_identity: None,
+    candidate_output_identity: None,
+    identity_builder: None,
+    output_identity_index: 0,
+    output_row: None,
     control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(

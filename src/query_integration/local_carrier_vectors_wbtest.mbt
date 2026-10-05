@@ -5305,10 +5305,12 @@ test "nearest charges incremental initialization and cumulative work" {
   // Each input: one identity slot, two field reads, two identity matches,
   // one record finish, and three component checks = nine units. Two record
   // scratch slots and two uniqueness checks bring the total to 22. One
-  // score scratch slot, two component folds, score finish, output emission,
-  // and completion bring the independent total to 28 units.
+  // score scratch slot, two component folds, score finish, a 25-unit output
+  // row and completion bring the independent total to 52 units. The output
+  // uses two identity picks, row start, twelve scalar read/recheck units,
+  // charge start, four name/value pairs and commit.
   // Workspace: two three-slot records, four score slots, three record-sort
-  // slots, two identity slots, and eight fixed slots = 23.
+  // slots, two identity slots, and sixteen fixed slots = 31.
   let short_candidate_view = @carrier_runtime.material_prepare_view(
     candidate_material, owner, 0, candidates,
   ).unwrap()
@@ -5325,14 +5327,14 @@ test "nearest charges incremental initialization and cumulative work" {
       @local_veca.nearest_carrier_producer(short_query_view),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      22,
+      30,
       1000,
       1000,
-      28,
+      52,
     )
     is Err(@local_veca.NearestWorkspaceLimit),
   )
-  for (ceiling, accepted) in [(28, true), (27, false)] {
+  for (ceiling, accepted) in [(52, true), (51, false)] {
     let candidate_view = @carrier_runtime.material_prepare_view(
       candidate_material, owner, 0, candidates,
     ).unwrap()
@@ -5348,14 +5350,14 @@ test "nearest charges incremental initialization and cumulative work" {
       @local_veca.nearest_carrier_producer(query_view),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      23,
+      31,
       1000,
       1000,
       ceiling,
     ).unwrap()
     let mut terminal = false
     let mut charged = 0L
-    for _ in 0..<32 {
+    for _ in 0..<64 {
       if !terminal {
         match @local_veca.advance_nearest(execution, 1).unwrap() {
           @local_veca.NearestContinue(work~, ..) => {
@@ -5414,10 +5416,10 @@ test "nearest stops during incremental identity initialization" {
     @local_veca.nearest_carrier_producer(query_view),
     10,
     { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    23,
+    31,
     1000,
     1000,
-    28,
+    52,
   ).unwrap()
   assert_true(
     @local_veca.advance_nearest(execution, 1).unwrap()
@@ -5454,7 +5456,7 @@ test "direct nearest Relation inputs keep exact work and workspace bounds" {
   let candidate_output = direct_nearest_relation_output(candidates)
   let query_output = direct_nearest_relation_output(queries)
   let generated = task_test_generated(owner)
-  for (ceiling, accepted) in [(28, true), (27, false)] {
+  for (ceiling, accepted) in [(52, true), (51, false)] {
     let candidate_read = @execution.prepare_producer_read(
       owner,
       @execution.bind_completed_input(owner, 0, candidates, candidate_output).unwrap(),
@@ -5468,7 +5470,7 @@ test "direct nearest Relation inputs keep exact work and workspace bounds" {
       1000,
     ).unwrap()
     // Two three-slot records, four score slots, three ordering slots,
-    // two identity slots, and eight fixed slots require 23 workspace slots.
+    // two identity slots, and sixteen fixed slots require 31 workspace slots.
     let execution = @local_veca.start_nearest_inputs_with_control_work_limit(
       @bounded.control(),
       @execution.generated_completion_preparation(generated),
@@ -5478,14 +5480,14 @@ test "direct nearest Relation inputs keep exact work and workspace bounds" {
       @local_veca.nearest_relation_producer(query_read),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      23,
+      31,
       1000,
       1000,
       ceiling,
     ).unwrap()
     let mut terminal = false
     let mut charged = 0L
-    for _ in 0..<32 {
+    for _ in 0..<64 {
       if !terminal {
         match @local_veca.advance_nearest(execution, 1).unwrap() {
           @local_veca.NearestContinue(work~, ..) => {
@@ -5538,10 +5540,10 @@ test "direct nearest Relation inputs keep exact work and workspace bounds" {
       @local_veca.nearest_relation_producer(query_read),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      22,
+      30,
       1000,
       1000,
-      28,
+      52,
     )
     is Err(@local_veca.NearestWorkspaceLimit),
   )
@@ -5948,7 +5950,7 @@ test "fused nearest charges exact Relation inputs and reclaims cancellation" {
   let candidate_output = direct_nearest_relation_output(candidates)
   let query_output = direct_nearest_relation_output(queries)
   let generated = task_test_generated(owner)
-  for (ceiling, accepted) in [(28, true), (27, false)] {
+  for (ceiling, accepted) in [(52, true), (51, false)] {
     let candidate_read = @execution.prepare_producer_read(
       owner,
       @execution.bind_completed_input(owner, 0, candidates, candidate_output).unwrap(),
@@ -5971,7 +5973,7 @@ test "fused nearest charges exact Relation inputs and reclaims cancellation" {
       @local_veca.nearest_relation_producer(query_read),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      23,
+      31,
       1000,
       1000,
       [candidate_read, query_read],
@@ -5979,7 +5981,7 @@ test "fused nearest charges exact Relation inputs and reclaims cancellation" {
     ).unwrap()
     let mut terminal = false
     let mut charged = 0L
-    for _ in 0..<32 {
+    for _ in 0..<64 {
       if !terminal {
         match @local_veca.advance_nearest(execution, 1).unwrap() {
           @local_veca.NearestContinue(work~, ..) => {
@@ -6032,11 +6034,11 @@ test "fused nearest charges exact Relation inputs and reclaims cancellation" {
       @local_veca.nearest_relation_producer(query_read),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      22,
+      30,
       1000,
       1000,
       [candidate_read, query_read],
-      28,
+      52,
     )
     is Err(@local_veca.NearestWorkspaceLimit),
   )
@@ -6052,11 +6054,11 @@ test "fused nearest charges exact Relation inputs and reclaims cancellation" {
     @local_veca.nearest_relation_producer(query_read),
     10,
     { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    23,
+    31,
     1000,
     1000,
     [candidate_read, query_read],
-    28,
+    52,
   ).unwrap()
   assert_true(
     @local_veca.advance_nearest(cancel_execution, 1).unwrap()

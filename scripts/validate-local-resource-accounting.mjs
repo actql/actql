@@ -1373,6 +1373,14 @@ export function validateResourceAccounting({
       if (!environmentRoles.has('nearest_long_keys_public_store')) {
         fail(`${label}: nearest key public Store fixture is missing`);
       }
+      for (const role of ['nearest_output_row_stop_cleanup',
+        'nearest_output_public_barrier', 'nearest_output_composite_order',
+        'nearest_output_shared_limits', 'nearest_output_shared_cleanup']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('nearest_output_public_store')) {
+        fail(`${label}: nearest output public Store fixture is missing`);
+      }
     }
     const sharedRules = route.shared_resource_rule ?? {};
     if (route.family === 'RelA' && route.operation === 'filter' &&

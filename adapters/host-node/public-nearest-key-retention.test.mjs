@@ -8,15 +8,14 @@ import {inspect} from 'node:util';
 import {connectEmbeddedLocal} from './embedded-local.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 
-const prefix = 'x'.repeat(512);
 const fields = ['candidate_id', 'query_id', 'rank', 'score'];
 const names = ['published', 'consumed_a', 'consumed_b'];
-const expected = ['a', 'b'].flatMap(query => ['a', 'b'].map((candidate, index) => ({
+const expectedRows = prefix => ['a', 'b'].flatMap(query => ['a', 'b'].map((candidate, index) => ({
   candidate_id: prefix + candidate, query_id: prefix + query,
   rank: index + 1, score: 5,
 })));
 
-function program(id) {
+function program(id, prefix) {
   return {version: 'actql/0.1', id, stages: [
     ...['candidates', 'queries'].map(name => ({id: name, inputs: {},
       steps: [{values: {schema: {
@@ -45,8 +44,9 @@ function program(id) {
   }};
 }
 
-test('public retained nearest publishes and cancels inside long identity validation',
-  {timeout: 45_000}, async t => {
+async function runPublicNearestBarrier(t, {prefixLength, barrierWork, barrierProgress}) {
+    const prefix = 'x'.repeat(prefixLength);
+    const expected = expectedRows(prefix);
     const directory = await mkdtemp(join(tmpdir(), 'actql-public-nearest-key-'));
     const barrier = Promise.withResolvers();
     const released = Promise.withResolvers();
@@ -61,6 +61,7 @@ test('public retained nearest publishes and cancels inside long identity validat
     let dispatches = 0;
     let completions = 0;
     let bridges = 0;
+    let nearestWork = 0;
     let representations;
     const trace = [];
     const keys = generateKeyPairSync('ed25519');
@@ -88,11 +89,16 @@ test('public retained nearest publishes and cancels inside long identity validat
           bridges++;
           return;
         }
-        // Both typed bridges finish in the same fused task. The first nearest
-        // quantum cannot consume its 513-unit identity; the core fixture fixes
-        // this boundary independently, without a sleep or split-task override.
+        // Both bridges and nearest stay in the same fused task. Core phase
+        // totals fix the matching barrier, without sleeps or task splitting.
         assert.equal(detail.work, '256');
-        assert.equal(detail.progress, '0');
+        nearestWork += Number(detail.work);
+        if (nearestWork < barrierWork) {
+          assert.equal(detail.progress, '0');
+          return;
+        }
+        assert.equal(nearestWork, barrierWork);
+        assert.equal(detail.progress, String(barrierProgress));
         barrier.resolve();
         await released.promise;
       },
@@ -100,12 +106,12 @@ test('public retained nearest publishes and cancels inside long identity validat
         if (step !== 'computed') return;
         completions++;
         representations = detail.outputRepresentations;
-        if (cancelling) barrier.reject(new Error('nearest passed its scan barrier'));
+        if (cancelling) barrier.reject(new Error('nearest passed its bounded barrier'));
       },
     };
     client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, retainedRelationOutput: true, authorization}});
-    const source = JSON.stringify(program('public-nearest-key'));
+    const source = JSON.stringify(program('public-nearest-key', prefix));
     const options = {format: 'json', requestId: 'public-nearest-key'};
     const execution = await client.aql(source, options);
     const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
@@ -122,11 +128,11 @@ test('public retained nearest publishes and cancels inside long identity validat
     assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
 
     cancelling = true;
-    const cancel = await client.aql(JSON.stringify(program('public-nearest-key-cancel')),
+    const cancel = await client.aql(JSON.stringify(program('public-nearest-key-cancel', prefix)),
       {format: 'json', requestId: 'public-nearest-key-cancel'});
     await Promise.race([barrier.promise,
       cancel.wait({signal: AbortSignal.timeout(10_000)}).then(state => {
-        throw new Error(`nearest missed scan barrier: ${inspect({state, trace}, {depth: 6})}`);
+        throw new Error(`nearest missed bounded barrier: ${inspect({state, trace}, {depth: 6})}`);
       })]);
     const atBarrier = advances;
     const retainedAtBarrier = await readdir(join(directory, 'carrier-snapshots'));
@@ -151,4 +157,14 @@ test('public retained nearest publishes and cancels inside long identity validat
     assert.equal(advances, atBarrier);
     assert.equal(dispatches, 2);
     assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
-  });
+}
+
+test('public retained nearest publishes and cancels inside long identity validation',
+  {timeout: 45_000}, t => runPublicNearestBarrier(t, {
+    prefixLength: 512, barrierWork: 256, barrierProgress: 0,
+  }));
+
+test('public retained nearest cancels output after its first committed row',
+  {timeout: 45_000}, t => runPublicNearestBarrier(t, {
+    prefixLength: 660, barrierWork: 6144, barrierProgress: 1,
+  }));
