@@ -623,3 +623,52 @@ not prove a physical heap upper bound. The next causal boundary to separate is
 the final output read versus identity construction inside the approximately
 30 ms interval observed by the one-case diagnostic; no value/identity check is
 removed on the basis of a timing.
+
+## Actual output conversion attribution and preflight candidate
+
+At base `fda2dd7efac22c7d30b8c666783b32f7d6df5f95`, temporarily add clocks
+around the existing Native final read and subsequent ordered-row identity.
+One full retained-text diagnostic admitted all three holdings and five attempts,
+with zero final reservations (`run-yy67Bn`). Conversion took **23.935 ms**,
+subsequent identity **4.629 ms**. These are operation intervals, not CPU samples
+or a before/after speedup. Source preparation was 188.242 ms, complete parent
+cycle 683.695 ms, Native entry-through-result 175.500 ms, and independent parent
+admission 9.186 ms; the external gap is retained without an inferred cause.
+
+The selected incremental Native build (`run-wh893L`, 79 dependency tasks)
+created a temporary working-diff binary, 12,405,168 bytes,
+`sha256:0f4824f03af37582f58f70e093b57accaa86c1ea976ca4d8c4822929143659ca`.
+Original/diagnostic sources, patch, controller, binary and observation remain in
+`_build/repro/output-phase-fda2dd7ef/`. The original CLI source was restored by
+byte comparison and the usual release binary restored to `2152155c...`.
+The observation is 175,985 bytes,
+`sha256:37bf5b63abb1130053048cb1ff96c6c60e72aef593a550e550694c45b807664a`.
+No diagnostic clock/API/Owner change is delivered.
+
+Generated Native C shows that `preflight_retained_row` calls `Iter.next` per
+Unicode scalar. This is a confirmed execution mechanism, not proof that the
+whole conversion interval belongs to it. Replace that private shape predicate
+with direct UTF-16-unit traversal. The only recognized delimiters are ASCII,
+and UTF-8 validation still precedes it. The two units of a supplementary scalar
+cannot introduce an ASCII delimiter; outside quoted strings they remain one
+literal token, and inside strings they cannot alter shape/node counting. Keep
+all depth/node ceilings, following JSON syntax and typed/value admission, hashing,
+exact completion/occurrence binding, holding and cleanup. No normalization,
+digest cache, expression work/quantum, public API or allocation owner changes.
+
+Working-diff selected decoder and completed-import files passed **11/11 JS**
+(`run-r3MHzt`, `focused-test-gMRVYs`) and **11/11 Native** (`run-KGF51E`,
+`focused-test-B2KCNY`). New boundary expectations independently pin node counts
+for supplementary strings/keys, quoted delimiters and nesting, and confirm that
+non-JSON Unicode literals/escapes still reach JSON rejection. Existing raw-value,
+exact owner/CID, shape/parse/value limits and closed conversion regressions remain.
+These are semantic/consumer checks, not evidence of a performance improvement.
+
+The fixed timing method for this candidate is one admitted prelaunch per binary
+plus 21 alternating retained-text pairs, with archived `fe0b68242` as before
+and the clean candidate release as after. Only the decoder and its fixture may
+differ in runtime source. Use the same existing product/Owner checks, immutable
+source, limits, fixed fresh/resident controls and primary complete-parent
+zero-threshold criterion. Include all phases and prelaunch costs. Do not extend
+the sample count or repeat the experiment until favorable. The earlier ASCII
+and continuation results remain separately unchanged.

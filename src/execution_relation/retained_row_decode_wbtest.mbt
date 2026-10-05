@@ -4,6 +4,58 @@ fn retained_row_test_limits() -> RetainedRowDecodeLimits {
 }
 
 ///|
+test "retained preflight counts shape independently of Unicode and quoted punctuation" {
+  let cases : Array[(String, Int)] = [
+    ("{\"s\":\"😀\"}", 2),
+    ("{\"😀\":\"e\u{0301}\"}", 2),
+    ("{\"s\":\"😀\\\"[]{}\\\\tail\"}", 2),
+    ("{\"s\":[\"😀\",\"e\u{0301}\"]}", 4),
+    ("{\"s\":{\"😀\":\"[}]\"}}", 3),
+  ]
+  for (text, nodes) in cases {
+    assert_true(
+      preflight_retained_row(text, {
+        ..retained_row_test_limits(),
+        max_nodes: nodes,
+      }),
+      msg=text,
+    )
+    assert_false(
+      preflight_retained_row(text, {
+        ..retained_row_test_limits(),
+        max_nodes: nodes - 1,
+      }),
+      msg=text,
+    )
+  }
+  assert_false(
+    preflight_retained_row("{\"s\":[\"😀\"]}", {
+      ..retained_row_test_limits(),
+      max_depth: 0,
+    }),
+  )
+}
+
+///|
+test "retained preflight still delegates invalid Unicode literals and escapes to JSON admission" {
+  let schema = @schema.from_fields(
+    [(Unqualified("x"), @contract.primitive(StringType, nullable=false))],
+    max_fields=1,
+    max_name_bytes=1,
+  ).unwrap()
+  for text in ["{\"x\":😀}", "{\"x\":\"\\😀\"}"] {
+    assert_true(preflight_retained_row(text, retained_row_test_limits()))
+    assert_true(
+      decode_retained_row(schema, text, retained_row_test_limits())
+      is Err(InvalidJson),
+    )
+  }
+  assert_false(
+    preflight_retained_row("{\"x\":\"😀\\\"}", retained_row_test_limits()),
+  )
+}
+
+///|
 test "retained wire admits provisional output without completion authority" {
   let owner = capture_fixture()
   let output = prepare_admitted_output(owner, Step(1), 2, stream_value_limits()).unwrap()
