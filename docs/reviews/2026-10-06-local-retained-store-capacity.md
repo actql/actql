@@ -87,8 +87,50 @@ It preserves that unmerged dependency; final merge target is main. Memory output
 capacity, Effect ledger preparation and externally supplied multi-acquisition
 ledgers are unchanged. No new public API, wire, schema, pins or value semantics.
 
-The parent component supplies comparison-only work/workspace and stop/cleanup
-evidence; it does not prove public comparison-phase cancellation. Wasm/native,
-packed/HTTP, full Core, integrated CI, new Store fault campaigns and a complete
-retained-route closure are not claimed. D's Run cancellation finalization and
-H's Ledger-close/value fixes remain their own owners and adoption units.
+### Public cancellation inside comparison scanning
+
+The follow-up uses the same ordinary Program, authorization and real Store.
+A matching kernel fixture certifies that eight 256-work advances reach a live
+`TextUnits` frame in `SortLeft`, phase 3, with an offset strictly inside the
+257-code-unit operand. This is UTF-16 comparison scanning after input admission,
+not value measurement or a sampled wall-clock delay. The session reports
+cumulative work, while the provider reports each advance's delta.
+
+The public test awaits the existing `local_compute_advanced` hook at cumulative
+Set work 2048. Before releasing that barrier it requests cancellation through
+the public execution handle. Both input snapshots remain present, cancellation
+is requested but physical stop is not confirmed, and no Result is completed.
+After release, the same owner reports confirmed physical stop and `cancelled`;
+all three named Results remain unavailable. Both input snapshots are reclaimed.
+There is no further positive Compute advance, output seal or dispatch, including
+when the cancelled request is submitted again. The test releases its barrier
+before closing the owner; it does not delete Store custody if owner close fails.
+
+The matching focused kernel case passed **1/1**, `run-VlT0B9` /
+`focused-test-HGTkXe`. The public success and cancellation cases passed **2/2**,
+`run-SWsWqY` / `focused-test-8Q2W1g`:
+
+```sh
+node scripts/local-checks.mjs test moon -- --target js \
+  src/execution_relation/bounded_set_nested_comparison_wbtest.mbt \
+  --filter '*public Set fixture*'
+node scripts/local-checks.mjs test node -- \
+  adapters/host-node/public-set-value-retention.test.mjs
+```
+
+The entire changed nested-comparison test file then passed **7/7**,
+`run-IGmeG1` / `focused-test-zioDjw`, without the name filter. Its existing
+quantum-invariant work, exact/one-short limits and cleanup cases remain intact.
+
+No production source or runtime package changed in this follow-up. The reused
+runtime was generated from the unchanged production tree at
+`71c55c55058c2ee745bc0878ff32fe3b78dd0f9f`. This checkout public-Host evidence
+does not establish a new packed artifact or D's Model cancellation recovery.
+The kernel fixture separately verifies one cleanup, zero comparison workspace
+and live borrowed inputs; empty snapshot directories are not represented as a
+public whole-Ledger reservation census.
+
+Wasm/native, packed/HTTP, full Core, integrated CI, new Store fault campaigns and
+a complete retained-route closure are not claimed. D's Run cancellation
+finalization and H's Ledger-close/value fixes remain their own owners and
+adoption units. This test-only follow-up does not implement either boundary.

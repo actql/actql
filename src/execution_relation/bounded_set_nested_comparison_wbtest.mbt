@@ -25,6 +25,59 @@ fn bounded_nested_set_fixture(
 }
 
 ///|
+test "public Set fixture has a live Text scan at its cancellation work barrier" {
+  let schema = "{\"items\":{\"type\":\"array\",\"nullable\":false," +
+    "\"max_items\":2,\"items\":{\"type\":\"string\",\"nullable\":true}}," +
+    "\"marker\":{\"type\":\"number\",\"nullable\":false}}"
+  let row = fn(suffix : String, marker : Int) {
+    "{\"items\":[\"" +
+    String::make(256, 'g') +
+    suffix +
+    "\",null],\"marker\":" +
+    marker.to_string() +
+    "}"
+  }
+  let (control, started, inputs) = bounded_set_fixture(
+    operation="except",
+    duplicates="all",
+    max_work=100000,
+    left_schema=schema,
+    right_schema=schema,
+    left_rows="[" + row("a", 1) + "," + row("a", 1) + "," + row("b", 2) + "]",
+    right_rows="[" + row("a", 1) + "," + row("a", 1) + "]",
+    max_rows=4,
+  )
+  let execution = started.unwrap()
+  // Eight Host quanta, not a sampled wall-clock delay. This exact fixture
+  // has finished admission and is scanning the first private sort comparison.
+  for quantum in 1..<9 {
+    guard advance_bounded_set(execution, 256).unwrap()
+      is BoundedSetContinue(progress~, work~) else {
+      fail("public cancellation barrier must precede completion")
+    }
+    assert_eq(progress, 0L)
+    assert_eq(work, quantum.to_int64() * 256L)
+  }
+  assert_true(execution.state.phase is SortLeft)
+  guard execution.state.comparison.tree is Some(cursor) &&
+    cursor.frames.last() is Some(TextUnits(_, _, text, _)) else {
+    fail("public cancellation barrier must retain a Text comparison")
+  }
+  assert_eq(text.phase, 3)
+  assert_true(text.offset > 0 && text.offset < 257)
+  assert_true(execution.state.workspace.live > 0)
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_set(execution, 1).unwrap()
+    is BoundedSetStopped(@bounded.Cancelled, ..),
+  )
+  assert_true(cleanup_bounded_set(execution).unwrap())
+  assert_false(cleanup_bounded_set(execution).unwrap())
+  assert_eq(execution.state.workspace.live, 0)
+  assert_true(inputs.all(producer_read_available))
+}
+
+///|
 test "set operation yields inside nested object array Text comparisons" {
   let (_, execution, inputs) = bounded_nested_set_fixture()
   let state = execution.state

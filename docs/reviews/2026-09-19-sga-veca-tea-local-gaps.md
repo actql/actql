@@ -5588,8 +5588,11 @@ The follow-up includes those allowances and counts each checked input port,
 without dropping live parents or changing the 512 MiB admission ceiling. The
 ordinary source-free nested Set -> Unnest -> projection -> Sort Program now
 publishes independent ordered producer/two-consumer Results for all four
-ALL/DISTINCT variants; repeated requests perform no additional Compute. Public
-comparison-phase cancellation, packed/HTTP and Wasm/native execution remain
-unverified for this unit. Other recursive comparator callers remain separate.
+ALL/DISTINCT variants; repeated requests perform no additional Compute. A
+kernel-certified nested Text scanning barrier now also drives public
+cancellation: inputs remain held before physical stop, no Result is published,
+snapshots are reclaimed after stop and request reuse does not redispatch.
+Packed/HTTP and Wasm/native execution remain unverified for this unit. Other
+recursive comparator callers remain separate.
 See the [Set boundary record](2026-10-06-local-set-tree-comparison.md) and
 [retained capacity record](2026-10-06-local-retained-store-capacity.md).

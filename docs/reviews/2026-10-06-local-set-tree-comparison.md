@@ -83,8 +83,11 @@ No identity check, obligation, policy limit or publication order was weakened.
 The [capacity follow-up](2026-10-06-local-retained-store-capacity.md) accounts
 for the installed Store import/output envelope before opening the Run. It adds
 ordinary nested Set retained publication evidence at its own source revision,
-not retroactively at the comparison component's SHA. Public comparison-phase
-cancellation and a full retained-route completion claim remain unestablished.
+not retroactively at the comparison component's SHA. Its later test-only
+follow-up certifies an actual nested UTF-16 scanning barrier and cancels the
+ordinary public retained Run at that barrier, checking pre-stop input custody,
+confirmed stop, unpublished Results, snapshot reclamation and no redispatch.
+A full retained-route completion claim remains unestablished.
 Wasm/native, packed/HTTP, full Core and integrated CI were not executed for this
 unit. Registered targets are not executed results.
 
