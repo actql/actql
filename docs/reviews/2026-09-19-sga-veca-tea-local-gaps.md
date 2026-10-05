@@ -1356,6 +1356,83 @@ expression cancellation guarantee. Intrinsic concatenation and long
 object-field/reference wire transitions remain separate work. Whole-operation
 assurance counts are unchanged.
 
+The following wire component connects long object keys and Reference envelopes
+to the existing resumable emitter. The encoder adds an opt-in ordered-object
+lane that verifies strictly increasing UTF-16 keys and retains only the previous
+borrowed key, rather than hashing every complete key. Comparison and quoting
+advance in at most 64 code units, preserving a crossing surrogate pair. Generic
+objects retain their existing unordered-key and duplicate-checking API. The
+generated encoder interface is produced by the pinned compiler.
+
+Admitted objects and Reference metadata use the same pending-frame stack and
+writer, with no copied envelope or second serializer. A pending key cursor is
+included in existing traversal custody. Completed Relation identity emission
+uses the same ordered-key cursor for payload and logical streams, reserving its
+handle before allocation. Small names keep their previous number of physical
+advances. Failure or cancellation closes unfinished cursor custody without
+revoking the completed producer or refunding work; no unfinished identity is
+issued.
+
+The unchanged parent failed the 4,096-character key's per-advance byte bound
+(`run-Rr0wmJ` / `focused-test-bw4SFu`, 0/1). Independent encoder fixtures cover
+all four sinks, escaping, surrogate boundaries, strict order, duplicate and
+reverse keys, invalid Unicode, exact/one-short bytes and writer interleaving.
+Reference metadata contains an independently authored long key and nested
+Text/NULL value; both metadata and Text yield through the same cursor. Shared
+wire and logical-row tests passed 36/36 focused JS cases before the completed
+Relation connection. Their evidence is `run-8fv5YV` / `focused-test-msQuNb`.
+
+The completed-Relation fixture fixes a 256-character column name with NULL,
+267 payload bytes and 295 logical-envelope bytes. Its two CIDs are independently
+computed from those authored preimages. Four name-measurement chunks, twelve
+key chunks and eight other transitions fix 24/23 work. Three ten-node writer
+envelopes, eight column-summary slots and one cursor fix 39/38 workspace.
+Cancellation in either pending key stream keeps the source alive and reclaims
+the scan's reservations. Existing fixed small-row CIDs and admission summaries
+remain unchanged. The selected identity cases passed 3/3 focused JS tests
+(`run-NkbuFC` / `focused-test-WVbbtc`) after correcting the new fixture's work
+arithmetic and removing its unrelated 64-byte synchronous export helper.
+
+This initial wire/identity component is not evidence that every retained
+Store route is complete. Its original component checks did not execute a real
+Node Store, packed consumers, Wasm/native or Linux integration. Intrinsic
+concatenation still has a synchronous final String copy; splitting its input
+walk alone would not close that boundary. Synchronous schema/order preparation
+and unrelated draining emitters remain distinct work. No whole-operation
+assurance count is promoted.
+
+The subsequent ordinary main integration retains the membership cursor from
+main alongside the pending binary Text comparison. Reference wire traversal
+now uses main's existing `CanonicalEmit` owner rather than maintaining a second
+canonical walk. That owner yields within long keys and Text, exposes its
+pending frame count in constant time, and cancels unfinished child cursors.
+Reference traversal contributes its nested frame count to the caller's existing
+workspace reservation. An independently accounted issued Reference requires
+eight slots; seven fails with the typed workspace cause and leaves custody
+reachable until explicit cleanup. Cleanup preserves the borrowed issuer.
+The selected JS comparison, membership, retention, identity, admitted-wire and
+canonical-cursor tests passed 39/39 after this integration (`run-tBpP5l` /
+`focused-test-WWAKzd`, tracked merge source). Both generated Host fixture
+freshness checks passed; this is not an all-Core or cross-target result.
+
+`adapters/host-node/public-wire-retention.test.mjs` now checks the public Local
+submit path with an installed real retained Store, an 80-character column,
+an 80-character Object key, 512-character Text and explicit NULL. These authored
+values cross the 64-unit cursor boundary without changing the installed
+1,000-byte construction policy. The producer and two consumer Named Results
+are each read against authored expected rows. Client reconnection and same-request
+resubmission preserve the Run and the three results; positive-progress and
+successful-completion observations do not increase. Temporary carrier files
+are empty after completion. The fixture is connected to the existing installed
+Host suite, not just executed manually. Its first successful focused execution
+passed 1/1 (`run-uqmQ2M` / `focused-test-SOZtwR`, tracked fixture source).
+Client reconnection reuses the installed Host; it is not process restart.
+The observation counters are not a general physical-entry census. A Reference
+public Host fixture, fresh-process recovery, public cancellation of this wire
+shape, packed consumers, Wasm/native and Linux integration remain unverified.
+Component boundary/cancellation fixtures retain their narrower scope and do
+not establish those unexecuted product paths.
+
 #### Retained Relation obligation chains
 
 The retained materializing lane now binds checked obligations to the exact
