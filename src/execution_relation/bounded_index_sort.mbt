@@ -132,17 +132,6 @@ fn bounded_index_sort_step(
 }
 
 ///|
-fn start_bounded_index_sort(
-  control : @bounded.Control,
-  count : Int,
-  compare : (Int, Int) -> Result[Int, RowIssue],
-) -> BoundedIndexSort? {
-  start_bounded_index_sort_stepped(control, count, (left, right) => {
-    compare(left, right).map(value => Some(value))
-  })
-}
-
-///|
 /// A comparison may consume one bounded step without deciding the pair.
 /// The next advance retries that same pair; the callback owns its cursor.
 fn start_bounded_index_sort_stepped(

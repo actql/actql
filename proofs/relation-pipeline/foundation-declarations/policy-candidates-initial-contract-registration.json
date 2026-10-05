@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "policy-candidates-initial-contract-registration",
+  "kind": "change",
+  "revision": "298cf72981db81eb35f9d3d4e4afd35cee11f406",
+  "parents": [
+    "eb74d7b65d0f338ef5862a7d9cd7397744a08eaa"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "eb74d7b65d0f338ef5862a7d9cd7397744a08eaa",
+          "digest": "2ffb7546962a9034fa2f2f0b1b01892cfa83f9a151fbc028c549e79d87bc6f28",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "e615770076d821ca2bd782a8430c6d36441f79c373e3f5a7d686f983e76dfe92",
+      "afterMode": "100644",
+      "reason": "Register the independent policy-candidates contract consistency check while retaining existing validation gates. Record the actual source change from PR #481 without altering historical declarations or validation rules."
+    }
+  ]
+}

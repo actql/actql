@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "standard-model-confirmed-cancellation-regressions",
+  "kind": "change",
+  "revision": "5b3f659db11ab4da831ed2ad7c2da9a4098d50d5",
+  "parents": [
+    "c9afa77fae490118e3bb6884673c39780d193867"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "c9afa77fae490118e3bb6884673c39780d193867",
+          "digest": "8e6ff1c8d9cf542034c08f6940b1967555f888a04822c8e68c3132324a7c1936",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "1d1e187907a8aa789d624328516fcdefdabbb6981ccb43ff877740e1d6b57ab3",
+      "afterMode": "100644",
+      "reason": "Register independent missing-condition cancellation counterexamples alongside the existing adapter and public distribution checks."
+    }
+  ]
+}

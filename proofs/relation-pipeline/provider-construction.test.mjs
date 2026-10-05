@@ -5,6 +5,8 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { hash } from './inventory.mjs';
 import { providerConstructionBound, inspectProviderConstruction } from './capacity/parent-control/provider-construction.mjs';
+import {constructionSourceReview, reviewedFunction, selectedFactoryOutsideAccepts,
+  managedBeforePausePolls} from './capacity/parent-control/provider-construction-source-review.mjs';
 const read = path => readFileSync(new URL(`../../${path}`, import.meta.url));
 // Synthetic admission tests, separate from the archived real native reader.
 const fact = () => ({ kind: 'provider construction observation', providers: 11,
@@ -49,11 +51,13 @@ test('scalar callback counts never become measured extents or a complete byte gu
 // The actual recipe-introduction sources remain the review baseline. These
 // checks distinguish the reviewed source changes from arbitrary digest refresh.
 const recipeIntroduction = '58fd19eade59cf3bcbf6a859c9821471346e3b41';
-const historical = path => execFileSync('git', ['--no-replace-objects', 'show',
-  `${recipeIntroduction}:${path}`], {cwd:fileURLToPath(new URL('../../',import.meta.url))});
-test('reviewed handoff helper leaves provider fields and constructor bodies unchanged', () => {
+const historical = (path, revision = recipeIntroduction) => execFileSync('git', ['--no-replace-objects', 'show',
+  `${revision}:${path}`], {cwd:fileURLToPath(new URL('../../',import.meta.url))});
+test('historical reviewed handoff helper leaves provider fields and constructor bodies unchanged', () => {
   const path = 'src/connectors/local/managed_provider.mbt';
-  const before = historical(path), source = read(path).toString();
+  const before = historical(path), reviewed = historical(path, constructionSourceReview.historicalReviewRevision);
+  const source = reviewed.toString();
+  assert.equal(hash(reviewed), '40b1b803e586d1dbce5eb0dabc9888d57ae0eb28bebbcee7e0d3b4fd5fa00950');
   assert.equal(hash(before), '8d00f3fb875d1523796a13ae5ac67906fb16f9ee64f67cd85205bc0544ca3f2e');
   const start = source.indexOf('///|\n/// Charge a validated handoff delta to the SAME provider accounting owner.');
   const end = source.indexOf('///|\npub fn cancel_managed_provider(',start);
@@ -64,9 +68,11 @@ test('reviewed handoff helper leaves provider fields and constructor bodies unch
   assert.throws(() => providerConstructionBound(p => p === path ? before : read(p)),
     /Changed provider representation premise src\/connectors\/local\/managed_provider\.mbt/);
 });
-test('reviewed Graph rejection branches and traversal ledger preserve Relation candidate construction', () => {
+test('historical reviewed Graph rejection branches and traversal ledger preserve Relation candidate construction', () => {
   const path = 'src/execution_relation/generated_sequence.mbt';
-  const before = historical(path), source = read(path).toString();
+  const before = historical(path), reviewed = historical(path, constructionSourceReview.historicalReviewRevision);
+  const source = reviewed.toString();
+  assert.equal(hash(reviewed), '1a2df7350b1227ede42556733faf8ecd22abd77919b946ce47848f196d5aec69');
   assert.equal(hash(before), '3a2c83c19c767b0f160afde6b85fe84ab87e3a0a391dc95a52be98edae760981');
   const oldBranch = [
     '      | @lower.GraphBasicStep(_)',
@@ -155,4 +161,68 @@ pub fn generated_traversal_ceilings(
   assert.equal(before.toString().replace(oldBranch,newBranch),withoutLedger);
   assert.throws(() => providerConstructionBound(p => p === path ? before : read(p)),
     /Changed provider representation premise src\/execution_relation\/generated_sequence\.mbt/);
+});
+
+test('current wrappers and selected construction outside accepts equal the original bodies', () => {
+  const managedPath = 'src/connectors/local/managed_provider.mbt';
+  const managed = read(managedPath).toString(), original = historical(managedPath).toString();
+  for (const name of Object.keys(constructionSourceReview.wrapperDigests)) {
+    assert.equal(reviewedFunction(managed, name), reviewedFunction(original, name));
+  }
+  const selectedPath = 'src/connectors/local/selected_relation_provider.mbt';
+  assert.equal(selectedFactoryOutsideAccepts(read(selectedPath).toString()),
+    selectedFactoryOutsideAccepts(historical(selectedPath).toString()));
+  assert.equal(managedBeforePausePolls(managed),
+    historical(managedPath, constructionSourceReview.historicalReviewRevision).toString());
+  assert.equal(providerConstructionBound(read).sourceReview.completeParentUpper, false);
+});
+
+test('current Graph variants are only reviewed row-kernel exclusions, without factory changes', () => {
+  const path = 'src/execution_relation/generated_sequence.mbt';
+  for (const variant of constructionSourceReview.generatedVariants) {
+    const source = historical(path, variant.revision);
+    assert.equal(hash(source), variant.digest);
+    const bound = providerConstructionBound(p => p === path ? source : read(p));
+    assert.equal(bound.sourceReview.generatedDigest, variant.digest);
+    assert.equal(bound.bytes, 2344);
+    assert.equal(bound.completeConstructorByteCorrespondence, false);
+  }
+});
+
+test('current construction does not accept a historical pin as a current-source fallback', () => {
+  const path = 'src/connectors/local/selected_relation_provider.mbt';
+  const original = historical(path);
+  assert.throws(() => providerConstructionBound(p => p === path ? original : read(p)),
+    /Unreviewed provider constructor/);
+  const recipe = 'proofs/relation-pipeline/capacity/parent-control/provider-construction.json';
+  const oldRecipe = historical(recipe, constructionSourceReview.historicalReviewRevision);
+  assert.equal(hash(oldRecipe), constructionSourceReview.originalRecipeDigest);
+  assert.throws(() => providerConstructionBound(p => p === recipe ? oldRecipe : read(p)),
+    /Changed current provider recipe/);
+  const current = JSON.parse(read(recipe));
+  const bound = providerConstructionBound(read);
+  assert.equal(current.providers[0].sourceDigest, bound.sourceReview.selectedDigest);
+  assert.equal(current.sourcePremises['src/connectors/local/managed_provider.mbt'], bound.sourceReview.managedDigest);
+  assert.equal(bound.sourceReview.recipeDigest, hash(read(recipe)));
+  const changed = JSON.parse(read(recipe));
+  changed.bounds.callbackReferenceCaptures++;
+  assert.throws(() => providerConstructionBound(p => p === recipe ? Buffer.from(JSON.stringify(changed)) : read(p)),
+    /Changed current provider recipe/);
+});
+
+test('new fields, captures and pause work branches remain unreviewed source changes', () => {
+  for (const [path, from, to] of [
+    ['src/connectors/local/managed_provider.mbt', 'struct ManagedProvider {',
+      'struct ManagedProvider {\n  additional : String'],
+    ['src/connectors/local/managed_provider.mbt', '| Settling(_, progress~, work~)',
+      '| Settling(_, progress~, work~) => (progress, 0L)'],
+    ['src/connectors/local/selected_relation_provider.mbt',
+      'fn selected_relation_provider(\n  limits : @execution.SequenceExecutionLimits,',
+      'fn selected_relation_provider(\n  extra : String,\n  limits : @execution.SequenceExecutionLimits,'],
+  ]) {
+    const source = read(path).toString();
+    assert.equal(source.split(from).length, 2);
+    assert.throws(() => providerConstructionBound(p => p === path ? Buffer.from(source.replace(from, to)) : read(p)),
+      /Unreviewed provider constructor|Changed provider representation premise/);
+  }
 });
