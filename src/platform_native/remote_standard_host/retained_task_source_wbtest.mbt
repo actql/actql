@@ -52,7 +52,14 @@ fn retained_source_limits() -> NativeRemoteStandardTransferSourceLimits {
 }
 
 ///|
-fn retained_source_setup() -> (
+fn retained_source_setup(
+  run? : (
+    @publication_host.PreparedClientProgram,
+    @publication_host.ClientTaskCompilation,
+    @publication_host.ClientCompiledRun,
+    @publication.PublicationContract,
+  )? = None,
+) -> (
   NativeRemoteRetainedTaskInput,
   @remote.DispatchRequest,
   @query.QuerySequence,
@@ -60,7 +67,9 @@ fn retained_source_setup() -> (
   NativeRemoteRetainedInputCurrent,
   NativeRemoteStandardRowCodec,
 ) {
-  let (prepared, compilation, allowed, definition) = retained_transfer_run()
+  let (prepared, compilation, allowed, definition) = run.unwrap_or_else(
+    retained_transfer_run,
+  )
   let edge = @publication_host.prepare_client_retained_input_edge(
     prepared,
     compilation,

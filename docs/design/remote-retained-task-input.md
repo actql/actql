@@ -141,3 +141,12 @@ dispatch with an equal input binding cannot reuse that borrow. Compute completio
 keeps the input borrowed while output readers remain active. Formal output
 release closes the captured Run and returns its borrow, after which the separate
 destination and producer cleanup Owners can release their holdings and capacity.
+
+A completed acquisition task can have an internal consumer edge without a
+public Named Result rooted at that producer. Its export uses the original
+captured DAG's exact physical source match and the existing Relation export
+Owner. It does not fabricate a Result definition, another Run, or a completed
+Compute. Public Source Results still use their checked Result projection;
+internal producer output uses the checked acquisition task port. Source
+observation and managed output evidence remain durable Runtime records, and
+formal release closes the captured DAG before confirming input-owner cleanup.
