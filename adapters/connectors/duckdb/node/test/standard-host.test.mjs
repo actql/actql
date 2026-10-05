@@ -354,6 +354,8 @@ async function subgraphHostCancellation() {
   const runtime = new Proxy(moon,{get(target,name,receiver) {
     if (name === 'strategyModule_local_Registration') return ()=>({});
     if (name === 'strategyHostRegistrationSelectionKey') return ()=>'subgraph-conformance';
+    // Task identity is dispatch plumbing in this isolated provider fixture.
+    if (name === 'strategyHostTask') return ()=>0;
     if (name === 'strategyModule_local_Dispatch') return ()=>({$tag:1,_0:operations});
     return Reflect.get(target,name,receiver);
   }});
@@ -9349,6 +9351,17 @@ async function exerciseStrategyGraph(
     }
     return program;
   };
+  const retainedLongTextAppend = structuredClone(externalAppendProgram);
+  // The shared Host fixture admits at most 1,000 canonical bytes per value.
+  // This still crosses eight 64-unit output chunks without changing policy.
+  const retainedOutputText = 'x'.repeat(512);
+  for (const stage of retainedLongTextAppend.stages.filter(stage =>
+    stage.id === 'cross_left' || stage.id === 'cross_right')) {
+    stage.steps[0].values.schema.tag = {type: 'string', nullable: false};
+    stage.steps[0].values.rows = stage.id === 'cross_left'
+      ? [{id: 1, tag: retainedOutputText}] : [];
+    stage.results.r.fields = ['id', 'tag'];
+  }
   const retainedBinaryFork = (source, fields) => {
     const program = structuredClone(source);
     const producer = program.stages.find(stage => stage.id === 'crossed');
@@ -9770,6 +9783,9 @@ async function exerciseStrategyGraph(
     {name: 'append-filter-select', source: retainedBinaryChain(
       externalAppendProgram, [{filter: 'id > 1'}, {select: ['id']}], ['id']),
     expected: [{id: 2}, {id: 3}, {id: 4}], fields: ['id']},
+    {name: 'append-long-text-filter', source: retainedBinaryChain(
+      retainedLongTextAppend, [{filter: 'id > 0'}], ['id', 'tag']),
+    expected: [{id: 1, tag: retainedOutputText}], fields: ['id', 'tag']},
     {name: 'append-filter-arithmetic-control', source: retainedBinaryChain(
       externalAppendProgram, [{filter: 'id >= 1'}], ['id']),
     expected: [1, 2, 3, 4].map(id => ({id})), fields: ['id']},
@@ -10732,11 +10748,11 @@ async function exerciseStrategyGraph(
     {name: 'append-work-short', program: appendBoundary, work: 25, space: 10},
     {name: 'append-space-short', program: appendBoundary, work: 26, space: 9},
     {name: 'append-chain-exact', program: appendChainBoundary,
-      work: 72, space: 10, expected: [{id: 2}, {id: 3}]},
+      work: 81, space: 10, expected: [{id: 2}, {id: 3}]},
     {name: 'append-chain-work-short', program: appendChainBoundary,
-      work: 71, space: 10},
+      work: 80, space: 10},
     {name: 'append-chain-space-short', program: appendChainBoundary,
-      work: 72, space: 9},
+      work: 81, space: 9},
     {name: 'set-work-exact', program: setWorkBoundary, work: 19, space: 100,
       expected: [{id: 1}]},
     {name: 'set-work-short', program: setWorkBoundary, work: 18, space: 100},
