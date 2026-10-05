@@ -100,6 +100,7 @@ test('retained Relation forks execute bounded ranking and row transforms',
       ['row-window', false, false],
       ['unpivot', false, false],
       ['unnest', false, false],
+      ['source-fork', false, false],
     ]) {
       const program = structuredClone(base);
       if (['watermark', 'json-pick', 'unpivot', 'unnest'].includes(name)) {
@@ -140,7 +141,14 @@ test('retained Relation forks execute bounded ranking and row transforms',
           }
         }
       }
-      if (name === 'lag') {
+      if (name === 'source-fork') {
+        program.stages[3].steps = [
+          {from: 'l', append: {with: 'r'}, as: 'appended'},
+          {from: 'l', filter: 'id = 2', as: 'left_selected'},
+          {from: 'appended', append: {with: 'left_selected'}, as: 'joined'},
+          {from: 'joined', select: ['id'], as: 'out'},
+        ];
+      } else if (name === 'lag') {
         program.stages[3].steps = [
           {from: 'l', append: {with: 'r'}, as: 'appended'},
           {from: 'appended', assert_rows: {unique_by: ['id', 'origin']},
@@ -250,7 +258,8 @@ test('retained Relation forks execute bounded ranking and row transforms',
       }
       if (name === 'combined' || name === 'lag' ||
           name === 'watermark' || name === 'json-pick' ||
-          name === 'row-window' || name === 'unpivot' || name === 'unnest') {
+          name === 'row-window' || name === 'unpivot' || name === 'unnest' ||
+          name === 'source-fork') {
         const retained = fixture.strategyFixtureCreate(
           ...args, JSON.stringify(program));
         const retainedCapture = await runNativeHostQuery(grant,

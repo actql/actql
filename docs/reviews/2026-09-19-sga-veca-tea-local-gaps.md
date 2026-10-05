@@ -866,13 +866,17 @@ earlier fork-join fault cases exercise that owner; they are shared lifecycle
 evidence, not a claim that every group-specific failure or aggregate variant
 was separately tested. Arbitrary nonlinear shapes remain outside this admission.
 
-A disconnected producer that appends `l` and then filters `l` rather than the
-append result remains unsupported by the bounded selected provider. The
-ordinary retained-only Host rejects that Program during whole-graph selection:
-no Compute dispatch, Store lease, or completed task is created. Another
-eligible implementation may provide a valid offer. The `unsupported-chain`
-fixture is a pre-execution rejection control, not an assertion that all
-multi-step Relation tasks are rejected.
+A later child may read the same Stage input directly instead of a private
+intermediate, provided every earlier private output feeds a later child.
+The ordinary Append task `append(l,r) -> filter(l) -> append(both) -> select`
+now stays under the selected bounded owner. Its exact operation ports retain
+the left input for the second child; the real Store publishes
+`[{id: 1}, {id: 2}, {id: 3}, {id: 4}, {id: 2}]` to the producer and two
+consumers. If the task instead discards the Append output and publishes only
+`filter(l)`, it is still rejected during whole-graph selection: no Compute
+dispatch, Store lease, or completed task is created. Another eligible
+implementation may provide a valid offer. The `unsupported-chain` fixture
+remains a pre-execution rejection control.
 
 | Remaining retained Store route | State | Required next proof |
 | --- | --- | --- |

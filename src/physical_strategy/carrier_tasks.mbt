@@ -205,7 +205,6 @@ fn bounded_branched_relation_chain(
       | @lower.CountGroup(_) => ()
       _ => return false
     }
-    let mut internal_inputs = 0
     for port in 0..<@lower.node_input_count(node) {
       carrier_work(work)
       guard @lower.node_accepts_managed_relation_view(node, port) &&
@@ -220,7 +219,6 @@ fn bounded_branched_relation_chain(
             return false
           }
           used_by_later[producer] = true
-          internal_inputs += 1
           if producer != step - 1 || port > 0 {
             branched = true
           }
@@ -231,9 +229,9 @@ fn bounded_branched_relation_chain(
           }
       }
     }
-    if step > 0 && internal_inputs == 0 {
-      return false
-    }
+    // A later child may read a Stage input directly. Its output must still
+    // feed a later child, as checked by used_by_later below; the selected
+    // chain owner binds that input to this exact operation port.
   }
   for step in 0..<(count - 1) {
     carrier_work(work)

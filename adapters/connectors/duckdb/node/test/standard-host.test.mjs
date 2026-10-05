@@ -8014,6 +8014,13 @@ async function exerciseStrategyGraph(
     {from: 'appended', filter: 'id < 3', as: 'less'},
     {from: 'greater', append: {with: 'less'}, as: 'out'},
   ];
+  const branchedSourceForkProgram = structuredClone(externalAppendProgram);
+  branchedSourceForkProgram.stages.find(stage => stage.id === 'crossed').steps = [
+    {from: 'l', append: {with: 'r'}, as: 'appended'},
+    {from: 'l', filter: 'id = 2', as: 'left_selected'},
+    {from: 'appended', append: {with: 'left_selected'}, as: 'joined'},
+    {from: 'joined', select: ['id'], as: 'out'},
+  ];
   const branchedGroupProgram = structuredClone(externalAppendProgram);
   branchedGroupProgram.stages.find(stage => stage.id === 'crossed').steps = [
     {from: 'l', append: {with: 'r'}, as: 'appended'},
@@ -8214,6 +8221,8 @@ async function exerciseStrategyGraph(
     ['append', appendProgram, [1, 2, 3, 4, 5]],
     ['append filter chain', appendFilterProgram, [1, 2, 3, 4, 5]],
     ['external append fork-join', branchedRelationProgram, [1, 2, 3, 4, 5]],
+    ['external append source-fork-join', branchedSourceForkProgram,
+      [1, 2, 3, 4, 5]],
     ['external append fork-group-join', branchedGroupProgram,
       [1, 2, 3, 4, 5]],
     ['external append fork-mixed-group-join', branchedMixedAggregateProgram,
@@ -9637,6 +9646,8 @@ async function exerciseStrategyGraph(
     expected: [2, 3, 4, 3, 4].map(id => ({id})), fields: ['id']},
     {name: 'append-fork-join', source: branchedRelationProgram,
       expected: [2, 3, 4, 1, 2].map(id => ({id})), fields: ['id']},
+    {name: 'append-source-fork-join', source: branchedSourceForkProgram,
+      expected: [1, 2, 3, 4, 2].map(id => ({id})), fields: ['id']},
     {name: 'append-fork-group-join', source: branchedGroupProgram,
       expected: [{n: 3}, {n: 2}], fields: ['n']},
     {name: 'append-fork-mixed-group-join', source: branchedMixedAggregateProgram,
