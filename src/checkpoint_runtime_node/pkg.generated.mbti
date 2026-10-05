@@ -1,10 +1,6 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "actql/actql/checkpoint_runtime_node"
 
-import {
-  "actql/actql/checkpoint_runtime",
-}
-
 // Values
 pub fn checkpoint_admit(String) -> String
 
@@ -27,8 +23,6 @@ pub fn model_immediate_call_set_admit(String) -> String
 pub fn model_immediate_invocation_grant_at(String, String, String, String) -> String
 
 pub fn model_invocation_grant_at(String, String, String, String) -> String
-
-pub fn model_invocation_grant_handle(String, String, String, String, Bool) -> Result[@checkpoint_runtime.ModelInvocationGrant, String]
 
 pub fn model_original_run_admit(String) -> String
 

@@ -16,6 +16,10 @@ import {canonical, cid, configuration, program, expected} from
 const mode = process.argv[2];
 const transport = process.argv[3] ?? 'local';
 const approval = mode.startsWith('approval-');
+// The deferred path must retain these exact data bytes across custody/restart.
+const approvalText = 'urgent e\u0301 \u00e9\r\nline';
+const submittedProgram = structuredClone(program);
+if (approval) submittedProgram.stages[0].steps[0].values.rows[0].text = approvalText;
 assert.ok(['success', 'cancel', 'failure', 'capture', 'replay',
   'approval-wait', 'approval-approve', 'approval-replay'].includes(mode));
 assert.ok(['local', 'http'].includes(transport));
@@ -99,7 +103,7 @@ const installationOptions = {directory: root, authorization,
             assert.ok(!['replay', 'approval-replay', 'approval-wait'].includes(mode),
               'saved response or unsent approval cannot dispatch');
             assert.equal(moon.clientProgramModelRequestInput(request, 'text'),
-              '"urgent"');
+              approval ? JSON.stringify(approvalText) : '"urgent"');
             return moon.clientProgramModelResponse(request,
               '{"reason":null,"risk":"high"}', 'packed-risk-model',
               'packed-request', 1n, mode === 'failure' ? 1000n : 2n,
@@ -131,7 +135,7 @@ if (transport === 'http') {
     durability: 'durable', installation: installationOptions});
 }
 try {
-  run = await client.start(program, {requestId: 'packed-single-infer'});
+  run = await client.start(submittedProgram, {requestId: 'packed-single-infer'});
   started();
   if (approval) {
     const recordPath = join(root, 'approval-run.json');

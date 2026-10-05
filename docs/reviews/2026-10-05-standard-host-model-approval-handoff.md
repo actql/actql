@@ -5,7 +5,10 @@
 The integration retains A's unfinished prepared-owner candidate
 `6125cbb031bf3ce4a59b18df4f28cfec287d030f`, then normally merges the published
 call-set implementation `a0dc67bac44b4ce28b60c2f6cf7570f00562c561` from #363.
-Main is integrated at `5236470651c863f9d59cfebf5b192da5e7db234d`.
+The subsequently published #363 HEAD
+`90babd81d485892383811264cedeefa1306ade87` is merged into main and adopted
+through a normal main merge at `6ec5252fbf04adcb1fb9593fc4156e3656b7a4c3`.
+The D PR therefore targets main with no unmerged Model dependency.
 None of these statements is a claim that the unfinished A candidate or #363
 has completed content review or packed acceptance.
 
@@ -17,7 +20,7 @@ provider originals. It does not install a second inference driver or owner.
 
 The D pre-adoption prototype and its regressions are preserved at
 `2e0909bf8bdfb5e6f289f78d8510f68955ef8a63` and
-`88f5772b0` and in `scripts/fixtures/model-approval-pre-adoption/`.
+`88f5772b06e952fff1ba780f9bc1eb8bb9de6790` and in `scripts/fixtures/model-approval-pre-adoption/`.
 Those fixtures intentionally use the earlier ABI and are not current tests.
 Their former explicit Store authentication test ports do not establish
 production Store custody or public restart acceptance.
@@ -31,6 +34,9 @@ Program through `@actql/node`. Three separate processes perform durable
 Waiting, signed Model approval, and same-request Result retrieval. The same
 cases run against Local and a trusted HTTPS Host; the `http` fixture label
 denotes HTTPS, not cleartext HTTP.
+The approval input contains distinct decomposed/composed Unicode and CR/LF
+bytes. The actual provider verifies the submitted string after durable custody
+and restart; the independent assessment expectation remains unchanged.
 
 The independent expectation remains the original assessment row:
 `[{"assessment":{"input_key":{"id":"a"},"outcome":"ok","value":{"reason":null,"risk":"high"}}}]`.
@@ -63,7 +69,17 @@ Running-to-Cancelled terminal predicate remain separate unfinished checks.
 Four independent missing-condition Host counterexamples failed before the
 terminal guard (`run-4j2WfD`, `focused-test-OcCa6K`) and passed afterward with
 the existing Waiting checks (19 cases, `run-E5jlFc`, `focused-test-Pz9QyV`).
-Durable fence readback remains to be tested after runtime preparation.
+Durable original-Run fence readback across restart and duplicate cancellation
+also passed (2 selected cases, `run-w9DNY0`, `focused-test-FscqKX`) after
+preparing only the missing Checkpoint ABI from the checkout.
+
+Original-Run packaging changed decomposed string data in every original leaf
+before the fix (one failure and three passes, `run-jtOnNb`,
+`focused-test-hM20K3`). Model packaging and durable snapshots now use the existing
+SDK value-preserving canonical encoder, without changing account configuration
+identity. Separate composed, decomposed, CR and LF fixtures pin the data bytes.
+The four fixtures and selected Host/registration regressions passed together
+(53 cases, `run-qniS6O`, `focused-test-Y0kwhS`) after the fix.
 
 The retained-history scan previously stopped at inherited singleton
 `mergeBases` in `resolve-model-checkpoint-main-db141961.json` and

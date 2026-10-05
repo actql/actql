@@ -1,6 +1,23 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {openNodeInferOperation} from './infer-operation.mjs';
+import {originalModelRunWire} from './installed-model-originals.mjs';
+
+for (const [name, text] of [['decomposed', 'e\u0301'], ['composed', '\u00e9'],
+  ['carriage return', '\r'], ['line feed', '\n']]) {
+  test(`Model original Run packaging preserves ${name} data bytes`, () => {
+    const wire = JSON.stringify({text});
+    const compiled = {template: {wire}, preparedEvidence: {wire},
+      authorization: {wire}, compiledPlan: {wire}};
+    const actual = JSON.parse(originalModelRunWire(compiled, {wire}));
+    assert.deepEqual(actual, {boundInvocationTemplateWire: wire,
+      preparedInvocationWire: wire, runAuthorizationWire: wire,
+      compiledPlanWire: wire, runDefinitionWire: wire});
+    for (const original of Object.values(actual)) {
+      assert.equal(JSON.parse(original).text, text);
+    }
+  });
+}
 
 // Adapter lifetime tests. The Core ports are explicit doubles; public Store
 // authentication and process restart are covered by the installed acceptance.

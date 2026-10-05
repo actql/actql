@@ -196,10 +196,6 @@ distribution[3] = distribution[3].replace(
   'adapters/host-node/client-cancel-response-loss.test.mjs ',
   'adapters/host-node/client-cancel-response-loss.test.mjs adapters/host-node/client-effect-uncertainty.test.mjs ',
 );
-distribution[4] = distribution[4].replace(
-  'node scripts/check-submission-input-mutations.mjs && ',
-  'node scripts/check-submission-input-mutations.mjs && node scripts/check-effect-uncertainty-mutations.mjs && ',
-);
 
 // The issued-retention original regression is part of the existing prepared
 // distribution gate. Pin its one intended addition independently of the
@@ -213,7 +209,8 @@ distribution[3] = distribution[3].replace(
   'adapters/host-node/client-submission-input.test.mjs adapters/host-node/client-cancel-response-loss.test.mjs ',
 );
 distribution.splice(4, 0, 'node scripts/check-read-row-mutations.mjs',
-  'node scripts/check-submission-input-mutations.mjs');
+  'node scripts/check-submission-input-mutations.mjs',
+  'node scripts/check-effect-uncertainty-mutations.mjs');
 
 test('runtime preparation preserves physical cwd and output through a symlinked temporary parent', t => {
   const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'runtime-build-alias-')));
