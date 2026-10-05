@@ -129,7 +129,25 @@ ran out of disk (`run-Z4BwiL`) and did not establish a test result; completed
 regenerable native/Wasm check outputs were reclaimed while evidence and the
 release bridge were preserved.
 
-Remaining: A/C reviews, final-SHA packed Local/HTTPS, Wasm/Native runtime
+Clean packed Local/HTTPS passed at
+`46944c33e9a28511bba714cc907db2cda9ad44fa`: `run-c9Dt9d`,
+`public-query-evidence-zE61Qv`. Both transports passed every root versus
+ordinary scalars/SQL NULL, empty Result rows and complete ordered description,
+and four refusals with zero Run admission/provider reads. README controls
+also passed. Its manifest records dirty=false and five tarball digests; the
+installation was removed after saving evidence. This supersedes the failed
+packed attempts, without turning the mixed-source diagnostic into packed proof.
+
+Existing fixed Values Run/Result/request identity tests additionally depended
+on the predecessor expression contract. Their hand-assembled oracle now
+retains the old dependency-role hashes from the fixed base, derives the new
+Stage/Program/Unit/Result/Run preimages independently, and preserves all old
+Run vectors. The two Values issuance/identity callers passed 2/2
+(`run-Gx309r`) and the independent vectors passed 2/2 (`run-GZnVdu`). These
+later changes affect test oracles, expectations and this report; the packed
+source SHA above remains explicit rather than being relabeled as later HEAD.
+
+Remaining: A/C reviews, Wasm/Native runtime
 execution and CI. The separate Frontend branch must emit this structured leaf
 and compare a complete independently authored Program. The Delta branch must
 then execute valid authored JSON source through apply_graph_delta; its earlier

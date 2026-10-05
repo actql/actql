@@ -13,6 +13,7 @@ const hash = value => 'sha256:' + createHash('sha256')
 const body = (file, pointer='') => pointer.split('/').slice(1)
   .reduce((value,key)=>value[key.replaceAll('~1','/').replaceAll('~0','~')],
     JSON.parse(readFileSync(new URL('../'+file,import.meta.url),'utf8')));
+const predecessor = body('scripts/fixtures/pre-typed-json-values-contracts.json');
 
 const roles = [
   ['spec/contracts/actql-stage-contracts.json','/source'],
@@ -49,7 +50,7 @@ const roles = [
   ['spec/contracts/actql-production-profile-schemas.json','/schemas/regex_replacement_ast'],
 ];
 
-function contractCid(file, pointer, legacy) {
+function contractCid(file, pointer, legacy, preTypedJson = false) {
     // The current Catalog selects the owned Property Graph law even when the
     // fixture itself uses only Relation values. Keep the historical role/body
     // for predecessor vectors; do not silently repin those preimages.
@@ -77,12 +78,15 @@ function contractCid(file, pointer, legacy) {
       // Pre-Property-Graph body, independently hashed from main 16d93c2.
       return 'sha256:50a14e0c2454d439df53fc4be570d6e008299ba1005cc442838a985337cb3dd8';
     }
+    if (legacy || preTypedJson) {
+      return predecessor.contract_cids[file + '#' + (pointer ?? '')];
+    }
     return hash(body(file,pointer));
 }
 
 // The fixed acquired Relation fixture uses the same foundational roles, but
 // filter/select do not depend on the Values execution or cardinality laws.
-export function relationFixtureContracts({legacy=false,acquired=false}={}) {
+export function relationFixtureContracts({legacy=false,preTypedJson=false,acquired=false}={}) {
   const relationRoles = roles.filter(([file,pointer]) =>
     !file.endsWith('actql-bound-values-law.json') &&
     !file.endsWith('actql-bound-values-wire-law.json') &&
@@ -95,14 +99,16 @@ export function relationFixtureContracts({legacy=false,acquired=false}={}) {
     ['spec/contracts/actql-stage-contracts.json','/schemas/gate_requirement'],
     ['spec/contracts/actql-stage-contracts.json','/schemas/result_import_interface'],
   ]));
-  return relationRoles.map(([file,pointer])=>contractCid(file,pointer,legacy));
+  return relationRoles.map(([file,pointer])=>contractCid(file,pointer,legacy,preTypedJson));
 }
 
-export function valuesDependencyOracle({legacy=false,resultName='rows'}={}) {
-  const contracts = roles.map(([file,pointer])=>contractCid(file,pointer,legacy)).sort();
+export function valuesDependencyOracle({legacy=false,preTypedJson=false,resultName='rows'}={}) {
+  const contracts = roles.map(([file,pointer])=>contractCid(file,pointer,legacy,preTypedJson)).sort();
   const local = {version:'actql-stage-semantics/0.1',binding_references:[],
     bindings:{},parameter_references:[],parameters:{},
-    expression_contract_cid:hash(body('spec/contracts/actql-expressions.json')),
+    expression_contract_cid:legacy || preTypedJson
+      ? predecessor.contract_cids['spec/contracts/actql-expressions.json#']
+      : hash(body('spec/contracts/actql-expressions.json')),
     local_body:{effects:{},inputs:{},results:{[resultName]:{fields:['id'],from:'selected'}},
       steps:[{as:'selected',values:{rows:[{id:1},{id:2}],schema:{id:{nullable:false,type:'number'}}}}]}};
   const unit = hash({version:'actql-local-unit-dependencies/0.1',
