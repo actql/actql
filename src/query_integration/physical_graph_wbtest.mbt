@@ -225,6 +225,109 @@ test "physical DAG splits finite-list ranking before Relation filter" {
 }
 
 ///|
+test "physical DAG keeps mixed nearest inputs in one fused task" {
+  for
+    variant in [
+      "nearest_vectors", "nearest_relation_vectors", "nearest_vectors_relation",
+    ] {
+    let program = query_checked_program_fixture(
+      dag=true,
+      local_carrier_vectors_chain=true,
+      local_carrier_vectors_variant=variant,
+    )
+    let graph = @strategy.prepare_checked_dag(
+      program,
+      physical_graph_owners(program),
+      @program_check.unit_count(program) + 10,
+      10000,
+    ).unwrap()
+    assert_eq(@strategy.graph_task_count(graph), 6)
+    assert_eq(@strategy.graph_task_selected_step(graph, 3), None)
+    assert_eq(@strategy.graph_task_prefix_end(graph, 3), None)
+    assert_eq(@strategy.graph_task_input_count(graph, 3), Some(2))
+    let nearest_edges = []
+    for edge_index in 0..<@strategy.graph_data_count(graph) {
+      let edge = @strategy.graph_data_at(graph, edge_index).unwrap()
+      if @strategy.data_edge_consumer(edge) == 3 {
+        nearest_edges.push(
+          (
+            @strategy.data_edge_input(edge),
+            @strategy.data_edge_producer(edge),
+            @strategy.data_edge_operation_input(edge),
+          ),
+        )
+      }
+    }
+    assert_eq(nearest_edges.length(), 2)
+    assert_true(nearest_edges.contains((0, 1, None)))
+    assert_true(nearest_edges.contains((1, 2, None)))
+    assert_true(@strategy.graph_ordered_inputs_complete(graph))
+  }
+}
+
+///|
+test "physical DAG selects Events as-of with a retained secondary Relation" {
+  let document = local_values_asof_program()
+    .replace(
+      old="\"steps\":[{\"from\":\"l\",\"asof_join\":",
+      new="\"steps\":[{\"from\":\"l\",\"to_events\":{\"id\":\"id\",\"time\":\"clock\"},\"as\":\"events\"},{\"from\":\"events\",\"watermark_events\":{\"watermark_ms\":0,\"policy\":\"mark\"},\"as\":\"watermarked\"},{\"from\":\"watermarked\",\"asof_join\":",
+    )
+    .replace(old="\"left_id\":\"id\",", new="")
+  let program = query_checked_program_fixture(
+    program_text=Some(document),
+    local_carrier_events_chain=true,
+  )
+  let graph = @strategy.prepare_checked_dag(
+    program,
+    physical_graph_owners(program),
+    @program_check.unit_count(program) + 10,
+    10000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 8)
+  assert_eq(@strategy.graph_task_selected_step(graph, 3), Some(0))
+  assert_eq(@strategy.graph_task_selected_step(graph, 4), Some(1))
+  assert_eq(@strategy.graph_task_selected_step(graph, 5), Some(2))
+  assert_eq(@strategy.graph_task_input_count(graph, 5), Some(2))
+  let asof_edges = []
+  for edge_index in 0..<@strategy.graph_data_count(graph) {
+    let edge = @strategy.graph_data_at(graph, edge_index).unwrap()
+    if @strategy.data_edge_consumer(edge) == 5 {
+      asof_edges.push(
+        (
+          @strategy.data_edge_input(edge),
+          @strategy.data_edge_producer(edge),
+          @strategy.data_edge_operation_input(edge),
+        ),
+      )
+    }
+  }
+  assert_eq(asof_edges.length(), 2)
+  assert_true(asof_edges.contains((0, 4, Some((2, 0)))))
+  assert_true(asof_edges.contains((1, 2, Some((2, 1)))))
+  assert_true(@strategy.graph_ordered_inputs_complete(graph))
+  let generated = task_test_generated(
+    @strategy.graph_task_owner(graph, 5).unwrap(),
+  )
+  let limits = dispatch_test_limits()
+  let capacity = @execution.generated_sequence_capacity(
+    generated,
+    limits.local_execution,
+    limits.guards,
+  ).unwrap()
+  let provider = @local_tea_provider.asof_join_provider(
+    carrier_events_storage_limits(),
+    capacity,
+  )
+  assert_false(@local_connector.managed_provider_accepts(provider, generated))
+  assert_true(
+    @local_connector.managed_provider_accepts(
+      provider,
+      @execution.select_generated_sequence_step(generated, 2).unwrap(),
+    ),
+  )
+}
+
+///|
 test "physical DAG splits selected nearest before Relation filter" {
   for variant in ["nearest_filter", "nearest_filter_reversed"] {
     let program = query_checked_program_fixture(
