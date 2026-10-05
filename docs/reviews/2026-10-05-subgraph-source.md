@@ -61,7 +61,7 @@ grammar, schema, pin, stored identity or version changes.
 ## Independent public obligations
 
 The [authored fixture](../../scripts/fixtures/subgraph-source-input.mjs) contains
-**12 positive cases, 14 preparation refusals and one execution failure**.
+**13 positive cases, 15 preparation refusals and one execution failure**.
 Two complete JSON controls use direct Values; the source uses ordinary
 SELECT/UNION producers. Structures and CIDs may differ, while the independently
 specified meaning must agree. No harness modifies a lowered Program.
@@ -140,3 +140,38 @@ The corrected independent JSON controls pass the ordinary checker **2/2**
 (`run-JEzyeD`, `focused-test-p4WngX`). Their expected result rows/contracts
 remain independently authored. This is preparation evidence, not a packed
 execution pass; the clean committed-source acceptance below is still required.
+
+## First public execution and task-profile boundary
+
+Clean source `324ed9f24c4172047cfde10469ab3598378d952f` was normally packed
+under `run-qMFKkY`, receipt `public-query-evidence-825Vuv`. Both independent
+JSON controls passed Embedded Local through Named Result rows and full ordered
+description contracts. The first text case refused during preparation with
+`ClientProgramRejected`. Later text cases and Subgraph HTTPS were not reached.
+This is an incomplete campaign, not source execution acceptance.
+
+A one-case logging-only diagnostic reused that retained installation under
+`run-wKF5yB`. The preparation cause was
+`Preparation(Graph(TaskLimit))`, not a checker, Subgraph kernel or Result
+failure. The disposable preparation adapter was restored byte-for-byte in
+`finally`; its original digest and diagnostic logs are retained beside the
+receipt. This overlay is diagnosis, not a pristine packed pass.
+
+The unchanged [larger source](../../scripts/fixtures/subgraph-task-limit.repro.aql)
+passes ordinary semantic checking (**1/1**, `run-h1lfiA`,
+`focused-test-cphBZk`). Its [generated diagnostic Program](../../scripts/fixtures/subgraph-task-limit-generated.repro.program.json)
+contains 37 pipeline steps and is **not an expectation or oracle**. The standard
+Host selects `max_tasks: 32`; task admission therefore remains a distinct
+obligation. No limit is raised and no common physical strategy is changed.
+The original input is retained as a preparation-refusal case.
+
+The new independently bounded sources use two nodes and three edges for
+parallel-edge, loop, predicate and projection cases. The expected selected
+rows remain 1/2 and 10/11/13. A separate induction case selects only node 2
+and expects only loop 13, detecting failure to exclude either missing endpoint.
+The nullable case uses nodes 2/3 and still expects 20/NULL with a nullable
+contract. Duplicate-selector coverage uses two parallel edges and requires
+both once. These inputs are deliberately chosen within the existing task
+profile; they do not establish execution of the retained larger input or
+permit changing a submitted query to fit a budget. Fresh execution of the
+bounded cases remains pending until recorded below.
