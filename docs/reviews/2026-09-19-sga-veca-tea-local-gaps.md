@@ -1201,6 +1201,38 @@ this change. The parent Group/Nest fixture corrections are independently
 submitted in the managed Group fixture-fix PR; their evidence is not silently
 attributed to this branch.
 
+Analytic logical input and output row retention now borrows a resumable row
+measurement rather than draining every cell inside one advance. It reuses the
+logical value cursor, encoder and root owner. Long Text logical weight is
+charged across the shared finite UTF-16 walk, and nested values keep indexed
+frames rather than materializing their elements. Cursor/frame capacity is
+reserved before allocation. Successful rows keep the same total logical work,
+wire bytes and root order; successfully consumed work is retained even when
+the pending measurement fails or is cancelled. Additional physical advances
+consume control work. The finite small-row path keeps its existing charges.
+
+The independent Text row fixes 4,105 logical work, 4,110 retained bytes and
+twelve measurement-custody slots, with each one short checked against its
+typed cause. A nested 65-element row fixes 74 work and 143 bytes independently.
+The analytic fixture observes incomplete input and output root measurement
+before close, keeps the borrowed input alive, and confirms no row acceptance
+or partial root publication. These direct close checks are not Host-delivered
+timer cancellation. The ordinary managed analytic Program fixture advances
+with quantum one and delivers its copied long Text to two downstream Computes;
+it passed locally with the existing seven managed analytic cases, including
+independent consumer reads and final reservation/holding reclamation. The
+affected logical, analytic, envelope and scale selection passed 51 JS tests;
+the final row selection passed all four tests after adding the nested case.
+These are focused portable JS results, not new-source Node Store or packed
+publication evidence, or Wasm/native execution.
+
+This does not close all logical expression-event accounting. Other row/event
+callers still drain logical measurement, and wire emission of long object
+field names and reference envelopes remains separate work. Real retained-Store
+Host publication on this source is a separate acceptance obligation; the prior
+envelope-only branch's Host result is not reused as new-source evidence. No
+whole-operation assurance count is promoted by this component connection.
+
 #### Retained Relation obligation chains
 
 The retained materializing lane now binds checked obligations to the exact
