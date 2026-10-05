@@ -8014,6 +8014,256 @@ async function exerciseStrategyGraph(
     {from: 'appended', filter: 'id < 3', as: 'less'},
     {from: 'greater', append: {with: 'less'}, as: 'out'},
   ];
+  const branchedInnerJoinProgram = structuredClone(externalAppendProgram);
+  branchedInnerJoinProgram.stages.find(stage => stage.id === 'cross_right')
+    .steps[0].values.rows = [{id: 2}, {id: 1}];
+  const innerJoinStage = branchedInnerJoinProgram.stages.find(stage =>
+    stage.id === 'crossed');
+  innerJoinStage.steps = [
+    {from: 'l', join: {
+      with: 'r', kind: 'inner', on: [{left: 'id', right: 'id'}],
+      select: {id: 'left.id', matched: 'right.id'}, max_output_rows: 2,
+    }, as: 'joined'},
+    {from: 'joined', filter: 'matched >= 2', as: 'greater'},
+    {from: 'joined', filter: 'matched <= 1', as: 'less'},
+    {from: 'greater', append: {with: 'less'}, as: 'out'},
+  ];
+  innerJoinStage.results.r.fields = ['id', 'matched'];
+  for (const consumer of branchedInnerJoinProgram.stages.filter(stage =>
+    stage.id.startsWith('external_cross_consumer_'))) {
+    const fields = consumer.id.endsWith('_a')
+      ? ['id', 'matched'] : ['matched', 'id'];
+    consumer.steps[0].select = fields;
+    consumer.results.r.fields = fields;
+  }
+  const branchedInnerJoinChildProgram = structuredClone(externalAppendProgram);
+  branchedInnerJoinChildProgram.stages.find(stage => stage.id === 'crossed')
+    .steps = [
+      {from: 'l', append: {with: 'r'}, as: 'appended'},
+      {from: 'appended', join: {
+        with: 'l', kind: 'inner', on: [{left: 'id', right: 'id'}],
+        select: {id: 'left.id'}, max_output_rows: 4,
+      }, as: 'joined'},
+      {from: 'joined', filter: 'id >= 2', as: 'greater'},
+      {from: 'joined', select: ['id'], as: 'raw_ids'},
+      {from: 'greater', append: {with: 'raw_ids'}, as: 'out'},
+    ];
+  const branchedSourceForkProgram = structuredClone(externalAppendProgram);
+  branchedSourceForkProgram.stages.find(stage => stage.id === 'crossed').steps = [
+    {from: 'l', append: {with: 'r'}, as: 'appended'},
+    {from: 'l', filter: 'id = 2', as: 'left_selected'},
+    {from: 'appended', append: {with: 'left_selected'}, as: 'joined'},
+    {from: 'joined', select: ['id'], as: 'out'},
+  ];
+  const branchedGroupProgram = structuredClone(externalAppendProgram);
+  branchedGroupProgram.stages.find(stage => stage.id === 'crossed').steps = [
+    {from: 'l', append: {with: 'r'}, as: 'appended'},
+    {from: 'appended', filter: 'id > 1', as: 'greater'},
+    {from: 'appended', filter: 'id < 3', as: 'less'},
+    {from: 'greater', group: {by: [], aggregates: {n: {fn: 'count'}}},
+      as: 'greater_count'},
+    {from: 'less', group: {by: [], aggregates: {n: {fn: 'count'}}},
+      as: 'less_count'},
+    {from: 'greater_count', append: {with: 'less_count'}, as: 'out'},
+  ];
+  branchedGroupProgram.stages.find(stage => stage.id === 'crossed')
+    .results.r.fields = ['n'];
+  for (const consumer of branchedGroupProgram.stages.filter(stage =>
+    stage.id.startsWith('external_cross_consumer_'))) {
+    consumer.steps[0].select = ['n'];
+    consumer.results.r.fields = ['n'];
+  }
+  const branchedMixedAggregateProgram = structuredClone(branchedGroupProgram);
+  branchedMixedAggregateProgram.stages.find(stage => stage.id === 'crossed')
+    .steps[3].group.aggregates.n = {fn: 'max', field: 'id'};
+  const branchedNumericGroupProgram = structuredClone(branchedGroupProgram);
+  const branchedNumericSteps = branchedNumericGroupProgram.stages.find(stage =>
+    stage.id === 'crossed').steps;
+  branchedNumericSteps[3].group.aggregates.n = {fn: 'sum', field: 'id'};
+  branchedNumericSteps[4].group.aggregates.n = {fn: 'avg', field: 'id'};
+  const branchedOrderProgram = structuredClone(branchedRelationProgram);
+  branchedOrderProgram.stages.find(stage => stage.id === 'cross_right')
+    .steps[0].values.rows = [{id: 2}, {id: 3}, {id: 4}];
+  const branchedOrderSteps = branchedOrderProgram.stages.find(stage =>
+    stage.id === 'crossed').steps;
+  branchedOrderSteps.splice(3, 0,
+    {from: 'greater', sort: [{id: 'desc'}], as: 'ordered_greater'},
+    {from: 'less', distinct: true, as: 'unique_less'});
+  branchedOrderSteps[5] = {
+    from: 'ordered_greater', append: {with: 'unique_less'}, as: 'out',
+  };
+  const branchedTakeProgram = structuredClone(branchedOrderProgram);
+  const branchedTakeSteps = branchedTakeProgram.stages.find(stage =>
+    stage.id === 'crossed').steps;
+  branchedTakeSteps.splice(4, 0, {
+    from: 'ordered_greater', take: {count: 2, offset: 0},
+    as: 'limited_greater',
+  });
+  branchedTakeSteps[6] = {
+    from: 'limited_greater', append: {with: 'unique_less'}, as: 'out',
+  };
+  const branchedRankedProgram = structuredClone(branchedOrderProgram);
+  for (const [stageId, origin] of [
+    ['cross_left', 'left'], ['cross_right', 'right'],
+  ]) {
+    const stage = branchedRankedProgram.stages.find(item =>
+      item.id === stageId);
+    stage.steps[0].values.schema.origin = {
+      type: 'string', nullable: false,
+    };
+    stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
+      ({...row, origin}));
+    stage.results.r.fields = ['id', 'origin'];
+  }
+  const branchedRankedSteps = branchedRankedProgram.stages.find(stage =>
+    stage.id === 'crossed').steps;
+  branchedRankedSteps[1].filter = 'id > 2';
+  branchedRankedSteps.splice(3, 0, {
+    from: 'greater', assert_rows: {unique_by: ['id']},
+    as: 'unique_greater',
+  });
+  branchedRankedSteps[4] = {
+    from: 'unique_greater', top_k: {k: 2, by: [{id: 'desc'}]},
+    as: 'ranked_greater',
+  };
+  branchedRankedSteps[5] = {
+    from: 'less', dedupe_rows: {
+      by: ['id'], order_by: [{origin: 'asc'}],
+    }, as: 'deduped_less',
+  };
+  branchedRankedSteps[6] = {
+    from: 'ranked_greater', append: {with: 'deduped_less'}, as: 'joined',
+  };
+  branchedRankedSteps.push({from: 'joined', select: ['id'], as: 'out'});
+  const branchedRowTransformPrograms = [
+    'lag', 'watermark', 'json-pick', 'row-window', 'unpivot', 'unnest',
+    'pivot', 'analytic', 'nest',
+  ]
+    .map(name => {
+      const program = structuredClone(branchedRelationProgram);
+      if (['watermark', 'json-pick', 'unpivot', 'unnest', 'pivot']
+        .includes(name)) {
+        for (const stageId of ['cross_left', 'cross_right']) {
+          const stage = program.stages.find(item => item.id === stageId);
+          if (name === 'watermark') {
+            stage.steps[0].values.schema.time = {
+              type: 'number', nullable: false,
+            };
+            stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
+              ({...row, time: row.id === 2 ? 80 : 100}));
+            stage.results.r.fields = ['id', 'time'];
+          } else if (name === 'json-pick') {
+            stage.steps[0].values.schema.payload = {
+              type: 'object', nullable: false, fields: {
+                inner: {type: 'object', nullable: false, fields: {
+                  leaf: {type: 'number', nullable: false},
+                }},
+              },
+            };
+            stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
+              ({...row, payload: {inner: {leaf: row.id}}}));
+            stage.results.r.fields = ['id', 'payload'];
+          } else if (name === 'unpivot') {
+            stage.steps[0].values.schema.amount = {
+              type: 'number', nullable: false,
+            };
+            stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
+              ({...row, amount: row.id * 10}));
+            stage.results.r.fields = ['id', 'amount'];
+          } else if (name === 'unnest') {
+            stage.steps[0].values.schema.items = {
+              type: 'array', nullable: false,
+              items: {type: 'number', nullable: false}, max_items: 2,
+            };
+            stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
+              ({...row, items: [row.id, row.id + 1]}));
+            stage.results.r.fields = ['id', 'items'];
+          } else {
+            stage.steps[0].values.schema.status = {
+              type: 'string', nullable: false,
+            };
+            stage.steps[0].values.schema.amount = {
+              type: 'number', nullable: false,
+            };
+            stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
+              ({...row, status: stageId === 'cross_left' ? 'a' : 'b',
+                amount: row.id * 10}));
+            stage.results.r.fields = ['id', 'status', 'amount'];
+          }
+        }
+      }
+      const prefix = [{from: 'l', append: {with: 'r'}, as: 'appended'}];
+      const transform = name === 'lag' ? [
+        {from: 'appended', assert_rows: {unique_by: ['id']}, as: 'unique'},
+        {from: 'unique', lag: {partition_by: [],
+          order_by: [{id: 'asc'}], field: 'id', output: 'previous',
+          offset: 1}, as: 'transformed'},
+        {from: 'transformed', filter: 'previous >= 3', as: 'filtered'},
+      ] : name === 'watermark' ? [
+        {from: 'appended', watermark_rows: {time: 'time',
+          late_policy: 'mark', watermark_ms: 90}, as: 'transformed'},
+        {from: 'transformed', filter: 'watermark_late = true', as: 'filtered'},
+      ] : name === 'json-pick' ? [
+        {from: 'appended', json_pick: {column: 'payload',
+          path: ['inner', 'leaf'], output: 'picked'}, as: 'transformed'},
+        {from: 'transformed', filter: 'picked >= 3', as: 'filtered'},
+      ] : name === 'row-window' ? [
+        {from: 'appended', row_window: {
+          kind: 'fixed', time: 'id', size: 2,
+        }, as: 'transformed'},
+        {from: 'transformed', filter: 'window_start >= 2', as: 'filtered'},
+      ] : name === 'unpivot' ? [
+        {from: 'appended', unpivot: {
+          columns: ['amount'], keep: ['id'], name_column: 'metric',
+          value_column: 'value',
+        }, as: 'transformed'},
+        {from: 'transformed', filter: 'value >= 30', as: 'filtered'},
+      ] : name === 'pivot' ? [
+        {from: 'appended', pivot: {
+          index: ['id'], column: 'status', values: ['a', 'b'],
+          value: 'amount', aggregate: 'max',
+        }, as: 'transformed'},
+        {from: 'transformed', filter: 'b >= 30', as: 'filtered'},
+      ] : name === 'analytic' ? [
+        {from: 'appended', analytic: {
+          partition_by: [], order_by: [{id: 'asc'}],
+          frame: {start: 'unbounded_preceding', end: 'current_row'},
+          functions: {n: {fn: 'count', field: 'id'}},
+        }, as: 'transformed'},
+        {from: 'transformed', filter: 'n >= 3', as: 'filtered'},
+      ] : name === 'nest' ? [
+        {from: 'appended', nest: {
+          with: 'l', on: [{left: 'id', right: 'id'}],
+          into: 'items', fields: [{matched: 'id'}], max_items: 1,
+        }, as: 'transformed'},
+        {from: 'transformed', filter: 'id >= 3', as: 'filtered'},
+      ] : [
+        {from: 'appended', unnest: {
+          column: 'items', as: 'item', outer: false,
+        }, as: 'transformed'},
+        {from: 'transformed', filter: 'item >= 4', as: 'filtered'},
+      ];
+      const outputFields = name === 'nest' ? ['id', 'items'] : ['id'];
+      const crossed = program.stages.find(stage => stage.id === 'crossed');
+      crossed.steps = [
+        ...prefix, ...transform,
+        {from: 'filtered', select: outputFields, as: 'selected'},
+        {from: name === 'nest' ? 'transformed' : 'appended',
+          select: outputFields, as: 'raw_ids'},
+        {from: 'selected', append: {with: 'raw_ids'}, as: 'out'},
+      ];
+      if (name === 'nest') {
+        crossed.results.r.fields = outputFields;
+        for (const consumer of program.stages.filter(stage =>
+          stage.id.startsWith('external_cross_consumer_'))) {
+          const fields = consumer.id.endsWith('_a')
+            ? outputFields : [...outputFields].reverse();
+          consumer.steps[0].select = fields;
+          consumer.results.r.fields = fields;
+        }
+      }
+      return [name, program];
+    });
   for (const [name, program, tasks] of [
     ['values', zeroInputProgram, [1, 2, 3]],
     ['captured Relation filter/select chain', capturedRelationChainProgram,
@@ -8050,6 +8300,18 @@ async function exerciseStrategyGraph(
     ['append', appendProgram, [1, 2, 3, 4, 5]],
     ['append filter chain', appendFilterProgram, [1, 2, 3, 4, 5]],
     ['external append fork-join', branchedRelationProgram, [1, 2, 3, 4, 5]],
+    ['external append source-fork-join', branchedSourceForkProgram,
+      [1, 2, 3, 4, 5]],
+    ['external append fork-group-join', branchedGroupProgram,
+      [1, 2, 3, 4, 5]],
+    ['external append fork-mixed-group-join', branchedMixedAggregateProgram,
+      [1, 2, 3, 4, 5]],
+    ['external append fork-sort-distinct-join', branchedOrderProgram,
+      [1, 2, 3, 4, 5]],
+    ['external append fork-sort-take-distinct-join', branchedTakeProgram,
+      [1, 2, 3, 4, 5]],
+    ['external append fork-top-k-dedupe-join', branchedRankedProgram,
+      [1, 2, 3, 4, 5]],
     ['filter then append captured input', filterThenAppendProgram,
       [1, 2, 3, 4]],
     ['direct cross join', directCrossJoinProgram, [1, 2, 3, 4, 5]],
@@ -9027,6 +9289,27 @@ async function exerciseStrategyGraph(
     }
     return program;
   };
+  const retainedBinaryFork = (source, fields) => {
+    const program = structuredClone(source);
+    const producer = program.stages.find(stage => stage.id === 'crossed');
+    producer.steps[0].as = 'binary';
+    producer.steps.push(
+      {from: 'binary', filter: 'id > 1', as: 'greater'},
+      {from: 'binary', filter: 'id < 2', as: 'less'},
+      {from: 'greater', append: {with: 'less'}, as: 'out'},
+    );
+    producer.results.r.fields = fields;
+    for (const consumer of program.stages.filter(stage =>
+      stage.id.startsWith('external_cross_consumer_'))) {
+      consumer.steps[0].select = fields;
+      consumer.results.r.fields = fields;
+    }
+    return program;
+  };
+  const retainedExceptFork = retainedBinaryFork(retainedSetProgram('except'),
+    ['id']);
+  const retainedCrossFork = retainedBinaryFork(externalCrossJoinProgram,
+    ['id', 'tag']);
   const retainedUnaryChain = (sourceSteps, suffix, fields, rows, schema) => {
     const program = structuredClone(externalAppendProgram);
     const left = program.stages.find(stage => stage.id === 'cross_left');
@@ -9442,6 +9725,47 @@ async function exerciseStrategyGraph(
     expected: [2, 3, 4, 3, 4].map(id => ({id})), fields: ['id']},
     {name: 'append-fork-join', source: branchedRelationProgram,
       expected: [2, 3, 4, 1, 2].map(id => ({id})), fields: ['id']},
+    {name: 'inner-join-fork-append', source: branchedInnerJoinProgram,
+      expected: [{id: 2, matched: 2}, {id: 1, matched: 1}],
+      fields: ['id', 'matched']},
+    {name: 'append-inner-join-fork', source: branchedInnerJoinChildProgram,
+      expected: [2, 1, 2].map(id => ({id})), fields: ['id']},
+    {name: 'append-source-fork-join', source: branchedSourceForkProgram,
+      expected: [1, 2, 3, 4, 2].map(id => ({id})), fields: ['id']},
+    {name: 'append-fork-group-join', source: branchedGroupProgram,
+      expected: [{n: 3}, {n: 2}], fields: ['n']},
+    {name: 'append-fork-mixed-group-join', source: branchedMixedAggregateProgram,
+      expected: [{n: 4}, {n: 2}], fields: ['n']},
+    {name: 'append-fork-sum-avg-join', source: branchedNumericGroupProgram,
+      expected: [{n: 9}, {n: 1.5}], fields: ['n']},
+    {name: 'append-fork-sort-distinct-join', source: branchedOrderProgram,
+      expected: [4, 3, 2, 2, 1, 2].map(id => ({id})), fields: ['id']},
+    {name: 'append-fork-sort-take-distinct-join', source: branchedTakeProgram,
+      expected: [4, 3, 1, 2].map(id => ({id})), fields: ['id']},
+    {name: 'append-fork-top-k-dedupe-join', source: branchedRankedProgram,
+      expected: [4, 3, 1, 2].map(id => ({id})), fields: ['id']},
+    ...branchedRowTransformPrograms.map(([name, source]) => ({
+      name: name === 'analytic' ? 'analytic-append-fork-join'
+        : `append-fork-${name}-join`, source,
+      expected: name === 'nest' ? [
+        {id: 3, items: []}, {id: 4, items: []},
+        {id: 1, items: [{matched: 1}]},
+        {id: 2, items: [{matched: 2}]},
+        {id: 3, items: []}, {id: 4, items: []},
+      ] : (name === 'lag' ? [4, 1, 2, 3, 4]
+        : name === 'watermark' ? [2, 1, 2, 3, 4]
+        : name === 'json-pick' ? [3, 4, 1, 2, 3, 4]
+        : name === 'row-window' ? [2, 3, 4, 1, 2, 3, 4]
+        : name === 'unpivot' ? [3, 4, 1, 2, 3, 4]
+        : name === 'pivot' || name === 'analytic' ? [3, 4, 1, 2, 3, 4]
+        : [3, 4, 4, 1, 2, 3, 4]).map(id => ({id})),
+      fields: name === 'nest' ? ['id', 'items'] : ['id'],
+    })),
+    {name: 'except-all-fork-join', source: retainedExceptFork,
+      expected: [2, 1, 1].map(id => ({id})), fields: ['id']},
+    {name: 'cross-join-fork-join', source: retainedCrossFork,
+      expected: [2, 1].flatMap(id => ['a', 'b', 'c'].map(tag =>
+        ({id, tag}))), fields: ['id', 'tag']},
     {name: 'except-all-filter', source: retainedBinaryChain(
       retainedSetProgram('except'), [{filter: 'id > 1'}], ['id']),
     expected: [{id: 2}], fields: ['id']},

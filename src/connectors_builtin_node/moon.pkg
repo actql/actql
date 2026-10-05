@@ -49,7 +49,6 @@ import {
   "actql/actql/connectors/salesforce/catalog" @salesforce_catalog,
   "actql/actql/connectors/salesforce/host" @salesforce_host,
   "actql/actql/client_row_source_host",
-  "actql/actql/client_salesforce_host",
   "actql/actql/graph_contract",
   "actql/actql/local_sga_provider",
   "actql/actql/managed_graph_storage" @graph_storage,

@@ -8,6 +8,8 @@ fn script_has_graph_rows(query : @query.Query) -> Bool {
       call.operation == "edge_rows" ||
       script_graph_diagnostic_fields(call.operation) is Some(_) ||
       call.operation == "graphs_equal" ||
+      call.operation == "match_nodes" ||
+      call.operation == "match_edges" ||
       call.operation == "traverse" {
       return true
     }
@@ -149,6 +151,15 @@ fn lower_script_graph_rows(
       )
       continue
     }
+    if call.operation == "match_nodes" || call.operation == "match_edges" {
+      row_input = Some(
+        lower_script_graph_match_rows(
+          construction, query, call, current, known, limits, steps, reserved,
+        ),
+      )
+      current = row_input.unwrap().name
+      continue
+    }
     if script_graph_diagnostic_fields(call.operation) is Some(fields) {
       row_input = Some(
         lower_script_graph_diagnostic(
@@ -169,7 +180,7 @@ fn lower_script_graph_rows(
     }
     if call.operation == "traverse" {
       row_input = Some(
-        lower_script_traversal_nodes(
+        lower_script_traversal_rows(
           construction, query, call, current, known, limits, steps, reserved,
         ),
       )
