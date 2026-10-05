@@ -1433,6 +1433,42 @@ shape, packed consumers, Wasm/native and Linux integration remain unverified.
 Component boundary/cancellation fixtures retain their narrower scope and do
 not establish those unexecuted product paths.
 
+The membership expression frame now resumes each long Text comparison through
+the same operand-byte and UTF-16 cursors as binary comparison. Advancing one
+list element was not sufficient: a 4,096-character pair previously exceeded
+the fixture's per-advance charge bound (`run-5pgddy` / `focused-test-uzeWAW`,
+0/1). `CompareMembership` borrows the original membership roots and reserves
+two cursor slots before construction. It releases those slots after each pair,
+not the original operands. All admitted items are still visited, including
+duplicates after a match; NULL and `NOT IN` keep their existing truth rules.
+The existing small scalar lane, parameter admission and language are unchanged.
+
+Independent 256-character fixtures fix 520/519 control and 3/2 cursor workspace
+boundaries for one comparison, plus 1548/1547 logical work and 777/776 live bytes
+for two comparisons. Quanta one and seven give identical results and logical
+work. Cleanup during either operand charge or the common-prefix comparison of
+the second item preserves borrowed roots and spent work. A checked bounded
+filter receives cancellation during that second comparison, after the first
+match. Stop preserves its retained input and pending reservations until cleanup;
+the first cleanup releases them and a second cleanup performs no further work.
+The four affected expression files passed 35/35 focused JS cases (`run-DcTVXQ`
+/ `focused-test-enl0lN`). These are component and managed-child observations,
+not proof of a public Run cancellation at that exact comparison phase.
+
+`adapters/host-node/public-membership-retention.test.mjs` submits an ordinary
+Program with a typed array parameter, long duplicate Text operands and NULL.
+The installed real retained Store publishes sorted producer and two consumer
+Named Results, each checked against independently authored true/false/NULL rows.
+Same-request reuse preserves results without another positive-progress or
+completion observation. Temporary carrier files are reclaimed. The fixture is
+included in the existing installed Host suite; it and the previous public wire
+fixture passed 2/2 (`run-0ATVkU` / `focused-test-EG6Rxv`) after preparing only
+`local-node` and `run-host-core` from the changed source. This is checkout Host
+acceptance, not packed distribution, fresh-process recovery or a complete
+physical-entry census. Wasm/native, final integration CI, public cancellation
+of this membership shape, and synchronous non-frame comparison consumers
+remain unverified. No whole-operation assurance count is promoted.
+
 #### Retained Relation obligation chains
 
 The retained materializing lane now binds checked obligations to the exact
