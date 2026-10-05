@@ -60,6 +60,8 @@ pub(all) enum BinaryOperator {
   Greater
   GreaterEqual
   NullIf
+  In
+  NotIn
 } derive(Eq, Debug)
 
 ///|
@@ -193,6 +195,8 @@ fn expression_tag(
     | "gt"
     | "gte"
     | "nullif"
+    | "in"
+    | "not_in"
     | "and"
     | "or"
     | "coalesce"
@@ -604,10 +608,12 @@ fn lower_typed_expression_measured(
     }
     let annotations : Map[Int, @contract.Contract] = Map([])
     let implicit_else : Map[Int, @contract.Contract] = Map([])
+    let membership_lists : Map[Int, Int] = Map([])
     for i = 0; i < @typing.node_count(typed); i = i + 1 {
       expression_spend(budget, root)
       let node = @typing.node_at(typed, i).unwrap()
       if node.role == @typing.ExpressionNode ||
+        node.role == @typing.MembershipList ||
         node.role == @typing.ImplicitElse {
         if annotations.length() + implicit_else.length() >= limits.max_nodes {
           expression_fail(node.source, ExpressionBudgetExceeded)
@@ -619,6 +625,9 @@ fn lower_typed_expression_measured(
           implicit_else[index] = node.contract
         } else {
           annotations[index] = node.contract
+          if node.role == @typing.MembershipList {
+            membership_lists[index] = i
+          }
         }
       }
     }
@@ -717,23 +726,30 @@ fn lower_typed_expression_measured(
           }
           ExpressionBody::Field(name, target)
         }
-        "literal" => {
-          charge_literal(budget, body)
-          if @decode.is_null(body) {
-            TypedNull
+        "literal" =>
+          if membership_lists.get(index) is Some(list_index) {
+            Literal(
+              lower_membership_literal(
+                typed, list_index, parameters, budget, depth,
+              ),
+            )
           } else {
-            let value = match
-              @value.admit(contract, body, {
-                max_nodes: limits.max_literal_nodes,
-                max_depth: limits.max_depth,
-                max_text_bytes: limits.max_literal_text_bytes,
-              }) {
-              Ok(value) => value
-              Err(issue) => expression_fail(cursor, LiteralAdmission(issue))
+            charge_literal(budget, body)
+            if @decode.is_null(body) {
+              TypedNull
+            } else {
+              let value = match
+                @value.admit(contract, body, {
+                  max_nodes: limits.max_literal_nodes,
+                  max_depth: limits.max_depth,
+                  max_text_bytes: limits.max_literal_text_bytes,
+                }) {
+                Ok(value) => value
+                Err(issue) => expression_fail(cursor, LiteralAdmission(issue))
+              }
+              Literal(value)
             }
-            Literal(value)
           }
-        }
         "$param" => {
           let name = @decode.text(body).unwrap()
           guard parameters.get(name) is Some(value) else {
@@ -767,6 +783,8 @@ fn lower_typed_expression_measured(
         "gt" => Binary(Greater, args[0], args[1])
         "gte" => Binary(GreaterEqual, args[0], args[1])
         "nullif" => Binary(NullIf, args[0], args[1])
+        "in" => Binary(In, args[0], args[1])
+        "not_in" => Binary(NotIn, args[0], args[1])
         "vector_score" => {
           let obj = @decode.open_object(body).unwrap()
           let metric = match
@@ -844,4 +862,74 @@ fn lower_typed_expression_measured(
   } catch {
     ExpressionStop(issue) => Err(issue)
   }
+}
+
+///|
+/// Bind only the checker's immediate membership elements. A parameter hole is
+/// not generic JSON substitution, and the emitted RHS remains one typed literal.
+fn lower_membership_literal(
+  typed : @typing.TypedExpression,
+  index : Int,
+  parameters : Map[String, @value.CheckedValue],
+  budget : ExpressionBudget,
+  depth : Int,
+) -> @value.CheckedValue raise ExpressionStop {
+  let node = @typing.node_at(typed, index).unwrap()
+  let limits = budget.limits
+  let count = @typing.child_count(typed, index).unwrap()
+  if count > limits.max_nodes - budget.nodes ||
+    budget.literal_nodes >= limits.max_literal_nodes ||
+    (count > 0 && depth >= limits.max_depth) {
+    expression_fail(node.source, ExpressionBudgetExceeded)
+  }
+  budget.nodes += count
+  budget.literal_nodes += 1
+  let values : Array[@value.Value] = []
+  for i in 0..<count {
+    expression_spend(budget, node.source)
+    let child_index = @typing.child_at(typed, index, i).unwrap()
+    let child = @typing.node_at(typed, child_index).unwrap()
+    guard child.role == @typing.MembershipElement &&
+      @typing.node_form(typed, child_index)
+      is Some(@typing.Expression(tag, body)) else {
+      expression_fail(child.source, MissingTypeAnnotation)
+    }
+    let value = match tag {
+      "$param" => {
+        let name = @decode.text(body).unwrap()
+        guard parameters.get(name) is Some(value) else {
+          expression_fail(child.source, MissingParameter(name))
+        }
+        charge_bound_literal(budget, child.source, value.value)
+        value.value
+      }
+      "literal" => {
+        charge_literal(budget, body)
+        match
+          @value.admit(child.contract, body, {
+            max_nodes: limits.max_literal_nodes,
+            max_depth: limits.max_depth,
+            max_text_bytes: limits.max_literal_text_bytes,
+          }) {
+          Ok(value) => value.value
+          Err(issue) => expression_fail(child.source, LiteralAdmission(issue))
+        }
+      }
+      other => expression_fail(child.source, ExpressionNotImplemented(other))
+    }
+    values.push(value)
+  }
+  guard @value.recheck_runtime_value(
+      @value.array_value(values),
+      node.contract,
+      {
+        max_nodes: limits.max_literal_nodes,
+        max_depth: limits.max_depth,
+        max_text_bytes: limits.max_literal_text_bytes,
+      },
+    )
+    is Some(value) else {
+    expression_fail(node.source, MissingTypeAnnotation)
+  }
+  value
 }

@@ -6,7 +6,8 @@
 /// comparison unit, match collection, item construction, envelope
 /// measurement and output cells advance one bounded step at a time. The
 /// nested array is built in place, and its envelope measurement and output
-/// contract check advance one value node per step.
+/// contract check and logical output charge advance between value nodes and
+/// bounded Text chunks.
 priv enum BoundedNestPhase {
   ChargeInput
   ResolveKey
@@ -85,7 +86,10 @@ priv struct BoundedNestState {
   mut nested : Value
   mut nested_bytes : Int64
   mut column : Int
-  mut checked_row : Array[@admitted.CheckedValue]
+  mut output_row_open : Bool
+  mut output_row : Array[@admitted.Value]
+  mut output_pending : @admitted.CheckedValue?
+  mut output_measure : SteppedValueMeasure?
 }
 
 ///|
@@ -144,7 +148,13 @@ fn cleanup_bounded_nest_state(state : BoundedNestState) -> Bool {
   state.matches.clear()
   bounded_nest_release_value(state)
   state.entries = []
-  state.checked_row = []
+  if state.output_measure is Some(cursor) {
+    clear_stepped_measure(cursor)
+    state.output_measure = None
+  }
+  state.output_pending = None
+  state.output_row = []
+  state.output_row_open = false
   release_slots(state.workspace, state.workspace.live)
   if !state.accepted.val {
     state.rows.val = None
@@ -697,7 +707,8 @@ fn bounded_nest_step(
       CheckAttached => {
         if state.index >= state.attachment_columns.length() {
           state.column = 0
-          state.checked_row = []
+          state.output_row = []
+          state.output_row_open = false
           state.phase = BuildCell
           continue
         }
@@ -738,9 +749,93 @@ fn bounded_nest_step(
         used += 1
       }
       BuildCell => {
+        guard state.output is Some(output) else {
+          return bounded_nest_failure(InvalidExecution, progress, used)
+        }
+        if !state.output_row_open {
+          if !output.buffer.open || output.buffer.reading {
+            return bounded_nest_failure(Capture(ClosedCapture), progress, used)
+          }
+          if !@schema.all_fields_required(output.buffer.schema) {
+            return bounded_nest_failure(
+              Capture(ConditionalInputRequiresPresence),
+              progress,
+              used,
+            )
+          }
+          if output.buffer.rows.length() >= output.buffer.max_rows ||
+            !charge_node(output.buffer.budget, 1) {
+            return bounded_nest_failure(Capture(CaptureLimit), progress, used)
+          }
+          if output_width >
+            output.buffer.budget.limits.max_nodes - output.buffer.budget.nodes {
+            return bounded_nest_failure(Capture(CaptureLimit), progress, used)
+          }
+          state.output_row_open = true
+          continue
+        }
         if state.column >= output_width {
           state.phase = CommitRow
           continue
+        }
+        guard @schema.field_at(state.output_schema, state.column) is Some(field) else {
+          return bounded_nest_failure(InvalidExecution, progress, used)
+        }
+        if state.output_measure is Some(cursor) {
+          match advance_stepped_measure_result(cursor, output.buffer.budget) {
+            SteppedMeasureLimit =>
+              return bounded_nest_failure(
+                Capture(CaptureLimit),
+                progress,
+                used + 1,
+              )
+            SteppedMeasureWorkspaceLimit =>
+              return bounded_nest_failure(Rows(RowLimit), progress, used + 1)
+            SteppedMeasureContinue => ()
+            SteppedMeasureComplete => {
+              clear_stepped_measure(cursor)
+              state.output_measure = None
+              guard state.output_pending is Some(checked) else {
+                return bounded_nest_failure(
+                  InvalidExecution,
+                  progress,
+                  used + 1,
+                )
+              }
+              state.output_row.push(checked.value)
+              state.output_pending = None
+              state.column += 1
+            }
+          }
+          used += 1
+          continue
+        }
+        if state.output_pending is Some(checked) {
+          if !physical_equal(field.contract, checked.contract) {
+            return bounded_nest_failure(Rows(InputMismatch), progress, used + 1)
+          }
+          guard start_stepped_measure_result(
+              Captured(checked.value),
+              state.workspace,
+            )
+            is Some(cursor) else {
+            return bounded_nest_failure(Rows(RowLimit), progress, used + 1)
+          }
+          state.output_measure = Some(cursor)
+          used += 1
+          continue
+        }
+        if state.recheck is None {
+          if !charge_text(
+              output.buffer.budget,
+              @schema.reference_name(field.name),
+            ) {
+            return bounded_nest_failure(
+              Capture(CaptureLimit),
+              progress,
+              used + 1,
+            )
+          }
         }
         let value = match state.output_columns[state.column] {
           None => state.nested
@@ -755,16 +850,31 @@ fn bounded_nest_step(
         let cursor = match state.recheck {
           Some(cursor) => cursor
           None => {
+            if value is Text(text) {
+              guard @admitted.start_recheck_runtime_text(
+                  text,
+                  field.contract,
+                  state.admitted_limits,
+                )
+                is Some(cursor) else {
+                return bounded_nest_failure(
+                  Rows(InputMismatch),
+                  progress,
+                  used + 1,
+                )
+              }
+              state.recheck = Some(cursor)
+              used += 1
+              continue
+            }
             let admitted = match value {
               Null => Some(@admitted.null_value())
               Number(number) => @admitted.number_value(number)
               Boolean(boolean) => Some(@admitted.boolean_value(boolean))
-              Text(text) =>
-                @admitted.text_value(text, state.admitted_limits.max_text_bytes)
+              Text(_) => None
               Captured(captured) => Some(captured)
             }
             guard admitted is Some(admitted) &&
-              @schema.field_at(state.output_schema, state.column) is Some(field) &&
               @admitted.start_recheck_runtime_value(
                 admitted,
                 field.contract,
@@ -786,8 +896,7 @@ fn bounded_nest_step(
           RecheckContinue => ()
           RecheckComplete(checked, _, _) => {
             state.recheck = None
-            state.checked_row.push(checked)
-            state.column += 1
+            state.output_pending = Some(checked)
           }
           RecheckFailed => {
             state.recheck = None
@@ -800,12 +909,19 @@ fn bounded_nest_step(
         guard state.output is Some(output) else {
           return bounded_nest_failure(InvalidExecution, progress, used)
         }
-        match append_admitted_output(output, state.checked_row) {
-          Err(issue) =>
-            return bounded_nest_failure(Capture(issue), progress, used + 1)
-          Ok(_) => ()
+        if !output.buffer.open ||
+          output.buffer.reading ||
+          output.buffer.rows.length() >= output.buffer.max_rows ||
+          !state.output_row_open ||
+          state.output_row.length() != output_width ||
+          state.output_pending is Some(_) ||
+          state.output_measure is Some(_) ||
+          state.recheck is Some(_) {
+          return bounded_nest_failure(InvalidExecution, progress, used + 1)
         }
-        state.checked_row = []
+        output.buffer.rows.push(state.output_row)
+        state.output_row = []
+        state.output_row_open = false
         bounded_nest_release_value(state)
         state.parent_row += 1
         state.phase = BeginParent
@@ -1003,7 +1119,10 @@ pub fn start_bounded_nest(
     nested: Null,
     nested_bytes: 0L,
     column: 0,
-    checked_row: [],
+    output_row_open: false,
+    output_row: [],
+    output_pending: None,
+    output_measure: None,
   }
   let (session, token) = @bounded.start(
     engine,

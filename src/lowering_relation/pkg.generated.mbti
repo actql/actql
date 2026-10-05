@@ -1049,6 +1049,8 @@ pub(all) enum BinaryOperator {
   Greater
   GreaterEqual
   NullIf
+  In
+  NotIn
 } derive(Eq, @debug.Debug)
 
 pub struct BindingIssue {

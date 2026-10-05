@@ -158,6 +158,7 @@
       },
       "sources": [
         "src/execution_relation/row_workspace.mbt",
+        "src/execution_relation/bounded_output_row_charge.mbt",
         "src/execution_relation/admitted_output_stream.mbt",
         "src/connectors/local/driver/managed_dispatch.mbt"
       ],

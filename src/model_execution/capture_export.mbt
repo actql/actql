@@ -22,7 +22,11 @@ priv enum CaptureExportPhase {
 
 ///|
 struct CaptureExportState {
-  capture : VerifiedModelCapture
+  owner : ModelExecution
+  capture : VerifiedModelCapture?
+  settlement : ModelCallSettlement?
+  first : Int
+  end : Int
   limits : ModelCaptureExportLimits
   mut writer : @encode.Writer
   mut phase : CaptureExportPhase
@@ -51,6 +55,64 @@ pub fn start_model_capture_export(
   capture : VerifiedModelCapture,
   limits : ModelCaptureExportLimits,
 ) -> Result[ModelCaptureExport, ModelExecutionIssue] {
+  guard retain_verified_model_capture(capture) is Some(retained) else {
+    return Err(OutputIdentity)
+  }
+  let result = start_capture_export(
+    capture.owner,
+    Some(retained),
+    None,
+    0,
+    capture.owner.state.captures.length(),
+    limits,
+  )
+  if result is Err(_) {
+    release_verified_model_capture(retained) |> ignore
+  }
+  result
+}
+
+///|
+/// Use the same bounded canonical exporter for one private settled response.
+/// A partial bundle has no ObservationSet or Named Result completion authority.
+pub fn start_model_call_settlement_export(
+  value : ModelCallSettlement,
+  limits : ModelCaptureExportLimits,
+) -> Result[ModelCaptureExport, ModelExecutionIssue] {
+  guard model_call_settlement_slot(value) is Some(slot) &&
+    value.owner.state.outcomes.get(slot) is Some(outcome) &&
+    value.owner.state.output_uses < 2147483647 else {
+    return Err(OutputIdentity)
+  }
+  let (first, end) = match outcome {
+    Success(index) => (index, index + 1)
+    NoResponseFailure(_) => (0, 0)
+    UnresolvedUnknown => return Err(OutputIdentity)
+  }
+  value.owner.state.output_uses += 1
+  let result = start_capture_export(
+    value.owner,
+    None,
+    Some(value),
+    first,
+    end,
+    limits,
+  )
+  if result is Err(_) {
+    value.owner.state.output_uses -= 1
+  }
+  result
+}
+
+///|
+fn start_capture_export(
+  owner : ModelExecution,
+  capture : VerifiedModelCapture?,
+  settlement : ModelCallSettlement?,
+  first : Int,
+  end : Int,
+  limits : ModelCaptureExportLimits,
+) -> Result[ModelCaptureExport, ModelExecutionIssue] {
   if limits.max_bytes < 1 ||
     limits.max_nodes < 1 ||
     limits.max_depth < 1 ||
@@ -65,15 +127,16 @@ pub fn start_model_capture_export(
   ) catch {
     _ => return Err(InvalidLimits)
   }
-  guard retain_verified_model_capture(capture) is Some(retained) else {
-    return Err(OutputIdentity)
-  }
   let state : CaptureExportState = {
-    capture: retained,
+    owner,
+    capture,
+    settlement,
+    first,
+    end,
     limits,
     writer,
     phase: Begin,
-    index: 0,
+    index: first,
     pass: 0,
     identity: None,
     chunk: "",
@@ -95,7 +158,7 @@ fn emit_capture_export_step(
   state : CaptureExportState,
 ) -> Unit raise @encode.EncodeFailure {
   let writer = state.writer
-  let owner = state.capture.owner.state
+  let owner = state.owner.state
   match state.phase {
     Begin => {
       @encode.begin_object(writer)
@@ -111,7 +174,7 @@ fn emit_capture_export_step(
       state.phase = SelectCapture
     }
     SelectCapture =>
-      if state.index == owner.captures.length() {
+      if state.index == state.end {
         state.phase = EndPass
       } else {
         @encode.begin_object(writer)
@@ -161,7 +224,7 @@ fn emit_capture_export_step(
           state.limits.max_chunk_bytes,
         )
         state.pass = 1
-        state.index = 0
+        state.index = state.first
         state.phase = Begin
       } else {
         state.phase = Done
@@ -187,7 +250,12 @@ fn advance_capture_export(
   if state.work >= state.limits.max_work {
     return @bounded.Failed(WorkLimit, 0, 0)
   }
-  if state.capture.released || state.capture.owner.state.reclaimed {
+  if state.owner.state.reclaimed ||
+    (state.capture is Some(capture) && capture.released) ||
+    (
+      state.settlement is Some(settlement) &&
+      model_call_settlement_slot(settlement) is None
+    ) {
     return @bounded.Failed(OutputIdentity, 0, 0)
   }
   state.work += 1
@@ -284,7 +352,10 @@ pub fn cleanup_model_capture_export(
       @encode.cancel_writer(active.state.writer)
       active.state.phase = Done
       active.state.chunk = ""
-      release_verified_model_capture(active.state.capture) |> ignore
+      match active.state.capture {
+        Some(capture) => release_verified_model_capture(capture) |> ignore
+        None => active.state.owner.state.output_uses -= 1
+      }
       active.reclaimed = true
       Ok(true)
     }

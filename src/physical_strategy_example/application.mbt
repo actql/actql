@@ -1,6 +1,7 @@
 ///|
 struct Application {
   acquisition : @acquisition_host.NativeHostConfiguration
+  acquisition_preparation : @duckdb_query.DuckDBQueryPreparation
   graph : @strategy.CheckedDAG
   registry : @connector.CapabilityRegistry
   input_sequence : @query.QuerySequence
@@ -214,6 +215,7 @@ fn prepare_application_internal(
     { max_bytes: 100000, max_nodes: 10000, max_depth: 100, },
   ).unwrap()
   {
+    acquisition_preparation: preparation,
     acquisition: @acquisition_host.configure_native_host(
       receipts,
       requirement,

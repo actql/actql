@@ -1876,6 +1876,7 @@ The conversion/boundary truth table is normative:
 | `if` | selects the true branch only when the condition is true; otherwise selects the false branch |
 | `coalesce` | first non-null argument; null if all arguments are null |
 | `nullif(a,b)` | evaluate a then b once each; null if equality is true, otherwise return the evaluated a |
+| `in`, `not_in` | the ordered [membership rules](#membership-semantics), including an empty or null array as the empty set, override strict null propagation |
 | `date_diff` | fixed-unit quotient truncated toward zero |
 
 Strict scalar functions propagate a null input unless the row above states
@@ -1920,8 +1921,9 @@ measured scope and enforcement boundary ([Resolved limits](#resolved-limits)).
 
 The signature arities and positional mapping are defined in [Expression text](#expression-text); their value
 contracts are completed by this table. `S` is string, `N` is number, and `T`
-is the common type from [Closed value contracts](#value-contracts). Strict functions propagate null; domain failures
-are atomic, not null, except where the named function explicitly specifies it.
+is the common type from [Closed value contracts](#value-contracts). Strict functions propagate null except for their explicit
+value rules, including [membership](#membership-semantics); domain failures are
+atomic, not null, except where the named function explicitly specifies it.
 
 <!-- requirement-block: scalar-expressions.functions-input-result-null-failure-rule-beyond -->
 | Functions | Input → result | Null/failure rule beyond the common rule | Profile |
@@ -2280,10 +2282,53 @@ Effect selector lowering, not to expression 0.1 computation roots:
 <!-- requirement-block: predicates.null-equality-must-not-be-inferred-from-an-equality-comparison -->
 Null equality MUST NOT be inferred from ordinary `eq`/`neq`; authors use
 null tests or explicit `is_distinct_from`. Reference equality and ordering follow [Opaque reference values](#opaque-references).
-Missing and null behavior follows AoA relation semantics. The
-scalar expression vocabulary is the closed set in [Scalar expressions](#scalar-expressions).
+Membership follows the common [membership rules](#membership-semantics),
+including their explicit exception to strict null propagation; other missing and
+null behavior follows AoA relation semantics. The scalar expression vocabulary is the closed set in [Scalar expressions](#scalar-expressions).
 `like` uses deterministic AoA pattern semantics; ActQL does not expose a host
 regex engine. The arbitrary-code boundary is defined in [Language boundaries](#language-boundaries).
+
+<a id="membership-semantics"></a>
+
+Common `in` and `not_in` use a set of admitted scalar values. A null array and an
+empty array both denote the empty set; an array containing a null element is
+nonempty. This is an explicit exception to strict scalar null propagation.
+After evaluating the left operand and right collection once each in canonical
+operand order, apply these rules in order:
+
+1. If the set is empty, `in` returns false, including when the left operand is null.
+2. For a nonempty set, a null left operand produces null.
+3. Otherwise, any equal non-null element makes `in` true, even if another element is null.
+4. Without a match, a null element makes `in` null; otherwise `in` is false.
+
+`not_in` is the three-valued negation of `in`: true becomes false, false becomes
+true, and null remains null. The result type is Boolean. A checked collection
+with `max_items: 0` yields a non-nullable result. Otherwise result nullability
+is the disjunction of left and item nullability; collection nullability alone
+does not make the result nullable. Operand domains are still checked for every
+expression, including an empty set. An empty set does not supply a missing
+scalar type for an otherwise unresolved NULL.
+
+<!-- requirement-block: predicates.membership-boundary-results -->
+| Left value | Right collection | `in` | `not_in` |
+| --- | --- | --- | --- |
+| `1` | `[]` | false | true |
+| null | `[]` | false | true |
+| `1` | null array | false | true |
+| null | null array | false | true |
+| null | `[1]` | null | null |
+| `1` | `[1, null]` | true | false |
+| `1` | `[2, null]` | null | null |
+| `1` | `[2]` | false | true |
+| `1` | `[null]` | null | null |
+
+The common law corresponds to GoogleSQL set membership, including
+`IN UNNEST` treating a null array as zero rows. This correspondence does not
+admit SQL `IN ()`, `UNNEST`, or subquery syntax in an otherwise unsupported
+Frontend profile. Constant evaluation uses the same ordered membership rules;
+an optimizer still preserves operand failures, demand, logical limits, and
+canonical identity, so a known empty set does not authorize discarding a
+failing left operand.
 
 <!-- requirement-block: predicates.a-connector-may-advertise-only-a-subset-for-pushdown-but predicates.a-connector-may-advertise-only-a-subset-for-pushdown-but.second -->
 Relation filters and their Connector pushdowns use the common boolean expression;
@@ -9930,7 +9975,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:5f1c2b3b1fc7fb76383ab1ac7cada0c1734bb5d8e21d37b42b6172938c09e951
+../../spec/contracts/actql-aoa.json# sha256:8e3c47ee3e151473304602f49ad1dcdb2c44b3d310a0dac3a41b668d8bdc4397
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:7c14b2a994a8d2ff84e5bf42ee59f0ccfff728982d693426f210b4779d7dac23
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
@@ -9939,11 +9984,11 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:a9fd34634569c0da417ca5a8770ab064ad8351bbd253c8fea1dae60c756c61c1
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb
+../../spec/contracts/actql-expressions.json# sha256:e14e1d9434909f1d0a68dc0441a6260c07476d662d237517d548de4dff0ac50f
 ../../spec/contracts/actql-expressions.json#/schemas/expression sha256:8196cef99c66248917d44d322cb21f69f9873cac768bc5bbda2e3757e8e9d66f
 ../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:eea37ee96bf6be954e46db196f7ec8101506ed4a28ecc647e8f929a512194b94
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:629342d58af8fa879da391532a838788338ddc42b5f17db814d0bdf7236c195b
-../../spec/contracts/actql-expressions.json#/laws sha256:aed67e22149a672dcff44b7f4f55823ac1b20c300c6962952d9d693c85032ea9
+../../spec/contracts/actql-expressions.json#/laws sha256:9a6a765f568befcb18f975cf9aed489a4714618a41309c94de1885759867935b
 ../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:4d42600c1b3d42d660f2eb14a84342988c17646110f8995f80bf4dc4344ce3d4
 ../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:36320fcc16612a4bd0a64274fcf07526845ae91ad802afce601f4e391f5ba1de
 ```

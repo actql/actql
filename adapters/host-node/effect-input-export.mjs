@@ -103,8 +103,16 @@ export async function preparePinnedEffectSourceSet({
   if (!Number.isSafeInteger(count) || count < 1 || count > maxMembers) {
     throw new RangeError('EffectSourceMemberLimit');
   }
-  if (options.localEvidenceContext?.acquiredEvidence !== undefined ||
-      options.localEvidenceContext?.sourceFreeDependencyClosure === true) {
+  // A source-free Model is not itself an imported Local Result. Preserve
+  // the existing self-contained capture when no Effect input imports another
+  // Unit; a populated dependency inventory would have no admitted roots.
+  const importedSourceFree = options.localEvidenceContext?.sourceFreeDependencyClosure === true &&
+    Array.from({length: count}, (_, index) => {
+      const input = moon.clientProgramEffectInputAt(inputs, index);
+      const stage = moon.clientProgramEffectInputStage(input);
+      return moon.clientProgramEffectResultImportCount(options.checkedOwner, stage) > 0;
+    }).some(Boolean);
+  if (options.localEvidenceContext?.acquiredEvidence !== undefined || importedSourceFree) {
     return prepareDependentEffectSourceSet(options, count, maxGroupingWork);
   }
   const groups = [];

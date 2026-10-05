@@ -307,9 +307,14 @@ test "Delta provider requires installed limits exact roles and accounted workspa
     task_test_generated(difference),
     0,
   ).unwrap()
-  assert_false(@local_connector.managed_provider_accepts(memory, difference))
+  // Graph Diff is installed too, but its second input must be a Graph, not
+  // the Relation action rows used by Delta. Capability is not input admission.
+  assert_true(@local_connector.managed_provider_accepts(memory, difference))
   assert_true(
-    @local_connector.managed_provider_capacity(memory, difference) is None,
+    @local_connector.managed_provider_capacity(memory, difference) is Some(_),
+  )
+  assert_true(
+    start_delta_provider(memory, difference, inputs, 10, 10000) is Err(_),
   )
   let persistent = delta_provider_fixture(snapshot=true)
   let memory_capacity = @local_connector.managed_provider_capacity(
