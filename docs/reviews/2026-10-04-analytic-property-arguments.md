@@ -1,4 +1,34 @@
-# Property arguments in existing analytic navigation and frame calls
+# Analytic property arguments and canonical compilation repair
+
+## 2026-10-05 integration repair
+
+The implementation now includes the common analytic AoA producer correction.
+`emit_expression_source` remains an enumeration-preserving source projection;
+analytic machine emission instead uses private, prepared canonical field-order
+sidecars for navigation/frame arguments and aggregate arguments/filters.
+The sidecars retain checked cursors without interpreting literal payloads.
+Their field slots, traversal slots, scans, comparisons and moves consume the
+existing cumulative expression node/work limits across calls and steps.
+Semantic expression-depth limits retain their original meaning. No identity
+validator, contract, runtime execution ceiling or expected Result is relaxed.
+
+The public acceptance Host declares the same four analytic ceilings of 10,000
+already used by the independent installed Node and Native client fixtures.
+The corpus keeps its original ten positives and seven refusals, and adds two
+independent nested-property JSON/SQL positives. Expected rows and full ordered
+column contracts remain independently authored. Both Local and HTTPS use the
+ordinary existing packed public-query harness and installed distributions.
+
+This common correction is maintained in PR #396. Aggregate OVER acceptance in
+PR #381 must adopt it through normal Git history, without another copy of the
+implementation. Each PR ultimately targets `actql/actql:main`.
+
+The final PR body records the exact tested source SHA, commands, receipts,
+package digests and unverified coverage. The following report is retained as
+historical evidence of the original Frontend work and its former blockers.
+
+## Historical 2026-10-04 report
+
 
 ## Scope and fixed baseline
 

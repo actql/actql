@@ -70,6 +70,34 @@ export const analyticPropertySuccesses = [
   textCase('typed-empty',
     'SELECT id, LAG(payload.score) OVER (ORDER BY id) AS previous FROM objects WHERE id < 0 ORDER BY id', []),
 ];
+// Independent nested-property controls exercise canonical source emission at
+// the public identity boundary, including deliberately reversed JSON members.
+const nestedPayload = {type: 'object', nullable: true,
+  fields: {inner: {type: 'object', nullable: false, fields: {score: number}}}};
+const nestedRows = [{id: 2, payload: {inner: {score: 10}}},
+  {id: 1, payload: {inner: {score: 20}}}, {id: 3, payload: null}];
+const nestedProgram = {version: 'actql/0.1', id: 'fixture.analytic_nested',
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {id: number, payload: nestedPayload}, rows: nestedRows}, as: 'objects'},
+    {from: 'objects', analytic: {partition_by: [],
+      order_by: [{field: 'id', dir: 'asc', nulls: 'first'}],
+      functions: {previous: {fn: 'lag', expr: {property: {
+        value: {property: {value: {field: 'payload'}, name: 'inner'}}, name: 'score'}}}}}},
+    {sort: [{field: 'id', dir: 'asc', nulls: 'first'}]},
+    {select: ['id', 'previous'], as: 'selected'},
+  ], results: {rows: {from: 'selected', fields: ['id', 'previous']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+analyticPropertySuccesses.push(
+  {name: 'analytic-property-nested-independent-json', format: 'json',
+    text: JSON.stringify(nestedProgram), expected: previousRows,
+    columns: [id, previous], sourceReadCount: 0},
+  textCase('nested-sql',
+    'SELECT id, LAG(payload.inner.score) OVER (ORDER BY id) AS previous FROM objects ORDER BY id',
+    previousRows, {parameterDeclarations: {...parameterDeclarations,
+      a: nestedPayload, b: nestedPayload, c: nestedPayload},
+    parameters: {...parameters, a: {inner: {score: 10}}, b: {inner: {score: 20}}}}),
+);
+
 export const analyticPropertyRefusals = [
   'SELECT LAG(missing.score) OVER (ORDER BY id) AS previous FROM objects',
   'SELECT LAG(payload.missing) OVER (ORDER BY id) AS previous FROM objects',

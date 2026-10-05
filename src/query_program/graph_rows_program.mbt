@@ -145,6 +145,12 @@ fn lower_script_graph_rows(
     if row_input is Some(_) {
       raise Abort(UnsupportedGraph)
     }
+    if call.operation == "subgraph" {
+      current = lower_script_subgraph(
+        construction, query, call, current, known, limits, steps, reserved,
+      )
+      continue
+    }
     if call.operation == "match_nodes" || call.operation == "match_edges" {
       row_input = Some(
         lower_script_graph_match_rows(
