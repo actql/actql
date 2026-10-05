@@ -193,7 +193,9 @@ test('retained Nest uses the real Host, Store, and publication owners', async t 
           };
         },
       });
-      const runtime = runtimeCore(hostRuntime);
+      // Publication tokens are owned by the exact runtime identity used by
+      // the Host, including the cancellation observer's runtime wrapper.
+      const runtime = runtimeCore(mode === 'cancelled' ? observedRuntime : hostRuntime);
       let owner, execution, publication;
       try {
         assert.equal(fixture.strategyFixtureOpen(prepared, capture.source()), true);
