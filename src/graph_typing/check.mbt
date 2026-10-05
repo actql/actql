@@ -26,6 +26,7 @@ pub(all) enum IssueKind {
   UnknownDeltaField(String)
   UntypedDeltaField(String)
   InvalidDeltaType
+  DeltaContractMismatch
   UnknownConstructionField(String)
   InvalidConstructionIdentity
   InvalidConstructionLabel

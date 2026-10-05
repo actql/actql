@@ -82,3 +82,69 @@ test "stepped runtime wire retains pending traversal on workspace failure" {
     }
   }
 }
+
+///|
+test "progressed Text and Reference wire cancellation return reservations" {
+  let contract = select_checked_contract(
+    "{\"type\":\"resource_ref\",\"nullable\":false,\"resource_kind\":\"mail/message\"}",
+  )
+  let source = issued_resource_value(
+    contract,
+    "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    Ref(true),
+  )
+  guard source.value is @admitted.Reference(source) else {
+    fail("expected issued reference")
+  }
+  let wire = @admitted.reference_wire(source).replace(
+    old="\"provider_namespace\":\"mail\"",
+    new="\"provider_namespace\":\"" + String::make(1024, 'x') + "\"",
+  )
+  let reference = issued_reference_value(contract, wire, Ref(true))
+  let text = String::make(4096, 'a')
+  let checked_text = lowered("{\"literal\":\"" + text + "\"}")
+  guard @lower.expression_body(checked_text) is @lower.Literal(checked_text) else {
+    fail("expected checked Text")
+  }
+  for
+    value in [
+      Text(text),
+      Captured(checked_text.value),
+      Captured(reference.value),
+    ] {
+    let workspace = row_workspace(10)
+    let writer = @encode.writer(8192, 64, 4)
+    let cursor = start_stepped_runtime_wire(value, writer, workspace).unwrap()
+    let mut advances = 0
+    while @encode.writer_progress(writer).0 < 1024 {
+      assert_false(advance_stepped_runtime_wire(cursor).unwrap())
+      advances += 1
+      assert_true(advances < 100)
+    }
+    assert_true(advances > 1 && workspace.live > 0)
+    assert_false(cursor.closed)
+    close_stepped_runtime_wire(cursor)
+    close_stepped_runtime_wire(cursor)
+    assert_true(cursor.closed)
+    assert_eq(cursor.reserved, 0)
+    assert_eq(workspace.live, 0)
+    assert_true(
+      advance_stepped_runtime_wire(cursor)
+      is Err(Encoding(@encode.ClosedWriter)),
+    )
+    assert_true(
+      try {
+        @encode.finish(writer) |> ignore
+        false
+      } catch {
+        @encode.ClosedWriter | @encode.InvalidStructure => true
+        _ => false
+      },
+    )
+  }
+  guard reference.value is @admitted.Reference(reference) else {
+    fail("expected borrowed reference")
+  }
+  assert_true(@admitted.reference_available(reference))
+  assert_eq(@admitted.reference_wire(reference), wire)
+}

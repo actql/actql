@@ -140,3 +140,61 @@ fn expression_event_choice(
     Ok(_) => Ok(value is Boolean(true))
   }
 }
+
+///|
+/// Consume each evaluated operand exactly once. NULL array means an empty set;
+/// it does not erase the left operand's demanded evaluation or value charge.
+fn start_membership(
+  logical : LogicalBudget?,
+  expr : @lower.Expression,
+  operation : @lower.BinaryOperator,
+  left : Value,
+  left_root : ExpressionRootLease?,
+  right : Value,
+  right_root : ExpressionRootLease?,
+) -> Result[MembershipState, EvalIssue] {
+  match expression_event_consume(logical, left, expr, root=left_root) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match expression_event_consume(logical, right, expr, root=right_root) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let items = match right {
+    Null => None
+    Captured(@admitted.Array(items)) => Some(items)
+    _ => return Err({ kind: Scalar(InvalidOperand), expression: expr, })
+  }
+  Ok({
+    expression: expr,
+    operation,
+    left,
+    items,
+    left_root,
+    right_root,
+    index: 0,
+    matched: false,
+    unknown: false,
+  })
+}
+
+///|
+fn membership_compare(
+  control : ControlBudget,
+  expr : @lower.Expression,
+  left : Value,
+  right : Value,
+) -> Result[Value, EvalIssue] {
+  match charge_comparison_pair(control, left, right) {
+    Ok(_) => ()
+    Err(ComparisonChargeLimit) =>
+      return Err({ kind: ControlLimit, expression: expr, })
+    Err(ComparisonChargeInvalidOperand) =>
+      return Err({ kind: Scalar(InvalidOperand), expression: expr, })
+  }
+  match binary(@lower.Equal, left, right) {
+    Ok(value) => Ok(value)
+    Err(issue) => Err({ kind: Scalar(issue), expression: expr, })
+  }
+}

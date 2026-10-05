@@ -172,6 +172,8 @@ pub fn[C, E] start_local_dispatch(
               }
               Ok({
                 complete: value.complete,
+                waiting: value.waiting,
+                settlement: value.settlement,
                 progress: value.progress,
                 work: value.work,
               })

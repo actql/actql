@@ -107,7 +107,7 @@ test('typed public facts are closed and locations bind declared input revisions'
   const expression = {code: 'query_expression_invalid', facts: {issue: 'invalid_number'},
     location: {kind: 'text', document_id: 'source', revision,
       start_byte: 0, end_byte: 6, precision: 'exact'}};
-  for (const issue of ['unknown_reference', 'invalid_arguments', 'invalid_number']) {
+  for (const issue of ['unknown_reference', 'invalid_arguments', 'invalid_number', 'expected_boolean']) {
     assert.equal(valid(outcome({...expression, facts: {issue}})), true);
     assert.equal(valid(outcome({code: expression.code, facts: {issue}})), true);
   }

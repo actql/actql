@@ -7,13 +7,16 @@ pub fn model_execution_issued_slot_capture(
   slot : Int,
 ) -> Result[@publication.RunEvidenceValue, ModelExecutionIssue] {
   let state = execution.state
-  guard state.accepted &&
+  guard (state.accepted || (state.durable_calls && slot < state.next_slot)) &&
     !state.reclaimed &&
     state.call_scope is Some(scope) &&
     state.requests.get(slot) is Some(prepared) &&
     state.outcomes.get(slot) is Some(adopted) &&
     state.attempts.get(slot) is Some(trace) else {
     return Err(OutputIdentity)
+  }
+  if state.restored_calls.get(slot) is Some(saved) {
+    return Ok(saved.record)
   }
   let proof = match model_execution_attempt_evidence(execution, slot) {
     Ok(value) => value

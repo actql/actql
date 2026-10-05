@@ -30,6 +30,7 @@ pub(all) enum CheckpointKind {
   ReadAccess
   DataEgress
   CostScope
+  ModelInvocation
   EffectSet
 } derive(Eq, Debug)
 

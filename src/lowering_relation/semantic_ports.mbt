@@ -124,6 +124,11 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     GraphEqualityRows(_) => operation(node) == "SGA.equal"
     GraphNormalizeValue(_) => operation(node) == "SGA.normalize"
     GraphComponentsRows(_) => operation(node) == "SGA.components"
+    GraphDeltaValue(checked) =>
+      match @graph.delta_operation(checked) {
+        @graph.Application(_) => operation(node) == "SGA.apply_delta"
+        @graph.Difference => operation(node) == "SGA.diff"
+      }
     VectorValue(_) =>
       operation(node) == "BRIDGE.rows.to_vectors" ||
       operation(node) == "VEC.normalize_l2" ||
@@ -235,7 +240,12 @@ pub fn node_prefers_fused_without_relation_consumer(
 /// Other families keep their existing fused choice until their own handoff is
 /// registered and tested.
 pub fn node_can_split_carrier_transform(node : PreparedNode) -> Bool {
-  node.payload is GraphNormalizeValue(_) && operation(node) == "SGA.normalize"
+  (node.payload is GraphNormalizeValue(_) && operation(node) == "SGA.normalize") ||
+  (
+    node.payload is GraphDeltaValue(checked) &&
+    operation(node) == "SGA.apply_delta" &&
+    @graph.delta_operation(checked) is @graph.Application(_)
+  )
 }
 
 ///|
@@ -263,6 +273,10 @@ pub fn node_accepts_managed_relation_view(
     return match node.payload {
       GraphTraverseRows(_) => index == 1 && operation(node) == "SGA.traverse"
       GraphSubgraphValue(_) => index == 1 && operation(node) == "SGA.subgraph"
+      GraphDeltaValue(checked) =>
+        index == 1 &&
+        operation(node) == "SGA.apply_delta" &&
+        @graph.delta_operation(checked) is @graph.Application(_)
       InnerJoin(_)
       | CrossJoinRows(_)
       | AppendRows(_)

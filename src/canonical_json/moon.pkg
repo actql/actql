@@ -4,12 +4,19 @@ import {
   "actql/actql/encode_core" @encode,
   "actql/actql/canonical_value" @value,
   "actql/actql/source_value" @source,
+  "actql/actql/decode_core" @decode,
+  "actql/actql/decode_scalar" @scalar,
+  "actql/actql/bounded_tuple_sort" @sort,
 }
 
 import {
   "actql/actql/sha256",
   "moonbitlang/core/json",
 } for "test"
+
+import {
+  "moonbitlang/core/encoding/utf8",
+} for "wbtest"
 
 formatter(
   ignore: [

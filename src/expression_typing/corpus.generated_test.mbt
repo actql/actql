@@ -4,7 +4,7 @@
 fn corpus_fields() -> String { "{\"n\":{\"type\":\"number\",\"nullable\":false},\"nn\":{\"type\":\"number\",\"nullable\":true},\"s\":{\"type\":\"string\",\"nullable\":false},\"sn\":{\"type\":\"string\",\"nullable\":true},\"b\":{\"type\":\"boolean\",\"nullable\":false},\"bn\":{\"type\":\"boolean\",\"nullable\":true},\"dt\":{\"type\":\"date\",\"nullable\":false},\"ts\":{\"type\":\"timestamp\",\"nullable\":false},\"d\":{\"type\":\"decimal\",\"nullable\":false,\"precision\":8,\"scale\":2},\"dn\":{\"type\":\"decimal\",\"nullable\":true,\"precision\":10,\"scale\":3},\"v\":{\"type\":\"vector\",\"nullable\":false,\"dimensions\":3},\"vn\":{\"type\":\"vector\",\"nullable\":true,\"dimensions\":3},\"v2\":{\"type\":\"vector\",\"nullable\":false,\"dimensions\":2},\"j\":{\"type\":\"json\",\"nullable\":false},\"r\":{\"type\":\"resource_ref\",\"nullable\":false,\"resource_kind\":\"Customer\"},\"rn\":{\"type\":\"resource_ref\",\"nullable\":true,\"resource_kind\":\"Customer\"},\"other\":{\"type\":\"resource_ref\",\"nullable\":false,\"resource_kind\":\"Order\"},\"artifact\":{\"type\":\"artifact_ref\",\"nullable\":false,\"media_type\":\"text/plain\"},\"a\":{\"type\":\"array\",\"nullable\":false,\"max_items\":5,\"items\":{\"type\":\"number\",\"nullable\":true}},\"an\":{\"type\":\"array\",\"nullable\":true,\"max_items\":0,\"items\":{\"type\":\"number\",\"nullable\":false}},\"o\":{\"type\":\"object\",\"nullable\":true,\"fields\":{\"x\":{\"type\":\"number\",\"nullable\":false}}}}" }
 
 ///|
-fn corpus_parameters() -> String { "{\"p\":{\"type\":\"string\",\"default\":\"not a regex(\"},\"items\":{\"type\":\"array\",\"items\":{\"type\":\"number\"}},\"q\":{\"type\":\"number\",\"nullable\":true},\"unit\":{\"type\":\"string\",\"format\":\"duration\"}}" }
+fn corpus_parameters() -> String { "{\"p\":{\"type\":\"string\",\"default\":\"not a regex(\"},\"items\":{\"type\":\"array\",\"items\":{\"type\":\"number\"}},\"nullable_items\":{\"type\":\"array\",\"nullable\":true,\"items\":{\"type\":\"number\"}},\"nullable_elements\":{\"type\":\"array\",\"nullable\":true,\"items\":{\"type\":\"number\",\"nullable\":true}},\"empty_items\":{\"type\":\"array\",\"nullable\":true,\"max_items\":0,\"items\":{\"type\":\"number\",\"nullable\":true}},\"q\":{\"type\":\"number\",\"nullable\":true},\"unit\":{\"type\":\"string\",\"format\":\"duration\"}}" }
 
 ///|
 test "expression type corpus accepted: 1" {
@@ -183,266 +183,376 @@ test "expression type corpus accepted: 35" {
 
 ///|
 test "expression type corpus accepted: 36" {
-  assert_type("\"s LIKE $p\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
+  assert_type("\"n IN $nullable_items\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
 }
 
 ///|
 test "expression type corpus accepted: 37" {
-  assert_type("\"if(b,n,nn)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+  assert_type("\"n NOT IN $nullable_items\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
 }
 
 ///|
 test "expression type corpus accepted: 38" {
-  assert_type("\"CASE WHEN NULL THEN 1 ELSE 2 END\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":false}")
+  assert_type("\"nn IN $nullable_items\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":true}")
 }
 
 ///|
 test "expression type corpus accepted: 39" {
-  assert_type("\"CASE WHEN b THEN n END\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+  assert_type("\"nn NOT IN $nullable_items\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":true}")
 }
 
 ///|
 test "expression type corpus accepted: 40" {
-  assert_type("\"coalesce(NULL,nn,n)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":false}")
+  assert_type("\"n IN $nullable_elements\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":true}")
 }
 
 ///|
 test "expression type corpus accepted: 41" {
-  assert_type("\"CAST(NULL AS number)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+  assert_type("\"n NOT IN $nullable_elements\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":true}")
 }
 
 ///|
 test "expression type corpus accepted: 42" {
-  assert_type("\"to_decimal(s,8,2)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"decimal\",\"nullable\":false,\"precision\":8,\"scale\":2}")
+  assert_type("\"NULL IN $empty_items\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
 }
 
 ///|
 test "expression type corpus accepted: 43" {
-  assert_type("\"try_decimal(s,8,2)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"decimal\",\"nullable\":true,\"precision\":8,\"scale\":2}")
+  assert_type("\"NULL NOT IN $empty_items\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
 }
 
 ///|
 test "expression type corpus accepted: 44" {
-  assert_type("\"quantize(dn,8,2,'half_even')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"decimal\",\"nullable\":true,\"precision\":8,\"scale\":2}")
+  assert_type("\"nn IN $empty_items\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
 }
 
 ///|
 test "expression type corpus accepted: 45" {
-  assert_type("\"quantize(CAST(NULL AS DECIMAL(4,1)),8,2,'half_even')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"decimal\",\"nullable\":true,\"precision\":8,\"scale\":2}")
+  assert_type("\"nn NOT IN $empty_items\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
 }
 
 ///|
 test "expression type corpus accepted: 46" {
-  assert_type("\"decimal_divide(CAST(NULL AS DECIMAL(4,1)),n,8,2,'half_even')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"decimal\",\"nullable\":true,\"precision\":8,\"scale\":2}")
+  assert_type("{\"in\":[\"nn\",{\"literal\":[]}]}", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
 }
 
 ///|
 test "expression type corpus accepted: 47" {
-  assert_type("\"decimal_divide(d,CAST(NULL AS number),8,2,'half_even')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"decimal\",\"nullable\":true,\"precision\":8,\"scale\":2}")
+  assert_type("{\"not_in\":[\"nn\",{\"literal\":[]}]}", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
 }
 
 ///|
 test "expression type corpus accepted: 48" {
-  assert_type("\"decimal_divide(d,n,8,2,'half_up')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"decimal\",\"nullable\":false,\"precision\":8,\"scale\":2}")
+  assert_type("{\"in\":[\"CAST(NULL AS number)\",{\"literal\":[]}]}", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
 }
 
 ///|
 test "expression type corpus accepted: 49" {
-  assert_type("\"to_string(dt)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":false}")
+  assert_type("{\"not_in\":[\"CAST(NULL AS number)\",{\"literal\":[]}]}", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
 }
 
 ///|
 test "expression type corpus accepted: 50" {
-  assert_type("\"to_boolean(s)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
+  assert_type("\"NULL IN (1)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":true}")
 }
 
 ///|
 test "expression type corpus accepted: 51" {
-  assert_type("\"to_timestamp(s)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"timestamp\",\"nullable\":false}")
+  assert_type("\"NULL NOT IN (1)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":true}")
 }
 
 ///|
 test "expression type corpus accepted: 52" {
-  assert_type("\"date_trunc('d',dt)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"date\",\"nullable\":false}")
+  assert_type("\"1 IN (1,NULL)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":true}")
 }
 
 ///|
 test "expression type corpus accepted: 53" {
-  assert_type("\"date_add(ts,nn,'s')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"timestamp\",\"nullable\":true}")
+  assert_type("\"1 NOT IN (1,NULL)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":true}")
 }
 
 ///|
 test "expression type corpus accepted: 54" {
-  assert_type("\"date_diff(ts,ts,'ms')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":false}")
+  assert_type("\"1 IN (2,NULL)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":true}")
 }
 
 ///|
 test "expression type corpus accepted: 55" {
-  assert_type("\"o.x\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+  assert_type("\"1 NOT IN (2,NULL)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":true}")
 }
 
 ///|
 test "expression type corpus accepted: 56" {
-  assert_type("\"a[-1]\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+  assert_type("\"1 IN (2)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
 }
 
 ///|
 test "expression type corpus accepted: 57" {
-  assert_type("\"if(b,[],[1])\"", corpus_fields(), corpus_parameters(), "{\"type\":\"array\",\"nullable\":false,\"max_items\":1,\"items\":{\"type\":\"number\",\"nullable\":false}}")
+  assert_type("\"1 NOT IN (2)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
 }
 
 ///|
 test "expression type corpus accepted: 58" {
-  assert_type("\"if(b,[NULL],[1])\"", corpus_fields(), corpus_parameters(), "{\"type\":\"array\",\"nullable\":false,\"max_items\":1,\"items\":{\"type\":\"number\",\"nullable\":true}}")
+  assert_type("\"s LIKE $p\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
 }
 
 ///|
 test "expression type corpus accepted: 59" {
-  assert_type("\"if(b,[],an)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"array\",\"nullable\":true,\"max_items\":0,\"items\":{\"type\":\"number\",\"nullable\":false}}")
+  assert_type("\"if(b,n,nn)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
 }
 
 ///|
 test "expression type corpus accepted: 60" {
-  assert_type("\"coalesce([],an)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"array\",\"nullable\":false,\"max_items\":0,\"items\":{\"type\":\"number\",\"nullable\":false}}")
+  assert_type("\"CASE WHEN NULL THEN 1 ELSE 2 END\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":false}")
 }
 
 ///|
 test "expression type corpus accepted: 61" {
-  assert_type("\"if(b,[[NULL]],[[1]])\"", corpus_fields(), corpus_parameters(), "{\"type\":\"array\",\"nullable\":false,\"max_items\":1,\"items\":{\"type\":\"array\",\"nullable\":false,\"max_items\":1,\"items\":{\"type\":\"number\",\"nullable\":true}}}")
+  assert_type("\"CASE WHEN b THEN n END\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
 }
 
 ///|
 test "expression type corpus accepted: 62" {
-  assert_type("{\"if\":[\"b\",{\"object\":{\"x\":{\"literal\":null}}},{\"object\":{\"x\":\"n\"}}]}", corpus_fields(), corpus_parameters(), "{\"type\":\"object\",\"nullable\":false,\"additional_properties\":false,\"fields\":{\"x\":{\"type\":\"number\",\"nullable\":true}}}")
+  assert_type("\"coalesce(NULL,nn,n)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":false}")
 }
 
 ///|
 test "expression type corpus accepted: 63" {
-  assert_type("{\"empty_array\":{\"items\":{\"type\":\"number\",\"nullable\":false}}}", corpus_fields(), corpus_parameters(), "{\"type\":\"array\",\"nullable\":false,\"max_items\":0,\"items\":{\"type\":\"number\",\"nullable\":false}}")
+  assert_type("\"CAST(NULL AS number)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
 }
 
 ///|
 test "expression type corpus accepted: 64" {
-  assert_type("{\"template\":\"{n} / {sn} {{literal}}\"}", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":true}")
+  assert_type("\"to_decimal(s,8,2)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"decimal\",\"nullable\":false,\"precision\":8,\"scale\":2}")
 }
 
 ///|
 test "expression type corpus accepted: 65" {
-  assert_type("\"coalesce(rn,r)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"resource_ref\",\"nullable\":false,\"resource_kind\":\"Customer\"}")
+  assert_type("\"try_decimal(s,8,2)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"decimal\",\"nullable\":true,\"precision\":8,\"scale\":2}")
 }
 
 ///|
 test "expression type corpus accepted: 66" {
-  assert_type("\"if(b,NULL,r)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"resource_ref\",\"nullable\":true,\"resource_kind\":\"Customer\"}")
+  assert_type("\"quantize(dn,8,2,'half_even')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"decimal\",\"nullable\":true,\"precision\":8,\"scale\":2}")
 }
 
 ///|
 test "expression type corpus accepted: 67" {
-  assert_type("\"nullif(r,rn)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"resource_ref\",\"nullable\":true,\"resource_kind\":\"Customer\"}")
+  assert_type("\"quantize(CAST(NULL AS DECIMAL(4,1)),8,2,'half_even')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"decimal\",\"nullable\":true,\"precision\":8,\"scale\":2}")
 }
 
 ///|
 test "expression type corpus accepted: 68" {
-  assert_type("\"substring(sn,-1,0)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":true}")
+  assert_type("\"decimal_divide(CAST(NULL AS DECIMAL(4,1)),n,8,2,'half_even')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"decimal\",\"nullable\":true,\"precision\":8,\"scale\":2}")
 }
 
 ///|
 test "expression type corpus accepted: 69" {
-  assert_type("\"split_part(s,'',-1)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":false}")
+  assert_type("\"decimal_divide(d,CAST(NULL AS number),8,2,'half_even')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"decimal\",\"nullable\":true,\"precision\":8,\"scale\":2}")
 }
 
 ///|
 test "expression type corpus accepted: 70" {
-  assert_type("\"utf8_truncate(s,n)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":false}")
+  assert_type("\"decimal_divide(d,n,8,2,'half_up')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"decimal\",\"nullable\":false,\"precision\":8,\"scale\":2}")
 }
 
 ///|
 test "expression type corpus accepted: 71" {
-  assert_type("\"try_number(s)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+  assert_type("\"to_string(dt)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":false}")
 }
 
 ///|
 test "expression type corpus accepted: 72" {
-  assert_type("\"nfkc(case_fold(s))\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":false}")
+  assert_type("\"to_boolean(s)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
 }
 
 ///|
 test "expression type corpus accepted: 73" {
-  assert_type("\"parse_timestamp(sn,'yyyy-MM-dd')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"timestamp\",\"nullable\":true}")
+  assert_type("\"to_timestamp(s)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"timestamp\",\"nullable\":false}")
 }
 
 ///|
 test "expression type corpus accepted: 74" {
-  assert_type("\"try_timestamp(s,$p)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"timestamp\",\"nullable\":true}")
+  assert_type("\"date_trunc('d',dt)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"date\",\"nullable\":false}")
 }
 
 ///|
 test "expression type corpus accepted: 75" {
-  assert_type("\"format_timestamp(ts,'yyyy')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":false}")
+  assert_type("\"date_add(ts,nn,'s')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"timestamp\",\"nullable\":true}")
 }
 
 ///|
 test "expression type corpus accepted: 76" {
-  assert_type("\"regex_match(s,$p,'ms')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
+  assert_type("\"date_diff(ts,ts,'ms')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":false}")
 }
 
 ///|
 test "expression type corpus accepted: 77" {
-  assert_type("\"regex_match(s,'a','')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
+  assert_type("\"o.x\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
 }
 
 ///|
 test "expression type corpus accepted: 78" {
-  assert_type("\"regex_match(s,'a','m')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
+  assert_type("\"a[-1]\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
 }
 
 ///|
 test "expression type corpus accepted: 79" {
-  assert_type("\"regex_match(s,'a','s')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
+  assert_type("\"if(b,[],[1])\"", corpus_fields(), corpus_parameters(), "{\"type\":\"array\",\"nullable\":false,\"max_items\":1,\"items\":{\"type\":\"number\",\"nullable\":false}}")
 }
 
 ///|
 test "expression type corpus accepted: 80" {
-  assert_type("\"regex_extract(s,'(a)',1)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":true}")
+  assert_type("\"if(b,[NULL],[1])\"", corpus_fields(), corpus_parameters(), "{\"type\":\"array\",\"nullable\":false,\"max_items\":1,\"items\":{\"type\":\"number\",\"nullable\":true}}")
 }
 
 ///|
 test "expression type corpus accepted: 81" {
-  assert_type("\"regex_extract(s,'(a)',0)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":true}")
+  assert_type("\"if(b,[],an)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"array\",\"nullable\":true,\"max_items\":0,\"items\":{\"type\":\"number\",\"nullable\":false}}")
 }
 
 ///|
 test "expression type corpus accepted: 82" {
-  assert_type("\"regex_extract(s,'(a)',$q)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":true}")
+  assert_type("\"coalesce([],an)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"array\",\"nullable\":false,\"max_items\":0,\"items\":{\"type\":\"number\",\"nullable\":false}}")
 }
 
 ///|
 test "expression type corpus accepted: 83" {
-  assert_type("\"regex_replace(s,'(a)',$p)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":false}")
+  assert_type("\"if(b,[[NULL]],[[1]])\"", corpus_fields(), corpus_parameters(), "{\"type\":\"array\",\"nullable\":false,\"max_items\":1,\"items\":{\"type\":\"array\",\"nullable\":false,\"max_items\":1,\"items\":{\"type\":\"number\",\"nullable\":true}}}")
 }
 
 ///|
 test "expression type corpus accepted: 84" {
-  assert_type("\"regex_replace(s,'(a)','')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":false}")
+  assert_type("{\"if\":[\"b\",{\"object\":{\"x\":{\"literal\":null}}},{\"object\":{\"x\":\"n\"}}]}", corpus_fields(), corpus_parameters(), "{\"type\":\"object\",\"nullable\":false,\"additional_properties\":false,\"fields\":{\"x\":{\"type\":\"number\",\"nullable\":true}}}")
 }
 
 ///|
 test "expression type corpus accepted: 85" {
-  assert_type("\"regex_replace(s,'(a)','$1','sm')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":false}")
+  assert_type("{\"empty_array\":{\"items\":{\"type\":\"number\",\"nullable\":false}}}", corpus_fields(), corpus_parameters(), "{\"type\":\"array\",\"nullable\":false,\"max_items\":0,\"items\":{\"type\":\"number\",\"nullable\":false}}")
 }
 
 ///|
 test "expression type corpus accepted: 86" {
-  assert_type("\"vector_score(v,vn,'dot')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+  assert_type("{\"template\":\"{n} / {sn} {{literal}}\"}", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":true}")
 }
 
 ///|
 test "expression type corpus accepted: 87" {
-  assert_type("\"vector_concat(v,v2)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"vector\",\"nullable\":false,\"dimensions\":5,\"element_type\":\"f32\"}")
+  assert_type("\"coalesce(rn,r)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"resource_ref\",\"nullable\":false,\"resource_kind\":\"Customer\"}")
 }
 
 ///|
 test "expression type corpus accepted: 88" {
+  assert_type("\"if(b,NULL,r)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"resource_ref\",\"nullable\":true,\"resource_kind\":\"Customer\"}")
+}
+
+///|
+test "expression type corpus accepted: 89" {
+  assert_type("\"nullif(r,rn)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"resource_ref\",\"nullable\":true,\"resource_kind\":\"Customer\"}")
+}
+
+///|
+test "expression type corpus accepted: 90" {
+  assert_type("\"substring(sn,-1,0)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 91" {
+  assert_type("\"split_part(s,'',-1)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 92" {
+  assert_type("\"utf8_truncate(s,n)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 93" {
+  assert_type("\"try_number(s)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 94" {
+  assert_type("\"nfkc(case_fold(s))\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 95" {
+  assert_type("\"parse_timestamp(sn,'yyyy-MM-dd')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"timestamp\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 96" {
+  assert_type("\"try_timestamp(s,$p)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"timestamp\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 97" {
+  assert_type("\"format_timestamp(ts,'yyyy')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 98" {
+  assert_type("\"regex_match(s,$p,'ms')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 99" {
+  assert_type("\"regex_match(s,'a','')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 100" {
+  assert_type("\"regex_match(s,'a','m')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 101" {
+  assert_type("\"regex_match(s,'a','s')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"boolean\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 102" {
+  assert_type("\"regex_extract(s,'(a)',1)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 103" {
+  assert_type("\"regex_extract(s,'(a)',0)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 104" {
+  assert_type("\"regex_extract(s,'(a)',$q)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 105" {
+  assert_type("\"regex_replace(s,'(a)',$p)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 106" {
+  assert_type("\"regex_replace(s,'(a)','')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 107" {
+  assert_type("\"regex_replace(s,'(a)','$1','sm')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"string\",\"nullable\":false}")
+}
+
+///|
+test "expression type corpus accepted: 108" {
+  assert_type("\"vector_score(v,vn,'dot')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"number\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 109" {
+  assert_type("\"vector_concat(v,v2)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"vector\",\"nullable\":false,\"dimensions\":5,\"element_type\":\"f32\"}")
+}
+
+///|
+test "expression type corpus accepted: 110" {
   assert_type("\"vector_concat(v,vn)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"vector\",\"nullable\":true,\"dimensions\":6,\"element_type\":\"f32\"}")
 }
 
@@ -739,4 +849,14 @@ test "expression type corpus rejected: 58" {
 ///|
 test "expression type corpus rejected: 59" {
   assert_rejected("\"n IN (TRUE)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 60" {
+  assert_rejected("\"s IN $empty_items\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 61" {
+  assert_rejected("{\"in\":[{\"literal\":null},{\"literal\":[]}]}", corpus_fields(), corpus_parameters(), "NullTypeUnresolved")
 }

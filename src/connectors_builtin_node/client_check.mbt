@@ -550,6 +550,13 @@ fn check_program_finding(
 ) -> CheckFinding {
   if @program_check.diagnostic_cause(diagnostic)
     is Source(SourceView(Program(Program(Pipeline(_, issue))))) &&
+    issue.kind is Operation(ExpectedBoolean) {
+    // The existing Relation checker proves the Boolean predicate requirement.
+    // Its span lacks authored/generated origin kind, so no SQL range is guessed.
+    return ExpressionViolation("expected_boolean", None)
+  }
+  if @program_check.diagnostic_cause(diagnostic)
+    is Source(SourceView(Program(Program(Pipeline(_, issue))))) &&
     issue.path.length() == 6 &&
     issue.path[0] is Key("stages") &&
     issue.path[1] is Index(_) &&
