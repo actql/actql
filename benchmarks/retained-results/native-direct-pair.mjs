@@ -26,7 +26,8 @@ async function checkoutState(root) {
 // admission still requires the complete Native obligation/accounting report.
 export async function runNativeDirectPair({checkout, fixture, database,
   directory, index = 0, nativeRates, localRates, nativeEstimateProfile,
-  nativeResidentEstimateProfile, artifactReadChunkBytes = 1024 * 1024}) {
+  nativeResidentEstimateProfile, artifactReadChunkBytes = 1024 * 1024,
+  sourceReadOnly = true}) {
   assert(Number.isSafeInteger(index) && index >= 0, 'InvalidNativePairIndex');
   assert(!(nativeEstimateProfile && nativeResidentEstimateProfile), 'ConflictingNativeProfiles');
   assert(!(nativeEstimateProfile || nativeResidentEstimateProfile) || !nativeRates && !localRates,
@@ -65,7 +66,7 @@ export async function runNativeDirectPair({checkout, fixture, database,
       if (label === 'native') {
         const started = performance.now();
         const invocation = await prepareNativeDirectProduct({root, fixture,
-          database, directory: nativeRoot,
+          database, directory: nativeRoot, sourceReadOnly,
           nativeMs: nativeResidentEstimateProfile?.rates.fresh[0] ?? nativeEstimateProfile?.nativeTaskMilliseconds[0] ??
             nativeRates?.[0] ?? '1000',
           nativeRates: nativeResidentEstimateProfile?.rates.fresh ?? nativeEstimateProfile?.nativeTaskMilliseconds ?? nativeRates,
@@ -198,6 +199,7 @@ export async function runNativeDirectPair({checkout, fixture, database,
         ownerCorrespondence: native.ownerCorrespondence,
         taskHoldings: native.taskHoldings,
         taskUsages: native.taskUsages,
+        preparation: native.preparation,
         usage: native.record.usage,
         acquisition: native.record.acquisition},
       selectionProfile,

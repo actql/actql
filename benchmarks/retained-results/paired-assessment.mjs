@@ -7,10 +7,11 @@ export function assessPairedTiming(pairs, {
 }) {
   if (!['baseline-actql', 'direct-duckdb',
     'direct-duckdb-with-identical-obligations-and-independent-holding',
-    'uncalibrated-native-selection', 'artifact-read-buffer-64k'].includes(comparator) ||
-      !['executionMs', 'warmMs', 'coldMs', 'cleanupMs', 'processCycleMs', 'benchmarkCycleMs'].includes(field) ||
-      field === 'processCycleMs' && !['uncalibrated-native-selection', 'artifact-read-buffer-64k'].includes(comparator) ||
-      field === 'benchmarkCycleMs' && comparator !== 'artifact-read-buffer-64k' ||
+    'uncalibrated-native-selection', 'artifact-read-buffer-64k', 'source-open-read-write'].includes(comparator) ||
+      !['executionMs', 'warmMs', 'coldMs', 'cleanupMs', 'processCycleMs', 'benchmarkCycleMs', 'databasePreparationMs'].includes(field) ||
+      field === 'processCycleMs' && !['uncalibrated-native-selection', 'artifact-read-buffer-64k', 'source-open-read-write'].includes(comparator) ||
+      field === 'benchmarkCycleMs' && !['artifact-read-buffer-64k', 'source-open-read-write'].includes(comparator) ||
+      field === 'databasePreparationMs' && comparator !== 'source-open-read-write' ||
       !['ratio', 'difference'].includes(mode) || !Number.isFinite(threshold) ||
       !Number.isSafeInteger(minimumPairs) || minimumPairs < 7 ||
       !Number.isSafeInteger(resamples) || resamples < 10000 || resamples > 1000000 ||

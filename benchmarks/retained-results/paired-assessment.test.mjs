@@ -88,3 +88,18 @@ test('artifact comparison keeps benchmark work distinct from the Native cycle an
   delete pairs[3].samples[label].benchmarkCycleMs;
   assert.equal(assessPairedTiming(pairs, {...config, field: 'benchmarkCycleMs'}).status, 'incomplete');
 });
+
+test('source-open comparison separates database preparation from the complete Native cycle', () => {
+  const label = 'source-open-read-write';
+  const pairs = Array.from({length: 7}, (_, index) => ({index, caseId: 'fixed/narrow/100',
+    order: index % 2 ? ['retained-actql', label] : [label, 'retained-actql'],
+    samples: {[label]: {status: 'completed', databasePreparationMs: 5, processCycleMs: 30},
+      'retained-actql': {status: 'completed', databasePreparationMs: 1, processCycleMs: 30}}}));
+  const config = {comparator: label, mode: 'difference', threshold: 0};
+  assert(Math.abs(assessPairedTiming(pairs, {...config, field: 'databasePreparationMs'}).upper + 4) < 1e-12);
+  assert.equal(assessPairedTiming(pairs, {...config, field: 'processCycleMs'}).upper, 0);
+  delete pairs[2].samples[label].processCycleMs;
+  assert.equal(assessPairedTiming(pairs, {...config, field: 'processCycleMs'}).status, 'incomplete');
+  assert.throws(() => assessPairedTiming(pairs, {...config, comparator: 'baseline-actql',
+    field: 'databasePreparationMs'}), /InvalidTimingAssessment/);
+});
