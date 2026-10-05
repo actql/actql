@@ -160,7 +160,6 @@ test "current TRAIL obligations retain typed selector ownership and source prove
 test "unsupported Graph consumers cannot issue legacy selector or structural fold obligations" {
   for
     (body, key) in [
-      ("{\"subgraph\":{\"nodes\":{\"ids\":[]}}}", "subgraph"),
       (
         "{\"shortest_path\":{\"source\":{\"ids\":[]},\"target\":{\"ids\":[]},\"selection\":\"each_pair\",\"direction\":\"both\",\"max_hops\":2}}",
         "shortest_path",
@@ -179,4 +178,65 @@ test "unsupported Graph consumers cannot issue legacy selector or structural fol
     assert_eq(issue.kind, Graph(@graph.UnsupportedGraphOperation))
     assert_eq(issue.path, [Index(0), Key(key)])
   }
+}
+
+///|
+test "current subgraph obligations retain typed selector and edge predicate ownership" {
+  let source = cursor(
+    "[{\"from\":\"g\",\"subgraph\":{\"nodes\":{\"ids\":[" +
+    subgraph_test_identity() +
+    "]},\"edges\":\"active\"}}]",
+  )
+  let pipeline = @pipeline_typing.check_carriers(
+    source,
+    [("g", graph_property_scope_input())],
+    None,
+    None,
+    limits(),
+  ).unwrap()
+  let op = @pipeline_typing.step_at(pipeline, 0).unwrap().operation
+  assert_obligation_groups(op, [Body, StartSelector])
+  guard op is Subgraph(checked~, ..) else { fail("current subgraph") }
+  let body = @pipeline_typing.operation_obligation_group_at(op, 0).unwrap()
+  assert_true(
+    physical_equal(
+      @pipeline_typing.operation_obligations_subgraph(body).unwrap(),
+      checked,
+    ),
+  )
+  let pending = @graph.subgraph_pending(checked)
+  assert_eq(pending, [
+    AdmitSubgraphInput,
+    InduceSelectedEndpoints,
+    FilterInducedEdges,
+    PreserveSubgraphIdentitiesAndProperties,
+    PreserveSubgraphPolicyAndScope,
+    ResolveSubgraphResources,
+    ResolveSubgraphProfile,
+  ])
+  assert_eq(
+    @pipeline_typing.operation_obligations_count(body),
+    pending.length(),
+  )
+  for index, requirement in pending {
+    guard @pipeline_typing.operation_obligations_at(body, index)
+      is Some(SubgraphRequirement(actual)) else {
+      fail("subgraph body obligation")
+    }
+    assert_eq(actual, requirement)
+  }
+  let group = @pipeline_typing.operation_obligation_group_at(op, 1).unwrap()
+  let selector = @pipeline_typing.operation_obligations_selector(group).unwrap()
+  assert_true(physical_equal(selector, @graph.subgraph_nodes(checked)))
+  assert_eq(
+    @decode.cursor_path(@pipeline_typing.operation_obligations_source(group)),
+    [Index(0), Key("subgraph"), Key("nodes")],
+  )
+  assert_eq(@pipeline_typing.operation_obligations_count(group), 4)
+  assert_eq(@graph.selector_pending(selector), [
+    AdmitSelectorIdentities,
+    DeduplicateSelectorIdentities,
+    RequireSelectorMembership,
+    ResolveSelectorResources,
+  ])
 }
