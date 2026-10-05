@@ -50,6 +50,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/order-ordinal-source-input.mjs', 'order-ordinal-source-input.mjs'],
   ['scripts/fixtures/quoted-identifier-source-input.mjs', 'quoted-identifier-source-input.mjs'],
   ['scripts/fixtures/distinct-order-source-input.mjs', 'distinct-order-source-input.mjs'],
+  ['scripts/fixtures/grouped-in-source-input.mjs', 'grouped-in-source-input.mjs'],
   ['scripts/fixtures/order-property-source-input.mjs', 'order-property-source-input.mjs'],
   ['scripts/fixtures/analytic-order-source-input.mjs', 'analytic-order-source-input.mjs'],
   ['docs/reviews/fixtures/analytic-order-property-repro.program.json', 'analytic-order-property-repro.program.json'],
@@ -140,6 +141,9 @@ if (process.argv.includes('--property-graph-source-only')) {
 }
 if (process.argv.includes('--graph-property-predicate-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_PROPERTY_PREDICATE_ONLY = '1';
+}
+if (process.argv.includes('--grouped-in-only')) {
+  runtimeEnvironment.ACTQL_TEST_GROUPED_IN_ONLY = '1';
 }
 if (process.argv.includes('--distinct-order-only')) {
   runtimeEnvironment.ACTQL_TEST_DISTINCT_ORDER_ONLY = '1';
@@ -301,7 +305,7 @@ if (process.argv.includes('--cancellation-only')) {
 }
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
-const narrowPublicQuery = process.argv.some(flag => ['--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
+const narrowPublicQuery = process.argv.some(flag => ['--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
   '--analytic-offset-only',
   '--join-property-only', '--aggregate-property-only', '--analytic-property-only', '--graph-match-only',
   '--graph-diagnostics-only',
@@ -347,7 +351,8 @@ try {
       await readFile(join(root, 'planner-selection-packed-report.json')));
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
 }
-if (plannerSelectionOnly || twoSourceExampleOnly) return;
+if (plannerSelectionOnly || twoSourceExampleOnly ||
+    process.argv.includes('--grouped-in-only')) return;
 // The first Host process has exited: no live Local installation still owns
 // its Store. Restore retained Results in a new process without resubmission.
 // Narrow selections without the String fixture have no retained String Run.
