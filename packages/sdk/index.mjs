@@ -872,7 +872,22 @@ async function connectSelected(selected, port) {
           throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),
             context, 'outcome_unknown');
         }
-        return retainCancellationExplanation(response, context, response.kind, response.revision);
+        // Local ports may reuse their response object across operations.
+        let received;
+        try { received = structuredClone(response); }
+        catch {
+          throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),
+            context, 'outcome_unknown');
+        }
+        // Cloning may reject a Local value or drop/change its validated fields.
+        if (!validCancellation(received) ||
+            received.ref.namespaceId !== ref.namespaceId ||
+            received.ref.authorityScopeCid !== ref.authorityScopeCid ||
+            received.ref.runDefinitionCid !== ref.runDefinitionCid) {
+          throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),
+            context, 'outcome_unknown');
+        }
+        return retainCancellationExplanation(received, context, received.kind, received.revision);
       },
       // The Run's current state after the Host's reconciliation attempt. An
       // unknown Effect outcome stays `needs_reconciliation` until the Host

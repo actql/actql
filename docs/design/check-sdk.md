@@ -867,6 +867,13 @@ S1–S9/X1–X17/invariant completion gate.
 
 `explainCancellation(result)` returns immutable read-only advice for the exact
 response or uncertain error produced by this SDK's `Execution.cancel()` call.
+The SDK detaches each validated cancellation response, so a Local port reusing
+its response object cannot change an earlier result's Run, kind, revision or
+explanation.
+The detached value is revalidated against the response schema and all three
+original Run fields. Clone failures or changed fields raise
+`InvalidHostCancellation` with the original Run's `outcome_unknown` advice;
+they never trigger another cancellation request.
 Validated `accepted`, `already_requested` and `already_terminal` observations
 retain the Host's control revision. The summary distinguishes recording a
 cancellation request, an existing request and a Run already terminal for
