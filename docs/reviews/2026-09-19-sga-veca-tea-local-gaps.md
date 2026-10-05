@@ -768,9 +768,9 @@ and checked by `check:local-resource-accounting`.
 | Executable production routes | 61 |
 | Typed pre-execution refusals (not execution success) | 8 |
 | Operation-specific boundary records | 61 |
-| Four-role lifecycle assurance | 59 |
-| Full route work/workspace assurance | 59 |
-| Path-scoped work/workspace assurance | 111 |
+| Four-role lifecycle assurance | 60 |
+| Full route work/workspace assurance | 60 |
+| Path-scoped work/workspace assurance | 112 |
 | Selected-only assurance | 1 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -3483,6 +3483,13 @@ after positive work in conversion and, separately, after bounded application
 progress. Both cases withhold Delta completion, confirm physical stop and
 return held/reserved bytes without resuming Compute on repeated cleanup.
 This is not SDK cancel-response-loss or cleanup-I/O-failure acceptance.
+The registered managed Delta route now checks independently calculated exact
+combined logical workspace (71,951 slots) and one-short rejection before work,
+for both ordinary and selected sequences. Its fixture includes simultaneous
+Relation conversion, snapshot indexes, base-body admission, provisional Storage,
+complete-before comparison, staged output and action-identity continuations.
+The registered four-role and work/workspace records name these current fixtures;
+they do not establish that Wasm/native or hosted CI ran at a later source SHA.
 Published final-revision acceptance and source/physical-resource assurance
 remain separate obligations. The installed Delta workspace is a logical
 reservation, not a count proof or a total-heap theorem.

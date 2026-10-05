@@ -382,6 +382,94 @@ test "Delta provider requires installed limits exact roles and accounted workspa
 }
 
 ///|
+test "Delta provider admits exact combined workspace and rejects one short before work" {
+  let (owner, view, rows, original, _) = graph_delta_input_fixture()
+  // Independent arithmetic for the authored one-node/two-edge fixture and
+  // declared limits, not a value returned by a product workspace helper:
+  // snapshot indexes 1*5 + 2*7; base body 1000*16 + 100*8 + 64;
+  // provisional Storage 1000; before record 1000*8 + 100*4 + 32;
+  // staged output (one key and one property) 100*32 + 10*8 + 100*4*2 + 2*2 + 160;
+  // action identity 1000*8 + 100*4 + 64;
+  // simultaneous Relation conversion 1000*32 + 100*8 + 128.
+  // This tests logical admission, not a physical-byte or total-heap theorem.
+  let exact = 19 + 16864 + 1000 + 8432 + 4244 + 8464 + 32928
+  assert_eq(exact, 71951)
+  for selected in [false, true] {
+    let generated = task_test_generated(owner)
+    let generated = if selected {
+      @execution.select_generated_sequence_step(generated, 0).unwrap()
+    } else {
+      generated
+    }
+    let inputs = [
+      @local_connector.managed_provider_carrier_input(view),
+      @local_connector.managed_provider_relation_input(rows),
+    ]
+    let one_short = delta_provider_fixture(
+      delta_policy=Some({
+        limits: {
+          ..graph_delta_input_limits(),
+          max_workspace_slots: exact - 1,
+        },
+        workspace_bytes: 4000000L,
+      }),
+    )
+    assert_true(
+      start_delta_provider(one_short, generated, inputs, 10, 10000) is Err(_),
+    )
+    assert_true(@graphs.completed_available(original))
+    assert_true(@execution.producer_read_available(rows))
+    assert_eq(
+      snapshot_capture(@graphs.completed_storage(original).unwrap()),
+      (snapshot_fixture_cid(), snapshot_fixture_body()),
+    )
+    let provider = delta_provider_fixture(
+      delta_policy=Some({
+        limits: { ..graph_delta_input_limits(), max_workspace_slots: exact, },
+        workspace_bytes: 4000000L,
+      }),
+    )
+    let active = start_delta_provider(provider, generated, inputs, 10, 10000).unwrap()
+    let mut completed = None
+    let mut work = 0L
+    for _ in 0..<10000 {
+      match @local_connector.advance_managed_provider(active, 1).unwrap() {
+        @local_connector.Continue(work=used, ..) => {
+          assert_eq(used, 1L)
+          work += used
+        }
+        @local_connector.CarrierComplete(material, work=used, ..) => {
+          work += used
+          completed = Some(material)
+          break
+        }
+        _ =>
+          abort("exact Delta workspace failed or published a different family")
+      }
+    }
+    assert_true(work > 0L)
+    assert_eq(
+      @local_connector.managed_provider_cumulative_work(active),
+      Ok(work),
+    )
+    assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
+    assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
+    assert_eq(
+      @local_connector.managed_provider_cumulative_work(active),
+      Ok(work),
+    )
+    assert_true(@graphs.completed_available(original))
+    assert_true(@execution.producer_read_available(rows))
+    guard completed is Some(material) else {
+      fail("missing completed Delta Graph")
+    }
+    assert_true(@carrier_runtime.material_available(material))
+    assert_true(@carrier_runtime.reclaim_material(material))
+  }
+  assert_true(@graphs.discard_completed(original))
+}
+
+///|
 test "Delta provider preserves failure work and cleanup without reclaiming borrowed inputs" {
   for cause in ["cancel", "loss", "budget", "outer_budget", "envelope"] {
     let (owner, view, rows, original, live) = graph_delta_input_fixture(

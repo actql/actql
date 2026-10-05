@@ -106,7 +106,7 @@ test('resource audit fixtures are reclaimed on success, rejection, and setup fai
 });
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /69 operations, 5 implementation profiles, 61 production routes mapped, 8 typed pre-execution refusals \(not execution success\), 61 with operation-specific boundary records, 59 with four-role boundary evidence, 59 with full work\/workspace assurance, 111 with path-scoped work\/workspace evidence, 1 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /69 operations, 5 implementation profiles, 61 production routes mapped, 8 typed pre-execution refusals \(not execution success\), 61 with operation-specific boundary records, 60 with four-role boundary evidence, 60 with full work\/workspace assurance, 112 with path-scoped work\/workspace evidence, 1 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('unsupported Graph routes require one shared public refusal boundary and cannot claim execution', () => {
@@ -1062,7 +1062,7 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
-    '| Path-scoped work/workspace assurance | 111 |',
+    '| Path-scoped work/workspace assurance | 112 |',
     '| Path-scoped work/workspace assurance | 54 |',
   );
   assert.notEqual(stale, gaps);
@@ -2212,9 +2212,26 @@ test('resource completion rejects every unassured operation', () => {
 const pendingBoundaryErrors = [
   'SGA subgraph: entrypoint boundary assurance is missing',
   'SGA subgraph: entrypoint work/workspace assurance is missing',
-  'SGA apply_graph_delta: entrypoint boundary assurance is missing',
-  'SGA apply_graph_delta: entrypoint work/workspace assurance is missing',
 ];
+
+test('Delta combined workspace and delivered stop cannot lose their registered proof roles', () => {
+  const delta = routes => routes.routes.find(route=>route.operation==='apply_graph_delta');
+  for (const [collection,role,expected] of [
+    ['boundary_tests','delta_combined_workspace_exact_one_short',
+      'SGA apply_graph_delta: entrypoint operation workspace lacks an executable fixture'],
+    ['environment_tests','timer_delivered_bounded_application_cancel_and_cleanup',
+      'SGA apply_graph_delta: entrypoint in_flight_cancel lacks an executable fixture'],
+  ]) {
+    const result = evaluate(undefined, routes => {
+      delta(routes)[collection] = delta(routes)[collection].filter(item=>item.role!==role);
+    });
+    assert(result.errors.includes(expected), result.errors.join('\n'));
+  }
+  const result = evaluate(undefined, routes => {
+    delete delta(routes).resource_assurance.entrypoint;
+  }, ['--require-boundary-complete']);
+  assert(result.errors.includes('SGA apply_graph_delta: entrypoint work/workspace assurance is missing'));
+});
 
 test('strict resource completion preserves every current unassured Graph obligation', () => {
   // A registered current route is not the same as full route assurance. Keep

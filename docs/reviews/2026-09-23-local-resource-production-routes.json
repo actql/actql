@@ -7553,6 +7553,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/property_graph_delta_provider_wbtest.mbt",
           "fixture": "Delta provider preserves failure work and cleanup without reclaiming borrowed inputs"
+        },
+        {
+          "role": "delta_combined_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_delta_provider_wbtest.mbt",
+          "fixture": "Delta provider admits exact combined workspace and rejects one short before work"
         }
       ],
       "environment_tests": [
@@ -7570,7 +7577,27 @@
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "Delta application stops after positive work through the installed Local Host during bounded application"
         }
-      ]
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "exact_one_short_and_cancel_cleanup",
+          "one_short_limit": "exact_one_short_and_cancel_cleanup",
+          "in_flight_cancel": "timer_delivered_bounded_application_cancel_and_cleanup",
+          "cleanup": "delta_conversion_handoff_failure_and_borrowed_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "exact_one_short_and_cancel_cleanup",
+            "one_short_limit": "exact_one_short_and_cancel_cleanup"
+          },
+          "workspace": {
+            "exact_limit": "delta_combined_workspace_exact_one_short",
+            "one_short_limit": "delta_combined_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "families",
