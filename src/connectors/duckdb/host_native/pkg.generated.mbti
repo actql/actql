@@ -73,7 +73,7 @@ pub fn native_strategy_compute_runtime_output(NativeStrategyComputeRuntime) -> R
 
 pub fn open_native_read_only_source_acquisition(NativeReadOnlySourceBinding, @host.NativeHostConfiguration, @native.Library, String) -> Result[NativeAcquisitionRuntime, NativeReadOnlySourceIssue]
 
-pub fn open_native_standard_strategy_run(@standard_host.StrategyHostDispatch, NativeComputeImportLimits, Int64, Int64, library? : @native.Library?, database_path? : String, retained_profile? : NativeStrategyRetainedOutputProfile) -> Result[NativeStandardStrategyRun, NativeStandardStrategyRunIssue]
+pub fn open_native_standard_strategy_run(@standard_host.StrategyHostDispatch, NativeComputeImportLimits, Int64, Int64, library? : @native.Library?, database_path? : String, retained_profile? : NativeStrategyRetainedOutputProfile, observe_phase? : (NativeStandardStrategyPhaseEvent) -> Unit) -> Result[NativeStandardStrategyRun, NativeStandardStrategyRunIssue]
 
 pub fn open_native_strategy_compute_run() -> NativeStrategyComputeRun
 
@@ -210,6 +210,17 @@ pub(all) enum NativeStandardRunPublicationIssue {
 pub(all) enum NativeStandardStrategyMeasurementScope {
   InputOutputValues
   ProviderWork
+}
+
+pub(all) enum NativeStandardStrategyPhase {
+  ResidentEnvironment(Int)
+  ResidentInputImport(Int, Int)
+  ResidentTask(Int)
+} derive(Eq)
+
+pub(all) enum NativeStandardStrategyPhaseEvent {
+  Begin(NativeStandardStrategyPhase)
+  End(NativeStandardStrategyPhase, Bool)
 }
 
 type NativeStandardStrategyRun

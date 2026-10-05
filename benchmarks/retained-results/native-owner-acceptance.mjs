@@ -39,7 +39,13 @@ test('100 rows: actual resident/fresh/Local choices, cheaper capacity refusal an
       database, fixture.workload, fixture.layout, String(fixture.rows)],
       {cwd: root, timeout: fixture.limits.timeoutMs});
       for (const [label, settings] of [
-        ['resident', {residentPolicy: true}],
+        ['resident', {residentPolicy: true, phaseObserver: true}],
+        ['resident-profiled', {residentPolicy: true, phaseObserver: true,
+          residentEstimates: {preparationMilliseconds: '2', cleanupMilliseconds: '3',
+            taskMilliseconds: ['4', '5', '6'], importMilliseconds: ['7', '8', '9', null]}}],
+        ['resident-unknown', {residentPolicy: true, phaseObserver: true,
+          residentEstimates: {preparationMilliseconds: '2', cleanupMilliseconds: '3',
+            taskMilliseconds: ['4', '5', '6'], importMilliseconds: [null, null, null, null]}}],
         ['fresh', {residentPolicy: false}],
         ['local', {residentPolicy: false, localRates: ['1', '1', '1'],
           nativeRates: ['2147483647', '2147483647', '2147483647']}],
@@ -55,14 +61,20 @@ test('100 rows: actual resident/fresh/Local choices, cheaper capacity refusal an
           database, directory: child,
           localRates: ['1000', '1000', '1000'], nativeRates: ['1000', '1000', '1000'],
           ...settings});
-        if (label === 'reject') {
+        if (label === 'reject' || label === 'resident-unknown') {
           let failure;
           try {await exec(invocation.binary, invocation.arguments,
             {cwd: root, timeout: fixture.limits.timeoutMs});}
           catch (error) {failure = error;}
           assert(failure, 'InsufficientAttemptsAccepted');
           assert.match(failure.stdout, /strategy-terminal:no-strategy/);
-          assert.match(failure.stdout, /strategy-rejection:[0-9]+:attempt:/);
+          if (label === 'reject') {
+            assert.match(failure.stdout, /strategy-rejection:[0-9]+:attempt:/);
+          } else {
+            // Unknown candidate durations defer offline ranking. Do not
+            // replace missing import observations with invented rates.
+            assert.match(failure.stdout, /compute-candidates:/);
+          }
           const observations = nativeOwnerObservations(failure.stdout);
           assert(observations.owners.every(owner => owner.attempts === 0 &&
             owner.holdings === 0), 'RejectedPlanEnteredCompute');
@@ -84,8 +96,9 @@ test('100 rows: actual resident/fresh/Local choices, cheaper capacity refusal an
           const execution = await executeNativeDirectProduct(invocation,
             {root, timeoutMs: fixture.limits.timeoutMs});
           const product = admitNativeDirectProduct(fixture, invocation, execution);
+          const residentSelected = label === 'resident' || label === 'resident-profiled';
           assert(product.ownerCorrespondence.observations.choices.every(choice =>
-            choice.resident === (label === 'resident')));
+            choice.resident === residentSelected));
           assert.deepEqual(product.selected, Array(3).fill(
             label === 'local' ? 'local' : 'duckdb'),
           JSON.stringify({label, explanations: product.ownerCorrespondence.observations.explanations}));
@@ -100,7 +113,12 @@ test('100 rows: actual resident/fresh/Local choices, cheaper capacity refusal an
             'MissingCheaperCandidateCapacityRefusal');
           }
           assert.deepEqual(product.ownerCorrespondence.attempts.map(attempt =>
-            attempt.physicalAttempts), label === 'resident' ? [3, 1, 1] : [1, 1, 1]);
+            attempt.physicalAttempts), residentSelected ? [3, 1, 1] : [1, 1, 1]);
+          if (residentSelected) {
+            assert.deepEqual(product.physicalPhases.intervals.map(item => item.phase),
+              ['environment', 'import', 'compute', 'compute', 'compute']);
+            assert.equal(product.physicalPhases.intervals[1].producer, 0);
+          }
           // Exact independent rows/CID and per-stage cardinalities are checked by
           // product admission; this observer only adds the owner correspondence.
           closed(product.ownerCorrespondence.observations);

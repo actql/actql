@@ -14,12 +14,39 @@ struct NativeStandardStrategyRun {
   database_memory_bytes : Int64
   database_path : String
   retained_profile : NativeStrategyRetainedOutputProfile?
+  observe_phase : ((NativeStandardStrategyPhaseEvent) -> Unit)?
   resident_environments : Array[NativeResidentEnvironment]
   mut resident_fault : NativeResidentFault?
   mut resident_task_demand_bytes : Int64
   mut accepting : Bool
   mut complete : Bool
   mut dispatch_stopped : Bool
+}
+
+///|
+/// Observation of existing synchronous physical boundaries. These events do
+/// not authorize work, assert cancellation or confirm cleanup. A trusted
+/// caller may supply a clock; the ordinary Host installs no observer.
+pub(all) enum NativeStandardStrategyPhase {
+  ResidentEnvironment(Int)
+  ResidentInputImport(Int, Int)
+  ResidentTask(Int)
+} derive(Eq)
+
+///|
+pub(all) enum NativeStandardStrategyPhaseEvent {
+  Begin(NativeStandardStrategyPhase)
+  End(NativeStandardStrategyPhase, Bool)
+}
+
+///|
+fn NativeStandardStrategyRun::observe_phase_event(
+  self : NativeStandardStrategyRun,
+  event : NativeStandardStrategyPhaseEvent,
+) -> Unit {
+  if self.observe_phase is Some(observe) {
+    observe(event)
+  }
 }
 
 ///|
@@ -146,6 +173,7 @@ pub fn open_native_standard_strategy_run(
   library? : @native_duckdb.Library? = None,
   database_path? : String = "",
   retained_profile? : NativeStrategyRetainedOutputProfile,
+  observe_phase? : (NativeStandardStrategyPhaseEvent) -> Unit,
 ) -> Result[NativeStandardStrategyRun, NativeStandardStrategyRunIssue] {
   if transfer_bytes < 0 || execution_bytes <= 0 {
     return Err(InvalidSelection)
@@ -169,6 +197,7 @@ pub fn open_native_standard_strategy_run(
     database_memory_bytes: execution_bytes,
     database_path,
     retained_profile,
+    observe_phase,
     resident_environments: [],
     resident_fault: None,
     resident_task_demand_bytes: 0L,
@@ -391,6 +420,8 @@ pub fn execute_next_native_standard_strategy_task(
     None
   }
   if resident is Some((env, execution_bytes)) {
+    let phase = ResidentTask(task_index)
+    run.observe_phase_event(Begin(phase))
     let executed = match
       borrow_native_resident_inputs(run, env, setup, task_index) {
       Err(issue) => Err(issue)
@@ -407,6 +438,7 @@ pub fn execute_next_native_standard_strategy_task(
           resident=binding,
         ).map_err(issue => DuckDB(issue))
     }
+    run.observe_phase_event(End(phase, executed is Ok(_)))
     return match executed {
       Ok(output) =>
         Ok(
@@ -709,7 +741,6 @@ fn prepare_native_resident_environment(
   task : Int,
   binding : @connector.ResourceBinding,
 ) -> Result[NativeResidentEnvironment, NativeStandardStrategyRunIssue] {
-  let graph = @duckdb_standard_host.dispatch_run(run.dispatch)
   for env in run.resident_environments {
     if !env.released &&
       native_resident_environment_binding_matches(env, binding) {
@@ -721,6 +752,19 @@ fn prepare_native_resident_environment(
       return Ok(env)
     }
   }
+  let phase = ResidentEnvironment(task)
+  run.observe_phase_event(Begin(phase))
+  let prepared = create_native_resident_environment(run, task)
+  run.observe_phase_event(End(phase, prepared is Ok(_)))
+  prepared
+}
+
+///|
+fn create_native_resident_environment(
+  run : NativeStandardStrategyRun,
+  task : Int,
+) -> Result[NativeResidentEnvironment, NativeStandardStrategyRunIssue] {
+  let graph = @duckdb_standard_host.dispatch_run(run.dispatch)
   guard run.library is Some(library) else { return Err(DuckDBUnavailable) }
   let environment = match
     @strategy.begin_resident_environment(graph, task, run.database_memory_bytes) {
@@ -793,19 +837,22 @@ fn import_native_resident_inputs(
       env.borrowed_inputs += 1
       continue
     }
-    match
-      import_native_resident_table(
-        graph,
-        env,
-        producer,
-        bytes,
-        entries,
-        names,
-        run.import_limits,
-        run.transfer_bytes,
-        frame_bytes,
-        storage => native_standard_retained_storage(run, producer, storage),
-      ) {
+    let phase = ResidentInputImport(task, producer)
+    run.observe_phase_event(Begin(phase))
+    let imported = import_native_resident_table(
+      graph,
+      env,
+      producer,
+      bytes,
+      entries,
+      names,
+      run.import_limits,
+      run.transfer_bytes,
+      frame_bytes,
+      storage => native_standard_retained_storage(run, producer, storage),
+    )
+    run.observe_phase_event(End(phase, imported is Ok(_)))
+    match imported {
       Ok(_) => ()
       Err(issue) => return Err(DuckDB(issue))
     }
