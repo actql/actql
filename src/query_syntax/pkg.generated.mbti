@@ -170,6 +170,7 @@ pub(all) enum ExpressionKind {
   StringLiteral(String)
   Reference(Array[NamePart])
   ParameterReference(String)
+  Property(Int, NamePart)
   Unary(String, Int)
   Binary(String, Int, Int)
   Call(Array[NamePart], Array[Int])

@@ -397,6 +397,12 @@ fn same_expression(
         }
         pending.push((a_child, b_child))
       }
+      (Property(a_child, a_name), Property(b_child, b_name)) => {
+        if a_name.value != b_name.value {
+          return false
+        }
+        pending.push((a_child, b_child))
+      }
       _ => if a != b { return false }
     }
   }
@@ -781,6 +787,7 @@ fn output_name(
               }
               raise Abort(UnknownColumn)
             }
+            Property(_, name) => name.value
             _ => raise Abort(UnsupportedProjection)
           }
         None => raise Abort(UnsupportedProjection)
@@ -2484,6 +2491,7 @@ fn compile_steps(
                       @query.expression_root(expression),
                     ).unwrap().kind {
                     Reference(path) => path.last().unwrap().value
+                    Property(_, name) => name.value
                     _ => raise Abort(UnsupportedProjection)
                   }
               }
@@ -5262,8 +5270,10 @@ fn join_reference_paths(
   while pending.pop() is Some(index) {
     match @query.expression_node(expression, index).unwrap().kind {
       Reference(path) => paths.push(path)
-      Parenthesized(child) | Unary(_, child) | Cast(child, _) =>
-        pending.push(child)
+      Parenthesized(child)
+      | Unary(_, child)
+      | Cast(child, _)
+      | Property(child, _) => pending.push(child)
       Binary(_, left, right) => {
         pending.push(right)
         pending.push(left)
@@ -5330,9 +5340,11 @@ fn joined_projection(
     let name = match projection.name {
       Some(value) => value.value
       None =>
-        match reference {
-          Some(path) => path.last().unwrap().value
-          None => raise Abort(UnsupportedJoin)
+        match
+          @query.expression_node(expression, @query.expression_root(expression)).unwrap().kind {
+          Reference(path) => path.last().unwrap().value
+          Property(_, name) => name.value
+          _ => raise Abort(UnsupportedJoin)
         }
     }
     if output.any(field => ascii_upper(field) == ascii_upper(name)) {
