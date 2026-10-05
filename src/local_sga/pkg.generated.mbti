@@ -112,6 +112,8 @@ pub fn start_components_view(@bounded_execution.Control, @execution_relation.Com
 
 pub fn start_delta_apply_from_admitted_input(@bounded_execution.Control, DeltaApplyInputPreparation, control_work_limit? : Int?) -> Result[DeltaApplyExecution, DeltaApplyIssue]
 
+pub fn start_delta_apply_inputs(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @execution_relation.ProducerRead, @bounded_graph_diff.Limits, @managed_graph_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[DeltaApplyExecution, DeltaApplyIssue]
+
 pub fn start_graph_bounds(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[GraphBoundsExecution, GraphBoundsIssue]
 
 pub fn start_graph_bounds_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[GraphBoundsExecution, GraphBoundsIssue]

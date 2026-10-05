@@ -430,11 +430,12 @@ pub fn advance_delta_apply_input(
 /// No Graph definition/snapshot preparation is repeated here. Normal provider
 /// selection/resource resolution remains a separate boundary. Successful start
 /// transfers the one output; failure never reclaims either borrowed input.
-pub fn start_delta_apply_from_admitted_input(
-  control : @bounded.Control,
+fn claim_delta_apply_input(
   input : DeltaApplyInputPreparation,
-  control_work_limit? : Int? = None,
-) -> Result[DeltaApplyExecution, DeltaApplyIssue] {
+) -> Result[
+  (@delta.ApplyPreparation, @graph.OutputBuilder, () -> Bool),
+  DeltaApplyIssue,
+] {
   guard input.phase is DeltaInputFinished &&
     !input.claimed &&
     input.decoded is Some(cursor) &&
@@ -444,9 +445,6 @@ pub fn start_delta_apply_from_admitted_input(
     input.base_preparation is Some(base_preparation) &&
     delta_input_available(input) else {
     return Err(DeltaApplyInvalidInput)
-  }
-  if control_work_limit is Some(limit) && limit < 0 {
-    return Err(DeltaApplyControlWorkLimit)
   }
   let preparation = match
     @delta.start_apply_from_prepared_base(base_preparation, cursor) {
@@ -459,6 +457,27 @@ pub fn start_delta_apply_from_admitted_input(
   let current = fn() {
     delta_input_reads_available(owner, step, base, rows, available)
   }
+  input.claimed = true
+  input.output = None
+  cleanup_delta_input(input)
+  Ok((preparation, output, current))
+}
+
+///|
+/// Start after separately budgeted input admission. Callers using one control
+/// budget for conversion and application should use start_delta_apply_inputs.
+pub fn start_delta_apply_from_admitted_input(
+  control : @bounded.Control,
+  input : DeltaApplyInputPreparation,
+  control_work_limit? : Int? = None,
+) -> Result[DeltaApplyExecution, DeltaApplyIssue] {
+  if control_work_limit is Some(limit) && limit < 0 {
+    return Err(DeltaApplyControlWorkLimit)
+  }
+  let (preparation, output, current) = match claim_delta_apply_input(input) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   match
     start_prepared_delta_apply(
       control,
@@ -467,12 +486,7 @@ pub fn start_delta_apply_from_admitted_input(
       current,
       control_work_limit~,
     ) {
-    Ok(execution) => {
-      input.claimed = true
-      input.output = None
-      cleanup_delta_input(input)
-      Ok(execution)
-    }
+    Ok(execution) => Ok(execution)
     Err(issue) => {
       @delta.cleanup_apply(preparation) |> ignore
       @graph.cancel_output(output) |> ignore

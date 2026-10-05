@@ -1,5 +1,7 @@
 ///|
 priv enum DeltaApplyPhase {
+  PreparingInput
+  StartApplication
   Applying
   CompleteOutput
   DeltaApplyFinished
@@ -7,7 +9,8 @@ priv enum DeltaApplyPhase {
 
 ///|
 priv struct DeltaApplyState {
-  preparation : @delta.ApplyPreparation
+  mut input : DeltaApplyInputPreparation?
+  mut preparation : @delta.ApplyPreparation?
   mut output : @graph.OutputBuilder?
   mut inputs_available : () -> Bool
   mut result : @storage.Storage?
@@ -66,8 +69,63 @@ fn delta_apply_step(
     None => quantum
   }
   match state.phase {
+    PreparingInput => {
+      guard state.input is Some(input) else {
+        return @bounded.Failed(InvalidDeltaApplyKernel, 0, 0)
+      }
+      let poll = match advance_delta_apply_input(input, budget) {
+        Ok(poll) => poll
+        Err(issue) => return @bounded.Failed(issue, 0, 0)
+      }
+      let work = match poll {
+        DeltaApplyInputContinue(work~)
+        | DeltaApplyInputReady(work~)
+        | DeltaApplyInputFailed(_, work~) => work
+      }
+      if work < 0 ||
+        work > budget ||
+        (poll is DeltaApplyInputContinue(..) && work == 0) {
+        return @bounded.Failed(InvalidDeltaApplyKernel, 0, 0)
+      }
+      if state.remaining is Some(remaining) {
+        state.remaining = Some(remaining - work)
+      }
+      match poll {
+        DeltaApplyInputContinue(..) => @bounded.Continue(0, work)
+        DeltaApplyInputReady(..) => {
+          state.phase = StartApplication
+          @bounded.Continue(0, work)
+        }
+        DeltaApplyInputFailed(issue, ..) => @bounded.Failed(issue, 0, work)
+      }
+    }
+    StartApplication => {
+      guard state.input is Some(input) else {
+        return @bounded.Failed(InvalidDeltaApplyKernel, 0, 0)
+      }
+      // The envelope's fixed header and the one-use handoff consume one unit.
+      // No Graph configuration walk is repeated, and the same remaining budget
+      // continues into action admission, application and output completion.
+      if state.remaining is Some(remaining) {
+        state.remaining = Some(remaining - 1)
+      }
+      match claim_delta_apply_input(input) {
+        Err(issue) => @bounded.Failed(issue, 0, 1)
+        Ok((preparation, output, current)) => {
+          state.input = None
+          state.preparation = Some(preparation)
+          state.output = Some(output)
+          state.inputs_available = current
+          state.phase = Applying
+          @bounded.Continue(0, 1)
+        }
+      }
+    }
     Applying => {
-      let poll = match @delta.advance_apply(state.preparation, budget) {
+      guard state.preparation is Some(preparation) else {
+        return @bounded.Failed(InvalidDeltaApplyKernel, 0, 0)
+      }
+      let poll = match @delta.advance_apply(preparation, budget) {
         Ok(poll) => poll
         Err(issue) => return @bounded.Failed(DeltaApplyKernel(issue), 0, 0)
       }
@@ -130,7 +188,14 @@ fn delta_apply_step(
 
 ///|
 fn cleanup_delta_apply_state(state : DeltaApplyState) -> Bool {
-  @delta.cleanup_apply(state.preparation) |> ignore
+  if state.input is Some(input) {
+    cleanup_delta_input(input)
+    state.input = None
+  }
+  if state.preparation is Some(preparation) {
+    @delta.cleanup_apply(preparation) |> ignore
+    state.preparation = None
+  }
   if state.result is Some(result) {
     @storage.discard(result)
     state.result = None
@@ -165,12 +230,54 @@ pub fn start_prepared_delta_apply(
     return Err(InvalidDeltaApplyKernel)
   }
   let state : DeltaApplyState = {
-    preparation,
+    input: None,
+    preparation: Some(preparation),
     output: Some(output),
     inputs_available,
     result: None,
     remaining: control_work_limit,
     phase: Applying,
+  }
+  let (session, token) = @bounded.start(
+    control, state, delta_apply_step, cleanup_delta_apply_state, @graph.discard_completed,
+  )
+  Ok({ session, token: Some(token), })
+}
+
+///|
+/// Bind both checked inputs during cold setup, then charge Relation conversion,
+/// action admission, application and completion to the same bounded session.
+/// This does not select a Plan or discharge its installed resource obligations.
+pub fn start_delta_apply_inputs(
+  control : @bounded.Control,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  base : @lifecycle.ProducerView,
+  rows : @execution.ProducerRead,
+  limits : @delta.Limits,
+  storage_limits : @storage.Limits,
+  storage_bytes : Int64,
+  available : () -> Bool,
+  control_work_limit? : Int? = None,
+) -> Result[DeltaApplyExecution, DeltaApplyIssue] {
+  if control_work_limit is Some(limit) && limit < 0 {
+    return Err(DeltaApplyControlWorkLimit)
+  }
+  let input = match
+    prepare_delta_apply_input(
+      sequence, step, base, rows, limits, storage_limits, storage_bytes, available,
+    ) {
+    Ok(input) => input
+    Err(issue) => return Err(issue)
+  }
+  let state : DeltaApplyState = {
+    input: Some(input),
+    preparation: None,
+    output: None,
+    inputs_available: fn() { delta_input_available(input) },
+    result: None,
+    remaining: control_work_limit,
+    phase: PreparingInput,
   }
   let (session, token) = @bounded.start(
     control, state, delta_apply_step, cleanup_delta_apply_state, @graph.discard_completed,
