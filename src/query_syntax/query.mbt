@@ -44,7 +44,7 @@ pub(all) struct AnalyticFrame {
 
 ///|
 pub(all) struct AnalyticWindow {
-  partition_by : Array[Array[NamePart]]
+  partition_by : Array[Expression]
   order_by : Array[SortTerm]
   frame : AnalyticFrame?
 }
@@ -903,13 +903,28 @@ fn QueryParser::over(self : QueryParser) -> AnalyticWindow raise QueryAbort {
   if self.advance().value != Symbol(40) {
     raise QueryAbort("Expected OVER opening parenthesis", self.peek().start)
   }
-  let partition_by : Array[Array[NamePart]] = []
+  let partition_by : Array[Expression] = []
   if self.has("PARTITION") {
     self.keyword("PARTITION")
     self.keyword("BY")
     while true {
+      let start = self.peek().start
       self.node()
-      partition_by.push(self.path())
+      let path = self.path()
+      // Keep the existing path grammar, but retain its original expression
+      // owner and span so ordinary prefix/property lowering can consume it.
+      partition_by.push({
+        source: self.source,
+        nodes: [
+          {
+            kind: Reference(path),
+            start,
+            end: self.source.tokens[self.index - 1].end,
+          },
+        ],
+        root: 0,
+        work: 1,
+      })
       if self.peek().value != Symbol(44) {
         break
       }

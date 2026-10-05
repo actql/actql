@@ -1,6 +1,27 @@
-import {explainCheckOutcome, type CheckOutcome} from '@actql/sdk';
+import {explainCheckOutcome, explainCheckReason, getCheckPresentationInfo,
+  type CheckExplanationOptions, type CheckOutcome} from '@actql/sdk';
+
+const language: CheckExplanationOptions = {locale: 'ja'};
+const translated = explainCheckOutcome({} as CheckOutcome, language);
+const info = getCheckPresentationInfo(language);
+const locale: 'en' | 'ja' = info.locale;
+const translationRevision: string = info.translationRevision;
+void translated; void locale; void translationRevision;
+explainCheckReason({code: 'parameter_value_required'}, language);
+// @ts-expect-error Translation metadata does not confer permission.
+info.next.operation;
+// @ts-expect-error Translation selection is immutable metadata.
+info.locale = 'en';
+// @ts-expect-error Locale options do not alter the submitted input or scope.
+explainCheckOutcome({} as CheckOutcome, {locale: 'ja', scope: 'template'});
 
 declare const outcome: CheckOutcome;
+type CompletedReport = Extract<CheckOutcome, {outcome: 'completed'}>['report'];
+const frameFacts: NonNullable<CompletedReport['reasons'][number]['facts']> = {issue: 'invalid_bounds'};
+void frameFacts;
+// @ts-expect-error A frame reason does not expose the internal closure index.
+const privateFrameFacts: NonNullable<CompletedReport['reasons'][number]['facts']> = {issue: 'invalid_bounds', requirement_index: 0};
+void privateFrameFacts;
 const explanation = explainCheckOutcome(outcome);
 if (explanation?.outcome === 'completed') {
   const verdict: 'invalid' | 'undetermined' | 'verified' = explanation.report.verdict;
@@ -12,6 +33,18 @@ if (explanation?.outcome === 'completed') {
   explanation.execute();
   // @ts-expect-error The reported scope is immutable.
   explanation.report.scope.kind = 'template';
+  // @ts-expect-error Successful checking has no Problem reference.
+  explanation.correlationRef;
+}
+if (explanation?.outcome === 'failed') {
+  const correlation: string = explanation.correlationRef;
+  void correlation;
+  // @ts-expect-error Reporting failure does not authorize another check or execution.
+  explanation.next.operation;
+  // @ts-expect-error A Problem reference cannot restore submitted source.
+  explanation.input.text;
+  // @ts-expect-error The observed reference is immutable.
+  explanation.correlationRef = 'another attempt';
 }
 if (explanation?.outcome === 'failed' && explanation.report) {
   const verdict: 'invalid' | 'undetermined' = explanation.report.verdict;

@@ -190,6 +190,23 @@ internal output; it remains available under its original managed-output
 evidence for the separate retained-input Transfer. This route does not grant a
 consumer start claim or admit a consumer using the producer's input binding.
 
+The resident physical handoff validates the exact original producer completion
+and current Transfer scope before opening its output. A Direct receiver keeps
+its own journal reservation and also acquires a Site holding, so its bytes share
+the same Site retention ceiling with the still-retained producer. The caller
+keeps one handoff owner inside its existing serialized holder responsibility.
+A failed write retains the exact pending chunk and reader for retry; it does
+not fetch the Source or execute either task again.
+
+Committed receiver journal reopening compares the saved receipt and preserves
+the live holder's existing Site reservation. It is not a Site restart or proof
+of restoration after that holder is lost. Once cleanup begins, handoff cannot
+resume. Receiver cleanup uses the existing material reclaim Owner, excludes
+live borrowers, and remains available after execution authorization expires.
+Restoring that cleanup duty never revives a returned reader or grants payload
+access. Only confirmed physical receiver cleanup returns its Site holding;
+producer and Named Result retention remain separate duties.
+
 The portable retained-input handle installs ports to the existing current
 Transfer, Site and authorization owners. It re-admits the current durable
 Transfer record and exact destination receipt before issuing a binding, when

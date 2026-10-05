@@ -81,6 +81,8 @@
         "control",
         "workspace",
         "input_roots",
+        "input_logical",
+        "output_logical",
         "output",
         "rows",
         "live",
@@ -101,6 +103,7 @@
         "slot_roots",
         "output_row",
         "checked_row",
+        "output_recheck",
         "output_charge_open",
         "output_charge_column",
         "output_charge_measure",
@@ -155,7 +158,7 @@
     "measureFrames": "5: conservative bound for the four measurement cursors on scalar numeric/NULL leaves"
   },
   "borrowed": "ProducerRead retains exact upstream backing; original input rows/cells are counted by their existing owner, new receiving columns/wrappers remain parent/edge obligations",
-  "fixedObjects": "Session/provider, comparison/control/budgets, typed schemas, closures, Refs, empty containers and cursor records have bounded source structure but no established per-target byte conversion. Sparse filter adds a Boolean, an optional ValueUsage record and a presence-cell container; these are false/None/empty on this DISTINCT scope. Sparse rows reserve their slots in the existing workspace and remain an independent runtime obligation, not an extension of this DISTINCT byte bound.",
+  "fixedObjects": "Session/provider, comparison/control/budgets, typed schemas, closures, Refs, empty containers and cursor records have bounded source structure but no established per-target byte conversion. Sparse filter adds a Boolean, an optional ValueUsage record and a presence-cell container; these are false/None/empty on this DISTINCT scope. Sparse rows reserve their slots in the existing workspace and remain an independent runtime obligation, not an extension of this DISTINCT byte bound. The comparison cursor's optional admitted-tree continuation is None throughout this numeric/NULL scope. Nested complete-value comparisons reserve their cursor and child frames in the existing workspace; this does not extend the numeric/NULL byte bound to recursive values.",
   "notDischarged": [
     "dynamic backing capacity and allocation growth overlap",
     "complete fixed-object allocation identity census",
