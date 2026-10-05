@@ -1266,7 +1266,7 @@ fn same_analytic_window(
     return false
   }
   for index in 0..<left.partition_by.length() {
-    if !same_path(left.partition_by[index], right.partition_by[index]) {
+    if !same_expression(left.partition_by[index], right.partition_by[index]) {
       return false
     }
   }
@@ -1294,11 +1294,10 @@ fn lower_analytic(
 ) -> @builder.Node raise Abort {
   let call = projections[0].analytic.unwrap()
   let partitions : Array[@builder.Node] = []
-  for path in call.window.partition_by {
-    let field = match resolve(path) {
-      Some(field) => field
-      None => raise Abort(UnknownColumn)
-    }
+  for expression in call.window.partition_by {
+    let field = analytic_order_field(
+      construction, expression, resolve, reserved, evaluated, derives, max_work,
+    )
     partitions.push(construction.text(field))
   }
   let order : Array[@builder.Node] = []
