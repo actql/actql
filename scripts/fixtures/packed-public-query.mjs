@@ -24,6 +24,8 @@ import {distinctOrderSuccesses, distinctOrderRefusals}
   from './distinct-order-source-input.mjs';
 import {orderPropertySuccesses, orderPropertyRefusals}
   from './order-property-source-input.mjs';
+import {analyticOrderSuccesses, analyticOrderRefusals, analyticOrderExecutionFailures}
+  from './analytic-order-source-input.mjs';
 import {groupSelectScopeSuccesses, groupSelectScopeRefusals}
   from './group-select-scope-source-input.mjs';
 import {havingProjectionSuccesses, havingProjectionRefusals}
@@ -89,7 +91,8 @@ const dataOnly = process.env.ACTQL_TEST_RELATION_DATA_ONLY === '1';
 const acquiredDataOnly = process.env.ACTQL_TEST_ACQUIRED_DATA_ONLY === '1';
 const dataSetStrategyOnly = process.env.ACTQL_TEST_DATA_SET_STRATEGY_ONLY === '1';
 const orderPropertyOnly = process.env.ACTQL_TEST_ORDER_PROPERTY_ONLY === '1';
-const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly;
+const analyticOrderOnly = process.env.ACTQL_TEST_ANALYTIC_ORDER_ONLY === '1';
+const scopeOnly = analyticOrderOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const joinChain = JSON.parse(await readFile('join-chain-cases.json', 'utf8'));
 const groupScope = JSON.parse(await readFile('group-scope-cases.json', 'utf8'));
@@ -106,7 +109,8 @@ const dataSetStrategyInputs = {
     ]}}}],
   refusals: [],
 };
-const scopeInputs = graphDiagnosticsOnly ? {successes: graphDiagnosticSourceSuccesses, refusals: graphDiagnosticSourceRefusals, executionFailures: graphDiagnosticSourceExecutionFailures}
+const scopeInputs = analyticOrderOnly ? {successes: analyticOrderSuccesses, refusals: analyticOrderRefusals, executionFailures: analyticOrderExecutionFailures}
+  : graphDiagnosticsOnly ? {successes: graphDiagnosticSourceSuccesses, refusals: graphDiagnosticSourceRefusals, executionFailures: graphDiagnosticSourceExecutionFailures}
   : orderPropertyOnly ? {successes: orderPropertySuccesses, refusals: orderPropertyRefusals}
   : graphProjectionPropertyOnly ? {successes: graphProjectionPropertySuccesses, refusals: graphProjectionPropertyRefusals}
   : graphPropertyPredicateOnly ? {successes: graphPropertyPredicateSuccesses, refusals: graphPropertyPredicateRefusals}
@@ -145,6 +149,9 @@ const scopeInputs = graphDiagnosticsOnly ? {successes: graphDiagnosticSourceSucc
   refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...relationDataRefusals, ...acquiredDataRefusals, ...propertyGraphSourceRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals, ...groupStarRefusals, ...groupOrdinalRefusals],
   executionFailures: [...pipeResultExecutionFailures, ...propertyGraphSourceExecutionFailures]};
 if (!scopeOnly) {
+  scopeInputs.successes.push(...analyticOrderSuccesses);
+  scopeInputs.refusals.push(...analyticOrderRefusals);
+  scopeInputs.executionFailures.push(...analyticOrderExecutionFailures);
   scopeInputs.successes.push(...orderPropertySuccesses);
   scopeInputs.refusals.push(...orderPropertyRefusals);
   scopeInputs.successes.push(...graphProjectionPropertySuccesses);
