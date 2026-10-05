@@ -73,3 +73,18 @@ test('Native configuration comparison measures complete cycles without relabelin
   pairs[4].samples['retained-actql'].status = 'failed';
   assert.equal(assessPairedTiming(pairs, config).status, 'incomplete');
 });
+
+test('artifact comparison keeps benchmark work distinct from the Native cycle and rejects missing work', () => {
+  const label = 'artifact-read-buffer-64k';
+  const pairs = Array.from({length: 7}, (_, index) => ({index, caseId: 'fixed/narrow/100',
+    order: index % 2 ? ['retained-actql', label] : [label, 'retained-actql'],
+    samples: {[label]: {status: 'completed', benchmarkCycleMs: 100, processCycleMs: 30},
+      'retained-actql': {status: 'completed', benchmarkCycleMs: 80, processCycleMs: 30}}}));
+  const config = {comparator: label, mode: 'difference', threshold: 0};
+  assert(Math.abs(assessPairedTiming(pairs, {...config, field: 'benchmarkCycleMs'}).upper + 20) < 1e-12);
+  assert.equal(assessPairedTiming(pairs, {...config, field: 'processCycleMs'}).upper, 0);
+  assert.throws(() => assessPairedTiming(pairs, {...config, comparator: 'baseline-actql',
+    field: 'benchmarkCycleMs'}), /InvalidTimingAssessment/);
+  delete pairs[3].samples[label].benchmarkCycleMs;
+  assert.equal(assessPairedTiming(pairs, {...config, field: 'benchmarkCycleMs'}).status, 'incomplete');
+});

@@ -7,9 +7,10 @@ export function assessPairedTiming(pairs, {
 }) {
   if (!['baseline-actql', 'direct-duckdb',
     'direct-duckdb-with-identical-obligations-and-independent-holding',
-    'uncalibrated-native-selection'].includes(comparator) ||
-      !['executionMs', 'warmMs', 'coldMs', 'cleanupMs', 'processCycleMs'].includes(field) ||
-      field === 'processCycleMs' && comparator !== 'uncalibrated-native-selection' ||
+    'uncalibrated-native-selection', 'artifact-read-buffer-64k'].includes(comparator) ||
+      !['executionMs', 'warmMs', 'coldMs', 'cleanupMs', 'processCycleMs', 'benchmarkCycleMs'].includes(field) ||
+      field === 'processCycleMs' && !['uncalibrated-native-selection', 'artifact-read-buffer-64k'].includes(comparator) ||
+      field === 'benchmarkCycleMs' && comparator !== 'artifact-read-buffer-64k' ||
       !['ratio', 'difference'].includes(mode) || !Number.isFinite(threshold) ||
       !Number.isSafeInteger(minimumPairs) || minimumPairs < 7 ||
       !Number.isSafeInteger(resamples) || resamples < 10000 || resamples > 1000000 ||

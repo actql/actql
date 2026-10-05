@@ -5,7 +5,7 @@ import {mkdir, readFile, rm} from 'node:fs/promises';
 import {join, resolve} from 'node:path';
 import {performance} from 'node:perf_hooks';
 import {isDeepStrictEqual, promisify} from 'node:util';
-import {releaseArtifactDigest, sha256File as fileHash} from './release-artifacts.mjs';
+import {releaseArtifactDigest, sha256File} from './release-artifacts.mjs';
 import {retainedCase} from './fixtures.mjs';
 import {admitNativeEstimateProfile} from './native-estimate-profile.mjs';
 import {admitNativeResidentEstimateProfile, assertNativeMeasuredOffers} from './native-resident-estimate-profile.mjs';
@@ -26,15 +26,17 @@ async function checkoutState(root) {
 // admission still requires the complete Native obligation/accounting report.
 export async function runNativeDirectPair({checkout, fixture, database,
   directory, index = 0, nativeRates, localRates, nativeEstimateProfile,
-  nativeResidentEstimateProfile}) {
+  nativeResidentEstimateProfile, artifactReadChunkBytes = 1024 * 1024}) {
   assert(Number.isSafeInteger(index) && index >= 0, 'InvalidNativePairIndex');
   assert(!(nativeEstimateProfile && nativeResidentEstimateProfile), 'ConflictingNativeProfiles');
   assert(!(nativeEstimateProfile || nativeResidentEstimateProfile) || !nativeRates && !localRates,
     'NativePairConflictingRates');
   const root = resolve(checkout);
+  assert([64 * 1024, 1024 * 1024].includes(artifactReadChunkBytes), 'InvalidArtifactReadChunkBytes');
+  const fileHash = path => sha256File(path, artifactReadChunkBytes);
   const initial = await checkoutState(root);
   assert.equal(initial.dirty, false, 'NativePairRequiresCleanCheckout');
-  const artifactDigest = await releaseArtifactDigest(root);
+  const artifactDigest = await releaseArtifactDigest(root, artifactReadChunkBytes);
   const sourceSha256 = await fileHash(database);
   const registrationSha256 = createHash('sha256').update(await readFile(
     join(root, 'benchmarks/retained-results/experiment.json'))).digest('hex');
@@ -124,7 +126,7 @@ export async function runNativeDirectPair({checkout, fixture, database,
         'NativePairSourceChanged');
       assert.deepEqual(await checkoutState(root), initial,
         'NativePairCheckoutChanged');
-      assert.equal(await releaseArtifactDigest(root), artifactDigest,
+      assert.equal(await releaseArtifactDigest(root, artifactReadChunkBytes), artifactDigest,
         'NativePairReleaseArtifactsChanged');
     }
     const native = samples.native.product;
@@ -200,6 +202,7 @@ export async function runNativeDirectPair({checkout, fixture, database,
         acquisition: native.record.acquisition},
       selectionProfile,
       residentProfileAdmissionMs,
+      artifactReadChunkBytes,
       nativeObligationAdmission,
       independent: {coldMs: samples.independent.coldMs,
         warmMs: samples.independent.warmMs,
