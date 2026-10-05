@@ -28,7 +28,9 @@ const data = 'DATA objects = SELECT 2 AS id, \'A\' AS bucket, @a AS payload, @oa
   + 'UNION ALL SELECT 4 AS id, \'B\' AS bucket, @f AS payload, @of AS other; ';
 const column = (name, contract = number) => ({name, contract});
 const names = ['bucket', 'n', 'd', 'h', 's', 'a', 'lo', 'hi'];
-const columns = [column('bucket', string), ...['n', 'd', 'h'].map(name => column(name)),
+// Both authored SQL bucket literals are one UTF-8 byte. The existing literal
+// typing rule preserves that bound; the independent JSON schema is unbounded.
+const columns = [column('bucket', {...string, max_utf8_bytes: 1}), ...['n', 'd', 'h'].map(name => column(name)),
   ...['s', 'a', 'lo', 'hi'].map(name => column(name, nullableNumber))];
 const expected = [
   {bucket: 'A', n: 4, d: 3, h: 3, s: 80, a: 20, lo: 10, hi: 30},
@@ -64,7 +66,8 @@ const success = (name, tail, overrides = {}) => ({
 });
 export const aggregatePropertySuccesses = [
   {name: 'aggregate-property-independent-json', format: 'json',
-    text: JSON.stringify(program), expected, columns, sourceReadCount: 0},
+    text: JSON.stringify(program), expected,
+    columns: [column('bucket', string), ...columns.slice(1)], sourceReadCount: 0},
   success('sql', 'SELECT bucket, ' + aggregates + ' FROM objects GROUP BY bucket ORDER BY bucket'),
   success('pipe', 'FROM objects |> AGGREGATE ' + aggregates + ' GROUP BY bucket '
     + '|> SELECT bucket, n, d, h, s, a, lo, hi |> ORDER BY bucket'),
