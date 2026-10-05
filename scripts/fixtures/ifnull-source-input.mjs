@@ -22,7 +22,10 @@ export const ifnullSuccesses = [
     "SELECT IFNULL(1, 1 / 0) AS first, IFNULL(2, CAST('bad' AS FLOAT64)) AS second",
     [{first: 1, second: 2}], [column('first', 'number'), column('second', 'number')]),
   success('false-and-empty', "SELECT IFNULL(FALSE, TRUE) AS flag, IFNULL('', 'fallback') AS value",
-    [{flag: false, value: ''}], [column('flag', 'boolean'), column('value', 'string')]),
+    // Literal bounds are 0 and 8 UTF-8 bytes. Common type join retains the
+    // larger upper bound even though runtime skips the second operand here.
+    [{flag: false, value: ''}], [column('flag', 'boolean'),
+      {name: 'value', contract: {type: 'string', nullable: false, max_utf8_bytes: 8}}]),
   success('typed-null', 'SELECT IFNULL(CAST(NULL AS FLOAT64), CAST(NULL AS FLOAT64)) AS value',
     [{value: null}], [column('value', 'number', true)]),
   success('pipe', 'SELECT IFNULL(NULL, 7) AS value |> WHERE value = 7 |> SELECT value',

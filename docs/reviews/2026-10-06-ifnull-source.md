@@ -75,3 +75,14 @@ pass. Final clean-SHA package/digest and Local/HTTPS evidence belong in the PR
 body and external evidence report. They are not asserted by this preparatory
 record. Full Core, Wasm/Native execution, full packed corpus, CI and Google
 service differential execution have not been run for this unit.
+
+The first clean-SHA packed attempt (`468580ee...`, `run-9MkQjX`,
+`public-query-evidence-DwEwW7`) passed the Local JSON control, NULL fallback
+and skipped division/cast failures, then stopped on a missing STRING bound in
+the fixture. Local's remaining cases and HTTPS were not reached. The fixture
+is corrected from [the common type join](../spec/language.md#value-contracts):
+literal UTF-8 bounds are 0 for the empty string and 8 for ASCII `fallback`;
+coalesce retains their least restrictive common upper bound, 8. This corrects
+the independent full contract expectation without changing expected rows,
+product code, nullable rules, limits or ownership. Old failure evidence remains
+distinct from subsequent acceptance.

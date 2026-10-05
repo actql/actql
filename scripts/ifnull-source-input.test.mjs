@@ -8,6 +8,10 @@ test('IFNULL fixtures distinguish NULL, false, empty text and demanded fallback 
   const byName = new Map(ifnullSuccesses.map(value => [value.name, value]));
   assert.deepEqual(byName.get('ifnull-null-fallback').expected, [{value: 7}]);
   assert.deepEqual(byName.get('ifnull-false-and-empty').expected, [{flag: false, value: ''}]);
+  assert.deepEqual(byName.get('ifnull-false-and-empty').columns, [
+    {name: 'flag', contract: {type: 'boolean', nullable: false}},
+    {name: 'value', contract: {type: 'string', nullable: false, max_utf8_bytes: 8}},
+  ]);
   assert.deepEqual(byName.get('ifnull-typed-null').expected, [{value: null}]);
   assert.deepEqual(byName.get('ifnull-typed-null').columns,
     [{name: 'value', contract: {type: 'number', nullable: true}}]);
