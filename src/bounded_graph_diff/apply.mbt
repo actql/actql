@@ -28,6 +28,7 @@ priv enum ApplyPhase {
 /// One provisional builder from the existing Graph storage owner. No result is
 /// transferred before both exact-base/before admission and target-CID checking.
 struct ApplyPreparation {
+  mut base_view : @lifecycle.ProducerView?
   graph : @carrier.Graph
   limits : Limits
   storage_limits : @storage.Limits
@@ -195,10 +196,47 @@ pub fn prepare_apply(
   storage_limits : @storage.Limits,
   reference_issuer? : @value.ReferenceIssuer? = None,
 ) -> Result[ApplyPreparation, Issue] {
+  prepare_apply_source(
+    Stored(base),
+    delta,
+    limits,
+    storage_limits,
+    reference_issuer~,
+  )
+}
+
+///|
+/// Borrow the exact managed producer occurrence through the existing snapshot
+/// owner. The expected Graph cannot relabel the view or confer availability.
+pub fn prepare_apply_view(
+  base : @lifecycle.ProducerView,
+  graph : @carrier.Graph,
+  delta : @decode.Cursor,
+  limits : Limits,
+  storage_limits : @storage.Limits,
+  reference_issuer? : @value.ReferenceIssuer? = None,
+) -> Result[ApplyPreparation, Issue] {
+  prepare_apply_source(
+    Viewed(base, graph),
+    delta,
+    limits,
+    storage_limits,
+    reference_issuer~,
+  )
+}
+
+///|
+fn prepare_apply_source(
+  base : DiffSource,
+  delta : @decode.Cursor,
+  limits : Limits,
+  storage_limits : @storage.Limits,
+  reference_issuer~ : @value.ReferenceIssuer?,
+) -> Result[ApplyPreparation, Issue] {
   if !valid_limits(limits) {
     return Err(InvalidLimits)
   }
-  guard source_graph(Stored(base)) is Some(graph) &&
+  guard source_graph(base) is Some(graph) &&
     @graph_contract.admit_graph(graph, {
       max_bytes: limits.max_identity_bytes,
       max_nodes: limits.max_identity_nodes,
@@ -218,7 +256,7 @@ pub fn prepare_apply(
   // remain in the same resolved budget. No second workspace owner is created.
   guard checked_add(usage.nodes, usage.nodes) is Some(twice_delta) &&
     checked_add(twice_delta, twice_delta) is Some(action_slots) &&
-    source_workspace(Stored(base)) is Some(snapshot_slots) &&
+    source_workspace(base) is Some(snapshot_slots) &&
     body_workspace_slots(limits) is Some(body_slots) &&
     checked_add(action_slots, snapshot_slots) is Some(with_snapshot) &&
     checked_add(with_snapshot, body_slots) is Some(with_body) &&
@@ -251,11 +289,15 @@ pub fn prepare_apply(
     read_actions(edges_cursor, true, limits) is Some(edges) else {
     return Err(InvalidDelta)
   }
-  let preparation = match start_snapshot(Stored(base), limits) {
+  let preparation = match start_snapshot(base, limits) {
     Ok(preparation) => preparation
     Err(issue) => return Err(issue)
   }
   Ok({
+    base_view: match base {
+      Stored(_) => None
+      Viewed(view, _) => Some(view)
+    },
     graph,
     limits,
     storage_limits,
@@ -326,9 +368,19 @@ pub fn advance_apply(
   if value.phase == ApplyFinished {
     return Err(Terminal)
   }
+  // Snapshot bytes are not a replacement for the current read occurrence.
+  // Revocation after base capture still prevents publication of the target.
   let mut used = 0L
   let mut progress = 0L
   while used < quantum.to_int64() {
+    if value.base_view is Some(view) &&
+      !@lifecycle.producer_read_reference_available(
+        @lifecycle.producer_view_read_reference(view),
+      ) {
+      return Ok(
+        apply_failure(value, Snapshot(@snapshot.InvalidGraph), used, progress),
+      )
+    }
     match value.phase {
       BaseSnapshot | TargetSnapshot => {
         guard value.snapshot_preparation is Some(preparation) else {
@@ -379,7 +431,21 @@ pub fn advance_apply(
                 return Ok(apply_failure(value, TargetMismatch, used, progress))
               }
               guard value.result is Some(result) else { return Err(Terminal) }
+              if value.base_view is Some(view) &&
+                !@lifecycle.producer_read_reference_available(
+                  @lifecycle.producer_view_read_reference(view),
+                ) {
+                return Ok(
+                  apply_failure(
+                    value,
+                    Snapshot(@snapshot.InvalidGraph),
+                    used,
+                    progress,
+                  ),
+                )
+              }
               value.result = None
+              value.base_view = None
               value.phase = ApplyFinished
               return Ok(ApplyComplete(result, progress~, work=used))
             }
@@ -608,6 +674,7 @@ pub fn advance_apply(
 
 ///|
 pub fn cleanup_apply(value : ApplyPreparation) -> Bool {
+  value.base_view = None
   if value.record_append is Some(append) {
     @storage.cleanup_property_snapshot_append(append)
     value.record_append = None
@@ -624,7 +691,10 @@ pub fn cleanup_apply(value : ApplyPreparation) -> Bool {
     @storage.cancel(builder) |> ignore
     value.builder = None
   }
-  value.result = None
+  if value.result is Some(result) {
+    @storage.discard(result)
+    value.result = None
+  }
   value.base_body = None
   value.base_decoded = None
   value.pending_output = None

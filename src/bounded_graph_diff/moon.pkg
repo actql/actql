@@ -14,3 +14,9 @@ import {
   "actql/actql/encode_core" @encode,
   "actql/actql/decode_scalar" @scalar,
 }
+
+import {
+  "actql/actql/managed_graph_runtime" @graph_runtime,
+  "actql/actql/lowering_relation" @lower,
+  "actql/actql/pipeline_typing" @pipeline,
+} for "wbtest"
