@@ -98,7 +98,7 @@ fn start_local_managed_test_task_operations(
       fail(
         "Local managed task " +
         task.to_string() +
-        " start physical failed: " +
+        " physical failed: " +
         (match issue {
           @resources.InvalidLimits => "invalid limits"
           @resources.PlanningLimit => "planning limit"
@@ -535,19 +535,20 @@ fn run_local_managed_group_case(
   group_expected : Array[String],
   second_expected : Array[String],
   activation? : Bool = false,
+  close_private_intermediates? : Bool = false,
 ) -> Unit raise {
-  // Assertion/filter/regroup children add one completed allocation. The
-  // fixture profile reserves 7,760,000 bytes per Local output, and the
-  // common retention owner keeps ancestors until their descendants close.
-  // Five allocations plus the 47-byte captured source require 38,800,047;
-  // the old 32 MB fixture allowance covered only four. This is a connection
-  // fixture, not an exact-capacity test or a change to the Host policy.
   let split = variant == "collections" ||
     variant == "numeric_filter" ||
     variant == "numeric_regroup"
+  if close_private_intermediates {
+    assert_true(split)
+  }
   let (run, issuer) = captured_graph_fixture(
     local_values_group_chain=true,
     local_values_group_variant=variant,
+    // This fixture retains every completed allocation through both consumers.
+    // A split stage adds a fifth output (each reserves at most 8 MB), rather
+    // than the four outputs covered by the shared fixture's 32 MB limit.
     ledger_limits=if split {
       Some({
         planning_work: 10000,
@@ -561,79 +562,88 @@ fn run_local_managed_group_case(
       None
     },
   )
-  let graph = @strategy.captured_dag_graph(run)
-  let group_unit = if variant == "keyed_same_stage" ||
-    variant == "count_if_same_stage" {
-    1
-  } else {
-    2
-  }
-  let group_tasks : Array[Int] = []
-  let mut first_task = -1
-  let mut second_task = -1
-  for task in 0..<@strategy.graph_task_count(graph) {
-    match @strategy.graph_task_unit_index(graph, task) {
-      Some(unit) if unit == group_unit && task > 1 => group_tasks.push(task)
-      Some(unit) if unit == group_unit + 1 => first_task = task
-      Some(unit) if unit == group_unit + 2 => second_task = task
-      _ => ()
-    }
-  }
-  assert_true(!group_tasks.is_empty() && first_task >= 0 && second_task >= 0)
   let grant = if activation {
     @strategy.require_captured_task_activation(run)
     Some(@strategy.task_activation_covered())
   } else {
     None
   }
+  let graph = @strategy.captured_dag_graph(run)
+  let same_stage = variant == "keyed_same_stage" ||
+    variant == "count_if_same_stage"
+  let group_stage = if same_stage { 1 } else { 2 }
+  let group_tasks = []
+  for task in 0..<@strategy.graph_task_count(graph) {
+    if @strategy.graph_task_unit_index(graph, task) == Some(group_stage) &&
+      (
+        !same_stage ||
+        @strategy.graph_task_target(graph, task) == Some(@pipeline.Step(1))
+      ) {
+      group_tasks.push(task)
+    }
+  }
+  assert_eq(group_tasks.length(), if split { 2 } else { 1 })
+  let first_task = @strategy.graph_stage_target_task(
+    graph,
+    group_stage + 1,
+    @pipeline.Step(0),
+  ).unwrap()
+  let second_task = @strategy.graph_stage_target_task(
+    graph,
+    group_stage + 2,
+    @pipeline.Step(0),
+  ).unwrap()
   if variant == "numeric" ||
     variant == "numeric_filter" ||
     variant == "numeric_regroup" {
-    let slots : Array[(Int, String)] = []
+    let numeric_steps : Array[Int] = []
+    let generated_steps : Array[Int] = []
     for task in group_tasks {
       let count = @strategy.graph_task_numeric_observation_count(graph, task).unwrap()
-      for index in 0..<count {
-        let slot = @strategy.graph_task_numeric_observation_at(
-          graph, task, index,
-        ).unwrap()
-        slots.push(
-          (
-            @strategy.task_numeric_observation_step(slot),
-            @strategy.task_numeric_observation_name(slot),
-          ),
+      assert_eq(
+        count,
+        if variant == "numeric_filter" && task == group_tasks[1] {
+          0
+        } else {
+          2
+        },
+      )
+      if count > 0 {
+        let first = @strategy.graph_task_numeric_observation_at(graph, task, 0).unwrap()
+        let second = @strategy.graph_task_numeric_observation_at(graph, task, 1).unwrap()
+        let step = if variant == "numeric_regroup" && task == group_tasks[1] {
+          1
+        } else {
+          0
+        }
+        assert_eq(@strategy.task_numeric_observation_step(first), step)
+        assert_eq(@strategy.task_numeric_observation_step(second), step)
+        assert_eq(@strategy.task_numeric_observation_name(first), "mean")
+        assert_eq(@strategy.task_numeric_observation_name(second), "total")
+        numeric_steps.push(step)
+      }
+      // Generated sequences retain the source-stage kernels; selection is
+      // carried by each task. Inspect that shared sequence only once.
+      if task == group_tasks[0] {
+        @execution.generated_sequence_all_steps(
+          dispatch_test_generated(run)[task - 1],
+          fn(step) {
+            match step {
+              @lower.RowStep(kernel) =>
+                if @lower.kernel_group(kernel) is Some(_) {
+                  generated_steps.push(@lower.kernel_step(kernel))
+                }
+              _ => ()
+            }
+            true
+          },
         )
+        |> ignore
       }
     }
-    assert_eq(
-      slots,
-      if variant == "numeric_regroup" {
-        [(0, "mean"), (0, "total"), (1, "mean"), (1, "total")]
-      } else {
-        [(0, "mean"), (0, "total")]
-      },
-    )
-    let numeric_steps : Array[Int] = []
-    @execution.generated_sequence_all_steps(dispatch_test_generated(run)[1], fn(
-      step,
-    ) {
-      match step {
-        @lower.RowStep(kernel) =>
-          if @lower.kernel_group(kernel) is Some(_) {
-            numeric_steps.push(@lower.kernel_step(kernel))
-          }
-        _ => ()
-      }
-      true
-    })
-    |> ignore
-    assert_eq(
-      numeric_steps,
-      if variant == "numeric_regroup" {
-        [0, 1]
-      } else {
-        [0]
-      },
-    )
+    let expected = if variant == "numeric_regroup" { [0, 1] } else { [0] }
+    assert_eq(numeric_steps, expected)
+    assert_eq(generated_steps, expected)
   }
   let registry = search_registry()
   let limits = dispatch_test_limits()
@@ -782,24 +792,25 @@ fn run_local_managed_group_case(
     variant == "numeric" ||
     variant == "numeric_filter" ||
     variant == "numeric_regroup"
-  let group_outputs : Array[
+  // Execute every selected task owned by the GROUP stage. Its assertion,
+  // aggregate, filter, and second aggregate may now have independent owners.
+  let intermediates : Array[
     (Int, @local_driver.LocalManagedDispatchOperations[Int], Ref[Bool]),
   ] = []
   let mut groups = values
   let mut group_rows = value_rows
-  // Physical splitting may introduce assertion/filter/group children inside
-  // the authored Stage. Execute all of them before checking its Result root.
+  let mut closed_intermediates = 0
   for task in group_tasks {
-    let group_live = Ref(true)
+    let live = Ref(true)
     let execution_advances = Ref(0)
-    let (operations, completed) = run_local_managed_test_task(
+    let (ops, output) = run_local_managed_test_task(
       installed,
       run,
       task,
       [groups],
       [group_rows],
       task,
-      group_live,
+      live,
       execution_quantum=if bounded_global { 1 } else { 0 },
       execution_advances=Some(execution_advances),
       require_provider=bounded_global,
@@ -808,19 +819,29 @@ fn run_local_managed_group_case(
     if bounded_global {
       assert_true(execution_advances.val > 1)
     }
-    groups = completed
-    group_rows = local_managed_test_rows(operations)
-    if group_outputs.last() is Some((prior_task, prior_operations, prior_live)) {
-      // The child has settled and owns its completed storage. Retire the
-      // previous private Stage port; the common owner keeps any required
-      // ancestor holding until the descendant allocations are returned.
+    if close_private_intermediates &&
+      intermediates.last() is Some((prior_task, prior_ops, prior_live)) {
+      // The completed child owns its output, while required ancestor holdings
+      // remain charged after retiring only the prior private Stage port.
+      let ledger = @strategy.captured_dag_ledger(run)
+      let held = @resources.ledger_usage(ledger).held_bytes
+      assert_true(held > 0L)
+      assert_true(prior_live.val)
       prior_live.val = false
       @strategy.close_captured_task_output(run, prior_task)
-      (prior_operations.close)()
-      (prior_operations.cleanup_refresh)() |> ignore
-      assert_true(@execution.managed_completed_output_available(groups))
+      (prior_ops.close)()
+      (prior_ops.cleanup_refresh)() |> ignore
+      assert_false(@execution.managed_completed_output_available(groups))
+      assert_true(@execution.managed_completed_output_available(output))
+      assert_eq(@resources.ledger_usage(ledger).held_bytes, held)
+      closed_intermediates += 1
     }
-    group_outputs.push((task, operations, group_live))
+    intermediates.push((task, ops, live))
+    groups = output
+    group_rows = local_managed_test_rows(ops)
+  }
+  if close_private_intermediates {
+    assert_eq(closed_intermediates, 1)
   }
   assert_eq(group_rows, group_expected)
 
@@ -864,15 +885,13 @@ fn run_local_managed_group_case(
   @strategy.close_captured_task_output(run, second_task)
   (second_ops.close)()
   (second_ops.cleanup_refresh)() |> ignore
-  for offset in 0..<group_outputs.length() {
-    let (task, operations, live) = group_outputs[group_outputs.length() -
-      1 -
-      offset]
+  for index = intermediates.length() - 1; index >= 0; index = index - 1 {
+    let (task, ops, live) = intermediates[index]
     if live.val {
       live.val = false
       @strategy.close_captured_task_output(run, task)
-      (operations.close)()
-      (operations.cleanup_refresh)() |> ignore
+      (ops.close)()
+      (ops.cleanup_refresh)() |> ignore
     }
   }
   value_live.val = false
@@ -1370,5 +1389,19 @@ test "Local seals each numeric group occurrence domain independently" {
     ],
     ["{\"mean\":0,\"total\":0}"],
     ["{\"total\":0,\"mean\":0}"],
+  )
+}
+
+///|
+test "Local split numeric Group keeps descendants after private port close" {
+  run_local_managed_group_case(
+    "numeric_regroup",
+    [
+      "{\"k\":1,\"n\":10000000000000000}", "{\"k\":1,\"n\":1}", "{\"k\":1,\"n\":-10000000000000000}",
+      "{\"k\":null,\"n\":null}",
+    ],
+    ["{\"mean\":0,\"total\":0}"],
+    ["{\"total\":0,\"mean\":0}"],
+    close_private_intermediates=true,
   )
 }

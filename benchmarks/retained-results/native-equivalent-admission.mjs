@@ -25,9 +25,6 @@ export function admitNativeEquivalentPair({fixture, native, equivalent,
   selectionProfile}) {
   assert(fixture && native && equivalent && selectionProfile?.admitted === true,
     'IncompleteNativeEquivalentPair');
-  assert([100, 1000].includes(fixture.rows) ||
-    fixture.workload === workloads[0],
-  'NativeEquivalentOutsideSelectedProfile');
   assert.equal(selectionProfile.targetCaseId, fixture.id);
   assert.equal(equivalent.status, 'diagnostic-completed');
   assert.equal(equivalent.comparator, 'independent-obligation-assembly');
@@ -84,7 +81,12 @@ export function admitNativeEquivalentPair({fixture, native, equivalent,
       : usage.measurementWork + usage.comparisonWork > 0,
     'NativeEquivalentTaskWithoutLogicalCharge');
   }
-  assert.equal(native.record.usage.attempts, rows.length);
+  assert(native.ownerCorrespondence, 'MissingNativeOwnerCorrespondence');
+  assert.deepEqual(native.ownerCorrespondence.attempts.map(item => item.task),
+    rows.map((_, index) => index + 1));
+  assert.equal(native.record.usage.attempts,
+    native.ownerCorrespondence.attempts.reduce((sum, item) =>
+      sum + item.physicalAttempts, 0));
   assert.equal(native.record.usage.holdings, rows.length);
   released(native.record.usage, 'native');
   released(equivalent.releasedRetentionLedger, 'independent-retention');

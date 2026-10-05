@@ -2361,6 +2361,20 @@
       },
       "boundary_tests": [
         {
+          "role": "pivot_stepped_output_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/stepped_row_retention_wbtest.mbt",
+          "fixture": "analytic and pivot keep independent exact long output limits"
+        },
+        {
+          "role": "pivot_stepped_output_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/stepped_row_retention_wbtest.mbt",
+          "fixture": "group analytic and pivot yield before accepting long copied output"
+        },
+        {
           "role": "pivot_fixed_sequence_work_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -2436,6 +2450,13 @@
           ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "ordinary-pivot-in-flight"
+        },
+        {
+          "role": "pivot_retained_long_text_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "pivot-long-text-filter-select"
         }
       ],
       "path_assurance": {
@@ -3807,6 +3828,20 @@
       },
       "boundary_tests": [
         {
+          "role": "group_stepped_wide_output_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/stepped_row_retention_wbtest.mbt",
+          "fixture": "wide group output is constructed one cell at a time with exact charges"
+        },
+        {
+          "role": "group_stepped_output_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/stepped_row_retention_wbtest.mbt",
+          "fixture": "group analytic and pivot yield before accepting long copied output"
+        },
+        {
           "role": "group_fixed_sequence_work_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -4358,6 +4393,13 @@
           ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "same-stage-count-if-in-flight"
+        },
+        {
+          "role": "group_retained_long_text_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "group-long-text-filter-select"
         },
         {
           "role": "direct_group_host_timer",
@@ -6383,6 +6425,20 @@
       },
       "boundary_tests": [
         {
+          "role": "analytic_stepped_output_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/stepped_row_retention_wbtest.mbt",
+          "fixture": "analytic and pivot keep independent exact long output limits"
+        },
+        {
+          "role": "analytic_stepped_output_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/stepped_row_retention_wbtest.mbt",
+          "fixture": "group analytic and pivot yield before accepting long copied output"
+        },
+        {
           "role": "analytic_empty_work_workspace_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -6428,6 +6484,13 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "analytic_retained_long_text_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "analytic-long-text-filter-select"
+        },
         {
           "role": "analytic_ordinary_host_timer",
           "suite": "node:duckdb_standard_host",
@@ -7550,7 +7613,72 @@
       "inventory": "families",
       "family": "SGA",
       "operation": "graph_diff",
-      "profile": "sga_graph"
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_delta_diff_views("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/delta_diff.mbt",
+        "symbol": "start_delta_diff_views"
+      },
+      "boundary_tests": [
+        {
+          "role": "graph_diff_tail_work_ceiling_and_kernel_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_diff_provider_wbtest.mbt",
+          "fixture": "Graph diff provider cancellation preserves work and borrowed input custody across import"
+        },
+        {
+          "role": "graph_diff_installed_policy_and_ordered_occurrences",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_diff_provider_wbtest.mbt",
+          "fixture": "Graph diff provider requires policy exact ordered views and retains cleanup on work failure"
+        },
+        {
+          "role": "graph_diff_work_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_diff_provider_wbtest.mbt",
+          "fixture": "Graph diff provider admits exact workspace and control work and rejects one short"
+        },
+        {
+          "role": "graph_diff_output_row_value_capacity",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_diff_provider_wbtest.mbt",
+          "fixture": "Graph diff provider refuses Delta row and value capacity without publishing or reclaiming inputs"
+        }
+      ],
+      "environment_tests": [{
+        "role": "graph_diff_host_delivered_cancel_cleanup",
+        "suite": "node:duckdb_standard_host",
+        "targets": ["node"],
+        "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+        "fixture": "Graph diff stops after positive work through the installed Local Host without publishing Delta"
+      }],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "graph_diff_work_workspace_exact_one_short",
+          "one_short_limit": "graph_diff_work_workspace_exact_one_short",
+          "in_flight_cancel": "graph_diff_host_delivered_cancel_cleanup",
+          "cleanup": "graph_diff_tail_work_ceiling_and_kernel_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "graph_diff_work_workspace_exact_one_short",
+            "one_short_limit": "graph_diff_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "graph_diff_work_workspace_exact_one_short",
+            "one_short_limit": "graph_diff_work_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "families",
@@ -7618,16 +7746,29 @@
         {
           "role": "subgraph_selected_host_in_flight_cancel",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "retained-relation-selected-subgraph-in-flight"
         },
         {
           "role": "subgraph_retained_named_results",
           "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "retained-relation-selected-subgraph"
+        },
+        {
+          "role": "subgraph_fused_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "fused Subgraph stops after construction and positive selection work through the Local Host driver"
         }
       ],
       "path_assurance": {
@@ -7636,6 +7777,12 @@
           "one_short_limit": "subgraph_view_limits_cancel_cleanup",
           "in_flight_cancel": "subgraph_selected_host_in_flight_cancel",
           "cleanup": "subgraph_view_limits_cancel_cleanup"
+        },
+        "entrypoint": {
+          "exact_limit": "subgraph_stored_limits_cancel_cleanup",
+          "one_short_limit": "subgraph_stored_limits_cancel_cleanup",
+          "in_flight_cancel": "subgraph_fused_host_in_flight_cancel",
+          "cleanup": "subgraph_stored_limits_cancel_cleanup"
         }
       },
       "resource_assurance": {
@@ -7648,9 +7795,19 @@
             "exact_limit": "subgraph_view_limits_cancel_cleanup",
             "one_short_limit": "subgraph_view_limits_cancel_cleanup"
           }
+        },
+        "entrypoint": {
+          "work": {
+            "exact_limit": "subgraph_stored_limits_cancel_cleanup",
+            "one_short_limit": "subgraph_stored_limits_cancel_cleanup"
+          },
+          "workspace": {
+            "exact_limit": "subgraph_stored_limits_cancel_cleanup",
+            "one_short_limit": "subgraph_stored_limits_cancel_cleanup"
+          }
         }
       },
-      "notes": "The selected same-Stage Graph/Relation route reaches retained Store and has delivered cancellation. The cross-Stage selector has focused Plan and source public Local/HTTPS reload evidence, with fresh packed acceptance and integrated-SHA CI pending. The fused production route lacks delivered Host cancellation proof. Neither complete route is assured."
+      "notes": "Stored and view entrypoints have independent exact/one-short work and workspace checks. The selected route has installed Host cancellation. The fused two-operation provider is driven by the real Local Host polling and failure/cleanup driver through conformance-only dispatch plumbing; a timer is delivered after constructor completion and positive Subgraph progress. This is not a public Run/packed acceptance claim. Shared inputs remain available after cleanup."
     },
     {
       "inventory": "families",
@@ -7785,7 +7942,81 @@
       "inventory": "families",
       "family": "SGA",
       "operation": "apply_graph_delta",
-      "profile": "sga_graph"
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_delta_apply_inputs("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/delta_apply.mbt",
+        "symbol": "start_delta_apply_inputs"
+      },
+      "boundary_tests": [
+        {
+          "role": "exact_one_short_and_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_delta_provider_wbtest.mbt",
+          "fixture": "Delta provider exact work one short and handoff cancellation preserve both input owners"
+        },
+        {
+          "role": "delta_installed_capacity_overflow_and_binding_refusal",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_delta_provider_wbtest.mbt",
+          "fixture": "Delta provider requires installed limits exact roles and accounted workspace"
+        },
+        {
+          "role": "delta_conversion_handoff_failure_and_borrowed_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_delta_provider_wbtest.mbt",
+          "fixture": "Delta provider preserves failure work and cleanup without reclaiming borrowed inputs"
+        },
+        {
+          "role": "delta_combined_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_delta_provider_wbtest.mbt",
+          "fixture": "Delta provider admits exact combined workspace and rejects one short before work"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "timer_delivered_input_conversion_cancel_and_cleanup",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "Delta application stops after positive work through the installed Local Host during input conversion"
+        },
+        {
+          "role": "timer_delivered_bounded_application_cancel_and_cleanup",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "Delta application stops after positive work through the installed Local Host during bounded application"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "exact_one_short_and_cancel_cleanup",
+          "one_short_limit": "exact_one_short_and_cancel_cleanup",
+          "in_flight_cancel": "timer_delivered_bounded_application_cancel_and_cleanup",
+          "cleanup": "delta_conversion_handoff_failure_and_borrowed_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "exact_one_short_and_cancel_cleanup",
+            "one_short_limit": "exact_one_short_and_cancel_cleanup"
+          },
+          "workspace": {
+            "exact_limit": "delta_combined_workspace_exact_one_short",
+            "one_short_limit": "delta_combined_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "families",

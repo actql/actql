@@ -172,3 +172,46 @@ test "runtime text recheck advances in bounded chunks with exact usage" {
   assert_true(advance_recheck_runtime_value(invalid) is RecheckContinue)
   assert_true(advance_recheck_runtime_value(invalid) is RecheckFailed)
 }
+
+///|
+test "runtime Text recheck shares exact poll and logical usage boundaries" {
+  let contract = @contract.primitive(@contract.StringType, nullable=false)
+  // A node poll and a terminal poll surround the TextUnits polls. The empty
+  // string still has one TextUnits poll; 64 ASCII units or 32 surrogate pairs
+  // fit one chunk, while the next complete character needs a second chunk.
+  // These literal counts are independent of the cursor's observed result.
+  for
+    (text, bytes, polls) in [
+      ("", 0, 3),
+      ("a", 1, 3),
+      ("é", 2, 3),
+      ("😀", 4, 3),
+      ("a".repeat(64), 64, 3),
+      ("a".repeat(65), 65, 4),
+      ("😀".repeat(32), 128, 3),
+      ("😀".repeat(33), 132, 4),
+    ] {
+    let limits : Limits = { max_nodes: 1, max_depth: 0, max_text_bytes: bytes, }
+    // Raw count/group output and already admitted callers share the cursor.
+    for raw in [false, true] {
+      let cursor = if raw {
+        start_recheck_runtime_text(text, contract, limits).unwrap()
+      } else {
+        start_recheck_runtime_value(Text(text), contract, limits).unwrap()
+      }
+      for _ in 0..<(polls - 1) {
+        assert_true(advance_recheck_runtime_value(cursor) is RecheckContinue)
+      }
+      match advance_recheck_runtime_value(cursor) {
+        RecheckComplete(checked, nodes, text_bytes) => {
+          assert_true(checked.value is Text(value) && value == text)
+          assert_eq(nodes, 1)
+          assert_eq(text_bytes, bytes)
+        }
+        _ => assert_true(false)
+      }
+      assert_true(cursor.stack.is_empty())
+      assert_true(advance_recheck_runtime_value(cursor) is RecheckFailed)
+    }
+  }
+}

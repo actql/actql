@@ -566,6 +566,8 @@ fn bounded_relation_chain_execution(
           }
           let (progress, work) = match poll {
             Continue(progress~, work~)
+            | Waiting(progress~, work~)
+            | Settling(_, progress~, work~)
             | Complete(_, progress~, work~)
             | CarrierComplete(_, progress~, work~)
             | Failed(_, progress~, work~)
@@ -575,7 +577,12 @@ fn bounded_relation_chain_execution(
             return Err(@connector.InvalidLimits)
           }
           if !managed_provider_stopped(active) {
-            return Ok(managed_provider_continue(progress, work))
+            // A child may retain Store/authority custody during stop. Preserve
+            // its explicit pause rather than inventing zero-work Continue.
+            return match poll {
+              Waiting(..) | Settling(_, ..) => Ok(poll)
+              _ => Ok(managed_provider_continue(progress, work))
+            }
           }
           terminal.val = true
           if used.val < execution.max_work.to_int64() {
@@ -608,6 +615,8 @@ fn bounded_relation_chain_execution(
         }
         let (progress, work) = match poll {
           Continue(progress~, work~)
+          | Waiting(progress~, work~)
+          | Settling(_, progress~, work~)
           | Complete(_, progress~, work~)
           | CarrierComplete(_, progress~, work~)
           | Failed(_, progress~, work~)
@@ -628,6 +637,7 @@ fn bounded_relation_chain_execution(
         used.val += work
         match poll {
           Continue(..) => Ok(managed_provider_continue(progress, work))
+          Waiting(..) | Settling(_, ..) => Ok(poll)
           Complete(output, ..) => {
             if position.val == count - 1 {
               terminal.val = true

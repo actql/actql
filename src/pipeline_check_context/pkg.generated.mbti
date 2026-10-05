@@ -1581,6 +1581,25 @@ pub struct GraphConstructionEnvelope {
   output_edges : @capacity_policy.Ceiling
 }
 
+pub struct GraphDeltaCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  left : @pipeline_typing.Target
+  right : @pipeline_typing.Target
+  operation : @graph_typing.CheckedDelta
+  rule : GraphDeltaRule
+  policy : @capacity_policy.Policy
+}
+
+pub(all) enum GraphDeltaRule {
+  AdmitGraphOperands
+  RequireDeltaResources
+  EnforceDeltaRows
+  RequireExactlyOneDeltaRow
+  AdmitCompleteDeltaActions
+  CheckExactBaseBeforeTarget
+} derive(Eq, @debug.Debug)
+
 pub struct GraphDiagnosticCheck {
   site : OperationRequirementSite
   step : @pipeline_typing.CheckedStep
@@ -2179,6 +2198,7 @@ pub(all) enum OperationExecutionCheck {
   GraphDiagnosticExecution(GraphDiagnosticCheck)
   SubgraphExecution(SubgraphExecutionCheck)
   GraphNormalizeExecution(GraphNormalizeCheck)
+  GraphDeltaExecution(GraphDeltaCheck)
   VectorExecution(VectorCheck)
   NearestExecution(NearestCheck)
   PoolExecution(PoolCheck)

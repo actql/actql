@@ -1324,7 +1324,7 @@ states.
 | `needs_reconciliation` | An execution outcome or one or more Effect outcomes remain unknown. | no |
 | `succeeded` | Required computation and Effect receipt aggregation completed successfully. | yes |
 | `failed` | The Run ended unsuccessfully, with no unresolved execution or Effect outcome. | yes |
-| `cancelled` | Preparation or a paused continuation ended without further dispatch. | yes |
+| `cancelled` | Admitted cancellation ended preparation or execution after confirmed stopping, with no unresolved execution, Effect, or publication outcome and no committed publication. | yes |
 
 <!-- requirement-block: run-states.public-state-changes-must-follow-this-table-and-the-referenced -->
 A Host MAY create the initial public record as `preparing`, or as `running`
@@ -1340,7 +1340,7 @@ the public state does not require a new state name.
 | `waiting_checkpoint` | `resuming` | A Host-verified approved Resolution and unique resume intent were stored atomically ([Checkpoints and Resolutions](#checkpoints)). |
 | `waiting_checkpoint` | `cancelled` | The Checkpoint was rejected or expired without dispatching its continuation, and no earlier Effect outcome of the Run remains unknown. |
 | `waiting_checkpoint` | `needs_reconciliation` | The Checkpoint was rejected or expired, or cancellation was admitted, without dispatching its continuation while earlier Effect outcomes recorded by the Run owner remain unknown ([Checkpoints and Resolutions](#checkpoints)). |
-| `preparing`, `waiting_checkpoint`, `resuming` | `cancelled` | Cancellation was admitted with no dispatch in flight or unresolved Effect outcome. |
+| `preparing`, `running`, `waiting_checkpoint`, `resuming` | `cancelled` | Cancellation was admitted and physical stopping was confirmed, with no dispatch in flight, unresolved execution, Effect, or publication outcome, or committed publication. Previously sent observations and cleanup responsibilities remain retained. |
 | `preparing`, `running`, `resuming` | `succeeded`, `failed`, `needs_reconciliation` | The continuation completed or failed; admission, publication, and Effect aggregation conditions determine the destination ([Capture, execution, and replay](#capture-and-replay), [Outcomes and reconciliation](#reconciliation)). |
 | `needs_reconciliation` | `needs_reconciliation`, `succeeded`, `failed` | A valid reconciliation receipt extended the sealed member history and all member outcomes were aggregated ([Outcomes and reconciliation](#reconciliation)). |
 | `needs_reconciliation` | `running`, `needs_reconciliation`, `succeeded`, `failed`, `cancelled` | For Run execution reconciliation, an authorized observation of the same retained execution establishes progress or its outcome. Success still requires formal publication; cancellation still requires confirmed stopping. No new execution is started. |

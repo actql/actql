@@ -158,6 +158,8 @@ pub struct LocalInputTransfer {
 
 pub(all) struct LocalManagedAdvance {
   complete : Bool
+  waiting : Bool
+  settlement : Int?
   progress : Int64
   work : Int64
 }

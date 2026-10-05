@@ -11,6 +11,7 @@ const outcomeCodes = Object.freeze({
   transport_interrupted: 5,
   invalid_metadata: 6,
   cancelled: 7,
+  not_found: 8,
 });
 const positive = value => Number.isSafeInteger(value) && value > 0;
 

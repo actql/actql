@@ -8,7 +8,7 @@ import {checkpointLimits, clientSourceFormats, isClientSubmitRejection, validCan
   validResourceListing, validResourcePeek, resultDescriptionLimits,
   validResultDescription, validCheckOutcome} from
   '@actql/client-wire';
-import {bytesCid, contentCid, checkedSigner, signedAnswer} from './checkpoints.mjs';
+import {reviewBytesMatchCid, contentCid, checkedSigner, signedAnswer} from './checkpoints.mjs';
 // The response owns only a weak association to this call's immutable inputs.
 // A parsed/copied report has no such association and cannot resolve a location.
 const checkInputs = new WeakMap();
@@ -18,6 +18,11 @@ const submissionInputs = new WeakMap();
 const submissionContexts = new WeakMap();
 // Presentation is bound by the validated submit branch, never an error string.
 const submissionExplanations = new WeakMap();
+// Validated observations keep only a weak, immutable presentation snapshot.
+// This is not an Effect ledger or a certificate joining Owner revisions.
+const effectUncertainties = new WeakMap();
+// Presentation retains validated Run-control observations, not another owner.
+const cancellationExplanations = new WeakMap();
 const utf8 = new TextEncoder();
 const freezeInput = value => {
   if (value !== null && typeof value === 'object') {
@@ -40,6 +45,47 @@ export function getSubmissionInput(result) {
 export function explainSubmission(result) {
   return submissionExplanations.get(result);
 }
+
+export function explainEffectUncertainty(state) {
+  return effectUncertainties.get(state);
+}
+
+const retainEffectUncertainty = (state, ref) => {
+  if (state.status === 'needs_reconciliation' &&
+      state.next_action.kind === 'reconcile') {
+    // A Local port may reuse a cached object for another observation/Run.
+    // Each returned SDK response must keep its own original association.
+    state = structuredClone(state);
+    effectUncertainties.set(state, freezeInput({
+      observation: 'effect_outcome_unknown',
+      summary: 'External Effect outcomes are unknown. Computation stop does not establish their outcome or resource release.',
+      effects: [...state.next_action.effects],
+      physicalStop: state.control?.physical_stop ?? 'unknown',
+      ...(state.control === undefined ? {} :
+        {controlRevision: state.control.revision}),
+      next: {operation: 'status', ref: {...ref}},
+    }));
+  }
+  return state;
+};
+
+export function explainCancellation(result) {
+  return cancellationExplanations.get(result);
+}
+
+const retainCancellationExplanation = (result, context, observation, revision) => {
+  if (!context) return result;
+  const summaries = {
+    accepted: 'The Host recorded a Run cancellation request. Refresh Run state for physical stop, Effects and release.',
+    already_requested: 'The Host reports an existing Run cancellation request. Refresh Run state for physical stop, Effects and release.',
+    already_terminal: 'The Host reports the Run is already terminal for cancellation. Refresh Run state for Effect and release details.',
+    outcome_unknown: 'The Run cancellation outcome is unknown. The request may have been recorded.',
+  };
+  cancellationExplanations.set(result, freezeInput({observation,
+    ...(revision === undefined ? {} : {revision}), summary: summaries[observation],
+    next: {operation: 'status', ref: context.ref}}));
+  return result;
+};
 
 const submissionLookupExplanation = (observation, input) => freezeInput({
   observation,
@@ -125,6 +171,47 @@ export function resolveCheckTextRange(outcome, location, currentInput) {
 }
 
 // Presentation never participates in verdicts, admission or retry decisions.
+export function explainCheckOutcome(outcome) {
+  if (!validCheckOutcome(outcome)) return undefined;
+  const reportExplanation = (report, completeness) => ({completeness,
+    verdict: report.verdict, scope: {...report.scope}, contextRef: report.context_ref});
+  if (outcome.outcome === 'completed') {
+    const explanations = {
+      invalid: ['The report establishes an input violation in its checking scope.',
+        'Review the disclosed reasons and correct the submitted revision where indicated.'],
+      verified: ['The report verifies only its bound checking scope and context.',
+        'Use the execution, cancellation and release owners for their respective results.'],
+      undetermined: ['The report cannot establish verification or a proven input violation in its checking scope.',
+        'Review missing inputs and disclosed checking limits; an outstanding obligation is not an input error.'],
+    };
+    const [summary, hint] = explanations[outcome.report.verdict];
+    return freezeInput({outcome: 'completed', summary, hint,
+      report: reportExplanation(outcome.report, 'complete')});
+  }
+  if (outcome.outcome === 'failed') {
+    const explanations = {
+      check_report_unbounded: ['The reporting budget could not produce a complete bound check report.',
+        'Ask the checking-context owner to review reporting capacity for the original checking scope.'],
+      check_internal: ['An internal checking failure prevented a complete bound check report.',
+        'Ask the checking-context owner to investigate the reporting failure.'],
+    };
+    const known = Object.hasOwn(explanations, outcome.problem.code);
+    const [summary, hint] = known ? explanations[outcome.problem.code]
+      : ['A complete bound check report could not be issued; this problem code has no supported explanation.',
+        'Ask the checking-context owner to investigate; a partial report does not verify the input.'];
+    return freezeInput({outcome: 'failed', summary, hint,
+      problem: {kind: known ? 'known' : 'unknown', code: outcome.problem.code},
+      ...(outcome.partial_report === undefined ? {} : {
+        report: reportExplanation(outcome.partial_report, 'partial')})});
+  }
+  return freezeInput({outcome: 'unavailable',
+    summary: 'The scope and checking context needed for a safe public report are unavailable.',
+    hint: 'Ask the checking-context owner to review the published context; this response does not establish an input error.',
+    problem: {kind: outcome.problem.code === 'check_unavailable' ? 'known' : 'unknown',
+      code: outcome.problem.code}, correlationRef: outcome.correlation_ref});
+}
+
+// Reason presentation does not decide the report's verdict or outcome branch.
 export function explainCheckReason(reason) {
   const explanations = {
     query_syntax_invalid: ['The query syntax is invalid.', 'Correct the query syntax at the reported location when available.'],
@@ -163,6 +250,7 @@ export function explainCheckReason(reason) {
     return Object.freeze({kind: 'known', summary, hint});
   }
   const expressionExplanations = {
+    expected_boolean: ['A predicate must have Boolean type.', 'Use a Boolean condition, such as a comparison, in the predicate.'],
     unknown_reference: ['An expression reference cannot be resolved in the checked scope.', 'Use a declared reference from the disclosed query context.'],
     invalid_arguments: ['Expression arguments violate the selected operation contract.', 'Correct the argument count or form required by the selected operation.'],
     invalid_number: ['A numeric expression is outside the admitted numeric domain.', 'Use a finite number in the admitted precision and signed-zero domain.'],
@@ -405,7 +493,7 @@ export async function connectInProcess(options, port) {
 
 async function connectSelected(selected, port) {
   let closed = false;
-  const exchange = async (operation, body = {}, signal, submitContext) => {
+  const exchange = async (operation, body = {}, signal, submitContext, cancellationContext) => {
     if (closed) fail('ClientClosed');
     if (port !== undefined) {
       let request;
@@ -413,7 +501,10 @@ async function connectSelected(selected, port) {
       catch { fail('InvalidClientPayload'); }
       try {
         const value = await port.perform(operation, request, signal);
-        if (value instanceof Response) fail('InvalidLocalHostPortResponse');
+        if (value instanceof Response) {
+          throw retainCancellationExplanation(new ClientError('InvalidLocalHostPortResponse'),
+            cancellationContext, 'outcome_unknown');
+        }
         return value;
       }
       catch (cause) {
@@ -426,7 +517,8 @@ async function connectSelected(selected, port) {
         if (cause instanceof ClientError) {
           throw cause;
         }
-        throw new ClientError('ClientTransportUnknown', {cause});
+        throw retainCancellationExplanation(new ClientError('ClientTransportUnknown', {cause}),
+          cancellationContext, 'outcome_unknown');
       }
     }
     let payload;
@@ -453,7 +545,8 @@ async function connectSelected(selected, port) {
       if (operation === 'submit') {
         throw submissionUnknown(submitContext, cause);
       }
-      throw new ClientError('ClientTransportUnknown', {cause});
+      throw retainCancellationExplanation(new ClientError('ClientTransportUnknown', {cause}),
+          cancellationContext, 'outcome_unknown');
     }
     if (!response.ok) {
       let error;
@@ -485,12 +578,15 @@ async function connectSelected(selected, port) {
     const ref = Object.freeze({...admission.ref});
     const runProfile = Object.freeze({...confirmed,
       durability: admission.durability});
-    const runRequest = (operation, body = {}, signal) =>
-      exchange(operation, {ref, ...body}, signal);
-    const readControl = async (operation, body, signal) => {
-      const response = await runRequest(operation, body, signal);
+    const runRequest = (operation, body = {}, signal, cancellationContext) =>
+      exchange(operation, {ref, ...body}, signal, undefined, cancellationContext);
+    const readControl = async (operation, body, signal, cancellationContext) => {
+      const response = await runRequest(operation, body, signal, cancellationContext);
       try { return await controlValue(response); }
-      catch (cause) { throw new ClientError('InvalidHostResponse', {cause}); }
+      catch (cause) {
+        throw retainCancellationExplanation(new ClientError('InvalidHostResponse', {cause}),
+          cancellationContext, 'outcome_unknown');
+      }
     };
 
     const result = name => {
@@ -759,22 +855,24 @@ async function connectSelected(selected, port) {
       status: async ({signal} = {}) => {
         const state = await readControl('status', {}, signal);
         if (!validRunState(state)) fail('InvalidHostRunState');
-        return state;
+        return retainEffectUncertainty(state, ref);
       },
       wait: async ({until, signal} = {}) => {
         const state = await readControl('wait', {until: until ?? null}, signal);
         if (!validRunState(state)) fail('InvalidHostRunState');
-        return state;
+        return retainEffectUncertainty(state, ref);
       },
       cancel: async ({signal} = {}) => {
-        const response = await readControl('cancel', {}, signal);
+        const context = freezeInput({ref: {...ref}});
+        const response = await readControl('cancel', {}, signal, context);
         if (!validCancellation(response) ||
             response.ref.namespaceId !== ref.namespaceId ||
             response.ref.authorityScopeCid !== ref.authorityScopeCid ||
             response.ref.runDefinitionCid !== ref.runDefinitionCid) {
-          fail('InvalidHostCancellation');
+          throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),
+            context, 'outcome_unknown');
         }
-        return response;
+        return retainCancellationExplanation(response, context, response.kind, response.revision);
       },
       // The Run's current state after the Host's reconciliation attempt. An
       // unknown Effect outcome stays `needs_reconciliation` until the Host
@@ -782,7 +880,7 @@ async function connectSelected(selected, port) {
       reconcile: async ({signal} = {}) => {
         const state = await readControl('reconcile', {}, signal);
         if (!validRunState(state)) fail('InvalidHostRunState');
-        return state;
+        return retainEffectUncertainty(state, ref);
       },
     });
   };
@@ -1076,7 +1174,7 @@ async function connectSelected(selected, port) {
       const bytes = Uint8Array.from(atob(review.contentBase64),
         character => character.charCodeAt(0));
       if (bytes.byteLength !== review.byteLength ||
-          await bytesCid(bytes) !== review.artifactCid ||
+          !await reviewBytesMatchCid(bytes, review.artifactCid) ||
           typeof checkpoint === 'object' &&
             checkpoint.reviewProjectionCid !== undefined &&
             checkpoint.reviewProjectionCid !== review.artifactCid) {
