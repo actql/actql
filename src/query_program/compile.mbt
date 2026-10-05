@@ -893,6 +893,7 @@ fn reusable_order_expression(
   selected : Array[(@query.Expression, String)],
   aliases : Array[(String, String)],
   input_slot : (Array[@query.NamePart]) -> String?,
+  resolved_aggregates? : Array[(String, String)] = [],
 ) -> String? {
   for path in join_reference_paths(expression) {
     let selected_reference = order_reference_identity(path, input_slot)
@@ -907,7 +908,17 @@ fn reusable_order_expression(
     }
   }
   for (value, slot) in selected {
-    if same_expression(expression, value) {
+    if same_expression(expression, value, references=(left, right) => {
+        // Different parser-owned names can denote the same evaluated call.
+        // Keep existing authored expression spelling/reuse unchanged.
+        same_path(left, right) ||
+        (
+          left.length() == 1 &&
+          right.length() == 1 &&
+          resolved_aggregates.any(entry => entry.0 == left[0].value) &&
+          same_group_reference(left, right, input_slot)
+        )
+      }) {
       return Some(slot)
     }
   }
@@ -984,6 +995,33 @@ fn selected_projections(query : @query.Query) -> Array[@query.Projection] {
     }
   }
   []
+}
+
+///|
+// SQL's parser records ORDER-only calls as private Group projections. Their
+// references occur in ORDER, never as authored SELECT aliases or inputs.
+fn order_aggregate_calls(
+  query : @query.Query,
+  projections : Array[@query.Projection],
+) -> Array[(@query.NamePart, @query.AggregateCall)] {
+  let selected = selected_projections(query)
+  let references : Array[Array[@query.NamePart]] = []
+  for index in 0..<@query.operation_count(query) {
+    if @query.operation_at(query, index) is Some(Order(terms)) {
+      for term in terms {
+        references.append(join_reference_paths(term.expression))
+      }
+    }
+  }
+  projections.filter_map(projection => {
+    guard projection.name is Some(name) &&
+      projection.aggregate is Some(call) &&
+      !selected.any(item => item.name == Some(name)) &&
+      references.any(path => path.length() == 1 && path[0] == name) else {
+      return None
+    }
+    Some((name, call))
+  })
 }
 
 ///|
@@ -1573,6 +1611,7 @@ fn compile_steps(
   let analytic_outputs : Array[(String, String)] = []
   let mut analytic_input_fields : Array[String]? = None
   let having_aggregate_slots : Array[(String, String)] = []
+  let order_aggregate_slots : Array[(String, String)] = []
   let mut first = true
   let mut input_from = input.name
   let mut terminal_result = false
@@ -1616,6 +1655,7 @@ fn compile_steps(
       sql_group_projection = false
       grouped_keys.clear()
       having_values.clear()
+      order_aggregate_slots.clear()
       pipe_ranges = []
       pipe_rebound = true
     }
@@ -2042,12 +2082,19 @@ fn compile_steps(
         let input_visible = pipe_visible.copy()
         let input_ranges = pipe_ranges.copy()
         let hidden_calls = match @query.operation_at(query, i + 1) {
-          Some(Having(_, calls)) => calls
+          Some(Having(_, calls)) => calls.copy()
           _ => []
         }
+        let order_calls = if grouping_scope == @query.SqlSelect {
+          order_aggregate_calls(query, projections)
+        } else {
+          []
+        }
+        hidden_calls.append(order_calls)
         grouped_keys.clear()
         having_values.clear()
         having_aggregate_slots.clear()
+        order_aggregate_slots.clear()
         sql_group_projection = grouping_scope == @query.SqlSelect
         if sql_group_projection {
           // SQL star names the input row, before grouping removes columns or
@@ -2253,6 +2300,11 @@ fn compile_steps(
           }
         }
         for projection in projections {
+          if order_calls.any(pair => projection.name == Some(pair.0)) {
+            // ORDER arguments use the same alias-aware input snapshot as
+            // HAVING, rather than SELECT's input-only argument resolution.
+            continue
+          }
           match projection.aggregate {
             Some(call) => {
               let name = projection.name.unwrap().value
@@ -2389,7 +2441,7 @@ fn compile_steps(
               }) {
               continue
             }
-            // HAVING aggregate arguments use pre-group SELECT alias values.
+            // HAVING/ORDER arguments use pre-group SELECT alias values.
             // Evaluate each needed alias once in the original input snapshot.
             let mut slot : String? = None
             for (key, name) in grouped_keys {
@@ -2498,6 +2550,9 @@ fn compile_steps(
               }
             }
             having_aggregate_slots.push((name.value, slot))
+            if order_calls.any(pair => pair.0 == name) {
+              order_aggregate_slots.push((name.value, slot))
+            }
           }
         }
         // Property order can depend on a SELECT alias evaluated above. Common
@@ -2525,7 +2580,7 @@ fn compile_steps(
         )
         active_fields = result_fields.copy()
         output = result_fields
-        if sql_group_projection && scoped {
+        if sql_group_projection && (scoped || !order_calls.is_empty()) {
           // SQL retains only grouped input bindings until its SELECT. Private
           // JOIN slots stay physical; qualified names are never flattened.
           pipe_visible = input_visible.filter(entry => {
@@ -2533,6 +2588,20 @@ fn compile_steps(
           })
           for entry in aggregates {
             pipe_visible.push((entry.0, entry.0))
+          }
+          for (name, _) in order_calls {
+            for (logical, slot) in having_aggregate_slots {
+              if name.value == logical &&
+                !pipe_visible.contains((logical, slot)) {
+                // A star can expose an input whose name was absent from
+                // authored tokens. Keep its public physical value separate
+                // from this parser-owned aggregate reference.
+                pipe_visible = pipe_visible.filter(entry => {
+                  ascii_upper(entry.0) != ascii_upper(logical)
+                })
+                pipe_visible.push((logical, slot))
+              }
+            }
           }
           pipe_ranges = input_ranges.map(range => {
             (range.0, range.1.filter(entry => key_names.contains(entry.1)))
@@ -3239,6 +3308,23 @@ fn compile_steps(
         // SELECT aliases refer to already evaluated physical slots. Other
         // references use only the current Pipe scope, never the FROM scope.
         let resolve = fn(path : Array[@query.NamePart]) -> String? {
+          if path.length() == 1 {
+            for (logical, slot) in order_aggregate_slots {
+              if path[0].value == logical {
+                if active_fields.contains(slot) {
+                  return Some(slot)
+                }
+                if distinct_order_scope {
+                  for (name, source) in selected_output_slots {
+                    if source == slot {
+                      return Some(name)
+                    }
+                  }
+                }
+                return None
+              }
+            }
+          }
           if pending_select is Some(_) && path.length() == 1 {
             for binding in pending_bindings {
               if same_name(path[0], { value: binding.0, quoted: false, }) {
@@ -3281,7 +3367,7 @@ fn compile_steps(
             selected = reusable_order_expression(
               expression,
               selected_expressions,
-              selected_output_slots,
+              order_aggregate_slots + selected_output_slots,
               path => {
                 pipe_slot(
                   path,
@@ -3289,6 +3375,7 @@ fn compile_steps(
                   selected_input_scope.ranges,
                 )
               },
+              resolved_aggregates=order_aggregate_slots,
             )
           }
           let ordinal = order_ordinal_column(

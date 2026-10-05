@@ -1197,11 +1197,23 @@ fn QueryParser::group_keys(
 }
 
 ///|
-fn QueryParser::order(self : QueryParser) -> Array[SortTerm] raise QueryAbort {
+fn QueryParser::order(
+  self : QueryParser,
+  calls? : Array[(NamePart, AggregateCall)]? = None,
+) -> Array[SortTerm] raise QueryAbort {
   let terms : Array[SortTerm] = []
   while true {
     self.node()
-    let expression = self.expression()
+    let expression = match calls {
+      Some(calls) => {
+        let (expression, embedded) = self.aggregate_expression(
+          "aql_order_aggregate_",
+        )
+        calls.append(embedded)
+        expression
+      }
+      None => self.expression()
+    }
     let direction = if self.has("DESC") {
       self.keyword("DESC")
       "desc"
@@ -1488,7 +1500,7 @@ fn QueryParser::query(
 
 ///|
 fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
-  let term = self.sql_operand()
+  let mut term = self.sql_operand()
   let ctes = term.ctes.copy()
   let sets : Array[SetPart] = []
   let mut set_spelling : (String, String, Bool)? = None
@@ -1540,14 +1552,56 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
     sets.push({ kind, duplicates, by_name, right: { ..right, ctes: [], }, })
   }
   let tail : Array[QueryOperation] = []
+  let order_calls : Array[(NamePart, AggregateCall)] = []
+  let order_start = self.peek().start
   if self.has("ORDER") {
     self.keyword("ORDER")
     self.keyword("BY")
-    tail.push(Order(self.order()))
+    tail.push(Order(self.order(calls=Some(order_calls))))
   }
   if self.has("LIMIT") {
     self.node()
     tail.push(self.limit())
+  }
+  if !order_calls.is_empty() {
+    // ORDER belongs to this SELECT, not to an inner producer or a set's
+    // already projected output. Keep calls in the existing Group plan.
+    if !sets.is_empty() ||
+      !term.operations.any(operation => operation is Select(_, _)) {
+      raise QueryAbort(
+        "Aggregate ORDER BY requires a SELECT query scope", order_start,
+      )
+    }
+    let hidden = order_calls.map(pair => {
+      expression: None,
+      aggregate: Some(pair.1),
+      analytic: None,
+      name: Some(pair.0),
+      star: None,
+    })
+    let operations : Array[QueryOperation] = []
+    let mut grouped = false
+    let selected = term.operations.filter_map(operation => {
+        match operation {
+          Select(projections, _) => Some(projections)
+          _ => None
+        }
+      })[0]
+    for operation in term.operations {
+      match operation {
+        Group(keys, projections, SqlSelect) => {
+          operations.push(Group(keys, projections + hidden, SqlSelect))
+          grouped = true
+        }
+        Analytic(_) | Select(_, _) if !grouped => {
+          operations.push(Group([], selected + hidden, SqlSelect))
+          operations.push(operation)
+          grouped = true
+        }
+        _ => operations.push(operation)
+      }
+    }
+    term = { ..term, operations, }
   }
   if sets.is_empty() {
     { ..term, operations: term.operations + tail, work: self.work, }
