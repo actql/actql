@@ -58,6 +58,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/grouped-in-source-input.mjs', 'grouped-in-source-input.mjs'],
   ['scripts/fixtures/order-property-source-input.mjs', 'order-property-source-input.mjs'],
   ['scripts/fixtures/analytic-order-source-input.mjs', 'analytic-order-source-input.mjs'],
+  ['scripts/fixtures/analytic-partition-property-source-input.mjs', 'analytic-partition-property-source-input.mjs'],
   ['docs/reviews/fixtures/analytic-order-property-repro.program.json', 'analytic-order-property-repro.program.json'],
   ['scripts/fixtures/join-property-source-input.mjs', 'join-property-source-input.mjs'],
   ['scripts/fixtures/analytic-property-source-input.mjs', 'analytic-property-source-input.mjs'],
@@ -234,6 +235,9 @@ if (process.argv.includes('--group-scope-only')) {
 if (process.argv.includes('--analytic-profiles-only')) {
   runtimeEnvironment.ACTQL_TEST_ANALYTIC_PROFILES_ONLY = '1';
 }
+if (process.argv.includes('--analytic-partition-property-only')) {
+  runtimeEnvironment.ACTQL_TEST_ANALYTIC_PARTITION_PROPERTY_ONLY = '1';
+}
 if (process.argv.includes('--analytic-order-only')) {
   runtimeEnvironment.ACTQL_TEST_ANALYTIC_ORDER_ONLY = '1';
 }
@@ -319,7 +323,7 @@ if (process.argv.includes('--cancellation-only')) {
 }
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
-const narrowPublicQuery = process.argv.some(flag => ['--having-object-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
+const narrowPublicQuery = process.argv.some(flag => ['--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
   '--analytic-offset-only',
   '--join-property-only', '--aggregate-property-only', '--analytic-property-only', '--graph-match-only',
   '--graph-diagnostics-only',
@@ -372,7 +376,7 @@ if (plannerSelectionOnly || twoSourceExampleOnly || process.argv.includes('--ana
 // its Store. Restore retained Results in a new process without resubmission.
 // Narrow selections without the String fixture have no retained String Run.
 // Keep restart acceptance for full/source-free selections that create it.
-if (!process.argv.some(flag => ['--analytic-frame-parameter-only', '--analytic-profiles-only', '--analytic-order-only', '--join-property-only', '--aggregate-property-only', '--analytic-property-only', '--quoted-identifiers-only', '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
+if (!process.argv.some(flag => ['--analytic-frame-parameter-only', '--analytic-profiles-only', '--analytic-order-only', '--analytic-partition-property-only', '--join-property-only', '--aggregate-property-only', '--analytic-property-only', '--quoted-identifiers-only', '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
   '--analytic-offset-only',
   '--graph-match-only',
   '--graph-diagnostics-only',
@@ -388,6 +392,7 @@ if (!process.argv.some(flag => ['--analytic-frame-parameter-only', '--analytic-p
 if (process.argv.includes('--analytic-frame-parameter-only') ||
     process.argv.includes('--analytic-profiles-only') ||
     process.argv.includes('--analytic-order-only') ||
+    process.argv.includes('--analytic-partition-property-only') ||
     process.argv.includes('--order-ordinal-only') ||
     process.argv.includes('--analytic-offset-only') ||
     process.argv.includes('--subgraph-only') ||
