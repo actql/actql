@@ -1,5 +1,48 @@
 # Standard Host Model approval: first vertical slice
 
+## Cancellation and original-value boundary follow-up
+
+The live and restored Node adapters now collect revisioned observations for
+`run_publication_host.confirm_client_run_cancellation`. The common Run owner
+requires admitted cancellation, the necessary Model fence, no unresolved
+Model/Effect responsibility or reconciliation, no committed publication,
+confirmed physical stop and cleanup, and an unchanged revision. Abort signals
+do not supply terminal authority. The shared physical recorder preserves an
+earlier immutable observation; a changed unsealed revision retains the same
+owner for retry. Restored dispatch reports its own reclamation, rather than
+borrowing an earlier phase's physical-close record.
+
+At the pre-fix boundary, four independently authored Node-owner cases failed
+(`run-OjQRLq`): overlapping normal stop observations and stale Model fence or
+lifecycle facts after asynchronous publication inspection. These are real
+adapter-owner tests with explicit journal/Store doubles, not a claim that all
+four failures were reproduced through a public Run. The current common-owner
+test separately omits each required fact. Original strings continue to use
+the existing value canonicalizer; configuration identity normalization is
+unchanged. Public input vectors distinguish composed/decomposed Unicode, CR,
+LF and CRLF, including strings nested inside the submitted Program.
+
+At clean `c20b06c99961aea1a1dfd8ae17d5d38c29ca6278`, `run-PeRgiD` passed four
+focused JS common-owner tests, 26 Node boundary tests, fresh five-package
+production and the normal packed INFER runner with 36 public recovery cases.
+The same distribution also passed independent Model/Effect approval across
+six processes per Local/HTTPS transport. Receipts are
+`public-query-evidence-jXg2ee`, `model-cancellation-pack-0WW0v7`, and
+`actql-packed-salesforce-kdeCOR` under `worktrees/.codex-scratch`. This precedes
+the additional restored-cleanup receipt binding and merge declaration; it
+does not establish acceptance of a later SHA. The earlier 180-second focused
+selection (`run-DBbkzE`) timed out without a complete assertion result and is
+not counted as a pass. All prior evidence and declarations remain retained.
+
+The published acceptance merge has two actual maximal common ancestors,
+`7fc407f289ba15e5911a63979f1e743600533f4a` and
+`eb74d7b65d0f338ef5862a7d9cd7397744a08eaa`. Its new resolution record binds
+the four required paths and 78 dependency source groups using the existing
+union rule; it neither replaces old declarations nor changes the validator.
+Full retained-history validation, exact-HEAD hosted CI and A's boundary review
+remain separate obligations. No complete temporary-holder census, Native/Wasm
+acceptance or Cloud public completion is claimed.
+
 ## Adoption and ownership
 
 The integration retains A's unfinished prepared-owner candidate

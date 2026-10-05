@@ -115,6 +115,43 @@ test('a changed cancellation revision retains the same stop owner for retry', as
   assert.deepEqual(f.observed, ['cancelled']);
 });
 
+test('an earlier physical close cannot acknowledge current restored cleanup', async () => {
+  let reclaimed = false, currentStopConfirmed = false;
+  const retained = {cancellationRequested: true, revision: 1,
+    physicalCloseConfirmed: true, observedTerminalOutcome: null,
+    runDefinition: {wire: 'original'}};
+  const facts = {ref: {runDefinitionCid: 'definition'},
+    journal: {lookupRunDefinition: () => retained,
+      lookupReconciliationState: () => undefined,
+      markPhysicalClose() { assert.fail('preserve the earlier stop'); }},
+    control: {runDefinitionRunId: () => 'run', runCancellationConfirmed: commonDecision},
+    checkpoints: {journal: {discoverModelCallSets: () => [{}],
+      modelCancellationFenced: () => true, hasUnresolvedModelCalls: () => false}},
+    store: {confirmCommittedIndex: async () => undefined}, physicalStopConfirmed: true};
+  const owner = installNodeClientDispatchOwner({});
+  const flight = owner.track(facts.ref, {
+    run({beginPhysicalWork, retainExecution}) {
+      beginPhysicalWork();
+      retainExecution({async close() {}, cleanup: () => reclaimed,
+        cleanupPending: () => !reclaimed});
+    },
+    async observeStopped() {
+      await observeNodeRestoredModelStop({...facts, cleanupConfirmed: true});
+      currentStopConfirmed = true;
+    },
+  });
+  await assert.rejects(flight, /ClientDispatchCleanupPending/);
+  assert.equal(await confirmNodeRunCancellation({...facts,
+    cleanupConfirmed: currentStopConfirmed}), false);
+  assert.equal(currentStopConfirmed, false);
+  reclaimed = true;
+  await owner.drain();
+  assert.equal(currentStopConfirmed, true);
+  assert.equal(await confirmNodeRunCancellation({...facts,
+    cleanupConfirmed: currentStopConfirmed}), true);
+  assert.equal(retained.observedTerminalOutcome, null);
+});
+
 for (const [name, changes] of [
   ['accepted current Run cancellation', {accepted: false}],
   ['durable send fence', {fenced: false}],

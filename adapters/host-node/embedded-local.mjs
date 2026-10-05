@@ -1092,6 +1092,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
         observeStopped: terminalOutcome => {
           recordNodeRunPhysicalStop({ref: facts.ref, journal, moon, control},
             activeResume === undefined ? terminalOutcome : null);
+          modelResume?.observeStopped?.();
           if (activeResume !== undefined) activeResume.observedTerminalOutcome = terminalOutcome;
         },
         barrierFailureOutcome: 'failed',
@@ -2051,6 +2052,11 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
             // own activation and per-call entry; Effect approval is separate.
             if (claim !== undefined) checkpoints.journal.renewResume(claim, leaseMs);
           };
+          let restorationDispatchEntered = false;
+          let restorationStopConfirmed = false;
+          // An older physical-close record cannot acknowledge a new
+          // continuation's reclamation. Only its current owner can do that.
+          const restorationReclaimed = () => !restorationDispatchEntered || restorationStopConfirmed;
           const runRestoredModel = async () => {
             assertCurrent();
             const current = journal.lookupRunDefinition(ref, moon, control);
@@ -2078,7 +2084,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
                   prepareAttemptId: null, runId, runDefinitionCid: ref.runDefinitionCid}) : active,
                 ...(parentCheckpoint === undefined ? {} : {parentResume: {
                   claim, checkpointCid: parentCheckpoint.checkpointCid}}),
-                assertCurrent};
+                assertCurrent, observeStopped: () => { restorationStopConfirmed = true; }};
+              restorationDispatchEntered = true;
               return executeEffectComputation(facts, undefined, undefined, modelResume);
             }
             if (parentCheckpoint !== undefined) throw new Error('ModelReadParentRunMismatch');
@@ -2086,6 +2093,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
             if (originalModelRunWire(plan.compiled, plan.runDefinition) !== record.originals.originalRunWire) {
               throw new Error('ModelResumeOriginalAdmissionChanged');
             }
+            restorationDispatchEntered = true;
             return dispatchOwner.track(ref, {
               run: async ({signal, retainExecution, beginPhysicalWork}) => {
                 assertCurrent();
@@ -2094,9 +2102,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
                   store, principalId, signal, retainExecution, beginPhysicalWork,
                   submission: token.snapshot.submission, existingModel: record, modelClaim: claim});
               },
-              observeStopped: () => observeNodeRestoredModelStop({ref,
-                journal, store, checkpoints, moon, control, cleanupConfirmed: true,
-                physicalStopConfirmed: true}),
+              observeStopped: async () => {
+                await observeNodeRestoredModelStop({ref,
+                  journal, store, checkpoints, moon, control, cleanupConfirmed: true,
+                  physicalStopConfirmed: true});
+                restorationStopConfirmed = true;
+              },
             });
           };
           const flight = runRestoredModel().then(async result => {
@@ -2143,8 +2154,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
             const stopped = journal.lookupRunDefinition(ref, moon, control);
             if (stopped?.physicalCloseConfirmed === true &&
                 await confirmNodeRunCancellation({ref, journal, store, checkpoints,
-                  moon, control, cleanupConfirmed: true,
+                  moon, control, cleanupConfirmed: restorationReclaimed(),
                   physicalStopConfirmed: stopped.physicalCloseConfirmed}) &&
+                restorationReclaimed() &&
                 journal.lookupRunDefinition(ref, moon, control)?.revision === stopped.revision) {
               const state = checkpoints.journal.getRunState(runId);
               if (claim !== undefined && state?.status === 'resuming' && leaseFailure === undefined) {
@@ -2154,7 +2166,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
               }
               return;
             }
-            if (code === 'ModelSavedTerminalFailure' && stopped?.physicalCloseConfirmed === true &&
+            if (code === 'ModelSavedTerminalFailure' && stopped?.physicalCloseConfirmed === true && restorationReclaimed() &&
                 !checkpoints.journal.hasUnresolvedModelCalls(runId)) {
               const state = checkpoints.journal.getRunState(runId);
               if (claim !== undefined && state?.status === 'resuming' && leaseFailure === undefined) {
