@@ -9,7 +9,7 @@ import {canonicalText} from './check-canonical-json.mjs';
 import {propertyGraphPresenceOracle, deltaApplicationScenario as deltaScenario,
   deltaRelationCompositionScenario, deltaDiffScenario} from
   './fixtures/property-graph-delta-application.mjs';
-import {unionGraphScenario} from './fixtures/property-graph-union.mjs';
+import {unionGraphScenario,unionEndpointConflictScenario} from './fixtures/property-graph-union.mjs';
 
 // The same independent oracle runs against source and repository-external
 // tarballs. The packed branch imports no checkout implementation or toolchain.
@@ -552,6 +552,16 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
         }
         assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
       }
+      const conflict = unionEndpointConflictScenario(presenceFixture);
+      const rejected = await client.aql(canonicalText(conflict.document),{
+        format:'json',requestId:`${conflict.document.id}-${mode}`,
+      });
+      const failure = await rejected.wait();
+      assert.equal(failure.status,'failed',JSON.stringify(failure));
+      assert.equal(failure.control.physical_stop,'confirmed');
+      await assert.rejects(rejected.result('answer').all());
+      await assert.rejects((await client.attach(rejected.ref)).result('answer').all());
+      assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
       const {document} = unionGraphScenario(presenceFixture,'node_rows');
       document.stages[0].steps[6].union_graphs.extra = true;
       const before = physicalSteps.length;

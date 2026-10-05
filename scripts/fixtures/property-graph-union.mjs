@@ -73,3 +73,23 @@ export function unionGraphScenario(fixture, projection, {numeric = false, empty 
   return {document,graphSnapshots,relationSnapshots,fields,
     expected:rows.map(row=>Object.fromEntries(fields.map(field=>[field,row[field]])))};
 }
+
+// The existing Delta owner makes an individually valid peer in the original
+// domain. Its first parallel edge keeps its complete ID/key but reverses its
+// endpoints. No product union output participates in this refusal fixture.
+export function unionEndpointConflictScenario(fixture) {
+  const {document,graphSnapshots} = unionGraphScenario(fixture,'edge_rows');
+  const base = JSON.parse(graphSnapshots[0][1]);
+  const peer = JSON.parse(graphSnapshots[1][1]);
+  const before = structuredClone(base[4][0]);
+  const after = structuredClone(peer[4][0]);
+  after.src = structuredClone(before.dst);
+  after.dst = structuredClone(before.src);
+  peer[4][0] = after;
+  const peerSnapshot = canonicalText(peer);
+  const delta = document.stages[0].steps[4].derive.delta.literal;
+  delta.edges.update = [{before,after}];
+  delta.target_graph_cid = digest(peerSnapshot);
+  document.id = 'union-shared-edge-endpoint-conflict';
+  return {document,before,after,baseSnapshot:graphSnapshots[0][1],peerSnapshot};
+}
