@@ -12,6 +12,8 @@ import {
   "actql/actql/connectors/duckdb/adapter",
   "actql/actql/connectors/duckdb/adapters/native" @duckdb,
   "actql/actql/physical_strategy" @strategy,
+  "actql/actql/query_planning" @planning,
+  "actql/actql/physical_cost" @cost,
   "actql/actql/physical_resources" @resources,
   "actql/actql/connector_sdk" @connector,
   "actql/actql/execution_relation" @execution,

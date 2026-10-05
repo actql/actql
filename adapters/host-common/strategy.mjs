@@ -290,9 +290,13 @@ export async function runInstalledStrategy(
   sitePolicy,
   beforeCompute,
   authorization = missingAuthorizationGate(),
+  observeTaskStart,
 ) {
   if (observeCompletion !== undefined && typeof observeCompletion !== 'function') {
     throw new StrategyHostError('InvalidCompletionObserver');
+  }
+  if (observeTaskStart !== undefined && typeof observeTaskStart !== 'function') {
+    throw new StrategyHostError('InvalidTaskStartObserver');
   }
   if (authorization === null || typeof authorization !== 'object' ||
       typeof authorization.authorize !== 'function' ||
@@ -744,6 +748,21 @@ export async function runInstalledStrategy(
       // authorized. A deny, failure, unsupported defer or persisted wait
       // stops the Run through the existing stop path.
       await authorizeActivation(siteCandidate.site, entry, index);
+      let plannerObserverMilliseconds;
+      if (observeTaskStart) {
+        const observationStarted = performance.now();
+        // The real dispatcher has selected the task/placement. Snapshot only
+        // bounded diagnostics before any Site operation or Compute begins.
+        // The callback's return value never replaces the selected task.
+        await observeTaskStart(Object.freeze({task: index,
+          registrationKey: entry.managedSelectionKey, managed: Boolean(managed),
+          executionSite: executionSiteDescription(siteCandidate.site),
+          explanation: core.explain(setup, 65536, 10000),
+          usage: Object.freeze({...core.usage(setup)}),
+        }));
+        plannerObserverMilliseconds = performance.now() - observationStarted;
+        signal?.throwIfAborted();
+      }
       const siteBinding = bindExecutionSiteCandidate(siteCandidate);
       const siteOperation = startExecutionSiteOperation(siteBinding);
       let siteInputsResolved = siteCandidate.transfers.length === 0;
@@ -949,6 +968,7 @@ export async function runInstalledStrategy(
       }
       completed.push(Object.freeze({
         ...result?.diagnostic,
+        ...(plannerObserverMilliseconds === undefined ? {} : {plannerObserverMilliseconds}),
         taskElapsedMilliseconds: performance.now() - taskStarted,
         task: index,
         executionSite: executionSiteDescription(siteCandidate.site),
