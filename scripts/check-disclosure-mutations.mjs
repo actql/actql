@@ -24,6 +24,7 @@ const mutations = [
     '      finding\n      is (Violation(_)\n      | SyntaxViolation(_, _)\n' +
     '      | LexicalViolation(_, _)\n' +
     '      | ExpressionViolation(_, _)\n' +
+    '      | GraphViolation(_)\n' +
     '      | TypeViolation(_, _, _, _)\n      | SuppliedViolation(_)\n' +
     '      | DeclarationViolation(_)\n' +
     '      | ConstraintViolation(_, _, _)\n' +
@@ -143,6 +144,19 @@ const mutations = [
   ['an expression diagnostic is reported as an analysis limit',
     'return ExpressionViolation(code, range)',
     'return Limit("analysis_budget_exhausted")'],
+  ['a Graph components violation is reported as an implementation limit',
+    'return GraphViolation("invalid_kind")',
+    'return Limit("implementation_limit")'],
+  ['a Graph components violation loses its typed facts',
+    'return GraphViolation("invalid_kind")',
+    'return Violation("program_invalid")'],
+  ['a Graph components violation invents an authored SQL range',
+    '@encode.string_value(writer, "components")\n          @encode.end_object(writer)',
+    '@encode.string_value(writer, "components")\n          @encode.end_object(writer)\n' +
+    '          write_check_text_location(writer, documents.source_revision, 0, 1)'],
+  ['a Graph components violation exposes a private value as a code',
+    'return GraphViolation("invalid_kind")',
+    'return Violation("private_kind_value")'],
   ['an unsupported function is reported as an authored violation',
     '        QueryLowering(Expression({ issue: UnsupportedFunction, .. })) =>\n' +
     '          findings.push(Limit("implementation_limit"))',
@@ -228,6 +242,9 @@ const targets = [
     [strict('expression-outcome'), strict('expression-verdict'), deep('expression-reason')]],
   ['typed expression explanations retain original source ranges', [deep('expression-protected')]],
   ['typed expression explanations retain original source ranges', [strict('expression-verdict')]],
+  ...Array.from({length: 4}, () =>
+    ['Graph components expose typed argument violations',
+      [strict('graph-argument-verdict'), deep('graph-argument-reason')]]),
   ['unsupported function lowering remains an implementation limit', [strict('function-limit-verdict')]],
   ['unsupported function lowering remains an implementation limit', [strict('function-limit-outcome')]],
   ['unsupported function lowering remains an implementation limit', [strict('function-limit-verdict')]],
