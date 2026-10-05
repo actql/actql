@@ -9,9 +9,12 @@ import {checkpointLimits, clientSourceFormats, isClientSubmitRejection, validCan
   validResultDescription, validCheckOutcome} from
   '@actql/client-wire';
 import {reviewBytesMatchCid, contentCid, checkedSigner, signedAnswer} from './checkpoints.mjs';
+import {localizeCheck} from './check-presentation.mjs';
+export {getCheckPresentationInfo} from './check-presentation.mjs';
 // The response owns only a weak association to this call's immutable inputs.
 // A parsed/copied report has no such association and cannot resolve a location.
 const checkInputs = new WeakMap();
+const checkFrontiers = new WeakMap();
 // Original request data is available only through explicit SDK access, never
 // by serializing an error or Run handle. It does not establish acceptance.
 const submissionInputs = new WeakMap();
@@ -38,6 +41,78 @@ export function getCheckInput(outcome, documentId, revision) {
     ? input : undefined;
 }
 
+// Compare typed public obligations, never translated explanations or severity.
+const structuralKey = value => value !== null && typeof value === 'object'
+  ? Array.isArray(value) ? '[' + value.map(structuralKey).join(',') + ']'
+    : '{' + Object.keys(value).sort().map(key =>
+      JSON.stringify(key) + ':' + structuralKey(value[key])).join(',') + '}'
+  : JSON.stringify(value);
+const unordered = values => [...new Map(values.map(value =>
+  [structuralKey(value), value])).entries()].sort(([left], [right]) =>
+  left < right ? -1 : left > right ? 1 : 0).map(([, value]) => value);
+
+export function getCheckRequirementFrontier(outcome) {
+  if (!checkInputs.has(outcome) || outcome.outcome !== 'completed') return undefined;
+  if (checkFrontiers.has(outcome)) return checkFrontiers.get(outcome);
+  const report = outcome.report;
+  // These are the currently exposed typed Requirements. Unknown obligations
+  // cannot supply a structural admission condition for supplementation.
+  if (report.requirements.some(reason => reason.code !== 'parameter_value_required')) return undefined;
+  const frontier = freezeInput({contextRef: report.context_ref,
+    reasonSchemaCid: outcome.reason_schema_cid,
+    scope: {...report.scope}, requirements: unordered(report.requirements.map(({code, facts}) =>
+      ({code, facts}))),
+    coverage: {limits: unordered(report.coverage.limits),
+      unresolved: unordered(report.coverage.unresolved)}});
+  checkFrontiers.set(outcome, frontier);
+  return frontier;
+}
+
+export function equalCheckRequirementFrontiers(first, second) {
+  const left = getCheckRequirementFrontier(first);
+  const right = getCheckRequirementFrontier(second);
+  if (!left || !right) return undefined;
+  return structuralKey(left) === structuralKey(right);
+}
+
+// This bounds read-only checking, not an authoritative supplement write.
+export function createCheckSupplementationSession(client, {maxAttempts} = {}) {
+  if (typeof client?.check !== 'function' || !Number.isSafeInteger(maxAttempts) || maxAttempts < 1) {
+    fail('InvalidCheckSupplementationSession');
+  }
+  let attempts = 0, checking = false, previous, stopped;
+  return Object.freeze({
+    async check(text, options) {
+      if (checking) fail('CheckSupplementationBusy');
+      if (stopped || attempts >= maxAttempts) {
+        throw new ClientError('CheckSupplementationStopped', {
+          decision: stopped ?? Object.freeze({kind: 'stop', reason: 'attempt_budget'}),
+          attempts, maxAttempts});
+      }
+      checking = true;
+      attempts++;
+      try {
+        const outcome = await client.check(text, options);
+        const frontier = getCheckRequirementFrontier(outcome);
+        let reason;
+        if (!frontier) reason = 'frontier_unavailable';
+        else if (outcome.report.verdict !== 'undetermined' || frontier.requirements.length === 0) {
+          reason = 'no_known_supplement';
+        } else if (previous && structuralKey(previous) === structuralKey(frontier)) {
+          reason = 'unchanged_frontier';
+        } else if (attempts >= maxAttempts) reason = 'attempt_budget';
+        const decision = Object.freeze(reason === undefined
+          ? {kind: 'more_checks'} : {kind: 'stop', reason});
+        if (decision.kind === 'stop') stopped = decision;
+        previous = frontier;
+        return Object.freeze({outcome, attempts, decision});
+      } finally {
+        checking = false;
+      }
+    },
+  });
+}
+
 export function getSubmissionInput(result) {
   return submissionInputs.get(result);
 }
@@ -55,7 +130,12 @@ const retainEffectUncertainty = (state, ref) => {
       state.next_action.kind === 'reconcile') {
     // A Local port may reuse a cached object for another observation/Run.
     // Each returned SDK response must keep its own original association.
-    state = structuredClone(state);
+    try { state = structuredClone(state); }
+    catch { fail('InvalidHostRunState'); }
+    // A Local value can lose fields when copied. Retain only a validated
+    // copied reconciliation state, before reading or explaining its facts.
+    if (!validRunState(state) || state.status !== 'needs_reconciliation' ||
+        state.next_action.kind !== 'reconcile') fail('InvalidHostRunState');
     effectUncertainties.set(state, freezeInput({
       observation: 'effect_outcome_unknown',
       summary: 'External Effect outcomes are unknown. Computation stop does not establish their outcome or resource release.',
@@ -171,7 +251,7 @@ export function resolveCheckTextRange(outcome, location, currentInput) {
 }
 
 // Presentation never participates in verdicts, admission or retry decisions.
-export function explainCheckOutcome(outcome) {
+export function explainCheckOutcome(outcome, options) {
   if (!validCheckOutcome(outcome)) return undefined;
   const reportExplanation = (report, completeness) => ({completeness,
     verdict: report.verdict, scope: {...report.scope}, contextRef: report.context_ref});
@@ -184,9 +264,11 @@ export function explainCheckOutcome(outcome) {
       undetermined: ['The report cannot establish verification or a proven input violation in its checking scope.',
         'Review missing inputs and disclosed checking limits; an outstanding obligation is not an input error.'],
     };
-    const [summary, hint] = explanations[outcome.report.verdict];
-    return freezeInput({outcome: 'completed', summary, hint,
-      report: reportExplanation(outcome.report, 'complete')});
+    // Capture observation fields before reading application-owned locale options.
+    const report = reportExplanation(outcome.report, 'complete');
+    const [summary, hint] = localizeCheck(`completed.${report.verdict}`,
+      explanations[report.verdict], options);
+    return freezeInput({outcome: 'completed', summary, hint, report});
   }
   if (outcome.outcome === 'failed') {
     const explanations = {
@@ -196,28 +278,37 @@ export function explainCheckOutcome(outcome) {
         'Ask the checking-context owner to investigate the reporting failure.'],
     };
     const known = Object.hasOwn(explanations, outcome.problem.code);
-    const [summary, hint] = known ? explanations[outcome.problem.code]
+    const problem = {kind: known ? 'known' : 'unknown', code: outcome.problem.code};
+    const correlationRef = outcome.correlation_ref;
+    const report = outcome.partial_report === undefined ? undefined
+      : reportExplanation(outcome.partial_report, 'partial');
+    const [summary, hint] = localizeCheck(`failed.${known ? problem.code : 'unknown'}`,
+      known ? explanations[problem.code]
       : ['A complete bound check report could not be issued; this problem code has no supported explanation.',
-        'Ask the checking-context owner to investigate; a partial report does not verify the input.'];
-    return freezeInput({outcome: 'failed', summary, hint,
-      problem: {kind: known ? 'known' : 'unknown', code: outcome.problem.code},
-      ...(outcome.partial_report === undefined ? {} : {
-        report: reportExplanation(outcome.partial_report, 'partial')})});
+        'Ask the checking-context owner to investigate; a partial report does not verify the input.'], options);
+    return freezeInput({outcome: 'failed', summary, hint, correlationRef, problem,
+      ...(report === undefined ? {} : {report})});
   }
-  return freezeInput({outcome: 'unavailable',
-    summary: 'The scope and checking context needed for a safe public report are unavailable.',
-    hint: 'Ask the checking-context owner to review the published context; this response does not establish an input error.',
-    problem: {kind: outcome.problem.code === 'check_unavailable' ? 'known' : 'unknown',
-      code: outcome.problem.code}, correlationRef: outcome.correlation_ref});
+  const problem = {kind: outcome.problem.code === 'check_unavailable' ? 'known' : 'unknown',
+    code: outcome.problem.code};
+  const correlationRef = outcome.correlation_ref;
+  const [summary, hint] = localizeCheck('unavailable',
+    ['The scope and checking context needed for a safe public report are unavailable.',
+      'Ask the checking-context owner to review the published context; this response does not establish an input error.'], options);
+  return freezeInput({outcome: 'unavailable', summary, hint, problem, correlationRef});
 }
 
 // Reason presentation does not decide the report's verdict or outcome branch.
-export function explainCheckReason(reason) {
+export function explainCheckReason(reason, options) {
   const explanations = {
     query_syntax_invalid: ['The query syntax is invalid.', 'Correct the query syntax at the reported location when available.'],
     query_expression_invalid: ['An expression violates its reference, argument or numeric contract.', 'Correct the expression under the selected query contract.'],
+    query_frame_invalid: ['The analytic ROWS frame boundaries do not form a valid interval.',
+      'For two PRECEDING boundaries, the start distance must be at least the end distance; for two FOLLOWING boundaries, it must be at most the end distance.'],
     query_lexical_invalid: ['A query token violates its lexical syntax.', 'Correct the token at the reported location when available.'],
     parameter_undeclared: ['The query refers to an undeclared parameter.', 'Declare the parameter or correct its reference; a value alone cannot declare it.'],
+    parameter_unused: ['A declared parameter is not used by the complete Program.',
+      'Remove the unused declaration or reference the parameter in the Program, then check again.'],
     query_invalid: ['The query violates its language or name-resolution contract.', 'Correct the query using its declared names and visible context.'],
     parameter_declarations_invalid: ['The parameter declarations are invalid.', 'Correct the supplied declarations.'],
     supplied_parameters_invalid: ['The supplied parameter input is invalid.', 'Correct the supplied parameter map.'],
@@ -225,6 +316,9 @@ export function explainCheckReason(reason) {
     supplied_value_constraint_violation: ['A supplied value violates a declared constraint.', 'Correct the value to satisfy the declared constraint family.'],
     supplied_value_type_mismatch: ['A supplied value has the wrong type.', 'Supply a value of the declared type.'],
     parameter_value_required: ['A declared parameter value is missing.', 'Supply the declared value and check the complete bound input again.'],
+    parameter_default_type_mismatch: ['A parameter default does not match its declared type.',
+      'Correct the default to match the declared type, then check again.'],
+    operation_parameter_invalid: ['A parameter violates an operation scalar domain.', 'Correct the supplied value or selected default under the reported operation domain.'],
     program_invalid: ['The input violates the checked Program contract.', 'Correct the input under the selected contract.'],
     bound_values_missing: ['Required bound inputs are missing.', 'Supply the declared inputs and check again.'],
     implementation_limit: ['This checking implementation cannot discharge an obligation.', 'Ask the checking-context owner to review support for the submitted construct.'],
@@ -233,6 +327,30 @@ export function explainCheckReason(reason) {
     unresolved_protected: ['Source resolution cannot be established from the disclosed context.', 'Ask the Source or checking-context owner to review the published context.'],
   };
   const known = Object.hasOwn(explanations, reason?.code) ? explanations[reason.code] : undefined;
+  const scalarExplanations = {
+    positive_safe_integer: ['An operation parameter must be a positive safe integer.',
+      'Supply an integer from 1 through 9007199254740991.'],
+    nonnegative_safe_integer: ['An operation parameter must be a nonnegative safe integer.',
+      'Supply an integer from 0 through 9007199254740991; negative zero is not admitted.'],
+    unit_fraction: ['An operation parameter must be a finite fraction between 0 and 1.',
+      'Supply a number from 0 through 1, inclusive; negative zero is not admitted.'],
+    finite_number: ['An operation parameter must be a finite number.',
+      'Supply a finite number; negative zero is not admitted.'],
+    duration: ['An operation parameter must be an admitted duration.',
+      'Supply positive ASCII digits followed by ms, s, m, h or d, without whitespace; the milliseconds must fit a safe integer.'],
+    positive_milliseconds: ['An operation parameter must be positive safe milliseconds or an admitted duration.',
+      'Supply a positive safe integer of milliseconds, or a positive duration string with ms, s, m, h or d.'],
+    signed_milliseconds: ['An operation parameter must be signed safe milliseconds or an admitted duration.',
+      'Supply integer milliseconds from -9007199254740991 through 9007199254740991 without negative zero, or a positive duration string.'],
+    timestamp: ['An operation parameter must be an admitted timestamp value.',
+      'Supply a non-null timestamp value admitted by the timestamp declaration contract.'],
+  };
+  const domain = reason?.facts?.domain;
+  if (reason?.code === 'operation_parameter_invalid' && typeof domain === 'string' &&
+      Object.hasOwn(scalarExplanations, domain)) {
+    const [summary, hint] = localizeCheck(`scalar.${domain}`, scalarExplanations[domain], options);
+    return Object.freeze({kind: 'known', summary, hint});
+  }
   const lexicalExplanations = {
     unexpected_end: ['The input ends before a token is complete.', 'Complete the quoted token or escape sequence at the reported position.'],
     unexpected_token: ['A token is not valid in this lexical context.', 'Correct the token spelling or delimiter at the reported position.'],
@@ -246,7 +364,7 @@ export function explainCheckReason(reason) {
   const issue = reason?.facts?.issue;
   if (reason?.code === 'query_lexical_invalid' && typeof issue === 'string' &&
       Object.hasOwn(lexicalExplanations, issue)) {
-    const [summary, hint] = lexicalExplanations[issue];
+    const [summary, hint] = localizeCheck(`lexical.${issue}`, lexicalExplanations[issue], options);
     return Object.freeze({kind: 'known', summary, hint});
   }
   const expressionExplanations = {
@@ -257,7 +375,7 @@ export function explainCheckReason(reason) {
   };
   if (reason?.code === 'query_expression_invalid' && typeof issue === 'string' &&
       Object.hasOwn(expressionExplanations, issue)) {
-    const [summary, hint] = expressionExplanations[issue];
+    const [summary, hint] = localizeCheck(`expression.${issue}`, expressionExplanations[issue], options);
     return Object.freeze({kind: 'known', summary, hint});
   }
   const graphExplanations = {
@@ -267,7 +385,14 @@ export function explainCheckReason(reason) {
   if (reason?.code === 'graph_operation_invalid' &&
       reason?.facts?.operation === 'components' && typeof issue === 'string' &&
       Object.hasOwn(graphExplanations, issue)) {
-    const [summary, hint] = graphExplanations[issue];
+    const [summary, hint] = localizeCheck(`components.${issue}`, graphExplanations[issue], options);
+    return Object.freeze({kind: 'known', summary, hint});
+  }
+  if (reason?.code === 'graph_operation_invalid' &&
+      reason?.facts?.operation === 'subgraph' && issue === 'invalid_node_selector') {
+    const [summary, hint] = localizeCheck('subgraph.invalid_node_selector',
+      ['The Subgraph node selector is invalid.',
+        'Provide one selector: nonempty ids, a named Relation with an id field, or a node where predicate.'], options);
     return Object.freeze({kind: 'known', summary, hint});
   }
   const constraintHints = {
@@ -279,11 +404,15 @@ export function explainCheckReason(reason) {
   const constraint = reason?.facts?.constraint;
   if (reason?.code === 'supplied_value_constraint_violation' &&
       typeof constraint === 'string' && Object.hasOwn(constraintHints, constraint)) {
-    return Object.freeze({kind: 'known', summary: known[0],
-      hint: constraintHints[constraint]});
+    const [summary, hint] = localizeCheck(`constraint.${constraint}`, [known[0], constraintHints[constraint]], options);
+    return Object.freeze({kind: 'known', summary, hint});
   }
-  return Object.freeze(known ? {kind: 'known', summary: known[0], hint: known[1]}
-    : {kind: 'unknown', summary: 'No supported explanation is available for this reason.'});
+  if (known) {
+    const [summary, hint] = localizeCheck(`reason.${reason.code}`, known, options);
+    return Object.freeze({kind: 'known', summary, hint});
+  }
+  const [summary] = localizeCheck('reason.unknown', ['No supported explanation is available for this reason.'], options);
+  return Object.freeze({kind: 'unknown', summary});
 }
 
 const positive = value => Number.isSafeInteger(value) && value > 0;
@@ -872,7 +1001,22 @@ async function connectSelected(selected, port) {
           throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),
             context, 'outcome_unknown');
         }
-        return retainCancellationExplanation(response, context, response.kind, response.revision);
+        // Local ports may reuse their response object across operations.
+        let received;
+        try { received = structuredClone(response); }
+        catch {
+          throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),
+            context, 'outcome_unknown');
+        }
+        // Cloning may reject a Local value or drop/change its validated fields.
+        if (!validCancellation(received) ||
+            received.ref.namespaceId !== ref.namespaceId ||
+            received.ref.authorityScopeCid !== ref.authorityScopeCid ||
+            received.ref.runDefinitionCid !== ref.runDefinitionCid) {
+          throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),
+            context, 'outcome_unknown');
+        }
+        return retainCancellationExplanation(received, context, received.kind, received.revision);
       },
       // The Run's current state after the Host's reconciliation attempt. An
       // unknown Effect outcome stays `needs_reconciliation` until the Host
@@ -969,6 +1113,11 @@ async function connectSelected(selected, port) {
         if (cause instanceof ClientError) throw cause;
         throw new ClientError('InvalidHostCheckOutcome', {cause});
       }
+      if (!validCheckOutcome(outcome)) fail('InvalidHostCheckOutcome');
+      // Own this call's value before binding or freezing it. A Local Host may
+      // reuse its response object without replacing a previous SDK observation.
+      try { outcome = structuredClone(outcome); }
+      catch { fail('InvalidHostCheckOutcome'); }
       if (!validCheckOutcome(outcome)) fail('InvalidHostCheckOutcome');
       const report = outcome.report ?? outcome.partial_report;
       if (report) {
