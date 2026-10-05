@@ -119,6 +119,26 @@ test('100 rows: actual resident/fresh/Local choices, cheaper capacity refusal an
               ['environment', 'import', 'compute', 'compute', 'compute']);
             assert.equal(product.physicalPhases.intervals[1].producer, 0);
           }
+          if (label === 'resident-profiled') {
+            // Compare independently supplied rates with the actual serialized
+            // pre-execution offers, not with selectionInput echoed by the probe.
+            const offers = product.ownerCorrespondence.observations.candidates[0].body[5]
+              .flatMap(candidate => candidate[5].filter(Boolean))
+              .filter(offer => offer[9] !== null);
+            assert.deepEqual([...new Set(offers.map(offer => offer[0]))].sort(), [1, 2, 3]);
+            for (const offer of offers) {
+              assert.equal(offer[8][0][1], settings.residentEstimates.taskMilliseconds[offer[0] - 1],
+                'ResidentTaskEstimateNotBoundToActualOffer');
+              const profile = offer[9];
+              assert.equal(profile[1].lines[0].milliseconds,
+                settings.residentEstimates.preparationMilliseconds);
+              assert.equal(profile[2].lines[0].milliseconds,
+                settings.residentEstimates.cleanupMilliseconds);
+              assert.deepEqual(profile[3].map(item => item[0].lines[0].milliseconds),
+                settings.residentEstimates.importMilliseconds,
+                'ResidentImportEstimatesNotBoundToActualOffer');
+            }
+          }
           // Exact independent rows/CID and per-stage cardinalities are checked by
           // product admission; this observer only adds the owner correspondence.
           closed(product.ownerCorrespondence.observations);

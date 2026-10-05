@@ -101,7 +101,7 @@ try {
     console.log(JSON.stringify({kind: 'native-case-probe-diagnostic',
       status: 'stopped-between-tasks-diagnostic', case: fixture.id, host: 'native', record,
       observations: stdout.split('\n').filter(line =>
-        /^(owner-observation|compute-candidates|compute-explanation|compute-choice|phase-time-us):/.test(line))}));
+        /^(owner-observation|compute-candidates|compute-explanation|compute-choice|phase-time-us|physical-phase-event):/.test(line))}));
   } else {
     const execution = await executeNativeDirectProduct(invocation,
       {root, timeoutMs: fixture.limits.timeoutMs});
@@ -140,7 +140,7 @@ try {
     strategyRejections: output.filter(line => line.startsWith('strategy-rejection:')),
     terminal: output.at(-1),
     stderr: String(error.stderr ?? ''),
-    observations: output.filter(line => /^(owner-observation|compute-candidates|compute-explanation|compute-choice|phase-time-us):/.test(line)),
+    observations: output.filter(line => /^(owner-observation|compute-candidates|compute-explanation|compute-choice|phase-time-us|physical-phase-event):/.test(line)),
   }));
   process.exitCode = 1;
 } finally {
