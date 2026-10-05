@@ -46,8 +46,8 @@ test('100 rows: actual resident/fresh/Local choices, cheaper capacity refusal an
         ['resident-unknown', {residentPolicy: true, phaseObserver: true,
           residentEstimates: {preparationMilliseconds: '2', cleanupMilliseconds: '3',
             taskMilliseconds: ['4', '5', '6'], importMilliseconds: [null, null, null, null]}}],
-        ['fresh', {residentPolicy: false}],
-        ['local', {residentPolicy: false, localRates: ['1', '1', '1'],
+        ['fresh', {residentPolicy: false, phaseObserver: true}],
+        ['local', {residentPolicy: false, phaseObserver: true, localRates: ['1', '1', '1'],
           nativeRates: ['2147483647', '2147483647', '2147483647']}],
         ['fresh-then-resident', {residentPolicy: true, phaseObserver: true,
           localRates: ['1000000', '1000000', '1000000'], nativeRates: ['1', '1', '1000000'],
@@ -136,6 +136,11 @@ test('100 rows: actual resident/fresh/Local choices, cheaper capacity refusal an
             assert.deepEqual(product.physicalPhases.intervals.map(item => item.phase),
               ['environment', 'import', 'compute', 'compute', 'compute']);
             assert.equal(product.physicalPhases.intervals[1].producer, 0);
+          }
+          if (settings.phaseObserver) {
+            assert.deepEqual(product.physicalPhases.taskExecutionIntervals.map(item => item.task), [1, 2, 3]);
+            assert.deepEqual(product.physicalPhases.taskReleaseIntervals.map(item => item.task)
+              .sort((a, b) => a - b), [1, 2, 3]);
           }
           if (label === 'resident-profiled') {
             // Compare independently supplied rates with the actual serialized

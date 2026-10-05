@@ -28,9 +28,13 @@ struct NativeStandardStrategyRun {
 /// not authorize work, assert cancellation or confirm cleanup. A trusted
 /// caller may supply a clock; the ordinary Host installs no observer.
 pub(all) enum NativeStandardStrategyPhase {
+  SelectedTaskExecution(Int)
   ResidentEnvironment(Int)
   ResidentInputImport(Int, Int)
   ResidentTask(Int)
+  TaskRelease(Int)
+  ResidentDatabaseClose(Int)
+  ResidentEnvironmentRelease(Int)
 } derive(Eq)
 
 ///|
@@ -252,6 +256,25 @@ pub fn execute_next_native_standard_strategy_task(
     run.stop_dispatch()
     return Err(InvalidSelection)
   }
+  let phase = SelectedTaskExecution(task_index)
+  run.observe_phase_event(Begin(phase))
+  let executed = execute_selected_native_standard_strategy_task(
+    run, task, selected, task_index,
+  )
+  run.observe_phase_event(End(phase, executed is Ok(_)))
+  executed
+}
+
+///|
+fn execute_selected_native_standard_strategy_task(
+  run : NativeStandardStrategyRun,
+  task : @duckdb_standard_host.TaskDispatch,
+  selected : @connector.CapabilityRegistration,
+  task_index : Int,
+) -> Result[
+  NativeStandardStrategyTaskCompletion?,
+  NativeStandardStrategyRunIssue,
+] {
   // In-process native compute over already captured inputs has no protected
   // scope: its data was admitted at Acquisition. This is the explicit,
   // evaluation-free coverage grant; remote dispatch and transfer stay gated at
@@ -673,8 +696,16 @@ pub fn close_native_standard_strategy_run(
   // The Run's end is the only point at which a resident database stops.
   // Destroying it first confirms the stop of any task or import whose own
   // transaction end could not be observed.
-  for env in run.resident_environments {
+  for index, env in run.resident_environments {
+    let observed = !env.database_closed
+    let phase = ResidentDatabaseClose(index)
+    if observed {
+      run.observe_phase_event(Begin(phase))
+    }
     close_native_resident_database(env)
+    if observed {
+      run.observe_phase_event(End(phase, env.database_closed))
+    }
   }
   for owner in run.unfiled_local_owners {
     match close_native_strategy_unfiled_local_owner(owner) {
@@ -689,7 +720,16 @@ pub fn close_native_standard_strategy_run(
   }
   for offset in 0..<run.local_owners.length() {
     let owner = run.local_owners[run.local_owners.length() - offset - 1]
-    match close_native_strategy_local_owner(owner) {
+    let observed = !owner.released
+    let phase = TaskRelease(owner.task_index)
+    if observed {
+      run.observe_phase_event(Begin(phase))
+    }
+    let closed = close_native_strategy_local_owner(owner)
+    if observed {
+      run.observe_phase_event(End(phase, closed is Ok(true)))
+    }
+    match closed {
       Ok(true) => ()
       Ok(false) => pending = true
       Err(issue) => {
@@ -700,7 +740,11 @@ pub fn close_native_standard_strategy_run(
       }
     }
   }
-  match close_native_strategy_compute_run(run.runtimes) {
+  match
+    close_native_strategy_compute_run(
+      run.runtimes,
+      observe_phase?=run.observe_phase,
+    ) {
     Ok(true) => ()
     Ok(false) => pending = true
     Err(issue) => {
@@ -713,8 +757,17 @@ pub fn close_native_standard_strategy_run(
   // Borrowers returned at task settlement; only now can the shared capacity
   // and its remaining table allocations settle.
   let graph = @duckdb_standard_host.dispatch_run(run.dispatch)
-  for env in run.resident_environments {
-    match release_native_resident_environment(graph, env) {
+  for index, env in run.resident_environments {
+    let observed = !env.released
+    let phase = ResidentEnvironmentRelease(index)
+    if observed {
+      run.observe_phase_event(Begin(phase))
+    }
+    let released = release_native_resident_environment(graph, env)
+    if observed {
+      run.observe_phase_event(End(phase, released is Ok(true)))
+    }
+    match released {
       Ok(true) => ()
       Ok(false) => pending = true
       Err(issue) => {

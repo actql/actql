@@ -1,5 +1,37 @@
 # Native resident estimate observations
 
+## Matched cost scopes under implementation
+
+The Native observer now brackets selected task execution after dispatch/planner
+selection for Local, fresh DuckDB and resident DuckDB. Resident provisioning and
+import remain nested intervals. Actual task-owner release, resident database
+close and environment settlement have separate buffered observations. No close
+success condition, retry transition, Ledger operation or cancellation condition
+is changed. The probe flushes cleanup observations after the cleanup interval.
+
+`native-cost-observation.mjs` rechecks raw events against the admitted Owner
+attempts and enclosing task/cleanup durations. A task estimate covers its outer
+physical execution minus resident preparation/import, plus its own final release.
+Resident shared cleanup includes database close and environment release only.
+Other Run/acquisition cleanup remains explicit and outside these task rates;
+total process latency must still be reported. Nested spans are not added to
+their outer spans.
+
+`native-resident-estimate-calibration.mjs` uses three predeclared alternating
+training rounds on the existing low-selectivity/narrow/1,000 case. Each round
+observes Local, fresh, resident and Local-to-resident execution. The last leg
+measures the actual producer 1 import absent from all-resident table reuse.
+The independent Program references are checked to require only producers 0 and
+1; unobserved slots remain unknown. Median durations are rounded up to at least
+one millisecond and supplied to ordinary planner selection on held-out 100 rows.
+The actual offers are checked, not just the input profile. Forced training is
+not performance acceptance. Source/program identities, source revision, binary
+digest and raw observations are retained. This remains one Native experiment,
+not a general calibration or physical-capacity proof.
+
+Current-source release execution and measured calibration results must be
+recorded separately from the historical fixed-source observations below.
+
 This is G's connection work for #170 and #488. It does not establish a latency
 improvement, Native/Broad paired acceptance, or completion of the performance
 task. Host remains an explicit experiment condition. Product resident offers

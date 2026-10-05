@@ -245,7 +245,7 @@ export function admitNativeDirectProduct(fixture, invocation, execution) {
   'NativeOwnerExceedsDeclaredExecutionCap');
   const physicalPhases = invocation.phaseObserver
     ? admitNativePhysicalPhases({events: execution.physicalPhaseEvents,
-      ownerCorrespondence, taskIntervals}) : undefined;
+      ownerCorrespondence, taskIntervals, cleanupMicroseconds: record.cleanup_us}) : undefined;
   assert(invocation.phaseObserver || execution.physicalPhaseEvents.length === 0,
     'UnexpectedNativePhysicalPhaseObserver');
   return Object.freeze({record, taskIntervals, taskUsages, taskHoldings,

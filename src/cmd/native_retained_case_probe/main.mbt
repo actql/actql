@@ -499,10 +499,16 @@ fn emit_native_phase_observations(
       @host.End(phase, success) => (phase, "end", success.to_string())
     }
     let (name, task, producer) = match phase {
+      @host.SelectedTaskExecution(task) => ("task", task, "null")
       @host.ResidentEnvironment(task) => ("environment", task, "null")
       @host.ResidentInputImport(task, producer) =>
         ("import", task, producer.to_string())
       @host.ResidentTask(task) => ("compute", task, "null")
+      @host.TaskRelease(task) => ("task-release", task, "null")
+      @host.ResidentDatabaseClose(index) =>
+        ("environment-close", 0, index.to_string())
+      @host.ResidentEnvironmentRelease(index) =>
+        ("environment-release", 0, index.to_string())
     }
     println(
       "physical-phase-event:{\"phase\":\"" +
@@ -903,10 +909,12 @@ fn main {
   // charged to environment, import or Compute durations. Clock/buffer overhead
   // remains part of the enclosing process measurement.
   emit_native_phase_observations(phase_events)
+  phase_events.clear()
   if execution is Err(_) {
     close_observed_run(run, ledger, 0)
     @host.close_native_acquisition_runtime(acquisition)
     @strategy.stop_captured_dag(captured)
+    emit_native_phase_observations(phase_events)
   }
   match execution {
     Ok(_) => ()
@@ -966,6 +974,7 @@ fn main {
     @host.close_native_acquisition_runtime(acquisition)
     @strategy.stop_captured_dag(captured)
     phase_boundary("stopped-cleanup-end", execution_start)
+    emit_native_phase_observations(phase_events)
     println(
       "{\"status\":\"stopped-between-tasks\",\"completed_tasks\":" +
       task.to_string() +
@@ -1046,6 +1055,7 @@ fn main {
     abort("invalid cleanup interval")
   }
   phase_boundary("cleanup-end", execution_start)
+  emit_native_phase_observations(phase_events)
   println(
     "{\"task_count\":" +
     task.to_string() +

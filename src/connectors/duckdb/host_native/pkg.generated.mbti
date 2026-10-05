@@ -29,7 +29,7 @@ pub fn close_native_compute_runtime(NativeComputeRuntime) -> Unit
 
 pub fn close_native_standard_strategy_run(NativeStandardStrategyRun) -> Result[Bool, NativeStrategyComputeCleanupIssue]
 
-pub fn close_native_strategy_compute_run(NativeStrategyComputeRun) -> Result[Bool, NativeStrategyComputeCleanupIssue]
+pub fn close_native_strategy_compute_run(NativeStrategyComputeRun, observe_phase? : (NativeStandardStrategyPhaseEvent) -> Unit) -> Result[Bool, NativeStrategyComputeCleanupIssue]
 
 pub fn close_native_strategy_compute_runtime(NativeStrategyComputeRuntime) -> Result[Bool, NativeStrategyComputeCleanupIssue]
 
@@ -213,9 +213,13 @@ pub(all) enum NativeStandardStrategyMeasurementScope {
 }
 
 pub(all) enum NativeStandardStrategyPhase {
+  SelectedTaskExecution(Int)
   ResidentEnvironment(Int)
   ResidentInputImport(Int, Int)
   ResidentTask(Int)
+  TaskRelease(Int)
+  ResidentDatabaseClose(Int)
+  ResidentEnvironmentRelease(Int)
 } derive(Eq)
 
 pub(all) enum NativeStandardStrategyPhaseEvent {
