@@ -16,7 +16,7 @@ before use; historical completion alone is insufficient.
 
 ## Independent destination custody
 
-The Native adapter joins the producer reference to an existing committed
+The portable Run publication owner joins the producer reference to an existing committed
 Transfer and its exact destination receipt. It checks source occurrence,
 manifest, schema, logical view, representation codec, row count and byte
 count. In the initial single-Site profile, both Transfer endpoints must match
@@ -52,7 +52,8 @@ mint another attempt or reserve capacity.
 ## Current authority and physical borrow
 
 The trusted Host installs `NativeRemoteRetainedInputCurrent` against its
-existing Site, authority, clock and authorization owners. Saved input bytes
+existing Site, authority, clock and authorization owners. Its portable counterpart
+`ClientRetainedInputCurrent` supplies the same checks for Cloud issuance. Saved input bytes
 cannot supply those observations. Authorization covers the original Run and
 edge and current source/destination Transfer grants. It must be confirmed again
 on restoration and around physical borrow validation. The current generation,
@@ -61,7 +62,10 @@ rechecked. This callback is an adapter trust boundary, not a grant issuer.
 
 The consumer borrows a separately acquired destination-material reader. Borrow
 validation checks its exact destination receipt and use occurrence, then uses
-the existing Transfer owner to verify its physical generations. A failure
+the existing Transfer owner to verify its physical generations. The Native
+capture adapter also checks that the durable reader ID is the exact consumer
+dispatch identity, retaining the consumer attempt rather than borrowing another
+reader on the same destination. A failure
 leaves the caller's reader and holding owners intact for reconciliation and
 cleanup. Missing material, generation mismatch and unavailable authorization
 are input admission failures; none asserts that a Compute executed or that its
@@ -83,10 +87,23 @@ idempotent reservation and reader restoration. A normal restart that advances
 Site generation cannot reuse the old input; it retains the appropriate
 recovery and cleanup obligations without automatically reacquiring Source.
 
-These APIs establish the input evidence boundary. They do not install a
-consumer executable, reserve a second holding, restore a reader, commit a
-consumer dispatch, reconcile an unknown execution or acknowledge cleanup.
-The existing consumer dispatch guard remains until those actual Native and
-Cloud owners are connected. Public two-task execution and restart/cleanup
-acceptance require separate execution evidence, not just admission of this
-canonical body.
+`prepare_client_retained_task_dispatch` accepts only the opaque owned input
+and the same re-admitted Run/compilation. It derives the consumer from the
+checked edge and checks current Site selection and authorization before and
+after issuance. The ordinary input issuer still refuses dependent tasks that
+have no such custody. This operation does not commit or deliver a dispatch.
+
+The Native capture adapter validates the dispatch, input and original checked
+producer capture owner before any physical read. Existing registered Transfer
+providers supply bounded bytes and borrow lifetime; the existing row verifier
+establishes the captured source. It never performs another Source acquisition.
+Rejected pre-admission leaves the borrow with its caller. Stream or framing
+failure returns the existing retryable physical cleanup owner. Success keeps
+the borrow live until its capture owner closes; neither path reclaims a holding.
+
+These APIs do not install a consumer executable, reserve a second holding,
+restore a reader, commit a consumer dispatch, reconcile an unknown execution
+or acknowledge cleanup. Actual Cloud/Native callers must connect these owners
+and persist the original responsibility. Public two-task execution and
+restart/cleanup acceptance require separate execution evidence, not just
+admission of this canonical body or registered-provider unit tests.

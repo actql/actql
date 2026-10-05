@@ -6,6 +6,8 @@ pub struct ClientRetainedInputEdge {
   producer : ClientTaskFragmentNode
   consumer : ClientTaskFragmentNode
   input_port : String
+  producer_owner : @lower.BoundPrepared
+  program : @context.ProgramSourceIdentity
 }
 
 ///|
@@ -94,11 +96,16 @@ pub fn prepare_client_retained_input_edge(
   if sort != producer.output_carrier || contract != producer.output_contract_cid {
     return Err(ContractMismatch)
   }
+  guard @strategy.graph_task_owner(graph, producer_task) is Some(producer_owner) else {
+    return Err(MissingEdge)
+  }
   Ok({
     run_definition_cid: client_task_run_binding_definition_cid(run),
     producer,
     consumer,
     input_port,
+    producer_owner,
+    program: @checked.source_identity(@strategy.graph_program(graph)),
   })
 }
 
@@ -199,4 +206,17 @@ pub fn client_retained_input_producer_edge(
   value : ClientRetainedInputProducer,
 ) -> ClientRetainedInputEdge {
   value.edge
+}
+
+///|
+/// A transferred capture must use the original checked producer owner and
+/// Program preparation, even if another preparation has equal row contracts.
+/// Reconstruction first re-admits the Run and issues the edge again.
+pub fn client_retained_input_capture_owner_matches(
+  edge : ClientRetainedInputEdge,
+  sequence : @query.QuerySequence,
+  program : @context.ProgramSourceIdentity,
+) -> Bool {
+  physical_equal(edge.producer_owner, @query.query_sequence_owner(sequence)) &&
+  physical_equal(edge.program, program)
 }

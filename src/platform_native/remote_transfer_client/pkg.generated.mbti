@@ -31,6 +31,8 @@ pub fn destination_material_use_generation(NativeRemoteDestinationMaterialUse) -
 
 pub fn destination_material_use_id(NativeRemoteDestinationMaterialUse) -> String
 
+pub fn destination_material_use_reader_id(NativeRemoteDestinationMaterialUse) -> String
+
 pub fn destination_material_use_receipt_cid(NativeRemoteDestinationMaterialUse) -> String
 
 pub fn durable_store_object_next_chunk(@remote_transfer_journal.Journal, @filesystem.Root, @remote_transfer.RemoteTransferRequest) -> Result[Int, NativeRemoteTransferClientIssue]

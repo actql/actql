@@ -8,7 +8,12 @@ let retained_transfer_program : String =
   #|{"version":"actql/0.1","id":"retained-source-compute","stages":[{"id":"acquire","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > 0","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"rows":{"from":"captured","fields":["id"]}}},{"id":"compute","inputs":{"input":{"result":{"stage":"acquire","result":"rows"}}},"steps":[{"filter":"id > 2","as":"filtered"},{"select":["id"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"compute","result":"rows"}}}}
 
 ///|
-fn retained_transfer_edge() -> @publication_host.ClientRetainedInputEdge {
+fn retained_transfer_run() -> (
+  @publication_host.PreparedClientProgram,
+  @publication_host.ClientTaskCompilation,
+  @publication_host.ClientCompiledRun,
+  @publication.PublicationContract,
+) {
   let environment = @publication_host.admit_client_check_environment(
     retained_transfer_environment,
     "sha256:4cfc3a08514b254c76ac810df9153072a3f0edbf0f211c18b85298aa0c51a92e",
@@ -49,6 +54,12 @@ fn retained_transfer_edge() -> @publication_host.ClientRetainedInputEdge {
   let definition = @publication_host.issue_client_compiled_run_definition(
     allowed, "retained-scope", "run-a", "2026-10-05T00:00:00.000Z", "2099-01-01T00:00:00.000Z",
   ).unwrap()
+  (prepared, compilation, allowed, definition)
+}
+
+///|
+fn retained_transfer_edge() -> @publication_host.ClientRetainedInputEdge {
+  let (prepared, compilation, allowed, definition) = retained_transfer_run()
   @publication_host.prepare_client_retained_input_edge(
     prepared,
     compilation,
@@ -62,13 +73,14 @@ fn retained_transfer_edge() -> @publication_host.ClientRetainedInputEdge {
 ///|
 fn retained_transfer_fixture(
   committed : Bool,
+  edge? : @publication_host.ClientRetainedInputEdge? = None,
 ) -> (
   @publication_host.ClientRetainedInputProducer,
   @transfer.RemoteTransferRecord,
   @transfer.RemoteTransferDestinationReceipt,
   @site.ExecutionSite,
 ) {
-  let edge = retained_transfer_edge()
+  let edge = edge.unwrap_or_else(retained_transfer_edge)
   let ports = @publication_host.client_retained_input_edge_projection(edge)
   let chunk = b"{\"id\":3}"
   let physical = @manifest.admit(
@@ -86,7 +98,7 @@ fn retained_transfer_fixture(
   ).unwrap()
   // Protocol owner fixture, not evidence of Source execution or physical I/O.
   let request = @remote.prepare_dispatch_request(
-    "authority-a",
+    standard_transfer_input_cid("c"),
     ports[0],
     ports[1],
     1,
@@ -158,7 +170,7 @@ fn retained_transfer_fixture(
     edge, record, evidence, subject,
   ).unwrap()
   let request = @transfer.prepare_request(
-    "authority-a",
+    standard_transfer_input_cid("c"),
     "transfer-a",
     @transfer.TransferStore,
     "site-a",
@@ -221,7 +233,7 @@ test "retained task binding restores exact original ports without changing Trans
     transfer,
     receipt,
     "use-a",
-    retained_transfer_current(site, "authority-a"),
+    retained_transfer_current(site, standard_transfer_input_cid("c")),
     262144,
   ).unwrap()
   let saved = native_remote_retained_task_input_binding(value)
@@ -242,7 +254,10 @@ test "retained task binding restores exact original ports without changing Trans
       transfer,
       receipt,
       "use-a",
-      retained_transfer_current(recovered_site, "authority-a"),
+      retained_transfer_current(
+        recovered_site,
+        standard_transfer_input_cid("c"),
+      ),
       262144,
     ).unwrap()
     assert_eq(
@@ -258,7 +273,10 @@ test "retained task binding restores exact original ports without changing Trans
       transfer,
       receipt,
       "use-b",
-      retained_transfer_current(recovered_site, "authority-a"),
+      retained_transfer_current(
+        recovered_site,
+        standard_transfer_input_cid("c"),
+      ),
       262144,
     )
     is Err(InvalidBinding),
@@ -277,7 +295,10 @@ test "retained task binding restores exact original ports without changing Trans
       transfer,
       receipt,
       "use-a",
-      retained_transfer_current(recovered_site, "authority-a"),
+      retained_transfer_current(
+        recovered_site,
+        standard_transfer_input_cid("c"),
+      ),
       262144,
     )
     is Err(InvalidBinding),
@@ -293,7 +314,7 @@ test "retained task binding refuses uncommitted Transfer and current authority o
       transfer,
       receipt,
       "use-a",
-      retained_transfer_current(site, "authority-a"),
+      retained_transfer_current(site, standard_transfer_input_cid("c")),
       262144,
     )
     is Err(TransferNotCommitted),
@@ -325,7 +346,7 @@ test "retained task binding refuses uncommitted Transfer and current authority o
       transfer,
       receipt,
       "use-a",
-      retained_transfer_current(restarted, "authority-a"),
+      retained_transfer_current(restarted, standard_transfer_input_cid("c")),
       262144,
     )
     is Err(StaleSiteGeneration),
@@ -343,7 +364,7 @@ test "retained task restoration rechecks current authorization and lifetime" {
   let mut now = 1791158400000L
   let current = install_native_remote_retained_input_current(
     () => site,
-    () => "authority-a",
+    () => standard_transfer_input_cid("c"),
     () => now,
     (_, _) => allowed,
   )
@@ -392,7 +413,7 @@ test "retained task input cannot borrow a foreign receipt or alias its source ho
         transfer,
         candidate,
         "use-a",
-        retained_transfer_current(site, "authority-a"),
+        retained_transfer_current(site, standard_transfer_input_cid("c")),
         262144,
       )
       is Err(ForeignTransfer),
@@ -410,7 +431,7 @@ test "retained task input rechecks revocation after issuing the canonical body" 
   let mut checks = 0
   let current = install_native_remote_retained_input_current(
     () => site,
-    () => "authority-a",
+    () => standard_transfer_input_cid("c"),
     () => 1791158400000L,
     (_, _) => {
       checks += 1
@@ -439,7 +460,7 @@ test "retained binding admits reconstructed owner records in the current generat
       transfer,
       receipt,
       "use-a",
-      retained_transfer_current(site, "authority-a"),
+      retained_transfer_current(site, standard_transfer_input_cid("c")),
       262144,
     ).unwrap(),
   )
@@ -500,7 +521,7 @@ test "retained binding admits reconstructed owner records in the current generat
     restored_transfer,
     receipt,
     "use-a",
-    retained_transfer_current(current_site, "authority-a"),
+    retained_transfer_current(current_site, standard_transfer_input_cid("c")),
     262144,
   ).unwrap()
   assert_eq(
@@ -521,4 +542,151 @@ test "retained binding admits reconstructed owner records in the current generat
   )
   // This tests common owner reconstruction, not durable Native reader/holding
   // restoration or a public Coordinator restart with running child processes.
+}
+
+///|
+test "portable retained issuer and Native adapter preserve exact binding bytes" {
+  let (producer, transfer, receipt, site) = retained_transfer_fixture(true)
+  let current = retained_transfer_current(
+    site,
+    standard_transfer_input_cid("c"),
+  )
+  let common = @publication_host.prepare_client_retained_task_input(
+    producer,
+    transfer,
+    receipt,
+    "use-a",
+    current.common,
+    262144,
+  ).unwrap()
+  let native = prepare_native_remote_retained_task_input(
+    producer, transfer, receipt, "use-a", current, 262144,
+  ).unwrap()
+  assert_eq(
+    @remote.remote_input_binding_body(native.binding),
+    @remote.remote_input_binding_body(
+      @publication_host.client_retained_task_input_binding(common),
+    ),
+  )
+  assert_eq(
+    @remote.remote_input_binding_cid(native.binding),
+    @remote.remote_input_binding_cid(
+      @publication_host.client_retained_task_input_binding(common),
+    ),
+  )
+  let physical = @publication_host.client_retained_task_input_physical(common)
+  let admitted = @publication_host.admit_client_transfer_input(
+    @publication_host.client_transfer_binding(physical),
+    262144,
+    8,
+    65536,
+    1048576L,
+  ).unwrap()
+  assert_eq(
+    @remote.remote_input_binding_body(native.physical.binding),
+    @remote.remote_input_binding_body(
+      @publication_host.client_transfer_binding(admitted),
+    ),
+  )
+}
+
+///|
+test "owned retained input issues only its exact checked consumer dispatch" {
+  let (prepared, compilation, allowed, definition) = retained_transfer_run()
+  let (producer, transfer, receipt, site) = retained_transfer_fixture(true)
+  let current = retained_transfer_current(
+    site,
+    standard_transfer_input_cid("c"),
+  )
+  let input = @publication_host.prepare_client_retained_task_input(
+    producer,
+    transfer,
+    receipt,
+    "use-a",
+    current.common,
+    262144,
+  ).unwrap()
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    standard_transfer_input_cid("c"),
+    "retained-caller",
+  ).unwrap()
+  let selected : @publication_host.ClientValuesSiteSelection = {
+    site_key: "site-a",
+    site_generation: 1,
+    runtime_bundle_cid: standard_transfer_input_cid("a"),
+    connector_registration: "local",
+    connector_revision: "local/1",
+    strategy_revision: "strategy/1",
+    obligations_cid: standard_transfer_input_cid("2"),
+    budget_cid: standard_transfer_input_cid("3"),
+    evidence_issuer_capability_cid: standard_transfer_input_cid("4"),
+    grant_cid: standard_transfer_input_cid("5"),
+  }
+  let issue = fn(
+    task : Int,
+    selected : @publication_host.ClientValuesSiteSelection,
+    current : @publication_host.ClientRetainedInputCurrent,
+  ) {
+    @publication_host.prepare_client_retained_task_dispatch(
+      prepared,
+      compilation,
+      @publication_host.client_compiled_run_admission(allowed),
+      definition,
+      request,
+      task,
+      1,
+      "consumer-dispatch",
+      selected,
+      input,
+      current,
+    )
+  }
+  let dispatch = issue(1, selected, current.common).unwrap()
+  let ports = @publication_host.client_retained_input_edge_projection(
+    @publication_host.client_retained_input_producer_edge(producer),
+  )
+  assert_eq(@remote.dispatch_request_task_scope(dispatch), (ports[0], ports[5]))
+  assert_true(
+    @remote.remote_input_binding_matches_dispatch(
+      @publication_host.client_retained_task_input_binding(input),
+      dispatch,
+    ),
+  )
+  assert_true(
+    issue(0, selected, current.common)
+    is Err(@publication_host.Edge(@publication_host.MissingEdge)),
+  )
+  let foreign : @publication_host.ClientValuesSiteSelection = {
+    ..selected,
+    site_generation: 2,
+  }
+  assert_true(
+    issue(1, foreign, current.common) is Err(@publication_host.ForeignConsumer),
+  )
+  let denied = @publication_host.install_client_retained_input_current(
+    () => site,
+    () => standard_transfer_input_cid("c"),
+    () => 1791158400000L,
+    (_, _) => false,
+  )
+  assert_true(
+    issue(1, selected, denied)
+    is Err(@publication_host.Input(@publication_host.AuthorizationUnavailable)),
+  )
+  // The ordinary issuer continues to refuse dependent tasks without owned custody.
+  assert_true(
+    @publication_host.prepare_client_task_dispatch(
+      prepared,
+      compilation,
+      @publication_host.client_compiled_run_admission(allowed),
+      definition,
+      request,
+      1,
+      1,
+      "consumer-dispatch",
+      selected,
+    )
+    is Err(@publication_host.UnsupportedTask),
+  )
 }

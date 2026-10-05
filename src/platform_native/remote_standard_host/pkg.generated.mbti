@@ -24,6 +24,8 @@ import {
 }
 
 // Values
+pub fn acquire_native_remote_retained_task_source(NativeRemoteRetainedTaskInput, @remote_transfer_client.NativeRemoteDestinationMaterialUse, @remote_site_protocol.DispatchRequest, NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferSourceLimits, NativeRemoteRetainedInputCurrent) -> Result[NativeRemoteStandardTransferSource, NativeRemoteRetainedTaskSourceIssue]
+
 pub fn acquire_native_remote_standard_physical_source(NativeRemoteStandardTransferInput, NativeRemoteStandardPhysicalSource, NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferSourceLimits) -> Result[NativeRemoteStandardTransferSource, NativeRemoteStandardInputFailure]
 
 pub fn acquire_native_remote_standard_transfer_source(@remote_transfer_journal.Journal, @filesystem.Root, NativeRemoteStandardTransferInput, NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferSourceLimits) -> Result[NativeRemoteStandardTransferSource, NativeRemoteStandardInputFailure]
@@ -172,15 +174,11 @@ pub(all) enum NativeRemoteObservedOutputPlanIssue {
 }
 
 pub struct NativeRemoteRetainedInputCurrent {
-  site : () -> @execution_site.ExecutionSite
-  authority : () -> String
-  now_unix_ms : () -> Int64
-  authorized : (@run_publication_host.ClientRetainedInputProducer, @remote_transfer.RemoteTransferRequest) -> Bool
+  common : @run_publication_host.ClientRetainedInputCurrent
 }
 
 pub struct NativeRemoteRetainedTaskInput {
-  producer : @run_publication_host.ClientRetainedInputProducer
-  transfer_record : @remote_transfer.RemoteTransferRecord
+  common : @run_publication_host.ClientRetainedTaskInput
   physical : NativeRemoteStandardTransferInput
   binding : @remote_site_protocol.RemoteInputBinding
 }
@@ -196,6 +194,13 @@ pub(all) enum NativeRemoteRetainedTaskInputIssue {
   InputMaterial(@remote_transfer_client.NativeRemoteTransferClientIssue)
   InvalidBinding
   Encoding
+}
+
+pub(all) enum NativeRemoteRetainedTaskSourceIssue {
+  Input(NativeRemoteRetainedTaskInputIssue)
+  ForeignConsumer
+  ForeignCapture
+  Source(NativeRemoteStandardInputFailure)
 }
 
 type NativeRemoteStandardBoundRun
