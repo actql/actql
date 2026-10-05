@@ -11,6 +11,9 @@ declare const resultOccurrenceBrand: unique symbol;
 declare const runEvidenceBrand: unique symbol;
 declare const capturedSnapshotBrand: unique symbol;
 declare const materialHoldsBrand: unique symbol;
+declare const retainedInputEdgeBrand: unique symbol;
+declare const retainedInputProducerBrand: unique symbol;
+declare const retainedTaskInputBrand: unique symbol;
 
 export interface ResultMaterialHolds {
   readonly [materialHoldsBrand]: true;
@@ -552,6 +555,77 @@ export function sourceEvidenceFacts(prepared: PreparedProgram, stage: number,
     dataClassification: string; sourceViewContractCid: string}> | undefined;
 /** Checked logical input only, with no Site path or connection settings. */
 export function taskInputBinding(prepared: PreparedProgram, task: number): string;
+/** A checked edge, not producer completion, physical custody or permission. */
+export interface RetainedTaskInputEdge {
+  readonly [retainedInputEdgeBrand]: true;
+}
+export function prepareRetainedTaskInputEdge(prepared: PreparedProgram,
+  compilation: TaskCompilation, admission: RunAdmission,
+  definition: RunDefinition, consumerTask: number,
+  inputIndex: number): RetainedTaskInputEdge;
+export function retainedTaskInputEdgeFacts(edge: RetainedTaskInputEdge): Readonly<{
+  runDefinitionCid: string;
+  producerTaskKey: string;
+  producerOutputPort: string;
+  producerLogicalCid: string;
+  carrierContractCid: string;
+  consumerTaskKey: string;
+  consumerLogicalCid: string;
+  consumerInputPort: string;
+  physicalSchemaCid: string;
+}>;
+/** Accepted producer evidence; independent current Transfer custody is required. */
+export interface RetainedInputProducer {
+  readonly [retainedInputProducerBrand]: true;
+}
+/** An atomic current snapshot from the trusted Host's existing Coordinator owner. */
+export function prepareRetainedInputProducer(edge: RetainedTaskInputEdge,
+  readCurrent: () => Readonly<{authority: string;
+    durableRecordWire: string}>): RetainedInputProducer;
+export function retainedInputProducerAvailable(producer: RetainedInputProducer): boolean;
+export function retainedInputProducerFacts(producer: RetainedInputProducer): Readonly<{
+  dispatch: Readonly<{cid: string; wire: string}>;
+  evidence: Readonly<{cid: string; wire: string}>;
+  subject: Readonly<{cid: string; wire: string}>;
+}>;
+/** Current trusted Owner ports; saved evidence is never its own authority. */
+export interface RetainedInputCurrent {
+  readonly readTransfer: () => string;
+  readonly siteBindingCurrent: (siteKey: string, generation: number,
+    runtimeBundleCid: string) => boolean;
+  readonly authority: () => string;
+  readonly nowUnixMs: () => bigint;
+  readonly authorized: (producerDispatchCid: string,
+    transferRequestWire: string) => boolean;
+}
+export interface RetainedInputLimits {
+  readonly maxChunks: number;
+  readonly maxManifestBytes: number;
+  readonly maxReferencedBytes: bigint;
+  readonly maxBindingBytes: number;
+}
+/** Checked binding only; physical borrow/start claims remain with their Owners. */
+export interface RetainedTaskInput {
+  readonly [retainedTaskInputBrand]: true;
+}
+export function prepareRetainedTaskInput(producer: RetainedInputProducer,
+  receipt: Readonly<{cid: string; wire: string}>, destinationUseId: string,
+  current: RetainedInputCurrent, limits: RetainedInputLimits): RetainedTaskInput;
+export function admitRetainedTaskInput(producer: RetainedInputProducer,
+  saved: Readonly<{cid: string; wire: string}>,
+  receipt: Readonly<{cid: string; wire: string}>, destinationUseId: string,
+  current: RetainedInputCurrent, limits: RetainedInputLimits): RetainedTaskInput;
+export function validateRetainedTaskInput(input: RetainedTaskInput): void;
+/** Historical wire; this is neither material access nor execution permission. */
+export function retainedTaskInputFacts(input: RetainedTaskInput): Readonly<{
+  cid: string; wire: string;
+}>;
+export function issueRetainedTaskDispatch(prepared: PreparedProgram,
+  compilation: TaskCompilation, admission: RunAdmission,
+  definition: RunDefinition, request: RequestIdentity, task: number,
+  selection: ValuesSiteSelection, input: RetainedTaskInput): Readonly<{
+  cid: string; wire: string;
+}>;
 export function issueTaskDispatch(prepared: PreparedProgram,
   compilation: TaskCompilation, admission: RunAdmission,
   definition: RunDefinition, request: RequestIdentity, task: number,

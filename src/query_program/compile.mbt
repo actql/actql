@@ -1147,6 +1147,20 @@ fn analytic_boundary(
       construction.object([
         ("following", construction.add(Number(distance.to_double()))),
       ])
+    PrecedingParameter(name) =>
+      construction.object([
+        (
+          "preceding",
+          construction.object([("$param", construction.text(name))]),
+        ),
+      ])
+    FollowingParameter(name) =>
+      construction.object([
+        (
+          "following",
+          construction.object([("$param", construction.text(name))]),
+        ),
+      ])
   }
 }
 
@@ -1162,7 +1176,7 @@ fn lower_analytic_call(
       if call.window.frame is None {
         raise Abort(UnsupportedAnalytic)
       }
-      if !["COUNT", "SUM", "AVG", "MIN", "MAX"].contains(
+      if !["COUNT", "COUNTIF", "SUM", "AVG", "MIN", "MAX"].contains(
           aggregate.function_name,
         ) {
         raise Abort(UnsupportedAnalytic)

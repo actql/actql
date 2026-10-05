@@ -97,11 +97,11 @@ try {
       : ['duckdb'];
     for (const candidate of candidates) {
       const observation = await runProbe(training, candidate, round,
-        // Forcing Local must exclude every DuckDB offer, including the
-        // product's resident one; forced DuckDB keeps the product default.
+        // This calibration measures fresh DuckDB, never the resident offer
+        // sharing its registration name. Keep both training legs explicit.
         candidate === 'local'
           ? ['--native-ms=2147483647', '--resident-policy=false']
-          : ['--native-ms=1']);
+          : ['--native-ms=1', '--resident-policy=false']);
       observations.push(observation);
       await writeFile(destination, JSON.stringify({status: 'training', revision,
         trainingCaseId: training.id, targetCaseId: target.id, observations}, null, 2));
@@ -123,6 +123,7 @@ try {
     targetCaseId: target.id, binaryDigest, observations});
   const estimateSource = sha256(trainingBytes);
   const flags = [
+    '--resident-policy=false',
     '--native-ms=' + nativeTaskMilliseconds[0],
     ...(localEligible ? ['--local-task-ms=' + localTaskMilliseconds.join(',')] : []),
     '--native-task-ms=' + nativeTaskMilliseconds.join(','),
