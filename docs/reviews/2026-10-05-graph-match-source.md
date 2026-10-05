@@ -2,6 +2,11 @@
 
 Date: 2026-10-05. Owner: B. Target: main. No unmerged code dependency.
 
+Current integrated packed source:
+`907e3af85cc77cea930404ed416f55e692bc40fa`; adopted main:
+`4a63d0e699674df519c9d35a990080026000e560`. See the final integration section.
+The earlier SHA/digest/check records below remain historical evidence.
+
 Baseline: `9632c1d73327248ae1b6cbc4b9e76f281b587950`.
 Packed source: `ee135a4f7fe809458e95c6f319e3c9ff6ae547d6` (clean).
 This record is a later documentation-only change; its HEAD is not the packed
@@ -122,3 +127,42 @@ Not executed: full Core, Wasm/native, all packed cases, proofs or performance.
 Focused identity-binding checker coverage is not broad backend/runtime identity
 conformance. CI evidence for the submitted documentation HEAD is recorded in
 the PR separately; local acceptance is not CI success.
+
+## Main integration and repeated changed-boundary acceptance
+
+Main's Graph equality/diagnostics, ORDER property, SDK row checks and common
+execution changes were normally merged at
+`907e3af85cc77cea930404ed416f55e692bc40fa`. The conflict resolution retains
+both parents' Graph routing branches, source rules, packed registrations and
+focused flags. Main's workflows and foundation declarations are preserved.
+The remaining conflicts were generated pins and their independent expected
+identities; these were rebuilt from the integrated bodies, not product output.
+
+The integrated focused tree passed **26/26** MoonBit JS (`run-KNszEa`,
+`focused-test-iY9RRw`): new matches, Graph rows, traverse, equality, diagnostics
+and the fixed Values identity. Node **9/9** passed (`run-OVOyhr`,
+`focused-test-99VBK3`). All three read-only manifest/canonical/spec-family
+validators passed again with the counts above. This was not a full Core run.
+
+The same unchanged **10 positive / 14 preparation refusal** corpus then passed
+on **each** of packed Embedded Local and HTTPS at the clean merge SHA.
+Receipt `public-query-evidence-MoC39z` is passed and complete; guard `run-FdleFs`.
+No installed overlay was used. The later evidence-only commit is not relabeled
+as the tested packed revision.
+
+| Integrated package | SHA-256 of tarball |
+|---|---|
+| client-wire | `a8d1f2a63ed08d3378765fbee905fb72233d19e66e8ce77d6f1398ae45dbe8b7` |
+| sdk | `a42baf2456b366d3a761f01cce27292ae1dcee13c8ce6113a3b70896bedd4e97` |
+| run-host-core | `ba3edaccd2ad4107adf42cf3e271b1519855ae2dc89bc17006b3bba557d24bf8` |
+| local-node | `e861d151b9ef1ecd7c2bcb88c65a50e42555a54eb132befa484b4c538b67aeb1` |
+| node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+Main's Grammar CID `sha256:eb1e2c6f90ed75c3bd443ce1a5f91097c41e13e7a6cc08ccc04bdbdf57476c10`
+becomes `sha256:2afc5d41a26a51589b3ad3b647c08dae6ebdb8f135834c227ab97bfd6197bf8a`
+after retaining the new match rules. The full manifest body CID is
+`sha256:61eaa081e6fbd246bf050f38eb1ba238fbd57d651601a669b46bf8273d592530`.
+The integrated independent Run vector is
+`sha256:975bce1f654d8967d1f28f3370e3a89cf27c40745749f99d5bebca82bc5d7e15`.
+Both actual merge parents' grammar-bound vectors remain explicitly checked.
+Versions remain 0.1; no stored identity or prior evidence is rewritten.
