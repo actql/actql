@@ -13,11 +13,11 @@ static int has_pointer(void **items, int count, void *value) {
   return 0;
 }
 moonbit_string_t actql_proof_parent_control(void *parent, void *children,
-  void *previous, void *current, void *position, void *pending, void *used,
+  void *completed, void *current, void *position, void *pending, void *used,
   void *cancelled, void *terminal, void *reclaimed, void *cleanup_index,
   void *sequence, void *inputs, void *execution, void *measurement,
   void *numeric, void *family, int32_t count) {
-  void *roots[11] = {parent,children,previous,current,position,pending,used,
+  void *roots[11] = {parent,children,completed,current,position,pending,used,
     cancelled,terminal,reclaimed,cleanup_index};
   uint64_t scalar[11] = {0,8,8,8,4,4,8,4,4,4,4};
   void *seen[64]; int seen_count=0;
@@ -51,6 +51,18 @@ moonbit_string_t actql_proof_parent_control(void *parent, void *children,
   assert(Moonbit_rc_count(Moonbit_object_header(buffer)) >= 0);
   assert(Moonbit_object_kind(buffer)==moonbit_BLOCK_KIND_REF_ARRAY);
   uint64_t container_bytes=regular_bytes(array)+8+8*(uint64_t)Moonbit_array_length(buffer);
+  void *completed_array; memcpy(&completed_array,completed,sizeof completed_array);
+  void *completed_buffer; memcpy(&completed_buffer,completed_array,sizeof completed_buffer);
+  assert(!has_pointer(seen,seen_count,completed_array));seen[seen_count++]=completed_array;
+  assert(!has_pointer(seen,seen_count,completed_buffer));seen[seen_count++]=completed_buffer;
+  assert(Moonbit_rc_count(Moonbit_object_header(completed_array))>=0);
+  assert(Moonbit_rc_count(Moonbit_object_header(completed_buffer))>=0);
+  assert(Moonbit_object_kind(completed_buffer)==moonbit_BLOCK_KIND_REF_ARRAY);
+  assert(Moonbit_array_length(completed_buffer)==count);
+  int32_t completed_length;memcpy(&completed_length,(uint8_t*)completed_array+8,sizeof completed_length);
+  assert(completed_length==count);
+  for(int i=0;i<count;i++) { void *slot;memcpy(&slot,(uint8_t*)completed_buffer+8*i,sizeof slot);assert(!slot); }
+  uint64_t completed_bytes=regular_bytes(completed_array)+8+8*(uint64_t)count;
   void *borrowed[6]={sequence,inputs,execution,measurement,numeric,family};
   int candidates=0,embedded=0,matched_environment=0; uint64_t environment_bytes=0;
   for (int i=0;i<5;i++) {
@@ -66,7 +78,7 @@ moonbit_string_t actql_proof_parent_control(void *parent, void *children,
       if (i == 0 && tagged == 4 && Moonbit_object_kind(child)==moonbit_BLOCK_KIND_REGULAR) {
         const uint32_t *env = layout(child);
         assert(Moonbit_rc_count(Moonbit_object_header(child)) >= 0);
-        void *expected[12]={used,pending,position,current,previous,children,
+        void *expected[12]={used,pending,position,current,completed,children,
           family,numeric,measurement,execution,inputs,sequence};
         uint32_t offsets[12]={0,8,16,24,32,40,48,56,64,80,88,96};
         assert(env[0]==28 && env[1]==12);
@@ -86,7 +98,7 @@ moonbit_string_t actql_proof_parent_control(void *parent, void *children,
     }
   }
   char json[2048];
-  int n=snprintf(json,sizeof json,"ACTQL_PIPELINE_FAULT:{\"kind\":\"parent control investigation\",\"parent\":\"%" PRIu64 "\",\"count\":%d,\"rootBytes\":%" PRIu64 ",\"callbackBytes\":%" PRIu64 ",\"childrenContainerBytes\":%" PRIu64 ",\"knownOwnedLowerBytes\":%" PRIu64 ",\"unclassifiedCaptures\":%d,\"unclassifiedRegularBytes\":%" PRIu64 ",\"embeddedCaptures\":%d,\"allowance\":%" PRIu64 ",\"matchedEnvironment\":%d,\"environmentBytes\":%" PRIu64 "}",(uint64_t)(uintptr_t)parent,count,roots_bytes,callback_bytes,container_bytes,roots_bytes+callback_bytes+container_bytes,candidates,candidate_bytes,embedded,(uint64_t)count*256,matched_environment,environment_bytes);
+  int n=snprintf(json,sizeof json,"ACTQL_PIPELINE_FAULT:{\"kind\":\"parent control investigation\",\"parent\":\"%" PRIu64 "\",\"count\":%d,\"rootBytes\":%" PRIu64 ",\"callbackBytes\":%" PRIu64 ",\"childrenContainerBytes\":%" PRIu64 ",\"completedContainerBytes\":%" PRIu64 ",\"knownOwnedLowerBytes\":%" PRIu64 ",\"unclassifiedCaptures\":%d,\"unclassifiedRegularBytes\":%" PRIu64 ",\"embeddedCaptures\":%d,\"allowance\":%" PRIu64 ",\"matchedEnvironment\":%d,\"environmentBytes\":%" PRIu64 "}",(uint64_t)(uintptr_t)parent,count,roots_bytes,callback_bytes,container_bytes,completed_bytes,roots_bytes+callback_bytes+container_bytes+completed_bytes,candidates,candidate_bytes,embedded,(uint64_t)count*256,matched_environment,environment_bytes);
   assert(n>0 && (size_t)n<sizeof json);
   moonbit_string_t result=moonbit_make_string_raw(n);
   for (int i=0;i<n;i++) result[i]=(uint16_t)(unsigned char)json[i];

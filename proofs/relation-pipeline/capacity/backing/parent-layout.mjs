@@ -21,9 +21,10 @@ export function parentStartupLayout() {
   const callbacks = ['advance', 'cancel', 'stopped', 'cleanup', 'childWorkIssue']
     .reduce((sum, name) => sum + blocks[name], 0);
   const children = 24 + 8 + 8; // Array owner and initial one-reference buffer.
-  return { blocks, references, reportedWork, callbacks, children,
-    knownOwnedLower: references + reportedWork + blocks.owner + callbacks + children,
-    startupLower: references + reportedWork + blocks.owner + callbacks + children + blocks.startEnvironment,
+  const completed = 24 + 8 + 8 * 2; // Fixed two-child nullable output slots.
+  return { blocks, references, reportedWork, callbacks, children, completed,
+    knownOwnedLower: references + reportedWork + blocks.owner + callbacks + children + completed,
+    startupLower: references + reportedWork + blocks.owner + callbacks + children + completed + blocks.startEnvironment,
     fullParentUpper: false, completePipelineUpper: false };
 }
 export function inspectParentStartup(fact, target) {
@@ -34,6 +35,7 @@ export function inspectParentStartup(fact, target) {
   assert.equal(fact.rootBytes, bound.references + bound.reportedWork + bound.blocks.owner);
   assert.equal(fact.callbackBytes, bound.callbacks);
   assert.equal(fact.childrenContainerBytes, bound.children);
+  assert.equal(fact.completedContainerBytes, bound.completed);
   assert.equal(fact.knownOwnedLowerBytes, bound.knownOwnedLower);
   assert.equal(fact.matchedEnvironment, 1, 'Source capture identities were not independently bound');
   assert.equal(fact.environmentBytes, bound.blocks.startEnvironment);
