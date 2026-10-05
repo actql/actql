@@ -67,9 +67,21 @@ pub fn project_client_remote_task_run(
   // A request or one task's cancellation is not the Run's completed
   // cancellation. Require all observed execution and cleanup obligations.
   // Missing task custody remains pending, never inferred from resource zero.
-  let cancellation_complete = cancellation_requested &&
-    all_terminal &&
-    progress.cleanup_complete &&
+  // This immutable effect-free unpublished snapshot supplies facts to the
+  // same eligibility owner used by live and restored Run execution. The Host
+  // must recheck its publication fence/revision before committing anything.
+  let cancellation_complete = confirm_client_run_cancellation({
+      cancellation_requested,
+      model_fence_required: false,
+      model_fenced: false,
+      unresolved_model_calls: false,
+      unresolved_effects: false,
+      reconciliation_required: unknown,
+      publication_committed: false,
+      physical_stop_confirmed: all_terminal,
+      cleanup_confirmed: progress.cleanup_complete,
+      revision_unchanged: true,
+    }) &&
     (cancelled || progress.execution_complete)
   let terminal = if failed {
     Some(@publication.RunOutcomeStatus::Failed)

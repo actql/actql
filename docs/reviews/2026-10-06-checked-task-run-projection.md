@@ -19,6 +19,8 @@ receive publication work. The existing publication owner must still commit the
 index; this projection cannot report an available Result or committed success.
 
 Cancellation-request persistence, execution stopping and cleanup stay distinct.
+Collected facts go through `confirm_client_run_cancellation`, the existing
+shared eligibility owner for live and restored execution.
 The snapshot cannot project completed cancellation until all task observations
 are terminal and their cleanup obligations are discharged. Missing task
 observations remain pending, even if the Host sees no physical payloads. The
@@ -42,6 +44,21 @@ distinct from normal `released`; neither proves recovery of another Run.
   Shared Host interfaces compiled on JS, Wasm and Native; the JS-only ABI
   compiled on JS.
 - The existing single-record projection still refuses a two-task Run.
+- The existing actual Native two-task harness now uses this whole-Run
+  projection. Coordinator reconstruction passed with acquisition/producer/
+  consumer counts 1/1/1, independent `[{id:3}]` and schema, durable typed Output
+  ACK, both tasks normally Released, receiver reclamation, all Site temporary
+  capacity counters zero and Result reread. Producer-only completion stayed
+  unpublished. The original producer holder remained live.
+- Actual cancellation before consumer handout passed with counts 1/1/0;
+  delayed exact dispatch and repeated cancellation did not start the consumer.
+  Only after both exact cleanup observations did the snapshot project
+  cancelled, with both tasks Released and temporary capacity zero.
+- Both Native selections retained the existing 180-second bound and stripped
+  build. The initial sandbox listener refusal (`listen EPERM` on loopback) and
+  its scratch remain preserved separately; it was not a product assertion
+  failure. These tests use the actual Site and protocol listener, not the public
+  Cloud Client or Cloud publication service.
 - No wire version, canonical preimage, formal package pin or Native binary was
   changed by this unit. No full Core, packed, proof or performance campaign was
   run.
