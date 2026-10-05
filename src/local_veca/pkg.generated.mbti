@@ -64,6 +64,8 @@ pub fn pool_stopped(PoolExecution) -> Bool
 
 pub fn ranking_cleanup_pending(RankingExecution) -> Bool
 
+pub fn ranking_comparison_units(RankingExecution) -> Int
+
 pub fn ranking_max_noninterruptible_value_bytes(RankingExecution) -> Int
 
 pub fn ranking_max_noninterruptible_value_nodes(RankingExecution) -> Int

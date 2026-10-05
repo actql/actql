@@ -3415,6 +3415,7 @@ fn direct_nullable_ranking_fusion_owner(
 fn direct_nullable_ranking_output(
   owner : @lower.BoundPrepared,
   rows : Array[(Double?, String?, Double, Double, String?)],
+  text_limit? : Int = 10,
 ) -> @execution.CompletedOutput raise {
   let values = @execution.prepare_admitted_output(
     owner,
@@ -3440,7 +3441,7 @@ fn direct_nullable_ranking_output(
               None => "null"
             },
           ),
-          { max_nodes: 1, max_depth: 1, max_text_bytes: 10, },
+          { max_nodes: 1, max_depth: 1, max_text_bytes: text_limit, },
         ).unwrap()
       } else if name == "q" {
         @admitted.admit(
@@ -4827,6 +4828,190 @@ test "ranking bounds scratch and output assembly within quantum" {
 }
 
 ///|
+test "ranking yields within long group and tie comparisons" {
+  let prefix = String::make(512, 'x')
+  let segment = prefix + "s"
+  let left = direct_nullable_ranking_owner()
+  let right = direct_nullable_ranking_owner()
+  let left_output = direct_nullable_ranking_output(
+    left,
+    [
+      (None, Some(segment), 1.0, 0.5, Some(prefix + "a")),
+      (None, Some(segment), 2.0, 0.5, Some(prefix + "b")),
+    ],
+    text_limit=513,
+  )
+  let right_output = direct_nullable_ranking_output(
+    right,
+    [
+      (None, Some(segment), 1.0, 0.5, Some(prefix + "a")),
+      (None, Some(segment), 2.0, 0.5, Some(prefix + "b")),
+    ],
+    text_limit=513,
+  )
+  for policy in ["\"max\"", "{\"weighted_sum\":{\"left\":0.5,\"right\":0.5}}"] {
+    let owner = direct_nullable_ranking_fusion_owner(left, right, policy)
+    let inputs = [
+      @execution.prepare_producer_read(
+        owner,
+        @execution.bind_completed_input(owner, 0, left, left_output).unwrap(),
+        1000,
+        10000,
+      ).unwrap(),
+      @execution.prepare_producer_read(
+        owner,
+        @execution.bind_completed_input(owner, 1, right, right_output).unwrap(),
+        1000,
+        10000,
+      ).unwrap(),
+    ]
+    let limits : @execution.ValueLimits = {
+      max_nodes: 1000,
+      max_text_bytes: 10000,
+      max_depth: 10,
+      max_work: 10000,
+    }
+    // Independently count four 1038-unit input rows, record sorts 1048+2590,
+    // duplicate checks 1033, candidate folds 3600, output sort 1032, and
+    // two emitted rows plus finalization 528. Total control work is 13983.
+    // Workspace: 4*11+4 + 4*8+4 + (2+2*2) + (3+28) = 121.
+    for
+      (quantum, control_limit) in [
+        (1, 13983),
+        (7, 13983),
+        (256, 13983),
+        (1, 13982),
+      ] {
+      let execution = @local_veca.start_ranking(
+        @bounded.control(),
+        task_test_completion(owner),
+        prepared_sequence(owner),
+        0,
+        inputs,
+        10,
+        limits,
+        121,
+        1000,
+        10000,
+        control_work_limit=Some(control_limit),
+      ).unwrap()
+      let mut terminal = false
+      for _ in 0..<15000 {
+        if terminal {
+          break
+        }
+        match @local_veca.advance_ranking(execution, quantum).unwrap() {
+          @local_veca.RankingContinue(work~, ..) => assert_true(work > 0L)
+          @local_veca.RankingComplete(output, work~, ..) => {
+            assert_eq(control_limit, 13983)
+            assert_eq(work, 13983L)
+            assert_eq(@execution.completed_row_count(output), 2)
+            let schema = @pipeline.schema_at(
+              @lower.pipeline(@lower.bound_preparation(owner)),
+              @pipeline.Step(0),
+            ).unwrap()
+            for row in 0..<2 {
+              for column in 0..<@schema.field_count(schema) {
+                let name = @schema.reference_name(
+                  @schema.field_at(schema, column).unwrap().name,
+                )
+                let cell = @execution.completed_cell(output, row, column)
+                if name == "q" {
+                  assert_true(cell is Some(Null))
+                } else if name == "segment" {
+                  assert_true(cell is Some(Text(actual)) && actual == segment)
+                } else {
+                  let expected = if name == "score" {
+                    0.5
+                  } else {
+                    (row + 1).to_double()
+                  }
+                  assert_true(
+                    cell is Some(Number(actual)) && actual == expected,
+                  )
+                }
+              }
+            }
+            terminal = true
+          }
+          @local_veca.RankingFailed(@local_veca.RankingWorkLimit, work~, ..) => {
+            assert_eq(control_limit, 13982)
+            assert_eq(work, 13982L)
+            terminal = true
+          }
+          _ => fail("long ranking missed its typed boundary")
+        }
+      }
+      assert_true(terminal)
+      assert_true(@local_veca.ranking_stopped(execution))
+      assert_eq(@local_veca.cleanup_ranking(execution), Ok(true))
+      assert_eq(@local_veca.ranking_comparison_units(execution), 0)
+      assert_eq(@local_veca.ranking_scratch_slots(execution), 0)
+      assert_eq(@local_veca.ranking_output_field_slots(execution), 0)
+      assert_true(@execution.completed_output_available(left_output))
+      assert_true(@execution.completed_output_available(right_output))
+    }
+    assert_true(
+      @local_veca.start_ranking(
+        @bounded.control(),
+        task_test_completion(owner),
+        prepared_sequence(owner),
+        0,
+        inputs,
+        10,
+        limits,
+        120,
+        1000,
+        10000,
+      )
+      is Err(@local_veca.RankingWorkspaceLimit),
+    )
+    let control = @bounded.control()
+    let execution = @local_veca.start_ranking(
+      control,
+      task_test_completion(owner),
+      prepared_sequence(owner),
+      0,
+      inputs,
+      10,
+      limits,
+      121,
+      1000,
+      10000,
+      control_work_limit=Some(13983),
+    ).unwrap()
+    for _ in 0..<1000 {
+      if @local_veca.ranking_comparison_units(execution) == 257 {
+        break
+      }
+      assert_true(
+        @local_veca.advance_ranking(execution, 1).unwrap()
+        is @local_veca.RankingContinue(progress=0L, ..),
+      )
+    }
+    assert_eq(@local_veca.ranking_comparison_units(execution), 257)
+    assert_true(@bounded.request_cancel(control))
+    assert_false(@local_veca.ranking_stopped(execution))
+    assert_eq(
+      @local_veca.cleanup_ranking(execution),
+      Err(@local_veca.RankingExecutionIssue(@bounded.NotStopped)),
+    )
+    assert_eq(@local_veca.ranking_comparison_units(execution), 257)
+    assert_true(@execution.producer_read_available(inputs[0]))
+    assert_true(@execution.producer_read_available(inputs[1]))
+    assert_true(
+      @local_veca.advance_ranking(execution, 1).unwrap()
+      is @local_veca.RankingStopped(@bounded.Cancelled, progress=0L, ..),
+    )
+    assert_eq(@local_veca.cleanup_ranking(execution), Ok(true))
+    assert_eq(@local_veca.ranking_comparison_units(execution), 0)
+    assert_eq(@local_veca.cleanup_ranking(execution), Ok(false))
+    assert_true(@execution.completed_output_available(left_output))
+    assert_true(@execution.completed_output_available(right_output))
+  }
+}
+
+///|
 test "ranking producer path admits exact work and workspace" {
   let left = direct_rrf_owner()
   let right = direct_rrf_owner()
@@ -4867,10 +5052,10 @@ test "ranking producer path admits exact work and workspace" {
     inputs,
     10,
     limits,
-    91,
+    103,
     1000,
     10000,
-    control_work_limit=Some(153),
+    control_work_limit=Some(166),
   ).unwrap()
   let mut exact_done = false
   for _ in 0..<1000 {
@@ -4880,7 +5065,7 @@ test "ranking producer path admits exact work and workspace" {
     match @local_veca.advance_ranking(exact, 1).unwrap() {
       @local_veca.RankingContinue(work~, ..) => assert_true(work > 0L)
       @local_veca.RankingComplete(output, work~, ..) => {
-        assert_eq(work, 153L)
+        assert_eq(work, 166L)
         assert_eq(@execution.completed_row_count(output), 2)
         exact_done = true
       }
@@ -4899,10 +5084,10 @@ test "ranking producer path admits exact work and workspace" {
     inputs,
     10,
     limits,
-    91,
+    103,
     1000,
     10000,
-    control_work_limit=Some(152),
+    control_work_limit=Some(165),
   ).unwrap()
   let mut work_failed = false
   for _ in 0..<1000 {
@@ -4912,7 +5097,7 @@ test "ranking producer path admits exact work and workspace" {
     match @local_veca.advance_ranking(one_short_work, 1).unwrap() {
       @local_veca.RankingContinue(work~, ..) => assert_true(work > 0L)
       @local_veca.RankingFailed(@local_veca.RankingWorkLimit, work~, ..) => {
-        assert_eq(work, 152L)
+        assert_eq(work, 165L)
         work_failed = true
       }
       _ => fail("one-short ranking work was accepted")
@@ -4931,7 +5116,7 @@ test "ranking producer path admits exact work and workspace" {
       inputs,
       10,
       limits,
-      90,
+      102,
       1000,
       10000,
     )
@@ -4974,14 +5159,19 @@ test "registered ranking provider enforces exact work and workspace" {
     limits.guards,
   ).unwrap()
   // Four three-field input rows cost 32 units; four stable sort passes cost
-  // 80; duplicate/rank validation costs 10; four two-input folds cost 16;
+  // 88 (six additional record comparisons and two output comparisons);
+  // duplicate/rank validation costs 12; fusion-boundary comparisons add 3;
+  // four two-input folds cost 16;
   // four output visits, two four-field rows, and finalization cost 15.
-  // Workspace is 4*9 + 4 + 4*6 + 4 + (2+2*2) + (1+16) = 91 slots.
+  // Workspace is 4*9 + 4 + 4*6 + 4 + (2+2*2) + (1+28) = 103 slots.
+  // The extra 12 fixed slots cover the borrowed comparison cursor and counter.
   for
-    (work, slots, outcome) in [
-      (153, 91, "complete"),
-      (152, 91, "work"),
-      (153, 90, "workspace"),
+    (work, slots, outcome, quantum) in [
+      (166, 103, "complete", 1),
+      (166, 103, "complete", 7),
+      (166, 103, "complete", 256),
+      (165, 103, "work", 1),
+      (166, 102, "workspace", 1),
     ] {
     let provider = @local_veca_provider.provider(
       {
@@ -5001,7 +5191,8 @@ test "registered ranking provider enforces exact work and workspace" {
       if terminal {
         break
       }
-      match @local_connector.advance_managed_provider(execution, 1).unwrap() {
+      match
+        @local_connector.advance_managed_provider(execution, quantum).unwrap() {
         @local_connector.Continue(work~, ..) => {
           assert_true(work > 0L)
           charged += work
@@ -5026,9 +5217,9 @@ test "registered ranking provider enforces exact work and workspace" {
       if outcome == "workspace" {
         0L
       } else if outcome == "work" {
-        152L
+        165L
       } else {
-        153L
+        166L
       },
     )
     assert_true(@local_connector.managed_provider_stopped(execution))
