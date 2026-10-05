@@ -193,6 +193,7 @@ fn accept_model_slot(
   input_key_cid : String,
   checked : @admitted.CheckedValue,
 ) -> @bounded.KernelStep[ModelCaptureBundle, ModelExecutionIssue] {
+  state.observing_response = false
   state.outcomes.push(Success(state.captures.length()))
   if state.attempts.get(state.next_slot) is Some(trace) {
     trace.category = "ok"
@@ -219,6 +220,9 @@ fn accept_model_slot(
     output_tokens: response.output_tokens,
     observed_at: response.observed_at,
   })
+  if state.durable_calls {
+    state.settlement_pending = Some(state.next_slot)
+  }
   state.next_slot += 1
   state.phase = DispatchSlot
   if state.next_slot == @relation.prepared_infer_rows_count(state.rows) {
@@ -236,7 +240,11 @@ pub fn model_execution_invocation_evidence(
   execution : ModelExecution,
   slot : Int,
 ) -> @publication.RunEvidenceValue? {
-  if !execution.state.accepted || execution.state.reclaimed {
+  if (
+      !execution.state.accepted &&
+      !(execution.state.durable_calls && slot < execution.state.next_slot)
+    ) ||
+    execution.state.reclaimed {
     None
   } else {
     match execution.state.outcomes.get(slot) {

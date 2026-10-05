@@ -6,6 +6,8 @@ pub struct ClientInferDispatchAdmission {
   definition : @publication.PublicationContract
   authorization : @authorization.DispatchAuthorization
   evidence : @publication.RunEvidenceValue
+  subject_cid : String
+  activation_context_cid : String
   current : () -> Result[
     (@authorization.AdmittedAccountConfiguration, String),
     ClientInferDispatchIssue,
@@ -29,6 +31,7 @@ pub fn issue_client_infer_dispatch_admission(
   principal : String,
   at : String,
   delegated_action? : @authorization.RuntimeAction? = None,
+  model_scope? : @publication.BoundModelInvocationScope? = None,
   observe_current~ : () -> Result[
     (@authorization.AdmittedAccountConfiguration, String),
     ClientInferDispatchIssue,
@@ -45,10 +48,29 @@ pub fn issue_client_infer_dispatch_admission(
     ) {
     return Err(Expired)
   }
+  let subject_cid = match model_scope {
+    None => plan.request_cid
+    Some(scope) => {
+      let (_, run_cid, _) = @publication.model_invocation_scope_run(scope)
+      if run_cid != @publication.publication_contract_identity(definition) ||
+        @publication.model_invocation_scope_prepared_cid(scope) !=
+        @publication.run_evidence_value_identity(
+          @publication.run_publication_prepared(compiled.admission),
+        ) {
+        return Err(ForeignRun)
+      }
+      @publication.model_invocation_scope_cid(scope)
+    }
+  }
   let task = @environment.model_execution_task(plan.execution)
   let context_cid = @publication.run_publication_execution_context(
     compiled.admission,
   )
+  let activation_context_cid = match model_scope {
+    Some(scope) =>
+      @publication.model_invocation_scope_boundary(scope).context_cid
+    None => context_cid
+  }
   let policy_cid = @publication.run_publication_host_policy(compiled.admission)
   let tuple : @authorization.AccessTuple = {
     principal,
@@ -61,8 +83,8 @@ pub fn issue_client_infer_dispatch_admission(
       current,
       tuple,
       @authorization.Activation,
-      plan.request_cid,
-      context_cid,
+      subject_cid,
+      activation_context_cid,
       delegated_action~,
     ) {
     Ok(value) => value
@@ -107,6 +129,13 @@ pub fn issue_client_infer_dispatch_admission(
       @encode.key(writer, name)
       @encode.string_value(writer, value)
     }
+    if model_scope is Some(scope) {
+      @encode.key(writer, "model_invocation_scope_cid")
+      @encode.string_value(
+        writer,
+        @publication.model_invocation_scope_cid(scope),
+      )
+    }
     @encode.key(writer, "answering_authority")
     match authority {
       Some(value) => @encode.string_value(writer, value)
@@ -135,6 +164,8 @@ pub fn issue_client_infer_dispatch_admission(
       definition,
       authorization,
       evidence,
+      subject_cid,
+      activation_context_cid,
       current: observe_current,
     })
   } catch {
@@ -159,7 +190,7 @@ pub fn check_client_infer_dispatch_current(
     ) {
     return Err(Expired)
   }
-  guard client_compiled_run_infer(value.compiled) is Some(plan) else {
+  guard client_compiled_run_infer(value.compiled) is Some(_) else {
     return Err(ForeignRun)
   }
   if !@authorization.dispatch_authorization_matches(
@@ -167,8 +198,8 @@ pub fn check_client_infer_dispatch_current(
       configuration,
       @authorization.dispatch_authorization_tuple(value.authorization),
       @authorization.Activation,
-      plan.request_cid,
-      @publication.run_publication_execution_context(value.compiled.admission),
+      value.subject_cid,
+      value.activation_context_cid,
     ) {
     return Err(Authorization(@authorization.ForeignDecision))
   }
@@ -208,4 +239,11 @@ pub fn client_infer_dispatch_run_cid(
   value : ClientInferDispatchAdmission,
 ) -> String {
   @publication.publication_contract_identity(value.definition)
+}
+
+///|
+pub fn client_infer_dispatch_subject(
+  value : ClientInferDispatchAdmission,
+) -> String {
+  value.subject_cid
 }

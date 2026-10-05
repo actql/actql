@@ -2,6 +2,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {emitSchema} from './run-publication-protocol.mjs';
 
+test('Run review singleton claim is exact without admitting arbitrary tuple literals', () => {
+  assert.doesNotThrow(() => emitSchema({const: ['invocation_scope_approved']}));
+  for (const schema of [
+    {const: []}, {const: ['a', 'b']}, {const: [null]},
+    {type: 'string', const: ['a']}, {const: ['a'], minItems: 2},
+  ]) assert.throws(() => emitSchema(schema), /Unsupported/);
+});
+
 test('generator rejects unsupported number constraints', () => {
   for (const schema of [
     {type: 'number', const: 1},

@@ -56,11 +56,9 @@ test "Delta lowering retains ordered Graph inputs and the formal contract CID" {
     @encode.finish(writer),
     "[{\"id\":\"graph_diff_0\",\"in\":[\"input_0\",\"input_1\"],\"op\":\"SGA.diff\",\"params\":{\"graph_contract_cid\":\"sha256:ad5cb6732d059d85e5d6581974006b9cb551e2704d0260e82ceebc43015db667\"}}]",
   )
-  // Difference remains unselected; application capability is not a diff
-  // resource/custody receipt.
-  assert_false(
-    @lowering_relation.node_supports_selected_managed_execution(node),
-  )
+  // Selection still requires the installed Diff policy and exact Graph views;
+  // the checked node alone is not a resource/custody receipt.
+  assert_true(@lowering_relation.node_supports_selected_managed_execution(node))
   assert_false(@lowering_relation.node_can_split_carrier_transform(node))
   assert_false(@lowering_relation.node_accepts_managed_relation_view(node, 1))
 }

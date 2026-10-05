@@ -21,6 +21,7 @@ priv enum RelationExecution {
   GraphBoundsExecution(@sga.GraphBoundsExecution)
   GraphDegreeExecution(@sga.GraphDegreeExecution)
   PropertyEqualityExecution(@sga.PropertyEqualityExecution)
+  DeltaDiffExecution(@sga.DeltaDiffExecution)
   ComponentsExecution(@sga.ComponentsExecution)
 }
 
@@ -112,6 +113,23 @@ fn delta_material(sequence : @execution.GeneratedSequence) -> Bool {
   is Some(@lower.GraphDeltaStep(delta)) &&
   @graph_type.delta_operation(@lower.graph_delta_checked(delta))
   is @graph_type.Application(_)
+}
+
+///|
+fn delta_diff_material(sequence : @execution.GeneratedSequence) -> Bool {
+  let selected = @execution.completion_preparation_selected_step(
+    @execution.generated_completion_preparation(sequence),
+  )
+  if selected is None && @execution.generated_sequence_step_count(sequence) != 1 {
+    return false
+  }
+  @lower.sequence_step(
+    @execution.generated_prepared_sequence(sequence),
+    selected.unwrap_or(0),
+  )
+  is Some(@lower.GraphDeltaStep(delta)) &&
+  @graph_type.delta_operation(@lower.graph_delta_checked(delta))
+  is @graph_type.Difference
 }
 
 ///|
@@ -318,12 +336,18 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
           is Some(changes_carrier) else {
           return false
         }
-        @lower.operation(node) == "SGA.apply_delta" &&
-        @graph_type.delta_operation(@lower.graph_delta_checked(delta))
-        is @graph_type.Application(_) &&
         current_graph(base_carrier) &&
-        @carrier.kind(changes_carrier) == @carrier.RelationKind &&
-        current_graph(@lower.graph_delta_output_carrier(delta))
+        (match @graph_type.delta_operation(@lower.graph_delta_checked(delta)) {
+          @graph_type.Application(_) =>
+            @lower.operation(node) == "SGA.apply_delta" &&
+            @carrier.kind(changes_carrier) == @carrier.RelationKind &&
+            current_graph(@lower.graph_delta_output_carrier(delta))
+          @graph_type.Difference =>
+            @lower.operation(node) == "SGA.diff" &&
+            current_graph(changes_carrier) &&
+            @carrier.kind(@lower.graph_delta_output_carrier(delta)) ==
+            @carrier.RelationKind
+        })
       }
       // No tuple Graph constructor/projection or legacy SGA execution fallback.
       // Other new-profile operations remain explicit unsupported selections.
@@ -1328,6 +1352,18 @@ fn advance_execution(
                 Ok(RelationStopped(progress, work))
               Err(_) => Err(issue())
             }
+          DeltaDiffExecution(execution) =>
+            match @sga.advance_delta_diff(execution, quantum) {
+              Ok(@sga.DeltaDiffContinue(progress~, work~)) =>
+                Ok(RelationContinue(progress, work))
+              Ok(@sga.DeltaDiffComplete(output, progress~, work~)) =>
+                Ok(RelationComplete(output, progress, work))
+              Ok(@sga.DeltaDiffFailed(_, progress~, work~)) =>
+                Ok(RelationFailed(progress, work))
+              Ok(@sga.DeltaDiffStopped(_, progress~, work~)) =>
+                Ok(RelationStopped(progress, work))
+              Err(_) => Err(issue())
+            }
           ComponentsExecution(execution) =>
             match @sga.advance_components(execution, quantum) {
               Ok(@sga.ComponentsContinue(progress~, work~)) =>
@@ -1444,6 +1480,11 @@ fn cleanup_execution(
           Ok(_) => ()
           Err(_) => failed = true
         }
+      DeltaDiffExecution(execution) =>
+        match @sga.cleanup_delta_diff(execution) {
+          Ok(_) => ()
+          Err(_) => failed = true
+        }
       ComponentsExecution(execution) =>
         match @sga.cleanup_components(execution) {
           Ok(_) => ()
@@ -1485,6 +1526,7 @@ fn cleanup_execution(
       @sga.graph_degree_cleanup_pending(active)
     Some(PropertyEqualityExecution(active)) =>
       @sga.property_equality_cleanup_pending(active)
+    Some(DeltaDiffExecution(active)) => @sga.delta_diff_cleanup_pending(active)
     Some(ComponentsExecution(active)) => @sga.components_cleanup_pending(active)
     None => false
   }
@@ -1523,7 +1565,7 @@ pub fn provider(
   let eligible = fn(sequence) {
     accepts(sequence) &&
     (
-      !delta_material(sequence) ||
+      (!delta_material(sequence) && !delta_diff_material(sequence)) ||
       (delta_policy is Some(policy) && valid_delta_policy(policy))
     )
   }
@@ -1538,7 +1580,8 @@ pub fn provider(
       } else {
         0L
       }
-      let delta_workspace = if delta_material(sequence) {
+      let delta_workspace = if delta_material(sequence) ||
+        delta_diff_material(sequence) {
         delta_policy.map(policy => policy.workspace_bytes).unwrap_or(0L)
       } else {
         0L
@@ -1562,7 +1605,10 @@ pub fn provider(
     fn(sequence, inputs, max_rows, max_value_bytes, execution) {
       if !eligible(sequence) ||
         storage_bytes < 0L ||
-        (delta_material(sequence) && capacity_for(sequence) is None) ||
+        (
+          (delta_material(sequence) || delta_diff_material(sequence)) &&
+          capacity_for(sequence) is None
+        ) ||
         (snapshot_policy is Some(policy) && !valid_snapshot_policy(policy)) {
         return Err(@connector.InvalidLimits)
       }
@@ -1596,6 +1642,7 @@ pub fn provider(
         _ => false
       }
       let direct_delta = delta_material(sequence)
+      let direct_diff = delta_diff_material(sequence)
       let direct_subgraph_relation_count = match
         @lower.sequence_step(
           @execution.generated_prepared_sequence(sequence),
@@ -1689,9 +1736,11 @@ pub fn provider(
         direct_subgraph ||
         direct_diagnostic ||
         direct_equality ||
+        direct_diff ||
         direct_normalize ||
         direct_delta {
-        if carriers.length() != (if direct_equality { 2 } else { 1 }) ||
+        if carriers.length() !=
+          (if direct_equality || direct_diff { 2 } else { 1 }) ||
           relations.length() !=
           (if direct_traverse {
             direct_traverse_relation_count
@@ -1772,6 +1821,36 @@ pub fn provider(
           Ok(active) => Some(active)
           Err(_) => return Err(issue())
         }
+      }
+      if direct_diff {
+        guard delta_policy is Some(policy) else {
+          return Err(@connector.InvalidLimits)
+        }
+        let active = match
+          @sga.start_delta_diff_views(
+            state.control,
+            @execution.generated_completion_preparation(sequence),
+            state.sequence,
+            state.projection_step,
+            carriers[0],
+            carriers[1],
+            max_rows,
+            {
+              max_nodes: limits.max_value_nodes,
+              max_depth: limits.max_value_depth,
+              max_text_bytes: max_value_bytes,
+              max_work: limits.max_work,
+            },
+            policy.limits,
+            limits.max_value_bytes,
+            limits.max_value_bytes,
+            Int::min(limits.max_work, execution.max_work),
+          ) {
+          Ok(active) => active
+          Err(_) => return Err(issue())
+        }
+        state.relation = Some(DeltaDiffExecution(active))
+        state.phase = Projection
       }
       Ok(
         @local.managed_provider_execution(

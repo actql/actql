@@ -578,15 +578,12 @@ for (const [observed, terminal] of [
       physical.observe = async () => observed;
       await checkpoints.sweep();
       assert.equal(checkpoints.journal.getRunState('run-pair').status,
-        terminal && observed !== 'cancelled' ? observed : 'running',
+        terminal ? observed : 'running',
         JSON.stringify(f.diagnostics));
-      if (observed === 'cancelled') {
-        // Terminality does not expand the existing transition table:
-        // Running -> Cancelled is rejected independently by the journal.
-        assert.equal(f.diagnostics.at(-1).detail.code, 'RunTransitionRejected');
-      }
+      // The physical port reports owner-confirmed stopping. A cancellation
+      // request by itself is never supplied as this terminal observation.
       assert.equal(physical.state.starts, 1);
-      if (terminal && observed !== 'cancelled') {
+      if (terminal) {
         // A late completion cannot rewrite a terminal outcome or restart it.
         checkpoints.runFinished('run-pair', 'failed');
         assert.equal(checkpoints.journal.getRunState('run-pair').status, observed);

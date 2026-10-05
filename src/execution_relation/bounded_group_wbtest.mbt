@@ -151,6 +151,74 @@ fn drive_bounded_group(execution : BoundedGroupExecution) -> BoundedGroupPoll {
 }
 
 ///|
+test "bounded group rechecks raw text output across cancellable steps" {
+  let mut key = ""
+  for _ in 0..<256 {
+    key = key + "aaaaaaaaaaaaaaaa"
+  }
+  let schema = "{\"k\":{\"type\":\"string\",\"nullable\":false}}"
+  let rows = "[{\"k\":\"" + key + "\"}]"
+  let operation = "\"group\":{\"by\":[\"k\"],\"aggregates\":{\"m\":{\"fn\":\"max\",\"field\":\"k\"}}}"
+  let (control, started, source) = bounded_relation_start(
+    schema, rows, operation, "group_0", false,
+  )
+  let execution = started.unwrap()
+  let mut rechecking = false
+  for _ in 0..<300 {
+    if !rechecking {
+      match advance_bounded_group_execution(execution, 1).unwrap() {
+        BoundedGroupContinue(..) =>
+          rechecking = bounded_group_rechecking_output(execution)
+        _ => fail("raw group text completed before output recheck")
+      }
+    }
+  }
+  assert_true(rechecking)
+  // Advance the node check and one TextUnits chunk before cancelling.
+  for _ in 0..<2 {
+    assert_true(
+      advance_bounded_group_execution(execution, 1).unwrap()
+      is BoundedGroupContinue(..),
+    )
+  }
+  assert_true(bounded_group_rechecking_output(execution))
+  assert_false(execution.accepted.val)
+  assert_true(execution.state.rows.val is None)
+  assert_true(
+    execution.state.output is Some(output) && output.buffer.rows.is_empty(),
+  )
+  assert_true(execution.state.output_pending is None)
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_group_execution(execution, 1).unwrap()
+    is BoundedGroupStopped(_, ..),
+  )
+  assert_true(cleanup_bounded_group_execution(execution).unwrap())
+  assert_false(execution.accepted.val)
+  assert_true(execution.state.rows.val is None)
+  assert_true(execution.state.output is None)
+  assert_true(execution.state.output_recheck is None)
+  assert_true(execution.state.output_measure is None)
+  assert_true(execution.state.output_pending is None)
+  assert_true(execution.state.output_row.is_empty())
+  assert_eq(execution.state.workspace.live, 0)
+  assert_true(completed_output_available(source))
+  let (_, started, source) = bounded_relation_start(
+    schema, rows, operation, "group_0", false,
+  )
+  let execution = started.unwrap()
+  guard drive_bounded_group(execution) is BoundedGroupComplete(output, ..) &&
+    completed_cell(output, 0, 0) is Some(Text(group_key)) &&
+    completed_cell(output, 0, 1) is Some(Text(maximum)) else {
+    fail("raw group output was not published")
+  }
+  assert_eq(group_key, key)
+  assert_eq(maximum, key)
+  assert_true(cleanup_bounded_group_execution(execution).unwrap())
+  assert_true(completed_output_available(source))
+}
+
+///|
 test "bounded group admits exact work and rejects one unit short" {
   // One input row charge (1); names: input k (2), key k (2), aggregate m
   // (2) and its field k (2), output k and m (4); stable order: one term,

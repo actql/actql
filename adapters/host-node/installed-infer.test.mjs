@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import {scopedModelHolding} from '../../scripts/fixtures/model-custody-fixture.mjs';
+import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-binding-fixture.mjs';
 import {execFileSync} from 'node:child_process';
 import {createHash, generateKeyPairSync} from 'node:crypto';
 import {mkdtemp, readFile, rm} from 'node:fs/promises';
@@ -337,6 +339,7 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
       }
     };
     const registerModelProviders = moon => [{providerId: 'models/fixture',
+          bindingOriginals: providerBindingOriginals('models/fixture', {selector: 'fixture-risk-model'}),
         invoke() { throw new Error('UnpreparedProviderCall'); },
         validatePrompt(actualTask, selector, wire) {
           return actualTask === taskCid && selector === 'fixture-risk-model' &&
@@ -377,6 +380,7 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
           import {openInstalledRemoteHttpHost} from ${JSON.stringify(new URL('./embedded-local.mjs', import.meta.url).href)};
           const input = JSON.parse(readFileSync(0, 'utf8'));
           const {directory, installation, taskCid, authorization, boundary} = input;
+          const {providerBindingOriginals} = await import(${JSON.stringify(new URL('../../scripts/fixtures/model-provider-binding-fixture.mjs', import.meta.url).href)});
           const checked = ${checked.toString()};
           const oneRowInfer = ${oneRowInfer.toString()};
           let calls = 0;
@@ -444,7 +448,8 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
       assert.equal(failedObservation, boundary.startsWith('observation-'));
       // Begin, one slot, and finalize: retries retain the issuer
       // rather than starting another observation or advancing a terminal one.
-      assert.equal(observationSteps, failedBeforeCapture ? 0 : 3);
+      const failedBeforeAggregate = failedBeforeCapture || boundary === 'private-write-failure';
+      assert.equal(observationSteps, failedBeforeAggregate ? 0 : 3);
       if (successful) {
         assert.deepEqual(await run.result('answer').all(),
           keepProjection
@@ -465,12 +470,15 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
         version: 'actql-local-store-owner/0.1', root: join(root, 'state'),
         principalId: userInfo().username})).digest('hex')}`;
       for (const [role, slot] of [
-        ...(!failedBeforeCapture ? [['model_capture_bundle', -1], ['observation_set', -1],
+        ...(!failedBeforeAggregate ? [['model_capture_bundle', -1], ['observation_set', -1],
           ['run_invocation', -1], ['model_slot_capture', 0]] : []),
+        ...(boundary === 'private-write-failure' ? [['model_slot_capture', 0], ['model_capture_bundle', 0]] : []),
         ['model_call_attempt', 0], ['model_attempt_accounting', 0],
         ['model_attempt_outcome', 0], ['model_dispatch_authority', 0],
       ]) {
-        const identity = contentCid({role, slot,
+        const identity = failedBeforeAggregate
+          ? scopedModelHolding(join(root, 'state'), run.ref.runDefinitionCid, storeCid, role, slot)
+          : contentCid({role, slot,
           run_definition_cid: run.ref.runDefinitionCid,
           store_authority_cid: storeCid,
           version: 'actql-model-private-holding/0.1'});
@@ -492,10 +500,8 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
         key.key.fill(0);
         try {
           for (const role of ['model_attempt_accounting', 'model_attempt_outcome']) {
-            const holdingCid = contentCid({role, slot: 0,
-              run_definition_cid: run.ref.runDefinitionCid,
-              store_authority_cid: storeCid,
-              version: 'actql-model-private-holding/0.1'});
+            const holdingCid = scopedModelHolding(join(root, 'state'),
+              run.ref.runDefinitionCid, storeCid, role);
             const record = await evidenceStore.inspectPhysicalHolding(holdingCid);
             const body = JSON.parse(new TextDecoder().decode(
               await evidenceStore.readPrivateEvidence(role, record.manifest_cid,
@@ -507,9 +513,9 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
               assert.equal(body.duration_ms, null);
               assert.ok(body.cumulative_work > 0);
             } else {
-              assert.equal(body.category, cancelledBeforeCapture ? 'cancelled' :
+              assert.equal(body.category, cancelledBeforeCapture ? 'ok' :
                 'contract_violation');
-              assert.equal(body.failure, cancelledBeforeCapture ? 'cancelled' :
+              assert.equal(body.failure, cancelledBeforeCapture ? null :
                 'budget_exceeded');
             }
           }
@@ -551,6 +557,7 @@ for (const [variant, boundary, typedCause] of [
       const {client, root, physicalStarts} = await installedHost(t, {
         modelInstallation: installation,
         registerModelProviders: () => [{providerId: 'models/fixture',
+          bindingOriginals: providerBindingOriginals('models/fixture', {selector: 'fixture-risk-model'}),
           invoke() { calls++; throw new Error('UnexpectedProviderDispatch'); },
           validatePrompt(actualTask, selector, wire) {
             validations++;

@@ -890,6 +890,7 @@ test "run transitions follow the public table" {
   ] = [
     (Preparing, WaitingCheckpoint),
     (Running, WaitingCheckpoint),
+    (Running, Cancelled),
     (Resuming, WaitingCheckpoint),
     (WaitingCheckpoint, Resuming),
     (WaitingCheckpoint, Cancelled),

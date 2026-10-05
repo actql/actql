@@ -32,7 +32,8 @@ export function assertEffectTargetReadBinding(binding, expected) {
 
 export async function effectTargetReadContinuation({checkpoints, runId,
   runDefinitionCid, unitId, declaredResults, submission, inventory,
-  principalId, resume, signal, allowDefer = true, assertCurrent = () => {}}) {
+  principalId, resume, signal, journalPort,
+  allowDefer = true, assertCurrent = () => {}}) {
   if (checkpoints === undefined) fail('EffectTargetCheckpointUnavailable');
   submission = JSON.parse(canonicalJson(submission));
   const bound = effectTargetReadInventory(inventory);
@@ -74,7 +75,7 @@ export async function effectTargetReadContinuation({checkpoints, runId,
         states[saved.pending_target] === undefined) fail('EffectTargetBindingChanged');
   };
   if (resume !== undefined) validate(resume.continuation);
-  const port = resume === undefined ? undefined : {...checkpoints.journal,
+  const port = resume === undefined ? journalPort : {...checkpoints.journal,
     persistCheckpoint: checkpoint => checkpoints.journal.completeResume(resume.claim, {checkpoint}),
   };
   try {
