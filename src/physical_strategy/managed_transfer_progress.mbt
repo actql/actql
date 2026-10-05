@@ -208,7 +208,11 @@ pub fn record_managed_transfer_site_holding_release(
 ) -> Bool {
   if !progress.destination_holding_acquired ||
     !progress.destination_reclaimed ||
-    !progress.transfer.released {
+    (if progress.transfer.completed {
+      !progress.transfer.released
+    } else {
+      @resources.reservation_open(progress.transfer.reservation)
+    }) {
     false
   } else {
     progress.destination_holding_released = true
@@ -348,6 +352,11 @@ fn managed_transfer_cleanup_step(
   }
   if reservation_open {
     return Ok(TransferAbortRun)
+  }
+  // Site retention is acquired before Run completion and survives a refused
+  // completion. Aborting the Run reservation does not release that holding.
+  if !site_holding_released {
+    return Ok(TransferReleaseSiteHolding)
   }
   Ok(TransferFinished)
 }

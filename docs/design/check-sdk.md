@@ -598,6 +598,26 @@ bind the exact JSON serialization supplied to the common admission owner. An
 unavailable original position is omitted, including lowerer semantic failures
 without owned source provenance. No generated JSON path is displayed as SQL.
 
+The parser's typed lexical issues project as `query_lexical_invalid`, with
+closed `facts.issue`: `unexpected_end`, `unexpected_token`, `invalid_escape`,
+`invalid_scalar`, `empty_identifier`, `unterminated_comment`, `invalid_number`
+or `invalid_parameter`. These facts contain no token text, Source name, private
+cause or parser message. The parser's existing authored span supplies a source
+location when present, including an exact zero-width position; no token range
+is invented. Ordinary grammar `Syntax(String)` failures remain the generic
+`query_syntax_invalid` reason. Lexical limits still project as analysis-budget
+coverage, never as these invalid-input reasons. The SDK provides safe,
+issue-specific explanations and advisory hints without interpreting messages,
+reparsing source or applying an edit.
+
+Adding this closed facts alternative changes the registered check reason and
+outcome schema identities and their coordinated Host/SDK pins. Both consumers
+reject the previous identity, including an otherwise empty verified report.
+The `parameter_undeclared` condition explicitly retains its required parameter
+fact despite the expanded union. Unknown reason codes retain only their safe
+code-only shape. This does not change `actql-diagnostics/0.1`, its code/payload
+meanings or frozen historical identity evidence.
+
 An unresolved column expression can retain its existing lowerer's authored
 identifier range in a `query_invalid` reason, for both SQL and text input.
 The projection reads the existing typed failure and origin; it does not resolve
@@ -619,11 +639,38 @@ distinguish its presence through this reference. Changing authority, visible
 Source contracts, policy or checker selections can
 change `context_ref` without changing the same input revision.
 
+Public Local and HTTPS ingress authenticate and authorize each check before
+invoking its installed checker. A Source read-decision owner only controls its
+own names' disclosure. Missing read tuples, denied or undecided decisions, and
+non-abort exceptions from that owner all hide those names before checking;
+their number cannot revoke the admitted whole check binding. With that binding,
+the common checker returns a completed report containing independent safe
+violations and the public unresolved coverage boundary for protected resolution.
+Required bound values remain missing-value limits and typed Requirements.
+Caller aborts still propagate, and connection authorization failures still
+refuse the operation before checking. The common `unavailable` outcome remains
+reserved for an unestablishable whole audience-bound context; a count of failed
+Source read owners is not evidence of that condition. This changes neither
+the closed outcome schema nor its identity, and adds no input persistence.
+
 The SDK detaches structured caller input synchronously before awaiting credentials
 or transport, and retains immutable input snapshots in a weak association with
 that exact response. `getCheckInput` retrieves that call's snapshot;
 `resolveCheckLocation` uses the same snapshot and checks identity, revision,
-content and byte boundaries. A copied/externally parsed report has no association.
+content and byte boundaries. Structured pointers must resolve to an existing
+node in that detached submitted JSON value. Resolution follows
+[RFC 6901, Section 4](https://www.rfc-editor.org/rfc/rfc6901#section-4): decoded
+object member names must be owned, array indices must be canonical decimal
+indices naming submitted elements, and member spelling is not normalized.
+Root and existing null/false/zero/empty-string nodes are valid; inherited
+properties, array metadata, missing nodes and scalar descendants are not.
+The SDK validates locations in reasons and Requirements before exposing a
+completed or partial report; a nonexistent node refuses with
+`InvalidHostCheckOutcome`. Standalone location resolution returns `undefined`.
+This is lookup in the original input snapshot, not a query/declaration parser
+or a second checker. It changes no wire schema, reason identity or historical
+`actql-diagnostics/0.1` contract and adds no persistence or retrieval API.
+A copied/externally parsed report has no association.
 Unavailable input, another revision or edited text yields no resolved location;
 the reason's safe code/explanation remains usable. The API applies no edits.
 `resolveCheckTextRange` converts a resolved source location to zero-based UTF-16
@@ -644,7 +691,13 @@ The Host adds no document database, persistent input store, history or re-fetch
 API for checking. The existing request envelope/source limit is retained: 65,536
 UTF-16 source code units at request validation and 65,536 original source bytes
 at frontend admission; an input beyond an analysis budget is not an invalidity
-proof. Structured admission keeps its existing bounded JSON/decode/binding
+proof. The parser's source-byte admission limit is reported as
+`analysis_budget_exhausted`, including when declaration admission has already
+exhausted its budget and only independent bounded syntax checking remains.
+Source admission precedes token scanning; a location or syntax violation is not
+invented for input that was not scanned. Independent supplied-value violations
+and known missing bindings remain in the original bound-input report.
+Structured admission keeps its existing bounded JSON/decode/binding
 budgets. Report construction reserves a separate 65,536-byte, 4,096-node budget.
 The submitted `byte_length` is a safe integer measurement, not evidence of
 successful admission or an extra input limit; exhausted inputs still retain

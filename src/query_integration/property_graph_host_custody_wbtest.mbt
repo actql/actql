@@ -1,7 +1,8 @@
 ///|
 fn current_graph_relation_program(variant : String) -> String {
   let relation_step = match variant {
-    "current_filter" | "current_edge_filter" => "\"filter\":\"true\""
+    "current_filter" | "current_edge_filter" | "current_subgraph" =>
+      "\"filter\":\"true\""
     "current_degree" => "\"filter\":\"degree >= 0\""
     "current_bounds" => "\"filter\":\"actual >= 0\""
     "current_components_weak" | "current_components_strong" =>
@@ -24,6 +25,8 @@ fn current_graph_relation_program(variant : String) -> String {
     "{\"components\":{\"kind\":\"" +
     (if variant == "current_components_weak" { "weak" } else { "strong" }) +
     "\",\"max_output_rows\":2},\"as\":\"projected\"}"
+  } else if variant == "current_subgraph" {
+    "{\"from\":\"g\",\"match_nodes\":{\"definition\":\"N\",\"bindings\":{\"identity\":\"element\"},\"where\":\"true\",\"fields\":[\"element\"]},\"as\":\"selected\"},{\"from\":\"g\",\"subgraph\":{\"nodes\":{\"from\":\"selected\",\"id\":\"element\"}},\"as\":\"slice\"},{\"from\":\"slice\",\"match_nodes\":{\"definition\":\"N\",\"label\":\"Node\",\"bindings\":{\"identity\":\"element\"},\"where\":\"true\",\"fields\":[\"element\",\"id\",\"node_name\"]},\"as\":\"projected\"}"
   } else if variant == "current_edge_filter" {
     "{\"match_edges\":{\"definition\":\"E\",\"label\":\"Edge\",\"where\":\"true\",\"fields\":[\"src\",\"dst\",\"weight\"]},\"as\":\"projected\"}"
   } else {
@@ -100,7 +103,14 @@ fn run_current_host_graph_relation_path(
     }),
   )
   let graph = @strategy.captured_dag_graph(run)
-  assert_eq(@strategy.graph_task_count(graph), 7)
+  assert_eq(
+    @strategy.graph_task_count(graph),
+    if variant == "current_subgraph" {
+      9
+    } else {
+      7
+    },
+  )
   assert_true(@strategy.graph_ordered_inputs_complete(graph))
   assert_true(
     @strategy.configure_captured_managed_identity_policy(
@@ -220,6 +230,128 @@ fn run_current_host_graph_relation_path(
     construction_rows,
     obligations?=graph_publication_obligations(run, true),
   )
+  if variant == "current_subgraph" {
+    assert_eq(@strategy.graph_task_selected_step(graph, 2), Some(0))
+    assert_eq(@strategy.graph_task_selected_step(graph, 3), Some(1))
+    assert_eq(@strategy.graph_task_selected_step(graph, 4), Some(2))
+    assert_eq(@strategy.graph_task_selected_step(graph, 5), Some(3))
+    let selector_live = Ref(true)
+    let (selector_ops, selector) = run_local_managed_test_task(
+      installed,
+      run,
+      3,
+      [],
+      [],
+      3,
+      selector_live,
+      carrier_inputs=[(construction, construction_material)],
+      obligations?=graph_publication_obligations(run, true),
+      require_provider=true,
+      execution_quantum~,
+    )
+    let selector_rows = local_managed_test_rows(selector_ops)
+    assert_eq(selector_rows.length(), 2)
+    let (subgraph_ops, subgraph, subgraph_material) = run_local_managed_carrier_test_task(
+      installed,
+      run,
+      4,
+      [
+        @local_driver.local_managed_carrier_output(
+          construction, construction_material,
+        ),
+        @local_driver.local_managed_relation_output(selector),
+      ],
+      [selector_rows],
+      obligations?=graph_publication_obligations(run, true),
+    )
+    let projected_live = Ref(true)
+    let (projected_ops, projected) = run_local_managed_test_task(
+      installed,
+      run,
+      5,
+      [],
+      [],
+      5,
+      projected_live,
+      carrier_inputs=[(subgraph, subgraph_material)],
+      obligations?=graph_publication_obligations(run, true),
+      require_provider=true,
+      execution_quantum~,
+    )
+    let projected_rows = local_managed_test_rows(projected_ops)
+    assert_eq(projected_rows.length(), 2)
+    let filtered_live = Ref(true)
+    let (filtered_ops, filtered) = run_local_managed_test_task(
+      installed,
+      run,
+      6,
+      [projected],
+      [projected_rows],
+      6,
+      filtered_live,
+      obligations?=graph_publication_obligations(run, true),
+      execution_quantum~,
+    )
+    let filtered_rows = local_managed_test_rows(filtered_ops)
+    assert_eq(filtered_rows.length(), 2)
+    assert_true(filtered_rows[0].contains("\"id\":1"))
+    assert_true(filtered_rows[1].contains("\"id\":2"))
+    let first_live = Ref(true)
+    let (first_ops, first) = run_local_managed_test_task(
+      installed,
+      run,
+      7,
+      [filtered],
+      [filtered_rows],
+      7,
+      first_live,
+      obligations?=graph_publication_obligations(run, true),
+    )
+    let second_live = Ref(true)
+    let (second_ops, second) = run_local_managed_test_task(
+      installed,
+      run,
+      8,
+      [filtered],
+      [filtered_rows],
+      8,
+      second_live,
+      obligations?=graph_publication_obligations(run, true),
+    )
+    assert_eq(local_managed_test_rows(first_ops), [
+      "{\"id\":1,\"node_name\":\"first\"}", "{\"id\":2,\"node_name\":\"second\"}",
+    ])
+    assert_eq(local_managed_test_rows(second_ops), [
+      "{\"node_name\":\"first\"}", "{\"node_name\":\"second\"}",
+    ])
+    close_retained_host_consumer(run, 7, first_ops, first_live, first)
+    assert_true(@execution.managed_completed_output_available(second))
+    close_retained_host_consumer(run, 8, second_ops, second_live, second)
+    close_retained_host_consumer(run, 6, filtered_ops, filtered_live, filtered)
+    close_retained_host_consumer(
+      run, 5, projected_ops, projected_live, projected,
+    )
+    @strategy.close_captured_task_output(run, 4)
+    (subgraph_ops.close)()
+    (subgraph_ops.cleanup_refresh)() |> ignore
+    close_retained_host_consumer(run, 3, selector_ops, selector_live, selector)
+    @strategy.close_captured_task_output(run, 2)
+    (construction_ops.close)()
+    (construction_ops.cleanup_refresh)() |> ignore
+    values_live.val = false
+    @strategy.close_captured_task_output(run, 1)
+    (values_ops.close)()
+    (values_ops.cleanup_refresh)() |> ignore
+    @strategy.stop_captured_dag(run)
+    @strategy.close_captured_task_output(run, 0)
+    @strategy.refresh_captured_retention(run)
+    let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+    assert_eq(usage.reserved_execution_bytes, 0L)
+    assert_eq(usage.reserved_retention_bytes, 0L)
+    assert_eq(usage.held_bytes, 0L)
+    @mock.close_mock_query_issuer(issuer)
+    return
+  }
   if cleanup_attempts is Some(attempts) {
     assert_eq(attempts.val, 0)
   }
@@ -621,6 +753,16 @@ test "standard Host retains bounded weak and strong Graph components for two con
     for quantum in [1, 7] {
       run_current_host_graph_relation_path(variant~, execution_quantum=quantum)
     }
+  }
+}
+
+///|
+test "standard Host retains a Relation-selected subgraph for two Relation consumers" {
+  for quantum in [1, 7] {
+    run_current_host_graph_relation_path(
+      variant="current_subgraph",
+      execution_quantum=quantum,
+    )
   }
 }
 

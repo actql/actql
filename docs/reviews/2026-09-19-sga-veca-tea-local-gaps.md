@@ -682,13 +682,13 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Registered operations | 69 |
-| Executable production routes | 59 |
-| Typed pre-execution refusals (not execution success) | 10 |
-| Operation-specific boundary records | 59 |
+| Executable production routes | 60 |
+| Typed pre-execution refusals (not execution success) | 9 |
+| Operation-specific boundary records | 60 |
 | Four-role lifecycle assurance | 59 |
 | Full route work/workspace assurance | 59 |
-| Path-scoped work/workspace assurance | 110 |
-| Selected-only assurance | 0 |
+| Path-scoped work/workspace assurance | 111 |
+| Selected-only assurance | 1 |
 <!-- local-resource-accounting-summary:end -->
 
 ### Route evidence closure after the retained Store bounded lane
@@ -834,8 +834,21 @@ reclamation. The memory-output chain uses the same owner and remains a
 regression control. No synchronous fallback or new Host state machine was
 added.
 
-A nonlinear producer that appends `l` and then filters `l` rather than the
-append result is still unsupported by the bounded selected provider. The
+A checked binary Relation producer can now branch from a private intermediate
+and rejoin in the same task: `append` → two filters reading the appended rows
+→ `append` of the two filtered outputs. The planner retains this bounded,
+single-root shape as one task. The selected Relation owner keeps both earlier
+completions live, binds each later input to its exact step and port, and uses
+one cumulative work budget and overlapping child capacity. The retained Host
+reads the producer and two consumer Named Results against fixed ordered rows;
+the later-branch cancellation, arithmetic failure, Store append/finalize
+failure, and cleanup checks exercise the same owner. The memory-output Host
+also completes the identical authored Program through the same physical task
+shape. This does not admit arbitrary nonlinear operations or intermediate
+Result roots.
+
+A disconnected producer that appends `l` and then filters `l` rather than the
+append result remains unsupported by the bounded selected provider. The
 ordinary retained-only Host rejects that Program during whole-graph selection:
 no Compute dispatch, Store lease, or completed task is created. Another
 eligible implementation may provide a valid offer. The `unsupported-chain`
@@ -2820,14 +2833,14 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | Coverage state | Count |
 |---|---:|
 | `contract` | 40/40 |
-| `checker` | 25/40 |
-| `lowering` | 25/40 |
-| `kernel` | 25/40 |
-| `managed` | 25/40 |
+| `checker` | 26/40 |
+| `lowering` | 26/40 |
+| `kernel` | 26/40 |
+| `managed` | 26/40 |
 | `standard_host` | 25/40 |
 | `consumer_lifetime` | 25/40 |
-| `resources` | 30/40 |
-| `cancellation` | 30/40 |
+| `resources` | 31/40 |
+| `cancellation` | 31/40 |
 | `publication` | 25/40 |
 | `three_targets` | 20/40 |
 | complete operations | 19/40 |
@@ -4651,6 +4664,32 @@ The focused portable subgraph tests passed on JS, Wasm, and native, and the
 full Node standard-Host test passed locally. Same-SHA Linux CI remains
 unverified; these cases do not establish every Graph selector variant or every
 mixed Carrier failure mode.
+
+The current definition-keyed Property Graph subgraph path now binds a selected
+Graph and a Relation selector to their exact operation ports. Its bounded
+kernel preserves distinct edge keys even when endpoints coincide, copies
+declared properties, and retains only induced edges passing the optional edge
+predicate. JS integration fixtures cover snapshot save/reload, a downstream
+edge consumer, a same-Stage Relation-selected chain, independent managed Host
+consumers, cancellation after positive progress, and independently calculated
+exact/one-short control-work and workspace boundaries. The focused subgraph
+fixtures passed on JS, Wasm, and native. A standard Node Host
+case also publishes the resulting Relation to a real retained Store and reads
+the Named Result. A second real Store case delivers cancellation after the
+selected subgraph has made positive progress, confirms physical stop before
+cleanup, and leaves the producer and consumers unpublished. This does not yet
+prove predicate node selection or Store fault cleanup for the keyed path.
+The cross-Stage selector connection now derives its selected-task boundary from
+the checked secondary managed Relation port and its exact retained producer
+edge. Constructor inputs alone do not change the established fused MATCH route.
+A focused Plan regression fails without that connection. Source public
+Local/HTTPS cases cover constructor/Subgraph/MATCH with external retained inputs,
+independent typed identity and nullable property expectations, parallel-edge
+retention, induced endpoint exclusion, and all/subset/empty selection. Graph and
+sparse Relation Store reload revoke access to the original output and retain
+omission versus NULL. Fresh packed and integrated-SHA CI remain separate pending
+obligations. The larger standard-Host diagnostic timed out in its shared prelude;
+it is not reported as a pass or as a Subgraph assertion failure.
 
 Selected Graph bounds, degree, and weak/strong components now accept an exact
 managed Graph view when a later Relation operation splits the authored Stage.

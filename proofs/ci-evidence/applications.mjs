@@ -5,6 +5,7 @@ import {actionInputs, compareInputs, gitTree, hash, sharedFiles} from './inputs.
 import {readOriginReceipts} from './receipts.mjs';
 import {checkPlan} from './check.mjs';
 import {runtimeForAction} from './isolated-runtime.mjs';
+import {isMainEvidenceEvent} from '../../scripts/ci-main-base.mjs';
 
 export const applicationVersion = 'actql-verification-action-application/0.1';
 const identity = value => hash(encode(value));
@@ -49,7 +50,7 @@ export function leanRecords(action, manifest, original, context, acquisition) {
     premises: identity(receipt.action.premises), inputs: receipt.inputs.key, units: receipt.execution.units,
     authenticated: true, successful: true, reused: acquisition === 'reused',
     closed: manifest.unresolved.length === 0 && receipt.inputs.unresolved.length === 0,
-    mainOrigin: receipt.origin.event === 'push' && receipt.origin.branch === 'main'};
+    mainOrigin: isMainEvidenceEvent(receipt.origin.event, receipt.origin.branch)};
   return {required, application};
 }
 

@@ -74,6 +74,41 @@ test('a malformed row does not increase the yielded count', async t => {
   assert.equal(reader.rowsYielded(), 1);
 });
 
+for (const operation of ['rows', 'all']) {
+  test(`${operation} rejects malformed first rows without exposing their data or counting them`, async t => {
+    for (const text of ['null', 'false', '0', '""', '[]', '[{"value":1}]',
+      '"private-result-fragment"', 'private-result-fragment', '{"value":']) {
+      const f = await result(t, () => new Response(text + '\n\x1e'));
+      const reader = operation === 'rows' ? f.result.rows() : undefined;
+      let failure;
+      try {
+        if (reader) await Array.fromAsync(reader);
+        else await f.result.all();
+      } catch (error) { failure = error; }
+      assert.equal(failure?.code, 'InvalidResultFrame');
+      assert.equal(failure.rowsYielded, 0);
+      assert.equal(failure.attemptId, f.reads[0]);
+      const frameFailure = reader ? failure.cause : failure.cause.cause;
+      assert.equal(frameFailure.code, 'InvalidResultFrame');
+      assert.equal(frameFailure.cause, undefined);
+      assert.equal(f.reads.length, 1);
+      if (reader) {
+        assert.equal(reader.state(), 'prefix');
+        assert.equal(reader.rowsYielded(), 0);
+      }
+    }
+  });
+}
+
+test('valid object rows retain empty records and scalar-valued fields', async t => {
+  const f = await result(t, () => new Response('{}\n{"value":null}\n{"value":false}\n{"value":0}\n{"value":""}\n{"value":[]}\n\x1e'));
+  const reader = f.result.rows();
+  assert.deepEqual(await Array.fromAsync(reader), [{}, {value: null},
+    {value: false}, {value: 0}, {value: ''}, {value: []}]);
+  assert.equal(reader.state(), 'complete');
+  assert.equal(reader.rowsYielded(), 6);
+});
+
 for (const [name, text, count] of [
   ['unreturned batch', '{"value":1}\n{"value":2}\n', 0],
   ['one yielded batch and one buffered row',
