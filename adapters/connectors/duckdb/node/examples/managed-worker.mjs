@@ -13,6 +13,8 @@ enableNodeCompileCache();
 serveManagedStrategy(async (input, _signal, context) => {
   if (!context.resourceLimits) throw new Error('ManagedApplicationRequiresResourceDelegation');
   if (input.controlStore !== undefined && typeof input.controlStore !== 'boolean') throw new Error('InvalidControlStore');
+  if (input.observePlanner !== undefined && typeof input.observePlanner !== 'boolean') throw new Error('InvalidPlannerObservation');
+  if (input.observePlanner === true && input.controlStore !== true) throw new Error('PlannerObservationRequiresCompletionCustody');
   const controlStore = input.controlStore === true;
   if (controlStore && (!input.retainedOutput || input.localImportWorkMilliseconds === undefined)) {
     throw new Error('ControlStoreRequiresRetainedOutputAndLocalImportPolicy');
@@ -26,7 +28,7 @@ serveManagedStrategy(async (input, _signal, context) => {
     const plannerObservations = [];
     // Quantities/explanations only: do not retain output or task handles in
     // benchmark diagnostics. Existing completion custody still owns handoff.
-    const observer = completion ? installCompletionObserver(async value => {
+    const observer = completion && input.observePlanner === true ? installCompletionObserver(async value => {
       await completionObserver(completion)?.(value);
       plannerObservations.push({boundary: 'after-task', task: value.task,
         elapsedMilliseconds: performance.now(), usage: plan.usage()});
@@ -34,7 +36,7 @@ serveManagedStrategy(async (input, _signal, context) => {
       plannerObservations.push({boundary: 'before-task',
         elapsedMilliseconds: performance.now(), ...value,
         driverUsage: value.usage, usage: plan.usage()});
-    }) : undefined;
+    }) : completion;
     let opened;
     try { opened = await plan.open(signal, binding); }
     catch (error) {
@@ -42,7 +44,8 @@ serveManagedStrategy(async (input, _signal, context) => {
       throw error;
     }
     return {...opened, observer, describe: execution => JSON.parse(JSON.stringify(
-      {...opened.describe(execution), planner_observations: plannerObservations},
+      {...opened.describe(execution), ...(input.observePlanner === true ? {
+        planner_observations: plannerObservations} : {})},
       (_, value) => typeof value === 'bigint' ? value.toString() : value))};
   }};
 }, {maxBytes: 1000000, maxNodes: 100000, maxDepth: 64});

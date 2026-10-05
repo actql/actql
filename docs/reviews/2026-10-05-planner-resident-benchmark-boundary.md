@@ -11,6 +11,10 @@ improvement afterward. Instrumentation alone does not complete the task.
 This branch changes benchmark runners and the Native diagnostic command. Its
 product-facing observations are a read-only getter for the already selected
 Native acquisition choice and an optional installed Node task-start observer.
+The bounded example also retains its original checked physical query preparation
+to offer Native and Broad candidates over exactly the same requirement and
+physical mapping. It does not reinterpret the logical Source identity as SQL
+schema/table names or change the public Client's acquisition policy.
 It does not change bounded output, resource-owner or
 ledger implementations, incremental-evidence reuse, or PR CI job selection.
 The manual performance matrix profile is renamed to `native-direct` to remove
@@ -60,7 +64,7 @@ closes the existing Run and acquisition owner. Its output is
 `stopped-between-tasks`. This proves retained responsibility and return at that
 boundary; it does not prove acceptance/propagation of a formal cancellation
 request or a terminal cancellation observation. Formal cancellation acceptance
-remains a separate obligation for the first delivery unit.
+is checked separately below.
 
 The four-attempt case admits three fresh Compute attempts but cannot admit the
 five attempts needed by resident preparation/import plus Compute. At every
@@ -111,6 +115,9 @@ existing completion custody callback, then records after-task quantities.
 The diagnostics contain no task/output handles or additional holding references.
 Without an installed task-start observer, the driver performs no extra explain
 call. Observer exceptions and AbortSignal use the existing stop/finalizer path.
+The comparator now requires explicit `observePlanner: true` to install these
+observations. Without it, the worker uses the original completion custody
+observer, so normal benchmark runs do not acquire extra per-task explain work.
 
 The explicitly selected `node-owner-acceptance.mjs` uses the existing 100-row
 comparator and independent result/stage expectations. Actual resident task
@@ -173,17 +180,109 @@ body is unchanged. Supporting JS builds were limited to `connectors_builtin_node
 `physical_strategy_example` and the direct `connectors/duckdb/host_node` import.
 No product limit/owner changes or broader matrix were added.
 
+### Bounded Node Native/Broad comparison
+
+`node-acquisition-acceptance.mjs` uses the existing data-configured benchmark
+preparation, rather than the separate public Client policy above. The example
+retains the original `DuckDBQueryPreparation`; both candidates use that exact
+checked requirement and physical schema/table binding. Actual
+`choose_acquisition_candidate` runs before provider I/O. With unknown estimates
+and no Host priority it defers; duplicate priority entries are rejected. The
+comparison supplies explicit Host priorities and records the actual
+`HostPreferred` selection, not an invented estimate-based reason.
+
+Both realizations keep the existing benchmark receiver ceiling of 102 rows
+(100 validation rows plus two result rows), output ceiling of 100 rows, and
+the same ledger/transport envelope. Native performs its validation and result
+reads; Broad receives 100 rows and executes the existing bounded Local residual.
+Both must match the independent expected output CID, two rows, output contract
+and requirement CID. The real ledger records one acquisition attempt and live
+holding before close. Close clears live reservations/holding without resetting
+consumed attempts or transfer, duplicate close leaves usage unchanged, and
+access after close is rejected.
+
+This development-source case passed 1/1 after a focused JS release build.
+Evidence: `_build/local-checks/attempts/run-j53YWl` (build),
+`_build/local-checks/attempts/run-c4eOKX` and
+`_build/focused-evidence/focused-test-UA2fSC` (execution). These results include
+uncommitted example/diagnostic changes on top of
+`51ec79b66ca88548be0fc046130ef28476b14692`; they are not clean submitted-SHA
+acceptance or a latency improvement. Preparation, selection, acquisition and
+close use monotonic interval measurements. A single Native-then-Broad run is
+not a calibrated or cold/warm performance comparison. The public Client's
+fixed-100 admission counterexample remains unresolved and is not relabeled as
+successful by this alternate, explicitly bounded experiment.
+
+### Fixed-SHA release acceptance already obtained
+
+At clean `51ec79b66ca88548be0fc046130ef28476b14692`, the focused Native release
+build completed (`run-OgccwF`). Its binary SHA-256 was
+`d07168befd3f50744d7e1e2c0f0bcfb38f1e75fa5bd1a9ee1790c1c9dc8d516b`.
+The unchanged `scripts/test-native-direct-pair.mjs` passed with its original
+uncalibrated Local expectation. The existing 1,000-row training/100-row held-out
+calibration and profile-backed direct-pair check also passed (`run-4Gbwsj`).
+The explicit Native six-condition and real Node owner diagnostics passed 2/2
+(`run-ig3YHd`). These are evidence for that revision only; subsequent example
+changes are not covered by that binary, and no full performance matrix was run.
+
+### Formal cancellation at an acknowledged resident boundary
+
+`node-cancellation-acceptance.mjs` starts the same installed plan through the
+existing managed process Host, retained Store and completion custody. Its fixed
+diagnostic worker uses the standard task-start observer to report task 2 only
+after task-1 completion acknowledgement. The copied real explanation must show
+authorized resident selection and an incomplete task 2; the child ledger has
+four attempts (acquisition, resident environment, import and first Compute),
+with a live resident reservation. The parent then aborts the actual execute
+request. Delegated capacity must remain charged immediately after cancellation,
+until the process exit is observed.
+
+The corrected case passed 1/1 (`run-Zc0g6g`, `focused-test-LaQ7ep`), with actual
+`ExecutionCancelled`, exit code 0/no termination signal, stopped/exited true,
+cleanup pending false, five parent attempts including its process, zero uncertain
+transfer and live delegation reservations, and no task-2/task-3 completion.
+The independently owned source/task-1 bodies remain available in the parent
+Store after child stop. Explicit custody close and Store retry return them;
+duplicate close/retry must leave both Host and Store accounting unchanged.
+Additional reservation-before-exit and duplicate-Store checks passed in the
+development run `run-GMkBcP`.
+
+This is formal request cancellation before second Compute, not cancellation
+inside an active Compute. The prior acknowledgement-in-flight diagnostic remains
+saved separately: its failure and conservative settlement without terminal usage
+are not relabeled as successful cooperative cancellation. No owner, ledger,
+physical limit or production cleanup contract was changed for this acceptance.
+
+### Observer cost diagnostic
+
+`node-observation-cost.mjs` fixes four samples in off/on/on/off order. Both
+conditions use the same source, checked Program, estimates, limits and installed
+worker; completion custody and independent expectations remain required.
+Actual resident realizations and seven total attempts must match. Disabled
+observations must produce no per-task explain report/interval. Enabled
+observations retain their finite selection/owner correspondence checks.
+
+Every sample reports complete Host execution and subsequent cleanup, overlapping
+preparation phases, new resident preparation/import in task 1, reused resident
+tasks 2/3, transfer, identity and holding diagnostics. Nested intervals are not
+summed. New processes are distinguished from uncontrolled OS/compile caches.
+The initial two-file development run passed 2/2 (`run-GMkBcP`) but ran the
+cancellation case concurrently: its cost values are not an isolated comparison.
+The submitted-revision cost command must run alone. Four finite samples can
+expose observer work/cost; they cannot prove a statistical overhead ceiling or
+the second delivery unit's same-condition performance improvement.
+
 ### Acceptance still required
 
-1. Check real formal cancellation through the existing request/Owner path.
-   Connect Node Host acquisition observations and check actual
-   Native/Broad choices including residual processing under equivalent results
-   and obligations. Reuse the existing public selection path.
+1. Bind the development cancellation and bounded Native/Broad comparison
+   above to the submitted revision and affected runtime artifacts.
+   The separate public Client limitation remains explicit.
 2. Bind submitted revision, binary, toolchain and explicit condition to the
-   focused execution record. Current debug diagnostics are not a clean submitted
-   release performance result.
-3. Confirm existing Native direct-pair release acceptance and calibrated ordinary
-   selection. Resident offers remain explicit diagnostics until this evidence
+   focused execution record. The release results above bind their stated
+   revision only; unpublished changes need their own correspondence.
+3. Preserve the verified Native direct-pair and calibrated ordinary-selection
+   conditions when subsequent changes affect their compiled inputs.
+   Resident offers remain explicit diagnostics until this evidence
    supports any default change. No bounds or comparison obligations are waived.
 4. Assess instrumentation overhead and preserve cold/warm preparation, transfer,
    identity, holding, cleanup and total intervals. A phase label alone is not

@@ -93,6 +93,36 @@ ACTQL_NATIVE_PROBE_PROFILE=debug node scripts/local-checks.mjs test node \
   --timeout-seconds 90 -- benchmarks/retained-results/native-owner-acceptance.mjs
 ```
 
+The explicitly selected Node diagnostics use the same 100-row fixture,
+standard acquisition/Compute owners, independent expected identities and
+benchmark bounds. Run each command sequentially; the observer-cost diagnostic
+must not run concurrently with the cancellation diagnostic:
+
+```sh
+node scripts/local-checks.mjs test node --timeout-seconds 45 -- benchmarks/retained-results/node-acquisition-acceptance.mjs
+node scripts/local-checks.mjs test node --timeout-seconds 45 -- benchmarks/retained-results/node-owner-acceptance.mjs
+node scripts/local-checks.mjs test node --timeout-seconds 45 -- benchmarks/retained-results/node-cancellation-acceptance.mjs
+node scripts/local-checks.mjs test node --timeout-seconds 60 -- benchmarks/retained-results/node-observation-cost.mjs
+```
+
+Prepare the affected JS release runtime before these direct imports. Acquisition
+compares actual Native/Broad choices over the original checked physical query
+preparation, including Broad residual processing. Cancellation uses the real
+managed request signal after task-1 completion acknowledgement, before task-2
+Compute. Its fixed installed worker only synchronizes a copied observation;
+it adds no execution owner or completion-verification substitute.
+
+Planner observations are opt-in through the comparator's `observePlanner`
+condition; the ordinary benchmark keeps its original completion observer and
+does not add per-task planner explanation work. `node-observation-cost.mjs`
+always runs the prescribed off/on/on/off samples, with independent output,
+selection and resource checks in both conditions. It reports preparation,
+execution, transfer/identity, holding and cleanup observations for every sample.
+Each sample starts a new process/resident environment; later tasks reuse that
+environment. OS/compile caches are uncontrolled. These finite diagnostics do
+not establish a statistical overhead bound, a performance improvement, public
+Client Native/Broad equivalence or the full registered matrix.
+
 The test uses declared diagnostic estimates, not calibrated performance inputs.
 Actual candidate projections and selected registrations precede execution;
 owner snapshots bind extra environment/import attempts and holding charges to

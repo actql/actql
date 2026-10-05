@@ -33,7 +33,7 @@ test('100 rows: Node managed benchmark observes actual planner before Compute',
         receipts: await read('spec/contracts/actql-query-two-receipt.json'),
       };
       const report = await runRetainedComparator(fixture, contracts, database,
-        directory, {resident: true, nativeMilliseconds: '1000'});
+        directory, {resident: true, nativeMilliseconds: '1000', observePlanner: true});
       assert.equal(report.status, 'completed');
       assert.equal(report.rows, fixture.identity().rows);
       assert.deepEqual(report.plannerObservations.map(value =>
