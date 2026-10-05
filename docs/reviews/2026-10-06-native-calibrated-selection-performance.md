@@ -418,3 +418,22 @@ No full Core, Wasm, packed acceptance or performance matrix was run. #412's
 isolated-image acceptance and unproved physical capacity remain separate.
 The final report commit changes classification/documentation only; the actual
 compiled and measured source remains the experiment revision above.
+
+### Matched launch condition, fixed before measurement
+
+Use the same archived and new binaries and existing 100-row input, actual
+resident plan, admission and limits. Run exactly one full admitted prelaunch
+per binary, then 21 alternating measured pairs. Preserve both prelaunches with
+their full files/hash/process/admission costs separately from the pairs; do not
+discard an observed measured pair or replace the original series. Both binary
+images already have prior use. This condition addresses repeated launches, not
+an OS-cache-cold or first-request claim and not an explanation of the original
+external startup delay. The controller binds the new binary to its actual
+compiled `fe0b68242` source and digest and checks current runtime bytes are
+unchanged; a controller/report revision is recorded independently.
+
+No new build or broad acceptance is required for the unchanged binary. Use the
+existing bounded local guard for this one fixed case. Primary assessment remains
+the complete parent cycle; probe preparation, entry-to-result, task and cleanup
+clocks remain separate. Retain an indeterminate result rather than rerunning
+until a favorable interval appears.

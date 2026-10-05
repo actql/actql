@@ -15,8 +15,10 @@ import {sha256File} from './release-artifacts.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const exec = promisify(execFile);
-const [baselinePath, outputPath, ...extra] = process.argv.slice(2);
-assert(baselinePath && outputPath && !extra.length, 'ExpectedNativeAsciiBaselineAndOutput');
+const [baselinePath, outputPath, condition, ...extra] = process.argv.slice(2);
+assert(baselinePath && outputPath && !extra.length &&
+  (condition === undefined || condition === '--matched-first-use'), 'ExpectedNativeAsciiBaselineAndOutput');
+const matchedFirstUse = condition === '--matched-first-use';
 const destination = resolve(outputPath);
 assert(destination !== root && !destination.startsWith(root + sep), 'NativeComparisonOutputInsideCheckout');
 const beforeBinary = resolve(baselinePath);
@@ -28,6 +30,13 @@ const afterDigest = await sha256File(afterBinary);
 assert.notEqual(afterDigest, beforeDigest, 'NativeAsciiChangeNotBuilt');
 const git = async args => (await exec('git', args, {cwd: root})).stdout.trim();
 const revision = await git(['rev-parse', 'HEAD']);
+const compiledSourceRevision = matchedFirstUse ? 'fe0b68242d9e240494e85ecb0438f74f55855c88' : revision;
+if (matchedFirstUse) {
+  assert.equal(await git(['diff', '--name-only', compiledSourceRevision, revision, '--', 'src']), '',
+    'NativeAsciiCompiledSourceChanged');
+  assert.equal(afterDigest, '2152155cc13ae8003df3c8b46a13ae45edf4a567554d579a440332475dd18f80',
+    'NativeAsciiCompiledBinaryChanged');
+}
 const sourceChanges = (await git(['diff', '--name-only', baselineRevision, revision, '--', 'src'])).split('\n').filter(Boolean);
 assert.deepEqual(sourceChanges.sort(), ['src/sha256/incremental_wbtest.mbt', 'src/sha256/sha256.mbt']);
 const unchanged = async () => {
@@ -42,9 +51,13 @@ const directory = await mkdtemp(join(tmpdir(), 'actql-native-ascii-word-'));
 const database = join(directory, 'source.duckdb');
 const label = 'native-ascii-word-loop';
 const pairs = [];
-const basis = {revision, baselineRevision, beforeDigest, afterDigest, sourceChanges,
+const warmups = [];
+const basis = {revision, compiledSourceRevision, baselineRevision, beforeDigest, afterDigest, sourceChanges,
   caseId: fixture.id, limits: fixture.limits,
   method: '21 predeclared alternating pairs; fresh Native processes; one immutable source; OS-cache coldness uncontrolled',
+  firstUseCondition: matchedFirstUse
+    ? 'One fully admitted unmeasured launch per binary before all 21 pairs. Its full cost and observations are retained separately. Both binary images have prior use; this does not establish OS-cache coldness or explain the original external delay.'
+    : 'No explicit prelaunch; preserve all first-use observations',
   host: 'native', providedAcquisition: ['native'],
   computeConditions: 'Same existing explicit resident experiment on both binaries: Local/fresh 1000 ms, resident default 1 ms. These are fixed control inputs, not new measured estimates or an invented planner reason.',
   scopes: {cycle: 'application files, full binary hash, process exit and product/Owner admission; common source preparation reported separately',
@@ -56,7 +69,30 @@ const basis = {revision, baselineRevision, beforeDigest, afterDigest, sourceChan
   originalEquivalentGate: 'Separate current-SHA calibrated release-pair acceptance; this controller does not issue that certificate'};
 let sourceContentSha256, sourcePreparationMilliseconds;
 const save = extra => writeFile(destination, JSON.stringify({...basis, sourceContentSha256,
-  sourcePreparationMilliseconds, pairs, ...extra}, null, 2));
+  sourcePreparationMilliseconds, warmups, pairs, ...extra}, null, 2));
+const executeLeg = async (leg, identity) => {
+  await unchanged();
+  const child = join(directory, leg + '-' + identity); await mkdir(child);
+  const start = performance.now();
+  const prepared = await prepareNativeDirectProduct({root, fixture, database, directory: child,
+    residentPolicy: true, localRates: ['1000', '1000', '1000'], nativeRates: ['1000', '1000', '1000'],
+    phaseObserver: true});
+  const invocation = {...prepared, binary: leg === 'before' ? beforeBinary : afterBinary};
+  assert.equal(await sha256File(invocation.binary), leg === 'before' ? beforeDigest : afterDigest);
+  const execution = await executeNativeDirectProduct(invocation, {root, timeoutMs: fixture.limits.timeoutMs});
+  const admissionStart = performance.now();
+  const product = admitNativeDirectProduct(fixture, invocation, execution);
+  const end = performance.now();
+  assert.deepEqual(product.ownerCorrespondence.observations.choices.map(value => value.resident), [true, true, true]);
+  assert.equal(await sha256File(database), sourceContentSha256, 'NativeComparisonSourceChanged');
+  await unchanged();
+  return {product, admissionMilliseconds: end - admissionStart,
+    sample: {status: 'completed', processCycleMs: end - start,
+      executionMs: product.executionMs, cleanupMs: product.cleanupMs,
+      coldMs: end - start - product.cleanupMs, warmMs: product.warmMs,
+      applicationPreparationMs: product.preparation.applicationMs,
+      computeAndIdentityMs: product.preparation.computeAndIdentityMs}};
+};
 try {
   const sourceStart = performance.now();
   await exec(process.execPath, [join(root, 'adapters/connectors/duckdb/node/bench/create-retained-source.mjs'),
@@ -64,30 +100,16 @@ try {
   sourcePreparationMilliseconds = performance.now() - sourceStart;
   sourceContentSha256 = await sha256File(database);
   await save({status: 'measuring'});
+  if (matchedFirstUse) {
+    for (const leg of ['before', 'after']) {
+      warmups.push({leg, observation: await executeLeg(leg, 'prelaunch')});
+      await save({status: 'prelaunching'});
+    }
+  }
   for (let index = 0; index < 21; index++) {
     const legs = {};
     for (const leg of index % 2 ? ['after', 'before'] : ['before', 'after']) {
-      await unchanged();
-      const child = join(directory, leg + '-' + index); await mkdir(child);
-      const start = performance.now();
-      const prepared = await prepareNativeDirectProduct({root, fixture, database, directory: child,
-        residentPolicy: true, localRates: ['1000', '1000', '1000'], nativeRates: ['1000', '1000', '1000'],
-        phaseObserver: true});
-      const invocation = {...prepared, binary: leg === 'before' ? beforeBinary : afterBinary};
-      assert.equal(await sha256File(invocation.binary), leg === 'before' ? beforeDigest : afterDigest);
-      const execution = await executeNativeDirectProduct(invocation, {root, timeoutMs: fixture.limits.timeoutMs});
-      const admissionStart = performance.now();
-      const product = admitNativeDirectProduct(fixture, invocation, execution);
-      const end = performance.now();
-      assert.deepEqual(product.ownerCorrespondence.observations.choices.map(value => value.resident), [true, true, true]);
-      assert.equal(await sha256File(database), sourceContentSha256, 'NativeComparisonSourceChanged');
-      await unchanged();
-      legs[leg] = {product, admissionMilliseconds: end - admissionStart,
-        sample: {status: 'completed', processCycleMs: end - start,
-          executionMs: product.executionMs, cleanupMs: product.cleanupMs,
-          coldMs: end - start - product.cleanupMs, warmMs: product.warmMs,
-          applicationPreparationMs: product.preparation.applicationMs,
-          computeAndIdentityMs: product.preparation.computeAndIdentityMs}};
+      legs[leg] = await executeLeg(leg, String(index));
     }
     for (const field of ['taskHoldings', 'taskUsages', 'acquisitionChoice', 'acquisitionEvidenceMetadata']) {
       assert.deepEqual(legs.before.product[field], legs.after.product[field], 'NativeAsciiObligationChanged:' + field);
