@@ -839,14 +839,22 @@ export async function createInstalledRowEffect({moon, mappings,
       requestScope, keys, limits.preview.maxWireBytes,
       limits.preview.maxNodes, limits.preview.maxDepth);
     const ledger = openLedger(requestIdentity);
+    // The handle is released exactly once: it is marked released only after
+    // its close succeeds, so a failed close stays this owner's pending
+    // cleanup and a retry by the same owner closes it.
     let closed = false;
+    const releaseLedger = () => {
+      if (closed) return;
+      ledger.close();
+      closed = true;
+    };
     const ledgerOwner = Object.freeze({
-      async close() { closed = true; ledger.close(); },
-      async cleanup() { closed = true; ledger.close(); return true; },
+      async close() { releaseLedger(); },
+      async cleanup() { releaseLedger(); return true; },
       cleanupPending: () => !closed});
     if (retainRecoveryOwner !== undefined) {
       try { retainRecoveryOwner(ledgerOwner); }
-      catch (error) { ledger.close(); throw error; }
+      catch (error) { releaseLedger(); throw error; }
     }
     try {
       const recorded = ledger.recoverClaimFacts({preview: admitted,
@@ -935,9 +943,9 @@ export async function createInstalledRowEffect({moon, mappings,
         scopes: scopes(members),
         continuationWire: canonicalJson(provider),
         cleanupOwner: ledgerOwner,
-        dispose: () => { closed = true; ledger.close(); }});
+        dispose: () => { releaseLedger(); }});
     } catch (error) {
-      if (retainRecoveryOwner === undefined) ledger.close();
+      if (retainRecoveryOwner === undefined) releaseLedger();
       throw error;
     }
   }

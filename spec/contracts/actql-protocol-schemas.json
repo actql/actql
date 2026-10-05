@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:5b35eb06984208f693b1f9b771d1bb1dd9f8f21fafc500dfe884b0f99478a277",
+  "artifact_registry_cid": "sha256:9d7fd133e515430b83f8d7e2078a3e9af9e7993b38dac659c9c7412519522f6e",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10713,8 +10713,8 @@
     "model_prompt": "sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204",
     "model_retry_policy": "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c",
     "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55",
-    "check_outcome": "sha256:73ad8b654c674edac53fe6b31438b6425e9c8d90fa908deecceec6940ff72ff1",
-    "check_reason": "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa",
+    "check_outcome": "sha256:e82160288635a2047646ae956dbba116224b1c64b03231b6c4245d43a6cecc5c",
+    "check_reason": "sha256:3204b8f2edb377120d3139f380fc3c49541ff34b7117430de4ed52e0f826025f",
     "model_provider_binding": "sha256:a4a37e0016403b483aa267dca7aae6c682940d2b23343b95defbcac2a1ca92b3",
     "model_invocation_scope": "sha256:2ae55fd7143e29dc3468123dbea9979c65f0aeac9adc392098db87679ebf88c3"
   },
@@ -75949,7 +75949,8 @@
             "outcome",
             "report",
             "version",
-            "reason_schema_cid"
+            "reason_schema_cid",
+            "outcome_schema_cid"
           ],
           "properties": {
             "outcome": {
@@ -76366,6 +76367,33 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
+                              "parameter",
+                              "domain"
+                            ],
+                            "properties": {
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "domain": {
+                                "enum": [
+                                  "positive_safe_integer",
+                                  "nonnegative_safe_integer",
+                                  "unit_fraction",
+                                  "finite_number",
+                                  "duration",
+                                  "positive_milliseconds",
+                                  "signed_milliseconds",
+                                  "timestamp"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
                               "operation",
                               "issue"
                             ],
@@ -76377,6 +76405,24 @@
                                 "enum": [
                                   "invalid_kind",
                                   "invalid_output_rows"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "operation",
+                              "issue"
+                            ],
+                            "properties": {
+                              "operation": {
+                                "const": "subgraph"
+                              },
+                              "issue": {
+                                "enum": [
+                                  "invalid_node_selector"
                                 ]
                               }
                             }
@@ -76400,7 +76446,8 @@
                                   "invalid_parameter",
                                   "unknown_reference",
                                   "invalid_arguments",
-                                  "expected_boolean"
+                                  "expected_boolean",
+                                  "invalid_bounds"
                                 ]
                               }
                             }
@@ -76409,6 +76456,86 @@
                       }
                     },
                     "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "query_syntax_invalid",
+                                "parameter_undeclared"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "supplied_value_type_mismatch",
+                                "supplied_value_constraint_violation",
+                                "supplied_value_invalid",
+                                "supplied_parameters_invalid"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "parameters"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "parameter_declarations_invalid",
+                                "parameter_value_required"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "parameter_declarations"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
                       {
                         "if": {
                           "properties": {
@@ -76426,6 +76553,37 @@
                               "required": [
                                 "actual_type"
                               ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "parameter_default_type_mismatch"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "actual_type"
+                              ]
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "parameter_declarations"
+                                }
+                              }
                             }
                           }
                         }
@@ -76459,6 +76617,13 @@
                                   "not": {
                                     "required": [
                                       "constraint"
+                                    ]
+                                  }
+                                },
+                                {
+                                  "not": {
+                                    "required": [
+                                      "domain"
                                     ]
                                   }
                                 }
@@ -76497,6 +76662,46 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "parameter_unused"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "parameter"
+                              ],
+                              "properties": {
+                                "parameter": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 256
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "parameter_declarations"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "const": "supplied_value_constraint_violation"
                             }
                           }
@@ -76510,6 +76715,40 @@
                               "required": [
                                 "constraint"
                               ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "operation_parameter_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "domain"
+                              ]
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "enum": [
+                                    "parameters",
+                                    "parameter_declarations"
+                                  ]
+                                }
+                              }
                             }
                           }
                         }
@@ -76598,6 +76837,44 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "query_frame_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "issue"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "invalid_bounds"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "const": "graph_operation_invalid"
                             }
                           }
@@ -76614,12 +76891,16 @@
                               ],
                               "properties": {
                                 "operation": {
-                                  "const": "components"
+                                  "enum": [
+                                    "components",
+                                    "subgraph"
+                                  ]
                                 },
                                 "issue": {
                                   "enum": [
                                     "invalid_kind",
-                                    "invalid_output_rows"
+                                    "invalid_output_rows",
+                                    "invalid_node_selector"
                                   ]
                                 }
                               }
@@ -76641,12 +76922,16 @@
                               "not": {
                                 "enum": [
                                   "supplied_value_type_mismatch",
+                                  "parameter_default_type_mismatch",
                                   "parameter_value_required",
                                   "parameter_undeclared",
+                                  "parameter_unused",
                                   "supplied_value_constraint_violation",
                                   "query_lexical_invalid",
                                   "query_expression_invalid",
-                                  "graph_operation_invalid"
+                                  "query_frame_invalid",
+                                  "graph_operation_invalid",
+                                  "operation_parameter_invalid"
                                 ]
                               }
                             }
@@ -76879,6 +77164,33 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
+                              "parameter",
+                              "domain"
+                            ],
+                            "properties": {
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "domain": {
+                                "enum": [
+                                  "positive_safe_integer",
+                                  "nonnegative_safe_integer",
+                                  "unit_fraction",
+                                  "finite_number",
+                                  "duration",
+                                  "positive_milliseconds",
+                                  "signed_milliseconds",
+                                  "timestamp"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
                               "operation",
                               "issue"
                             ],
@@ -76890,6 +77202,24 @@
                                 "enum": [
                                   "invalid_kind",
                                   "invalid_output_rows"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "operation",
+                              "issue"
+                            ],
+                            "properties": {
+                              "operation": {
+                                "const": "subgraph"
+                              },
+                              "issue": {
+                                "enum": [
+                                  "invalid_node_selector"
                                 ]
                               }
                             }
@@ -76913,7 +77243,8 @@
                                   "invalid_parameter",
                                   "unknown_reference",
                                   "invalid_arguments",
-                                  "expected_boolean"
+                                  "expected_boolean",
+                                  "invalid_bounds"
                                 ]
                               }
                             }
@@ -76922,6 +77253,86 @@
                       }
                     },
                     "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "query_syntax_invalid",
+                                "parameter_undeclared"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "supplied_value_type_mismatch",
+                                "supplied_value_constraint_violation",
+                                "supplied_value_invalid",
+                                "supplied_parameters_invalid"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "parameters"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "parameter_declarations_invalid",
+                                "parameter_value_required"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "parameter_declarations"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
                       {
                         "if": {
                           "properties": {
@@ -76939,6 +77350,37 @@
                               "required": [
                                 "actual_type"
                               ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "parameter_default_type_mismatch"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "actual_type"
+                              ]
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "parameter_declarations"
+                                }
+                              }
                             }
                           }
                         }
@@ -76972,6 +77414,13 @@
                                   "not": {
                                     "required": [
                                       "constraint"
+                                    ]
+                                  }
+                                },
+                                {
+                                  "not": {
+                                    "required": [
+                                      "domain"
                                     ]
                                   }
                                 }
@@ -77010,6 +77459,46 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "parameter_unused"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "parameter"
+                              ],
+                              "properties": {
+                                "parameter": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 256
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "parameter_declarations"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "const": "supplied_value_constraint_violation"
                             }
                           }
@@ -77023,6 +77512,40 @@
                               "required": [
                                 "constraint"
                               ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "operation_parameter_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "domain"
+                              ]
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "enum": [
+                                    "parameters",
+                                    "parameter_declarations"
+                                  ]
+                                }
+                              }
                             }
                           }
                         }
@@ -77111,6 +77634,44 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "query_frame_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "issue"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "invalid_bounds"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "const": "graph_operation_invalid"
                             }
                           }
@@ -77127,12 +77688,16 @@
                               ],
                               "properties": {
                                 "operation": {
-                                  "const": "components"
+                                  "enum": [
+                                    "components",
+                                    "subgraph"
+                                  ]
                                 },
                                 "issue": {
                                   "enum": [
                                     "invalid_kind",
-                                    "invalid_output_rows"
+                                    "invalid_output_rows",
+                                    "invalid_node_selector"
                                   ]
                                 }
                               }
@@ -77154,12 +77719,16 @@
                               "not": {
                                 "enum": [
                                   "supplied_value_type_mismatch",
+                                  "parameter_default_type_mismatch",
                                   "parameter_value_required",
                                   "parameter_undeclared",
+                                  "parameter_unused",
                                   "supplied_value_constraint_violation",
                                   "query_lexical_invalid",
                                   "query_expression_invalid",
-                                  "graph_operation_invalid"
+                                  "query_frame_invalid",
+                                  "graph_operation_invalid",
+                                  "operation_parameter_invalid"
                                 ]
                               }
                             }
@@ -77197,8 +77766,12 @@
                 }
               }
             },
+            "outcome_schema_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
             "reason_schema_cid": {
-              "const": "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa"
+              "const": "sha256:3204b8f2edb377120d3139f380fc3c49541ff34b7117430de4ed52e0f826025f"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -77212,7 +77785,9 @@
             "outcome",
             "problem",
             "version",
-            "reason_schema_cid"
+            "reason_schema_cid",
+            "outcome_schema_cid",
+            "correlation_ref"
           ],
           "properties": {
             "outcome": {
@@ -77629,6 +78204,33 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
+                              "parameter",
+                              "domain"
+                            ],
+                            "properties": {
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "domain": {
+                                "enum": [
+                                  "positive_safe_integer",
+                                  "nonnegative_safe_integer",
+                                  "unit_fraction",
+                                  "finite_number",
+                                  "duration",
+                                  "positive_milliseconds",
+                                  "signed_milliseconds",
+                                  "timestamp"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
                               "operation",
                               "issue"
                             ],
@@ -77640,6 +78242,24 @@
                                 "enum": [
                                   "invalid_kind",
                                   "invalid_output_rows"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "operation",
+                              "issue"
+                            ],
+                            "properties": {
+                              "operation": {
+                                "const": "subgraph"
+                              },
+                              "issue": {
+                                "enum": [
+                                  "invalid_node_selector"
                                 ]
                               }
                             }
@@ -77663,7 +78283,8 @@
                                   "invalid_parameter",
                                   "unknown_reference",
                                   "invalid_arguments",
-                                  "expected_boolean"
+                                  "expected_boolean",
+                                  "invalid_bounds"
                                 ]
                               }
                             }
@@ -77672,6 +78293,86 @@
                       }
                     },
                     "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "query_syntax_invalid",
+                                "parameter_undeclared"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "supplied_value_type_mismatch",
+                                "supplied_value_constraint_violation",
+                                "supplied_value_invalid",
+                                "supplied_parameters_invalid"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "parameters"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "parameter_declarations_invalid",
+                                "parameter_value_required"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "parameter_declarations"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
                       {
                         "if": {
                           "properties": {
@@ -77689,6 +78390,37 @@
                               "required": [
                                 "actual_type"
                               ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "parameter_default_type_mismatch"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "actual_type"
+                              ]
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "parameter_declarations"
+                                }
+                              }
                             }
                           }
                         }
@@ -77722,6 +78454,13 @@
                                   "not": {
                                     "required": [
                                       "constraint"
+                                    ]
+                                  }
+                                },
+                                {
+                                  "not": {
+                                    "required": [
+                                      "domain"
                                     ]
                                   }
                                 }
@@ -77760,6 +78499,46 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "parameter_unused"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "parameter"
+                              ],
+                              "properties": {
+                                "parameter": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 256
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "parameter_declarations"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "const": "supplied_value_constraint_violation"
                             }
                           }
@@ -77773,6 +78552,40 @@
                               "required": [
                                 "constraint"
                               ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "operation_parameter_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "domain"
+                              ]
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "enum": [
+                                    "parameters",
+                                    "parameter_declarations"
+                                  ]
+                                }
+                              }
                             }
                           }
                         }
@@ -77861,6 +78674,44 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "query_frame_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "issue"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "invalid_bounds"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "const": "graph_operation_invalid"
                             }
                           }
@@ -77877,12 +78728,16 @@
                               ],
                               "properties": {
                                 "operation": {
-                                  "const": "components"
+                                  "enum": [
+                                    "components",
+                                    "subgraph"
+                                  ]
                                 },
                                 "issue": {
                                   "enum": [
                                     "invalid_kind",
-                                    "invalid_output_rows"
+                                    "invalid_output_rows",
+                                    "invalid_node_selector"
                                   ]
                                 }
                               }
@@ -77904,12 +78759,16 @@
                               "not": {
                                 "enum": [
                                   "supplied_value_type_mismatch",
+                                  "parameter_default_type_mismatch",
                                   "parameter_value_required",
                                   "parameter_undeclared",
+                                  "parameter_unused",
                                   "supplied_value_constraint_violation",
                                   "query_lexical_invalid",
                                   "query_expression_invalid",
-                                  "graph_operation_invalid"
+                                  "query_frame_invalid",
+                                  "graph_operation_invalid",
+                                  "operation_parameter_invalid"
                                 ]
                               }
                             }
@@ -78142,6 +79001,33 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
+                              "parameter",
+                              "domain"
+                            ],
+                            "properties": {
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "domain": {
+                                "enum": [
+                                  "positive_safe_integer",
+                                  "nonnegative_safe_integer",
+                                  "unit_fraction",
+                                  "finite_number",
+                                  "duration",
+                                  "positive_milliseconds",
+                                  "signed_milliseconds",
+                                  "timestamp"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
                               "operation",
                               "issue"
                             ],
@@ -78153,6 +79039,24 @@
                                 "enum": [
                                   "invalid_kind",
                                   "invalid_output_rows"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "operation",
+                              "issue"
+                            ],
+                            "properties": {
+                              "operation": {
+                                "const": "subgraph"
+                              },
+                              "issue": {
+                                "enum": [
+                                  "invalid_node_selector"
                                 ]
                               }
                             }
@@ -78176,7 +79080,8 @@
                                   "invalid_parameter",
                                   "unknown_reference",
                                   "invalid_arguments",
-                                  "expected_boolean"
+                                  "expected_boolean",
+                                  "invalid_bounds"
                                 ]
                               }
                             }
@@ -78185,6 +79090,86 @@
                       }
                     },
                     "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "query_syntax_invalid",
+                                "parameter_undeclared"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "supplied_value_type_mismatch",
+                                "supplied_value_constraint_violation",
+                                "supplied_value_invalid",
+                                "supplied_parameters_invalid"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "parameters"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "parameter_declarations_invalid",
+                                "parameter_value_required"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "parameter_declarations"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
                       {
                         "if": {
                           "properties": {
@@ -78202,6 +79187,37 @@
                               "required": [
                                 "actual_type"
                               ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "parameter_default_type_mismatch"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "actual_type"
+                              ]
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "parameter_declarations"
+                                }
+                              }
                             }
                           }
                         }
@@ -78235,6 +79251,13 @@
                                   "not": {
                                     "required": [
                                       "constraint"
+                                    ]
+                                  }
+                                },
+                                {
+                                  "not": {
+                                    "required": [
+                                      "domain"
                                     ]
                                   }
                                 }
@@ -78273,6 +79296,46 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "parameter_unused"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "parameter"
+                              ],
+                              "properties": {
+                                "parameter": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 256
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "parameter_declarations"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "const": "supplied_value_constraint_violation"
                             }
                           }
@@ -78286,6 +79349,40 @@
                               "required": [
                                 "constraint"
                               ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "operation_parameter_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "domain"
+                              ]
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "enum": [
+                                    "parameters",
+                                    "parameter_declarations"
+                                  ]
+                                }
+                              }
                             }
                           }
                         }
@@ -78374,6 +79471,44 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "query_frame_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "issue"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "invalid_bounds"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "const": "graph_operation_invalid"
                             }
                           }
@@ -78390,12 +79525,16 @@
                               ],
                               "properties": {
                                 "operation": {
-                                  "const": "components"
+                                  "enum": [
+                                    "components",
+                                    "subgraph"
+                                  ]
                                 },
                                 "issue": {
                                   "enum": [
                                     "invalid_kind",
-                                    "invalid_output_rows"
+                                    "invalid_output_rows",
+                                    "invalid_node_selector"
                                   ]
                                 }
                               }
@@ -78417,12 +79556,16 @@
                               "not": {
                                 "enum": [
                                   "supplied_value_type_mismatch",
+                                  "parameter_default_type_mismatch",
                                   "parameter_value_required",
                                   "parameter_undeclared",
+                                  "parameter_unused",
                                   "supplied_value_constraint_violation",
                                   "query_lexical_invalid",
                                   "query_expression_invalid",
-                                  "graph_operation_invalid"
+                                  "query_frame_invalid",
+                                  "graph_operation_invalid",
+                                  "operation_parameter_invalid"
                                 ]
                               }
                             }
@@ -78472,8 +79615,18 @@
                 }
               }
             },
+            "correlation_ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9:_-]+$"
+            },
+            "outcome_schema_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
             "reason_schema_cid": {
-              "const": "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa"
+              "const": "sha256:3204b8f2edb377120d3139f380fc3c49541ff34b7117430de4ed52e0f826025f"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -78488,7 +79641,8 @@
             "outcome",
             "problem",
             "version",
-            "reason_schema_cid"
+            "reason_schema_cid",
+            "outcome_schema_cid"
           ],
           "properties": {
             "correlation_ref": {
@@ -78513,8 +79667,12 @@
                 }
               }
             },
+            "outcome_schema_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
             "reason_schema_cid": {
-              "const": "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa"
+              "const": "sha256:3204b8f2edb377120d3139f380fc3c49541ff34b7117430de4ed52e0f826025f"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -78736,6 +79894,33 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "parameter",
+                "domain"
+              ],
+              "properties": {
+                "parameter": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "domain": {
+                  "enum": [
+                    "positive_safe_integer",
+                    "nonnegative_safe_integer",
+                    "unit_fraction",
+                    "finite_number",
+                    "duration",
+                    "positive_milliseconds",
+                    "signed_milliseconds",
+                    "timestamp"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "operation",
                 "issue"
               ],
@@ -78747,6 +79932,24 @@
                   "enum": [
                     "invalid_kind",
                     "invalid_output_rows"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "operation",
+                "issue"
+              ],
+              "properties": {
+                "operation": {
+                  "const": "subgraph"
+                },
+                "issue": {
+                  "enum": [
+                    "invalid_node_selector"
                   ]
                 }
               }
@@ -78770,7 +79973,8 @@
                     "invalid_parameter",
                     "unknown_reference",
                     "invalid_arguments",
-                    "expected_boolean"
+                    "expected_boolean",
+                    "invalid_bounds"
                   ]
                 }
               }
@@ -78779,6 +79983,86 @@
         }
       },
       "allOf": [
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "enum": [
+                  "query_syntax_invalid",
+                  "parameter_undeclared"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "location": {
+                "properties": {
+                  "kind": {
+                    "const": "text"
+                  },
+                  "document_id": {
+                    "const": "source"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "enum": [
+                  "supplied_value_type_mismatch",
+                  "supplied_value_constraint_violation",
+                  "supplied_value_invalid",
+                  "supplied_parameters_invalid"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "location": {
+                "properties": {
+                  "kind": {
+                    "const": "structured"
+                  },
+                  "document_id": {
+                    "const": "parameters"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "enum": [
+                  "parameter_declarations_invalid",
+                  "parameter_value_required"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "location": {
+                "properties": {
+                  "kind": {
+                    "const": "structured"
+                  },
+                  "document_id": {
+                    "const": "parameter_declarations"
+                  }
+                }
+              }
+            }
+          }
+        },
         {
           "if": {
             "properties": {
@@ -78796,6 +80080,37 @@
                 "required": [
                   "actual_type"
                 ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "parameter_default_type_mismatch"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "facts"
+            ],
+            "properties": {
+              "facts": {
+                "required": [
+                  "actual_type"
+                ]
+              },
+              "location": {
+                "properties": {
+                  "kind": {
+                    "const": "structured"
+                  },
+                  "document_id": {
+                    "const": "parameter_declarations"
+                  }
+                }
               }
             }
           }
@@ -78829,6 +80144,13 @@
                     "not": {
                       "required": [
                         "constraint"
+                      ]
+                    }
+                  },
+                  {
+                    "not": {
+                      "required": [
+                        "domain"
                       ]
                     }
                   }
@@ -78867,6 +80189,46 @@
           "if": {
             "properties": {
               "code": {
+                "const": "parameter_unused"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "facts"
+            ],
+            "properties": {
+              "facts": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "parameter"
+                ],
+                "properties": {
+                  "parameter": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  }
+                }
+              },
+              "location": {
+                "properties": {
+                  "kind": {
+                    "const": "structured"
+                  },
+                  "document_id": {
+                    "const": "parameter_declarations"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
                 "const": "supplied_value_constraint_violation"
               }
             }
@@ -78880,6 +80242,40 @@
                 "required": [
                   "constraint"
                 ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "operation_parameter_invalid"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "facts"
+            ],
+            "properties": {
+              "facts": {
+                "required": [
+                  "domain"
+                ]
+              },
+              "location": {
+                "properties": {
+                  "kind": {
+                    "const": "structured"
+                  },
+                  "document_id": {
+                    "enum": [
+                      "parameters",
+                      "parameter_declarations"
+                    ]
+                  }
+                }
               }
             }
           }
@@ -78968,6 +80364,44 @@
           "if": {
             "properties": {
               "code": {
+                "const": "query_frame_invalid"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "facts"
+            ],
+            "properties": {
+              "facts": {
+                "required": [
+                  "issue"
+                ],
+                "properties": {
+                  "issue": {
+                    "enum": [
+                      "invalid_bounds"
+                    ]
+                  }
+                }
+              },
+              "location": {
+                "properties": {
+                  "kind": {
+                    "const": "text"
+                  },
+                  "document_id": {
+                    "const": "source"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
                 "const": "graph_operation_invalid"
               }
             }
@@ -78984,12 +80418,16 @@
                 ],
                 "properties": {
                   "operation": {
-                    "const": "components"
+                    "enum": [
+                      "components",
+                      "subgraph"
+                    ]
                   },
                   "issue": {
                     "enum": [
                       "invalid_kind",
-                      "invalid_output_rows"
+                      "invalid_output_rows",
+                      "invalid_node_selector"
                     ]
                   }
                 }
@@ -79011,12 +80449,16 @@
                 "not": {
                   "enum": [
                     "supplied_value_type_mismatch",
+                    "parameter_default_type_mismatch",
                     "parameter_value_required",
                     "parameter_undeclared",
+                    "parameter_unused",
                     "supplied_value_constraint_violation",
                     "query_lexical_invalid",
                     "query_expression_invalid",
-                    "graph_operation_invalid"
+                    "query_frame_invalid",
+                    "graph_operation_invalid",
+                    "operation_parameter_invalid"
                   ]
                 }
               }

@@ -4,7 +4,7 @@
 /// original Run/edge and both current Transfer grants; this port issues no
 /// grant and is not an execution capability.
 pub struct ClientRetainedInputCurrent {
-  site : () -> @site.ExecutionSite
+  site_binding_current : (String, String, String) -> Bool
   authority : () -> String
   now_unix_ms : () -> Int64
   authorized : (ClientRetainedInputProducer, @transfer.RemoteTransferRequest) -> Bool
@@ -17,7 +17,34 @@ pub fn install_client_retained_input_current(
   now_unix_ms : () -> Int64,
   authorized : (ClientRetainedInputProducer, @transfer.RemoteTransferRequest) -> Bool,
 ) -> ClientRetainedInputCurrent {
-  { site, authority, now_unix_ms, authorized, }
+  install_client_retained_input_owner_current(
+    (key, generation, bundle) => {
+      let current = site()
+      @site.site_key(current) == key &&
+      @site.site_generation(current).to_string() == generation &&
+      @site.site_binding_current(
+        current,
+        @site.site_generation(current),
+        bundle,
+      )
+    },
+    authority,
+    now_unix_ms,
+    authorized,
+  )
+}
+
+///|
+/// Install a trusted Host port to the existing current Site owner. It must
+/// inspect the live identity/generation/bundle and availability, not saved
+/// binding fields. This port creates no Site, reservation or grant.
+pub fn install_client_retained_input_owner_current(
+  site_binding_current : (String, String, String) -> Bool,
+  authority : () -> String,
+  now_unix_ms : () -> Int64,
+  authorized : (ClientRetainedInputProducer, @transfer.RemoteTransferRequest) -> Bool,
+) -> ClientRetainedInputCurrent {
+  { site_binding_current, authority, now_unix_ms, authorized, }
 }
 
 ///|
@@ -45,27 +72,22 @@ pub(all) enum ClientRetainedTaskInputIssue {
 }
 
 ///|
-fn retained_task_input_current(
+/// Validate the exact producer occurrence and current Transfer grants before
+/// physical handoff. A valid request is neither destination commit nor borrow
+/// evidence. Cleanup remains allowed through its already acquired owners.
+pub fn validate_client_retained_input_transfer_current(
   producer : ClientRetainedInputProducer,
-  transfer_record : @transfer.RemoteTransferRecord,
+  request : @transfer.RemoteTransferRequest,
   current : ClientRetainedInputCurrent,
 ) -> Result[Unit, ClientRetainedTaskInputIssue] {
   if !client_retained_input_producer_available(producer) {
     return Err(ProducerUnavailable)
   }
-  let current_site = (current.site)()
   let current_authority = (current.authority)()
   let dispatch = client_retained_input_producer_dispatch(producer)
   let scope = @remote.dispatch_request_execution_scope(dispatch)
-  let request = @transfer.record_request(transfer_record)
   let facts = @transfer.request_projection(request)
-  if scope[0] != @site.site_key(current_site) ||
-    scope[1] != @site.site_generation(current_site).to_string() ||
-    !@site.site_binding_current(
-      current_site,
-      @site.site_generation(current_site),
-      scope[2],
-    ) ||
+  if !(current.site_binding_current)(scope[0], scope[1], scope[2]) ||
     facts[2] != scope[0] ||
     facts[3] != scope[1] ||
     facts[4] != scope[0] ||
@@ -97,6 +119,29 @@ fn retained_task_input_current(
   }
   if !(current.authorized)(producer, request) {
     return Err(AuthorizationUnavailable)
+  }
+  // Authorization can re-enter the producer owner and begin its release.
+  // Do not admit receiver work from the earlier availability observation.
+  if !client_retained_input_producer_available(producer) {
+    return Err(ProducerUnavailable)
+  }
+  Ok(())
+}
+
+///|
+fn retained_task_input_current(
+  producer : ClientRetainedInputProducer,
+  transfer_record : @transfer.RemoteTransferRecord,
+  current : ClientRetainedInputCurrent,
+) -> Result[Unit, ClientRetainedTaskInputIssue] {
+  match
+    validate_client_retained_input_transfer_current(
+      producer,
+      @transfer.record_request(transfer_record),
+      current,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   if !@transfer.record_is_destination_committed(transfer_record) {
     return Err(TransferNotCommitted)
@@ -319,12 +364,14 @@ pub fn prepare_client_retained_task_dispatch(
     client_retained_input_edge_schema_cid(input.producer.edge) {
     return Err(ForeignConsumer)
   }
-  let site = (current.site)()
-  if selected.site_key != @site.site_key(site) ||
-    selected.site_generation != @site.site_generation(site) ||
-    !@site.site_binding_current(
-      site,
-      selected.site_generation,
+  let scope = @remote.dispatch_request_execution_scope(
+    client_retained_input_producer_dispatch(input.producer),
+  )
+  if selected.site_key != scope[0] ||
+    selected.site_generation.to_string() != scope[1] ||
+    !(current.site_binding_current)(
+      selected.site_key,
+      selected.site_generation.to_string(),
       selected.runtime_bundle_cid,
     ) ||
     client_request_authority_scope_cid(request) != (current.authority)() {

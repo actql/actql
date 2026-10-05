@@ -197,6 +197,7 @@ fn scalar_call(path : Array[@query.NamePart]) -> (String, Int, Int) raise Abort 
     "UPPER" => ("upper", 1, 1)
     "TRIM" => ("trim", 1, 1)
     "COALESCE" => ("coalesce", 1, 2147483647)
+    "IFNULL" => ("coalesce", 2, 2)
     "IF" => ("if", 3, 3)
     "NULLIF" => ("nullif", 2, 2)
     "CONCAT" => ("concat_strict", 1, 2147483647)
@@ -360,6 +361,14 @@ fn append_resolved(
               value
             }
           }
+        Property(child, name) =>
+          lowering.form(
+            "property",
+            lowering.object([
+              ("name", lowering.add(String(name.value))),
+              ("value", nodes[child]),
+            ]),
+          )
         ParameterReference(name) => {
           parameter = true
           lowering.form("$param", lowering.add(String(name)))
