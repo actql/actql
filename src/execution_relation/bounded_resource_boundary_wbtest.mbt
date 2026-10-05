@@ -215,9 +215,14 @@ fn run_nest_workspace(entries : Int) -> Array[Int]? raise {
 
 ///|
 test "bounded nest admits its exact workspace peak" {
-  // Two parents sharing one key with two children: input, key and order
-  // resolution, child sort, grouped flags, matches and the nested row (35).
+  // Two parents share one key and two children. Key/field metadata uses
+  // 2 + 2 slots, three output metadata arrays use 3 * 3, and the child
+  // index/sort/grouped arrays use 3 * 2: 19 persistent slots. Each parent
+  // adds 2 matches, a three-cell row plus builder, and 2 projected items:
+  // 2 * (2 + 3 + 1 + 2) = 16. During the second row's nested output scan,
+  // the remaining array continuation overlaps one Object/Number frame.
+  // These 2 traversal frames make the independently derived peak 37.
   assert_eq(run_nest_workspace(1000), Some([2, 2]))
-  assert_eq(run_nest_workspace(35), Some([2, 2]))
-  assert_true(run_nest_workspace(34) is None)
+  assert_eq(run_nest_workspace(37), Some([2, 2]))
+  assert_true(run_nest_workspace(36) is None)
 }
