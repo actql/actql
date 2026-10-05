@@ -1237,32 +1237,17 @@ fn lower_analytic_call(
           ),
         )
         if arguments.length() == 2 {
-          let offset = @query.expression_node(expression, arguments[1]).unwrap()
-          match offset.kind {
-            Number(text) => {
-              let mut value = 0L
-              for unit in text {
-                let digit = unit.to_int() - 48
-                if digit < 0 ||
-                  digit > 9 ||
-                  value > (9007199254740991L - digit.to_int64()) / 10L {
-                  raise Abort(UnsupportedAnalytic)
-                }
-                value = value * 10L + digit.to_int64()
-              }
-              entries.push(
-                ("offset", construction.add(Number(value.to_double()))),
-              )
-            }
-            ParameterReference(parameter) =>
-              entries.push(
-                (
-                  "offset",
-                  construction.object([("$param", construction.text(parameter))]),
-                ),
-              )
-            _ => raise Abort(UnsupportedAnalytic)
-          }
+          entries.push(
+            (
+              "offset",
+              lower_analytic_offset(
+                construction,
+                expression,
+                arguments[1],
+                max_work,
+              ),
+            ),
+          )
         }
       }
       construction.object(entries)

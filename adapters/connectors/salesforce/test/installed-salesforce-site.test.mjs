@@ -36,10 +36,10 @@ const configuration = entries => canonicalJson({
 // supplied by the test; the account gate comes from the Host installation and
 // the credential authority and org binding from the installed profile.
 async function installed(t, {entries, profile = {}, secret,
-  extraObjects, idSortable, storedOrder} = {}) {
+  extraObjects, idSortable, storedOrder, storedRecords} = {}) {
   const org = await openSalesforceEffectSiteFixture(t, {commonMoon,
     salesforceMoon, runInvocationCid: cid('1'), dispatchRequestCid: cid('2'),
-    extraObjects, idSortable, storedOrder});
+    extraObjects, idSortable, storedOrder, storedRecords});
   const root = await mkdtemp(join(tmpdir(), 'actql-installed-salesforce-'));
   // Close every loaded Site before its journal directory is removed.
   const sites = [];
@@ -419,6 +419,22 @@ test('installed Salesforce peek reads a bounded prefix under its own grant',
       fields: ['Id'], maxRows: 201}), {code: 'InvalidSalesforcePeek'});
     assert.equal(queries().length, sent);
   });
+
+test('installed Salesforce peek states a typed value violation', async t => {
+  // A text field answered with a number.
+  const setup = await installed(t, {storedRecords: [
+    {Id: 'a00000000000001', Name: 12345}]});
+  const site = await setup.load();
+  const decision = await site.authorization.authorize('acquisition',
+    {connection: site.connection, resource: 'Test_Record__c',
+      operation: 'read'}, {subjectCid: cid('8')});
+  const failure = await site.peek({decision, resource: 'Test_Record__c',
+    fields: ['Id', 'Name'], maxRows: 2}).then(() => undefined, error => error);
+  assert.equal(failure?.code, 'SalesforceValueViolation', String(failure?.code));
+  assert.deepEqual(failure.violation, {expected_type: 'string',
+    field: 'Name', kind: 'type', resource: 'Test_Record__c'});
+  assert.equal(JSON.stringify(failure.violation).includes('12345'), false);
+});
 
 test('installed Salesforce peek describes only its Resource in a larger org',
   async t => {

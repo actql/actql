@@ -6,6 +6,12 @@ import {analyticOrderObjectReproduction, analyticOrderSuccesses, analyticOrderRe
 import {analyticPropertySuccesses, analyticPropertyRefusals}
   from './fixtures/analytic-property-source-input.mjs';
 import {publicQueryProfiles} from './fixtures/public-query-profiles.mjs';
+import {analyticOffsetSuccesses, analyticOffsetRefusals}
+  from './fixtures/analytic-offset-source-input.mjs';
+import {aggregatePropertySuccesses, aggregatePropertyRefusals}
+  from './fixtures/aggregate-property-source-input.mjs';
+import {joinPropertySuccesses, joinPropertyRefusals}
+  from './fixtures/join-property-source-input.mjs';
 
 const inputs = {successes: [...analyticOrderSuccesses, ...analyticPropertySuccesses],
   refusals: [...analyticOrderRefusals, ...analyticPropertyRefusals],
@@ -84,4 +90,56 @@ test('original object JSON reproduction retains independent rows, types and decl
   const order = groups.find(item => item.name === 'analytic-order');
   assert.equal(order.inputs.successes.length, 11);
   assert.deepEqual(order.capacity, capacity(1048576));
+});
+
+
+test('ORDER OFFSET and property corpora stay independent in one mixed run', () => {
+  const combined = {
+    successes: [...inputs.successes, ...analyticOffsetSuccesses,
+      ...aggregatePropertySuccesses, ...joinPropertySuccesses],
+    refusals: [...inputs.refusals, ...analyticOffsetRefusals,
+      ...aggregatePropertyRefusals, ...joinPropertyRefusals],
+    executionFailures: [...inputs.executionFailures],
+  };
+  const before = structuredClone(combined);
+  const groups = publicQueryProfiles(combined);
+  assert.deepEqual(groups.map(group => group.name), [
+    'analytic-order', 'analytic-property', 'analytic-offset', 'standard',
+  ]);
+  for (const group of groups) {
+    const wide = group.name === 'analytic-order' || group.name === 'analytic-offset';
+    assert.deepEqual(group.capacity, capacity(wide ? 1048576 : 10000));
+    assert.equal(Object.isFrozen(group.capacity), true);
+    assert.throws(() => { group.capacity.max_analytic_input_wire_bytes = 1048576; }, TypeError);
+    assert.equal(Object.hasOwn(group.capacity, 'max_execution_bytes'), false);
+    for (const kind of ['successes', 'refusals', 'executionFailures']) {
+      assert.deepEqual(group.inputs[kind], combined[kind]
+        .filter(item => (item.hostProfile ?? 'standard') === group.name));
+    }
+  }
+  for (const kind of ['successes', 'refusals', 'executionFailures']) {
+    const selected = groups.flatMap(group => group.inputs[kind]);
+    assert.equal(selected.length, combined[kind].length);
+    for (const item of combined[kind]) assert.equal(selected.filter(x => x === item).length, 1);
+  }
+  assert.deepEqual(combined, before, 'profile grouping cannot rewrite expected rows or inputs');
+});
+
+test('combined packed selection registers every analytic corpus and isolates mutable state', async () => {
+  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
+  const selected = fixture.slice(fixture.indexOf('analyticProfilesOnly ? {'),
+    fixture.indexOf(': analyticOrderOnly'));
+  for (const name of ['analyticOrderInputs', 'analyticPropertySuccesses', 'analyticOffsetSuccesses',
+    'analyticOrderRefusals', 'analyticPropertyRefusals', 'analyticOffsetRefusals',
+    'analyticOrderExecutionFailures']) assert.ok(selected.includes(name), name);
+  for (const path of ['local-state${suffix}', 'remote-state${suffix}',
+    'records${suffix}.duckdb', 'source-profile${suffix}.json']) {
+    assert.ok(fixture.includes('resolve(`' + path + '`)'), path);
+  }
+  assert.ok(fixture.includes("profileName === 'standard' ? '' : `-${profileName}`"));
+  assert.ok(fixture.includes('...base.host_policy_profile.capacity, ...analyticCapacity'));
+  for (const suite of ['analytic-offset-profiles', 'public-query-profiles']) {
+    assert.ok(driver.includes(`'scripts/${suite}.test.mjs'`), suite);
+  }
 });

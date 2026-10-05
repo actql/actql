@@ -75,6 +75,7 @@ struct NativeRemoteStandardComputeOwner {
 /// opens a fresh occurrence owner after that binding has been checked.
 struct NativeRemoteStandardBoundRunFactory {
   input_binding_cid : String
+  request_cid : String?
   open : () -> Result[
     NativeRemoteStandardRunOwner,
     NativeRemoteStandardInputFailure,
@@ -285,7 +286,33 @@ pub fn register_native_remote_standard_bound_run_factory(
     NativeRemoteStandardInputFailure,
   ],
 ) -> NativeRemoteStandardBoundRunFactory {
-  { input_binding_cid: @remote.remote_input_binding_cid(binding), open, }
+  {
+    input_binding_cid: @remote.remote_input_binding_cid(binding),
+    request_cid: None,
+    open,
+  }
+}
+
+///|
+/// Register an occurrence-owned input, such as an already pinned consumer
+/// borrow. An equal binding on another attempt cannot invoke this factory or
+/// assume its cleanup responsibility. Registration performs no physical work.
+pub fn register_native_remote_standard_dispatch_run_factory(
+  request : @remote.DispatchRequest,
+  binding : @remote.RemoteInputBinding,
+  open : () -> Result[
+    NativeRemoteStandardRunOwner,
+    NativeRemoteStandardInputFailure,
+  ],
+) -> Result[NativeRemoteStandardBoundRunFactory, NativeRemoteStandardHostIssue] {
+  if !@remote.remote_input_binding_matches_dispatch(binding, request) {
+    return Err(InvalidConfiguration)
+  }
+  Ok({
+    input_binding_cid: @remote.remote_input_binding_cid(binding),
+    request_cid: Some(@remote.dispatch_request_identity(request)),
+    open,
+  })
 }
 
 ///|
@@ -297,7 +324,11 @@ fn NativeRemoteStandardBoundRunFactory::resolve(
   binding : @remote.RemoteInputBinding,
 ) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure] {
   if !@remote.remote_input_binding_matches_dispatch(binding, request) ||
-    @remote.remote_input_binding_cid(binding) != self.input_binding_cid {
+    @remote.remote_input_binding_cid(binding) != self.input_binding_cid ||
+    (
+      self.request_cid is Some(expected) &&
+      expected != @remote.dispatch_request_identity(request)
+    ) {
     return Err(
       reject_native_remote_standard_input("foreign-input-binding").unwrap(),
     )

@@ -93,6 +93,8 @@ priv struct AnalyticEvaluation[T] {
   output_columns : Array[(Bool, Int)]
   mut output_writer : @encode.Writer?
   mut row : Array[Value]
+  mut row_retention : SteppedRowRetention?
+  mut row_retained : Bool
   mut closed : Bool
 }
 
@@ -201,6 +203,8 @@ fn[T : RelationRows] start_analytic_evaluation(
     output_columns: [],
     output_writer: None,
     row: [],
+    row_retention: None,
+    row_retained: false,
     closed: false,
   }
 }
@@ -224,6 +228,11 @@ fn[T] close_analytic_evaluation(state : AnalyticEvaluation[T]) -> Unit {
   }
   state.writer = None
   state.output_writer = None
+  if state.row_retention is Some(cursor) {
+    close_stepped_row_retention(cursor)
+    state.row_retention = None
+  }
+  state.row = []
   state.closed = true
 }
 
@@ -1589,6 +1598,7 @@ fn[T : RelationRows] analytic_advance_output(
       return Err(RowLimit)
     }
     s.row = []
+    s.row_retained = false
     s.inner = 0
     return Ok(None)
   }
@@ -1660,8 +1670,36 @@ fn[T : RelationRows] analytic_advance_output(
     s.inner += 1
     return Ok(None)
   }
-  if !retain_row(s.row, s.output_names, s.output) {
-    return Err(RowLimit)
+  if !s.row_retained {
+    if s.row_retention is Some(cursor) {
+      match advance_stepped_row_retention(cursor) {
+        Err(issue) => return Err(issue)
+        Ok(false) => return Ok(None)
+        Ok(true) => {
+          s.row_retention = None
+          s.row_retained = true
+        }
+      }
+      return Ok(None)
+    }
+    if bounded_small_retained_row(s.row, s.output_names) {
+      if !retain_row(s.row, s.output_names, s.output) {
+        return Err(RowLimit)
+      }
+      s.row_retained = true
+    } else {
+      match
+        start_stepped_row_retention(
+          s.row,
+          s.output_names,
+          s.output,
+          s.workspace,
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(cursor) => s.row_retention = Some(cursor)
+      }
+      return Ok(None)
+    }
   }
   if s.scope is Some(value) {
     match

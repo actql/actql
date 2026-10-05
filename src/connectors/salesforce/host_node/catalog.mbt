@@ -789,6 +789,25 @@ pub fn salesforce_query_read_accept_page(
 }
 
 ///|
+/// The typed value violation behind a refused page, as canonical JSON, or
+/// `None` when the refusal is not a value violation (budget, response or
+/// sequencing). It names the Resource, field, declared type and kind, never
+/// the value.
+#export_name("salesforceQueryReadValueViolation")
+pub fn salesforce_query_read_value_violation(
+  plan : @catalog.ReadProjection,
+  issue : SalesforceCatalogBridgeIssue,
+) -> String? {
+  match issue {
+    QueryRead(Page(issue)) =>
+      @catalog.query_page_value_violation(issue, plan).map(value => {
+        @catalog.query_value_violation_json(value)
+      })
+    _ => None
+  }
+}
+
+///|
 #export_name("salesforceQueryReadAcknowledgePage")
 pub fn salesforce_query_read_acknowledge_page(
   read : @catalog.QueryRead,

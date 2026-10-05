@@ -9,18 +9,6 @@ struct Journal {
 }
 
 ///|
-fn destination_reader_key(
-  request : @transfer.RemoteTransferRequest,
-  reader_id : String,
-) -> Result[String, NativeRemoteTransferJournalIssue] {
-  let store_use = match @transfer.prepare_store_use(request, reader_id) {
-    Ok(value) => value
-    Err(issue) => return Err(Protocol(issue))
-  }
-  Ok(@transfer.request_cid(request) + ":" + @transfer.store_use_cid(store_use))
-}
-
-///|
 fn destination_reader_body(
   request : @transfer.RemoteTransferRequest,
   receipt : @transfer.RemoteTransferDestinationReceipt,
@@ -1466,8 +1454,10 @@ pub fn Journal::begin_destination_material_reclaim(
       return Ok(false)
     }
     Some(DestinationMaterialReleased) => {
+      // The same cleanup Owner can resume after a lost completion reply. The
+      // reader admission boundary still rejects this released material.
       ignore(self.database.rollback())
-      return Err(RecoveryRequired)
+      return Ok(false)
     }
     Some(DestinationMaterialActive) => ()
     None => {

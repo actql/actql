@@ -53,7 +53,8 @@ fn property_rows_resource_boundary(
     ),
   )
   // Labelled variant puts Choice after A. Each of two labels adds a label read,
-  // scalar validation, container frame and selector comparison; cancellation
+  // scalar validation, one TextUnits poll, container frame and selector
+  // comparison (five work units per short label); cancellation
   // must also work while the first comparison leaves selection pending.
   let graph_owner = if labelled {
     keyed_bridge_owner(
@@ -111,7 +112,7 @@ fn property_rows_resource_boundary(
   // Workspace is four ordering slots per row plus schema width (3 / 5).
   // An explicit definition checks each candidate once before producing it.
   let exact_work = (if edge { 93 } else { 40 }) +
-    (if labelled { 8 } else if selected { 1 } else { 0 })
+    (if labelled { 10 } else if selected { 1 } else { 0 })
   let exact_slots = if edge { 9 } else { 7 }
   for viewed in [false, true] {
     let start = fn(control, work, slots) {
