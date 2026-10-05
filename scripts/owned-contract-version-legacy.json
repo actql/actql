@@ -589,14 +589,6 @@
       "reason": "Existing test or rejection fixture occurrence; frozen to this context."
     },
     {
-      "path": "src/physical_strategy/policy_consultation.mbt",
-      "token": "actql-policy-candidates/0.2",
-      "contextSha256": "32f077b9b4cf9dee4f6b53f312171bd38457ec7015329511f35aee9317330c8e",
-      "line": 13,
-      "count": 1,
-      "reason": "Pre-existing non-baseline occurrence at 53d081ac7; compatibility debt preserved, not approved for new use."
-    },
-    {
       "path": "src/program_check/public_diagnostic_test.mbt",
       "token": "actql/9.9",
       "contextSha256": "4f8a07bd59205f658730cfa2640f076ee53530b405113b25366c9718efbaf219",
@@ -657,30 +649,6 @@
       "token": "actql-publication-payload-record/0.3",
       "contextSha256": "bb1950ed90e383fa08fd431726095e7ce886fc0e206da90c9018716839fa107d",
       "line": 219,
-      "count": 1,
-      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
-    },
-    {
-      "path": "src/query_integration/physical_search_wbtest.mbt",
-      "token": "actql-policy-candidates/0.2",
-      "contextSha256": "c1965458dacb2a28d755d54753941fce63e39d4d16c59be8e7b85ab63c83ac51",
-      "line": 136,
-      "count": 1,
-      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
-    },
-    {
-      "path": "src/query_integration/physical_search_wbtest.mbt",
-      "token": "actql-policy-candidates/0.2",
-      "contextSha256": "13d7517d266a0ebc0bc426fb6ab1c01f9b642319536b201dfa2e0086c3f07093",
-      "line": 419,
-      "count": 1,
-      "reason": "Existing test or rejection fixture occurrence; frozen to this context."
-    },
-    {
-      "path": "src/query_integration/physical_search_wbtest.mbt",
-      "token": "actql-policy-candidates/0.2",
-      "contextSha256": "3a26912b30b498bb8a7823b6217827ec9d1e21086415f28371a52c12834357b0",
-      "line": 422,
       "count": 1,
       "reason": "Existing test or rejection fixture occurrence; frozen to this context."
     },

@@ -10,12 +10,16 @@ priv enum CheckFinding {
   SyntaxViolation(Int, Int)
   LexicalViolation(String, (Int, Int)?)
   ExpressionViolation(String, (Int, Int)?)
-  GraphViolation(String)
+  FrameViolation
+  OperationScalarViolation(String, String, (String, String)?)
+  GraphViolation(String, String)
   TypeViolation(String, String, String, String?)
+  DefaultTypeViolation(String, String, String, String?)
   SuppliedViolation(String?)
   DeclarationViolation(String?)
   ConstraintViolation(String, String, String?)
   UndeclaredParameter(String, (Int, Int)?)
+  UnusedParameter(String, String?)
   RequiredValue(String, String)
   // An obligation that cannot be discharged from disclosable evidence.
   Unresolved(String)
@@ -48,12 +52,13 @@ pub fn client_program_check_source(
   source_revision : String,
   declarations_revision : String?,
   parameters_revision : String?,
+  correlation_ref : String,
 ) -> String {
   let findings : Array[CheckFinding] = []
   let stop = check_source_findings(
     findings, document, format, environment, visible_publication, declarations, parameters,
   )
-  check_outcome_json(findings, stop, context_ref, {
+  check_outcome_json(findings, stop, context_ref, correlation_ref, {
     source_revision,
     source_bytes: @utf8.encode(document).length(),
     declarations_revision,
@@ -86,6 +91,8 @@ pub fn client_program_check_unavailable(correlation_ref : String) -> String {
     @encode.end_object(writer)
     @encode.key(writer, "reason_schema_cid")
     @encode.string_value(writer, check_reason_schema_cid)
+    @encode.key(writer, "outcome_schema_cid")
+    @encode.string_value(writer, check_outcome_schema_cid)
     @encode.key(writer, "version")
     @encode.string_value(writer, check_outcome_version)
     @encode.end_object(writer)
@@ -150,8 +157,12 @@ fn check_source_findings(
           }
           return Report
         }
-        Err({ kind: Invalid, pointer, }) => {
-          findings.push(DeclarationViolation(pointer))
+        Err({ kind: Invalid, pointer, finding, }) => {
+          if finding is Some(finding) {
+            findings.push(finding)
+          } else {
+            findings.push(DeclarationViolation(pointer))
+          }
           return Report
         }
         Err({ kind: Internal, .. }) => return Failed("check_internal")
@@ -195,6 +206,7 @@ fn check_source_findings(
     }
     Err(_) => return Failed("check_internal")
   }
+  let mut explanation_bindings : @parameter_binding.BoundValues? = None
   if supplied_admitted {
     // Omitted declarations admit the binder's empty set; an authored empty
     // declaration map was rejected above and must not be substituted here.
@@ -228,7 +240,7 @@ fn check_source_findings(
           }
         }
       }
-      Ok(Ready(_)) => ()
+      Ok(Ready(bound)) => explanation_bindings = Some(bound)
       Err(issue) =>
         match check_binding_fault(issue) {
           Budget => findings.push(Limit("analysis_budget_exhausted"))
@@ -362,8 +374,11 @@ fn check_source_findings(
       | SyntaxViolation(_, _)
       | LexicalViolation(_, _)
       | ExpressionViolation(_, _)
-      | GraphViolation(_)
+      | FrameViolation
+      | OperationScalarViolation(_, _, _)
+      | GraphViolation(_, _)
       | TypeViolation(_, _, _, _)
+      | DefaultTypeViolation(_, _, _, _)
       | SuppliedViolation(_)
       | DeclarationViolation(_)
       | ConstraintViolation(_, _, _)
@@ -405,8 +420,18 @@ fn check_source_findings(
               None => None
             }
             findings.push(UndeclaredParameter(name, range))
+          } else if check_unused_parameter_finding(
+              diagnostic,
+              context.parameter_declarations,
+            )
+            is Some(finding) {
+            findings.push(finding)
           } else {
-            findings.push(check_program_finding(diagnostic))
+            findings.push(
+              check_program_finding(
+                diagnostic, explanation_bindings, supplied, parameters, declarations,
+              ),
+            )
           }
         MissingInput => findings.push(Limit("bound_values_missing"))
         UnsupportedImplementation =>
@@ -475,6 +500,7 @@ fn check_binding_fault(issue : @parameter_binding.Issue) -> CheckInputFault {
 priv struct CheckDeclarationFault {
   kind : CheckInputFault
   pointer : String?
+  finding : CheckFinding?
 }
 
 ///|
@@ -498,6 +524,7 @@ fn check_declarations(
           Invalid
         },
         pointer: None,
+        finding: None,
       })
   }
   let cursor = match
@@ -509,7 +536,11 @@ fn check_declarations(
     }) {
     Ok(cursor) => cursor
     Err(issue) =>
-      return Err({ kind: check_decode_fault(issue), pointer: None, })
+      return Err({
+        kind: check_decode_fault(issue),
+        pointer: None,
+        finding: None,
+      })
   }
   match
     @parameter_binding.read_declarations(Some(cursor), {
@@ -539,15 +570,132 @@ fn check_declarations(
       } else {
         None
       }
-      Err({ kind, pointer, })
+      let finding = if kind is Invalid && path is Some(path) {
+        check_default_type_finding(issue, cursor, path, pointer)
+      } else {
+        None
+      }
+      Err({ kind, pointer, finding, })
     }
   }
 }
 
 ///|
+/// Project an existing scalar rejection, without rechecking the supplied value.
+/// The first admitted binder retains whether this call supplied the value or
+/// selected its default. Internal requirement indexes are never input positions.
+fn check_operation_scalar_finding(
+  diagnostic : @program_check.CheckDiagnostic,
+  bindings : @parameter_binding.BoundValues?,
+  supplied : @decode.Cursor?,
+  parameters : String?,
+  declarations : String?,
+) -> CheckFinding? {
+  guard @program_check.diagnostic_cause(diagnostic)
+    is Closure(Operations(Scalars(InvalidValue(_, demand)))) else {
+    return None
+  }
+  let name = match demand {
+    SafeInteger(name, ..)
+    | Fraction(name)
+    | Finite(name)
+    | Duration(name)
+    | Milliseconds(name, ..)
+    | Timestamp(name) => name
+  }
+  guard name.length() <= 256 else { return None }
+  let domain = match demand {
+    SafeInteger(_, minimum=1L) => Some("positive_safe_integer")
+    SafeInteger(_, minimum=0L) => Some("nonnegative_safe_integer")
+    SafeInteger(_, ..) => None
+    Fraction(_) => Some("unit_fraction")
+    Finite(_) => Some("finite_number")
+    Duration(_) => Some("duration")
+    Milliseconds(_, signed=false) => Some("positive_milliseconds")
+    Milliseconds(_, signed=true) => Some("signed_milliseconds")
+    Timestamp(_) => Some("timestamp")
+  }
+  guard domain is Some(domain) else { return None }
+  guard bindings is Some(bound) else { return None }
+  let mut original_parameter = None
+  for index in 0..<@parameter_binding.bound_value_count(bound) {
+    let parameter = @parameter_binding.bound_value_at(bound, index).unwrap()
+    if parameter.name == name {
+      original_parameter = Some(parameter)
+      break
+    }
+  }
+  // A generated or differently scoped name is not a caller-owned parameter.
+  guard original_parameter is Some(parameter) else { return None }
+  let mut location = None
+  match parameter.origin {
+    Supplied =>
+      if supplied is Some(cursor) &&
+        parameters is Some(body) &&
+        check_supplied_cursor(cursor, [@source.Key(name)]) is Some(_) &&
+        check_original_pointer(body, cursor, [@source.Key(name)])
+        is Some(pointer) {
+        location = Some(("parameters", pointer))
+      }
+    Default =>
+      if declarations is Some(body) {
+        let original = @parameter_binding.bound_declarations(bound)
+        for declaration in @parameter_binding.declarations(original) {
+          if declaration.name != name {
+            continue
+          }
+          let cursor = @parameter_binding.declaration_source(declaration)
+          let path = @decode.cursor_path(cursor)
+          if path.length() == 1 &&
+            path[0] is @source.Key(key) &&
+            key == name &&
+            check_supplied_cursor(cursor, [@source.Key("default")]) is Some(_) &&
+            check_original_pointer(body, cursor, [@source.Key("default")])
+            is Some(relative) &&
+            check_supplied_pointer(path) is Some(prefix) {
+            location = Some(("parameter_declarations", prefix + relative))
+          }
+          break
+        }
+      }
+  }
+  Some(OperationScalarViolation(name, domain, location))
+}
+
+///|
 fn check_program_finding(
   diagnostic : @program_check.CheckDiagnostic,
+  bindings : @parameter_binding.BoundValues?,
+  supplied : @decode.Cursor?,
+  parameters : String?,
+  declarations : String?,
 ) -> CheckFinding {
+  if check_operation_scalar_finding(
+      diagnostic, bindings, supplied, parameters, declarations,
+    )
+    is Some(finding) {
+    return finding
+  }
+  if @program_check.diagnostic_cause(diagnostic)
+    is Closure(Operations(Frames(InvalidFrame(_)))) {
+    // The existing closure Owner proves the bound frame violation. Its
+    // requirement index is not an authored span or a public input pointer.
+    return FrameViolation
+  }
+  if @program_check.diagnostic_cause(diagnostic)
+    is Source(SourceView(Program(Program(Pipeline(_, issue))))) &&
+    issue.path.length() >= 6 &&
+    issue.path[0] is Key("stages") &&
+    issue.path[1] is Index(_) &&
+    issue.path[2] is Key("steps") &&
+    issue.path[3] is Index(_) &&
+    issue.path[4] is Key("subgraph") &&
+    issue.path[5] is Key("nodes") &&
+    issue.kind is (InvalidBody | GraphMatch(Structure(InvalidBody))) {
+    // The current Graph owner proves this selector violation. Its generated
+    // Program path is not an authored text span and is never published as one.
+    return GraphViolation("subgraph", "invalid_node_selector")
+  }
   if @program_check.diagnostic_cause(diagnostic)
     is Source(SourceView(Program(Program(Pipeline(_, issue))))) &&
     issue.kind is Operation(ExpectedBoolean) {
@@ -564,13 +712,48 @@ fn check_program_finding(
     issue.path[3] is Index(_) &&
     issue.path[4] is Key("components") {
     match (issue.kind, issue.path[5]) {
-      (Graph(InvalidBody), Key("kind")) => return GraphViolation("invalid_kind")
+      (Graph(InvalidBody), Key("kind")) =>
+        return GraphViolation("components", "invalid_kind")
       (Graph(InvalidCount), Key("max_output_rows")) =>
-        return GraphViolation("invalid_output_rows")
+        return GraphViolation("components", "invalid_output_rows")
       _ => ()
     }
   }
   Violation("program_invalid")
+}
+
+///|
+/// Usage is decided by the common checker. Lowering copies declarations into
+/// generated Program cursors, so locations must come from this call's original
+/// admitted declaration owner rather than the rejected copy's Program path.
+fn check_unused_parameter_finding(
+  diagnostic : @program_check.CheckDiagnostic,
+  original : @parameter_binding.Declarations?,
+) -> CheckFinding? {
+  guard @program_check.diagnostic_cause(diagnostic)
+    is Source(Identity(References(Usage(UnusedParameter(rejected))))) &&
+    rejected.name.length() <= 256 &&
+    original is Some(original) else {
+    return None
+  }
+  for declaration in @parameter_binding.declarations(original) {
+    if declaration.name == rejected.name {
+      let path = @decode.cursor_path(
+        @parameter_binding.declaration_source(declaration),
+      )
+      // Declaration names are admitted ASCII identifiers. Only the original
+      // standalone map's owned member path can acquire a structured location.
+      let pointer = if path.length() == 1 &&
+        path[0] is Key(name) &&
+        name == declaration.name {
+        check_supplied_pointer(path)
+      } else {
+        None
+      }
+      return Some(UnusedParameter(declaration.name, pointer))
+    }
+  }
+  None
 }
 
 ///|
@@ -584,12 +767,16 @@ fn check_verdict(findings : Array[CheckFinding]) -> String {
       | SyntaxViolation(_, _)
       | LexicalViolation(_, _)
       | ExpressionViolation(_, _)
-      | GraphViolation(_)
+      | FrameViolation
+      | OperationScalarViolation(_, _, _)
+      | GraphViolation(_, _)
       | TypeViolation(_, _, _, _)
+      | DefaultTypeViolation(_, _, _, _)
       | SuppliedViolation(_)
       | DeclarationViolation(_)
       | ConstraintViolation(_, _, _)
-      | UndeclaredParameter(_, _))
+      | UndeclaredParameter(_, _)
+      | UnusedParameter(_, _))
     }) {
     "invalid"
   } else if findings.is_empty() {
@@ -629,13 +816,18 @@ fn write_check_report(
       SyntaxViolation(_, _) => Some("query_syntax_invalid")
       LexicalViolation(_, _) => Some("query_lexical_invalid")
       ExpressionViolation(_, _) => Some("query_expression_invalid")
-      GraphViolation(_) => Some("graph_operation_invalid")
+      FrameViolation => Some("query_frame_invalid")
+      OperationScalarViolation(_, _, _) => Some("operation_parameter_invalid")
+      GraphViolation(_, _) => Some("graph_operation_invalid")
       TypeViolation(_, _, _, _) => Some("supplied_value_type_mismatch")
+      DefaultTypeViolation(_, _, _, _) =>
+        Some("parameter_default_type_mismatch")
       SuppliedViolation(_) => Some("supplied_value_invalid")
       DeclarationViolation(_) => Some("parameter_declarations_invalid")
       ConstraintViolation(_, _, _) =>
         Some("supplied_value_constraint_violation")
       UndeclaredParameter(_, _) => Some("parameter_undeclared")
+      UnusedParameter(_, _) => Some("parameter_unused")
       _ => None
     }
   })
@@ -751,15 +943,22 @@ fn write_check_report(
         }
       }
     }
+    if code == "query_frame_invalid" {
+      @encode.key(writer, "facts")
+      @encode.begin_object(writer)
+      @encode.key(writer, "issue")
+      @encode.string_value(writer, "invalid_bounds")
+      @encode.end_object(writer)
+    }
     if code == "graph_operation_invalid" {
       for finding in findings {
-        if finding is GraphViolation(issue) {
+        if finding is GraphViolation(operation, issue) {
           @encode.key(writer, "facts")
           @encode.begin_object(writer)
           @encode.key(writer, "issue")
           @encode.string_value(writer, issue)
           @encode.key(writer, "operation")
-          @encode.string_value(writer, "components")
+          @encode.string_value(writer, operation)
           @encode.end_object(writer)
           // The checker-facing span does not retain authored origin kind
           // or argument precision. Do not publish it as an exact input range.
@@ -787,9 +986,60 @@ fn write_check_report(
         }
       }
     }
-    if code == "supplied_value_type_mismatch" {
+    if code == "parameter_unused" {
       for finding in findings {
-        if finding is TypeViolation(name, expected, actual, pointer) {
+        if finding is UnusedParameter(name, pointer) {
+          @encode.key(writer, "facts")
+          @encode.begin_object(writer)
+          @encode.key(writer, "parameter")
+          @encode.string_value(writer, name)
+          @encode.end_object(writer)
+          if documents.declarations_revision is Some(revision) &&
+            pointer is Some(pointer) {
+            write_check_structured_location(
+              writer, "parameter_declarations", revision, pointer,
+            )
+          }
+          break
+        }
+      }
+    }
+    if code == "supplied_value_type_mismatch" ||
+      code == "parameter_default_type_mismatch" {
+      for finding in findings {
+        let details = match (code, finding) {
+          (
+            "supplied_value_type_mismatch",
+            TypeViolation(name, expected, actual, pointer),
+          ) =>
+            Some(
+              (
+                name,
+                expected,
+                actual,
+                pointer,
+                "parameters",
+                documents.parameters_revision,
+              ),
+            )
+          (
+            "parameter_default_type_mismatch",
+            DefaultTypeViolation(name, expected, actual, pointer),
+          ) =>
+            Some(
+              (
+                name,
+                expected,
+                actual,
+                pointer,
+                "parameter_declarations",
+                documents.declarations_revision,
+              ),
+            )
+          _ => None
+        }
+        if details
+          is Some((name, expected, actual, pointer, document_id, revision)) {
           @encode.key(writer, "facts")
           @encode.begin_object(writer)
           @encode.key(writer, "actual_type")
@@ -799,10 +1049,9 @@ fn write_check_report(
           @encode.key(writer, "parameter")
           @encode.string_value(writer, name)
           @encode.end_object(writer)
-          if documents.parameters_revision is Some(revision) &&
-            pointer is Some(pointer) {
+          if revision is Some(revision) && pointer is Some(pointer) {
             write_check_structured_location(
-              writer, "parameters", revision, pointer,
+              writer, document_id, revision, pointer,
             )
           }
           break
@@ -829,6 +1078,32 @@ fn write_check_report(
           write_check_structured_location(
             writer, "parameter_declarations", revision, pointer,
           )
+          break
+        }
+      }
+    }
+    if code == "operation_parameter_invalid" {
+      for finding in findings {
+        if finding is OperationScalarViolation(name, domain, location) {
+          @encode.key(writer, "facts")
+          @encode.begin_object(writer)
+          @encode.key(writer, "domain")
+          @encode.string_value(writer, domain)
+          @encode.key(writer, "parameter")
+          @encode.string_value(writer, name)
+          @encode.end_object(writer)
+          if location is Some((document_id, pointer)) {
+            let revision = if document_id == "parameters" {
+              documents.parameters_revision
+            } else {
+              documents.declarations_revision
+            }
+            if revision is Some(revision) {
+              write_check_structured_location(
+                writer, document_id, revision, pointer,
+              )
+            }
+          }
           break
         }
       }
@@ -912,6 +1187,7 @@ fn check_outcome_json(
   findings : Array[CheckFinding],
   stop : CheckStop,
   context_ref : String,
+  correlation_ref : String,
   documents : CheckDocuments,
 ) -> String {
   try {
@@ -931,6 +1207,8 @@ fn check_outcome_json(
         )
       }
       Failed(problem) => {
+        @encode.key(writer, "correlation_ref")
+        @encode.string_value(writer, correlation_ref)
         @encode.key(writer, "outcome")
         @encode.string_value(writer, "failed")
         // A partial report is only ever invalid, never verified or a guess.
@@ -949,17 +1227,43 @@ fn check_outcome_json(
     }
     @encode.key(writer, "reason_schema_cid")
     @encode.string_value(writer, check_reason_schema_cid)
+    @encode.key(writer, "outcome_schema_cid")
+    @encode.string_value(writer, check_outcome_schema_cid)
     @encode.key(writer, "version")
     @encode.string_value(writer, check_outcome_version)
     @encode.end_object(writer)
     @encode.finish(writer)
   } catch {
-    _ =>
-      "{\"outcome\":\"failed\",\"problem\":{\"code\":\"check_report_unbounded\"},\"reason_schema_cid\":\"" +
-      check_reason_schema_cid +
-      "\",\"version\":\"" +
-      check_outcome_version +
-      "\"}"
+    _ => check_failed_json("check_report_unbounded", correlation_ref)
+  }
+}
+
+///|
+/// A separately bounded Problem envelope survives report-budget exhaustion.
+/// The correlation reference was allocated by the Host for this attempt.
+fn check_failed_json(problem : String, correlation_ref : String) -> String {
+  try {
+    let writer = @encode.writer(1024, 16, 4)
+    @encode.begin_object(writer)
+    @encode.key(writer, "correlation_ref")
+    @encode.string_value(writer, correlation_ref)
+    @encode.key(writer, "outcome")
+    @encode.string_value(writer, "failed")
+    @encode.key(writer, "problem")
+    @encode.begin_object(writer)
+    @encode.key(writer, "code")
+    @encode.string_value(writer, problem)
+    @encode.end_object(writer)
+    @encode.key(writer, "reason_schema_cid")
+    @encode.string_value(writer, check_reason_schema_cid)
+    @encode.key(writer, "outcome_schema_cid")
+    @encode.string_value(writer, check_outcome_schema_cid)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, check_outcome_version)
+    @encode.end_object(writer)
+    @encode.finish(writer)
+  } catch {
+    _ => abort("CheckFailedEncoding")
   }
 }
 
@@ -1233,7 +1537,6 @@ fn check_supplied_type_finding(
     @decode.lookup(object, name) is Some(root) else {
     return fallback
   }
-  let mut value = root
   let mut source = None
   for index in 0..<@parameter_binding.declaration_count(declarations) {
     let declaration = @parameter_binding.declaration_at(declarations, index).unwrap()
@@ -1243,11 +1546,53 @@ fn check_supplied_type_finding(
     }
   }
   guard source is Some(root_source) else { return fallback }
+  guard check_type_facts(root_source, root, path, 1) is Some((expected, actual)) else {
+    return fallback
+  }
+  TypeViolation(name, expected, actual, pointer)
+}
+
+///|
+/// Read explanation facts after the declaration owner has rejected a default.
+/// The admitted declaration type precedes default validation; this walk does
+/// not validate another value or change declaration admission.
+fn check_default_type_finding(
+  issue : @parameter_binding.Issue,
+  root : @decode.Cursor,
+  path : Array[@decode.PathSegment],
+  pointer : String?,
+) -> CheckFinding? {
+  guard issue
+    is (Value(ValueIssue(WrongType | UnexpectedNull, ..))
+    | Value(Decode({ kind: WrongType | UnexpectedNull, .. }))) &&
+    path.length() >= 2 &&
+    path[0] is @source.Key(name) &&
+    name.length() <= 256 &&
+    path[1] is @source.Key("default") &&
+    @decode.open_object(root) is Ok(declarations) &&
+    @decode.lookup(declarations, name) is Some(source) &&
+    @decode.open_object(source) is Ok(declaration) &&
+    @decode.lookup(declaration, "default") is Some(value) else {
+    return None
+  }
+  guard check_type_facts(source, value, path, 2) is Some((expected, actual)) else {
+    return None
+  }
+  Some(DefaultTypeViolation(name, expected, actual, pointer))
+}
+
+///|
+/// Walk only the already owned type/value paths of a proven mismatch.
+fn check_type_facts(
+  root_source : @decode.Cursor,
+  root_value : @decode.Cursor,
+  path : Array[@decode.PathSegment],
+  offset : Int,
+) -> (String, String)? {
+  let mut value = root_value
   let mut source = root_source
-  for index in 1..<path.length() {
-    guard @decode.open_object(source) is Ok(type_object) else {
-      return fallback
-    }
+  for index in offset..<path.length() {
+    guard @decode.open_object(source) is Ok(type_object) else { return None }
     match path[index] {
       @source.Key(key) => {
         guard @decode.lookup(type_object, "fields") is Some(fields) &&
@@ -1255,7 +1600,7 @@ fn check_supplied_type_finding(
           @decode.lookup(fields, key) is Some(child_type) &&
           @decode.open_object(value) is Ok(object) &&
           @decode.lookup(object, key) is Some(child) else {
-          return fallback
+          return None
         }
         source = child_type
         value = child
@@ -1264,14 +1609,14 @@ fn check_supplied_type_finding(
         guard @decode.lookup(type_object, "items") is Some(child_type) &&
           @decode.elements(value) is Ok(elements) &&
           elements.get(at) is Some(child) else {
-          return fallback
+          return None
         }
         source = child_type
         value = child
       }
     }
   }
-  guard check_type_name(source) is Some(expected) else { return fallback }
+  guard check_type_name(source) is Some(expected) else { return None }
   let actual = match @decode.view(value) {
     NullValue => "null"
     BoolValue(_) => "boolean"
@@ -1280,7 +1625,7 @@ fn check_supplied_type_finding(
     ArrayValue(_) => "array"
     ObjectValue(_) => "object"
   }
-  TypeViolation(name, expected, actual, pointer)
+  Some((expected, actual))
 }
 
 ///|

@@ -1,5 +1,38 @@
 # Typed JSON literal common-owner boundary
 
+## Current main integration on 2026-10-06
+
+Normal merge of fixed main `9fdb20e4765fc844cbc3489eb27a3b42353d9fd7`
+into published `de15d6bb82cf3d1263a952ca79bbd4720a66d33f` retains the common
+typed-JSON leaf/wire and main's diagnostic presentation, membership law,
+computed-property and analytic fixtures. No Model/cancellation/Effect owner
+is reimplemented. All retained history declarations remain unchanged.
+
+The independent Values oracle freezes pre-typed-JSON contracts separately
+before and after membership alignment. Original predecessor expectations are
+preserved; the current grammar is
+`sha256:cbf544dd2f03bbf120cb4181a861e3ee5bad66c73680414f563c13ecba2254a6`
+and the independently assembled current Run is
+`sha256:36560241fceee9447094100569f3c391e28ac5a0dcce70ef3cd1d446f8bc7ace`.
+Typed source/node schemas, Stage/Program preimages, compilation manifests,
+document imports and canonical vectors are regenerated from their owners.
+Workers fixtures precede Node Host fixtures; no generated file is patched.
+
+Focused merge-tree Node consumers passed 23/23 (`run-RRsHrd`), with read-only
+contract, vector, manifest, document-family and both fixture freshness checks
+(370 canonical identities). The initial 21/23 attempt (`run-qKSxBJ`) exposed
+SDK test assumptions about npm's workspace report shape and a shared
+node_modules link. The corrected inventory still requires exactly one SDK
+package and both presentation/JSON wire modules; the browser check explicitly
+bundles this worktree's wire with no external imports or I/O. COUNTIF selector
+guards check membership instead of requiring their flag to be first.
+Focused JS parser/lowerer/evaluator/wire/profile and Values/Run consumers
+passed 22/22 (`run-xsLg8z`). These checks cover the merge tree, not a clean
+submitted-SHA package campaign. Exact-SHA packed evidence and A/C boundary
+review remain separate; no required-CI success is claimed.
+
+Older sections below retain their original source SHAs and verification scope.
+
 Base: `7e337afa9e5a64035c5925aca1d93ba0ef787aaf`. Branch:
 `feat/common-typed-json-literals`. This is a common-contract dependency of the
 generic GoogleSQL JSON surface and Graph Delta source acceptance. It is not

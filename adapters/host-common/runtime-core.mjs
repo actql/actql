@@ -3510,6 +3510,16 @@ function publicationControl(moon) {
     runDefinitionRunId(runDefinition) {
       return checked(moon.strategyRunDefinitionRunId(token(runDefinition)));
     },
+    runCancellationConfirmed(facts) {
+      const names = ['cancellationRequested', 'modelFenceRequired', 'modelFenced',
+        'unresolvedModelCalls', 'unresolvedEffects', 'reconciliationRequired',
+        'publicationCommitted', 'physicalStopConfirmed', 'cleanupConfirmed',
+        'revisionUnchanged'];
+      if (names.some(name => typeof facts?.[name] !== 'boolean')) {
+        throw new TypeError('Invalid Run cancellation observations');
+      }
+      return moon.clientRunCancellationConfirmed(...names.map(name => facts[name]));
+    },
     resultReadAvailability(manifest, resultName, retention, observedAt) {
       if (typeof resultName !== 'string' || typeof observedAt !== 'string') {
         throw new TypeError('Invalid Result availability request');

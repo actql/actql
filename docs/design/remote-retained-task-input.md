@@ -6,6 +6,25 @@ joins the original admitted Run to the checked producer fragment/output port
 and consumer fragment/input port. The fragment identities retain the checked
 schema and ordered computation. Resolving this edge issues no start claim.
 
+The portable Run Host package exposes this edge as an opaque
+`RetainedTaskInputEdge`, not a caller-authored port projection. Cloud producer
+admission uses `prepare_client_coordinator_retained_input_producer`: the existing
+Coordinator Owner must have durably accepted the exact dispatch, managed-output
+evidence, subject and measurement, with active cleanup custody. It does not
+construct a Site journal from a Coordinator observation.
+
+The trusted Host installs an atomic current-record port. Every availability
+check consults that port and the existing Coordinator observation Owner again;
+reconstruction may supply an equivalent recovered record, but another attempt,
+missing observation or begun cleanup cannot supply current producer custody.
+The package adapter re-admits the current durable record and its history against
+the current Coordinator authority. The port must read the existing trusted
+Owner, not retain the first successful wire as a permanent authorization. Host
+callers retain the durable revision fence across awaited physical handoffs.
+Producer evidence alone establishes neither current Site generation and grants
+nor an independent destination holding; the existing retained-input Current
+and Transfer Owners still admit those separately before consumer dispatch.
+
 Relation ports retain their checked Carrier contract, while physical output
 admission separately derives the complete field-map schema through the existing
 Relation schema Owner. An ordinary row object contract and the field-map schema
@@ -105,6 +124,17 @@ The Native capture adapter validates the dispatch, input and original checked
 producer capture owner before any physical read. Existing registered Transfer
 providers supply bounded bytes and borrow lifetime; the existing row verifier
 establishes the captured source. It never performs another Source acquisition.
+The registered codec fixes framing before reading. The standard output
+export's ordered-row contract uses `[` on the first row chunk, `,` on later
+chunks, and `]` on the final chunk. An empty export has exactly one `[]` chunk
+with zero rows. The verifier checks those delimiters and exact manifest lengths
+before passing each row to the existing typed decoder. The installed per-chunk
+wire limit includes framing, and physical frame and total byte limits remain
+unchanged. A malformed ordered export is never retried as a bare-row profile.
+Other existing registered row profiles retain their one-bare-row-per-chunk
+contract. Neither profile rewrites Transfer bytes, chunk identities, the
+producer manifest, or execution evidence.
+
 Rejected pre-admission leaves the borrow with its caller. Stream or framing
 failure returns the existing retryable physical cleanup owner. Success keeps
 the borrow live until its capture owner closes; neither path reclaims a holding.
@@ -141,3 +171,53 @@ dispatch with an equal input binding cannot reuse that borrow. Compute completio
 keeps the input borrowed while output readers remain active. Formal output
 release closes the captured Run and returns its borrow, after which the separate
 destination and producer cleanup Owners can release their holdings and capacity.
+
+A completed acquisition task can have an internal consumer edge without a
+public Named Result rooted at that producer. Its export uses the original
+captured DAG's exact physical source match and the existing Relation export
+Owner. It does not fabricate a Result definition, another Run, or a completed
+Compute. Public Source Results still use their checked Result projection;
+internal producer output uses the checked acquisition task port. Source
+observation and managed output evidence remain durable Runtime records, and
+formal release closes the captured DAG before confirming input-owner cleanup.
+
+The resident dispatch admission and execution entry derive the acquisition
+role from the original checked graph and exact task key. A one-task Source Run
+retains its public Result definition. The first task of a two-task Source Run
+instead installs the existing internal acquisition output Owner and has no
+public Result definition. Public Output admission consequently refuses that
+internal output; it remains available under its original managed-output
+evidence for the separate retained-input Transfer. This route does not grant a
+consumer start claim or admit a consumer using the producer's input binding.
+
+The resident physical handoff validates the exact original producer completion
+and current Transfer scope before opening its output. A Direct receiver keeps
+its own journal reservation and also acquires a Site holding, so its bytes share
+the same Site retention ceiling with the still-retained producer. The caller
+keeps one handoff owner inside its existing serialized holder responsibility.
+A failed write retains the exact pending chunk and reader for retry; it does
+not fetch the Source or execute either task again.
+
+Committed receiver journal reopening compares the saved receipt and preserves
+the live holder's existing Site reservation. It is not a Site restart or proof
+of restoration after that holder is lost. Once cleanup begins, handoff cannot
+resume. Receiver cleanup uses the existing material reclaim Owner, excludes
+live borrowers, and remains available after execution authorization expires.
+Restoring that cleanup duty never revives a returned reader or grants payload
+access. Only confirmed physical receiver cleanup returns its Site holding;
+producer and Named Result retention remain separate duties.
+
+The portable retained-input handle installs ports to the existing current
+Transfer, Site and authorization owners. It re-admits the current durable
+Transfer record and exact destination receipt before issuing a binding, when
+restoring saved binding bytes, and before and after consumer dispatch issuance.
+Canonical equality ties restoration to the original producer and checked edge.
+The historical binding projection grants no borrow, physical payload access or
+start claim. Admission creates no reservation and cannot refund one.
+
+The current Site port verifies identity, generation, runtime bundle and
+availability using the trusted live owner; it does not instantiate a Site from
+saved fields. The existing Native constructor delegates to its actual execution
+Site. Authority, current lifetime and both Transfer grants remain separate
+checks. Across asynchronous Cloud persistence and delivery, the caller must
+retain its existing Owner revision fence and revalidate before sending.

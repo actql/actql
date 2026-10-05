@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdirSync, mkdtempSync, rmSync, writeFileSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import test from 'node:test';
 import {occurrences, repositoryOccurrences, violations} from
@@ -56,4 +56,24 @@ test('repository scan catches a real tracked mutation and a new untracked writer
   assert.equal(violations(repositoryOccurrences(directory), empty).length, 2);
   writeFileSync(join(directory, 'package.json'), '{"version":"9.0.0"}');
   assert.equal(violations(repositoryOccurrences(directory), empty).length, 2);
+});
+
+// Test exact product contexts against the real inventory. No legacy allowance
+// may revive the migrated writer or authorize a fresh benchmark consumer.
+test('policy candidate owner and consumers stay on the initial contract', () => {
+  const inventory = JSON.parse(readFileSync(new URL('./owned-contract-version-legacy.json', import.meta.url)));
+  const current = 'actql-policy-candidates/0.1';
+  const changed = current.replace('0.1', future);
+  assert.equal(inventory.entries.some(entry => entry.token === changed), false);
+  for (const path of ['src/physical_strategy/policy_consultation.mbt',
+    'src/query_integration/physical_search_wbtest.mbt',
+    'benchmarks/retained-results/native-owner-observations.mjs',
+    'benchmarks/retained-results/native-owner-observations.test.mjs']) {
+    const source = readFileSync(new URL('../' + path, import.meta.url), 'utf8');
+    assert(source.includes(current), path);
+    const mutated = occurrences(source.replaceAll(current, changed), path)
+      .filter(entry => entry.token === changed);
+    assert(mutated.length > 0, path);
+    assert.equal(violations(mutated, inventory).length, mutated.length, path);
+  }
 });

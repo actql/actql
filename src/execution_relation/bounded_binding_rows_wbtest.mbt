@@ -75,6 +75,8 @@ fn bounded_binding_rows_receiver(
   dedupe? : Bool = false,
   distinct_keyed? : Bool = false,
   derive_scalar? : Bool = false,
+  derive_text? : Bool = false,
+  compare_text? : Bool = false,
 ) -> @lower.BoundPrepared {
   let producer = @pipeline.produced_input(
     @lower.pipeline(@lower.bound_preparation(source_owner)),
@@ -115,10 +117,16 @@ fn bounded_binding_rows_receiver(
         "{\"rename\":{\"left\":\"alias\"},\"from\":\"rows\",\"as\":\"derived\"}"
       } else if drop {
         "{\"drop\":[\"left\"],\"from\":\"rows\",\"as\":\"derived\"}"
+      } else if compare_text {
+        "{\"filter\":{\"eq\":[{\"field\":\"tag\"},{\"literal\":\"" +
+        String::make(256, 'g') +
+        "\"}]},\"from\":\"rows\",\"as\":\"derived\"}"
       } else if filter {
         "{\"filter\":\"id > 1\",\"from\":\"rows\",\"as\":\"derived\"}"
       } else if derive_scalar {
         "{\"derive\":{\"next\":\"id + 1\"},\"from\":\"rows\",\"as\":\"derived\"}"
+      } else if derive_text {
+        "{\"derive\":{\"copy\":{\"field\":\"tag\"}},\"from\":\"rows\",\"as\":\"derived\"}"
       } else {
         "{\"derive\":{\"score\":{\"vector_score\":{\"left\":{\"field\":\"left\"},\"right\":{\"field\":\"right\"},\"metric\":\"dot\"}},\"joined\":{\"vector_concat\":[{\"field\":\"right\"},{\"field\":\"left\"}]}},\"from\":\"rows\",\"as\":\"derived\"}"
       }) +
@@ -177,17 +185,25 @@ fn bounded_binding_rows_fixture(
   distinct_keyed? : Bool = false,
   unused_payload? : Bool = false,
   derive_scalar? : Bool = false,
+  derive_text? : Bool = false,
+  compare_text? : Bool = false,
   id_nullable? : Bool = false,
   input_limits? : ValueLimits? = None,
   max_work? : Int = 100000,
   max_entries? : Int = 10000,
   max_frames? : Int = 100,
   fragment_rows? : Int64 = 2L,
+  logical_limits? : LogicalLimits? = None,
 ) -> (@bounded.Control, BoundedBindingRowsExecution, ProducerRead) raise {
   let (source_owner, source) = bounded_binding_rows_source(
     rows,
     id_nullable~,
-    distinct=distinct || distinct_keyed || dedupe || unique_text,
+    distinct=distinct ||
+      distinct_keyed ||
+      dedupe ||
+      unique_text ||
+      derive_text ||
+      compare_text,
     unused_payload~,
     top_k_source=top_k,
     top_k_by_source=top_k_by || top_k_by_empty,
@@ -213,6 +229,8 @@ fn bounded_binding_rows_fixture(
     dedupe~,
     distinct_keyed~,
     derive_scalar~,
+    derive_text~,
+    compare_text~,
   )
   let sequence = prepared_sequence(receiver)
   let first = @lower.node_at(@lower.bound_preparation(receiver), 0).unwrap()
@@ -234,7 +252,18 @@ fn bounded_binding_rows_fixture(
       distinct_keyed {
       []
     } else {
-      [sequence_fragment_context(sequence, 0, fragment_rows)]
+      let context = sequence_fragment_context(sequence, 0, fragment_rows)
+      [
+        match logical_limits {
+          None => context
+          Some(limits) =>
+            prepare_fragment_runtime_context(
+              context.fragment,
+              limits,
+              context.physical,
+            ).unwrap()
+        },
+      ]
     },
     [@lower.node_id(first)],
     100000,
@@ -3204,7 +3233,10 @@ test "bounded filter preserves exact nested input charges" {
       max_entries=1000,
     )
     let mut terminal = false
-    for _ in 0..<1000 {
+    // Admission, logical weight, cell wire measurement and row wire emission
+    // each visit the 256 items through continuations. Sixteen polls per item
+    // leave finite room for both child and container transitions in each walk.
+    for _ in 0..<4096 {
       if !terminal {
         match advance_bounded_binding_rows(execution, 1).unwrap() {
           BoundedBindingRowsContinue(..) => ()
