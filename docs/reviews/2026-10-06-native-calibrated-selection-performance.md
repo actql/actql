@@ -475,3 +475,44 @@ original: `_build/repro/ascii-matched-c619179b8.json`, 13,073,809 bytes,
 `sha256:6bdf7fdc327f323d08fa61a7c53a66529e52ed1422e36636d1f27b8bea7f908c`.
 No rebuild, full matrix, new broad verification or CI retry was performed for
 this unchanged compiled binary.
+
+### Actual Native preparation diagnosis and next candidate
+
+At `6a12f318d05b26a62393fdb6f78c395b00820100`, temporarily instrument the
+existing application builder and prelude, with no API, Owner, normalization,
+limit or admission change. Five fixed 100-row Native products all passed the
+existing full product/Owner admission. Program checking took `6.274 ms` on the
+first launch and `1.977–2.087 ms` on the other four; the four generated stages
+were another roughly `2–3 ms`. Prelude intervals are nested in application
+intervals and are not added together. Timing buffers/prints perturb execution;
+this diagnosis does not measure a speedup or certify capacity.
+
+All four source files and the normal release binary were restored to their
+original bytes. Protected reproduction directory:
+`_build/repro/application-phase-6a12f318d/`, containing original/diagnostic
+sources, patch, controller, manifest, binary and full observations. Diagnostic
+binary digest: `6a236e13d0818b1cfb6898ebe4d4ebe7620b4c6dc8049f7291910f6d9382b65f`;
+observation digest: `14c9a93a874fff8dc737eb17027d00c3f181a9e496ebf22debb4f22244c7ae8c`.
+Incremental selected Native build: `run-twVHsd` (six tasks); bounded observation:
+`run-kLS72x`. These are diagnostic working-diff artifacts, not clean HEAD builds.
+
+The next candidate is `canonical_json.advance_emit`: keep a container's
+existing continuation on the stack until it ends, rather than pop/recreate its
+enum wrapper for every child. All child visits, key/node/container-end
+scheduling, limits, output bytes and cancellation remain; no cached digest,
+rendered text or new retained data is added. The existing nested cursor fixture
+pins all 17 advances and still checks one-node maximum progress and cancel.
+Working-diff checks: selected cursor/raw-string/value-budget/depth/integrity
+JS files `19/19` (`run-PL1pPN`, `focused-test-I99YGy`), and selected Native
+cursor/raw-string/fragment integrity `6/6` (`run-X4TLjE`, `focused-test-DSYYfD`).
+These preserve contract evidence; performance is unmeasured at this point.
+
+Before measurement, fix the same 21 alternating 100-row resident pairs and one
+fully admitted prelaunch per binary. Compare the unchanged release compiled at
+`fe0b68242` with the new clean-source release; only canonical emitter and its
+cursor fixture may differ in `src/`. Extend the existing controller as
+`run-native-preparation-comparison.mjs --retained-continuation`, keeping full
+hash/files/process/admission costs, source and both prelaunch costs, actual
+planner/Owner correspondence and all phase intervals. This isolates the emitter
+candidate from the earlier ASCII change. Preserve indeterminate results and
+the original separate gate thresholds; do not rerun to find a favorable result.

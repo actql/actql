@@ -17,28 +17,34 @@ const root = fileURLToPath(new URL('../../', import.meta.url));
 const exec = promisify(execFile);
 const [baselinePath, outputPath, condition, ...extra] = process.argv.slice(2);
 assert(baselinePath && outputPath && !extra.length &&
-  (condition === undefined || condition === '--matched-first-use'), 'ExpectedNativeAsciiBaselineAndOutput');
-const matchedFirstUse = condition === '--matched-first-use';
+  (condition === undefined || ['--matched-first-use', '--retained-continuation'].includes(condition)),
+  'ExpectedNativePreparationBaselineAndOutput');
+const continuation = condition === '--retained-continuation';
+const matchedFirstUse = condition !== undefined;
 const destination = resolve(outputPath);
 assert(destination !== root && !destination.startsWith(root + sep), 'NativeComparisonOutputInsideCheckout');
 const beforeBinary = resolve(baselinePath);
-const baselineRevision = 'f8c6876389430490cdfd09c3e576d77c6d227d06';
-const beforeDigest = '18c389007dcdd78638895b9b3d6a88c36783a342c8a1667ffe8a8c849a5a9830';
+const baselineRevision = continuation ? 'fe0b68242d9e240494e85ecb0438f74f55855c88'
+  : 'f8c6876389430490cdfd09c3e576d77c6d227d06';
+const beforeDigest = continuation ? '2152155cc13ae8003df3c8b46a13ae45edf4a567554d579a440332475dd18f80'
+  : '18c389007dcdd78638895b9b3d6a88c36783a342c8a1667ffe8a8c849a5a9830';
 assert.equal(await sha256File(beforeBinary), beforeDigest, 'NativeAsciiBaselineChanged');
 const afterBinary = join(root, '_build/native/release/build/cmd/native_retained_case_probe/native_retained_case_probe.exe');
 const afterDigest = await sha256File(afterBinary);
 assert.notEqual(afterDigest, beforeDigest, 'NativeAsciiChangeNotBuilt');
 const git = async args => (await exec('git', args, {cwd: root})).stdout.trim();
 const revision = await git(['rev-parse', 'HEAD']);
-const compiledSourceRevision = matchedFirstUse ? 'fe0b68242d9e240494e85ecb0438f74f55855c88' : revision;
-if (matchedFirstUse) {
+const compiledSourceRevision = matchedFirstUse && !continuation ? 'fe0b68242d9e240494e85ecb0438f74f55855c88' : revision;
+if (matchedFirstUse && !continuation) {
   assert.equal(await git(['diff', '--name-only', compiledSourceRevision, revision, '--', 'src']), '',
     'NativeAsciiCompiledSourceChanged');
   assert.equal(afterDigest, '2152155cc13ae8003df3c8b46a13ae45edf4a567554d579a440332475dd18f80',
     'NativeAsciiCompiledBinaryChanged');
 }
 const sourceChanges = (await git(['diff', '--name-only', baselineRevision, revision, '--', 'src'])).split('\n').filter(Boolean);
-assert.deepEqual(sourceChanges.sort(), ['src/sha256/incremental_wbtest.mbt', 'src/sha256/sha256.mbt']);
+assert.deepEqual(sourceChanges.sort(), continuation
+  ? ['src/canonical_json/cursor_admission_wbtest.mbt', 'src/canonical_json/encode.mbt']
+  : ['src/sha256/incremental_wbtest.mbt', 'src/sha256/sha256.mbt']);
 const unchanged = async () => {
   assert.equal(await git(['rev-parse', 'HEAD']), revision);
   assert.equal(await git(['status', '--porcelain']), '', 'NativeComparisonRequiresCleanCheckout');
@@ -49,10 +55,12 @@ await unchanged();
 const fixture = retainedCase(workloads[0], 'narrow', 100);
 const directory = await mkdtemp(join(tmpdir(), 'actql-native-ascii-word-'));
 const database = join(directory, 'source.duckdb');
-const label = 'native-ascii-word-loop';
+const label = continuation ? 'canonical-continuation-rewrap' : 'native-ascii-word-loop';
 const pairs = [];
 const warmups = [];
 const basis = {revision, compiledSourceRevision, baselineRevision, beforeDigest, afterDigest, sourceChanges,
+  change: continuation ? 'Retain a container continuation without rewrapping it per child; exact advance schedule unchanged'
+    : 'Four checked ASCII units per word without the inner loop',
   caseId: fixture.id, limits: fixture.limits,
   method: '21 predeclared alternating pairs; fresh Native processes; one immutable source; OS-cache coldness uncontrolled',
   firstUseCondition: matchedFirstUse
