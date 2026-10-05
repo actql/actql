@@ -832,3 +832,17 @@ all source/prelaunch costs. Primary improvement requires the complete-parent
 95% interval strictly below zero. Do not reroll indeterminate earlier candidates
 or increase samples to obtain a favorable result. Wasm, full Core, packed,
 calibrated whole matrix and new CI acceptance remain unexecuted.
+
+
+The clean candidate release is `38b5f32e42ce7f0d3ecd18c518e95f1a4eca1776`.
+Selected release build `run-OOV2Ky` succeeded (114 incremental build tasks;
+not 114 executed tests). The archived binary `_build/repro/native-probe-38b5f32e4.exe`
+is 13,263,744 bytes,
+`sha256:2574943aee7b9bc91430d3277f04b333a97770b893555d6c549fd459528f7efc`.
+Its image is 858,720 bytes larger than the archived before image; do not conceal
+that load/input cost or infer heap usage from file size. Both pinned releases
+use the same MoonBit toolchain and original non-diagnostic probe. The controller
+`--bounded-text-discard` requires these exact compiled-source/binary pins and
+all eight changed source/interface/fixture files. Controller/report commits
+cannot retag either binary. Register the timing label before any execution,
+with no statistical/threshold changes.
