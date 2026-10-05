@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {nodeTestArguments, assertTestExecution} from './test-execution.mjs';
 import {CLIENT_PACKAGES, checkoutState, packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
-import {certificates} from '../adapters/site-node/https-agent-harness.mjs';
+import {certificates} from '../adapters/site-node/https-test-certificates.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const selectorDeriveOnly = process.argv.includes('--selector-derive-only');
