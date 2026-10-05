@@ -141,3 +141,51 @@ test "diagnostic categories preserve limit meaning across preparation wrappers" 
     assert_true(diagnostic_location(diagnostic) is None)
   }
 }
+
+///|
+test "scalar admission rejects invalid frame parameters before frame closure" {
+  for direction in ["preceding", "following"] {
+    for supplied in ["0", "-1", "1.5", "9007199254740992"] {
+      try {
+        ignore(
+          local_construction_fixture(
+            { work: 10000000, bytes: 1000000, nodes: 100000, depth: 100, },
+            through_check=true,
+            parameters=true,
+            supplied=Some(supplied_fixture("{\"n\":" + supplied + "}")),
+            analytic_limit=Some(1000),
+            producer_suffix=",{\"analytic\":{\"partition_by\":[],\"order_by\":[{\"id\":\"asc\"}],\"frame\":{\"start\":{\"" +
+              direction +
+              "\":{\"$param\":\"n\"}},\"end\":{\"" +
+              direction +
+              "\":2}},\"functions\":{\"answer\":{\"fn\":\"first_value\",\"expr\":\"value\"}}}},{\"select\":[\"id\",{\"value\":\"answer\"}],\"as\":\"selected\"}",
+            producer_result_from="selected",
+            extra_step_budget=3,
+          ),
+        )
+        fail("invalid scalar value produced a checked Program")
+      } catch {
+        Closure(
+          Operations(
+            Scalars(InvalidValue(_, @pipeline.SafeInteger("n", minimum=1L)))
+          )
+        ) as cause => {
+          guard rejected(cause) is Rejected(diagnostic) else {
+            fail("scalar input rejection became a request")
+          }
+          assert_eq(diagnostic_category(diagnostic), InvalidInput)
+          assert_true(
+            diagnostic_cause(diagnostic)
+            is Closure(
+              Operations(
+                Scalars(InvalidValue(_, @pipeline.SafeInteger("n", minimum=1L)))
+              )
+            ),
+          )
+          assert_true(diagnostic_location(diagnostic) is None)
+        }
+        error => raise error
+      }
+    }
+  }
+}
