@@ -1,7 +1,8 @@
 # Property Graph Delta source connection
 
 Status: frontend connection and the generic JSON literal dependency are
-implemented; successful integrated text Delta execution remains unverified. This is not
+implemented. Earlier clean-SHA Local/HTTPS acceptance is recorded in the PR;
+acceptance of each new integration SHA is recorded separately. This is not
 completion of the Property Graph migration or the full frontend profile.
 
 Fixed base: `7e337afa9e5a64035c5925aca1d93ba0ef787aaf` (main, including
@@ -148,3 +149,25 @@ change from 7 to 8, while adopting the repaired JSON identity/admission/Store
 boundaries and regenerated contract closure. The branch stays based on #466
 until that parent is actually in main. No parent merge is implied by local or
 packed acceptance.
+
+## Current parent integration on 2026-10-06
+
+Normally merge published child `4fac44d52c9d61b65ac169b54b2b8dce43ae5286`
+with JSON source parent `5a84caefee3c90b2fd855b5da73c8d15f3f14247`, containing
+common `f0f227616c145ee71b14fb0774531df804b7fbe0`. The two packed fixture/driver
+conflicts preserve the complete Delta selection, refusal checks and every new
+main analytic/property selection. No Delta owner, grammar meaning, capacity
+limit or independent expected Program/row is changed in this child integration.
+
+The expected update remains `p=7` to `p=8`, with rows
+`[{"p":8,"node_key":1}]`. Source and complete independent JSON control must
+pass the ordinary checker; clean-SHA ordinary-pack Local/HTTPS evidence is
+recorded separately after the merge. The base remains the unmerged #466 branch.
+Main's missing protected-source declaration for `cfd37ff87…` remains a common
+history-owner repair, not a child workaround or a claim of history success.
+
+On the merge tree, bounded focused run `run-AL0yLm` passed Node 27/27 and
+JS 8/8, including complete independent Delta Program/checker, generic JSON and
+current Values Run callers. The combined public-selection guard and independent
+preimage tests passed; compilation manifests and spec-family read-only checks
+passed. These are merge-tree checks, not a clean-HEAD packed or CI claim.

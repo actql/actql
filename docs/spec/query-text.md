@@ -82,6 +82,18 @@ functions, casts and the `OVER` subset follow the adopted profile. New query
 overloads and numeric domains are rejected before a Program is issued.
 Expression text is never concatenated and reparsed with the legacy dialect.
 
+In the implemented inline `OVER` profile, numeric `ROWS BETWEEN` boundaries
+accept an integer literal or a whole named parameter, for example
+`ROWS BETWEEN @before PRECEDING AND @after FOLLOWING`. Direction remains
+syntax; the parameter is lowered to the common `preceding`/`following`
+Parameter slot. Declarations and bound values use ordinary Program checking,
+including safe-integer and interval-order validation; no default replaces a
+missing or invalid binding. This connection retains the current common
+contract's positive distances. GoogleSQL also permits zero numeric boundaries;
+that difference remains a common-contract coverage gap, not a restriction of
+GoogleSQL. Row-dependent and arithmetic boundary expressions, RANGE and GROUPS
+are not implemented in this profile.
+
 `JSON` followed by a STRING literal constructs a typed JSON value in ordinary
 SQL and Pipe expressions. The STRING chunks use the decoding rules above;
 their concatenated text is passed unchanged to the common

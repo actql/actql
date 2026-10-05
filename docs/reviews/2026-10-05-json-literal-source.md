@@ -64,3 +64,37 @@ are resolved from the independent preimage oracle. Both predecessor closures
 remain asserted; the text profile's current Run identity is
 `sha256:617c70dabd65509d4657e78b64f0a8682a6ff4113298b4a314324d64351ffc66`.
 The PR stays based on the common branch until that parent is actually in main.
+
+## Current typed-JSON parent integration on 2026-10-06
+
+Normally integrates published common parent
+`f0f227616c145ee71b14fb0774531df804b7fbe0`, including main
+`9fdb20e4765fc844cbc3489eb27a3b42353d9fd7`. The PR remains based on the
+common branch until #463 is adopted into main. This source connection adds no
+Model, Effect, Graph or storage owner.
+
+The combined grammar retains public JSON literals and the current analytic
+frame-parameter rules. Both parents' complete predecessor Grammar and Values
+Run preimages remain frozen. Independently assembled current normative
+preimages give grammar
+`sha256:62486297e7a17f9d8dd18bc0ff18e0e2ee79cb188f4bb1de45ba6a4e30fc2c28`
+and Values Run
+`sha256:1773a59d9141adb5702a4cd73e240f6422137222cbf6f543cbcee38bda0570d2`.
+The Values Program and Unit identities are unchanged from this common parent.
+Current generated pins agree with these independently authored bodies.
+
+On the integration tree, selected JSON syntax/lowering, shared membership and
+Values Run caller tests passed 6/6 on JS; independent vectors, grammar/profile
+and public-selector Node tests passed 27/27 (`run-58L8Zm`). Compilation,
+document-family, canonical and Workers/Node fixture read-only checks passed;
+370 canonical identities and 86 projected fixture helpers were checked.
+Workers fixtures were regenerated before Node Host fixtures (`run-PaMVKL`).
+These are scoped integration-tree checks, not full Core or CI.
+
+Exact clean-SHA normal-pack Local/HTTPS acceptance is recorded separately in
+the PR and external receipts, without relabeling earlier evidence. The common
+parent's inherited retained-history refusal at main merge
+`cfd37ff87d1bbd76643c28e125dbe891755be1aa` remains a shared history-owner
+boundary. This integration does not weaken its validator or replace existing
+declarations. Full Wasm/Native runtime, required CI and common-boundary review
+remain separate obligations.
