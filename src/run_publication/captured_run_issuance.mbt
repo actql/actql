@@ -606,7 +606,13 @@ fn seal_effect_context(
     _ => return Err(CaptureIssuanceEncoding)
   }
   let body = match
-    parse_contract_wire(body_wire, max_wire_bytes, max_nodes, max_depth) {
+    parse_contract_wire(
+      body_wire,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      data_keys=true,
+    ) {
     Ok(value) => value
     Err(_) => return Err(CaptureIssuanceEncoding)
   }

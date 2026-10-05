@@ -21,7 +21,7 @@ const program = (bindings = expressions, empty = false) => ({version: 'actql/0.1
   results: {answer: {from: {stage: 's', result: 'out'}}}});
 const columns = fields.map(name => ({name, contract: {type:
   name.startsWith('json_') || name === 'sql_null' ? 'json' : name,
-nullable: name === 'sql_null', ...(name === 'string' ? {max_bytes: 1} : {})}}));
+nullable: name === 'sql_null', ...(name === 'string' ? {max_utf8_bytes: 1} : {})}}));
 const expected = [{json_null: {$json: null}, sql_null: null,
   json_number: {$json: 1.5}, number: 1.5, json_string: {$json: 'x'}, string: 'x',
   json_boolean: {$json: true}, boolean: true,

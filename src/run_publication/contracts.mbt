@@ -1082,7 +1082,13 @@ pub fn seal_publication_contract(
     return Err(InvalidLimits)
   }
   let body = match
-    parse_contract_wire(body_wire, max_wire_bytes, max_nodes - 1, max_depth) {
+    parse_contract_wire(
+      body_wire,
+      max_wire_bytes,
+      max_nodes - 1,
+      max_depth,
+      data_keys=name == "captured_run",
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -1141,7 +1147,13 @@ pub fn admit_publication_contract(
     None => return Err(UnknownContract)
   }
   let complete = match
-    parse_contract_wire(complete_wire, max_wire_bytes, max_nodes, max_depth) {
+    parse_contract_wire(
+      complete_wire,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      data_keys=name == "captured_run",
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

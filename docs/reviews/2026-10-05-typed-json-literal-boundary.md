@@ -107,6 +107,28 @@ runtime execution. Read-only literal/vector, Workers/Node fixture, canonical,
 owned-version and document-family validators passed. Exact-SHA packed results
 and tarball digests belong in the PR validation record after execution.
 
+The third packed attempt at `0e1b87d05e356abed132ef0fb2acfc6ee39ed937`
+passed the README Local/HTTPS controls, then failed while publishing the first
+typed JSON Result (`run-9GYM9M`, `public-query-evidence-WeTsCy`). The existing
+Captured Run issuer and contract restoration normalized a decoded JSON data
+key again, invalidating the retained Result identity. Those boundaries now use
+the same strict preserving parser as checked Plan identities. An independent
+decomposed-key logical CID anchors the issue/restore regression (9/9,
+`run-tzNg8Z`); duplicate rejection and all other contract checks remain active.
+The SDK now verifies the Result serialization profile against the generated
+common wire-law pin. SDK description, literal-contract and preparation tests
+passed 8/8 (`run-ytH2Eh`).
+
+The real installed Host diagnostic passed both all-root and empty-Result cases
+(`run-Xvd7tt`), including ordered complete contracts from Result.describe().
+It used the changed release bridge and source adapters, with the unchanged
+DuckDB native dependency borrowed from the earlier Delta packed installation.
+This is deliberately not recorded as clean new-SHA packed evidence. The test
+is registered in the ordinary distribution-client job. A prior focused attempt
+ran out of disk (`run-Z4BwiL`) and did not establish a test result; completed
+regenerable native/Wasm check outputs were reclaimed while evidence and the
+release bridge were preserved.
+
 Remaining: A/C reviews, final-SHA packed Local/HTTPS, Wasm/Native runtime
 execution and CI. The separate Frontend branch must emit this structured leaf
 and compare a complete independently authored Program. The Delta branch must
