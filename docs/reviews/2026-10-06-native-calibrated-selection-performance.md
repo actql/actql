@@ -1,8 +1,8 @@
 # Native calibrated selection performance
 
-G owns this second performance unit. The dependency is #493, fixed at
-`7b48ed3140b05c906c6c5f875712bc4bd81f3dfd`. The final target is main; while that
-parent is unmerged, the PR keeps its parent branch as base.
+G owns this second performance unit. The dependency #493, fixed at
+`7b48ed3140b05c906c6c5f875712bc4bd81f3dfd`, was merged into main as
+`5d52b3a970984f3cdad554b9030a0c25fa8ac887`. The final target and PR base are main.
 
 ## Connection contract
 
@@ -73,3 +73,64 @@ No full Core, packed or performance matrix is needed for this one-case unit.
 The larger Native/Broad public acceptance, physical-memory bounds and #412's
 actual isolated-image mutations/restoration/final-consumer acceptance remain
 separate. Observation or profile admission alone does not complete #170.
+
+## First measured result: improvement not established
+
+The clean experiment revision was
+`957fa714d8d4f571621bf83b61b36a5c7ebd46ba`. Its Native compilation inputs were
+unchanged from #493's fixed source above; the owned copied binary retains that
+compiled-source identity and digest, rather than claiming a new Native build.
+Seven imported JS release modules were built at the experiment revision. The
+combined release artifact digest was
+`497ee70fd6b88a04977fa6e01340a19315a46c4c3747e08b232848461a483fb5`.
+
+Three training rounds and the held-out choice completed. Actual measured rates
+were Local `[2,2,2]`, fresh DuckDB `[17,55,16]`, and resident `[4,3,7]` ms;
+resident preparation/cleanup were `10/2` ms and measured producer imports
+`[2,2,Unknown,Unknown]` ms. The ordinary planner chose Local for all three tasks.
+The existing calibrated direct-pair smoke passed. All seven measured pairs
+passed independent equivalent-obligation admission and the unchanged applicable
+small-case warm/cold comparator gates. Before/after observed physical attempts
+were five/three; the retained Owner admission still checks the environment/import
+correspondence, holding and exact release. No final attempt-equality assertion
+was simply removed.
+
+| Boundary (after minus before) | Mean difference | 95% paired interval | Result |
+| --- | ---: | ---: | --- |
+| Preparation through child exit | +0.209 ms | -20.784 to +34.946 ms | Indeterminate |
+| Cycle including profile qualification | +20.033 ms | -3.931 to +56.222 ms | Indeterminate |
+| Physical execution | -14.060 ms | -23.859 to +1.213 ms | Indeterminate |
+| Within-Run warm interval | -14.400 ms | -16.310 to -12.289 ms | Pass for this interval only |
+| Physical cleanup | -2.077 ms | -2.760 to -1.450 ms | Pass for this interval only |
+
+Profile qualification averaged `19.824` ms per calibrated pair. Offline
+calibration plus initial qualification took `16,332.922` ms; no break-even count
+is reported because whole-cycle improvement was not established. One after leg
+took `193.715` ms versus `78.401–108.281` ms in the other six. That sample remains
+included; these observations do not establish its cause or justify dropping it.
+The seven-pair campaign is not repeated to obtain a favorable interval.
+
+The next investigation is the repeated full-profile qualification and the
+preparation/process interval outside task execution. Any change must preserve
+the original observations and exact revision/binary/fixture binding. An admitted
+input must not become a caller-declared success or permit changed bytes to reuse
+an earlier admission. A matched comparison after a concrete change remains
+required. Faster warm execution alone does not complete the performance task.
+
+Local evidence (not GitHub CI):
+
+- Selected JS build: `_build/local-checks/attempts/run-oSWnn0`.
+- Calibration: `run-avFwsZ`; raw `_build/repro/calibration-957fa714d.json`,
+  `sha256:77551a1775d3b2d34d135eb1c36dd23f2c3fa044da495708662e58e3d8aa119c`.
+- Calibrated smoke: `run-qLnM0j`.
+- Seven-pair comparison: `run-weaYID`; raw
+  `_build/repro/comparison-957fa714d.json`,
+  `sha256:52d5c4a5517591dd3ea20c47f3c6e8953395b226f5f72d687b4e414f977758cc`.
+- `_build/repro/artifacts-957fa714d.json` binds commands, receipts, compiled
+  source, experiment revision and artifact digests. These remain evidence for
+  the experiment revision, including after this documentation is committed.
+
+No full Core, packed, cross-target or performance matrix was run. The earlier
+Draft push's automatic CI stopped before its selector could execute because of
+GitHub payments/spending-limit failure; it is neither runtime acceptance nor a
+product failure. The PR remains Draft and performance improvement remains open.
