@@ -92,6 +92,7 @@ priv struct PoolState {
   mut run_end : Int
   mut merge_index : Int
   mut compare_index : Int
+  mut key_comparison : @value.BoundedKeyComparison?
   mut copy_index : Int
   mut duplicate_index : Int
   mut group_start : Int
@@ -106,7 +107,11 @@ priv struct PoolState {
 }
 
 ///|
+/// Retain a private state alias for ownership fixtures; the Session remains
+/// the sole execution and cleanup authority.
+#warnings("-unused_field")
 struct PoolExecution {
+  state : PoolState
   session : @bounded.Session[PoolState, @records.Completed, PoolIssue]
   mut token : @bounded.Token?
   max_noninterruptible_value_nodes : Int
@@ -352,9 +357,10 @@ fn validate_pool_group(state : PoolState) -> Result[Unit, PoolIssue] {
   guard state.group_values[state.group_probe] is Some(value) else {
     return Err(InvalidPoolGroup(state.record))
   }
-  match @value.compare_key_values(value, value) {
-    Ok(_) => ()
-    Err(issue) => return Err(PoolKeyOrder(issue))
+  match compare_pool_values(state, value, value) {
+    Ok(None) => return Ok(())
+    Ok(Some(_)) => ()
+    Err(issue) => return Err(issue)
   }
   state.collected_groups.push(value)
   state.group_probe += 1
@@ -370,9 +376,10 @@ fn validate_pool_identity(state : PoolState) -> Result[Unit, PoolIssue] {
   guard state.identity_values[state.identity_probe] is Some(value) else {
     return Err(InvalidPoolIdentity(state.record))
   }
-  match @value.compare_key_values(value, value) {
-    Ok(_) => ()
-    Err(issue) => return Err(PoolKeyOrder(issue))
+  match compare_pool_values(state, value, value) {
+    Ok(None) => return Ok(())
+    Ok(Some(_)) => ()
+    Err(issue) => return Err(issue)
   }
   if !state.encode_member_identity {
     state.collected_identities.push(value)
@@ -532,11 +539,32 @@ fn emit_pool_merge(state : PoolState, take_left : Bool) -> Unit {
 }
 
 ///|
+/// Resume one typed comparison unit without copying the borrowed key values.
+/// The phase and key indices stay fixed until the common cursor completes.
 fn compare_pool_values(
+  state : PoolState,
   left : @value.CheckedValue,
   right : @value.CheckedValue,
-) -> Result[Int, PoolIssue] {
-  @value.compare_key_values(left, right).map_err(issue => PoolKeyOrder(issue))
+) -> Result[Int?, PoolIssue] {
+  let active = match state.key_comparison {
+    Some(value) => value
+    None => {
+      let value = match @value.start_bounded_key_comparison(left, right) {
+        Ok(value) => value
+        Err(issue) => return Err(PoolKeyOrder(issue))
+      }
+      state.key_comparison = Some(value)
+      value
+    }
+  }
+  match @value.advance_bounded_key_comparison(active, 1) {
+    Ok(@value.KeyComparisonContinue(_)) => Ok(None)
+    Ok(@value.KeyComparisonComplete(order~, ..)) => {
+      state.key_comparison = None
+      Ok(Some(order))
+    }
+    Err(issue) => Err(PoolKeyOrder(issue))
+  }
 }
 
 ///|
@@ -556,10 +584,12 @@ fn compare_pool_group(state : PoolState) -> Result[Unit, PoolIssue] {
   }
   let comparison = match
     compare_pool_values(
+      state,
       state.records[state.left_index].groups[state.compare_index],
       state.records[state.right_index].groups[state.compare_index],
     ) {
-    Ok(value) => value
+    Ok(Some(value)) => value
+    Ok(None) => return Ok(())
     Err(issue) => return Err(issue)
   }
   if comparison < 0 {
@@ -588,10 +618,12 @@ fn compare_pool_identity(state : PoolState) -> Result[Unit, PoolIssue] {
   }
   let comparison = match
     compare_pool_values(
+      state,
       state.records[state.left_index].identities[state.compare_index],
       state.records[state.right_index].identities[state.compare_index],
     ) {
-    Ok(value) => value
+    Ok(Some(value)) => value
+    Ok(None) => return Ok(())
     Err(issue) => return Err(issue)
   }
   if comparison < 0 {
@@ -661,10 +693,12 @@ fn check_pool_duplicate(state : PoolState) -> Result[Unit, PoolIssue] {
   }
   let comparison = match
     compare_pool_values(
+      state,
       state.records[state.duplicate_index - 1].identities[state.compare_index],
       state.records[state.duplicate_index].identities[state.compare_index],
     ) {
-    Ok(value) => value
+    Ok(Some(value)) => value
+    Ok(None) => return Ok(())
     Err(issue) => return Err(issue)
   }
   if comparison == 0 {
@@ -694,10 +728,12 @@ fn find_pool_group_end(state : PoolState) -> Result[Unit, PoolIssue] {
   }
   let comparison = match
     compare_pool_values(
+      state,
       state.records[state.group_start].groups[state.compare_index],
       state.records[state.group_end].groups[state.compare_index],
     ) {
-    Ok(value) => value
+    Ok(Some(value)) => value
+    Ok(None) => return Ok(())
     Err(issue) => return Err(issue)
   }
   if comparison == 0 {
@@ -1098,6 +1134,7 @@ fn cleanup_pool_state(state : PoolState) -> Bool {
   state.source_vector = None
   state.pooled_vector = None
   state.fold = None
+  state.key_comparison = None
   true
 }
 
@@ -1225,6 +1262,7 @@ fn start_pool_carrier_source(
     run_end: 0,
     merge_index: 0,
     compare_index: 0,
+    key_comparison: None,
     copy_index: 0,
     duplicate_index: 1,
     group_start: 0,
@@ -1241,6 +1279,7 @@ fn start_pool_carrier_source(
     control, state, pool_step, cleanup_pool_state, @records.discard_completed,
   )
   Ok({
+    state,
     session,
     token: Some(token),
     max_noninterruptible_value_nodes: limits.max_value_nodes,
@@ -1494,6 +1533,7 @@ pub fn start_relation_pool(
     run_end: 0,
     merge_index: 0,
     compare_index: 0,
+    key_comparison: None,
     copy_index: 0,
     duplicate_index: 1,
     group_start: 0,
@@ -1510,6 +1550,7 @@ pub fn start_relation_pool(
     control, state, pool_step, cleanup_pool_state, @records.discard_completed,
   )
   Ok({
+    state,
     session,
     token: Some(token),
     max_noninterruptible_value_nodes: limits.max_value_nodes,

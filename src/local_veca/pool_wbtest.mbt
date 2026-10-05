@@ -1,15 +1,36 @@
 ///|
-fn pool_relation_carrier() -> @carrier.Carrier {
+fn pool_relation_carrier(
+  text_keys? : Bool = false,
+  text_group? : Bool = false,
+) -> @carrier.Carrier {
   @carrier.relation(
     @carrier.rows(
       [
         (
           @schema.Unqualified("id"),
-          Some(@contract.primitive(@contract.NumberType, nullable=false)),
+          Some(
+            @contract.primitive(
+              if text_keys {
+                @contract.StringType
+              } else {
+                @contract.NumberType
+              },
+              nullable=false,
+            ),
+          ),
         ),
         (
           @schema.Unqualified("group"),
-          Some(@contract.primitive(@contract.NumberType, nullable=false)),
+          Some(
+            @contract.primitive(
+              if text_keys || text_group {
+                @contract.StringType
+              } else {
+                @contract.NumberType
+              },
+              nullable=false,
+            ),
+          ),
         ),
         (
           @schema.Unqualified("embedding"),
@@ -24,13 +45,16 @@ fn pool_relation_carrier() -> @carrier.Carrier {
 }
 
 ///|
-fn pool_producer_owner() -> @lower.BoundPrepared {
+fn pool_producer_owner(
+  text_keys? : Bool = false,
+  text_group? : Bool = false,
+) -> @lower.BoundPrepared {
   bind(
     @pipeline.check_carriers(
       cursor(
         "[{\"from\":\"rows\",\"to_vectors\":{\"id\":\"id\",\"vector\":\"embedding\"}}]",
       ),
-      [("rows", pool_relation_carrier())],
+      [("rows", pool_relation_carrier(text_keys~, text_group~))],
       None,
       None,
       {
