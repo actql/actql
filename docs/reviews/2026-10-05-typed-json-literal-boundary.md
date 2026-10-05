@@ -199,3 +199,26 @@ merge-tree observations, not clean new-SHA packed or CI execution evidence.
 Prior packed records above retain their original source SHAs. Integrated
 source/digest-bound public acceptance and A/C boundary review remain distinct
 obligations; no merge is requested by this integration record.
+
+## Shared-boundary coordination and packed selector follow-up
+
+The 2026-10-06 coordination keeps Model original-wire preservation, cancellation
+and recovery terminal decisions with D/A, Effect value/request/hook/Ledger work
+with H, expression progress/holding/work with A, and pin integration with dot
+and the applicable contract owners. B does not add competing repairs to these
+units. The existing checked-response restoration change in
+`model_execution/restored_capture.mbt::begin_restored_model_response` uses
+`wire=true`; it consumes the common typed response wire, not the provider's
+original Model wire. D/A should review this distinction when integrating #465.
+A/C boundary review of #463 remains unclaimed.
+
+At clean stacked-child `8c70aec7f080eee4acd16cb6e6fd4f415db3fd82`, normal pack
+completed but public acceptance stopped at its first selector guard
+(`run-Rnh9wy`, `public-query-evidence-mSzRSh`, command 001). The guard assumed
+that the combined analytic selection was the first ternary branch. Adding JSON
+selection ahead of it invalidated that textual assumption; the analytic cases
+and independent contracts were still present. The guard now locates that
+selection within the full chain, asserts its boundaries and retains all case
+and mutable-state assertions. No corpus, capacity or Result expectation changed.
+Focused Node profile/selector checks passed 11/11 (`run-sDjExB`,
+`focused-test-VYXeRc`). The stopped packed attempt is not execution acceptance.
