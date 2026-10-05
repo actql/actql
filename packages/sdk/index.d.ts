@@ -24,7 +24,12 @@ export type CheckOutcomeExplanation = Readonly<{summary: string; hint: string}> 
   Readonly<{outcome: 'unavailable'; correlationRef: string;
     problem: Readonly<{kind: 'known' | 'unknown'; code: string}>}>);
 /** Safe presentation of a schema-admitted outcome; no input association or execution authority. */
-export declare function explainCheckOutcome(outcome: unknown): CheckOutcomeExplanation | undefined;
+export type CheckExplanationOptions = Readonly<{locale?: string}>;
+/** The selected translation revision, separate from reason/outcome schema identity. */
+export declare function getCheckPresentationInfo(options?: CheckExplanationOptions):
+  Readonly<{locale: 'en' | 'ja'; translationRevision: string}>;
+export declare function explainCheckOutcome(outcome: unknown,
+  options?: CheckExplanationOptions): CheckOutcomeExplanation | undefined;
 export type CheckInput = Readonly<{documentId: string; revision: string}> & (
   Readonly<{kind: 'text'; text: string}> | Readonly<{kind: 'structured'; value: unknown}>);
 /** Available only for the exact response of this SDK check call. */
@@ -108,7 +113,8 @@ export declare function resolveCheckTextRange(outcome: CheckOutcome,
       end: Readonly<{line: number; character: number}>;
     }>;
   }>) | undefined;
-export declare function explainCheckReason(reason: Readonly<{code: string; facts?: unknown}>):
+export declare function explainCheckReason(reason: Readonly<{code: string; facts?: unknown}>,
+  options?: CheckExplanationOptions):
   Readonly<{kind: 'known' | 'unknown'; summary: string; hint?: string}>;
 
 type ConnectedEndpoint = Readonly<{

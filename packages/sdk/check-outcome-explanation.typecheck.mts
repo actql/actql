@@ -1,4 +1,19 @@
-import {explainCheckOutcome, type CheckOutcome} from '@actql/sdk';
+import {explainCheckOutcome, explainCheckReason, getCheckPresentationInfo,
+  type CheckExplanationOptions, type CheckOutcome} from '@actql/sdk';
+
+const language: CheckExplanationOptions = {locale: 'ja'};
+const translated = explainCheckOutcome({} as CheckOutcome, language);
+const info = getCheckPresentationInfo(language);
+const locale: 'en' | 'ja' = info.locale;
+const translationRevision: string = info.translationRevision;
+void translated; void locale; void translationRevision;
+explainCheckReason({code: 'parameter_value_required'}, language);
+// @ts-expect-error Translation metadata does not confer permission.
+info.next.operation;
+// @ts-expect-error Translation selection is immutable metadata.
+info.locale = 'en';
+// @ts-expect-error Locale options do not alter the submitted input or scope.
+explainCheckOutcome({} as CheckOutcome, {locale: 'ja', scope: 'template'});
 
 declare const outcome: CheckOutcome;
 const explanation = explainCheckOutcome(outcome);

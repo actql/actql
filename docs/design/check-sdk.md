@@ -1050,3 +1050,35 @@ CID syntax, and the generated consumer guard compares the value with the
 registered expected CID; the CID preimage does not contain its own constant.
 Missing/foreign pins fail contract validation. No old execution or adapter
 path supplies a successful fallback.
+
+### Check explanation locales
+
+`explainCheckOutcome` and `explainCheckReason` accept optional presentation
+options with `locale`. English is the safe default; `ja` and `ja-JP` select
+the current Japanese translations. Unknown locale selections and exceptions
+while reading the locale select English. Missing or malformed translation
+entries use the existing safe English words. No remote catalog, callback or
+template interpolation is accepted.
+
+`getCheckPresentationInfo` exposes the selected locale and its immutable
+translation revision, separately from reason/outcome schema CIDs and report
+context/revisions. Changes to message words advance that translation revision
+separately from semantic schema identities. Translation data only replaces
+summary and hint. The
+schema-admitted outcome selects its own branch and verdict; optional reports,
+Problem references, unknown/known code classification, source position custody
+and Requirement frontiers retain their existing meanings. A malformed outcome
+remains uninterpretable even when a translation is available.
+The renderer captures its observation fields before reading application-owned
+locale options. A synchronous locale getter cannot substitute another verdict,
+scope/context, partial report, Problem code or correlation in a copied value's
+explanation. This is an immutable presentation snapshot, not input custody or
+a claim that the application-owned copy itself cannot change.
+
+Rendering performs no check, execution, cancellation, recovery or other I/O.
+The hints confer no action permission and contain no submitted values, raw
+causes or hidden Source inventory. Original inputs remain only in the existing
+per-call association; a copy or stale revision cannot resolve a position.
+This SDK presentation addition does not change wire contracts or identities,
+Host retention or Owner boundaries. It establishes the selected check locale
+path, not complete CLI/IDE/agent rendering or cumulative diagnostics coverage.

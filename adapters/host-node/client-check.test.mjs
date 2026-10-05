@@ -1273,6 +1273,132 @@ const emptyEnvironment = JSON.parse(await readFile(join(repository,
 const absentEnvironment = withPolicy(emptyEnvironment, sourceEnvironment.host_policy_profile);
 
 for (const entrance of ['local', 'http']) {
+  test(`${entrance}: check locales retain protected equivalence and frontier`, async t => {
+    const clients = [
+      await contextClient(t, entrance, absentEnvironment),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'deny'}),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'allow', closed: true}),
+    ];
+    const outcomes = [];
+    for (const client of clients) {
+      const outcome = await client.check('SELECT id FROM records WHERE amount >= @p', {
+        format: 'sql', parameterDeclarations: {p: {type: 'number'}},
+        parameters: {p: 'secret-locale-value'},
+      });
+      assert.equal(outcome.outcome, 'completed');
+      assert.equal(outcome.report.verdict, 'invalid');
+      assert.equal(outcome.report.reasons[0].code, 'supplied_value_type_mismatch');
+      assert.deepEqual(outcome.report.coverage.unresolved, protectedSource);
+      for (const locale of ['en', 'ja', 'fr']) {
+        const explanation = sdk.explainCheckOutcome(outcome, {locale});
+        const reason = sdk.explainCheckReason(outcome.report.reasons[0], {locale});
+        assert.equal(explanation.report.verdict, 'invalid');
+        assert.equal(reason.kind, 'known');
+        assert.equal(JSON.stringify([explanation, reason]).includes('secret-locale-value'), false);
+      }
+      assert.deepEqual(sdk.explainCheckReason({code: 'unresolved_protected'}, {locale: 'ja'}),
+        {kind: 'known', summary: '開示された文脈ではSource解決を確定できません。',
+          hint: 'Sourceまたは検査文脈の管理者に公開文脈の確認を依頼してください。'});
+      outcomes.push(outcome);
+    }
+    for (const outcome of outcomes.slice(1)) {
+      assert.deepEqual(outcome, outcomes[0], '[check-mutation:check-locale-disclosure]');
+      for (const locale of ['en', 'ja', 'fr']) {
+        assert.deepEqual(sdk.explainCheckOutcome(outcome, {locale}),
+          sdk.explainCheckOutcome(outcomes[0], {locale}));
+      }
+    }
+    const missing = await clients[0].check('SELECT @p AS n', {format: 'sql',
+      parameterDeclarations: {p: {type: 'number'}}, parameters: {}});
+    const frontier = sdk.getCheckRequirementFrontier(missing);
+    for (const locale of ['en', 'ja', 'fr']) {
+      sdk.explainCheckOutcome(missing, {locale});
+      sdk.explainCheckReason(missing.report.requirements[0], {locale});
+      assert.deepEqual(sdk.getCheckRequirementFrontier(missing), frontier);
+    }
+  });
+
+  test(`${entrance}: check locales preserve observations and safe fallback`, async t => {
+    let requests = 0;
+    const client = await contextClient(t, entrance, absentEnvironment, {
+      mutateCheckTransportReply(outcome) { requests++; return outcome; },
+    });
+    const words = ({summary, hint}) => ({summary, ...(hint === undefined ? {} : {hint})});
+    const control = ({summary, hint, ...rest}) => rest;
+    const cases = [
+      ['/*😀*/\r\nSELECT', {}, 'invalid', 'query_syntax_invalid',
+        '検査範囲内の入力違反が確認されました。',
+        {kind: 'known', summary: 'クエリの構文が不正です。',
+          hint: '位置が示されている場合は、その位置のクエリ構文を修正してください。'}],
+      ['SELECT @p AS n', {}, 'invalid', 'parameter_undeclared',
+        '検査範囲内の入力違反が確認されました。',
+        {kind: 'known', summary: 'クエリが未宣言のパラメータを参照しています。',
+          hint: 'パラメータを宣言するか参照を修正してください。値を渡すだけでは宣言になりません。'}],
+      ['SELECT @p AS n', {parameterDeclarations: {p: {type: 'number'}},
+        parameters: {p: 'secret-locale-value'}}, 'invalid', 'supplied_value_type_mismatch',
+        '検査範囲内の入力違反が確認されました。',
+        {kind: 'known', summary: '渡された値の型が宣言と一致しません。',
+          hint: '宣言された型の値を渡してください。'}],
+      ['SELECT @p AS n', {parameterDeclarations: {p: {type: 'number'}}, parameters: {}},
+        'undetermined', 'parameter_value_required',
+        '検査範囲内では、検証成功も確定した入力違反も判断できません。',
+        {kind: 'known', summary: '宣言されたパラメータの値が不足しています。',
+          hint: '宣言された値を補い、束縛された入力全体を再検査してください。'}],
+      ['SELECT 1 AS n', {}, 'verified', undefined,
+        'この報告が検証するのは、束縛された検査範囲と文脈だけです。'],
+    ];
+    for (const [text, options, verdict, code, summary, reasonExplanation] of cases) {
+      const outcome = await client.check(text, {format: 'sql', ...options});
+      const count = requests;
+      const original = JSON.stringify(outcome);
+      assert.equal(outcome.report.verdict, verdict);
+      const english = sdk.explainCheckOutcome(outcome);
+      const japanese = sdk.explainCheckOutcome(outcome, {locale: 'ja'});
+      assert.deepEqual(control(japanese), control(english), '[check-mutation:check-locale-control]');
+      if (code === 'query_syntax_invalid') {
+        const expected = {summary: 'The report establishes an input violation in its checking scope.',
+          hint: 'Review the disclosed reasons and correct the submitted revision where indicated.'};
+        const brokenLocale = {get locale() { throw new Error('private locale failure'); }};
+        for (const locale of [{locale: 'fr'}, {locale: 'ja-unknown'}, brokenLocale]) {
+          assert.deepEqual(words(sdk.explainCheckOutcome(outcome, locale)), expected,
+            '[check-mutation:check-locale-fallback]');
+        }
+        assert.equal(outcome.report.reasons[0].location.start_byte, 16);
+        assert.equal(outcome.report.reasons[0].location.end_byte, 16);
+      }
+      assert.equal(japanese.summary, summary, '[check-mutation:check-locale-presentation]');
+      assert.deepEqual(sdk.explainCheckOutcome(outcome, {locale: 'ja-JP'}), japanese);
+      const reason = [...outcome.report.reasons, ...outcome.report.requirements]
+        .find(value => value.code === code);
+      if (reason) {
+        const originalLocation = reason.location && resolveCheckLocation(outcome, reason.location);
+        const localized = sdk.explainCheckReason(reason, {locale: 'ja'});
+        assert.deepEqual(localized, reasonExplanation, '[check-mutation:check-locale-reason]');
+        assert.deepEqual(control(localized), control(sdk.explainCheckReason(reason)));
+        assert.equal(Object.hasOwn(localized, 'next'), false);
+        if (reason.location) assert.deepEqual(resolveCheckLocation(outcome, reason.location), originalLocation);
+      }
+      assert.equal(Object.hasOwn(japanese, 'next'), false);
+      assert.equal(JSON.stringify(japanese).includes('secret-locale-value'), false);
+      assert.equal(JSON.stringify(outcome), original);
+      assert.equal(requests, count, 'Presentation performs no additional check or execution I/O');
+      assert.deepEqual(sdk.getCheckPresentationInfo({locale: 'ja'}),
+        {locale: 'ja', translationRevision: '2026-10-06.ja.1'});
+    }
+    const declarations = Object.fromEntries(Array.from({length: 512}, (_, i) =>
+      [`p${String(i).padStart(3, '0')}`, {type: 'number'}]));
+    const failed = await client.check('SELECT 1 AS n', {format: 'sql',
+      parameterDeclarations: declarations, parameters: {}});
+    assert.equal(failed.outcome, 'failed');
+    const explanation = sdk.explainCheckOutcome(failed, {locale: 'ja'});
+    assert.equal(explanation.summary, '報告用の予算内では、束縛された検査報告全体を作成できませんでした。');
+    assert.deepEqual(control(explanation), control(sdk.explainCheckOutcome(failed)));
+    assert.equal(explanation.correlationRef, failed.correlation_ref);
+    assert.equal(Object.hasOwn(explanation, 'report'), false);
+    assert.equal(Object.hasOwn(explanation, 'next'), false);
+    assert.equal(getCheckInput(structuredClone(failed), 'source'), undefined);
+  });
+
   test(`${entrance}: default type violations retain declaration input and the owned leaf type`, async t => {
     const client = await contextClient(t, entrance, absentEnvironment);
     const cases = [
