@@ -52,7 +52,7 @@ import {createDiagnosticObserver} from
   '../host-common/diagnostic-observer.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
-import {installNodeClientDispatchOwner, confirmNodeRunCancellation,
+import {installNodeClientDispatchOwner, confirmNodeRunCancellation, cancelNodeRunContinuation,
   observeNodeRestoredModelStop, recordNodeRunPhysicalStop} from './client-dispatch-owner.mjs';
 import {createInstalledHostShutdown,
   retainInstalledHostInitializationFailure} from
@@ -515,14 +515,16 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     }
     throw new Error('RunStateObservationUnstable');
   };
-  const cancelEffectContinuation = ref => {
+  const cancelEffectContinuation = async ref => {
     if (checkpoints === undefined) return false;
     const retained = journal.lookupRunDefinition(ref, moon, control);
     if (retained === undefined || !retained.cancellationRequested) {
       return false;
     }
-    const runId = control.runDefinitionRunId(retained.runDefinition);
-    return checkpoints.cancelEffectContinuation(runId, ref.runDefinitionCid);
+    return cancelNodeRunContinuation({ref, journal, store, checkpoints, moon, control,
+      currentDispatchIdle: () => dispatchOwner.operation(ref) === undefined &&
+        !effectResumeFlights.has(ref.runDefinitionCid) &&
+        !modelResumeFlights.has(ref.runDefinitionCid)});
   };
   const cancel = async ({ref, principalId: actual, connection}) => {
     if (!hostConnection({principalId: actual, connection, ref})) {
@@ -547,7 +549,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     }, moon, control);
     if (accepted.kind !== 'already_terminal') {
       dispatchOwner.cancel(ref);
-      cancelEffectContinuation(ref);
+      await cancelEffectContinuation(ref);
       void checkpoints?.sweep();
     }
     return accepted;
@@ -1731,7 +1733,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
         const key = view.runDefinitionCid;
         const ref = Object.freeze({namespaceId, authorityScopeCid,
           runDefinitionCid: key});
-        if (cancelEffectContinuation(ref)) {
+        if (await cancelEffectContinuation(ref)) {
           busy = true;
         }
         const runStatus = checkpoints.journal.getRunState(view.runId)?.status;
@@ -1994,7 +1996,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           const unresolved = checkpoints.journal.hasUnresolvedModelCalls(runId);
           if (retained.cancellationRequested) {
             checkpoints.journal.fenceRunCancellation({originalRunWire: record.originals.originalRunWire});
-            cancelEffectContinuation(ref);
+            await cancelEffectContinuation(ref);
             if (unresolved) busy = true;
             continue;
           }

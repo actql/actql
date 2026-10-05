@@ -175,6 +175,12 @@ const authorization = {accountConfiguration, checkpointTtlMs, leaseMs: 1000,
     observations.push({name, detail});
   },
   async faultInjection(name, detail) {
+    if (phase === 'cancel-before-stop' && name === 'infer_waiting_checkpoint') {
+      while (run === undefined) await new Promise(resolve => setImmediate(resolve));
+      await run.cancel();
+      await run.cancel();
+      save('cancel-before-stop-observation.json', await run.status());
+    }
     if ((phase === 'approve-crash-saved' || phase === 'immediate-crash-saved') &&
         name === 'infer_model_settlement_committed' && detail.slot === 0) crash(name, detail);
     if (phase === 'approve-crash-response' &&

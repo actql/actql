@@ -46,6 +46,22 @@ export async function confirmNodeRunCancellation(facts) {
   return (await collectNodeRunStop(facts)).cancelled;
 }
 
+export async function cancelNodeRunContinuation({currentDispatchIdle, ...facts}) {
+  if (typeof currentDispatchIdle !== 'function' || !currentDispatchIdle()) return false;
+  const retained = facts.journal.lookupRunDefinition(facts.ref, facts.moon, facts.control);
+  // A waiting Checkpoint may be visible before its producer has reclaimed
+  // its temporary resources. Require the persisted stop receipt as well as
+  // absence of a newer live or pending-cleanup owner; neither alone suffices.
+  if (retained?.physicalCloseConfirmed !== true ||
+      !await confirmNodeRunCancellation({...facts, physicalStopConfirmed: true,
+        cleanupConfirmed: true}) || !currentDispatchIdle() ||
+      facts.journal.lookupRunDefinition(facts.ref, facts.moon, facts.control)?.revision !== retained.revision) {
+    return false;
+  }
+  return facts.checkpoints.cancelEffectContinuation(
+    facts.control.runDefinitionRunId(retained.runDefinition), facts.ref.runDefinitionCid);
+}
+
 export async function observeNodeRestoredModelStop(facts) {
   return observeNodeRunStop(facts, {failureObserved: false});
 }
@@ -536,7 +552,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           // The fixed input and continuation have reached durable custody.
           // Stopping this physical owner is not a failed or cancelled Run;
           // the Checkpoint lifecycle remains authoritative for its next step.
-          entry.observeStopped = () => journal.markPhysicalClose(entry.ref, null);
+          entry.observeStopped = () => recordNodeRunPhysicalStop({ref: entry.ref,
+            journal, moon, control}, null);
           await step('infer_waiting_checkpoint', {ref: accepted.ref,
             checkpointCid: checkpoint.checkpointCid});
           await settleCleanup(entry);
@@ -552,7 +569,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           // The owner made all permitted progress and retained an entered
           // call without a saved response. Physical stop is not an ordinary
           // failure and cannot turn that call into a completed barrier.
-          entry.observeStopped = () => journal.markPhysicalClose(entry.ref, null);
+          entry.observeStopped = () => recordNodeRunPhysicalStop({ref: entry.ref,
+            journal, moon, control}, null);
           await step('infer_needs_reconciliation', {ref: accepted.ref});
           await settleCleanup(entry);
           await finishRun(entry);

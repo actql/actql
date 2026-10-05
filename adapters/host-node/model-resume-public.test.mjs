@@ -308,6 +308,22 @@ for (const transport of ['local', 'https']) {
     });
   }
 
+  test(`public Model ${transport}: waiting cancellation awaits the current physical stop`, async t => {
+    const f = await fixture(t, {transport});
+    const cancelled = f.phase('cancel-before-stop');
+    const beforeStop = f.read('cancel-before-stop-observation.json');
+    assert.equal(beforeStop.status, 'waiting_checkpoint');
+    assert.equal(beforeStop.control.cancellation_requested, true);
+    assert.equal(beforeStop.control.physical_stop, 'unknown');
+    assert.equal(cancelled.status, 'cancelled');
+    assertSends(f, []);
+    assert.equal(f.journal().fences.length, 1);
+    const replay = f.phase('resume');
+    assertSameRun(cancelled, replay);
+    assert.equal(replay.status, 'cancelled');
+    assertSends(f, []);
+  });
+
   test(`public Model ${transport}: cancellation of a waiting Run fences all sends across restart`, async t => {
     const f = await fixture(t, {transport});
     const waiting = f.phase('wait');

@@ -1,5 +1,53 @@
 # Standard Host Model approval: first vertical slice
 
+## Waiting cancellation at the physical-stop boundary
+
+The public waiting Checkpoint can precede its producer's physical stop. At
+clean `2cb9487148fbfe4cc8ab5204e5a26b399debdb23`, an independently authored
+Local/HTTPS fixture cancelled twice at `infer_waiting_checkpoint`, before the
+dispatch owner began reclamation. Both cases returned `cancelled` instead of
+the required `waiting_checkpoint` (`run-wge7tU`, zero passed, two failed).
+The product was the unchanged distribution from `model-cancellation-pack-SdIIy2`;
+only the new acceptance fixture was supplied separately. Its saved observations
+remain in `actql-public-model-resume-CGP1oL` and
+`actql-public-model-resume-QyZxIC` under `public-query-evidence-dgiaJj/artifacts`.
+This establishes a public Run failure, separately from the earlier Node doubles.
+
+The Host's cancellation RPC and both recovery sweeps now route this transition
+through `cancelNodeRunContinuation` and the existing common Run predicate.
+The connection requires a persisted physical-close receipt and no newer live,
+pending-cleanup or restoring dispatch. It rechecks both dispatch ownership and
+the request revision after asynchronous publication inspection. The existing
+Checkpoint owner still atomically excludes an entered continuation; no journal
+rule or lifecycle transition is relaxed. Waiting and unknown Model exits use
+the shared immutable physical-stop recorder as well.
+
+Source verification passed 32 Node boundary cases and four public Local/HTTPS
+waiting-cancellation/restart cases (`run-YrBams`). The public counterexample
+observes `waiting_checkpoint`, durable cancellation and `physical_stop: unknown`
+before cleanup, then `cancelled` after acknowledgement. Duplicate cancellation
+retains one Model fence, the same Run survives restart, and sends remain zero.
+The ordinary packed recovery inventory includes the two new cases; the focused
+approval selector remains a selector. The earlier 100-second diagnostic
+`run-5sAKfq` had an incorrectly forwarded filter and timed out; it is not a
+test success. The selected runner was corrected before `run-wge7tU`.
+
+The pre-dispatch restore audit found checked compilation, authorization and
+publication-evidence construction in `prepareSubmit`, `admitEffectDefinition`
+and `restoreComputation`; provider/Compute custody enters `dispatchOwner.track`.
+Private fixed-input reads use the existing continuation Store's own serialized
+open/read/close or retained-cleanup path. This is a call-site audit, not a claim
+of complete temporary-holder enumeration. A's review must distinguish those
+durable evidence responsibilities from the current dispatch's stop receipt.
+
+The read-only 25-second history diagnostic (`run-H7OYb7`) observed 1,022 Git
+commands, including 374 tree reads and 368 ordinary object reads. The full
+interval contains 1,604 revisions. It stopped during the introduction walk
+without a validator assertion; neither full-history validity nor the complete
+300-second timeout cause is established. The trace is
+`/private/tmp/actql-d-465-history-profile-20261006.json`. No validator or existing
+declaration was modified, and no timeout was extended.
+
 ## Cancellation and original-value boundary follow-up
 
 The live and restored Node adapters now collect revisioned observations for

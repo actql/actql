@@ -109,7 +109,7 @@ async ({root, directory, run, recordTarball}) => {
       env: {...runtimeEnv, ACTQL_MODEL_ACCEPTANCE_INPUTS: inputs}, timeout: 360000});
     const checked = assertTestExecution('node', process.execPath, args,
       {status: 0, stdout});
-    assert.equal(checked.counts.passed, approvalOnly ? 2 : 36,
+    assert.equal(checked.counts.passed, approvalOnly ? 2 : 38,
       'Both selected transports and every requested recovery case must execute');
     console.log(stdout.trimEnd());
   }

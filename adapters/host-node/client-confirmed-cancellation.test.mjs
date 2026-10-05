@@ -3,8 +3,36 @@ import test from 'node:test';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {installNodeClientDispatchOwner,
-  observeNodeRestoredModelStop, confirmNodeRunCancellation} from './client-dispatch-owner.mjs';
+  observeNodeRestoredModelStop, confirmNodeRunCancellation,
+  cancelNodeRunContinuation} from './client-dispatch-owner.mjs';
 const commonDecision = runtimeCore(moon).publicationControl.runCancellationConfirmed;
+
+for (const boundary of ['confirmed', 'current owner', 'stop receipt', 'owner race', 'revision race']) {
+  test(`waiting continuation cancellation checks ${boundary}`, async () => {
+    let idle = boundary !== 'current owner';
+    let retained = {cancellationRequested: true, revision: 1,
+      physicalCloseConfirmed: boundary !== 'stop receipt',
+      runDefinition: {wire: 'original'}};
+    const routed = [];
+    const cancelled = await cancelNodeRunContinuation({
+      ref: {runDefinitionCid: 'definition'}, currentDispatchIdle: () => idle,
+      journal: {lookupRunDefinition: () => retained,
+        lookupReconciliationState: () => undefined},
+      control: {runDefinitionRunId: () => 'run', runCancellationConfirmed: commonDecision},
+      checkpoints: {cancelEffectContinuation(runId, definition) {
+        routed.push([runId, definition]); return true;
+      }, journal: {discoverModelCallSets: () => [{}],
+        modelCancellationFenced: () => true, hasUnresolvedModelCalls: () => false}},
+      store: {async confirmCommittedIndex() {
+        if (boundary === 'owner race') idle = false;
+        if (boundary === 'revision race') retained = {...retained, revision: 2};
+        return undefined;
+      }},
+    });
+    assert.equal(cancelled, boundary === 'confirmed');
+    assert.deepEqual(routed, boundary === 'confirmed' ? [['run', 'definition']] : []);
+  });
+}
 
 // Terminal Host boundary with explicit journal/Store doubles. Each missing
 // fact is independent of the others; an AbortSignal is never cancellation
