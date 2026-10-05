@@ -1094,6 +1094,7 @@ pub fn start_bounded_nest(
       phase: -1,
       offset: 0,
       charge: { offset: 0, next: 0, remaining: 0, },
+      tree: None,
     },
     pending: { remaining: 0, },
     phase: ChargeInput,

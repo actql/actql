@@ -61,6 +61,66 @@ test('Set requires nested comparison boundary evidence for both operations', () 
   }
 });
 
+test('DISTINCT requires nested comparison limits, stop and public Store evidence', () => {
+  for (const suffix of ['quantum_order', 'stop_cleanup', 'workspace', 'work', 'public_barrier']) {
+    const role = `distinct_nested_compare_${suffix}`;
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === 'distinct');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`RelA distinct: selected ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'distinct');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'distinct_nested_compare_public_store');
+  }), /RelA distinct: nested DISTINCT public Store fixture is missing/u);
+});
+
+test('DISTINCT public evidence cannot lose its actual suite import', () => {
+  const file = join(root, 'adapters/host-node/embedded-installation.test.mjs');
+  const sources = Object.freeze({...sourceTemplate,
+    [file]: Object.freeze({...sourceTemplate[file],
+      text: sourceTemplate[file].text.replace(
+        "import './public-distinct-value-retention.test.mjs';", '')}),
+  });
+  const result = validateResourceAccounting({root, manifest: manifestTemplate,
+    routes: routesTemplate, sources});
+  assert.ok(result.errors.includes(
+    'RelA distinct: nested DISTINCT public fixture is not suite-connected'));
+});
+
+test('filter requires long expression limits, roots and public Store evidence', () => {
+  for (const suffix of ['limits', 'control', 'scan', 'root_stop', 'quantum']) {
+    const role = `filter_long_expression_${suffix}`;
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === 'filter');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`RelA filter: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'filter');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'filter_long_expression_public_store');
+  }), /RelA filter: expression comparison public Store fixture is missing/u);
+});
+
+test('filter public expression evidence requires an actual suite connection', () => {
+  const file = join(root, 'adapters/host-node/embedded-installation.test.mjs');
+  const sources = Object.freeze({...sourceTemplate,
+    [file]: Object.freeze({...sourceTemplate[file],
+      text: sourceTemplate[file].text.replace(
+        "import './public-expression-comparison-retention.test.mjs';", '')}),
+  });
+  const result = validateResourceAccounting({root, manifest: manifestTemplate,
+    routes: routesTemplate, sources});
+  assert.ok(result.errors.includes(
+    'RelA filter: expression comparison public fixture is not suite-connected'));
+});
+
 test('interval join requires stepped Text comparison boundary evidence', () => {
   for (const role of [
     'interval_long_text_compare_quantum_order',

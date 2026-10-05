@@ -5596,3 +5596,40 @@ Packed/HTTP and Wasm/native execution remain unverified for this unit. Other
 recursive comparator callers remain separate.
 See the [Set boundary record](2026-10-06-local-set-tree-comparison.md) and
 [retained capacity record](2026-10-06-local-retained-store-capacity.md).
+
+### DISTINCT recursive comparison boundary
+
+Whole-row DISTINCT now reuses the Set admitted-tree cursor during sorting and
+adjacent-row equality, instead of synchronously walking nested Array/Object/
+Vector values inside one poll. This splits actual comparison scanning, not
+value measurement. Focused JS tests preserve independent survivors, order,
+absent-versus-NULL behavior and logical work across quanta, exact/one-short
+comparison work and whole-operation workspace, and roots until confirmed stop
+and single cleanup.
+
+The ordinary installed retained Host runs Values -> DISTINCT -> derive ->
+Unnest -> select -> sort as one fused producer task, publishes literal ordered
+producer/two-consumer Results and reuses the same request without Compute.
+Cancellation is delivered at a kernel-certified nested UTF-16 scanning barrier;
+physical stop remains separate from the request and all Results stay unavailable
+on stop. The fused input is held by the completed-input owner, not a Store lease.
+Public whole-Ledger reservations, packed/HTTP and Wasm/native execution are not
+newly established. Other recursive comparators and expression scans remain
+separate. See the [DISTINCT boundary record](2026-10-06-local-distinct-tree-comparison.md).
+
+### Public retained expression scanning cancellation
+
+The long Text binary-comparison implementation was already stepped inside the
+expression frame. A new ordinary installed retained-Store Program now reads
+literal producer/two-consumer Named Results and delivers public cancellation
+inside its filter's actual UTF-16 scan. A matching core fixture certifies the
+third 256-work child quantum, roots and workspace through confirmed stop, and
+single cleanup without refunding work. Successful quanta one, seven and 256
+agree on results and cumulative work.
+
+The filter gate now requires the existing independent expression bounds, the
+new scan/root and quantum fixtures, and the public suite connection. Omitting
+any role or the actual suite import is rejected. This adds evidence, not a new
+comparison or Run owner. The runtime is unchanged from #517; whole-Run exact
+budgets, packed/HTTP, Wasm/native and other expression scans are not newly
+claimed. See the [public expression record](2026-10-06-local-expression-public-cancellation.md).
