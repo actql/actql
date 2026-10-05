@@ -138,3 +138,13 @@ fix to D's original-wire/cancellation work. Original wire custody and checked
 response restoration must remain distinct. H's Effect value comparisons,
 request identity, recovery hooks and Ledger cleanup are unchanged by this
 child. No expression scheduling/work or retained-capacity adjustment is made.
+
+## Integrated shared JSON dependency
+
+The normal merge of text parent `0ead90ef48d4d9b1e31ae66074a31a0514d86133`
+contains common `de15d6bb82cf3d1263a952ca79bbd4720a66d33f`. It retains the
+independently authored JSON Delta source/Program pair and exact expected property
+change from 7 to 8, while adopting the repaired JSON identity/admission/Store
+boundaries and regenerated contract closure. The branch stays based on #466
+until that parent is actually in main. No parent merge is implied by local or
+packed acceptance.

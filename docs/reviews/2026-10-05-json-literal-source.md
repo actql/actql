@@ -54,3 +54,13 @@ document imports and canonical vectors were regenerated from merged bodies.
 Previous packed acceptance remains evidence for its original clean source SHA.
 Integrated packed execution is recorded separately after the Delta child
 adopts this parent; no runtime output supplied the fixture expectations.
+
+## Shared exact-data integration
+
+The normal merge of common `de15d6bb82cf3d1263a952ca79bbd4720a66d33f`
+propagates the integrated JSON wire, exact data-key identity, Graph Delta
+admission and durable snapshot fixes. The two Values Run expectation conflicts
+are resolved from the independent preimage oracle. Both predecessor closures
+remain asserted; the text profile's current Run identity is
+`sha256:617c70dabd65509d4657e78b64f0a8682a6ff4113298b4a314324d64351ffc66`.
+The PR stays based on the common branch until that parent is actually in main.

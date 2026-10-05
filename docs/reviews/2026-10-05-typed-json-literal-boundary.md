@@ -222,3 +222,31 @@ selection within the full chain, asserts its boundaries and retains all case
 and mutable-state assertions. No corpus, capacity or Result expectation changed.
 Focused Node profile/selector checks passed 11/11 (`run-sDjExB`,
 `focused-test-VYXeRc`). The stopped packed attempt is not execution acceptance.
+
+## Exact JSON data at integrated storage boundaries
+
+The follow-up to published main integration `00521024` and shared head `8ae0866`
+retains the existing membership law, SDK checkpoint checks, selector guards and
+frozen predecessor vectors. It closes JSON data-key normalization at generated
+fragment identity, resumable Graph Delta admission and durable snapshot reload.
+Identifier admission remains separately normalized. Focused public cases include
+SQL NULL versus JSON null, all JSON roots, nested/double envelopes, composed and
+decomposed keys, CRLF strings, complete independently hashed Graph snapshots,
+capture to Store, and reopening the Store in a different process.
+
+The ordered-derive dependency now selects the integrated expression contract
+`sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67`.
+Its current CID is
+`sha256:2e29b27ce6d75b190ab34926bdc4fe4127b654da86f41f027470b3144082919a`,
+and the regenerated registry is
+`sha256:1513a0a6b1db1e5847fdb46b191a6f5d67cd806e1ba234843ac12f86f9f49b38`.
+Current independent preimages follow those dependencies; predecessor preimages
+remain fixed. The regression checks the expression dependency directly as well
+as the regenerated pins.
+
+Effect inventory, Preview and Outcome admission retain JSON payload bytes under
+the existing closed shapes and bounds. The three JavaScript installed Effect
+comparison/Outcome-serialization changes are a separate H-owned handoff and are
+not included here. Model original-wire, cancellation, recovery and Ledger changes
+remain with their designated owners. A/C review and full required CI remain
+separate from the focused execution evidence reported for the submitted SHA.
