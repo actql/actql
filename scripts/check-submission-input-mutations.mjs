@@ -11,7 +11,7 @@ const checkAcceptance = 'adapters/host-node/client-check.test.mjs';
 const expected = (phase, assertion = 'submission-input') => {
   if (phase === 'check-shape') {
     return [{name: 'local: check reply custody refuses uncloneable values and copied shape loss',
-      assertions: [{id: assertion, operator: 'rejects'}]}];
+      assertions: [{id: assertion, operator: 'strictEqual'}]}];
   }
   if (phase === 'check-custody') {
     return ['preserve original syntax inputs and positions',

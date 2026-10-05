@@ -1149,8 +1149,13 @@ test('local: check reply custody refuses uncloneable values and copied shape los
       assert.equal(validCheckOutcome(received), true);
       return received;
     }});
-    await assert.rejects(client.check('SELECT', {format: 'sql'}),
-      {code: 'InvalidHostCheckOutcome'}, '[check-mutation:check-copied-shape]');
+    let refused = false;
+    try { await client.check('SELECT', {format: 'sql'}); }
+    catch (cause) {
+      if (cause?.code !== 'InvalidHostCheckOutcome') throw cause;
+      refused = true;
+    }
+    assert.equal(refused, true, '[check-mutation:check-copied-shape]');
   }
 });
 
