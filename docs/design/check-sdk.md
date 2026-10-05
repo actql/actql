@@ -811,7 +811,9 @@ reference. Cancellation acceptance establishes no physical-stop, external
 Effect outcome or resource-release fact.
 
 Transport loss, malformed replies and differently bound replies retain an
-`outcome_unknown` explanation without a fabricated recorded revision. Changing
+`outcome_unknown` explanation without a fabricated recorded revision. An HTTP
+`Response` object returned through Local is also an invalid representation with
+an unknown cancellation outcome; its existing SDK error is preserved. Changing
 an error code/message or a returned response after the call does not change
 its bound explanation. Handwritten, parsed or copied objects have no SDK
 association. Local failures before the send boundary and typed Host refusals

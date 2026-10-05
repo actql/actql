@@ -433,7 +433,10 @@ async function connectSelected(selected, port) {
       catch { fail('InvalidClientPayload'); }
       try {
         const value = await port.perform(operation, request, signal);
-        if (value instanceof Response) fail('InvalidLocalHostPortResponse');
+        if (value instanceof Response) {
+          throw retainCancellationExplanation(new ClientError('InvalidLocalHostPortResponse'),
+            cancellationContext, 'outcome_unknown');
+        }
         return value;
       }
       catch (cause) {

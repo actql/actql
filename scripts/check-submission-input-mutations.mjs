@@ -65,6 +65,12 @@ const mutations = [
     'summary: summaries[observation],',
     'summary: result.cause?.message ?? summaries[observation],',
     'cancellation-unknown', 'cancel-unknown-explanation'],
+  ['local cancellation response-format failure loses uncertainty',
+    "        if (value instanceof Response) {\n" +
+    "          throw retainCancellationExplanation(new ClientError('InvalidLocalHostPortResponse'),\n" +
+    "            cancellationContext, 'outcome_unknown');\n        }",
+    "        if (value instanceof Response) fail('InvalidLocalHostPortResponse');",
+    'cancellation-unknown', 'cancel-unknown-explanation'],
 
 ];
 const accepted = (phase, assertion) => {

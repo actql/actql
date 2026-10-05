@@ -149,7 +149,8 @@ async function fixture(t, transport, loss, {physicalStart = false, terminal = fa
   };
   const alterReply = value => reply === 'foreign_ref'
     ? {...value, ref: {...value.ref, runDefinitionCid: cid('f')}}
-    : reply === 'malformed' ? {} : value;
+    : reply === 'malformed' ? {}
+    : reply === 'response_object' ? new Response('{}') : value;
   let pendingLoss = loss;
   if (transport === 'in-process') {
     const port = createNodeInProcessClientHost(options);
@@ -328,18 +329,22 @@ for (const transport of ['in-process', 'https']) {
       {phase: 'after-commit', committed: true},
       {reply: 'foreign_ref', committed: true},
       {reply: 'malformed', committed: true},
+      ...(transport === 'in-process' ? [{reply: 'response_object', committed: true}] : []),
     ]) {
       const f = await fixture(t, transport, scenario.phase, {reply: scenario.reply ?? null, physicalStart: true});
       let error;
       await assert.rejects(f.execution.cancel(), cause => {error = cause; return true;});
-      const expected = {observation: 'outcome_unknown',
-        summary: 'The Run cancellation outcome is unknown. The request may have been recorded.',
-        next: {operation: 'status', ref: {...f.execution.ref}}};
-      assert.deepEqual(sdk.explainCancellation(error), expected, '[check-mutation:cancel-unknown-explanation]');
+      if (scenario.reply === 'response_object') {
+        assert.equal(error.code, 'InvalidLocalHostPortResponse');
+      }
       const before = f.stored();
       assert.equal(before[0].cancellation_requested, scenario.committed ? 1 : 0);
       assert.equal(before[0].physical_close_confirmed, 0);
       assert.deepEqual(f.counts(), {cancelCalls: scenario.committed ? 1 : 0, submits: 0});
+      const expected = {observation: 'outcome_unknown',
+        summary: 'The Run cancellation outcome is unknown. The request may have been recorded.',
+        next: {operation: 'status', ref: {...f.execution.ref}}};
+      assert.deepEqual(sdk.explainCancellation(error), expected, '[check-mutation:cancel-unknown-explanation]');
       error.code = 'Accepted'; error.message = 'stopped';
       assert.deepEqual(sdk.explainCancellation(error), expected, '[check-mutation:cancel-unknown-explanation]');
       assert.equal(sdk.explainCancellation(Object.assign(new Error(error.message), error)), undefined);
