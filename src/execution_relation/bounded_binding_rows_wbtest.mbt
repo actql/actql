@@ -76,6 +76,7 @@ fn bounded_binding_rows_receiver(
   distinct_keyed? : Bool = false,
   derive_scalar? : Bool = false,
   derive_text? : Bool = false,
+  compare_text? : Bool = false,
 ) -> @lower.BoundPrepared {
   let producer = @pipeline.produced_input(
     @lower.pipeline(@lower.bound_preparation(source_owner)),
@@ -116,6 +117,10 @@ fn bounded_binding_rows_receiver(
         "{\"rename\":{\"left\":\"alias\"},\"from\":\"rows\",\"as\":\"derived\"}"
       } else if drop {
         "{\"drop\":[\"left\"],\"from\":\"rows\",\"as\":\"derived\"}"
+      } else if compare_text {
+        "{\"filter\":{\"eq\":[{\"field\":\"tag\"},{\"literal\":\"" +
+        String::make(256, 'g') +
+        "\"}]},\"from\":\"rows\",\"as\":\"derived\"}"
       } else if filter {
         "{\"filter\":\"id > 1\",\"from\":\"rows\",\"as\":\"derived\"}"
       } else if derive_scalar {
@@ -181,6 +186,7 @@ fn bounded_binding_rows_fixture(
   unused_payload? : Bool = false,
   derive_scalar? : Bool = false,
   derive_text? : Bool = false,
+  compare_text? : Bool = false,
   id_nullable? : Bool = false,
   input_limits? : ValueLimits? = None,
   max_work? : Int = 100000,
@@ -192,7 +198,12 @@ fn bounded_binding_rows_fixture(
   let (source_owner, source) = bounded_binding_rows_source(
     rows,
     id_nullable~,
-    distinct=distinct || distinct_keyed || dedupe || unique_text || derive_text,
+    distinct=distinct ||
+      distinct_keyed ||
+      dedupe ||
+      unique_text ||
+      derive_text ||
+      compare_text,
     unused_payload~,
     top_k_source=top_k,
     top_k_by_source=top_k_by || top_k_by_empty,
@@ -219,6 +230,7 @@ fn bounded_binding_rows_fixture(
     distinct_keyed~,
     derive_scalar~,
     derive_text~,
+    compare_text~,
   )
   let sequence = prepared_sequence(receiver)
   let first = @lower.node_at(@lower.bound_preparation(receiver), 0).unwrap()
