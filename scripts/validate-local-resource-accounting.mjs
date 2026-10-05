@@ -1370,11 +1370,16 @@ export function validateResourceAccounting({
     if (route.family === 'VecA' && route.operation === 'pool_vectors') {
       for (const role of ['pool_output_limits_stop_cleanup',
         'pool_output_record_limits', 'pool_output_record_cleanup',
-        'pool_output_owner_exclusion']) {
+        'pool_output_owner_exclusion', 'pool_identity_hash_limits',
+        'pool_identity_collision_cleanup', 'pool_identity_collision_equality',
+        'pool_identity_output_control_stop']) {
         if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
       }
       if (!environmentRoles.has('pool_output_public_store')) {
         fail(`${label}: Pool output public Store fixture is missing`);
+      }
+      if (!environmentRoles.has('pool_identity_output_public_store')) {
+        fail(`${label}: Pool identity output public Store fixture is missing`);
       }
       for (const role of ['pool_relation_input_limits_stop_cleanup',
         'pool_relation_input_shared_vector']) {

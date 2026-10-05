@@ -9925,6 +9925,34 @@
           "fixture": "Pool output Vector encoding yields with exact work and confirmed stop"
         },
         {
+          "role": "pool_identity_hash_limits",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/identity_steps_wbtest.mbt",
+          "fixture": "record identity hash keeps exact wire limits without assembled Text"
+        },
+        {
+          "role": "pool_identity_collision_cleanup",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/identity_steps_wbtest.mbt",
+          "fixture": "record identity collision equality yields and retains cleanup custody"
+        },
+        {
+          "role": "pool_identity_collision_equality",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/identity_steps_wbtest.mbt",
+          "fixture": "record identity digest collisions never replace exact wire equality"
+        },
+        {
+          "role": "pool_identity_output_control_stop",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/pool_identity_output_wbtest.mbt",
+          "fixture": "Pool output identity hashing keeps independent control and stop boundaries"
+        },
+        {
           "role": "pool_output_record_limits",
           "suite": "moon:managed_record_storage",
           "targets": ["js", "wasm", "native"],
@@ -10044,6 +10072,13 @@
           "targets": ["node"],
           "path": "adapters/host-node/public-pool-key-retention.test.mjs",
           "fixture": "public retained Pool publishes and cancels inside output Vector encoding"
+        },
+        {
+          "role": "pool_identity_output_public_store",
+          "suite": "node:embedded_pool_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-pool-key-retention.test.mjs",
+          "fixture": "public retained Pool publishes and cancels inside output identity hashing"
         },
         {
           "role": "pool_relation_host_in_flight_cancel",

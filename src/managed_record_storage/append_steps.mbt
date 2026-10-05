@@ -6,6 +6,8 @@ priv enum AppendPhase {
   BeginKey
   KeyValue
   FinishKey
+  ReadPriorIdentity
+  CompareKey
   BeginRecord
   BeginField
   FieldName
@@ -23,7 +25,7 @@ priv enum AppendPhase {
 struct AppendCursor {
   builder : Builder
   width : Int
-  workspace : Int
+  mut workspace : Int
   actual : Map[String, @value.CheckedValue]
   mut fields : Array[(@schema.FieldName, @value.CheckedValue)]
   identities : Array[@value.CheckedValue]
@@ -35,6 +37,11 @@ struct AppendCursor {
   mut name : @encode.StringEmitCursor?
   mut work_limited : Bool
   mut key : String
+  mut candidate : Record?
+  mut prior_identities : Array[@value.CheckedValue]?
+  mut prior_field : Int
+  mut comparison : IdentityComparison?
+  mut comparison_slots : Int
   mut key_bytes : Int
   mut key_work : Int
   mut record_bytes : Int
@@ -102,6 +109,11 @@ pub fn start_append(
     name: None,
     work_limited: false,
     key: "",
+    candidate: None,
+    prior_identities: None,
+    prior_field: 0,
+    comparison: None,
+    comparison_slots: 0,
     key_bytes: 0,
     key_work: 0,
     record_bytes: 0,
@@ -144,7 +156,7 @@ fn append_writer(
     cursor.key_bytes,
   )
   if key {
-    @encode.writer(bytes, nodes, builder.limits.max_value_depth)
+    @encode.hashing_writer(bytes, nodes, builder.limits.max_value_depth)
   } else {
     // Only identity text is needed for uniqueness. The record's discarded wire
     // text must not be assembled into a giant String at the final poll.
@@ -250,17 +262,78 @@ pub fn advance_append(cursor : AppendCursor) -> Result[Bool, Issue] {
       FinishKey => {
         let writer = cursor.writer.unwrap()
         @encode.end_array(writer)
-        let (key, bytes, nodes, _) = @encode.finish_text_usage(writer)
+        let (key, bytes, nodes, _) = @encode.finish_hash_metrics(writer)
         cursor.writer = None
         cursor.key = key
         cursor.key_bytes = bytes
         cursor.key_work = nodes
-        if builder.keys.contains(key) {
-          return fail_append(cursor, DuplicateIdentity)
+        if builder.keys.get(key) is Some(candidate) {
+          // The original cursor covers one emitter's three stacks. Reserve
+          // the second emitter, prior identity references and fixed comparison
+          // custody before allocation. No retained wire fragments are needed.
+          guard append_workspace_slots(
+              0,
+              cursor.identities.length(),
+              builder.limits.max_value_depth,
+            )
+            is Some(extra) &&
+            extra <=
+            builder.limits.max_workspace_slots -
+            builder.workspace_slots -
+            cursor.workspace else {
+            return fail_append(cursor, WorkspaceLimit)
+          }
+          cursor.workspace += extra
+          cursor.comparison_slots = extra
+          cursor.prior_identities = Some([])
+          cursor.candidate = Some(candidate)
+          cursor.index = 0
+          cursor.phase = ReadPriorIdentity
+        } else {
+          cursor.index = 0
+          cursor.phase = BeginRecord
         }
-        cursor.index = 0
-        cursor.phase = BeginRecord
       }
+      ReadPriorIdentity =>
+        if cursor.index == builder.identities.length() {
+          cursor.comparison = Some({
+            left: identity_stream(builder, cursor.identities),
+            right: identity_stream(builder, cursor.prior_identities.unwrap()),
+          })
+          cursor.phase = CompareKey
+        } else {
+          let record = cursor.candidate.unwrap()
+          guard record.fields.get(cursor.prior_field) is Some((field, value)) else {
+            return fail_append(cursor, InvalidIdentity)
+          }
+          cursor.prior_field += 1
+          if @schema.reference_name(field) == builder.identities[cursor.index] {
+            cursor.prior_identities.unwrap().push(value)
+            cursor.prior_field = 0
+            cursor.index += 1
+          }
+        }
+      CompareKey =>
+        if advance_identity_comparison(cursor.comparison.unwrap())
+          is Some(equal) {
+          cancel_identity_comparison(cursor.comparison.unwrap())
+          cursor.comparison = None
+          if equal {
+            return fail_append(cursor, DuplicateIdentity)
+          }
+          cursor.prior_identities.unwrap().clear()
+          cursor.candidate = cursor.candidate.unwrap().prior_identity
+          cursor.index = 0
+          cursor.prior_field = 0
+          if cursor.candidate is None {
+            cursor.workspace -= cursor.comparison_slots
+            cursor.comparison_slots = 0
+            cursor.prior_identities = None
+            cursor.phase = BeginRecord
+          } else {
+            cursor.phase = ReadPriorIdentity
+          }
+        }
       BeginRecord => {
         let writer = append_writer(cursor, false)
         cursor.writer = Some(writer)
@@ -331,9 +404,17 @@ pub fn advance_append(cursor : AppendCursor) -> Result[Bool, Issue] {
         cursor.phase = Commit
       }
       Commit => {
-        builder.values.push({ fields: cursor.fields, })
+        let record : Record = {
+          fields: cursor.fields,
+          prior_identity: if cursor.identities.is_empty() {
+            None
+          } else {
+            builder.keys.get(cursor.key)
+          },
+        }
+        builder.values.push(record)
         if !cursor.identities.is_empty() {
-          builder.keys[cursor.key] = true
+          builder.keys[cursor.key] = record
         }
         builder.input_records += 1
         builder.value_bytes += cursor.key_bytes + cursor.record_bytes
@@ -379,6 +460,10 @@ pub fn cleanup_append(cursor : AppendCursor) -> Bool {
     @encode.cancel_writer(writer)
     cursor.writer = None
   }
+  if cursor.comparison is Some(comparison) {
+    cancel_identity_comparison(comparison)
+    cursor.comparison = None
+  }
   if !(cursor.phase is Complete) {
     cursor.builder.open = false
     cursor.fields.clear()
@@ -386,6 +471,11 @@ pub fn cleanup_append(cursor : AppendCursor) -> Bool {
   cursor.fields = []
   cursor.actual.clear()
   cursor.identities.clear()
+  if cursor.prior_identities is Some(values) {
+    values.clear()
+    cursor.prior_identities = None
+  }
+  cursor.candidate = None
   cursor.supplied = []
   cursor.key = ""
   cursor.cleaned = true
