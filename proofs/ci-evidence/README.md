@@ -45,6 +45,22 @@ head revision. Fresh fork PR observations may satisfy their own current run;
 they cannot be adopted as protected main origins. Raw receipts are never
 rewritten to a later candidate.
 
+Main integration now uses the ordinary full `workflow_dispatch` run. Historical
+main-push originals remain readable with their actual trigger. Checkpoint lookup
+authenticates the full required job inventory, exact policy, ancestor revision,
+repository and attempt; probe/performance-only dispatches and feature-branch
+runs are not originals. The manual workflow's optional `native-macos` job may
+be skipped, but must still have its unique completed same-attempt job record.
+JS, Wasm, Linux-native and every other full family remain required. A skipped
+macOS job is not macOS correspondence evidence. Receipt/report/API trigger
+agreement is required before and after inspection, rather than rewriting old
+receipts to the current trigger. Main always executes fresh.
+
+Draft PR checks are preparation only. Their intentional `awaiting
+ready_for_review` final result is neither a qualified original nor full
+verification and is not a reason to retry CI. Manual integration scheduling
+remains with the coordinator; this evidence connection does not dispatch runs.
+
 ## Proven and trusted boundaries
 
 `Reuse.lean` proves checker soundness/completeness, preservation of scope/kind

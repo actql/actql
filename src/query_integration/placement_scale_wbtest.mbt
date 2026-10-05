@@ -2,6 +2,10 @@
 test "standard Host prepares bounded placement for twenty real module tasks" {
   let (run, _) = captured_graph_fixture(
     linear_compute_stages=20,
+    // Graph preparation has its own work budget, separate from placement search.
+    // The twenty-stage fixture exceeds the small-fixture default after bounded
+    // Carrier discovery and predecessor scans are charged.
+    preparation_work=10000,
     ledger_limits=Some({
       planning_work: 1000000,
       attempts: 40,

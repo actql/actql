@@ -125,6 +125,7 @@ function duckdbAdapter(profile, moon, {root, principalId}) {
     .map(catalog => catalog.connector_id);
   return Object.freeze({
     realizationKey: 'duckdb-acquired',
+    supportsRetainedRelationOutput: true,
     environmentWire: profile.environmentWire,
     connectorBindings: Object.freeze(catalogIds.map(connectorId =>
       Object.freeze({connectorId, bindingCid: contentCid({
@@ -140,11 +141,13 @@ function duckdbAdapter(profile, moon, {root, principalId}) {
       preparedProgram, preparedEffect, registry, values, fragment, ordered,
       sourceAccess, occurrence, transportLimits: profile.transportLimits}),
     open: ({preparedProgram, preparedEffect, registry, values, fragment, ordered,
-      sourceAccess, signal, preparedSource, reportAcquisitionFailure, occurrence, ledger}) =>
+      sourceAccess, signal, preparedSource, reportAcquisitionFailure, occurrence, ledger,
+      retainedRelationOutput}) =>
       openCapturedDuckDBSource({
       ...common, preparedProgram, preparedEffect, registry, values, fragment, ordered,
       sourceAccess, transportLimits: profile.transportLimits, signal,
-      preparedSource, reportAcquisitionFailure, occurrence, ledger}),
+      preparedSource, reportAcquisitionFailure, occurrence, ledger,
+      retainedRelationOutput}),
     close: () => {},
   });
 }

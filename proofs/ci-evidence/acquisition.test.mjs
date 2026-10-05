@@ -29,9 +29,10 @@ test('a completed comparison selects only the registered JS action and retains e
   await verifyAcquisition({plan, ...f}); assert.equal(encode(f.comparison), before);
 });
 
-test('main is always fresh and never requests comparison authorization', async () => {
-  const plan = await acquisitionPlan({...fixture(), event: 'push', readReady: async () => { assert.fail('Main must execute fresh'); }});
+for (const event of ['push', 'workflow_dispatch']) test(`${event} is always fresh and never requests comparison authorization`, async () => {
+  const plan = await acquisitionPlan({...fixture(), event, readReady: async () => { assert.fail('Main must execute fresh'); }});
   assert(plan.actions.every(entry => entry.acquisition === 'fresh' && entry.origin === null));
+  assert(plan.actions.every(entry => entry.reason === 'main-fresh'));
 });
 
 test('changed, unknown, partial or missing input comparisons execute fresh without consulting ready labels', async () => {

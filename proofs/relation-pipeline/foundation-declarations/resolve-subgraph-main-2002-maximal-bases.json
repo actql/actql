@@ -1,0 +1,84 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-subgraph-main-2002-maximal-bases",
+  "kind": "resolution",
+  "revision": "2002d32af9d6c50910947d18b3ae54e21d5607b0",
+  "parents": [
+    "b69ee2a050a5132a4df0c56c8ad4bcc0b4f90809",
+    "1c370a0aa1e619391895026c3c30029e0f5351ab"
+  ],
+  "mergeBases": [
+    "710e582577f3fec1706f2ff11fbc3edb36762fc8",
+    "7e32faa5a455dc4beafa02a8cd06313e83772d50"
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-343a5565c1ac",
+    "adopt-985dbbba2789",
+    "adopt-dafff1a1aeea",
+    "bounded-local-execution-guard",
+    "ci-artifact-preflight-fixtures",
+    "ci-complete-automatic-main-checkpoints",
+    "ci-declaration-profile",
+    "ci-draft-preparation",
+    "ci-focused-fixed-requests",
+    "ci-main-carryforward",
+    "ci-maintenance-pr-profile",
+    "ci-mandatory-preflight",
+    "ci-manual-main-integration",
+    "ci-native-query-partition",
+    "ci-operation-evidence-admission",
+    "ci-portable-pr-targets",
+    "client-ci-runner-context",
+    "client-ci-split",
+    "four-owned-pipeline-producers",
+    "incremental-session-comparison",
+    "issue-180-foundation-composition",
+    "main-json-composition-246-resolution",
+    "main-pr225-ci-resolution",
+    "packed-acquired-infer-acceptance",
+    "packed-composed-infer-effect-acceptance",
+    "parallel-pipeline-evidence",
+    "resolve-acquired-infer-client-ci",
+    "resolve-ci-main-carryforward-artifact-preflight",
+    "resolve-composed-infer-effect-main-11fde344",
+    "resolve-composition-current-ci-main",
+    "resolve-composition-custody-main-maximal-bases",
+    "resolve-composition-infer-main-maximal-bases",
+    "resolve-composition-maintenance-ci-main",
+    "resolve-composition-reviewed-supplements-main",
+    "resolve-four-producers-current-main",
+    "resolve-graph-retention-policy-main-e3ecb26c9",
+    "resolve-host-owner-main-7081dedfd",
+    "resolve-incremental-session-main-e9718942",
+    "resolve-local-guard-acquired-infer-ci",
+    "resolve-local-guard-pipeline-ci",
+    "resolve-local-guard-portable-pr-ci",
+    "resolve-main-local-guard-ci",
+    "resolve-main-local-guard-ci-6520c3f59",
+    "resolve-main-model-backing",
+    "resolve-parallel-pipeline-main-infer",
+    "scoped-session-acquisition",
+    "session-registration-main-c4fc-resolution"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "b69ee2a050a5132a4df0c56c8ad4bcc0b4f90809",
+          "digest": "6e9873ff2b6c7b6adaac3c7141b3c07db64d557cf9787d8419b799e0828e24da",
+          "mode": "100644"
+        },
+        {
+          "revision": "1c370a0aa1e619391895026c3c30029e0f5351ab",
+          "digest": "6e9873ff2b6c7b6adaac3c7141b3c07db64d557cf9787d8419b799e0828e24da",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "6e9873ff2b6c7b6adaac3c7141b3c07db64d557cf9787d8419b799e0828e24da",
+      "afterMode": "100644",
+      "reason": "Retain the shared post-388 Draft preparation and manual main-integration workflow while normally merging current main into the Subgraph branch. Both ordered parents and the result have identical workflow bytes, but both parents changed that protected file relative to the independent maximal merge base 710e582577f3fec1706f2ff11fbc3edb36762fc8. Record that existing multi-base obligation together with base 7e32faa5a455dc4beafa02a8cd06313e83772d50 and all inherited workflow source groups; do not alter scheduling, checks, acceptance rules or prior declarations."
+    }
+  ]
+}

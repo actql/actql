@@ -28,6 +28,21 @@ pub(all) enum ResidentSourceComputeIssue {
   Compute(@duckdb_native.NativeStandardStrategyRunIssue)
   Export(@host.PublicationOutputExportIssue)
   Capacity(@resources.LedgerIssue)
+  ObservationUnrecorded(ResidentSourceComputeEvent)
+}
+
+///|
+/// Physical Owner boundaries, not remote authorization or journal transitions.
+/// Entry events precede the actual acquisition/consumer Owner call; completion
+/// events follow its confirmed result. A trusted caller may durably record or
+/// pause these boundaries for evidence without replacing the execution Owner.
+pub(all) enum ResidentSourceComputeEvent {
+  AcquisitionEntered
+  ProducerCaptured
+  ConsumerEntered(Int)
+  ConsumerCompleted(Int)
+  CleanupPending
+  CleanupCompleted
 }
 
 ///|
@@ -40,6 +55,7 @@ struct ResidentSourceCompute {
   mut stopping : Bool
   source_closed : Ref[Bool]
   mut released : Bool
+  observe : ((ResidentSourceComputeEvent) -> Bool)?
 }
 
 ///|
@@ -51,6 +67,7 @@ pub fn open_resident_source_compute(
   prepared : @host.PreparedClientProgram,
   configuration : ResidentSourceComputeConfiguration,
   occurrence : String,
+  observe? : (ResidentSourceComputeEvent) -> Bool,
 ) -> Result[
   ResidentSourceCompute,
   (ResidentSourceComputeIssue, @output.NativeRemoteStandardInputFailure),
@@ -171,6 +188,9 @@ pub fn open_resident_source_compute(
     !@resources.reservation_open(reservation) ||
     @resources.settle_reservation(ledger, reservation) is Ok(_)
   }
+  if observe is Some(record) && !record(AcquisitionEntered) {
+    return reject(ObservationUnrecorded(AcquisitionEntered), close_source)
+  }
   match @duckdb_native.execute_native_acquisition_runtime(acquisition) {
     Ok(_) => ()
     Err(issue) => return reject(Execution(issue), close_source)
@@ -266,14 +286,19 @@ pub fn open_resident_source_compute(
     Ok(value) => value
     Err(issue) => return reject(Compute(issue), close_run)
   }
-  Ok({
+  let owner : ResidentSourceCompute = {
     close_source,
     run,
     compute,
     stopping: false,
     source_closed,
     released: false,
-  })
+    observe,
+  }
+  if observe is Some(record) && !record(ProducerCaptured) {
+    return reject(ObservationUnrecorded(ProducerCaptured), () => owner.close())
+  }
+  Ok(owner)
 }
 
 ///|
@@ -289,9 +314,19 @@ pub fn ResidentSourceCompute::execute_task(
   if self.stopping || @strategy.next_captured_task(self.run) != Some(task) {
     return Err(Unavailable)
   }
+  if self.observe is Some(record) && !record(ConsumerEntered(task)) {
+    self.stopping = true
+    return Err(ObservationUnrecorded(ConsumerEntered(task)))
+  }
   match
     @duckdb_native.execute_next_native_standard_strategy_task(self.compute) {
-    Ok(Some(completion)) if completion.task == task => Ok(completion)
+    Ok(Some(completion)) if completion.task == task => {
+      if self.observe is Some(record) && !record(ConsumerCompleted(task)) {
+        self.stopping = true
+        return Err(ObservationUnrecorded(ConsumerCompleted(task)))
+      }
+      Ok(completion)
+    }
     Ok(_) => {
       self.stopping = true
       Err(Unavailable)
@@ -369,7 +404,12 @@ pub fn ResidentSourceCompute::close(self : ResidentSourceCompute) -> Bool {
   @strategy.stop_captured_dag(self.run)
   match @duckdb_native.close_native_standard_strategy_run(self.compute) {
     Ok(true) => ()
-    Ok(false) | Err(_) => return false
+    Ok(false) | Err(_) => {
+      if self.observe is Some(record) {
+        ignore(record(CleanupPending))
+      }
+      return false
+    }
   }
   for
     task in 0..<@strategy.graph_task_count(
@@ -379,11 +419,26 @@ pub fn ResidentSourceCompute::close(self : ResidentSourceCompute) -> Bool {
   }
   if !self.source_closed.val {
     if !(self.close_source)() {
+      if self.observe is Some(record) {
+        ignore(record(CleanupPending))
+      }
       return false
     }
     self.source_closed.val = true
   }
   @strategy.refresh_captured_retention(self.run)
-  self.released = resident_source_compute_capacity_released(self.run)
+  if !resident_source_compute_capacity_released(self.run) {
+    if self.observe is Some(record) {
+      ignore(record(CleanupPending))
+    }
+    return false
+  }
+  // Missing completion evidence keeps this exact cleanup owner retryable even
+  // when its physical resources are already gone. Never reopen acquisition or
+  // return a successful close before the caller records that boundary.
+  if self.observe is Some(record) && !record(CleanupCompleted) {
+    return false
+  }
+  self.released = true
   self.released
 }
