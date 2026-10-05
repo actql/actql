@@ -8103,7 +8103,7 @@ async function exerciseStrategyGraph(
   branchedRankedSteps.push({from: 'joined', select: ['id'], as: 'out'});
   const branchedRowTransformPrograms = [
     'lag', 'watermark', 'json-pick', 'row-window', 'unpivot', 'unnest',
-    'pivot', 'analytic',
+    'pivot', 'analytic', 'nest',
   ]
     .map(name => {
       const program = structuredClone(branchedRelationProgram);
@@ -8197,18 +8197,37 @@ async function exerciseStrategyGraph(
           functions: {n: {fn: 'count', field: 'id'}},
         }, as: 'transformed'},
         {from: 'transformed', filter: 'n >= 3', as: 'filtered'},
+      ] : name === 'nest' ? [
+        {from: 'appended', nest: {
+          with: 'l', on: [{left: 'id', right: 'id'}],
+          into: 'items', fields: [{matched: 'id'}], max_items: 1,
+        }, as: 'transformed'},
+        {from: 'transformed', filter: 'id >= 3', as: 'filtered'},
       ] : [
         {from: 'appended', unnest: {
           column: 'items', as: 'item', outer: false,
         }, as: 'transformed'},
         {from: 'transformed', filter: 'item >= 4', as: 'filtered'},
       ];
-      program.stages.find(stage => stage.id === 'crossed').steps = [
+      const outputFields = name === 'nest' ? ['id', 'items'] : ['id'];
+      const crossed = program.stages.find(stage => stage.id === 'crossed');
+      crossed.steps = [
         ...prefix, ...transform,
-        {from: 'filtered', select: ['id'], as: 'selected'},
-        {from: 'appended', select: ['id'], as: 'raw_ids'},
+        {from: 'filtered', select: outputFields, as: 'selected'},
+        {from: name === 'nest' ? 'transformed' : 'appended',
+          select: outputFields, as: 'raw_ids'},
         {from: 'selected', append: {with: 'raw_ids'}, as: 'out'},
       ];
+      if (name === 'nest') {
+        crossed.results.r.fields = outputFields;
+        for (const consumer of program.stages.filter(stage =>
+          stage.id.startsWith('external_cross_consumer_'))) {
+          const fields = consumer.id.endsWith('_a')
+            ? outputFields : [...outputFields].reverse();
+          consumer.steps[0].select = fields;
+          consumer.results.r.fields = fields;
+        }
+      }
       return [name, program];
     });
   for (const [name, program, tasks] of [
@@ -9689,14 +9708,19 @@ async function exerciseStrategyGraph(
     ...branchedRowTransformPrograms.map(([name, source]) => ({
       name: name === 'analytic' ? 'analytic-append-fork-join'
         : `append-fork-${name}-join`, source,
-      expected: (name === 'lag' ? [4, 1, 2, 3, 4]
+      expected: name === 'nest' ? [
+        {id: 3, items: []}, {id: 4, items: []},
+        {id: 1, items: [{matched: 1}]},
+        {id: 2, items: [{matched: 2}]},
+        {id: 3, items: []}, {id: 4, items: []},
+      ] : (name === 'lag' ? [4, 1, 2, 3, 4]
         : name === 'watermark' ? [2, 1, 2, 3, 4]
         : name === 'json-pick' ? [3, 4, 1, 2, 3, 4]
         : name === 'row-window' ? [2, 3, 4, 1, 2, 3, 4]
         : name === 'unpivot' ? [3, 4, 1, 2, 3, 4]
         : name === 'pivot' || name === 'analytic' ? [3, 4, 1, 2, 3, 4]
         : [3, 4, 4, 1, 2, 3, 4]).map(id => ({id})),
-      fields: ['id'],
+      fields: name === 'nest' ? ['id', 'items'] : ['id'],
     })),
     {name: 'except-all-fork-join', source: retainedExceptFork,
       expected: [2, 1, 1].map(id => ({id})), fields: ['id']},

@@ -865,6 +865,16 @@ independently splittable task.
 These routes do not extend the numeric SUM/AVG profile or prove every frame
 and pivot variant.
 
+The same existing bounded owner also executes a checked Nest after Append,
+then reuses its nested output in two branches before rejoining. The Nest
+reads its child port from the original Stage input, not from the preceding
+Append output. The standard Host publishes producer and two consumer Named
+Results with the fixed nested rows: IDs `[3,4,1,2,3,4]`, empty `items` for
+3 and 4, and `[{matched:1}]` or `[{matched:2}]` for 1 and 2. A focused
+memory/retained fixture confirms the one-task path and final cleanup. This
+was an evidence gap in the existing bounded provider, not a new Nest kernel
+or general nested-chain admission.
+
 The same retained Host also runs `EXCEPT ALL` and Cross Join as the first
 binary child of separate fork/join Programs. The former publishes the
 duplicate-sensitive rows `[{id: 2}, {id: 1}, {id: 1}]`; the latter publishes

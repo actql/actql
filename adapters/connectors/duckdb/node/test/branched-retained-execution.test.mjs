@@ -117,6 +117,7 @@ test('retained Relation forks execute bounded ranking and row transforms',
       ['source-fork', false, false],
       ['pivot', false, false],
       ['analytic', false, false],
+      ['nest', false, false],
     ]) {
       const program = structuredClone(base);
       if (['watermark', 'json-pick', 'unpivot', 'unnest', 'pivot']
@@ -268,6 +269,21 @@ test('retained Relation forks execute bounded ranking and row transforms',
           {from: 'appended', select: ['id'], as: 'raw_ids'},
           {from: 'selected', append: {with: 'raw_ids'}, as: 'out'},
         ];
+      } else if (name === 'nest') {
+        program.stages[3].steps = [
+          {from: 'l', append: {with: 'r'}, as: 'appended'},
+          {from: 'appended', nest: {
+            with: 'l', on: [{left: 'id', right: 'id'}],
+            into: 'items', fields: [{matched: 'id'}], max_items: 1,
+          }, as: 'nested'},
+          {from: 'nested', filter: 'id >= 3', as: 'greater'},
+          {from: 'greater', select: ['id', 'items'], as: 'selected'},
+          {from: 'nested', select: ['id', 'items'], as: 'raw_ids'},
+          {from: 'selected', append: {with: 'raw_ids'}, as: 'out'},
+        ];
+        program.stages[3].results.r.fields = ['id', 'items'];
+        program.stages[4].steps[0].select = ['id', 'items'];
+        program.stages[4].results.r.fields = ['id', 'items'];
       } else {
         program.stages[3].steps = [
           {from: 'l', append: {with: 'r'}, as: 'appended'},
@@ -313,7 +329,8 @@ test('retained Relation forks execute bounded ranking and row transforms',
       if (name === 'combined' || name === 'lag' ||
           name === 'watermark' || name === 'json-pick' ||
           name === 'row-window' || name === 'unpivot' || name === 'unnest' ||
-          name === 'source-fork' || name === 'pivot' || name === 'analytic') {
+          name === 'source-fork' || name === 'pivot' || name === 'analytic' ||
+          name === 'nest') {
         const retained = fixture.strategyFixtureCreate(
           ...fixtureArgs, JSON.stringify(program));
         const retainedCapture = await runNativeHostQuery(grant,
