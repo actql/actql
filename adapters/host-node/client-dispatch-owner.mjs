@@ -35,6 +35,18 @@ export async function confirmNodeRunCancellation({ref, journal, store,
     journal.lookupReconciliationState(ref) === undefined;
 }
 
+export async function observeNodeRestoredModelStop(facts) {
+  const cancelled = await confirmNodeRunCancellation(facts);
+  // The asynchronous publication inspection may overlap another confirmed
+  // observer. Preserve its immutable physical-stop record, including a
+  // nonterminal stop from an earlier phase of this same Run. The common
+  // continuation owner evaluates the terminal outcome separately.
+  const retained = facts.journal.lookupRunDefinition(facts.ref,
+    facts.moon, facts.control);
+  if (retained?.physicalCloseConfirmed === true) return;
+  facts.journal.markPhysicalClose(facts.ref, cancelled ? 'cancelled' : null);
+}
+
 export function installNodeClientDispatchOwner({moon, control, journal,
   store, checkpoints, startRun, hostConnection, beforeDispatch, observed,
   prepareAcquisition, planFor, sourceProfile, registry, values, fragment,

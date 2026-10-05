@@ -51,7 +51,8 @@ import {createDiagnosticObserver} from
   '../host-common/diagnostic-observer.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
-import {installNodeClientDispatchOwner, confirmNodeRunCancellation} from './client-dispatch-owner.mjs';
+import {installNodeClientDispatchOwner, confirmNodeRunCancellation,
+  observeNodeRestoredModelStop} from './client-dispatch-owner.mjs';
 import {createInstalledHostShutdown,
   retainInstalledHostInitializationFailure} from
   './installed-host-cleanup.mjs';
@@ -2087,9 +2088,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
                   store, principalId, signal, retainExecution, beginPhysicalWork,
                   submission: token.snapshot.submission, existingModel: record, modelClaim: claim});
               },
-              observeStopped: async () => journal.markPhysicalClose(ref,
-                await confirmNodeRunCancellation({ref, journal, store, checkpoints,
-                  moon, control, cleanupConfirmed: true}) ? 'cancelled' : null),
+              observeStopped: () => observeNodeRestoredModelStop({ref,
+                journal, store, checkpoints, moon, control, cleanupConfirmed: true}),
             });
           };
           const flight = runRestoredModel().then(async result => {

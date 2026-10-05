@@ -75,11 +75,26 @@ existing mixed saved/unknown/unsent, expiry, replacement and cancellation tests
 now select Local and HTTPS, without a second process fixture. The Local
 sent-unknown cancellation/restart case passed after dependency preparation
 (`run-XBQG4m`, `focused-test-A0xngD`), with tracked fixture changes present.
-The remaining extended selections have not yet been executed. The independent
+At clean SHA `738d397cbf6352136dab4f3938225d7be818ef6e`, 25 selected public
+recovery cases ran: 24 passed and the HTTPS saved-response cancellation case
+failed at Host shutdown (`run-jPZvxE`, `focused-test-bnFa2f`). The Run had
+already reached Cancelled, but the restored stop observer attempted to rewrite
+an immutable physical-close observation after its asynchronous Store check.
+Two independent overlapping-observer fixtures failed before the fix
+(`run-2vUSUN`, `focused-test-eRyhV8`). Restored cleanup now rereads and preserves
+an existing confirmed physical-stop record; the common continuation owner
+still verifies the terminal cancellation predicate separately. No journal
+rule or authorization check is weakened. Nine conditional cancellation and
+overlap cases passed after the fix (`run-sqLmVN`, `focused-test-vSn12k`), as did
+four Local/HTTPS saved-response and sent-unknown cancellation cases
+(`run-R0FK7m`, `focused-test-2QjtWe`, with tracked changes present).
+The independent
 Model/Effect approval case covers HTTPS with Host reopening in one process.
-External HTTPS mixed unknown, full-process Effect restart, current provider
-replacement/expiry/cancellation, and public confirmation of the newly agreed conditional common
-Running-to-Cancelled terminal predicate remain separate unfinished checks.
+Mixed saved/unknown/unsent recovery, immediate Allow, expiry, replacement,
+current infer/egress refusal, and immediate cancellation passed in the
+25-case invocation above. Those successes belong to the pre-overlap-fix SHA.
+Full-process packed independent Effect approval and fresh-packed coverage of
+the overlap fix remain unfinished checks.
 Four independent missing-condition Host counterexamples failed before the
 terminal guard (`run-4j2WfD`, `focused-test-OcCa6K`) and passed afterward with
 the existing Waiting checks (19 cases, `run-E5jlFc`, `focused-test-Pz9QyV`).

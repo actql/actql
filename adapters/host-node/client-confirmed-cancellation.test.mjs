@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
+import {installNodeClientDispatchOwner,
+  observeNodeRestoredModelStop} from './client-dispatch-owner.mjs';
 
 // Terminal Host boundary with explicit journal/Store doubles. Each missing
 // fact is independent of the others; an AbortSignal is never cancellation
@@ -95,3 +96,33 @@ test('cleanup pending cannot confirm cancellation; retry closes exactly once', a
   await f.owner.drain();
   assert.deepEqual(f.observed, ['cancelled']);
 });
+
+for (const outcome of [null, 'cancelled']) {
+  test(`restored Model stop preserves an immutable ${outcome} observation across an asynchronous inspection`, async () => {
+    let retained = {cancellationRequested: true, revision: 1,
+      runDefinition: {wire: 'original'}, physicalCloseConfirmed: false};
+    const writes = [];
+    const journal = {
+      lookupRunDefinition: () => retained,
+      lookupReconciliationState: () => undefined,
+      markPhysicalClose(_ref, next) {
+        writes.push(next);
+        assert.equal(next, outcome, 'an earlier physical-stop observation is immutable');
+      },
+    };
+    await observeNodeRestoredModelStop({ref: {runDefinitionCid: 'definition'},
+      journal, control: {runDefinitionRunId: () => 'run'},
+      checkpoints: {journal: {discoverModelCallSets: () => [{}],
+        modelCancellationFenced: () => true, hasUnresolvedModelCalls: () => false}},
+      cleanupConfirmed: true,
+      store: {async confirmCommittedIndex() {
+        // Another confirmed observer commits during the asynchronous Store read.
+        retained = {...retained, revision: 2, physicalCloseConfirmed: true,
+          observedTerminalOutcome: outcome};
+        return undefined;
+      }},
+    });
+    assert.deepEqual(writes, [], 'restored cleanup must not rewrite a confirmed observation');
+    assert.equal(retained.observedTerminalOutcome, outcome);
+  });
+}
