@@ -57,6 +57,7 @@ struct NativeRemoteStandardRunOwner {
 priv enum NativeRemoteStandardRun {
   Compute(@native_host.NativeStandardStrategyRun)
   Acquired(@strategy.CapturedDAG, Int, Int)
+  AcquiredTask(@strategy.CapturedDAG, Int, @query.CapturedInputSource)
 }
 
 ///|
@@ -75,6 +76,7 @@ struct NativeRemoteStandardComputeOwner {
 /// opens a fresh occurrence owner after that binding has been checked.
 struct NativeRemoteStandardBoundRunFactory {
   input_binding_cid : String
+  request_cid : String?
   open : () -> Result[
     NativeRemoteStandardRunOwner,
     NativeRemoteStandardInputFailure,
@@ -227,6 +229,34 @@ pub fn prepare_native_remote_standard_acquired_run_owner(
 }
 
 ///|
+/// Retain the original acquisition task output even when no public Named
+/// Result points at it. The capture must be the exact physical source owned
+/// by this checked Run; equal content or another prepared capture is refused.
+pub fn prepare_native_remote_standard_acquired_task_owner(
+  run : @strategy.CapturedDAG,
+  task : Int,
+  source : @query.CapturedInputSource,
+  finish_input_owner : () -> Bool,
+  source_observation? : ((@remote.DispatchRequest) -> Result[
+    @remote.RemoteSourceObservation,
+    @remote.DispatchIssue,
+  ])? = None,
+) -> Result[NativeRemoteStandardRunOwner, NativeRemoteStandardHostIssue] {
+  if !@strategy.captured_task_source_matches(run, task, source) {
+    return Err(InvalidConfiguration)
+  }
+  Ok({
+    run: AcquiredTask(run, task, source),
+    finish_output_owner: () => true,
+    finish_input_owner,
+    run_finished: false,
+    output_finished: false,
+    input_finished: false,
+    source_observation,
+  })
+}
+
+///|
 pub fn prepare_native_remote_standard_compute_owner(
   run : @native_host.NativeStandardStrategyRun,
   finish_output_owner : () -> Bool,
@@ -260,7 +290,7 @@ fn NativeRemoteStandardRunOwner::release(
           Ok(true) => self.run_finished = true
           Ok(false) | Err(_) => return false
         }
-      Acquired(run, _, _) => {
+      Acquired(run, _, _) | AcquiredTask(run, _, _) => {
         @strategy.stop_captured_dag(run)
         self.run_finished = true
       }
@@ -285,7 +315,33 @@ pub fn register_native_remote_standard_bound_run_factory(
     NativeRemoteStandardInputFailure,
   ],
 ) -> NativeRemoteStandardBoundRunFactory {
-  { input_binding_cid: @remote.remote_input_binding_cid(binding), open, }
+  {
+    input_binding_cid: @remote.remote_input_binding_cid(binding),
+    request_cid: None,
+    open,
+  }
+}
+
+///|
+/// Register an occurrence-owned input, such as an already pinned consumer
+/// borrow. An equal binding on another attempt cannot invoke this factory or
+/// assume its cleanup responsibility. Registration performs no physical work.
+pub fn register_native_remote_standard_dispatch_run_factory(
+  request : @remote.DispatchRequest,
+  binding : @remote.RemoteInputBinding,
+  open : () -> Result[
+    NativeRemoteStandardRunOwner,
+    NativeRemoteStandardInputFailure,
+  ],
+) -> Result[NativeRemoteStandardBoundRunFactory, NativeRemoteStandardHostIssue] {
+  if !@remote.remote_input_binding_matches_dispatch(binding, request) {
+    return Err(InvalidConfiguration)
+  }
+  Ok({
+    input_binding_cid: @remote.remote_input_binding_cid(binding),
+    request_cid: Some(@remote.dispatch_request_identity(request)),
+    open,
+  })
 }
 
 ///|
@@ -297,7 +353,11 @@ fn NativeRemoteStandardBoundRunFactory::resolve(
   binding : @remote.RemoteInputBinding,
 ) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure] {
   if !@remote.remote_input_binding_matches_dispatch(binding, request) ||
-    @remote.remote_input_binding_cid(binding) != self.input_binding_cid {
+    @remote.remote_input_binding_cid(binding) != self.input_binding_cid ||
+    (
+      self.request_cid is Some(expected) &&
+      expected != @remote.dispatch_request_identity(request)
+    ) {
     return Err(
       reject_native_remote_standard_input("foreign-input-binding").unwrap(),
     )
@@ -675,6 +735,21 @@ fn execute_native_remote_standard_task(
         @publication_host.prepare_captured_result_publication_export(
           run,
           result,
+          limits.output_export,
+        ) {
+        Ok(value) => value
+        Err(_) => return remote_standard_failure(bound, "source-export-prepare")
+      }
+    }
+    AcquiredTask(run, task, source) => {
+      if task != expected_task {
+        return remote_standard_failure(bound, "foreign-standard-task")
+      }
+      match
+        @publication_host.prepare_acquired_task_publication_export(
+          run,
+          task,
+          source,
           limits.output_export,
         ) {
         Ok(value) => value

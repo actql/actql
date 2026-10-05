@@ -165,3 +165,50 @@ test "snapshot handoff invalid delta and overflow stay errors through cleanup" {
     assert_eq(managed_provider_cumulative_work(owner), Err(expected))
   }
 }
+
+///|
+test "provider pauses preserve zero-work custody without admitting Continue" {
+  let cancelled = Ref(false)
+  let stopped = Ref(false)
+  let next = Ref(0)
+  let owner = managed_provider_execution(
+    fn(_) {
+      if cancelled.val {
+        stopped.val = true
+        return Ok(managed_provider_stopped_poll(0L, 0L))
+      }
+      next.val += 1
+      match next.val {
+        1 => Ok(managed_provider_waiting(0L, 0L))
+        2 => Ok(managed_provider_settling(3, 1L, 1L))
+        _ => Ok(managed_provider_settling(3, 0L, 0L))
+      }
+    },
+    fn() {
+      cancelled.val = true
+      true
+    },
+    fn() { stopped.val },
+    fn() { Ok(stopped.val) },
+  )
+  assert_true(advance_managed_provider(owner, 1).unwrap() is Waiting(..))
+  assert_eq(managed_provider_cumulative_work(owner), Ok(0L))
+  assert_false(cleanup_managed_provider(owner).unwrap())
+  assert_true(advance_managed_provider(owner, 1).unwrap() is Settling(3, ..))
+  assert_eq(managed_provider_cumulative_work(owner), Ok(1L))
+  assert_true(advance_managed_provider(owner, 1).unwrap() is Settling(3, ..))
+  assert_eq(managed_provider_cumulative_work(owner), Ok(1L))
+  assert_false(cancelled.val)
+  assert_true(cancel_managed_provider(owner))
+  assert_true(advance_managed_provider(owner, 1).unwrap() is Stopped(..))
+  assert_true(cleanup_managed_provider(owner).unwrap())
+  assert_eq(managed_provider_cumulative_work(owner), Ok(1L))
+  let invalid = managed_provider_execution(
+    _ => Ok(managed_provider_continue(0L, 0L)),
+    () => true,
+    () => false,
+    () => Ok(false),
+  )
+  advance_managed_provider(invalid, 1).unwrap() |> ignore
+  assert_eq(managed_provider_cumulative_work(invalid), Err(InvalidReport))
+}

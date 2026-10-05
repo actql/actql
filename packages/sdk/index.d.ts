@@ -10,11 +10,59 @@ export type Durability = 'volatile' | 'durable';
 export type RunReference = WireRunRef;
 /** actql-check-outcome/0.1. */
 export type CheckOutcome = WireCheckOutcome;
+type CheckReportScope = Extract<CheckOutcome, {outcome: 'completed'}>['report']['scope'];
+type CheckReportExplanation<C extends 'complete' | 'partial'> = Readonly<{
+  completeness: C;
+  verdict: C extends 'partial' ? 'invalid' | 'undetermined' : 'invalid' | 'undetermined' | 'verified';
+  scope: CheckReportScope;
+  contextRef: string;
+}>;
+export type CheckOutcomeExplanation = Readonly<{summary: string; hint: string}> & (
+  Readonly<{outcome: 'completed'; report: CheckReportExplanation<'complete'>}> |
+  Readonly<{outcome: 'failed'; report?: CheckReportExplanation<'partial'>;
+    problem: Readonly<{kind: 'known' | 'unknown'; code: string}>}> |
+  Readonly<{outcome: 'unavailable'; correlationRef: string;
+    problem: Readonly<{kind: 'known' | 'unknown'; code: string}>}>);
+/** Safe presentation of a schema-admitted outcome; no input association or execution authority. */
+export declare function explainCheckOutcome(outcome: unknown): CheckOutcomeExplanation | undefined;
 export type CheckInput = Readonly<{documentId: string; revision: string}> & (
   Readonly<{kind: 'text'; text: string}> | Readonly<{kind: 'structured'; value: unknown}>);
 /** Available only for the exact response of this SDK check call. */
 export declare function getCheckInput(outcome: CheckOutcome, documentId: string,
   revision?: string): CheckInput | undefined;
+type CompletedCheckReport = Extract<CheckOutcome, {outcome: 'completed'}>['report'];
+type ParameterRequirementFacts = Readonly<Pick<Extract<
+  CompletedCheckReport['requirements'][number]['facts'], {expected_type: string}>,
+  'parameter' | 'expected_type'>>;
+/** The known public parameter Requirements, not a complete future obligation list. */
+export type CheckRequirementFrontier = Readonly<{
+  contextRef: string;
+  reasonSchemaCid: string;
+  scope: CompletedCheckReport['scope'];
+  requirements: readonly Readonly<{
+    code: CompletedCheckReport['requirements'][number]['code'];
+    facts: ParameterRequirementFacts;
+  }>[];
+  coverage: CompletedCheckReport['coverage'];
+}>;
+/** Copied, partial and uninterpretable reports have no comparable frontier. */
+export declare function getCheckRequirementFrontier(outcome: CheckOutcome): CheckRequirementFrontier | undefined;
+/** Structural set equality within the same bound scope/context; never verification. */
+export declare function equalCheckRequirementFrontiers(first: CheckOutcome, second: CheckOutcome): boolean | undefined;
+export type CheckSupplementationDecision = Readonly<{kind: 'more_checks'}> |
+  Readonly<{kind: 'stop'; reason: 'frontier_unavailable' | 'no_known_supplement' |
+    'unchanged_frontier' | 'attempt_budget'}>;
+export interface CheckSupplementationSession {
+  /** Explicit read-only check; no automatic I/O, supplement write or execution. */
+  check(text: string, options: Parameters<Client['check']>[1]): Promise<Readonly<{
+    outcome: CheckOutcome;
+    attempts: number;
+    decision: CheckSupplementationDecision;
+  }>>;
+}
+/** A total attempt cap also applies when the bound context keeps changing. */
+export declare function createCheckSupplementationSession(client: Pick<Client, 'check'>,
+  options: Readonly<{maxAttempts: number}>): CheckSupplementationSession;
 export type SubmissionInput = Readonly<{
   requestId: string;
   kind: 'program' | 'aql';
@@ -36,6 +84,14 @@ export type SubmissionExplanation = Readonly<{summary: string}> & (
   }>);
 /** Read-only advice for this exact SDK submit result; no retry or execution permission. */
 export declare function explainSubmission(result: unknown): SubmissionExplanation | undefined;
+export type CancellationExplanation = Readonly<{
+  summary: string;
+  next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;
+}> & (Readonly<{
+  observation: 'accepted' | 'already_requested' | 'already_terminal'; revision: number;
+}> | Readonly<{observation: 'outcome_unknown'}>);
+/** Read-only advice for this exact Execution.cancel result; no cancellation-operation identity or stop/release proof. */
+export declare function explainCancellation(result: unknown): CancellationExplanation | undefined;
 /** Omitted for unavailable/stale input or a pointer without a submitted JSON node. No edits are applied. */
 export declare function resolveCheckLocation(outcome: CheckOutcome,
   location: WireCheckLocation, currentInput?: CheckInput):
@@ -82,6 +138,23 @@ export type RequestLookup = WireRequestLookup;
 
 export type RunState = WireRunState;
 export type RunNextAction = WireRunState['next_action'];
+
+export type EffectUncertaintyExplanation = Readonly<{
+  observation: 'effect_outcome_unknown';
+  summary: string;
+  /** Owner-issued Effect names, scoped by the original Run reference below. */
+  effects: readonly string[];
+  /** Only the received control observation can confirm physical stop. */
+  physicalStop: 'confirmed' | 'unknown';
+  /** Absent when this response has no control observation; not a composite revision. */
+  controlRevision?: number;
+  next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;
+}>;
+/** Presentation for the exact validated SDK status/wait/reconcile response.
+ * Does not authorize retry, rollback, release or any reconciliation operation.
+ */
+export declare function explainEffectUncertainty(state: unknown):
+  EffectUncertaintyExplanation | undefined;
 
 export type DeliveryAttemptLookup = WireDeliveryAttemptLookup;
 

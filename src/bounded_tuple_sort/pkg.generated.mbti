@@ -18,6 +18,8 @@ pub fn key_component_at(Sort, Int, Int) -> String?
 
 pub fn prepare(Array[Array[String]], Int) -> Result[Sort, Issue]
 
+pub fn prepare_deferred(Array[Array[String]], Int) -> Result[Sort, Issue]
+
 // Errors
 
 // Types and methods

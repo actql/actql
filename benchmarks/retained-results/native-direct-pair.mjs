@@ -63,6 +63,7 @@ export async function runNativeDirectPair({checkout, fixture, database,
           nativeMs: nativeEstimateProfile?.nativeTaskMilliseconds[0] ??
             nativeRates?.[0] ?? '1000',
           nativeRates: nativeEstimateProfile?.nativeTaskMilliseconds ?? nativeRates,
+          ...(nativeEstimateProfile ? {residentPolicy: false} : {}),
           localRates: nativeEstimateProfile?.localTaskMilliseconds ?? localRates});
         if (nativeEstimateProfile) {
           const [workload, layout, rowText, ...remaining] =
@@ -175,6 +176,9 @@ export async function runNativeDirectPair({checkout, fixture, database,
         executionMs: samples.native.executionMs,
         cleanupMs: samples.native.cleanupMs,
         selected: native.selected,
+        host: 'native',
+        acquisitionChoice: native.acquisitionChoice,
+        ownerCorrespondence: native.ownerCorrespondence,
         taskHoldings: native.taskHoldings,
         taskUsages: native.taskUsages,
         usage: native.record.usage,

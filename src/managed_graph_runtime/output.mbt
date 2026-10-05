@@ -93,7 +93,15 @@ pub fn prepare_output(
       construction_work: @storage.construction_work(material),
       workspace_slots: @storage.retained_workspace_slots(material),
     }
-    Some((receipt, evidence, material, storage_bytes, available))
+    Some(
+      (
+        receipt,
+        evidence,
+        material,
+        storage_bytes,
+        () => available() && @storage.available(material),
+      ),
+    )
   })
   Ok({ graph, retention, open: true, })
 }
@@ -161,6 +169,36 @@ pub fn cancel_output(output : OutputBuilder) -> Bool {
 }
 
 ///|
+/// Share the existing provisional builder with a bounded kernel. Its caller
+/// must keep exclusive mutation custody until finish_output_storage or cancel.
+pub fn output_storage_builder(output : OutputBuilder) -> @storage.Builder? {
+  if output.open {
+    Some(output.graph)
+  } else {
+    None
+  }
+}
+
+///|
+/// A bounded kernel may finalize the shared builder before its content checks
+/// finish. Only its exact successful Storage can complete this output port.
+/// Rejection never reclaims a foreign Storage supplied by another owner.
+pub fn finish_output_storage(
+  output : OutputBuilder,
+  graph : @storage.Storage,
+) -> Result[Completed, Issue] {
+  if !output.open {
+    return Err(Closed)
+  }
+  if !@storage.builder_owns_storage(output.graph, graph) {
+    cancel_output(output) |> ignore
+    return Err(Lifecycle(@lifecycle.Unverified))
+  }
+  output.open = false
+  complete_output_storage(output, graph)
+}
+
+///|
 pub fn finish_output(output : OutputBuilder) -> Result[Completed, Issue] {
   if !output.open {
     return Err(Closed)
@@ -174,6 +212,14 @@ pub fn finish_output(output : OutputBuilder) -> Result[Completed, Issue] {
       return Err(Storage(issue))
     }
   }
+  complete_output_storage(output, graph)
+}
+
+///|
+fn complete_output_storage(
+  output : OutputBuilder,
+  graph : @storage.Storage,
+) -> Result[Completed, Issue] {
   let retained = match @lifecycle.retain(output.retention, graph) {
     Ok(value) => value
     Err(issue) => {

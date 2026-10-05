@@ -171,6 +171,13 @@ distribution[3] = distribution[3].replace(
   'adapters/host-node/in-process-client.test.mjs adapters/host-node/client-read-progress.test.mjs ',
 );
 
+// Model Checkpoint signing reuses the prepared SDK/Host distribution gate.
+// Preserve the independently fixed command inventory and every existing test.
+distribution[3] = distribution[3].replace(
+  'packages/sdk/checkpoints.test.mjs ',
+  'packages/sdk/checkpoints.test.mjs packages/sdk/model-checkpoints.test.mjs ',
+);
+
 // The issued-retention original regression is part of the existing prepared
 // distribution gate. Pin its one intended addition independently of the
 // package command, retaining the exact inventory and duplicate rejection.

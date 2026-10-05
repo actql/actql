@@ -1,0 +1,8 @@
+{
+  "version": "actql-stage-definition-vectors/0.1",
+  "cases": [
+    {"stage_case": "local-binding-and-parameter-uses", "id": "a", "expected_cid": "sha256:8ce1c2d1d1744b84487c78a95dd5ddc5146f4e991a655f4f2c0d17ab5e60b64c"},
+    {"stage_case": "other-stage-declarations-excluded", "id": "b", "expected_cid": "sha256:c5e94c48b48f71800e059413cd07946eb7a37a2eb8dced1e2fa2d5028fce70ab"},
+    {"stage_case": "explicit-empty-maps-and-lists", "id": "b", "expected_cid": "sha256:97f14bcddeb872803f1adc9b39316e74d85fb814821d7f44a73d4530398cc351"}
+  ]
+}

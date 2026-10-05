@@ -28,8 +28,7 @@ export function modelAttemptEvidenceSchemas() {
     additionalProperties: false,
     required: ['tokens', 'cost_units', 'duration_ms'],
     properties: {tokens: count, cost_units: count, duration_ms: count}};
-  return {
-    model_dispatch_authority: schema('model_dispatch_authority', {
+  const authority = schema('model_dispatch_authority', {
       program_definition_cid: cid, run_definition_cid: cid,
       run_authorization_cid: cid, account_configuration_cid: cid,
       model_task_cid: cid, fixed_request_cid: cid,
@@ -39,7 +38,12 @@ export function modelAttemptEvidenceSchemas() {
       basis: {enum: ['account_allow', 'host_permit']},
       answering_authority: {anyOf: [text, {type: 'null'}]},
       satisfied_claims: {type: 'array', uniqueItems: true, items: text},
-    }),
+    });
+  // Historical authority and response originals remain readable for no-send
+  // replay. Every new delegated send semantically requires this exact scope.
+  authority.properties.model_invocation_scope_cid = cid;
+  return {
+    model_dispatch_authority: authority,
     model_call_attempt: schema('model_call_attempt', {
       slot_cid: cid, run_definition_cid: cid, model_task_cid: cid,
       fixed_request_cid: cid, authority_evidence_cid: cid,

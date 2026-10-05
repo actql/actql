@@ -1,4 +1,6 @@
+import './check-requirement-frontier.test.mjs';
 import './check-locations.test.mjs';
+import './effect-uncertainty.test.mjs';
 import test, {mock} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -7,7 +9,40 @@ import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {createServer} from 'node:http';
 import {checkReasonSchemaCid} from '@actql/client-wire';
-import {connect, ClientError, getCheckInput, getSubmissionInput, explainSubmission, resolveCheckLocation, explainCheckReason} from './index.mjs';
+import {connect, ClientError, getCheckInput, getSubmissionInput, explainSubmission, resolveCheckLocation, explainCheckReason, explainCheckOutcome} from './index.mjs';
+
+test('check outcome explanations preserve unknown problems and reject malformed reports', () => {
+  const metadata = {version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid};
+  for (const code of ['future_reporting_failure', 'verified', 'check_unavailable', 'constructor']) {
+    const explanation = explainCheckOutcome({...metadata, outcome: 'failed', problem: {code}});
+    assert.equal(explanation.outcome, 'failed');
+    assert.deepEqual(explanation.problem, {kind: 'unknown', code});
+    assert.equal(explanation.report, undefined);
+    assert.equal(Object.hasOwn(explanation, 'next'), false);
+  }
+  const unavailable = explainCheckOutcome({...metadata, outcome: 'unavailable',
+    correlation_ref: 'corr:fixture', problem: {code: 'check_report_unbounded'}});
+  assert.equal(unavailable.outcome, 'unavailable');
+  assert.equal(unavailable.problem.kind, 'unknown');
+  assert.equal(unavailable.report, undefined);
+  const report = {context_ref: 'ctx:fixture', scope: {kind: 'bound_input'}, verdict: 'undetermined',
+    inputs: [{document_id: 'source', revision: 'rev:' + '1'.repeat(64), kind: 'text', byte_length: 6}],
+    reasons: [], requirements: [], coverage: {limits: [{code: 'implementation_limit'}], unresolved: []}};
+  const partial = explainCheckOutcome({...metadata, outcome: 'failed', problem: {code: 'future'},
+    partial_report: report});
+  assert.deepEqual(partial.report, {completeness: 'partial', verdict: 'undetermined',
+    scope: {kind: 'bound_input'}, contextRef: 'ctx:fixture'});
+  report.scope.kind = 'changed-after-explanation';
+  assert.equal(partial.report.scope.kind, 'bound_input');
+  assert.equal(Object.isFrozen(partial.report.scope), true);
+  for (const malformed of [undefined, {}, {...metadata, outcome: 'future'},
+    {...metadata, outcome: 'failed', problem: {code: 'check_internal', message: 'private'}},
+    {...metadata, outcome: 'unavailable', correlation_ref: 'corr:fixture',
+      problem: {code: 'check_unavailable'}, partial_report: report},
+    {...metadata, outcome: 'completed', report: {...report, scope: {kind: 'bound_input'},
+      verdict: 'verified', coverage: {limits: [{code: 'implementation_limit'}], unresolved: []}}},
+  ]) assert.equal(explainCheckOutcome(malformed), undefined);
+});
 
 test('constraint explanations use owned families without choosing a failed numeric bound', () => {
   const hints = {
@@ -27,6 +62,21 @@ test('constraint explanations use owned families without choosing a failed numer
   'Correct the value to satisfy the declared constraint family.');
 });
 
+test('Boolean predicate explanations retain the requirement without exposing input text', () => {
+  assert.deepEqual(explainCheckReason({code: 'query_expression_invalid',
+    facts: {issue: 'expected_boolean', value: 'private-predicate'}}),
+  {kind: 'known', summary: 'A predicate must have Boolean type.',
+    hint: 'Use a Boolean condition, such as a comparison, in the predicate.'});
+  assert.equal(explainCheckReason({code: 'future_code', facts: {issue: 'expected_boolean'}}).kind, 'unknown');
+});
+
+test('default type explanations advise correcting the declaration rather than supplying a value', () => {
+  assert.deepEqual(explainCheckReason({code: 'parameter_default_type_mismatch',
+    facts: {parameter: 'minimum', expected_type: 'number', actual_type: 'string'}}),
+  {kind: 'known', summary: 'A parameter default does not match its declared type.',
+    hint: 'Correct the default to match the declared type, then check again.'});
+});
+
 test('Graph explanations require a known operation and owned issue', () => {
   assert.deepEqual(explainCheckReason({code: 'graph_operation_invalid',
     facts: {operation: 'components', issue: 'invalid_kind'}}),
@@ -36,9 +86,15 @@ test('Graph explanations require a known operation and owned issue', () => {
     facts: {operation: 'components', issue: 'invalid_output_rows'}}),
   {kind: 'known', summary: 'The components output row limit is invalid.',
     hint: 'Supply a positive safe integer for components max_output_rows.'});
+  assert.deepEqual(explainCheckReason({code: 'graph_operation_invalid',
+    facts: {operation: 'subgraph', issue: 'invalid_node_selector'}}),
+  {kind: 'known', summary: 'The Subgraph node selector is invalid.',
+    hint: 'Provide one selector: nonempty ids, a named Relation with an id field, or a node where predicate.'});
   for (const facts of [undefined, {}, {issue: 'invalid_kind'},
     {operation: 'future_operation', issue: 'invalid_kind'},
-    {operation: 'components', issue: 'private_provider_text'}]) {
+    {operation: 'components', issue: 'private_provider_text'},
+    {operation: 'components', issue: 'invalid_node_selector'},
+    {operation: 'subgraph', issue: 'invalid_kind'}]) {
     assert.deepEqual(explainCheckReason({code: 'graph_operation_invalid', facts}),
       {kind: 'unknown', summary: 'No supported explanation is available for this reason.'});
   }
@@ -1158,11 +1214,48 @@ test('check retains detached submitted inputs while credentials are pending', as
 });
 
 // Compile an independent public consumer, including invalid reference/write uses.
+test('typed predicate diagnostics remain accessible through the SDK contract', () => {
+  execFileSync(process.execPath, [fileURLToPath(new URL(
+    '../../node_modules/typescript/bin/tsc', import.meta.url)),
+  '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
+  '--target', 'ES2022', fileURLToPath(new URL(
+    './predicate-reason.typecheck.mts', import.meta.url))],
+  {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
+});
+
 test('typed submission explanations preserve reference roles and read-only targets', () => {
   execFileSync(process.execPath, [fileURLToPath(new URL(
     '../../node_modules/typescript/bin/tsc', import.meta.url)),
   '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
   '--target', 'ES2022', fileURLToPath(new URL(
     './submission-explanation.typecheck.mts', import.meta.url))],
+  {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
+});
+
+
+test('typed cancellation explanations preserve observation-only targets', () => {
+  execFileSync(process.execPath, [fileURLToPath(new URL(
+    '../../node_modules/typescript/bin/tsc', import.meta.url)),
+  '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
+  '--target', 'ES2022', fileURLToPath(new URL(
+    './cancellation-explanation.typecheck.mts', import.meta.url))],
+  {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
+});
+
+test('typed Requirement frontier consumers cannot change observations or issue writes', () => {
+  execFileSync(process.execPath, [fileURLToPath(new URL(
+    '../../node_modules/typescript/bin/tsc', import.meta.url)),
+  '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
+  '--target', 'ES2022', fileURLToPath(new URL(
+    './check-requirement-frontier.typecheck.mts', import.meta.url))],
+  {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
+});
+
+test('typed check outcome explanations preserve report binding and incomplete branches', () => {
+  execFileSync(process.execPath, [fileURLToPath(new URL(
+    '../../node_modules/typescript/bin/tsc', import.meta.url)),
+  '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
+  '--target', 'ES2022', fileURLToPath(new URL(
+    './check-outcome-explanation.typecheck.mts', import.meta.url))],
   {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
 });

@@ -8,6 +8,27 @@ import {registeredLocalEligibility} from './candidate-eligibility.mjs';
 const cid = value => `sha256:${createHash('sha256').update(value).digest('hex')}`;
 const duration = value => Number.isFinite(value) && value >= 0;
 
+// This profile measures Local and fresh DuckDB. Both DuckDB realizations use
+// the same registration name, so names alone cannot identify the training
+// candidate. Bind the explicit offer policy and the pre-execution choice.
+function requireFreshChoices(observation, taskCount) {
+  assert.equal(observation.selectionInput?.residentPolicy, false,
+    'NativeFreshCalibrationRequiresResidentDisabled');
+  const choices = observation.ownerCorrespondence?.observations?.choices;
+  assert(Array.isArray(choices), 'MissingNativeCalibrationChoices');
+  assert.deepEqual(choices.map(choice => choice.task),
+    Array.from({length: taskCount}, (_, index) => index + 1),
+    'NativeCalibrationChoiceTasksMismatch');
+  for (const [index, choice] of choices.entries()) {
+    assert.equal(choice.name, observation.selected[index],
+      'NativeCalibrationChoiceMismatch');
+    assert.equal(choice.registration, observation.selected[index],
+      'NativeCalibrationRegistrationMismatch');
+    assert.equal(choice.resident, false,
+      'NativeResidentTimingCannotCalibrateFresh');
+  }
+}
+
 export function admitNativeEstimateProfile({profile, trainingFixture,
   targetFixture, revision, binaryDigest}) {
   assert(profile && trainingFixture && targetFixture,
@@ -64,6 +85,7 @@ export function admitNativeEstimateProfile({profile, trainingFixture,
         value.elapsedMilliseconds === value.elapsedMicroseconds / 1000));
       assert.deepEqual(item.selected, Array(taskCount).fill(candidate),
         'NativeCandidateTrainingWasNotForced');
+      requireFreshChoices(item, taskCount);
       assert(duration(item.cleanupMilliseconds));
       assert.equal(item.selectionInput.localEligible, localEligible);
     }
@@ -84,6 +106,7 @@ export function admitNativeEstimateProfile({profile, trainingFixture,
   assert.equal(ordinary.result?.task_count, taskCount);
   assert.equal(ordinary.selected?.length, taskCount);
   assert(ordinary.selected.every(value => value === 'local' || value === 'duckdb'));
+  requireFreshChoices(ordinary, taskCount);
   assert.equal(ordinary.selectionInput.localEligible, localEligible);
   assert.deepEqual(ordinary.selectionInput.localRates,
     localEligible ? localRates : undefined);
@@ -92,6 +115,7 @@ export function admitNativeEstimateProfile({profile, trainingFixture,
     targetCaseId: targetFixture.id, localEligible,
     localTaskMilliseconds: localRates,
     nativeTaskMilliseconds: nativeRates,
+    residentPolicy: false,
     estimateSource: profile.estimateSource,
     scope: 'held-out Native candidate rates; not paired acceptance'});
 }
