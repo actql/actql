@@ -77,6 +77,17 @@ The changed storage fixture independently spells the JSON envelope; its
 physical encoding is 43 bytes / 9 nodes rather than 33 bytes / 8 nodes.
 Production ceilings are unchanged.
 
+The first packed attempt at `e96e9b965cd1202b04c13a4404012bbeedc7b3eb`
+stopped before the new cases: the README Program's common closure rejected
+`UnsupportedExpressionContract`, because the Stage semantic emitter retained
+the predecessor expression pin. Evidence: `run-uvDahB`, external command
+`010`, `public-query-evidence-ffyP7M`. The fix updates the Stage semantic pin
+and dependent authored Stage/Program/acquisition/nest preimages. Historical
+preimages and PR-0 byte oracles remain retained, without compatibility fallback.
+The resulting focused Stage/Program checks passed 35/35 (`run-F6FwlK`), and
+ordinary README preparation/compilation plus historical profile tests passed
+9/9 (`run-2gzubG`). That first packed failure is not acceptance evidence.
+
 Three-target public-interface verification and changed-package formatting
 passed (`run-TgiV5D`); this checks compilation and interfaces, not three-target
 runtime execution. Read-only literal/vector, Workers/Node fixture, canonical,

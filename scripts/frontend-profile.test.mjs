@@ -73,10 +73,20 @@ test('machine Program vocabulary matches the current closed inventory', () => {
     .artifact_schemas.executable_plan.properties.execution_material.properties.program;
   assert.equal(machineCid(currentProgram), sourceGrammar);
   const priorProgram = structuredClone(currentProgram);
+  // Preserve the historical pre-typed-JSON schema, not a regenerated baseline.
+  const removeTypedJson = node => {
+    if (node === null || typeof node !== 'object') return;
+    if (Array.isArray(node.oneOf)) {
+      node.oneOf = node.oneOf.filter(variant => !variant.properties?.typed_literal);
+    }
+    for (const child of Object.values(node)) removeTypedJson(child);
+  };
+  removeTypedJson(priorProgram);
   Object.assign(priorProgram.properties.steps.items.properties, legacyGraphSchemas());
   delete priorProgram.properties.steps.items.properties.property_graph;
   assert.equal(machineCid(priorProgram), oldBody.source_grammar_cid);
   unchangedBody.source_grammar_cid = machineCid(priorProgram);
+  unchangedBody.expression_contract_cid = oldBody.expression_contract_cid;
   unchangedBody.operations = currentOperations.filter(name => name !== 'property_graph');
   assert.deepEqual(oldBody, unchangedBody);
   assert.equal(grammar, hash(read('spec/grammar/actql-text-0.1.ebnf')));
@@ -164,10 +174,12 @@ test('independent fixtures and historical CID oracles retain their baseline byte
   assert.match(baseline.base_sha, /^[a-f0-9]{40}$/u);
   assert.deepEqual(baseline.toolchain, json('toolchain.json'));
   for (const fixture of [...baseline.fixtures, ...baseline.existing_identity_oracles]) {
-    // PR-0 is frozen. Its old String-normalizing oracle remains byte-for-byte
-    // available, while the active corpus follows the adopted exact-value law.
-    const path = fixture.path === 'portability/corpus/parameter-identities.json'
-      ? 'spec/frontend/historical/parameter-identities-pr0.json' : fixture.path;
+    // PR-0 is frozen. Preserve predecessor value/contract identities byte for
+    // byte while active vectors follow the exact-value and typed-JSON laws.
+    const historical = new Map(['parameter-identities', 'stage-definition',
+      'local-unit-stage-body'].map(name => [`portability/corpus/${name}.json`,
+      `spec/frontend/historical/${name}-pr0.json`]));
+    const path = historical.get(fixture.path) ?? fixture.path;
     assert.equal(hash(read(path)), fixture.sha256, fixture.path);
   }
   for (const fixture of baseline.fixtures) {

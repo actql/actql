@@ -2,13 +2,53 @@
   "version": "actql-program-definition-vectors/0.1",
   "description": "Use the matching import_mode/accepted Program semantics fixture. The closed Definition envelope is {version: actql-program-definition/0.1, id, program_semantics_cid}. No execution approval is claimed.",
   "cases": [
-    {"import_mode":0,"accepted":false,"id":"p","expected_cid":"sha256:c42ea058cafda4fd4ee2e1b36d4c6993fc8a24e344c89cd7be424d8c51cdf83b"},
-    {"import_mode":0,"accepted":false,"id":"another-program","expected_cid":"sha256:2621376d065296da436c5b8d1c003c203fb08c6def9313907326e0063e9095d5"},
-    {"import_mode":0,"accepted":true,"id":"p","expected_cid":"sha256:be04567ee1f0a54c1b3b374901aa8ffc6a4d755ee7338e981aabb60ee750f2bd"},
-    {"import_mode":0,"accepted":true,"id":"another-program","expected_cid":"sha256:ab6e44b4ee3a9b9083d6333fe163a65abf996d97ccc06617967d83e98f775854"},
-    {"import_mode":1,"accepted":false,"id":"p","expected_cid":"sha256:60c2ec4a2b51ae565a4cf7c93b0321a28b9cc1a180027671b18f988d1137fe49"},
-    {"import_mode":1,"accepted":false,"id":"another-program","expected_cid":"sha256:a443d51ed5bf3faf5b19a3072324433d39cca367ca7cd085a34b832fe0b1327d"},
-    {"import_mode":2,"accepted":false,"id":"p","expected_cid":"sha256:8a9eb8145a2f0ef0747fb162f251c7252d4977ca6cfa3c1ed801a233f0243aa9"},
-    {"import_mode":2,"accepted":false,"id":"another-program","expected_cid":"sha256:3bcad9fc5c00a3979a6f7b74514948c40018bde501ba0e0bd2df6000e85bfb51"}
+    {
+      "import_mode": 0,
+      "accepted": false,
+      "id": "p",
+      "expected_cid": "sha256:25ff243a410dee745eb06b7b58bff270fc612a12b746be33efdf26123f1c3a73"
+    },
+    {
+      "import_mode": 0,
+      "accepted": false,
+      "id": "another-program",
+      "expected_cid": "sha256:86a51d2f5c0263dce86c9e0e77492bc236ce8344c68883b17f2f41a15f73a4eb"
+    },
+    {
+      "import_mode": 0,
+      "accepted": true,
+      "id": "p",
+      "expected_cid": "sha256:b7df2bde409bdeb26227f01f442953f6390b7f3b1a9f7dc42acd95d32a55d77a"
+    },
+    {
+      "import_mode": 0,
+      "accepted": true,
+      "id": "another-program",
+      "expected_cid": "sha256:46bc8e5b83d4adcc225221b2ea4fc78146c1c171c754a6d726741363a80e89e1"
+    },
+    {
+      "import_mode": 1,
+      "accepted": false,
+      "id": "p",
+      "expected_cid": "sha256:903e7afcc31f7372156f54f02661037901e49d2b336fdfa4daa1d05befea6905"
+    },
+    {
+      "import_mode": 1,
+      "accepted": false,
+      "id": "another-program",
+      "expected_cid": "sha256:606022d1620a38cb01ade83cf08540049f4f201c1145b061b28fda4b0ce715b6"
+    },
+    {
+      "import_mode": 2,
+      "accepted": false,
+      "id": "p",
+      "expected_cid": "sha256:750964c18b381b9c72c5377bc82397aa43514cb39f5dfdcf3b66a54181fc3056"
+    },
+    {
+      "import_mode": 2,
+      "accepted": false,
+      "id": "another-program",
+      "expected_cid": "sha256:9843b50e875c037ee2396b304d6a4abea6dda62db2d837ed6aed9e8ba8c86c1e"
+    }
   ]
 }
