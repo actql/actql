@@ -235,10 +235,14 @@ test "presence keyed distinct projects guaranteed keys without retaining optiona
     @relation_typing.check(Distinct, cursor("[\"p\"]"), input, None, limits()).unwrap_err().kind,
     PresenceRequired("p"),
   )
-  assert_eq(
-    @relation_typing.check(Distinct, cursor("true"), input, None, limits()).unwrap_err().kind,
-    ConditionalInputNotImplemented,
-  )
+  let whole = @relation_typing.check(
+    Distinct,
+    cursor("true"),
+    input,
+    None,
+    limits(),
+  ).unwrap()
+  assert_true(physical_equal(@relation_typing.output_schema(whole), input))
   let nullable = @schema.from_presence_fields(
     [
       (

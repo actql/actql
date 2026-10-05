@@ -19,6 +19,22 @@ const fixtureDirectory = fileURLToPath(new URL('./fixtures/two-source/', import.
 const duckdbPackage = resolve(repository, 'adapters/connectors/duckdb/node/package.json');
 const duckdb = createRequire(duckdbPackage)('@duckdb/node-api');
 
+function hostAuthorization(observe) {
+  const keys = generateKeyPairSync('ed25519');
+  return {
+    accountConfiguration: canonical({version: 'actql-execution-account-config/0.1',
+      account_id: 'two-source-host', entries: [{entry_id: 'allow-owned-test-run',
+        outcome: 'allow', principal: {all: true}, connection: {all: true},
+        resource: {all: true}, operation: {any_of: ['write']}, exclusions: []}]}),
+    reviewers: [{keyId: 'fixture-reviewer-key', reviewerId: 'fixture-reviewer',
+      principalId: 'fixture-reviewer', publicKey: keys.publicKey.export({
+        type: 'spki', format: 'pem'})}],
+    hostKey: {keyId: 'fixture-host-key', privateKey: keys.privateKey.export({
+      type: 'pkcs8', format: 'pem'})},
+    ...(observe === undefined ? {} : {observe}),
+  };
+}
+
 async function runChild(configuration, action, caseName = action, expectedSignal) {
   const child = spawn(process.execPath, [driver, configuration, action, caseName],
     {cwd: repository, env: {...process.env}, stdio: ['ignore', 'pipe', 'pipe']});
@@ -48,16 +64,7 @@ test('two installed sources use normal public Local/HTTPS execution and owned re
       '-keyout', 'remote.key', '-out', 'remote.crt', '-days', '1',
       '-subj', '/CN=localhost', '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'],
     {cwd: root, stdio: 'ignore'});
-    const keys = generateKeyPairSync('ed25519');
-    const authorization = {
-      accountConfiguration: canonical({version: 'actql-execution-account-config/0.1',
-        account_id: 'two-source-host', entries: [{entry_id: 'allow-owned-test-run',
-          outcome: 'allow', principal: {all: true}, connection: {all: true},
-          resource: {all: true}, operation: {any_of: ['write']}, exclusions: []}]}),
-      reviewers: [{keyId: 'fixture-reviewer-key', reviewerId: 'fixture-reviewer',
-        principalId: 'fixture-reviewer', publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
-      hostKey: {keyId: 'fixture-host-key', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
-    };
+    const authorization = hostAuthorization();
     const configuration = resolve(root, 'two-source-configuration.json');
     await writeFile(configuration, JSON.stringify({root, fixtureDirectory, installation,
       authorization, runtime: {
@@ -115,5 +122,37 @@ test('two installed sources use normal public Local/HTTPS execution and owned re
       await t.test(label, () => runChild(configuration, action));
       await t.test(`Broad: ${label}`, () => runChild(configuration, action, `broad-${action}`));
     }
+    scratch.passed();
+  });
+
+test('public two-source join retains its output across Local and HTTPS restart',
+  {timeout: 120_000}, async () => {
+    const scratch = await createOwnedScratch({parent: resolve(repository, '_build'),
+      prefix: 'two-source-retained-output-', label: 'public two-source retained output',
+      digests: () => []});
+    const root = scratch.path;
+    const fixture = await loadTwoSourceFixtures(fixtureDirectory);
+    const installation = await installTwoSourceFixtures({root, fixture, duckdb});
+    execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
+      '-keyout', 'remote.key', '-out', 'remote.crt', '-days', '1',
+      '-subj', '/CN=localhost', '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'],
+    {cwd: root, stdio: 'ignore'});
+    const configuration = resolve(root, 'two-source-configuration.json');
+    await writeFile(configuration, JSON.stringify({root, fixtureDirectory, installation,
+      authorization: hostAuthorization(), runtime: {
+        sdk: new URL('../../packages/sdk/index.mjs', import.meta.url).href,
+        local: new URL('./embedded-local.mjs', import.meta.url).href,
+        embeddedLocal: true, duckdbPackage,
+      }}, null, 2) + '\n');
+    await runChild(configuration, 'retained-output-success');
+    const success = JSON.parse(await readFile(resolve(root,
+      'retained-output-success.retained-output-success.json'), 'utf8'));
+    assert.deepEqual(success.records.map(item => item.mode), ['local', 'https']);
+    await runChild(configuration, 'retained-output-replay');
+    const replay = JSON.parse(await readFile(resolve(root,
+      'retained-output-replay.retained-output-replay.json'), 'utf8'));
+    assert.deepEqual(replay.records, success.records);
+    assert.deepEqual(replay.provider.sourceProviderOpens, []);
+    assert.equal(replay.provider.sourceIo, 0);
     scratch.passed();
   });

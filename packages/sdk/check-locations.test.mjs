@@ -1,7 +1,7 @@
 import test, {mock} from 'node:test';
 import assert from 'node:assert/strict';
 import {checkReasonSchemaCid} from '@actql/client-wire';
-import {connect, getCheckInput, resolveCheckTextRange} from './index.mjs';
+import {connect, getCheckInput, resolveCheckLocation, resolveCheckTextRange} from './index.mjs';
 
 const revision = 'rev:' + '4'.repeat(64);
 const profile = {version: 'actql-client-host/0.1', mode: 'remote', owner: 'remote',
@@ -81,4 +81,69 @@ test('UTF-16 check coordinates refuse copied reports, stale revisions and edited
 
 test('malformed original Unicode is refused before editable check coordinates exist', async t => {
   await assert.rejects(checkedInput(t, '\ud800A', 4), {code: 'InvalidCheckRequest'});
+});
+
+async function checkedStructuredInput(t) {
+  // The literal wire length was independently calculated from these UTF-8 bytes.
+  const parameters = JSON.parse('{"options":{"":null,"~1":false,"a/b~c":0,"é":"composed",' +
+    '"e\u0301":"decomposed","array":[null,false,0,""],"__proto__":{},"constructor":{}}}');
+  const location = {kind: 'structured', document_id: 'parameters', revision,
+    pointer: ''};
+  mock.method(globalThis, 'fetch', async url => url.pathname.endsWith('/connect')
+    ? Response.json(profile) : Response.json({version: 'actql-check-outcome/0.1',
+      reason_schema_cid: checkReasonSchemaCid, outcome: 'completed', report: {
+        context_ref: 'ctx:fixture', scope: {kind: 'bound_input'}, verdict: 'invalid',
+        inputs: [{document_id: 'source', kind: 'text', revision, byte_length: 13},
+          {document_id: 'parameters', kind: 'structured', revision, byte_length: 135}],
+        reasons: [{code: 'supplied_parameters_invalid', location}], requirements: [],
+        coverage: {limits: [], unresolved: []}}}));
+  t.after(() => mock.restoreAll());
+  const client = await connect({mode: 'remote', endpoint: 'https://host.example/', token: 'token'});
+  const outcome = await client.check('SELECT 1 AS n', {format: 'sql', parameters});
+  return {outcome, location, parameters};
+}
+
+test('structured check pointers resolve owned JSON nodes without normalization or prototype traversal', async t => {
+  const {outcome, location, parameters} = await checkedStructuredInput(t);
+  const original = getCheckInput(outcome, 'parameters');
+  for (const pointer of ['', '/options', '/options/', '/options/~01', '/options/a~1b~0c',
+    '/options/é', '/options/e\u0301', '/options/array', '/options/array/0',
+    '/options/array/1', '/options/array/2', '/options/array/3',
+    '/options/__proto__', '/options/constructor']) {
+    const resolved = resolveCheckLocation(outcome, {...location, pointer});
+    assert.equal(resolved?.input, original);
+    assert.equal(resolved?.pointer, pointer);
+    assert.equal(Object.isFrozen(resolved), true);
+  }
+  assert.notEqual(original.value, parameters);
+  assert.equal(Object.isFrozen(original.value.options.array), true);
+  assert.equal(original.value.options['é'], 'composed');
+  assert.equal(original.value.options['e\u0301'], 'decomposed');
+  for (const pointer of ['/missing', '/options/toString', '/options/valueOf',
+    '/options/__proto__/toString', '/options/constructor/name', '/options/~1',
+    '/options/array/4', '/options/array/00', '/options/array/01', '/options/array/-',
+    '/options/array/+1', '/options/array/1.0', '/options/array/1e0',
+    '/options/array/9007199254740993', '/options/array/length', '/options/array/map',
+    '/options/array/__proto__', '/options/array/0/x', '/options/array/1/x',
+    '/options/array/2/x', '/options/array/3/length', '/options/é/length']) {
+    assert.equal(resolveCheckLocation(outcome, {...location, pointer}), undefined);
+  }
+  for (const pointer of [undefined, null, 0, 'options', '/options/~', '/options/~2',
+    '/' + 'x'.repeat(4096)]) {
+    assert.equal(resolveCheckLocation(outcome, {...location, pointer}), undefined);
+  }
+});
+
+test('structured check pointers refuse stale revisions, changed inputs and copied responses', async t => {
+  const {outcome, location, parameters} = await checkedStructuredInput(t);
+  const original = getCheckInput(outcome, 'parameters');
+  parameters.options.array[0] = 'edited';
+  assert.equal(original.value.options.array[0], null);
+  for (const current of [{...original, value: parameters},
+    {...original, revision: 'rev:' + '5'.repeat(64)},
+    {...original, documentId: 'reopened-parameters'}]) {
+    assert.equal(resolveCheckLocation(outcome, location, current), undefined);
+  }
+  assert.equal(resolveCheckLocation(JSON.parse(JSON.stringify(outcome)), location), undefined);
+  assert.equal(resolveCheckLocation(outcome, {...location, revision: undefined}), undefined);
 });

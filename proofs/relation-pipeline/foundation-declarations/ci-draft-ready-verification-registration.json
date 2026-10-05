@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "ci-draft-ready-verification-registration",
+  "kind": "change",
+  "revision": "632b54285e455acb5482903caa5abfce716fd200",
+  "parents": [
+    "fcad8f4c51f73dad64868569289e4b0d3807f8f9"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "fcad8f4c51f73dad64868569289e4b0d3807f8f9",
+          "digest": "5a98c2ad9661df4d1e0a2104efebdb84c1ae231d63cbd9bfb9cb37c50d403fcf",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "6e9873ff2b6c7b6adaac3c7141b3c07db64d557cf9787d8419b799e0828e24da",
+      "afterMode": "100644",
+      "reason": "Declare the inherited Draft preparation and Ready verification workflow change from its original Git commit. Preserve the existing workflow bytes and full Ready coverage; no validator, prior declaration, historical receipt or CI policy is changed by this record."
+    }
+  ]
+}

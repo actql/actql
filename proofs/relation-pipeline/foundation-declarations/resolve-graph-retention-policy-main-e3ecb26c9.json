@@ -1,0 +1,139 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-graph-retention-policy-main-e3ecb26c9",
+  "kind": "resolution",
+  "revision": "e3ecb26c952a045e8a4984a7b2e0a318c50a4cce",
+  "parents": [
+    "f1505f07858c8f371b808b59cdcc5b90a70b83a9",
+    "c26339bed484c1965da78f6a9540333c2583ea31"
+  ],
+  "mergeBases": [
+    "5e22c522becb80477cb7ed4f4733a48a463d5bf2",
+    "60394aacca05c297c07cf6e8129973a34318a6c3"
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-343a5565c1ac",
+    "adopt-3877b637406b",
+    "adopt-63b114ad524b",
+    "adopt-678626b010b4",
+    "adopt-7427f7f09276",
+    "adopt-985dbbba2789",
+    "adopt-9a7c592a8ed9",
+    "adopt-b480cffb6e6d",
+    "adopt-bf2d058c21c1",
+    "adopt-dafff1a1aeea",
+    "adopt-f24288853c19",
+    "adopt-sga-query-contract",
+    "bounded-local-execution-guard",
+    "ci-artifact-preflight-fixtures",
+    "ci-complete-automatic-main-checkpoints",
+    "ci-declaration-profile",
+    "ci-focused-fixed-requests",
+    "ci-main-carryforward",
+    "ci-maintenance-pr-profile",
+    "ci-mandatory-preflight",
+    "ci-native-query-partition",
+    "ci-operation-evidence-admission",
+    "ci-portable-pr-targets",
+    "client-ci-runner-context",
+    "client-ci-split",
+    "four-owned-pipeline-producers",
+    "frontend-sga-main-integration",
+    "frontend-unified-graph-source-integration",
+    "github-issue-read-registration",
+    "github-issue-source-acceptance-registration",
+    "graph-composition-fixture-registration",
+    "incremental-session-comparison",
+    "issue-180-foundation-composition",
+    "main-json-composition-246-resolution",
+    "main-pr225-ci-resolution",
+    "main-pr233-package-resolution",
+    "packed-acquired-infer-acceptance",
+    "packed-composed-infer-effect-acceptance",
+    "parallel-pipeline-evidence",
+    "pr164-main-a32-verification-resolution",
+    "pr164-main4f-runtime-check-resolution",
+    "pr164-property-graph-source",
+    "public-column-published-main-resolution",
+    "public-text-computation-bridge-ci",
+    "read-progress-current-main-resolution",
+    "remove-duplicate-runtime-package-checks",
+    "resident-cancellation-issuer-registration",
+    "resident-cancellation-native-registration",
+    "resident-source-native-registration",
+    "resolve-acquired-infer-client-ci",
+    "resolve-cancellation-foundation-main-5caeccc79",
+    "resolve-ci-main-carryforward-artifact-preflight",
+    "resolve-composition-current-ci-main",
+    "resolve-composition-custody-main-maximal-bases",
+    "resolve-composition-frontend-latest-main",
+    "resolve-composition-infer-main-maximal-bases",
+    "resolve-composition-maintenance-ci-main",
+    "resolve-composition-resident-source-main",
+    "resolve-composition-reviewed-supplements-main",
+    "resolve-four-producers-current-main",
+    "resolve-frontend-graph-label-dependency-5fa4bc547",
+    "resolve-frontend-graph-row-input-main-0e1516677",
+    "resolve-github-issue-driver-main-5dcef9189",
+    "resolve-github-issue-source-main",
+    "resolve-graph-composition-accepted-effect-main-1edb1560c",
+    "resolve-graph-composition-cancellation-main",
+    "resolve-graph-composition-current-main-d8dd3a918",
+    "resolve-graph-composition-resident-cleanup-main",
+    "resolve-graph-composition-text-main",
+    "resolve-graph-policy-source-approval-main-13c0d39d2",
+    "resolve-host-owner-main-7081dedfd",
+    "resolve-incremental-session-main-e9718942",
+    "resolve-local-guard-acquired-infer-ci",
+    "resolve-local-guard-pipeline-ci",
+    "resolve-main-model-backing",
+    "resolve-parallel-pipeline-main-infer",
+    "resolve-resident-cancel-foundation-7b5a8048",
+    "resolve-resident-source-latest-main",
+    "scoped-session-acquisition",
+    "scoped-session-acquisition-main-resolution",
+    "sdk-cancel-response-loss-registration",
+    "sdk-read-progress-registration",
+    "session-registration-main-c4fc-resolution",
+    "source-free-effect-retention-original-regression"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "f1505f07858c8f371b808b59cdcc5b90a70b83a9",
+          "digest": "d7cb319c9c21db14238c4a130df00df7daaf1720143a607b0267db644a7f5e56",
+          "mode": "100644"
+        },
+        {
+          "revision": "c26339bed484c1965da78f6a9540333c2583ea31",
+          "digest": "d7cb319c9c21db14238c4a130df00df7daaf1720143a607b0267db644a7f5e56",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "d7cb319c9c21db14238c4a130df00df7daaf1720143a607b0267db644a7f5e56",
+      "afterMode": "100644",
+      "reason": "Preserve the current shared CI selection and cost controls when merging main with the adopted Result Policy owner. Both real maximal ancestors require resolution although the resulting workflow matches the first parent."
+    },
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "f1505f07858c8f371b808b59cdcc5b90a70b83a9",
+          "digest": "18c7d76c419fd0eed03df827767ab291797a7fa3b039b73a50a69b29c4e01270",
+          "mode": "100644"
+        },
+        {
+          "revision": "c26339bed484c1965da78f6a9540333c2583ea31",
+          "digest": "cc319786f188d46e7357d53dea5269f4ad7375ebc6ba0b3c587079c006068c91",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "18c7d76c419fd0eed03df827767ab291797a7fa3b039b73a50a69b29c4e01270",
+      "afterMode": "100644",
+      "reason": "Retain the shared gate registrations and the source-free Effect retention-original regression. Resolve both maximal-ancestor obligations without removing any inherited registration or adding a duplicate packed job."
+    }
+  ]
+}

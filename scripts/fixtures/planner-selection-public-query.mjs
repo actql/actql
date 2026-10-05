@@ -159,12 +159,15 @@ export async function installPlannerSelectionFixture({root, duckdb, environment,
 }
 
 async function openSingleSourcePublicHost({connect, openInstalledRemoteHttpHost,
-  mode, directory, sourceProfilePath, tls, authorization}) {
+  mode, directory, sourceProfilePath, tls, authorization,
+  retainedRelationOutput = false}) {
   let host, server;
   let options = {mode: 'local', owner: 'local', durability: 'durable',
-    installation: {directory, sourceProfilePath, authorization}};
+    installation: {directory, sourceProfilePath, authorization,
+      retainedRelationOutput}};
   if (mode === 'https') {
     host = await openInstalledRemoteHttpHost({directory, sourceProfilePath, authorization,
+      retainedRelationOutput,
       authenticate: header => header === 'Bearer fixture-token' ? userInfo().username : undefined});
     server = createServer(tls, host.handler);
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -178,6 +181,46 @@ async function openSingleSourcePublicHost({connect, openInstalledRemoteHttpHost,
     }
     await host?.close();
   }};
+}
+
+// One public retained-output route, with an independent result oracle. The
+// selected output representation is observed before normal cleanup.
+export async function exerciseRetainedPlannerPublicQuery({connect, root,
+  installation}) {
+  const item = plannerSelectionCases[0];
+  const directory = resolve(root, 'retained-public-state');
+  let outputRepresentations;
+  const events = [];
+  const authorization = hostAuthorization((name, detail) => {
+    events.push({name, detail});
+    if (name === 'computed') outputRepresentations = detail.outputRepresentations;
+  });
+  const running = await openSingleSourcePublicHost({connect,
+    mode: 'local', directory, sourceProfilePath: installation.profiles[item.name],
+    authorization, retainedRelationOutput: true});
+  let client;
+  try {
+    client = await running.connect().catch(error => {
+      assert.fail(`retained Host initialization: ${error.primaryFailure?.stack ?? error.stack}`);
+    });
+    const requestId = 'retained-public-planner';
+    const program = plannerSelectionProgram();
+    const execution = await client.aql(program, {format: 'json', requestId});
+    const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
+    assert.equal(state.status, 'succeeded', JSON.stringify({state,
+      events: events.map(event => ({name: event.name,
+        ...(event.name === 'dispatch_failed' ? {code: event.detail.code} : {})}))}));
+    const result = execution.result('selected');
+    assert.deepEqual(await result.all(), expectedRows);
+    assert.deepEqual((await result.describe()).columns, expectedColumns);
+    assert.ok(outputRepresentations?.some(value =>
+      value.representation === 'retained-file'),
+    'the public Host must select a real retained-file output');
+    const attached = await client.attach(execution.ref);
+    assert.deepEqual(await attached.result('selected').all(), expectedRows);
+    const resent = await client.aql(program, {format: 'json', requestId});
+    assert.deepEqual(resent.ref, execution.ref);
+  } finally { client?.close(); await running.close(); }
 }
 
 function assertSelection(selection, item, source) {

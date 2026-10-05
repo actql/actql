@@ -17,7 +17,7 @@ export async function acquisitionPlan({context, catalog, comparison, event, read
   assert.deepEqual(comparison.actions.map(entry => entry.actionId), catalog.actions.map(action => action.id));
   const plan = {version: acquisitionVersion, context, catalogDigest: hash(encode(catalog)),
     actions: comparison.actions.map(entry => ({actionId: entry.actionId, acquisition: 'fresh',
-      candidateActionKey: entry.candidateActionKey, reason: event === 'push' ? 'main-fresh' : 'ordinary-fresh', origin: null})),
+      candidateActionKey: entry.candidateActionKey, reason: ['push', 'workflow_dispatch'].includes(event) ? 'main-fresh' : 'ordinary-fresh', origin: null})),
     milliseconds: 0};
   if (event !== 'pull_request') return plan;
   const entry = comparison.actions.find(value => value.actionId === 'mutations-js');

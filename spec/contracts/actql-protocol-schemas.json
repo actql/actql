@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:a0c19836d648bd77ceaeefedee9bcfbfb38d6a3335a3d667db2f6847a474f5b0",
+  "artifact_registry_cid": "sha256:d2484976ca79650c7707832468c143db658b8751f5416cb2b5978ad8bdf53e29",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10713,8 +10713,8 @@
     "model_prompt": "sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204",
     "model_retry_policy": "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c",
     "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55",
-    "check_outcome": "sha256:f7415bb94341e6379d2f8a04d49d4d765d1cd605598887694d1a3edee053eb54",
-    "check_reason": "sha256:1565f0b7e8e32f70d97905797ccc37a872b08116c0ef3d9599e4e4509b568621",
+    "check_outcome": "sha256:e3ef93b3c096ed651f99b489b34a7150a865a7002010c3c204f1d99977f71981",
+    "check_reason": "sha256:16c81ff351a5c3d1fa56757c3c9936a68fd7014c81137e8efa1c54988a61c961",
     "model_provider_binding": "sha256:a4a37e0016403b483aa267dca7aae6c682940d2b23343b95defbcac2a1ca92b3",
     "model_invocation_scope": "sha256:2ae55fd7143e29dc3468123dbea9979c65f0aeac9adc392098db87679ebf88c3"
   },
@@ -76361,6 +76361,27 @@
                                 ]
                               }
                             }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "unexpected_end",
+                                  "unexpected_token",
+                                  "invalid_escape",
+                                  "invalid_scalar",
+                                  "empty_identifier",
+                                  "unterminated_comment",
+                                  "invalid_number",
+                                  "invalid_parameter"
+                                ]
+                              }
+                            }
                           }
                         ]
                       }
@@ -76401,6 +76422,9 @@
                           ],
                           "properties": {
                             "facts": {
+                              "required": [
+                                "parameter"
+                              ],
                               "allOf": [
                                 {
                                   "not": {
@@ -76472,12 +76496,41 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "query_lexical_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "issue"
+                              ]
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "not": {
                                 "enum": [
                                   "supplied_value_type_mismatch",
                                   "parameter_value_required",
                                   "parameter_undeclared",
-                                  "supplied_value_constraint_violation"
+                                  "supplied_value_constraint_violation",
+                                  "query_lexical_invalid"
                                 ]
                               }
                             }
@@ -76705,6 +76758,27 @@
                                 ]
                               }
                             }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "unexpected_end",
+                                  "unexpected_token",
+                                  "invalid_escape",
+                                  "invalid_scalar",
+                                  "empty_identifier",
+                                  "unterminated_comment",
+                                  "invalid_number",
+                                  "invalid_parameter"
+                                ]
+                              }
+                            }
                           }
                         ]
                       }
@@ -76745,6 +76819,9 @@
                           ],
                           "properties": {
                             "facts": {
+                              "required": [
+                                "parameter"
+                              ],
                               "allOf": [
                                 {
                                   "not": {
@@ -76816,12 +76893,41 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "query_lexical_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "issue"
+                              ]
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "not": {
                                 "enum": [
                                   "supplied_value_type_mismatch",
                                   "parameter_value_required",
                                   "parameter_undeclared",
-                                  "supplied_value_constraint_violation"
+                                  "supplied_value_constraint_violation",
+                                  "query_lexical_invalid"
                                 ]
                               }
                             }
@@ -76860,7 +76966,7 @@
               }
             },
             "reason_schema_cid": {
-              "const": "sha256:1565f0b7e8e32f70d97905797ccc37a872b08116c0ef3d9599e4e4509b568621"
+              "const": "sha256:16c81ff351a5c3d1fa56757c3c9936a68fd7014c81137e8efa1c54988a61c961"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -77286,6 +77392,27 @@
                                 ]
                               }
                             }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "unexpected_end",
+                                  "unexpected_token",
+                                  "invalid_escape",
+                                  "invalid_scalar",
+                                  "empty_identifier",
+                                  "unterminated_comment",
+                                  "invalid_number",
+                                  "invalid_parameter"
+                                ]
+                              }
+                            }
                           }
                         ]
                       }
@@ -77326,6 +77453,9 @@
                           ],
                           "properties": {
                             "facts": {
+                              "required": [
+                                "parameter"
+                              ],
                               "allOf": [
                                 {
                                   "not": {
@@ -77397,12 +77527,41 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "query_lexical_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "issue"
+                              ]
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "not": {
                                 "enum": [
                                   "supplied_value_type_mismatch",
                                   "parameter_value_required",
                                   "parameter_undeclared",
-                                  "supplied_value_constraint_violation"
+                                  "supplied_value_constraint_violation",
+                                  "query_lexical_invalid"
                                 ]
                               }
                             }
@@ -77630,6 +77789,27 @@
                                 ]
                               }
                             }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "unexpected_end",
+                                  "unexpected_token",
+                                  "invalid_escape",
+                                  "invalid_scalar",
+                                  "empty_identifier",
+                                  "unterminated_comment",
+                                  "invalid_number",
+                                  "invalid_parameter"
+                                ]
+                              }
+                            }
                           }
                         ]
                       }
@@ -77670,6 +77850,9 @@
                           ],
                           "properties": {
                             "facts": {
+                              "required": [
+                                "parameter"
+                              ],
                               "allOf": [
                                 {
                                   "not": {
@@ -77741,12 +77924,41 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "query_lexical_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "issue"
+                              ]
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "not": {
                                 "enum": [
                                   "supplied_value_type_mismatch",
                                   "parameter_value_required",
                                   "parameter_undeclared",
-                                  "supplied_value_constraint_violation"
+                                  "supplied_value_constraint_violation",
+                                  "query_lexical_invalid"
                                 ]
                               }
                             }
@@ -77797,7 +78009,7 @@
               }
             },
             "reason_schema_cid": {
-              "const": "sha256:1565f0b7e8e32f70d97905797ccc37a872b08116c0ef3d9599e4e4509b568621"
+              "const": "sha256:16c81ff351a5c3d1fa56757c3c9936a68fd7014c81137e8efa1c54988a61c961"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -77838,7 +78050,7 @@
               }
             },
             "reason_schema_cid": {
-              "const": "sha256:1565f0b7e8e32f70d97905797ccc37a872b08116c0ef3d9599e4e4509b568621"
+              "const": "sha256:16c81ff351a5c3d1fa56757c3c9936a68fd7014c81137e8efa1c54988a61c961"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -78055,6 +78267,27 @@
                   ]
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "issue"
+              ],
+              "properties": {
+                "issue": {
+                  "enum": [
+                    "unexpected_end",
+                    "unexpected_token",
+                    "invalid_escape",
+                    "invalid_scalar",
+                    "empty_identifier",
+                    "unterminated_comment",
+                    "invalid_number",
+                    "invalid_parameter"
+                  ]
+                }
+              }
             }
           ]
         }
@@ -78095,6 +78328,9 @@
             ],
             "properties": {
               "facts": {
+                "required": [
+                  "parameter"
+                ],
                 "allOf": [
                   {
                     "not": {
@@ -78166,12 +78402,41 @@
           "if": {
             "properties": {
               "code": {
+                "const": "query_lexical_invalid"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "facts"
+            ],
+            "properties": {
+              "facts": {
+                "required": [
+                  "issue"
+                ]
+              },
+              "location": {
+                "properties": {
+                  "kind": {
+                    "const": "text"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
                 "not": {
                   "enum": [
                     "supplied_value_type_mismatch",
                     "parameter_value_required",
                     "parameter_undeclared",
-                    "supplied_value_constraint_violation"
+                    "supplied_value_constraint_violation",
+                    "query_lexical_invalid"
                   ]
                 }
               }

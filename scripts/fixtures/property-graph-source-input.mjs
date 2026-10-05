@@ -121,7 +121,6 @@ export const propertyGraphSourceRefusals = [
   {name: 'keyed-unadapted-heterogeneous-binding', format: 'aql-text',
     text: scopedNodes('Company').replace('LABEL Company PROPERTIES (tag, id)', 'LABEL Company PROPERTIES (id)') +
       'FROM GRAPH g |> MATCH WALK (a) |> SELECT a.tag'},
-  {name: 'unsupported-equality-consumer', format: 'aql-text', text: nodes + 'DATA same = FROM g |> graphs_equal(with: g); FROM same |> SELECT equal'},
   {name: 'unsupported-mean-consumer', format: 'aql-text', text: nodes + 'DATA combined = mean_graphs(with: [g, g]); FROM GRAPH combined |> MATCH WALK (a:Person) |> SELECT a.id'},
   {name: 'keyed-star', format: 'aql-text', text: nodes + 'FROM GRAPH g |> MATCH WALK (a) |> SELECT *'},
   {name: 'keyed-implicit-element-export', format: 'aql-text', text: nodes + 'FROM GRAPH g |> MATCH WALK (a)'},

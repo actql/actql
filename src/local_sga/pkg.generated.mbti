@@ -25,6 +25,10 @@ pub fn advance_match_nodes(MatchNodesExecution, Int) -> Result[MatchNodesPoll, M
 
 pub fn advance_normalize(NormalizeExecution, Int) -> Result[NormalizePoll, NormalizeIssue]
 
+pub fn advance_property_equality(PropertyEqualityExecution, Int) -> Result[PropertyEqualityPoll, PropertyEqualityIssue]
+
+pub fn advance_subgraph(SubgraphExecution, Int) -> Result[SubgraphPoll, SubgraphIssue]
+
 pub fn advance_traverse(TraverseExecution, Int) -> Result[TraversePoll, TraverseIssue]
 
 pub fn cleanup_components(ComponentsExecution) -> Result[Bool, ComponentsIssue]
@@ -38,6 +42,10 @@ pub fn cleanup_match_edges(MatchEdgesExecution) -> Result[Bool, MatchEdgesIssue]
 pub fn cleanup_match_nodes(MatchNodesExecution) -> Result[Bool, MatchNodesIssue]
 
 pub fn cleanup_normalize(NormalizeExecution) -> Result[Bool, NormalizeIssue]
+
+pub fn cleanup_property_equality(PropertyEqualityExecution) -> Result[Bool, PropertyEqualityIssue]
+
+pub fn cleanup_subgraph(SubgraphExecution) -> Result[Bool, SubgraphIssue]
 
 pub fn cleanup_traverse(TraverseExecution) -> Result[Bool, TraverseIssue]
 
@@ -83,6 +91,8 @@ pub fn match_nodes_stopped(MatchNodesExecution) -> Bool
 
 pub fn normalize_cleanup_pending(NormalizeExecution) -> Bool
 
+pub fn property_equality_cleanup_pending(PropertyEqualityExecution) -> Bool
+
 pub fn start_components(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[ComponentsExecution, ComponentsIssue]
 
 pub fn start_components_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[ComponentsExecution, ComponentsIssue]
@@ -105,9 +115,17 @@ pub fn start_match_nodes_view(@bounded_execution.Control, @execution_relation.Co
 
 pub fn start_normalize_view(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @managed_graph_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[NormalizeExecution, NormalizeIssue]
 
+pub fn start_property_equality_views(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, Int) -> Result[PropertyEqualityExecution, PropertyEqualityIssue]
+
+pub fn start_subgraph(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @execution_relation.ProducerRead?, @managed_graph_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[SubgraphExecution, SubgraphIssue]
+
+pub fn start_subgraph_view(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @execution_relation.ProducerRead?, @managed_graph_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[SubgraphExecution, SubgraphIssue]
+
 pub fn start_traverse(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], max_paths? : Int) -> Result[TraverseExecution, TraverseIssue]
 
 pub fn start_traverse_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], max_paths? : Int) -> Result[TraverseExecution, TraverseIssue]
+
+pub fn subgraph_cleanup_pending(SubgraphExecution) -> Bool
 
 pub fn traverse_cleanup_pending(TraverseExecution) -> Bool
 
@@ -235,6 +253,48 @@ pub enum NormalizePoll {
   NormalizeComplete(@managed_graph_runtime.Completed, progress~ : Int64, work~ : Int64)
   NormalizeFailed(NormalizeIssue, progress~ : Int64, work~ : Int64)
   NormalizeStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+type PropertyEqualityExecution
+
+pub(all) enum PropertyEqualityIssue {
+  InvalidPropertyEqualityKernel
+  PropertyEqualityInputUnavailable
+  PropertyEqualityWorkspaceLimit
+  PropertyEqualityWorkLimit
+  PropertyEqualityValue(@value_admission.CompleteEqualityIssue)
+  PropertyEqualityOutput(@execution_relation.CaptureIssue)
+  PropertyEqualityCompletion(@execution_relation.TrustedOutputIssue)
+  PropertyEqualityExecutionIssue(@bounded_execution.Issue)
+} derive(Eq, @debug.Debug)
+
+pub enum PropertyEqualityPoll {
+  PropertyEqualityContinue(progress~ : Int64, work~ : Int64)
+  PropertyEqualityComplete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
+  PropertyEqualityFailed(PropertyEqualityIssue, progress~ : Int64, work~ : Int64)
+  PropertyEqualityStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+type SubgraphExecution
+
+pub(all) enum SubgraphIssue {
+  InvalidSubgraphKernel
+  InvalidSubgraphLimits
+  SubgraphInputUnavailable
+  MissingSubgraphNodeIdentity(Int)
+  SubgraphWorkspaceLimit
+  SubgraphWorkLimit
+  SubgraphIdentity
+  SubgraphPredicate(@execution_relation.EvalIssueKind)
+  SubgraphOutput(@managed_graph_runtime.Issue)
+  SubgraphExecutionIssue(@bounded_execution.Issue)
+} derive(Eq, @debug.Debug)
+
+pub enum SubgraphPoll {
+  SubgraphContinue(progress~ : Int64, work~ : Int64)
+  SubgraphComplete(@managed_graph_runtime.Completed, progress~ : Int64, work~ : Int64)
+  SubgraphFailed(SubgraphIssue, progress~ : Int64, work~ : Int64)
+  SubgraphStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
 }
 
 type TraverseExecution

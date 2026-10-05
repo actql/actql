@@ -1940,7 +1940,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/check-outcome.unavailable-must-omit-report-fields",
-      "statement_sha256": "2b16df12da257c9456951ecaf4f9c7ff01f78972ad716177ed57fc521743e481",
+      "statement_sha256": "f5a9d77d8f5c995a463c0b6a5826d180b071b63ca7166fdff727186491239539",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -2050,10 +2050,10 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "048fd1ac5659519761e5c58325c6ae1ddfed7661bcc1c05b8db41dbad2e5ef06",
+      "statement_sha256": "bfffca64169bfa2dafe38fe7a105ed81dd277cc7aa9794aa66e49d0212451990",
       "status": "pending",
       "reason": "implementation_evidence_required",
-      "next_action": "Verify the adopted contract against each execution owner with independent positive, negative and restart evidence.",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "machine-contracts",
         "kind": "law"

@@ -9,6 +9,7 @@ import {ArtifactUnavailable} from './transport.mjs';
 import {mutationIds} from './mutation-inventory.mjs';
 export {mutationIds} from './mutation-inventory.mjs';
 import {isolatedProfile} from './isolated-runtime.mjs';
+import {isMainEvidenceEvent} from '../../scripts/ci-main-base.mjs';
 
 export const receiptVersion = 'actql-verification-action-receipt/0.1';
 const positive = value => Number.isSafeInteger(value) && value > 0;
@@ -42,7 +43,7 @@ export function validateReceipt(receipt) {
   assert(['repositoryId', 'workflowId', 'runId', 'runAttempt', 'jobId'].every(key => positive(origin[key])));
   assert(sha(origin.testedRevision) && sha(origin.runHeadRevision));
   assert.equal(origin.workflowPath, '.github/workflows/ci.yml');
-  assert(['push', 'pull_request'].includes(origin.event));
+  assert(['push', 'pull_request', 'workflow_dispatch'].includes(origin.event));
   assert(typeof origin.branch === 'string' && origin.branch.length > 0);
   assert.equal(receipt.inputs.version, inputVersion);
   assert.equal(receipt.inputs.revision, origin.testedRevision);
@@ -127,7 +128,7 @@ export async function authenticateOrigin({receipt, artifactId, expected, request
   assert.equal(run.head_sha, origin.runHeadRevision); assert.equal(run.event, origin.event);
   assert.equal(run.head_branch, origin.branch);
   if (acquisition === 'reused') {
-    assert.equal(origin.event, 'push'); assert.equal(origin.branch, 'main');
+    assert(isMainEvidenceEvent(origin.event, origin.branch), 'Origin is not a protected main integration run');
     assert.equal(origin.testedRevision, origin.runHeadRevision);
     assert.equal(run.status, 'completed'); assert.equal(run.conclusion, 'success');
     assert(expected.ancestors?.includes(origin.testedRevision), 'Origin is not a trusted ancestor');
@@ -159,6 +160,8 @@ export async function authenticateOrigin({receipt, artifactId, expected, request
   if (artifact.expired || Date.parse(artifact.expires_at) <= Date.now()) throw new ArtifactUnavailable();
   // Re-read after inspection: a rerun must not change the attempt underneath us.
   const current = await request(`/actions/runs/${origin.runId}`);
+  assert.equal(current.id, origin.runId); assert.equal(current.event, origin.event);
+  assert.equal(current.head_branch, origin.branch);
   assert.equal(current.run_attempt, origin.runAttempt);
   assert.equal(current.head_sha, run.head_sha);
   assert.equal(current.status, run.status); assert.equal(current.conclusion, run.conclusion);
