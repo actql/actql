@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "graph-composition-fixture-registration",
+  "kind": "change",
+  "revision": "325eb381313a2d688043acb38d4e09b5ea61f61f",
+  "parents": [
+    "3032fc03757fd28ba2d2d46178e0d301ae32fc90"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "3032fc03757fd28ba2d2d46178e0d301ae32fc90",
+          "digest": "77a4596be8d5412aced51cb97408d63d53839da6e7679725109d922c9623dcf8",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "fe1d9370f1341066406ab73946c3d2129a6fcdf4ea958a4e9833ab42f4447284",
+      "afterMode": "100644",
+      "reason": "Register independently authored complete node_rows and edge_rows INFER Effect fixture checks in the existing distribution command; retain every prior check and reuse the existing packed consumer."
+    }
+  ]
+}

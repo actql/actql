@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "source-free-effect-retention-original-regression",
+  "kind": "change",
+  "revision": "42ebb01daef57fd41ba4bcf00611047c4f9fa926",
+  "parents": [
+    "2ad13cb290c31a47fd9e208f667dfb2b84e455c2"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "2ad13cb290c31a47fd9e208f667dfb2b84e455c2",
+          "digest": "e42d036394970b5f7941297425373ff96e5cf6db6f3585f5aa0352effc339d0e",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "18c7d76c419fd0eed03df827767ab291797a7fa3b039b73a50a69b29c4e01270",
+      "afterMode": "100644",
+      "reason": "Register the independently authored issued-retention original regression in the existing distribution command without adding a packed installation or job."
+    }
+  ]
+}

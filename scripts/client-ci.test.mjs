@@ -58,12 +58,16 @@ test('ordinary packed composition ships JSON and authored text with independent 
     script.indexOf('const twoSourceEffect = process.argv'),
     script.indexOf('const inferEnabled =')) + '\nJSON.stringify(compositionCases)',
   {process: {argv: ['node', 'harness', ...flags]}, optionalEffectCases}));
-  assert.deepEqual(selection([]), ['source', 'infer', 'infer-text', 'read-approval']);
+  assert.deepEqual(selection([]), ['source', 'infer', 'infer-text', 'infer-graph-node', 'infer-graph-edge', 'read-approval']);
   assert.deepEqual(selection(['--two-source-effect']), ['two-source']);
   assert.deepEqual(selection(['--composed-infer']), ['infer', 'infer-text']);
   assert.deepEqual(selection(['--composed-text']), ['infer-text']);
+  assert.deepEqual(selection(['--composed-graph-node']), ['infer-graph-node']);
+  assert.deepEqual(selection(['--composed-graph-edge']), ['infer-graph-edge']);
+  assert.deepEqual(selection(['--composed-graph']), ['infer-graph-node', 'infer-graph-edge']);
   assert.deepEqual(selection(['--two-source-read-approval']), ['read-approval']);
   assert.deepEqual(selection(['--optional-effect-only']), []);
+
   for (const name of ['composed-infer-effect.program.template.json',
     'composed-infer-effect.expected.json', 'composed-infer-effect.aql.template']) {
     assert(script.includes("'" + name + "'"), 'isolated consumer must receive ' + name);
@@ -137,7 +141,8 @@ test('packed Effect target reads keep distinct approval phases and independent p
   assert.deepEqual(select(['--target-read-approval']), {
     targetReadApprovalEnabled: true, compositionCases: [], optionalCases: []});
   assert.equal(select(['--two-source-read-approval']).targetReadApprovalEnabled, false);
-  assert.deepEqual(select([]).compositionCases, ['source', 'infer', 'infer-text', 'read-approval']);
+  assert.deepEqual(select([]).compositionCases,
+    ['source', 'infer', 'infer-text', 'infer-graph-node', 'infer-graph-edge', 'read-approval']);
   assert.deepEqual(select([]).optionalCases, ['native-json', 'broad-text']);
   const expected = JSON.parse(readFileSync(new URL(
     './fixtures/effect-target-read-approval.expected.json', import.meta.url), 'utf8'));

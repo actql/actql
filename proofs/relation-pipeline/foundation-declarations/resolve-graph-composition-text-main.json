@@ -1,0 +1,64 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-graph-composition-text-main",
+  "kind": "resolution",
+  "revision": "3032fc03757fd28ba2d2d46178e0d301ae32fc90",
+  "parents": [
+    "08f46573a1beff1a5b408371dcf17b70349f8ac7",
+    "bbb9b935b912148b7e399cc23f213e72bb7bc9a8"
+  ],
+  "mergeBases": [
+    "7b064f617216ead8c1784e0ce898b9dcdc31227a",
+    "8a5195451195b7e4566b19bf7ba9fb5772b8f2d1"
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-3877b637406b",
+    "adopt-63b114ad524b",
+    "adopt-678626b010b4",
+    "adopt-7427f7f09276",
+    "adopt-9a7c592a8ed9",
+    "adopt-b480cffb6e6d",
+    "adopt-bf2d058c21c1",
+    "adopt-f24288853c19",
+    "adopt-sga-query-contract",
+    "ci-mandatory-preflight",
+    "frontend-sga-main-integration",
+    "frontend-unified-graph-source-integration",
+    "main-pr233-package-resolution",
+    "packed-composed-infer-effect-acceptance",
+    "pr164-main-a32-verification-resolution",
+    "pr164-main4f-runtime-check-resolution",
+    "pr164-property-graph-source",
+    "public-text-computation-bridge-ci",
+    "remove-duplicate-runtime-package-checks",
+    "resident-source-native-registration",
+    "resolve-composition-custody-main-maximal-bases",
+    "resolve-composition-frontend-latest-main",
+    "resolve-composition-infer-main-maximal-bases",
+    "resolve-composition-resident-source-main",
+    "resolve-composition-reviewed-supplements-main",
+    "resolve-resident-source-latest-main",
+    "sdk-cancel-response-loss-registration"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "08f46573a1beff1a5b408371dcf17b70349f8ac7",
+          "digest": "77a4596be8d5412aced51cb97408d63d53839da6e7679725109d922c9623dcf8",
+          "mode": "100644"
+        },
+        {
+          "revision": "bbb9b935b912148b7e399cc23f213e72bb7bc9a8",
+          "digest": "77a4596be8d5412aced51cb97408d63d53839da6e7679725109d922c9623dcf8",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "77a4596be8d5412aced51cb97408d63d53839da6e7679725109d922c9623dcf8",
+      "afterMode": "100644",
+      "reason": "Integrate the merged full-text composition and current main package registrations while retaining both parents acceptance commands and all CI gates."
+    }
+  ]
+}

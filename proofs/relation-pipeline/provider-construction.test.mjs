@@ -85,6 +85,7 @@ test('reviewed Graph rejection branches and traversal ledger preserve Relation c
     '      | @lower.GraphMatchStep(_)',
     '      | @lower.GraphTraverseStep(_)',
     '      | @lower.GraphDiagnosticStep(_)',
+    '      | @lower.GraphEqualityStep(_)',
     '      | @lower.GraphNormalizeStep(_)',
     '      | @lower.PropertyGraphConstructionStep(_)',
   ].join('\n');
