@@ -81,6 +81,7 @@ async ({root, directory, run, recordTarball}) => {
       'adapters/host-node/model-resume-public.test.mjs',
       'adapters/host-node/fixtures/model-resume-public-process.mjs',
       'scripts/fixtures/model-custody-fixture.mjs',
+      'scripts/fixtures/installed-infer-fixture.mjs',
       'scripts/test-execution-reporter.mjs',
     ];
     for (const name of files) {

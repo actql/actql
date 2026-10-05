@@ -187,3 +187,13 @@ scratch directory before authoring profiles; it neither changes the product
 path resolver nor relaxes the exact source identity assertion. Source approval,
 Model approval, and frozen-input reuse then passed (`run-fpoPke`,
 `focused-test-OWHRSQ`, tracked changes present). This is not packed evidence.
+
+At clean SHA `0a9d6b365cc3f31949056e240fee715074f1663b`, the normal packed
+runner completed its 16 pre-existing Local/HTTPS phases, including approval,
+cancellation, contract failure, capture and replay. It then failed before the
+new mixed cases because the copied custody fixture's independent CID fixture
+was absent beside it (`run-e1Cm1w`, `public-query-evidence-iWJfUP`, command 023,
+`ERR_MODULE_NOT_FOUND`). The missing authored fixture is now copied into the
+external test directory; no package import is replaced by a checkout link.
+The failed artifacts and command receipts remain retained. This prefix success
+does not make the failed runner or its unexecuted mixed cases successful.
