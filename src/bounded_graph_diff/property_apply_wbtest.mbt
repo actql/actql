@@ -358,7 +358,8 @@ test "property delta includes staged record workspace before provisional allocat
     body_workspace_slots(limits).unwrap() +
     storage_limits().max_workspace_slots +
     before_workspace_slots(limits).unwrap() +
-    append
+    append +
+    action_workspace_slots(limits).unwrap()
   assert_true(required > append && required <= limits.max_workspace_slots)
   assert_true(
     prepare_apply(

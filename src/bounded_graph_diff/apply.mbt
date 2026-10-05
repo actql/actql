@@ -14,6 +14,8 @@ priv struct ActionSet {
 
 ///|
 priv enum ApplyPhase {
+  AdmitNodeActions
+  AdmitEdgeActions
   BaseSnapshot
   ReadBaseBody
   ApplyNodes
@@ -37,6 +39,8 @@ struct ApplyPreparation {
   expected_target : String
   nodes : ActionSet
   edges : ActionSet
+  mut node_admission : ActionAdmission?
+  mut edge_admission : ActionAdmission?
   mut snapshot_preparation : @snapshot.Preparation?
   mut base_snapshot : @snapshot.Snapshot?
   mut base_body : @value.Value?
@@ -83,109 +87,22 @@ fn delta_cid(cursor : @decode.Cursor) -> String? {
 }
 
 ///|
-fn delta_record_key(
-  cursor : @decode.Cursor,
-  edge : Bool,
-  limits : Limits,
-) -> String? {
-  let names = if edge {
-    ["dst", "id", "key", "props", "src"]
-  } else {
-    ["id", "key", "props"]
-  }
-  guard delta_object(cursor, names) is Some(object) &&
-    @decode.lookup(object, "id") is Some(identity) &&
-    @value.admit(json_contract(), identity, limits.value_limits) is Ok(id) else {
-    return None
-  }
-  try {
-    let writer = @encode.writer(
-      limits.max_identity_bytes,
-      limits.max_identity_nodes,
-      limits.max_identity_depth,
-    )
-    @encode.begin_array(writer)
-    @value.emit_checked_wire_value(id, writer)
-    @encode.end_array(writer)
-    Some(@encode.finish(writer))
-  } catch {
-    _ => None
-  }
-}
-
-///|
-/// Arrays are already ordered by the contract. One namespace per entity kind
-/// rejects repeated identities across actions, including add/remove pairs.
-fn read_actions(
-  cursor : @decode.Cursor,
-  edge : Bool,
-  limits : Limits,
-) -> ActionSet? {
-  guard delta_object(cursor, ["add", "remove", "update"]) is Some(object) else {
-    return None
-  }
-  let result : ActionSet = { add: [], remove: [], update: [], }
-  let seen : Map[String, Bool] = Map([])
-  let mut remaining_text = limits.max_identity_bytes
-  for name in ["add", "remove", "update"] {
-    guard @decode.lookup(object, name) is Some(array) &&
-      @decode.array_length(array) is Some(count) else {
-      return None
-    }
-    let values = if name == "add" {
-      result.add
-    } else if name == "remove" {
-      result.remove
-    } else {
-      result.update
-    }
-    let mut previous = None
-    for i in 0..<count {
-      let item = @decode.element_at(array, i).unwrap()
-      let action = if name == "update" {
-        guard delta_object(item, ["before", "after"]) is Some(update) &&
-          @decode.lookup(update, "before") is Some(before) &&
-          @decode.lookup(update, "after") is Some(after) &&
-          delta_record_key(before, edge, limits) is Some(key) &&
-          delta_record_key(after, edge, limits) == Some(key) else {
-          return None
-        }
-        { key, before: Some(before), after: Some(after), }
-      } else {
-        guard delta_record_key(item, edge, limits) is Some(key) else {
-          return None
-        }
-        {
-          key,
-          before: if name == "remove" {
-            Some(item)
-          } else {
-            None
-          },
-          after: if name == "add" {
-            Some(item)
-          } else {
-            None
-          },
-        }
+fn complete_action_admission(value : ActionAdmission) -> Bool {
+  while true {
+    match advance_actions(value, 64) {
+      ActionsContinue(..) => ()
+      ActionsComplete(..) => {
+        cleanup_actions(value)
+        return true
       }
-      if seen.contains(action.key) ||
-        (
-          previous is Some(old) &&
-          @canonical.compare_utf16(old, action.key) >= 0
-        ) {
-        return None
+      ActionsFailed(..) => {
+        cleanup_actions(value)
+        return false
       }
-      guard @scalar.admit_utf8_length(action.key, remaining_text) is Ok(bytes) else {
-        return None
-      }
-      remaining_text -= bytes
-      seen[action.key] = true
-      previous = Some(action.key)
-      values.push(action)
     }
+  } nobreak {
+    false
   }
-  Some(result)
 }
 
 ///|
@@ -204,6 +121,7 @@ pub fn prepare_apply(
     storage_limits,
     reference_issuer~,
     output_builder~,
+    defer_actions=false,
   )
 }
 
@@ -226,6 +144,54 @@ pub fn prepare_apply_view(
     storage_limits,
     reference_issuer~,
     output_builder~,
+    defer_actions=false,
+  )
+}
+
+///|
+/// Start the same application with action admission charged by advance_apply.
+/// The envelope, declared configuration and workspace are checked before start;
+/// action order, identity equality and duplicate rejection remain resumable.
+pub fn start_apply(
+  base : @storage.Storage,
+  delta : @decode.Cursor,
+  limits : Limits,
+  storage_limits : @storage.Limits,
+  reference_issuer? : @value.ReferenceIssuer? = None,
+  output_builder? : @storage.Builder? = None,
+) -> Result[ApplyPreparation, Issue] {
+  prepare_apply_source(
+    Stored(base),
+    delta,
+    limits,
+    storage_limits,
+    reference_issuer~,
+    output_builder~,
+    defer_actions=true,
+  )
+}
+
+///|
+/// Resumable action admission from the exact managed Graph view. The caller
+/// must still bind and admit the Delta Relation occurrence before supplying its
+/// immutable cursor; this entry does not confer authority on unbound JSON.
+pub fn start_apply_view(
+  base : @lifecycle.ProducerView,
+  graph : @carrier.Graph,
+  delta : @decode.Cursor,
+  limits : Limits,
+  storage_limits : @storage.Limits,
+  reference_issuer? : @value.ReferenceIssuer? = None,
+  output_builder? : @storage.Builder? = None,
+) -> Result[ApplyPreparation, Issue] {
+  prepare_apply_source(
+    Viewed(base, graph),
+    delta,
+    limits,
+    storage_limits,
+    reference_issuer~,
+    output_builder~,
+    defer_actions=true,
   )
 }
 
@@ -237,6 +203,7 @@ fn prepare_apply_source(
   storage_limits : @storage.Limits,
   reference_issuer~ : @value.ReferenceIssuer?,
   output_builder~ : @storage.Builder?,
+  defer_actions~ : Bool,
 ) -> Result[ApplyPreparation, Issue] {
   if !valid_limits(limits) {
     return Err(InvalidLimits)
@@ -278,7 +245,9 @@ fn prepare_apply_source(
     @storage.property_snapshot_append_workspace_slots(graph, storage_limits)
     is Some(append_slots) &&
     checked_add(required, append_slots) is Some(with_append) &&
-    with_append <= limits.max_workspace_slots else {
+    action_workspace_slots(limits) is Some(action_admission_slots) &&
+    checked_add(with_append, action_admission_slots) is Some(with_actions) &&
+    with_actions <= limits.max_workspace_slots else {
     return Err(WorkspaceLimit)
   }
   guard delta_object(delta, [
@@ -296,8 +265,17 @@ fn prepare_apply_source(
     Some(@graph_contract.cid(contract)) &&
     @decode.lookup(object, "nodes") is Some(nodes_cursor) &&
     @decode.lookup(object, "edges") is Some(edges_cursor) &&
-    read_actions(nodes_cursor, false, limits) is Some(nodes) &&
-    read_actions(edges_cursor, true, limits) is Some(edges) else {
+    start_actions(nodes_cursor, false, limits) is Some(node_admission) &&
+    start_actions(edges_cursor, true, limits) is Some(edge_admission) else {
+    return Err(InvalidDelta)
+  }
+  if !defer_actions &&
+    (
+      !complete_action_admission(node_admission) ||
+      !complete_action_admission(edge_admission)
+    ) {
+    cleanup_actions(node_admission)
+    cleanup_actions(edge_admission)
     return Err(InvalidDelta)
   }
   let preparation = match start_snapshot(base, limits) {
@@ -315,8 +293,18 @@ fn prepare_apply_source(
     reference_issuer,
     expected_base,
     expected_target,
-    nodes,
-    edges,
+    nodes: node_admission.result,
+    edges: edge_admission.result,
+    node_admission: if defer_actions {
+      Some(node_admission)
+    } else {
+      None
+    },
+    edge_admission: if defer_actions {
+      Some(edge_admission)
+    } else {
+      None
+    },
     snapshot_preparation: Some(preparation),
     base_snapshot: None,
     base_body: None,
@@ -329,7 +317,11 @@ fn prepare_apply_source(
     chunks: [],
     builder: output_builder,
     result: None,
-    phase: BaseSnapshot,
+    phase: if defer_actions {
+      AdmitNodeActions
+    } else {
+      BaseSnapshot
+    },
     base_cursor: 0,
     add_cursor: 0,
     remove_cursor: 0,
@@ -375,7 +367,7 @@ pub fn apply_uses_output_builder(
   value : ApplyPreparation,
   builder : @storage.Builder,
 ) -> Bool {
-  value.phase == BaseSnapshot &&
+  (value.phase == AdmitNodeActions || value.phase == BaseSnapshot) &&
   value.builder is Some(actual) &&
   physical_equal(actual, builder) &&
   @storage.builder_accepts_output(builder, value.graph, value.storage_limits)
@@ -406,6 +398,37 @@ pub fn advance_apply(
       )
     }
     match value.phase {
+      AdmitNodeActions | AdmitEdgeActions => {
+        let admission = if value.phase == AdmitNodeActions {
+          value.node_admission
+        } else {
+          value.edge_admission
+        }
+        guard admission is Some(admission) else { return Err(Terminal) }
+        match advance_actions(admission, quantum - used.to_int()) {
+          ActionsContinue(work~) => used += work.to_int64()
+          ActionsFailed(work~) =>
+            return Ok(
+              apply_failure(
+                value,
+                InvalidDelta,
+                used + work.to_int64(),
+                progress,
+              ),
+            )
+          ActionsComplete(work~) => {
+            used += work.to_int64()
+            cleanup_actions(admission)
+            if value.phase == AdmitNodeActions {
+              value.node_admission = None
+              value.phase = AdmitEdgeActions
+            } else {
+              value.edge_admission = None
+              value.phase = BaseSnapshot
+            }
+          }
+        }
+      }
       BaseSnapshot | TargetSnapshot => {
         guard value.snapshot_preparation is Some(preparation) else {
           return Err(Terminal)
@@ -716,6 +739,14 @@ pub fn advance_apply(
 ///|
 pub fn cleanup_apply(value : ApplyPreparation) -> Bool {
   value.base_view = None
+  if value.node_admission is Some(admission) {
+    cleanup_actions(admission)
+  }
+  if value.edge_admission is Some(admission) {
+    cleanup_actions(admission)
+  }
+  value.node_admission = None
+  value.edge_admission = None
   if value.record_append is Some(append) {
     @storage.cleanup_property_snapshot_append(append)
     value.record_append = None

@@ -16,7 +16,7 @@ fn delta_apply_session_fixture() -> (
     100000L,
     () => true,
   ).unwrap()
-  let apply = prepare_apply_view(
+  let apply = start_apply_view(
     view,
     graph,
     delta_cursor(delta_fixture_expected()),
@@ -175,7 +175,7 @@ test "Delta session start refuses a foreign output without taking either custody
   )
   assert_true(@graph_runtime.output_storage_builder(foreign) is Some(_))
   assert_true(@graph_runtime.output_storage_builder(output) is Some(_))
-  assert_true(apply.phase == BaseSnapshot)
+  assert_true(apply.phase == AdmitNodeActions)
   assert_true(cleanup_apply(apply))
   assert_true(@graph_runtime.cancel_output(output))
   assert_true(@graph_runtime.cancel_output(foreign))
@@ -193,7 +193,7 @@ test "Delta cancellation raised by current input check starts no kernel work" {
     @sga.advance_delta_apply(active, 64)
     is Ok(@sga.DeltaApplyStopped(@bounded.Cancelled, progress=0L, work=0L)),
   )
-  assert_true(apply.phase == BaseSnapshot)
+  assert_true(apply.phase == AdmitNodeActions)
   assert_true(@sga.cleanup_delta_apply(active).unwrap())
   assert_true(@graph_runtime.completed_available(input))
   assert_true(@graph_runtime.discard_completed(input))
