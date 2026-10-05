@@ -48,6 +48,22 @@ function run(...args) {
   return (result.errors.length ? result.errors.join('\n') : result.output) + '\n';
 }
 
+test('interval join requires stepped Text comparison boundary evidence', () => {
+  for (const role of [
+    'interval_long_text_compare_quantum_order',
+    'interval_long_text_compare_stop_cleanup',
+    'interval_long_text_compare_work_workspace',
+    'interval_long_text_whole_work_workspace',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'TEA' &&
+        entry.operation === 'interval_join');
+      route.boundary_tests = route.boundary_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(`TEA interval_join: ${role} fixture is missing`, 'u'));
+  }
+});
+
 function runCli(mutator, routeMutator, args = [], gapsText, observeDirectory) {
   const manifest = JSON.parse(readFileSync(source, 'utf8'));
   mutator?.(manifest);
