@@ -3,6 +3,7 @@ import {execFileSync} from 'node:child_process';
 import test from 'node:test';
 import {fileURLToPath} from 'node:url';
 import {connect, connectInProcess, explainEffectUncertainty} from './index.mjs';
+import {validRunState} from '@actql/client-wire';
 
 const ref = {namespaceId: 'namespace-a',
   authorityScopeCid: `sha256:${'a'.repeat(64)}`,
@@ -120,3 +121,35 @@ test('typed Effect explanations separate physical stop, owner revision and read-
     './effect-uncertainty.typecheck.mts', import.meta.url))],
   {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
 });
+
+for (const operation of ['status', 'wait', 'reconcile']) {
+  for (const kind of ['proxy', 'date', 'control-date', 'action-date']) {
+    test(`Local ${operation}: Effect custody refuses ${kind} clone failure or shape loss`, async t => {
+      const value = state({revision: 4, cancellation_requested: false,
+        physical_stop: 'confirmed'});
+      const reply = kind === 'proxy' ? new Proxy(value, {})
+        : kind === 'date' ? Object.assign(new Date(0), value) : value;
+      if (kind === 'control-date') reply.control = Object.assign(new Date(0), reply.control);
+      if (kind === 'action-date') reply.next_action = Object.assign(new Date(0), reply.next_action);
+      assert.equal(validRunState(reply), true);
+      const operations = [];
+      const client = await connectInProcess({mode: 'local', owner: 'local'}, {
+        perform(current, body) {
+          operations.push(current);
+          if (current === 'connect') return {...profile, mode: 'local', owner: 'local'};
+          if (current === 'attach') return {ref: body.ref, durability: 'durable', revision: 1};
+          assert.equal(current, operation);
+          return reply;
+        },
+      });
+      t.after(() => client.close());
+      const execution = await client.attach(ref);
+      let refused = false;
+      try { await execution[operation](); }
+      catch (error) { refused = error?.code === 'InvalidHostRunState'; }
+      assert.equal(refused, true, '[check-mutation:effect-copied-shape]');
+      assert.equal(explainEffectUncertainty(reply), undefined);
+      assert.deepEqual(operations, ['connect', 'attach', operation]);
+    });
+  }
+}

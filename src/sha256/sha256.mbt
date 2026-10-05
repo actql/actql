@@ -208,16 +208,21 @@ pub fn update_ascii_range(
   }
   while end - index >= 64 {
     for word in 0..<16 {
-      let mut value = 0U
-      for part in 0..<4 {
-        let unit = input[index + word * 4 + part].to_int()
-        if unit >= 128 {
-          h.closed = true
-          raise InvalidAsciiRange
-        }
-        value = (value << 8) | unit.reinterpret_as_uint()
+      let offset = index + word * 4
+      let first = input[offset].to_int()
+      let second = input[offset + 1].to_int()
+      let third = input[offset + 2].to_int()
+      let fourth = input[offset + 3].to_int()
+      // UTF-16 units are nonnegative. The combined high bits reject any
+      // non-ASCII unit before this word is absorbed; a failed state stays closed.
+      if (first | second | third | fourth) >= 128 {
+        h.closed = true
+        raise InvalidAsciiRange
       }
-      h.words[word] = value
+      h.words[word] = (first.reinterpret_as_uint() << 24) |
+        (second.reinterpret_as_uint() << 16) |
+        (third.reinterpret_as_uint() << 8) |
+        fourth.reinterpret_as_uint()
     }
     compress_words(h)
     index += 64

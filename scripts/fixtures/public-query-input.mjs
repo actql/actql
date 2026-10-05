@@ -569,18 +569,22 @@ export async function exercisePublicQueryInput(connect, options,
         'failed Result reads, attach and resubmit must not recompute or acquire');
       console.log(`Public query execution failure passed: ${requestPrefix}/${name}`);
     }
-    for (const {name, text, ...input} of refusals) {
+    for (const {name, text, expectedCode, ...input} of refusals) {
       await prepareCase?.();
       const requestId = requestPrefix + '-reject-' + name;
       const before = await counters();
       await assert.rejects(client.aql(text, {...input, requestId}), error => {
         assert.ok(inputCodes.has(error.code), String(error.code));
+        if (expectedCode !== undefined) assert.equal(error.code, expectedCode);
         assert.ok(!String(error.message).includes('secret-value'));
         return true;
       });
       assert.deepEqual(await counters(), before,
         'rejected source must not accept a Run or perform source I/O');
       assert.deepEqual(await client.lookupRequest(requestId), {kind: 'not_found'});
+      if (expectedCode !== undefined) {
+        console.log(`Public query refusal passed: ${requestPrefix}/${name} (${expectedCode}); no admission or source I/O`);
+      }
     }
   } finally {
     client.close();

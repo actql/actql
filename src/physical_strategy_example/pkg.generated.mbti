@@ -46,7 +46,7 @@ pub fn application_managed_dispatch(Application, @physical_strategy.CapturedDAG,
 
 pub fn application_materializing_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Int64, Int64, Int64, Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue] raise
 
-pub fn application_native_retained_strategy_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Int64, Int64, Int64, Int64, Bool, local_task_ms? : Array[Int64], native_task_ms? : Array[Int64], local_eligible? : Bool) -> @standard_host.StrategyHostDispatch raise
+pub fn application_native_retained_strategy_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Int64, Int64, Int64, Int64, Bool, local_task_ms? : Array[Int64], native_task_ms? : Array[Int64], resident_estimates? : NativeResidentEstimateProfile, local_eligible? : Bool) -> @standard_host.StrategyHostDispatch raise
 
 pub fn application_native_retained_task_transfer_capacity(Application) -> Int64
 
@@ -90,6 +90,13 @@ pub fn prepare_application_with_data(String, String, String, String, String, Str
 type Application
 
 type ApplicationAcquisitionSelection
+
+pub(all) struct NativeResidentEstimateProfile {
+  preparation_milliseconds : Int64
+  cleanup_milliseconds : Int64
+  task_milliseconds : Array[Int64]
+  import_milliseconds : Array[Int64?]
+}
 
 // Type aliases
 pub using @physical_task_manifest {type DataProfile}
