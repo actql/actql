@@ -47,21 +47,23 @@ export function propertyGraphPresenceOracle(document) {
   return {contract,identity,nodeIdentity,snapshot,snapshotCid,rows};
 }
 
-export function deltaApplicationScenario(fixture, projection, failure) {
+export function deltaApplicationScenario(fixture, projection, failure, {emptyTarget = false} = {}) {
   const document = structuredClone(fixture);
-  document.id = `delta-${projection}-${failure ?? 'valid'}`;
+  document.id = `delta-${projection}-${failure ?? 'valid'}${emptyTarget ? '-empty' : ''}`;
   const oracle = propertyGraphPresenceOracle(fixture);
   const [tag,contractCid,contract,beforeNodes,beforeEdges] = JSON.parse(oracle.snapshot);
   // Replace one property and remove only the second independent parallel edge.
   // Identity, definitions, key components, omission and explicit NULL survive.
   const afterNodes = structuredClone(beforeNodes);
   afterNodes[1].props.p = 8;
-  const target = canonicalText([tag,contractCid,contract,afterNodes,[beforeEdges[0]]]);
+  const target = canonicalText([tag,contractCid,contract,
+    emptyTarget ? [] : afterNodes,emptyTarget ? [] : [beforeEdges[0]]]);
   const delta = {version:'actql-graph-delta/0.1',graph_contract_cid:contractCid,
     base_graph_cid:oracle.snapshotCid,
     target_graph_cid:'sha256:'+createHash('sha256').update(target).digest('hex'),
-    nodes:{add:[],remove:[],update:[{before:beforeNodes[1],after:afterNodes[1]}]},
-    edges:{add:[],remove:[beforeEdges[1]],update:[]}};
+    nodes:{add:[],remove:emptyTarget ? beforeNodes : [],
+      update:emptyTarget ? [] : [{before:beforeNodes[1],after:afterNodes[1]}]},
+    edges:{add:[],remove:emptyTarget ? beforeEdges : [beforeEdges[1]],update:[]}};
   if (failure === 'wrong-base') delta.base_graph_cid = 'sha256:'+'0'.repeat(64);
   if (failure === 'wrong-target') delta.target_graph_cid = oracle.snapshotCid;
   const steps = document.stages[0].steps;
@@ -73,9 +75,51 @@ export function deltaApplicationScenario(fixture, projection, failure) {
     {select:projection === 'node_rows' ? ['id','labels'] : ['id','src','dst','labels','edge_key','tenant_key'],as:'projected'});
   const fields = steps.at(-1).select;
   document.stages[0].results.out.fields = fields;
-  const retained = projection === 'node_rows'
+  const retained = emptyTarget ? [] : projection === 'node_rows'
     ? oracle.rows.node_rows.map((row,index)=>index === 1 ? {...row,p:8} : row)
     : oracle.rows.edge_rows.slice(0,1);
   const expected = retained.map(row=>Object.fromEntries(fields.map(field=>[field,row[field]])));
   return {document,target,retained,expected,fields};
+}
+
+// Compose existing sparse Relation consumers after the actual Delta step.
+// A constant Required key deliberately coalesces rows whose untouched optional
+// property is absent, NULL or a value; whole-row DISTINCT must not coalesce them.
+export function deltaRelationCompositionScenario(fixture, operation, {emptyTarget = false} = {}) {
+  if (!['keyed-distinct','whole-distinct','group','edge-group'].includes(operation)) {
+    throw new Error('UnknownDeltaRelationComposition');
+  }
+  const projection = operation === 'edge-group' ? 'edge_rows' : 'node_rows';
+  const scenario = deltaApplicationScenario(fixture, projection,undefined,{emptyTarget});
+  const {document,retained} = scenario;
+  document.id = `delta-relation-${operation}${emptyTarget ? '-empty' : ''}`;
+  const steps = document.stages[0].steps;
+  let derived, output, columns;
+  if (operation === 'edge-group') {
+    output = emptyTarget ? [] : [{tenant_key:'a',m:10,n:1}];
+    columns = [{name:'tenant_key',contract:string},
+      {name:'m',contract:{type:'number',nullable:true}}, {name:'n',contract:number}];
+    steps.splice(7,steps.length-7,
+      {group:{by:['tenant_key'],aggregates:{m:{fn:'max',field:'edge_key'},n:{fn:'count'}}},as:'combined'},
+      {select:['tenant_key','m','n'],as:'projected'});
+  } else {
+    derived = retained.map(row=>({...row,bucket:1}));
+    const consumer = operation === 'group'
+      ? {group:{by:['bucket'],aggregates:{m:{fn:'max',expr:'bucket'},n:{fn:'count'}}}}
+      : {distinct:operation === 'whole-distinct' ? true : ['bucket']};
+    output = emptyTarget ? [] : operation === 'group' ? [{bucket:1,m:1,n:3}]
+      : operation === 'whole-distinct' ? derived : [{bucket:1}];
+    const fields = operation === 'group' ? ['bucket','m','n']
+      : operation === 'whole-distinct' ? ['id','bucket'] : ['bucket'];
+    columns = operation === 'group' ? [{name:'bucket',contract:number},
+      {name:'m',contract:{type:'number',nullable:true}}, {name:'n',contract:number}]
+      : operation === 'keyed-distinct' ? [{name:'bucket',contract:number}] : undefined;
+    steps.splice(7,steps.length-7,
+      {derive:{bucket:{literal:1}},as:'bucketed'}, {...consumer,as:'combined'},
+      {select:fields,as:'projected'});
+  }
+  const fields = steps.at(-1).select;
+  document.stages[0].results.out.fields = fields;
+  const expected = output.map(row=>Object.fromEntries(fields.map(field=>[field,row[field]])));
+  return {...scenario,derived,output,expected,fields,columns};
 }
