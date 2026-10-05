@@ -273,15 +273,15 @@ for (const [entrance, open] of Object.entries(entrances)) {
 
   test(`${entrance}: invalid declarations retain only their owned submitted locations`, async t => {
     const client = await open(t, configurations.denied);
-    for (const [declaration, pointer] of [
+    for (const [declaration, pointer, typedDefault = false] of [
       [{options: {type: 'number', minimum: 1, default: 0}}, '/options/default'],
       [{options: {type: 'object', fields: {count: {type: 'number'}},
-        default: {count: 'private-value'}}}, '/options/default/count'],
+        default: {count: 'private-value'}}}, '/options/default/count', true],
       [{options: {type: 'number', future: 'private-value'}}, '/options/future'],
       [{options: {type: 'number', meta: {actql_private: 'private-value'}}},
         '/options/meta/actql_private'],
       [{options: {type: 'object', fields: {'/a~~//é': {type: 'number'}},
-        default: {'/a~~//é': 'private-value'}}}, '/options/default/~1a~0~0~1~1é'],
+        default: {'/a~~//é': 'private-value'}}}, '/options/default/~1a~0~0~1~1é', true],
       [{'a~~//é': {type: 'number'}}, '/a~0~0~1~1é'],
       [{}, ''],
     ]) {
@@ -293,7 +293,9 @@ for (const [entrance, open] of Object.entries(entrances)) {
       const location = {kind: 'structured', document_id: 'parameter_declarations',
         revision: input.revision, pointer};
       assert.deepEqual(outcome.report.reasons,
-        [{code: 'parameter_declarations_invalid', location}], '[check-mutation:declaration-location]');
+        [{...(typedDefault ? {code: 'parameter_default_type_mismatch',
+          facts: {parameter: 'options', expected_type: 'number', actual_type: 'string'}}
+          : {code: 'parameter_declarations_invalid'}), location}], '[check-mutation:declaration-location]');
       assert.equal(resolveCheckLocation(outcome, location).input, input);
       assert.equal(resolveCheckLocation(outcome, location,
         {...input, value: {options: {type: 'number'}}}), undefined);
@@ -302,15 +304,18 @@ for (const [entrance, open] of Object.entries(entrances)) {
       assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
     }
     // The reader's missing-member path does not name a submitted node.
-    for (const declaration of [
-      {options: {default: 0}},
-      {options: {type: 'object', fields: {count: {type: 'number'}}, default: {}}},
-      {options: {type: 'object', fields: {['a'.repeat(4096)]: {type: 'number'}},
+    for (const [declaration, reason] of [
+      [{options: {default: 0}}, {code: 'parameter_declarations_invalid'}],
+      [{options: {type: 'object', fields: {count: {type: 'number'}}, default: {}}},
+        {code: 'parameter_declarations_invalid'}],
+      [{options: {type: 'object', fields: {['a'.repeat(4096)]: {type: 'number'}},
         default: {['a'.repeat(4096)]: 'private-value'}}},
+      {code: 'parameter_default_type_mismatch', facts: {parameter: 'options',
+        expected_type: 'number', actual_type: 'string'}}],
     ]) {
       const outcome = await client.check('SELECT 1 AS n', {format: 'sql',
         parameterDeclarations: declaration});
-      assert.deepEqual(outcome.report.reasons, [{code: 'parameter_declarations_invalid'}]);
+      assert.deepEqual(outcome.report.reasons, [reason]);
     }
     client.assertNoExecution();
   });
