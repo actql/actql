@@ -865,6 +865,15 @@ independently splittable task.
 These routes do not extend the numeric SUM/AVG profile or prove every frame
 and pivot variant.
 
+The checked fixed Row Window followed by Window Group also stays in the
+existing one-task bounded fork. Its grouped count output is filtered on `n`,
+reused by a second projection, and appended before retention. With input
+IDs `[1,2,3,4]` and width 2, the standard Host reads the producer and two
+consumer Named Results from the real Store in the fixed window-start order
+`[2,0,2,4]`, with counts `[2,1,2,1]`. The focused memory/retained fixture
+checks the same physical task and cleanup. This adds product evidence for
+the existing provider, not support for every window shape or aggregate.
+
 The same existing bounded owner also executes a checked Nest after Append,
 then reuses its nested output in two branches before rejoining. The Nest
 reads its child port from the original Stage input, not from the preceding

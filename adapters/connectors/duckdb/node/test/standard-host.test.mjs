@@ -8048,6 +8048,30 @@ async function exerciseStrategyGraph(
       {from: 'joined', select: ['id'], as: 'raw_ids'},
       {from: 'greater', append: {with: 'raw_ids'}, as: 'out'},
     ];
+  const branchedWindowGroupProgram = structuredClone(externalAppendProgram);
+  const windowGroupForkFields = ['n', 'window_start', 'window_end'];
+  const windowGroupFork = branchedWindowGroupProgram.stages.find(stage =>
+    stage.id === 'crossed');
+  windowGroupFork.steps = [
+    {from: 'l', append: {with: 'r'}, as: 'appended'},
+    {from: 'appended', row_window: {
+      kind: 'fixed', time: 'id', size: 2,
+    }, as: 'windowed'},
+    {from: 'windowed', window_group: {
+      by: [], aggregates: {n: {fn: 'count'}},
+    }, as: 'grouped'},
+    {from: 'grouped', filter: 'n >= 2', as: 'selected'},
+    {from: 'grouped', select: windowGroupForkFields, as: 'raw_groups'},
+    {from: 'selected', append: {with: 'raw_groups'}, as: 'out'},
+  ];
+  windowGroupFork.results.r.fields = windowGroupForkFields;
+  for (const consumer of branchedWindowGroupProgram.stages.filter(stage =>
+    stage.id.startsWith('external_cross_consumer_'))) {
+    const fields = consumer.id.endsWith('_a')
+      ? windowGroupForkFields : [...windowGroupForkFields].reverse();
+    consumer.steps[0].select = fields;
+    consumer.results.r.fields = fields;
+  }
   const branchedSourceForkProgram = structuredClone(externalAppendProgram);
   branchedSourceForkProgram.stages.find(stage => stage.id === 'crossed').steps = [
     {from: 'l', append: {with: 'r'}, as: 'appended'},
@@ -9730,6 +9754,13 @@ async function exerciseStrategyGraph(
       fields: ['id', 'matched']},
     {name: 'append-inner-join-fork', source: branchedInnerJoinChildProgram,
       expected: [2, 1, 2].map(id => ({id})), fields: ['id']},
+    {name: 'append-window-group-fork', source: branchedWindowGroupProgram,
+      expected: [
+        {n: 2, window_start: 2, window_end: 4},
+        {n: 1, window_start: 0, window_end: 2},
+        {n: 2, window_start: 2, window_end: 4},
+        {n: 1, window_start: 4, window_end: 6},
+      ], fields: windowGroupForkFields},
     {name: 'append-source-fork-join', source: branchedSourceForkProgram,
       expected: [1, 2, 3, 4, 2].map(id => ({id})), fields: ['id']},
     {name: 'append-fork-group-join', source: branchedGroupProgram,

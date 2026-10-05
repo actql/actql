@@ -120,6 +120,7 @@ test('retained Relation forks execute bounded ranking and row transforms',
       ['nest', false, false],
       ['inner-join', false, false],
       ['inner-join-child', false, false],
+      ['window-group', false, false],
     ]) {
       const program = structuredClone(base);
       if (['watermark', 'json-pick', 'unpivot', 'unnest', 'pivot']
@@ -309,6 +310,23 @@ test('retained Relation forks execute bounded ranking and row transforms',
           {from: 'joined', select: ['id'], as: 'raw_ids'},
           {from: 'greater', append: {with: 'raw_ids'}, as: 'out'},
         ];
+      } else if (name === 'window-group') {
+        const fields = ['n', 'window_start', 'window_end'];
+        program.stages[3].steps = [
+          {from: 'l', append: {with: 'r'}, as: 'appended'},
+          {from: 'appended', row_window: {
+            kind: 'fixed', time: 'id', size: 2,
+          }, as: 'windowed'},
+          {from: 'windowed', window_group: {
+            by: [], aggregates: {n: {fn: 'count'}},
+          }, as: 'grouped'},
+          {from: 'grouped', filter: 'n >= 3', as: 'selected'},
+          {from: 'grouped', select: fields, as: 'raw_groups'},
+          {from: 'selected', append: {with: 'raw_groups'}, as: 'out'},
+        ];
+        program.stages[3].results.r.fields = fields;
+        program.stages[4].steps[0].select = fields;
+        program.stages[4].results.r.fields = fields;
       } else {
         program.stages[3].steps = [
           {from: 'l', append: {with: 'r'}, as: 'appended'},
@@ -356,7 +374,7 @@ test('retained Relation forks execute bounded ranking and row transforms',
           name === 'row-window' || name === 'unpivot' || name === 'unnest' ||
           name === 'source-fork' || name === 'pivot' || name === 'analytic' ||
           name === 'nest' || name === 'inner-join' ||
-          name === 'inner-join-child') {
+          name === 'inner-join-child' || name === 'window-group') {
         const retained = fixture.strategyFixtureCreate(
           ...fixtureArgs, JSON.stringify(program));
         const retainedCapture = await runNativeHostQuery(grant,
