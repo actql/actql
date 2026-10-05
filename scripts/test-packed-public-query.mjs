@@ -110,6 +110,8 @@ run('bash', ['-eu', '-c', exampleCommands[0][1]], root,
 await mkdir(join(root, 'fixtures'));
 await writeFile(join(root, 'fixtures/property-graph-delta-application.mjs'),
   await readFile(join(repository, 'scripts/fixtures/property-graph-delta-application.mjs')));
+await writeFile(join(root, 'fixtures/graph-delta-json-source.mjs'),
+  await readFile(join(repository, 'scripts/fixtures/graph-delta-json-source.mjs')));
 await writeFile(join(root, 'fixtures/property-graph-parallel.program.json'),
   await readFile(join(repository, 'scripts/fixtures/property-graph-parallel.program.json')));
 await writeFile(join(root, 'fixtures/property-graph-presence.program.json'),

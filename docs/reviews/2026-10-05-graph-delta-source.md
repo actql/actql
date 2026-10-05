@@ -1,7 +1,7 @@
 # Property Graph Delta source connection
 
-Status: frontend connection implemented; successful text Delta execution is
-pending the separately approved generic JSON literal dependency. This is not
+Status: frontend connection and the generic JSON literal dependency are
+implemented; successful integrated text Delta execution remains unverified. This is not
 completion of the Property Graph migration or the full frontend profile.
 
 Fixed base: `7e337afa9e5a64035c5925aca1d93ba0ef787aaf` (main, including
@@ -46,6 +46,16 @@ unsupported, and string-valued producer references are not guessed as names.
   Delta. They test semantic execution refusal. Seven text cases test preparation
   refusal and zero durable Run acceptance/provider I/O. Neither group is a
   successful text Delta acceptance test.
+- The new generic JSON source case constructs one node with property `p=7`,
+  supplies an independently authored Delta through `SELECT JSON r'''…'''`,
+  and expects `[{"p":8,"node_key":1}]`. Its machine-input control uses the
+  same independently authored complete Program. Definition provenance,
+  contract and base/target snapshot CIDs are computed from those authored
+  declarations; no product output supplies an expected CID or row.
+- Focused run `run-uQT7Pf` passed 1/1: the complete source Program equals the
+  independent expectation and both pass the ordinary checker. The explicit
+  RESULT declaration has its own existing output projection. This is lowering
+  and admission evidence, not public execution evidence.
 
 Focused command (pinned MoonBit/Node PATH):
 
@@ -80,10 +90,12 @@ parameter contract has no untyped JSON parameter, and the existing managed
 DuckDB transfer profile only supports DOUBLE/VARCHAR. A Delta-only literal,
 provider adapter or post-lowering Program mutation would hide that gap.
 
-The approved follow-up is GoogleSQL `SELECT JSON '…' AS delta`, available in
-ordinary SELECT and DATA queries. Before implementation it must establish
-number precision, duplicate-key handling, JSON null versus SQL NULL, bytes/depth
-limits and independent machine-input equivalence. Successful authored source
-through `apply_graph_delta` to Named Result in packed Local/HTTPS is a required
-integration acceptance after that dependency lands. It is not claimed by this
-connection PR.
+The follow-up is [common typed JSON #463](https://github.com/actql/actql/pull/463)
+and [generic source #466](https://github.com/actql/actql/pull/466). This branch
+integrates their pushed commits, without changing the Delta application owner.
+The common contract defines precision, duplicate keys, JSON null versus SQL
+NULL and preparation limits. JSON-valued row expectations use that contract's
+typed-cell envelope; semantic Delta/identity bodies retain their owner format.
+Successful authored source through `apply_graph_delta` to Named Result in
+packed Local/HTTPS remains a required integration acceptance. Parser/checker
+success and earlier machine controls do not establish it.

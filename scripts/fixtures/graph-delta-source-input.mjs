@@ -7,17 +7,20 @@ const json = {type: 'json', nullable: false};
 const number = {type: 'number', nullable: false};
 const labels = {type: 'array', nullable: false, items: {type: 'string', nullable: false}};
 export async function graphDeltaSourceControls(fixtureRoot = new URL('./', import.meta.url)) {
+  const {graphDeltaJsonSuccesses} = await import(new URL('graph-delta-json-source.mjs', fixtureRoot));
   const {deltaApplicationScenario} = await import(new URL('property-graph-delta-application.mjs', fixtureRoot));
   const presence = JSON.parse(await readFile(new URL('property-graph-presence.program.json', fixtureRoot), 'utf8'));
-  return ['node_rows', 'edge_rows'].map(projection => {
+  const controls = ['node_rows', 'edge_rows'].map(projection => {
     const {document, expected, fields} = deltaApplicationScenario(presence, projection);
     const contracts = {id: json, src: json, dst: json, labels,
       edge_key: number, tenant_key: {type: 'string', nullable: false}};
     return {name: 'graph-delta-independent-json-' + projection, format: 'json',
       text: JSON.stringify(document), sourceReadCount: 0,
-      results: {answer: {rows: expected,
+      results: {answer: {rows: expected.map(row => Object.fromEntries(fields.map(name =>
+        [name, contracts[name].type === 'json' ? {$json: row[name]} : row[name]]))),
         columns: fields.map(name => ({name, contract: contracts[name]}))}}};
   });
+  return [...graphDeltaJsonSuccesses, ...controls];
 }
 const prefix = 'DATA n = SELECT 1 AS node_key, 7 AS p; DATA g = PROPERTY GRAPH '
   + '(NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p))); '
