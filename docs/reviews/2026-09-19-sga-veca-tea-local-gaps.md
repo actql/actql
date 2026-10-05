@@ -5656,7 +5656,8 @@ the [Pool scanning record](2026-10-06-local-pool-key-scanning.md).
 
 Nearest now advances the existing typed key cursor through identity validation,
 both input sorts, duplicate checks and equal-score candidate ties. Independent
-control limits 1365/1364 and structural workspace 36/35, ordered results across
+scan-only control limits 1365/1364 and structural workspace 36/35, before the
+output-admission unit below, and ordered results across
 quanta, cancellation inside each scan and caller input custody through confirmed
 stop and one cleanup are covered on JS. Existing nearest caller tests remain
 covered, including Relation and mixed inputs.
@@ -5669,3 +5670,23 @@ requires the actual public suite connection. Whole-Run exact Ledger budgets,
 Wasm/native, packed/HTTP, output identity rechecking/composite encoding and
 ranking scans are not newly established. See the
 [nearest scanning record](2026-10-06-local-nearest-key-scanning.md).
+
+### Nearest resumable output admission
+
+Nearest now constructs composite identities one component per transition and
+rechecks/measures output cells through the existing common cursors. Its Session
+owns stop confirmation and cleanup; the row cursor grants no completion or
+publication authority. Logical output work is unchanged by quantum. Updated
+independent bounds for the Text fixture are 1517/1516 control and 44/43
+structural workspace, with an exact 1168-unit logical output allowance.
+
+The ordinary retained Host also cancels at the core-certified boundary after
+one output row commits and while the next row is being charged. Inputs and
+unpublished output remain held until confirmed stop; cleanup releases once.
+Producer/two-consumer ordered Results and request reuse remain covered.
+The gate requires output-specific shared and operator evidence. This closes
+the output-recheck/composite-encoding residual above on the executed JS and
+installed-Host scope, not all VecA scans or all Local retention. Whole-Run exact
+Ledger budgets, packed/HTTP, Wasm/native and new Store-failure campaigns remain
+unverified here. See the
+[nearest output record](2026-10-06-local-nearest-output-admission.md).

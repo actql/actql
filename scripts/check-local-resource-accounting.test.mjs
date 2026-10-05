@@ -181,6 +181,24 @@ test('nearest public key evidence requires an actual suite connection', () => {
     'VecA nearest: nearest key public fixture is not suite-connected'));
 });
 
+test('nearest output requires its shared cursor and operator boundary evidence', () => {
+  for (const role of ['nearest_output_row_stop_cleanup',
+    'nearest_output_public_barrier', 'nearest_output_composite_order',
+    'nearest_output_shared_limits', 'nearest_output_shared_cleanup']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === 'nearest');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`VecA nearest: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'nearest');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'nearest_output_public_store');
+  }), /VecA nearest: nearest output public Store fixture is missing/u);
+});
+
 test('interval join requires stepped Text comparison boundary evidence', () => {
   for (const role of [
     'interval_long_text_compare_quantum_order',

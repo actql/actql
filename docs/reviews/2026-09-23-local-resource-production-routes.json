@@ -9593,6 +9593,41 @@
           "fixture": "nearest public quantum stops inside long identity validation"
         },
         {
+          "role": "nearest_output_row_stop_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/nearest_text_scanning_wbtest.mbt",
+          "fixture": "nearest output yields during recheck and charge without premature release"
+        },
+        {
+          "role": "nearest_output_public_barrier",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/nearest_text_scanning_wbtest.mbt",
+          "fixture": "nearest public quantum stops inside output after a committed row"
+        },
+        {
+          "role": "nearest_output_composite_order",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/nearest_composite_output_wbtest.mbt",
+          "fixture": "nearest incrementally encodes composite identity in canonical field order"
+        },
+        {
+          "role": "nearest_output_shared_limits",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/admitted_output_row_steps_wbtest.mbt",
+          "fixture": "row output cursor distinguishes temporary workspace and logical one-short limits"
+        },
+        {
+          "role": "nearest_output_shared_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/admitted_output_row_steps_wbtest.mbt",
+          "fixture": "row output cursor releases partial recheck and measurement exactly once"
+        },
+        {
           "role": "nearest_direct_relation_work_exact_one_short",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -9691,6 +9726,13 @@
           "targets": ["node"],
           "path": "adapters/host-node/public-nearest-key-retention.test.mjs",
           "fixture": "public retained nearest publishes and cancels inside long identity validation"
+        },
+        {
+          "role": "nearest_output_public_store",
+          "suite": "node:embedded_nearest_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-nearest-key-retention.test.mjs",
+          "fixture": "public retained nearest cancels output after its first committed row"
         },
         {
           "role": "nearest_relation_host_in_flight_cancel",
