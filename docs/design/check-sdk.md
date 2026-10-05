@@ -618,13 +618,38 @@ fact despite the expanded union. Unknown reason codes retain only their safe
 code-only shape. This does not change `actql-diagnostics/0.1`, its code/payload
 meanings or frozen historical identity evidence.
 
-An unresolved column expression can retain its existing lowerer's authored
-identifier range in a `query_invalid` reason, for both SQL and text input.
-The projection reads the existing typed failure and origin; it does not resolve
-names again or search the submitted string. Backtick-quoted names, repeated
-tokens, Unicode and CRLF retain their original byte ranges. Unaliased column
-failures currently lacking an origin omit the range. Unresolved Source names
-and generated origins do not acquire a public location.
+The lowerer's typed `UnknownReference`, `InvalidArguments` and `InvalidNumber`
+issues project as `query_expression_invalid` with closed `facts.issue` values
+`unknown_reference`, `invalid_arguments` and `invalid_number`. The numeric issue
+means the expression's precision, finite-value or signed-zero domain, distinct
+from lexical `invalid_number` spelling. Argument facts describe the selected
+operation's count or form, without asserting a particular overload or exposing
+argument values. Authored origins supply original half-open UTF-8 ranges for
+references, calls and numbers; generated or missing origins omit the location.
+The projection reads existing typed failures without resolving names again or
+searching the submitted string. Unaliased column failures currently lacking a
+typed expression diagnostic remain generic `query_invalid` and omit a range.
+Unresolved protected Source names cannot acquire an expression reason or span.
+Wrapped expression construction/admission budgets remain incomplete analysis;
+they never become expression violations. The lowerer's `UnsupportedFunction`
+also remains incomplete analysis: its existing type covers unknown names,
+quoted function names and unsupported qualified forms without distinguishing
+a proven input violation from implementation support. It projects only the
+existing `implementation_limit` coverage, not an expression reason or location.
+That does not certify the construct as valid or allow a Program to be issued.
+The common lowerer must supply a distinct typed violation before the public
+bridge can blame an unknown function name; no diagnostic name catalog or
+message classifier replaces that owner. Independent supplied violations and
+missing-value Requirements remain visible beside this limit. The SDK's advice
+asks the checking-context owner to review support without claiming that the
+submitted construct is allowed.
+
+This further facts extension changes the coordinated check reason and outcome
+schema identities. Facts are validated per code: lexical issues cannot use an
+expression-only fact, and expression reasons cannot use a lexical-only fact.
+Shared `invalid_number` is interpreted only with its reason code. The SDK and
+Host reject mismatched preceding identities even for empty verified responses;
+no compatibility implementation is retained.
 
 Document IDs (`source`, `parameter_declarations`, `parameters`) are roles within
 one report, not private file paths. Each Host issues a keyed, domain-separated

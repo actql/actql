@@ -2025,7 +2025,9 @@ const schemas = {
                                 "empty_identifier",
                                 "unterminated_comment",
                                 "invalid_number",
-                                "invalid_parameter"
+                                "invalid_parameter",
+                                "unknown_reference",
+                                "invalid_arguments"
                               ]
                             }
                           }
@@ -2155,7 +2157,58 @@ const schemas = {
                           "facts": {
                             "required": [
                               "issue"
-                            ]
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "unexpected_end",
+                                  "unexpected_token",
+                                  "invalid_escape",
+                                  "invalid_scalar",
+                                  "empty_identifier",
+                                  "unterminated_comment",
+                                  "invalid_number",
+                                  "invalid_parameter"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "query_expression_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "unknown_reference",
+                                  "invalid_arguments",
+                                  "invalid_number"
+                                ]
+                              }
+                            }
                           },
                           "location": {
                             "properties": {
@@ -2177,7 +2230,8 @@ const schemas = {
                                 "parameter_value_required",
                                 "parameter_undeclared",
                                 "supplied_value_constraint_violation",
-                                "query_lexical_invalid"
+                                "query_lexical_invalid",
+                                "query_expression_invalid"
                               ]
                             }
                           }
@@ -2419,7 +2473,9 @@ const schemas = {
                                 "empty_identifier",
                                 "unterminated_comment",
                                 "invalid_number",
-                                "invalid_parameter"
+                                "invalid_parameter",
+                                "unknown_reference",
+                                "invalid_arguments"
                               ]
                             }
                           }
@@ -2549,7 +2605,58 @@ const schemas = {
                           "facts": {
                             "required": [
                               "issue"
-                            ]
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "unexpected_end",
+                                  "unexpected_token",
+                                  "invalid_escape",
+                                  "invalid_scalar",
+                                  "empty_identifier",
+                                  "unterminated_comment",
+                                  "invalid_number",
+                                  "invalid_parameter"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "query_expression_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "unknown_reference",
+                                  "invalid_arguments",
+                                  "invalid_number"
+                                ]
+                              }
+                            }
                           },
                           "location": {
                             "properties": {
@@ -2571,7 +2678,8 @@ const schemas = {
                                 "parameter_value_required",
                                 "parameter_undeclared",
                                 "supplied_value_constraint_violation",
-                                "query_lexical_invalid"
+                                "query_lexical_invalid",
+                                "query_expression_invalid"
                               ]
                             }
                           }
@@ -2701,7 +2809,7 @@ const schemas = {
             ]
           },
           "reason_schema_cid": {
-            "const": "sha256:16c81ff351a5c3d1fa56757c3c9936a68fd7014c81137e8efa1c54988a61c961"
+            "const": "sha256:2b4925513d195c5debf4e059140ab737c7f5d6d92ab6280c3b8cdefe0b00c2b5"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -3050,7 +3158,9 @@ const schemas = {
                                 "empty_identifier",
                                 "unterminated_comment",
                                 "invalid_number",
-                                "invalid_parameter"
+                                "invalid_parameter",
+                                "unknown_reference",
+                                "invalid_arguments"
                               ]
                             }
                           }
@@ -3180,7 +3290,58 @@ const schemas = {
                           "facts": {
                             "required": [
                               "issue"
-                            ]
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "unexpected_end",
+                                  "unexpected_token",
+                                  "invalid_escape",
+                                  "invalid_scalar",
+                                  "empty_identifier",
+                                  "unterminated_comment",
+                                  "invalid_number",
+                                  "invalid_parameter"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "query_expression_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "unknown_reference",
+                                  "invalid_arguments",
+                                  "invalid_number"
+                                ]
+                              }
+                            }
                           },
                           "location": {
                             "properties": {
@@ -3202,7 +3363,8 @@ const schemas = {
                                 "parameter_value_required",
                                 "parameter_undeclared",
                                 "supplied_value_constraint_violation",
-                                "query_lexical_invalid"
+                                "query_lexical_invalid",
+                                "query_expression_invalid"
                               ]
                             }
                           }
@@ -3444,7 +3606,9 @@ const schemas = {
                                 "empty_identifier",
                                 "unterminated_comment",
                                 "invalid_number",
-                                "invalid_parameter"
+                                "invalid_parameter",
+                                "unknown_reference",
+                                "invalid_arguments"
                               ]
                             }
                           }
@@ -3574,7 +3738,58 @@ const schemas = {
                           "facts": {
                             "required": [
                               "issue"
-                            ]
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "unexpected_end",
+                                  "unexpected_token",
+                                  "invalid_escape",
+                                  "invalid_scalar",
+                                  "empty_identifier",
+                                  "unterminated_comment",
+                                  "invalid_number",
+                                  "invalid_parameter"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "query_expression_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "unknown_reference",
+                                  "invalid_arguments",
+                                  "invalid_number"
+                                ]
+                              }
+                            }
                           },
                           "location": {
                             "properties": {
@@ -3596,7 +3811,8 @@ const schemas = {
                                 "parameter_value_required",
                                 "parameter_undeclared",
                                 "supplied_value_constraint_violation",
-                                "query_lexical_invalid"
+                                "query_lexical_invalid",
+                                "query_expression_invalid"
                               ]
                             }
                           }
@@ -3738,7 +3954,7 @@ const schemas = {
             }
           },
           "reason_schema_cid": {
-            "const": "sha256:16c81ff351a5c3d1fa56757c3c9936a68fd7014c81137e8efa1c54988a61c961"
+            "const": "sha256:2b4925513d195c5debf4e059140ab737c7f5d6d92ab6280c3b8cdefe0b00c2b5"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -3779,7 +3995,7 @@ const schemas = {
             }
           },
           "reason_schema_cid": {
-            "const": "sha256:16c81ff351a5c3d1fa56757c3c9936a68fd7014c81137e8efa1c54988a61c961"
+            "const": "sha256:2b4925513d195c5debf4e059140ab737c7f5d6d92ab6280c3b8cdefe0b00c2b5"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -4819,7 +5035,7 @@ const operationKeys = {
   ]
 };
 
-export const checkReasonSchemaCid = "sha256:16c81ff351a5c3d1fa56757c3c9936a68fd7014c81137e8efa1c54988a61c961";
+export const checkReasonSchemaCid = "sha256:2b4925513d195c5debf4e059140ab737c7f5d6d92ab6280c3b8cdefe0b00c2b5";
 function valid(value, schema) {
   if (schema.$ref) return valid(value, schemas[schema.$ref]);
   if (schema.oneOf && schema.oneOf.filter(rule => valid(value, rule)).length !== 1) return false;
