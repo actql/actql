@@ -89,6 +89,7 @@ pub fn node_accepts_managed_carrier_view(
     "TEA.join.asof" => index == 0
     "SGA.reachable" => index == 0
     "SGA.traverse" => index == 0
+    "SGA.subgraph" => index == 0
     "SGA.match_nodes" | "SGA.match_edges" => index == 0
     "VEC.knn_join" => true
     _ => false
@@ -114,11 +115,14 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
           node.input_targets.length() == 1
         )
       )
+    GraphSubgraphValue(_) => operation(node) == "SGA.subgraph"
     GraphMatchRows(_) =>
       operation(node) == "SGA.match_nodes" ||
       operation(node) == "SGA.match_edges"
     GraphBoundsRows(_) => operation(node) == "SGA.bounds_check"
     GraphDegreeRows(_) => operation(node) == "SGA.degree_metrics"
+    GraphEqualityRows(_) => operation(node) == "SGA.equal"
+    GraphNormalizeValue(_) => operation(node) == "SGA.normalize"
     GraphComponentsRows(_) => operation(node) == "SGA.components"
     VectorValue(_) =>
       operation(node) == "BRIDGE.rows.to_vectors" ||
@@ -253,6 +257,15 @@ pub fn node_prefers_fused_without_relation_consumer(
 }
 
 ///|
+/// This selected Carrier-to-Carrier step owns an independently retained
+/// generation even when the following row consumer normally prefers fusion.
+/// Other families keep their existing fused choice until their own handoff is
+/// registered and tested.
+pub fn node_can_split_carrier_transform(node : PreparedNode) -> Bool {
+  node.payload is GraphNormalizeValue(_) && operation(node) == "SGA.normalize"
+}
+
+///|
 /// The common selected-operation Relation reader can preserve the checked
 /// row kernel at this exact internal input. This is typed capability
 /// metadata, not a second interpretation of the authored operation name.
@@ -276,6 +289,7 @@ pub fn node_accepts_managed_relation_view(
   if node.input_targets.length() == 2 && index >= 0 && index < 2 {
     return match node.payload {
       GraphTraverseRows(_) => index == 1 && operation(node) == "SGA.traverse"
+      GraphSubgraphValue(_) => index == 1 && operation(node) == "SGA.subgraph"
       InnerJoin(_)
       | CrossJoinRows(_)
       | AppendRows(_)

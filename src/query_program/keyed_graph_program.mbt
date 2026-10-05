@@ -120,7 +120,12 @@ fn keyed_node_constraint(
   }
   let append = fn(expression : @query.Expression) -> @builder.Node raise Abort {
     match
-      @expression.append(expression, resolve, construction.builder, max_work) {
+      @expression.append_with_properties(
+        expression,
+        resolve,
+        construction.builder,
+        max_work,
+      ) {
       Ok(value) => value
       Err(error) => raise Abort(Expression(error))
     }

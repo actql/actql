@@ -1,4 +1,4 @@
-// PRs use JS for ordinary portable changes. main retains every target.
+// Draft PRs run preparation checks; ready PRs retain normal required coverage.
 // An exact maintenance inventory may omit whole unrelated job families.
 // Selected evidence campaigns retain their complete three-target contract.
 import assert from 'node:assert/strict';
@@ -78,12 +78,33 @@ const reviewedPortableFiles = new Set([
   'src/source_span/span.mbt',
   'scripts/worktree-inventory.mjs',
 ]);
-export function selectTargets(paths, {event = 'pull_request', nativeMacos = false, failure = null,
+export function pullRequestDraft(event, payload) {
+  if (event !== 'pull_request') return null;
+  assert(['opened', 'synchronize', 'reopened', 'ready_for_review', 'converted_to_draft'].includes(payload?.action), 'Unsupported PR lifecycle event');
+  const draft = payload?.pull_request?.draft;
+  assert.equal(typeof draft, 'boolean', 'Missing PR draft state');
+  if (payload.action === 'ready_for_review') assert.equal(draft, false, 'Inconsistent ready event');
+  if (payload.action === 'converted_to_draft') assert.equal(draft, true, 'Inconsistent draft event');
+  return draft;
+}
+export function selectTargets(paths, {draft = null, event = 'pull_request', nativeMacos = false, failure = null,
   targetSensitiveDiff = false, maintenanceChanges = null, declarationChanges = null, focusedChanges = null, focusedTests = null, mainBaseline = null} = {}) {
   if (mainBaseline !== null) validateMainBaseline(mainBaseline);
   const validPaths = Array.isArray(paths) && paths.every(validPath);
   const full = reason => ({schema: 'actql-ci-targets/0.1', targets: [...all], macos: true, reason,
     profile: 'full', event, paths: validPaths ? [...paths] : [], maintenanceChanges: null, declarationChanges: null, focusedChanges: null, focusedTests: null, mainBaseline});
+  if (event === 'pull_request' && draft !== null) {
+    assert.equal(typeof draft, 'boolean', 'Invalid PR draft state');
+    if (draft) {
+      let focused = false;
+      if (!failure && focusedTests && eligibleFocusedChanges(paths, focusedChanges)) {
+        try { validateFocusedTests(paths, focusedChanges, focusedTests); focused = true; } catch {}
+      }
+      return {...full('Draft preparation only: normal required verification deferred until ready_for_review; not mergeable'),
+        profile: focused ? 'draft-focused' : 'draft', targets: ['js'], macos: false, mainBaseline: null,
+        focusedChanges: focused ? focusedChanges : null, focusedTests: focused ? focusedTests : null};
+    }
+  }
   if (event !== 'pull_request' && !(event === 'push' && mainBaseline)) {
     const result = full(failure ? `Full core verification: ${failure}` : `Full core verification selected for ${event}`);
     // Preserve the existing explicit opt-in for an on-demand working branch.
@@ -107,7 +128,7 @@ export function selectTargets(paths, {event = 'pull_request', nativeMacos = fals
   const path = paths.find(path => sensitive.test(path) || !reviewedPortableFiles.has(path));
   if (path) return full(`Target-sensitive or unclassified input: ${path}`);
   return {...full(''), targets: ['js'], macos: false,
-    reason: 'Reviewed portable paths: PR core uses JS; full targets and macOS selected on main'};
+    reason: 'Reviewed portable paths: PR core uses JS; full targets and optional macOS require a manual integration checkpoint'};
 }
 function eligibleMaintenance(paths, changes) {
   return paths.length > 0 && paths.every(path => maintenance.has(path))
@@ -125,7 +146,7 @@ export function validateSelection(selection) {
   assert.deepEqual(selection.targets, selection.targets?.length === 1 ? ['js'] : all);
   assert.equal(typeof selection.macos, 'boolean');
   assert(typeof selection.reason === 'string' && selection.reason.trim());
-  assert(['full', 'maintenance', 'declaration', 'focused-tests'].includes(selection.profile), 'Invalid selection profile');
+  assert(['full', 'maintenance', 'declaration', 'focused-tests', 'draft', 'draft-focused'].includes(selection.profile), 'Invalid selection profile');
   assert(typeof selection.event === 'string' && selection.event.length, 'Missing selection event');
   assert(Array.isArray(selection.paths) && selection.paths.every(validPath), 'Invalid selection paths');
   if (selection.mainBaseline !== null) {
@@ -143,7 +164,13 @@ export function validateSelection(selection) {
     assert.deepEqual(selection.targets, ['js']);
     assert.equal(selection.macos, false);
   } else assert.equal(selection.declarationChanges, null, 'Unexpected declaration inventory');
-  if (selection.profile === 'focused-tests') {
+  if (selection.profile.startsWith('draft')) {
+    assert.equal(selection.event, 'pull_request', 'Draft profile requires a PR event');
+    assert.equal(selection.mainBaseline, null, 'Draft cannot reuse a main checkpoint');
+    assert.deepEqual(selection.targets, ['js']);
+    assert.equal(selection.macos, false);
+  }
+  if (['focused-tests', 'draft-focused'].includes(selection.profile)) {
     validateFocusedTests(selection.paths, selection.focusedChanges, selection.focusedTests);
     assert.deepEqual(selection.targets, ['js']);
     assert.equal(selection.macos, false);
@@ -157,11 +184,13 @@ export function validateSelection(selection) {
   }
   return selection;
 }
-export function verifyGate(plan, needs, {event, sourceRevision}) {
+export function verifyGate(plan, needs, {event, sourceRevision, draft = null}) {
   assert.deepEqual(Object.keys(plan ?? {}).sort(), ['selection', 'sourceRevision'], 'Invalid plan envelope');
   assert(sha.test(sourceRevision) && plan.sourceRevision === sourceRevision, 'Selection belongs to another checkout');
   const selection = validateSelection(plan.selection);
   assert.equal(selection.event, event, 'Selection belongs to another event');
+  assert(draft !== true && !selection.profile.startsWith('draft'),
+    'Draft preparation is not merge verification: awaiting ready_for_review to execute normal required coverage');
   if (selection.mainBaseline) assert.equal(selection.mainBaseline.testedSha, sourceRevision, 'Main checkpoint belongs to another tested checkout');
   assert.deepEqual(Object.keys(needs ?? {}).sort(), [...gateJobs].sort(), 'Incomplete gate dependency inventory');
   const lines = [];
@@ -236,12 +265,18 @@ export function readChanges(payload, git = args => execFileSync('git', args,
 async function main() {
   if (process.argv[2] === 'gate') {
     const lines = verifyGate(JSON.parse(process.env.CI_PLAN), JSON.parse(process.env.RESULTS),
-      {event: process.env.GITHUB_EVENT_NAME, sourceRevision: process.env.GITHUB_SHA});
+      {event: process.env.GITHUB_EVENT_NAME, sourceRevision: process.env.GITHUB_SHA,
+        draft: pullRequestDraft(process.env.GITHUB_EVENT_NAME,
+          process.env.GITHUB_EVENT_NAME === 'pull_request'
+            ? JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8')) : null)});
     console.log(lines.join('\n'));
     if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n');
     return;
   }
   assert(!process.argv[2], 'Usage: ci-targets.mjs [gate]');
+  const draft = pullRequestDraft(process.env.GITHUB_EVENT_NAME,
+    process.env.GITHUB_EVENT_NAME === 'pull_request'
+      ? JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8')) : null);
   let changes = {paths: []}, failure = null, mainBaseline = null;
   if (process.env.GITHUB_EVENT_NAME === 'pull_request') {
     try { changes = readChanges(JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'))); }
@@ -261,7 +296,7 @@ async function main() {
       } else failure = baseline.reason;
     } catch { failure = 'Main checkpoint or cumulative diff unavailable'; }
   }
-  const selected = validateSelection(selectTargets(changes.paths, {event: process.env.GITHUB_EVENT_NAME,
+  const selected = validateSelection(selectTargets(changes.paths, {event: process.env.GITHUB_EVENT_NAME, draft,
     nativeMacos: process.env.NATIVE_MACOS === 'true', failure, targetSensitiveDiff: changes.targetSensitiveDiff,
     maintenanceChanges: changes.maintenanceChanges, declarationChanges: changes.declarationChanges,
     focusedChanges: changes.focusedChanges, focusedTests: changes.focusedTests, mainBaseline}));

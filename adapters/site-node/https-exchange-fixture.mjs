@@ -35,10 +35,11 @@ export async function fixtureCertificates(root) {
 const credentialHeaders = new Set(['authorization', 'proxy-authorization',
   'cookie']);
 
-function matches({method, pathname}, exchange) {
+function matches({method, pathname, bodyIncludes}, exchange) {
   return (method === undefined || method === exchange.method) &&
     (pathname === undefined || (pathname instanceof RegExp
-      ? pathname.test(exchange.pathname) : pathname === exchange.pathname));
+      ? pathname.test(exchange.pathname) : pathname === exchange.pathname)) &&
+    (bodyIncludes === undefined || exchange.body.includes(bodyIncludes));
 }
 
 function send(response, {status = 200, headers = {}, body = ''} = {}) {
@@ -53,8 +54,10 @@ function send(response, {status = 200, headers = {}, body = ''} = {}) {
 // tried in order; `handle(exchange)` returns `{status?, headers?, body?}`
 // (an object body is sent as JSON). `faults` are consumed `times` (default
 // once) before the routes: `{kind: 'lose-reply'}` destroys the connection
-// after reading the request, `{kind: 'reply', reply}` answers with a fixed
-// reply such as a 429 or 403 rate limit. `seen()` returns every request the
+// after reading the request, `{kind: 'apply-then-lose-reply'}` lets the
+// route apply the request and then destroys the connection instead of
+// answering, `{kind: 'reply', reply}` answers with a fixed reply such as a
+// 429 or 403 rate limit. A fault or route may also require `bodyIncludes`. `seen()` returns every request the
 // server observed, with credential headers reduced to `authorized`.
 export async function openHttpsExchangeFixture(t, {routes = [],
   faults = []} = {}) {
@@ -89,6 +92,12 @@ export async function openHttpsExchangeFixture(t, {routes = [],
         }
         if (fault.kind === 'reply') {
           send(response, fault.reply);
+          return;
+        }
+        if (fault.kind === 'apply-then-lose-reply') {
+          const applied = routes.find(entry => matches(entry, exchange));
+          applied?.handle(exchange);
+          request.socket.destroy();
           return;
         }
         throw new TypeError('InvalidHttpsExchangeFault');

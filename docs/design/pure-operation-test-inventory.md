@@ -42,15 +42,15 @@ be referenced normally; this does not complete conditional Result delivery.
 | events, vectors | src/carrier_projection/projection_test.mbt | src/pipeline_typing/bridge_audit_test.mbt | scripts/carrier-projection-schema.mjs |
 | node_rows, edge_rows | src/carrier_projection/graph_rows_test.mbt | src/query_integration/property_graph_rows_presence_wbtest.mbt | scripts/graph-schema.mjs |
 | graph | src/program_check/property_graph_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
-| normalize_graph | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
+| normalize_graph | src/program_check/property_graph_public_test.mbt | src/query_integration/property_graph_provider_custody_wbtest.mbt | scripts/graph-schema.mjs |
 | components | src/graph_typing/diagnostics_test.mbt | src/query_integration/property_graph_components_wbtest.mbt | scripts/graph-schema.mjs |
 | degree, graph_bounds | src/graph_typing/diagnostics_test.mbt | src/query_integration/property_graph_host_custody_wbtest.mbt | scripts/graph-schema.mjs |
 | match_nodes, match_edges | src/graph_typing/match_test.mbt | src/pipeline_typing/graph_query_keys_test.mbt | scripts/graph-schema.mjs |
 | traverse | src/graph_typing/traverse_test.mbt | src/pipeline_typing/graph_test.mbt | scripts/graph-schema.mjs |
 | shortest_path | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
 | reach | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
-| subgraph | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
-| graphs_equal | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
+| subgraph | src/pipeline_check_context/subgraph_execution_wbtest.mbt | src/query_integration/property_graph_subgraph_wbtest.mbt | scripts/graph-schema.mjs |
+| graphs_equal | src/graph_typing/property_equality_test.mbt | src/query_integration/property_graph_equal_wbtest.mbt | scripts/graph-schema.mjs |
 | graph_diff | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
 | apply_graph_delta | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
 | graft_graph, union_graphs, subtract_graphs | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |

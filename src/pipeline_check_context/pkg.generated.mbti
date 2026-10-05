@@ -1595,6 +1595,21 @@ pub(all) enum GraphDiagnosticRule {
   EnforceDiagnosticRows
 } derive(Eq, @debug.Debug)
 
+pub struct GraphEqualityCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  left : @pipeline_typing.Target
+  right : @pipeline_typing.Target
+  operation : @graph_typing.CheckedPropertyEquality
+  rule : GraphEqualityRule
+  policy : @capacity_policy.Policy
+}
+
+pub(all) enum GraphEqualityRule {
+  CompareGraphValues
+  RequireEqualityResources
+} derive(Eq, @debug.Debug)
+
 pub struct GraphMatchCheck {
   site : OperationRequirementSite
   step : @pipeline_typing.CheckedStep
@@ -1613,6 +1628,14 @@ pub(all) enum GraphMatchRule {
   OrderMatches
   EnforceMatchResources
 } derive(Eq, @debug.Debug)
+
+pub struct GraphNormalizeCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  operation : @graph_typing.CheckedNormalize
+  policy : @capacity_policy.Policy
+}
 
 pub(all) enum GraphSelectionResource {
   SelectorWork
@@ -2152,7 +2175,10 @@ pub(all) enum OperationExecutionCheck {
   NestExecution(NestExecutionCheck)
   GraphSelectorExecution(GraphSelectorCheck)
   GraphMatchExecution(GraphMatchCheck)
+  GraphEqualityExecution(GraphEqualityCheck)
   GraphDiagnosticExecution(GraphDiagnosticCheck)
+  SubgraphExecution(SubgraphExecutionCheck)
+  GraphNormalizeExecution(GraphNormalizeCheck)
   VectorExecution(VectorCheck)
   NearestExecution(NearestCheck)
   PoolExecution(PoolCheck)
@@ -3176,6 +3202,27 @@ pub enum StatisticalLaw {
   PopulationStandardDeviation
   SampleStandardDeviation
 }
+
+pub struct SubgraphExecutionCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  graph : @pipeline_typing.Target
+  relation : @pipeline_typing.Target?
+  operation : @graph_typing.CheckedSubgraph
+  rule : SubgraphExecutionRule
+  policy : @capacity_policy.Policy
+  output_nodes : @capacity_policy.Ceiling
+  output_edges : @capacity_policy.Ceiling
+}
+
+pub(all) enum SubgraphExecutionRule {
+  AdmitSubgraphGraph
+  InduceSubgraphEndpoints
+  FilterSubgraphEdges
+  PreserveSubgraphIdentities
+  PreserveSubgraphPolicy
+  EnforceSubgraphResources
+} derive(Eq, @debug.Debug)
 
 type TextBoundResolution
 

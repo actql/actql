@@ -10,7 +10,7 @@ import {leanRecords, applicationVersion} from './applications.mjs';
 import {leanInput} from './check.mjs';
 import {ArtifactUnavailable, downloadArtifact, unavailableTransport} from './transport.mjs';
 import {readActionRuntimes} from './isolated-runtime.mjs';
-import {resolveMainBaseline, fullCheckpointJobs, validateMainBaseline} from '../../scripts/ci-main-base.mjs';
+import {resolveMainBaseline, fullCheckpointJobs, validateMainBaseline, isMainEvidenceEvent} from '../../scripts/ci-main-base.mjs';
 import {gateJobs} from '../../scripts/ci-targets.mjs';
 import {catalogPath, validateCatalog, compareCatalogs} from './actions.mjs';
 
@@ -24,7 +24,7 @@ const positive = value => Number.isSafeInteger(value) && value > 0;
 export function readyActions({result, observations, event, branch}) {
   // Main always executes fresh. Only the independently checked, completed
   // comparison period may qualify its evidence for a later PR.
-  if (event !== 'push' || branch !== 'main' || result.context.candidateRevision !== result.context.runHeadRevision ||
+  if (!isMainEvidenceEvent(event, branch) || result.context.candidateRevision !== result.context.runHeadRevision ||
       result.comparison.confirmation.status !== 'confirmed' ||
       !result.applications.every(entry => entry.acquisition === 'fresh')) return [];
   const application = result.applications.find(entry => entry.actionId === 'mutations-js');
@@ -52,7 +52,7 @@ export async function checkAcceptance({report, catalog, sourceZip, sourceArtifac
   assert.equal(report.version, acceptanceVersion);
   assert(same(report.context, context), 'Wrong acceptance owner/context');
   assert(same(report.sourceArtifact, sourceArtifact), 'Acceptance substituted the source archive');
-  assert.equal(report.event, 'push'); assert.equal(report.branch, 'main');
+  assert(isMainEvidenceEvent(report.event, report.branch), 'Acceptance is not from protected main integration');
   assert.equal(context.candidateRevision, context.runHeadRevision);
   exact(report.owner, ['runId', 'runAttempt', 'jobId']);
   assert.equal(report.owner.runId, context.runId); assert.equal(report.owner.runAttempt, context.runAttempt);
@@ -72,7 +72,7 @@ export async function checkAcceptance({report, catalog, sourceZip, sourceArtifac
     assert(same(receipt.action, action), 'Wrong accepted action/target/scope');
     assert.equal(receipt.origin.testedRevision, context.candidateRevision);
     assert.equal(receipt.origin.runId, context.runId); assert.equal(receipt.origin.runAttempt, context.runAttempt);
-    assert.equal(receipt.origin.event, 'push'); assert.equal(receipt.origin.branch, 'main');
+    assert.equal(receipt.origin.event, report.event); assert.equal(receipt.origin.branch, report.branch);
     if (action.id === 'mutations-js') mutationInputs = receipt.inputs;
     const records = leanRecords(action, receipt.inputs, {receipt}, context, 'fresh');
     required.push(records.required); applications.push(records.application);
@@ -122,7 +122,9 @@ export async function readAcceptance({catalog, sourceArchive, sourceArtifact, co
   const checkRun = value => {
     assert.equal(value.id, context.runId); assert.equal(value.run_attempt, context.runAttempt);
     assert.equal(value.head_sha, context.candidateRevision); assert.equal(value.workflow_id, context.workflowId);
-    assert.equal(value.path, '.github/workflows/ci.yml'); assert.equal(value.event, 'push'); assert.equal(value.head_branch, 'main');
+    assert.equal(value.path, '.github/workflows/ci.yml');
+    assert(isMainEvidenceEvent(value.event, value.head_branch), 'Acceptance is not from protected main integration');
+    assert.equal(value.event, run.event, 'Acceptance trigger changed during inspection');
     assert.equal(value.repository?.id, context.repositoryId); assert.equal(value.repository?.full_name, context.repository);
     assert.equal(value.head_repository?.id, context.repositoryId);
     assert.equal(value.status, 'completed'); assert.equal(value.conclusion, 'success');
@@ -147,6 +149,7 @@ export async function readAcceptance({catalog, sourceArchive, sourceArtifact, co
     assert.deepEqual(zip.entries.map(entry => entry.path), ['verified-family.json']);
     const bytes = await zip.read('verified-family.json'), report = JSON.parse(bytes);
     assert(Buffer.from(`${encode(report)}\n`).equals(bytes), 'Noncanonical acceptance report');
+    assert.equal(report.event, run.event, 'Acceptance changed the authenticated run trigger');
     const ready = await checkAcceptance({report, catalog, sourceZip, sourceArtifact, context});
     const jobs = await request(`/actions/runs/${context.runId}/attempts/${context.runAttempt}/jobs?per_page=100`);
     assert(Array.isArray(jobs.jobs) && jobs.total_count === jobs.jobs.length && jobs.jobs.length <= 100);
@@ -166,7 +169,8 @@ export async function readReadyOrigin({root, catalog, sourceArchive, sourceArtif
   assert.equal(actualRun.id, baseline.runId); assert.equal(actualRun.run_attempt, baseline.runAttempt);
   assert.equal(actualRun.head_sha, baseline.baseSha); assert.equal(actualRun.workflow_id, candidateContext.workflowId);
   assert.equal(actualRun.repository?.id, candidateContext.repositoryId); assert.equal(actualRun.head_repository?.id, candidateContext.repositoryId);
-  assert.equal(actualRun.path, '.github/workflows/ci.yml'); assert.equal(actualRun.event, 'push'); assert.equal(actualRun.head_branch, 'main');
+  assert.equal(actualRun.path, '.github/workflows/ci.yml');
+  assert(isMainEvidenceEvent(actualRun.event, actualRun.head_branch), 'Ready origin is not protected main integration');
   assert.equal(actualRun.status, 'completed'); assert.equal(actualRun.conclusion, 'success');
   let unavailable = false;
   const verified = await resolveMainBaseline({testedSha: candidateContext.candidateRevision,
@@ -198,6 +202,7 @@ export async function readReadyOrigin({root, catalog, sourceArchive, sourceArtif
   assert(action, 'Missing independent reusable registration');
   const original = await readOriginReceipt({archive: sourceArchive, artifactId: sourceArtifact.id, action,
     acquisition: 'reused', request, expected: {...candidateContext, ancestors: [baseline.baseSha]}});
+  assert.equal(original.receipt.origin.event, actualRun.event, 'Ready origin trigger changed during inspection');
   assert.equal(original.archiveDigest, sourceArtifact.digest);
   const accepted = await readAcceptance({catalog: originalCatalog, sourceArchive, sourceArtifact, context: state.context, request, token, directory,
     artifactId, archive, expectedDigest});

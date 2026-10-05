@@ -173,9 +173,12 @@ pub fn operation_scalar_demand(
         | EnforceComponentAuthorGuard => None
       }
     AppendRequirement(_)
+    | NormalizeRequirement(_)
     | SetRequirement(_)
     | ValuesRequirement(_)
     | MatchRequirement(_)
+    | SubgraphRequirement(_)
+    | PropertyEqualityRequirement(_)
     | SelectorRequirement(_)
     | ConstructionRequirement(_)
     | VectorRequirement(_)

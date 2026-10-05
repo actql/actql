@@ -6,6 +6,15 @@ priv enum Frame {
 }
 
 ///|
+/// Emit the admitted Host policy without the environment's resource inventory.
+pub fn emit_host_policy(
+  environment : WireEnvironment,
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  emit_cursor(host_policy(environment), writer, false)
+}
+
+///|
 /// Canonical wire input is already key-ordered. Reject, never silently sort.
 fn emit_cursor(
   root : @decode.Cursor,

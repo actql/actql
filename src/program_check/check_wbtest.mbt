@@ -158,8 +158,6 @@ test "check rejects unsupported or malformed later steps without a partial resul
     (steps, source_error) in [
       ("[{\"asof_join\":{}}]", true),
       ("[{\"sequence\":{}}]", true),
-      ("[{\"normalize_graph\":{}}]", false),
-      ("[{\"subgraph\":{}}]", false),
       ("[{\"traverse\":{}}]", true),
       ("[{\"reach\":{}}]", false),
       ("[{\"shortest_path\":{}}]", false),
@@ -205,5 +203,34 @@ test "check rejects unsupported or malformed later steps without a partial resul
     } noraise {
       _ => fail("unsupported check path returned success")
     }
+  }
+}
+
+///|
+test "malformed later subgraph reports its exact source error without a partial Program" {
+  try
+    local_construction_fixture(
+      { work: 10000000, bytes: 1000000, nodes: 100000, depth: 100, },
+      second_stage=true,
+      second_steps="[{\"subgraph\":{}}]",
+      through_check=true,
+    )
+  catch {
+    LocalConstructionFailure::Source(
+      SourceView(Program(Program(Pipeline(stage, issue))))
+    ) => {
+      assert_eq(stage, 1)
+      assert_eq(issue.kind, @pipeline.InvalidBody)
+      assert_eq(issue.path, [
+        Key("stages"),
+        Index(1),
+        Key("steps"),
+        Index(0),
+        Key("subgraph"),
+      ])
+    }
+    e => raise e
+  } noraise {
+    _ => fail("malformed subgraph returned a partial checked Program")
   }
 }

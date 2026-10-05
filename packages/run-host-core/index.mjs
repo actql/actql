@@ -80,18 +80,36 @@ export function prepareResultMaterialHoldsStep(value, operation, identity) {
   'result-material-holds');
 }
 
-export function admitEnvironment(body, evidenceBundleCid, profiles) {
-  if (typeof body !== 'string' || typeof evidenceBundleCid !== 'string' ||
-      profiles === null || typeof profiles !== 'object' ||
+function checkedProfileSelection(profiles, error) {
+  if (profiles === null || typeof profiles !== 'object' ||
       Array.isArray(profiles) || Object.entries(profiles).some(([key, value]) =>
         !profileKeys.has(key) || typeof value !== 'boolean')) {
+    throw new TypeError(error);
+  }
+  return Object.freeze({
+    textTime: profiles.textTime === true,
+    veca: profiles.veca === true,
+    rela: profiles.rela === true,
+    sga: profiles.sga === true,
+    tea: profiles.tea === true,
+    calendar: profiles.calendar === true,
+    textRank: profiles.textRank === true,
+  });
+}
+
+/** Admit the existing profile contract and make omitted selections explicit. */
+export function admitProfileSelection(profiles) {
+  return checkedProfileSelection(profiles, 'InvalidRunHostProfileSelection');
+}
+
+export function admitEnvironment(body, evidenceBundleCid, profiles) {
+  if (typeof body !== 'string' || typeof evidenceBundleCid !== 'string') {
     throw new TypeError('InvalidRunHostEnvironment');
   }
+  const selected = checkedProfileSelection(profiles, 'InvalidRunHostEnvironment');
   const value = owner.clientValuesHostEnvironment(body, evidenceBundleCid,
-    profiles.textTime === true, profiles.veca === true,
-    profiles.rela === true, profiles.sga === true,
-    profiles.tea === true, profiles.calendar === true,
-    profiles.textRank === true);
+    selected.textTime, selected.veca, selected.rela, selected.sga,
+    selected.tea, selected.calendar, selected.textRank);
   if (value === undefined) {
     throw Object.assign(new Error('RunHostEnvironmentRejected'),
       {code: 'RunHostEnvironmentRejected'});

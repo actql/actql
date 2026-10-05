@@ -24,8 +24,8 @@ export function installNodeClientCheck({moon, environment, publication,
   sourceAccesses = [], contextKey = randomBytes(32)}) {
   if (moon === null || typeof moon !== 'object' ||
       typeof moon.clientProgramCheckSource !== 'function' ||
-      typeof moon.clientProgramCheckUnavailable !== 'function' ||
       typeof moon.clientProgramCheckCompilerIdentity !== 'function' ||
+      typeof moon.clientProgramCheckContextIdentity !== 'function' ||
       typeof moon.clientProgramCheckingEnvironmentCid !== 'function' ||
       environment === undefined ||
       !(contextKey instanceof Uint8Array) || contextKey.byteLength !== 32 ||
@@ -35,6 +35,7 @@ export function installNodeClientCheck({moon, environment, publication,
   }
   const environmentCid = moon.clientProgramCheckingEnvironmentCid(environment);
   const compiler = JSON.parse(moon.clientProgramCheckCompilerIdentity());
+  const checkingContext = JSON.parse(moon.clientProgramCheckContextIdentity(environment));
   const aliases = publication?.aliases ?? [];
   if (publication !== undefined &&
       publication.environmentCid !== environmentCid) {
@@ -42,17 +43,13 @@ export function installNodeClientCheck({moon, environment, publication,
   }
   const key = Buffer.from(contextKey);
 
-  const unavailable = () => {
-    const correlationRef = `corr:${randomBytes(16).toString('hex')}`;
-    return JSON.parse(moon.clientProgramCheckUnavailable(correlationRef));
-  };
-
   // Consult each installed Source's own decision owner, once per check,
-  // independently of published or mentioned names. A usable decision (even
-  // deny/held/failed) establishes this portion of the audience's context.
-  // An unusable owner hides only its own names; only when every applicable
-  // owner is unusable is the whole context unavailable. Zero owners and
-  // installations without a single read tuple retain an empty publication.
+  // independently of published or mentioned names. Missing read tuples and
+  // unusable owners hide their own names, just like deny/held/failed decisions.
+  // They do not establish or revoke the whole check binding: public ingress
+  // already authenticated and authorized this call, and installation admitted
+  // its checking environment. The checker retains protected obligations and
+  // independent disclosable violations under that binding.
   const accesses = sourceAccesses.map(access => ({...access}));
   const aliasesFor = async (sourceAccess, signal) => {
     const readTuple = typeof sourceAccess.sourceRef === 'string' &&
@@ -77,24 +74,20 @@ export function installNodeClientCheck({moon, environment, publication,
       signal?.throwIfAborted();
       portions.push(await aliasesFor(access, signal));
     }
-    const applicable = portions.filter(value => value !== null);
-    if (applicable.length > 0 && applicable.every(value => value === undefined)) {
-      return undefined;
-    }
     return portions.flatMap(value => value ?? []).sort((left, right) =>
       left.name < right.name ? -1 : left.name > right.name ? 1 : 0);
   };
 
   // Keyed by this Host over everything the verdict is about: the audience
   // and its disclosure policy, the exact source and format, the scope, the
-  // compiler and checking environment, the visible names and the supplied
+  // compiler and public checking selections, the visible names and supplied
   // bindings. Equal requests give an equal reference here; the reference is
   // not a public hash of supplied values.
   const contextRef = (principalId, input, parameters, visible) => {
     const bound = {version: contextVersion, audience: principalId,
       disclosure_policy: disclosurePolicy, projection: version, scope,
       compiler, reason_schema_cid: checkReasonSchemaCid,
-      environment_cid: environmentCid, visible_aliases: visible};
+      checking_context: checkingContext, visible_aliases: visible};
     let preimage;
     try {
       preimage = canonicalJson({...bound,
@@ -118,7 +111,6 @@ export function installNodeClientCheck({moon, environment, publication,
     signal?.throwIfAborted();
     const visible = await visibleAliases(signal);
     signal?.throwIfAborted();
-    if (visible === undefined) return unavailable();
     const declarations = input.parameterDeclarations === undefined
       ? undefined : JSON.stringify(input.parameterDeclarations);
     const supplied = parameters === null ? undefined :
@@ -134,4 +126,3 @@ export function installNodeClientCheck({moon, environment, publication,
     return validCheckOutcome(outcome) ? outcome : failed('check_internal');
   };
 }
-

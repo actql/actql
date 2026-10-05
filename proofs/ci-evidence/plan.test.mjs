@@ -61,6 +61,14 @@ function fixture() {
   return {state, options};
 }
 
+test('manual main comparison replays the exact dispatched origin without trigger relabeling', async () => {
+  const {state, options} = fixture(), request = options.request;
+  options.request = async path => path === '/actions/runs/3' ? {...mainRun, event: 'workflow_dispatch'} : request(path);
+  state.transform = value => ({...value, origin: {...value.origin, event: 'workflow_dispatch'}});
+  const plan = await comparisonPlan(options);
+  assert(plan.actions.every(entry => entry.status === 'closed-inputs-match'));
+  assert.equal((await verifyComparison({plan, ...options})).status, 'confirmed');
+});
 test('authenticated closed comparison preserves origins, downloads once, and still executes every action', async () => {
   const {state, options} = fixture(), originalBytes = canonicalReceipt(receipt(catalog.actions[1]));
   const plan = await comparisonPlan(options);

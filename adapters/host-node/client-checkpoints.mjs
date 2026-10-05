@@ -33,7 +33,6 @@ const MAX_REVIEW_BYTES = 256 * 1024;
 const MAX_PAGE = 100;
 const PAGE = 100;
 const LOOKUP_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
-const TERMINAL_RUNS = new Set(['succeeded', 'failed', 'cancelled']);
 const MULTI_SOURCE_SUBMISSION = 'actql-remote-multi-source-submission/0.1';
 
 function coded(code, detail) {
@@ -330,6 +329,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
   try {
   evidence = openContinuationEvidence({
     stateDirectory: state, ...privateKey, contractControl,
+    isTerminalRunOutcome: journal.isTerminalRunOutcome,
     preparation(prepareAttemptId) {
       if (prepareAttemptId.startsWith('effect-')) {
         const run = journal.getRunState(prepareAttemptId.slice(7));
@@ -786,7 +786,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
           const {captured} = await continuationOf(prepareAttemptId);
           await step('run_observed', {prepareAttemptId, runId});
           const status = await host.observe({captured, runId});
-          if (TERMINAL_RUNS.has(status)) {
+          if (journal.isTerminalRunOutcome(status)) {
             journal.finishRun(runId, {status});
           }
         } catch (error) {
@@ -1473,13 +1473,28 @@ export async function installRemoteCheckpoints({root, namespaceId,
       }
       return journal.getRunState(runId);
     },
+    // Route only through the journal's exact current continuation. The
+    // transition owner fences physical entry; this lookup grants no authority.
+    cancelEffectContinuation(runId, runDefinitionCid) {
+      const view = journal.activeRunCheckpoint(runId);
+      if (!['effect_set', 'read_access'].includes(view?.kind) ||
+          view.runId !== runId || view.runDefinitionCid !== runDefinitionCid ||
+          view.prepareAttemptId !== null) return false;
+      const state = journal.getRunState(runId);
+      if (state?.status === 'waiting_checkpoint') {
+        return journal.cancelCheckpoint(view.checkpointCid).outcome === 'cancelled';
+      }
+      if (state?.status === 'resuming') {
+        return journal.cancelUnsentResume(view.checkpointCid).outcome === 'cancelled';
+      }
+      return false;
+    },
     hasUnresolvedSourceStart(runId, runDefinitionCid) {
-      return [0, 1].some(task => {
-        const view = journal.inspect(`${runId}-source-${task}`);
-        return view?.kind === 'read_access' && view.runId === runId &&
-          view.runDefinitionCid === runDefinitionCid &&
-          journal.hasStartedResume(view.checkpointCid);
-      });
+      const view = journal.activeRunCheckpoint(runId);
+      return view?.kind === 'read_access' && view.runId === runId &&
+        view.runDefinitionCid === runDefinitionCid &&
+        view.checkpointId.startsWith(`${runId}-source-`) &&
+        journal.hasStartedResume(view.checkpointCid);
     },
     hasUnresolvedEffectTargetStart(runId, runDefinitionCid) {
       const view = journal.activeRunCheckpoint(runId);
@@ -1794,7 +1809,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
     // The checkpoint-journal Run created by a resumed request ended.
     runFinished(runId, status) {
       const run = journal.getRunState(runId);
-      if (run === undefined || TERMINAL_RUNS.has(run.status) ||
+      if (run === undefined || journal.isTerminalRunOutcome(run.status) ||
           run.status !== 'running') return;
       journal.finishRun(runId, {status});
       // Retention settles in the owned sweep (which stop() waits for), or in
@@ -1834,3 +1849,4 @@ export async function installRemoteCheckpoints({root, namespaceId,
       {journal, store: evidence});
   }
 }
+
