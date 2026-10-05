@@ -186,6 +186,19 @@ test('current Graph equality requires its selected value, resource, and Host evi
   /SGA graphs_equal: selected Graph operation does not reach its view kernel/u);
 });
 
+test('current Delta Host stop records name executable conversion and application fixtures', () => {
+  for (const role of ['timer_delivered_input_conversion_cancel_and_cleanup',
+    'timer_delivered_bounded_application_cancel_and_cleanup']) {
+    const delta = routes => routes.routes.find(route=>route.operation==='apply_graph_delta');
+    assert.match(run(undefined, routes => {
+      delta(routes).environment_tests.find(item=>item.role===role).fixture = 'missing-Delta-stop-fixture';
+    }), /SGA apply_graph_delta: missing environment fixture missing-Delta-stop-fixture/u);
+    assert.match(run(undefined, routes => {
+      delta(routes).environment_tests.find(item=>item.role===role).targets = ['js','wasm','native'];
+    }), /SGA apply_graph_delta: environment evidence must name an executable suite/u);
+  }
+});
+
 test('keyed property constructor cannot borrow legacy boundary or cancellation evidence', () => {
   for (const field of ['path_assurance','resource_assurance']) {
     assert.match(run(undefined, value => {

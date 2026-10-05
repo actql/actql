@@ -7554,6 +7554,22 @@
           "path": "src/query_integration/property_graph_delta_provider_wbtest.mbt",
           "fixture": "Delta provider preserves failure work and cleanup without reclaiming borrowed inputs"
         }
+      ],
+      "environment_tests": [
+        {
+          "role": "timer_delivered_input_conversion_cancel_and_cleanup",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "Delta application stops after positive work through the installed Local Host during input conversion"
+        },
+        {
+          "role": "timer_delivered_bounded_application_cancel_and_cleanup",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "Delta application stops after positive work through the installed Local Host during bounded application"
+        }
       ]
     },
     {

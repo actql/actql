@@ -1952,19 +1952,28 @@
       "variants": ["valid delta", "wrong base", "empty delta", "CID validation"],
       "status": "partial",
       "owner": "local-sga",
-      "current_gap": "Current complete-record application reaches the typed formal task Plan, configured managed Graph provider and standard Node Client installation. Source public Local/HTTPS cases verify exact target snapshots, Graph and Relation Store reload, parallel-edge removal and malformed/wrong-base/wrong-target failure cleanup. Fresh packed acceptance, delivered in-flight cancellation, current three-target execution and source/physical-resource assurance remain unverified. Installed Delta limits are logical runtime admission and reservations, not a count proof or a machine-independent total-heap theorem. Historical tuple-profile resource evidence is not current completion.",
+      "current_gap": "Current complete-record application reaches the typed formal task Plan, configured managed Graph provider and standard Node Client installation. Public Local/HTTPS cases verify exact target snapshots, Graph and Relation Store reload, parallel-edge removal and malformed/wrong-base/wrong-target failure cleanup. Focused packed and portable three-target evidence is revision-bound, not a full SGA campaign. Real installed Local Host fixtures deliver cancellation after positive work during conversion and bounded application, with no partial completion or new task during cleanup. Source/physical-resource assurance and published final-revision acceptance remain open. Installed Delta limits are logical runtime admission and reservations, not a count proof or a machine-independent total-heap theorem. Historical tuple-profile resource evidence is not current completion.",
       "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "resources", "cancellation"],
       "layer_evidence": [
         {
           "scope": "current_typed_delta_plan_managed_provider_and_source_public_acceptance",
-          "targets": ["js"],
+          "targets": ["js", "wasm", "native"],
           "evidence": [
             "src/query_integration/property_graph_delta_plan_wbtest.mbt",
             "src/query_integration/property_graph_delta_input_wbtest.mbt",
             "src/query_integration/property_graph_delta_provider_wbtest.mbt",
             "scripts/property-graph-public-host.test.mjs"
           ],
-          "limits": "Formal Plan issuance retains runtime checks. Portable fixtures cover exact/one-short control work, handoff cancellation, installed workspace capacity/overflow, borrowed-input lifetime and cleanup. Source public acceptance reaches Named Results after real Graph and Relation Store reload. These observations do not establish fresh package provenance, delivered in-flight cancellation, complete physical-resource assurance or all targets."
+          "limits": "Formal Plan issuance retains runtime checks. Portable selected fixtures cover exact/one-short control work, handoff cancellation, installed workspace capacity/overflow, borrowed-input lifetime and cleanup on JS/Wasm/native. Public acceptance reaches Named Results after real Graph and Relation Store reload; fresh packed evidence belongs to its recorded clean revision. This is not complete physical-resource assurance or a full three-target SGA campaign."
+        },
+        {
+          "scope": "installed_local_host_timer_delivered_delta_stop",
+          "targets": ["node"],
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+            "scripts/fixtures/property-graph-delta-application.mjs"
+          ],
+          "limits": "The real installed provider is cancelled after positive conversion work and, separately, positive application progress. The existing driver confirms stop, withholds task completion, and releases held/reserved bytes without starting the projection or resuming Compute on duplicate cleanup. This is a physical Host boundary fixture, not an SDK cancel-response-loss or cleanup-I/O-failure acceptance claim."
         }
       ],
       "historical_implementation_evidence": [

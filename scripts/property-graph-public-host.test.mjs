@@ -6,6 +6,8 @@ import {userInfo} from 'node:os';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import test from 'node:test';
 import {canonicalText} from './check-canonical-json.mjs';
+import {propertyGraphPresenceOracle, deltaApplicationScenario as deltaScenario} from
+  './fixtures/property-graph-delta-application.mjs';
 
 // The same independent oracle runs against source and repository-external
 // tarballs. The packed branch imports no checkout implementation or toolchain.
@@ -67,42 +69,9 @@ const expectedSnapshot = canonicalText(['actql-property-graph-snapshot/0.1',cid(
     src:identity('N',1),dst:identity('N',1)}))]);
 const snapshotCid = 'sha256:' + createHash('sha256').update(expectedSnapshot).digest('hex');
 
-const presenceConstructor = structuredClone(presenceFixture.stages[0].steps[3].property_graph);
-occurrence = 0;
-for (const family of ['nodes','edges']) for (const element of presenceConstructor[family]) {
-  delete element.from;
-  element.input_occurrence = occurrence++;
-}
-const presenceDomain = cid({constructor:presenceConstructor,
-  producer_definitions:presenceFixture.stages[0].steps.slice(0,3)
-    .map(step => ({body:{values:step.values},dependencies:[]})),
-  version:'actql-property-graph-definition/0.1'});
-const presenceIdentity = (definition, key, kinds) => ({definition,domain:presenceDomain,
-  key,key_types:kinds.map(kind=>({kind}))});
-const nodeIdentity = key => presenceIdentity('N',[key,'a'],['number','string']);
-const presenceContract = {version:'actql-property-graph-contract/0.1',domain:presenceDomain,
-  identity_law_cid:lawCid,value_law_cid:lawCid,
-  node_definitions:[{name:'M',key_columns:['company_key'],key_contracts:[number],labels:{},properties:{}},
-    {name:'N',key_columns:['person_key','tenant_key'],key_contracts:[number,string],
-      labels:{Owner:['p'],Person:['p']},properties:{p:{type:'number',nullable:true}}}],
-  edge_definitions:[{name:'E',key_columns:['edge_key','tenant_key'],key_contracts:[number,string],
-    labels:{Link:[]},properties:{},source_definition:'N',target_definition:'N'}]};
-const presenceSnapshot = canonicalText(['actql-property-graph-snapshot/0.1',cid(presenceContract),presenceContract,
-  [{id:presenceIdentity('M',[3],['number']),key:[3],props:{}},
-    ...[1,2].map(key=>({id:nodeIdentity(key),key:[key,'a'],props:{p:key===1 ? 7 : null}}))],
-  [10,11].map(key=>({id:presenceIdentity('E',[key,'a'],['number','string']),key:[key,'a'],props:{},
-    src:nodeIdentity(1),dst:nodeIdentity(2)}))]);
-const presenceSnapshotCid = 'sha256:' + createHash('sha256').update(presenceSnapshot).digest('hex');
-// Independent full Relation streams, including unprojected conditional fields.
-// These are canonical ordered rows, not bytes captured from the implementation.
-const presenceRows = {
-  node_rows: [{company_key:3,id:presenceIdentity('M',[3],['number']),labels:[]},
-    ...[1,2].map(key=>({id:nodeIdentity(key),labels:['Owner','Person'],
-      p:key===1 ? 7 : null,person_key:key,tenant_key:'a'}))],
-  edge_rows: [10,11].map(key=>({edge_key:key,
-    id:presenceIdentity('E',[key,'a'],['number','string']),
-    src:nodeIdentity(1),dst:nodeIdentity(2),labels:['Link'],tenant_key:'a'})),
-};
+const {contract:presenceContract,identity:presenceIdentity,nodeIdentity,
+  snapshot:presenceSnapshot,snapshotCid:presenceSnapshotCid,rows:presenceRows} =
+  propertyGraphPresenceOracle(presenceFixture);
 // The source fixture deliberately supplies descending keys. Canonical Graph
 // order must be established, not inherited accidentally from already sorted input.
 assert.deepEqual(presenceFixture.stages[0].steps[0].values.rows.map(row=>row.person_key),[2,1]);
@@ -447,37 +416,7 @@ function presenceWholeDistinctScenario(empty) {
 }
 
 function deltaApplicationScenario(projection, failure) {
-  const document = structuredClone(presenceFixture);
-  document.id = `delta-${projection}-${failure ?? 'valid'}`;
-  const [tag,contractCid,contract,beforeNodes,beforeEdges] = JSON.parse(presenceSnapshot);
-  // Author the change independently of the kernel: one property replacement
-  // and removal of just the second parallel edge. Definitions, typed key
-  // components, the omitted M.p and explicit N:2.p NULL do not change.
-  const afterNodes = structuredClone(beforeNodes);
-  afterNodes[1].props.p = 8;
-  const afterEdges = [beforeEdges[0]];
-  const target = canonicalText([tag,contractCid,contract,afterNodes,afterEdges]);
-  const delta = {version:'actql-graph-delta/0.1',graph_contract_cid:contractCid,
-    base_graph_cid:presenceSnapshotCid,
-    target_graph_cid:'sha256:'+createHash('sha256').update(target).digest('hex'),
-    nodes:{add:[],remove:[],update:[{before:beforeNodes[1],after:afterNodes[1]}]},
-    edges:{add:[],remove:[beforeEdges[1]],update:[]}};
-  if (failure === 'wrong-base') delta.base_graph_cid = 'sha256:'+'0'.repeat(64);
-  if (failure === 'wrong-target') delta.target_graph_cid = presenceSnapshotCid;
-  const steps = document.stages[0].steps;
-  steps.splice(4,steps.length-4,
-    {from:'companies',derive:{delta:{literal:failure === 'malformed' ? {} : delta}},as:'changes'},
-    {from:'g',apply_graph_delta:{with:'changes',field:'delta'},as:'applied'},
-    {from:'applied',[projection]:true,as:'rows'},
-    {filter:'labels IS NOT NULL',as:'filtered'},
-    {select:projection === 'node_rows' ? ['id','labels'] : ['id','src','dst','labels','edge_key','tenant_key'],as:'projected'});
-  const fields = steps.at(-1).select;
-  document.stages[0].results.out.fields = fields;
-  const retained = projection === 'node_rows'
-    ? presenceRows.node_rows.map((row,index)=>index === 1 ? {...row,p:8} : row)
-    : presenceRows.edge_rows.slice(0,1);
-  const expected = retained.map(row=>Object.fromEntries(fields.map(field=>[field,row[field]])));
-  return {document,target,retained,expected,fields};
+  return deltaScenario(presenceFixture, projection, failure);
 }
 
 for (const mode of ['local','remote']) for (const profile of ['graph','presence-filter','presence-selection','selector-derive','relation-subgraph','presence-keyed-distinct','presence-whole-distinct','delta-application']) {

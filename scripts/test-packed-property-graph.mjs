@@ -42,6 +42,7 @@ await mkdir(join(root,'fixtures'));
 for (const name of ['property-graph-public-host.test.mjs','check-canonical-json.mjs',
   'fixtures/property-graph-parallel.program.json',
   'fixtures/property-graph-presence.program.json',
+  'fixtures/property-graph-delta-application.mjs',
   'fixtures/property-graph-definition-rows.program.json',
   'fixtures/property-graph-label-rows.program.json',
   'fixtures/property-graph-selector-derive.program.json',

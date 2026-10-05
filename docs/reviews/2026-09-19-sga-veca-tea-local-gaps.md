@@ -3247,10 +3247,16 @@ Source public Local/HTTPS acceptance saves and reloads both the Graph and the
 intermediate Relation, preserving parallel-edge identity, composite key aliases
 and omission versus explicit NULL. Malformed, wrong-base and wrong-target
 inputs fail without exposing a partial result and confirm physical stop and
-temporary resource reclamation. Fresh packed evidence, delivered in-flight
-cancellation, current Wasm/native execution and source/physical-resource
-assurance are still separate obligations. The installed Delta workspace is a
-logical reservation, not a count proof or a total-heap theorem.
+temporary resource reclamation. Focused clean-revision packed Local/HTTPS and
+selected JS/Wasm/native Delta checks are revision-bound evidence, not a full
+SGA campaign. The real installed Local Host also delivers timer cancellation
+after positive work in conversion and, separately, after bounded application
+progress. Both cases withhold Delta completion, confirm physical stop and
+return held/reserved bytes without resuming Compute on repeated cleanup.
+This is not SDK cancel-response-loss or cleanup-I/O-failure acceptance.
+Published final-revision acceptance and source/physical-resource assurance
+remain separate obligations. The installed Delta workspace is a logical
+reservation, not a count proof or a total-heap theorem.
 Reach retains its typed start identity, direction, and finite depth.
 Its two stable output-ordering phases now resume typed identity comparisons
 one bounded unit at a time. A long common-prefix fixture checks quantum-one
