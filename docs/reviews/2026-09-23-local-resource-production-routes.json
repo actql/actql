@@ -262,9 +262,51 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/expression_wbtest.mbt",
           "fixture": "selected branches only execute; eager boolean still evaluates failure"
+        },
+        {
+          "role": "filter_long_expression_limits",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/expression_text_comparison_wbtest.mbt",
+          "fixture": "long expression comparison keeps independent logical and workspace bounds"
+        },
+        {
+          "role": "filter_long_expression_control",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/expression_text_comparison_wbtest.mbt",
+          "fixture": "long comparison preserves exact control and UTF16 result rules"
+        },
+        {
+          "role": "filter_long_expression_scan",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/expression_text_comparison_wbtest.mbt",
+          "fixture": "long expression comparison exposes charging and equal prefix scans"
+        },
+        {
+          "role": "filter_long_expression_root_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/public_expression_barrier_wbtest.mbt",
+          "fixture": "public retained filter fixture exposes its actual long Text scanning quantum"
+        },
+        {
+          "role": "filter_long_expression_quantum",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/public_expression_barrier_wbtest.mbt",
+          "fixture": "public retained filter preserves logical work across Host polling quanta"
         }
       ],
       "environment_tests": [
+        {
+          "role": "filter_long_expression_public_store",
+          "suite": "node:embedded_expression_comparison",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-expression-comparison-retention.test.mjs",
+          "fixture": "public retained expression comparison publishes and stops inside its Text scan"
+        },
         {
           "role": "filter_in_flight_host_timer",
           "suite": "node:duckdb_standard_host",

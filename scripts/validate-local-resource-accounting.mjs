@@ -903,6 +903,8 @@ export function validateResourceAccounting({
           'scripts/property-graph-surface-checker.test.mjs',
         'node:embedded_distinct_values':
           'adapters/host-node/public-distinct-value-retention.test.mjs',
+        'node:embedded_expression_comparison':
+          'adapters/host-node/public-expression-comparison-retention.test.mjs',
       }[item.suite];
       if (!suitePath || item.path !== suitePath ||
         JSON.stringify(item.targets) !== JSON.stringify(['node']) ||
@@ -916,6 +918,12 @@ export function validateResourceAccounting({
             'adapters/host-node/embedded-installation.test.mjs'), 'utf8')
             .includes("import './public-distinct-value-retention.test.mjs';")) {
         fail(`${label}: nested DISTINCT public fixture is not suite-connected`);
+      }
+      if (item.suite === 'node:embedded_expression_comparison' &&
+          !fs.readFileSync(path.join(root,
+            'adapters/host-node/embedded-installation.test.mjs'), 'utf8')
+            .includes("import './public-expression-comparison-retention.test.mjs';")) {
+        fail(`${label}: expression comparison public fixture is not suite-connected`);
       }
       const namedCase = sourceText.includes(`name: '${item.fixture}'`) ||
         sourceText.includes(`test('${item.fixture}',`);
@@ -1319,6 +1327,17 @@ export function validateResourceAccounting({
             }
           }
         }
+      }
+    }
+    if (route.family === 'RelA' && route.operation === 'filter') {
+      for (const suffix of ['limits', 'control', 'scan', 'root_stop', 'quantum']) {
+        const role = `filter_long_expression_${suffix}`;
+        if (!boundaryRoles.has(role)) {
+          fail(`${label}: ${role} fixture is missing`);
+        }
+      }
+      if (!environmentRoles.has('filter_long_expression_public_store')) {
+        fail(`${label}: expression comparison public Store fixture is missing`);
       }
     }
     const sharedRules = route.shared_resource_rule ?? {};

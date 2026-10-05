@@ -5616,3 +5616,20 @@ on stop. The fused input is held by the completed-input owner, not a Store lease
 Public whole-Ledger reservations, packed/HTTP and Wasm/native execution are not
 newly established. Other recursive comparators and expression scans remain
 separate. See the [DISTINCT boundary record](2026-10-06-local-distinct-tree-comparison.md).
+
+### Public retained expression scanning cancellation
+
+The long Text binary-comparison implementation was already stepped inside the
+expression frame. A new ordinary installed retained-Store Program now reads
+literal producer/two-consumer Named Results and delivers public cancellation
+inside its filter's actual UTF-16 scan. A matching core fixture certifies the
+third 256-work child quantum, roots and workspace through confirmed stop, and
+single cleanup without refunding work. Successful quanta one, seven and 256
+agree on results and cumulative work.
+
+The filter gate now requires the existing independent expression bounds, the
+new scan/root and quantum fixtures, and the public suite connection. Omitting
+any role or the actual suite import is rejected. This adds evidence, not a new
+comparison or Run owner. The runtime is unchanged from #517; whole-Run exact
+budgets, packed/HTTP, Wasm/native and other expression scans are not newly
+claimed. See the [public expression record](2026-10-06-local-expression-public-cancellation.md).

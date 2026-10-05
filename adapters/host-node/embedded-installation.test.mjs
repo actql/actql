@@ -19,6 +19,7 @@ import './public-sequence-retention.test.mjs';
 import './public-interval-retention.test.mjs';
 import './public-set-value-retention.test.mjs';
 import './public-distinct-value-retention.test.mjs';
+import './public-expression-comparison-retention.test.mjs';
 // Public binding-row retention, real Store reload and post-progress stop.
 import './public-binding-retention.test.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from
