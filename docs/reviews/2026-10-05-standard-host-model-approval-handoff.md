@@ -1,5 +1,36 @@
 # Standard Host Model approval: first vertical slice
 
+## Original bytes in the Model Checkpoint continuation
+
+The fixed-input snapshot and invocation originals preserved text, but
+`modelAuthorization` still serialized its `continuation_record` with the
+account-configuration canonicalizer. Its embedded submitted Program changed
+decomposed Unicode to NFC. Four strengthened public Local/HTTPS cases failed
+against the unchanged `dd00d01870acd88f15b04ea5cb6c7291b2b3ce69` distribution
+(`run-4f66oa`, zero passed/four failed). The independently decrypted records
+remain under `public-query-evidence-cCdRyG/artifacts` in
+`actql-public-model-resume-V5s3QO`, `actql-public-model-resume-MEoJuF`,
+`actql-public-model-resume-xJrJlU` and `actql-public-model-resume-zoWTMv`.
+This proves an incorrect saved continuation original after public submission;
+it does not prove that the provider received altered input or the Result was
+wrong. Those execution paths used the separately preserved fixed input.
+
+Only that Model record now uses the existing SDK value canonicalizer.
+Configuration identity serialization, other Checkpoint record domains, original
+receipts and stored historical CIDs are unchanged. No old original is rewritten.
+The existing Unicode/CR/LF/CRLF/nested-string cases independently verify physical
+ciphertext and plaintext digests, original submitted rows, identical continuation
+wire across a fresh waiting process, and unchanged 0→3→3 sends through approval
+and Result retrieval. These assertions run in the normal public recovery inventory.
+
+The four source public cases passed in the first step of `run-S4HLSO`. Its
+second step named a nonexistent supplemental test file and failed; the overall
+run is not a pass. The corrected, existing account allow/delegate/deny/missing
+consumer selection passed separately (`run-tO57iP`, two cases). The configuration
+canonicalizer is also byte-for-byte unchanged in Git. Fixed-SHA distribution
+acceptance must remain separate from these source checks and from earlier
+38-case successes that lacked the continuation-record assertion.
+
 ## Waiting cancellation at the physical-stop boundary
 
 The public waiting Checkpoint can precede its producer's physical stop. At

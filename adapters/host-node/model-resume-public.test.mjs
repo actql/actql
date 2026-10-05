@@ -135,6 +135,41 @@ function savedEvidence(f, ordinal, role, expectedState = 'SavedSuccess') {
   } finally { key.fill(0); }
 }
 
+function savedModelContinuation(f) {
+  const scope = f.journal().scopes[0];
+  const checkpoint = f.journal().checkpoints.find(item => item.checkpoint_cid === scope.checkpoint_cid);
+  assert.ok(checkpoint, 'the deferred Model scope names its durable Checkpoint');
+  const body = JSON.parse(checkpoint.checkpoint_wire);
+  const ledger = f.read(`host/checkpoints/attempts/model-${scope.run_id}.json`);
+  const retained = ledger.holdings.find(item => item.name === 'continuation_record' &&
+    item.semantic_cid === body.continuation_state_cid);
+  assert.ok(retained, 'the Model continuation has a retained original');
+  assert.equal(retained.state, 'held');
+  const holding = f.read(`host/checkpoints/private-store/physical-holdings/${retained.holding_cid.slice(7)}.json`);
+  assert.equal(holding.holding_cid, retained.holding_cid);
+  assert.equal(holding.manifest_cid, body.continuation_state_cid);
+  assert.equal(holding.namespace, 'local-continuation-private');
+  assert.equal(holding.objects.length, 1);
+  const object = holding.objects[0];
+  const bytes = readFileSync(join(f.root, 'host/checkpoints/private-store/objects', object.cid.slice(7)));
+  assert.equal(bytes.byteLength, object.byte_count);
+  assert.equal(`sha256:${createHash('sha256').update(bytes).digest('hex')}`, object.cid);
+  const envelope = JSON.parse(bytes);
+  assert.equal(envelope.version, 'actql-private-publication-evidence/0.1');
+  const key = readFileSync(join(f.root, 'host/checkpoints/private-evidence.key'));
+  try {
+    const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(envelope.nonce, 'base64'));
+    decipher.setAAD(Buffer.from(`actql-private-publication-evidence/0.1\0continuation_record\0${holding.manifest_cid}`));
+    decipher.setAuthTag(Buffer.from(envelope.tag, 'base64'));
+    const wire = Buffer.concat([decipher.update(Buffer.from(envelope.ciphertext, 'base64')), decipher.final()]);
+    assert.equal(`sha256:${createHash('sha256').update(wire).digest('hex')}`, body.continuation_state_cid);
+    const record = JSON.parse(wire);
+    assert.equal(record.version, 'actql-installed-model-checkpoint-storage/0.1');
+    assert.equal(record.run_definition_cid, JSON.parse(scope.inventory_json).runDefinitionCid);
+    return {wire: record.continuation_wire, body: JSON.parse(record.continuation_wire)};
+  } finally { key.fill(0); }
+}
+
 for (const transport of ['local', 'https']) {
   for (const [name, inputTexts] of [
     ['Unicode and CR', ['e\u0301', '\u00e9', '\r']],
@@ -144,6 +179,16 @@ for (const transport of ['local', 'https']) {
       const f = await fixture(t, {transport, count: 3, inputTexts});
       const waiting = f.phase('wait');
       const originals = f.journal().scopes[0].originals_json;
+      assertSends(f, []);
+      const continuation = savedModelContinuation(f);
+      assert.deepEqual(continuation.body.submission.input.stages[0].steps[0].values.rows,
+        inputTexts.map((text, index) => ({id: String(index + 1), text})));
+      const waitingAgain = f.phase('wait');
+      assertSameRun(waiting, waitingAgain);
+      const restoredContinuation = savedModelContinuation(f);
+      assert.equal(restoredContinuation.wire, continuation.wire);
+      assert.deepEqual(restoredContinuation.body.submission.input.stages[0].steps[0].values.rows,
+        inputTexts.map((text, index) => ({id: String(index + 1), text})));
       assertSends(f, []);
       const approved = f.phase('approve');
       assertSameRun(waiting, approved);
