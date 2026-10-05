@@ -7,6 +7,10 @@ import {
 }
 
 // Values
+pub fn advance_json_parse(JsonParse, Int) -> Result[JsonParsePoll, JsonParseControlIssue]
+
+pub fn cancel_json_parse(JsonParse) -> Unit
+
 pub fn parse_json(String, ParseLimits, source_path? : String) -> Result[Node, ParseError]
 
 pub fn parse_json_bytes(Bytes, ParseLimits, source_path? : String) -> Result[Node, ParseError]
@@ -25,6 +29,8 @@ pub fn parse_yaml_bytes_measured(Bytes, ParseLimits, source_path? : String) -> R
 
 pub fn parse_yaml_measured(String, ParseLimits, source_path? : String) -> Result[ParsedSource, ParseError]
 
+pub fn start_json_parse(String, ParseLimits, source_path? : String) -> Result[JsonParse, ParseError]
+
 // Errors
 
 // Types and methods
@@ -33,6 +39,19 @@ pub(all) struct Field {
   key_span : @source_span.Span
   value : Node
 } derive(@debug.Debug)
+
+type JsonParse
+
+pub(all) enum JsonParseControlIssue {
+  InvalidQuantum
+  Terminal
+} derive(Eq, @debug.Debug)
+
+pub enum JsonParsePoll {
+  JsonParseContinue(work~ : Int)
+  JsonParseComplete(ParsedSource, work~ : Int)
+  JsonParseFailed(ParseError, work~ : Int)
+}
 
 pub(all) struct Node {
   value : Value

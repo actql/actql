@@ -20,6 +20,7 @@ pub(all) enum OperationExecutionCheck {
   GraphDiagnosticExecution(GraphDiagnosticCheck)
   SubgraphExecution(SubgraphExecutionCheck)
   GraphNormalizeExecution(GraphNormalizeCheck)
+  GraphDeltaExecution(GraphDeltaCheck)
   VectorExecution(VectorCheck)
   NearestExecution(NearestCheck)
   PoolExecution(PoolCheck)
@@ -117,6 +118,14 @@ pub fn operation_execution_phase(
         | PreserveSubgraphPolicy => BeforeOperationOutput
       }
     GraphNormalizeExecution(_) => BeforeOperationInputUse
+    GraphDeltaExecution(v) =>
+      match v.rule {
+        AdmitGraphOperands
+        | RequireDeltaResources
+        | RequireExactlyOneDeltaRow
+        | AdmitCompleteDeltaActions => BeforeOperationInputUse
+        EnforceDeltaRows | CheckExactBaseBeforeTarget => BeforeOperationOutput
+      }
     VectorExecution(v) =>
       match v.rule {
         AdmitVectorComponents
@@ -307,6 +316,7 @@ pub fn operation_execution_failure(
     | GraphDiagnosticExecution(_)
     | SubgraphExecution(_)
     | GraphNormalizeExecution(_)
+    | GraphDeltaExecution(_)
     | VectorExecution(_)
     | NearestExecution(_)
     | PoolExecution(_)

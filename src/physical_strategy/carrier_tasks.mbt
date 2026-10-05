@@ -211,6 +211,7 @@ fn bounded_branched_relation_chain(
       | @lower.Sort(_)
       | @lower.Limit(_)
       | @lower.TopK(_)
+      | @lower.TopKBy(_)
       | @lower.Distinct(_)
       | @lower.Dedupe(_)
       | @lower.Lag(_)

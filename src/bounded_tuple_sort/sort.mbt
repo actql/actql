@@ -9,6 +9,7 @@ priv enum Phase {
 ///|
 struct Sort {
   keys : Array[Array[String]]
+  validation_arity : Int?
   mut source : Array[Int]
   mut target : Array[Int]
   mut phase : Phase
@@ -71,6 +72,33 @@ pub fn prepare(
   if arity < 1 || keys.any(key => key.length() != arity) {
     return Err(InvalidKey)
   }
+  prepare_sort(keys, max_workspace_slots, None)
+}
+
+///|
+/// Retain the existing sorter without a synchronous all-key shape scan. Shape
+/// admission remains pending until Initialize visits every key. Completion,
+/// never preparation alone, establishes a valid sorted index.
+pub fn prepare_deferred(
+  keys : Array[Array[String]],
+  max_workspace_slots : Int,
+) -> Result[Sort, Issue] {
+  if max_workspace_slots < 0 {
+    return Err(InvalidLimits)
+  }
+  let arity = if keys.is_empty() { 1 } else { keys[0].length() }
+  if arity < 1 {
+    return Err(InvalidKey)
+  }
+  prepare_sort(keys, max_workspace_slots, Some(arity))
+}
+
+///|
+fn prepare_sort(
+  keys : Array[Array[String]],
+  max_workspace_slots : Int,
+  validation_arity : Int?,
+) -> Result[Sort, Issue] {
   guard checked_multiply(keys.length(), 2) is Some(required) else {
     return Err(WorkspaceLimit)
   }
@@ -79,6 +107,7 @@ pub fn prepare(
   }
   Ok({
     keys,
+    validation_arity,
     source: [],
     target: [],
     phase: Initialize,
@@ -116,6 +145,10 @@ pub fn advance(value : Sort, quantum : Int) -> Result[Poll, Issue] {
           }
           value.phase = PrepareRun
           continue
+        }
+        if value.validation_arity is Some(arity) &&
+          value.keys[value.index].length() != arity {
+          return Err(InvalidKey)
         }
         value.source.push(value.index)
         value.target.push(0)
