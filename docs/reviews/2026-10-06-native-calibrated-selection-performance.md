@@ -1,9 +1,12 @@
 # Native calibrated selection performance
 
-Current conclusion: actual planner/Owner and independent acceptance are
-connected; Native execution-performance improvement remains unestablished.
-The source-open experiment below retains its inconclusive result. #507 stays
-Draft and #170 is not complete.
+Current conclusion: the existing bounded-batch Native output connection
+passes current-source calibrated release/Owner acceptance and one predeclared
+21-pair comparison. Complete parent time decreases by 40.771 ms (95% paired
+interval -65.688 to -17.866 ms) on the specified 1,000-row text case. This is a
+limited observed execution gain, not a whole-matrix or physical-heap guarantee.
+All earlier inconclusive/withdrawn results remain unchanged below. #507 stays
+Draft for review and exact-HEAD CI; #170 is not marked complete by this report.
 
 G owns this second performance unit. The dependency #493, fixed at
 `7b48ed3140b05c906c6c5f875712bc4bd81f3dfd`, was merged into main as
@@ -32,7 +35,7 @@ The calibration CLI uses this shared derivation/admission contract. Synthetic
 admission fixtures establish refusal/wiring only; actual timing and retained
 Owner evidence still require real Native execution.
 
-## Next measured comparison
+## Original selection comparison protocol
 
 Use one immutable 100-row source, the same Native binary, Host, logical Program,
 output expectations and physical/work/retention limits. Before is the previous
@@ -964,8 +967,8 @@ Native still awaits each storage append before asking for another batch, seals
 only after full stream identity, and stages the same exact retained material.
 No new buffer, reservation/Owner, public API or old-mode fallback is added.
 Keep seal durability and input availability/receipt checks. A/D/H/dot code is
-not changed. This connection's performance and current-SHA acceptance remain
-unverified until the selected checks and fixed release experiment below.
+not changed. The acceptance and fixed release experiment below now establish
+the limited current-source result; the earlier diagnosis alone did not.
 
 Predeclare the same method: archived `fe0b68242` before, clean candidate release
 after, one fully admitted prelaunch per binary, 21 alternating pairs on the
@@ -983,3 +986,97 @@ pinned toolchain PATH (`run-xnKeRO`, ENOENT, no tests); exclude it from success.
 These JS checks establish only the portable receiver, not the Native connection.
 The product diff is one existing Native call site, with no generated interface
 change. Whole-process/child runtime heap bounds remain outside this acceptance.
+
+
+### Bounded Native batches: current-source acceptance and measured result
+
+Clean compiled source: `58ec55085f78b22eef890a99778bf05f5749c2f3`.
+Selected Native release build `run-GsfR2i` completed six incremental tasks,
+producing 12,406,320 bytes,
+`sha256:8a9933758dc74e5a30d3775f5ee6fb7aa8c9cec072d5ac6d28e6be2a15f7af59`.
+The archived before binary is the original 12,405,024-byte `fe0b68242` release,
+`sha256:2152155cc13ae8003df3c8b46a13ae45edf4a567554d579a440332475dd18f80`.
+The image increase is 1,296 bytes, not an estimate of runtime memory.
+Current `src/` differs from the before source only at the Native Compute drain
+call site. The comparison controller separately pins this source and both exact
+binaries rather than calling a later report commit the compiled source.
+
+Seven JS release comparator packages were prepared at that clean source
+(`run-GkY4LT`, 145 incremental build tasks). Their combined artifact digest is
+`sha256:0d92ea84a7ce4fe4a03c1d87aa5e82b574893e84dc032efd28703a829765fe4a`.
+Equal output bytes to the older portable build do not relabel the older receipt;
+this preparation was independently executed at the stated source.
+
+Current-source calibration `run-JZFNcI` passed twelve training runs and the
+held-out 100-row ordinary selection. Measured Local rates `[3,3,2]`, fresh
+`[12,14,12]`, resident `[3,7,6]`, shared preparation/cleanup `10/2` ms and
+imports `[1,2,Unknown,Unknown]` are all derived from the retained observations.
+Actual held-out selection is Local/Local/Local. Qualification is separate from
+forcing resident in the later matched algorithm experiment. The 2,484,288-byte
+calibration record has SHA-256
+`f73cf57a99e10e4f38cce7f1cd7e590758446ffc91f31f211353c6aa4948118b`.
+
+An initial attempt to launch the release gates was rejected **before execution**
+by automatic approval review because application network permission had been
+revoked. No process/test was started; this is not a performance failure. After
+the user authorized normal permission restoration, the exact limited invocation
+completed at clean compiled source (`run-pgkDai`):
+
+- `ACTQL_NATIVE_RESIDENT_CALIBRATION_PROFILE=/private/tmp/g507-native-resident-calibration-58ec55085.json node scripts/test-native-direct-pair.mjs` passed.
+- `_build/repro/check-native-batches-equivalent.mjs` ran the existing seven-pair
+  independent-comparator gate. Unchanged warm threshold 10 ms passes with upper
+  -3.694 ms; unchanged cold threshold 100 ms passes with upper -146.649 ms.
+- Focused `benchmarks/retained-results/native-owner-acceptance.mjs` passed 1/1,
+  covering its actual ten settings: resident/profiled/unknown rejection,
+  fresh/Local, mixed transitions, attempt-cap refusal, between-task stop and
+  rejected execution. Physical preparation/import attempts, holdings, exact
+  output and duplicate close invariance remain required. Between-task stop is
+  not a claim of public Run Cancelled.
+
+Timing/controller checks passed 7/7 (`run-KbI2vx`); thresholds, bootstrap,
+minimum samples and refusal of incomplete/nonalternating samples did not change.
+Controller revision: `e6039c0adbf52e7af06957556eab8c32d6980a25`.
+It executed once under `run-Fo7HB1`:
+
+```sh
+node benchmarks/retained-results/run-native-preparation-comparison.mjs \
+  _build/repro/native-probe-fe0b68242.exe \
+  /private/tmp/g507-native-batches-e6039c0ad.json --native-bounded-batches
+```
+
+The predeclared two prelaunches plus 21 alternating pairs completed **44/44**
+full product/Owner admissions. All three tasks use the same explicit resident
+control estimates, same input, limits and requirements on both binaries.
+Exact holdings, task work/usage, choices/explanations, acquisition evidence,
+identity and final resource accounting match. Those fixed control estimates are
+not the separate calibrated 100-row profile. No samples were removed, added or
+rerun to obtain the result. OS-cache coldness is uncontrolled.
+
+| After minus before, ms | Before mean | After mean | Difference | 95% paired interval |
+| --- | ---: | ---: | ---: | --- |
+| Complete parent process cycle | 390.043 | 349.272 | -40.771 | [-65.688, -17.866] |
+| Native entry through final identity | 334.094 | 299.804 | -34.290 | [-55.048, -14.961] |
+| Cycle minus cleanup (`coldMs`) | 386.313 | 344.038 | -42.275 | [-69.008, -17.875] |
+| Sequential task intervals (`warmMs`) | 169.061 | 134.324 | -34.736 | [-51.703, -18.846] |
+| Cleanup | 3.730 | 5.234 | +1.503 | [-0.548, +5.080], indeterminate |
+| Application preparation | 13.931 | 13.612 | -0.318 | [-1.497, +0.620], indeterminate |
+| Compute through final identity | 235.524 | 204.517 | -31.007 | [-48.660, -14.168] |
+
+The complete-parent criterion passes (upper below zero), approximately 10.45%
+of the before mean in this experiment. Common source preparation costs
+202.221 ms and remains separate. Prelaunch parent cycles are 275.003 / 266.545
+ms; Native entry 221.104 / 228.634 ms; their full events/admission and costs are
+retained, not discarded as cold outliers. Within-cycle timing intervals overlap
+and are not added. This experiment does not explain environmental variation,
+prove CPU attribution or establish performance for every workload/Host.
+
+Protected evidence is `_build/repro/native-batches-58ec55085/`, including both
+provenance and unchanged raw observations. The 6,914,725-byte raw comparison
+`comparison-e6039c0ad.json` has SHA-256
+`65421e2a4755fc926acb3488f2e14a9a37e172d4f7733c8a1ed2cd5852f1ce32`.
+Native binary/compiled source, portable release preparation, calibration,
+controller revision and later report HEAD are distinct. No full Core, Wasm,
+packed, full performance matrix or manual CI retry was performed. Required
+CI and content review of the new candidate remain separate from these local
+passes. Physical heap bounds, #412 isolated-image acceptance and dynamic
+Hybrid/Cloud acceptance are not closed by the result.
