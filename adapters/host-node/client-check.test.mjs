@@ -887,6 +887,8 @@ const contextKey = new Uint8Array(32).fill(7);
 async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
   closed = false, connectionAllowed = true,
   sdkConnect = connect,
+  maxRequestBytes = 65536,
+  mutateCheckReply,
   profiles = [false, false, true, true, false, false, false]} = {}) {
   const admitted = moon.clientProgramCheckEnvironment(canonicalText(wire),
     wire.evidence_bundle_cid, ...profiles);
@@ -909,8 +911,9 @@ async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
       maxRows: 10, maxBatchRows: 10, maxBatchRetainedValueBytes: 2048}};
   const configuration = {authenticate: () => owner,
     authorizeConnection: ({operation}) => operation === 'connect' || connectionAllowed,
-    negotiate: () => profile, check,
-    maxRowBytes: 1024};
+    negotiate: () => profile,
+    check: mutateCheckReply ? async request => mutateCheckReply(await check(request)) : check,
+    maxRowBytes: 1024, maxRequestBytes};
   if (entrance === 'local') {
     const client = await connectInProcess({mode, owner: mode},
       createNodeInProcessClientHost(configuration));
@@ -1062,6 +1065,182 @@ for (const entrance of ['local', 'http']) {
       assert.equal(JSON.stringify(outcome).includes('private-value'), false);
       if (mixedOutcome) assert.deepEqual(outcome, mixedOutcome, '[check-mutation:expression-disclosure]');
       else mixedOutcome = outcome;
+    }
+  });
+
+  test(`${entrance}: structured check locations name only submitted JSON nodes`, async t => {
+    const client = await contextClient(t, entrance, absentEnvironment);
+    const refusedLocation = async operation => {
+      let refused = false;
+      try { await operation; }
+      catch (cause) {
+        if (cause?.code !== 'InvalidHostCheckOutcome') throw cause;
+        refused = true;
+      }
+      assert.equal(refused, true, '[check-mutation:structured-refusal]');
+    };
+    const cases = [
+      [{type: 'array', items: {type: 'number'}}, [1, 'private-value'], '/options/1'],
+      [{type: 'object', fields: {'': {type: 'number'}}}, {'': 'private-value'},
+        '/options/fields/', 'parameter_declarations'],
+      [{type: 'object', fields: {'a/b~c': {type: 'number'}}},
+        {'a/b~c': 'private-value'}, '/options/a~1b~0c'],
+      [{type: 'object', fields: {'~1': {type: 'number'}}},
+        {'~1': 'private-value'}, '/options/~01'],
+      [{type: 'object', fields: {'é😀': {type: 'number'}}},
+        {'é😀': 'private-value'}, '/options/é😀'],
+      [{type: 'object', fields: JSON.parse('{"__proto__":{"type":"number"}}')},
+        JSON.parse('{"__proto__":"private-value"}'), '/options/__proto__'],
+      [{type: 'object', fields: {constructor: {type: 'number'}}},
+        {constructor: 'private-value'}, '/options/constructor'],
+    ];
+    for (const [declaration, value, pointer, documentId = 'parameters'] of cases) {
+      let outcome;
+      try {
+        outcome = await client.check('SELECT 1 AS n', {format: 'sql',
+          parameterDeclarations: {options: declaration}, parameters: {options: value}});
+      } catch (cause) {
+        if (cause?.code !== 'InvalidHostCheckOutcome') throw cause;
+      }
+      assert.notEqual(outcome, undefined, '[check-mutation:structured-valid]');
+      assert.equal(outcome.report.verdict, 'invalid');
+      const location = outcome.report.reasons[0].location;
+      assert.equal(location.pointer, pointer);
+      assert.equal(resolveCheckLocation(outcome, location)?.input,
+        getCheckInput(outcome, documentId), '[check-mutation:structured-resolved]');
+      assert.equal(resolveCheckLocation(outcome, {...location, pointer: ''})?.input,
+        getCheckInput(outcome, documentId));
+      assert.equal(resolveCheckLocation(outcome, location,
+        {...getCheckInput(outcome, documentId), value: {options: 'edited'}}), undefined);
+      assert.equal(resolveCheckLocation(JSON.parse(JSON.stringify(outcome)), location), undefined);
+      assert.ok(!JSON.stringify(outcome).includes('private-value'));
+    }
+    for (const partial of [false, true]) {
+      const mutate = edit => outcome => {
+        const report = structuredClone(outcome.report);
+        edit(report);
+        return partial ? {version: outcome.version, reason_schema_cid: outcome.reason_schema_cid,
+          outcome: 'failed', problem: {code: 'check_internal'}, partial_report: report}
+          : {...outcome, report};
+      };
+      const arrayOptions = {format: 'sql',
+        parameterDeclarations: {options: {type: 'array', items: {type: 'number'}}},
+        parameters: {options: ['private-value']}};
+      for (const pointer of ['/options/1', '/options/00', '/options/-',
+        '/options/length', '/options/map', '/options/constructor',
+        '/options/__proto__', '/options/0/x', '/options/9007199254740993']) {
+        const malformed = await contextClient(t, entrance, absentEnvironment,
+          {mutateCheckReply: mutate(report => { report.reasons[0].location.pointer = pointer; })});
+        await refusedLocation(malformed.check('SELECT 1 AS n', arrayOptions));
+      }
+      const objectOptions = {format: 'sql',
+        parameterDeclarations: {options: {type: 'object', fields: {count: {type: 'number'}}}},
+        parameters: {options: {count: 'private-value'}}};
+      for (const pointer of ['/options/missing', '/options/toString',
+        '/options/__proto__', '/options/constructor', '/options/count/length']) {
+        const malformed = await contextClient(t, entrance, absentEnvironment,
+          {mutateCheckReply: mutate(report => { report.reasons[0].location.pointer = pointer; })});
+        await refusedLocation(malformed.check('SELECT 1 AS n', objectOptions));
+      }
+      const missing = await contextClient(t, entrance, absentEnvironment,
+        {mutateCheckReply: mutate(report => {
+          report.requirements[0].location.pointer = '/undeclared';
+        })});
+      await refusedLocation(missing.check('SELECT 1 AS n', {format: 'sql',
+        parameterDeclarations: {options: {type: 'number'}}}));
+    }
+  });
+
+  test(`${entrance}: source byte exhaustion is a limit of the original bound check`, async t => {
+    // Use the existing configurable HTTP ingress budget to reach the parser's
+    // smaller source budget. Default HTTP ingress still refuses oversized wire.
+    const ingress = {maxRequestBytes: 262144};
+    const clients = [
+      await contextClient(t, entrance, absentEnvironment, ingress),
+      await contextClient(t, entrance, sourceEnvironment,
+        {...ingress, aliases: [alias], readOutcome: 'deny'}),
+      await contextClient(t, entrance, sourceEnvironment,
+        {...ingress, aliases: [alias], readOutcome: 'allow', closed: true}),
+    ];
+    // The parser admits 65,536 UTF-8 bytes; the public ingress admits up to
+    // 65,536 UTF-16 code units. These are independent literal boundary cases.
+    const atLimit = `SELECT 1 AS n /*${'é'.repeat(32759)}*/`;
+    const overLimit = [
+      `${atLimit.slice(0, -2)} */`,
+      `SELECT 1 AS n /*${'界'.repeat(21839)}  */`,
+      `SELECT 1 AS n /*${'😀'.repeat(16379)}   */`,
+    ];
+    assert.equal(Buffer.byteLength(atLimit), 65536);
+    for (const text of overLimit) {
+      assert.equal(Buffer.byteLength(text), 65537);
+      assert.ok(text.length <= 65536, 'fixture must pass public ingress');
+    }
+    if (entrance === 'http') {
+      const defaultIngress = await contextClient(t, entrance, absentEnvironment);
+      await assert.rejects(defaultIngress.check(overLimit[0], {format: 'sql'}),
+        {code: 'ClientRequestTooLarge'});
+    }
+    const budget = [{code: 'analysis_budget_exhausted'}];
+    const parameterDeclarations = Object.fromEntries(Array.from(
+      {length: 1100}, (_, index) => [`p${index}`, {type: 'number'}]));
+    for (const format of ['sql', 'aql-text']) {
+      const atBoundary = await clients[0].check(atLimit, {format});
+      assert.equal(atBoundary.report.verdict, 'verified');
+      assert.deepEqual(atBoundary.report.coverage, {limits: [], unresolved: []});
+      for (const text of overLimit) {
+        for (const options of [{}, {parameterDeclarations, parameters: null}]) {
+          let first;
+          for (const client of clients) {
+            const outcome = await client.check(text, {format, ...options});
+            assert.equal(outcome.outcome, 'completed', '[check-mutation:source-byte-outcome]');
+            assert.equal(outcome.report.verdict, 'undetermined', '[check-mutation:source-byte-verdict]');
+            assert.deepEqual(outcome.report.scope, {kind: 'bound_input'});
+            assert.deepEqual(outcome.report.reasons, [], '[check-mutation:source-byte-reasons]');
+            assert.deepEqual(outcome.report.requirements, []);
+            assert.deepEqual(outcome.report.coverage, {limits: budget, unresolved: []},
+              '[check-mutation:source-byte-coverage]');
+            const input = getCheckInput(outcome, 'source');
+            assert.equal(input.text, text);
+            assert.equal(outcome.report.inputs[0].byte_length, 65537);
+            assert.deepEqual(outcome, first ?? outcome, '[check-mutation:source-byte-disclosure]');
+            first ??= outcome;
+            assert.equal(explainCheckReason(budget[0]).hint,
+              'Ask the checking-context owner to review the analysis budget.');
+          }
+        }
+      }
+      const text = overLimit[0];
+      let firstInvalid, firstMissing;
+      for (const client of clients) {
+        // Parameter admission is independent: an exhausted source budget
+        // must retain a proven supplied violation and a known missing value.
+        const invalid = await client.check(text, {format,
+          parameterDeclarations: {minimum: {type: 'number'}},
+          parameters: {minimum: 'private-value'}});
+        assert.equal(invalid.report.verdict, 'invalid');
+        const values = getCheckInput(invalid, 'parameters');
+        assert.deepEqual(invalid.report.reasons, [{code: 'supplied_value_type_mismatch',
+          facts: {parameter: 'minimum', expected_type: 'number', actual_type: 'string'},
+          location: {document_id: 'parameters', revision: values.revision,
+            kind: 'structured', pointer: '/minimum'}}]);
+        assert.deepEqual(invalid.report.coverage, {limits: budget, unresolved: []});
+        assert.ok(!JSON.stringify(invalid).includes('private-value'));
+        assert.deepEqual(invalid, firstInvalid ?? invalid,
+          '[check-mutation:source-byte-disclosure]');
+        firstInvalid ??= invalid;
+        const missing = await client.check(text, {format,
+          parameterDeclarations: {minimum: {type: 'number'}}});
+        assert.equal(missing.report.verdict, 'undetermined');
+        assert.deepEqual(missing.report.reasons, []);
+        assert.equal(missing.report.requirements[0].code, 'parameter_value_required');
+        assert.deepEqual(missing.report.requirements[0].facts,
+          {parameter: 'minimum', expected_type: 'number'});
+        assert.deepEqual(missing.report.coverage, {limits: [
+          {code: 'bound_values_missing'}, ...budget], unresolved: []});
+        assert.deepEqual(missing, firstMissing ?? missing,
+          '[check-mutation:source-byte-disclosure]');
+        firstMissing ??= missing;
+      }
     }
   });
 
@@ -1348,6 +1527,104 @@ for (const entrance of ['local', 'http']) {
         assert.equal(getCheckInput(outcome, 'source').text, text);
       }
     }
+  });
+
+  test(`${entrance}: absent declarations still bind independently supplied input`, async t => {
+    const absent = await contextClient(t, entrance, absentEnvironment);
+    const hidden = [
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'deny'}),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'delegate'}),
+      await contextClient(t, entrance,
+        withPolicy(rightEnvironment, sourceEnvironment.host_policy_profile),
+        {aliases: [rightAlias], readOutcome: 'deny'}),
+    ];
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of ['SELECT id FROM records', 'SELECT 1 AS n']) {
+        const unresolved = text === 'SELECT id FROM records' ? protectedSource : [];
+        for (const [parameters, pointer] of [
+          [{'a/~e\u0301😀': 'private-undeclared-value'}, '/a~1~0e\u0301😀'],
+          [{unexpected: 'private-undeclared-value'}, '/unexpected'],
+          [{'line\r\n~/': 'private-undeclared-value'}, '/line\r\n~0~1'],
+        ]) {
+          const outcome = await absent.check(text, {format, parameters});
+          assert.equal(outcome.outcome, 'completed');
+          assert.equal(outcome.report.verdict, 'invalid', '[check-mutation:absent-binding-verdict]');
+          const original = getCheckInput(outcome, 'parameters');
+          assert.deepEqual(outcome.report.reasons, [{code: 'supplied_value_invalid',
+            location: {document_id: 'parameters', revision: original.revision,
+              kind: 'structured', pointer}}], '[check-mutation:absent-binding-location]');
+          assert.deepEqual(outcome.report.coverage, {limits: [], unresolved});
+          assert.deepEqual(outcome.report.requirements, []);
+          assert.deepEqual(outcome.report.scope, {kind: 'bound_input'});
+          assert.deepEqual(original.value, parameters);
+          assert.equal(getCheckInput(outcome, 'parameter_declarations'), undefined);
+          assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location).input, original);
+          assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location,
+            {...original, revision: 'rev:' + 'f'.repeat(64)}), undefined);
+          assert.equal(resolveCheckLocation(JSON.parse(JSON.stringify(outcome)),
+            outcome.report.reasons[0].location), undefined);
+          assert.equal(explainCheckReason(outcome.report.reasons[0]).kind, 'known');
+          assert.equal(JSON.stringify(outcome).includes('private-undeclared-value'), false);
+          for (const client of hidden) {
+            assert.deepEqual(await client.check(text, {format, parameters}), outcome,
+              '[check-mutation:absent-binding-disclosure]');
+          }
+        }
+        const oversizedKey = await absent.check(text, {format,
+          parameters: {['x'.repeat(4096)]: 'private-undeclared-value'}});
+        assert.equal(oversizedKey.report.verdict, 'invalid');
+        assert.deepEqual(oversizedKey.report.reasons, [{code: 'supplied_value_invalid'}]);
+        assert.deepEqual(oversizedKey.report.coverage, {limits: [], unresolved});
+        // Omission and an empty supplied map bind the empty declaration set;
+        // an authored empty declaration document is a different invalid input.
+        for (const parameters of [undefined, {}]) {
+          const options = {format, ...(parameters === undefined ? {} : {parameters})};
+          const outcome = await absent.check(text, options);
+          assert.equal(outcome.report.verdict, unresolved.length ? 'undetermined' : 'verified');
+          assert.deepEqual(outcome.report.reasons, []);
+          assert.deepEqual(outcome.report.requirements, []);
+          assert.deepEqual(outcome.report.coverage, {limits: [], unresolved});
+          for (const client of hidden) assert.deepEqual(await client.check(text, options), outcome);
+        }
+        const empty = await absent.check(text, {format, parameterDeclarations: {}});
+        assert.equal(empty.report.verdict, 'invalid');
+        const original = getCheckInput(empty, 'parameter_declarations');
+        assert.deepEqual(empty.report.reasons, [{code: 'parameter_declarations_invalid',
+          location: {document_id: 'parameter_declarations', revision: original.revision,
+            kind: 'structured', pointer: ''}}]);
+        for (const client of hidden) {
+          assert.deepEqual(await client.check(text, {format, parameterDeclarations: {}}), empty);
+        }
+      }
+    }
+  });
+
+  test(`${entrance}: structured locations keep original key spellings after admission`, async t => {
+    const client = await contextClient(t, entrance, absentEnvironment);
+    for (const [name, pointer] of [
+      ['a/~e\u0301😀', '/options/a~1~0e\u0301😀'],
+      ['line\r\n~/', '/options/line\r\n~0~1'],
+      ['quote"\\', '/options/quote"\\'],
+    ]) {
+      const parameters = {options: {[name]: 'private-original-value'}};
+      const outcome = await client.check('SELECT id FROM records', {format: 'sql',
+        parameterDeclarations: {options: {type: 'object', fields: {[name]: {type: 'number'}}}},
+        parameters});
+      const original = getCheckInput(outcome, 'parameters');
+      assert.equal(outcome.report.verdict, 'invalid');
+      assert.deepEqual(outcome.report.reasons, [{code: 'supplied_value_type_mismatch',
+        facts: {parameter: 'options', expected_type: 'number', actual_type: 'string'},
+        location: {document_id: 'parameters', revision: original.revision,
+          kind: 'structured', pointer}}], '[check-mutation:original-key-location]');
+      assert.deepEqual(original.value, parameters);
+      assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location).input, original);
+    }
+    const declaration = await client.check('SELECT id FROM records', {format: 'sql',
+      parameterDeclarations: {'e\u0301': {type: 'number'}}});
+    const original = getCheckInput(declaration, 'parameter_declarations');
+    assert.deepEqual(declaration.report.reasons, [{code: 'parameter_declarations_invalid',
+      location: {document_id: 'parameter_declarations', revision: original.revision,
+        kind: 'structured', pointer: '/e\u0301'}}]);
   });
 
   test(`${entrance}: public context references retain policy profiles and visible contracts`, async t => {

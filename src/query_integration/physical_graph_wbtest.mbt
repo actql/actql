@@ -832,6 +832,7 @@ fn captured_graph_fixture(
   local_values_unary_chain? : String? = None,
   local_select_qualified_chain? : Bool = false,
   linear_compute_stages? : Int = 0,
+  preparation_work? : Int = 1000,
   join_steps? : Array[Int] = [0],
   managed_publication? : Bool = false,
   nullable? : Bool = false,
@@ -928,7 +929,7 @@ fn captured_graph_fixture(
     program,
     owners,
     @program_check.unit_count(program) + 100,
-    1000,
+    preparation_work,
   ).unwrap()
   let requirement = @planning.prepare_query_requirement(
     @planning.prepare_query_material(sequence, query_material_limits()).unwrap(),

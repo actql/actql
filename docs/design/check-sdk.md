@@ -682,7 +682,20 @@ The SDK detaches structured caller input synchronously before awaiting credentia
 or transport, and retains immutable input snapshots in a weak association with
 that exact response. `getCheckInput` retrieves that call's snapshot;
 `resolveCheckLocation` uses the same snapshot and checks identity, revision,
-content and byte boundaries. A copied/externally parsed report has no association.
+content and byte boundaries. Structured pointers must resolve to an existing
+node in that detached submitted JSON value. Resolution follows
+[RFC 6901, Section 4](https://www.rfc-editor.org/rfc/rfc6901#section-4): decoded
+object member names must be owned, array indices must be canonical decimal
+indices naming submitted elements, and member spelling is not normalized.
+Root and existing null/false/zero/empty-string nodes are valid; inherited
+properties, array metadata, missing nodes and scalar descendants are not.
+The SDK validates locations in reasons and Requirements before exposing a
+completed or partial report; a nonexistent node refuses with
+`InvalidHostCheckOutcome`. Standalone location resolution returns `undefined`.
+This is lookup in the original input snapshot, not a query/declaration parser
+or a second checker. It changes no wire schema, reason identity or historical
+`actql-diagnostics/0.1` contract and adds no persistence or retrieval API.
+A copied/externally parsed report has no association.
 Unavailable input, another revision or edited text yields no resolved location;
 the reason's safe code/explanation remains usable. The API applies no edits.
 `resolveCheckTextRange` converts a resolved source location to zero-based UTF-16
@@ -703,7 +716,13 @@ The Host adds no document database, persistent input store, history or re-fetch
 API for checking. The existing request envelope/source limit is retained: 65,536
 UTF-16 source code units at request validation and 65,536 original source bytes
 at frontend admission; an input beyond an analysis budget is not an invalidity
-proof. Structured admission keeps its existing bounded JSON/decode/binding
+proof. The parser's source-byte admission limit is reported as
+`analysis_budget_exhausted`, including when declaration admission has already
+exhausted its budget and only independent bounded syntax checking remains.
+Source admission precedes token scanning; a location or syntax violation is not
+invented for input that was not scanned. Independent supplied-value violations
+and known missing bindings remain in the original bound-input report.
+Structured admission keeps its existing bounded JSON/decode/binding
 budgets. Report construction reserves a separate 65,536-byte, 4,096-node budget.
 The submitted `byte_length` is a safe integer measurement, not evidence of
 successful admission or an extra input limit; exhausted inputs still retain

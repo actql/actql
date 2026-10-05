@@ -60,8 +60,13 @@ Double quotes do not quote identifiers: `"id"` is a value, while `` `id` `` is
 a name. The explicit Graph `LABELS` annotation retains its separate historical
 double-quoted annotation profile; accepting double-quoted query literals does
 not expand that profile's escapes or admit raw control characters in it.
-Backtick identifiers currently retain their existing limited escape profile;
-the wider GoogleSQL identifier escape repertoire is a coverage gap.
+Backtick identifiers use the same non-raw escape repertoire as STRING,
+including the `\\377` octal ceiling. They must be nonempty and may contain
+physical newlines and control scalars. Source CR and CRLF decode to LF;
+escaped `\\r` remains CR at decoding. Raw prefixes, triple quotation and
+chunk concatenation do not apply to identifiers. Decoded names still pass
+through ordinary name resolution and the common authored-name contracts;
+quoting does not bypass field-name restrictions or confer authority.
 Comments are line `--` and non-nested block `/* ... */` comments. Query
 parameters use `@name`. Bytes and raw bytes are not yet implemented in this
 profile and are rejected, including mixed STRING/bytes chunks, rather than
