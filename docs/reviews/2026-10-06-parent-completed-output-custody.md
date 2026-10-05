@@ -110,3 +110,11 @@ in `.artifacts/relation-pipeline/1791242443059-74007-0000-parent-control-startup
 
 Actual Native lifecycle/custody acceptance remains pending. No new full Core,
 packed, cross-target, mutation, or performance campaign has been performed.
+
+Latest main `77965b92802dc8c53b1df8c90a28989205644fe4`, including #543, was
+normally merged at `df229465cef2dbedd45aebd8874ce00acf690236`. The same selected
+Node files passed 10/10 on that clean merge (`run-PdswwE`,
+`focused-test-aR9fQS`). The three provider-construction premise source files
+are unchanged from the Native diagnostic's source; other child/runtime changes
+from main are retained and are not retroactively covered by that timed-out run.
+No old recipe or historical source compatibility path was added.
