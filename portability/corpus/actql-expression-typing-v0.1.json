@@ -27,6 +27,9 @@
   "parameters": {
     "p":{"type":"string","default":"not a regex("},
     "items":{"type":"array","items":{"type":"number"}},
+    "nullable_items":{"type":"array","nullable":true,"items":{"type":"number"}},
+    "nullable_elements":{"type":"array","nullable":true,"items":{"type":"number","nullable":true}},
+    "empty_items":{"type":"array","nullable":true,"max_items":0,"items":{"type":"number","nullable":true}},
     "q":{"type":"number","nullable":true},
     "unit":{"type":"string","format":"duration"}
   },
@@ -93,6 +96,28 @@
     {"source":"n IN (1,NULL,$q)","type":"boolean?"},
     {"source":"n NOT IN $items","type":"boolean"},
     {"source":"n IN (NULL)","type":"boolean?"},
+    {"source":"n IN $nullable_items","type":"boolean"},
+    {"source":"n NOT IN $nullable_items","type":"boolean"},
+    {"source":"nn IN $nullable_items","type":"boolean?"},
+    {"source":"nn NOT IN $nullable_items","type":"boolean?"},
+    {"source":"n IN $nullable_elements","type":"boolean?"},
+    {"source":"n NOT IN $nullable_elements","type":"boolean?"},
+    {"source":"NULL IN $empty_items","type":"boolean"},
+    {"source":"NULL NOT IN $empty_items","type":"boolean"},
+    {"source":"nn IN $empty_items","type":"boolean"},
+    {"source":"nn NOT IN $empty_items","type":"boolean"},
+    {"source":{"in":["nn",{"literal":[]}]},"type":"boolean"},
+    {"source":{"not_in":["nn",{"literal":[]}]},"type":"boolean"},
+    {"source":{"in":["CAST(NULL AS number)",{"literal":[]}]},"type":"boolean"},
+    {"source":{"not_in":["CAST(NULL AS number)",{"literal":[]}]},"type":"boolean"},
+    {"source":"NULL IN (1)","type":"boolean?"},
+    {"source":"NULL NOT IN (1)","type":"boolean?"},
+    {"source":"1 IN (1,NULL)","type":"boolean?"},
+    {"source":"1 NOT IN (1,NULL)","type":"boolean?"},
+    {"source":"1 IN (2,NULL)","type":"boolean?"},
+    {"source":"1 NOT IN (2,NULL)","type":"boolean?"},
+    {"source":"1 IN (2)","type":"boolean"},
+    {"source":"1 NOT IN (2)","type":"boolean"},
     {"source":"s LIKE $p","type":"boolean"},
     {"source":"if(b,n,nn)","type":"number?"},
     {"source":"CASE WHEN NULL THEN 1 ELSE 2 END","type":"number"},
@@ -206,6 +231,8 @@
     {"source":"regex_match(s,'a','M')","issue":"InvalidStaticOption"},
     {"source":"vector_score(v,v2,'l2')","issue":"TypeMismatch"},
     {"source":"vector_concat(v,[1,2,3])","issue":"TypeMismatch"},
-    {"source":"n IN (TRUE)","issue":"TypeMismatch"}
+    {"source":"n IN (TRUE)","issue":"TypeMismatch"},
+    {"source":"s IN $empty_items","issue":"TypeMismatch"},
+    {"source":{"in":[{"literal":null},{"literal":[]}]},"issue":"NullTypeUnresolved"}
   ]
 }

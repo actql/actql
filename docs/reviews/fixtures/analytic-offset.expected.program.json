@@ -1,0 +1,131 @@
+{
+  "version": "actql/0.1",
+  "id": "fixture.analytic_offset",
+  "params": {
+    "p": {
+      "type": "number",
+      "nullable": false
+    }
+  },
+  "stages": [
+    {
+      "id": "capture",
+      "inputs": {
+        "remote": {
+          "connector": "crm/main",
+          "resource": "r"
+        }
+      },
+      "steps": [
+        {
+          "from": "remote",
+          "filter": {
+            "gt": [
+              {
+                "field": "id"
+              },
+              {
+                "literal": 0
+              }
+            ]
+          }
+        },
+        {
+          "select": [
+            "amount",
+            "id"
+          ],
+          "as": "captured"
+        }
+      ],
+      "results": {
+        "source": {
+          "from": "captured",
+          "fields": [
+            "amount",
+            "id"
+          ]
+        }
+      }
+    },
+    {
+      "id": "main",
+      "inputs": {
+        "records": {
+          "result": {
+            "stage": "capture",
+            "result": "source"
+          }
+        }
+      },
+      "steps": [
+        {
+          "from": "records",
+          "analytic": {
+            "partition_by": [],
+            "order_by": [
+              {
+                "field": "id",
+                "dir": "asc",
+                "nulls": "first"
+              }
+            ],
+            "functions": {
+              "previous": {
+                "fn": "lag",
+                "expr": {
+                  "field": "amount"
+                },
+                "offset": 2
+              },
+              "next": {
+                "fn": "lead",
+                "expr": {
+                  "field": "amount"
+                },
+                "offset": {
+                  "$param": "p"
+                }
+              }
+            }
+          }
+        },
+        {
+          "select": [
+            "id",
+            "previous",
+            "next"
+          ]
+        },
+        {
+          "sort": [
+            {
+              "field": "id",
+              "dir": "asc",
+              "nulls": "first"
+            }
+          ],
+          "as": "ordered"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "ordered",
+          "fields": [
+            "id",
+            "previous",
+            "next"
+          ]
+        }
+      }
+    }
+  ],
+  "results": {
+    "answer": {
+      "from": {
+        "stage": "main",
+        "result": "rows"
+      }
+    }
+  }
+}
