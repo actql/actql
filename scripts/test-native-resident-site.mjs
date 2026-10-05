@@ -44,6 +44,13 @@ import {createLocalRetainedStore} from '../adapters/store-local/files.mjs';
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const retainedConsumerMode = process.argv.includes('--retained-consumer-only') ||
   process.env.ACTQL_TEST_RESIDENT_RETAINED_CONSUMER_ONLY === '1';
+const retainedCoordinatorReconstruction =
+  process.env.ACTQL_TEST_RESIDENT_RETAINED_COORDINATOR_RECONSTRUCTION === '1';
+const retainedCancelBeforeConsumer =
+  process.env.ACTQL_TEST_RESIDENT_RETAINED_CANCEL_BEFORE_CONSUMER === '1';
+if ((retainedCoordinatorReconstruction || retainedCancelBeforeConsumer) && !retainedConsumerMode) {
+  throw new Error('retained fault selection requires the retained consumer case');
+}
 const sourceMode = process.argv.includes('--source-only') || retainedConsumerMode;
 const cancelMode = process.argv.includes('--cancel-only') ||
   process.env.ACTQL_TEST_RESIDENT_CANCEL_ONLY === '1';
@@ -155,7 +162,8 @@ try {
   const durableObservationMode = process.argv.includes('--observation-replay-only') ||
     process.argv.includes('--redelivery-only') || process.argv.includes('--output-report-only') ||
     cancelMode || retainedConsumerMode;
-  gateway = await startHttpsOutboundSiteGateway({
+  const startGateway = async port => startHttpsOutboundSiteGateway({
+    ...(port === undefined ? {} : {port}),
     key: await readFile(join(root, 'server.key')),
     cert: await readFile(join(root, 'server.crt')),
     ca: await readFile(join(root, 'ca.crt')),
@@ -244,6 +252,7 @@ try {
       },
     idlePollMilliseconds: 200,
   });
+  gateway = await startGateway();
 
   // The Cloud's Result ingress: a direct Transfer destination.
   const transferControl = portable.remoteTransferControl;
@@ -881,10 +890,11 @@ try {
       await settledQuery(producerDispatch, 'retained producer');
       const edge = runHost.prepareRetainedTaskInputEdge(retainedPrepared, retainedCompilation,
         retainedAdmission, retainedDefinition, 1, 0);
-      const producer = runHost.prepareRetainedInputProducer(edge, () => ({
+      const producerCurrent = () => ({
         authority: coordinatorAuthority,
         durableRecordWire: retainedCoordinatorRecords.get(siteControl.identity(producerDispatch)).wire,
-      }));
+      });
+      let producer = runHost.prepareRetainedInputProducer(edge, producerCurrent);
       const current = {
         siteBindingCurrent: (key, generation, bundle) => key === siteKey && generation === 1 &&
           bundle === envelope.runtimeBundleCid && site.child.exitCode === null && site.child.signalCode === null,
@@ -896,17 +906,82 @@ try {
       };
       const limits = {maxChunks: 8, maxManifestBytes: 65536,
         maxReferencedBytes: 1048576n, maxBindingBytes: 1048576};
-      const intent = runHost.prepareRetainedInputIntent(producer, {
+      let intent = runHost.prepareRetainedInputIntent(producer, {
         sourceGrantCid, destinationGrantCid, routeCapabilityCid,
         transferAttempt: 'retained-input-1', transferMaxBytes: 1048576n,
         transferExpiresUnixMs: BigInt(Date.parse(validUntil)),
       });
-      const plan = await within(gateway.retainedPlan({dispatch: producerDispatch,
+      let plan = await within(gateway.retainedPlan({dispatch: producerDispatch,
         intent, current, limits: {maxChunks: limits.maxChunks,
           maxManifestBytes: limits.maxManifestBytes,
           maxReferencedBytes: limits.maxReferencedBytes}}), 'retained input plan');
-      const result = await within(gateway.retainedTransfer({dispatch: producerDispatch, plan}),
+      let result = await within(gateway.retainedTransfer({dispatch: producerDispatch, plan}),
         'physical retained input transfer');
+      if (retainedCoordinatorReconstruction) {
+        assert.equal(gateway.pending(), 0);
+        const origin = gateway.origin;
+        await within(gateway.close(), 'retained Coordinator listener stop');
+        // The SQLite owner remains authoritative. This synchronized snapshot
+        // records its already-admitted common ABI projection for the test's
+        // fresh Coordinator handles; it is not a production recovery ledger.
+        const original = retainedCoordinatorRecords.get(siteControl.identity(producerDispatch));
+        const intentSaved = runHost.retainedInputIntentFacts(intent);
+        const planSaved = runHost.retainedInputPlanFacts(plan);
+        const resultSaved = runHost.retainedInputResultFacts(result);
+        const snapshotPath = join(root, 'retained-coordinator-projection.json');
+        const snapshot = await open(snapshotPath, 'wx', 0o600);
+        try {
+          await snapshot.writeFile(JSON.stringify({durableWire: original.wire, intent: intentSaved}));
+          await snapshot.sync();
+        } finally { await snapshot.close(); }
+        observationStore.close();
+        observationReceiver = undefined;
+        retainedCoordinatorRecords.clear();
+        observationStore = openSqliteCoordinatorDispatchJournal(
+          join(root, 'foundation-coordinator-output'), {coordinatorAuthority});
+        const physicalRecords = observationStore.recoverJournal(
+          siteControl.createCoordinatorJournal(coordinatorAuthority), siteControl);
+        assert.equal(physicalRecords.length, 1);
+        assert.equal(siteControl.identity(physicalRecords[0].request), siteControl.identity(producerDispatch));
+        const saved = JSON.parse(await readFile(snapshotPath, 'utf8'));
+        const durable = coordinator.admitDurableJson(saved.durableWire);
+        assert.equal(coordinator.durableDispatchCid(durable), siteControl.identity(producerDispatch));
+        const record = coordinator.restoreDurable(coordinator.createJournal(coordinatorAuthority), durable);
+        retainedCoordinatorRecords.set(coordinator.durableDispatchCid(durable), {
+          request: coordinator.durableRequest(durable), record, wire: saved.durableWire});
+        observationReceiver = createRemoteSiteCoordinator({control: siteControl,
+          journal: siteControl.createCoordinatorJournal(coordinatorAuthority), store: observationStore,
+          authorization: await allowAllAuthorization(), output: value => gateway.output(value), transferControl});
+        gateway = await startGateway(Number(new URL(origin).port));
+        assert.equal(gateway.origin, origin);
+        // Saved generation is insufficient. A fresh authenticated query to
+        // the still-live original Site proves exact current output custody.
+        const live = await settledQuery(producerDispatch, 'reconstructed retained producer');
+        assert.equal(live.state[3], 1);
+        assert.equal(siteControl.evidenceIdentity(live.evidence),
+          coordinator.acceptedSiteOutput(durable).evidenceCid);
+        producer = runHost.prepareRetainedInputProducer(edge, producerCurrent);
+        intent = runHost.admitRetainedInputIntent(producer, saved.intent);
+        assert.deepEqual(runHost.retainedInputIntentFacts(intent), intentSaved);
+        const planWire = await readFile(join(root,
+          `retained-plan-${planSaved.cid.slice(7)}.json`), 'utf8');
+        const planLimits = {maxChunks: limits.maxChunks, maxManifestBytes: limits.maxManifestBytes,
+          maxReferencedBytes: limits.maxReferencedBytes};
+        assert.throws(() => runHost.admitRetainedInputPlan(intent,
+          {cid: planSaved.cid, wire: planWire}, {...current,
+            siteBindingCurrent: () => false}, planLimits), {code: 'RunHostRetainedInputPlanRejected'});
+        plan = runHost.admitRetainedInputPlan(intent,
+          {cid: planSaved.cid, wire: planWire}, current, planLimits);
+        assert.deepEqual(runHost.retainedInputPlanFacts(plan), planSaved);
+        const resultWire = await readFile(join(root,
+          `retained-transfer-${resultSaved.cid.slice(7)}.json`), 'utf8');
+        result = runHost.admitRetainedInputResult(plan, {cid: resultSaved.cid, wire: resultWire});
+        assert.deepEqual(runHost.retainedInputResultFacts(result), resultSaved);
+        const replay = await within(gateway.retainedTransfer({dispatch: producerDispatch, plan}),
+          'reconstructed exact physical handoff report');
+        assert.deepEqual(runHost.retainedInputResultFacts(replay), resultSaved);
+        assert.equal((await entries()).length, 1, 'reconstruction cannot reacquire Source or start Compute');
+      }
       const receipt = runHost.retainedInputResultFacts(result).receipt;
       const transferCid = runHost.retainedInputPlanFacts(plan).transfer.cid;
       const input = runHost.prepareRetainedTaskInput(producer, receipt, 'direct-destination', {
@@ -935,25 +1010,45 @@ try {
       await ensureOutputReceiver(consumerDispatch);
       const consumerEnvelope = coordinator.pollDispatchMaterialsJson(
         coordinator.admitDispatchJson(issued.wire, issued.cid), consumerBinding, 1048576, materials);
-      await within(gateway.dispatch({dispatch: consumerDispatch, inputBindingBody: consumerBinding,
-        dispatchEnvelope: consumerEnvelope}), 'retained consumer actual holder relay');
-      const terminal = await settledQuery(consumerDispatch, 'retained consumer');
-      assert.equal(siteControl.managedOutputSubjectProjection(terminal.subject)[4], retainedSourceSchemaCid);
-      const output = await planOutput(consumerDispatch, terminal, 'retained-consumer');
-      await within(requestOutput(consumerDispatch, output), 'retained consumer Output');
-      const received = [];
-      const resultCid = transferControl.identity(output.planned.transferRequest);
-      await receiver.consume(resultCid, () => true,
-        (_index, frame) => received.push(Buffer.from(frame)));
-      assert.deepEqual(JSON.parse(Buffer.concat(received).toString('utf8')), retainedSourceRows);
-      assert.equal((await entries()).length, 2);
-      await waitFor(() => reportState().pending === 0, 'retained consumer durable Output ACK');
-      assert.equal(reportState().pending, 0, 'real typed Output ACK must be durably admitted');
-      // Exact repeated delivery observes the original consumer; it must never
-      // create another start claim or reacquire Source.
-      await within(gateway.dispatch({dispatch: consumerDispatch, inputBindingBody: consumerBinding,
-        dispatchEnvelope: consumerEnvelope}), 'retained consumer duplicate');
-      assert.equal((await entries()).length, 2);
+      let resultCid;
+      if (retainedCancelBeforeConsumer) {
+        const cancelled = await within(gateway.cancel({dispatch: consumerDispatch}),
+          'cancel retained consumer before handout');
+        assert.deepEqual(cancelled.state, [5, 0, 2, 0, 0]);
+        const late = await within(gateway.dispatch({dispatch: consumerDispatch,
+          inputBindingBody: consumerBinding, dispatchEnvelope: consumerEnvelope}),
+          'cancelled consumer delayed exact dispatch');
+        assert.deepEqual(late.state, cancelled.state);
+        assert.equal(late.revision, cancelled.revision);
+        for (let retry = 0; retry < 2; retry++) {
+          const repeated = await within(gateway.cancel({dispatch: consumerDispatch}),
+            'same cancelled consumer repeated');
+          assert.deepEqual(repeated.state, cancelled.state);
+          assert.equal(repeated.revision, cancelled.revision);
+        }
+        assert.equal((await entries()).length, 1, 'cancelled consumer must never enter its executor');
+        assert.equal(reportState().reports.length, 0, 'no consumer Output may be fabricated');
+      } else {
+        await within(gateway.dispatch({dispatch: consumerDispatch, inputBindingBody: consumerBinding,
+          dispatchEnvelope: consumerEnvelope}), 'retained consumer actual holder relay');
+        const terminal = await settledQuery(consumerDispatch, 'retained consumer');
+        assert.equal(siteControl.managedOutputSubjectProjection(terminal.subject)[4], retainedSourceSchemaCid);
+        const output = await planOutput(consumerDispatch, terminal, 'retained-consumer');
+        await within(requestOutput(consumerDispatch, output), 'retained consumer Output');
+        const received = [];
+        resultCid = transferControl.identity(output.planned.transferRequest);
+        await receiver.consume(resultCid, () => true,
+          (_index, frame) => received.push(Buffer.from(frame)));
+        assert.deepEqual(JSON.parse(Buffer.concat(received).toString('utf8')), retainedSourceRows);
+        assert.equal((await entries()).length, 2);
+        await waitFor(() => reportState().pending === 0, 'retained consumer durable Output ACK');
+        assert.equal(reportState().pending, 0, 'real typed Output ACK must be durably admitted');
+        // Exact repeated delivery observes the original consumer; it must never
+        // create another start claim or reacquire Source.
+        await within(gateway.dispatch({dispatch: consumerDispatch, inputBindingBody: consumerBinding,
+          dispatchEnvelope: consumerEnvelope}), 'retained consumer duplicate');
+        assert.equal((await entries()).length, 2);
+      }
       await within(gateway.release({dispatch: consumerDispatch}), 'retained consumer release');
       await within(gateway.release({dispatch: producerDispatch}), 'retained producer release');
       await waitFor(() => site.lines.some(line => line.kind === 'holder-released'), 'both task physical release');
@@ -970,11 +1065,13 @@ try {
       }
       assert.equal(reservedPayloadBytes(), 0);
       assert.equal(pendingIntents().length, 0);
-      assert.equal((await entries()).length, 2);
-      const reread = [];
-      await receiver.consume(resultCid, () => true,
-        (_index, frame) => reread.push(Buffer.from(frame)));
-      assert.deepEqual(JSON.parse(Buffer.concat(reread).toString('utf8')), retainedSourceRows);
+      assert.equal((await entries()).length, retainedCancelBeforeConsumer ? 1 : 2);
+      if (resultCid !== undefined) {
+        const reread = [];
+        await receiver.consume(resultCid, () => true,
+          (_index, frame) => reread.push(Buffer.from(frame)));
+        assert.deepEqual(JSON.parse(Buffer.concat(reread).toString('utf8')), retainedSourceRows);
+      }
       site.child.kill('SIGTERM');
       await within(site.exited, 'retained consumer control shutdown');
       const database = new DatabaseSync(journalPath, {readOnly: true});
@@ -988,10 +1085,15 @@ try {
       console.log(JSON.stringify({kind: 'native-retained-consumer-verified',
         runDefinitionCid: definition.identity, producerDispatchCid: siteControl.identity(producerDispatch),
         consumerDispatchCid: issued.cid, checkedTasks: 2, sourceAcquisitions: 1,
-        producerEntries: 1, consumerEntries: 1, rows: retainedSourceRows,
-        typedOutputAck: true, formalRelease: true, reservedPayloadBytes: 0,
+        producerEntries: 1, consumerEntries: retainedCancelBeforeConsumer ? 0 : 1,
+        rows: retainedCancelBeforeConsumer ? [] : retainedSourceRows,
+        typedOutputAck: !retainedCancelBeforeConsumer, formalRelease: true, reservedPayloadBytes: 0,
         pendingIntents: 0, siteCapacity: capacity,
-        receiverHoldingReclaimed: true, resultReread: true, publicCloudAcceptance: false}));
+        coordinatorReconstructed: retainedCoordinatorReconstruction,
+        producerHolderRecreated: false,
+        cancelledBeforeConsumer: retainedCancelBeforeConsumer,
+        receiverHoldingReclaimed: true, resultReread: !retainedCancelBeforeConsumer,
+        publicCloudAcceptance: false}));
     } else {
     // Both refusals must precede holder creation. A nonexistent physical
     // database makes an accidental acquisition observable as a different
