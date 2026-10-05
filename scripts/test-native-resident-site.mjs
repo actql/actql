@@ -9,7 +9,7 @@ import {execFileSync, spawn} from 'node:child_process';
 import {createHash, generateKeyPairSync, X509Certificate} from 'node:crypto';
 import {once} from 'node:events';
 import {request as httpsRequest} from 'node:https';
-import {chmod, mkdir, mkdtemp, readdir, readFile, rm, rmdir, stat, writeFile} from
+import {chmod, mkdir, mkdtemp, open, readdir, readFile, rm, rmdir, stat, writeFile} from
   'node:fs/promises';
 import {existsSync} from 'node:fs';
 import {createServer} from 'node:net';
@@ -18,7 +18,8 @@ import {DatabaseSync} from 'node:sqlite';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {createRequire} from 'node:module';
 import {residentSourceEnvironment, sourceProgram, sourceRows,
-  sourceRef, sourceContractCid} from './fixtures/resident-source.mjs';
+  sourceRef, sourceContractCid, retainedSourceProgram, retainedSourceRows,
+  retainedSourceSchemaCid} from './fixtures/resident-source.mjs';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
 import {installNodeClientProgramPreparation} from
   '../adapters/host-node/client-program-preparation.mjs';
@@ -41,7 +42,9 @@ import {openSqliteTransferJournal} from
 import {createLocalRetainedStore} from '../adapters/store-local/files.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
-const sourceMode = process.argv.includes('--source-only');
+const retainedConsumerMode = process.argv.includes('--retained-consumer-only') ||
+  process.env.ACTQL_TEST_RESIDENT_RETAINED_CONSUMER_ONLY === '1';
+const sourceMode = process.argv.includes('--source-only') || retainedConsumerMode;
 const cancelMode = process.argv.includes('--cancel-only') ||
   process.env.ACTQL_TEST_RESIDENT_CANCEL_ONLY === '1';
 const releaseMaintenanceMode = process.argv.includes('--release-maintenance-only') ||
@@ -92,17 +95,22 @@ let ackLossProxy;
 let crashOutputReceiver;
 const observationBodies = [];
 const observationFailures = [];
+// A test projection through the existing durable Coordinator owner, using
+// only real reports after the SQLite receiver has confirmed their custody.
+// It is not another production ledger or independent execution authority.
+const retainedCoordinatorRecords = new Map();
 const running = new Set();
 async function runAcceptance() {
 try {
   // Build the resident Site and the portable owners the test drives.
-  execFileSync(moon, ['build', '--target', 'native',
+  execFileSync(moon, ['build', '--target', 'native', '--strip',
     'src/cmd/native_remote_resident_site', 'src/cmd/native_runtime_bundle'],
   {cwd: repository, stdio: 'inherit'});
   execFileSync(moon, ['build', '--target', 'js', '--release',
     'src/connectors_builtin_node'], {cwd: repository, stdio: 'inherit'});
   execFileSync(process.execPath, ['scripts/build-runtime-packages.mjs',
-    'coordinator-core', 'run-host-core'], {cwd: repository, stdio: 'inherit'});
+    'coordinator-core', 'run-host-core', ...(retainedConsumerMode ? ['transfer-core'] : [])],
+  {cwd: repository, stdio: 'inherit'});
   const executable = join(repository, '_build/native/debug/build/cmd/' +
     'native_remote_resident_site/native_remote_resident_site.exe');
   const bundleTool = join(repository, '_build/native/debug/build/cmd/' +
@@ -145,7 +153,8 @@ try {
   await chmod(tokenFile, 0o600);
   const siteKey = 'resident-site';
   const durableObservationMode = process.argv.includes('--observation-replay-only') ||
-    process.argv.includes('--redelivery-only') || process.argv.includes('--output-report-only') || cancelMode;
+    process.argv.includes('--redelivery-only') || process.argv.includes('--output-report-only') ||
+    cancelMode || retainedConsumerMode;
   gateway = await startHttpsOutboundSiteGateway({
     key: await readFile(join(root, 'server.key')),
     cert: await readFile(join(root, 'server.crt')),
@@ -155,8 +164,37 @@ try {
       {siteKey, siteGeneration: 1},
     ]]),
     control: siteControl,
+    ...(retainedConsumerMode ? {retainedInput: runHost,
+      receiveRetainedInput: async value => {
+        const file = await open(join(root,
+          `${value.operation}-${value.saved.cid.slice(7)}.json`), 'w', 0o600);
+        try {
+          await file.writeFile(value.saved.wire);
+          await file.sync();
+        } finally { await file.close(); }
+      }} : {}),
     receiveObservation: async value => {
         try {
+          const hint = JSON.parse(value.body);
+          if (retainedConsumerMode &&
+              ['actql-remote-retained-input-plan/0.1', 'actql-remote-retained-input-result/0.1']
+                .includes(hint.version)) {
+            // A queued duplicate can arrive after its transport waiter has
+            // settled. Confirm the exact admitted report custody and current
+            // authenticated Site; never ACK an unadmitted report here.
+            const operation = hint.version === 'actql-remote-retained-input-plan/0.1'
+              ? 'retained-plan' : 'retained-transfer';
+            const saved = await readFile(join(root,
+              `${operation}-${createHash('sha256').update(value.body).digest('hex')}.json`), 'utf8');
+            assert.equal(saved, value.body);
+            const original = retainedCoordinatorRecords.get(hint.dispatch_request_cid);
+            assert.ok(original);
+            const scope = siteControl.journalKey(siteControl.admitJson(
+              coordinator.dispatchJson(original.request), hint.dispatch_request_cid));
+            assert.equal(scope[1], value.binding.siteKey);
+            assert.equal(Number(scope[2]), value.binding.siteGeneration);
+            return Object.freeze({});
+          }
           // Output plans are a request/response waiter, not an execution
           // observation. The Coordinator owner admits the resulting report
           // below, after the plan has been used to build its exact Output
@@ -178,6 +216,21 @@ try {
             await crash(value);
           }
           const receipt = await observationReceiver.receiveObservation(value);
+          if (retainedConsumerMode) {
+            const current = retainedCoordinatorRecords.get(hint.dispatch_request_cid);
+            if (current !== undefined &&
+                ['actql-remote-dispatch-status/0.1', 'actql-remote-dispatch-response/0.1']
+                  .includes(hint.version)) {
+              const response = coordinator.admitResponseJson(value.body, current.request,
+                hint.version === 'actql-remote-dispatch-status/0.1');
+              const transition = coordinator.prepareResponseObservation(current.record, response);
+              const next = coordinator.responseDurableJson(coordinator.admitDurableJson(current.wire),
+                transition, response);
+              coordinator.admitDurableJson(next);
+              coordinator.commitTransition(transition);
+              current.wire = next;
+            }
+          }
           observationBodies.push(value.body);
           return receipt;
         } catch (error) {
@@ -274,7 +327,7 @@ try {
   await writeFile(join(engineRoot, 'fragment.json'), fragment);
 
   // The issuing side (the Cloud's role) prepares and authorizes the Run.
-  const programText = sourceMode ? sourceProgram : await readFile(join(repository,
+  const programText = retainedConsumerMode ? retainedSourceProgram : sourceMode ? sourceProgram : await readFile(join(repository,
     'packages/sdk/fixtures/values.json'), 'utf8');
   const environmentWire = sourceMode ? (await residentSourceEnvironment(repository)).wire
     : (await readFile(join(repository,
@@ -350,7 +403,11 @@ try {
   const operationCapability = physicalCid('resident-operation-capability');
   const issuerCapability = physicalCid('resident-issuer-capability');
   const executionBytes = sourceMode ? 134217728n : 1048576n;
-  const budget = siteControl.prepareBudget({retainedBytes: 1048576n,
+  // This profile retains the bounded Transfer decoder and the checked
+  // consumer together. Its declared reservation is below the unchanged Site
+  // ceiling; using the one-task 1 MiB allowance would reject before start.
+  const retainedBytes = retainedConsumerMode ? 16777216n : 1048576n;
+  const budget = siteControl.prepareBudget({retainedBytes,
     executionBytes});
   const bindingBody = sourceMode ? runHost.taskInputBinding(retainedPrepared, 0) : '{}';
   const binding = siteControl.prepareInputBinding(bindingBody);
@@ -388,6 +445,13 @@ try {
     observationStore.accept(siteControl.prepareCoordinatorIntent(
       siteControl.createCoordinatorJournal(coordinatorAuthority), dispatch),
     dispatch, siteControl);
+    if (retainedConsumerMode) {
+      const request = coordinator.admitDispatchJson(siteControl.requestJson(dispatch), siteControl.identity(dispatch));
+      const admission = coordinator.prepareIntent(coordinator.createJournal(coordinatorAuthority), request);
+      const wire = coordinator.admissionDurableJson(admission);
+      retainedCoordinatorRecords.set(siteControl.identity(dispatch), {
+        request, wire, record: coordinator.commitIntent(admission)});
+    }
     observationReceiver = createRemoteSiteCoordinator({
       control: siteControl,
       journal: siteControl.createCoordinatorJournal(coordinatorAuthority),
@@ -470,7 +534,7 @@ try {
     '--strategy-revision', 'strategy/1',
     '--operation-capability-cid', operationCapability,
     '--issuer-capability-cid', issuerCapability,
-    '--budget-retained-bytes', '1048576', '--budget-execution-bytes', String(executionBytes),
+    '--budget-retained-bytes', String(retainedBytes), '--budget-execution-bytes', String(executionBytes),
     '--engine-root', engineRoot, '--executor-entry-log', entryLog,
     '--transfer-cert', join(root, 'transfer.crt'),
     '--transfer-key', join(root, 'transfer.key'),
@@ -796,6 +860,139 @@ try {
       for (const [flag, value] of Object.entries(changes)) args[args.indexOf(flag) + 1] = value;
       return args;
     };
+    if (retainedConsumerMode) {
+      assert.deepEqual(runHost.taskExecutionShape(retainedPrepared, retainedCompilation),
+        {taskCount: 2, acquisitionCount: 1});
+      const sourceGrantCid = physicalCid('retained-source-grant');
+      const destinationGrantCid = physicalCid('retained-destination-grant');
+      const routeCapabilityCid = physicalCid('retained-route');
+      const retainedRoot = join(root, 'retained-input');
+      await mkdir(retainedRoot, {mode: 0o700});
+      const site = startSite([...extra, '--retained-input-root', retainedRoot,
+        '--retained-source-grant-cid', sourceGrantCid,
+        '--retained-destination-grant-cid', destinationGrantCid,
+        '--retained-route-capability-cid', routeCapabilityCid,
+        '--retained-consumer-engine-bytes', '67108864']);
+      currentSite = site;
+      const producerDispatch = dispatchFor('retained-producer', 1);
+      await ensureOutputReceiver(producerDispatch);
+      await within(gateway.dispatch({dispatch: producerDispatch, inputBindingBody: bindingBody,
+        dispatchEnvelope: materialsEnvelope(producerDispatch)}), 'retained producer');
+      await settledQuery(producerDispatch, 'retained producer');
+      const edge = runHost.prepareRetainedTaskInputEdge(retainedPrepared, retainedCompilation,
+        retainedAdmission, retainedDefinition, 1, 0);
+      const producer = runHost.prepareRetainedInputProducer(edge, () => ({
+        authority: coordinatorAuthority,
+        durableRecordWire: retainedCoordinatorRecords.get(siteControl.identity(producerDispatch)).wire,
+      }));
+      const current = {
+        siteBindingCurrent: (key, generation, bundle) => key === siteKey && generation === 1 &&
+          bundle === envelope.runtimeBundleCid && site.child.exitCode === null && site.child.signalCode === null,
+        authority: () => coordinatorAuthority, nowUnixMs: () => BigInt(Date.now()),
+        authorized: (dispatchCid, wire) => dispatchCid === siteControl.identity(producerDispatch) &&
+          JSON.parse(wire).source_grant_cid === sourceGrantCid &&
+          JSON.parse(wire).destination_grant_cid === destinationGrantCid &&
+          JSON.parse(wire).route_capability_cid === routeCapabilityCid,
+      };
+      const limits = {maxChunks: 8, maxManifestBytes: 65536,
+        maxReferencedBytes: 1048576n, maxBindingBytes: 1048576};
+      const intent = runHost.prepareRetainedInputIntent(producer, {
+        sourceGrantCid, destinationGrantCid, routeCapabilityCid,
+        transferAttempt: 'retained-input-1', transferMaxBytes: 1048576n,
+        transferExpiresUnixMs: BigInt(Date.parse(validUntil)),
+      });
+      const plan = await within(gateway.retainedPlan({dispatch: producerDispatch,
+        intent, current, limits: {maxChunks: limits.maxChunks,
+          maxManifestBytes: limits.maxManifestBytes,
+          maxReferencedBytes: limits.maxReferencedBytes}}), 'retained input plan');
+      const result = await within(gateway.retainedTransfer({dispatch: producerDispatch, plan}),
+        'physical retained input transfer');
+      const receipt = runHost.retainedInputResultFacts(result).receipt;
+      const transferCid = runHost.retainedInputPlanFacts(plan).transfer.cid;
+      const input = runHost.prepareRetainedTaskInput(producer, receipt, 'direct-destination', {
+        ...current,
+        readTransfer: () => {
+          const database = new DatabaseSync(join(root, 'site-transfer.sqlite3'), {readOnly: true});
+          try {
+            const rows = database.prepare('SELECT CAST(body AS TEXT) AS body FROM actql_records WHERE namespace = ?')
+              .all('remote_transfer');
+            const row = rows.find(row => JSON.parse(row.body).request_cid === transferCid);
+            assert.ok(row, 'current actual Native receiver record must exist');
+            return row.body;
+          } finally { database.close(); }
+        },
+      }, limits);
+      const consumerBinding = runHost.retainedTaskInputFacts(input).wire;
+      const issued = runHost.issueRetainedTaskDispatch(retainedPrepared, retainedCompilation,
+        retainedAdmission, retainedDefinition,
+        runHost.prepareTaskRequest(retainedPrepared, retainedCompilation, coordinatorAuthority, 'retained-request'),
+        1, {taskAttempt: 1, dispatchId: 'retained-consumer', siteKey, siteGeneration: 1,
+          runtimeBundleCid: envelope.runtimeBundleCid, connectorRegistration: 'local',
+          connectorRevision: 'local/1', strategyRevision: 'strategy/1',
+          obligationsCid: physicalCid('resident-obligations'), budgetCid: siteControl.budgetIdentity(budget),
+          evidenceIssuerCapabilityCid: issuerCapability, grantCid: operationCapability}, input);
+      const consumerDispatch = siteControl.admitJson(issued.wire, issued.cid);
+      await ensureOutputReceiver(consumerDispatch);
+      const consumerEnvelope = coordinator.pollDispatchMaterialsJson(
+        coordinator.admitDispatchJson(issued.wire, issued.cid), consumerBinding, 1048576, materials);
+      await within(gateway.dispatch({dispatch: consumerDispatch, inputBindingBody: consumerBinding,
+        dispatchEnvelope: consumerEnvelope}), 'retained consumer actual holder relay');
+      const terminal = await settledQuery(consumerDispatch, 'retained consumer');
+      assert.equal(siteControl.managedOutputSubjectProjection(terminal.subject)[4], retainedSourceSchemaCid);
+      const output = await planOutput(consumerDispatch, terminal, 'retained-consumer');
+      await within(requestOutput(consumerDispatch, output), 'retained consumer Output');
+      const received = [];
+      const resultCid = transferControl.identity(output.planned.transferRequest);
+      await receiver.consume(resultCid, () => true,
+        (_index, frame) => received.push(Buffer.from(frame)));
+      assert.deepEqual(JSON.parse(Buffer.concat(received).toString('utf8')), retainedSourceRows);
+      assert.equal((await entries()).length, 2);
+      await waitFor(() => reportState().pending === 0, 'retained consumer durable Output ACK');
+      assert.equal(reportState().pending, 0, 'real typed Output ACK must be durably admitted');
+      // Exact repeated delivery observes the original consumer; it must never
+      // create another start claim or reacquire Source.
+      await within(gateway.dispatch({dispatch: consumerDispatch, inputBindingBody: consumerBinding,
+        dispatchEnvelope: consumerEnvelope}), 'retained consumer duplicate');
+      assert.equal((await entries()).length, 2);
+      await within(gateway.release({dispatch: consumerDispatch}), 'retained consumer release');
+      await within(gateway.release({dispatch: producerDispatch}), 'retained producer release');
+      await waitFor(() => site.lines.some(line => line.kind === 'holder-released'), 'both task physical release');
+      await waitFor(() => site.lines.some(line => line.kind === 'retained-holder-settled'),
+        'both task Site reservations settled');
+      const capacity = site.lines.find(line => line.kind === 'retained-holder-settled');
+      for (const name of ['active_operations', 'active_transfers', 'holdings',
+        'cleanup_responsibilities', 'held_bytes', 'reserved_retention_bytes',
+        'reserved_execution_bytes']) assert.equal(capacity[name], '0', name);
+      assert.deepEqual(await readdir(retainedRoot), [], 'receiver holding physically reclaimed');
+      for (const dispatch of [producerDispatch, consumerDispatch]) {
+        const released = await within(gateway.query({dispatch}), 'exact task released');
+        assert.equal(released.state[2], 2);
+      }
+      assert.equal(reservedPayloadBytes(), 0);
+      assert.equal(pendingIntents().length, 0);
+      assert.equal((await entries()).length, 2);
+      const reread = [];
+      await receiver.consume(resultCid, () => true,
+        (_index, frame) => reread.push(Buffer.from(frame)));
+      assert.deepEqual(JSON.parse(Buffer.concat(reread).toString('utf8')), retainedSourceRows);
+      site.child.kill('SIGTERM');
+      await within(site.exited, 'retained consumer control shutdown');
+      const database = new DatabaseSync(journalPath, {readOnly: true});
+      try {
+        const managed = database.prepare('SELECT CAST(body AS TEXT) AS body FROM actql_records WHERE namespace = ?')
+          .all('site_managed_observation').map(row => JSON.parse(row.body));
+        const sourceProofs = managed.filter(row => row.source_observation_json !== undefined);
+        assert.equal(sourceProofs.length, 1, 'Source acquisition observation exactly once');
+        assert.equal(JSON.parse(sourceProofs[0].source_observation_json).run_definition_cid, definition.identity);
+      } finally { database.close(); }
+      console.log(JSON.stringify({kind: 'native-retained-consumer-verified',
+        runDefinitionCid: definition.identity, producerDispatchCid: siteControl.identity(producerDispatch),
+        consumerDispatchCid: issued.cid, checkedTasks: 2, sourceAcquisitions: 1,
+        producerEntries: 1, consumerEntries: 1, rows: retainedSourceRows,
+        typedOutputAck: true, formalRelease: true, reservedPayloadBytes: 0,
+        pendingIntents: 0, siteCapacity: capacity,
+        receiverHoldingReclaimed: true, resultReread: true, publicCloudAcceptance: false}));
+    } else {
     // Both refusals must precede holder creation. A nonexistent physical
     // database makes an accidental acquisition observable as a different
     // failure, rather than silently reading the permitted test database.
@@ -922,6 +1119,7 @@ try {
       cleanupPendingRecovered: true, reservedPayloadBytes: 0, pendingIntents: 0}));
     failing.child.kill('SIGTERM');
     await failing.exited;
+    }
   } else if (process.argv.includes('--release-recovery-only') || releaseMaintenanceMode) {
     // The same physical Site and journals must discharge release after a
     // bounded failure, a lost control reply, and loss of the live holder.
@@ -2647,7 +2845,13 @@ try {
     console.error('Coordinator observation failures:', observationFailures);
   }
   if (currentSite !== undefined) {
-    console.error('resident Site output:', JSON.stringify(currentSite.lines));
+    if (retainedConsumerMode) {
+      await writeFile(join(root, 'resident-failure-lines.json'), JSON.stringify(currentSite.lines),
+        {mode: 0o600});
+    }
+    console.error('resident Site output:', JSON.stringify(retainedConsumerMode
+      ? currentSite.lines.filter(line => line.kind !== 'accepted').slice(-30)
+      : currentSite.lines));
     console.error('resident Site stderr:', currentSite.stderr());
   }
   throw error;

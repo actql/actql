@@ -143,6 +143,103 @@ function postWithLostAck(origin, path, material, body) {
   });
 }
 
+test('retained-input transport requires every admission and custody hook', async () => {
+  const names = ['retainedInputIntentFacts', 'retainedInputPlanEnvelope',
+    'admitRetainedInputPlan', 'retainedInputPlanFacts',
+    'retainedInputTransferEnvelope', 'admitRetainedInputResult'];
+  const owner = Object.fromEntries(names.map(name => [name, () => {}]));
+  const options = {key: Buffer.from('unused'), cert: Buffer.from('unused'),
+    ca: Buffer.from('unused'), bearerAuthorities: new Map([
+      [physicalCid('test-token').slice(7), {siteKey: 'site-a', siteGeneration: 1}]]),
+    control, retainedInput: owner, receiveRetainedInput: async () => {}};
+  for (const name of names) {
+    const incomplete = {...owner};
+    delete incomplete[name];
+    await assert.rejects(startHttpsOutboundSiteGateway({...options, retainedInput: incomplete}),
+      {code: 'InvalidOutboundSiteGatewayConfiguration'});
+  }
+  await assert.rejects(startHttpsOutboundSiteGateway({...options, receiveRetainedInput: undefined}),
+    {code: 'InvalidOutboundSiteGatewayConfiguration'});
+});
+
+test('retained-input transport keeps its obligation across stale status and custody failure',
+  {timeout: 30_000}, async t => {
+    await mkdir(scratch, {recursive: true});
+    const root = await mkdtemp(join(scratch, 'outbound-retained-custody-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const material = await certificates(root);
+    const request = dispatch({dispatchId: 'retained-custody'});
+    const identity = control.identity(request);
+    // Transport fault isolation: this injected admission port is deliberately
+    // not protocol/Native execution evidence. The actual owner and Native
+    // process are exercised by test-native-resident-site's retained case.
+    const intent = Object.freeze({wire: 'intent'});
+    const envelope = '{"test":"retained-plan-envelope"}';
+    const report = '{"test":"retained-plan-report"}';
+    const admitted = Object.freeze({plan: 'admitted'});
+    const retainedInput = {
+      retainedInputIntentFacts: () => ({wire: JSON.stringify({dispatch_request_cid: identity})}),
+      retainedInputPlanEnvelope: () => envelope,
+      admitRetainedInputPlan: (_intent, saved) => {
+        assert.equal(saved.wire, report);
+        assert.equal(saved.cid, physicalCid(report));
+        return admitted;
+      },
+      retainedInputPlanFacts: () => ({wire: JSON.stringify({dispatch_request_cid: identity})}),
+      retainedInputTransferEnvelope: () => { throw new Error('unused'); },
+      admitRetainedInputResult: () => { throw new Error('unused'); },
+    };
+    let custodyCalls = 0;
+    let ordinaryObservations = 0;
+    const gateway = await startHttpsOutboundSiteGateway({
+      key: material.serverKey, cert: material.serverCertificate, ca: material.ca,
+      siteAuthorities: new Map([[material.siteFingerprint,
+        {siteKey: 'site-a', siteGeneration: 1}]]), control, retainedInput,
+      receiveRetainedInput: async value => {
+        assert.equal(value.admitted, admitted);
+        assert.equal(value.operation, 'retained-plan');
+        if (++custodyCalls === 1) throw new Error('custody unconfirmed');
+      },
+      receiveObservation: async value => {
+        control.admitResponseJson(value.body, request, false);
+        ordinaryObservations++;
+        return Object.freeze({});
+      },
+    });
+    t.after(() => gateway.close());
+    const controller = new AbortController();
+    t.after(() => controller.abort());
+    const planned = gateway.retainedPlan({dispatch: request, intent,
+      current: {}, limits: {}, signal: controller.signal});
+    planned.catch(() => {});
+    const path = '/v1/sites/site-a/generations/1/outbound';
+    const tls = {ca: material.ca, cert: material.siteCertificate, key: material.siteKey};
+    const site = runtime.siteControl.create({key: 'site-a', generation: 1,
+      runtimeRevision: cid('a'), maxConcurrentOperations: 4, maxConcurrentTransfers: 4,
+      maxRetainedBytes: 1_048_576n, maxExecutionBytes: 1_048_576n});
+    const journal = control.createJournal(site);
+    const siteStore = openSqliteDispatchJournal(join(root, 'site'), {
+      siteKey: 'site-a', siteGeneration: 1, runtimeRevision: cid('a'),
+    });
+    t.after(() => siteStore.close());
+    const accepted = siteStore.accept(control.prepareAdmission(journal, request), request, control);
+    const stale = control.replyJson(accepted);
+    assert.equal((await post(gateway.origin, `${path}/observations`, tls, stale)).status, 200);
+    assert.equal(custodyCalls, 0);
+    assert.equal(gateway.pending(), 1);
+    assert.equal((await post(gateway.origin, `${path}/poll`, tls)).body, envelope);
+    assert.equal((await post(gateway.origin, `${path}/observations`, tls, stale)).status, 200);
+    assert.equal(ordinaryObservations, 2);
+    assert.equal(gateway.pending(), 1);
+    assert.equal((await post(gateway.origin, `${path}/observations`, tls, report)).status, 503);
+    assert.equal(gateway.pending(), 1);
+    assert.equal((await post(gateway.origin, `${path}/poll`, tls)).body, envelope);
+    assert.equal((await post(gateway.origin, `${path}/observations`, tls, report)).status, 200);
+    assert.equal(await planned, admitted);
+    assert.equal(custodyCalls, 2);
+    assert.equal(gateway.pending(), 0);
+  });
+
 test('durable observation replay survives lost ACK and restart without a pending dispatch', {timeout: 15_000}, async t => {
   await mkdir(scratch, {recursive: true});
   const root = await mkdtemp(join(scratch, 'outbound-replay-'));
