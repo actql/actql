@@ -82,6 +82,29 @@ functions, casts and the `OVER` subset follow the adopted profile. New query
 overloads and numeric domains are rejected before a Program is issued.
 Expression text is never concatenated and reparsed with the legacy dialect.
 
+`IFNULL(expr, null_result)` has exactly two arguments and lowers to the common
+two-argument `coalesce`. Only a NULL first value selects the fallback; a
+non-NULL first value leaves the fallback unevaluated. Both operands still
+undergo the existing static name, arity and type checks, including skipped
+operands. This adopts [GoogleSQL's IFNULL conditional semantics](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/conditional_expressions#ifnull)
+within the common checker's supported type signatures; it does not add
+GoogleSQL's wider implicit-coercion or type families. Use explicit supported
+casts where required. Result type and nullability come from common `coalesce`
+typing, including on empty input. The Frontend does not expand the first
+operand or install its own conditional evaluator.
+
+In the implemented inline `OVER` profile, numeric `ROWS BETWEEN` boundaries
+accept an integer literal or a whole named parameter, for example
+`ROWS BETWEEN @before PRECEDING AND @after FOLLOWING`. Direction remains
+syntax; the parameter is lowered to the common `preceding`/`following`
+Parameter slot. Declarations and bound values use ordinary Program checking,
+including safe-integer and interval-order validation; no default replaces a
+missing or invalid binding. This connection retains the current common
+contract's positive distances. GoogleSQL also permits zero numeric boundaries;
+that difference remains a common-contract coverage gap, not a restriction of
+GoogleSQL. Row-dependent and arithmetic boundary expressions, RANGE and GROUPS
+are not implemented in this profile.
+
 ## Scope and lowering
 
 `WHERE` and siblings in one SELECT list see the input snapshot, not aliases

@@ -254,3 +254,42 @@ test "cancellation keeps exact Run authority and terminal outcome" {
     Err(ForeignRunDefinition),
   )
 }
+
+///|
+test "terminal cancellation requires each independent stop fact" {
+  let confirmed : ClientRunCancellationFacts = {
+    cancellation_requested: true,
+    model_fence_required: true,
+    model_fenced: true,
+    unresolved_model_calls: false,
+    unresolved_effects: false,
+    reconciliation_required: false,
+    publication_committed: false,
+    physical_stop_confirmed: true,
+    cleanup_confirmed: true,
+    revision_unchanged: true,
+  }
+  assert_true(confirm_client_run_cancellation(confirmed))
+  for
+    missing in [
+      { ..confirmed, cancellation_requested: false, },
+      { ..confirmed, model_fenced: false, },
+      { ..confirmed, unresolved_model_calls: true, },
+      { ..confirmed, unresolved_effects: true, },
+      { ..confirmed, reconciliation_required: true, },
+      { ..confirmed, publication_committed: true, },
+      { ..confirmed, physical_stop_confirmed: false, },
+      { ..confirmed, cleanup_confirmed: false, },
+      { ..confirmed, revision_unchanged: false, },
+    ] {
+    assert_false(confirm_client_run_cancellation(missing))
+  }
+  // A Run without Model work requires no Model-specific fence.
+  assert_true(
+    confirm_client_run_cancellation({
+      ..confirmed,
+      model_fence_required: false,
+      model_fenced: false,
+    }),
+  )
+}
