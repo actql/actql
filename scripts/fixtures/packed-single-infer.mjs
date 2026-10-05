@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import {scopedModelHolding} from './model-custody-fixture.mjs';
 import {providerBindingOriginals} from './model-provider-binding-fixture.mjs';
 import {execFileSync} from 'node:child_process';
-import {createDecipheriv, createHash, generateKeyPairSync} from 'node:crypto';
-import {appendFileSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
+import {createDecipheriv, createHash, generateKeyPairSync, sign} from 'node:crypto';
+import {appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
@@ -15,24 +15,40 @@ import {canonical, cid, configuration, program, expected} from
 
 const mode = process.argv[2];
 const transport = process.argv[3] ?? 'local';
-assert.ok(['success', 'cancel', 'failure', 'capture', 'replay'].includes(mode));
+const approval = mode.startsWith('approval-');
+assert.ok(['success', 'cancel', 'failure', 'capture', 'replay',
+  'approval-wait', 'approval-approve', 'approval-replay'].includes(mode));
 assert.ok(['local', 'http'].includes(transport));
 const root = join(process.cwd(), transport,
-  mode === 'replay' ? 'capture' : mode);
+  approval ? 'approval' : mode === 'replay' ? 'capture' : mode);
 const certificateRoot = join(process.cwd(), transport);
 mkdirSync(root, {recursive: true});
 const {installation, taskCid} = configuration(
   JSON.parse(readFileSync('base-environment.json', 'utf8')));
 const keys = generateKeyPairSync('ed25519');
+const keyPath = join(root, 'fixture-reviewer.json');
+const keyMaterial = approval && existsSync(keyPath)
+  ? JSON.parse(readFileSync(keyPath, 'utf8')) : {
+    privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'}),
+    publicKey: keys.publicKey.export({type: 'spki', format: 'pem'}),
+  };
+if (approval && !existsSync(keyPath)) writeFileSync(keyPath,
+  JSON.stringify(keyMaterial), {mode: 0o600});
 const authorization = {
-  hostKey: {keyId: 'packed-host', privateKey: keys.privateKey.export({
-    type: 'pkcs8', format: 'pem'})},
+  hostKey: {keyId: 'packed-host', privateKey: keyMaterial.privateKey},
   reviewers: [{keyId: 'packed-reviewer', reviewerId: 'packed-reviewer',
     principalId: userInfo().username,
-    publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
+    publicKey: keyMaterial.publicKey}],
   accountConfiguration: canonical({
     version: 'actql-execution-account-config/0.1', account_id: 'packed-owner',
-    entries: [{entry_id: 'allow', outcome: 'allow', principal: {all: true},
+    entries: approval ? [
+      {entry_id: 'model', outcome: 'delegate', principal: {all: true},
+        connection: {all: true}, resource: {all: true},
+        operation: {any_of: ['infer']}, exclusions: []},
+      {entry_id: 'run', outcome: 'allow', principal: {all: true},
+        connection: {all: true}, resource: {all: true},
+        operation: {any_of: ['write']}, exclusions: []},
+    ] : [{entry_id: 'allow', outcome: 'allow', principal: {all: true},
       connection: {all: true}, resource: {all: true}, operation: {all: true},
       exclusions: []}],
   }),
@@ -80,7 +96,8 @@ const installationOptions = {directory: root, authorization,
             calls++;
             appendFileSync(join(process.cwd(), 'provider-calls.jsonl'),
               `${JSON.stringify({mode, taskCid, transport})}\n`);
-            assert.notEqual(mode, 'replay', 'saved capture must not redispatch');
+            assert.ok(!['replay', 'approval-replay', 'approval-wait'].includes(mode),
+              'saved response or unsent approval cannot dispatch');
             assert.equal(moon.clientProgramModelRequestInput(request, 'text'),
               '"urgent"');
             return moon.clientProgramModelResponse(request,
@@ -116,6 +133,52 @@ if (transport === 'http') {
 try {
   run = await client.start(program, {requestId: 'packed-single-infer'});
   started();
+  if (approval) {
+    const recordPath = join(root, 'approval-run.json');
+    if (mode === 'approval-wait') {
+      const deadline = Date.now() + 20_000;
+      let summary;
+      do {
+        summary = (await client.checkpoints()).items.find(item => item.kind === 'model_invocation');
+        if (summary !== undefined) break;
+        await new Promise(resolve => setTimeout(resolve, 20));
+      } while (Date.now() < deadline);
+      assert.ok(summary, 'Model approval did not reach durable Waiting');
+      assert.equal((await run.status()).status, 'waiting_checkpoint');
+      assert.equal(calls, 0);
+      assert.equal(summary.subject.runDefinitionCid, run.ref.runDefinitionCid);
+      const reviewed = await client.reviewCheckpoint(summary);
+      const review = JSON.parse(new TextDecoder().decode(reviewed.bytes));
+      assert.equal(review.displayed_scope.model_invocation_scope_cid, summary.requiredArtifact.cid);
+      assert.equal(review.displayed_scope.model_call_slot_cids.length, 1);
+      writeFileSync(recordPath, JSON.stringify({ref: run.ref,
+        runId: summary.subject.runId, summary}));
+      console.log(JSON.stringify({mode, transport, status: 'waiting_checkpoint', calls: 0}));
+    } else {
+      const saved = JSON.parse(readFileSync(recordPath, 'utf8'));
+      assert.deepEqual(run.ref, saved.ref);
+      if (mode === 'approval-approve') {
+        const resolved = await client.resolveCheckpoints([{checkpoint: saved.summary,
+          decision: 'approved'}], {signer: {keyId: 'packed-reviewer',
+          reviewerId: 'packed-reviewer', sign: bytes => sign(null, bytes, keyMaterial.privateKey)}});
+        assert.equal(resolved.results[0].status, 'committed');
+      }
+      const deadline = Date.now() + 20_000;
+      let state;
+      do {
+        state = await run.wait();
+        if (state.status === 'succeeded') break;
+        assert.ok(['running', 'resuming', 'waiting_checkpoint'].includes(state.status), JSON.stringify(state));
+        await new Promise(resolve => setTimeout(resolve, 20));
+      } while (Date.now() < deadline);
+      assert.equal(state.status, 'succeeded');
+      assert.equal(state.run_id, saved.runId);
+      assert.deepEqual(await run.result('answer').all(), expected);
+      assert.equal(calls, mode === 'approval-approve' ? 1 : 0);
+      console.log(JSON.stringify({mode, transport, status: state.status, calls,
+        ref: run.ref, runId: state.run_id}));
+    }
+  } else {
   let terminal = await run.wait();
   for (let i = 0; mode === 'failure' &&
       terminal.status === 'needs_reconciliation' && i < 100; i++) {
@@ -185,6 +248,7 @@ try {
   }
   console.log(JSON.stringify({mode, transport, status: terminal.status, calls,
     evidenceHoldings: 4}));
+  }
 } finally {
   await client.close();
   if (server !== undefined) {
