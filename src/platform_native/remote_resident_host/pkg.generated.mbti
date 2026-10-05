@@ -6,16 +6,19 @@ import {
   "actql/actql/connectors/duckdb/adapters/native",
   "actql/actql/connectors/duckdb/host_native",
   "actql/actql/connectors/duckdb/standard_host",
+  "actql/actql/execution_relation",
   "actql/actql/execution_site",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
   "actql/actql/pipeline_check_context",
+  "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/http_client",
   "actql/actql/platform_native/publication_store",
   "actql/actql/platform_native/remote_client",
   "actql/actql/platform_native/remote_journal",
   "actql/actql/platform_native/remote_runtime",
   "actql/actql/platform_native/remote_standard_host",
+  "actql/actql/platform_native/remote_transfer_client",
   "actql/actql/platform_native/remote_transfer_journal",
   "actql/actql/platform_native/remote_values_host",
   "actql/actql/platform_native/runtime_bundle",
@@ -23,6 +26,7 @@ import {
   "actql/actql/query_planning",
   "actql/actql/remote_resident_site",
   "actql/actql/remote_site_protocol",
+  "actql/actql/remote_transfer",
   "actql/actql/run_publication",
   "actql/actql/run_publication_host",
 }
@@ -34,13 +38,21 @@ pub fn complete_resident_output_intent(@remote_journal.Journal, @publication_pay
 
 pub fn deliver_resident_output(ResidentExecuted, @remote_journal.Journal, String, String, Int, @remote_site_protocol.RemotePollOutput, @publication_store.Store, @http_client.Client, @remote_transfer_journal.Journal, String, String, Int, (String) -> Unit) -> ResidentDelivery
 
-pub fn execute_resident_attempt(@remote_journal.Journal, ResidentExecution, ResidentRunAdmission, String, String, () -> String, ((String) -> Bool)?) -> Result[ResidentExecuted, ResidentExecutionFailure]
+pub fn execute_resident_attempt(@remote_journal.Journal, ResidentExecution, ResidentRunAdmission, String, String, () -> String, ((String) -> Bool)?, source_observe? : (ResidentSourceComputeEvent) -> Bool) -> Result[ResidentExecuted, ResidentExecutionFailure]
+
+pub fn install_resident_acquisition_task_executor(@run_publication_host.ClientRunMaterials, @run_publication_host.ClientTaskCompilation, @remote_site_protocol.RemoteInputBinding, @remote_site_protocol.DispatchRequest, ResidentExecution, ResidentSourceConfiguration, () -> String, observe? : (ResidentSourceComputeEvent) -> Bool) -> Result[@remote_standard_host.NativeRemoteStandardTaskExecutor, ResidentSourceIssue]
+
+pub fn install_resident_retained_compute_executor(@run_publication_host.ClientRunMaterials, ResidentSourceComputeConfiguration, @remote_standard_host.NativeRemoteRetainedTaskInput, @remote_transfer_client.NativeRemoteDestinationMaterialUse, @remote_site_protocol.DispatchRequest, @remote_standard_host.NativeRemoteStandardRowCodec, @remote_standard_host.NativeRemoteStandardTransferSourceLimits, @remote_standard_host.NativeRemoteRetainedInputCurrent, @remote_standard_host.NativeRemoteStandardTaskLimits) -> Result[@remote_standard_host.NativeRemoteStandardTaskExecutor, ResidentSourceComputeIssue]
+
+pub fn open_resident_retained_compute(@run_publication_host.PreparedClientProgram, ResidentSourceComputeConfiguration, @remote_standard_host.NativeRemoteRetainedTaskInput, @remote_transfer_client.NativeRemoteDestinationMaterialUse, @remote_site_protocol.DispatchRequest, @remote_standard_host.NativeRemoteStandardRowCodec, @remote_standard_host.NativeRemoteStandardTransferSourceLimits, @remote_standard_host.NativeRemoteRetainedInputCurrent, observe? : (ResidentSourceComputeEvent) -> Bool) -> Result[ResidentSourceCompute, (ResidentSourceComputeIssue, @remote_standard_host.NativeRemoteStandardInputFailure)]
 
 pub fn open_resident_source_compute(@run_publication_host.PreparedClientProgram, ResidentSourceComputeConfiguration, String, observe? : (ResidentSourceComputeEvent) -> Bool) -> Result[ResidentSourceCompute, (ResidentSourceComputeIssue, @remote_standard_host.NativeRemoteStandardInputFailure)]
 
 pub fn plan_resident_output(ResidentExecuted, @remote_journal.Journal, String, String, Int, @remote_site_protocol.RemotePollOutput) -> Result[@remote_site_protocol.RemoteOutputPlan, ResidentOutputIssue]
 
 pub fn prepare_resident_effect_source_requirement(@run_publication_host.PreparedClientEffectComputation, Int, Int, String, String, String?, String, String) -> Result[@query_planning.QueryRequirement, ResidentSourceIssue]
+
+pub fn prepare_resident_retained_transfer(@remote_runtime.NativeRemoteRuntime, @remote_site_protocol.DispatchRequest, @run_publication_host.ClientRetainedInputProducer, @remote_transfer.RemoteTransferRequest, @run_publication_host.ClientRetainedInputCurrent, @execution_site.ExecutionSite, @remote_transfer_journal.Journal, @filesystem.Root, Int, Int64, Int64) -> Result[ResidentRetainedTransfer, ResidentRetainedTransferIssue]
 
 pub fn reclaim_resident_output_intents(@remote_journal.Journal, @publication_store.Store) -> Result[Int, ResidentOutputIssue]
 
@@ -70,7 +82,7 @@ pub(all) struct ResidentExecuted {
   runtime : @remote_runtime.NativeRemoteRuntime
   completion : @remote_runtime.NativeRemoteRuntimeCompletion
   request : @remote_site_protocol.DispatchRequest
-  result_definition_cid : String
+  result_definition_cid : String?
 }
 
 pub(all) struct ResidentExecution {
@@ -123,6 +135,42 @@ pub(all) enum ResidentOutputIssue {
   OutputReportPending(@remote_site_protocol.RemoteOutputReportCustody, @remote_journal.NativeRemoteJournalIssue)
 }
 
+pub struct ResidentRetainedTransfer {
+  runtime : @remote_runtime.NativeRemoteRuntime
+  dispatch : @remote_site_protocol.DispatchRequest
+  producer : @run_publication_host.ClientRetainedInputProducer
+  request : @remote_transfer.RemoteTransferRequest
+  current : @run_publication_host.ClientRetainedInputCurrent
+  site : @execution_site.ExecutionSite
+  mut journal : @remote_transfer_journal.Journal
+  root : @filesystem.Root
+  max_chunk_bytes : Int
+  max_destination_bytes : Int64
+  max_destination_objects : Int64
+  mut holding : @execution_site.SiteHolding?
+  mut reader : @remote_runtime.NativeRemoteOutputManifestReader?
+  mut pending : @remote_runtime.NativeRemoteOutputManifestChunk?
+  mut source_finished : Bool
+  mut receipt_cid : String?
+  mut cleanup_material : @remote_transfer_client.NativeRemoteDestinationMaterialUse?
+  mut cleanup_started : Bool
+  mut reclaimed : Bool
+}
+pub fn ResidentRetainedTransfer::advance(Self) -> Result[Bool, ResidentRetainedTransferIssue]
+pub fn ResidentRetainedTransfer::reclaim(Self) -> Result[Bool, ResidentRetainedTransferIssue]
+pub fn ResidentRetainedTransfer::reopen_completed_destination(Self, @remote_transfer_journal.Journal) -> Result[Unit, ResidentRetainedTransferIssue]
+
+pub(all) enum ResidentRetainedTransferIssue {
+  Input(@run_publication_host.ClientRetainedTaskInputIssue)
+  Output(@remote_runtime.NativeRemoteRuntimeIssue)
+  Destination(@remote_transfer_client.NativeRemoteTransferClientIssue)
+  Journal(@remote_transfer_journal.NativeRemoteTransferJournalIssue)
+  ForeignProducer
+  UnsupportedRoute
+  CapacityUnavailable
+  CleanupPending
+}
+
 pub(all) struct ResidentRunAdmission {
   expressions : @pipeline_check_context.ExpressionProfiles
   operations : @pipeline_check_context.PureOperationProfiles
@@ -135,6 +183,7 @@ type ResidentSourceCompute
 pub fn ResidentSourceCompute::close(Self) -> Bool
 pub fn ResidentSourceCompute::execute_task(Self, Int) -> Result[@host_native.NativeStandardStrategyTaskCompletion, ResidentSourceComputeIssue]
 pub fn ResidentSourceCompute::prepare_result_export(Self, @run_publication_host.PublicationOutputExportLimits) -> Result[@run_publication_host.PublicationOutputExport, ResidentSourceComputeIssue]
+pub fn ResidentSourceCompute::prepare_source_export(Self, @run_publication_host.PublicationOutputExportLimits) -> Result[@execution_relation.CompletedOutputExport, ResidentSourceComputeIssue]
 pub fn ResidentSourceCompute::usage(Self) -> @physical_resources.LedgerUsage
 
 pub(all) struct ResidentSourceComputeConfiguration {
@@ -166,6 +215,7 @@ pub(all) enum ResidentSourceComputeIssue {
   Acquisition(@host_native.NativeReadOnlySourceIssue)
   Execution(@host_native.NativeAcquisitionFailure)
   Capture
+  RetainedInput(@remote_standard_host.NativeRemoteRetainedTaskSourceIssue)
   Run(@run_publication_host.ClientRunOpenIssue)
   Dispatch(@standard_host.DispatchIssue)
   Compute(@host_native.NativeStandardStrategyRunIssue)

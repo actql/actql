@@ -1,6 +1,7 @@
 ///|
 struct Application {
   acquisition : @acquisition_host.NativeHostConfiguration
+  acquisition_preparation : @duckdb_query.DuckDBQueryPreparation
   graph : @strategy.CheckedDAG
   registry : @connector.CapabilityRegistry
   input_sequence : @query.QuerySequence
@@ -214,6 +215,7 @@ fn prepare_application_internal(
     { max_bytes: 100000, max_nodes: 10000, max_depth: 100, },
   ).unwrap()
   {
+    acquisition_preparation: preparation,
     acquisition: @acquisition_host.configure_native_host(
       receipts,
       requirement,
@@ -496,6 +498,18 @@ pub fn application_strategy_dispatch(
 }
 
 ///|
+/// Native physical duration estimates; these do not replace reservation,
+/// transfer, activation or logical-work bounds.
+pub(all) struct NativeResidentEstimateProfile {
+  preparation_milliseconds : Int64
+  cleanup_milliseconds : Int64
+  task_milliseconds : Array[Int64]
+  /// Producer-indexed estimates. None remains unknown; an unmeasured import
+  /// must not silently inherit another producer's timing.
+  import_milliseconds : Array[Int64?]
+}
+
+///|
 /// Native process entry for the same retained Local/DuckDB candidate set used
 /// by the installed Host. File bytes and work are physical policy inputs;
 /// the common strategy still selects an eligible checked task realization.
@@ -510,6 +524,7 @@ pub fn application_native_retained_strategy_dispatch(
   resident : Bool,
   local_task_ms? : Array[Int64] = [],
   native_task_ms? : Array[Int64] = [],
+  resident_estimates? : NativeResidentEstimateProfile,
   local_eligible? : Bool = true,
 ) -> @dbhost.StrategyHostDispatch raise {
   create_application_strategy_dispatch(
@@ -522,6 +537,7 @@ pub fn application_native_retained_strategy_dispatch(
     local_export_ms=Some(local_export_ms),
     local_task_ms~,
     native_task_ms~,
+    resident_estimates?,
     local_eligible~,
   )
 }
@@ -665,6 +681,7 @@ fn create_application_strategy_dispatch(
   local_export_ms? : Int64? = None,
   local_task_ms? : Array[Int64] = [],
   native_task_ms? : Array[Int64] = [],
+  resident_estimates? : NativeResidentEstimateProfile,
   local_eligible? : Bool = true,
   managed_output? : Bool = false,
 ) -> @dbhost.StrategyHostDispatch raise {
@@ -672,6 +689,18 @@ fn create_application_strategy_dispatch(
     fail("foreign graph")
   }
   let data = app.data
+  if resident_estimates is Some(estimates) &&
+    (
+      !resident ||
+      estimates.preparation_milliseconds < 0L ||
+      estimates.cleanup_milliseconds < 0L ||
+      estimates.task_milliseconds.length() != app.generated.length() ||
+      estimates.import_milliseconds.length() != app.generated.length() + 1 ||
+      estimates.task_milliseconds.any(value => value < 0L) ||
+      estimates.import_milliseconds.any(value => value is Some(ms) && ms < 0L)
+    ) {
+    fail("invalid resident estimates")
+  }
   let configured_execution_bytes = @resources.ledger_limits(
       @strategy.captured_dag_ledger(run),
     ).execution_bytes
@@ -858,20 +887,45 @@ fn create_application_strategy_dispatch(
       @strategy.prepare_shared_work(
         run,
         1,
-        [{ work_slots: [0], milliseconds: Some(1L), }],
+        [
+          {
+            work_slots: [0],
+            milliseconds: Some(
+              resident_estimates
+              .map(estimates => estimates.preparation_milliseconds)
+              .unwrap_or(1L),
+            ),
+          },
+        ],
         3,
       ).unwrap(),
       @strategy.prepare_shared_work(
         run,
         1,
-        [{ work_slots: [0], milliseconds: Some(1L), }],
+        [
+          {
+            work_slots: [0],
+            milliseconds: Some(
+              resident_estimates
+              .map(estimates => estimates.cleanup_milliseconds)
+              .unwrap_or(1L),
+            ),
+          },
+        ],
         3,
       ).unwrap(),
-      Array::make(count + 1, @strategy.ResidentImportEstimate::{
+      Array::makei(count + 1, producer => @strategy.ResidentImportEstimate::{
         work: @strategy.prepare_shared_work(
           run,
           1,
-          [{ work_slots: [0], milliseconds: Some(1L), }],
+          [
+            {
+              work_slots: [0],
+              milliseconds: resident_estimates
+              .map(estimates => estimates.import_milliseconds[producer])
+              .unwrap_or(Some(1L)),
+            },
+          ],
           3,
         ).unwrap(),
         transfer_bytes: data
@@ -892,15 +946,21 @@ fn create_application_strategy_dispatch(
     @dbhost.configure_resident_dispatch(
       dispatch,
       profile,
-      Array::make(count, [
-        {
-          work_slots: [0, 1, 2, 3, 4, 5, 6, 7],
-          fixed_ms: Some(1L),
-          per_row_ms: Some(0L),
-          per_wire_byte_ms: Some(0L),
-          per_pair_ms: Some(0L),
-        },
-      ]),
+      Array::makei(count, task => {
+        [
+          {
+            work_slots: [0, 1, 2, 3, 4, 5, 6, 7],
+            fixed_ms: Some(
+              resident_estimates
+              .map(estimates => estimates.task_milliseconds[task])
+              .unwrap_or(1L),
+            ),
+            per_row_ms: Some(0L),
+            per_wire_byte_ms: Some(0L),
+            per_pair_ms: Some(0L),
+          },
+        ]
+      }),
     ).unwrap()
   }
   dispatch

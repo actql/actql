@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {execFile} from 'node:child_process';
 import {existsSync} from 'node:fs';
-import {mkdir, mkdtemp, rm} from 'node:fs/promises';
+import {mkdir, mkdtemp, rm, readFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import {promisify} from 'node:util';
@@ -22,7 +22,7 @@ for (const arg of extra) {
     options.set('training', true);
     continue;
   }
-  const match = /^--(native-ms|local-task-ms|native-task-ms|source-database|resident-policy)=(.+)$/.exec(arg);
+  const match = /^--(native-ms|local-task-ms|native-task-ms|source-database|resident-policy|phase-observer|resident-estimates|attempt-cap|stop-after-task)=(.+)$/.exec(arg);
   if (!match || options.has(match[1])) throw new TypeError('InvalidNativeProbeOption');
   options.set(match[1], match[2]);
 }
@@ -55,6 +55,11 @@ if (residentText !== undefined && !['true', 'false'].includes(residentText)) {
 }
 const residentPolicy = residentText === undefined
   ? nativeRegisteredResidentOffer : residentText === 'true';
+const phaseObserverText = options.get('phase-observer') ?? 'false';
+if (!['true', 'false'].includes(phaseObserverText)) throw new TypeError('InvalidNativePhaseObserver');
+const phaseObserver = phaseObserverText === 'true';
+const residentEstimates = options.has('resident-estimates')
+  ? JSON.parse(await readFile(resolve(options.get('resident-estimates')), 'utf8')) : undefined;
 const localRates = rates('local-task-ms');
 const nativeRates = rates('native-task-ms');
 const localEligible = registeredLocalEligibility(fixture).eligible;
@@ -68,6 +73,7 @@ const scratchRoot = resolve(process.env.ACTQL_TEST_SCRATCH_ROOT ?? tmpdir(),
 await mkdir(scratchRoot, {recursive: true});
 const directory = await mkdtemp(join(scratchRoot, 'run-'));
 const run = promisify(execFile);
+let observedExecution;
 
 try {
   const database = options.has('source-database')
@@ -81,31 +87,52 @@ try {
     ], {cwd: root, timeout: fixture.limits.timeoutMs});
   }
   const invocation = await prepareNativeDirectProduct({root, fixture,
-    database, directory, nativeMs, localRates, nativeRates, residentPolicy});
+    database, directory, nativeMs, localRates, nativeRates, residentPolicy, phaseObserver,
+    residentEstimates,
+    ...(options.has('attempt-cap') ? {attemptCap: Number(options.get('attempt-cap'))} : {}),
+    ...(options.has('stop-after-task') ? {stopAfterTask: Number(options.get('stop-after-task'))} : {})});
   assert.equal(invocation.finalTask, expectedTasks);
   assert.equal(invocation.localEligible, localEligible);
-  const execution = await executeNativeDirectProduct(invocation,
-    {root, timeoutMs: fixture.limits.timeoutMs});
-  const admitted = admitNativeDirectProduct(fixture, invocation, execution);
-  console.log(JSON.stringify({
-    kind: 'native-case-probe-diagnostic', status: 'verified-diagnostic', case: fixture.id,
-    scope: registered ? 'registered-feasibility' : 'calibration-training',
-    elapsedMilliseconds: admitted.processCycleMs,
-    executionMilliseconds: admitted.executionMs,
-    cleanupMilliseconds: admitted.cleanupMs,
-    taskIntervals: admitted.taskIntervals,
-    taskUsages: admitted.taskUsages,
-    taskHoldings: admitted.taskHoldings,
-    selections: admitted.selections,
-    taskResidents: execution.taskResidents,
-    result: admitted.record,
-    acquisitionEvidenceMetadata: admitted.acquisitionEvidenceMetadata,
-    sourceMode: options.has('source-database') ? 'existing' : 'generated',
-    selectionInput: {nativeMs, localEligible, localRates, nativeRates,
-      residentPolicy},
-  }));
+  if (options.has('stop-after-task')) {
+    const {stdout} = await run(invocation.binary, invocation.arguments,
+      {cwd: root, timeout: fixture.limits.timeoutMs, maxBuffer: 1024 * 1024});
+    const record = JSON.parse(stdout.trim().split('\n').at(-1));
+    assert.equal(record.status, 'stopped-between-tasks');
+    console.log(JSON.stringify({kind: 'native-case-probe-diagnostic',
+      status: 'stopped-between-tasks-diagnostic', case: fixture.id, host: 'native', record,
+      observations: stdout.split('\n').filter(line =>
+        /^(owner-observation|compute-candidates|compute-explanation|compute-choice|phase-time-us|physical-phase-event):/.test(line))}));
+  } else {
+    const execution = await executeNativeDirectProduct(invocation,
+      {root, timeoutMs: fixture.limits.timeoutMs});
+    observedExecution = execution;
+    const admitted = admitNativeDirectProduct(fixture, invocation, execution);
+    console.log(JSON.stringify({
+      kind: 'native-case-probe-diagnostic', status: 'verified-diagnostic', case: fixture.id,
+      scope: registered ? 'registered-feasibility' : 'calibration-training',
+      elapsedMilliseconds: admitted.processCycleMs,
+      executionMilliseconds: admitted.executionMs,
+      cleanupMilliseconds: admitted.cleanupMs,
+      taskIntervals: admitted.taskIntervals,
+      taskUsages: admitted.taskUsages,
+      taskHoldings: admitted.taskHoldings,
+      selections: admitted.selections,
+      taskResidents: execution.taskResidents,
+      host: 'native',
+      ownerCorrespondence: admitted.ownerCorrespondence,
+      physicalPhases: admitted.physicalPhases,
+      preparation: admitted.preparation,
+      physicalPhaseEvents: execution.physicalPhaseEvents,
+      acquisitionChoice: admitted.acquisitionChoice,
+      result: admitted.record,
+      acquisitionEvidenceMetadata: admitted.acquisitionEvidenceMetadata,
+      sourceMode: options.has('source-database') ? 'existing' : 'generated',
+      selectionInput: {nativeMs, localEligible, localRates, nativeRates,
+        residentPolicy, phaseObserver, residentEstimates},
+    }));
+  }
 } catch (error) {
-  const output = String(error.stdout ?? '').trim().split('\n');
+  const output = String(error.stdout ?? observedExecution?.stdout ?? '').trim().split('\n');
   console.log(JSON.stringify({
     kind: 'native-case-probe-diagnostic', status: 'failed', case: fixture.id,
     name: error.name,
@@ -114,6 +141,8 @@ try {
     phases: output.filter(line => line.startsWith('phase:')),
     strategyRejections: output.filter(line => line.startsWith('strategy-rejection:')),
     terminal: output.at(-1),
+    stderr: String(error.stderr ?? ''),
+    observations: output.filter(line => /^(owner-observation|compute-candidates|compute-explanation|compute-choice|phase-time-us|physical-phase-event):/.test(line)),
   }));
   process.exitCode = 1;
 } finally {

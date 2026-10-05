@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
+import {scopedModelHolding} from './model-custody-fixture.mjs';
+import {providerBindingOriginals} from './model-provider-binding-fixture.mjs';
 import {execFileSync} from 'node:child_process';
-import {createDecipheriv, createHash, generateKeyPairSync} from 'node:crypto';
-import {appendFileSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
+import {createDecipheriv, createHash, generateKeyPairSync, sign} from 'node:crypto';
+import {appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
@@ -13,24 +15,53 @@ import {canonical, cid, configuration, program, expected} from
 
 const mode = process.argv[2];
 const transport = process.argv[3] ?? 'local';
-assert.ok(['success', 'cancel', 'failure', 'capture', 'replay'].includes(mode));
+const approval = mode.startsWith('approval-');
+const stopped = mode.startsWith('approval-stop-');
+const waiting = mode.endsWith('-wait');
+const replaying = mode.endsWith('-replay');
+// The deferred path must retain these exact data bytes across custody/restart.
+const approvalText = 'urgent e\u0301 \u00e9\r\nline';
+const submittedProgram = structuredClone(program);
+if (approval) submittedProgram.stages[0].steps[0].values.rows[0].text = approvalText;
+assert.ok(['success', 'cancel', 'failure', 'capture', 'replay',
+  'approval-wait', 'approval-approve', 'approval-replay',
+  'approval-stop-wait', 'approval-stop-cancel',
+  'approval-stop-replay'].includes(mode));
 assert.ok(['local', 'http'].includes(transport));
 const root = join(process.cwd(), transport,
-  mode === 'replay' ? 'capture' : mode);
+  stopped ? 'approval-stop' : approval ? 'approval' : mode === 'replay' ? 'capture' : mode);
+// Fixture signer/report files must not prepopulate an unadmitted Host root.
+const hostRoot = approval ? join(root, 'host') : root;
 const certificateRoot = join(process.cwd(), transport);
 mkdirSync(root, {recursive: true});
 const {installation, taskCid} = configuration(
   JSON.parse(readFileSync('base-environment.json', 'utf8')));
 const keys = generateKeyPairSync('ed25519');
+const keyPath = join(root, 'fixture-reviewer.json');
+const keyMaterial = approval && existsSync(keyPath)
+  ? JSON.parse(readFileSync(keyPath, 'utf8')) : {
+    privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'}),
+    publicKey: keys.publicKey.export({type: 'spki', format: 'pem'}),
+  };
+if (approval && !existsSync(keyPath)) writeFileSync(keyPath,
+  JSON.stringify(keyMaterial), {mode: 0o600});
 const authorization = {
-  hostKey: {keyId: 'packed-host', privateKey: keys.privateKey.export({
-    type: 'pkcs8', format: 'pem'})},
+  leaseMs: 1000,
+  reviewReaders: [userInfo().username],
+  hostKey: {keyId: 'packed-host', privateKey: keyMaterial.privateKey},
   reviewers: [{keyId: 'packed-reviewer', reviewerId: 'packed-reviewer',
     principalId: userInfo().username,
-    publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
+    publicKey: keyMaterial.publicKey}],
   accountConfiguration: canonical({
     version: 'actql-execution-account-config/0.1', account_id: 'packed-owner',
-    entries: [{entry_id: 'allow', outcome: 'allow', principal: {all: true},
+    entries: approval ? [
+      {entry_id: 'model', outcome: 'delegate', principal: {all: true},
+        connection: {all: true}, resource: {all: true},
+        operation: {any_of: ['infer']}, exclusions: []},
+      {entry_id: 'run', outcome: 'allow', principal: {all: true},
+        connection: {all: true}, resource: {all: true},
+        operation: {any_of: ['write']}, exclusions: []},
+    ] : [{entry_id: 'allow', outcome: 'allow', principal: {all: true},
       connection: {all: true}, resource: {all: true}, operation: {all: true},
       exclusions: []}],
   }),
@@ -38,9 +69,20 @@ const authorization = {
 let calls = 0;
 let run;
 let cancelled = false;
+let physicalStopConfirmed = mode !== 'approval-stop-cancel';
+let releasePhysicalStop;
+const physicalStop = new Promise(resolve => { releasePhysicalStop = resolve; });
+let stopBeforeAcknowledgement;
 let started;
 const ready = new Promise(resolve => { started = resolve; });
 authorization.faultInjection = async name => {
+  if (mode === 'approval-stop-cancel' && name === 'infer_model_settlement_committed' && !cancelled) {
+    await ready;
+    await run.cancel();
+    cancelled = true;
+    // Keep the real dispatch operation live until the fixture acknowledges stop.
+    await physicalStop;
+  }
   if (mode === 'capture' && name === 'infer_capture_committed') {
     assert.equal(calls, 1);
     writeFileSync(join(process.cwd(), `capture-boundary-${transport}.json`),
@@ -58,9 +100,10 @@ const checked = result => {
   assert.equal(result.$tag, 1, 'physical request must pass common admission');
   return result._0;
 };
-const installationOptions = {directory: root, authorization,
+const installationOptions = {directory: hostRoot, authorization,
     modelInstallation: installation,
     registerModelProviders: moon => [{providerId: 'models/packed',
+      bindingOriginals: providerBindingOriginals('models/packed', {selector: 'packed-risk-model'}),
       invoke() { throw new Error('UnpreparedModelCall'); },
       validatePrompt(actual, selector, wire) {
         return actual === taskCid && selector === 'packed-risk-model' &&
@@ -77,14 +120,19 @@ const installationOptions = {directory: root, authorization,
             calls++;
             appendFileSync(join(process.cwd(), 'provider-calls.jsonl'),
               `${JSON.stringify({mode, taskCid, transport})}\n`);
-            assert.notEqual(mode, 'replay', 'saved capture must not redispatch');
+            assert.ok(mode !== 'replay' && !replaying && !waiting,
+              'saved response or unsent approval cannot dispatch');
             assert.equal(moon.clientProgramModelRequestInput(request, 'text'),
-              '"urgent"');
+              approval ? JSON.stringify(approvalText) : '"urgent"');
             return moon.clientProgramModelResponse(request,
               '{"reason":null,"risk":"high"}', 'packed-risk-model',
               'packed-request', 1n, mode === 'failure' ? 1000n : 2n,
               new Date().toISOString());
-          }))}), () => true),
+          }))}), () => {
+            if (stopped) writeFileSync(join(root, 'physical-stop.json'),
+              JSON.stringify({confirmed: physicalStopConfirmed, calls}));
+            return physicalStopConfirmed;
+          }),
     }]};
 let host, server;
 let client;
@@ -111,8 +159,80 @@ if (transport === 'http') {
     durability: 'durable', installation: installationOptions});
 }
 try {
-  run = await client.start(program, {requestId: 'packed-single-infer'});
+  run = await client.start(submittedProgram, {requestId: 'packed-single-infer'});
   started();
+  if (approval) {
+    const recordPath = join(root, 'approval-run.json');
+    if (waiting) {
+      const deadline = Date.now() + 20_000;
+      let summary;
+      do {
+        summary = (await client.checkpoints()).items.find(item => item.kind === 'model_invocation');
+        if (summary !== undefined) break;
+        await new Promise(resolve => setTimeout(resolve, 20));
+      } while (Date.now() < deadline);
+      assert.ok(summary, 'Model approval did not reach durable Waiting');
+      assert.equal((await run.status()).status, 'waiting_checkpoint');
+      assert.equal(calls, 0);
+      assert.equal(summary.subject.runDefinitionCid, run.ref.runDefinitionCid);
+      const reviewed = await client.reviewCheckpoint(summary);
+      const review = JSON.parse(new TextDecoder().decode(reviewed.bytes));
+      assert.equal(review.displayed_scope.model_invocation_scope_cid, summary.requiredArtifact.cid);
+      assert.equal(review.displayed_scope.model_call_slot_cids.length, 1);
+      writeFileSync(recordPath, JSON.stringify({ref: run.ref,
+        runId: summary.subject.runId, summary}));
+      console.log(JSON.stringify({mode, transport, status: 'waiting_checkpoint', calls: 0}));
+    } else {
+      const saved = JSON.parse(readFileSync(recordPath, 'utf8'));
+      assert.deepEqual(run.ref, saved.ref);
+      if (['approval-approve', 'approval-stop-cancel'].includes(mode)) {
+        const resolved = await client.resolveCheckpoints([{checkpoint: saved.summary,
+          decision: 'approved'}], {signer: {keyId: 'packed-reviewer',
+          reviewerId: 'packed-reviewer', sign: bytes => sign(null, bytes, keyMaterial.privateKey)}});
+        assert.equal(resolved.results[0].status, 'committed');
+      }
+      const deadline = Date.now() + 20_000;
+      if (mode === 'approval-stop-cancel') {
+        while (!cancelled && Date.now() < deadline)
+          await new Promise(resolve => setTimeout(resolve, 20));
+        assert.equal(cancelled, true);
+        stopBeforeAcknowledgement = (await run.status()).status;
+        assert.notEqual(stopBeforeAcknowledgement, 'cancelled');
+        assert.notEqual(stopBeforeAcknowledgement, 'succeeded');
+        assert.equal(calls, 1);
+        physicalStopConfirmed = true;
+        releasePhysicalStop();
+        let terminal;
+        do {
+          terminal = await run.status();
+          if (terminal.status === 'cancelled') break;
+          await new Promise(resolve => setTimeout(resolve, 20));
+        } while (Date.now() < deadline);
+        assert.equal(terminal.status, 'cancelled');
+        assert.equal(terminal.run_id, saved.runId);
+        assert.equal(JSON.parse(readFileSync(join(root, 'physical-stop.json'))).confirmed, true);
+        await assert.rejects(run.result('answer').all());
+        console.log(JSON.stringify({mode, transport, beforePhysicalStop: stopBeforeAcknowledgement, afterPhysicalStop: terminal.status, calls}));
+      } else {
+      let state;
+      do {
+        state = await run.wait();
+        if (state.status === (stopped ? 'cancelled' : 'succeeded')) break;
+        assert.ok(['running', 'resuming', 'waiting_checkpoint'].includes(state.status), JSON.stringify(state));
+        await new Promise(resolve => setTimeout(resolve, 20));
+      } while (Date.now() < deadline);
+      assert.equal(state.status, stopped ? 'cancelled' : 'succeeded');
+      assert.equal(state.run_id, saved.runId);
+      if (stopped) {
+        await assert.rejects(run.result('answer').all());
+        assert.equal(JSON.parse(readFileSync(join(root, 'physical-stop.json'))).confirmed, true);
+      } else assert.deepEqual(await run.result('answer').all(), expected);
+      assert.equal(calls, mode === 'approval-approve' ? 1 : 0);
+      console.log(JSON.stringify({mode, transport, status: state.status, calls,
+        ref: run.ref, runId: state.run_id}));
+      }
+    }
+  } else {
   let terminal = await run.wait();
   for (let i = 0; mode === 'failure' &&
       terminal.status === 'needs_reconciliation' && i < 100; i++) {
@@ -134,7 +254,9 @@ try {
     principalId: userInfo().username})).digest('hex')}`;
   for (const role of ['model_call_attempt', 'model_attempt_accounting',
     'model_attempt_outcome', 'model_dispatch_authority']) {
-    const holding = cid({role, slot: 0,
+    const holding = mode === 'cancel' || mode === 'failure'
+      ? scopedModelHolding(root, run.ref.runDefinitionCid, storeCid, role)
+      : cid({role, slot: 0,
       run_definition_cid: run.ref.runDefinitionCid,
       store_authority_cid: storeCid,
       version: 'actql-model-private-holding/0.1'});
@@ -173,13 +295,14 @@ try {
     if (role === 'model_attempt_outcome' &&
         (mode === 'cancel' || mode === 'failure')) {
       assert.equal(evidence.category,
-        mode === 'cancel' ? 'cancelled' : 'contract_violation');
+        mode === 'cancel' ? 'ok' : 'contract_violation');
       assert.equal(evidence.failure,
-        mode === 'cancel' ? 'cancelled' : 'budget_exceeded');
+        mode === 'cancel' ? null : 'budget_exceeded');
     }
   }
   console.log(JSON.stringify({mode, transport, status: terminal.status, calls,
     evidenceHoldings: 4}));
+  }
 } finally {
   await client.close();
   if (server !== undefined) {

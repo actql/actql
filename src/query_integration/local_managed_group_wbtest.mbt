@@ -535,10 +535,14 @@ fn run_local_managed_group_case(
   group_expected : Array[String],
   second_expected : Array[String],
   activation? : Bool = false,
+  close_private_intermediates? : Bool = false,
 ) -> Unit raise {
   let split = variant == "collections" ||
     variant == "numeric_filter" ||
     variant == "numeric_regroup"
+  if close_private_intermediates {
+    assert_true(split)
+  }
   let (run, issuer) = captured_graph_fixture(
     local_values_group_chain=true,
     local_values_group_variant=variant,
@@ -795,6 +799,7 @@ fn run_local_managed_group_case(
   ] = []
   let mut groups = values
   let mut group_rows = value_rows
+  let mut closed_intermediates = 0
   for task in group_tasks {
     let live = Ref(true)
     let execution_advances = Ref(0)
@@ -814,9 +819,29 @@ fn run_local_managed_group_case(
     if bounded_global {
       assert_true(execution_advances.val > 1)
     }
+    if close_private_intermediates &&
+      intermediates.last() is Some((prior_task, prior_ops, prior_live)) {
+      // The completed child owns its output, while required ancestor holdings
+      // remain charged after retiring only the prior private Stage port.
+      let ledger = @strategy.captured_dag_ledger(run)
+      let held = @resources.ledger_usage(ledger).held_bytes
+      assert_true(held > 0L)
+      assert_true(prior_live.val)
+      prior_live.val = false
+      @strategy.close_captured_task_output(run, prior_task)
+      (prior_ops.close)()
+      (prior_ops.cleanup_refresh)() |> ignore
+      assert_false(@execution.managed_completed_output_available(groups))
+      assert_true(@execution.managed_completed_output_available(output))
+      assert_eq(@resources.ledger_usage(ledger).held_bytes, held)
+      closed_intermediates += 1
+    }
     intermediates.push((task, ops, live))
     groups = output
     group_rows = local_managed_test_rows(ops)
+  }
+  if close_private_intermediates {
+    assert_eq(closed_intermediates, 1)
   }
   assert_eq(group_rows, group_expected)
 
@@ -862,10 +887,12 @@ fn run_local_managed_group_case(
   (second_ops.cleanup_refresh)() |> ignore
   for index = intermediates.length() - 1; index >= 0; index = index - 1 {
     let (task, ops, live) = intermediates[index]
-    live.val = false
-    @strategy.close_captured_task_output(run, task)
-    (ops.close)()
-    (ops.cleanup_refresh)() |> ignore
+    if live.val {
+      live.val = false
+      @strategy.close_captured_task_output(run, task)
+      (ops.close)()
+      (ops.cleanup_refresh)() |> ignore
+    }
   }
   value_live.val = false
   @strategy.close_captured_task_output(run, 1)
@@ -1362,5 +1389,19 @@ test "Local seals each numeric group occurrence domain independently" {
     ],
     ["{\"mean\":0,\"total\":0}"],
     ["{\"total\":0,\"mean\":0}"],
+  )
+}
+
+///|
+test "Local split numeric Group keeps descendants after private port close" {
+  run_local_managed_group_case(
+    "numeric_regroup",
+    [
+      "{\"k\":1,\"n\":10000000000000000}", "{\"k\":1,\"n\":1}", "{\"k\":1,\"n\":-10000000000000000}",
+      "{\"k\":null,\"n\":null}",
+    ],
+    ["{\"mean\":0,\"total\":0}"],
+    ["{\"total\":0,\"mean\":0}"],
+    close_private_intermediates=true,
   )
 }

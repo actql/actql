@@ -1,4 +1,7 @@
+import './check-requirement-frontier.test.mjs';
 import './check-locations.test.mjs';
+import './check-presentation.test.mjs';
+import './effect-uncertainty.test.mjs';
 import test, {mock} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -6,8 +9,149 @@ import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {createServer} from 'node:http';
-import {checkReasonSchemaCid} from '@actql/client-wire';
-import {connect, ClientError, getCheckInput, getSubmissionInput, explainSubmission, resolveCheckLocation, explainCheckReason} from './index.mjs';
+import {checkReasonSchemaCid, checkOutcomeSchemaCid} from '@actql/client-wire';
+import {connect, ClientError, getCheckInput, getSubmissionInput, explainSubmission, resolveCheckLocation, explainCheckReason, explainCheckOutcome, getCheckPresentationInfo} from './index.mjs';
+
+test('check presentation revisions are immutable and separate from schema identity', () => {
+  for (const [options, locale] of [[undefined, 'en'], [{locale: 'en'}, 'en'],
+    [{locale: 'ja'}, 'ja'], [{locale: 'ja-JP'}, 'ja'], [{locale: 'fr'}, 'en'],
+    [{get locale() { throw new Error('private locale cause'); }}, 'en']]) {
+    const info = getCheckPresentationInfo(options);
+    assert.deepEqual(info, {locale, translationRevision: `2026-10-06.${locale}.3`});
+    assert.equal(Object.isFrozen(info), true);
+    assert.equal(Object.hasOwn(info, 'reasonSchemaCid'), false);
+    assert.equal(Object.hasOwn(info, 'outcomeSchemaCid'), false);
+  }
+});
+
+test('check locale lookup cannot replace a copied observation during presentation', () => {
+  const invalid = JSON.parse(readFileSync(new URL('../client-wire/fixtures/check-default-type.invalid.json', import.meta.url), 'utf8'));
+  invalid.report.context_ref = 'ctx:locale-original';
+  const explanation = explainCheckOutcome(invalid, {get locale() {
+    invalid.report.verdict = 'verified';
+    invalid.report.scope.kind = 'template';
+    invalid.report.context_ref = 'ctx:locale-replacement';
+    return 'ja';
+  }});
+  assert.equal(explanation.report.verdict, 'invalid', '[check-mutation:check-locale-snapshot]');
+  assert.deepEqual(explanation.report, {completeness: 'complete', verdict: 'invalid',
+    scope: {kind: 'bound_input'}, contextRef: 'ctx:locale-original'});
+  assert.equal(explanation.summary, '検査範囲内の入力違反が確認されました。');
+  for (const unavailable of [false, true]) {
+    const outcome = JSON.parse(readFileSync(new URL('../client-wire/fixtures/check-reporting-failure.json', import.meta.url), 'utf8'));
+    outcome.outcome = unavailable ? 'unavailable' : 'failed';
+    outcome.problem.code = unavailable ? 'check_unavailable' : 'check_internal';
+    if (!unavailable) {
+      outcome.partial_report = JSON.parse(readFileSync(new URL('../client-wire/fixtures/check-default-type.invalid.json', import.meta.url), 'utf8')).report;
+      outcome.partial_report.context_ref = 'ctx:locale-original';
+    }
+    const view = explainCheckOutcome(outcome, {get locale() {
+      outcome.correlation_ref = 'corr:locale-replacement';
+      outcome.problem.code = 'future_problem';
+      if (outcome.partial_report) {
+        outcome.partial_report.verdict = 'verified';
+        outcome.partial_report.context_ref = 'ctx:locale-replacement';
+      }
+      return 'ja';
+    }});
+    assert.equal(view.correlationRef, 'corr:independent-reporting-failure');
+    assert.deepEqual(view.problem, {kind: 'known', code: unavailable ? 'check_unavailable' : 'check_internal'});
+    if (!unavailable) {
+      assert.equal(view.report.verdict, 'invalid');
+      assert.equal(view.report.contextRef, 'ctx:locale-original');
+      assert.equal(view.report.completeness, 'partial');
+    }
+  }
+});
+
+test('localized unknown reasons and problems never hide malformed protocol values', () => {
+  const fixture = JSON.parse(readFileSync(new URL('../client-wire/fixtures/check-reporting-failure.json', import.meta.url), 'utf8'));
+  const failure = {...fixture, problem: {code: 'future_reporting_failure'}};
+  const explanation = explainCheckOutcome(failure, {locale: 'ja'});
+  assert.deepEqual(explanation.problem, {kind: 'unknown', code: 'future_reporting_failure'});
+  assert.equal(explanation.correlationRef, 'corr:independent-reporting-failure');
+  assert.equal(explanation.summary,
+    '束縛された検査報告全体を作成できませんでした。この問題コードに対応する説明はありません。');
+  assert.equal(Object.hasOwn(explanation, 'next'), false);
+  assert.deepEqual(explainCheckReason({code: 'future_reason'}, {locale: 'ja'}),
+    {kind: 'unknown', summary: 'この理由に対応する説明はありません。'});
+  for (const broken of [{...failure, outcome: 'future_outcome'},
+    {...failure, correlation_ref: undefined}, {...failure, problem: {code: 42}}]) {
+    assert.equal(explainCheckOutcome(broken, {locale: 'ja'}), undefined);
+  }
+  const known = JSON.parse(readFileSync(new URL('../client-wire/fixtures/check-default-type.invalid.json', import.meta.url), 'utf8'));
+  known.report.reasons[0].facts.actual_type = 42;
+  assert.equal(explainCheckOutcome(known, {locale: 'ja'}), undefined,
+    'Malformed known facts remain a malformed outcome, not a translated unknown reason');
+});
+
+test('localized partial and unavailable fixtures preserve their incomplete boundaries', () => {
+  const metadata = JSON.parse(readFileSync(new URL('../client-wire/fixtures/check-reporting-failure.json', import.meta.url), 'utf8'));
+  const invalid = JSON.parse(readFileSync(new URL('../client-wire/fixtures/check-default-type.invalid.json', import.meta.url), 'utf8'));
+  const partial = explainCheckOutcome({...metadata, problem: {code: 'check_internal'},
+    partial_report: invalid.report}, {locale: 'ja'});
+  assert.equal(partial.outcome, 'failed');
+  assert.equal(partial.report.verdict, 'invalid');
+  assert.equal(partial.report.completeness, 'partial');
+  assert.equal(partial.report.contextRef, invalid.report.context_ref);
+  assert.equal(partial.correlationRef, 'corr:independent-reporting-failure');
+  assert.equal(partial.summary, '検査内部の失敗により、束縛された検査報告全体を作成できませんでした。');
+  const unavailable = explainCheckOutcome({...metadata, outcome: 'unavailable',
+    problem: {code: 'check_unavailable'}}, {locale: 'ja'});
+  assert.equal(unavailable.outcome, 'unavailable');
+  assert.equal(unavailable.correlationRef, 'corr:independent-reporting-failure');
+  assert.equal(unavailable.summary, '安全な公開報告に必要な検査範囲と文脈を利用できません。');
+  for (const explanation of [partial, unavailable]) assert.equal(Object.hasOwn(explanation, 'next'), false);
+  for (const key of ['report', 'scope', 'contextRef', 'verdict']) {
+    assert.equal(Object.hasOwn(unavailable, key), false);
+  }
+});
+
+test('missing or malformed translation data falls back to the same safe English text', async () => {
+  const source = readFileSync(new URL('./check-presentation.mjs', import.meta.url), 'utf8');
+  const anchor = "'reason.query_syntax_invalid': ['クエリの構文が不正です。',\n" +
+    "    '位置が示されている場合は、その位置のクエリ構文を修正してください。']";
+  assert.equal(source.split(anchor).length, 2);
+  const english = ['The query syntax is invalid.', 'Correct the query syntax at the reported location when available.'];
+  for (const replacement of ["'unrelated': ['missing']", "'reason.query_syntax_invalid': [42]",
+    "'reason.query_syntax_invalid': ['', '']"]) {
+    const module = await import(`data:text/javascript;base64,${Buffer.from(source.replace(anchor, replacement)).toString('base64')}`);
+    assert.deepEqual(module.localizeCheck('reason.query_syntax_invalid', english, {locale: 'ja'}), english);
+  }
+});
+
+test('check outcome explanations preserve unknown problems and reject malformed reports', () => {
+  const metadata = {version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid};
+  for (const code of ['future_reporting_failure', 'verified', 'check_unavailable', 'constructor']) {
+    const explanation = explainCheckOutcome({...metadata, outcome: 'failed', correlation_ref: 'corr:fixture', problem: {code}});
+    assert.equal(explanation.outcome, 'failed');
+    assert.deepEqual(explanation.problem, {kind: 'unknown', code});
+    assert.equal(explanation.report, undefined);
+    assert.equal(Object.hasOwn(explanation, 'next'), false);
+  }
+  const unavailable = explainCheckOutcome({...metadata, outcome: 'unavailable',
+    correlation_ref: 'corr:fixture', problem: {code: 'check_report_unbounded'}});
+  assert.equal(unavailable.outcome, 'unavailable');
+  assert.equal(unavailable.problem.kind, 'unknown');
+  assert.equal(unavailable.report, undefined);
+  const report = {context_ref: 'ctx:fixture', scope: {kind: 'bound_input'}, verdict: 'undetermined',
+    inputs: [{document_id: 'source', revision: 'rev:' + '1'.repeat(64), kind: 'text', byte_length: 6}],
+    reasons: [], requirements: [], coverage: {limits: [{code: 'implementation_limit'}], unresolved: []}};
+  const partial = explainCheckOutcome({...metadata, outcome: 'failed', correlation_ref: 'corr:fixture', problem: {code: 'future'},
+    partial_report: report});
+  assert.deepEqual(partial.report, {completeness: 'partial', verdict: 'undetermined',
+    scope: {kind: 'bound_input'}, contextRef: 'ctx:fixture'});
+  report.scope.kind = 'changed-after-explanation';
+  assert.equal(partial.report.scope.kind, 'bound_input');
+  assert.equal(Object.isFrozen(partial.report.scope), true);
+  for (const malformed of [undefined, {}, {...metadata, outcome: 'future'},
+    {...metadata, outcome: 'failed', correlation_ref: 'corr:fixture', problem: {code: 'check_internal', message: 'private'}},
+    {...metadata, outcome: 'unavailable', correlation_ref: 'corr:fixture',
+      problem: {code: 'check_unavailable'}, partial_report: report},
+    {...metadata, outcome: 'completed', report: {...report, scope: {kind: 'bound_input'},
+      verdict: 'verified', coverage: {limits: [{code: 'implementation_limit'}], unresolved: []}}},
+  ]) assert.equal(explainCheckOutcome(malformed), undefined);
+});
 
 test('constraint explanations use owned families without choosing a failed numeric bound', () => {
   const hints = {
@@ -35,6 +179,13 @@ test('Boolean predicate explanations retain the requirement without exposing inp
   assert.equal(explainCheckReason({code: 'future_code', facts: {issue: 'expected_boolean'}}).kind, 'unknown');
 });
 
+test('default type explanations advise correcting the declaration rather than supplying a value', () => {
+  assert.deepEqual(explainCheckReason({code: 'parameter_default_type_mismatch',
+    facts: {parameter: 'minimum', expected_type: 'number', actual_type: 'string'}}),
+  {kind: 'known', summary: 'A parameter default does not match its declared type.',
+    hint: 'Correct the default to match the declared type, then check again.'});
+});
+
 test('Graph explanations require a known operation and owned issue', () => {
   assert.deepEqual(explainCheckReason({code: 'graph_operation_invalid',
     facts: {operation: 'components', issue: 'invalid_kind'}}),
@@ -44,9 +195,15 @@ test('Graph explanations require a known operation and owned issue', () => {
     facts: {operation: 'components', issue: 'invalid_output_rows'}}),
   {kind: 'known', summary: 'The components output row limit is invalid.',
     hint: 'Supply a positive safe integer for components max_output_rows.'});
+  assert.deepEqual(explainCheckReason({code: 'graph_operation_invalid',
+    facts: {operation: 'subgraph', issue: 'invalid_node_selector'}}),
+  {kind: 'known', summary: 'The Subgraph node selector is invalid.',
+    hint: 'Provide one selector: nonempty ids, a named Relation with an id field, or a node where predicate.'});
   for (const facts of [undefined, {}, {issue: 'invalid_kind'},
     {operation: 'future_operation', issue: 'invalid_kind'},
-    {operation: 'components', issue: 'private_provider_text'}]) {
+    {operation: 'components', issue: 'private_provider_text'},
+    {operation: 'components', issue: 'invalid_node_selector'},
+    {operation: 'subgraph', issue: 'invalid_kind'}]) {
     assert.deepEqual(explainCheckReason({code: 'graph_operation_invalid', facts}),
       {kind: 'unknown', summary: 'No supported explanation is available for this reason.'});
   }
@@ -100,7 +257,7 @@ test('check rejects a location inside an original UTF-8 scalar', async t => {
   let start = 9;
   mock.method(globalThis, 'fetch', async url => url.pathname.endsWith('/connect')
     ? Response.json(profile) : Response.json({version: 'actql-check-outcome/0.1',
-      reason_schema_cid: checkReasonSchemaCid, outcome: 'completed', report: {
+      reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'completed', report: {
         context_ref: 'ctx:fixture', scope: {kind: 'bound_input'}, verdict: 'invalid',
         inputs: [{document_id: 'source', kind: 'text', revision, byte_length: 18}],
         reasons: [{code: 'query_syntax_invalid', location: {kind: 'text',
@@ -144,7 +301,7 @@ test('review wire budget covers maximum base64 without relaxing body limits',
 test('check refuses a Host verdict that contradicts its own evidence',
   async t => {
     const version = 'actql-check-outcome/0.1';
-    const report = (verdict, reasons, limits, unresolved) => ({version, reason_schema_cid: checkReasonSchemaCid,
+    const report = (verdict, reasons, limits, unresolved) => ({version, reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid,
       outcome: 'completed', report: {context_ref: 'ctx:a', requirements: [], inputs: [{document_id: 'source', revision: 'rev:' + '1'.repeat(64), kind: 'text', byte_length: 13}],
         scope: {kind: 'bound_input'}, verdict, reasons,
         coverage: {limits, unresolved}}});
@@ -167,7 +324,7 @@ test('check refuses a Host verdict that contradicts its own evidence',
       report('invalid', [], limit, []),
       report('undetermined', violation, limit, []),
       report('undetermined', [], [], []),
-      {version, reason_schema_cid: checkReasonSchemaCid, outcome: 'failed', problem: {code: 'check_internal'},
+      {version, reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'failed', correlation_ref: 'corr:fixture', problem: {code: 'check_internal'},
         partial_report: report('invalid', [], [], open).report},
     ]) {
       reply = inconsistent;
@@ -1128,7 +1285,7 @@ test('check retains detached submitted inputs while credentials are pending', as
     if (url.pathname.endsWith('/connect')) return Response.json(profile);
     sent = JSON.parse(request.body);
     return Response.json({version: 'actql-check-outcome/0.1',
-      reason_schema_cid: checkReasonSchemaCid, outcome: 'completed', report: {
+      reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'completed', report: {
         context_ref: 'ctx:fixture', scope: {kind: 'bound_input'}, verdict: 'invalid',
         inputs: [
           {document_id: 'source', kind: 'text', revision: 'rev:' + '1'.repeat(64), byte_length: 13},
@@ -1192,4 +1349,55 @@ test('typed cancellation explanations preserve observation-only targets', () => 
   '--target', 'ES2022', fileURLToPath(new URL(
     './cancellation-explanation.typecheck.mts', import.meta.url))],
   {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
+});
+
+test('typed Requirement frontier consumers cannot change observations or issue writes', () => {
+  execFileSync(process.execPath, [fileURLToPath(new URL(
+    '../../node_modules/typescript/bin/tsc', import.meta.url)),
+  '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
+  '--target', 'ES2022', fileURLToPath(new URL(
+    './check-requirement-frontier.typecheck.mts', import.meta.url))],
+  {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
+});
+
+test('typed check outcome explanations preserve report binding and incomplete branches', () => {
+  execFileSync(process.execPath, [fileURLToPath(new URL(
+    '../../node_modules/typescript/bin/tsc', import.meta.url)),
+  '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
+  '--target', 'ES2022', fileURLToPath(new URL(
+    './check-outcome-explanation.typecheck.mts', import.meta.url))],
+  {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
+});
+
+
+test('unused Parameter explanations distinguish a declaration violation from a missing value', () => {
+  assert.deepEqual(explainCheckReason({code: 'parameter_unused', facts: {parameter: 'unused'}}),
+  {kind: 'known', summary: 'A declared parameter is not used by the complete Program.',
+    hint: 'Remove the unused declaration or reference the parameter in the Program, then check again.'});
+  assert.notEqual(explainCheckReason({code: 'parameter_unused'}).hint,
+    explainCheckReason({code: 'parameter_value_required'}).hint);
+});
+
+test('operation scalar presentation explains the existing closed domains without deciding outcomes', () => {
+  const cases = [
+    ['positive_safe_integer', 'An operation parameter must be a positive safe integer.', 'Supply an integer from 1 through 9007199254740991.'],
+    ['nonnegative_safe_integer', 'An operation parameter must be a nonnegative safe integer.', 'Supply an integer from 0 through 9007199254740991; negative zero is not admitted.'],
+    ['unit_fraction', 'An operation parameter must be a finite fraction between 0 and 1.', 'Supply a number from 0 through 1, inclusive; negative zero is not admitted.'],
+    ['finite_number', 'An operation parameter must be a finite number.', 'Supply a finite number; negative zero is not admitted.'],
+    ['duration', 'An operation parameter must be an admitted duration.', 'Supply positive ASCII digits followed by ms, s, m, h or d, without whitespace; the milliseconds must fit a safe integer.'],
+    ['positive_milliseconds', 'An operation parameter must be positive safe milliseconds or an admitted duration.', 'Supply a positive safe integer of milliseconds, or a positive duration string with ms, s, m, h or d.'],
+    ['signed_milliseconds', 'An operation parameter must be signed safe milliseconds or an admitted duration.', 'Supply integer milliseconds from -9007199254740991 through 9007199254740991 without negative zero, or a positive duration string.'],
+    ['timestamp', 'An operation parameter must be an admitted timestamp value.', 'Supply a non-null timestamp value admitted by the timestamp declaration contract.'],
+  ];
+  for (const [domain, summary, hint] of cases) {
+    const reason = Object.freeze({code: 'operation_parameter_invalid', facts: Object.freeze({parameter: 'p', domain})});
+    assert.deepEqual(explainCheckReason(reason), {kind: 'known', summary, hint});
+    const japanese = explainCheckReason(reason, {locale: 'ja'});
+    assert.equal(japanese.kind, 'known');
+    assert.equal(typeof japanese.hint, 'string');
+    assert.equal(Object.hasOwn(japanese, 'verdict'), false);
+    assert.equal(Object.hasOwn(japanese, 'next'), false);
+    assert.equal(Object.hasOwn(japanese, 'apply'), false);
+    assert.equal(reason.facts.domain, domain);
+  }
 });

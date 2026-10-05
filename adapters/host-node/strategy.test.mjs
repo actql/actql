@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {runInstalledStrategy} from '../host-common/strategy.mjs';
 import {finalizerCase, asynchronousCloseCase} from './finalizer-fixture.mjs';
-import {installCompletionObserver, completionObserver} from '../host-common/completion-observer.mjs';
+import {installCompletionObserver, completionObserver, taskStartObserver} from '../host-common/completion-observer.mjs';
 import {beginExecutionSiteTeardown, createInProcessExecutionSite,
   executionSiteStatus, prepareExecutionSitePolicy,
   revokeExecutionSite} from
@@ -78,6 +78,61 @@ test('installed completion observer receives the exact core output only after pu
   assert.equal(seen[0].output, output);
   assert(Object.isFrozen(seen[0]));
   result.close();
+});
+
+test('installed task-start observer precedes Compute and cannot replace its selected task', async () => {
+  const registration = {}, f = fixture([registration]), order = [];
+  const installed = installCompletionObserver(value => {
+    order.push('completed');
+    assert.equal(value.output, 1);
+  }, value => {
+    order.push('selected');
+    assert.equal(value.task, 1);
+    assert.equal(value.registrationKey, 'actual-registration');
+    assert.deepEqual(value.explanation, {completed: []});
+    assert.deepEqual(value.usage, {completed: 0});
+    assert(Object.isFrozen(value) && Object.isFrozen(value.usage));
+    assert.equal('output' in value, false);
+    return {task: 99, output: {}};
+  });
+  assert.throws(() => taskStartObserver({...installed}), /ForeignCompletionObserver/);
+  assert.throws(() => installCompletionObserver(() => {}, {}), /InvalidTaskStartObserver/);
+  const result = await runInstalledStrategy(f.setup, f.core, [{registration,
+    managedSelectionKey: 'actual-registration', run(task) {
+      order.push('compute'); assert.equal(task.index, 1); f.complete.add(1);
+    },
+  }], undefined, completionObserver(installed), undefined, undefined, undefined,
+  taskStartObserver(installed));
+  assert.equal(result.status, 'host-tasks-completed');
+  assert.deepEqual(order, ['selected', 'compute', 'completed']);
+  assert(Number.isFinite(result.completed[0].plannerObserverMilliseconds));
+  await result.close();
+});
+
+test('installed task-start observer failure or AbortSignal stops before physical start', async () => {
+  for (const kind of ['failure', 'abort']) {
+    const registration = {}, f = fixture([registration]);
+    const controller = new AbortController(), reason = new Error('observer-stop');
+    let compute = 0, finished = 0;
+    const installed = installCompletionObserver(() => {
+      throw new Error('UnexpectedCompletion');
+    }, () => {
+      if (kind === 'failure') throw reason;
+      controller.abort(reason);
+    });
+    const result = await runInstalledStrategy(f.setup, f.core, [{registration,
+      run() { compute++; f.complete.add(1); }, finish() { finished++; },
+    }], controller.signal, completionObserver(installed), undefined, undefined,
+    undefined, taskStartObserver(installed));
+    assert.equal(result.status, 'host-tasks-failed');
+    assert.equal(result.failure, reason);
+    assert.equal(compute, 0);
+    assert.equal(f.stopped(), 1);
+    assert.equal(finished, 1);
+    assert.equal(result.completed.length, 0);
+    await result.close();
+    assert.equal(f.closed(), 1);
+  }
 });
 
 test('installed Host snapshots the checked Program and Result inventory', async () => {

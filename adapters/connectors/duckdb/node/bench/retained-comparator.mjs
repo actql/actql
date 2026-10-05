@@ -40,7 +40,7 @@ export async function runRetainedComparator(fixture, contracts, database, direct
   assert(options && typeof options === 'object' && !Array.isArray(options), 'InvalidComparatorOptions');
   assert(Object.keys(options).every(key => ['resident', 'nativeMilliseconds',
     'localTaskMilliseconds', 'nativeTaskMilliseconds', 'localEligible',
-    'estimateSource'].includes(key)),
+    'estimateSource', 'observePlanner'].includes(key)),
     'UnknownComparatorOption');
   assert(options.localTaskMilliseconds === undefined ||
     Array.isArray(options.localTaskMilliseconds), 'InvalidTaskEstimates');
@@ -58,6 +58,8 @@ export async function runRetainedComparator(fixture, contracts, database, direct
       localEligible: options.localEligible}),
     ...(options.estimateSource === undefined ? {} : {estimateSource: options.estimateSource})});
   assert.equal(typeof selection.resident, 'boolean', 'InvalidResidentSelection');
+  assert(options.observePlanner === undefined || typeof options.observePlanner === 'boolean',
+    'InvalidPlannerObservation');
   assert(typeof selection.nativeMilliseconds === 'string' &&
     /^(0|[1-9][0-9]*)$/.test(selection.nativeMilliseconds) &&
     BigInt(selection.nativeMilliseconds) <= 2147483647n, 'InvalidNativeEstimate');
@@ -87,6 +89,7 @@ export async function runRetainedComparator(fixture, contracts, database, direct
   'MissingEligibilityEvidence');
   const input = Object.freeze({...config.input, resident: selection.resident,
     nativeMilliseconds: selection.nativeMilliseconds,
+    ...(options.observePlanner === undefined ? {} : {observePlanner: options.observePlanner}),
     ...(taskRates[1] === undefined ? {} : {
       ...(taskRates[0] === undefined ? {} : {localTaskMilliseconds: taskRates[0]}),
       nativeTaskMilliseconds: taskRates[1]}),
@@ -214,6 +217,7 @@ export async function runRetainedComparator(fixture, contracts, database, direct
       caseId: fixture.id, executionMs: elapsed, expectedRowsCid: expected.rowsCid,
       warmMs,
       selection, selectionHash: hash(JSON.stringify(selection)),
+      plannerObservationEnabled: options.observePlanner === true,
       rows: expected.rows, programHash: hash(config.input.programText),
       parameterHash: hash(config.input.parameterText), environmentCid: config.input.environmentCid,
       sourceDefinitionHash: hash(fixture.createSourceSql),
@@ -230,6 +234,7 @@ export async function runRetainedComparator(fixture, contracts, database, direct
       controlMemory: memoryReport, controlTransport: result.process().transport,
       usage: usage(host.usage()), storage: result.storageUsage(), tasks: result.report.completed,
       explanation: result.report.explanation,
+      plannerObservations: result.report.planner_observations,
       includes: ['Host-preparation', 'child-start', 'acquisition', 'validation', 'Compute',
         'required-identities', 'independent-holding', 'child-exit'],
       excludes: ['build', 'source-setup', 'independent-oracle', 'fresh-reader'],

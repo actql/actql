@@ -173,6 +173,8 @@ pub fn bind_completed_operation_input(@lowering_relation.BoundPrepared, Int, Int
 
 pub fn bind_completed_output_export(CompletedOutputExportReceipt, RetainedOutputMaterial) -> Result[CompletedOutput, CompletedExportIssue]
 
+pub fn bind_completed_relation_export(CompletedRelationExportReceipt, RetainedOutputMaterial) -> Result[CompletedOutput, CompletedExportIssue]
+
 pub fn bind_generated_numeric_execution(GeneratedSequence, NumericAggregateExecution) -> GeneratedSequence
 
 pub fn bind_infer_captured_input(@lowering_relation.PreparedInferInputs, @lowering_relation.BoundPrepared, @pipeline_typing.Target, CapturedRows) -> Result[InferRowInput, InferPreparationIssue]
@@ -1174,6 +1176,8 @@ pub fn supplied_relation_read_row_count(SuppliedRelationRead) -> Int
 pub fn supplied_relation_read_same_binding(SuppliedRelationRead, SuppliedRelationRead) -> Bool
 
 pub fn supplied_relation_read_schema(SuppliedRelationRead) -> @relation_schema.Schema
+
+pub fn take_admitted_output_preparation_rows(AdmittedOutputPreparation) -> AdmittedOutputRows?
 
 pub fn trusted_output_carrier_input(@managed_carrier_runtime.ProducerReadReference) -> TrustedOutputInput
 

@@ -37,8 +37,24 @@ fn expression_event_result(
   value : Value,
   root : ExpressionRootLease?,
   expr : @lower.Expression,
+  prepaid? : Bool = false,
 ) -> Result[ExpressionRootLease?, EvalIssue] {
-  let result = if scope is Some(s) && root is None {
+  let result = if prepaid {
+    // Only the completed charged cursor can supply this event. Its root must
+    // still belong to this exact scope; identity alone is not a work proof.
+    guard scope is Some(s) &&
+      root is Some(r) &&
+      physical_equal(r.scope, s) &&
+      physical_equal(r.root.owner, s.budget) &&
+      !r.root.released &&
+      !s.budget.failed &&
+      r.root.measurement is Some(_) &&
+      s.slots.get(r.slot) is Some(Some(live)) &&
+      physical_equal(live, r.root) else {
+      return Err({ kind: LogicalValue(InvalidRootLifetime), expression: expr, })
+    }
+    Ok(root)
+  } else if scope is Some(s) && root is None {
     match track_expression_root(s, value, true) {
       Err(issue) => Err({ kind: LogicalValue(issue), expression: expr, })
       Ok(root) => Ok(Some(root))
@@ -138,5 +154,63 @@ fn expression_event_choice(
   match expression_event_release(root, expr) {
     Err(issue) => Err(issue)
     Ok(_) => Ok(value is Boolean(true))
+  }
+}
+
+///|
+/// Consume each evaluated operand exactly once. NULL array means an empty set;
+/// it does not erase the left operand's demanded evaluation or value charge.
+fn start_membership(
+  logical : LogicalBudget?,
+  expr : @lower.Expression,
+  operation : @lower.BinaryOperator,
+  left : Value,
+  left_root : ExpressionRootLease?,
+  right : Value,
+  right_root : ExpressionRootLease?,
+) -> Result[MembershipState, EvalIssue] {
+  match expression_event_consume(logical, left, expr, root=left_root) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match expression_event_consume(logical, right, expr, root=right_root) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let items = match right {
+    Null => None
+    Captured(@admitted.Array(items)) => Some(items)
+    _ => return Err({ kind: Scalar(InvalidOperand), expression: expr, })
+  }
+  Ok({
+    expression: expr,
+    operation,
+    left,
+    items,
+    left_root,
+    right_root,
+    index: 0,
+    matched: false,
+    unknown: false,
+  })
+}
+
+///|
+fn membership_compare(
+  control : ControlBudget,
+  expr : @lower.Expression,
+  left : Value,
+  right : Value,
+) -> Result[Value, EvalIssue] {
+  match charge_comparison_pair(control, left, right) {
+    Ok(_) => ()
+    Err(ComparisonChargeLimit) =>
+      return Err({ kind: ControlLimit, expression: expr, })
+    Err(ComparisonChargeInvalidOperand) =>
+      return Err({ kind: Scalar(InvalidOperand), expression: expr, })
+  }
+  match binary(@lower.Equal, left, right) {
+    Ok(value) => Ok(value)
+    Err(issue) => Err({ kind: Scalar(issue), expression: expr, })
   }
 }

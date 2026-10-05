@@ -9,6 +9,89 @@ import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 
+// Terminal observation only, never a send or cancellation permission. The
+// physical owner calls this after confirmed stop and temporary reclamation;
+// restored observers use their persisted physical-close confirmation.
+async function collectNodeRunStop({ref, journal, store,
+  checkpoints, moon, control, cleanupConfirmed, physicalStopConfirmed = false}) {
+  if (typeof journal?.lookupRunDefinition !== 'function' ||
+      typeof journal?.lookupReconciliationState !== 'function') return {cancelled: false};
+  const before = journal.lookupRunDefinition(ref, moon, control);
+  if (before === undefined) return {cancelled: false};
+  const runId = control.runDefinitionRunId(before.runDefinition);
+  const model = checkpoints?.journal;
+  const publicationCommitted = await store.confirmCommittedIndex(ref) !== undefined;
+  // Publication inspection is asynchronous. A changed request observation
+  // must be re-evaluated rather than sealed as a terminal cancellation.
+  const after = journal.lookupRunDefinition(ref, moon, control);
+  // Collect fresh synchronous facts after the await, then hand the terminal
+  // decision to the same common Run owner for normal and restored execution.
+  const cancelled = control.runCancellationConfirmed({
+    cancellationRequested: after?.cancellationRequested === true,
+    modelFenceRequired: (model?.discoverModelCallSets({runId, limit: 1}) ?? []).length !== 0,
+    modelFenced: model?.modelCancellationFenced?.(runId, ref.runDefinitionCid) === true,
+    unresolvedModelCalls: model?.hasUnresolvedModelCalls(runId) === true,
+    unresolvedEffects: journal.lookupReconciliationState(ref) !== undefined,
+    reconciliationRequired: model?.getRunState?.(runId)?.status === 'needs_reconciliation',
+    publicationCommitted,
+    physicalStopConfirmed: physicalStopConfirmed === true,
+    cleanupConfirmed: cleanupConfirmed === true,
+    revisionUnchanged: after?.revision === before.revision,
+  });
+  return {cancelled, publicationCommitted, revision: after?.revision,
+    revisionUnchanged: after?.revision === before.revision};
+}
+
+export async function confirmNodeRunCancellation(facts) {
+  return (await collectNodeRunStop(facts)).cancelled;
+}
+
+export async function cancelNodeRunContinuation({currentDispatchIdle, ...facts}) {
+  if (typeof currentDispatchIdle !== 'function' || !currentDispatchIdle()) return false;
+  const retained = facts.journal.lookupRunDefinition(facts.ref, facts.moon, facts.control);
+  // A waiting Checkpoint may be visible before its producer has reclaimed
+  // its temporary resources. Require the persisted stop receipt as well as
+  // absence of a newer live or pending-cleanup owner; neither alone suffices.
+  if (retained?.physicalCloseConfirmed !== true ||
+      !await confirmNodeRunCancellation({...facts, physicalStopConfirmed: true,
+        cleanupConfirmed: true}) || !currentDispatchIdle() ||
+      facts.journal.lookupRunDefinition(facts.ref, facts.moon, facts.control)?.revision !== retained.revision) {
+    return false;
+  }
+  return facts.checkpoints.cancelEffectContinuation(
+    facts.control.runDefinitionRunId(retained.runDefinition), facts.ref.runDefinitionCid);
+}
+
+export async function observeNodeRestoredModelStop(facts) {
+  return observeNodeRunStop(facts, {failureObserved: false});
+}
+
+export function recordNodeRunPhysicalStop({ref, journal, moon, control}, outcome) {
+  const retained = journal.lookupRunDefinition(ref, moon, control);
+  if (retained?.physicalCloseConfirmed === true) return;
+  journal.markPhysicalClose(ref, outcome);
+}
+
+async function observeNodeRunStop(facts, {failureObserved}) {
+  if (facts.physicalStopConfirmed !== true || facts.cleanupConfirmed !== true) return;
+  const observation = await collectNodeRunStop(facts);
+  // The asynchronous publication inspection may overlap another confirmed
+  // observer. Preserve its immutable physical-stop record, including a
+  // nonterminal stop from an earlier phase of this same Run. The common
+  // continuation owner evaluates the terminal outcome separately.
+  const retained = facts.journal.lookupRunDefinition(facts.ref,
+    facts.moon, facts.control);
+  if (retained?.physicalCloseConfirmed === true) return;
+  const unchanged = retained?.revision === observation.revision;
+  if (!unchanged || observation.revisionUnchanged !== true) {
+    // Retain the same physical owner for a later inspection. A changed intent
+    // must not become an immutable nonterminal stop that suppresses its outcome.
+    throw new Error('ClientRunStopObservationChanged');
+  }
+  recordNodeRunPhysicalStop(facts, observation.publicationCommitted ? null :
+    observation.cancelled ? 'cancelled' : failureObserved && retained?.cancellationRequested !== true ? 'failed' : null);
+}
+
 export function installNodeClientDispatchOwner({moon, control, journal,
   store, checkpoints, startRun, hostConnection, beforeDispatch, observed,
   prepareAcquisition, planFor, sourceProfile, registry, values, fragment,
@@ -92,6 +175,11 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   }
 
   async function observeStop(entry) {
+    if (entry.terminalOutcome === 'cancelled' &&
+        !await confirmNodeRunCancellation({ref: entry.ref, journal, store,
+          checkpoints, moon, control, cleanupConfirmed: true, physicalStopConfirmed: true})) {
+      entry.terminalOutcome = null;
+    }
     if (entry.observeStopped !== undefined) {
       // An Effect continuation may stop its in-process Compute while its Run
       // waits for approval. Only that common Run owner can publish the
@@ -101,13 +189,9 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       entry.stopObserved = true;
       return;
     }
-    let publicationCommitted = entry.publicationCommitted === true;
-    if (!publicationCommitted) {
-      publicationCommitted =
-        await store.confirmCommittedIndex(entry.ref) !== undefined;
-    }
-    journal.markPhysicalClose(entry.ref, publicationCommitted ? null :
-      entry.abort.signal.aborted ? 'cancelled' : 'failed');
+    await observeNodeRunStop({ref: entry.ref, journal, store, checkpoints,
+      moon, control, cleanupConfirmed: true, physicalStopConfirmed: true},
+    {failureObserved: !entry.abort.signal.aborted});
     entry.stopObservationPending = false;
     entry.stopObserved = true;
   }
@@ -173,11 +257,11 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       // this physical end; it does not confirm an unowned Compute attempt.
       if (!entry.computeStartAttempted) entry.stopObservationPending = true;
     }
-    if (entry.stopObservationPending) await observeStop(entry);
     await settleCleanupHandle(entry);
     if (entry.unresolvedCleanup) {
       throw new Error('ClientDispatchCleanupOwnerMissing');
     }
+    if (entry.stopObservationPending) await observeStop(entry);
     if (entry.failureObservationPending) {
       journal.markPreDispatchFailure(entry.ref);
       entry.failureObservationPending = false;
@@ -439,8 +523,11 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       entry.physicalWorkMayHaveStarted = true;
       entry.computeStartAttempted = true;
       if (inferring) {
-        await runInfer({preparedProgram, plan: held.plan, store,
+        const result = await runInfer({preparedProgram, plan: held.plan, store,
           acquiredInfer,
+          submission: Object.fromEntries(['requestId', 'principalId', 'connection',
+            'kind', 'input', 'parameters'].filter(key => Object.hasOwn(submission, key))
+            .map(key => [key, submission[key]])),
           principalId: actual, signal: entry.abort.signal,
           retainExecution(execution) {
             if (entry.cleanupOwner !== undefined &&
@@ -454,6 +541,41 @@ export function installNodeClientDispatchOwner({moon, control, journal,
             }
             entry.cleanupOwner = execution;
           }});
+        if (result?.status === 'waiting_checkpoint') {
+          const checkpoint = checkpoints?.journal.inspect(result.checkpoint?.checkpointCid);
+          if (entry.cleanupOwner === undefined || checkpoint?.kind !== 'model_invocation' ||
+              checkpoint.prepareAttemptId !== null ||
+              checkpoint.runDefinitionCid !== accepted.ref.runDefinitionCid ||
+              checkpoint.runId !== control.runDefinitionRunId(accepted.runDefinition)) {
+            throw new Error('InstalledInferWaitingNotCommitted');
+          }
+          // The fixed input and continuation have reached durable custody.
+          // Stopping this physical owner is not a failed or cancelled Run;
+          // the Checkpoint lifecycle remains authoritative for its next step.
+          entry.observeStopped = () => recordNodeRunPhysicalStop({ref: entry.ref,
+            journal, moon, control}, null);
+          await step('infer_waiting_checkpoint', {ref: accepted.ref,
+            checkpointCid: checkpoint.checkpointCid});
+          await settleCleanup(entry);
+          await finishRun(entry);
+          return;
+        }
+        if (result?.status === 'needs_reconciliation') {
+          const runId = control.runDefinitionRunId(accepted.runDefinition);
+          if (entry.cleanupOwner === undefined ||
+              checkpoints?.journal.hasUnresolvedModelCalls(runId) !== true) {
+            throw new Error('InstalledInferUnknownNotRecorded');
+          }
+          // The owner made all permitted progress and retained an entered
+          // call without a saved response. Physical stop is not an ordinary
+          // failure and cannot turn that call into a completed barrier.
+          entry.observeStopped = () => recordNodeRunPhysicalStop({ref: entry.ref,
+            journal, moon, control}, null);
+          await step('infer_needs_reconciliation', {ref: accepted.ref});
+          await settleCleanup(entry);
+          await finishRun(entry);
+          return;
+        }
         // Success is the existing Store's committed index, not merely a
         // returned model value or a completed private capture.
         if (entry.cleanupOwner === undefined ||

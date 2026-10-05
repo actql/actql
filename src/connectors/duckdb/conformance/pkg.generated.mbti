@@ -441,6 +441,18 @@ pub fn strategy_fixture_veca_scored_create(String, String, String, String, Strin
 
 pub fn strategy_fixture_veca_subset(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
+pub fn subgraph_cancel_advance(SubgraphCancelFixture) -> Array[Int64]
+
+pub fn subgraph_cancel_cleanup(SubgraphCancelFixture) -> Bool
+
+pub fn subgraph_cancel_create(String, String, String, String, String) -> SubgraphCancelFixture raise
+
+pub fn subgraph_cancel_input_available(SubgraphCancelFixture) -> Bool
+
+pub fn subgraph_cancel_request(SubgraphCancelFixture) -> Bool
+
+pub fn subgraph_cancel_stopped(SubgraphCancelFixture) -> Bool
+
 pub fn typed_count_create(String, String, String, String) -> OwnedFixedFixture
 
 pub fn typed_fixed_create(String, String, String, String, String) -> OwnedFixedFixture
@@ -461,6 +473,8 @@ type ManagedTakeFixture
 type OwnedFixedFixture
 
 type StrategyFixture
+
+type SubgraphCancelFixture
 
 // Type aliases
 

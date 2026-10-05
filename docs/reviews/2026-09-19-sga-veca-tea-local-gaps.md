@@ -475,7 +475,7 @@ the recorded append/filter route, not every unary suffix or formal variant.
 | A supported multi-step Relation Program can miss a selected provider and run its entire computation synchronously before the bounded copy. A JS timer cannot reach that computation in flight. | Inventory reachable `None` cases from standard Host selection; connect each long-running checked sequence to existing bounded step execution without changing exact input edges, evaluation/failure order, numeric occurrence seals, or Result identity. Run positive-work timer cancel, stop, nonpublication, cleanup, and two-consumer success through the normal Host. |
 | Ordinary RelA whole-sequence entrypoints still lack complete route assurance, even where selected filter/select/derive/sort/take, values, reshape, or binary helpers are bounded. | For each reachable ordinary route, bind fixed independent exact/one-short work and peak-workspace fixtures, in-flight Host cancellation, and cleanup to its actual execution owner. Reuse a fixture only where the ordinary route reaches the same bounded implementation. Preserve separate proof for selected `row_window`, `unpivot`, `json_pick`, and `unnest`; selected top-k paths now share exact bounded entrypoints and recorded proofs with their ordinary routes. |
 | Same-Stage `append` and `cross_join` are separately assured, while other admitted whole-sequence shapes can still enter the synchronous fallback. | Preserve their exact ordered input bindings, work/workspace limits, Host timer cancellation, child leases and cleanup as controls; connect the remaining whole-sequence shapes through bounded dispatch. |
-| Ordinary keyed `group count` reuses exact admitted cell evidence from supplied or admitted producer storage and steps output charging. A providerless RowTable with raw Text still undergoes synchronous canonical recheck. | Remove or bound the remaining raw RowTable path without changing its contract or output charge. Keep quantum-one, exact/one-short, Host cancellation, two-consumer and cleanup proofs as controls. Structured keys remain rejected by the formal checker. |
+| Ordinary keyed `group count` and direct `group` reuse exact admitted cell evidence from supplied or admitted producer storage. Their raw RowTable Text outputs now use bounded Unicode recheck before the existing stepped output charge. This does not certify other raw RowTable consumers or the providerless fallback. | Preserve quantum-one, exact/one-short, cancellation and cleanup controls. Add normal-Host retained-Store evidence for the raw RowTable route before treating it as a complete product connection. Structured keys remain rejected by the formal checker. |
 | Ordinary keyed `count`→`filter`→`select` retains child sessions and their provisional outputs until final cleanup. Its physical overlap and exact logical workspace boundary now have captured-task checks, but other whole-sequence shapes remain unassured. | Reuse this proof only for the same selected chain; connect other checked shapes through bounded dispatch and prove their limits, failure cleanup and independent release. |
 | Standard SGA Graph programs still have eight registered entrypoints without complete route assurance. | Connect each reachable entrypoint to its product kernel's exact/one-short work and workspace boundary, delivered cancellation and cleanup. Prove shared kernel equivalence only through an explicit production binding; retain separate predicate, path, identity and value-width variants where their loops differ. |
 | VecA ranking and row-expression paths have bounded entrypoint assurance, but the whole delivery unit still depends on the remaining RelA and SGA paths. | Retain their exact provider bindings, independent work/workspace fixtures, delivered Host cancellation, and cleanup as regression controls. Do not extend their proof to unsupported expression placements. |
@@ -765,13 +765,13 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Registered operations | 69 |
-| Executable production routes | 61 |
-| Typed pre-execution refusals (not execution success) | 8 |
-| Operation-specific boundary records | 61 |
-| Four-role lifecycle assurance | 60 |
-| Full route work/workspace assurance | 60 |
-| Path-scoped work/workspace assurance | 112 |
-| Selected-only assurance | 1 |
+| Executable production routes | 62 |
+| Typed pre-execution refusals (not execution success) | 7 |
+| Operation-specific boundary records | 62 |
+| Four-role lifecycle assurance | 62 |
+| Full route work/workspace assurance | 62 |
+| Path-scoped work/workspace assurance | 114 |
+| Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
 ### Route evidence closure after the retained Store bounded lane
@@ -1066,6 +1066,296 @@ remains a pre-execution rejection control.
 The above is local route evidence. A final verification SHA and Linux CI result
 are not claimed by this document.
 
+The bounded Append, Set and Cross Join output owners now recheck large copied
+cells with the shared runtime cursor and charge row field names and values with
+the existing stepped measurement before committing the private row. A scalar
+or statically small container keeps a finite fast path. The shared binary
+fixture uses independent limits for one numeric/Text row (three nodes, 4,101
+UTF-8 bytes and 4,104 output work units), tests one-short limits and temporary
+frame capacity, and cancels inside both Text recheck and output charge. A copied
+256-element array additionally stops after output child measurement starts.
+The ordinary Append/filter chain now requires 81 work units and reports 78
+bounded transitions, including nine newly exposed row-output transitions;
+the ten-slot structural workspace bound is unchanged. This updates the earlier
+72-unit/69-transition fixture above. Existing retained Store Host routes remain
+connection controls; running those boundaries on the new source SHA and Linux
+CI is separate from the focused kernel and managed-chain evidence.
+
+The Values, unpivot, unnest and row-window output owners now reuse the same
+private row-charge cursor and resumable copied-cell recheck. Values also uses
+the existing stepped input measurement before recheck; it no longer measures
+a large literal or parameter cell synchronously inside one poll. Row storage
+stays with its original owner until commit or cleanup, and a failed or stopped
+cursor is cancelled before unpublished output is discarded. Borrowed completed
+inputs remain available after cleanup.
+The shared expansion fixture derives separate node, byte, work and workspace
+limits from each output shape, checks each one-short typed cause, and stops
+inside both large-Text recheck and output charging. Values has a separate
+input-measurement cancellation and exact/one-short fixture. The two-row managed
+Values control now exposes 21 advances instead of 11, with ten formerly combined
+row-output transitions; its logical and control budget totals are unchanged.
+Focused JS kernels and managed callers pass 61 tests. The retained Store Host
+test also passed at `45f9b9d2a2792a70c3ccd8ee364bbdfb8b78c848`, including
+long-Text unpivot, unnest and row-window publication to two consumers. This is
+not packed, Wasm/native or Linux CI evidence for these output changes.
+
+The bounded Interval Join, As-of Join and Sequence Match output owners now
+reuse the same copied-cell recheck and row-charge cursors. Uncommitted cells,
+temporary measurement frames and unpublished rows remain with the existing
+cleanup owner. Sequence output field resolution examines one group key or
+pattern per quantum instead of scanning them all within one output step.
+Each key probe is charged; the fixed five-row fixture adds 21 probes to its
+621-unit control bound, giving an independent 642-unit exact limit. Search,
+matching, tie and identity rules are unchanged.
+The shared temporal fixture derives output node/byte/work limits and temporary
+workspace peaks from literal rows and metadata, tests the typed one-short
+failures, and cancels after a real Text chunk in both validation and charging.
+Borrowed source completion remains readable after cleanup. Registered retained
+providers still use these same kernels. New long-Text Join/Sequence publication
+cases use the existing real Store and two-consumer Host harness; their source
+SHA execution evidence is recorded separately from the parent expansion run.
+The selected JS temporal kernels and retained-provider caller tests pass 40
+tests. The retained Store Host test also passed at
+`5c703b5f008e9f62e251d7444d3a6bd01b6b621c`, including the three long-Text
+temporal publication chains and two consumers. This is not packed acceptance,
+Wasm/native or Linux CI evidence for the temporal output changes.
+Other temporal initialization and comparison boundaries remain governed by
+their existing evidence, not inferred from these output-only regressions.
+
+The shared binding-row owner now rechecks large computed output cells through
+the existing resumable runtime cursor, for both dense and presence rows.
+Unchanged admitted projection cells retain exact-proof reuse. A cancelled or
+failed recheck remains owned until cleanup, and presence rows preserve absent
+columns rather than replacing them with NULL.
+The shared derived-output fixture uses independent literal row envelopes:
+the dense seven-field row has eight nodes, 825 bytes and 833 work units; the
+presence row has four nodes, 404 bytes and 408 work units, including one absent
+field. Exact limits and each typed one-short node/byte/work rejection pass,
+as does cancellation after a real Text recheck chunk with borrowed inputs still
+available after cleanup. The selected binding-row and presence JS tests pass
+94 tests. A retained Append/derive/select Host case adds a computed 400-byte
+Text copy, producer publication and two consumers; execution on its submitted
+source SHA is recorded separately. These output tests do not certify the
+whole expression evaluator or direct publication of conditional columns.
+
+The bounded equality Join owner now also steps validation when a completed
+RowTable lacks a reusable admitted-cell proof. Its existing admitted-input
+path, pair ordering, nullable outer-side extension, charged measurement and
+exact completion bindings are unchanged. Cleanup cancels the pending recheck
+before discarding unpublished cells or releasing their workspace.
+A generated Values completion supplies the raw RowTable regression without
+manually constructing execution state. Before the fix, a quantum-one poll
+finished a 4,096-byte Text check; the new cancellation assertion failed while
+the independent result/limit control passed. After the fix the focused Join
+and managed-caller selection passes 13 tests. The final three-test output
+fixture additionally checks a literal 24-slot workspace peak and typed
+one-short rejection. Its one-row envelope is four nodes, 8,195 bytes and
+8,199 output work units, with two 4,096-byte copied cells.
+A retained Join/filter/select Host case reads a 512-byte Text through the
+existing publication and two-consumer harness. That Host case is a production
+connection control, not evidence that retained input always uses raw RowTable
+storage; the component regression covers that distinct representation.
+New-source Host execution, other targets and Linux CI remain separately
+recorded obligations, not inferred from these JS checks.
+
+General Group, analytic and pivot output retention now advances the existing
+value-measurement cursor for large cells, long field names and wide schemas.
+The private row cursor reserves its handle and traversal frames before
+allocation and keeps failed or unfinished traversal with the enclosing cleanup
+owner. A finite small-row path preserves the existing scalar charges. General
+Group additionally builds a wide output projection one cell per advance.
+Neither numeric occurrence sealing nor aggregate algorithms change.
+
+The independent nested fixture requires six nodes, 137 bytes, depth four and
+143 work units. A wide Group row requires eleven nodes, 4,119 bytes and 4,130
+work units; analytic and pivot copied-Text rows require respectively six/three
+nodes, 4,127/4,105 bytes and 4,133/4,108 work units. Each exact and typed
+one-short node, byte, depth and work limit is checked without deriving the
+expectation from execution. The shared traversal also checks three versus two
+workspace slots, partially charged cleanup and idempotent close. Direct owner
+tests resume each operation through a real Text chunk, then close before its
+first output callback and preserve the borrowed source. These are component
+cleanup checks, not Host cancellation
+delivery evidence.
+
+The focused JS aggregate and analytic managed-caller selection passes 39 tests.
+New retained Group, analytic and pivot long-Text cases use the existing real
+Store publication and two-consumer harness; their source-SHA execution remains
+separate evidence. This does not certify synchronous wire emission or logical
+expression-event measurement, and does not promote whole-operation assurance.
+The broader selected callers still have three Group fixture failures and a
+Nest 35-slot exact-workspace failure, reproduced independently at the unchanged
+parent `b2da55d77784d8d1317ab35ccc1303c585f33507`. They remain explicit
+regression obligations; the passing selection does not hide those failures.
+
+Analytic input, partition and output envelope emission now retains a shared
+wire cursor across charged advances for large cells. Long Text is emitted in
+64-UTF-16-unit chunks, preserving a crossing surrogate pair, through the
+existing encoder rather than another serializer. Nested admitted values use
+the existing frame traversal. Pending cursor and continuation slots are
+reserved before allocation, and analytic cleanup closes the cursor and both
+writers without rolling back work or releasing borrowed input. Small leaves
+retain their existing charges. The completed-Relation identity scan and fixed
+record guard reuse the same Text cursor. Wire bytes and CIDs are unchanged;
+new chunk advances consume actual control work.
+
+An independent 4,096-character Text fixture failed its per-advance emission
+bound on the unchanged parent before this connection. The replacement tests
+check bounded emission, cleanup during input/partition/output Text, and exact
+wire envelopes with each scope one byte short. Shared encoder fixtures cover
+escaping, surrogate boundaries, all four sinks, invalid Unicode, exact bytes,
+typed one-short errors, and rejection of writer interleaving or unfinished
+finalization. Nested traversal has a literal six/five-slot workspace boundary;
+raw Text has a three/two-slot boundary. These are component custody checks,
+not a new Host timer-cancellation claim. The existing retained analytic
+long-Text Host fixture remains the production connection check; its submitted
+source execution must be recorded independently.
+
+This closes large cell emission in analytic envelopes, not every synchronous
+encoding boundary. Object field names, reference envelopes, unrelated value
+emitters and logical expression-event accounting remain separate work. No
+whole-operation assurance or retained-route completion count is promoted by
+this change. The parent Group/Nest fixture corrections are independently
+submitted in the managed Group fixture-fix PR; their evidence is not silently
+attributed to this branch.
+
+Analytic logical input and output row retention now borrows a resumable row
+measurement rather than draining every cell inside one advance. It reuses the
+logical value cursor, encoder and root owner. Long Text logical weight is
+charged across the shared finite UTF-16 walk, and nested values keep indexed
+frames rather than materializing their elements. Cursor/frame capacity is
+reserved before allocation. Successful rows keep the same total logical work,
+wire bytes and root order; successfully consumed work is retained even when
+the pending measurement fails or is cancelled. Additional physical advances
+consume control work. The finite small-row path keeps its existing charges.
+
+The independent Text row fixes 4,105 logical work, 4,110 retained bytes and
+twelve measurement-custody slots, with each one short checked against its
+typed cause. A nested 65-element row fixes 74 work and 143 bytes independently.
+The analytic fixture observes incomplete input and output root measurement
+before close, keeps the borrowed input alive, and confirms no row acceptance
+or partial root publication. These direct close checks are not Host-delivered
+timer cancellation. The ordinary managed analytic Program fixture advances
+with quantum one and delivers its copied long Text to two downstream Computes;
+it passed locally with the existing seven managed analytic cases, including
+independent consumer reads and final reservation/holding reclamation. The
+affected logical, analytic, envelope and scale selection passed 51 JS tests;
+the final row selection passed all four tests after adding the nested case.
+These are focused portable JS results, not new-source Node Store or packed
+publication evidence, or Wasm/native execution.
+
+The analytic-only source `bbc27511fba3adade27f2fa1225941a3c15bf930` also passed
+the focused real retained-Store standard Native/Broad Node Host case, including
+publication, two consumers and reclamation. Its evidence is `run-7Wdk3D` /
+`focused-test-nxPBJc`. This is separate evidence for that exact source, not
+packed acceptance or validation of later row-owner changes.
+
+Bounded binding-row execution now reuses the same logical-row cursor for
+large input roots and output-root transfer. Ordinary filter and derivation
+retain their borrowed rows across charged advances rather than draining a
+nested cell in the retention phase. Physical output retention happens once,
+before resumable logical retention, and the existing root owner keeps input
+leases until the complete output root is registered. Dense and conditional
+rows share this transfer rule. Conditional output also reserves its borrowed
+presence wrapper before construction; omission remains distinct from NULL.
+Cleanup closes pending cursors before discarding their borrowed row views,
+retains consumed work and leaves input ownership with the caller.
+
+Independent fixtures fix a 256-item row at 268 logical work and 532 wire
+bytes. The rejecting filter costs 277 total work; the accepting filter costs
+545 and peaks at 1,064 live bytes during root transfer. Exact/one-short work
+and live limits keep their typed failure causes. Fifteen existing row entries
+plus thirteen cursor/continuation entries fix the 28/27 workspace boundary.
+Quantum-one cancellation is delivered through the existing control after
+positive input/output measurement, observes stop before cleanup and issues
+no partial completion. A conditional Text/NULL/omission fixture fixes 1,083
+work independently and verifies borrowed-wrapper cleanup after cancellation.
+These checks exercise the real binding-row session, not a Node timer.
+
+The affected row, presence and shared-cursor fixtures, together with the
+ordinary managed unary Program/Host callers, passed 128 focused JS tests.
+Small-row budgets remain unchanged. The existing nested-input fixture now
+allows a finite continuation bound for admission, weight and both wire walks;
+its exact limits and typed one-short expectations are unchanged.
+The new binding-row source has not yet been exercised by the real Node Store,
+packed consumers or Wasm/native execution. Other logical expression-event
+callers and wire emission of long object field names/reference envelopes
+remain separate work. No whole-operation assurance count is promoted by
+either component connection.
+
+The following expression component closes the first logical measurement of
+demanded large values in resumable expression frames. Previously only borrowed
+Object/Property aggregates yielded there; an ordinary long Text field result
+drained its full weight and wire measurement in one Return transition. A
+focused regression failed at that boundary on the unchanged parent source
+(`run-WGfPYT` / `focused-test-bAfC6x`, 0/1), before the production change.
+
+Rows and expressions now share the existing cursor's reservation and charged
+advance primitive. Reservation precedes cursor/frame allocation. Every
+successfully consumed logical unit remains charged on failure or cancellation,
+and incomplete measurement does not issue a root. Only the first completed
+result event is prepaid; later forwarding and operand consumption retain their
+full semantic weight. The exact scope/root proof and acquisition result ceiling
+remain checked. Cleanup releases cursor custody without releasing borrowed
+caller roots or refunding work. Finite small-value paths are unchanged.
+
+Independent Text vectors fix 4,098/4,097 total work and live bytes, and 10/9
+measurement workspace slots. COALESCE fixes 12,293/12,292 work across field,
+operand and forwarded result events, including draining after suspension.
+Foreign, revoked and unmeasured root proofs are refused. A checked bounded
+derive stops during demanded Text measurement after positive work, preserves
+its input until cleanup and never accepts a partial completion. Its successful
+counterpart reads the completed owner's canonical column order directly.
+An ordinary Program derives a long Text into two downstream Compute consumers
+at quantum one, compares independently expected rows and releases them
+independently through the existing common Host owner.
+
+The changed expression/row fixtures and ordinary managed unary callers passed
+136/136 focused JS tests on the matching production implementation before
+final formatting (`run-3Rtqip` / `focused-test-jx0ALX`). Workers and Node Host
+fixture sources are regenerated
+from the changed Program helper and pass their normal freshness checks. The
+resource audit passes without promoting any whole-operation assurance count.
+This is common execution/Host evidence, not a new real Node retained-Store,
+packed, Wasm/native execution or Linux integration result. Large intrinsic
+comparison/concatenation and long object-field/reference wire transitions
+remain distinct work; no general expression cancellation guarantee is inferred
+from the bounded result-measurement connection alone.
+
+Long Text binary expressions now resume operand byte charging and canonical
+UTF-16 comparison inside the existing expression frame. The shared code-unit
+primitive is also used by bounded row and complete-value comparison; scalar
+operator results retain the same shared mapping. Small operands keep their
+existing path. The pending comparison reserves two cursor handles before
+construction and keeps both operand roots until completion or frame cleanup.
+Suspension does not add semantic work, reconsume operands or restart a scan.
+The original operand byte charge covers comparison; the normal final Return
+still consumes its existing control transition.
+
+The unchanged parent failed the 4096-character equal-prefix regression at its
+single-advance charge bound (`run-OnIKoO` / `focused-test-wHU4oi`, 0/1).
+Independent 256-character vectors fix 1032/1031 logical work, 516/515 live
+bytes and 11/10 measurement workspace slots. Without logical retention, six
+semantic transitions and the nine field-name bytes plus 512 operand bytes fix
+527/526 control; pending comparison custody fixes 2/1 workspace. The vectors
+cover every comparison operator, NULL, prefix length and supplementary/BMP
+UTF-16 order, both stepped and drained. Cleanup during each charging phase and
+the equal-prefix walk preserves borrowed roots and consumed work. A checked
+bounded filter receives cancellation during the comparison, reports stop
+before cleanup, publishes no partial output and leaves its caller input alive.
+An ordinary Program runs the long comparison filter at quantum one and feeds
+two independently released Compute consumers with fixed expected rows.
+
+The changed comparison/frame/row fixtures, shared aggregate comparison caller
+and ordinary managed unary Host cases passed 142 focused JS tests
+(`run-pXhVmG` / `focused-test-5Ho0pD`) before this documentation update. Workers
+and Node Host fixture sources are regenerated from the changed Program helper.
+This does not establish a new-source real Node retained-Store or packed
+publication result, Wasm/native execution, Linux integration, or a general
+expression cancellation guarantee. Intrinsic concatenation and long
+object-field/reference wire transitions remain separate work. Whole-operation
+assurance counts are unchanged.
+
 #### Retained Relation obligation chains
 
 The retained materializing lane now binds checked obligations to the exact
@@ -1158,6 +1448,14 @@ required count and verifies the typed `NestItemLimit` failure, nonpublication,
 and final cleanup. The bounded nest kernel's exact/one-short work and
 workspace, item-limit, and phase-cleanup tests remain the shared resource
 proofs; the retained Host cases establish that this route reaches that kernel.
+For a raw RowTable parent Text column, the bounded Nest output owner now
+rechecks Unicode and the output contract in resumed chunks, then uses the
+existing stepped value charge before moving the row into the private output
+buffer. The one-row fixture fixes seven value nodes, 4,117 UTF-8 bytes, and
+4,124 logical output work units independently, rejects each one-short limit,
+and stops during both recheck and output charge. The existing retained Host
+route remains the connection control; its execution on the new SHA is a
+separate validation result, not implied by the white-box fixture.
 
 This does not enable nonlinear tasks or arbitrary Carrier-family output. The
 existing selected Relation provider refuses a nonlinear sequence during planning.
@@ -3035,15 +3333,15 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | Coverage state | Count |
 |---|---:|
 | `contract` | 40/40 |
-| `checker` | 27/40 |
-| `lowering` | 27/40 |
-| `kernel` | 27/40 |
-| `managed` | 27/40 |
-| `standard_host` | 25/40 |
-| `consumer_lifetime` | 25/40 |
-| `resources` | 32/40 |
-| `cancellation` | 32/40 |
-| `publication` | 25/40 |
+| `checker` | 28/40 |
+| `lowering` | 28/40 |
+| `kernel` | 28/40 |
+| `managed` | 28/40 |
+| `standard_host` | 26/40 |
+| `consumer_lifetime` | 26/40 |
+| `resources` | 33/40 |
+| `cancellation` | 33/40 |
+| `publication` | 26/40 |
 | `three_targets` | 20/40 |
 | complete operations | 19/40 |
 | open operations | 21/40 |
@@ -5101,3 +5399,21 @@ final-source CI still need evidence. The language contract also permits
 normalization of an external opaque Graph while preserving its evidence level;
 the current checker and managed storage accept only typed Property Graphs, so
 that separate route remains unconnected rather than silently falling back.
+
+
+### Stored Subgraph boundary evidence after Graph integration
+
+The unselected constructor/Subgraph provider now has a delivered Node timer
+cancellation fixture. Conformance setup supplies an admitted producer and a real
+two-operation generated sequence with no selected step. The existing Local Host
+driver polls the production provider and delivers cancellation only after all
+eight constructor rows and positive Subgraph progress. Stop, repeatable cleanup,
+and continued input availability are checked. Registration/dispatch plumbing is
+a test adapter; this is not a public Run, packed acceptance, or resource-ledger
+release claim. The selected public Host path remains a separate fixture.
+
+Both stored and view kernel entrypoints already have independent work 18/17 and
+workspace 30/29 boundary checks, plus cancellation and cleanup. Their distinct
+roles are now registered with the corresponding environment evidence. Removing
+the fused timer role, either stored assurance, or substituting selected-path
+cancellation is rejected by the resource audit tests.

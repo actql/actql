@@ -3,11 +3,15 @@ fn presence_filter_fixture(
   empty? : Bool = false,
   predicate? : String = "id < 4",
   input_limits? : ValueLimits = run_limits().input_values,
+  output_limits? : ValueLimits = run_limits().output_values,
   workspace_limit? : Int = 10000,
   operations? : String? = None,
   wires? : Array[String]? = None,
+  source_schema? : @schema.Schema? = None,
 ) -> (@bounded.Control, BoundedBindingRowsExecution, ProducerRead) raise {
-  let source_owner = presence_output_owner()
+  let source_owner = presence_output_owner(
+    schema=source_schema.unwrap_or_else(presence_test_schema),
+  )
   let supplied = prepare_admitted_output(
     source_owner,
     Step(0),
@@ -82,15 +86,7 @@ fn presence_filter_fixture(
   ).unwrap()
   let control = @bounded.control()
   let execution = start_bounded_binding_rows(
-    control,
-    generated,
-    input,
-    4,
-    input_limits,
-    run_limits().output_values,
-    100000,
-    100,
-    workspace_limit,
+    control, generated, input, 4, input_limits, output_limits, 100000, 100, workspace_limit,
     10000,
   ).unwrap()
   (control, execution, input)

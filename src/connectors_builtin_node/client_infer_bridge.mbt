@@ -1983,3 +1983,443 @@ pub fn client_program_infer_result_export_close(
 ) -> Unit {
   value.cancel()
 }
+
+///|
+#export_name("clientProgramModelProviderBinding")
+pub fn client_program_model_provider_binding(
+  provider_id : String,
+  installation_wire : String,
+  configuration_contract_wire : String,
+  configuration_wire : String,
+) -> Result[@publication.RunEvidenceValue, @publication.RunEvidenceValueIssue] {
+  @publication_host.issue_client_model_provider_binding(
+    provider_id, installation_wire, configuration_contract_wire, configuration_wire,
+  )
+}
+
+///|
+#export_name("clientProgramRequireInferCallEntry")
+pub fn client_program_require_infer_call_entry(
+  active : @infer_host.Execution,
+) -> Result[Unit, @infer_host.InvocationBindingIssue] {
+  @infer_host.require_model_call_entry(active)
+}
+
+///|
+#export_name("clientProgramInferPreparedCallSet")
+pub fn client_program_infer_prepared_call_set(
+  active : @infer_host.Execution,
+) -> @model.ModelPreparedCallSet? {
+  @infer_host.prepared_call_set(active)
+}
+
+///|
+#export_name("clientProgramInferPreparedCallCount")
+pub fn client_program_infer_prepared_call_count(
+  value : @model.ModelPreparedCallSet,
+) -> Int? {
+  @model.prepared_model_call_count(value)
+}
+
+///|
+#export_name("clientProgramInferPreparedCallAt")
+pub fn client_program_infer_prepared_call_at(
+  value : @model.ModelPreparedCallSet,
+  slot : Int,
+) -> @publication.RunEvidenceValue? {
+  @model.prepared_model_call_at(value, slot)
+}
+
+///|
+#export_name("clientProgramInferPreparedInputArtifact")
+pub fn client_program_infer_prepared_input_artifact(
+  value : @model.ModelPreparedCallSet,
+) -> @publication.RunEvidenceValue? {
+  @model.prepared_model_input_artifact(value)
+}
+
+///|
+#export_name("clientProgramInferPreparedInput")
+pub fn client_program_infer_prepared_input(
+  value : @model.ModelPreparedCallSet,
+) -> @execution.CompletedOutput? {
+  @model.prepared_model_input(value)
+}
+
+///|
+#export_name("clientProgramInferPreparedIdentities")
+pub fn client_program_infer_prepared_identities(
+  value : @model.ModelPreparedCallSet,
+) -> (String, String, String)? {
+  @model.prepared_model_identities(value)
+}
+
+///|
+#export_name("clientProgramBindInferModelScope")
+pub fn client_program_bind_infer_model_scope(
+  active : @infer_host.Execution,
+  prepared : @model.ModelPreparedCallSet,
+  scope : @publication.RunEvidenceValue,
+  provider : @publication.RunEvidenceValue,
+  expected : @publication.ModelInvocationBoundary,
+) -> Result[
+  @publication.BoundModelInvocationScope,
+  @infer_host.InvocationBindingIssue,
+] {
+  @infer_host.bind_model_scope(active, prepared, scope, provider, expected)
+}
+
+///|
+#export_name("clientProgramIssueScopedInferDispatchAdmission")
+pub fn client_program_issue_scoped_infer_dispatch_admission(
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  scope : @publication.BoundModelInvocationScope,
+  account : AuthorizationAccount,
+  principal : String,
+  at : String,
+  delegated : AuthorizationDecision?,
+  observe_account : () -> AuthorizationAccount,
+  observe_at : () -> String,
+) -> Result[
+  @publication_host.ClientInferDispatchAdmission,
+  @publication_host.ClientInferDispatchIssue,
+] {
+  guard account.state is @authorization.Admitted(configuration) else {
+    return Err(@publication_host.Authorization(@authorization.Denied))
+  }
+  @publication_host.issue_client_infer_dispatch_admission(
+    compiled,
+    definition,
+    configuration,
+    principal,
+    at,
+    model_scope=Some(scope),
+    delegated_action=match delegated {
+      Some(value) => value.action
+      None => None
+    },
+    observe_current=() => {
+      guard observe_account().state is @authorization.Admitted(current) else {
+        return Err(@publication_host.Authorization(@authorization.Denied))
+      }
+      Ok((current, observe_at()))
+    },
+  )
+}
+
+///|
+#export_name("clientProgramBindInferModelDispatch")
+pub fn client_program_bind_infer_model_dispatch(
+  active : @infer_host.Execution,
+  prepared : @model.ModelPreparedCallSet,
+  admission : @publication_host.ClientInferDispatchAdmission,
+  enter : (@model.ModelCallEntry) -> Bool,
+) -> Result[Unit, @infer_host.InvocationBindingIssue] {
+  @infer_host.bind_model_dispatch(active, prepared, admission, enter)
+}
+
+///|
+#export_name("clientProgramInferCallEntryOriginals")
+pub fn client_program_infer_call_entry_originals(
+  value : @model.ModelCallEntry,
+) -> (Int, String, String, String)? {
+  @model.model_call_entry_originals(value)
+}
+
+///|
+#export_name("clientProgramInferCallEntryCurrent")
+pub fn client_program_infer_call_entry_current(
+  value : @model.ModelCallEntry,
+  prepared : @model.ModelPreparedCallSet,
+) -> Bool {
+  @model.model_call_entry_current(value, prepared)
+}
+
+///|
+#export_name("clientProgramInferCallSettlement")
+pub fn client_program_infer_call_settlement(
+  active : @infer_host.Execution,
+) -> @model.ModelCallSettlement? {
+  @infer_host.call_settlement(active)
+}
+
+///|
+#export_name("clientProgramInferCallSettlementSlot")
+pub fn client_program_infer_call_settlement_slot(
+  value : @model.ModelCallSettlement,
+) -> Int? {
+  @model.model_call_settlement_slot(value)
+}
+
+///|
+#export_name("clientProgramAcknowledgeInferCallSettlement")
+pub fn client_program_acknowledge_infer_call_settlement(
+  value : @model.ModelCallSettlement,
+) -> Bool {
+  @model.acknowledge_model_call_settlement(value)
+}
+
+///|
+#export_name("clientProgramStartInferCallSettlementExport")
+pub fn client_program_start_infer_call_settlement_export(
+  value : @model.ModelCallSettlement,
+  max_bytes : Int,
+  max_work : Int,
+) -> Result[@model.ModelCaptureExport, @model.ModelExecutionIssue] {
+  @model.start_model_call_settlement_export(value, {
+    max_bytes,
+    max_nodes: 100000,
+    max_depth: 100,
+    max_chunk_bytes: 16384,
+    max_work,
+  })
+}
+
+///|
+#export_name("clientProgramRestoreInferPreparedCall")
+pub fn client_program_restore_infer_prepared_call(
+  prepared : @model.ModelPreparedCallSet,
+  slot : Int,
+  record : @publication.RunEvidenceValue,
+  proof : @model.ModelAttemptRecords,
+  bundle : @publication.ModelCaptureBundleRead?,
+) -> Result[Unit, @model.ModelExecutionIssue] {
+  @model.restore_prepared_model_call(prepared, slot, record, proof, bundle)
+}
+
+///|
+#export_name("clientProgramRestoreInferPreparedUnknown")
+pub fn client_program_restore_infer_prepared_unknown(
+  prepared : @model.ModelPreparedCallSet,
+  slot : Int,
+  attempt : @publication.RunEvidenceValue,
+  authority : @publication.RunEvidenceValue,
+) -> Result[Unit, @model.ModelExecutionIssue] {
+  @model.restore_prepared_model_unknown(prepared, slot, attempt, authority)
+}
+
+///|
+#export_name("clientProgramInferHasUnknownCalls")
+pub fn client_program_infer_has_unknown_calls(
+  active : @infer_host.Execution,
+) -> Bool {
+  @infer_host.unknown_calls(active)
+}
+
+///|
+#export_name("clientProgramInferStoppedAttemptSlot")
+pub fn client_program_infer_stopped_attempt_slot(
+  active : @infer_host.Execution,
+  index : Int,
+) -> Int? {
+  @infer_host.stopped_attempt_slot(active, index)
+}
+
+///|
+#export_name("clientProgramModelScopedPrivateHoldingCid")
+pub fn client_program_model_scoped_private_holding_cid(
+  definition : @publication.PublicationContract,
+  store : String,
+  scope : String,
+  slot : String,
+  attempt : String,
+  index : Int,
+  phase : String,
+  role : String,
+) -> String? {
+  @publication.model_scoped_private_holding_cid(
+    definition, store, scope, slot, attempt, index, phase, role,
+  )
+}
+
+///|
+#export_name("clientProgramInferPlanBoundary")
+pub fn client_program_infer_plan_boundary(
+  value : @publication_host.ClientInferPlanGraph,
+) -> (Int, Int, Int, String) {
+  @publication_host.client_infer_plan_boundary(value)
+}
+
+///|
+#export_name("clientProgramInferCallScopeUnitId")
+pub fn client_program_infer_call_scope_unit_id(
+  active : @infer_host.Execution,
+) -> String? {
+  match @infer_host.call_scope(active) {
+    Some(scope) => @publication_host.client_infer_call_scope_unit_id(scope)
+    None => None
+  }
+}
+
+///|
+#export_name("clientProgramInferCallScopeSnapshot")
+pub fn client_program_infer_call_scope_snapshot(
+  active : @infer_host.Execution,
+) -> Result[String, @publication_host.ClientInferCallScopeIssue] {
+  guard @infer_host.call_scope(active) is Some(scope) else {
+    return Err(@publication_host.ForeignInput)
+  }
+  @publication_host.client_infer_call_scope_snapshot(scope)
+}
+
+///|
+#export_name("clientProgramExportInferPreparedInput")
+pub fn client_program_export_infer_prepared_input(
+  active : @infer_host.Execution,
+  prepared : @model.ModelPreparedCallSet,
+  binding : String,
+) -> Result[
+  @client_local_host.ClientInferRetainedInputExport,
+  @client_local_host.ClientInferRetainedInputIssue,
+] {
+  @infer_host.export_prepared_input(active, prepared, binding)
+}
+
+///|
+#export_name("clientProgramInferPreparedInputExportMatches")
+pub fn client_program_infer_prepared_input_export_matches(
+  active : @infer_host.Execution,
+  prepared : @model.ModelPreparedCallSet,
+  exported : @client_local_host.ClientInferRetainedInputExport,
+) -> Bool {
+  @infer_host.prepared_input_export_matches(active, prepared, exported)
+}
+
+///|
+#export_name("clientProgramInferPreparedInputExportDescriptor")
+pub fn client_program_infer_prepared_input_export_descriptor(
+  value : @client_local_host.ClientInferRetainedInputExport,
+) -> String {
+  @client_local_host.client_infer_retained_input_export_descriptor(value)
+}
+
+///|
+#export_name("clientProgramInferPreparedInputExportRows")
+pub fn client_program_infer_prepared_input_export_rows(
+  value : @client_local_host.ClientInferRetainedInputExport,
+) -> Array[String] {
+  @client_local_host.client_infer_retained_input_export_rows(value)
+}
+
+///|
+#export_name("clientProgramReadSavedInferInputScope")
+pub fn client_program_read_saved_infer_input_scope(
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  graph : @publication_host.ClientInferPlanGraph,
+  snapshot_wire : String,
+  authority_scope_cid : String,
+  custody_available : () -> Bool,
+) -> Result[
+  @publication_host.ClientInferSavedCallScope,
+  @publication_host.ClientInferCallScopeIssue,
+] {
+  @infer_host.read_saved_input_scope(
+    compiled, definition, prepared, step, graph, snapshot_wire, authority_scope_cid,
+    custody_available,
+  )
+}
+
+///|
+#export_name("clientProgramStartRestoredInferInput")
+pub fn client_program_start_restored_infer_input(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  graph : @publication_host.ClientInferPlanGraph,
+  registry : String,
+  values : String,
+  provider : @model.ModelProvider,
+  binding : String,
+  descriptor : String,
+  rows : Array[String],
+  custody : () -> Bool,
+  saved_scope : @publication_host.ClientInferSavedCallScope,
+  fragment : String,
+  ordered : String,
+) -> Result[@infer_host.Execution, @infer_host.Issue] {
+  @infer_host.start_restored_input(
+    prepared,
+    step,
+    registry,
+    values,
+    provider,
+    graph,
+    binding,
+    binding,
+    descriptor,
+    rows,
+    custody,
+    @infer_host.standard_limits(),
+    saved_scope=Some(saved_scope),
+    fragment_body=Some(fragment),
+    ordered_body=Some(ordered),
+  )
+}
+
+///|
+#export_name("clientProgramRestrictInferSendSlots")
+pub fn client_program_restrict_infer_send_slots(
+  active : @infer_host.Execution,
+  eligible : Array[Bool],
+) -> Result[Unit, @infer_host.InvocationBindingIssue] {
+  @infer_host.restrict_model_send_slots(active, eligible)
+}
+
+///|
+#export_name("clientProgramReadSavedComposedInferInputScope")
+pub fn client_program_read_saved_composed_infer_input_scope(
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrence : @publication_host.ClientInferOccurrence,
+  graph : @publication_host.ClientInferPlanGraph,
+  snapshot_wire : String,
+  authority_scope_cid : String,
+  custody_available : () -> Bool,
+) -> Result[
+  @publication_host.ClientInferSavedCallScope,
+  @publication_host.ClientInferCallScopeIssue,
+] {
+  @publication_host.read_client_infer_saved_call_scope(
+    compiled, definition, occurrence, graph, snapshot_wire, authority_scope_cid,
+    custody_available,
+  )
+}
+
+///|
+#export_name("clientProgramStartRestoredComposedInferInput")
+pub fn client_program_start_restored_composed_infer_input(
+  occurrence : @publication_host.ClientInferOccurrence,
+  graph : @publication_host.ClientInferPlanGraph,
+  prefix : @execution.GeneratedSequence,
+  provider : @model.ModelProvider,
+  binding : String,
+  descriptor : String,
+  rows : Array[String],
+  custody : () -> Bool,
+  saved_scope : @publication_host.ClientInferSavedCallScope,
+) -> Result[@infer_host.Execution, @infer_host.Issue] {
+  @infer_host.start_restored_composed_input(
+    occurrence,
+    graph,
+    prefix,
+    provider,
+    binding,
+    binding,
+    descriptor,
+    rows,
+    custody,
+    @infer_host.standard_limits(),
+    saved_scope=Some(saved_scope),
+  )
+}
+
+///|
+#export_name("clientProgramInferCleanupProgress")
+pub fn client_program_infer_cleanup_progress(
+  active : @infer_host.Execution,
+) -> Int {
+  @infer_host.model_cleanup_progress(active)
+}

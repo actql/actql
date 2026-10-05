@@ -1,25 +1,19 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {execFile} from 'node:child_process';
-import {createReadStream} from 'node:fs';
 import {mkdir, readFile, rm} from 'node:fs/promises';
 import {join, resolve} from 'node:path';
 import {performance} from 'node:perf_hooks';
 import {isDeepStrictEqual, promisify} from 'node:util';
-import {releaseArtifactDigest} from './release-artifacts.mjs';
+import {releaseArtifactDigest, sha256File} from './release-artifacts.mjs';
 import {retainedCase} from './fixtures.mjs';
 import {admitNativeEstimateProfile} from './native-estimate-profile.mjs';
+import {admitNativeResidentEstimateProfile, assertNativeMeasuredOffers} from './native-resident-estimate-profile.mjs';
 import {admitNativeEquivalentPair} from './native-equivalent-admission.mjs';
 import {prepareNativeDirectProduct, executeNativeDirectProduct,
   admitNativeDirectProduct} from './native-direct-product.mjs';
 
 const exec = promisify(execFile);
-
-async function fileHash(path) {
-  const hash = createHash('sha256');
-  for await (const bytes of createReadStream(path)) hash.update(bytes);
-  return hash.digest('hex');
-}
 
 async function checkoutState(root) {
   const git = async args => (await exec('git', args, {cwd: root})).stdout.trim();
@@ -31,14 +25,19 @@ async function checkoutState(root) {
 // one immutable source. This records the performance decision; formal matrix
 // admission still requires the complete Native obligation/accounting report.
 export async function runNativeDirectPair({checkout, fixture, database,
-  directory, index = 0, nativeRates, localRates, nativeEstimateProfile}) {
+  directory, index = 0, nativeRates, localRates, nativeEstimateProfile,
+  nativeResidentEstimateProfile, artifactReadChunkBytes = 1024 * 1024,
+  sourceReadOnly = true}) {
   assert(Number.isSafeInteger(index) && index >= 0, 'InvalidNativePairIndex');
-  assert(!nativeEstimateProfile || !nativeRates && !localRates,
+  assert(!(nativeEstimateProfile && nativeResidentEstimateProfile), 'ConflictingNativeProfiles');
+  assert(!(nativeEstimateProfile || nativeResidentEstimateProfile) || !nativeRates && !localRates,
     'NativePairConflictingRates');
   const root = resolve(checkout);
+  assert([64 * 1024, 1024 * 1024].includes(artifactReadChunkBytes), 'InvalidArtifactReadChunkBytes');
+  const fileHash = path => sha256File(path, artifactReadChunkBytes);
   const initial = await checkoutState(root);
   assert.equal(initial.dirty, false, 'NativePairRequiresCleanCheckout');
-  const artifactDigest = await releaseArtifactDigest(root);
+  const artifactDigest = await releaseArtifactDigest(root, artifactReadChunkBytes);
   const sourceSha256 = await fileHash(database);
   const registrationSha256 = createHash('sha256').update(await readFile(
     join(root, 'benchmarks/retained-results/experiment.json'))).digest('hex');
@@ -48,10 +47,18 @@ export async function runNativeDirectPair({checkout, fixture, database,
     fixture.program())).digest('hex');
   const nativeRoot = join(directory, `native-${index}`);
   const independentRoot = join(directory, `independent-${index}`);
-  await mkdir(nativeRoot);
-  await mkdir(independentRoot);
   const samples = {};
   let admittedProfile;
+  const profileAdmissionStart = performance.now();
+  if (nativeResidentEstimateProfile) admittedProfile = admitNativeResidentEstimateProfile({
+    profile: nativeResidentEstimateProfile, trainingFixture: retainedCase(fixture.workload, fixture.layout, 1000),
+    targetFixture: fixture, revision: initial.revision,
+    binaryDigest: `sha256:${await fileHash(join(root,
+      '_build/native/release/build/cmd/native_retained_case_probe/native_retained_case_probe.exe'))}`});
+  const residentProfileAdmissionMs = nativeResidentEstimateProfile
+    ? performance.now() - profileAdmissionStart : 0;
+  await mkdir(nativeRoot);
+  await mkdir(independentRoot);
   const labels = index % 2
     ? ['independent', 'native'] : ['native', 'independent'];
   try {
@@ -59,11 +66,14 @@ export async function runNativeDirectPair({checkout, fixture, database,
       if (label === 'native') {
         const started = performance.now();
         const invocation = await prepareNativeDirectProduct({root, fixture,
-          database, directory: nativeRoot,
-          nativeMs: nativeEstimateProfile?.nativeTaskMilliseconds[0] ??
+          database, directory: nativeRoot, sourceReadOnly,
+          nativeMs: nativeResidentEstimateProfile?.rates.fresh[0] ?? nativeEstimateProfile?.nativeTaskMilliseconds[0] ??
             nativeRates?.[0] ?? '1000',
-          nativeRates: nativeEstimateProfile?.nativeTaskMilliseconds ?? nativeRates,
-          localRates: nativeEstimateProfile?.localTaskMilliseconds ?? localRates});
+          nativeRates: nativeResidentEstimateProfile?.rates.fresh ?? nativeEstimateProfile?.nativeTaskMilliseconds ?? nativeRates,
+          ...(nativeEstimateProfile ? {residentPolicy: false} : {}),
+          ...(nativeResidentEstimateProfile ? {residentPolicy: true,
+            residentEstimates: nativeResidentEstimateProfile.residentEstimates} : {}),
+          localRates: nativeResidentEstimateProfile?.rates.local ?? nativeEstimateProfile?.localTaskMilliseconds ?? localRates});
         if (nativeEstimateProfile) {
           const [workload, layout, rowText, ...remaining] =
             nativeEstimateProfile.trainingCaseId.split('/');
@@ -76,11 +86,19 @@ export async function runNativeDirectPair({checkout, fixture, database,
             binaryDigest: `sha256:${await fileHash(invocation.binary)}`,
           });
         }
+        if (nativeResidentEstimateProfile) assert.equal(`sha256:${await fileHash(invocation.binary)}`,
+          admittedProfile.binaryDigest, 'NativePairQualifiedBinaryChanged');
         const execution = await executeNativeDirectProduct(invocation,
           {root, timeoutMs: fixture.limits.timeoutMs});
         const cycleMs = performance.now() - started;
         const product = admitNativeDirectProduct(fixture, invocation, execution);
-        if (admittedProfile) {
+        if (nativeResidentEstimateProfile) {
+          assert.deepEqual(product.ownerCorrespondence.observations.choices.map(choice =>
+            choice.resident ? 'resident' : choice.name), admittedProfile.selected,
+          'NativePairMeasuredRealizationChanged');
+          assertNativeMeasuredOffers(product.ownerCorrespondence, admittedProfile.rates,
+            admittedProfile.residentEstimates);
+        } else if (admittedProfile) {
           assert.deepEqual(product.selected,
             nativeEstimateProfile.ordinary.selected,
           'NativePairOrdinarySelectionChanged');
@@ -109,7 +127,7 @@ export async function runNativeDirectPair({checkout, fixture, database,
         'NativePairSourceChanged');
       assert.deepEqual(await checkoutState(root), initial,
         'NativePairCheckoutChanged');
-      assert.equal(await releaseArtifactDigest(root), artifactDigest,
+      assert.equal(await releaseArtifactDigest(root, artifactReadChunkBytes), artifactDigest,
         'NativePairReleaseArtifactsChanged');
     }
     const native = samples.native.product;
@@ -175,11 +193,18 @@ export async function runNativeDirectPair({checkout, fixture, database,
         executionMs: samples.native.executionMs,
         cleanupMs: samples.native.cleanupMs,
         selected: native.selected,
+        host: 'native',
+        acquisitionChoice: native.acquisitionChoice,
+        acquisitionEvidenceMetadata: native.acquisitionEvidenceMetadata,
+        ownerCorrespondence: native.ownerCorrespondence,
         taskHoldings: native.taskHoldings,
         taskUsages: native.taskUsages,
+        preparation: native.preparation,
         usage: native.record.usage,
         acquisition: native.record.acquisition},
       selectionProfile,
+      residentProfileAdmissionMs,
+      artifactReadChunkBytes,
       nativeObligationAdmission,
       independent: {coldMs: samples.independent.coldMs,
         warmMs: samples.independent.warmMs,

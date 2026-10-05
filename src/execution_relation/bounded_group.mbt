@@ -194,6 +194,7 @@ pub(all) enum BoundedGroupIssue {
 
 ///|
 struct BoundedGroupExecution {
+  state : BoundedGroupState
   session : @bounded.Session[
     BoundedGroupState,
     CompletedOutput,
@@ -201,6 +202,13 @@ struct BoundedGroupExecution {
   ]
   mut token : @bounded.Token?
   accepted : Ref[Bool]
+}
+
+///|
+#warnings("-unused_value")
+fn bounded_group_rechecking_output(execution : BoundedGroupExecution) -> Bool {
+  execution.state.phase is BuildOutput &&
+  execution.state.output_recheck is Some(_)
 }
 
 ///|
@@ -260,14 +268,21 @@ fn cleanup_bounded_group_state(state : BoundedGroupState) -> Bool {
 /// The admitted value published for one output cell, following the count
 /// kernel: an exact source contract reuses the input's admitted value,
 /// otherwise the runtime value is admitted and must be rechecked by the
-/// output field. The Bool is true when that recheck is still required.
+/// output field. Raw Text is deferred to the bounded recheck. The Bool is
+/// true when a returned admitted value still needs contract rechecking.
+priv enum BoundedGroupOutputCell {
+  AdmittedGroupCell(@admitted.Value, Bool)
+  RawGroupText(String)
+}
+
+///|
 fn bounded_group_admitted_cell(
   state : BoundedGroupState,
   field : @schema.Field,
   value : Value,
   source : Int?,
   representative : Int,
-) -> (@admitted.Value, Bool)? {
+) -> BoundedGroupOutputCell? {
   let admitted_source = match source {
     None => None
     Some(index) =>
@@ -283,16 +298,15 @@ fn bounded_group_admitted_cell(
     Some(value) => Some(value)
     None =>
       match value {
+        Text(text) => return Some(RawGroupText(text))
         Captured(captured) => Some(captured)
         Null => Some(@admitted.null_value())
         Boolean(boolean) => Some(@admitted.boolean_value(boolean))
         Number(number) => @admitted.number_value(number)
-        Text(text) =>
-          @admitted.text_value(text, state.admitted_limits.max_text_bytes)
       }
   }
   guard admitted is Some(admitted) else { return None }
-  Some((admitted, admitted_source is None))
+  Some(AdmittedGroupCell(admitted, admitted_source is None))
 }
 
 ///|
@@ -440,8 +454,11 @@ fn bounded_group_step(
                 used + 1,
               )
             }
-            RecheckComplete(_, _, _) => {
+            RecheckComplete(checked, _, _) => {
               state.output_recheck = None
+              if state.output_pending is None {
+                state.output_pending = Some(checked.value)
+              }
               guard state.output_pending is Some(admitted) else {
                 return bounded_group_failure(InvalidExecution, progress, used)
               }
@@ -477,8 +494,24 @@ fn bounded_group_step(
               state.output_sources[state.field],
               representative,
             )
-            is Some((admitted, recheck)) else {
+            is Some(cell) else {
             return bounded_group_failure(Rows(InvalidRows), progress, used)
+          }
+          if cell is RawGroupText(text) {
+            guard @admitted.start_recheck_runtime_text(
+                text,
+                field.contract,
+                state.admitted_limits,
+              )
+              is Some(cursor) else {
+              return bounded_group_failure(Rows(InvalidRows), progress, used)
+            }
+            state.output_recheck = Some(cursor)
+            used += 1
+            continue
+          }
+          guard cell is AdmittedGroupCell(admitted, recheck) else {
+            return bounded_group_failure(InvalidExecution, progress, used)
           }
           if admitted
             is (@admitted.Null | @admitted.Boolean(_) | @admitted.Number(_)) {
@@ -551,7 +584,8 @@ fn bounded_group_step(
           output.buffer.reading ||
           output.buffer.rows.length() >= output.buffer.max_rows ||
           state.output_row.length() != output_width ||
-          state.output_measure is Some(_) {
+          state.output_measure is Some(_) ||
+          state.output_recheck is Some(_) {
           return bounded_group_failure(InvalidExecution, progress, used + 1)
         }
         output.buffer.rows.push(state.output_row)
@@ -853,7 +887,7 @@ fn start_bounded_group_with_input(
       true
     },
   )
-  Ok({ session, token: Some(token), accepted, })
+  Ok({ state, session, token: Some(token), accepted, })
 }
 
 ///|

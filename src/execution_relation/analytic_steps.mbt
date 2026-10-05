@@ -32,6 +32,7 @@ priv struct AnalyticEvaluation[T] {
   mut inner : Int
   // Resumable envelope measurement of one row array.
   mut writer : @encode.Writer?
+  mut wire : SteppedRuntimeWire?
   mut measure_ordered : Bool
   mut measure_start : Int
   mut measure_end : Int
@@ -42,6 +43,7 @@ priv struct AnalyticEvaluation[T] {
   mut measure_next : Int
   ordinals : Map[String, Int]
   input_roots : Array[ExpressionRootLease]
+  mut input_logical : SteppedLogicalRow[IndexedRow[T]]?
   partitions : Array[ColumnOrder]
   peer_order : Array[ColumnOrder]
   complete : Array[ColumnOrder]
@@ -93,6 +95,10 @@ priv struct AnalyticEvaluation[T] {
   output_columns : Array[(Bool, Int)]
   mut output_writer : @encode.Writer?
   mut row : Array[Value]
+  mut row_retention : SteppedRowRetention?
+  mut row_retained : Bool
+  mut output_logical : SteppedLogicalRow[Array[Value]]?
+  mut logical_row_retained : Bool
   mut closed : Bool
 }
 
@@ -135,6 +141,7 @@ fn[T : RelationRows] start_analytic_evaluation(
     index: 0,
     inner: 0,
     writer: None,
+    wire: None,
     measure_ordered: false,
     measure_start: 0,
     measure_end: 0,
@@ -145,6 +152,7 @@ fn[T : RelationRows] start_analytic_evaluation(
     measure_next: 0,
     ordinals: Map([]),
     input_roots: [],
+    input_logical: None,
     partitions: [],
     peer_order: [],
     complete: [],
@@ -201,6 +209,10 @@ fn[T : RelationRows] start_analytic_evaluation(
     output_columns: [],
     output_writer: None,
     row: [],
+    row_retention: None,
+    row_retained: false,
+    output_logical: None,
+    logical_row_retained: false,
     closed: false,
   }
 }
@@ -222,8 +234,31 @@ fn[T] close_analytic_evaluation(state : AnalyticEvaluation[T]) -> Unit {
     close_aggregate_direct(direct)
     state.direct = None
   }
-  state.writer = None
-  state.output_writer = None
+  if state.wire is Some(cursor) {
+    close_stepped_runtime_wire(cursor)
+    state.wire = None
+  }
+  if state.writer is Some(writer) {
+    @encode.cancel_writer(writer)
+    state.writer = None
+  }
+  if state.output_writer is Some(writer) {
+    @encode.cancel_writer(writer)
+    state.output_writer = None
+  }
+  if state.row_retention is Some(cursor) {
+    close_stepped_row_retention(cursor)
+    state.row_retention = None
+  }
+  if state.input_logical is Some(cursor) {
+    close_stepped_logical_row(cursor)
+    state.input_logical = None
+  }
+  if state.output_logical is Some(cursor) {
+    close_stepped_logical_row(cursor)
+    state.output_logical = None
+  }
+  state.row = []
   state.closed = true
 }
 
@@ -306,6 +341,49 @@ fn[T] analytic_begin_measure(
 }
 
 ///|
+/// Called once per charged analytic advance. Small leaves keep their old
+/// finite fast path; large cells retain a shared emitter across advances.
+fn[T] analytic_emit_cell(
+  s : AnalyticEvaluation[T],
+  writer : @encode.Writer,
+  name : String,
+  cell : Value,
+  scope : AnalyticEnvelopeScope,
+) -> Result[Bool, RowIssue] {
+  if !spend_control(s.control, 1) {
+    return Err(AnalyticEnvelope(Measurement))
+  }
+  if s.wire is Some(cursor) {
+    match advance_stepped_runtime_wire(cursor) {
+      Err(Workspace) => return Err(RowLimit)
+      Err(Encoding(_)) => return Err(AnalyticEnvelope(scope))
+      Ok(false) => return Ok(false)
+      Ok(true) => {
+        s.wire = None
+        return Ok(true)
+      }
+    }
+  }
+  @encode.key(writer, name) catch {
+    _ => return Err(AnalyticEnvelope(scope))
+  }
+  if bounded_small_output_value(cell) {
+    emit_runtime_value(cell, writer) catch {
+      _ => return Err(AnalyticEnvelope(scope))
+    }
+    return Ok(true)
+  }
+  match start_stepped_runtime_wire(cell, writer, s.workspace) {
+    Err(Workspace) => Err(RowLimit)
+    Err(Encoding(_)) => Err(AnalyticEnvelope(scope))
+    Ok(cursor) => {
+      s.wire = Some(cursor)
+      Ok(false)
+    }
+  }
+}
+
+///|
 /// One step of the row-array envelope measurement: the writer, one row entry, one
 /// cell, or the closing measurement.
 fn[T : RelationRows] analytic_measure_step(
@@ -360,17 +438,17 @@ fn[T : RelationRows] analytic_measure_step(
     return Ok(())
   }
   if s.measure_column < s.names.length() {
-    if !spend_control(s.control, 1) {
-      return Err(AnalyticEnvelope(Measurement))
-    }
-    try {
-      @encode.key(writer, s.names[s.measure_column])
-      emit_runtime_value(
-        IndexedRows::read_cell(s.input, row, s.measure_column),
+    match
+      analytic_emit_cell(
+        s,
         writer,
-      )
-    } catch {
-      _ => return Err(AnalyticEnvelope(scope))
+        s.names[s.measure_column],
+        IndexedRows::read_cell(s.input, row, s.measure_column),
+        scope,
+      ) {
+      Err(issue) => return Err(issue)
+      Ok(false) => return Ok(())
+      Ok(true) => ()
     }
     s.measure_column += 1
     return Ok(())
@@ -489,7 +567,7 @@ fn[T : RelationRows] advance_analytic_evaluation_impl(
       s.index += 1
       Ok(None)
     }
-    // Input logical roots, one row per advance.
+    // Input logical roots, retaining large cells across bounded advances.
     3 => {
       guard s.scope is Some(value) else {
         s.index = 0
@@ -505,12 +583,33 @@ fn[T : RelationRows] advance_analytic_evaluation_impl(
       if RowValues::value_count(source) != s.names.length() {
         return Err(InvalidRows)
       }
-      if !reserve_slots(s.workspace, 1) {
+      if s.input_logical is None && !reserve_slots(s.workspace, 1) {
         return Err(RowLimit)
       }
-      let root = match retain_logical_row(value.budget, s.names, source) {
-        Ok(root) => root
-        Err(issue) => return Err(LogicalRows(issue))
+      let root = if s.input_logical is Some(cursor) {
+        if !spend_control(s.control, 1) {
+          return Err(RowLimit)
+        }
+        match advance_stepped_logical_row(cursor) {
+          Err(issue) => return Err(issue)
+          Ok(None) => return Ok(None)
+          Ok(Some(root)) => {
+            s.input_logical = None
+            root
+          }
+        }
+      } else if bounded_small_logical_row(s.names, source) {
+        match retain_logical_row(value.budget, s.names, source) {
+          Ok(root) => root
+          Err(issue) => return Err(LogicalRows(issue))
+        }
+      } else {
+        match
+          start_stepped_logical_row(value.budget, s.names, source, s.workspace) {
+          Err(issue) => return Err(issue)
+          Ok(cursor) => s.input_logical = Some(cursor)
+        }
+        return Ok(None)
       }
       let lease = match register_scope_root(value, root) {
         Ok(lease) => lease
@@ -1589,6 +1688,8 @@ fn[T : RelationRows] analytic_advance_output(
       return Err(RowLimit)
     }
     s.row = []
+    s.row_retained = false
+    s.logical_row_retained = false
     s.inner = 0
     return Ok(None)
   }
@@ -1643,14 +1744,17 @@ fn[T : RelationRows] analytic_advance_output(
         _ => return Err(AnalyticEnvelope(OutputWireBytes))
       }
     } else if cell <= width {
-      if !spend_control(s.control, 1) {
-        return Err(AnalyticEnvelope(Measurement))
-      }
-      try {
-        @encode.key(writer, s.output_names[cell - 1])
-        emit_runtime_value(s.row[cell - 1], writer)
-      } catch {
-        _ => return Err(AnalyticEnvelope(OutputWireBytes))
+      match
+        analytic_emit_cell(
+          s,
+          writer,
+          s.output_names[cell - 1],
+          s.row[cell - 1],
+          OutputWireBytes,
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(false) => return Ok(None)
+        Ok(true) => ()
       }
     } else {
       @encode.end_object(writer) catch {
@@ -1660,14 +1764,80 @@ fn[T : RelationRows] analytic_advance_output(
     s.inner += 1
     return Ok(None)
   }
-  if !retain_row(s.row, s.output_names, s.output) {
-    return Err(RowLimit)
+  if !s.row_retained {
+    if s.row_retention is Some(cursor) {
+      match advance_stepped_row_retention(cursor) {
+        Err(issue) => return Err(issue)
+        Ok(false) => return Ok(None)
+        Ok(true) => {
+          s.row_retention = None
+          s.row_retained = true
+        }
+      }
+      return Ok(None)
+    }
+    if bounded_small_retained_row(s.row, s.output_names) {
+      if !retain_row(s.row, s.output_names, s.output) {
+        return Err(RowLimit)
+      }
+      s.row_retained = true
+    } else {
+      match
+        start_stepped_row_retention(
+          s.row,
+          s.output_names,
+          s.output,
+          s.workspace,
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(cursor) => s.row_retention = Some(cursor)
+      }
+      return Ok(None)
+    }
   }
-  if s.scope is Some(value) {
-    match
-      row_event_output(value, s.output_names, s.row, [], s.input_roots[source]) {
-      Ok(_) => ()
-      Err(issue) => return Err(issue)
+  if s.scope is Some(value) && !s.logical_row_retained {
+    if s.output_logical is Some(cursor) {
+      if !spend_control(s.control, 1) {
+        return Err(RowLimit)
+      }
+      match advance_stepped_logical_row(cursor) {
+        Err(issue) => return Err(issue)
+        Ok(None) => return Ok(None)
+        Ok(Some(root)) => {
+          s.output_logical = None
+          match
+            row_event_retained_output(value, root, [], s.input_roots[source]) {
+            Err(issue) => return Err(issue)
+            Ok(_) => s.logical_row_retained = true
+          }
+        }
+      }
+      return Ok(None)
+    }
+    if bounded_small_logical_row(s.output_names, s.row) {
+      match
+        row_event_output(
+          value,
+          s.output_names,
+          s.row,
+          [],
+          s.input_roots[source],
+        ) {
+        Ok(_) => s.logical_row_retained = true
+        Err(issue) => return Err(issue)
+      }
+    } else {
+      match
+        start_stepped_logical_row(
+          value.budget,
+          s.output_names,
+          s.row,
+          s.workspace,
+        ) {
+        Ok(cursor) => s.output_logical = Some(cursor)
+        Err(issue) => return Err(issue)
+      }
+      return Ok(None)
     }
   }
   match (s.accept_row)(s.row, source) {

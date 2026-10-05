@@ -124,7 +124,7 @@ export async function runEquivalentMatrix({checkout, outputDirectory,
       typeof nativeSource !== 'function' ||
       typeof runNativePair !== 'function' ||
       typeof inspect !== 'function' ||
-      !['node-managed', 'native-eligible'].includes(productProfile)) {
+      !['node-managed', 'native-direct'].includes(productProfile)) {
     throw new TypeError('InvalidEquivalentMatrixRun');
   }
   const fixtures = retainedMatrix();
@@ -146,10 +146,10 @@ export async function runEquivalentMatrix({checkout, outputDirectory,
   const records = [];
   const selected = caseId === undefined ? fixtures : fixtures.filter(value => value.id === caseId);
   for (const [position, fixture] of selected.entries()) {
-    const useNative = productProfile === 'native-eligible' &&
-      (fixture.rows === 100 || fixture.rows === 1000 ||
-        fixture.workload === workloads[0]);
-    const record = {caseId: fixture.id, trainingCaseId: undefined,
+    // Host is an explicit experiment condition, never inferred from rows.
+    const useNative = productProfile === 'native-direct';
+    const record = {caseId: fixture.id, host: useNative ? 'native' : 'node',
+      experimentCondition: 'explicit-host', trainingCaseId: undefined,
       status: 'incomplete', trainingAttempts: [], pairs: []};
     const path = join(destination, `case-${String(position).padStart(2, '0')}.json`);
     records.push(record);

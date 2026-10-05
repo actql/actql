@@ -171,10 +171,46 @@ distribution[3] = distribution[3].replace(
   'adapters/host-node/in-process-client.test.mjs adapters/host-node/client-read-progress.test.mjs ',
 );
 
+// Model Checkpoint signing reuses the prepared SDK/Host distribution gate.
+// Preserve the independently fixed command inventory and every existing test.
+distribution[3] = distribution[3].replace(
+  'packages/sdk/checkpoints.test.mjs ',
+  'packages/sdk/checkpoints.test.mjs packages/sdk/model-checkpoints.test.mjs ',
+);
+
+// Installed Model restore reuses the existing build and distribution gate.
+distribution[3] = distribution[3].replace(
+  'adapters/host-node/installed-infer-capture.test.mjs ',
+  'adapters/host-node/installed-infer-capture.test.mjs adapters/host-node/model-resume-public.test.mjs adapters/host-node/model-resume-effect-public.test.mjs adapters/local-node/model-pause.test.mjs ',
+);
+
+// Model approval sequencing uses the same runtime build and distribution job.
+// Keep these adapter regressions separate from public packed acceptance.
+distribution[3] = distribution[3].replace(
+  'adapters/host-node/client-dispatch-owner.test.mjs ',
+  'adapters/host-node/client-dispatch-owner.test.mjs adapters/host-node/infer-operation-approval.test.mjs adapters/host-node/client-confirmed-cancellation.test.mjs adapters/host-node/infer-dispatch-waiting.test.mjs ',
+);
+
+// Main's Effect outcome explanation retains its existing mutation gate.
+distribution[3] = distribution[3].replace(
+  'adapters/host-node/client-cancel-response-loss.test.mjs ',
+  'adapters/host-node/client-cancel-response-loss.test.mjs adapters/host-node/client-effect-uncertainty.test.mjs ',
+);
+
 // The issued-retention original regression is part of the existing prepared
 // distribution gate. Pin its one intended addition independently of the
 // package command, retaining the exact inventory and duplicate rejection.
 distribution[3] += ' adapters/host-node/local-values-plan-policy.test.mjs';
+
+// Main's submission custody and mutation registrations remain mandatory.
+// Keep their exact independent inventory when integrating Model approval.
+distribution[3] = distribution[3].replace(
+  'adapters/host-node/client-cancel-response-loss.test.mjs ',
+  'adapters/host-node/client-submission-input.test.mjs adapters/host-node/client-cancel-response-loss.test.mjs ',
+);
+distribution.splice(4, 0, 'node scripts/check-read-row-mutations.mjs',
+  'node scripts/check-submission-input-mutations.mjs',
+  'node scripts/check-effect-uncertainty-mutations.mjs');
 
 test('runtime preparation preserves physical cwd and output through a symlinked temporary parent', t => {
   const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'runtime-build-alias-')));
