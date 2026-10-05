@@ -1,5 +1,50 @@
 # Graph difference source connection and publication boundary
 
+## Common order repair and current integration
+
+Normally merged main `92e789981a77eb3b229eaf01a289733ca768aa2a`.
+The combined grammar preimage is
+`sha256:b43a9bd5a9e433dd164afd4760f583cee1d29e63e8eb65200dc9adbfd54bc095`;
+the independently assembled current Values Run is
+`sha256:aeaec36c0401892a5b3ccb6b09ded8f9d077a500e36eb9f4650c6cd14a97ea80`.
+Both original merge-parent vectors and all pre-membership identities remain
+unchanged. No product-returned CID supplies an expectation.
+
+The existing language contract states that graph_diff completes exactly one
+Delta row. `local_sga/delta_diff.mbt` completes its bounded output through the
+existing one-row import. `pipeline_typing/logical_order.mbt` now retains the
+checked `GraphDelta(Difference)` producer as the logical order origin. Legal
+projection/filter/take consumers preserve that evidence. Graph application
+returns a Graph and does not establish Relation order. The Result publication
+policy and all its refusal conditions are unchanged.
+
+Before repair, the independent Program, its authored source and the consuming
+publication tests failed 4/8 (`run-5GfcAL`). With the repair, the same consumer
+boundary plus existing Delta/Result policy guards passed 18/18 (`run-eqks7R`).
+An additional negative control verifies that a one-row ceiling on an arbitrary
+JSON Relation still has no logical order and rejects publication with exactly
+`UnresolvedOrder`. It and the source/Values consumer passed 10/10
+(`run-fXXUD6`). That attempt's Node phase passed 13/14, finding main's stale
+COUNTIF flag-position assertion; the focused correction passed 2/2 with
+read-only manifest/import/canonical freshness (`run-H7FAJo`, 370 identities).
+
+Authored public fixtures compare full Delta content and snapshot identities:
+independent JSON controls with two separately keyed parallel edges, source
+self-difference, quoted aliases/normalization, nonempty parallel-edge removal
+within one domain, and an empty typed Relation suffix. Expected producer trees,
+Graph contracts, snapshots and Delta actions are authored without a product
+compiler, canonicalizer or difference result. Both ordinary and narrow packed
+routes retain the same cases; eight preparation refusals preserve zero
+admission/provider I/O assertions. They reuse existing resend/attach/describe/
+read checks and never supplement a compiled Program.
+
+Public Local/HTTPS results and exact package/source digests will be recorded
+for the clean submitted SHA in the PR body. They are not claimed by these
+focused checks. Full Core, Wasm/native runtime and required CI remain separate.
+The sections below preserve the earlier unresolved-order evidence at its
+original source; they are historical, not the status after this repair.
+
+
 Base: fetched main `94754f064299082a4cc4e44024dc8a844118f8ee`.
 This unit reuses the admitted Property Graph contract and the existing
 `graph_diff` operation. It adds no Graph kernel, execution owner, serialization

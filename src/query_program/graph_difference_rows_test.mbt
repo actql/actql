@@ -10,9 +10,7 @@ fn graph_difference_expected() -> @program.Program {
 }
 
 ///|
-fn graph_difference_publication_refused(
-  program : @program.Program,
-) -> Unit raise {
+fn graph_difference_normally_checked(program : @program.Program) -> Unit raise {
   match
     @check.check_parsed_with_evidence(
       program,
@@ -21,8 +19,8 @@ fn graph_difference_publication_refused(
       [],
       graph_rows_check_limits(),
     ) {
-    Checked(_) => fail("JSON Delta publication requires common order support")
-    Rejected(diagnostic) =>
+    Checked(_) => ()
+    Rejected(diagnostic) => {
       assert_true(
         @check.diagnostic_cause(diagnostic)
         is Source(
@@ -33,13 +31,15 @@ fn graph_difference_publication_refused(
           )
         ),
       )
+      fail("checked Graph difference must retain common publication order")
+    }
     NeedsInputs(_) => fail("Graph difference requires no extra acquisition")
   }
 }
 
 ///|
-test "Graph difference independent Program preserves the common publication refusal" {
-  graph_difference_publication_refused(graph_difference_expected())
+test "Graph difference independent Program uses the common publication owner" {
+  graph_difference_normally_checked(graph_difference_expected())
 }
 
 ///|
@@ -48,7 +48,7 @@ test "Graph difference source preserves its independently authored Program" {
     "DATA n = SELECT 1 AS node_key, 7 AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p))); FROM g |> graph_diff(with: g) |> SELECT delta",
   )
   assert_eq(semantic(program), semantic(graph_difference_expected()))
-  graph_difference_publication_refused(program)
+  graph_difference_normally_checked(program)
 }
 
 ///|
@@ -62,7 +62,7 @@ test "Graph difference DATA aliases retain existing producers and Relation scope
   assert_true(body.contains("\"normalize_graph\":true"))
   assert_true(body.contains("\"graph_diff\":{\"with\":\"aql_data_2\"}"))
   assert_true(body.contains("\"fields\":[\"delta\"]"))
-  graph_difference_publication_refused(program)
+  graph_difference_normally_checked(program)
 }
 
 ///|
