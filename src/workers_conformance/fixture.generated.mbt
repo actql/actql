@@ -71,6 +71,7 @@ fn captured_graph_fixture(
   local_values_unary_chain? : String? = None,
   local_select_qualified_chain? : Bool = false,
   linear_compute_stages? : Int = 0,
+  preparation_work? : Int = 1000,
   join_steps? : Array[Int] = [0],
   managed_publication? : Bool = false,
   nullable? : Bool = false,
@@ -167,7 +168,7 @@ fn captured_graph_fixture(
     program,
     owners,
     @program_check.unit_count(program) + 100,
-    1000,
+    preparation_work,
   ).unwrap()
   let requirement = @planning.prepare_query_requirement(
     @planning.prepare_query_material(sequence, query_material_limits()).unwrap(),
@@ -251,7 +252,8 @@ fn compute_test_limits() -> @execution.SequenceExecutionLimits {
 /// Fixture owner: query_integration/property_graph_host_custody_wbtest.mbt
 fn current_graph_relation_program(variant : String) -> String {
   let relation_step = match variant {
-    "current_filter" | "current_edge_filter" => "\"filter\":\"true\""
+    "current_filter" | "current_edge_filter" | "current_subgraph" =>
+      "\"filter\":\"true\""
     "current_degree" => "\"filter\":\"degree >= 0\""
     "current_bounds" => "\"filter\":\"actual >= 0\""
     "current_components_weak" | "current_components_strong" =>
@@ -274,6 +276,8 @@ fn current_graph_relation_program(variant : String) -> String {
     "{\"components\":{\"kind\":\"" +
     (if variant == "current_components_weak" { "weak" } else { "strong" }) +
     "\",\"max_output_rows\":2},\"as\":\"projected\"}"
+  } else if variant == "current_subgraph" {
+    "{\"from\":\"g\",\"match_nodes\":{\"definition\":\"N\",\"bindings\":{\"identity\":\"element\"},\"where\":\"true\",\"fields\":[\"element\"]},\"as\":\"selected\"},{\"from\":\"g\",\"subgraph\":{\"nodes\":{\"from\":\"selected\",\"id\":\"element\"}},\"as\":\"slice\"},{\"from\":\"slice\",\"match_nodes\":{\"definition\":\"N\",\"label\":\"Node\",\"bindings\":{\"identity\":\"element\"},\"where\":\"true\",\"fields\":[\"element\",\"id\",\"node_name\"]},\"as\":\"projected\"}"
   } else if variant == "current_edge_filter" {
     "{\"match_edges\":{\"definition\":\"E\",\"label\":\"Edge\",\"where\":\"true\",\"fields\":[\"src\",\"dst\",\"weight\"]},\"as\":\"projected\"}"
   } else {
@@ -2831,6 +2835,7 @@ fn query_checked_limits(
 ///|
 /// Fixture owner: query_integration/query_checked_program_wbtest.mbt
 fn query_checked_program_fixture(
+  program_text? : String? = None,
   nullable? : Bool = false,
   catalog? : @environment.SourceRequestContracts? = None,
   dag? : Bool = false,
@@ -3446,6 +3451,7 @@ fn query_checked_program_fixture(
   } else {
     text
   }
+  let text = program_text.unwrap_or(text)
   let input_limits : @syntax.Limits = {
     source: { max_input_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
     tree: {
