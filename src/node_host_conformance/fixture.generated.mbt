@@ -1957,6 +1957,10 @@ fn local_values_unary_program(kind : String) -> String {
     "filter_null" => "{\"filter\":\"amount > 0\",\"as\":\"out\"}"
     "filter_failure" => "{\"filter\":\"false AND 1 / 0 > 0\",\"as\":\"out\"}"
     "derive_map" => "{\"derive\":{\"next\":\"id + $minimum\"},\"as\":\"out\"}"
+    "derive_long_text" =>
+      "{\"derive\":{\"copy\":{\"literal\":\"" +
+      String::make(256, 'g') +
+      "\"}},\"as\":\"out\"}"
     "derive_empty" => "{\"derive\":{},\"as\":\"out\"}"
     "derive_failure" => "{\"derive\":{\"unused\":\"1 / 0\"},\"as\":\"out\"}"
     "derive_ordered" =>
@@ -1982,6 +1986,7 @@ fn local_values_unary_program(kind : String) -> String {
   let fields = match kind {
     "select" => "[\"total\",\"id\"]"
     "derive_map" => "[\"id\",\"amount\",\"next\"]"
+    "derive_long_text" => "[\"id\",\"amount\",\"copy\"]"
     "derive_ordered" => "[\"id\",\"amount\",\"saved\",\"next\"]"
     "rename_swap" => "[\"amount\",\"id\"]"
     "rename" => "[\"id\",\"total\"]"

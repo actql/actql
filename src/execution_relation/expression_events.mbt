@@ -37,8 +37,24 @@ fn expression_event_result(
   value : Value,
   root : ExpressionRootLease?,
   expr : @lower.Expression,
+  prepaid? : Bool = false,
 ) -> Result[ExpressionRootLease?, EvalIssue] {
-  let result = if scope is Some(s) && root is None {
+  let result = if prepaid {
+    // Only the completed charged cursor can supply this event. Its root must
+    // still belong to this exact scope; identity alone is not a work proof.
+    guard scope is Some(s) &&
+      root is Some(r) &&
+      physical_equal(r.scope, s) &&
+      physical_equal(r.root.owner, s.budget) &&
+      !r.root.released &&
+      !s.budget.failed &&
+      r.root.measurement is Some(_) &&
+      s.slots.get(r.slot) is Some(Some(live)) &&
+      physical_equal(live, r.root) else {
+      return Err({ kind: LogicalValue(InvalidRootLifetime), expression: expr, })
+    }
+    Ok(root)
+  } else if scope is Some(s) && root is None {
     match track_expression_root(s, value, true) {
       Err(issue) => Err({ kind: LogicalValue(issue), expression: expr, })
       Ok(root) => Ok(Some(root))

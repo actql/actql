@@ -91,7 +91,7 @@ priv enum Evaluation {
   Concat(VectorConcatState)
   FinishObject(ObjectExpressionState)
   MeasureObject(ObjectExpressionState, Value, LogicalMeasureCursor)
-  MeasureObjectOperand(Value, LogicalMeasureCursor)
+  MeasureResult(Value, LogicalMeasureCursor)
 }
 
 ///|
@@ -231,6 +231,8 @@ priv struct ExpressionFrame {
   mut state : Evaluation
   mut active : @lower.Expression
   mut current_root : ExpressionRootLease?
+  mut result_prepaid : Bool
+  mut measurement_slots : Int
   workspace_baseline : Int
   mut closed : Bool
 }
@@ -264,6 +266,8 @@ fn expression_frame(
     state: Enter(root),
     active: root,
     current_root: None,
+    result_prepaid: false,
+    measurement_slots: 0,
     workspace_baseline: workspace.live,
     closed: false,
   })
@@ -286,9 +290,12 @@ fn close_expression_frame(frame : ExpressionFrame) -> Unit {
   match frame.state {
     Concat(state) => @admitted.cancel_vector_value(state.builder) |> ignore
     MeasureObject(_, _, cursor) => clear_logical_measure(cursor)
-    MeasureObjectOperand(_, cursor) => clear_logical_measure(cursor)
+    MeasureResult(_, cursor) => clear_logical_measure(cursor)
     _ => ()
   }
+  release_slots(frame.workspace, frame.measurement_slots)
+  frame.measurement_slots = 0
+  frame.result_prepaid = false
   if frame.workspace.live > frame.workspace_baseline {
     release_slots(
       frame.workspace,
@@ -557,36 +564,47 @@ fn advance_expression_frame_impl(
         }
       }
       Return(value) => {
-        // A borrowed aggregate still needs an exact measurement before its
-        // first semantic consumption. Object/property must not drain a large
-        // model output in a single Return transition. Other operation paths
-        // retain their existing measurement/charge schedule.
+        // Any demanded large value needs a bounded first measurement, not just
+        // an object/property receiver. Forwarded roots reuse their exact proof;
+        // subsequent semantic consumptions still pay the complete weight.
         let object_operand = frame.object_context > 0 ||
           @lower.expression_body(frame.active) is @lower.Property(_, _, _)
-        if object_operand &&
-          frame.current_root is None &&
+        if frame.current_root is None &&
           scope is Some(scope) &&
-          value is Captured(@admitted.Object(_) | @admitted.Array(_)) {
+          (
+            !bounded_small_output_value(value) ||
+            (
+              object_operand &&
+              value is Captured(@admitted.Object(_) | @admitted.Array(_))
+            )
+          ) {
+          if scope.free.is_empty() && scope.slots.length() >= scope.limit {
+            scope.budget.failed = true
+            return Err({
+              kind: LogicalValue(LiveValueLimit),
+              expression: frame.active,
+            })
+          }
           let logical = scope.budget
           let cursor = match
-            start_logical_measure(
+            start_charged_logical_measure(
               value,
-              logical.limits.max_work - logical.work,
-              Int64::min(
-                logical.limits.max_value_bytes,
-                logical.host_bytes.to_int64(),
-              ).to_int(),
+              logical,
+              workspace,
               logical.host_nodes,
               logical.host_depth,
             ) {
             Ok(cursor) => cursor
-            Err(issue) =>
+            Err(Workspace) =>
+              return Err({ kind: WorkspaceLimit, expression: frame.active, })
+            Err(Logical(issue)) =>
               return Err({
-                kind: LogicalValue(ValueMeasure(issue)),
+                kind: LogicalValue(issue),
                 expression: frame.active,
               })
           }
-          frame.state = MeasureObjectOperand(value, cursor)
+          frame.measurement_slots = 9
+          frame.state = MeasureResult(value, cursor)
           if !drain {
             return Ok(None)
           }
@@ -601,10 +619,12 @@ fn advance_expression_frame_impl(
             value,
             frame.current_root,
             frame.active,
+            prepaid=frame.result_prepaid,
           ) {
           Ok(root) => root
           Err(issue) => return Err(issue)
         }
+        frame.result_prepaid = false
         guard frame.stack.pop() is Some(continuation) else {
           let retained = match frame.current_root {
             None => None
@@ -1209,46 +1229,56 @@ fn advance_expression_frame_impl(
           }
         }
       }
-      MeasureObjectOperand(value, cursor) =>
-        match advance_logical_measure(cursor) {
-          Err(issue) =>
-            return Err({
-              kind: LogicalValue(ValueMeasure(issue)),
-              expression: frame.active,
-            })
-          Ok(None) => ()
-          Ok(Some(measured)) => {
-            guard scope is Some(scope) else {
-              return Err({
-                kind: LogicalValue(InvalidRootLifetime),
-                expression: frame.active,
-              })
+      MeasureResult(value, cursor) => {
+        guard scope is Some(scope) else {
+          return Err({
+            kind: LogicalValue(InvalidRootLifetime),
+            expression: frame.active,
+          })
+        }
+        match
+          advance_charged_logical_measure(
+            cursor,
+            scope.budget,
+            workspace,
+            frame.measurement_slots,
+          ) {
+          Err(Workspace) =>
+            return Err({ kind: WorkspaceLimit, expression: frame.active, })
+          Err(Logical(issue)) =>
+            return Err({ kind: LogicalValue(issue), expression: frame.active, })
+          Ok((measured, reserved)) => {
+            frame.measurement_slots = reserved
+            if measured is Some(measured) {
+              let root = match
+                reserve_logical_bytes(
+                  scope.budget,
+                  measured.wire_bytes.to_int64(),
+                ) {
+                Ok(root) => root
+                Err(issue) =>
+                  return Err({
+                    kind: LogicalValue(issue),
+                    expression: frame.active,
+                  })
+              }
+              root.measurement = Some(measured)
+              frame.current_root = match register_scope_root(scope, root) {
+                Ok(root) => Some(root)
+                Err(issue) =>
+                  return Err({
+                    kind: LogicalValue(issue),
+                    expression: frame.active,
+                  })
+              }
+              // The first result event was paid incrementally. Only this Return
+              // is prepaid; forwarding and operand consumption remain charged.
+              frame.result_prepaid = true
+              frame.state = Return(value)
             }
-            let root = match
-              reserve_logical_bytes(
-                scope.budget,
-                measured.wire_bytes.to_int64(),
-              ) {
-              Ok(root) => root
-              Err(issue) =>
-                return Err({
-                  kind: LogicalValue(issue),
-                  expression: frame.active,
-                })
-            }
-            root.measurement = Some(measured)
-            frame.current_root = match register_scope_root(scope, root) {
-              Ok(root) => Some(root)
-              Err(issue) =>
-                return Err({
-                  kind: LogicalValue(issue),
-                  expression: frame.active,
-                })
-            }
-            // Return pays the same full value weight as synchronous evaluation.
-            frame.state = Return(value)
           }
         }
+      }
     }
     if !drain {
       return Ok(None)
