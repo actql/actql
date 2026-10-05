@@ -104,6 +104,21 @@ test('typed public facts are closed and locations bind declared input revisions'
     {...constraint, code: 'parameter_undeclared'},
     {...constraint, code: 'future_code'},
   ]) assert.equal(valid(outcome(changed)), false, '[check-mutation:constraint-schema]');
+  const expression = {code: 'query_expression_invalid', facts: {issue: 'invalid_number'},
+    location: {kind: 'text', document_id: 'source', revision,
+      start_byte: 0, end_byte: 6, precision: 'exact'}};
+  for (const issue of ['unknown_reference', 'invalid_arguments', 'invalid_number']) {
+    assert.equal(valid(outcome({...expression, facts: {issue}})), true);
+    assert.equal(valid(outcome({code: expression.code, facts: {issue}})), true);
+  }
+  for (const changed of [
+    {code: expression.code}, {...expression, facts: {}},
+    {...expression, facts: {issue: 'invalid_escape'}},
+    {...expression, facts: {issue: 'future_issue'}},
+    {...expression, facts: {...expression.facts, name: 'private_name'}},
+    {...expression, location}, {...expression, code: 'query_invalid'},
+    {...expression, code: 'future_code'},
+  ]) assert.equal(valid(outcome(changed)), false, '[check-mutation:expression-schema]');
   const lexical = {code: 'query_lexical_invalid', facts: {issue: 'invalid_escape'},
     location: {kind: 'text', document_id: 'source', revision,
       start_byte: 6, end_byte: 6, precision: 'exact'}};
@@ -114,6 +129,8 @@ test('typed public facts are closed and locations bind declared input revisions'
     {code: 'query_lexical_invalid'},
     {...lexical, facts: {}},
     {...lexical, facts: {issue: 'future_issue'}},
+    {...lexical, facts: {issue: 'unknown_reference'}},
+    {...lexical, facts: {issue: 'invalid_arguments'}},
     {...lexical, facts: {...lexical.facts, token: 'private text'}},
     {...lexical, location},
     {...lexical, code: 'parameter_undeclared'},

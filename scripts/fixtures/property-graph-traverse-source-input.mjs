@@ -71,7 +71,7 @@ export const graphTraverseSourceRefusals = [
   ['unknown-selector', call.replace('from: seeds', 'from: missing')],
   ['string-selector-reference', call.replace('from: seeds', "from: 'seeds'")],
   ['missing-selector-column', call.replace("id: 'element'", "id: 'missing'")],
-  ['path-output-not-connected', call.replace("emit: 'nodes'", "emit: 'paths'")],
+  ['unknown-emission', call.replace("emit: 'nodes'", "emit: 'invented'")],
   ['invalid-hop-bound', call.replace('max_hops: 1', 'max_hops: 0')],
   ['invalid-path-mode', call.replace("'trail'", "'invented'")],
   ['extra-argument', call.replace('max_output_rows: 10', 'max_output_rows: 10, extra: true')],

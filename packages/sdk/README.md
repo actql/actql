@@ -391,11 +391,16 @@ Inherited properties, array metadata, missing nodes and scalar descendants
 cannot identify submitted nodes. Invalid Host locations refuse the check with
 `InvalidHostCheckOutcome`, including locations in partial reports or Requirements.
 There is no SDK parser, automatic fix or Host input re-fetch API.
-Unresolved column expressions can carry the lowerer's original authored
-identifier range in `query_invalid`. The range is omitted when the existing
-failure has no authored origin, including unresolved Source names and current
-unaliased-column failures. The SDK uses the same submitted snapshot for both
-syntax and name-resolution ranges.
+Typed expression failures use `query_expression_invalid`, with `facts.issue`
+`unknown_reference`, `invalid_arguments` or `invalid_number`. They identify an
+unresolved expression reference, invalid operation arguments or the admitted
+numeric domain, respectively. Numeric domain failures differ from the lexical
+reason's numeric spelling failure. `explainCheckReason` supplies safe summaries
+and advisory correction hints; messages do not determine verdicts. Only existing
+authored origins supply reference, call or numeric ranges. Missing/generated
+origins and protected Source resolution acquire no fabricated span or name.
+Unaliased-column failures lacking a typed expression diagnostic remain generic.
+The SDK uses the same submitted snapshot for syntax and expression ranges.
 `resolveCheckTextRange(outcome, location, currentInput?)` additionally returns
 zero-based `range.start`/`range.end` line and character coordinates with
 `positionEncoding: 'utf-16'`. It reads that same immutable source snapshot and

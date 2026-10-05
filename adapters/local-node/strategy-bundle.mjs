@@ -1,7 +1,8 @@
 // Local connector's Node driver. The kernel and reservation authority stay in
 // MoonBit; this wrapper never evaluates an expression or synthesizes a result.
 import {readLocalRetainedInput} from './retained-input.mjs';
-import {localRetainedStore, localSnapshotStore} from './retained-store.mjs';
+import {localComputeFaultInjection, localRetainedStore,
+  localSnapshotStore} from './retained-store.mjs';
 import {prepareLocalRetainedOutput} from './retained-output.mjs';
 import {closeCompletedLocalManagedOutput} from './managed-output-custody.mjs';
 import {prepareLocalCarrierSnapshot, prepareLocalRelationSnapshot} from './carrier-snapshot.mjs';
@@ -46,7 +47,9 @@ const stopBoundedExecution = (operations, checked) => {
 
 // Local computation is bounded on every path: there is no synchronous
 // whole-task execute fallback.
-const runManagedExecution = async (operations, checked, signal) => {
+const runManagedExecution = async (
+  operations, checked, signal, faultInjection, task,
+) => {
   if (typeof operations.advance !== 'function') {
     throw new Error('MissingBoundedLocalExecution');
   }
@@ -60,6 +63,17 @@ const runManagedExecution = async (operations, checked, signal) => {
       managedWorkQuantum,
       'InvalidLocalManagedAdvance',
     );
+    if (faultInjection !== undefined && observation.work > 0n &&
+        !observation.complete) {
+      await faultInjection('local_compute_advanced', {
+        task, progress: observation.progress.toString(),
+        work: observation.work.toString(),
+      });
+    }
+    if (signal?.aborted) {
+      stopBoundedExecution(operations, checked);
+      signal.throwIfAborted();
+    }
     if (observation.complete) return;
     await yieldToHost();
   }
@@ -93,6 +107,7 @@ const runManagedFinalization = async (
 export function localStrategyContribution(moon, setup, checked, configuration) {
   const createLease = localRetainedStore(configuration);
   const createSnapshotLease = localSnapshotStore(configuration);
+  const faultInjection = localComputeFaultInjection(configuration);
   const registration = moon.strategyModule_local_Registration(setup);
   let nextMaterial = 1;
   return Object.freeze({
@@ -307,7 +322,8 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           (index, row) => checked(transfers[index].append(row)),
           async () => {
             for (const transfer of transfers) checked(transfer.finish());
-            await runManagedExecution(operations, checked, signal);
+            await runManagedExecution(operations, checked, signal,
+              faultInjection, prepared.task);
           },
           signal,
           undefined,
@@ -445,7 +461,9 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
       let importedRows = 0, importedBytes = 0n;
       let output;
       try {
-        if (operations.output != null) output = prepareLocalRetainedOutput(operations.output, createLease, checked, signal);
+        if (operations.output != null) output = prepareLocalRetainedOutput(
+          operations.output, createLease, checked, signal, faultInjection,
+        );
         for (const input of operations.inputs) {
           signal?.throwIfAborted();
           const usage = await readLocalRetainedInput(
@@ -454,7 +472,9 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           importedRows += usage.rows;
           importedBytes += BigInt(usage.bytes);
         }
-        await runManagedExecution(operations, checked, signal);
+        await runManagedExecution(operations, checked, signal,
+          faultInjection,
+          faultInjection === undefined ? undefined : moon.strategyHostTask(task));
         const exported = output ? await output.write() : {};
         checked(operations.settle());
         recordManagedFailureExecutionSettled(failureProgress);

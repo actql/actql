@@ -42,14 +42,15 @@ fn group_profile_owner(aggregates : String) -> @lowering_relation.BoundPrepared 
 }
 
 ///|
-test "selected count eligibility includes keys without admitting other members" {
+test "selected group boundary includes existing count and general providers" {
   for
     (aggregates, expected) in [
       ("{\"n\":{\"fn\":\"count\"}}", true),
       ("{\"n\":{\"fn\":\"count\",\"field\":\"n\"}}", true),
-      ("{\"n\":{\"fn\":\"sum\",\"field\":\"n\"}}", false),
-      ("{\"n\":{\"fn\":\"count\",\"field\":\"n\",\"distinct\":true}}", false),
-      ("{\"n\":{\"fn\":\"count\",\"filter\":\"b\"}}", false),
+      ("{\"n\":{\"fn\":\"sum\",\"field\":\"n\"}}", true),
+      ("{\"n\":{\"fn\":\"count\",\"field\":\"n\",\"distinct\":true}}", true),
+      ("{\"n\":{\"fn\":\"count\",\"filter\":\"b\"}}", true),
+      ("{\"n\":{\"fn\":\"max\",\"expr\":\"n\",\"filter\":\"b\"}}", true),
     ] {
     let owner = group_profile_owner(aggregates)
     let node = @lowering_relation.node_at(
