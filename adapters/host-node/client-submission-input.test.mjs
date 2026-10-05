@@ -217,3 +217,32 @@ for (const entrance of ['local', 'https']) {
     }
   }
 }
+
+for (const entrance of ['local', 'https']) {
+  test(`${entrance}: bound count input refusal precedes Run acceptance`, async t => {
+    const f = await fixture(t, entrance);
+    const program = {version: 'actql/0.1', id: 'bound-count',
+      params: {n: {type: 'number', nullable: true}}, stages: [{id: 'main', inputs: {},
+        steps: [{values: {schema: {id: {type: 'number', nullable: false}}, rows: [{id: 1}]}, as: 'rows'},
+          {take: {$param: 'n'}, as: 'selected'}],
+        results: {out: {from: 'selected', fields: ['id']}}}],
+      results: {out: {from: {stage: 'main', result: 'out'}}}};
+    for (const [index, n] of [0, -1, 1.5, 9007199254740992, null].entries()) {
+      for (const kind of ['program', 'aql-json']) {
+        const options = {requestId: `${kind}-${index}`, parameters: {n}};
+        await assert.rejects(kind === 'program' ? f.client.start(program, options)
+          : f.client.aql(JSON.stringify(program), {...options, format: 'json'}),
+        error => {
+          assert.equal(error.code, 'ClientProgramRejected', '[check-mutation:bound-count-category]');
+          return true;
+        });
+        assert.deepEqual(f.counts(), {submits: 0, issues: 0});
+        assert.deepEqual(f.stored(), []);
+      }
+    }
+    await assert.rejects(f.client.start(program, {requestId: 'missing-count'}),
+      {code: 'ClientProgramNeedsInputs'});
+    assert.deepEqual(f.counts(), {submits: 0, issues: 0});
+    assert.deepEqual(f.stored(), []);
+  });
+}
