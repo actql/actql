@@ -317,15 +317,13 @@ fn check_source_findings(
             { issue: InvalidLimits | Construction(_) | Admission(_), .. }
           )
         ) => return Failed("check_internal")
+        // This lowerer issue conflates unknown names with unsupported forms.
+        // Without a distinct input violation it cannot justify author blame.
+        QueryLowering(Expression({ issue: UnsupportedFunction, .. })) =>
+          findings.push(Limit("implementation_limit"))
         QueryLowering(
           Expression(
-            {
-              issue: UnknownReference
-              | UnsupportedFunction
-              | InvalidArguments
-              | InvalidNumber,
-              ..
-            }
+            { issue: UnknownReference | InvalidArguments | InvalidNumber, .. }
           )
         ) => findings.push(check_query_finding(issue))
         // Host query context, not the caller's input.

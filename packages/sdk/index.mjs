@@ -16,6 +16,8 @@ const checkInputs = new WeakMap();
 // by serializing an error or Run handle. It does not establish acceptance.
 const submissionInputs = new WeakMap();
 const submissionContexts = new WeakMap();
+// Presentation is bound by the validated submit branch, never an error string.
+const submissionExplanations = new WeakMap();
 const utf8 = new TextEncoder();
 const freezeInput = value => {
   if (value !== null && typeof value === 'object') {
@@ -34,6 +36,19 @@ export function getCheckInput(outcome, documentId, revision) {
 export function getSubmissionInput(result) {
   return submissionInputs.get(result);
 }
+
+export function explainSubmission(result) {
+  return submissionExplanations.get(result);
+}
+
+const submissionLookupExplanation = (observation, input) => freezeInput({
+  observation,
+  summary: observation === 'acceptance_unknown'
+    ? 'Submission acceptance is unknown. Work may already have started.'
+    : 'The Host returned a held-request response. Look up the current request state.',
+  next: {operation: 'lookupRequest', requestId: input.requestId,
+    lookupContext: input.lookupContext},
+});
 
 const structuredNodeExists = (value, pointer) => {
   if (typeof pointer !== 'string' || pointer.length > 4096 ||
@@ -125,7 +140,7 @@ export function explainCheckReason(reason) {
     parameter_value_required: ['A declared parameter value is missing.', 'Supply the declared value and check the complete bound input again.'],
     program_invalid: ['The input violates the checked Program contract.', 'Correct the input under the selected contract.'],
     bound_values_missing: ['Required bound inputs are missing.', 'Supply the declared inputs and check again.'],
-    implementation_limit: ['This checking implementation cannot discharge an obligation.', 'Use a checking implementation that supports the allowed construct.'],
+    implementation_limit: ['This checking implementation cannot discharge an obligation.', 'Ask the checking-context owner to review support for the submitted construct.'],
     analysis_budget_exhausted: ['The analysis budget was exhausted.', 'Ask the checking-context owner to review the analysis budget.'],
     check_unclassified: ['The checker could not establish a classified conclusion.', 'Ask the checking-context owner to investigate.'],
     unresolved_protected: ['Source resolution cannot be established from the disclosed context.', 'Ask the Source or checking-context owner to review the published context.'],
@@ -198,6 +213,8 @@ const submissionUnknown = (context, cause) => {
   const result = new ClientError('SubmissionUnknown', {...context, cause});
   const input = submissionContexts.get(context);
   if (input) submissionInputs.set(result, input);
+  if (input) submissionExplanations.set(result,
+    submissionLookupExplanation('acceptance_unknown', input));
   return result;
 };
 const readFailure = (cause, attemptId, rowsYielded) => new ClientError(
@@ -797,6 +814,8 @@ async function connectSelected(selected, port) {
           {checkpoint: Object.freeze({...admitted.checkpoint})})}),
       context.lookupContext);
       submissionInputs.set(held, snapshot);
+      submissionExplanations.set(held,
+        submissionLookupExplanation('request_held', snapshot));
       throw held;
     }
     let result;
@@ -805,6 +824,11 @@ async function connectSelected(selected, port) {
       throw submissionUnknown(context, cause);
     }
     submissionInputs.set(result, snapshot);
+    submissionExplanations.set(result, freezeInput({
+      observation: 'run_reference_received',
+      summary: 'The Host returned a validated Run reference. Check the current Run state for execution progress.',
+      next: {operation: 'status', ref: result.ref},
+    }));
     return result;
   };
   return Object.freeze({

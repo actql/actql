@@ -26,6 +26,134 @@ establish the public configuration connection, not retained output for every
 installed source or two-source Program variant. Full CI and Native Host cancellation
 remain separate verification units.
 
+Two independently installed GitHub row sources can now occupy the two checked
+captured input tasks of one retained-output Program. The Host prepares each
+source at its own occurrence, checks both capacities against one Local ledger,
+charges the page transfer, and transfers each captured holding to its exact
+task before Join. A public HTTPS Program joins distinct repositories, publishes
+the Join and two downstream consumer Named Results to the real retained Store,
+and reads them again after Host reopen without provider I/O. Later-source
+failure, cancellation after the first capture, and a failed cleanup followed
+by retry leave no partial Result or lost holding and do not reacquire a source.
+An awaited Host test hook at the bounded Join advance also delivers
+cancellation after positive Compute progress with both captures live. Neither
+input cleanup starts before that advance is released; the cancelled Run
+confirms physical stop, publishes no Result, releases both captures, and
+does not reacquire on same-request resend.
+This selected row-file task uses the same `localStrategyContribution.run` and
+`prepareLocalRetainedOutput` writer as the retained binary-chain append and
+finalize fault harness. Two public HTTPS cases now lose the acknowledgement
+after actual Store append and after actual seal, respectively. Both leave the
+Join and consumer Results unavailable, reclaim the writer and two acquired
+inputs, and avoid another writer entry or provider read on same-request resend.
+These are acknowledgement-loss faults at the selected writer boundary, not a
+claim about every possible OS write error or the mixed-provider variant.
+The existing two-DuckDB-source retained route remains covered separately.
+The same public HTTPS fixture now combines a GitHub row source and a DuckDB
+source in both Program acquisition orders. Each run reads its independent
+expected Join rows from the real retained Store, and resend and reopened-Host
+attach do not reacquire either provider. This is evidence for those installed
+source pairs and the shared two-input owner, not every provider combination,
+every Join variant, or exact/one-short physical limits for the row capture.
+The installed GitHub source also has a public retained-Store 100/101-row
+boundary: 100 rows publish exact ordered Named Results, while 101 reaches
+the typed `GitHubReadRowLimit`, publishes nothing, and a same-request resend
+does not fetch again. This proves the connector's total-row ceiling through
+the public route; it does not isolate the downstream row-capture ceiling,
+which is also 100 in this installation.
+The same installed source now feeds a selected bounded Relation group followed
+by a filter and sort in one Compute task. The public HTTPS Host reads numeric
+COUNT, SUM, and AVG groups and two distinct consumer Results from the real
+retained Store against literal expectations. A second Program filters all
+acquired rows before a global group and observes count zero with null SUM/AVG.
+Both committed Results remain readable after Host reopen without another
+source read. This is a source-to-numeric-group connection proof, not an
+independent Host-wide exact/one-short budget or capture ceiling proof.
+The checked Program-to-RowAcquisition owner has a separate 2/1 capture-row
+boundary test: the same two-row page passes with capacity two and yields a
+capture, while capacity one gives typed `CaptureLimit` and cannot finish or
+expose a partial capture. This isolates the common capture owner but is not
+a public retained-Store 2/1 configuration test.
+An installed Salesforce source also supplies an exact retained Relation to a
+later Events Stage. The normal HTTPS Host selects the source, derives a
+non-null numeric clock, runs `to_events` and `watermark_events`, and reads the
+formal `events` Bridge followed by a same-Stage Relation filter and two
+consumers from the real Store against independent ordered rows. The acquired
+row task uses retained-file output;
+the Carrier tasks use managed material. A repeated request and reopened Host
+do not reacquire the source. Duplicate event identities fail after capture
+without publishing a partial Result. An arithmetic failure in the Relation
+filter after the formal Events Bridge likewise leaves no published Result or
+retained Carrier snapshot. Cancellation at the captured-input handoff reclaims
+its file without a second read. This path does not claim that
+a nullable Salesforce datetime can directly serve as the non-null Event clock,
+nor does the handoff cancellation prove cancellation inside a TEA kernel.
+The installed GitHub Issues source provides a separate non-null numeric Event
+clock from issue numbers. An HTTPS Program retains that acquired input, runs
+`to_events` and a fixed `window_events` transform, and publishes the formal
+`events` Bridge and a later consumer with independent ordered window rows.
+Reading the committed Result after Host reopen does not repeat either source
+page. This is a fixed-window route with a genuine varying source clock, not
+evidence for other TEA window variants or in-kernel cancellation of an
+externally acquired input.
+Two separately captured GitHub sources also feed the retained-file Join task,
+then `to_events`, fixed windowing, the formal Bridge, and a same-Stage Relation
+filter. The public Host reads the windowed Result and its consumer after two
+acquisition completions, observes both row-file and managed representations,
+and reopens the committed Result without another source request. This proves
+that particular two-source-to-Carrier chain, not every Join or TEA variant.
+The same Program shape with a failing post-Bridge Relation filter also leaves
+the Result unavailable. An injected first-input cleanup failure retains its
+holding until Host cleanup retry succeeds, with neither source reacquired.
+The public Host reports `CapturedRunPublicationFailed`; this fixture does not
+inspect the inner arithmetic issue or prove Compute entrypoint non-reexecution.
+The same retained Join-to-Events route also accepts a GitHub capture paired
+with a DuckDB capture. Its fixed-window and consumer Results match independent
+ordered rows after Host reopen, without another read from either provider.
+This adds mixed-provider Carrier evidence, not a Store writer fault or
+post-progress Compute cancellation for the mixed-provider variant.
+For a row connector with multiple declared views, the two-installation Host
+now carries each view's source reference and read tuple into Check disclosure
+and pre-acquisition Checkpoint selection. The installed source still prepares
+the selected occurrence and physical target before any read. Focused adapter,
+Check, and Checkpoint tests cover this binding, including an unused declared
+view. The installed Salesforce adapter now uses the checked retained
+Host factory when output retention is configured. A public HTTPS fixture
+selects the non-first view from a two-view Salesforce declaration, reads
+independently expected producer and downstream consumer Named Results from
+the real retained Store, and observes `retained-file` for both outputs.
+Resend and reopened-Host attach do not issue another Salesforce query. This
+closes the selected multi-view capture route. A retained-mode provider error
+after the read starts publishes nothing and is not reread after resend or
+Host reopen. Cancellation at the captured-input handoff retains the source
+through stop and cleanup and publishes nothing. Two distinct views of the
+same installed Salesforce source can also fill the two checked input tasks
+of a retained Join. The Host selects both view bindings, reserves their
+physical capture capacities in the shared ledger, charges received pages,
+and transfers each captured holding to its exact task. The public HTTPS
+fixture uses asymmetric Resource rows to check exact left/right Join input
+binding and two downstream consumer Named Results. It checks resend without
+reacquisition, attach after Host reopen, and cancellation after the first
+capture but before the second read. A provider failure during the second
+read releases the first captured holding without publication or reacquisition.
+A fault after both captures confirms nonpublication, and a separate failed
+close retains its holding through shutdown retry without another provider
+read. Final dispatch cleanup releases
+the transfer reservation and all retained holdings. These tests do not
+establish a Store writer fault, cancellation after positive Join work, or
+every Salesforce acquisition variant.
+Two separately installed Salesforce sources also retain exact left and right
+input ports when their Resources return different rows. The public HTTPS
+fixture reads the Join and both consumer Results from the real Store, then
+resends and reopens the Host without another provider query. This validates
+the two-adapter Salesforce binding through the same owner; it does not turn
+other provider pairs into an implicit completion claim.
+The same published Salesforce SourceView may fill two separate acquisition
+slots in different Stages. Each slot retains its own checked requirement and
+occurrence identity, while both select the same installed read authority. A
+held pair resumes across Host restart with separate approvals, and a completed
+public Result attaches after restart without reacquiring either slot.
+
 The installed full-family Host now declares TEA and VecA to the common checker,
 matching its already registered bounded providers. This does not make a
 checker declaration an execution offer: the exact selected task and its
@@ -802,13 +930,114 @@ also completes the identical authored Program through the same physical task
 shape. This does not admit arbitrary nonlinear operations or intermediate
 Result roots.
 
-A disconnected producer that appends `l` and then filters `l` rather than the
-append result remains unsupported by the bounded selected provider. The
-ordinary retained-only Host rejects that Program during whole-graph selection:
-no Compute dispatch, Store lease, or completed task is created. Another
-eligible implementation may provide a valid offer. The `unsupported-chain`
-fixture is a pre-execution rejection control, not an assertion that all
-multi-step Relation tasks are rejected.
+The same bounded owner now retains a checked global `COUNT` on each branch:
+`append` → two filters → two independent groups → `append`. The splitter keeps
+the authored producer as one task when every child is eligible for selected
+managed execution and has exact Relation ports. The ordinary memory-output
+Host and real retained Store Host both run this shape; the latter reads the
+producer and two consumer Named Results against independently fixed ordered
+rows `[{n: 3}, {n: 2}]`. A mixed `MAX`/`COUNT` branch also completes as one
+selected task and publishes `[{n: 4}, {n: 2}]`; the existing whole-task
+provider, rather than the narrower split eligibility for `COUNT`, admits it.
+Independent `SUM` and `AVG` branch slots likewise seal and publish
+`[{n: 9}, {n: 1.5}]` through the retained Store and two consumer Results.
+The same checked shape permits selected bounded `sort` and `distinct`
+children on different branches. With a duplicated input ID, the retained
+producer and both consumers read the fixed ordered rows
+`[{id: 4}, {id: 3}, {id: 2}, {id: 2}, {id: 1}, {id: 2}]`; the memory-output
+Host also runs the authored Program as one physical task. This does not
+admit arbitrary order-sensitive or nonlinear child operations.
+The selected `take` child can follow the sorted branch without splitting
+the task or resetting its cumulative budget. On the same duplicated input,
+the real Store publishes `[{id: 4}, {id: 3}, {id: 1}, {id: 2}]` to the
+producer and two consumers; the memory-output Host runs the same Program.
+The same bounded fork can use `top_k` on one branch and `dedupe_rows` on the
+other when their checked order requirements are met. The fixture asserts
+unique IDs before `top_k`, gives duplicate IDs a distinct origin for the
+dedupe top-tie rule, and projects that private origin away before the task
+Result. The retained producer and two consumers then publish the fixed order
+`[{id: 4}, {id: 3}, {id: 1}, {id: 2}]` without changing the task's cumulative
+work or intermediate ownership model. This is not blanket admission of
+order-sensitive children with unresolved ties.
+
+The same selected fork owner accepts bounded `lag`, `watermark_rows`, and
+`json_pick` children when their checked Relation inputs and obligations match.
+Three separate authored Append forks filter on `previous`, `watermark_late`,
+or `picked` before joining that branch with an independent projection of the
+Append output. The retained producer and two consumers read the fixed ID
+orders `[4,1,2,3,4]`, `[2,1,2,3,4]`, and `[3,4,1,2,3,4]` from the real
+Store. A focused memory/retained test also checks exact operation ports,
+task output identity, and final reservations under the existing chain owner.
+These routes reuse the bounded unary kernels and their operation-specific
+resource proofs; they do not admit every temporal or JSON variant to a fork.
+
+The same selected fork also accepts a fixed `row_window`, `unpivot`, or
+`unnest` child with its checked Relation input. Each authored Append task
+filters on a field created by that child before joining an independent
+projection of the Append output. The retained producer and both consumers
+read fixed ID orders `[2,3,4,1,2,3,4]`, `[3,4,1,2,3,4]`, and
+`[3,4,4,1,2,3,4]` from the real Store. The repeated `4` in the last route
+is an expansion result, not a deduplicated row. The fast memory/retained
+fixture checks the same selected task output and cleanup. These routes use
+the existing window and expansion bounds and the shared fork owner; they
+do not prove every sliding-window or outer-expansion variant.
+
+The bounded group child also accepts a `MAX` pivot and a cumulative `COUNT`
+analytic inside the same Append fork. The pivot branch filters on a generated
+axis field; the analytic branch filters on its generated count. Each rejoins
+an independent projection of the Append output and publishes the fixed ID
+order `[3,4,1,2,3,4]` to the producer and two consumers. The fork keeps
+analytic under one task and leaves its exact aggregate/frame admission to
+the existing bounded group provider; it does not mark every analytic as an
+independently splittable task.
+These routes do not extend the numeric SUM/AVG profile or prove every frame
+and pivot variant.
+
+The same existing bounded owner also executes a checked Nest after Append,
+then reuses its nested output in two branches before rejoining. The Nest
+reads its child port from the original Stage input, not from the preceding
+Append output. The standard Host publishes producer and two consumer Named
+Results with the fixed nested rows: IDs `[3,4,1,2,3,4]`, empty `items` for
+3 and 4, and `[{matched:1}]` or `[{matched:2}]` for 1 and 2. A focused
+memory/retained fixture confirms the one-task path and final cleanup. This
+was an evidence gap in the existing bounded provider, not a new Nest kernel
+or general nested-chain admission.
+
+A checked inner equijoin can now start the same-task fork or follow an
+Append as a bounded child. The first shape joins the left and right Stage
+inputs, filters the joined output along two branches and publishes
+`[{id:2,matched:2},{id:1,matched:1}]`. The second joins the private Append
+output with the original left input, then reuses the joined rows in two
+branches and publishes IDs `[2,1,2]`. In both cases the standard Host reads
+the producer and two consumer Named Results from the real retained Store;
+the focused fixture confirms the exact operation ports, one producer task,
+and final cleanup. The existing selected Join provider and fork owner supply
+the output ceiling, cumulative work, stop, and intermediate ownership.
+This does not claim other join kinds or every join failure variant in a fork.
+
+The same retained Host also runs `EXCEPT ALL` and Cross Join as the first
+binary child of separate fork/join Programs. The former publishes the
+duplicate-sensitive rows `[{id: 2}, {id: 1}, {id: 1}]`; the latter publishes
+all six `id`/`tag` rows in branch order. Both producer and consumer Results
+are read from the real Store. These are route examples for the already
+selected Set and Cross Join kernels, not new set or join semantics.
+The chain owner supplies cumulative work, overlapping child capacity,
+stop-before-release and reverse cleanup for these selected children. The
+earlier fork-join fault cases exercise that owner; they are shared lifecycle
+evidence, not a claim that every group-specific failure or aggregate variant
+was separately tested. Arbitrary nonlinear shapes remain outside this admission.
+
+A later child may read the same Stage input directly instead of a private
+intermediate, provided every earlier private output feeds a later child.
+The ordinary Append task `append(l,r) -> filter(l) -> append(both) -> select`
+now stays under the selected bounded owner. Its exact operation ports retain
+the left input for the second child; the real Store publishes
+`[{id: 1}, {id: 2}, {id: 3}, {id: 4}, {id: 2}]` to the producer and two
+consumers. If the task instead discards the Append output and publishes only
+`filter(l)`, it is still rejected during whole-graph selection: no Compute
+dispatch, Store lease, or completed task is created. Another eligible
+implementation may provide a valid offer. The `unsupported-chain` fixture
+remains a pre-execution rejection control.
 
 | Remaining retained Store route | State | Required next proof |
 | --- | --- | --- |

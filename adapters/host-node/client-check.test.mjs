@@ -1423,6 +1423,92 @@ for (const entrance of ['local', 'http']) {
       {code: 'ClientConnectionDenied'});
   });
 
+  test(`${entrance}: unsupported function lowering remains an implementation limit`, async t => {
+    const clients = [
+      await contextClient(t, entrance, absentEnvironment),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'deny'}),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'delegate'}),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'allow', closed: true}),
+      await contextClient(t, entrance, withPolicy(rightEnvironment, sourceEnvironment.host_policy_profile),
+        {aliases: [rightAlias], readOutcome: 'deny'}),
+    ];
+    // The existing lowerer returns one typed issue for these distinct forms.
+    // It cannot establish which one is a proven unknown name or a support gap.
+    const cases = ['/*😀*/\r\nSELECT UNKNOWN_FUNCTION(1) AS n',
+      '/*😀*/\r\nSELECT `SQRT`(1) AS n', '/*😀*/\r\nSELECT ACTQL.OTHER(1) AS n'];
+    for (const format of ['sql', 'aql-text']) for (const text of cases) {
+      let expected;
+      for (const client of clients) {
+        const outcome = await client.check(text, {format});
+        assert.equal(outcome.outcome, 'completed', '[check-mutation:function-limit-outcome]');
+        assert.equal(outcome.report.verdict, 'undetermined', '[check-mutation:function-limit-verdict]');
+        assert.deepEqual(outcome.report.scope, {kind: 'bound_input'});
+        assert.deepEqual(outcome.report.reasons, []);
+        assert.deepEqual(outcome.report.requirements, []);
+        assert.deepEqual(outcome.report.coverage,
+          {limits: [{code: 'implementation_limit'}], unresolved: []},
+          '[check-mutation:function-limit-coverage]');
+        assert.equal(getCheckInput(outcome, 'source').text, text);
+        assert.equal(explainCheckReason(outcome.report.coverage.limits[0]).hint,
+          'Ask the checking-context owner to review support for the submitted construct.');
+        if (expected) assert.deepEqual(outcome, expected, '[check-mutation:function-limit-disclosure]');
+        else expected = outcome;
+      }
+    }
+    const parameterDeclarations = {minimum: {type: 'number'}};
+    const text = cases[0];
+    for (const format of ['sql', 'aql-text']) {
+      let mixedExpected, missingExpected;
+      for (const client of clients) {
+        const mixed = await client.check(text, {format, parameterDeclarations,
+          parameters: {minimum: 'private-wrong-type'}});
+        assert.equal(mixed.report.verdict, 'invalid', '[check-mutation:function-limit-mixed]');
+        const supplied = getCheckInput(mixed, 'parameters');
+        assert.deepEqual(mixed.report.reasons, [{code: 'supplied_value_type_mismatch',
+          facts: {parameter: 'minimum', expected_type: 'number', actual_type: 'string'},
+          location: {document_id: 'parameters', revision: supplied.revision,
+            kind: 'structured', pointer: '/minimum'}}]);
+        assert.deepEqual(mixed.report.coverage, {limits: [{code: 'implementation_limit'}], unresolved: []});
+        assert.equal(JSON.stringify(mixed).includes('private-wrong-type'), false);
+        if (mixedExpected) assert.deepEqual(mixed, mixedExpected);
+        else mixedExpected = mixed;
+
+        const missing = await client.check(text, {format, parameterDeclarations});
+        assert.equal(missing.report.verdict, 'undetermined');
+        assert.deepEqual(missing.report.reasons, []);
+        assert.deepEqual(missing.report.coverage, {limits: [
+          {code: 'bound_values_missing'}, {code: 'implementation_limit'}], unresolved: []});
+        const declaration = getCheckInput(missing, 'parameter_declarations');
+        assert.deepEqual(missing.report.requirements, [{code: 'parameter_value_required',
+          facts: {parameter: 'minimum', expected_type: 'number'},
+          location: {document_id: 'parameter_declarations', revision: declaration.revision,
+            kind: 'structured', pointer: '/minimum'}}]);
+        if (missingExpected) assert.deepEqual(missing, missingExpected);
+        else missingExpected = missing;
+      }
+    }
+    let protectedExpected;
+    for (const client of clients) {
+      const outcome = await client.check('SELECT UNKNOWN_FUNCTION(1) AS n FROM records',
+        {format: 'sql', parameterDeclarations, parameters: {minimum: 'private-wrong-type'}});
+      assert.equal(outcome.report.verdict, 'invalid');
+      assert.deepEqual(outcome.report.reasons.map(reason => reason.code), ['supplied_value_type_mismatch']);
+      // The protected relation blocks lowering before a function issue exists.
+      assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: protectedSource},
+        '[check-mutation:function-limit-protected]');
+      if (protectedExpected) assert.deepEqual(outcome, protectedExpected);
+      else protectedExpected = outcome;
+    }
+    const valid = await clients[0].check('SELECT SQRT(1) AS n', {format: 'sql'});
+    assert.equal(valid.report.verdict, 'verified');
+    assert.deepEqual(valid.report.coverage, {limits: [], unresolved: []});
+    const invalid = await clients[0].check('SELECT SQRT(1, 2) AS n', {format: 'sql'});
+    assert.equal(invalid.report.verdict, 'invalid');
+    assert.deepEqual(invalid.report.reasons.map(reason => reason.code), ['query_expression_invalid']);
+    assert.deepEqual(invalid.report.reasons[0].facts, {issue: 'invalid_arguments'});
+    assert.deepEqual(invalid.report.coverage, {limits: [], unresolved: []});
+  });
+
   test(`${entrance}: expression construction limits remain undetermined`, async t => {
     const absent = await contextClient(t, entrance, absentEnvironment);
     const hidden = [
@@ -1460,12 +1546,6 @@ for (const entrance of ['local', 'http']) {
       assert.equal(JSON.stringify(mixed).includes('private-wrong-type'), false);
       for (const client of hidden) assert.deepEqual(await client.check(text, {format,
         parameterDeclarations: {minimum: {type: 'number'}}, parameters: {minimum: 'private-wrong-type'}}), mixed);
-    }
-    for (const text of ['SELECT UNKNOWN_FUNCTION(1) AS n']) {
-      const invalid = await absent.check(text, {format: 'sql'});
-      assert.equal(invalid.report.verdict, 'invalid');
-      assert.deepEqual(invalid.report.reasons, [{code: 'query_invalid'}]);
-      assert.deepEqual(invalid.report.coverage, {limits: [], unresolved: []});
     }
   });
 

@@ -157,6 +157,31 @@ const mutations = [
   ['a Graph components violation exposes a private value as a code',
     'return GraphViolation("invalid_kind")',
     'return Violation("private_kind_value")'],
+  ['an unsupported function is reported as an authored violation',
+    '        QueryLowering(Expression({ issue: UnsupportedFunction, .. })) =>\n' +
+    '          findings.push(Limit("implementation_limit"))',
+    '        QueryLowering(Expression({ issue: UnsupportedFunction, .. })) =>\n' +
+    '          findings.push(Violation("query_invalid"))'],
+  ['an unsupported function is reported as a checker failure',
+    '        QueryLowering(Expression({ issue: UnsupportedFunction, .. })) =>\n' +
+    '          findings.push(Limit("implementation_limit"))',
+    '        QueryLowering(Expression({ issue: UnsupportedFunction, .. })) =>\n' +
+    '          return Failed("check_internal")'],
+  ['an unsupported function is silently verified',
+    '        QueryLowering(Expression({ issue: UnsupportedFunction, .. })) =>\n' +
+    '          findings.push(Limit("implementation_limit"))',
+    '        QueryLowering(Expression({ issue: UnsupportedFunction, .. })) => ()'],
+  ['an unsupported function hides an independent supplied violation',
+    '        QueryLowering(Expression({ issue: UnsupportedFunction, .. })) =>\n' +
+    '          findings.push(Limit("implementation_limit"))',
+    '        QueryLowering(Expression({ issue: UnsupportedFunction, .. })) => {\n' +
+    '          findings.clear()\n          findings.push(Limit("implementation_limit"))\n        }'],
+  ['an unsupported function limit is fabricated behind protected resolution',
+    'QueryLowering(UnknownRelation) =>\n' +
+    '          findings.push(Unresolved("source_resolution"))',
+    'QueryLowering(UnknownRelation) => {\n' +
+    '          findings.push(Unresolved("source_resolution"))\n' +
+    '          findings.push(Limit("implementation_limit"))\n        }'],
 
 ];
 
@@ -220,6 +245,11 @@ const targets = [
   ...Array.from({length: 4}, () =>
     ['Graph components expose typed argument violations',
       [strict('graph-argument-verdict'), deep('graph-argument-reason')]]),
+  ['unsupported function lowering remains an implementation limit', [strict('function-limit-verdict')]],
+  ['unsupported function lowering remains an implementation limit', [strict('function-limit-outcome')]],
+  ['unsupported function lowering remains an implementation limit', [strict('function-limit-verdict')]],
+  ['unsupported function lowering remains an implementation limit', [strict('function-limit-mixed')]],
+  ['unsupported function lowering remains an implementation limit', [deep('function-limit-protected')]],
 
 ];
 

@@ -45,6 +45,38 @@ try {
 }
 ```
 
+`explainSubmission(result)` returns a deeply frozen explanation for that exact
+SDK result. The validated submit branch fixes its observation independently of
+error `code`, message, severity or HTTP status: `acceptance_unknown` for a lost,
+malformed or foreign reply; `run_reference_received` for a validated Run
+reference; and `request_held` for a validated held response. The first says that
+work may already have started and names the original `lookupRequest` target and
+connection scope. A returned Run reference instead names its read-only `status`
+inspection. A held response names request lookup and does not promise a current
+preparation or execution state. These are presentation facts from this call,
+not a new server acceptance contract or an execution/publication/release proof.
+
+```js
+import {explainSubmission} from '@actql/sdk';
+
+const explanation = explainSubmission(result);
+if (explanation?.next.operation === 'lookupRequest') {
+  // Use the original Client and its current authorization for this lookup.
+  const observation = await client.lookupRequest(explanation.next.requestId);
+  // A missing record does not prove nonacceptance or permit resubmission.
+}
+```
+
+The helper performs no transport, retry, submit or Compute action. Suggestions
+require current authorization when explicitly used. It omits original Program,
+text, parameters, credentials and transport causes. Changing a returned error's
+fields or observing a later lookup does not rewrite the original explanation.
+Copied/deserialized results, attach handles, local payload/credential failures
+and user-created errors return `undefined`; this means no bound explanation is
+available, not success or nonacceptance. The extra presentation association is
+weak and has the same original-result lifetime as input custody. It adds no
+Host input storage, public input hash or promised retention period.
+
 The snapshot is local input custody, not evidence that sending, acceptance,
 preparation, execution or release succeeded. It grants no lookup, replay or
 effect authority. A copied or deserialized handle/error, an attach result or

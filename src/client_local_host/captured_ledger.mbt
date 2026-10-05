@@ -288,6 +288,82 @@ fn prepare_multi_captured_capacity_ledger_owned(
 }
 
 ///|
+/// An installed capture budget retains the selected acquisition's checked
+/// requirement. The Host cannot supply unbound byte counts for a different
+/// source occurrence.
+struct ClientInstalledCaptureCapacity {
+  requirement : @planning.QueryRequirement
+  retained_bytes : Int64
+  execution_bytes : Int64
+}
+
+///|
+pub fn installed_duckdb_capture_capacity(
+  selected : @duckdb_host.CaptureConfiguration,
+) -> ClientInstalledCaptureCapacity? {
+  guard @duckdb_host.configured_capture_capacity(selected) is Some(capacity) else {
+    return None
+  }
+  Some({
+    requirement: @duckdb_host.configured_capture_requirement(selected),
+    retained_bytes: capacity.retained_bytes,
+    execution_bytes: capacity.execution_bytes,
+  })
+}
+
+///|
+pub fn installed_row_capture_capacity(
+  selected : @row_source_host.RowAcquisition,
+) -> ClientInstalledCaptureCapacity? {
+  let retained = @row_source_host.row_acquisition_retained_capacity(selected)
+  let execution = @row_source_host.row_acquisition_execution_capacity(selected)
+  if retained < 0L || execution < retained {
+    return None
+  }
+  Some({
+    requirement: @row_source_host.row_acquisition_requirement(selected),
+    retained_bytes: retained,
+    execution_bytes: execution,
+  })
+}
+
+///|
+pub fn prepare_multi_captured_local_installed_ledger(
+  prepared : @publication_host.PreparedClientProgram,
+  capacities : Array[ClientInstalledCaptureCapacity],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @resources.Ledger? {
+  if capacities.length() != 2 {
+    return None
+  }
+  for index in 0..<2 {
+    guard prepare_local_query_requirement(
+        prepared, index, 0, registry_body, values_body, fragment_body, ordered_body,
+      )
+      is Ok(requirement) &&
+      @planning.query_requirement_cid(requirement) ==
+      @planning.query_requirement_cid(capacities[index].requirement) else {
+      return None
+    }
+  }
+  prepare_multi_captured_capacity_ledger_owned(
+    Pure(prepared),
+    capacities.map(value => (value.retained_bytes, value.execution_bytes)),
+    transport_bytes,
+    transport_execution_bytes,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+  )
+}
+
+///|
 /// Admit capacities from the exact selected Native or Broad preparations.
 /// Broad's bounded residual remains under its original acquisition owner.
 pub fn prepare_multi_captured_local_acquisition_ledger(
