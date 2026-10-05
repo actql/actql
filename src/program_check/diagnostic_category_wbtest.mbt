@@ -1,8 +1,8 @@
 ///|
 test "declaration usage limits retain their meaning from the existing Owner" {
   let identity = local_identity_fixture()
-  let inventory = @program_refs.usage_inventory(
-    @program_refs.parameter_usage(
+  let inventory = @references.usage_inventory(
+    @references.parameter_usage(
       @context.program_reference_values(
         @context.program_sources_references(
           @context.program_identity_sources(identity),
@@ -11,7 +11,7 @@ test "declaration usage limits retain their meaning from the existing Owner" {
     ),
   )
   for (work, expected) in [(0, CompileLimit), (-1, InvalidConfiguration)] {
-    guard @program_refs.check_declaration_usage(inventory, max_work=work)
+    guard @references.check_declaration_usage(inventory, max_work=work)
       is Err(issue) else {
       fail("usage admission must retain its actual limit rejection")
     }

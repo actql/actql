@@ -366,7 +366,7 @@ fn source_diagnostic_category(issue : SourceFailure) -> DiagnosticCategory {
 
 ///|
 fn declaration_usage_diagnostic_category(
-  issue : @program_refs.UsageIssue,
+  issue : @references.UsageIssue,
 ) -> DiagnosticCategory {
   match issue {
     UnusedParameter(_) | UnusedBinding(_) => InvalidInput
