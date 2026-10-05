@@ -10084,6 +10084,34 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
           "fixture": "registered ranking provider enforces exact work and workspace"
+        },
+        {
+          "role": "ranking_long_keys_quantum",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "ranking yields within long group and tie comparisons"
+        },
+        {
+          "role": "ranking_long_keys_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "ranking yields within long group and tie comparisons"
+        },
+        {
+          "role": "ranking_long_keys_stop_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "ranking yields within long group and tie comparisons"
+        },
+        {
+          "role": "ranking_long_keys_components",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/ranking_wbtest.mbt",
+          "fixture": "ranking comparison yields within group candidate and tie prefixes"
         }
       ],
       "environment_tests": [
@@ -10107,6 +10135,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "vector-ranking-weighted"
+        },
+        {
+          "role": "ranking_long_keys_public_store",
+          "suite": "node:embedded_ranking_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-ranking-key-retention.test.mjs",
+          "fixture": "public retained ranking publishes and cancels inside long group comparison"
         }
       ],
       "path_assurance": {

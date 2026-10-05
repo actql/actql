@@ -90,6 +90,8 @@ priv struct RankingState {
   score_minimum : Double?
   score_maximum : Double?
   value_limits : @value.Limits
+  mut comparison : RankingComparisonCursor?
+  comparison_units : Ref[Int]
   mut phase : RankingPhase
   mut input : Int
   mut row : Int
@@ -229,6 +231,7 @@ struct RankingExecution {
   accepted : Ref[Bool]
   scratch_slots : Ref[Int]
   output_field_slots : Ref[Int]
+  comparison_units : Ref[Int]
   max_noninterruptible_value_nodes : Int
   max_noninterruptible_value_bytes : Int
 }
@@ -288,7 +291,7 @@ fn ranking_workspace(
   guard ranking_checked_add(by, tie) is Some(key_width) &&
     ranking_checked_add(key_width, 8) is Some(record_width) &&
     ranking_checked_add(key_width, 5) is Some(output_width) &&
-    ranking_checked_add(key_width, 16) is Some(fixed_width) &&
+    ranking_checked_add(key_width, 28) is Some(fixed_width) &&
     ranking_checked_multiply(rows, record_width) is Some(records) &&
     ranking_checked_multiply(rows, output_width) is Some(outputs) &&
     ranking_checked_add(records, rows) is Some(first) &&
@@ -301,144 +304,6 @@ fn ranking_workspace(
     return None
   }
   Some(total)
-}
-
-///|
-fn ranking_values_compare(
-  left : Array[@value.CheckedValue],
-  right : Array[@value.CheckedValue],
-) -> Result[Int, RankingIssue] {
-  if left.length() != right.length() {
-    return Err(InvalidRankingKernel)
-  }
-  for index in 0..<left.length() {
-    let comparison = match
-      @value.compare_group_key_values(left[index], right[index]) {
-      Ok(value) => value
-      Err(issue) => return Err(RankingKeyOrder(issue))
-    }
-    if comparison != 0 {
-      return Ok(comparison)
-    }
-  }
-  Ok(0)
-}
-
-///|
-fn ranking_tie_values_compare(
-  left : Array[@value.CheckedValue],
-  right : Array[@value.CheckedValue],
-) -> Result[Int, RankingIssue] {
-  if left.length() != right.length() {
-    return Err(InvalidRankingKernel)
-  }
-  for index in 0..<left.length() {
-    let comparison = match
-      @value.compare_author_order_values(left[index], right[index]) {
-      Ok(value) => value
-      Err(issue) => return Err(RankingKeyOrder(issue))
-    }
-    if comparison != 0 {
-      return Ok(comparison)
-    }
-  }
-  Ok(0)
-}
-
-///|
-fn ranking_record_compare(
-  left : RankingRecord,
-  right : RankingRecord,
-  order : RankingRecordOrder,
-) -> Result[Int, RankingIssue] {
-  match order {
-    InputCandidateOrder | InputRankOrder =>
-      if left.input != right.input {
-        return Ok(if left.input < right.input { -1 } else { 1 })
-      }
-    CandidateInputOrder => ()
-  }
-  let group = match ranking_values_compare(left.group, right.group) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  if group != 0 {
-    return Ok(group)
-  }
-  if order is InputRankOrder {
-    guard left.rank is Some(a) && right.rank is Some(b) else {
-      return Err(InvalidRankingKernel)
-    }
-    if a != b {
-      return Ok(if a < b { -1 } else { 1 })
-    }
-  }
-  let candidate = match
-    @value.compare_key_values(left.candidate, right.candidate) {
-    Ok(value) => value
-    Err(issue) => return Err(RankingKeyOrder(issue))
-  }
-  if candidate != 0 {
-    return Ok(candidate)
-  }
-  if order is CandidateInputOrder && left.input != right.input {
-    return Ok(if left.input < right.input { -1 } else { 1 })
-  }
-  Ok(0)
-}
-
-///|
-fn fused_ranking_compare(
-  left : FusedRanking,
-  right : FusedRanking,
-) -> Result[Int, RankingIssue] {
-  let group = match ranking_values_compare(left.group, right.group) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  if group != 0 {
-    return Ok(group)
-  }
-  if left.score != right.score {
-    return Ok(if left.score > right.score { -1 } else { 1 })
-  }
-  let tie = match ranking_tie_values_compare(left.tie, right.tie) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  if tie != 0 {
-    return Ok(tie)
-  }
-  match @value.compare_key_values(left.candidate, right.candidate) {
-    Ok(value) => Ok(value)
-    Err(issue) => Err(RankingKeyOrder(issue))
-  }
-}
-
-///|
-fn ranking_same_group(
-  left : Array[@value.CheckedValue],
-  right : Array[@value.CheckedValue],
-) -> Result[Bool, RankingIssue] {
-  ranking_values_compare(left, right).map(value => value == 0)
-}
-
-///|
-fn ranking_same_candidate(
-  left : RankingRecord,
-  right : RankingRecord,
-) -> Result[Bool, RankingIssue] {
-  let same_group = match ranking_same_group(left.group, right.group) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  if !same_group {
-    return Ok(false)
-  }
-  match @value.compare_key_values(left.candidate, right.candidate) {
-    Ok(value) => Ok(value == 0)
-    Err(issue) => Err(RankingKeyOrder(issue))
-  }
 }
 
 ///|
@@ -518,27 +383,27 @@ fn validate_ranking_group(state : RankingState) -> Result[Unit, RankingIssue] {
   guard state.group_values[state.validation_index] is Some(value) else {
     return Err(InvalidRankingRecord(state.input, state.row))
   }
-  match @value.compare_group_key_values(value, value) {
-    Ok(_) => {
+  match ranking_compare(state, ScalarComparison(value, value, 0)) {
+    Ok(Some(_)) => {
       state.validated_group.push(value)
       state.validation_index += 1
       Ok(())
     }
-    Err(issue) => Err(RankingKeyOrder(issue))
+    Ok(None) => Ok(())
+    Err(issue) => Err(issue)
   }
 }
 
 ///|
 fn validate_ranking_candidate(
   state : RankingState,
-) -> Result[Unit, RankingIssue] {
+) -> Result[Bool, RankingIssue] {
   guard state.candidate_value is Some(candidate) else {
     return Err(InvalidRankingRecord(state.input, state.row))
   }
-  match @value.compare_key_values(candidate, candidate) {
-    Ok(_) => Ok(())
-    Err(issue) => return Err(RankingKeyOrder(issue))
-  }
+  ranking_compare(state, ScalarComparison(candidate, candidate, 2)).map(order => {
+    order is Some(_)
+  })
 }
 
 ///|
@@ -548,13 +413,14 @@ fn validate_ranking_tie_value(
   guard state.tie_values[state.validation_index] is Some(value) else {
     return Err(InvalidRankingRecord(state.input, state.row))
   }
-  match @value.compare_author_order_values(value, value) {
-    Ok(_) => {
+  match ranking_compare(state, ScalarComparison(value, value, 1)) {
+    Ok(Some(_)) => {
       state.validated_tie.push(value)
       state.validation_index += 1
       Ok(())
     }
-    Err(issue) => Err(RankingKeyOrder(issue))
+    Ok(None) => Ok(())
+    Err(issue) => Err(issue)
   }
 }
 
@@ -659,15 +525,20 @@ fn merge_ranking_record(state : RankingState) -> Result[Unit, RankingIssue] {
     emit_ranking_record_merge(state, true)
   } else {
     let comparison = match
-      ranking_record_compare(
-        state.records[state.left_index],
-        state.records[state.right_index],
-        state.record_order,
+      ranking_compare(
+        state,
+        RecordComparison(
+          state.records[state.left_index],
+          state.records[state.right_index],
+          state.record_order,
+        ),
       ) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
-    emit_ranking_record_merge(state, comparison <= 0)
+    if comparison is Some(order) {
+      emit_ranking_record_merge(state, order <= 0)
+    }
   }
   Ok(())
 }
@@ -718,11 +589,12 @@ fn validate_ranking_duplicate(
   let left = state.records[state.validate_index - 1]
   let right = state.records[state.validate_index]
   if left.input == right.input {
-    let same = match ranking_same_candidate(left, right) {
+    let same = match ranking_compare(state, CandidateComparison(left, right)) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
-    if same {
+    guard same is Some(order) else { return Ok(()) }
+    if order == 0 {
       return Err(DuplicateRankingCandidate(right.input, state.validate_index))
     }
   }
@@ -748,11 +620,13 @@ fn validate_ranking_position(
   } else {
     let prior = state.records[state.validate_index - 1]
     let same_input = prior.input == current.input
-    let same_group = match ranking_same_group(prior.group, current.group) {
+    let same_group = match
+      ranking_compare(state, GroupComparison(prior.group, current.group)) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
-    if same_input && same_group {
+    guard same_group is Some(order) else { return Ok(()) }
+    if same_input && order == 0 {
       guard prior.rank is Some(prior_rank) &&
         @scalar.read_safe_integer(prior_rank) is Some(prior_position) &&
         prior_position < 9007199254740991L else {
@@ -788,14 +662,18 @@ fn find_ranking_fusion_end(state : RankingState) -> Result[Unit, RankingIssue] {
     return Ok(())
   }
   let same = match
-    ranking_same_candidate(
-      state.records[state.fusion_start],
-      state.records[state.fusion_end],
+    ranking_compare(
+      state,
+      CandidateComparison(
+        state.records[state.fusion_start],
+        state.records[state.fusion_end],
+      ),
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  if same {
+  guard same is Some(order) else { return Ok(()) }
+  if order == 0 {
     state.fusion_end += 1
   } else {
     state.phase = FoldFusion
@@ -804,28 +682,29 @@ fn find_ranking_fusion_end(state : RankingState) -> Result[Unit, RankingIssue] {
 }
 
 ///|
-fn validate_ranking_tie(
-  state : RankingState,
-  record : RankingRecord,
-) -> Result[Unit, RankingIssue] {
-  let first = state.records[state.fusion_start]
-  let comparison = match ranking_tie_values_compare(first.tie, record.tie) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  if comparison != 0 {
-    Err(ConflictingRankingTie(state.fusion_record))
-  } else {
-    Ok(())
-  }
-}
-
-///|
 fn fold_ranking_input(state : RankingState) -> Result[Unit, RankingIssue] {
   let mut record : RankingRecord? = None
   if state.fusion_record < state.fusion_end &&
     state.records[state.fusion_record].input == state.fusion_input {
-    record = Some(state.records[state.fusion_record])
+    let selected = state.records[state.fusion_record]
+    match state.policy {
+      Maximum | Weighted(_, _) => {
+        let comparison = match
+          ranking_compare(
+            state,
+            TieComparison(state.records[state.fusion_start].tie, selected.tie),
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        guard comparison is Some(order) else { return Ok(()) }
+        if order != 0 {
+          return Err(ConflictingRankingTie(state.fusion_record + 1))
+        }
+      }
+      Rrf(_, _, _) => ()
+    }
+    record = Some(selected)
     state.fusion_record += 1
   }
   match state.policy {
@@ -833,10 +712,6 @@ fn fold_ranking_input(state : RankingState) -> Result[Unit, RankingIssue] {
       if record is Some(record) {
         guard record.score is Some(score) else {
           return Err(InvalidRankingKernel)
-        }
-        match validate_ranking_tie(state, record) {
-          Ok(_) => ()
-          Err(issue) => return Err(issue)
         }
         state.fusion_maximum = Some(
           match state.fusion_maximum {
@@ -852,10 +727,6 @@ fn fold_ranking_input(state : RankingState) -> Result[Unit, RankingIssue] {
         Some(record) => {
           guard record.score is Some(score) else {
             return Err(InvalidRankingKernel)
-          }
-          match validate_ranking_tie(state, record) {
-            Ok(_) => ()
-            Err(issue) => return Err(issue)
           }
           match @numeric.ranking_weighted_contribution(score, weight) {
             Ok(value) => value
@@ -982,14 +853,19 @@ fn merge_ranking_output(state : RankingState) -> Result[Unit, RankingIssue] {
     emit_ranking_output_merge(state, true)
   } else {
     let comparison = match
-      fused_ranking_compare(
-        state.fused[state.left_index],
-        state.fused[state.right_index],
+      ranking_compare(
+        state,
+        OutputComparison(
+          state.fused[state.left_index],
+          state.fused[state.right_index],
+        ),
       ) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
-    emit_ranking_output_merge(state, comparison <= 0)
+    if comparison is Some(order) {
+      emit_ranking_output_merge(state, order <= 0)
+    }
   }
   Ok(())
 }
@@ -1009,12 +885,13 @@ fn ranking_group_value(
 }
 
 ///|
-fn begin_ranking_result(state : RankingState) -> Result[Bool, RankingIssue] {
+fn begin_ranking_result(state : RankingState) -> Result[Bool?, RankingIssue] {
   let row = state.fused[state.emit_index]
   let same_group = match state.emitted_group {
     Some(group) =>
-      match ranking_same_group(group, row.group) {
-        Ok(value) => value
+      match ranking_compare(state, GroupComparison(group, row.group)) {
+        Ok(Some(order)) => order == 0
+        Ok(None) => return Ok(None)
         Err(issue) => return Err(issue)
       }
     None => false
@@ -1026,9 +903,9 @@ fn begin_ranking_result(state : RankingState) -> Result[Bool, RankingIssue] {
     state.emit_rank = 1
   }
   if state.emit_rank > state.k {
-    return Ok(false)
+    return Ok(Some(false))
   }
-  Ok(true)
+  Ok(Some(true))
 }
 
 ///|
@@ -1141,7 +1018,8 @@ fn ranking_step(
       ValidateCandidate => {
         used += 1
         match validate_ranking_candidate(state) {
-          Ok(_) => {
+          Ok(false) => ()
+          Ok(true) => {
             state.validation_index = 0
             state.phase = ValidateTie
           }
@@ -1318,13 +1196,14 @@ fn ranking_step(
         if state.emit_index < state.fused.length() {
           used += 1
           match begin_ranking_result(state) {
-            Ok(true) => {
+            Ok(Some(true)) => {
               state.output_field = 0
               state.output_values = []
               state.output_field_slots.val = 0
               state.phase = ReadOutputField
             }
-            Ok(false) => state.emit_index += 1
+            Ok(Some(false)) => state.emit_index += 1
+            Ok(None) => ()
             Err(issue) => return @bounded.Failed(issue, progress, used)
           }
         } else {
@@ -1381,6 +1260,8 @@ fn cleanup_ranking_state(state : RankingState) -> Bool {
     state.rows.val = None
     state.live.val = false
   }
+  state.comparison = None
+  state.comparison_units.val = 0
   state.group_values = []
   state.tie_values = []
   state.validated_group = []
@@ -1622,6 +1503,8 @@ pub fn start_ranking_inputs(
       max_depth: limits.max_depth,
       max_text_bytes: limits.max_text_bytes,
     },
+    comparison: None,
+    comparison_units: Ref(0),
     phase: BeginRecord,
     input: 0,
     row: 0,
@@ -1680,6 +1563,7 @@ pub fn start_ranking_inputs(
     accepted,
     scratch_slots,
     output_field_slots,
+    comparison_units: state.comparison_units,
     max_noninterruptible_value_nodes: limits.max_nodes,
     max_noninterruptible_value_bytes: limits.max_text_bytes,
   })
@@ -1726,6 +1610,12 @@ pub fn ranking_max_noninterruptible_value_nodes(
 /// Structural sort scratch retained by the current bounded phase.
 pub fn ranking_scratch_slots(value : RankingExecution) -> Int {
   value.scratch_slots.val
+}
+
+///|
+/// Charged key units visited by the current execution, cleared by cleanup.
+pub fn ranking_comparison_units(value : RankingExecution) -> Int {
+  value.comparison_units.val
 }
 
 ///|

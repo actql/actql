@@ -5690,3 +5690,24 @@ installed-Host scope, not all VecA scans or all Local retention. Whole-Run exact
 Ledger budgets, packed/HTTP, Wasm/native and new Store-failure campaigns remain
 unverified here. See the
 [nearest output record](2026-10-06-local-nearest-output-admission.md).
+
+### Ranking typed-key operator scanning
+
+Ranking now advances the shared typed cursor through nullable group/author
+validation, stable record/output sorting, duplicate/rank checks, candidate
+fusion, tie consistency and emitted-group boundaries. Quanta one, seven and
+256 preserve independently authored rows and cumulative work. Long compound
+group/tie exact boundaries are 13983/13982 control and 121/120 structural slots;
+the numeric RRF fixture is 166/165 and 103/102. Pending input/record positions
+stay fixed until their comparisons finish. Cleanup retains roots until stopped
+and clears them once.
+
+The ordinary retained Host publishes explicit producer/two-consumer RRF Results
+and cancels inside the first long group scan. Request persistence, physical
+stop, unavailable Results and snapshot reclamation remain separate. The gate
+requires comparison-specific evidence and its actual public suite import.
+This closes the ranking operator-comparison residual above, not input/output
+admission. Checked-cell rechecks, field-name matching, output rechecks and row
+append/measurement still have synchronous paths. Whole-Run exact Ledger budgets,
+packed/HTTP, Wasm/native and new Store-failure campaigns are not established.
+See the [ranking scanning record](2026-10-06-local-ranking-key-scanning.md).
