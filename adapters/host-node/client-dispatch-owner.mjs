@@ -50,6 +50,12 @@ export async function observeNodeRestoredModelStop(facts) {
   return observeNodeRunStop(facts, {failureObserved: false});
 }
 
+export function recordNodeRunPhysicalStop({ref, journal, moon, control}, outcome) {
+  const retained = journal.lookupRunDefinition(ref, moon, control);
+  if (retained?.physicalCloseConfirmed === true) return;
+  journal.markPhysicalClose(ref, outcome);
+}
+
 async function observeNodeRunStop(facts, {failureObserved}) {
   if (facts.physicalStopConfirmed !== true || facts.cleanupConfirmed !== true) return;
   const observation = await collectNodeRunStop(facts);
@@ -66,7 +72,7 @@ async function observeNodeRunStop(facts, {failureObserved}) {
     // must not become an immutable nonterminal stop that suppresses its outcome.
     throw new Error('ClientRunStopObservationChanged');
   }
-  facts.journal.markPhysicalClose(facts.ref, observation.publicationCommitted ? null :
+  recordNodeRunPhysicalStop(facts, observation.publicationCommitted ? null :
     observation.cancelled ? 'cancelled' : failureObserved && retained?.cancellationRequested !== true ? 'failed' : null);
 }
 

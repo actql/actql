@@ -53,7 +53,7 @@ import {createDiagnosticObserver} from
 import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {installNodeClientDispatchOwner, confirmNodeRunCancellation,
-  observeNodeRestoredModelStop} from './client-dispatch-owner.mjs';
+  observeNodeRestoredModelStop, recordNodeRunPhysicalStop} from './client-dispatch-owner.mjs';
 import {createInstalledHostShutdown,
   retainInstalledHostInitializationFailure} from
   './installed-host-cleanup.mjs';
@@ -1090,7 +1090,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
               effectRun.recordReconciliation(...args)}));
         },
         observeStopped: terminalOutcome => {
-          journal.markPhysicalClose(facts.ref, activeResume === undefined ? terminalOutcome : null);
+          recordNodeRunPhysicalStop({ref: facts.ref, journal, moon, control},
+            activeResume === undefined ? terminalOutcome : null);
           if (activeResume !== undefined) activeResume.observedTerminalOutcome = terminalOutcome;
         },
         barrierFailureOutcome: 'failed',
@@ -1356,7 +1357,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           // Only the existing publication owner can make recovery successful.
           // A reader refusal does not resolve the original physical outcome.
           if (await store.confirmCommittedIndex(accepted.ref) !== undefined) {
-            journal.markPhysicalClose(accepted.ref, null);
+            recordNodeRunPhysicalStop({ref: accepted.ref, journal, moon, control}, null);
           }
         },
       });
@@ -1922,7 +1923,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
             // The original Compute stopped before the Effect Checkpoint.
             // Its nonterminal stop observation is immutable. Effect failure
             // and reconciliation belong to the Checkpoint and Effect owners.
-            observeStopped: () => journal.markPhysicalClose(ref, null),
+            observeStopped: () => recordNodeRunPhysicalStop({ref, journal, moon, control}, null),
           });
           effectResumeFlights.set(key, flight);
           void flight.catch(error => {
