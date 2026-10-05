@@ -46,7 +46,7 @@ test('100 rows: actual resident/fresh/Local choices, cheaper capacity refusal an
         // Three Compute attempts fit; resident preparation/import would need
         // five. Its lower estimate must not override the actual attempt cap.
         ['bounded', {residentPolicy: true, attemptCap: 4}],
-        ['cancel', {residentPolicy: true, cancelAfterTask: 1}],
+        ['stop', {residentPolicy: true, stopAfterTask: 1}],
         ['reject', {residentPolicy: true, attemptCap: 1}],
       ]) {
         const child = join(directory, label);
@@ -68,11 +68,11 @@ test('100 rows: actual resident/fresh/Local choices, cheaper capacity refusal an
             owner.holdings === 0), 'RejectedPlanEnteredCompute');
           assert.equal(observations.choices.length, 0);
           closed(observations);
-        } else if (label === 'cancel') {
+        } else if (label === 'stop') {
           const {stdout} = await exec(invocation.binary, invocation.arguments,
             {cwd: root, timeout: fixture.limits.timeoutMs});
           assert.deepEqual(JSON.parse(stdout.trim().split('\n').at(-1)),
-            {status: 'cancelled', completed_tasks: 1});
+            {status: 'stopped-between-tasks', completed_tasks: 1});
           const observations = nativeOwnerObservations(stdout);
           assert.equal(observations.choices.length, 1);
           assert(observations.choices[0].resident);

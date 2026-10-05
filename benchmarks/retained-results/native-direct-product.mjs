@@ -22,7 +22,7 @@ import {productAcquisitionMetadata} from
 // override only.
 export async function prepareNativeDirectProduct({root, fixture, database,
   directory, nativeMs = '1000', localRates, nativeRates,
-  residentPolicy = nativeRegisteredResidentOffer, cancelAfterTask,
+  residentPolicy = nativeRegisteredResidentOffer, stopAfterTask,
   attemptCap = 12}) {
   assert(existsSync(database), 'NativeProductSourceUnavailable');
   assert(typeof residentPolicy === 'boolean', 'InvalidNativeResidentPolicy');
@@ -79,7 +79,7 @@ export async function prepareNativeDirectProduct({root, fixture, database,
       '--expected-tasks', String(finalTask),
       '--native-ms', nativeMs,
       '--attempt-cap', String(attemptCap),
-      '--cancel-after-task', cancelAfterTask === undefined ? '-' : String(cancelAfterTask),
+      '--stop-after-task', stopAfterTask === undefined ? '-' : String(stopAfterTask),
       '--local-eligible', String(localEligible),
       '--resident-policy', String(residentPolicy),
       '--local-task-ms', localRates?.join(',') ?? '-',

@@ -160,7 +160,7 @@ fn execute_timed_native_strategy_run(
   dispatch : @standard_host.StrategyHostDispatch,
   captured : @strategy.CapturedDAG,
   ledger : @resources.Ledger,
-  cancel_after_task : Int?,
+  stop_after_task : Int?,
 ) -> Result[Unit, @host.NativeStandardStrategyRunIssue] {
   let mut next_task = 1
   while true {
@@ -334,7 +334,7 @@ fn execute_timed_native_strategy_run(
         }
         emit_owner_observation("after-task", completion.task, run, ledger)
         next_task += 1
-        if cancel_after_task == Some(completion.task) {
+        if stop_after_task == Some(completion.task) {
           return Ok(())
         }
       }
@@ -453,7 +453,7 @@ fn main {
     @argparse.OptionArg("expected-cid", required=true),
     @argparse.OptionArg("expected-tasks", required=true),
     @argparse.OptionArg("native-ms", default_values=["1000"]),
-    @argparse.OptionArg("cancel-after-task", default_values=["-"]),
+    @argparse.OptionArg("stop-after-task", default_values=["-"]),
     @argparse.OptionArg("attempt-cap", default_values=["12"]),
     @argparse.OptionArg("local-eligible", default_values=["true"]),
     @argparse.OptionArg("resident-policy", default_values=["false"]),
@@ -481,12 +481,12 @@ fn main {
   let retained_task_root = required(matches, "retained-task-root")
   let expected_cid = required(matches, "expected-cid")
   let expected_tasks = int_option(matches, "expected-tasks")
-  let cancel_after_task = if required(matches, "cancel-after-task") == "-" {
+  let stop_after_task = if required(matches, "stop-after-task") == "-" {
     None
   } else {
-    let task = int_option(matches, "cancel-after-task")
+    let task = int_option(matches, "stop-after-task")
     if task >= expected_tasks {
-      abort("cancellation must precede final task")
+      abort("between-task stop must precede final task")
     }
     Some(task)
   }
@@ -786,7 +786,7 @@ fn main {
   ).unwrap()
   phase_boundary("strategy-execute", execution_start)
   let execution = execute_timed_native_strategy_run(
-    run, dispatch, captured, ledger, cancel_after_task,
+    run, dispatch, captured, ledger, stop_after_task,
   )
   if execution is Err(_) {
     close_observed_run(run, ledger, 0)
@@ -846,13 +846,15 @@ fn main {
       )
     Err(@host.Local(_)) => abort("native strategy Local task rejected")
   }
-  if cancel_after_task is Some(task) {
+  if stop_after_task is Some(task) {
     close_observed_run(run, ledger, task)
     @host.close_native_acquisition_runtime(acquisition)
     @strategy.stop_captured_dag(captured)
-    phase_boundary("cancelled-cleanup-end", execution_start)
+    phase_boundary("stopped-cleanup-end", execution_start)
     println(
-      "{\"status\":\"cancelled\",\"completed_tasks\":" + task.to_string() + "}",
+      "{\"status\":\"stopped-between-tasks\",\"completed_tasks\":" +
+      task.to_string() +
+      "}",
     )
     return
   }

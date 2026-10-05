@@ -12,10 +12,10 @@ import {workloads} from './fixtures.mjs';
 // case name selects it. Diagnostics that construct their own selection keep
 // their explicit inputs.
 export const productResidentOffer = true;
-// Native admission checks per-task owner observations, including the extra
-// environment and import attempts and their reservation lifetime. Offering
-// resident execution never bypasses planner eligibility or ledger ceilings.
-export const nativeRegisteredResidentOffer = true;
+// Keep the registered release experiment unchanged until the instrumented
+// resident release/calibration path has been accepted. Explicit diagnostics
+// can offer resident execution and verify its extra environment/import attempts.
+export const nativeRegisteredResidentOffer = false;
 
 export function managedCaseConfiguration(fixture, contracts, database, directory) {
   const l = fixture.limits;

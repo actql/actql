@@ -22,7 +22,7 @@ for (const arg of extra) {
     options.set('training', true);
     continue;
   }
-  const match = /^--(native-ms|local-task-ms|native-task-ms|source-database|resident-policy|attempt-cap|cancel-after-task)=(.+)$/.exec(arg);
+  const match = /^--(native-ms|local-task-ms|native-task-ms|source-database|resident-policy|attempt-cap|stop-after-task)=(.+)$/.exec(arg);
   if (!match || options.has(match[1])) throw new TypeError('InvalidNativeProbeOption');
   options.set(match[1], match[2]);
 }
@@ -84,18 +84,18 @@ try {
   const invocation = await prepareNativeDirectProduct({root, fixture,
     database, directory, nativeMs, localRates, nativeRates, residentPolicy,
     ...(options.has('attempt-cap') ? {attemptCap: Number(options.get('attempt-cap'))} : {}),
-    ...(options.has('cancel-after-task') ? {cancelAfterTask: Number(options.get('cancel-after-task'))} : {})});
+    ...(options.has('stop-after-task') ? {stopAfterTask: Number(options.get('stop-after-task'))} : {})});
   assert.equal(invocation.finalTask, expectedTasks);
   assert.equal(invocation.localEligible, localEligible);
-  if (options.has('cancel-after-task')) {
+  if (options.has('stop-after-task')) {
     const {stdout} = await run(invocation.binary, invocation.arguments,
       {cwd: root, timeout: fixture.limits.timeoutMs, maxBuffer: 1024 * 1024});
     const record = JSON.parse(stdout.trim().split('\n').at(-1));
-    assert.equal(record.status, 'cancelled');
+    assert.equal(record.status, 'stopped-between-tasks');
     console.log(JSON.stringify({kind: 'native-case-probe-diagnostic',
-      status: 'cancelled-diagnostic', case: fixture.id, host: 'native', record,
+      status: 'stopped-between-tasks-diagnostic', case: fixture.id, host: 'native', record,
       observations: stdout.split('\n').filter(line =>
-        /^(owner-observation|compute-candidates|compute-choice|phase-time-us):/.test(line))}));
+        /^(owner-observation|compute-candidates|compute-explanation|compute-choice|phase-time-us):/.test(line))}));
   } else {
     const execution = await executeNativeDirectProduct(invocation,
       {root, timeoutMs: fixture.limits.timeoutMs});
@@ -133,7 +133,7 @@ try {
     strategyRejections: output.filter(line => line.startsWith('strategy-rejection:')),
     terminal: output.at(-1),
     stderr: String(error.stderr ?? ''),
-    observations: output.filter(line => /^(owner-observation|compute-candidates|compute-choice|phase-time-us):/.test(line)),
+    observations: output.filter(line => /^(owner-observation|compute-candidates|compute-explanation|compute-choice|phase-time-us):/.test(line)),
   }));
   process.exitCode = 1;
 } finally {

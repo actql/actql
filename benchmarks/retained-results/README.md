@@ -80,10 +80,12 @@ Record Host, acquisition choice and Compute choices separately. The Native
 application currently offers one Native acquisition candidate; its recorded
 `HostPreferred` reason does not establish a Native/Broad comparison.
 
-The Native owner diagnostic checks the existing 100-row case with resident and
-fresh Compute offers, cancellation after the first task, and an insufficient
-attempt ceiling. The existing Native direct-pair acceptance runs it after the
-release binary is built. For a focused local Native diagnostic, use the
+The Native owner diagnostic checks the existing 100-row case with resident,
+fresh and Local Compute choices, refusal of a cheaper resident strategy under
+the attempt ceiling, and close after stopping between tasks. The last condition
+does not exercise a formal cancellation request or terminal cancellation
+observation. The registered release gate and resident-offer default remain
+unchanged pending release/calibrated acceptance. For a focused local Native diagnostic, use the
 repository wrapper with an explicit build profile:
 
 ```sh
