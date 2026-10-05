@@ -106,7 +106,7 @@ test('source-open comparison separates database preparation from the complete Na
 
 
 test('Native algorithm preparation improvement cannot substitute for complete-cycle improvement', () => {
-  for (const comparator of ['native-ascii-word-loop', 'canonical-continuation-rewrap']) {
+  for (const comparator of ['native-ascii-word-loop', 'canonical-continuation-rewrap', 'retained-preflight-iterator']) {
     const pairs = Array.from({length: 21}, (_, index) => ({index, caseId: 'fixed/narrow/100',
       order: index % 2 ? ['retained-actql', comparator] : [comparator, 'retained-actql'],
       samples: {[comparator]: {status: 'completed', processCycleMs: 30, applicationPreparationMs: 6},

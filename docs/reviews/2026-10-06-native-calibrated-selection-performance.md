@@ -672,3 +672,67 @@ source, limits, fixed fresh/resident controls and primary complete-parent
 zero-threshold criterion. Include all phases and prelaunch costs. Do not extend
 the sample count or repeat the experiment until favorable. The earlier ASCII
 and continuation results remain separately unchanged.
+
+### Fixed preflight comparison: improvement not demonstrated
+
+Candidate release source `9c74a5b6686ebb87fa7726ed763eeda447541846` built
+with the pinned MoonBit toolchain (`run-9tM7wW`, 27 incremental tasks):
+12,404,208 bytes,
+`sha256:0bcb9cf3cb82a7d4ce1abde7c493c7bef02f7cedb8528bdbab1e43f04571b347`.
+The before release remains `fe0b68242d9e240494e85ecb0438f74f55855c88`,
+`sha256:2152155cc13ae8003df3c8b46a13ae45edf4a567554d579a440332475dd18f80`.
+The clean controller revision is
+`d8009c2bb1ae4365d5ca5b5b8b2ad7c70b4a8b1b`; it does not retag either build.
+
+Reproduction at that recorded source, through the existing bounded guard:
+
+```sh
+node benchmarks/retained-results/run-native-preparation-comparison.mjs \
+  _build/repro/native-probe-fe0b68242.exe \
+  /private/tmp/g-retained-preflight-d8009c2bb.json --retained-preflight
+```
+
+Both prelaunches and all 42 measured product/Owner admissions succeeded. Every
+leg selected the same three resident tasks, with identical before/after
+planner/attempt/holding/work facts and final zero reservations. The outer
+`run-IOyN3J` **failed afterward**: the statistics helper did not yet register
+`retained-preflight-iterator`. This is not reported as a successful runner.
+Register that label without changing statistics, thresholds, confidence, seed
+or samples; the existing statistics regression passes **7/7** (`run-Pei4nL`).
+Analyze the original saved 21 pairs only. No Native process is rerun.
+
+| After minus before | Mean difference (ms) | 95% interval (ms) | Result |
+| --- | ---: | ---: | --- |
+| Complete parent cycle | -4.346 | [-22.173, +9.964] | Indeterminate |
+| Native entry through result | +1.303 | [-7.659, +10.642] | Indeterminate |
+| Application preparation | -0.007 | [-1.396, +1.142] | Indeterminate |
+| Compute/identity | +0.223 | [-6.792, +6.416] | Indeterminate |
+| Sequential task intervals | -0.300 | [-5.829, +4.583] | Indeterminate |
+| Cleanup | -0.475 | [-1.334, +0.079] | Indeterminate |
+
+Source preparation is 232.424 ms separately. Prelaunch complete cycles were
+233.149 / 552.861 ms, versus Native entry-through-result 191.639 / 159.958 ms;
+retain these costs without inferring the external delay's cause. All samples
+remain, including slower later intervals. The primary criterion is unmet.
+Withdraw the two candidate decoder files by restoring exact `fe0b68242` bytes.
+Restore the usual release binary to its archived before digest. No new
+production decoder/Owner/value/quantum behavior is delivered on this result.
+
+Keep the failed original unchanged at
+`_build/repro/retained-preflight-d8009c2bb.json`, 6,910,213 bytes,
+`sha256:71438203712e30dfd2b1293c19e2aeca68bba1ad9c52dc9384f26d5948f5e86e`.
+The separate `-analysis.json` binds that digest and marks analysis-only, not
+repeated execution. Candidate/before source bytes, original controller, patch
+and exact artifact manifest remain in
+`_build/repro/retained-preflight-9c74a5b66/`; the candidate binary is
+`_build/repro/native-probe-9c74a5b66.exe`. Later helper/report changes do not
+become new runtime evidence. The strict archived-source mode is retained for
+reproduction, not rerun to obtain a favorable result.
+
+Next causal boundary: separate shape scanning, JSON parsing, typed value
+admission and completion identity within the real retained-output conversion.
+Do not bypass any of these obligations based on the aggregate read interval.
+Actual source/Owner checks, limits and public value preservation remain;
+D/H/A boundaries, physical heap bounds, #412 image acceptance and dynamic
+Hybrid remain outside this experiment. No full Core, Wasm, packed or whole
+performance matrix was run.

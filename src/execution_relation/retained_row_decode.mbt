@@ -33,47 +33,40 @@ fn preflight_retained_row(
   text : String,
   limits : RetainedRowDecodeLimits,
 ) -> Bool {
-  let stack : Array[(Int, Bool)] = []
+  let stack : Array[(Char, Bool)] = []
   let mut quoted = false
   let mut escaped = false
   let mut literal = false
   let mut nodes = 0
-  // UTF-8 admission precedes this shape-only scan. Every recognized JSON
-  // delimiter is ASCII; neither unit of a supplementary scalar can introduce
-  // one. Preserve parser/value admission rather than decode Unicode twice.
-  let units = text.length()
-  let mut index = 0
-  while index < units {
-    let unit = text[index].to_int()
-    index += 1
+  for char in text.iter() {
     if quoted {
       if escaped {
         escaped = false
-      } else if unit == 92 {
+      } else if char == '\\' {
         escaped = true
-      } else if unit == 34 {
+      } else if char == '"' {
         quoted = false
       }
       continue
     }
     let mut node = false
-    match unit {
-      123 | 91 => {
+    match char {
+      '{' | '[' => {
         if stack.length() > limits.max_depth {
           return false
         }
-        stack.push((unit, unit == 123))
+        stack.push((char, char == '{'))
         node = true
         literal = false
       }
-      125 | 93 => {
+      '}' | ']' => {
         guard stack.pop() is Some((opening, _)) &&
-          ((opening == 123 && unit == 125) || (opening == 91 && unit == 93)) else {
+          ((opening == '{' && char == '}') || (opening == '[' && char == ']')) else {
           return false
         }
         literal = false
       }
-      58 => {
+      ':' => {
         if stack.length() == 0 {
           return false
         }
@@ -81,20 +74,20 @@ fn preflight_retained_row(
         stack[stack.length() - 1] = (opening, false)
         literal = false
       }
-      44 => {
+      ',' => {
         if stack.length() == 0 {
           return false
         }
         let (opening, _) = stack[stack.length() - 1]
-        stack[stack.length() - 1] = (opening, opening == 123)
+        stack[stack.length() - 1] = (opening, opening == '{')
         literal = false
       }
-      34 => {
+      '"' => {
         quoted = true
-        node = !(stack.last() is Some((123, true)))
+        node = !(stack.last() is Some(('{', true)))
         literal = false
       }
-      32 | 9 | 10 | 13 => literal = false
+      ' ' | '\t' | '\n' | '\r' => literal = false
       _ =>
         if !literal {
           node = true
