@@ -1,4 +1,25 @@
 ///|
+test "declaration usage limits retain their meaning from the existing Owner" {
+  let identity = local_identity_fixture()
+  let inventory = @references.usage_inventory(
+    @references.parameter_usage(
+      @context.program_reference_values(
+        @context.program_sources_references(
+          @context.program_identity_sources(identity),
+        ),
+      ),
+    ),
+  )
+  for (work, expected) in [(0, CompileLimit), (-1, InvalidConfiguration)] {
+    guard @references.check_declaration_usage(inventory, max_work=work)
+      is Err(issue) else {
+      fail("usage admission must retain its actual limit rejection")
+    }
+    assert_eq(declaration_usage_diagnostic_category(issue), expected)
+  }
+}
+
+///|
 test "Graph query categories retain typed input limits and unknown failures" {
   let cases : Array[(@graph.MatchIssueKind, DiagnosticCategory)] = [
     (Structure(InvalidCount), InvalidInput),
