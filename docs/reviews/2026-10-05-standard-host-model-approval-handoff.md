@@ -84,6 +84,10 @@ The four fixtures and selected Host/registration regressions passed together
 (53 cases, `run-qniS6O`, `focused-test-Y0kwhS`) after the fix.
 An additional physical-stop acknowledgement counterexample passed with the
 six existing cancellation cases (`run-mViPvL`, `focused-test-LydL9X`).
+After removing the superseded prototype's two unreferenced bridge imports
+and their generator entries, the selected Host bridge passed JS
+`moon check --deny-warn` (`run-oZWIeT`). The read-only Node and RelA assembly
+generator check also passed with the pinned toolchain.
 
 The retained-history scan previously stopped at inherited singleton
 `mergeBases` in `resolve-model-checkpoint-main-db141961.json` and
