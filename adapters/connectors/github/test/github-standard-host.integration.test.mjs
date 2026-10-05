@@ -901,13 +901,19 @@ test('two-source row cleanup retries without reacquisition after a later failure
     await setup.publish();
     const normal = graphqlRoute(() => ({...setup.state, answer: undefined}));
     let page = 0;
-    setup.state.answer = variables => ++page <= 2
-      ? normal.handle({body: JSON.stringify({query: 'query ActqlIssues(',
-        variables})})
-      : {headers: {'x-ratelimit-remaining': '0',
-        'x-ratelimit-reset': '1790000000'},
-        body: {data: null, errors: [{type: 'RATE_LIMITED',
-          message: 'API rate limit exceeded'}]}};
+    const responseBytes = [];
+    setup.state.answer = variables => {
+      const response = ++page <= 2
+        ? normal.handle({body: JSON.stringify({query: 'query ActqlIssues(',
+          variables})})
+        : {headers: {'x-ratelimit-remaining': '0',
+          'x-ratelimit-reset': '1790000000'},
+          body: {data: null, errors: [{type: 'RATE_LIMITED',
+            message: 'API rate limit exceeded'}]}};
+      const body = JSON.stringify(response.body);
+      responseBytes.push(Buffer.byteLength(body));
+      return {...response, body};
+    };
     const {client, host} = await setup.open();
     const run = await client.aql(JSON.stringify(twoRowSourceProgram()),
       {format: 'json', requestId: 'github-two-source-cleanup-retry'});
@@ -924,12 +930,17 @@ test('two-source row cleanup retries without reacquisition after a later failure
       name === 'acquisition_cleanup_started' && detail.task === 0);
     assert.ok(pending.length >= 2);
     assert.ok(pending.every(([, detail]) => BigInt(detail.resourceUsage.heldBytes) > 0n));
+    const transferred = responseBytes.reduce((sum, bytes) => sum + BigInt(bytes), 0n);
+    assert.ok(pending.every(([, detail]) =>
+      BigInt(detail.resourceUsage.transferredBytes) === transferred));
     failClose = false;
     await host.close();
     assert.equal(listings(setup.api).length, beforeRetry);
     const completed = observations.filter(([name, detail]) =>
       name === 'acquisition_cleanup_completed' && detail.task === 0);
     assert.equal(completed.length, 1);
+    assert.equal(BigInt(completed[0][1].resourceUsage.transferredBytes), transferred);
+    assert.equal(responseBytes.length, 3);
     for (const key of ['reservedTransferBytes', 'heldBytes',
       'reservedRetentionBytes', 'reservedExecutionBytes']) {
       assert.equal(completed[0][1].resourceUsage[key], '0', key);
@@ -1283,4 +1294,74 @@ test('a missing, null or invalid body fails the Run without a Result', async t =
     };
     await failsWithoutResult(setup, requestId);
   }
+});
+
+test('accounted GitHub pages charge complete raw responses exactly once', async t => {
+  const observations = [];
+  const setup = await installation(t, {retainedRelationOutput: true,
+    secondSource: true,
+    observe(name, detail) { observations.push([name, detail]); }});
+  await setup.publish();
+  const normal = graphqlRoute(() => ({...setup.state, answer: undefined}));
+  const {client} = await setup.open();
+  const charged = [];
+  const held = [];
+  for (const padding of [0, 257]) {
+    const bodies = [];
+    setup.state.answer = variables => {
+      const response = normal.handle({body: JSON.stringify({
+        query: 'query ActqlIssues(', variables})});
+      const body = JSON.stringify(response.body) + ' '.repeat(padding);
+      bodies.push(Buffer.byteLength(body));
+      return {...response, body};
+    };
+    const from = observations.length;
+    const document = twoRowSourceProgram();
+    document.id = `github-raw-body-${padding}`;
+    const run = await client.aql(JSON.stringify(document), {format: 'json',
+      requestId: `github-raw-body-${padding}`});
+    const state = await run.wait();
+    assert.equal(state.status, 'succeeded', JSON.stringify(state));
+    assert.deepEqual(await run.result('joined').all(), [
+      {number: 1, left_title: 'Issue 1', right_title: 'Copy 1'},
+      {number: 5, left_title: 'Issue 5', right_title: 'Copy 5'},
+    ]);
+    assert.equal(bodies.length, 3);
+    const usage = observations.slice(from).filter(([name]) =>
+      name === 'acquisition_completed').at(-1)?.[1].resourceUsage;
+    assert.ok(usage);
+    const expected = BigInt(bodies.reduce((sum, bytes) => sum + bytes, 0));
+    assert.equal(BigInt(usage.transferredBytes), expected,
+      'charge raw GraphQL envelopes, not re-serialized projected rows');
+    charged.push(BigInt(usage.transferredBytes));
+    held.push(usage.heldBytes);
+  }
+  assert.equal(charged[1] - charged[0], 3n * 257n);
+  assert.equal(held[1], held[0], 'raw transport padding is not retained row storage');
+});
+
+test('a parser-refused GitHub raw response remains charged without a Result', async t => {
+  const observations = [];
+  const setup = await installation(t, {retainedRelationOutput: true,
+    secondSource: true,
+    observe(name, detail) { observations.push([name, detail]); }});
+  await setup.publish();
+  const body = '{"data":' + ' '.repeat(513);
+  setup.state.answer = () => ({body});
+  const {client, host} = await setup.open();
+  const document = JSON.stringify(twoRowSourceProgram());
+  const run = await client.aql(document, {format: 'json',
+    requestId: 'github-raw-parser-refusal'});
+  const state = await run.wait();
+  assert.equal(state.status, 'failed', JSON.stringify(state));
+  assert.equal(state.result_available, false);
+  await assert.rejects(run.result('joined').all(), {code: 'ResultAccessDenied'});
+  await host.close();
+  assert.equal(observations.filter(([name]) => name === 'acquisition_completed').length, 0);
+  const usage = observations.filter(([name]) =>
+    name === 'dispatch_cleanup_completed').at(-1)?.[1].resourceUsage;
+  assert.ok(usage);
+  assert.equal(BigInt(usage.transferredBytes), BigInt(Buffer.byteLength(body)));
+  assertAcquisitionReleased(observations);
+  assert.equal(listings(setup.api).length, 1);
 });

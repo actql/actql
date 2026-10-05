@@ -1064,6 +1064,8 @@ pub fn client_program_result_row_contract_unit_cid(@run_publication_host.ClientR
 
 pub fn client_program_result_row_contract_wire(@run_publication_host.ClientResultRowContractIdentity) -> String
 
+pub fn client_program_row_source_accept_charged_page(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, Bytes) -> Result[Int, @client_row_source_host.RowHostIssue]
+
 pub fn client_program_row_source_accept_charged_values(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_accept_page(@client_row_source_host.RowRun, Bytes) -> Result[Int, @client_row_source_host.RowHostIssue]

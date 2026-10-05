@@ -563,12 +563,23 @@ pub fn accept_row_run_page(
   run : RowRun,
   bytes : Bytes,
 ) -> Result[Int, RowHostIssue] {
-  guard !run.closed && run.attempt.state is Reading(read) else {
-    return Err(InvalidState)
-  }
   let charge = match charge_row_run_page(run, bytes) {
     Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  accept_charged_row_run_page(run, charge, bytes)
+}
+
+///|
+/// Admit the projected JSON rows of one previously charged provider body.
+/// Consume its exact-run ticket without charging the projected bytes again.
+pub fn accept_charged_row_run_page(
+  run : RowRun,
+  charge : RowPageCharge,
+  bytes : Bytes,
+) -> Result[Int, RowHostIssue] {
+  guard !run.closed && run.attempt.state is Reading(read) else {
+    return Err(InvalidState)
   }
   match consume_row_page_charge(run, charge) {
     Ok(_) => ()

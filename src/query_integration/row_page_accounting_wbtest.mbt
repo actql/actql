@@ -362,6 +362,158 @@ test "page scratch and transfer limits fail before provider decoding" {
 }
 
 ///|
+test "charged JSON projections account different raw envelopes once for identical rows" {
+  let first = @utf8.encode("{\"nodes\":[{\"id\":2}]}")
+  let second = @utf8.encode(
+    "{\"nodes\":[{\"id\":2}],\"pageInfo\":{\"hasNextPage\":false}}",
+  )
+  let projected = @utf8.encode("[{\"id\":2}]")
+  assert_true(first.length() != second.length())
+  let (run, ledger, _) = row_page_run(
+    "row-page-json-envelopes",
+    transfer_bytes=(first.length() + second.length()).to_int64(),
+  )
+  let mut expected = 0L
+  for body in [first, second] {
+    let charge = @row_host.charge_row_run_page(run, body).unwrap()
+    expected += body.length().to_int64()
+    assert_eq(@resources.ledger_usage(ledger).transferred_bytes, expected)
+    assert_eq(
+      @row_host.accept_charged_row_run_page(run, charge, projected).unwrap(),
+      1,
+    )
+    assert_eq(@resources.ledger_usage(ledger).transferred_bytes, expected)
+  }
+  @row_host.finish_row_run(run).unwrap()
+  let capture = @row_host.capture_row_run(run).unwrap()
+  assert_true(@row_host.row_capture_source(capture) is Ok(_))
+  assert_eq(@resources.ledger_usage(ledger).transferred_bytes, expected)
+  assert_true(@resources.ledger_usage(ledger).held_bytes > 0L)
+  @row_host.close_accounted_row_run(run).unwrap()
+  let closed = @resources.ledger_usage(ledger)
+  assert_eq(closed.transferred_bytes, expected)
+  assert_eq(closed.held_bytes, 0L)
+  assert_eq(closed.reserved_transfer_bytes, 0L)
+  assert_eq(closed.reserved_retention_bytes, 0L)
+  assert_eq(closed.reserved_execution_bytes, 0L)
+  assert_true(@row_host.row_capture_source(capture) is Err(_))
+}
+
+///|
+test "charged JSON admission rejects replay with a missing or replacement pending ticket" {
+  let body = row_page_body(2)
+  let projected = @utf8.encode("[{\"id\":2}]")
+  for replacement in [false, true] {
+    let (run, ledger, _) = row_page_run(
+      "row-page-json-replay-" + replacement.to_string(),
+    )
+    let charge = @row_host.charge_row_run_page(run, body).unwrap()
+    @row_host.accept_charged_row_run_page(run, charge, projected).unwrap()
+    |> ignore
+    let mut expected = body.length().to_int64()
+    if replacement {
+      @row_host.charge_row_run_page(run, body).unwrap() |> ignore
+      expected += body.length().to_int64()
+    }
+    assert_true(
+      @row_host.accept_charged_row_run_page(run, charge, projected)
+      is Err(Physical(InvalidCharge)),
+    )
+    row_page_assert_closed(run, ledger)
+    assert_eq(@resources.ledger_usage(ledger).transferred_bytes, expected)
+  }
+}
+
+///|
+test "charged JSON admission refuses cross-run tickets without consuming their owner" {
+  let body = row_page_body(2)
+  let projected = @utf8.encode("[{\"id\":2}]")
+  for pending in [false, true] {
+    let (owner, owner_ledger, _) = row_page_run(
+      "row-page-json-owner-" + pending.to_string(),
+    )
+    let (foreign, foreign_ledger, _) = row_page_run(
+      "row-page-json-foreign-" + pending.to_string(),
+    )
+    let charge = @row_host.charge_row_run_page(owner, body).unwrap()
+    let mut foreign_bytes = 0L
+    if pending {
+      @row_host.charge_row_run_page(foreign, body).unwrap() |> ignore
+      foreign_bytes = body.length().to_int64()
+    }
+    assert_true(
+      @row_host.accept_charged_row_run_page(foreign, charge, projected)
+      is Err(Physical(ForeignOwner)),
+    )
+    row_page_assert_closed(foreign, foreign_ledger)
+    assert_eq(
+      @resources.ledger_usage(foreign_ledger).transferred_bytes,
+      foreign_bytes,
+    )
+    assert_eq(
+      @row_host.accept_charged_row_run_page(owner, charge, projected).unwrap(),
+      1,
+    )
+    @row_host.finish_row_run(owner).unwrap()
+    @row_host.capture_row_run(owner).unwrap() |> ignore
+    @row_host.close_accounted_row_run(owner).unwrap()
+    assert_eq(
+      @resources.ledger_usage(owner_ledger).transferred_bytes,
+      body.length().to_int64(),
+    )
+  }
+}
+
+///|
+test "refused projected JSON aborts its raw charge without refunding transfer" {
+  let body = row_page_body(2)
+  for projected in [@utf8.encode("[{\"id\":"), @utf8.encode(" ".repeat(129))] {
+    let (run, ledger, _) = row_page_run(
+      "row-page-json-refused-" + projected.length().to_string(),
+    )
+    let charge = @row_host.charge_row_run_page(run, body).unwrap()
+    assert_true(
+      @row_host.accept_charged_row_run_page(run, charge, projected)
+      is Err(Source(InvalidPage)),
+    )
+    assert_true(
+      @row_host.accept_charged_row_run_page(
+        run,
+        charge,
+        @utf8.encode("[{\"id\":2}]"),
+      )
+      is Err(InvalidState),
+    )
+    row_page_assert_closed(run, ledger)
+    assert_eq(
+      @resources.ledger_usage(ledger).transferred_bytes,
+      body.length().to_int64(),
+    )
+  }
+}
+
+///|
+test "a parser-refused raw body retains its charge and cannot finish without admission" {
+  let body = @utf8.encode("{\"nodes\":[")
+  let (run, ledger, _) = row_page_run("row-page-json-raw-refused")
+  @row_host.charge_row_run_page(run, body).unwrap() |> ignore
+  assert_true(
+    @source.parse_json_bytes(body, {
+      max_input_bytes: 128,
+      max_nodes: 100,
+      max_depth: 10,
+    })
+    is Err(_),
+  )
+  assert_true(@row_host.finish_row_run(run) is Err(Physical(InvalidCharge)))
+  row_page_assert_closed(run, ledger)
+  assert_eq(
+    @resources.ledger_usage(ledger).transferred_bytes,
+    body.length().to_int64(),
+  )
+}
+
+///|
 test "ordinary JSON pages share the charging path without a duplicate charge" {
   let (run, ledger, _) = row_page_run("row-page-json")
   let body = @utf8.encode("[{\"id\":2}]")

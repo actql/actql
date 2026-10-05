@@ -292,7 +292,8 @@ export async function loadInstalledGitHubSource(profile, {root, principalId,
         credentialAuthorityId: site.credentialAuthorityId,
         credentialKeyId: site.credentialKeyId}),
       limits: rowLimits,
-      readPages: async ({resource, authorizationFor, consumePage, signal}) => {
+      readPages: async ({resource, authorizationFor, chargePage, consumePage,
+        signal}) => {
         if (resource !== 'issues') fail('UndeclaredGitHubResource');
         return readGitHubIssuesByNode({moon: providerMoon,
           repository: {nodeId: publication.repository.node_id,
@@ -301,7 +302,9 @@ export async function loadInstalledGitHubSource(profile, {root, principalId,
           filters: {state: 'all', labels: []},
           credential: opened.site.credential,
           callResource: opened.site.callResource, authorizationFor,
-          limits: readLimits, consumePage, signal});
+          limits: readLimits, chargePage,
+          consumePage: (rows, _page, admission) => consumePage(rows, admission),
+          signal});
       }});
   } catch (cause) {
     throw await retainInstalledHostInitializationFailure(cause,

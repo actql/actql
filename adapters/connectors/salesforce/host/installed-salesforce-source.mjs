@@ -13,6 +13,7 @@ import {readFile} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {acquisitionFailure} from '../../../host-common/acquisition-outcome.mjs';
+import {startInstalledRowRun} from '../../../host-node/installed-row-run.mjs';
 import {authorizationRuntimeCode} from
   '../../../host-common/authorization-gate.mjs';
 import {installSalesforceAuthorization, installedSalesforceSiteBinding,
@@ -252,6 +253,7 @@ function installedSalesforceAdapter({moon, queryMoon, site, authorization,
       occurrence.task !== occurrence.stage) {
       fail('InvalidAcquisitionOccurrence');
     }
+    occurrence = Object.freeze({...occurrence});
     checked(effectful
       ? moon.clientProgramEffectPrepareQueryAcquisition(checkedOwner,
         occurrence.stage, occurrence.input)
@@ -380,21 +382,11 @@ function installedSalesforceAdapter({moon, queryMoon, site, authorization,
     const acquisition = owner.acquisition;
     const plan = checked(moon.clientProgramRecheckSalesforceRowProjection(
       declaration, acquisition, current.observation, 4096));
-    const settled = new Set();
-    const run = checked(ledger === undefined
-      ? moon.clientProgramRowSourceStart(
-        acquisition, nonce, attempt => settled.has(attempt))
-      : moon.clientProgramRowSourceStartAccounted(
-        acquisition, nonce, attempt => settled.has(attempt), ledger,
-        BigInt(readLimits.maxPages) * BigInt(readLimits.maxBytes),
-        BigInt(readLimits.maxBytes)));
-    let closed = false;
-    const close = () => {
-      if (closed) return;
-      if (ledger === undefined) moon.clientProgramRowSourceClose(run);
-      else checked(moon.clientProgramRowSourceCloseAccounted(run));
-      closed = true;
-    };
+    const session = startInstalledRowRun({moon, acquisition, nonce, ledger,
+      capacity: {
+        transferBytes: BigInt(readLimits.maxPages) * BigInt(readLimits.maxBytes),
+        executionBytes: BigInt(readLimits.maxBytes)}});
+    const {run} = session;
     try {
       const grant = site.issueGrant({operation: 'salesforce:query:read',
         decision: approval ?? decision, resource: owner.resource,
@@ -416,73 +408,11 @@ function installedSalesforceAdapter({moon, queryMoon, site, authorization,
           useId: `${nonce}-query-${index}`}),
         credential: site.credential, refreshCatalog: () => describe('recheck'),
         signal});
-      // The Site transport for this attempt has returned: its physical
-      // read is settled.
-      checked(moon.clientProgramRowSourceFinish(run));
-      settled.add(moon.clientProgramRowSourceAttempt(run));
-      const capture = checked(moon.clientProgramRowSourceCapture(run));
-      const source = () => checked(
-        moon.clientProgramRowSourceCaptureSource(capture));
-      const {checkedOwner, effectful} = owner;
-      if ((effectful
-        ? occurrence.task === 0
-          ? moon.clientProgramEffectCapturedSourceMatches(checkedOwner,
-            source())
-          : moon.clientProgramEffectCapturedSourceMatchesAt(checkedOwner,
-            source(), occurrence.task)
-        : moon.clientProgramCapturedTaskSourceMatches(checkedOwner,
-          source(), occurrence.task)) !== true) {
-        fail('InstalledSourceProgramMismatch');
-      }
-      // An Effect acquisition identifies its Relation through the common
-      // Effect entry, which retains its dependency bodies for this capture.
-      const identity = checked(effectful
-        ? moon.clientProgramIdentifyCapturedEffectSourceRelation(source())
-        : moon.clientProgramIdentifyCapturedSourceRelation(source()));
-      const logicalInput = checked(effectful
-        ? occurrence.task === 0
-          ? moon.clientProgramEffectIssueCapturedSourceLogical(checkedOwner,
-            source(), identity, owner.requirement)
-          : moon.clientProgramEffectIssueCapturedSourceLogicalAt(checkedOwner,
-            source(), identity, owner.requirement, occurrence.task)
-        : moon.clientProgramIssueCapturedTaskSourceLogical(checkedOwner,
-          source(), identity, owner.requirement, occurrence.task));
-      // An Effect Run's computation is opened by the common Host only after
-      // durable Run admission; the acquisition does not open it.
-      const openHost = retainedRelationOutput
-        ? moon.clientProgramOpenCapturedLocalRetainedHost
-        : moon.clientProgramOpenCapturedLocalHost;
-      const setup = effectful || ledger !== undefined ? undefined : openHost(checkedOwner, source(),
-        registry, values, 1n, 0n, 0n, 0n, fragment, ordered);
-      if (!effectful && ledger === undefined && setup === undefined) {
-        fail('InstalledSourceHostUnavailable');
-      }
-      return Object.freeze({checkedSource: prepared.checkedSource, identity,
-        logicalInput, requirement: owner.requirement, setup,
-        occurrence: owner.occurrence,
-        capture: Object.freeze({source,
-          ...(ledger === undefined ? {} : {retainTask: (dag, task) => checked(
-            moon.clientProgramRowSourceRetainCapturedTask(capture, dag, task))})}),
-        // Evidence is issued only while the read is still currently
-        // authorized.
-        issueSourceEvidence: async ({authorityScopeCid,
-          effectiveDataPolicyCid}) => {
-          await currentRead(prepared, access, signal);
-          return checked(moon.clientProgramRowSourceIssueSourceEvidence(
-            acquisition, capture, identity, logicalInput, authorityScopeCid,
-            effectiveDataPolicyCid, new Date().toISOString()));
-        },
-        close});
+      return session.complete({owner, prepared, registry, values, fragment,
+        ordered, retainedRelationOutput,
+        currentRead: () => currentRead(prepared, access, signal)});
     } catch (error) {
-      try { close(); }
-      catch {
-        state.closeFailed = true;
-        state.recovery = Object.freeze({
-          close() {},
-          async cleanup() { close(); return true; },
-          cleanupPending: () => !closed,
-        });
-      }
+      session.closeAfterFailure(state);
       throw error;
     }
   }

@@ -2001,3 +2001,40 @@ test('a refused later page cancels the already-admitted rows without replay', as
   assert.ok(setup.org.seen.some(item => item.path.includes('/query/01gFIXTURE2')));
   await close();
 });
+
+test('Salesforce preparation owns its occurrence across caller mutation', async t => {
+  const setup = await installation(t);
+  await setup.publish();
+  const preparingOccurrence = {stage: 0, input: 0, task: 0};
+  const openingOccurrence = {stage: 0, input: 0, task: 0};
+  const runtime = {...commonMoon,
+    clientProgramRowSourceFinish(run) {
+      // Caller-owned options can change while the physical read is awaited.
+      Object.assign(openingOccurrence, {stage: 1, task: 1});
+      return commonMoon.clientProgramRowSourceFinish(run);
+    }};
+  const {adapter, common} = await installedAdapter(setup, program, runtime);
+  let capture;
+  try {
+    let decisions = 0;
+    const access = {...adapter.sourceAccess, authorization: {
+      async authorize(...args) {
+        const decision = await adapter.sourceAccess.authorization.authorize(...args);
+        if (++decisions === 1) Object.assign(preparingOccurrence, {stage: 1, task: 1});
+        return decision;
+      }}};
+    const preparedSource = await adapter.prepare({...common,
+      sourceAccess: access, occurrence: preparingOccurrence});
+    capture = await adapter.open({...common, preparedSource,
+      sourceAccess: access, occurrence: openingOccurrence});
+    assert.equal(preparingOccurrence.task, 1);
+    assert.equal(openingOccurrence.task, 1);
+    assert.deepEqual(capture.occurrence, {stage: 0, input: 0, task: 0});
+    assert.equal(Object.isFrozen(capture.occurrence), true);
+    assert.notEqual(capture.capture.source(), undefined);
+    assert.equal(setup.queries().length, 1);
+  } finally {
+    capture?.close();
+    adapter.close();
+  }
+});

@@ -6319,6 +6319,16 @@ pub fn client_program_row_source_charge_page(
 }
 
 ///|
+#export_name("clientProgramRowSourceAcceptChargedPage")
+pub fn client_program_row_source_accept_charged_page(
+  run : @client_row_source_host.RowRun,
+  charge : @client_row_source_host.RowPageCharge,
+  bytes : Bytes,
+) -> Result[Int, @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.accept_charged_row_run_page(run, charge, bytes)
+}
+
+///|
 #export_name("clientProgramRowSourceAcceptChargedValues")
 pub fn client_program_row_source_accept_charged_values(
   run : @client_row_source_host.RowRun,
