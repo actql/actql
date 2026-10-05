@@ -2050,7 +2050,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "000f902358a4716d0eab8b4671e21471390e82991b3c540d49396ce99fab477d",
+      "statement_sha256": "293434e3317c6503727e6515ce1326daeda9ace002572f9a3dacbe8777740a17",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

@@ -25,7 +25,8 @@ const mutations = [
     '      | LexicalViolation(_, _)\n' +
     '      | ExpressionViolation(_, _)\n' +
     '      | GraphViolation(_, _)\n' +
-    '      | TypeViolation(_, _, _, _)\n      | SuppliedViolation(_)\n' +
+    '      | TypeViolation(_, _, _, _)\n' +
+    '      | DefaultTypeViolation(_, _, _, _)\n      | SuppliedViolation(_)\n' +
     '      | DeclarationViolation(_)\n' +
     '      | ConstraintViolation(_, _, _)\n' +
     '      | UndeclaredParameter(_, _))\n    }) {\n' +
@@ -225,6 +226,18 @@ const mutations = [
     'QueryLowering(UnknownRelation) => {\n' +
     '          findings.push(Unresolved("source_resolution"))\n' +
     '          findings.push(GraphViolation("subgraph", "invalid_node_selector"))\n        }'],
+  ['a default type violation loses its typed explanation facts',
+    'Some(DefaultTypeViolation(name, expected, actual, pointer))',
+    'Some(DeclarationViolation(pointer))'],
+  ['a default type violation loses its owned declaration location',
+    'Some(DefaultTypeViolation(name, expected, actual, pointer))',
+    'Some(DefaultTypeViolation(name, expected, actual, None))'],
+  ['a default type violation reports the root type instead of its leaf',
+    'guard check_type_facts(source, value, path, 2) is Some((expected, actual)) else',
+    'guard check_type_facts(source, value, [], 0) is Some((expected, actual)) else'],
+  ['a default type violation is reported as an analysis limit',
+    'Some(DefaultTypeViolation(name, expected, actual, pointer))',
+    'Some(Limit("analysis_budget_exhausted"))'],
 ];
 
 const strict = id => ({id, operator: 'strictEqual'});
@@ -301,6 +314,9 @@ const targets = [
     ['Subgraph selector violations preserve the common Owner reason',
       [strict('subgraph-verdict'), deep('subgraph-reason'), strict('subgraph-limit-verdict')]]),
   ['Subgraph selector violations preserve the common Owner reason', [deep('subgraph-protected')]],
+  ...Array.from({length: 4}, () =>
+    ['default type violations retain declaration input and the owned leaf type',
+      [strict('default-verdict'), deep('default-reason')]]),
 ];
 
 // Reuse the common reporter and nonzero-execution evidence. A process failure

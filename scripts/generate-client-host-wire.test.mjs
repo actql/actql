@@ -93,6 +93,31 @@ test('typed public facts are closed and locations bind declared input revisions'
     {...reason, location: {...location, pointer: '/bad~escape'}},
   ]) assert.equal(valid(outcome(changed)), false, JSON.stringify(changed));
   assert.equal(valid(outcome({code: 'future_code'})), true);
+  const defaultLocation = {...location, document_id: 'parameter_declarations',
+    pointer: '/minimum/default'};
+  const defaultReason = {...reason, code: 'parameter_default_type_mismatch',
+    location: defaultLocation};
+  const defaultOutcome = value => {
+    const answer = outcome(value);
+    answer.report.inputs.push({document_id: 'parameter_declarations', kind: 'structured',
+      revision, byte_length: 58});
+    return answer;
+  };
+  assert.equal(valid(defaultOutcome(defaultReason)), true);
+  const {location: _defaultLocation, ...unlocatedDefault} = defaultReason;
+  assert.equal(valid(defaultOutcome(unlocatedDefault)), true);
+  for (const changed of [
+    {code: defaultReason.code}, {...defaultReason, facts: {}},
+    {...defaultReason, facts: {parameter: 'minimum', expected_type: 'number'}},
+    {...defaultReason, facts: {...defaultReason.facts, value: 'private-default'}},
+    {...defaultReason, facts: {...defaultReason.facts, actual_type: 'private-default'}},
+    {...defaultReason, location},
+    {...defaultReason, location: {...defaultLocation, revision: 'rev:' + '3'.repeat(64)}},
+    {...defaultReason, location: {...defaultLocation, kind: 'text', pointer: undefined,
+      start_byte: 0, end_byte: 1, precision: 'exact'}},
+    {...defaultReason, code: 'parameter_declarations_invalid'},
+    {...defaultReason, code: 'future_code'},
+  ]) assert.equal(valid(defaultOutcome(changed)), false, '[check-mutation:default-schema]');
   const constraint = {code: 'supplied_value_constraint_violation', location,
     facts: {parameter: 'minimum', constraint: 'numeric'}};
   assert.equal(valid(outcome(constraint)), true);

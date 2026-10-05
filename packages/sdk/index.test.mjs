@@ -70,6 +70,13 @@ test('Boolean predicate explanations retain the requirement without exposing inp
   assert.equal(explainCheckReason({code: 'future_code', facts: {issue: 'expected_boolean'}}).kind, 'unknown');
 });
 
+test('default type explanations advise correcting the declaration rather than supplying a value', () => {
+  assert.deepEqual(explainCheckReason({code: 'parameter_default_type_mismatch',
+    facts: {parameter: 'minimum', expected_type: 'number', actual_type: 'string'}}),
+  {kind: 'known', summary: 'A parameter default does not match its declared type.',
+    hint: 'Correct the default to match the declared type, then check again.'});
+});
+
 test('Graph explanations require a known operation and owned issue', () => {
   assert.deepEqual(explainCheckReason({code: 'graph_operation_invalid',
     facts: {operation: 'components', issue: 'invalid_kind'}}),

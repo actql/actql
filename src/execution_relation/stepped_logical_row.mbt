@@ -152,33 +152,21 @@ fn[T : RowValues] advance_stepped_logical_row_impl(
     return Err(LogicalRows(FailedLogicalBudget))
   }
   if cursor.measure is Some(measure) {
-    // A continuation replaces one frame with at most two. Reserve before
-    // advancing. Eight slots conservatively cover the logical cursor, its
-    // frame array, pending Text state, measuring writer, and overlapping
-    // identity/admitted/Text emit handles and their frame array.
-    if !reserve_slots(cursor.workspace, 1) {
-      return Err(RowLimit)
-    }
-    cursor.measure_reserved += 1
-    let before = measure.remaining
-    let result = advance_logical_measure(measure)
-    // Failed/cancelled measurement keeps every successfully consumed unit.
-    budget.work += before - measure.remaining
-    match result {
-      Err(issue) => {
-        budget.failed = true
-        return Err(LogicalRows(ValueMeasure(issue)))
-      }
-      Ok(None) => {
-        let retained = 8 + logical_measure_frames(measure)
-        release_slots(cursor.workspace, cursor.measure_reserved - retained)
-        cursor.measure_reserved = retained
-      }
-      Ok(Some(_)) => {
-        cursor.measure = None
-        release_slots(cursor.workspace, cursor.measure_reserved)
-        cursor.measure_reserved = 0
-        cursor.phase = 2
+    match
+      advance_charged_logical_measure(
+        measure,
+        budget,
+        cursor.workspace,
+        cursor.measure_reserved,
+      ) {
+      Err(Workspace) => return Err(RowLimit)
+      Err(Logical(issue)) => return Err(LogicalRows(issue))
+      Ok((measured, reserved)) => {
+        cursor.measure_reserved = reserved
+        if measured is Some(_) {
+          cursor.measure = None
+          cursor.phase = 2
+        }
       }
     }
     return Ok(None)
@@ -186,7 +174,10 @@ fn[T : RowValues] advance_stepped_logical_row_impl(
   if cursor.wire is Some(wire) {
     match advance_stepped_runtime_wire(wire) {
       Err(Workspace) => return Err(RowLimit)
-      Err(Encoding(_)) => {
+      Err(Encoding(issue)) => {
+        // The cursor retains the exact cause; this boundary intentionally
+        // projects every encoding failure to the existing row diagnostic.
+        ignore(issue)
         budget.failed = true
         return Err(LogicalRows(ValueMeasure(WireMeasureFailure)))
       }
@@ -244,27 +235,19 @@ fn[T : RowValues] advance_stepped_logical_row_impl(
     return Ok(None)
   }
   if cursor.phase == 1 {
-    // Reserve all overlapping handles and the initial frame before creation.
-    if !reserve_slots(cursor.workspace, 9) {
-      return Err(RowLimit)
-    }
-    cursor.measure_reserved = 9
-    let allowance = budget.limits.max_work - budget.work
     let measure = match
-      start_logical_measure(
+      start_charged_logical_measure(
         cursor.row.value_at(cursor.column),
-        allowance,
-        Int64::min(budget.limits.max_value_bytes, budget.host_bytes.to_int64()).to_int(),
+        budget,
+        cursor.workspace,
         budget.host_nodes - 1,
         budget.host_depth - 1,
       ) {
       Ok(measure) => measure
-      Err(issue) => {
-        budget.failed = true
-        return Err(LogicalRows(ValueMeasure(issue)))
-      }
+      Err(Workspace) => return Err(RowLimit)
+      Err(Logical(issue)) => return Err(LogicalRows(issue))
     }
-    budget.work += allowance - measure.remaining
+    cursor.measure_reserved = 9
     cursor.measure = Some(measure)
     return Ok(None)
   }

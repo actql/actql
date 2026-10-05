@@ -12,6 +12,7 @@ priv enum CheckFinding {
   ExpressionViolation(String, (Int, Int)?)
   GraphViolation(String, String)
   TypeViolation(String, String, String, String?)
+  DefaultTypeViolation(String, String, String, String?)
   SuppliedViolation(String?)
   DeclarationViolation(String?)
   ConstraintViolation(String, String, String?)
@@ -150,8 +151,12 @@ fn check_source_findings(
           }
           return Report
         }
-        Err({ kind: Invalid, pointer, }) => {
-          findings.push(DeclarationViolation(pointer))
+        Err({ kind: Invalid, pointer, finding, }) => {
+          if finding is Some(finding) {
+            findings.push(finding)
+          } else {
+            findings.push(DeclarationViolation(pointer))
+          }
           return Report
         }
         Err({ kind: Internal, .. }) => return Failed("check_internal")
@@ -364,6 +369,7 @@ fn check_source_findings(
       | ExpressionViolation(_, _)
       | GraphViolation(_, _)
       | TypeViolation(_, _, _, _)
+      | DefaultTypeViolation(_, _, _, _)
       | SuppliedViolation(_)
       | DeclarationViolation(_)
       | ConstraintViolation(_, _, _)
@@ -475,6 +481,7 @@ fn check_binding_fault(issue : @parameter_binding.Issue) -> CheckInputFault {
 priv struct CheckDeclarationFault {
   kind : CheckInputFault
   pointer : String?
+  finding : CheckFinding?
 }
 
 ///|
@@ -498,6 +505,7 @@ fn check_declarations(
           Invalid
         },
         pointer: None,
+        finding: None,
       })
   }
   let cursor = match
@@ -509,7 +517,11 @@ fn check_declarations(
     }) {
     Ok(cursor) => cursor
     Err(issue) =>
-      return Err({ kind: check_decode_fault(issue), pointer: None, })
+      return Err({
+        kind: check_decode_fault(issue),
+        pointer: None,
+        finding: None,
+      })
   }
   match
     @parameter_binding.read_declarations(Some(cursor), {
@@ -539,7 +551,12 @@ fn check_declarations(
       } else {
         None
       }
-      Err({ kind, pointer, })
+      let finding = if kind is Invalid && path is Some(path) {
+        check_default_type_finding(issue, cursor, path, pointer)
+      } else {
+        None
+      }
+      Err({ kind, pointer, finding, })
     }
   }
 }
@@ -601,6 +618,7 @@ fn check_verdict(findings : Array[CheckFinding]) -> String {
       | ExpressionViolation(_, _)
       | GraphViolation(_, _)
       | TypeViolation(_, _, _, _)
+      | DefaultTypeViolation(_, _, _, _)
       | SuppliedViolation(_)
       | DeclarationViolation(_)
       | ConstraintViolation(_, _, _)
@@ -646,6 +664,8 @@ fn write_check_report(
       ExpressionViolation(_, _) => Some("query_expression_invalid")
       GraphViolation(_, _) => Some("graph_operation_invalid")
       TypeViolation(_, _, _, _) => Some("supplied_value_type_mismatch")
+      DefaultTypeViolation(_, _, _, _) =>
+        Some("parameter_default_type_mismatch")
       SuppliedViolation(_) => Some("supplied_value_invalid")
       DeclarationViolation(_) => Some("parameter_declarations_invalid")
       ConstraintViolation(_, _, _) =>
@@ -802,9 +822,42 @@ fn write_check_report(
         }
       }
     }
-    if code == "supplied_value_type_mismatch" {
+    if code == "supplied_value_type_mismatch" ||
+      code == "parameter_default_type_mismatch" {
       for finding in findings {
-        if finding is TypeViolation(name, expected, actual, pointer) {
+        let details = match (code, finding) {
+          (
+            "supplied_value_type_mismatch",
+            TypeViolation(name, expected, actual, pointer),
+          ) =>
+            Some(
+              (
+                name,
+                expected,
+                actual,
+                pointer,
+                "parameters",
+                documents.parameters_revision,
+              ),
+            )
+          (
+            "parameter_default_type_mismatch",
+            DefaultTypeViolation(name, expected, actual, pointer),
+          ) =>
+            Some(
+              (
+                name,
+                expected,
+                actual,
+                pointer,
+                "parameter_declarations",
+                documents.declarations_revision,
+              ),
+            )
+          _ => None
+        }
+        if details
+          is Some((name, expected, actual, pointer, document_id, revision)) {
           @encode.key(writer, "facts")
           @encode.begin_object(writer)
           @encode.key(writer, "actual_type")
@@ -814,10 +867,9 @@ fn write_check_report(
           @encode.key(writer, "parameter")
           @encode.string_value(writer, name)
           @encode.end_object(writer)
-          if documents.parameters_revision is Some(revision) &&
-            pointer is Some(pointer) {
+          if revision is Some(revision) && pointer is Some(pointer) {
             write_check_structured_location(
-              writer, "parameters", revision, pointer,
+              writer, document_id, revision, pointer,
             )
           }
           break
@@ -1248,7 +1300,6 @@ fn check_supplied_type_finding(
     @decode.lookup(object, name) is Some(root) else {
     return fallback
   }
-  let mut value = root
   let mut source = None
   for index in 0..<@parameter_binding.declaration_count(declarations) {
     let declaration = @parameter_binding.declaration_at(declarations, index).unwrap()
@@ -1258,11 +1309,53 @@ fn check_supplied_type_finding(
     }
   }
   guard source is Some(root_source) else { return fallback }
+  guard check_type_facts(root_source, root, path, 1) is Some((expected, actual)) else {
+    return fallback
+  }
+  TypeViolation(name, expected, actual, pointer)
+}
+
+///|
+/// Read explanation facts after the declaration owner has rejected a default.
+/// The admitted declaration type precedes default validation; this walk does
+/// not validate another value or change declaration admission.
+fn check_default_type_finding(
+  issue : @parameter_binding.Issue,
+  root : @decode.Cursor,
+  path : Array[@decode.PathSegment],
+  pointer : String?,
+) -> CheckFinding? {
+  guard issue
+    is (Value(ValueIssue(WrongType | UnexpectedNull, ..))
+    | Value(Decode({ kind: WrongType | UnexpectedNull, .. }))) &&
+    path.length() >= 2 &&
+    path[0] is @source.Key(name) &&
+    name.length() <= 256 &&
+    path[1] is @source.Key("default") &&
+    @decode.open_object(root) is Ok(declarations) &&
+    @decode.lookup(declarations, name) is Some(source) &&
+    @decode.open_object(source) is Ok(declaration) &&
+    @decode.lookup(declaration, "default") is Some(value) else {
+    return None
+  }
+  guard check_type_facts(source, value, path, 2) is Some((expected, actual)) else {
+    return None
+  }
+  Some(DefaultTypeViolation(name, expected, actual, pointer))
+}
+
+///|
+/// Walk only the already owned type/value paths of a proven mismatch.
+fn check_type_facts(
+  root_source : @decode.Cursor,
+  root_value : @decode.Cursor,
+  path : Array[@decode.PathSegment],
+  offset : Int,
+) -> (String, String)? {
+  let mut value = root_value
   let mut source = root_source
-  for index in 1..<path.length() {
-    guard @decode.open_object(source) is Ok(type_object) else {
-      return fallback
-    }
+  for index in offset..<path.length() {
+    guard @decode.open_object(source) is Ok(type_object) else { return None }
     match path[index] {
       @source.Key(key) => {
         guard @decode.lookup(type_object, "fields") is Some(fields) &&
@@ -1270,7 +1363,7 @@ fn check_supplied_type_finding(
           @decode.lookup(fields, key) is Some(child_type) &&
           @decode.open_object(value) is Ok(object) &&
           @decode.lookup(object, key) is Some(child) else {
-          return fallback
+          return None
         }
         source = child_type
         value = child
@@ -1279,14 +1372,14 @@ fn check_supplied_type_finding(
         guard @decode.lookup(type_object, "items") is Some(child_type) &&
           @decode.elements(value) is Ok(elements) &&
           elements.get(at) is Some(child) else {
-          return fallback
+          return None
         }
         source = child_type
         value = child
       }
     }
   }
-  guard check_type_name(source) is Some(expected) else { return fallback }
+  guard check_type_name(source) is Some(expected) else { return None }
   let actual = match @decode.view(value) {
     NullValue => "null"
     BoolValue(_) => "boolean"
@@ -1295,7 +1388,7 @@ fn check_supplied_type_finding(
     ArrayValue(_) => "array"
     ObjectValue(_) => "object"
   }
-  TypeViolation(name, expected, actual, pointer)
+  Some((expected, actual))
 }
 
 ///|
