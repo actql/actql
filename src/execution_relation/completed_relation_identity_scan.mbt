@@ -28,6 +28,7 @@ struct CompletedRelationIdentityScan {
 ///|
 priv enum IdentityWireCursor {
   CapturedWire(@admitted.WireEmitCursor)
+  TextWire(@encode.StringEmitCursor)
   ScalarWire(Value, @encode.Writer)
 }
 
@@ -102,9 +103,11 @@ fn identity_scan_cell(value : CompletedRelationIdentityScan) -> Value {
 fn identity_scan_emit(
   cell : Value,
   writer : @encode.Writer,
-) -> IdentityWireCursor {
+) -> IdentityWireCursor raise @encode.EncodeFailure {
   match cell {
     Captured(value) => CapturedWire(@admitted.start_wire_emit(value, writer))
+    Text(text) if text.length() > 64 =>
+      TextWire(@encode.start_string_value(writer, text))
     scalar => ScalarWire(scalar, writer)
   }
 }
@@ -115,6 +118,7 @@ fn advance_identity_wire(
 ) -> Bool raise @encode.EncodeFailure {
   match cursor {
     CapturedWire(cursor) => @admitted.advance_wire_emit(cursor)
+    TextWire(cursor) => @encode.advance_string_value(cursor)
     ScalarWire(cell, writer) => {
       emit_runtime_value(cell, writer)
       true
@@ -126,6 +130,7 @@ fn advance_identity_wire(
 fn cancel_identity_wire(cursor : IdentityWireCursor) -> Unit {
   match cursor {
     CapturedWire(cursor) => @admitted.cancel_wire_emit(cursor)
+    TextWire(cursor) => @encode.cancel_string_value(cursor)
     ScalarWire(_, _) => ()
   }
 }

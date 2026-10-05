@@ -1,3 +1,4 @@
+import './check-requirement-frontier.test.mjs';
 import './check-locations.test.mjs';
 import './effect-uncertainty.test.mjs';
 import test, {mock} from 'node:test';
@@ -69,6 +70,13 @@ test('Boolean predicate explanations retain the requirement without exposing inp
   assert.equal(explainCheckReason({code: 'future_code', facts: {issue: 'expected_boolean'}}).kind, 'unknown');
 });
 
+test('default type explanations advise correcting the declaration rather than supplying a value', () => {
+  assert.deepEqual(explainCheckReason({code: 'parameter_default_type_mismatch',
+    facts: {parameter: 'minimum', expected_type: 'number', actual_type: 'string'}}),
+  {kind: 'known', summary: 'A parameter default does not match its declared type.',
+    hint: 'Correct the default to match the declared type, then check again.'});
+});
+
 test('Graph explanations require a known operation and owned issue', () => {
   assert.deepEqual(explainCheckReason({code: 'graph_operation_invalid',
     facts: {operation: 'components', issue: 'invalid_kind'}}),
@@ -78,9 +86,15 @@ test('Graph explanations require a known operation and owned issue', () => {
     facts: {operation: 'components', issue: 'invalid_output_rows'}}),
   {kind: 'known', summary: 'The components output row limit is invalid.',
     hint: 'Supply a positive safe integer for components max_output_rows.'});
+  assert.deepEqual(explainCheckReason({code: 'graph_operation_invalid',
+    facts: {operation: 'subgraph', issue: 'invalid_node_selector'}}),
+  {kind: 'known', summary: 'The Subgraph node selector is invalid.',
+    hint: 'Provide one selector: nonempty ids, a named Relation with an id field, or a node where predicate.'});
   for (const facts of [undefined, {}, {issue: 'invalid_kind'},
     {operation: 'future_operation', issue: 'invalid_kind'},
-    {operation: 'components', issue: 'private_provider_text'}]) {
+    {operation: 'components', issue: 'private_provider_text'},
+    {operation: 'components', issue: 'invalid_node_selector'},
+    {operation: 'subgraph', issue: 'invalid_kind'}]) {
     assert.deepEqual(explainCheckReason({code: 'graph_operation_invalid', facts}),
       {kind: 'unknown', summary: 'No supported explanation is available for this reason.'});
   }
@@ -1228,6 +1242,15 @@ test('typed cancellation explanations preserve observation-only targets', () => 
   {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
 });
 
+test('typed Requirement frontier consumers cannot change observations or issue writes', () => {
+  execFileSync(process.execPath, [fileURLToPath(new URL(
+    '../../node_modules/typescript/bin/tsc', import.meta.url)),
+  '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
+  '--target', 'ES2022', fileURLToPath(new URL(
+    './check-requirement-frontier.typecheck.mts', import.meta.url))],
+  {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
+});
+
 test('typed check outcome explanations preserve report binding and incomplete branches', () => {
   execFileSync(process.execPath, [fileURLToPath(new URL(
     '../../node_modules/typescript/bin/tsc', import.meta.url)),
@@ -1235,4 +1258,13 @@ test('typed check outcome explanations preserve report binding and incomplete br
   '--target', 'ES2022', fileURLToPath(new URL(
     './check-outcome-explanation.typecheck.mts', import.meta.url))],
   {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
+});
+
+
+test('unused Parameter explanations distinguish a declaration violation from a missing value', () => {
+  assert.deepEqual(explainCheckReason({code: 'parameter_unused', facts: {parameter: 'unused'}}),
+  {kind: 'known', summary: 'A declared parameter is not used by the complete Program.',
+    hint: 'Remove the unused declaration or reference the parameter in the Program, then check again.'});
+  assert.notEqual(explainCheckReason({code: 'parameter_unused'}).hint,
+    explainCheckReason({code: 'parameter_value_required'}).hint);
 });

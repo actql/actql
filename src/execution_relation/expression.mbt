@@ -92,7 +92,21 @@ priv enum Evaluation {
   Concat(VectorConcatState)
   FinishObject(ObjectExpressionState)
   MeasureObject(ObjectExpressionState, Value, LogicalMeasureCursor)
-  MeasureObjectOperand(Value, LogicalMeasureCursor)
+  MeasureResult(Value, LogicalMeasureCursor)
+  CompareBinary(BinaryComparisonState)
+}
+
+///|
+priv struct BinaryComparisonState {
+  expression : @lower.Expression
+  op : @lower.BinaryOperator
+  left : Value
+  right : Value
+  left_root : ExpressionRootLease?
+  right_root : ExpressionRootLease?
+  charge : BoundedTextCharge
+  mut phase : Int
+  mut offset : Int
 }
 
 ///|
@@ -246,6 +260,8 @@ priv struct ExpressionFrame {
   mut state : Evaluation
   mut active : @lower.Expression
   mut current_root : ExpressionRootLease?
+  mut result_prepaid : Bool
+  mut measurement_slots : Int
   workspace_baseline : Int
   mut closed : Bool
 }
@@ -280,6 +296,8 @@ fn expression_frame(
     state: Enter(root),
     active: root,
     current_root: None,
+    result_prepaid: false,
+    measurement_slots: 0,
     workspace_baseline: workspace.live,
     closed: false,
   })
@@ -303,9 +321,12 @@ fn close_expression_frame(frame : ExpressionFrame) -> Unit {
   match frame.state {
     Concat(state) => @admitted.cancel_vector_value(state.builder) |> ignore
     MeasureObject(_, _, cursor) => clear_logical_measure(cursor)
-    MeasureObjectOperand(_, cursor) => clear_logical_measure(cursor)
+    MeasureResult(_, cursor) => clear_logical_measure(cursor)
     _ => ()
   }
+  release_slots(frame.workspace, frame.measurement_slots)
+  frame.measurement_slots = 0
+  frame.result_prepaid = false
   if frame.workspace.live > frame.workspace_baseline {
     release_slots(
       frame.workspace,
@@ -398,10 +419,15 @@ fn advance_expression_frame_impl(
     }
   }
   while true {
-    if budget.remaining == 0 {
-      return Err({ kind: ControlLimit, expression: frame.active, })
+    // Right paid the transition and the operand byte charge covers both scans.
+    // Splitting those scans must not add a charge for each resume or refund
+    // work. The next semantic Return still pays its usual transition.
+    if !(frame.state is CompareBinary(_)) {
+      if budget.remaining == 0 {
+        return Err({ kind: ControlLimit, expression: frame.active, })
+      }
+      budget.remaining = budget.remaining - 1
     }
-    budget.remaining = budget.remaining - 1
     match frame.state {
       Enter(expr) => {
         frame.active = expr
@@ -577,37 +603,48 @@ fn advance_expression_frame_impl(
         }
       }
       Return(value) => {
-        // A borrowed aggregate still needs an exact measurement before its
-        // first semantic consumption. Object/property must not drain a large
-        // model output in a single Return transition. Other operation paths
-        // retain their existing measurement/charge schedule.
+        // Any demanded large value needs a bounded first measurement, not just
+        // an object/property receiver. Forwarded roots reuse their exact proof;
+        // subsequent semantic consumptions still pay the complete weight.
         let object_operand = frame.object_context > 0 ||
           frame.membership_context > 0 ||
           @lower.expression_body(frame.active) is @lower.Property(_, _, _)
-        if object_operand &&
-          frame.current_root is None &&
+        if frame.current_root is None &&
           scope is Some(scope) &&
-          value is Captured(@admitted.Object(_) | @admitted.Array(_)) {
+          (
+            !bounded_small_output_value(value) ||
+            (
+              object_operand &&
+              value is Captured(@admitted.Object(_) | @admitted.Array(_))
+            )
+          ) {
+          if scope.free.is_empty() && scope.slots.length() >= scope.limit {
+            scope.budget.failed = true
+            return Err({
+              kind: LogicalValue(LiveValueLimit),
+              expression: frame.active,
+            })
+          }
           let logical = scope.budget
           let cursor = match
-            start_logical_measure(
+            start_charged_logical_measure(
               value,
-              logical.limits.max_work - logical.work,
-              Int64::min(
-                logical.limits.max_value_bytes,
-                logical.host_bytes.to_int64(),
-              ).to_int(),
+              logical,
+              workspace,
               logical.host_nodes,
               logical.host_depth,
             ) {
             Ok(cursor) => cursor
-            Err(issue) =>
+            Err(Workspace) =>
+              return Err({ kind: WorkspaceLimit, expression: frame.active, })
+            Err(Logical(issue)) =>
               return Err({
-                kind: LogicalValue(ValueMeasure(issue)),
+                kind: LogicalValue(issue),
                 expression: frame.active,
               })
           }
-          frame.state = MeasureObjectOperand(value, cursor)
+          frame.measurement_slots = 9
+          frame.state = MeasureResult(value, cursor)
           if !drain {
             return Ok(None)
           }
@@ -622,10 +659,12 @@ fn advance_expression_frame_impl(
             value,
             frame.current_root,
             frame.active,
+            prepaid=frame.result_prepaid,
           ) {
           Ok(root) => root
           Err(issue) => return Err(issue)
         }
+        frame.result_prepaid = false
         guard frame.stack.pop() is Some(continuation) else {
           let retained = match frame.current_root {
             None => None
@@ -798,6 +837,50 @@ fn advance_expression_frame_impl(
               }
               frame.current_root = None
               frame.state = Membership(state)
+              if !drain {
+                return Ok(None)
+              }
+              continue
+            }
+            if (left is Text(text) && text.length() > 64) ||
+              (value is Text(text) && text.length() > 64) {
+              match
+                expression_event_consume(
+                  logical_work,
+                  left,
+                  expr,
+                  root=left_root,
+                ) {
+                Err(issue) => return Err(issue)
+                Ok(_) => ()
+              }
+              match
+                expression_event_consume(
+                  logical_work,
+                  value,
+                  expr,
+                  root=frame.current_root,
+                ) {
+                Err(issue) => return Err(issue)
+                Ok(_) => ()
+              }
+              // Reuse the popped continuation's slot and reserve the second
+              // cursor handle before constructing the pending comparison.
+              if !reserve_slots(workspace, 1) {
+                return Err({ kind: WorkspaceLimit, expression: expr, })
+              }
+              frame.state = CompareBinary({
+                expression: expr,
+                op,
+                left,
+                right: value,
+                left_root,
+                right_root: frame.current_root,
+                charge: { offset: 0, next: 0, remaining: 0, },
+                phase: 0,
+                offset: 0,
+              })
+              frame.current_root = None
               if !drain {
                 return Ok(None)
               }
@@ -1294,46 +1377,138 @@ fn advance_expression_frame_impl(
           }
         }
       }
-      MeasureObjectOperand(value, cursor) =>
-        match advance_logical_measure(cursor) {
-          Err(issue) =>
-            return Err({
-              kind: LogicalValue(ValueMeasure(issue)),
-              expression: frame.active,
-            })
-          Ok(None) => ()
-          Ok(Some(measured)) => {
-            guard scope is Some(scope) else {
-              return Err({
-                kind: LogicalValue(InvalidRootLifetime),
-                expression: frame.active,
-              })
+      CompareBinary(state) => {
+        frame.active = state.expression
+        if state.phase < 2 {
+          let operand = if state.phase == 0 { state.left } else { state.right }
+          match bounded_comparison_charge_text(operand) {
+            Err(Scalar(issue)) =>
+              return Err({ kind: Scalar(issue), expression: state.expression, })
+            Err(_) =>
+              return Err({ kind: ControlLimit, expression: state.expression, })
+            Ok(Some(text)) =>
+              match advance_bounded_text_charge(state.charge, budget, text) {
+                Err(_) =>
+                  return Err({
+                    kind: ControlLimit,
+                    expression: state.expression,
+                  })
+                Ok(false) => {
+                  if !drain {
+                    return Ok(None)
+                  }
+                  continue
+                }
+                Ok(true) => ()
+              }
+            Ok(None) =>
+              match charge_comparison_operand(budget, operand) {
+                Err(ComparisonChargeLimit) =>
+                  return Err({
+                    kind: ControlLimit,
+                    expression: state.expression,
+                  })
+                Err(ComparisonChargeInvalidOperand) =>
+                  return Err({
+                    kind: Scalar(InvalidOperand),
+                    expression: state.expression,
+                  })
+                Ok(_) => ()
+              }
+          }
+          state.phase += 1
+          reset_bounded_text_charge(state.charge)
+        } else {
+          let comparison_operator = match state.op {
+            Add | Subtract | Multiply | Divide | Modulo | In | NotIn => false
+            _ => true
+          }
+          let result = if comparison_operator &&
+            state.left is Text(left) &&
+            state.right is Text(right) {
+            let (compared, offset) = bounded_utf16_comparison_step(
+              left,
+              right,
+              state.offset,
+            )
+            state.offset = offset
+            guard compared is Some(compared) else {
+              if !drain {
+                return Ok(None)
+              }
+              continue
             }
-            let root = match
-              reserve_logical_bytes(
-                scope.budget,
-                measured.wire_bytes.to_int64(),
-              ) {
-              Ok(root) => root
-              Err(issue) =>
-                return Err({
-                  kind: LogicalValue(issue),
-                  expression: frame.active,
-                })
+            binary_comparison_result(state.op, state.left, compared)
+          } else {
+            binary(state.op, state.left, state.right)
+          }
+          let result = match result {
+            Ok(value) => value
+            Err(issue) =>
+              return Err({ kind: Scalar(issue), expression: state.expression, })
+          }
+          match expression_event_release(state.left_root, state.expression) {
+            Err(issue) => return Err(issue)
+            Ok(_) => ()
+          }
+          match expression_event_release(state.right_root, state.expression) {
+            Err(issue) => return Err(issue)
+            Ok(_) => ()
+          }
+          release_slots(workspace, 2)
+          frame.state = Return(result)
+        }
+      }
+      MeasureResult(value, cursor) => {
+        guard scope is Some(scope) else {
+          return Err({
+            kind: LogicalValue(InvalidRootLifetime),
+            expression: frame.active,
+          })
+        }
+        match
+          advance_charged_logical_measure(
+            cursor,
+            scope.budget,
+            workspace,
+            frame.measurement_slots,
+          ) {
+          Err(Workspace) =>
+            return Err({ kind: WorkspaceLimit, expression: frame.active, })
+          Err(Logical(issue)) =>
+            return Err({ kind: LogicalValue(issue), expression: frame.active, })
+          Ok((measured, reserved)) => {
+            frame.measurement_slots = reserved
+            if measured is Some(measured) {
+              let root = match
+                reserve_logical_bytes(
+                  scope.budget,
+                  measured.wire_bytes.to_int64(),
+                ) {
+                Ok(root) => root
+                Err(issue) =>
+                  return Err({
+                    kind: LogicalValue(issue),
+                    expression: frame.active,
+                  })
+              }
+              root.measurement = Some(measured)
+              frame.current_root = match register_scope_root(scope, root) {
+                Ok(root) => Some(root)
+                Err(issue) =>
+                  return Err({
+                    kind: LogicalValue(issue),
+                    expression: frame.active,
+                  })
+              }
+              // The first result event was paid incrementally. Only this Return
+              // is prepaid; forwarding and operand consumption remain charged.
+              frame.result_prepaid = true
+              frame.state = Return(value)
             }
-            root.measurement = Some(measured)
-            frame.current_root = match register_scope_root(scope, root) {
-              Ok(root) => Some(root)
-              Err(issue) =>
-                return Err({
-                  kind: LogicalValue(issue),
-                  expression: frame.active,
-                })
-            }
-            // Return pays the same full value weight as synchronous evaluation.
-            frame.state = Return(value)
           }
         }
+      }
     }
     if !drain {
       return Ok(None)

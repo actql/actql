@@ -1147,6 +1147,20 @@ fn analytic_boundary(
       construction.object([
         ("following", construction.add(Number(distance.to_double()))),
       ])
+    PrecedingParameter(name) =>
+      construction.object([
+        (
+          "preceding",
+          construction.object([("$param", construction.text(name))]),
+        ),
+      ])
+    FollowingParameter(name) =>
+      construction.object([
+        (
+          "following",
+          construction.object([("$param", construction.text(name))]),
+        ),
+      ])
   }
 }
 
@@ -1162,7 +1176,7 @@ fn lower_analytic_call(
       if call.window.frame is None {
         raise Abort(UnsupportedAnalytic)
       }
-      if !["COUNT", "SUM", "AVG", "MIN", "MAX"].contains(
+      if !["COUNT", "COUNTIF", "SUM", "AVG", "MIN", "MAX"].contains(
           aggregate.function_name,
         ) {
         raise Abort(UnsupportedAnalytic)
@@ -1252,7 +1266,7 @@ fn same_analytic_window(
     return false
   }
   for index in 0..<left.partition_by.length() {
-    if !same_path(left.partition_by[index], right.partition_by[index]) {
+    if !same_expression(left.partition_by[index], right.partition_by[index]) {
       return false
     }
   }
@@ -1280,11 +1294,10 @@ fn lower_analytic(
 ) -> @builder.Node raise Abort {
   let call = projections[0].analytic.unwrap()
   let partitions : Array[@builder.Node] = []
-  for path in call.window.partition_by {
-    let field = match resolve(path) {
-      Some(field) => field
-      None => raise Abort(UnknownColumn)
-    }
+  for expression in call.window.partition_by {
+    let field = analytic_order_field(
+      construction, expression, resolve, reserved, evaluated, derives, max_work,
+    )
     partitions.push(construction.text(field))
   }
   let order : Array[@builder.Node] = []
@@ -2238,7 +2251,7 @@ fn compile_steps(
           step_entries.push(derive_step)
         }
         let value = match
-          @expression.append(
+          @expression.append_with_properties(
             predicate,
             path => {
               having_column(
