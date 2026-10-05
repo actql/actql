@@ -18,6 +18,9 @@ const submissionInputs = new WeakMap();
 const submissionContexts = new WeakMap();
 // Presentation is bound by the validated submit branch, never an error string.
 const submissionExplanations = new WeakMap();
+// Validated observations keep only a weak, immutable presentation snapshot.
+// This is not an Effect ledger or a certificate joining Owner revisions.
+const effectUncertainties = new WeakMap();
 const utf8 = new TextEncoder();
 const freezeInput = value => {
   if (value !== null && typeof value === 'object') {
@@ -40,6 +43,26 @@ export function getSubmissionInput(result) {
 export function explainSubmission(result) {
   return submissionExplanations.get(result);
 }
+
+export function explainEffectUncertainty(state) {
+  return effectUncertainties.get(state);
+}
+
+const retainEffectUncertainty = (state, ref) => {
+  if (state.status === 'needs_reconciliation' &&
+      state.next_action.kind === 'reconcile') {
+    effectUncertainties.set(state, freezeInput({
+      observation: 'effect_outcome_unknown',
+      summary: 'External Effect outcomes are unknown. Computation stop does not establish their outcome or resource release.',
+      effects: [...state.next_action.effects],
+      physicalStop: state.control?.physical_stop ?? 'unknown',
+      ...(state.control === undefined ? {} :
+        {controlRevision: state.control.revision}),
+      next: {operation: 'status', ref: {...ref}},
+    }));
+  }
+  return state;
+};
 
 const submissionLookupExplanation = (observation, input) => freezeInput({
   observation,
@@ -759,12 +782,12 @@ async function connectSelected(selected, port) {
       status: async ({signal} = {}) => {
         const state = await readControl('status', {}, signal);
         if (!validRunState(state)) fail('InvalidHostRunState');
-        return state;
+        return retainEffectUncertainty(state, ref);
       },
       wait: async ({until, signal} = {}) => {
         const state = await readControl('wait', {until: until ?? null}, signal);
         if (!validRunState(state)) fail('InvalidHostRunState');
-        return state;
+        return retainEffectUncertainty(state, ref);
       },
       cancel: async ({signal} = {}) => {
         const response = await readControl('cancel', {}, signal);
@@ -782,7 +805,7 @@ async function connectSelected(selected, port) {
       reconcile: async ({signal} = {}) => {
         const state = await readControl('reconcile', {}, signal);
         if (!validRunState(state)) fail('InvalidHostRunState');
-        return state;
+        return retainEffectUncertainty(state, ref);
       },
     });
   };

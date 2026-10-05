@@ -98,6 +98,34 @@ the endpoint and Host-reported scope for investigation, but does not grant
 access or authorize looking up the request through a different Workspace or
 embedded Host root. Reconnect never submits automatically.
 
+`explainEffectUncertainty(state)` explains an exact validated `Execution.status`,
+`wait` or `reconcile` response whose Owner reports `needs_reconciliation` with
+`next_action.kind === 'reconcile'`. It retains the Owner-issued Effect names
+together with the original Run reference, so a name is never an unscoped write
+identity. `physicalStop` is confirmed only by that response's control observation;
+missing control or an unknown stop remains unknown. `controlRevision`, when
+present, belongs to the Run-control observation. It does not certify an atomic
+snapshot across Effect, publication, cancellation or resource owners.
+
+```js
+import {explainEffectUncertainty} from '@actql/sdk';
+
+const state = await execution.status();
+const explanation = explainEffectUncertainty(state);
+// Display the unresolved Effects and physical stop separately. Any explicit
+// follow-up status request must use the original Client and current authority.
+```
+
+The helper performs no transport or write, and its only advice is to observe
+the original Run's current status. It does not promise that the Host offers
+reconciliation, authorize resubmission, infer rollback or assert resource
+release. The immutable explanation preserves what this response reported;
+later observations do not rewrite it. Copied/deserialized states, malformed
+responses, other Run-state branches and user-created errors have no association
+and return `undefined`. This weak association adds no Host storage, execution
+ledger, provider details or public hash. An application retaining a response
+or explanation retains that snapshot; no fixed retention period is imposed.
+
 Connected Local uses a Local Host endpoint. Cloud-owned Hybrid selects at
 least one registered Runner; local-owned Hybrid names its already registered
 Cloud assistance connection with `cloudConnectionRef`. Both Hybrid forms

@@ -1,4 +1,5 @@
 import './check-locations.test.mjs';
+import './effect-uncertainty.test.mjs';
 import test, {mock} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';

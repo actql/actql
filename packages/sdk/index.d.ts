@@ -83,6 +83,23 @@ export type RequestLookup = WireRequestLookup;
 export type RunState = WireRunState;
 export type RunNextAction = WireRunState['next_action'];
 
+export type EffectUncertaintyExplanation = Readonly<{
+  observation: 'effect_outcome_unknown';
+  summary: string;
+  /** Owner-issued Effect names, scoped by the original Run reference below. */
+  effects: readonly string[];
+  /** Only the received control observation can confirm physical stop. */
+  physicalStop: 'confirmed' | 'unknown';
+  /** Absent when this response has no control observation; not a composite revision. */
+  controlRevision?: number;
+  next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;
+}>;
+/** Presentation for the exact validated SDK status/wait/reconcile response.
+ * Does not authorize retry, rollback, release or any reconciliation operation.
+ */
+export declare function explainEffectUncertainty(state: unknown):
+  EffectUncertaintyExplanation | undefined;
+
 export type DeliveryAttemptLookup = WireDeliveryAttemptLookup;
 
 export type HeldRequest = WireHeldRequest;
