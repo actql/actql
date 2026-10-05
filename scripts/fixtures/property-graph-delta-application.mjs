@@ -79,3 +79,45 @@ export function deltaApplicationScenario(fixture, projection, failure) {
   const expected = retained.map(row=>Object.fromEntries(fields.map(field=>[field,row[field]])));
   return {document,target,retained,expected,fields};
 }
+
+// Compose existing sparse Relation consumers after the actual Delta step.
+// A constant Required key deliberately coalesces rows whose untouched optional
+// property is absent, NULL or a value; whole-row DISTINCT must not coalesce them.
+export function deltaRelationCompositionScenario(fixture, operation) {
+  if (!['keyed-distinct','whole-distinct','group','edge-group'].includes(operation)) {
+    throw new Error('UnknownDeltaRelationComposition');
+  }
+  const projection = operation === 'edge-group' ? 'edge_rows' : 'node_rows';
+  const scenario = deltaApplicationScenario(fixture, projection);
+  const {document,retained} = scenario;
+  document.id = `delta-relation-${operation}`;
+  const steps = document.stages[0].steps;
+  let derived, output, columns;
+  if (operation === 'edge-group') {
+    output = [{tenant_key:'a',m:10,n:1}];
+    columns = [{name:'tenant_key',contract:string},
+      {name:'m',contract:{type:'number',nullable:true}}, {name:'n',contract:number}];
+    steps.splice(7,steps.length-7,
+      {group:{by:['tenant_key'],aggregates:{m:{fn:'max',field:'edge_key'},n:{fn:'count'}}},as:'combined'},
+      {select:['tenant_key','m','n'],as:'projected'});
+  } else {
+    derived = retained.map(row=>({...row,bucket:1}));
+    const consumer = operation === 'group'
+      ? {group:{by:['bucket'],aggregates:{m:{fn:'max',expr:'bucket'},n:{fn:'count'}}}}
+      : {distinct:operation === 'whole-distinct' ? true : ['bucket']};
+    output = operation === 'group' ? [{bucket:1,m:1,n:3}]
+      : operation === 'whole-distinct' ? derived : [{bucket:1}];
+    const fields = operation === 'group' ? ['bucket','m','n']
+      : operation === 'whole-distinct' ? ['id','bucket'] : ['bucket'];
+    columns = operation === 'group' ? [{name:'bucket',contract:number},
+      {name:'m',contract:{type:'number',nullable:true}}, {name:'n',contract:number}]
+      : operation === 'keyed-distinct' ? [{name:'bucket',contract:number}] : undefined;
+    steps.splice(7,steps.length-7,
+      {derive:{bucket:{literal:1}},as:'bucketed'}, {...consumer,as:'combined'},
+      {select:fields,as:'projected'});
+  }
+  const fields = steps.at(-1).select;
+  document.stages[0].results.out.fields = fields;
+  const expected = output.map(row=>Object.fromEntries(fields.map(field=>[field,row[field]])));
+  return {...scenario,derived,output,expected,fields,columns};
+}
