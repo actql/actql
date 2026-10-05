@@ -426,19 +426,37 @@ test "bounded nest charges a copied raw text through recheck and output" {
       }
     }
     assert_true(reached)
+    // Advance the node check and a Text chunk before either cancellation.
+    for _ in 0..<2 {
+      assert_true(
+        advance_bounded_nest(execution, 1) is Ok(BoundedNestContinue(..)),
+      )
+    }
+    assert_false(execution.state.accepted.val)
+    assert_true(execution.state.rows.val is None)
     assert_true(
-      advance_bounded_nest(execution, 1) is Ok(BoundedNestContinue(..)),
+      execution.state.output is Some(output) && output.buffer.rows.is_empty(),
     )
     assert_true(
       (cancel_recheck && execution.state.recheck is Some(_)) ||
       (cancel_measure && execution.state.output_measure is Some(_)),
     )
+    if cancel_measure {
+      assert_true(
+        execution.state.output_measure is Some(cursor) &&
+        cursor.frames is [SteppedTextNext(_, 64)],
+      )
+    }
     assert_true(@bounded.request_cancel(control))
     assert_true(
       advance_bounded_nest(execution, 1) is Ok(BoundedNestStopped(_, ..)),
     )
     assert_true(cleanup_bounded_nest(execution).unwrap())
     assert_true(bounded_nest_released(execution))
+    assert_false(execution.state.accepted.val)
+    assert_true(execution.state.rows.val is None)
+    assert_true(execution.state.output is None)
+    assert_eq(execution.state.workspace.live, 0)
     assert_true(reads.all(read => producer_read_available(read)))
   }
   for

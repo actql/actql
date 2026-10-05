@@ -20,12 +20,20 @@ import {propertyGraphSourceSuccesses, propertyGraphSourceExecutionFailures, prop
   from "./property-graph-source-input.mjs";
 import {groupStarSuccesses, groupStarRefusals}
   from './group-star-source-input.mjs';
+import {aggregatePropertySuccesses, aggregatePropertyRefusals}
+  from './aggregate-property-source-input.mjs';
 import {groupOrdinalSuccesses, groupOrdinalRefusals}
   from './group-ordinal-source-input.mjs';
 import {distinctOrderSuccesses, distinctOrderRefusals}
   from './distinct-order-source-input.mjs';
+import {joinPropertySuccesses, joinPropertyRefusals}
+  from './join-property-source-input.mjs';
 import {orderPropertySuccesses, orderPropertyRefusals}
   from './order-property-source-input.mjs';
+import {analyticOrderObjectReproduction, analyticOrderSuccesses, analyticOrderRefusals, analyticOrderExecutionFailures}
+  from './analytic-order-source-input.mjs';
+import {analyticPropertySuccesses, analyticPropertyRefusals}
+  from './analytic-property-source-input.mjs';
 import {groupSelectScopeSuccesses, groupSelectScopeRefusals}
   from './group-select-scope-source-input.mjs';
 import {havingProjectionSuccesses, havingProjectionRefusals}
@@ -35,6 +43,7 @@ import {implicitPropertySuccesses, implicitPropertyRefusals}
 import {groupPropertySuccesses, groupPropertyRefusals}
   from './group-property-source-input.mjs';
 import {uniquePublicQueryCases} from './public-query-cases.mjs';
+import {publicQueryProfiles} from './public-query-profiles.mjs';
 import {quotedIdentifierSuccesses, quotedIdentifierRefusals}
   from './quoted-identifier-source-input.mjs';
 import {orderOrdinalSuccesses, orderOrdinalRefusals}
@@ -73,6 +82,7 @@ const quotedIdentifiersOnly = process.env.ACTQL_TEST_QUOTED_IDENTIFIERS_ONLY ===
 const graphProjectionPropertyOnly = process.env.ACTQL_TEST_GRAPH_PROJECTION_PROPERTY_ONLY === '1';
 const orderOrdinalOnly = process.env.ACTQL_TEST_ORDER_ORDINAL_ONLY === '1';
 const distinctOrderOnly = process.env.ACTQL_TEST_DISTINCT_ORDER_ONLY === '1';
+const analyticPropertyOnly = process.env.ACTQL_TEST_ANALYTIC_PROPERTY_ONLY === '1';
 const graphTraverseOnly = process.env.ACTQL_TEST_GRAPH_TRAVERSE_ONLY === '1';
 const graphTraversePathsOnly = process.env.ACTQL_TEST_GRAPH_TRAVERSE_PATHS_ONLY === '1';
 const scopedOrderOnly = process.env.ACTQL_TEST_SCOPED_ORDER_ONLY === '1';
@@ -85,6 +95,7 @@ const implicitPropertyOnly = process.env.ACTQL_TEST_IMPLICIT_PROPERTY_ONLY === '
 const groupPropertyOnly = process.env.ACTQL_TEST_GROUP_PROPERTY_ONLY === '1';
 const havingProjectionOnly = process.env.ACTQL_TEST_HAVING_PROJECTION_ONLY === '1';
 const groupStarOnly = process.env.ACTQL_TEST_GROUP_STAR_ONLY === '1';
+const aggregatePropertyOnly = process.env.ACTQL_TEST_AGGREGATE_PROPERTY_ONLY === '1';
 const groupOrdinalOnly = process.env.ACTQL_TEST_GROUP_ORDINAL_ONLY === '1';
 const compositionOnly = process.env.ACTQL_TEST_QUERY_COMPOSITION_ONLY === '1';
 const resultOnly = process.env.ACTQL_TEST_PIPE_RESULT_ONLY === '1';
@@ -92,7 +103,10 @@ const dataOnly = process.env.ACTQL_TEST_RELATION_DATA_ONLY === '1';
 const acquiredDataOnly = process.env.ACTQL_TEST_ACQUIRED_DATA_ONLY === '1';
 const dataSetStrategyOnly = process.env.ACTQL_TEST_DATA_SET_STRATEGY_ONLY === '1';
 const orderPropertyOnly = process.env.ACTQL_TEST_ORDER_PROPERTY_ONLY === '1';
-const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || subgraphOnly;
+const analyticProfilesOnly = process.env.ACTQL_TEST_ANALYTIC_PROFILES_ONLY === '1';
+const analyticOrderOnly = process.env.ACTQL_TEST_ANALYTIC_ORDER_ONLY === '1';
+const joinPropertyOnly = process.env.ACTQL_TEST_JOIN_PROPERTY_ONLY === '1';
+const scopeOnly = joinPropertyOnly || analyticProfilesOnly || analyticOrderOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const joinChain = JSON.parse(await readFile('join-chain-cases.json', 'utf8'));
 const groupScope = JSON.parse(await readFile('group-scope-cases.json', 'utf8'));
@@ -109,7 +123,19 @@ const dataSetStrategyInputs = {
     ]}}}],
   refusals: [],
 };
-const scopeInputs = subgraphOnly ? {successes: subgraphSourceSuccesses, refusals: subgraphSourceRefusals, executionFailures: subgraphSourceExecutionFailures}
+// Retain the original generated Program as a reproduction, not an independent
+// expected Program. Both source and JSON use the same hand-authored rows/types.
+const analyticOrderInputs = [...analyticOrderSuccesses,
+  analyticOrderObjectReproduction(await readFile('analytic-order-property-repro.program.json', 'utf8'))];
+const scopeInputs = analyticProfilesOnly ? {
+  successes: [...analyticOrderInputs, ...analyticPropertySuccesses],
+  refusals: [...analyticOrderRefusals, ...analyticPropertyRefusals],
+  executionFailures: analyticOrderExecutionFailures}
+  : analyticOrderOnly ? {successes: analyticOrderInputs, refusals: analyticOrderRefusals, executionFailures: analyticOrderExecutionFailures}
+  : joinPropertyOnly ? {successes: joinPropertySuccesses, refusals: joinPropertyRefusals}
+  : aggregatePropertyOnly ? {successes: aggregatePropertySuccesses, refusals: aggregatePropertyRefusals}
+  : analyticPropertyOnly ? {successes: analyticPropertySuccesses, refusals: analyticPropertyRefusals}
+  : subgraphOnly ? {successes: subgraphSourceSuccesses, refusals: subgraphSourceRefusals, executionFailures: subgraphSourceExecutionFailures}
   : graphDiagnosticsOnly ? {successes: graphDiagnosticSourceSuccesses, refusals: graphDiagnosticSourceRefusals, executionFailures: graphDiagnosticSourceExecutionFailures}
   : orderPropertyOnly ? {successes: orderPropertySuccesses, refusals: orderPropertyRefusals}
   : graphProjectionPropertyOnly ? {successes: graphProjectionPropertySuccesses, refusals: graphProjectionPropertyRefusals}
@@ -149,11 +175,18 @@ const scopeInputs = subgraphOnly ? {successes: subgraphSourceSuccesses, refusals
   refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...relationDataRefusals, ...acquiredDataRefusals, ...propertyGraphSourceRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals, ...groupStarRefusals, ...groupOrdinalRefusals],
   executionFailures: [...pipeResultExecutionFailures, ...propertyGraphSourceExecutionFailures]};
 if (!scopeOnly) {
+  scopeInputs.successes.push(...analyticOrderInputs);
+  scopeInputs.refusals.push(...analyticOrderRefusals);
+  scopeInputs.executionFailures.push(...analyticOrderExecutionFailures);
+  scopeInputs.successes.push(...joinPropertySuccesses);
+  scopeInputs.refusals.push(...joinPropertyRefusals);
   scopeInputs.successes.push(...subgraphSourceSuccesses);
   scopeInputs.refusals.push(...subgraphSourceRefusals);
   scopeInputs.executionFailures.push(...subgraphSourceExecutionFailures);
   scopeInputs.successes.push(...orderPropertySuccesses);
   scopeInputs.refusals.push(...orderPropertyRefusals);
+  scopeInputs.successes.push(...aggregatePropertySuccesses);
+  scopeInputs.refusals.push(...aggregatePropertyRefusals);
   scopeInputs.successes.push(...graphProjectionPropertySuccesses);
   scopeInputs.refusals.push(...graphProjectionPropertyRefusals);
   scopeInputs.successes.push(...graphPropertyPredicateSuccesses);
@@ -162,6 +195,8 @@ if (!scopeOnly) {
   scopeInputs.refusals.push(...implicitPropertyRefusals);
   scopeInputs.successes.push(...groupPropertySuccesses);
   scopeInputs.refusals.push(...groupPropertyRefusals);
+  scopeInputs.successes.push(...analyticPropertySuccesses);
+  scopeInputs.refusals.push(...analyticPropertyRefusals);
   scopeInputs.successes.push(...havingProjectionSuccesses);
   scopeInputs.refusals.push(...havingProjectionRefusals);
   scopeInputs.successes.push(...groupSelectScopeSuccesses);
@@ -197,6 +232,14 @@ if (scopedOrderOnly) {
   assert.equal(scopeInputs.successes.length, 4);
   assert.equal(scopeInputs.refusals.length, 1);
 }
+// Host profiles are immutable within an installation. Keep each fixture's
+// declared analytic envelope, including when the full corpus combines profiles.
+for (const {name: profileName, capacity: analyticCapacity, inputs: profileInputs}
+  of publicQueryProfiles(scopeInputs)) {
+const scopeInputs = profileInputs;
+const suffix = profileName === 'standard' ? '' : `-${profileName}`;
+const localDirectory = resolve(`local-state${suffix}`);
+const remoteDirectory = resolve(`remote-state${suffix}`);
 const expectedQueryRuns = scopeInputs.successes.length + (scopeInputs.executionFailures?.length ?? 0);
 const expectedSourceReads = [...scopeInputs.successes, ...(scopeInputs.executionFailures ?? [])]
   .reduce((count, item) => count + (item.sourceReadCount ?? item.sourceReadSessionCount ?? 1), 0);
@@ -210,14 +253,15 @@ const canonical = value => Array.isArray(value)
     : JSON.stringify(value);
 const environment = JSON.parse(await readFile('source-environment.json', 'utf8'));
 const base = JSON.parse(await readFile('base-environment.json', 'utf8'));
-environment.host_policy_profile = base.host_policy_profile;
+environment.host_policy_profile = {...base.host_policy_profile,
+  capacity: {...base.host_policy_profile.capacity, ...analyticCapacity}};
 environment.connector_capabilities[0].capability_contract_cids.push(
   'sha256:5cbd39d6847336c5961e222b083ca1395ab68be466ac69cadfbf7021cf617b89');
 environment.connector_capabilities[0].capability_contract_cids.sort();
 delete environment.evidence_bundle_cid;
 environment.evidence_bundle_cid = 'sha256:' + createHash('sha256')
   .update(canonical(environment)).digest('hex');
-const database = resolve('records.duckdb');
+const database = resolve(`records${suffix}.duckdb`);
 const {DuckDBInstance, DuckDBPreparedStatement, DuckDBConnection,
   DuckDBExtractedStatements} = createRequire(
   new URL('./node_modules/@actql/local-node/package.json', import.meta.url))(
@@ -241,7 +285,7 @@ try {
   for (const row of sourceRows) {
     await connection.run('INSERT INTO records VALUES (?, ?)', [row.id, row.amount]);
   }
-  for (const {targets} of scopeOnly ? [] : exactTargetPairs) {
+  for (const {targets} of scopeOnly || profileName !== 'standard' ? [] : exactTargetPairs) {
     for (const target of targets) {
       if (target.schema !== 'main') await connection.run(`CREATE SCHEMA "${target.schema}"`);
       await connection.run(`CREATE TABLE ${physicalSqlName(target)}(id DOUBLE, amount DOUBLE)`);
@@ -276,7 +320,7 @@ async function prepareCase(rows = sourceRows) {
   }
 }
 const view = environment.source_views[0];
-const sourceProfilePath = resolve('source-profile.json');
+const sourceProfilePath = resolve(`source-profile${suffix}.json`);
 await writeFile(sourceProfilePath, canonical({
   acquisitionPlanning: {policy: 'priority', priority: ['nativeQuery', 'broadQuery']},
     version: 'actql-installed-duckdb-source/0.1', database,
@@ -371,7 +415,7 @@ async function exercisePublicCheck(options) {
   console.log(`packed public check ${options.mode} passed`);
 }
 await exercisePublicCheck({mode: 'local', owner: 'local', durability: 'durable',
-  installation: {directory: resolve('local-state'), sourceProfilePath}});
+  installation: {directory: localDirectory, sourceProfilePath}});
 // Extend the same public harness; no second lifecycle/fault matrix. Each
 // physical spelling has independently authored rows and its own explicit Host.
 async function exerciseExactPhysicalTargets() {
@@ -435,15 +479,15 @@ const recordString = mode => item => {
   if (item.name === 'exact-string-values') retainedStrings[mode] = item;
 };
 await exercisePublicQueryInput(connect, {mode: 'local', owner: 'local',
-  durability: 'durable', installation: {directory: resolve('local-state'),
+  durability: 'durable', installation: {directory: localDirectory,
     sourceProfilePath}}, {requestPrefix: 'packed-local',
-  observe: observe('local-state'), prepareCase, completedCase: recordString('local'), ...scopeInputs});
-assert.equal(observe('local-state')().acceptedRuns, expectedQueryRuns);
+  observe: observe(localDirectory), prepareCase, completedCase: recordString('local'), ...scopeInputs});
+assert.equal(observe(localDirectory)().acceptedRuns, expectedQueryRuns);
 assert.ok(sourceIo >= expectedSourceReads);
-console.log('packed raw SQL/Pipe Embedded Local acceptance passed');
+console.log(`packed raw SQL/Pipe Embedded Local ${profileName} acceptance passed`);
 const beforeRemote = sourceIo;
 const host = await openInstalledRemoteHttpHost({
-  directory: resolve('remote-state'), sourceProfilePath,
+  directory: remoteDirectory, sourceProfilePath,
   authenticate: header => header === 'Bearer fixture-token'
     ? userInfo().username : undefined,
 });
@@ -456,11 +500,11 @@ try {
   await exercisePublicQueryInput(connect, {mode: 'remote',
     endpoint: `https://127.0.0.1:${server.address().port}/`,
     token: 'fixture-token', durability: 'durable'},
-  {requestPrefix: 'packed-http', observe: observe('remote-state'), prepareCase, completedCase: recordString('remote'), ...scopeInputs});
-  assert.equal(observe('remote-state')().acceptedRuns, expectedQueryRuns);
+  {requestPrefix: 'packed-http', observe: observe(remoteDirectory), prepareCase, completedCase: recordString('remote'), ...scopeInputs});
+  assert.equal(observe(remoteDirectory)().acceptedRuns, expectedQueryRuns);
   assert.ok(sourceIo >= beforeRemote + expectedSourceReads);
-  console.log('packed raw SQL/Pipe HTTP acceptance passed');
-  if (!scopeOnly) await exerciseExactPhysicalTargets();
+  console.log(`packed raw SQL/Pipe HTTP ${profileName} acceptance passed`);
+  if (!scopeOnly && profileName === 'standard') await exerciseExactPhysicalTargets();
 } finally {
   server.closeAllConnections();
   await new Promise(resolve => server.close(resolve));
@@ -472,6 +516,7 @@ try {
 if (retainedStrings.local && retainedStrings.remote) {
   await writeFile('retained-string-results.json', JSON.stringify(retainedStrings));
 
+}
 }
 if (!scopeOnly) await import('./packed-two-source-public-query.mjs');
 }

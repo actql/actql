@@ -34,7 +34,7 @@ const typeName = {enum: ['null', 'boolean', 'number', 'string', 'array', 'object
 const lexicalIssues = ['unexpected_end', 'unexpected_token', 'invalid_escape',
   'invalid_scalar', 'empty_identifier', 'unterminated_comment', 'invalid_number', 'invalid_parameter'];
 const graphIssues = ['invalid_kind', 'invalid_output_rows'];
-const expressionIssues = ['unknown_reference', 'invalid_arguments', 'invalid_number'];
+const expressionIssues = ['unknown_reference', 'invalid_arguments', 'invalid_number', 'expected_boolean'];
 export const checkReasonSchema = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
   $id: 'https://smooth.dev/schemas/actql-check-reason-0.1.json',
