@@ -95,6 +95,7 @@ struct Storage {
   retained_value_bytes : Int
   work : Int
   workspace_slots : Int
+  mut available : Bool
 }
 
 ///|
@@ -335,7 +336,45 @@ pub fn finish(builder : Builder) -> Result[Storage, Issue] {
     retained_value_bytes: builder.retained_value_bytes,
     work: builder.work,
     workspace_slots: builder.workspace_slots,
+    available: true,
   })
+}
+
+///|
+/// A kernel borrows one pristine builder from its existing output owner. This
+/// is an exact owned configuration, not content-CID or schema-only authority.
+pub fn builder_accepts_output(
+  builder : Builder,
+  graph : @carrier.Graph,
+  limits : Limits,
+) -> Bool {
+  builder.open &&
+  builder.owns_private &&
+  physical_equal(builder.graph, graph) &&
+  builder.limits == limits &&
+  builder.input_rows == 0 &&
+  builder.work == 0 &&
+  builder.nodes.is_empty() &&
+  builder.edges.is_empty()
+}
+
+///|
+/// Only finish can transfer these private arrays/indexes from this builder.
+/// A second builder with equal contents is not the same output generation.
+pub fn builder_owns_storage(builder : Builder, storage : Storage) -> Bool {
+  !builder.open &&
+  !builder.owns_private &&
+  storage.available &&
+  physical_equal(builder.graph, storage.graph) &&
+  physical_equal(builder.nodes, storage.nodes) &&
+  physical_equal(builder.edges, storage.edges) &&
+  physical_equal(builder.node_keys, storage.node_keys) &&
+  physical_equal(builder.edge_keys, storage.edge_keys)
+}
+
+///|
+pub fn available(storage : Storage) -> Bool {
+  storage.available
 }
 
 ///|
@@ -435,6 +474,7 @@ pub fn retained_workspace_slots(value : Storage) -> Int {
 ///|
 /// Dispose private material whose completed generation was never handed off.
 pub fn discard(value : Storage) -> Unit {
+  value.available = false
   value.nodes.clear()
   value.edges.clear()
   value.node_keys.clear()

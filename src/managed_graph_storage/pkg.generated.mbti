@@ -19,6 +19,10 @@ pub fn append_property_snapshot_edge(Builder, @decode_core.Cursor, reference_iss
 
 pub fn append_property_snapshot_node(Builder, @decode_core.Cursor, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, Issue]
 
+pub fn available(Storage) -> Bool
+
+pub fn builder_accepts_output(Builder, @carrier_contract.Graph, Limits) -> Bool
+
 pub fn builder_construction_work(Builder) -> Int
 
 pub fn builder_edge_count(Builder) -> Int
@@ -26,6 +30,8 @@ pub fn builder_edge_count(Builder) -> Int
 pub fn builder_measured_input_value_bytes(Builder) -> Int
 
 pub fn builder_node_count(Builder) -> Int
+
+pub fn builder_owns_storage(Builder, Storage) -> Bool
 
 pub fn builder_retained_value_bytes(Builder) -> Int
 
