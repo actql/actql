@@ -3,7 +3,8 @@
 // a source of dispatch permission from historical bytes.
 import {checked} from '../host-common/runtime-result.mjs';
 import {authorizationDispatchFacts, ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';
-import {canonicalJson, contentCid} from './local-account-config.mjs';
+import {canonicalJson} from '../../packages/sdk/host-port.mjs';
+import {contentCid} from './local-account-config.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
 import {loadCheckpointRuntime} from './sqlite-checkpoint-journal.mjs';
 

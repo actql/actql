@@ -40,6 +40,22 @@ function startImmediate(f) {
     declaredResults: f.registration.declaredResults});
 }
 
+test('Model cancellation fence readback binds the original Run across restart', t => {
+  const f = fixture(t);
+  const owner = f.registration.modelCallSet;
+  const originalRunWire = owner.originalRunWire;
+  assert.equal(f.journal.modelCancellationFenced(identity.runId, identity.runDefinitionCid), false);
+  f.journal.fenceRunCancellation({originalRunWire});
+  assert.equal(f.journal.modelCancellationFenced(identity.runId, identity.runDefinitionCid), true);
+  assert.equal(f.journal.modelCancellationFenced(identity.runId, C('foreign-definition')), false);
+  assert.equal(f.journal.modelCancellationFenced('foreign-run', identity.runDefinitionCid), false);
+  f.journal.close();
+  const reopened = open(f.root);
+  t.after(() => reopened.journal.close());
+  assert.equal(reopened.journal.modelCancellationFenced(identity.runId, identity.runDefinitionCid), true);
+  assert.equal(reopened.journal.fenceRunCancellation({originalRunWire}).outcome, 'already_requested');
+});
+
 test('immediate inventory and entry have original Run provenance with no synthetic approval rows', t => {
   const f = fixture(t);
   const registered = startImmediate(f);

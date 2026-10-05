@@ -21,6 +21,8 @@ pub fn client_values_host_admit_request_identity(String, String, String, String,
 
 pub fn client_values_host_admit_result_material_holds(String) -> @run_publication.ResultMaterialHolds raise ClientValuesHostDeliveryIssue
 
+pub fn client_values_host_admit_retained_task_input(ClientValuesHostRetainedTaskInput, String, String) -> Result[ClientValuesHostRetainedTaskInput, @run_publication_host.ClientRetainedTaskInputIssue]
+
 pub fn client_values_host_admit_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, String, String) -> Result[@run_publication.RunPublicationAdmission, ClientValuesHostRunAdmissionIssue]
 
 pub fn client_values_host_admit_run_definition(String) -> Result[@run_publication.PublicationContract, @run_publication.PublicationContractIssue]
@@ -183,6 +185,10 @@ pub fn client_values_host_prepare_result_delivery_serializer(String, String, Arr
 
 pub fn client_values_host_prepare_result_material_holds_step(@run_publication.ResultMaterialHolds, String, String) -> @run_publication.ResultMaterialHolds raise ClientValuesHostDeliveryIssue
 
+pub fn client_values_host_prepare_retained_task_dispatch(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication_host.ClientRequestIdentity, Int, Int, String, String, Int, String, String, String, String, String, String, String, String, ClientValuesHostRetainedTaskInput) -> Result[@remote_site_protocol.DispatchRequest, @run_publication_host.ClientRetainedTaskDispatchIssue]
+
+pub fn client_values_host_prepare_retained_task_input(@run_publication_host.ClientRetainedInputProducer, () -> String, String, String, String, (String, String, String) -> Bool, () -> String, () -> Int64, (String, String) -> Bool, Int, Int, Int64, Int) -> Result[ClientValuesHostRetainedTaskInput, @run_publication_host.ClientRetainedTaskInputIssue]
+
 pub fn client_values_host_prepare_run_start(@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool) -> Result[Int, @run_publication_host.ClientRunStartIssue]
 
 pub fn client_values_host_prepare_task_dispatch(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication_host.ClientRequestIdentity, Int, Int, String, String, Int, String, String, String, String, String, String, String, String) -> Result[@remote_site_protocol.DispatchRequest, @run_publication_host.ClientTaskDispatchIssue]
@@ -281,6 +287,8 @@ pub fn client_values_host_retained_input_producer_available(@run_publication_hos
 
 pub fn client_values_host_retained_input_producer_facts(@run_publication_host.ClientRetainedInputProducer) -> Result[Array[String], @remote_site_protocol.DispatchIssue]
 
+pub fn client_values_host_retained_task_input_facts(ClientValuesHostRetainedTaskInput) -> Array[String]
+
 pub fn client_values_host_run_control_observation(Int, Bool, Bool, Bool) -> Result[String, @run_publication.RunStateIssue]
 
 pub fn client_values_host_run_definition_cid(@run_publication.PublicationContract) -> String
@@ -327,6 +335,8 @@ pub fn client_values_host_validate_publication_chain(@run_publication.Publicatio
 
 pub fn client_values_host_validate_publication_record_transition(@run_publication.PublicationContract?, @run_publication.PublicationContract, Bool) -> Result[Unit, @run_publication.PublicationTransitionIssue]
 
+pub fn client_values_host_validate_retained_task_input(ClientValuesHostRetainedTaskInput) -> Result[Unit, @run_publication_host.ClientRetainedTaskInputIssue]
+
 // Errors
 pub(all) suberror ClientValuesHostDeliveryIssue {
   Rejected
@@ -367,6 +377,20 @@ pub(all) enum ClientValuesHostPreparationIssue {
 pub(all) enum ClientValuesHostPublicationSnapshotIssue {
   InvalidObservation
   Projection(@run_publication.PublicationSnapshotIssue)
+}
+
+pub struct ClientValuesHostRetainedTaskInput {
+  producer : @run_publication_host.ClientRetainedInputProducer
+  saved : @remote_site_protocol.RemoteInputBinding
+  read_transfer : () -> String
+  receipt_wire : String
+  receipt_cid : String
+  destination_use_id : String
+  current : @run_publication_host.ClientRetainedInputCurrent
+  max_chunks : Int
+  max_manifest_bytes : Int
+  max_referenced_bytes : Int64
+  max_binding_bytes : Int
 }
 
 pub(all) enum ClientValuesHostRunAdmissionIssue {

@@ -502,6 +502,8 @@ pub fn client_values_run_binding_result_name(ClientValuesRunBinding) -> String
 
 pub fn client_values_run_binding_task_key(ClientValuesRunBinding) -> String
 
+pub fn confirm_client_run_cancellation(ClientRunCancellationFacts) -> Bool
+
 pub fn emit_prepared_client_program_definition(PreparedClientProgram, Int, Int, Int) -> Result[String, ClientIdentityMaterialIssue]
 
 pub fn emit_prepared_client_program_semantics(PreparedClientProgram, Int, Int, Int) -> Result[String, ClientIdentityMaterialIssue]
@@ -525,6 +527,8 @@ pub fn emit_prepared_client_values_unit_source(PreparedClientProgram, Int, @lowe
 pub fn encode_plan_fact_manifest_identity(String, Int, Int, Int) -> Result[PlanFactManifestIdentity, PlanFactManifestIdentityIssue]
 
 pub fn install_client_retained_input_current(() -> @execution_site.ExecutionSite, () -> String, () -> Int64, (ClientRetainedInputProducer, @remote_transfer.RemoteTransferRequest) -> Bool) -> ClientRetainedInputCurrent
+
+pub fn install_client_retained_input_owner_current((String, String, String) -> Bool, () -> String, () -> Int64, (ClientRetainedInputProducer, @remote_transfer.RemoteTransferRequest) -> Bool) -> ClientRetainedInputCurrent
 
 pub fn issue_acquired_client_effect_local_invocation(PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, Int, Int, Int, unit? : Int) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue]
 
@@ -1487,7 +1491,7 @@ pub fn ClientResultTransformationPreparation::cancel(Self) -> Bool
 pub fn ClientResultTransformationPreparation::finish(Self) -> Result[PublicationOutputExport, ClientResultTransformationIssue]
 
 pub struct ClientRetainedInputCurrent {
-  site : () -> @execution_site.ExecutionSite
+  site_binding_current : (String, String, String) -> Bool
   authority : () -> String
   now_unix_ms : () -> Int64
   authorized : (ClientRetainedInputProducer, @remote_transfer.RemoteTransferRequest) -> Bool
@@ -1551,6 +1555,19 @@ pub(all) enum ClientRunCancellationAction {
   AlreadyRequested
   AlreadyTerminal
 } derive(Eq, @debug.Debug)
+
+pub(all) struct ClientRunCancellationFacts {
+  cancellation_requested : Bool
+  model_fence_required : Bool
+  model_fenced : Bool
+  unresolved_model_calls : Bool
+  unresolved_effects : Bool
+  reconciliation_required : Bool
+  publication_committed : Bool
+  physical_stop_confirmed : Bool
+  cleanup_confirmed : Bool
+  revision_unchanged : Bool
+}
 
 pub(all) enum ClientRunCompilation {
   Values(ClientValuesCompilation)
