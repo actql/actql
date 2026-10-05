@@ -26,6 +26,8 @@ const submissionExplanations = new WeakMap();
 const effectUncertainties = new WeakMap();
 // Presentation retains validated Run-control observations, not another owner.
 const cancellationExplanations = new WeakMap();
+const readExplanations = new WeakMap();
+const readerContexts = new WeakMap();
 const utf8 = new TextEncoder();
 const freezeInput = value => {
   if (value !== null && typeof value === 'object') {
@@ -115,6 +117,12 @@ export function createCheckSupplementationSession(client, {maxAttempts} = {}) {
 
 export function getSubmissionInput(result) {
   return submissionInputs.get(result);
+}
+
+// Local observation of this SDK read only. Lookup rechecks current authority;
+// this explanation proves neither publication nor execution nor resource release.
+export function explainReadFailure(result) {
+  return readExplanations.get(result);
 }
 
 export function explainSubmission(result) {
@@ -434,10 +442,26 @@ const submissionUnknown = (context, cause) => {
     submissionLookupExplanation('acceptance_unknown', input));
   return result;
 };
-const readFailure = (cause, attemptId, rowsYielded) => new ClientError(
+const retainReadExplanation = (result, context, rowsYielded, observation, cleanupUnknown = false) => {
+  const quantity = `${rowsYielded} ${rowsYielded === 1 ? 'row' : 'rows'}`;
+  readExplanations.set(result, freezeInput({observation,
+    ...(cleanupUnknown ? {cleanup: 'unknown'} : {}),
+    attemptId: context.attemptId, rowsYielded,
+    summary: observation === 'cleanup_unknown'
+      ? `Reader cleanup could not be confirmed after returning ${quantity}.`
+      : `This read stopped after returning ${quantity}.`,
+    hint: 'Keep this read reference. Look it up before deciding whether to open a new read from the beginning.',
+    next: {operation: 'deliveryAttempt', ref: context.ref,
+      resultName: context.resultName, attemptId: context.attemptId,
+      lookupContext: context.lookupContext},
+  }));
+  return result;
+};
+const readFailure = (cause, context, rowsYielded, prior) => retainReadExplanation(new ClientError(
   typeof cause?.code === 'string' ? cause.code : 'ResultReadUnknown',
-  {attemptId, rowsYielded, cause,
-    ...(cause?.cleanupError === undefined ? {} : {cleanupError: cause.cleanupError})});
+  {attemptId: context.attemptId, rowsYielded, cause,
+    ...(cause?.cleanupError === undefined ? {} : {cleanupError: cause.cleanupError})}),
+context, rowsYielded, prior?.observation ?? 'read_incomplete', prior?.cleanup === 'unknown');
 
 // The Host accepted and durably holds the request, but no Run exists yet:
 // it waits on a `prepare_attempt` Checkpoint, is resuming, or ended without
@@ -722,6 +746,8 @@ async function connectSelected(selected, port) {
       if (typeof name !== 'string' || !name) fail('InvalidResultName');
       const rows = (options = {}) => {
         const attemptId = crypto.randomUUID();
+        const context = freezeInput({ref, resultName: name, attemptId,
+          lookupContext: {endpoint: selected.endpoint, scopeRef: confirmed.scopeRef}});
         const maxWireBytes = tighter(options.maxWireBytes,
           confirmed.limits.maxReadWireBytes);
         const maxRowWireBytes = tighter(options.maxRowWireBytes,
@@ -822,16 +848,19 @@ async function connectSelected(selected, port) {
               state = 'complete';
             }
           } catch (cause) {
-            failure = readFailure(cause, attemptId, rowsYielded);
+            failure = readFailure(cause, context, rowsYielded);
           } finally {
             options.signal?.removeEventListener('abort', abort);
             if (stream) {
               try {
                 if (state !== 'complete') await stream.cancel();
               } catch (cause) {
-                if (failure) failure.cleanupError = cause;
-                else failure = new ClientError('ResultReadCleanupUnknown',
-                  {attemptId, rowsYielded, cause});
+                if (failure) {
+                  failure.cleanupError = cause;
+                  retainReadExplanation(failure, context, rowsYielded, 'read_incomplete', true);
+                }
+                else failure = retainReadExplanation(new ClientError('ResultReadCleanupUnknown',
+                  {attemptId, rowsYielded, cause}), context, rowsYielded, 'cleanup_unknown');
               } finally {
                 stream.releaseLock();
               }
@@ -843,9 +872,11 @@ async function connectSelected(selected, port) {
             if (failure) throw failure;
           }
         };
-        return Object.freeze({attemptId, state: () => state,
+        const reader = Object.freeze({attemptId, state: () => state,
           rowsYielded: () => rowsYielded,
           [Symbol.asyncIterator]: iterate});
+        readerContexts.set(reader, context);
+        return reader;
       };
 
       const batches = (options = {}) => {
@@ -875,7 +906,7 @@ async function connectSelected(selected, port) {
                 yield batch;
               }
             } catch (cause) {
-              throw readFailure(cause, reader.attemptId, rowsYielded);
+              throw readFailure(cause, readerContexts.get(reader), rowsYielded, readExplanations.get(cause));
             }
           }});
       };
@@ -897,7 +928,7 @@ async function connectSelected(selected, port) {
           }
           return values;
         } catch (cause) {
-          throw readFailure(cause, reader.attemptId, 0);
+          throw readFailure(cause, readerContexts.get(reader), 0, readExplanations.get(cause));
         }
       };
       return Object.freeze({
