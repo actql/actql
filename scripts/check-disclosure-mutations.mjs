@@ -24,7 +24,7 @@ const mutations = [
     '      finding\n      is (Violation(_)\n      | SyntaxViolation(_, _)\n' +
     '      | LexicalViolation(_, _)\n' +
     '      | ExpressionViolation(_, _)\n' +
-    '      | GraphViolation(_)\n' +
+    '      | GraphViolation(_, _)\n' +
     '      | TypeViolation(_, _, _, _)\n      | SuppliedViolation(_)\n' +
     '      | DeclarationViolation(_)\n' +
     '      | ConstraintViolation(_, _, _)\n' +
@@ -145,17 +145,17 @@ const mutations = [
     'return ExpressionViolation(code, range)',
     'return Limit("analysis_budget_exhausted")'],
   ['a Graph components violation is reported as an implementation limit',
-    'return GraphViolation("invalid_kind")',
+    'return GraphViolation("components", "invalid_kind")',
     'return Limit("implementation_limit")'],
   ['a Graph components violation loses its typed facts',
-    'return GraphViolation("invalid_kind")',
+    'return GraphViolation("components", "invalid_kind")',
     'return Violation("program_invalid")'],
   ['a Graph components violation invents an authored SQL range',
     '@encode.string_value(writer, "components")\n          @encode.end_object(writer)',
     '@encode.string_value(writer, "components")\n          @encode.end_object(writer)\n' +
     '          write_check_text_location(writer, documents.source_revision, 0, 1)'],
   ['a Graph components violation exposes a private value as a code',
-    'return GraphViolation("invalid_kind")',
+    'return GraphViolation("components", "invalid_kind")',
     'return Violation("private_kind_value")'],
   ['an unsupported function is reported as an authored violation',
     '        QueryLowering(Expression({ issue: UnsupportedFunction, .. })) =>\n' +

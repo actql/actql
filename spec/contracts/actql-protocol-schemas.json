@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:0c953a7a865cab86ce16342b43fb1f6c630f2516f9eef142535447447c740144",
+  "artifact_registry_cid": "sha256:05ce90dbfb303c577858283369b90503ddf1bb4410947b66bf93a4b81a939666",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10713,8 +10713,8 @@
     "model_prompt": "sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204",
     "model_retry_policy": "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c",
     "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55",
-    "check_outcome": "sha256:73ad8b654c674edac53fe6b31438b6425e9c8d90fa908deecceec6940ff72ff1",
-    "check_reason": "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa"
+    "check_outcome": "sha256:9b4dd3d89263735a88409eb9991aa22877146f06f5e72f48d519e8ebf059dc30",
+    "check_reason": "sha256:6c1c1eb6f5d8ac67e831f7c49ef8b2defe598c951ef542b12360e1356037ce76"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -76277,6 +76277,24 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
+                              "operation",
+                              "issue"
+                            ],
+                            "properties": {
+                              "operation": {
+                                "const": "subgraph"
+                              },
+                              "issue": {
+                                "enum": [
+                                  "invalid_node_selector"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
                               "issue"
                             ],
                             "properties": {
@@ -76506,12 +76524,16 @@
                               ],
                               "properties": {
                                 "operation": {
-                                  "const": "components"
+                                  "enum": [
+                                    "components",
+                                    "subgraph"
+                                  ]
                                 },
                                 "issue": {
                                   "enum": [
                                     "invalid_kind",
-                                    "invalid_output_rows"
+                                    "invalid_output_rows",
+                                    "invalid_node_selector"
                                   ]
                                 }
                               }
@@ -76790,6 +76812,24 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
+                              "operation",
+                              "issue"
+                            ],
+                            "properties": {
+                              "operation": {
+                                "const": "subgraph"
+                              },
+                              "issue": {
+                                "enum": [
+                                  "invalid_node_selector"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
                               "issue"
                             ],
                             "properties": {
@@ -77019,12 +77059,16 @@
                               ],
                               "properties": {
                                 "operation": {
-                                  "const": "components"
+                                  "enum": [
+                                    "components",
+                                    "subgraph"
+                                  ]
                                 },
                                 "issue": {
                                   "enum": [
                                     "invalid_kind",
-                                    "invalid_output_rows"
+                                    "invalid_output_rows",
+                                    "invalid_node_selector"
                                   ]
                                 }
                               }
@@ -77090,7 +77134,7 @@
               }
             },
             "reason_schema_cid": {
-              "const": "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa"
+              "const": "sha256:6c1c1eb6f5d8ac67e831f7c49ef8b2defe598c951ef542b12360e1356037ce76"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -77540,6 +77584,24 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
+                              "operation",
+                              "issue"
+                            ],
+                            "properties": {
+                              "operation": {
+                                "const": "subgraph"
+                              },
+                              "issue": {
+                                "enum": [
+                                  "invalid_node_selector"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
                               "issue"
                             ],
                             "properties": {
@@ -77769,12 +77831,16 @@
                               ],
                               "properties": {
                                 "operation": {
-                                  "const": "components"
+                                  "enum": [
+                                    "components",
+                                    "subgraph"
+                                  ]
                                 },
                                 "issue": {
                                   "enum": [
                                     "invalid_kind",
-                                    "invalid_output_rows"
+                                    "invalid_output_rows",
+                                    "invalid_node_selector"
                                   ]
                                 }
                               }
@@ -78053,6 +78119,24 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
+                              "operation",
+                              "issue"
+                            ],
+                            "properties": {
+                              "operation": {
+                                "const": "subgraph"
+                              },
+                              "issue": {
+                                "enum": [
+                                  "invalid_node_selector"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
                               "issue"
                             ],
                             "properties": {
@@ -78282,12 +78366,16 @@
                               ],
                               "properties": {
                                 "operation": {
-                                  "const": "components"
+                                  "enum": [
+                                    "components",
+                                    "subgraph"
+                                  ]
                                 },
                                 "issue": {
                                   "enum": [
                                     "invalid_kind",
-                                    "invalid_output_rows"
+                                    "invalid_output_rows",
+                                    "invalid_node_selector"
                                   ]
                                 }
                               }
@@ -78365,7 +78453,7 @@
               }
             },
             "reason_schema_cid": {
-              "const": "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa"
+              "const": "sha256:6c1c1eb6f5d8ac67e831f7c49ef8b2defe598c951ef542b12360e1356037ce76"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -78406,7 +78494,7 @@
               }
             },
             "reason_schema_cid": {
-              "const": "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa"
+              "const": "sha256:6c1c1eb6f5d8ac67e831f7c49ef8b2defe598c951ef542b12360e1356037ce76"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -78647,6 +78735,24 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "operation",
+                "issue"
+              ],
+              "properties": {
+                "operation": {
+                  "const": "subgraph"
+                },
+                "issue": {
+                  "enum": [
+                    "invalid_node_selector"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "issue"
               ],
               "properties": {
@@ -78876,12 +78982,16 @@
                 ],
                 "properties": {
                   "operation": {
-                    "const": "components"
+                    "enum": [
+                      "components",
+                      "subgraph"
+                    ]
                   },
                   "issue": {
                     "enum": [
                       "invalid_kind",
-                      "invalid_output_rows"
+                      "invalid_output_rows",
+                      "invalid_node_selector"
                     ]
                   }
                 }

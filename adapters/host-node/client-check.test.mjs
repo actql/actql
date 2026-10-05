@@ -1031,6 +1031,35 @@ const withPolicy = (wire, host_policy_profile) => {
 const emptyEnvironment = JSON.parse(await readFile(join(repository,
   'spec/local-check-environment.json'), 'utf8'));
 const absentEnvironment = withPolicy(emptyEnvironment, sourceEnvironment.host_policy_profile);
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: Subgraph selector violations preserve the common Owner reason`, async t => {
+    const client = await contextClient(t, entrance, absentEnvironment);
+    const prefix = 'DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH ' +
+      '(NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); ';
+    for (const selector of ['[1]', '{ids: []}', '{ids: [], unknown: true}']) {
+      const text = prefix + `FROM g |> subgraph(nodes: ${selector}) |> node_rows() |> SELECT node_key`;
+      const outcome = await client.check(text, {format: 'aql-text'});
+      assert.equal(outcome.outcome, 'completed');
+      assert.equal(outcome.report.verdict, 'invalid');
+      assert.deepEqual(outcome.report.reasons, [{code: 'graph_operation_invalid',
+        facts: {operation: 'subgraph', issue: 'invalid_node_selector'}}],
+      '[check-mutation:subgraph-reason]');
+      assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+      assert.deepEqual(explainCheckReason(outcome.report.reasons[0]), {kind: 'known',
+        summary: 'The Subgraph node selector is invalid.',
+        hint: 'Supply a supported node selector under the selected Graph contract.'});
+      assert.equal(getCheckInput(outcome, 'source').text, text);
+    }
+    const unsupported = await client.check(prefix +
+      'FROM g |> subgraph(nodes: {where: "true"}) |> node_rows() |> SELECT node_key',
+    {format: 'aql-text'});
+    assert.equal(unsupported.outcome, 'completed');
+    assert.equal(unsupported.report.verdict, 'undetermined');
+    assert.deepEqual(unsupported.report.reasons, []);
+    assert.deepEqual(unsupported.report.coverage.limits, [{code: 'implementation_limit'}]);
+  });
+}
 const numericContract = JSON.parse(await readFile(join(repository,
   'spec/contracts/actql-numeric-reduction.json'), 'utf8'));
 const propertyGraphLaw = JSON.parse(await readFile(join(repository,

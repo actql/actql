@@ -2031,6 +2031,24 @@ const schemas = {
                         {
                           "type": "object",
                           "required": [
+                            "operation",
+                            "issue"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "operation": {
+                              "const": "subgraph"
+                            },
+                            "issue": {
+                              "enum": [
+                                "invalid_node_selector"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
                             "issue"
                           ],
                           "additionalProperties": false,
@@ -2261,12 +2279,16 @@ const schemas = {
                             ],
                             "properties": {
                               "operation": {
-                                "const": "components"
+                                "enum": [
+                                  "components",
+                                  "subgraph"
+                                ]
                               },
                               "issue": {
                                 "enum": [
                                   "invalid_kind",
-                                  "invalid_output_rows"
+                                  "invalid_output_rows",
+                                  "invalid_node_selector"
                                 ]
                               }
                             }
@@ -2541,6 +2563,24 @@ const schemas = {
                         {
                           "type": "object",
                           "required": [
+                            "operation",
+                            "issue"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "operation": {
+                              "const": "subgraph"
+                            },
+                            "issue": {
+                              "enum": [
+                                "invalid_node_selector"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
                             "issue"
                           ],
                           "additionalProperties": false,
@@ -2771,12 +2811,16 @@ const schemas = {
                             ],
                             "properties": {
                               "operation": {
-                                "const": "components"
+                                "enum": [
+                                  "components",
+                                  "subgraph"
+                                ]
                               },
                               "issue": {
                                 "enum": [
                                   "invalid_kind",
-                                  "invalid_output_rows"
+                                  "invalid_output_rows",
+                                  "invalid_node_selector"
                                 ]
                               }
                             }
@@ -2933,7 +2977,7 @@ const schemas = {
             ]
           },
           "reason_schema_cid": {
-            "const": "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa"
+            "const": "sha256:6c1c1eb6f5d8ac67e831f7c49ef8b2defe598c951ef542b12360e1356037ce76"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -3288,6 +3332,24 @@ const schemas = {
                         {
                           "type": "object",
                           "required": [
+                            "operation",
+                            "issue"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "operation": {
+                              "const": "subgraph"
+                            },
+                            "issue": {
+                              "enum": [
+                                "invalid_node_selector"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
                             "issue"
                           ],
                           "additionalProperties": false,
@@ -3518,12 +3580,16 @@ const schemas = {
                             ],
                             "properties": {
                               "operation": {
-                                "const": "components"
+                                "enum": [
+                                  "components",
+                                  "subgraph"
+                                ]
                               },
                               "issue": {
                                 "enum": [
                                   "invalid_kind",
-                                  "invalid_output_rows"
+                                  "invalid_output_rows",
+                                  "invalid_node_selector"
                                 ]
                               }
                             }
@@ -3798,6 +3864,24 @@ const schemas = {
                         {
                           "type": "object",
                           "required": [
+                            "operation",
+                            "issue"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "operation": {
+                              "const": "subgraph"
+                            },
+                            "issue": {
+                              "enum": [
+                                "invalid_node_selector"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
                             "issue"
                           ],
                           "additionalProperties": false,
@@ -4028,12 +4112,16 @@ const schemas = {
                             ],
                             "properties": {
                               "operation": {
-                                "const": "components"
+                                "enum": [
+                                  "components",
+                                  "subgraph"
+                                ]
                               },
                               "issue": {
                                 "enum": [
                                   "invalid_kind",
-                                  "invalid_output_rows"
+                                  "invalid_output_rows",
+                                  "invalid_node_selector"
                                 ]
                               }
                             }
@@ -4202,7 +4290,7 @@ const schemas = {
             }
           },
           "reason_schema_cid": {
-            "const": "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa"
+            "const": "sha256:6c1c1eb6f5d8ac67e831f7c49ef8b2defe598c951ef542b12360e1356037ce76"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -4243,7 +4331,7 @@ const schemas = {
             }
           },
           "reason_schema_cid": {
-            "const": "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa"
+            "const": "sha256:6c1c1eb6f5d8ac67e831f7c49ef8b2defe598c951ef542b12360e1356037ce76"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -5283,7 +5371,7 @@ const operationKeys = {
   ]
 };
 
-export const checkReasonSchemaCid = "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa";
+export const checkReasonSchemaCid = "sha256:6c1c1eb6f5d8ac67e831f7c49ef8b2defe598c951ef542b12360e1356037ce76";
 function valid(value, schema) {
   if (schema.$ref) return valid(value, schemas[schema.$ref]);
   if (schema.oneOf && schema.oneOf.filter(rule => valid(value, rule)).length !== 1) return false;

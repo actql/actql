@@ -203,6 +203,11 @@ export function explainCheckReason(reason) {
     const [summary, hint] = graphExplanations[issue];
     return Object.freeze({kind: 'known', summary, hint});
   }
+  if (reason?.code === 'graph_operation_invalid' &&
+      reason?.facts?.operation === 'subgraph' && issue === 'invalid_node_selector') {
+    return Object.freeze({kind: 'known', summary: 'The Subgraph node selector is invalid.',
+      hint: 'Supply a supported node selector under the selected Graph contract.'});
+  }
   const constraintHints = {
     numeric: 'Supply a number satisfying the declared integer, minimum and maximum constraints.',
     duration: 'Supply a string in the admitted duration format.',
