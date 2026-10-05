@@ -1140,6 +1140,14 @@ required count and verifies the typed `NestItemLimit` failure, nonpublication,
 and final cleanup. The bounded nest kernel's exact/one-short work and
 workspace, item-limit, and phase-cleanup tests remain the shared resource
 proofs; the retained Host cases establish that this route reaches that kernel.
+For a raw RowTable parent Text column, the bounded Nest output owner now
+rechecks Unicode and the output contract in resumed chunks, then uses the
+existing stepped value charge before moving the row into the private output
+buffer. The one-row fixture fixes seven value nodes, 4,117 UTF-8 bytes, and
+4,124 logical output work units independently, rejects each one-short limit,
+and stops during both recheck and output charge. The existing retained Host
+route remains the connection control; its execution on the new SHA is a
+separate validation result, not implied by the white-box fixture.
 
 This does not enable nonlinear tasks or arbitrary Carrier-family output. The
 existing selected Relation provider refuses a nonlinear sequence during planning.
