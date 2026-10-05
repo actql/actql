@@ -960,6 +960,15 @@ Result. The retained producer and two consumers then publish the fixed order
 work or intermediate ownership model. This is not blanket admission of
 order-sensitive children with unresolved ties.
 
+Partitioned `top_k_by` now uses that same one-task fork when its exact
+candidate-key assertion and selected bounded provider apply. The authored
+Append output has distinct IDs and two `origin` partitions; the ranked result
+feeds both a filtered branch and a second projection before the branches
+rejoin. The retained Store Host checks the producer and two consumer Named
+Results against the independent ordered IDs `[4,2,4]`; the focused fixture
+checks memory and retained selection, task identity, and final cleanup. This
+does not admit a missing candidate key or replace the selected ranking kernel.
+
 The same selected fork owner accepts bounded `lag`, `watermark_rows`, and
 `json_pick` children when their checked Relation inputs and obligations match.
 Three separate authored Append forks filter on `previous`, `watermark_late`,

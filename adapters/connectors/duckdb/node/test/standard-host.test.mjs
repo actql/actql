@@ -8159,6 +8159,25 @@ async function exerciseStrategyGraph(
     from: 'ranked_greater', append: {with: 'deduped_less'}, as: 'joined',
   };
   branchedRankedSteps.push({from: 'joined', select: ['id'], as: 'out'});
+  const branchedPartitionedTopKProgram = structuredClone(branchedRankedProgram);
+  const partitionedRight = branchedPartitionedTopKProgram.stages.find(stage =>
+    stage.id === 'cross_right');
+  partitionedRight.steps[0].values.rows = [3, 4].map(id =>
+    ({id, origin: 'right'}));
+  const partitionedProducer = branchedPartitionedTopKProgram.stages.find(
+    stage => stage.id === 'crossed');
+  partitionedProducer.steps = [
+    {from: 'l', append: {with: 'r'}, as: 'appended'},
+    {from: 'appended', assert_rows: {unique_by: ['id']}, as: 'unique'},
+    {from: 'unique', top_k_by: {
+      partition_by: ['origin'], k: 1, by: [{id: 'desc'}],
+    }, as: 'ranked'},
+    {from: 'ranked', filter: 'id >= 4', as: 'selected'},
+    {from: 'selected', select: ['id'], as: 'selected_ids'},
+    {from: 'ranked', select: ['id'], as: 'raw_ids'},
+    {from: 'selected_ids', append: {with: 'raw_ids'}, as: 'out'},
+  ];
+  partitionedProducer.results.r.fields = ['id'];
   const branchedRowTransformPrograms = [
     'lag', 'watermark', 'json-pick', 'row-window', 'unpivot', 'unnest',
     'pivot', 'analytic', 'nest',
@@ -9775,6 +9794,9 @@ async function exerciseStrategyGraph(
       expected: [4, 3, 1, 2].map(id => ({id})), fields: ['id']},
     {name: 'append-fork-top-k-dedupe-join', source: branchedRankedProgram,
       expected: [4, 3, 1, 2].map(id => ({id})), fields: ['id']},
+    {name: 'append-fork-partitioned-top-k-join',
+      source: branchedPartitionedTopKProgram,
+      expected: [4, 2, 4].map(id => ({id})), fields: ['id']},
     ...branchedRowTransformPrograms.map(([name, source]) => ({
       name: name === 'analytic' ? 'analytic-append-fork-join'
         : `append-fork-${name}-join`, source,
