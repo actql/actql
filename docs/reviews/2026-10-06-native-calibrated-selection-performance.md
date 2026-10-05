@@ -182,10 +182,12 @@ a first-request claim. The earlier SHA's observations are not used as matched
 timing samples for this SHA.
 
 The next Native-runtime investigation is the observed startup/preparation
-boundary. One actual after leg spent about 6.2 ms loading the library, 3.0 ms
-opening the database and 5.0 ms between database-open and acquisition-start,
-versus 2.2 ms after strategy-execute through output admission. These are one
-leg's boundary observations, not a demonstrated root cause or universal cost.
+boundary. These labels mark starts, not completed operations: one actual after
+leg spent about 6.2 ms between application-start and library-start (application
+construction), 3.0 ms between library-start and database-start (library loading),
+and 5.0 ms between database-start and acquisition-start (database initialization),
+versus 2.2 ms from strategy-execute through completion. These are one leg's
+boundary observations, not a demonstrated root cause or universal cost.
 Inspect that existing preparation path before proposing a runtime change. Keep
 D/H/A's correctness boundaries and the retained input/identity obligations.
 
