@@ -132,26 +132,42 @@ export async function openSalesforceEffectSiteFixture(t, {
   collectionOutcomes,
   // Called after each query reply is sent, with the org's records.
   onQuery,
+  // With `statefulRecords`: 1-based single-record write sequences the org
+  // reads and then holds open, neither applying nor answering them;
+  // `onHeldWrite(sequence)` is called once each is held.
+  holdWrites = [],
+  onHeldWrite,
+  // Reuse this directory's `ca.crt`, `ca.key`, `resource.crt` and
+  // `resource.key` instead of issuing new ones (for state that names this
+  // org's TLS identity), and listen on this fixed local port.
+  certificateDirectory,
+  port = 0,
+  // The validity of newly issued certificates.
+  certificateDays = 1,
 }) {
   const writable = ['Test_Record__c', ...extraWritable];
   const root = await mkdtemp(join(tmpdir(), 'actql-effect-site-'));
   const openssl = (...args) => execFileSync('openssl', args,
     {cwd: root, stdio: 'ignore'});
-  openssl('genrsa', '-out', 'ca.key', '2048');
-  openssl('req', '-x509', '-new', '-key', 'ca.key', '-out',
-    'ca.crt', '-subj', '/CN=ActQL Effect Test CA', '-days', '1');
-  openssl('genrsa', '-out', 'resource.key', '2048');
-  openssl('req', '-new', '-key', 'resource.key', '-out',
-    'resource.csr', '-subj', '/CN=localhost');
-  await writeFile(join(root, 'resource.ext'),
-    'subjectAltName=DNS:localhost,IP:127.0.0.1\n');
-  openssl('x509', '-req', '-in', 'resource.csr', '-CA', 'ca.crt',
-    '-CAkey', 'ca.key', '-CAcreateserial', '-out', 'resource.crt',
-    '-days', '1', '-extfile', 'resource.ext');
+  const certificates = certificateDirectory ?? root;
+  if (certificateDirectory === undefined) {
+    const days = String(certificateDays);
+    openssl('genrsa', '-out', 'ca.key', '2048');
+    openssl('req', '-x509', '-new', '-key', 'ca.key', '-out',
+      'ca.crt', '-subj', '/CN=ActQL Effect Test CA', '-days', days);
+    openssl('genrsa', '-out', 'resource.key', '2048');
+    openssl('req', '-new', '-key', 'resource.key', '-out',
+      'resource.csr', '-subj', '/CN=localhost');
+    await writeFile(join(root, 'resource.ext'),
+      'subjectAltName=DNS:localhost,IP:127.0.0.1\n');
+    openssl('x509', '-req', '-in', 'resource.csr', '-CA', 'ca.crt',
+      '-CAkey', 'ca.key', '-CAcreateserial', '-out', 'resource.crt',
+      '-days', days, '-extfile', 'resource.ext');
+  }
   const [ca, cert, key] = await Promise.all([
-    readFile(join(root, 'ca.crt')),
-    readFile(join(root, 'resource.crt')),
-    readFile(join(root, 'resource.key')),
+    readFile(join(certificates, 'ca.crt')),
+    readFile(join(certificates, 'resource.crt')),
+    readFile(join(certificates, 'resource.key')),
   ]);
   const seen = [];
   const orgRecords = () => state === undefined ? undefined
@@ -395,6 +411,10 @@ export async function openSalesforceEffectSiteFixture(t, {
               Object.assign(current, JSON.parse(observed.body));
             }
           };
+          if (holdWrites.includes(singleWriteSequence())) {
+            onHeldWrite?.(singleWriteSequence());
+            return;
+          }
           if (loseReplyAfterApply.includes(singleWriteSequence())) {
             apply();
             request.socket.destroy();
@@ -465,7 +485,7 @@ export async function openSalesforceEffectSiteFixture(t, {
   });
   await new Promise((resolve, reject) => {
     server.once('error', reject);
-    server.listen(0, '127.0.0.1', resolve);
+    server.listen(port, '127.0.0.1', resolve);
   });
   const origin = `https://127.0.0.1:${server.address().port}`;
   // The Site is installed from a Host profile and the Host's account gate;
