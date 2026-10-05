@@ -3,7 +3,9 @@ const json = value => ({typed_literal: {type: 'json', value}});
 const fields = ['json_null', 'sql_null', 'json_number', 'number', 'json_string',
   'string', 'json_boolean', 'boolean', 'json_object', 'json_array'];
 const expressions = {
-  json_null: json('null'), json_number: json('1.5'), number: {literal: 1.5},
+  json_null: json('null'),
+  sql_null: {if: [{literal: false}, json('null'), {literal: null}]},
+  json_number: json('1.5'), number: {literal: 1.5},
   json_string: json('"x"'), string: {literal: 'x'},
   json_boolean: json('true'), boolean: {literal: true},
   json_object: json('{"a":1,"a":2,"e\\u0301":null}'),
@@ -11,8 +13,8 @@ const expressions = {
 };
 const program = (bindings = expressions, empty = false) => ({version: 'actql/0.1',
   id: 'typed-json-literals', stages: [{id: 's', inputs: {}, steps: [
-    {as: 'seed', values: {schema: {sql_null: {type: 'json', nullable: true}},
-      rows: [{sql_null: null}]}},
+    {as: 'seed', values: {schema: {unit: {type: 'boolean', nullable: false}},
+      rows: [{unit: true}]}},
     {as: 'typed', derive: bindings},
     ...(empty ? [{as: 'empty', filter: {literal: false}}] : []),
   ], results: {out: {from: empty ? 'empty' : 'typed', fields}}}],

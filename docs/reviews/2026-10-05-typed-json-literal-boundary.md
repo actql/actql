@@ -88,6 +88,19 @@ The resulting focused Stage/Program checks passed 35/35 (`run-F6FwlK`), and
 ordinary README preparation/compilation plus historical profile tests passed
 9/9 (`run-2gzubG`). That first packed failure is not acceptance evidence.
 
+The second packed attempt at `5257fbd599bf0e7a00780bba96b446b86934455f`
+passed the ordinary README Local/HTTPS checks, then stopped at the first new
+machine input (`run-N6nw46`, command `012`, `public-query-evidence-HgUCie`).
+That input incorrectly declared a JSON Values column, which the existing
+Values contract forbids. It now uses a boolean seed and an ordinary IF with
+JSON/NULL branches to produce the nullable JSON SQL NULL comparison. Values
+admission is unchanged. The consuming preparation test also found that Plan
+identity re-admission normalized JSON data keys in the emitted expression
+body. It now preserves owner-checked keys through the existing strict parser
+and canonical data mode. The all-roots/empty/README preparation and compiler
+regression passed (`run-igukHi`), and the existing Plan fact identity regression
+passed (`run-48VxoJ`). These are focused checks, not packed execution results.
+
 Three-target public-interface verification and changed-package formatting
 passed (`run-TgiV5D`); this checks compilation and interfaces, not three-target
 runtime execution. Read-only literal/vector, Workers/Node fixture, canonical,
