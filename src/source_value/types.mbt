@@ -70,6 +70,7 @@ pub(all) enum ParseIssue {
   InvalidUnicodeEscape
   InvalidNumber
   NumberOutOfRange
+  NumberPrecisionLoss
   NegativeZero
   ExpectedColon
   ExpectedArraySeparator

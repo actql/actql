@@ -140,6 +140,10 @@ fn advance_logical_measure_impl(
           return Err(LogicalWorkLimit)
         }
         match v {
+          @admitted.JsonData(payload) => {
+            cursor.nodes -= 1
+            cursor.stack.push(Read(payload, depth))
+          }
           @admitted.Null | @admitted.Number(_) | @admitted.Boolean(_) => ()
           @admitted.Text(s) | @admitted.Date(s) | @admitted.Timestamp(s) =>
             if !logical_measure_text(cursor, s) {

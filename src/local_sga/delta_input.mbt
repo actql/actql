@@ -110,7 +110,10 @@ fn advance_delta_input(
               _ => return DeltaInputFailed(DeltaApplyInvalidInput, work=used)
             }
             input.writer = Some(writer)
-            input.emitter = Some(@value.start_wire_emit(checked.value, writer))
+            guard @value.json_payload(checked.value) is Some(payload) else {
+              return DeltaInputFailed(DeltaApplyInvalidInput, work=used)
+            }
+            input.emitter = Some(@value.start_wire_emit(payload, writer))
             input.phase = EmitDeltaCell
           }
         }

@@ -159,7 +159,7 @@ fn recheck_node_step(
       cursor.stack.push(ObjectFields(values.values, contract, 0, depth))
       true
     }
-    (_, @contract.Json) => {
+    (JsonData(value), @contract.Json) => {
       budget.nodes += 1
       recheck_json_step(cursor, value, depth)
     }

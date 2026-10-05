@@ -91,6 +91,7 @@ pub(all) enum ExpressionIssueKind {
   PendingValidation(@typing.ObligationKind)
   ExpressionNotImplemented(String)
   LiteralAdmission(@value.Issue)
+  JsonLiteralAdmission(@value.JsonLiteralIssue)
 } derive(Eq, Debug)
 
 ///|
@@ -172,6 +173,7 @@ fn expression_tag(
   match tag {
     "field"
     | "literal"
+    | "typed_literal"
     | "$param"
     | "negate"
     | "is_true"
@@ -228,7 +230,7 @@ fn expression_children(
       }
       children
     }
-    "literal" | "field" | "$param" => []
+    "literal" | "typed_literal" | "field" | "$param" => []
     "cast" => {
       let obj = @decode.open_object(body).unwrap()
       [@decode.lookup(obj, "value").unwrap()]
@@ -404,6 +406,10 @@ fn charge_bound_literal(
         b.work += count
       }
       @value.Reference(_) => abort("opaque reference literal")
+      @value.JsonData(payload) => {
+        b.literal_nodes -= 1
+        todo.push((payload, depth))
+      }
     }
   }
 }
@@ -715,6 +721,36 @@ fn lower_typed_expression_measured(
             expression_fail(cursor, MissingResolvedField(name))
           }
           ExpressionBody::Field(name, target)
+        }
+        "typed_literal" => {
+          let text = @decode.text(
+            @decode.lookup(@decode.open_object(body).unwrap(), "value").unwrap(),
+          ).unwrap()
+          let (value, nodes, _) = match
+            @value.admit_json_literal(text, {
+              max_nodes: limits.max_literal_nodes - budget.literal_nodes,
+              max_depth: limits.max_depth,
+              max_text_bytes: limits.max_literal_text_bytes -
+              budget.literal_bytes,
+            }) {
+            Ok(value) => value
+            Err(issue) => expression_fail(cursor, JsonLiteralAdmission(issue))
+          }
+          let bytes = @scalar.admit_utf8_length(
+            text,
+            limits.max_literal_text_bytes - budget.literal_bytes,
+          ).unwrap()
+          budget.literal_nodes += nodes
+          budget.literal_bytes += bytes
+          if nodes > limits.max_work - budget.work {
+            expression_fail(cursor, ExpressionBudgetExceeded)
+          }
+          budget.work += nodes
+          if bytes > limits.max_work - budget.work {
+            expression_fail(cursor, ExpressionBudgetExceeded)
+          }
+          budget.work += bytes
+          Literal(value)
         }
         "literal" => {
           charge_literal(budget, body)

@@ -61,8 +61,13 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.equal(body.query_text_rules_sha256,
     '6e19ee2d70f3c97104b0faff22b8f5d8e37ab021bff6555555bb018bac0f564a');
   assert.equal(body.source_grammar_cid,
-    'sha256:487b95656a825703baa75f2e108ac94d3d8a38fa113bb2ef12a3532cac2654ae');
-  const historicalBody = {...body, query_text_rules_sha256: 'e4639cbce44c77135b0f162475ca653b9774ef593a4c02434f6ea30b34ff2eb2'};
+    'sha256:cefbc719deb477390be03d777795035462f2c8ba55352560d88ee30a74302cef');
+  // Freeze predecessor dependencies; new expression semantics must not rebind old vectors.
+  const preJsonBody = {...body,
+    source_grammar_cid: 'sha256:487b95656a825703baa75f2e108ac94d3d8a38fa113bb2ef12a3532cac2654ae',
+    expression_contract_cid: 'sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb',
+    expression_text_rules_sha256: '997601c137dc1ef2d6d63585d5930aae7f5c39efb54aa56ffbe59b068e2f68c2'};
+  const historicalBody = {...preJsonBody, query_text_rules_sha256: 'e4639cbce44c77135b0f162475ca653b9774ef593a4c02434f6ea30b34ff2eb2'};
   assert.equal(cid({...historicalBody, source_grammar_cid:
     'sha256:50527c1472e91aa673ad57bcd43141b0e679a2de24cc6bf19efb9e8e32c2607a'}),
     'sha256:cb357b785390fb3e581a6ece8e61d49d9d93676666df77dd18a2d7f72f381bff');
@@ -78,44 +83,45 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.equal(cid({...historicalBody, source_grammar_cid:
     'sha256:e9b7efcdee0ef6c06bfb6cbc7805f595e030ecbd79e5afeb0ffa17b755710b7a'}),
     'sha256:caad49cf67bec4b67c2cb6beed69e7c9f71a80b19f2e8e04535d0d7f1c12cd90');
-  assert.equal(cid({...body, query_text_rules_sha256:
+  assert.equal(cid({...preJsonBody, query_text_rules_sha256:
     '803a87b786e68fe64cc79a49abe359659dc32f5373168ae868b310d2dbb47927'}),
     'sha256:d18da5382cb511e80f179cb24090bec8e6ce5db6601e1acd49727ef31bc947d7');
-  assert.equal(cid({...body, query_text_rules_sha256:
+  assert.equal(cid({...preJsonBody, query_text_rules_sha256:
     '803a87b786e68fe64cc79a49abe359659dc32f5373168ae868b310d2dbb47927',
     source_grammar_cid: 'sha256:e9b7efcdee0ef6c06bfb6cbc7805f595e030ecbd79e5afeb0ffa17b755710b7a'}),
     'sha256:4ac81bd72c110d09c286a0f2d4c5d68d4340a2e6843d75deabd8dbbd9fb26b77');
-  assert.equal(cid({...body, query_text_rules_sha256:
+  assert.equal(cid({...preJsonBody, query_text_rules_sha256:
     '54640d82b50522dd101ab384a777c316ad2227fc59cd7ea711fec1fe6d127ba0'}),
     'sha256:542afdc74f52bbb3d9fa721434c2ac54641e01995eb46abee1dbd44252898374');
-  assert.equal(cid({...body, query_text_rules_sha256:
+  assert.equal(cid({...preJsonBody, query_text_rules_sha256:
     '65b078b5222afb74121a0785ffc2f3b3acba8642dbbb67e56477cb924fe20933'}),
     'sha256:d0207424274d6a5549eff6c16cd7cfa5a1e63e66c627c23bb63f24ec82154180');
-  assert.equal(cid({...body, query_text_rules_sha256:
+  assert.equal(cid({...preJsonBody, query_text_rules_sha256:
     '65b078b5222afb74121a0785ffc2f3b3acba8642dbbb67e56477cb924fe20933',
     source_grammar_cid: 'sha256:e9b7efcdee0ef6c06bfb6cbc7805f595e030ecbd79e5afeb0ffa17b755710b7a'}),
     'sha256:37e9fadf9ae65bc194ad17b790ce208450550defcdbfb8354ef3c5c9c0cf4f6d');
   // Preserve main's node-emission profile as an independent predecessor.
-  assert.equal(cid({...body, query_text_rules_sha256:
+  assert.equal(cid({...preJsonBody, query_text_rules_sha256:
     'a303762cd3b49d16c2e40a58487db008a6ed5fb9b262518b76d3056c9abbced7'}),
     'sha256:8ac5a6bdc47a98eca02efae3ca1ceadc613bc930bb523c0013fc73a9bb81dcdc');
   // Preserve the pre-merge source profile and each adopted parent identity.
-  assert.equal(cid({...body, query_text_rules_sha256:
+  assert.equal(cid({...preJsonBody, query_text_rules_sha256:
     'e8cadac5455ca0f70f70dd7af77ca5636dad1d99bccff4d3f2e5cdd7d5f4ccab'}),
     'sha256:6eadd94b7226575a88196089cb8a63fe54e0a01630d1dfbf7252806f3474d36e');
-  assert.equal(cid({...body, query_text_rules_sha256:
+  assert.equal(cid({...preJsonBody, query_text_rules_sha256:
     '6528f75c6ecd4e3038077c5aff724f3651c23b8310232c363245774cecda6511'}),
     'sha256:eb1e2c6f90ed75c3bd443ce1a5f91097c41e13e7a6cc08ccc04bdbdf57476c10');
-  assert.equal(cid({...body, query_text_rules_sha256:
+  assert.equal(cid({...preJsonBody, query_text_rules_sha256:
     '865a688d16fef349a3dce0851dd2ba9db2117a2ab58540df24860f42fe43eda9'}),
     'sha256:064c917539e8fdbf2e0de59a9cfd553e9d645623a56d39ea710f6e2e348193c2');
-  assert.equal(cid({...body, query_text_rules_sha256:
+  assert.equal(cid({...preJsonBody, query_text_rules_sha256:
     '1591310fc6d0f8e53b01dcb646a5f22e717f53a825a00d8600c6aa3e31cb008b'}),
     'sha256:2afc5d41a26a51589b3ad3b647c08dae6ebdb8f135834c227ab97bfd6197bf8a');
-  const expected = 'sha256:88b3e10e85fa88630900251773eb7b2fe5eb00e0714f3668843145fd82e68a8c';
+  const expected = 'sha256:f0f51ba98d23a0b498cf8f4688b64bd77fc30f0702d9a28397efea5c9d758ea7';
+  assert.equal(cid(preJsonBody), 'sha256:88b3e10e85fa88630900251773eb7b2fe5eb00e0714f3668843145fd82e68a8c');
   assert.equal(cid(historicalBody),
     'sha256:2a5854a264c13c65bf7c2ecbc6f59f9ec09e0c590aacc1c8aed6ec247da80067');
-  assert.equal(cid({...body, query_text_rules_sha256:
+  assert.equal(cid({...preJsonBody, query_text_rules_sha256:
     '803a87b786e68fe64cc79a49abe359659dc32f5373168ae868b310d2dbb47927',
     source_grammar_cid: 'sha256:5cfed3155edea075796e6be985026b6f3d5b59ecc6937540d86c6af7ffc77351'}),
     'sha256:d825ab855369e92f2e4da5e9af19567cdc89e431784b09d19c3b57ef2e9f301a');

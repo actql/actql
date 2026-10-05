@@ -477,7 +477,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/capacity-law-registry.values-wire-machine-contract",
-      "statement_sha256": "1a2d8d3e061f1056dc5c2899ea542fb433f157f6c84952fab74a0cd8f39a3cbb",
+      "statement_sha256": "4671c8d15cd8acaa20cfa083b71867eb66f3809eb9475bfeee511e6b3b59a60a",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -2050,7 +2050,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "dba74754b3b207d97952f46f7edf45bba3328c2606014c7b922b264d7dfa8a34",
+      "statement_sha256": "cbb0560e363e8b5286283bef376bf22ca56fce2370bb521af5dadac480c27223",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

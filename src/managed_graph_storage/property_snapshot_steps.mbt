@@ -212,13 +212,20 @@ fn start_snapshot_value(
   state.admission_work_limited = remaining < builder.limits.max_value_nodes
   let admission = match (host, state.issuer) {
     (true, Some(issuer)) =>
-      @value.start_host_typed_admission(issuer, contract, input, limits, {
-        max_bytes: builder.limits.max_value_bytes,
-        max_nodes: limits.max_nodes,
-        max_depth: limits.max_depth,
-        max_text_units: builder.limits.max_value_bytes,
-      })
-    _ => @value.start_typed_admission(contract, input, limits)
+      @value.start_host_typed_admission(
+        issuer,
+        contract,
+        input,
+        limits,
+        {
+          max_bytes: builder.limits.max_value_bytes,
+          max_nodes: limits.max_nodes,
+          max_depth: limits.max_depth,
+          max_text_units: builder.limits.max_value_bytes,
+        },
+        wire=host,
+      )
+    _ => @value.start_typed_admission(contract, input, limits, wire=host)
   }
   match admission {
     Ok(admission) => {
@@ -247,7 +254,13 @@ fn start_snapshot_encoding(
   work : Int,
 ) -> Unit {
   state.encoding = Some(
-    start_value_encoding(state.builder, values, bytes, work),
+    start_value_encoding(
+      state.builder,
+      values,
+      bytes,
+      work,
+      identity_body=role != SnapshotPayload,
+    ),
   )
   state.encoding_role = role
   state.phase = EncodeSnapshotValue

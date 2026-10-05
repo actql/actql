@@ -76,7 +76,7 @@
     "check:timestamp-pattern": "node scripts/check-timestamp-pattern.mjs",
     "generate:timestamp-pattern": "node scripts/check-timestamp-pattern.mjs --write",
     "generate:expression-typing": "node scripts/check-expression-typing.mjs --write",
-    "check:expression-syntax": "node scripts/check-expression-syntax.mjs && node --test scripts/expression-syntax.test.mjs",
+    "check:expression-syntax": "node scripts/typed-json-literal-contract.mjs && node scripts/typed-json-literal-vectors.mjs && node --test scripts/typed-json-literal-contract.test.mjs && node scripts/check-expression-syntax.mjs && node --test scripts/expression-syntax.test.mjs",
     "generate:expression-syntax": "node scripts/check-expression-syntax.mjs --write",
     "check:expression-text": "node scripts/check-expression-text.mjs && node --test scripts/expression-text.test.mjs",
     "generate:expression-text": "node scripts/check-expression-text.mjs --write",

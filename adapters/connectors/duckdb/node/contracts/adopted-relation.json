@@ -1,8 +1,8 @@
 {
   "source_revision": "9edb5a65db8b822b8629cfa4913fb1097fb99945",
-  "registry_cid": "sha256:af8d2530f74cabec40daa30580dc0a036691a9d8875c0eb7a85ee40240768bcd",
+  "registry_cid": "sha256:1572e196d4a8258ca8b5c1088ff1c386493113c1ec4a5095aa62a635fc7a4ede",
   "values_cid": "sha256:9b716536b27d313e93deadae776d9abf21c3d06dcd653d2eb3b74e0c276a182b",
-  "fragment_cid": "sha256:1282c3d8af052606f64be809cead104630c67a8b676050bcdc7edd4a884b9b60",
+  "fragment_cid": "sha256:b255a7e460b79995eb5e2cacf4a6381810ef15f48b7898beca490b77f2ac2495",
   "property_graph_cid": "sha256:b00de8912497c6af1596debd1c59ee8d3477faf0391be40f64ac82ebc6d9ebb7",
   "registry": {
     "REL.select": {
@@ -38,7 +38,7 @@
         "ordered_bindings": {
           "file": "spec/contracts/actql-aoa.json",
           "pointer": "/execution_contracts/REL.derive.ordered",
-          "cid": "sha256:5c42162fa5adc40007f7e4630fa30e835c0dce20f74785be074f4490aff522de"
+          "cid": "sha256:9a09e6e977677472109ad77687f8a900a9e5d997cc521f07c9ff91730aee8922"
         }
       }
     },
@@ -483,7 +483,7 @@
       "execution_contract": {
         "file": "spec/contracts/actql-aoa.json",
         "pointer": "/execution_contracts/ACTQL.expression_fragment~10.1",
-        "cid": "sha256:1282c3d8af052606f64be809cead104630c67a8b676050bcdc7edd4a884b9b60"
+        "cid": "sha256:b255a7e460b79995eb5e2cacf4a6381810ef15f48b7898beca490b77f2ac2495"
       }
     },
     "BRIDGE.rows.to_property_graph": {
@@ -1511,12 +1511,12 @@
       "expression_contract": {
         "file": "spec/contracts/actql-expressions.json",
         "pointer": "",
-        "cid": "sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb"
+        "cid": "sha256:72941beeddd533031e11992f8e367a4754105337658d0c7ff63127a76421fa4e"
       },
       "fragment_schema": {
         "file": "spec/contracts/actql-expressions.json",
         "pointer": "/schemas/fragment",
-        "cid": "sha256:4d42600c1b3d42d660f2eb14a84342988c17646110f8995f80bf4dc4344ce3d4"
+        "cid": "sha256:736ddd89183ed162dd755e68858e1c4f7347c6d6ee03fec46c843f072c5e19d1"
       }
     },
     "params_schema": {

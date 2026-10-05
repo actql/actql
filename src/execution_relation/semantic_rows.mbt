@@ -255,6 +255,7 @@ fn admitted_rank(value : @admitted.Value) -> Int {
     @admitted.Object(_) => 8
     @admitted.Vector(_) => 9
     @admitted.Reference(_) => 10
+    @admitted.JsonData(_) => 11
   }
 }
 
@@ -268,6 +269,8 @@ fn compare_admitted_value(
     return Err(Limit)
   }
   match (left, right) {
+    (@admitted.JsonData(a), @admitted.JsonData(b)) =>
+      compare_admitted_value(a, b, control)
     (@admitted.Null, @admitted.Null) => Ok(0)
     (@admitted.Boolean(a), @admitted.Boolean(b)) =>
       compare_complete_scalar(Boolean(a), Boolean(b), control)

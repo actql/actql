@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:0c953a7a865cab86ce16342b43fb1f6c630f2516f9eef142535447447c740144",
+  "artifact_registry_cid": "sha256:0d1f951c5ad82eddec7ff794bac5ab4c9b797bfaa5f69d71209fec62ab72007a",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10668,7 +10668,7 @@
     "observation_set": "sha256:627f88eeb134771cfa81e24419845fbe76bc4a61b4f9c81da3cff48aa3fc5719",
     "model_invocation_evidence": "sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27",
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
-    "executable_plan": "sha256:6211c24d057832d414b8b7a649ebe4ecd75aef34f830594fea06d99006ab1fed",
+    "executable_plan": "sha256:d541fc4ab01300058d67455acde89ba970cf9a0676ffde0df0aeffbb0961829c",
     "result_plan": "sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5",
     "plan_fact_manifest": "sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
@@ -10692,7 +10692,7 @@
     "verified_checkpoint_resolution": "sha256:c8304cef7cad5b5e0a8afd8a3f1a4e5b346147218bd2a46ac7994baeaa21a625",
     "result_manifest": "sha256:8f308beba1e134bb0bbf013f961015a39301ab05dc24d54c0fbfbcddde6eeafa",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
-    "plan_document": "sha256:4ccb9e9e3c885c48a19359c2771456a0d25fa9dfb44bf27130d6a655257ace45",
+    "plan_document": "sha256:12b70885f32d53dd5771583eb1c845df3598f80a3c333f6387c4f3a3cd016679",
     "plan_result": "sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7",
     "run_state": "sha256:e61cdac45a5af98ca5362ee945511d705c373613cd4e9dc42009e036eb9fcb84",
     "captured_run": "sha256:d10eba96fc9983ffe709fee16faab30c9912af109d4310acad64fc675360b0c7",
@@ -19286,6 +19286,31 @@
                           }
                         }
                       }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "typed_literal"
+                      ],
+                      "properties": {
+                        "typed_literal": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "type",
+                            "value"
+                          ],
+                          "properties": {
+                            "type": {
+                              "const": "json"
+                            },
+                            "value": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
                     }
                   ]
                 },
@@ -24362,6 +24387,31 @@
                                 "ms",
                                 "sm"
                               ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "typed_literal"
+                      ],
+                      "properties": {
+                        "typed_literal": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "type",
+                            "value"
+                          ],
+                          "properties": {
+                            "type": {
+                              "const": "json"
+                            },
+                            "value": {
+                              "type": "string"
                             }
                           }
                         }
@@ -29593,6 +29643,31 @@
                                     }
                                   ]
                                 }
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "typed_literal"
+                                ],
+                                "properties": {
+                                  "typed_literal": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "type",
+                                      "value"
+                                    ],
+                                    "properties": {
+                                      "type": {
+                                        "const": "json"
+                                      },
+                                      "value": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  }
+                                }
                               }
                             ]
                           }
@@ -31249,6 +31324,31 @@
                                           "maxProperties": 1
                                         }
                                       ]
+                                    }
+                                  },
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "typed_literal"
+                                    ],
+                                    "properties": {
+                                      "typed_literal": {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "type",
+                                          "value"
+                                        ],
+                                        "properties": {
+                                          "type": {
+                                            "const": "json"
+                                          },
+                                          "value": {
+                                            "type": "string"
+                                          }
+                                        }
+                                      }
                                     }
                                   }
                                 ]
@@ -36416,6 +36516,31 @@
                                           "minLength": 1
                                         }
                                       }
+                                    },
+                                    {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "typed_literal"
+                                      ],
+                                      "properties": {
+                                        "typed_literal": {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "type",
+                                            "value"
+                                          ],
+                                          "properties": {
+                                            "type": {
+                                              "const": "json"
+                                            },
+                                            "value": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        }
+                                      }
                                     }
                                   ]
                                 }
@@ -36559,6 +36684,31 @@
                                         "field": {
                                           "type": "string",
                                           "minLength": 1
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "typed_literal"
+                                      ],
+                                      "properties": {
+                                        "typed_literal": {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "type",
+                                            "value"
+                                          ],
+                                          "properties": {
+                                            "type": {
+                                              "const": "json"
+                                            },
+                                            "value": {
+                                              "type": "string"
+                                            }
+                                          }
                                         }
                                       }
                                     }
@@ -36770,6 +36920,31 @@
                                       ],
                                       "properties": {
                                         "literal": {}
+                                      }
+                                    },
+                                    {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "typed_literal"
+                                      ],
+                                      "properties": {
+                                        "typed_literal": {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "type",
+                                            "value"
+                                          ],
+                                          "properties": {
+                                            "type": {
+                                              "const": "json"
+                                            },
+                                            "value": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        }
                                       }
                                     }
                                   ]
@@ -48880,6 +49055,31 @@
                               }
                             }
                           }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "typed_literal"
+                          ],
+                          "properties": {
+                            "typed_literal": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "type",
+                                "value"
+                              ],
+                              "properties": {
+                                "type": {
+                                  "const": "json"
+                                },
+                                "value": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
                         }
                       ]
                     },
@@ -53956,6 +54156,31 @@
                                     "ms",
                                     "sm"
                                   ]
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "typed_literal"
+                          ],
+                          "properties": {
+                            "typed_literal": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "type",
+                                "value"
+                              ],
+                              "properties": {
+                                "type": {
+                                  "const": "json"
+                                },
+                                "value": {
+                                  "type": "string"
                                 }
                               }
                             }
@@ -59187,6 +59412,31 @@
                                         }
                                       ]
                                     }
+                                  },
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "typed_literal"
+                                    ],
+                                    "properties": {
+                                      "typed_literal": {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "type",
+                                          "value"
+                                        ],
+                                        "properties": {
+                                          "type": {
+                                            "const": "json"
+                                          },
+                                          "value": {
+                                            "type": "string"
+                                          }
+                                        }
+                                      }
+                                    }
                                   }
                                 ]
                               }
@@ -60843,6 +61093,31 @@
                                               "maxProperties": 1
                                             }
                                           ]
+                                        }
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "typed_literal"
+                                        ],
+                                        "properties": {
+                                          "typed_literal": {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "type",
+                                              "value"
+                                            ],
+                                            "properties": {
+                                              "type": {
+                                                "const": "json"
+                                              },
+                                              "value": {
+                                                "type": "string"
+                                              }
+                                            }
+                                          }
                                         }
                                       }
                                     ]
@@ -66010,6 +66285,31 @@
                                               "minLength": 1
                                             }
                                           }
+                                        },
+                                        {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "typed_literal"
+                                          ],
+                                          "properties": {
+                                            "typed_literal": {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "type",
+                                                "value"
+                                              ],
+                                              "properties": {
+                                                "type": {
+                                                  "const": "json"
+                                                },
+                                                "value": {
+                                                  "type": "string"
+                                                }
+                                              }
+                                            }
+                                          }
                                         }
                                       ]
                                     }
@@ -66153,6 +66453,31 @@
                                             "field": {
                                               "type": "string",
                                               "minLength": 1
+                                            }
+                                          }
+                                        },
+                                        {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "typed_literal"
+                                          ],
+                                          "properties": {
+                                            "typed_literal": {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "type",
+                                                "value"
+                                              ],
+                                              "properties": {
+                                                "type": {
+                                                  "const": "json"
+                                                },
+                                                "value": {
+                                                  "type": "string"
+                                                }
+                                              }
                                             }
                                           }
                                         }
@@ -66364,6 +66689,31 @@
                                           ],
                                           "properties": {
                                             "literal": {}
+                                          }
+                                        },
+                                        {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "typed_literal"
+                                          ],
+                                          "properties": {
+                                            "typed_literal": {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "type",
+                                                "value"
+                                              ],
+                                              "properties": {
+                                                "type": {
+                                                  "const": "json"
+                                                },
+                                                "value": {
+                                                  "type": "string"
+                                                }
+                                              }
+                                            }
                                           }
                                         }
                                       ]

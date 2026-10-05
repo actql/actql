@@ -6,6 +6,33 @@ fn delivery_schema_wire() -> String {
 }
 
 ///|
+test "JSON delivery retains domain tags data keys and declared column order" {
+  let schema = "{\"j\":{\"nullable\":true,\"type\":\"json\"},\"sql\":{\"nullable\":true,\"type\":\"number\"}}"
+  let value = prepare_result_delivery_serializer(
+    "jsonl",
+    schema,
+    ["sql", "j"],
+    4096,
+    100,
+    10,
+  ).unwrap()
+  assert_eq(begin_result_delivery(value), Ok(""))
+  for
+    (wire, expected) in [
+      (
+        "{\"j\":{\"$json\":null},\"sql\":null}", "{\"sql\":null,\"j\":{\"$json\":null}}\n",
+      ),
+      (
+        "{\"j\":{\"$json\":{\"e\u{301}\":1,\"é\":2}},\"sql\":null}", "{\"sql\":null,\"j\":{\"$json\":{\"e\u{301}\":1,\"é\":2}}}\n",
+      ),
+      ("{\"j\":null,\"sql\":null}", "{\"sql\":null,\"j\":null}\n"),
+    ] {
+    assert_eq(next_result_delivery_row(value, wire), Ok(expected))
+  }
+  assert_eq(finish_result_delivery(value), Ok(""))
+}
+
+///|
 fn delivery_fields() -> Array[String] {
   ["name", "score", "amount", "enabled", "missing", "meta"]
 }
