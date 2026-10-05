@@ -142,6 +142,140 @@ test "subtraction fold distinguishes removing shared entities and explicitly ret
 }
 
 ///|
+test "subtraction fold aligns reordered node and edge properties by name" {
+  let left_carrier = union_fold_test_carrier()
+  let right_carrier = union_fold_test_carrier(reordered=true)
+  let left = union_fold_test_input(left_carrier)
+  let right = union_fold_test_input(right_carrier, reordered=true)
+  let checked = @graph_type.subtraction_composition(
+    @graph_type.check_subtraction(
+      union_fold_test_cursor(
+        "{\"with\":\"peer\",\"merge\":{\"node_properties\":{\"p\":\"number_sum\"},\"edge_properties\":{\"p\":\"number_sum\"}}}",
+      ),
+      left_carrier,
+      right_carrier,
+      {
+        max_work: 100000,
+        max_nodes: 10000,
+        max_text_bytes: 100000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+  let mut expected_work = None
+  for quantum in [1, 7, 64] {
+    let builder = @storage.prepare(
+      @graph_type.union_fold_output(checked, 0).unwrap(),
+      DeclaredNodes,
+      union_fold_test_limits(),
+    ).unwrap()
+    let active = prepare_union_fold(
+      checked,
+      0,
+      Accumulated(left),
+      Accumulated(right),
+      builder,
+      union_fold_test_limits(),
+      100000,
+      subtraction=true,
+    ).unwrap()
+    let (output, work) = union_fold_test_finish(active, quantum)
+    assert_eq(@storage.node_count(output), 2)
+    assert_eq(@storage.edge_count(output), 2)
+    for index in 0..<2 {
+      assert_eq(
+        union_property_test_wire(
+          @storage.node_property(output, index, 0).unwrap(),
+        ),
+        "4",
+      )
+      assert_eq(
+        union_property_test_wire(
+          @storage.node_property(output, index, 1).unwrap(),
+        ),
+        "7",
+      )
+      assert_eq(
+        union_property_test_wire(
+          @storage.edge_property(output, index, 0).unwrap(),
+        ),
+        "4",
+      )
+      assert_eq(
+        union_property_test_wire(
+          @storage.edge_property(output, index, 1).unwrap(),
+        ),
+        "7",
+      )
+      assert_eq(
+        @storage.node_identity_order_key(output, index),
+        @storage.node_identity_order_key(left, 1 - index),
+      )
+      assert_eq(
+        @storage.edge_identity_order_key(output, index),
+        @storage.edge_identity_order_key(left, 1 - index),
+      )
+    }
+    if expected_work is Some(previous) {
+      assert_eq(work, previous)
+    } else {
+      expected_work = Some(work)
+    }
+    cleanup_union_fold(active)
+    @storage.discard(output)
+    assert_true(@storage.available(left) && @storage.available(right))
+  }
+  @storage.discard(left)
+  @storage.discard(right)
+}
+
+///|
+test "subtraction retains zero transformed properties and ignores right only entities" {
+  let carrier = union_fold_test_carrier()
+  let left = union_fold_test_input(carrier)
+  for right_only in [false, true] {
+    let right = if right_only {
+      subtraction_fold_input(carrier, [3], [], p="-2")
+    } else {
+      subtraction_fold_input(carrier, [1, 2], [10, 11], p="-2")
+    }
+    for quantum in [1, 64] {
+      let (active, _) = subtraction_fold_prepare(
+        carrier, left, right, ",\"merge\":{\"node_properties\":{\"p\":\"number_sum\"},\"edge_properties\":{\"p\":\"number_sum\"}}",
+      )
+      let (output, _) = union_fold_test_finish(active, quantum)
+      assert_eq(@storage.node_count(output), 2)
+      assert_eq(@storage.edge_count(output), 2)
+      for index in 0..<2 {
+        let expected = if right_only { "2" } else { "0" }
+        assert_eq(
+          union_property_test_wire(
+            @storage.node_property(output, index, 0).unwrap(),
+          ),
+          expected,
+        )
+        assert_eq(
+          union_property_test_wire(
+            @storage.edge_property(output, index, 0).unwrap(),
+          ),
+          expected,
+        )
+        assert_eq(
+          @storage.node_identity_order_key(output, index),
+          @storage.node_identity_order_key(left, 1 - index),
+        )
+        assert_eq(@storage.edge_endpoints(output, index), Some((0, 1)))
+      }
+      cleanup_union_fold(active)
+      @storage.discard(output)
+      assert_true(@storage.available(left) && @storage.available(right))
+    }
+    @storage.discard(right)
+  }
+  @storage.discard(left)
+}
+
+///|
 test "subtraction fold uses retained Builder nodes for induced endpoint closure and independent parallel edges" {
   let carrier = union_fold_test_carrier()
   let left = union_fold_test_input(carrier)
