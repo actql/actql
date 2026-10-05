@@ -31,3 +31,16 @@ if (outcome.outcome === 'completed') {
     }
   }
 }
+
+const defaultReason: Reason = {code: 'parameter_default_type_mismatch',
+  facts: {parameter: 'minimum', expected_type: 'number', actual_type: 'string'},
+  location: {kind: 'structured', document_id: 'parameter_declarations',
+    revision: `rev:${'1'.repeat(64)}`, pointer: '/minimum/default'}};
+explainCheckReason(defaultReason);
+// @ts-expect-error Known default facts require the owned actual type.
+const missingDefaultType: Reason = {code: 'parameter_default_type_mismatch', facts: {parameter: 'minimum', expected_type: 'number'}};
+// @ts-expect-error Default facts never carry submitted values.
+const privateDefault: Reason = {code: 'parameter_default_type_mismatch', facts: {parameter: 'minimum', expected_type: 'number', actual_type: 'string', value: 'private-default'}};
+// @ts-expect-error A default location belongs to the declaration document.
+const wrongDefaultDocument: Reason = {code: 'parameter_default_type_mismatch', facts: {parameter: 'minimum', expected_type: 'number', actual_type: 'string'}, location: {kind: 'structured', document_id: 'parameters', revision: `rev:${'1'.repeat(64)}`, pointer: '/minimum/default'}};
+void missingDefaultType; void privateDefault; void wrongDefaultDocument;

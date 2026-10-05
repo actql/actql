@@ -64,6 +64,10 @@ export const checkReasonSchema = {
   allOf: [
     {if: {properties: {code: {const: 'supplied_value_type_mismatch'}}},
       then: {required: ['facts'], properties: {facts: {required: ['actual_type']}}}},
+    {if: {properties: {code: {const: 'parameter_default_type_mismatch'}}},
+      then: {required: ['facts'], properties: {facts: {required: ['actual_type']},
+        location: {properties: {kind: {const: 'structured'},
+          document_id: {const: 'parameter_declarations'}}}}}},
     {if: {properties: {code: {const: 'parameter_undeclared'}}},
       then: {required: ['facts'], properties: {facts: {required: ['parameter'], allOf: [
         {not: {required: ['expected_type']}}, {not: {required: ['constraint']}}]}}}},
@@ -83,7 +87,7 @@ export const checkReasonSchema = {
         properties: {operation: {enum: ['components', 'subgraph']},
           issue: {enum: [...graphIssues, ...subgraphIssues]}}},
         location: {properties: {kind: {const: 'text'}}}}}},
-    {if: {properties: {code: {not: {enum: ['supplied_value_type_mismatch', 'parameter_value_required', 'parameter_undeclared', 'supplied_value_constraint_violation', 'query_lexical_invalid', 'query_expression_invalid', 'graph_operation_invalid']}}}},
+    {if: {properties: {code: {not: {enum: ['supplied_value_type_mismatch', 'parameter_default_type_mismatch', 'parameter_value_required', 'parameter_undeclared', 'supplied_value_constraint_violation', 'query_lexical_invalid', 'query_expression_invalid', 'graph_operation_invalid']}}}},
       then: {not: {required: ['facts']}}},
   ],
 };

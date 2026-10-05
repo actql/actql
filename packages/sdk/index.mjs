@@ -225,6 +225,8 @@ export function explainCheckReason(reason) {
     supplied_value_constraint_violation: ['A supplied value violates a declared constraint.', 'Correct the value to satisfy the declared constraint family.'],
     supplied_value_type_mismatch: ['A supplied value has the wrong type.', 'Supply a value of the declared type.'],
     parameter_value_required: ['A declared parameter value is missing.', 'Supply the declared value and check the complete bound input again.'],
+    parameter_default_type_mismatch: ['A parameter default does not match its declared type.',
+      'Correct the default to match the declared type, then check again.'],
     program_invalid: ['The input violates the checked Program contract.', 'Correct the input under the selected contract.'],
     bound_values_missing: ['Required bound inputs are missing.', 'Supply the declared inputs and check again.'],
     implementation_limit: ['This checking implementation cannot discharge an obligation.', 'Ask the checking-context owner to review support for the submitted construct.'],

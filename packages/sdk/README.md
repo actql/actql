@@ -510,6 +510,29 @@ position. Absent and inaccessible Source dependencies stop before dependent
 predicate checking and retain equivalent protected unresolved coverage.
 The verdict still comes from the common checker; explanations are advisory.
 
+### Parameter default type explanations
+
+`parameter_default_type_mismatch` explains the declaration owner's typed
+wrong-type or unexpected-null rejection of a literal default. Its closed
+`parameter`, `expected_type` and `actual_type` facts describe the failing leaf,
+including nested object fields and array items; they contain no default value.
+Its optional structured location belongs to `parameter_declarations`, uses the
+original key spelling and binds to the revision retained for that check call.
+The SDK advises correcting the default rather than supplying a missing value.
+A valid default still goes through the common checker. Declaring an unused
+parameter is independently invalid; a default is not a parameter use.
+
+Other declaration errors keep their existing safe fallback. Declaration budgets
+remain analysis limits. No dependent Source diagnosis is inferred after
+rejected declaration admission. The Host adds no persistent input storage or
+retrieval API, and the SDK retains the existing call-bound input custody.
+
+This extension changes the registered `actql-check-reason/0.1` body and reason CID
+with coordinated Host, schema, validator, SDK type and fixture updates. The embedded reason pin also changes the `actql-check-outcome/0.1` schema body
+and CID; the outcome fields and verdict semantics remain unchanged.
+`actql-diagnostics/0.1` remains unchanged.
+Mixed reason-schema pins are rejected; there is no compatibility adapter.
+
 ### Graph argument explanations
 
 The public `graph_operation_invalid` reason carries closed facts
