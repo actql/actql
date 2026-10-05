@@ -846,3 +846,34 @@ identity, immutable intent, revision conflicts and reconciliation contract
 before the complete cancellation-outcome design can be exposed. A recorded
 physical-start/close control fixture does not prove delayed live-worker stop
 or external Effect reconciliation.
+
+### Known Requirement frontier and bounded check supplementation
+
+The SDK exposes a comparable observation only for an exact completed check
+response retained by that SDK call. Current public Requirements are declared
+parameter values: their obligation key and expected type are typed facts;
+constraints and supplied bindings remain bound by the existing opaque
+`context_ref`. Compare bound scope/context, reason schema, the unordered typed
+Requirement set and outstanding coverage structurally. Optional presentation
+locations, fact-member order and duplicate presentation entries do not alter
+that set. Context changes are unequal even when the known obligations remain
+the same. No context hash, normalization or new identity domain is introduced.
+
+The SDK check supplementation session applies an explicit positive finite total
+attempt cap across context changes. Repeated equal frontiers, unavailable
+frontiers and absence of a known supplementation path stop the session. Failed
+checks consume attempts, concurrent calls refuse before invoking the Client,
+and stopped sessions perform no more I/O. The original checker outcome and
+verdict remain unchanged. The helper only calls the existing read-only check;
+it does not admit a supplement, accept a submission, advance a checkpoint or
+start a Run. Remaining local check capacity proves neither progress nor
+execution permission. Existing per-call Owner budgets remain authoritative;
+this SDK cap is not a measurement of cumulative server work.
+
+Copied and partial reports do not establish a comparable frontier. The current
+closed Requirement schema rejects unknown codes and malformed known facts.
+The defensive comparator also refuses obligations it cannot interpret. Future
+schema, mapping, Model or evidence Requirements need their own authoritative
+contracts before their admission conditions can participate in this helper.
+The known parameter frontier is not a claim of a complete future obligation
+list. No input custody or persistence behavior changes.

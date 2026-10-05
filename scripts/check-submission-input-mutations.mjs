@@ -7,7 +7,18 @@ import {mutationAcceptance} from './check-disclosure-mutations.mjs';
 const path = 'packages/sdk/index.mjs';
 const acceptance = 'adapters/host-node/client-submission-input.test.mjs';
 const cancellationAcceptance = 'adapters/host-node/client-cancel-response-loss.test.mjs';
+const frontierAcceptance = 'adapters/host-node/client-check.test.mjs';
 const expected = (phase, assertion = 'submission-input') => {
+  if (phase.startsWith('frontier-')) {
+    const name = phase === 'frontier-context' || phase === 'frontier-order'
+      ? 'typed Requirement frontiers retain context and ignore presentation order'
+      : 'supplementation checks stop unchanged frontiers and bound changing contexts';
+    return (phase === 'frontier-order' ? ['http'] : ['local', 'http']).map(entrance => ({
+      name: `${entrance}: ${name}`,
+      assertions: [{id: assertion, operator: phase === 'frontier-stalled'
+        ? 'deepStrictEqual' : 'strictEqual'}],
+    }));
+  }
   if (phase.startsWith('cancellation-')) {
     const name = phase === 'cancellation-recorded'
       ? 'Run cancellation explanations retain recorded control facts'
@@ -72,10 +83,27 @@ const mutations = [
     "        if (value instanceof Response) fail('InvalidLocalHostPortResponse');",
     'cancellation-unknown', 'cancel-unknown-explanation'],
 
+  ['frontier comparison discards the bound context',
+    'contextRef: report.context_ref,', 'contextRef: "ignored-context",',
+    'frontier-context', 'frontier-context'],
+  ['frontier comparison treats presentation order as progress',
+    'requirements: unordered(report.requirements.map(({code, facts}) =>\n      ({code, facts}))),',
+    'requirements: report.requirements.map(({code, facts}) => ({code, facts})),',
+    'frontier-order', 'frontier-order'],
+  ['frontier session repeats an unchanged obligation set',
+    'previous && structuralKey(previous) === structuralKey(frontier)', 'false',
+    'frontier-stalled', 'frontier-stalled'],
+  ['frontier session resets the attempt cap after changing context',
+    'const frontier = getCheckRequirementFrontier(outcome);',
+    'const frontier = getCheckRequirementFrontier(outcome);\n' +
+      '        if (previous && previous.contextRef !== frontier?.contextRef) attempts = 1;',
+    'frontier-budget', 'frontier-budget-count'],
+
 ];
 const accepted = (phase, assertion) => {
   const tests = expected(phase, assertion);
-  const file = phase.startsWith('cancellation-') ? cancellationAcceptance : acceptance;
+  const file = phase.startsWith('frontier-') ? frontierAcceptance
+    : phase.startsWith('cancellation-') ? cancellationAcceptance : acceptance;
   const result = spawnSync(process.execPath, ['scripts/local-checks.mjs', 'test', 'node',
     '--timeout-seconds', '120', '--', '--test-name-pattern',
     `^(?:${tests.map(value => value.name).join('|')})$`, file],
