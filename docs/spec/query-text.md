@@ -427,6 +427,19 @@ These are current implementation gaps, not new limits on the common traversal
 contract. Typed literal/list and predicate selectors are passed unchanged for
 ordinary checking; source acceptance alone is not their execution evidence.
 
+`match_nodes(...)` and `match_edges(...)` also produce ordinary Relations.
+Their required `fields` list declares the visible output names in order; it
+must be a nonempty list of STRING values. The common match checker resolves
+`definition`, optional `label`, identity/source/target `bindings`, property
+presence, field contracts and predicate types. No identity or presence proof
+is inferred by the Frontend. The authored operation body is retained,
+including structured Expression predicates, parameters, empty edge `types`
+and invalid options for the ordinary checker to refuse. Arguments are values
+in the adopted named SGA surface, not query aliases or SQL expression text.
+The Frontend does not reparse STRING contents as query expressions. A matched
+Relation can bind DATA and continue through normal WHERE, SELECT, ORDER and
+LIMIT; omitted Graph fields and further Graph calls are unavailable.
+
 Other named calls parse but their output Carrier/schema is not yet connected
 to subsequent source operations; they return UnsupportedGraph before Run
 admission. Calls following a MATCH Relation are also explicitly unsupported

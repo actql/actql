@@ -51,6 +51,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/acquired-data-source-input.mjs', 'acquired-data-source-input.mjs'],
   ['scripts/fixtures/property-graph-source-input.mjs', 'property-graph-source-input.mjs'],
   ['scripts/fixtures/property-graph-row-source-input.mjs', 'property-graph-row-source-input.mjs'],
+  ['scripts/fixtures/graph-match-source-input.mjs', 'graph-match-source-input.mjs'],
   ['scripts/fixtures/graph-property-predicate-source-input.mjs', 'graph-property-predicate-source-input.mjs'],
   ['scripts/fixtures/property-graph-traverse-source-input.mjs', 'property-graph-traverse-source-input.mjs'],
   ['scripts/fixtures/graph-projection-property-source-input.mjs', 'graph-projection-property-source-input.mjs'],
@@ -129,6 +130,9 @@ if (process.argv.includes('--distinct-order-only')) {
 }
 if (process.argv.includes('--graph-projection-property-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_PROJECTION_PROPERTY_ONLY = '1';
+}
+if (process.argv.includes('--graph-match-only')) {
+  runtimeEnvironment.ACTQL_TEST_GRAPH_MATCH_ONLY = '1';
 }
 if (process.argv.includes('--graph-rows-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_ROWS_ONLY = '1';

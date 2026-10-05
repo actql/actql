@@ -6,7 +6,9 @@ fn script_has_graph_rows(query : @query.Query) -> Bool {
     }
     if call.operation == "node_rows" ||
       call.operation == "edge_rows" ||
-      call.operation == "traverse" {
+      call.operation == "traverse" ||
+      call.operation == "match_nodes" ||
+      call.operation == "match_edges" {
       return true
     }
   }
@@ -139,6 +141,15 @@ fn lower_script_graph_rows(
     }
     if row_input is Some(_) {
       raise Abort(UnsupportedGraph)
+    }
+    if call.operation == "match_nodes" || call.operation == "match_edges" {
+      row_input = Some(
+        lower_script_graph_match_rows(
+          construction, query, call, current, known, limits, steps, reserved,
+        ),
+      )
+      current = row_input.unwrap().name
+      continue
     }
     if call.operation == "traverse" {
       row_input = Some(
