@@ -9,7 +9,7 @@ import {
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/carrier_contract" @carrier,
   "actql/actql/graph_typing" @graph_type,
-  "actql/actql/graph_contract" @graph_contract,
+  "actql/actql/graph_contract",
   "actql/actql/execution_relation" @execution,
   "actql/actql/relation_schema" @schema,
   "actql/actql/value_admission" @value,

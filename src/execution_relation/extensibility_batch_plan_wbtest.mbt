@@ -115,7 +115,7 @@ fn ext_batch_simple(
   guard @lower.expression_body(expr) is @lower.Binary(op, left, right) else {
     return None
   }
-  if op == @lower.NullIf {
+  if op == @lower.NullIf || op == @lower.In || op == @lower.NotIn {
     return None
   }
   guard ext_batch_leaf(left, names, slot) is Some(l) else { return None }

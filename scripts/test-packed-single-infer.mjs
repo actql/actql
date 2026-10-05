@@ -79,7 +79,7 @@ async ({root, directory, run, recordTarball}) => {
     // this fresh installation's public exports; no checkout runtime can help.
     const files = [
       'adapters/host-node/model-resume-public.test.mjs',
-      'adapters/host-node/fixtures/model-resume-public-process.mjs',
+      'scripts/fixtures/model-resume-public-process.mjs',
       'scripts/fixtures/model-custody-fixture.mjs',
       'scripts/fixtures/installed-infer-fixture.mjs',
       'scripts/test-execution-reporter.mjs',

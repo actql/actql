@@ -16,6 +16,12 @@ import {
 // Values
 pub fn application_acquisition(Application) -> @host.NativeHostConfiguration
 
+pub fn application_acquisition_selection_broad(ApplicationAcquisitionSelection) -> @host.BroadHostConfiguration?
+
+pub fn application_acquisition_selection_document(ApplicationAcquisitionSelection) -> String
+
+pub fn application_acquisition_selection_native(ApplicationAcquisitionSelection) -> @host.NativeHostConfiguration?
+
 pub fn application_bind_readmitted_output(Application, Int, Int, Int, @execution_relation.CompletedOutput) -> @execution_relation.ProducerRead raise
 
 pub fn application_bounded_ledger(@physical_resources.LedgerLimits) -> @physical_resources.Ledger raise
@@ -56,6 +62,8 @@ pub fn application_retained_local_dispatch(Application, @physical_strategy.Captu
 
 pub fn application_retained_task_estimate_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Int64, Int64, Int64, Int64, Array[Int64], Array[Int64], Bool, Bool) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue] raise
 
+pub fn application_select_acquisition(Application, String, String, String, Array[Int]) -> ApplicationAcquisitionSelection raise
+
 pub fn application_strategy_dispatch(Application, @physical_strategy.CapturedDAG, Int64, Bool) -> @standard_host.StrategyHostDispatch raise
 
 pub fn application_task_completion_preparation(Application, Int) -> @execution_relation.CompletionPreparation raise
@@ -80,6 +88,8 @@ pub fn prepare_application_with_data(String, String, String, String, String, Str
 
 // Types and methods
 type Application
+
+type ApplicationAcquisitionSelection
 
 // Type aliases
 pub using @physical_task_manifest {type DataProfile}

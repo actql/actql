@@ -18,12 +18,12 @@ fn stepped_output_fixture(
 test "bounded output import transfers accepted rows once without cleanup erasing them" {
   let (_, active) = stepped_output_fixture(
     { max_nodes: 6, max_text_bytes: 10, max_depth: 2, max_work: 16, },
-    26,
+    28,
     7,
   )
   assert_true(take_admitted_output_preparation_rows(active) is None)
   let mut complete = false
-  for _ in 0..<26 {
+  for _ in 0..<28 {
     match advance_admitted_output_preparation(active, 1).unwrap() {
       AdmittedOutputContinue(..) => ()
       AdmittedOutputComplete(_, ..) => {

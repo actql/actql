@@ -28,7 +28,11 @@ priv struct BoundedValuesState {
   mut name : Int
   mut row : Int
   mut column : Int
-  mut checked_row : Array[@admitted.CheckedValue]
+  mut checked_row : Array[@admitted.Value]
+  mut pending_input : @admitted.CheckedValue?
+  mut input_measure : SteppedValueMeasure?
+  mut output_recheck : @admitted.RecheckCursor?
+  mut output_charge : BoundedOutputRowCharge?
 }
 
 ///|
@@ -43,6 +47,7 @@ pub(all) enum BoundedValuesIssue {
 
 ///|
 struct BoundedValuesExecution {
+  state : BoundedValuesState
   session : @bounded.Session[
     BoundedValuesState,
     CompletedOutput,
@@ -62,6 +67,19 @@ pub enum BoundedValuesPoll {
 
 ///|
 fn cleanup_bounded_values_state(state : BoundedValuesState) -> Bool {
+  if state.input_measure is Some(cursor) {
+    clear_stepped_measure(cursor)
+    state.input_measure = None
+  }
+  state.pending_input = None
+  if state.output_recheck is Some(cursor) {
+    @admitted.cancel_recheck_runtime_value(cursor)
+    state.output_recheck = None
+  }
+  if state.output_charge is Some(cursor) {
+    cleanup_bounded_output_row_charge(cursor)
+    state.output_charge = None
+  }
   if state.output is Some(output) {
     cancel_admitted_output(output) |> ignore
     state.output = None
@@ -119,6 +137,39 @@ fn bounded_values_step(
         used += 1
       }
       BuildCell => {
+        if state.output_recheck is Some(cursor) {
+          match @admitted.advance_recheck_runtime_value(cursor) {
+            RecheckContinue => ()
+            RecheckFailed =>
+              return @bounded.Failed(
+                Capture(InvalidCheckedRow),
+                progress,
+                used + 1,
+              )
+            RecheckComplete(checked, _, _) => {
+              state.output_recheck = None
+              state.checked_row.push(checked.value)
+              state.column += 1
+            }
+          }
+          used += 1
+          continue
+        }
+        if state.input_measure is Some(cursor) {
+          match advance_stepped_measure_result(cursor, state.input_values) {
+            SteppedMeasureLimit =>
+              return @bounded.Failed(InputLimit, progress, used + 1)
+            SteppedMeasureWorkspaceLimit =>
+              return @bounded.Failed(Rows(RowLimit), progress, used + 1)
+            SteppedMeasureContinue => ()
+            SteppedMeasureComplete => {
+              clear_stepped_measure(cursor)
+              state.input_measure = None
+            }
+          }
+          used += 1
+          continue
+        }
         if state.column == state.width {
           state.phase = CommitRow
           continue
@@ -127,51 +178,112 @@ fn bounded_values_step(
           return @bounded.Failed(InvalidExecution, progress, used)
         }
         let name = @schema.reference_name(field.name)
-        let checked = match
-          @lower.bound_values_cell(
-            state.owner,
-            state.step,
-            state.row,
-            state.column,
-          ) {
-          Ok(value) => value
-          Err(@lower.MissingValuesParameter(name)) =>
-            return @bounded.Failed(
-              Capture(MissingParameter(name)),
-              progress,
-              used,
-            )
-          Err(_) =>
-            return @bounded.Failed(Capture(InvalidCheckedRow), progress, used)
+        let checked = match state.pending_input {
+          Some(checked) => checked
+          None =>
+            match
+              @lower.bound_values_cell(
+                state.owner,
+                state.step,
+                state.row,
+                state.column,
+              ) {
+              Ok(value) => value
+              Err(@lower.MissingValuesParameter(name)) =>
+                return @bounded.Failed(
+                  Capture(MissingParameter(name)),
+                  progress,
+                  used,
+                )
+              Err(_) =>
+                return @bounded.Failed(
+                  Capture(InvalidCheckedRow),
+                  progress,
+                  used,
+                )
+            }
         }
-        if !charge_text(state.input_values, name) ||
-          !measure(checked.value, 2, state.input_values) {
-          return @bounded.Failed(InputLimit, progress, used)
+        if state.pending_input is None {
+          if !charge_text(state.input_values, name) {
+            return @bounded.Failed(InputLimit, progress, used)
+          }
+          if bounded_small_output_value(Captured(checked.value)) {
+            if !measure(checked.value, 2, state.input_values) {
+              return @bounded.Failed(InputLimit, progress, used)
+            }
+          } else {
+            guard start_stepped_measure_result(
+                Captured(checked.value),
+                state.workspace,
+              )
+              is Some(cursor) else {
+              return @bounded.Failed(Rows(RowLimit), progress, used)
+            }
+            state.pending_input = Some(checked)
+            state.input_measure = Some(cursor)
+            used += 1
+            continue
+          }
         }
+        state.pending_input = None
         if !spend_control(state.control, 1) ||
           !reserve_slots(state.workspace, 1) {
           return @bounded.Failed(Rows(RowLimit), progress, used)
         }
-        guard @admitted.recheck_runtime_value(
-            checked.value,
-            field.contract,
-            state.admitted_limits,
-          )
-          is Some(output) else {
-          return @bounded.Failed(Capture(InvalidCheckedRow), progress, used)
+        if bounded_small_output_value(Captured(checked.value)) {
+          guard @admitted.recheck_runtime_value(
+              checked.value,
+              field.contract,
+              state.admitted_limits,
+            )
+            is Some(output) else {
+            return @bounded.Failed(Capture(InvalidCheckedRow), progress, used)
+          }
+          state.checked_row.push(output.value)
+          state.column += 1
+        } else {
+          guard @admitted.start_recheck_runtime_value(
+              checked.value,
+              field.contract,
+              state.admitted_limits,
+            )
+            is Some(cursor) else {
+            return @bounded.Failed(Capture(InvalidCheckedRow), progress, used)
+          }
+          state.output_recheck = Some(cursor)
         }
-        state.checked_row.push(output)
-        state.column += 1
         used += 1
       }
       CommitRow => {
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidExecution, progress, used)
         }
-        match append_admitted_output(output, state.checked_row) {
-          Ok(_) => ()
-          Err(issue) =>
+        if state.output_charge is None {
+          match
+            start_bounded_output_row_charge(
+              output,
+              state.checked_row,
+              state.workspace,
+            ) {
+            Err(OutputCapture(issue)) =>
+              return @bounded.Failed(Capture(issue), progress, used + 1)
+            Err(OutputWorkspace) =>
+              return @bounded.Failed(Rows(RowLimit), progress, used + 1)
+            Ok(cursor) => state.output_charge = Some(cursor)
+          }
+          used += 1
+          continue
+        }
+        match advance_bounded_output_row_charge(state.output_charge.unwrap()) {
+          Err(OutputCapture(issue)) =>
             return @bounded.Failed(Capture(issue), progress, used + 1)
+          Err(OutputWorkspace) =>
+            return @bounded.Failed(Rows(RowLimit), progress, used + 1)
+          Ok(false) => {
+            used += 1
+            continue
+          }
+          Ok(true) => state.output_charge = None
         }
         release_slots(state.workspace, 2 + state.checked_row.length())
         state.checked_row = []
@@ -298,6 +410,10 @@ pub fn start_bounded_values(
     row: 0,
     column: 0,
     checked_row: [],
+    pending_input: None,
+    input_measure: None,
+    output_recheck: None,
+    output_charge: None,
   }
   let (session, token) = @bounded.start(
     engine,
@@ -309,7 +425,7 @@ pub fn start_bounded_values(
       true
     },
   )
-  Ok({ session, token: Some(token), accepted, })
+  Ok({ state, session, token: Some(token), accepted, })
 }
 
 ///|
@@ -346,5 +462,18 @@ pub fn advance_bounded_values(
 pub fn cleanup_bounded_values(
   value : BoundedValuesExecution,
 ) -> Result[Bool, BoundedValuesIssue] {
-  @bounded.cleanup(value.session).map_err(issue => Execution(issue))
+  let changed = match @bounded.cleanup(value.session) {
+    Ok(changed) => changed
+    Err(issue) => return Err(Execution(issue))
+  }
+  if !@bounded.cleanup_pending(value.session) &&
+    (
+      value.state.workspace.live != 0 ||
+      value.state.input_measure is Some(_) ||
+      value.state.output_recheck is Some(_) ||
+      value.state.output_charge is Some(_)
+    ) {
+    return Err(InvalidExecution)
+  }
+  Ok(changed)
 }
