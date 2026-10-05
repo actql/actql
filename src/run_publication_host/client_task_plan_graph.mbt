@@ -1,4 +1,39 @@
 ///|
+/// Resolve the checked consumer port without reconstructing a Plan in callers.
+fn client_task_edge_input(
+  graph : @strategy.CheckedDAG,
+  edge : @strategy.DataEdge,
+) -> (String, @carrier.Carrier)? {
+  let consumer = @strategy.data_edge_consumer(edge)
+  match @strategy.graph_task_selected_step(graph, consumer) {
+    Some(step) =>
+      match @strategy.data_edge_operation_input(edge) {
+        Some((source_step, position)) =>
+          if source_step == step && position == @strategy.data_edge_input(edge) {
+            @strategy.graph_task_owner(graph, consumer)
+            .map(@lower.bound_preparation)
+            .bind(prepared => {
+              @lower.node_at(prepared, step)
+              .bind(node => @lower.node_input_target(node, position))
+              .bind(target => @lower.preparation_carrier_at(prepared, target))
+            })
+            .map(carrier => ("input_" + position.to_string(), carrier))
+          } else {
+            None
+          }
+        None => None
+      }
+    None =>
+      @strategy.graph_task_owner(graph, consumer).bind(owner => {
+        @pipeline.input_at(
+          @lower.pipeline(@lower.bound_preparation(owner)),
+          @strategy.data_edge_input(edge),
+        )
+      })
+  }
+}
+
+///|
 /// Checked AoA nodes, their producer edges, and named Result roots. Supplied
 /// source inputs still require physical capture and admission before a Run.
 pub struct ClientTaskPlanGraph {
@@ -210,35 +245,7 @@ fn issue_client_task_plan_graph(
       if producer < 0 || producer >= consumer || consumer >= count {
         return Err(InvalidEdge)
       }
-      let input = match @strategy.graph_task_selected_step(graph, consumer) {
-        Some(step) =>
-          match @strategy.data_edge_operation_input(edge) {
-            Some((source_step, position)) =>
-              if source_step == step &&
-                position == @strategy.data_edge_input(edge) {
-                @strategy.graph_task_owner(graph, consumer)
-                .map(@lower.bound_preparation)
-                .bind(prepared => {
-                  @lower.node_at(prepared, step)
-                  .bind(node => @lower.node_input_target(node, position))
-                  .bind(target => {
-                    @lower.preparation_carrier_at(prepared, target)
-                  })
-                })
-                .map(carrier => ("input_" + position.to_string(), carrier))
-              } else {
-                None
-              }
-            None => None
-          }
-        None =>
-          @strategy.graph_task_owner(graph, consumer).bind(owner => {
-            @pipeline.input_at(
-              @lower.pipeline(@lower.bound_preparation(owner)),
-              @strategy.data_edge_input(edge),
-            )
-          })
-      }
+      let input = client_task_edge_input(graph, edge)
       guard fragments.get(producer) is Some(source) &&
         input_fragments.get(consumer) is Some(destination) &&
         input is Some((input_name, carrier)) &&

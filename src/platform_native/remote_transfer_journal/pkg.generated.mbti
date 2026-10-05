@@ -52,6 +52,7 @@ pub fn Journal::release_destination_reader(Self, @remote_transfer.RemoteTransfer
 pub fn Journal::require(Self, @remote_transfer.RemoteTransferRequest) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteTransferJournalIssue]
 pub fn Journal::require_store_use(Self, @remote_transfer.RemoteTransferStoreUse) -> Result[@remote_transfer.RemoteTransferStoreUseRecord, NativeRemoteTransferJournalIssue]
 pub fn Journal::reserve_destination_holding(Self, @remote_transfer.RemoteTransferRequest, Int64, Int64) -> Result[Bool, NativeRemoteTransferJournalIssue]
+pub fn Journal::validate_destination_reader(Self, @remote_transfer.RemoteTransferRequest, @remote_transfer.RemoteTransferDestinationReceipt, String) -> Result[Unit, NativeRemoteTransferJournalIssue]
 
 pub struct NativeRemoteDestinationAllocation {
   key : String

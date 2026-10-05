@@ -38,6 +38,8 @@ import {
   "actql/actql/sourceview_resolution" @acquisition,
   "actql/actql/query_planning" @planning,
   "actql/actql/remote_site_protocol" @remote,
+  "actql/actql/remote_transfer" @transfer,
+  "actql/actql/execution_site" @site,
 }
 
 import {
