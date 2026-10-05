@@ -9,6 +9,7 @@ import {isDeepStrictEqual, promisify} from 'node:util';
 import {releaseArtifactDigest} from './release-artifacts.mjs';
 import {retainedCase} from './fixtures.mjs';
 import {admitNativeEstimateProfile} from './native-estimate-profile.mjs';
+import {admitNativeResidentEstimateProfile, assertNativeMeasuredOffers} from './native-resident-estimate-profile.mjs';
 import {admitNativeEquivalentPair} from './native-equivalent-admission.mjs';
 import {prepareNativeDirectProduct, executeNativeDirectProduct,
   admitNativeDirectProduct} from './native-direct-product.mjs';
@@ -31,9 +32,11 @@ async function checkoutState(root) {
 // one immutable source. This records the performance decision; formal matrix
 // admission still requires the complete Native obligation/accounting report.
 export async function runNativeDirectPair({checkout, fixture, database,
-  directory, index = 0, nativeRates, localRates, nativeEstimateProfile}) {
+  directory, index = 0, nativeRates, localRates, nativeEstimateProfile,
+  nativeResidentEstimateProfile}) {
   assert(Number.isSafeInteger(index) && index >= 0, 'InvalidNativePairIndex');
-  assert(!nativeEstimateProfile || !nativeRates && !localRates,
+  assert(!(nativeEstimateProfile && nativeResidentEstimateProfile), 'ConflictingNativeProfiles');
+  assert(!(nativeEstimateProfile || nativeResidentEstimateProfile) || !nativeRates && !localRates,
     'NativePairConflictingRates');
   const root = resolve(checkout);
   const initial = await checkoutState(root);
@@ -48,10 +51,18 @@ export async function runNativeDirectPair({checkout, fixture, database,
     fixture.program())).digest('hex');
   const nativeRoot = join(directory, `native-${index}`);
   const independentRoot = join(directory, `independent-${index}`);
-  await mkdir(nativeRoot);
-  await mkdir(independentRoot);
   const samples = {};
   let admittedProfile;
+  const profileAdmissionStart = performance.now();
+  if (nativeResidentEstimateProfile) admittedProfile = admitNativeResidentEstimateProfile({
+    profile: nativeResidentEstimateProfile, trainingFixture: retainedCase(fixture.workload, fixture.layout, 1000),
+    targetFixture: fixture, revision: initial.revision,
+    binaryDigest: `sha256:${await fileHash(join(root,
+      '_build/native/release/build/cmd/native_retained_case_probe/native_retained_case_probe.exe'))}`});
+  const residentProfileAdmissionMs = nativeResidentEstimateProfile
+    ? performance.now() - profileAdmissionStart : 0;
+  await mkdir(nativeRoot);
+  await mkdir(independentRoot);
   const labels = index % 2
     ? ['independent', 'native'] : ['native', 'independent'];
   try {
@@ -60,11 +71,13 @@ export async function runNativeDirectPair({checkout, fixture, database,
         const started = performance.now();
         const invocation = await prepareNativeDirectProduct({root, fixture,
           database, directory: nativeRoot,
-          nativeMs: nativeEstimateProfile?.nativeTaskMilliseconds[0] ??
+          nativeMs: nativeResidentEstimateProfile?.rates.fresh[0] ?? nativeEstimateProfile?.nativeTaskMilliseconds[0] ??
             nativeRates?.[0] ?? '1000',
-          nativeRates: nativeEstimateProfile?.nativeTaskMilliseconds ?? nativeRates,
+          nativeRates: nativeResidentEstimateProfile?.rates.fresh ?? nativeEstimateProfile?.nativeTaskMilliseconds ?? nativeRates,
           ...(nativeEstimateProfile ? {residentPolicy: false} : {}),
-          localRates: nativeEstimateProfile?.localTaskMilliseconds ?? localRates});
+          ...(nativeResidentEstimateProfile ? {residentPolicy: true,
+            residentEstimates: nativeResidentEstimateProfile.residentEstimates} : {}),
+          localRates: nativeResidentEstimateProfile?.rates.local ?? nativeEstimateProfile?.localTaskMilliseconds ?? localRates});
         if (nativeEstimateProfile) {
           const [workload, layout, rowText, ...remaining] =
             nativeEstimateProfile.trainingCaseId.split('/');
@@ -77,11 +90,19 @@ export async function runNativeDirectPair({checkout, fixture, database,
             binaryDigest: `sha256:${await fileHash(invocation.binary)}`,
           });
         }
+        if (nativeResidentEstimateProfile) assert.equal(`sha256:${await fileHash(invocation.binary)}`,
+          admittedProfile.binaryDigest, 'NativePairQualifiedBinaryChanged');
         const execution = await executeNativeDirectProduct(invocation,
           {root, timeoutMs: fixture.limits.timeoutMs});
         const cycleMs = performance.now() - started;
         const product = admitNativeDirectProduct(fixture, invocation, execution);
-        if (admittedProfile) {
+        if (nativeResidentEstimateProfile) {
+          assert.deepEqual(product.ownerCorrespondence.observations.choices.map(choice =>
+            choice.resident ? 'resident' : choice.name), admittedProfile.selected,
+          'NativePairMeasuredRealizationChanged');
+          assertNativeMeasuredOffers(product.ownerCorrespondence, admittedProfile.rates,
+            admittedProfile.residentEstimates);
+        } else if (admittedProfile) {
           assert.deepEqual(product.selected,
             nativeEstimateProfile.ordinary.selected,
           'NativePairOrdinarySelectionChanged');
@@ -184,6 +205,7 @@ export async function runNativeDirectPair({checkout, fixture, database,
         usage: native.record.usage,
         acquisition: native.record.acquisition},
       selectionProfile,
+      residentProfileAdmissionMs,
       nativeObligationAdmission,
       independent: {coldMs: samples.independent.coldMs,
         warmMs: samples.independent.warmMs,
