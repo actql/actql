@@ -18,6 +18,8 @@ import {createHash, randomUUID} from 'node:crypto';
 import {mkdir, readFile, rename, writeFile} from 'node:fs/promises';
 import {dirname, isAbsolute} from 'node:path';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {retainInstalledHostInitializationFailure} from
+  '../../../host-node/installed-host-cleanup.mjs';
 import {canonicalJson, contentCid} from
   '../../../host-node/local-account-config.mjs';
 import {createInstalledRowSource, installRowSourceAuthorization,
@@ -267,37 +269,45 @@ export async function loadInstalledGitHubSource(profile, {root, principalId,
   const environment = rowSourceCheckEnvironment(baseEnvironmentWire, declared);
   const opened = await openSite(checkedProfile, site, {root, principalId,
     moon, runtimeBundleCid, resolveSecret, publication, installation});
-  const physicalTarget = (resource, fields) => Object.freeze({
-    version: TARGET_VERSION, api_origin: site.apiOrigin,
-    repository_id: publication.repository.id,
-    repository_node_id: publication.repository.node_id,
-    owner: site.owner, repo: site.repo,
-    catalog_cid: publication.catalogCid, resource,
-    fields: Object.freeze([...fields])});
-  return createInstalledRowSource({moon, declaration, declared,
-    environmentWire: environment.wire,
-    connectorId: checkedProfile.connectorId,
-    connectorRegistration: registration, connectorRevision: revision,
-    site: opened.site, authorization: opened.authorization,
-    readOperation: GITHUB_GRAPHQL_READ_OPERATION, physicalTarget,
-    bindingCid: contentCid({version: 'actql-installed-github-binding/0.1',
-      contextCid: opened.authorization.context.contextCid,
-      apiOrigin: site.apiOrigin, repository: publication.repository,
-      owner: site.owner, repo: site.repo, siteKey: site.siteKey,
-      siteGeneration: site.siteGeneration, namespaceId: site.namespaceId,
-      environment: site.environment,
-      credentialAuthorityId: site.credentialAuthorityId,
-      credentialKeyId: site.credentialKeyId}),
-    limits: rowLimits,
-    readPages: async ({resource, authorizationFor, consumePage, signal}) => {
-      if (resource !== 'issues') fail('UndeclaredGitHubResource');
-      return readGitHubIssuesByNode({moon: providerMoon,
-        repository: {nodeId: publication.repository.node_id,
-          databaseId: publication.repository.id,
-          nameWithOwner: `${site.owner}/${site.repo}`},
-        filters: {state: 'all', labels: []},
-        credential: opened.site.credential,
-        callResource: opened.site.callResource, authorizationFor,
-        limits: readLimits, consumePage, signal});
-    }});
+  try {
+    const physicalTarget = (resource, fields) => Object.freeze({
+      version: TARGET_VERSION, api_origin: site.apiOrigin,
+      repository_id: publication.repository.id,
+      repository_node_id: publication.repository.node_id,
+      owner: site.owner, repo: site.repo,
+      catalog_cid: publication.catalogCid, resource,
+      fields: Object.freeze([...fields])});
+    return await createInstalledRowSource({moon, declaration, declared,
+      environmentWire: environment.wire,
+      connectorId: checkedProfile.connectorId,
+      connectorRegistration: registration, connectorRevision: revision,
+      site: opened.site, authorization: opened.authorization,
+      readOperation: GITHUB_GRAPHQL_READ_OPERATION, physicalTarget,
+      bindingCid: contentCid({version: 'actql-installed-github-binding/0.1',
+        contextCid: opened.authorization.context.contextCid,
+        apiOrigin: site.apiOrigin, repository: publication.repository,
+        owner: site.owner, repo: site.repo, siteKey: site.siteKey,
+        siteGeneration: site.siteGeneration, namespaceId: site.namespaceId,
+        environment: site.environment,
+        credentialAuthorityId: site.credentialAuthorityId,
+        credentialKeyId: site.credentialKeyId}),
+      limits: rowLimits,
+      readPages: async ({resource, authorizationFor, chargePage, consumePage,
+        signal}) => {
+        if (resource !== 'issues') fail('UndeclaredGitHubResource');
+        return readGitHubIssuesByNode({moon: providerMoon,
+          repository: {nodeId: publication.repository.node_id,
+            databaseId: publication.repository.id,
+            nameWithOwner: `${site.owner}/${site.repo}`},
+          filters: {state: 'all', labels: []},
+          credential: opened.site.credential,
+          callResource: opened.site.callResource, authorizationFor,
+          limits: readLimits, chargePage,
+          consumePage: (rows, _page, admission) => consumePage(rows, admission),
+          signal});
+      }});
+  } catch (cause) {
+    throw await retainInstalledHostInitializationFailure(cause,
+      {sourceProfile: opened.site});
+  }
 }

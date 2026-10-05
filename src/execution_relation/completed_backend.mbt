@@ -19,7 +19,12 @@ fn evaluate_completed_body(
     Projection(_) => true
     PreparedBody(kernel) => @lower.kernel_is_projection(kernel)
   }
-  if input is PresenceTable(table) && !projection {
+  let aggregation = body is PreparedBody(kernel) &&
+    (
+      @lower.kernel_group(kernel) is Some(_) ||
+      @lower.kernel_count_group(kernel) is Some(_)
+    )
+  if input is PresenceTable(table) && !projection && !aggregation {
     guard body is PreparedBody(kernel) &&
       (
         @lower.kernel_body(kernel) is @lower.Filter(_) ||

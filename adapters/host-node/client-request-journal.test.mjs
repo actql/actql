@@ -1100,6 +1100,37 @@ function sourceInventoryObject() {
   };
 }
 
+function githubInventoryObject() {
+  const value = sourceInventoryObject();
+  for (const [index, item] of value.acquisitions.entries()) {
+    item.readTuple = {connection: 'github:api.example.test/octocat/hello',
+      resource: 'issues', operation: 'read'};
+    item.physicalBinding = {version: 'actql-installed-github-target/0.1',
+      api_origin: 'https://api.example.test', repository_id: 1296269 + index,
+      repository_node_id: `R_${index}`, owner: 'octocat', repo: 'hello',
+      catalog_cid: cid('a'), resource: 'issues',
+      fields: ['number', 'title']};
+  }
+  return value;
+}
+
+function salesforceInventoryObject() {
+  const value = sourceInventoryObject();
+  for (const [index, item] of value.acquisitions.entries()) {
+    const resource = index === 0 ? 'Test_Record__c' : 'Other_Record__c';
+    item.readTuple = {connection: 'salesforce:org-a', resource,
+      operation: 'read'};
+    item.physicalBinding = {
+      version: 'actql-installed-salesforce-target/0.1',
+      org_id: 'org-a', instance_origin: 'https://org.example.test',
+      site_key: 'site-a', site_generation: 3,
+      connection_revision: 'revision-a', catalog_cid: cid('a'),
+      resource, fields: ['External_Key__c', 'Name'],
+    };
+  }
+  return value;
+}
+
 function inventoryEvidence(sourceInventory) {
   return {prepared: 'prepared-owner-wire', authorization: 'authorization-owner-wire',
     ...(sourceInventory === undefined ? {} : {sourceInventory})};
@@ -1174,6 +1205,92 @@ test('source inventory is retained atomically and byte-exactly across restart',
     assert.equal(readInventoryRow(path).run_admission_evidence_json,
       row.run_admission_evidence_json);
   });
+
+test('installed row targets retain exact physical identity across restart',
+  async t => {
+    const path = await directory(t);
+    let journal = openClientRequestJournal(path);
+    t.after(() => journal.close());
+    const wire = canonicalJson(githubInventoryObject());
+    const accepted = acceptInventory(journal, wire, 'github-inventory-run');
+    journal.close();
+    journal = openClientRequestJournal(path);
+    assert.equal(journal.lookupRunDefinition(accepted.ref, moon,
+      publicationControl).runAdmissionEvidence.sourceInventory, wire);
+    const before = readInventoryRow(path);
+    const changed = githubInventoryObject();
+    changed.acquisitions[1].physicalBinding.repository_node_id = 'R_foreign';
+    assert.throws(() => acceptInventory(journal, canonicalJson(changed)),
+      {code: 'ClientRequestSourceInventoryMismatch'});
+    assert.deepEqual(readInventoryRow(path), before);
+  });
+
+test('two Salesforce views retain exact Site and Resource bindings', async t => {
+  const path = await directory(t);
+  let journal = openClientRequestJournal(path);
+  t.after(() => journal.close());
+  const wire = canonicalJson(salesforceInventoryObject());
+  const accepted = acceptInventory(journal, wire, 'salesforce-inventory-run');
+  journal.close();
+  journal = openClientRequestJournal(path);
+  assert.equal(journal.lookupRunDefinition(accepted.ref, moon,
+    publicationControl).runAdmissionEvidence.sourceInventory, wire);
+  const before = readInventoryRow(path);
+  const changed = salesforceInventoryObject();
+  changed.acquisitions[1].physicalBinding.site_generation = 4;
+  assert.throws(() => acceptInventory(journal, canonicalJson(changed)),
+    {code: 'ClientRequestSourceInventoryMismatch'});
+  assert.deepEqual(readInventoryRow(path), before);
+});
+
+for (const [label, mutate] of [
+  ['foreign Salesforce Resource', value => {
+    value.acquisitions[1].physicalBinding.resource = 'Foreign__c';
+  }],
+  ['foreign Salesforce connection', value => {
+    value.acquisitions[1].readTuple.connection = 'salesforce:other-org';
+  }],
+  ['noncanonical Salesforce origin', value => {
+    value.acquisitions[1].physicalBinding.instance_origin =
+      'https://org.example.test/path';
+  }],
+]) {
+  test(`Salesforce inventory refuses ${label} before issuance`, async t => {
+    const path = await directory(t);
+    const journal = openClientRequestJournal(path);
+    t.after(() => journal.close());
+    const value = salesforceInventoryObject();
+    mutate(value);
+    assert.throws(() => acceptInventory(journal, canonicalJson(value)),
+      {code: 'InvalidClientSourceInventory'});
+    assert.equal(readInventoryRow(path), undefined);
+  });
+}
+
+for (const [label, mutate] of [
+  ['noncanonical API origin', value => {
+    value.acquisitions[1].physicalBinding.api_origin =
+      'https://api.example.test/path';
+  }],
+  ['foreign resource', value => {
+    value.acquisitions[1].physicalBinding.resource = 'pull_requests';
+  }],
+  ['foreign access target', value => {
+    value.acquisitions[1].readTuple.connection =
+      'github:api.example.test/octocat/other';
+  }],
+]) {
+  test(`installed row inventory rejects ${label} before issuance`, async t => {
+    const path = await directory(t);
+    const journal = openClientRequestJournal(path);
+    t.after(() => journal.close());
+    const value = githubInventoryObject();
+    mutate(value);
+    assert.throws(() => acceptInventory(journal, canonicalJson(value)),
+      {code: 'InvalidClientSourceInventory'});
+    assert.equal(readInventoryRow(path), undefined);
+  });
+}
 
 test('source inventory does not change legacy singular admission evidence bytes',
   async t => {

@@ -18,8 +18,6 @@ pub(all) suberror SalesforceCatalogBridgeIssue {
   WriteCollectionResponse(@catalog.WriteCollectionResponseIssue)
   QueryRead(@catalog.QueryReadIssue)
   ManagedQuery(@salesforce_host.ManagedQueryIssue)
-  BroadAttempt(@salesforce_host.SalesforceBroadAttemptIssue)
-  BroadHost(@salesforce_host.SalesforceBroadHostIssue)
   InvalidResource
   PreviewRows
 }
