@@ -3,7 +3,10 @@
 // uses the exact Runtime manifest and bytes through an independent Transfer.
 
 ///|
-fn acquisition_runtime_case(through_consumer : Bool) -> Unit raise {
+fn acquisition_runtime_case(
+  through_consumer : Bool,
+  through_resident? : Bool = false,
+) -> Unit raise {
   guard resident_compute_prerequisites() is Some((library_path, root_path)) else {
     return
   }
@@ -107,50 +110,138 @@ fn acquisition_runtime_case(through_consumer : Bool) -> Unit raise {
     )
     is Err(@resident.ForeignInput),
   )
-  let executor = @resident.install_resident_acquisition_task_executor(
-    materials,
-    compilation,
-    binding,
-    dispatch,
-    execution,
-    source,
-    () => "2026-10-05T00:00:00.000Z",
-    observe=event => {
-      match event {
-        AcquisitionEntered => acquisitions.val += 1
-        ProducerCaptured => captures.val += 1
-        _ => ()
-      }
+  let (runtime, completion) = if through_resident {
+    let environment = @host.admit_client_check_environment(
+      resident_effect_source_environment,
+      "sha256:feb4443bd80a5e95c14e195113219eeb2e24bdd12e424d1ba00c1295f5c53554",
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    ).unwrap()
+    let wire = @host.issue_client_task_run_materials(
+      prepared,
+      compilation,
+      materials.admission,
+      definition,
+      environment,
+      resident_effect_source_environment,
+      resident_compute_document,
+      None,
+    ).unwrap()
+    let envelope = @remote.remote_poll_dispatch_materials_json(
+      dispatch, binding, wire,
+    ).unwrap()
+    journal.retain_dispatch_envelope(dispatch, envelope).unwrap()
+    journal.accept(dispatch).unwrap() |> ignore
+    let admission : @resident.ResidentRunAdmission = {
+      source: Some((source.source_ref, source.source_contract_cid)),
+      expressions: { text_time: false, veca: false, },
+      operations: {
+        rela: true,
+        sga: false,
+        tea: false,
+        calendar: false,
+        text_rank: false,
+      },
+      manifests: @host.admit_client_compilation_manifests(
+        @environment.compiler_grammar_manifest_wire(),
+        @environment.compiler_barrier_contract_manifest_wire(),
+        10000,
+        1000,
+        20,
+      ).unwrap(),
+      limits: {
+        preparation: @host.client_standard_program_preparation_limits(),
+        sequence: @host.client_standard_values_sequence_limits(),
+        max_sequence_steps: 1000,
+        max_sequence_work: 1000,
+        max_evidence_bytes: 1000000,
+        max_evidence_nodes: 100000,
+        max_evidence_depth: 100,
+      },
+    }
+    let executed = match
+      @resident.execute_resident_attempt(
+        journal,
+        execution,
+        admission,
+        @remote.dispatch_request_attempt_identity(dispatch).unwrap(),
+        "original-producer-holder",
+        () => "2026-10-05T00:00:00.000Z",
+        Some(_ => {
+          entries.val += 1
+          true
+        }),
+        source_observe=event => {
+          match event {
+            AcquisitionEntered => acquisitions.val += 1
+            ProducerCaptured => captures.val += 1
+            _ => ()
+          }
+          true
+        },
+      ) {
+      Ok(value) => value
+      Err(failure) =>
+        // Keep the typed cause visible; this is not an accepted refusal test.
+        match failure.issue {
+          Source(UnsupportedSource) =>
+            abort("ordinary resident producer remained unsupported")
+          Source(ForeignInput) =>
+            abort("ordinary resident producer input was foreign")
+          Runtime(Physical(code)) =>
+            abort("ordinary resident producer physical failure: " + code)
+          _ => abort("ordinary resident producer failed before completion")
+        }
+    }
+    assert_eq(executed.result_definition_cid, None)
+    (executed.runtime, executed.completion)
+  } else {
+    let executor = @resident.install_resident_acquisition_task_executor(
+      materials,
+      compilation,
+      binding,
+      dispatch,
+      execution,
+      source,
+      () => "2026-10-05T00:00:00.000Z",
+      observe=event => {
+        match event {
+          AcquisitionEntered => acquisitions.val += 1
+          ProducerCaptured => captures.val += 1
+          _ => ()
+        }
+        true
+      },
+    ).unwrap()
+    assert_eq(acquisitions.val, 0)
+    let runtime = @output.open_native_remote_standard_site_runtime(
+      site,
+      active,
+      execution.operation_capability_cid,
+      execution.issuer_capability_cid,
+      [executor],
+      journal,
+      bundles,
+      [budget],
+    ).unwrap()
+    runtime
+    .guard_executor_start(() => {
+      @resident_protocol.check_resident_materials_current(
+        materials, "2026-10-05T00:00:00.000Z",
+      )
+      is Ok(_)
+    })
+    .unwrap()
+    runtime.claim_starts_as("original-producer-holder").unwrap()
+    runtime
+    .observe_executor_entry(_ => {
+      entries.val += 1
       true
-    },
-  ).unwrap()
-  assert_eq(acquisitions.val, 0)
-  let runtime = @output.open_native_remote_standard_site_runtime(
-    site,
-    active,
-    execution.operation_capability_cid,
-    execution.issuer_capability_cid,
-    [executor],
-    journal,
-    bundles,
-    [budget],
-  ).unwrap()
-  runtime
-  .guard_executor_start(() => {
-    @resident_protocol.check_resident_materials_current(
-      materials, "2026-10-05T00:00:00.000Z",
-    )
-    is Ok(_)
-  })
-  .unwrap()
-  runtime.claim_starts_as("original-producer-holder").unwrap()
-  runtime
-  .observe_executor_entry(_ => {
-    entries.val += 1
-    true
-  })
-  .unwrap()
-  let completion = runtime.start(dispatch, binding).unwrap()
+    })
+    .unwrap()
+    let completion = runtime.start(dispatch, binding).unwrap()
+    (runtime, completion)
+  }
   assert_eq(entries.val, 1)
   assert_eq(acquisitions.val, 1)
   assert_eq(captures.val, 1)
@@ -254,4 +345,14 @@ test "original Source task completes through Runtime without a producer Named Re
 ///|
 test "actual producer Runtime bytes reach the original retained consumer without Source reacquisition" {
   acquisition_runtime_case(true)
+}
+
+///|
+test "ordinary resident holder executes the original internal Source producer once" {
+  acquisition_runtime_case(false, through_resident=true)
+}
+
+///|
+test "ordinary resident producer bytes transfer to the original consumer without reacquisition" {
+  acquisition_runtime_case(true, through_resident=true)
 }
