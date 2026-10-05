@@ -7523,7 +7523,38 @@
       "inventory": "families",
       "family": "SGA",
       "operation": "apply_graph_delta",
-      "profile": "sga_graph"
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_delta_apply_inputs("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/delta_apply.mbt",
+        "symbol": "start_delta_apply_inputs"
+      },
+      "boundary_tests": [
+        {
+          "role": "exact_one_short_and_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_delta_provider_wbtest.mbt",
+          "fixture": "Delta provider exact work one short and handoff cancellation preserve both input owners"
+        },
+        {
+          "role": "delta_installed_capacity_overflow_and_binding_refusal",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_delta_provider_wbtest.mbt",
+          "fixture": "Delta provider requires installed limits exact roles and accounted workspace"
+        },
+        {
+          "role": "delta_conversion_handoff_failure_and_borrowed_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_delta_provider_wbtest.mbt",
+          "fixture": "Delta provider preserves failure work and cleanup without reclaiming borrowed inputs"
+        }
+      ]
     },
     {
       "inventory": "families",

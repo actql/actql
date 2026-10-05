@@ -106,7 +106,7 @@ test('resource audit fixtures are reclaimed on success, rejection, and setup fai
 });
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /69 operations, 5 implementation profiles, 59 production routes mapped, 10 typed pre-execution refusals \(not execution success\), 59 with operation-specific boundary records, 59 with four-role boundary evidence, 59 with full work\/workspace assurance, 110 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /69 operations, 5 implementation profiles, 61 production routes mapped, 8 typed pre-execution refusals \(not execution success\), 61 with operation-specific boundary records, 59 with four-role boundary evidence, 59 with full work\/workspace assurance, 111 with path-scoped work\/workspace evidence, 1 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('unsupported Graph routes require one shared public refusal boundary and cannot claim execution', () => {
@@ -1049,7 +1049,7 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
-    '| Path-scoped work/workspace assurance | 110 |',
+    '| Path-scoped work/workspace assurance | 111 |',
     '| Path-scoped work/workspace assurance | 54 |',
   );
   assert.notEqual(stale, gaps);
@@ -2196,9 +2196,18 @@ test('resource completion rejects every unassured operation', () => {
   /RelA analytic: entrypoint boundary assurance is missing/);
 });
 
-test('strict resource completion accepts every assured route', () => {
-  assert.match(run(undefined, undefined, ['--require-boundary-complete']),
-    /59 with four-role boundary evidence, 59 with full work\/workspace assurance/);
+const pendingBoundaryErrors = [
+  'SGA subgraph: entrypoint boundary assurance is missing',
+  'SGA subgraph: entrypoint work/workspace assurance is missing',
+  'SGA apply_graph_delta: entrypoint boundary assurance is missing',
+  'SGA apply_graph_delta: entrypoint work/workspace assurance is missing',
+];
+
+test('strict resource completion preserves every current unassured Graph obligation', () => {
+  // A registered current route is not the same as full route assurance. Keep
+  // this rejection until the missing path-scoped evidence actually exists.
+  assert.deepEqual(evaluate(undefined, undefined,
+    ['--require-boundary-complete']).errors, pendingBoundaryErrors);
 });
 
 test('whole-sequence take owes both keyed and unkeyed resource branches', () => {
@@ -2925,7 +2934,7 @@ test('resource validator inputs are immutable and errors are fresh in either ord
     sources: sourceTemplate, requireBoundaryComplete: true};
   const before = JSON.stringify(options);
   const good = validateResourceAccounting(options);
-  assert.deepEqual(good.errors, []);
+  assert.deepEqual(good.errors, pendingBoundaryErrors);
   const badManifest = structuredClone(manifestTemplate);
   badManifest.bindings = [];
   const bad = validateResourceAccounting({...options, manifest: badManifest});
@@ -2935,15 +2944,16 @@ test('resource validator inputs are immutable and errors are fresh in either ord
   assert.notEqual(validateResourceAccounting(options).errors, good.errors);
   assert.equal(JSON.stringify(options), before);
   good.errors.push('caller-owned error collection');
-  assert.deepEqual(validateResourceAccounting(options).errors, []);
+  assert.deepEqual(validateResourceAccounting(options).errors, pendingBoundaryErrors);
 });
 
-test('resource validator matches the CLI for strict success and independent rejections', () => {
+test('resource validator matches the CLI for scoped success and strict independent rejections', () => {
   const omitMixed = routes => { routes.mixed_paths = []; };
   assert.equal(evaluate(undefined, omitMixed).errors.length, 0);
   assert.match(run(undefined, omitMixed, ['--require-boundary-complete']),
     /typed prefix mixed-stage assurance is missing/u);
   for (const [mutator, routeMutator, args, gapsText] of [
+    [undefined, undefined],
     [undefined, undefined, ['--require-boundary-complete']],
     [undefined, omitMixed, ['--require-boundary-complete']],
     [manifest => { manifest.bindings = []; }],
@@ -2988,8 +2998,11 @@ test('resource CLI honors environment, strict checks, and summary write custody'
     writeFileSync(gapsTarget, stale);
     assert.throws(() => invoke(['--check-summary']), error =>
       error.status === 1 && /summary is stale/u.test(String(error.stderr)));
-    assert.match(invoke(['--check-summary', '--write-summary',
-      '--require-boundary-complete']), /69 operations/u);
+    assert.throws(() => invoke(['--check-summary', '--write-summary',
+      '--require-boundary-complete']), error => error.status === 1 &&
+      pendingBoundaryErrors.every(message=>String(error.stderr).includes(message)));
+    assert.equal(readFileSync(gapsTarget, 'utf8'), stale);
+    assert.match(invoke(['--check-summary', '--write-summary']), /69 operations/u);
     assert.equal(readFileSync(gapsTarget, 'utf8'), gapsTemplate);
     const rejected = structuredClone(manifestTemplate);
     rejected.bindings = [];

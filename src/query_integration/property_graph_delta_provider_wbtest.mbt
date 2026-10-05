@@ -465,3 +465,89 @@ test "Delta provider preserves failure work and cleanup without reclaiming borro
     assert_true(@graphs.discard_completed(original))
   }
 }
+
+///|
+test "Delta provider exact work one short and handoff cancellation preserve both input owners" {
+  let (owner, view, rows, original, _) = graph_delta_input_fixture(
+    text=graph_delta_remove_parallel_edge(),
+  )
+  let generated = @execution.select_generated_sequence_step(
+    task_test_generated(owner),
+    0,
+  ).unwrap()
+  let (conversion, application) = graph_delta_separate_work(owner, view, rows)
+  let exact = conversion + application + 1L
+  // This compares the same documented work units across the standalone and
+  // managed entrypoints; it is not a derived count law or a total-memory proof.
+  for cause in ["exact", "one_short", "cancel"] {
+    let ceiling = if cause == "one_short" { exact - 1L } else { exact }
+    let active = start_delta_provider(
+      delta_provider_fixture(),
+      generated,
+      [
+        @local_connector.managed_provider_carrier_input(view),
+        @local_connector.managed_provider_relation_input(rows),
+      ],
+      10,
+      10000,
+      work=ceiling.to_int(),
+    ).unwrap()
+    let mut total = 0L
+    let mut completed = None
+    let mut terminal = false
+    for _ in 0..<100000 {
+      if cause == "cancel" && total == conversion + 1L {
+        assert_true(@local_connector.cancel_managed_provider(active))
+      }
+      match @local_connector.advance_managed_provider(active, 1).unwrap() {
+        @local_connector.Continue(work~, ..) => {
+          assert_eq(work, 1L)
+          total += work
+          assert_true(total <= ceiling)
+        }
+        @local_connector.CarrierComplete(output, work~, ..) if cause == "exact" => {
+          total += work
+          completed = Some(output)
+          terminal = true
+          break
+        }
+        @local_connector.Failed(_, work~, ..) if cause == "one_short" => {
+          assert_eq(work, 0L)
+          terminal = true
+          break
+        }
+        @local_connector.Stopped(work~, ..) if cause == "cancel" => {
+          assert_eq(work, 0L)
+          terminal = true
+          break
+        }
+        _ =>
+          abort("Delta managed boundary changed outcome or restarted Compute")
+      }
+    }
+    assert_true(terminal)
+    assert_eq(total, if cause == "cancel" { conversion + 1L } else { ceiling })
+    assert_eq(
+      @local_connector.managed_provider_cumulative_work(active),
+      Ok(total),
+    )
+    assert_true(@local_connector.advance_managed_provider(active, 1) is Err(_))
+    assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
+    assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
+    assert_eq(
+      @local_connector.managed_provider_cumulative_work(active),
+      Ok(total),
+    )
+    assert_true(@graphs.completed_available(original))
+    assert_true(@execution.producer_read_available(rows))
+    assert_eq(
+      snapshot_capture(@graphs.completed_storage(original).unwrap()),
+      (snapshot_fixture_cid(), snapshot_fixture_body()),
+    )
+    if completed is Some(material) {
+      assert_true(@carrier_runtime.material_available(material))
+      assert_true(@carrier_runtime.reclaim_material(material))
+    }
+  }
+  assert_true(@graphs.discard_completed(original))
+}
