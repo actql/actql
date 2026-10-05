@@ -255,6 +255,40 @@ than changing every use of primitive `REL.groupBy`. Independent numeric/null
 vectors are in `portability/corpus/group-canonical-order.json`; they specify the
 ordering boundary, not backend execution certification.
 
+## Common membership and empty sets
+
+The normative owner is [common membership](../spec/language.md#membership-semantics).
+The previous general strict-null rule made nullable collection membership
+propagate null. The adopted GoogleSQL alignment changes that rule explicitly:
+`in` and `not_in` treat both a null array and an empty array as an empty set,
+with false/true respectively for every admitted left value, including null.
+A null element in a nonempty collection remains an unknown comparison; an
+actual match wins over such an unknown. `not_in` is three-valued negation.
+
+The reference is Google's published [IN operator](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/operators#in_operator)
+and [UNNEST null handling](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#unnest_and_null_values).
+These distinguish a null array (zero rows) from an array containing null (a row
+with a null value). ActQL adopts that distinction in the common expression
+contract rather than keeping a separate nullable-list exception or rewriting
+only Frontend expressions. This is a semantic change, not a clarification of
+the former strict-null behavior.
+
+The common type rule excludes container nullability and proves a non-nullable
+Boolean result for a zero-item contract. Scalar domain checking, eager operand
+evaluation, failure precedence and optimization identity remain in force.
+Constant evaluation uses the same rule, including for typed null operands and
+empty collections; failure suppression is not an allowed empty-set rewrite.
+The current canonical lowerer retains authored expressions without constant
+folding. This alignment does not introduce a physical optimizer.
+The expression law body and dependent contract, registry, grammar and consumer
+pins change together without a version bump. Independent truth-table and type
+fixtures record the new expectations rather than copying evaluator output.
+Existing pinned contract bodies retain their previous meaning.
+
+Set meaning does not expand source syntax. SQL `IN ()` remains rejected, and
+this decision does not add `UNNEST` or subquery support. Execution conformance
+still requires the affected shared evaluator and consuming boundaries to be
+verified on their supported targets.
 
 ## Confirmed cancellation of a running Run
 

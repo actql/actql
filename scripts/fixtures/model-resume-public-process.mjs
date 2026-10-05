@@ -9,11 +9,11 @@ import {userInfo} from 'node:os';
 import {join} from 'node:path';
 import {inspect} from 'node:util';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
-import {connect, RequestHeld} from '../../../packages/node/index.mjs';
-import {openInstalledRemoteHttpHost} from '../embedded-local.mjs';
-import {canonical, cid, configuration} from '../../../scripts/fixtures/installed-infer-fixture.mjs';
-import {providerBindingOriginals} from '../../../scripts/fixtures/model-provider-binding-fixture.mjs';
-import {observeTwoSourceProvider} from '../../../scripts/fixtures/two-source-public-query.mjs';
+import {connect, RequestHeld} from '../../packages/node/index.mjs';
+import {openInstalledRemoteHttpHost} from '../../adapters/host-node/embedded-local.mjs';
+import {canonical, cid, configuration} from './installed-infer-fixture.mjs';
+import {providerBindingOriginals} from './model-provider-binding-fixture.mjs';
+import {observeTwoSourceProvider} from './two-source-public-query.mjs';
 
 const options = JSON.parse(readFileSync(0, 'utf8'));
 const {root, phase, transport = 'local', count = 1, acquired = false,
@@ -36,7 +36,7 @@ if (!existsSync(path('keys.json'))) {
 const keys = read('keys.json');
 const signer = {keyId: 'model-reviewer-key', reviewerId: 'model-reviewer',
   sign: bytes => sign(null, bytes, keys.reviewerPrivate)};
-const base = JSON.parse(readFileSync(new URL('../../../spec/local-check-environment.json', import.meta.url), 'utf8'));
+const base = JSON.parse(readFileSync(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8'));
 const configured = configuration(base);
 const environment = JSON.parse(configured.installation.environmentWire);
 const {contract_cid: ignoredTask, ...task} = environment.model_task_contracts[0];
@@ -82,7 +82,7 @@ const accountConfiguration = canonical({version: 'actql-execution-account-config
 let sourceProfilePath;
 let sourceObservation;
 if (acquired) {
-  const source = JSON.parse(readFileSync(new URL('./query-amount-environment.json', import.meta.url), 'utf8'));
+  const source = JSON.parse(readFileSync(new URL('../../adapters/host-node/fixtures/query-amount-environment.json', import.meta.url), 'utf8'));
   const policy = source.contract_registry.find(value => value.kind === 'data_policy');
   const {cid: oldPolicy, ...policyBody} = policy;
   assert.equal(cid(policyBody), oldPolicy);
@@ -120,7 +120,7 @@ if (acquired) {
   source.evidence_bundle_cid = cid(source);
   const database = path('records.duckdb');
   const initialize = !existsSync(database);
-  const duckdb = createRequire(new URL('../../connectors/duckdb/node/package.json', import.meta.url))('@duckdb/node-api');
+  const duckdb = createRequire(new URL('../../adapters/connectors/duckdb/node/package.json', import.meta.url))('@duckdb/node-api');
   const {DuckDBInstance} = duckdb;
   if (initialize || options.changeSource) {
     const instance = await DuckDBInstance.create(database);

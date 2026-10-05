@@ -1,0 +1,339 @@
+[
+  {
+    "name": "analytic-offset-independent-json",
+    "sourceRows": [
+      {
+        "id": 4,
+        "amount": 30
+      },
+      {
+        "id": 1,
+        "amount": null
+      },
+      {
+        "id": 3,
+        "amount": 20
+      },
+      {
+        "id": 2,
+        "amount": 20
+      },
+      {
+        "id": 5,
+        "amount": 30
+      },
+      {
+        "id": 0,
+        "amount": 99
+      }
+    ],
+    "parameters": {
+      "p": 1
+    },
+    "expected": [
+      {
+        "id": 1,
+        "previous": null,
+        "next": 20
+      },
+      {
+        "id": 2,
+        "previous": null,
+        "next": 20
+      },
+      {
+        "id": 3,
+        "previous": null,
+        "next": 30
+      },
+      {
+        "id": 4,
+        "previous": 20,
+        "next": 30
+      },
+      {
+        "id": 5,
+        "previous": 20,
+        "next": null
+      }
+    ],
+    "columns": [
+      {
+        "name": "id",
+        "contract": {
+          "type": "number",
+          "nullable": false
+        }
+      },
+      {
+        "name": "previous",
+        "contract": {
+          "type": "number",
+          "nullable": true
+        }
+      },
+      {
+        "name": "next",
+        "contract": {
+          "type": "number",
+          "nullable": true
+        }
+      }
+    ]
+  },
+  {
+    "name": "analytic-offset-sql-literal-parameter",
+    "sourceRows": [
+      {
+        "id": 4,
+        "amount": 30
+      },
+      {
+        "id": 1,
+        "amount": null
+      },
+      {
+        "id": 3,
+        "amount": 20
+      },
+      {
+        "id": 2,
+        "amount": 20
+      },
+      {
+        "id": 5,
+        "amount": 30
+      },
+      {
+        "id": 0,
+        "amount": 99
+      }
+    ],
+    "parameters": {
+      "p": 1
+    },
+    "expected": [
+      {
+        "id": 1,
+        "previous": null,
+        "next": 20
+      },
+      {
+        "id": 2,
+        "previous": null,
+        "next": 20
+      },
+      {
+        "id": 3,
+        "previous": null,
+        "next": 30
+      },
+      {
+        "id": 4,
+        "previous": 20,
+        "next": 30
+      },
+      {
+        "id": 5,
+        "previous": 20,
+        "next": null
+      }
+    ],
+    "columns": [
+      {
+        "name": "id",
+        "contract": {
+          "type": "number",
+          "nullable": false
+        }
+      },
+      {
+        "name": "previous",
+        "contract": {
+          "type": "number",
+          "nullable": true
+        }
+      },
+      {
+        "name": "next",
+        "contract": {
+          "type": "number",
+          "nullable": true
+        }
+      }
+    ]
+  },
+  {
+    "name": "analytic-offset-pipe-parameter-literal",
+    "sourceRows": [
+      {
+        "id": 4,
+        "amount": 30
+      },
+      {
+        "id": 1,
+        "amount": null
+      },
+      {
+        "id": 3,
+        "amount": 20
+      },
+      {
+        "id": 2,
+        "amount": 20
+      },
+      {
+        "id": 5,
+        "amount": 30
+      },
+      {
+        "id": 0,
+        "amount": 99
+      }
+    ],
+    "parameters": {
+      "p": 1
+    },
+    "expected": [
+      {
+        "id": 1,
+        "previous": null,
+        "next": 20
+      },
+      {
+        "id": 2,
+        "previous": null,
+        "next": 30
+      },
+      {
+        "id": 3,
+        "previous": 20,
+        "next": 30
+      },
+      {
+        "id": 4,
+        "previous": 20,
+        "next": null
+      },
+      {
+        "id": 5,
+        "previous": 30,
+        "next": null
+      }
+    ],
+    "columns": [
+      {
+        "name": "id",
+        "contract": {
+          "type": "number",
+          "nullable": false
+        }
+      },
+      {
+        "name": "previous",
+        "contract": {
+          "type": "number",
+          "nullable": true
+        }
+      },
+      {
+        "name": "next",
+        "contract": {
+          "type": "number",
+          "nullable": true
+        }
+      }
+    ]
+  },
+  {
+    "name": "analytic-offset-zero-preserves-duplicates",
+    "sourceRows": [
+      {
+        "id": 2,
+        "amount": 20
+      },
+      {
+        "id": 1,
+        "amount": null
+      },
+      {
+        "id": 2,
+        "amount": 20
+      }
+    ],
+    "parameters": {
+      "p": 0
+    },
+    "expected": [
+      {
+        "id": 1,
+        "previous": null,
+        "next": null
+      },
+      {
+        "id": 2,
+        "previous": 20,
+        "next": 20
+      },
+      {
+        "id": 2,
+        "previous": 20,
+        "next": 20
+      }
+    ],
+    "columns": [
+      {
+        "name": "id",
+        "contract": {
+          "type": "number",
+          "nullable": false
+        }
+      },
+      {
+        "name": "previous",
+        "contract": {
+          "type": "number",
+          "nullable": true
+        }
+      },
+      {
+        "name": "next",
+        "contract": {
+          "type": "number",
+          "nullable": true
+        }
+      }
+    ]
+  },
+  {
+    "name": "analytic-offset-empty-typed",
+    "sourceRows": [],
+    "parameters": {
+      "p": 1
+    },
+    "expected": [],
+    "columns": [
+      {
+        "name": "id",
+        "contract": {
+          "type": "number",
+          "nullable": false
+        }
+      },
+      {
+        "name": "previous",
+        "contract": {
+          "type": "number",
+          "nullable": true
+        }
+      },
+      {
+        "name": "next",
+        "contract": {
+          "type": "number",
+          "nullable": true
+        }
+      }
+    ]
+  }
+]

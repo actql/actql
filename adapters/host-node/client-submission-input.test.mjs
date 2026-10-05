@@ -157,8 +157,10 @@ for (const entrance of ['local', 'https']) {
         assert.deepEqual(f.counts(), {submits: committed ? 1 : 0, issues: committed ? 1 : 0});
         if (committed) {
           assert.equal(stored[0].caller_request_id, 'saved-request');
+          // Independently assembled current Values Program semantics and
+          // Definition preimages include the adopted expression contract.
           assert.equal(stored[0].program_definition_cid,
-            'sha256:f3514c8f22c6d72818a167ca3341b3c945397042351c51a5982d7abc881a298c');
+            'sha256:1be70a67bfbb6438998862777b118114f9c091a9bb4312a14963dd85edc228cd');
           assert.equal(stored[0].dispatch_reserved, 0);
           assert.equal(stored[0].physical_start_reserved, 0);
         }

@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import {spawnSync, execFileSync} from 'node:child_process';
 import {createDecipheriv, createHash} from 'node:crypto';
 import {existsSync, readFileSync} from 'node:fs';
-import {mkdtemp, rm} from 'node:fs/promises';
+import {mkdtemp, realpath, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
@@ -15,7 +15,7 @@ import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {scopedModelHolding} from '../../scripts/fixtures/model-custody-fixture.mjs';
 
-const processFixture = fileURLToPath(new URL('./fixtures/model-resume-public-process.mjs', import.meta.url));
+const processFixture = fileURLToPath(new URL('../../scripts/fixtures/model-resume-public-process.mjs', import.meta.url));
 const expectedRows = (count = 1, acquired = false) => [
   {id: acquired ? 1 : '1', outcome: 'ok', value: {reason: null, risk: 'high'}},
   {id: acquired ? 2 : '2', outcome: 'ok', value: {reason: null, risk: 'low'}},
@@ -23,7 +23,8 @@ const expectedRows = (count = 1, acquired = false) => [
 ].slice(0, count);
 
 async function fixture(t, options = {}) {
-  const root = await mkdtemp(join(tmpdir(), 'actql-public-model-resume-'));
+  // Match the provider's physical path even when macOS tmpdir is a symlink.
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'actql-public-model-resume-')));
   t.after(() => rm(root, {recursive: true, force: true}));
   if (options.transport === 'https') execFileSync('openssl', [
     'req', '-x509', '-nodes', '-newkey', 'rsa:2048', '-keyout', 'host.key',

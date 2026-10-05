@@ -125,6 +125,21 @@ fn check_backend_capabilities(
                   expression,
                 })
               }
+            In | NotIn => {
+              guard @lower.expression_contract(right).shape
+                is @contract.Array(item, ..) &&
+                supported_binary_comparison(
+                  @lower.Equal,
+                  @lower.expression_contract(left),
+                  item,
+                ) else {
+                return Err({
+                  kind: UnsupportedComparison(op),
+                  root,
+                  expression,
+                })
+              }
+            }
             Add | Subtract | Multiply | Divide | Modulo => ()
           }
           pending.push(right)

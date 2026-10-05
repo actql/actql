@@ -1,3 +1,5 @@
+import {analyticOffsetCapacity} from './analytic-offset-source-input.mjs';
+
 // These are installed acceptance ceilings, not observed input sizes or Host
 // defaults. Preserve each corpus's declared envelope and the execution budget.
 export const analyticPropertyCapacity = Object.freeze({
@@ -16,6 +18,7 @@ const profiles = new Map([
   ['standard', analyticPropertyCapacity],
   ['analytic-property', analyticPropertyCapacity],
   ['analytic-order', analyticOrderCapacity],
+  ['analytic-offset', Object.freeze({...analyticOffsetCapacity})],
 ]);
 
 // A Host cannot change its installation profile between requests. Partition

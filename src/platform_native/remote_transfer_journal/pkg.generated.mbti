@@ -15,6 +15,8 @@ pub fn destination_allocation_phase(NativeRemoteDestinationAllocation) -> Native
 
 pub fn destination_allocation_staging_name(NativeRemoteDestinationAllocation) -> String
 
+pub fn destination_reader_key(@remote_transfer.RemoteTransferRequest, String) -> Result[String, NativeRemoteTransferJournalIssue]
+
 pub fn open_journal(@sqlite.Library, String, Int64, Int, Int, Int64, max_destination_readers? : Int64) -> Result[Journal, NativeRemoteTransferJournalIssue]
 
 pub fn recovered_remote_transfer_key(RecoveredRemoteTransfer) -> String

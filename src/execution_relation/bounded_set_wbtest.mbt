@@ -10,6 +10,7 @@ fn bounded_set_fixture(
   right_rows? : String = "[{\"id\":3}]",
   input_nodes? : Int = 1000,
   max_rows? : Int = 3,
+  output_values? : ValueLimits = run_limits().output_values,
 ) -> (
   @bounded.Control,
   Result[BoundedSetExecution, BoundedSetIssue],
@@ -98,7 +99,7 @@ fn bounded_set_fixture(
       max_depth: 100,
       max_work: 10000,
     },
-    run_limits().output_values,
+    output_values,
     max_work,
     100,
     max_entries,

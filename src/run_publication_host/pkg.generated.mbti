@@ -396,6 +396,8 @@ pub fn client_retained_input_capture_owner_matches(ClientRetainedInputEdge, @exe
 
 pub fn client_retained_input_edge_projection(ClientRetainedInputEdge) -> Array[String]
 
+pub fn client_retained_input_edge_schema_cid(ClientRetainedInputEdge) -> String
+
 pub fn client_retained_input_producer_available(ClientRetainedInputProducer) -> Bool
 
 pub fn client_retained_input_producer_dispatch(ClientRetainedInputProducer) -> @remote_site_protocol.DispatchRequest
@@ -1492,6 +1494,7 @@ pub struct ClientRetainedInputEdge {
   producer : ClientTaskFragmentNode
   consumer : ClientTaskFragmentNode
   input_port : String
+  producer_schema_cid : String
   producer_owner : @lowering_relation.BoundPrepared
   program : @pipeline_check_context.ProgramSourceIdentity
 }
