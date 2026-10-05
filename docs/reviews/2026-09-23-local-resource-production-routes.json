@@ -5119,6 +5119,27 @@
           "fixture": "Local managed append joins distinct local producers"
         },
         {
+          "role": "append_output_values_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binary_output_wbtest.mbt",
+          "fixture": "binary output owners retain independent exact and one short limits"
+        },
+        {
+          "role": "append_output_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binary_output_wbtest.mbt",
+          "fixture": "binary output owners stop within raw text recheck and output charge"
+        },
+        {
+          "role": "append_output_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binary_output_wbtest.mbt",
+          "fixture": "binary output measurement reserves its traversal frame before use"
+        },
+        {
           "role": "append_external_work_workspace_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
@@ -5238,6 +5259,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "append-chain-exact"
+        },
+        {
+          "role": "retained_append_long_text_output_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "append-long-text-filter"
         },
         {
           "role": "retained_append_chain_publication",
@@ -5647,6 +5675,27 @@
           "fixture": "empty set operators admit exact schema workspace and reject one short"
         },
         {
+          "role": "except_output_values_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binary_output_wbtest.mbt",
+          "fixture": "binary output owners retain independent exact and one short limits"
+        },
+        {
+          "role": "except_output_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binary_output_wbtest.mbt",
+          "fixture": "binary output owners stop within raw text recheck and output charge"
+        },
+        {
+          "role": "except_output_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binary_output_wbtest.mbt",
+          "fixture": "binary output measurement reserves its traversal frame before use"
+        },
+        {
           "role": "except_bounded_work_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -5757,6 +5806,27 @@
           ],
           "path": "src/execution_relation/set_rows_wbtest.mbt",
           "fixture": "empty set operators admit exact schema workspace and reject one short"
+        },
+        {
+          "role": "intersect_output_values_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binary_output_wbtest.mbt",
+          "fixture": "binary output owners retain independent exact and one short limits"
+        },
+        {
+          "role": "intersect_output_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binary_output_wbtest.mbt",
+          "fixture": "binary output owners stop within raw text recheck and output charge"
+        },
+        {
+          "role": "intersect_output_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binary_output_wbtest.mbt",
+          "fixture": "binary output measurement reserves its traversal frame before use"
         },
         {
           "role": "intersect_bounded_work_exact_one_short",
@@ -5870,6 +5940,27 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/bounded_cross_join_wbtest.mbt",
           "fixture": "bounded cross join charges exact metadata and pair work"
+        },
+        {
+          "role": "cross_join_output_values_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binary_output_wbtest.mbt",
+          "fixture": "binary output owners retain independent exact and one short limits"
+        },
+        {
+          "role": "cross_join_output_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binary_output_wbtest.mbt",
+          "fixture": "binary output owners stop within raw text recheck and output charge"
+        },
+        {
+          "role": "cross_join_output_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_binary_output_wbtest.mbt",
+          "fixture": "binary output measurement reserves its traversal frame before use"
         },
         {
           "role": "external_product_input_value_exact_one_short",
