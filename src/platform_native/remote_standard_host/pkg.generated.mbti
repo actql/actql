@@ -193,7 +193,7 @@ pub(all) enum NativeRemoteRetainedTaskInputIssue {
   ForeignAuthority
   AuthorizationUnavailable
   TransferExpired
-  InputMaterialUnavailable
+  InputMaterial(@remote_transfer_client.NativeRemoteTransferClientIssue)
   InvalidBinding
   Encoding
 }

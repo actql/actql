@@ -46,7 +46,7 @@ pub(all) enum NativeRemoteRetainedTaskInputIssue {
   ForeignAuthority
   AuthorizationUnavailable
   TransferExpired
-  InputMaterialUnavailable
+  InputMaterial(@transfer_client.NativeRemoteTransferClientIssue)
   InvalidBinding
   Encoding
 }
@@ -278,8 +278,9 @@ pub fn validate_native_remote_retained_task_input_borrow(
     value.physical.destination_use_id {
     return Err(ForeignTransfer)
   }
-  if !@transfer_client.destination_material_use_available(material) {
-    return Err(InputMaterialUnavailable)
+  match @transfer_client.validate_destination_material_use(material) {
+    Ok(_) => ()
+    Err(issue) => return Err(InputMaterial(issue))
   }
   // Physical validation may race with cancellation, expiry or revocation.
   // Recheck the trusted owners after it without freeing any reader on failure.
