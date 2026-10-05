@@ -1393,13 +1393,45 @@ remain unchanged. The selected identity cases passed 3/3 focused JS tests
 (`run-NkbuFC` / `focused-test-WVbbtc`) after correcting the new fixture's work
 arithmetic and removing its unrelated 64-byte synchronous export helper.
 
-This is a shared wire/identity component, not evidence that every retained
-Store route is complete. New-source real Node Store, packed consumers,
-Wasm/native execution and Linux integration remain unexecuted here. Intrinsic
+This initial wire/identity component is not evidence that every retained
+Store route is complete. Its original component checks did not execute a real
+Node Store, packed consumers, Wasm/native or Linux integration. Intrinsic
 concatenation still has a synchronous final String copy; splitting its input
 walk alone would not close that boundary. Synchronous schema/order preparation
 and unrelated draining emitters remain distinct work. No whole-operation
 assurance count is promoted.
+
+The subsequent ordinary main integration retains the membership cursor from
+main alongside the pending binary Text comparison. Reference wire traversal
+now uses main's existing `CanonicalEmit` owner rather than maintaining a second
+canonical walk. That owner yields within long keys and Text, exposes its
+pending frame count in constant time, and cancels unfinished child cursors.
+Reference traversal contributes its nested frame count to the caller's existing
+workspace reservation. An independently accounted issued Reference requires
+eight slots; seven fails with the typed workspace cause and leaves custody
+reachable until explicit cleanup. Cleanup preserves the borrowed issuer.
+The selected JS comparison, membership, retention, identity, admitted-wire and
+canonical-cursor tests passed 39/39 after this integration (`run-tBpP5l` /
+`focused-test-WWAKzd`, tracked merge source). Both generated Host fixture
+freshness checks passed; this is not an all-Core or cross-target result.
+
+`adapters/host-node/public-wire-retention.test.mjs` now checks the public Local
+submit path with an installed real retained Store, an 80-character column,
+an 80-character Object key, 512-character Text and explicit NULL. These authored
+values cross the 64-unit cursor boundary without changing the installed
+1,000-byte construction policy. The producer and two consumer Named Results
+are each read against authored expected rows. Client reconnection and same-request
+resubmission preserve the Run and the three results; positive-progress and
+successful-completion observations do not increase. Temporary carrier files
+are empty after completion. The fixture is connected to the existing installed
+Host suite, not just executed manually. Its first successful focused execution
+passed 1/1 (`run-uqmQ2M` / `focused-test-SOZtwR`, tracked fixture source).
+Client reconnection reuses the installed Host; it is not process restart.
+The observation counters are not a general physical-entry census. A Reference
+public Host fixture, fresh-process recovery, public cancellation of this wire
+shape, packed consumers, Wasm/native and Linux integration remain unverified.
+Component boundary/cancellation fixtures retain their narrower scope and do
+not establish those unexecuted product paths.
 
 #### Retained Relation obligation chains
 
