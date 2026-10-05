@@ -737,3 +737,70 @@ test "owned retained input issues only its exact checked consumer dispatch" {
     is Err(@publication_host.UnsupportedTask),
   )
 }
+
+///|
+test "saved retained binding restores its checked material use through the existing input Owner" {
+  let (producer, transfer, receipt, site) = retained_transfer_fixture(true)
+  let current = retained_transfer_current(
+    site,
+    standard_transfer_input_cid("c"),
+  )
+  let value = prepare_native_remote_retained_task_input(
+    producer, transfer, receipt, "original-use", current, 262144,
+  ).unwrap()
+  let saved = native_remote_retained_task_input_binding(value)
+  let limits : NativeRemoteStandardTransferBindingLimits = {
+    max_binding_bytes: 262144,
+    max_chunks: 100,
+    max_manifest_bytes: 4096,
+    max_referenced_bytes: 1048576L,
+  }
+  let before = @site.site_status(site)
+  let revision = @transfer.record_revision(transfer)
+  let restored = restore_native_remote_retained_task_input(
+    saved, producer, transfer, receipt, current, limits,
+  ).unwrap()
+  assert_eq(
+    native_remote_retained_task_input_destination_use_id(restored),
+    "original-use",
+  )
+  assert_eq(
+    @remote.remote_input_binding_cid(
+      native_remote_retained_task_input_binding(restored),
+    ),
+    @remote.remote_input_binding_cid(saved),
+  )
+  let foreign = @remote.prepare_remote_input_binding(
+    @remote.remote_input_binding_body(saved).replace(
+      old="\"consumer_input_port\":\"input\"",
+      new="\"consumer_input_port\":\"other\"",
+    ),
+    262144,
+  ).unwrap()
+  assert_true(
+    restore_native_remote_retained_task_input(
+      foreign, producer, transfer, receipt, current, limits,
+    )
+    is Err(InvalidBinding),
+  )
+  let stale = retained_transfer_current(
+    @site.create_site(
+      "site-a",
+      2,
+      standard_transfer_input_cid("a"),
+      4,
+      4,
+      1048576L,
+      1048576L,
+    ).unwrap(),
+    standard_transfer_input_cid("c"),
+  )
+  assert_true(
+    restore_native_remote_retained_task_input(
+      saved, producer, transfer, receipt, stale, limits,
+    )
+    is Err(StaleSiteGeneration),
+  )
+  assert_eq(@site.site_status(site), before)
+  assert_eq(@transfer.record_revision(transfer), revision)
+}
