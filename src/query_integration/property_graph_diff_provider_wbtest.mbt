@@ -271,3 +271,168 @@ test "Graph diff provider cancellation preserves work and borrowed input custody
   }
   assert_true(@graphs.discard_completed(graph))
 }
+
+///|
+test "Graph diff provider admits exact workspace and control work and rejects one short" {
+  let (owner, left, right, graph, target) = graph_diff_provider_fixture(
+    removal=true,
+  )
+  // Independent admission arithmetic for the authored one-node/two-edge base
+  // and one-node/one-edge target. Snapshot indexes: 19 + 12; decode workspace:
+  // 1000*16 + 100*8 + 64; action indexes: (3+2)*3; recheck frames: (100+1)*2;
+  // fixed framing slots: 32. This is logical workspace, not total heap bytes.
+  let exact = 31 + 16864 + 15 + 202 + 32
+  assert_eq(exact, 17144)
+  for selected in [false, true] {
+    let generated = task_test_generated(owner)
+    let generated = if selected {
+      @execution.select_generated_sequence_step(generated, 0).unwrap()
+    } else {
+      generated
+    }
+    let inputs = [
+      @local_connector.managed_provider_carrier_input(left),
+      @local_connector.managed_provider_carrier_input(right),
+    ]
+    let one_short = delta_provider_fixture(
+      delta_policy=Some({
+        limits: {
+          ..graph_delta_input_limits(),
+          max_workspace_slots: exact - 1,
+        },
+        workspace_bytes: 4000000L,
+      }),
+    )
+    assert_true(
+      start_delta_provider(one_short, generated, inputs, 1, 10000) is Err(_),
+    )
+    assert_true(@graphs.completed_available(graph))
+    assert_true(@graphs.completed_available(target))
+    let provider = delta_provider_fixture(
+      delta_policy=Some({
+        limits: { ..graph_delta_input_limits(), max_workspace_slots: exact, },
+        workspace_bytes: 4000000L,
+      }),
+    )
+    let baseline = start_delta_provider(provider, generated, inputs, 1, 10000).unwrap()
+    let mut total = 0L
+    let mut completed = false
+    for _ in 0..<100000 {
+      match @local_connector.advance_managed_provider(baseline, 1).unwrap() {
+        @local_connector.Continue(work~, ..) => total += work
+        @local_connector.Complete(output, work~, ..) => {
+          total += work
+          assert_eq(@execution.completed_row_count(output), 1)
+          completed = true
+          break
+        }
+        _ => abort("exact Graph diff workspace failed")
+      }
+    }
+    assert_true(completed && total > 1L)
+    assert_true(@local_connector.cleanup_managed_provider(baseline).unwrap())
+    for short in [false, true] {
+      let ceiling = if short { total - 1L } else { total }
+      let active = start_delta_provider(
+        provider,
+        generated,
+        inputs,
+        1,
+        10000,
+        work=ceiling.to_int(),
+      ).unwrap()
+      let mut used = 0L
+      let mut finished = false
+      for _ in 0..<100000 {
+        match @local_connector.advance_managed_provider(active, 1).unwrap() {
+          @local_connector.Continue(work~, ..) => used += work
+          @local_connector.Complete(output, work~, ..) => {
+            assert_false(short)
+            assert_eq(@execution.completed_row_count(output), 1)
+            used += work
+            finished = true
+            break
+          }
+          @local_connector.Failed(_, work~, ..) => {
+            assert_true(short)
+            used += work
+            finished = true
+            break
+          }
+          _ => abort("unexpected exact Graph diff work terminal")
+        }
+      }
+      assert_true(finished)
+      assert_eq(used, ceiling)
+      assert_eq(
+        @local_connector.managed_provider_cumulative_work(active),
+        Ok(ceiling),
+      )
+      assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
+      assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
+      assert_eq(
+        @local_connector.managed_provider_cumulative_work(active),
+        Ok(ceiling),
+      )
+      assert_true(@graphs.completed_available(graph))
+      assert_true(@graphs.completed_available(target))
+    }
+  }
+  assert_true(@graphs.discard_completed(graph))
+  assert_true(@graphs.discard_completed(target))
+}
+
+///|
+test "Graph diff provider refuses Delta row and value capacity without publishing or reclaiming inputs" {
+  let (owner, left, right, graph, target) = graph_diff_provider_fixture(
+    removal=true,
+  )
+  let provider = delta_provider_fixture()
+  let inputs = [
+    @local_connector.managed_provider_carrier_input(left),
+    @local_connector.managed_provider_carrier_input(right),
+  ]
+  for selected in [false, true] {
+    let generated = task_test_generated(owner)
+    let generated = if selected {
+      @execution.select_generated_sequence_step(generated, 0).unwrap()
+    } else {
+      generated
+    }
+    for (rows, bytes) in [(0, 10000), (1, 1)] {
+      let active = start_delta_provider(
+        provider, generated, inputs, rows, bytes,
+      ).unwrap()
+      let mut used = 0L
+      let mut failed = false
+      for _ in 0..<100000 {
+        match @local_connector.advance_managed_provider(active, 1).unwrap() {
+          @local_connector.Continue(work~, ..) => used += work
+          @local_connector.Failed(issue, work~, ..) => {
+            assert_true(issue is @connector.Execution(@execution.InputSet))
+            used += work
+            failed = true
+            break
+          }
+          _ =>
+            abort("capacity failure published or stopped an unrequested Delta")
+        }
+      }
+      assert_true(failed && used > 0L)
+      assert_eq(
+        @local_connector.managed_provider_cumulative_work(active),
+        Ok(used),
+      )
+      assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
+      assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
+      assert_eq(
+        @local_connector.managed_provider_cumulative_work(active),
+        Ok(used),
+      )
+      assert_true(@graphs.completed_available(graph))
+      assert_true(@graphs.completed_available(target))
+    }
+  }
+  assert_true(@graphs.discard_completed(graph))
+  assert_true(@graphs.discard_completed(target))
+}

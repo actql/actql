@@ -106,7 +106,7 @@ test('resource audit fixtures are reclaimed on success, rejection, and setup fai
 });
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /69 operations, 5 implementation profiles, 62 production routes mapped, 7 typed pre-execution refusals \(not execution success\), 62 with operation-specific boundary records, 60 with four-role boundary evidence, 60 with full work\/workspace assurance, 112 with path-scoped work\/workspace evidence, 1 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /69 operations, 5 implementation profiles, 62 production routes mapped, 7 typed pre-execution refusals \(not execution success\), 62 with operation-specific boundary records, 61 with four-role boundary evidence, 61 with full work\/workspace assurance, 113 with path-scoped work\/workspace evidence, 1 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('unsupported Graph routes require one shared public refusal boundary and cannot claim execution', () => {
@@ -1062,7 +1062,7 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
-    '| Path-scoped work/workspace assurance | 112 |',
+    '| Path-scoped work/workspace assurance | 113 |',
     '| Path-scoped work/workspace assurance | 54 |',
   );
   assert.notEqual(stale, gaps);
@@ -2210,8 +2210,6 @@ test('resource completion rejects every unassured operation', () => {
 });
 
 const pendingBoundaryErrors = [
-  'SGA graph_diff: entrypoint boundary assurance is missing',
-  'SGA graph_diff: entrypoint work/workspace assurance is missing',
   'SGA subgraph: entrypoint boundary assurance is missing',
   'SGA subgraph: entrypoint work/workspace assurance is missing',
 ];
@@ -2240,6 +2238,17 @@ test('strict resource completion preserves every current unassured Graph obligat
   // this rejection until the missing path-scoped evidence actually exists.
   assert.deepEqual(evaluate(undefined, undefined,
     ['--require-boundary-complete']).errors, pendingBoundaryErrors);
+});
+
+test('current Graph diff requires exact limits and delivered Host cancellation evidence', () => {
+  for (const role of ['graph_diff_work_workspace_exact_one_short',
+    'graph_diff_host_delivered_cancel_cleanup']) {
+    assert.match(run(undefined, routes => {
+      const diff = routes.routes.find(route=>route.operation === 'graph_diff');
+      const records = role.includes('host') ? diff.environment_tests : diff.boundary_tests;
+      records.find(record=>record.role === role).fixture = 'missing-current-diff-case';
+    }), /SGA graph_diff: missing (?:operation boundary|environment) fixture missing-current-diff-case/);
+  }
 });
 
 test('whole-sequence take owes both keyed and unkeyed resource branches', () => {

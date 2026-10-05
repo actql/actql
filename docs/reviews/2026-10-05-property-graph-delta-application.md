@@ -163,3 +163,97 @@ The registered route assurance covers logical work/workspace and the named
 lifecycle tests. Source/physical-resource assurance and broader failure modes
 remain recorded in the existing resource ledger; full boundary completion is
 not asserted. Keep those limits when using this unit in a larger composition.
+
+## Follow-up: managed diff produces a retained Delta Relation
+
+The application-unit scope above is historical. The follow-up adds execution
+of the already checked diff operation using the same installed Graph provider:
+
+```json
+{"from":"base","graph_diff":{"with":"target"},"as":"changes"}
+{"from":"base","apply_graph_delta":{"with":"changes","field":"delta"},"as":"reapplied"}
+```
+
+Each line is a Program step, not an independent complete Program. Both Graphs
+must have the compatible checked constructor contract. `graph_diff` binds base
+on input port 0 and target on port 1; reversing or replacing those occurrences
+does not satisfy the checked binding. The output schema is one Required,
+non-nullable JSON field, `delta`, and even equal snapshots produce exactly one
+row with empty action arrays. The Delta's complete records and base/target CIDs
+use the same formal snapshot contract as application. An extra operation field
+is rejected before Run admission; no legacy tuple fallback is supplied.
+
+`deltaDiffScenario(fixture, projection, {unchanged:false})` in the maintained
+fixture module constructs the complete public Program. It creates the target
+by applying the independently authored Delta, computes a fresh diff, reapplies
+that computed Delta to the base, and publishes guaranteed node or edge fields.
+The `{unchanged:true}` case instead uses independently equal snapshots. Local
+and HTTPS tests compare the generated Delta's retained row bytes and content
+CID with the authored expected envelope, not with another product-generated
+oracle. They check graph snapshot reload, actual Relation Store retention,
+source-read denial and reload, presence/NULL/key values, and ordered initial
+and reattached Named Results. Select this public boundary with
+`scripts/test-packed-property-graph.mjs --delta-diff-only`; clean source and
+package identity checks remain mandatory.
+
+### Work, material custody and bounded failure
+
+The existing bounded diff kernel and incremental common Relation importer share
+one operation-wide work ceiling. Kernel work is charged once before the import;
+the import's cumulative report is converted to a per-poll difference, and
+trusted completion uses the remaining same budget. No second Compute attempt
+or accounting owner is introduced. Borrowed base/target inputs remain available
+after success, budget failure, capacity failure and cancellation until their
+original Graph owners discard them.
+
+The importer transfers accepted row material exactly once through
+`take_admitted_output_preparation_rows`. This is not execution authority:
+trusted completion still binds both checked input occurrences. Transfer clears
+the importer's material/pending/cell roots and logical workspace accounting
+without clearing the rows handed to the completed Relation. Before acceptance,
+cleanup stops the nested importer and reclaims unpublished material; repeated
+cleanup does not change cumulative work or restart execution.
+
+The small independent one-node/two-edge to one-node/one-edge fixture uses
+17,144 logical workspace slots: snapshot indexes `19 + 12`, body decoder
+`1000*16 + 100*8 + 64`, action indexes `(3+2)*3`, recheck frames `(100+1)*2`, and
+32 framing slots. Exact/one-short workspace and total control-work tests cover
+both whole and selected execution. A zero output-row limit and a one-byte value
+limit fail without publishing a partial Delta. Cancellation covers the kernel,
+import and completion tail; the installed Host additionally delivers an abort
+after positive diff work and checks stop, no completed Delta, zero held/reserved
+bytes, and no new task after repeated close/cleanup.
+
+The source inventory includes two borrowed views, the bounded kernel, optional
+provisional output/importer, one checked Delta value and the accepted rows.
+The kernel's snapshot scratch is retired before import. The provisional-output
+root is relinquished when the importer acquires it; its checked-value root is
+cleared after accepted rows transfer. These source/lifetime observations and
+the registered work/workspace cases are not a physical allocation-byte theorem
+or a bound for the entire Graph heap. The existing resource ledger continues
+to distinguish logical boundary assurance from physical/source-proof coverage.
+
+### Evidence and outstanding checks
+
+Clean revision `b81867dece16cdac20f27915fc4819854090a48f` passed the then-existing
+focused JS cases 4/4, actual retained Git history validation, and fresh packed
+Local/HTTPS diff acceptance 2/2. The producer's manifest and five digests bind
+that exact revision. Its retained producer is
+`.codex-scratch/property-graph-diff-packages-b81867dec` under the workspace root;
+packed logs and package identities are in local attempt `run-4CYu5Z`.
+The successful private consumer installation was removed only after child/Host
+termination; it is not a retained evidence directory.
+
+The later boundary-test/resource-registration follow-up adds independent exact
+workspace, exact work, output-capacity and installed cancellation evidence.
+Its commands, final source revision and actual executed counts belong in the
+follow-up PR body. The earlier clean packed result is not relabelled as a new
+revision's fresh packed campaign. Targeted native verification uses the existing
+owned SQLite namespace wrapper and nonzero-test guard; broad Core, Linux and
+hosted required coverage remain separate checks.
+
+The b81867de hosted run failed before execution due to the GitHub account
+billing/spending-limit annotation. No product test ran in the failed startup
+jobs, and no manual rerun was made. Local acceptance does not imply hosted CI
+success. Diff does not complete other structural Graph consumers, INFER/Effect
+composition, Graph catalog persistence or the deferred naming change.
