@@ -766,6 +766,14 @@ The selected `take` child can follow the sorted branch without splitting
 the task or resetting its cumulative budget. On the same duplicated input,
 the real Store publishes `[{id: 4}, {id: 3}, {id: 1}, {id: 2}]` to the
 producer and two consumers; the memory-output Host runs the same Program.
+The same bounded fork can use `top_k` on one branch and `dedupe_rows` on the
+other when their checked order requirements are met. The fixture asserts
+unique IDs before `top_k`, gives duplicate IDs a distinct origin for the
+dedupe top-tie rule, and projects that private origin away before the task
+Result. The retained producer and two consumers then publish the fixed order
+`[{id: 4}, {id: 3}, {id: 1}, {id: 2}]` without changing the task's cumulative
+work or intermediate ownership model. This is not blanket admission of
+order-sensitive children with unresolved ties.
 The same retained Host also runs `EXCEPT ALL` and Cross Join as the first
 binary child of separate fork/join Programs. The former publishes the
 duplicate-sensitive rows `[{id: 2}, {id: 1}, {id: 1}]`; the latter publishes

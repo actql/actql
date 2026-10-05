@@ -7977,6 +7977,39 @@ async function exerciseStrategyGraph(
   branchedTakeSteps[6] = {
     from: 'limited_greater', append: {with: 'unique_less'}, as: 'out',
   };
+  const branchedRankedProgram = structuredClone(branchedOrderProgram);
+  for (const [stageId, origin] of [
+    ['cross_left', 'left'], ['cross_right', 'right'],
+  ]) {
+    const stage = branchedRankedProgram.stages.find(item =>
+      item.id === stageId);
+    stage.steps[0].values.schema.origin = {
+      type: 'string', nullable: false,
+    };
+    stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
+      ({...row, origin}));
+    stage.results.r.fields = ['id', 'origin'];
+  }
+  const branchedRankedSteps = branchedRankedProgram.stages.find(stage =>
+    stage.id === 'crossed').steps;
+  branchedRankedSteps[1].filter = 'id > 2';
+  branchedRankedSteps.splice(3, 0, {
+    from: 'greater', assert_rows: {unique_by: ['id']},
+    as: 'unique_greater',
+  });
+  branchedRankedSteps[4] = {
+    from: 'unique_greater', top_k: {k: 2, by: [{id: 'desc'}]},
+    as: 'ranked_greater',
+  };
+  branchedRankedSteps[5] = {
+    from: 'less', dedupe_rows: {
+      by: ['id'], order_by: [{origin: 'asc'}],
+    }, as: 'deduped_less',
+  };
+  branchedRankedSteps[6] = {
+    from: 'ranked_greater', append: {with: 'deduped_less'}, as: 'joined',
+  };
+  branchedRankedSteps.push({from: 'joined', select: ['id'], as: 'out'});
   for (const [name, program, tasks] of [
     ['values', zeroInputProgram, [1, 2, 3]],
     ['captured Relation filter/select chain', capturedRelationChainProgram,
@@ -8020,6 +8053,8 @@ async function exerciseStrategyGraph(
     ['external append fork-sort-distinct-join', branchedOrderProgram,
       [1, 2, 3, 4, 5]],
     ['external append fork-sort-take-distinct-join', branchedTakeProgram,
+      [1, 2, 3, 4, 5]],
+    ['external append fork-top-k-dedupe-join', branchedRankedProgram,
       [1, 2, 3, 4, 5]],
     ['filter then append captured input', filterThenAppendProgram,
       [1, 2, 3, 4]],
@@ -9443,6 +9478,8 @@ async function exerciseStrategyGraph(
     {name: 'append-fork-sort-distinct-join', source: branchedOrderProgram,
       expected: [4, 3, 2, 2, 1, 2].map(id => ({id})), fields: ['id']},
     {name: 'append-fork-sort-take-distinct-join', source: branchedTakeProgram,
+      expected: [4, 3, 1, 2].map(id => ({id})), fields: ['id']},
+    {name: 'append-fork-top-k-dedupe-join', source: branchedRankedProgram,
       expected: [4, 3, 1, 2].map(id => ({id})), fields: ['id']},
     {name: 'except-all-fork-join', source: retainedExceptFork,
       expected: [2, 1, 1].map(id => ({id})), fields: ['id']},

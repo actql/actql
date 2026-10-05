@@ -138,7 +138,10 @@ fn bounded_branched_relation_chain(graph : CheckedDAG, stage : Int) -> Bool {
       | @lower.Select(_)
       | @lower.Sort(_)
       | @lower.Limit(_)
+      | @lower.TopK(_)
       | @lower.Distinct(_)
+      | @lower.Dedupe(_)
+      | @lower.AssertRows(_)
       | @lower.CountGroup(_) => ()
       _ => return false
     }
