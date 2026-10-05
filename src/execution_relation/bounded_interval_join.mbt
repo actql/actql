@@ -49,6 +49,7 @@ priv struct BoundedIntervalState {
   mut left_row : Int
   mut right_row : Int
   mut key_index : Int
+  mut comparison : BoundedCompleteValueComparison?
   mut matched : Bool
   mut visited : Int64
   mut emitted : Int
@@ -109,6 +110,7 @@ fn bounded_interval_failure(
 
 ///|
 fn cleanup_bounded_interval_state(state : BoundedIntervalState) -> Bool {
+  state.comparison = None
   if state.output_recheck is Some(cursor) {
     @admitted.cancel_recheck_runtime_value(cursor)
     state.output_recheck = None
@@ -133,6 +135,42 @@ fn cleanup_bounded_interval_state(state : BoundedIntervalState) -> Bool {
     state.live.val = false
   }
   true
+}
+
+///|
+/// The pair and key index stay fixed until comparison completes. Both input
+/// owners retain the borrowed cells until physical stop and kernel cleanup.
+fn bounded_interval_compare_key(
+  state : BoundedIntervalState,
+  left : Value,
+  right : Value,
+) -> Result[Int?, RowIssue] {
+  if state.comparison is None &&
+    left is Text(a) &&
+    right is Text(b) &&
+    (a.length() > 64 || b.length() > 64) {
+    if !reserve_slots(state.workspace, 2) {
+      return Err(RowLimit)
+    }
+    state.comparison = Some(bounded_complete_value_comparison())
+  }
+  if state.comparison is Some(cursor) {
+    let result = bounded_complete_value_comparison_step(
+      cursor,
+      left,
+      right,
+      state.control,
+    ).map_err(ordering_row_issue)
+    if result is Ok(Some(_)) {
+      state.comparison = None
+      release_slots(state.workspace, 2)
+    }
+    result
+  } else {
+    compare_complete_value(left, right, state.control)
+    .map(value => Some(value))
+    .map_err(ordering_row_issue)
+  }
 }
 
 ///|
@@ -303,9 +341,14 @@ fn bounded_interval_step(
           state.phase = BeginPair
           progress += 1
         } else {
-          match compare_complete_value(left_value, right_value, state.control) {
-            Ok(0) => state.key_index += 1
-            Ok(_) => {
+          match bounded_interval_compare_key(state, left_value, right_value) {
+            Ok(None) => {
+              used += 1
+              progress += 1
+              continue
+            }
+            Ok(Some(0)) => state.key_index += 1
+            Ok(Some(_)) => {
               state.visited += 1L
               state.key_index = 0
               state.right_row += 1
@@ -313,11 +356,7 @@ fn bounded_interval_step(
               progress += 1
             }
             Err(issue) =>
-              return bounded_interval_failure(
-                Rows(ordering_row_issue(issue)),
-                progress,
-                used + 1,
-              )
+              return bounded_interval_failure(Rows(issue), progress, used + 1)
           }
         }
         used += 1
@@ -756,6 +795,7 @@ pub fn start_bounded_interval_join(
     left_row: 0,
     right_row: 0,
     key_index: 0,
+    comparison: None,
     matched: false,
     visited: 0L,
     emitted: 0,
@@ -821,6 +861,7 @@ pub fn cleanup_bounded_interval_join(
   if !@bounded.cleanup_pending(value.session) &&
     (
       value.state.workspace.live != 0 ||
+      value.state.comparison is Some(_) ||
       value.state.output_recheck is Some(_) ||
       value.state.output_charge is Some(_)
     ) {

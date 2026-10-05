@@ -3,6 +3,7 @@ fn bounded_sequence_source(
   empty? : Bool = false,
   unicode? : Bool = false,
   extra_columns? : Int = 0,
+  text_keys? : Bool = false,
 ) -> (@lower.BoundPrepared, CompletedOutput) raise {
   if extra_columns < 0 || (extra_columns > 0 && !empty) {
     fail("wide sequence source requires empty rows")
@@ -16,6 +17,33 @@ fn bounded_sequence_source(
   }
   let rows = if empty {
     "[]"
+  } else if text_keys {
+    "[" +
+    [(3, 1, 3, 2), (1, 1, 1, 1), (4, 2, 4, 2), (2, 1, 2, 2), (5, 2, 3, 1)]
+    .map(row => {
+      let (id, group, clock, value) = row
+      "{\"id\":\"" +
+      String::make(256, 'g') +
+      id.to_string() +
+      "\",\"" +
+      key +
+      "\":\"" +
+      String::make(256, 'p') +
+      group.to_string() +
+      "\",\"aux\":" +
+      (if group == 1 {
+        "\"" + String::make(256, 'q') + "😀\""
+      } else {
+        "null"
+      }) +
+      ",\"clock\":" +
+      clock.to_string() +
+      ",\"value\":" +
+      value.to_string() +
+      "}"
+    })
+    .join(",") +
+    "]"
   } else {
     "[{\"id\":3,\"" +
     key +
@@ -34,10 +62,19 @@ fn bounded_sequence_source(
     "\":2,\"clock\":3,\"value\":1}]"
   }
   let owner = bound_pipeline(
-    "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}," +
+    "[{\"values\":{\"schema\":{\"id\":{\"type\":\"" +
+    (if text_keys { "string" } else { "number" }) +
+    "\",\"nullable\":false}," +
     "\"" +
     key +
-    "\":{\"type\":\"number\",\"nullable\":false}," +
+    "\":{\"type\":\"" +
+    (if text_keys { "string" } else { "number" }) +
+    "\",\"nullable\":false}," +
+    (if text_keys {
+      "\"aux\":{\"type\":\"string\",\"nullable\":true},"
+    } else {
+      ""
+    }) +
     "\"clock\":{\"type\":\"number\",\"nullable\":false}," +
     "\"value\":{\"type\":\"number\",\"nullable\":false}" +
     extra_schema +
@@ -76,6 +113,7 @@ fn bounded_sequence_try_fixture(
   unicode? : Bool = false,
   extra_columns? : Int = 0,
   extra_patterns? : Int = 0,
+  text_keys? : Bool = false,
   constrain? : (GeneratedSequence) -> GeneratedSequence = value => value,
 ) -> (
   @bounded.Control,
@@ -86,6 +124,7 @@ fn bounded_sequence_try_fixture(
     empty~,
     unicode~,
     extra_columns~,
+    text_keys~,
   )
   let producer = @pipeline.produced_input(
     @lower.pipeline(@lower.bound_preparation(source_owner)),
@@ -105,7 +144,11 @@ fn bounded_sequence_try_fixture(
   let checked = @pipeline.check_with_evidence(
     input_cursor(
       "[{\"from\":\"events\",\"sequence\":{\"by\":" +
-      (if grouped { "[\"" + key + "\"]" } else { "[]" }) +
+      (if grouped {
+        "[\"" + key + "\"" + (if text_keys { ",\"aux\"" } else { "" }) + "]"
+      } else {
+        "[]"
+      }) +
       "," +
       "\"id\":\"id\",\"time\":\"clock\",\"pattern\":[{" +
       "\"as\":\"start\",\"where\":\"value = 1\"},{" +
@@ -184,6 +227,7 @@ fn bounded_sequence_fixture(
   max_entries? : Int = 10000,
   unicode? : Bool = false,
   extra_patterns? : Int = 0,
+  text_keys? : Bool = false,
   constrain? : (GeneratedSequence) -> GeneratedSequence = value => value,
 ) -> (@bounded.Control, BoundedSequenceMatchExecution, ProducerRead) raise {
   let (control, execution, input) = bounded_sequence_try_fixture(
@@ -197,6 +241,7 @@ fn bounded_sequence_fixture(
     max_entries~,
     unicode~,
     extra_patterns~,
+    text_keys~,
     constrain~,
   )
   (control, execution.unwrap(), input)

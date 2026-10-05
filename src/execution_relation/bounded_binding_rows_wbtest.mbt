@@ -77,6 +77,7 @@ fn bounded_binding_rows_receiver(
   derive_scalar? : Bool = false,
   derive_text? : Bool = false,
   compare_text? : Bool = false,
+  membership_text? : Bool = false,
 ) -> @lower.BoundPrepared {
   let producer = @pipeline.produced_input(
     @lower.pipeline(@lower.bound_preparation(source_owner)),
@@ -117,6 +118,12 @@ fn bounded_binding_rows_receiver(
         "{\"rename\":{\"left\":\"alias\"},\"from\":\"rows\",\"as\":\"derived\"}"
       } else if drop {
         "{\"drop\":[\"left\"],\"from\":\"rows\",\"as\":\"derived\"}"
+      } else if membership_text {
+        "{\"filter\":\"tag IN ('" +
+        String::make(256, 'g') +
+        "','" +
+        String::make(256, 'g') +
+        "')\",\"from\":\"rows\",\"as\":\"derived\"}"
       } else if compare_text {
         "{\"filter\":{\"eq\":[{\"field\":\"tag\"},{\"literal\":\"" +
         String::make(256, 'g') +
@@ -187,6 +194,7 @@ fn bounded_binding_rows_fixture(
   derive_scalar? : Bool = false,
   derive_text? : Bool = false,
   compare_text? : Bool = false,
+  membership_text? : Bool = false,
   id_nullable? : Bool = false,
   input_limits? : ValueLimits? = None,
   max_work? : Int = 100000,
@@ -203,7 +211,8 @@ fn bounded_binding_rows_fixture(
       dedupe ||
       unique_text ||
       derive_text ||
-      compare_text,
+      compare_text ||
+      membership_text,
     unused_payload~,
     top_k_source=top_k,
     top_k_by_source=top_k_by || top_k_by_empty,
@@ -231,6 +240,7 @@ fn bounded_binding_rows_fixture(
     derive_scalar~,
     derive_text~,
     compare_text~,
+    membership_text~,
   )
   let sequence = prepared_sequence(receiver)
   let first = @lower.node_at(@lower.bound_preparation(receiver), 0).unwrap()

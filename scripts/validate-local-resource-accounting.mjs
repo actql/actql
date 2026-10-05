@@ -856,6 +856,24 @@ export function validateResourceAccounting({
         }
       }
     }
+    if (route.family === 'RelA' && ['except', 'intersect'].includes(route.operation)) {
+      for (const suffix of ['quantum_order', 'work_workspace', 'stop_cleanup']) {
+        const role = `${route.operation}_nested_compare_${suffix}`;
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+    }
+    if (route.family === 'TEA' && route.operation === 'interval_join') {
+      for (const role of [
+        'interval_long_text_compare_quantum_order',
+        'interval_long_text_compare_stop_cleanup',
+        'interval_long_text_compare_work_workspace',
+        'interval_long_text_whole_work_workspace',
+      ]) {
+        if (!boundaryRoles.has(role)) {
+          fail(`${label}: ${role} fixture is missing`);
+        }
+      }
+    }
     if (route.family === 'TEA' && route.operation === 'sequence') {
       for (const role of [
         'sequence_quantum_one_output_and_cleanup',

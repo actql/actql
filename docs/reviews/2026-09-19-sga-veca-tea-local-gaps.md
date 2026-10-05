@@ -26,6 +26,16 @@ establish the public configuration connection, not retained output for every
 installed source or two-source Program variant. Full CI and Native Host cancellation
 remain separate verification units.
 
+The source-free public retained path now also prepares Values -> Sequence ->
+authored sort -> select with two downstream consumer stages. Ordinary checking
+derives both existing selected Host Sequence limits before application; authored
+guards can narrow them, while supplied foreign coordinates remain rejected.
+The installed Host fixture reads all three independent ordered Named Results,
+reuses the same request without new Compute progress, and includes empty input.
+This connection is separate from Events Sequence and acquired inputs. Exact
+public-phase cancellation and broader chain/failure coverage are not implied.
+See the [Sequence boundary record](2026-10-06-local-sequence-comparison.md).
+
 Two independently installed GitHub row sources can now occupy the two checked
 captured input tasks of one retained-output Program. The Host prepares each
 source at its own occurrence, checks both capacities against one Local ledger,
@@ -1432,6 +1442,42 @@ public Host fixture, fresh-process recovery, public cancellation of this wire
 shape, packed consumers, Wasm/native and Linux integration remain unverified.
 Component boundary/cancellation fixtures retain their narrower scope and do
 not establish those unexecuted product paths.
+
+The membership expression frame now resumes each long Text comparison through
+the same operand-byte and UTF-16 cursors as binary comparison. Advancing one
+list element was not sufficient: a 4,096-character pair previously exceeded
+the fixture's per-advance charge bound (`run-5pgddy` / `focused-test-uzeWAW`,
+0/1). `CompareMembership` borrows the original membership roots and reserves
+two cursor slots before construction. It releases those slots after each pair,
+not the original operands. All admitted items are still visited, including
+duplicates after a match; NULL and `NOT IN` keep their existing truth rules.
+The existing small scalar lane, parameter admission and language are unchanged.
+
+Independent 256-character fixtures fix 520/519 control and 3/2 cursor workspace
+boundaries for one comparison, plus 1548/1547 logical work and 777/776 live bytes
+for two comparisons. Quanta one and seven give identical results and logical
+work. Cleanup during either operand charge or the common-prefix comparison of
+the second item preserves borrowed roots and spent work. A checked bounded
+filter receives cancellation during that second comparison, after the first
+match. Stop preserves its retained input and pending reservations until cleanup;
+the first cleanup releases them and a second cleanup performs no further work.
+The four affected expression files passed 35/35 focused JS cases (`run-DcTVXQ`
+/ `focused-test-enl0lN`). These are component and managed-child observations,
+not proof of a public Run cancellation at that exact comparison phase.
+
+`adapters/host-node/public-membership-retention.test.mjs` submits an ordinary
+Program with a typed array parameter, long duplicate Text operands and NULL.
+The installed real retained Store publishes sorted producer and two consumer
+Named Results, each checked against independently authored true/false/NULL rows.
+Same-request reuse preserves results without another positive-progress or
+completion observation. Temporary carrier files are reclaimed. The fixture is
+included in the existing installed Host suite; it and the previous public wire
+fixture passed 2/2 (`run-0ATVkU` / `focused-test-EG6Rxv`) after preparing only
+`local-node` and `run-host-core` from the changed source. This is checkout Host
+acceptance, not packed distribution, fresh-process recovery or a complete
+physical-entry census. Wasm/native, final integration CI, public cancellation
+of this membership shape, and synchronous non-frame comparison consumers
+remain unverified. No whole-operation assurance count is promoted.
 
 #### Retained Relation obligation chains
 
@@ -5494,3 +5540,59 @@ workspace 30/29 boundary checks, plus cancellation and cleanup. Their distinct
 roles are now registered with the corresponding environment evidence. Removing
 the fused timer role, either stored assurance, or substituting selected-path
 cancellation is rejected by the resource audit tests.
+
+### Sequence internal Text comparison boundary
+
+Identity sorting, uniqueness checks, compound-key sorting and partition
+boundaries now retain a stepped Text comparison cursor. This is actual
+comparison scanning, distinct from predicate initialization and output value
+measurement. Focused JS tests preserve independent result/order expectations,
+quantum-invariant control work, exact/one-short reservations and cancellation
+inside each comparison phase. Pending child-sort state is reclaimed only after
+its stop is confirmed.
+
+At the comparison-only revision, source-free public preparation failed before
+Compute with `SequenceCollection(MissingApplication(1))`. The subsequent
+capacity-admission change connects both existing Host claims, and the same
+public Program now publishes its retained producer and two consumer Results.
+The failed evidence and the newer passing boundary are distinguished in the
+[Sequence boundary record](2026-10-06-local-sequence-comparison.md).
+
+### Interval join internal Text comparison boundary
+
+Interval pair-key comparison now retains the existing stepped complete-value
+Text cursor instead of synchronously scanning long operands. Focused JS evidence
+checks quantum-invariant results and logical control work, comparison and whole-
+operation exact/one-short limits, cancellation inside charging/scanning, and
+single cleanup with live caller inputs. The ordinary installed retained Host
+also publishes independent ordered producer/two-consumer Results with long keys,
+duplicates and NULL non-matching; request reuse performs no additional Compute.
+Public comparison-phase stop latency and Wasm/native execution are not newly
+claimed. See the [interval boundary record](2026-10-06-local-interval-comparison.md).
+
+### Set recursive comparison and retained Store capacity boundary
+
+EXCEPT/INTERSECT now retain accounted admitted-value comparison frames rather
+than walking a complete Array/Object/Vector inside one poll. Focused JS evidence
+preserves ALL/DISTINCT survivors, order and logical work across quanta, isolated
+exact/one-short comparison limits, and root/scratch ownership through confirmed
+stop and single cleanup. This partitions operator scanning, not retention
+measurement. Other recursive comparator callers are not yet covered.
+
+The earlier task-zero failure attribution was incorrect: the full diagnostic
+completed tasks 0 through 4, then refused the final Sort's retention reservation.
+Candidate and input binding checks passed. Pre-start Host capacity had omitted
+the declared import/export allowances from its whole-Run inventory.
+
+The follow-up includes those allowances and counts each checked input port,
+without dropping live parents or changing the 512 MiB admission ceiling. The
+ordinary source-free nested Set -> Unnest -> projection -> Sort Program now
+publishes independent ordered producer/two-consumer Results for all four
+ALL/DISTINCT variants; repeated requests perform no additional Compute. A
+kernel-certified nested Text scanning barrier now also drives public
+cancellation: inputs remain held before physical stop, no Result is published,
+snapshots are reclaimed after stop and request reuse does not redispatch.
+Packed/HTTP and Wasm/native execution remain unverified for this unit. Other
+recursive comparator callers remain separate.
+See the [Set boundary record](2026-10-06-local-set-tree-comparison.md) and
+[retained capacity record](2026-10-06-local-retained-store-capacity.md).
