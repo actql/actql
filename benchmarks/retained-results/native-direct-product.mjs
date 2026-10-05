@@ -7,6 +7,7 @@ import {performance} from 'node:perf_hooks';
 import {promisify} from 'node:util';
 import {managedCaseConfiguration, nativeRegisteredResidentOffer} from
   './managed-configuration.mjs';
+import {nativeOwnerObservations, admitNativeOwnerObservations} from './native-owner-observations.mjs';
 import {registeredLocalEligibility} from './candidate-eligibility.mjs';
 import {workloads} from './fixtures.mjs';
 import {productAcquisitionMetadata} from
@@ -21,9 +22,12 @@ import {productAcquisitionMetadata} from
 // override only.
 export async function prepareNativeDirectProduct({root, fixture, database,
   directory, nativeMs = '1000', localRates, nativeRates,
-  residentPolicy = nativeRegisteredResidentOffer}) {
+  residentPolicy = nativeRegisteredResidentOffer, cancelAfterTask,
+  attemptCap = 12}) {
   assert(existsSync(database), 'NativeProductSourceUnavailable');
   assert(typeof residentPolicy === 'boolean', 'InvalidNativeResidentPolicy');
+  assert(Number.isSafeInteger(attemptCap) && attemptCap > 0 && attemptCap <= 12,
+    'InvalidNativeDiagnosticAttemptCap');
   const text = path => readFile(join(root, path), 'utf8');
   const contracts = {
     adoptedText: await text('adapters/connectors/duckdb/node/contracts/adopted-relation.json'),
@@ -73,6 +77,8 @@ export async function prepareNativeDirectProduct({root, fixture, database,
       '--expected-cid', expected.rowsCid,
       '--expected-tasks', String(finalTask),
       '--native-ms', nativeMs,
+      '--attempt-cap', String(attemptCap),
+      '--cancel-after-task', cancelAfterTask === undefined ? '-' : String(cancelAfterTask),
       '--local-eligible', String(localEligible),
       '--resident-policy', String(residentPolicy),
       '--local-task-ms', localRates?.join(',') ?? '-',
@@ -114,7 +120,8 @@ export async function executeNativeDirectProduct(invocation, {root, timeoutMs}) 
     });
   assert.deepEqual(taskIntervals.map(value => value.task),
     Array.from({length: invocation.finalTask}, (_, index) => index + 1));
-  return Object.freeze({record, taskIntervals,
+  return Object.freeze({record, taskIntervals, stdout,
+    ownerObservations: nativeOwnerObservations(stdout),
     selections: stdout.split('\n').filter(line => line.startsWith('selection:')),
     taskUsages: stdout.split('\n').filter(line => line.startsWith('task-usage:')),
     taskMeasurementScopes: stdout.split('\n')
@@ -207,8 +214,20 @@ export function admitNativeDirectProduct(fixture, invocation, execution) {
     return [Number(match[1]), match[2]];
   }));
   assert.equal(selected.size, expectedTasks);
+  const acquisitionChoices = execution.ownerObservations.acquisitionChoices;
+  assert.equal(acquisitionChoices.length, 1, 'MissingNativeAcquisitionChoice');
+  const acquisitionChoice = acquisitionChoices[0];
+  assert.equal(acquisitionChoice.host, 'native');
+  assert.deepEqual(acquisitionChoice.provided, ['native']);
+  assert.equal(acquisitionChoice.registration, 'duckdb');
+  assert(['HostPreferred', 'EstimatedFastest'].includes(acquisitionChoice.reason),
+    'NativeAcquisitionChoiceWithoutProposal');
+  assert.equal(acquisitionChoice.capacityScope, 'declared receiver, not physical heap');
+  const ownerCorrespondence = admitNativeOwnerObservations(
+    execution.ownerObservations, taskHoldings, ids.map(task => selected.get(task)),
+    record.usage);
   return Object.freeze({record, taskIntervals, taskUsages, taskHoldings,
-    selections, selected: ids.map(task => selected.get(task)),
+    acquisitionChoice, ownerCorrespondence, selections, selected: ids.map(task => selected.get(task)),
     acquisitionEvidenceMetadata,
     executionMs: record.execution_us / 1000,
     cleanupMs: record.cleanup_us / 1000,

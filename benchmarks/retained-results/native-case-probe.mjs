@@ -22,7 +22,7 @@ for (const arg of extra) {
     options.set('training', true);
     continue;
   }
-  const match = /^--(native-ms|local-task-ms|native-task-ms|source-database|resident-policy)=(.+)$/.exec(arg);
+  const match = /^--(native-ms|local-task-ms|native-task-ms|source-database|resident-policy|attempt-cap|cancel-after-task)=(.+)$/.exec(arg);
   if (!match || options.has(match[1])) throw new TypeError('InvalidNativeProbeOption');
   options.set(match[1], match[2]);
 }
@@ -68,6 +68,7 @@ const scratchRoot = resolve(process.env.ACTQL_TEST_SCRATCH_ROOT ?? tmpdir(),
 await mkdir(scratchRoot, {recursive: true});
 const directory = await mkdtemp(join(scratchRoot, 'run-'));
 const run = promisify(execFile);
+let observedExecution;
 
 try {
   const database = options.has('source-database')
@@ -81,31 +82,48 @@ try {
     ], {cwd: root, timeout: fixture.limits.timeoutMs});
   }
   const invocation = await prepareNativeDirectProduct({root, fixture,
-    database, directory, nativeMs, localRates, nativeRates, residentPolicy});
+    database, directory, nativeMs, localRates, nativeRates, residentPolicy,
+    ...(options.has('attempt-cap') ? {attemptCap: Number(options.get('attempt-cap'))} : {}),
+    ...(options.has('cancel-after-task') ? {cancelAfterTask: Number(options.get('cancel-after-task'))} : {})});
   assert.equal(invocation.finalTask, expectedTasks);
   assert.equal(invocation.localEligible, localEligible);
-  const execution = await executeNativeDirectProduct(invocation,
-    {root, timeoutMs: fixture.limits.timeoutMs});
-  const admitted = admitNativeDirectProduct(fixture, invocation, execution);
-  console.log(JSON.stringify({
-    kind: 'native-case-probe-diagnostic', status: 'verified-diagnostic', case: fixture.id,
-    scope: registered ? 'registered-feasibility' : 'calibration-training',
-    elapsedMilliseconds: admitted.processCycleMs,
-    executionMilliseconds: admitted.executionMs,
-    cleanupMilliseconds: admitted.cleanupMs,
-    taskIntervals: admitted.taskIntervals,
-    taskUsages: admitted.taskUsages,
-    taskHoldings: admitted.taskHoldings,
-    selections: admitted.selections,
-    taskResidents: execution.taskResidents,
-    result: admitted.record,
-    acquisitionEvidenceMetadata: admitted.acquisitionEvidenceMetadata,
-    sourceMode: options.has('source-database') ? 'existing' : 'generated',
-    selectionInput: {nativeMs, localEligible, localRates, nativeRates,
-      residentPolicy},
-  }));
+  if (options.has('cancel-after-task')) {
+    const {stdout} = await run(invocation.binary, invocation.arguments,
+      {cwd: root, timeout: fixture.limits.timeoutMs, maxBuffer: 1024 * 1024});
+    const record = JSON.parse(stdout.trim().split('\n').at(-1));
+    assert.equal(record.status, 'cancelled');
+    console.log(JSON.stringify({kind: 'native-case-probe-diagnostic',
+      status: 'cancelled-diagnostic', case: fixture.id, host: 'native', record,
+      observations: stdout.split('\n').filter(line =>
+        /^(owner-observation|compute-candidates|compute-choice|phase-time-us):/.test(line))}));
+  } else {
+    const execution = await executeNativeDirectProduct(invocation,
+      {root, timeoutMs: fixture.limits.timeoutMs});
+    observedExecution = execution;
+    const admitted = admitNativeDirectProduct(fixture, invocation, execution);
+    console.log(JSON.stringify({
+      kind: 'native-case-probe-diagnostic', status: 'verified-diagnostic', case: fixture.id,
+      scope: registered ? 'registered-feasibility' : 'calibration-training',
+      elapsedMilliseconds: admitted.processCycleMs,
+      executionMilliseconds: admitted.executionMs,
+      cleanupMilliseconds: admitted.cleanupMs,
+      taskIntervals: admitted.taskIntervals,
+      taskUsages: admitted.taskUsages,
+      taskHoldings: admitted.taskHoldings,
+      selections: admitted.selections,
+      taskResidents: execution.taskResidents,
+      host: 'native',
+      ownerCorrespondence: admitted.ownerCorrespondence,
+      acquisitionChoice: admitted.acquisitionChoice,
+      result: admitted.record,
+      acquisitionEvidenceMetadata: admitted.acquisitionEvidenceMetadata,
+      sourceMode: options.has('source-database') ? 'existing' : 'generated',
+      selectionInput: {nativeMs, localEligible, localRates, nativeRates,
+        residentPolicy},
+    }));
+  }
 } catch (error) {
-  const output = String(error.stdout ?? '').trim().split('\n');
+  const output = String(error.stdout ?? observedExecution?.stdout ?? '').trim().split('\n');
   console.log(JSON.stringify({
     kind: 'native-case-probe-diagnostic', status: 'failed', case: fixture.id,
     name: error.name,
@@ -114,6 +132,8 @@ try {
     phases: output.filter(line => line.startsWith('phase:')),
     strategyRejections: output.filter(line => line.startsWith('strategy-rejection:')),
     terminal: output.at(-1),
+    stderr: String(error.stderr ?? ''),
+    observations: output.filter(line => /^(owner-observation|compute-candidates|compute-choice|phase-time-us):/.test(line)),
   }));
   process.exitCode = 1;
 } finally {

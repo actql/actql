@@ -72,6 +72,34 @@ running Host. The reported process interval is diagnostic. This path currently
 lacks independent file holding, a fresh reader and equivalent comparator
 obligations, so it cannot supply formal acceptance samples.
 
+Host is an explicit experiment condition. The equivalent matrix accepts
+`node-managed` or `native-direct`; row count and workload do not select a Host.
+This changes the experimental condition of the former mixed-Host profile, so
+its results cannot be substituted for historical registered measurements.
+Record Host, acquisition choice and Compute choices separately. The Native
+application currently offers one Native acquisition candidate; its recorded
+`HostPreferred` reason does not establish a Native/Broad comparison.
+
+The Native owner diagnostic checks the existing 100-row case with resident and
+fresh Compute offers, cancellation after the first task, and an insufficient
+attempt ceiling. The existing Native direct-pair acceptance runs it after the
+release binary is built. For a focused local Native diagnostic, use the
+repository wrapper with an explicit build profile:
+
+```sh
+ACTQL_NATIVE_PROBE_PROFILE=debug node scripts/local-checks.mjs test node \
+  --timeout-seconds 90 -- benchmarks/retained-results/native-owner-acceptance.mjs
+```
+
+The test uses declared diagnostic estimates, not calibrated performance inputs.
+Actual candidate projections and selected registrations precede execution;
+owner snapshots bind extra environment/import attempts and holding charges to
+completed tasks. Canonical Rows bytes and charged retained bytes remain separate.
+Phase endpoints enclose real execution boundaries. Nested task, planning and
+observer intervals must not be summed with the enclosing process interval.
+See the [planner/resident boundary record](../../docs/reviews/2026-10-05-planner-resident-benchmark-boundary.md)
+for incomplete acceptance and measurement obligations.
+
 The correctness smoke checks run without importing the ActQL evaluator:
 
 ```sh
