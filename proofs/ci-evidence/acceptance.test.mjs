@@ -12,13 +12,13 @@ import {leanInput} from './check.mjs';
 import {sealAcceptance, checkAcceptance, readAcceptance, readyActions, acceptanceName} from './acceptance.mjs';
 
 const jsonBytes = value => Buffer.from(`${encode(value)}\n`);
-function fixture() {
+function fixture(event = 'push') {
   const catalog = readCatalog(); catalog.actions = catalog.actions.filter(action => ['model', 'mutations-js'].includes(action.id));
   catalog.actions.forEach(action => { action.dependencies = []; });
   const context = {repository: 'actql/actql', repositoryId: 1, headRepositoryId: 1, workflowId: 2,
     candidateRevision: 'a'.repeat(40), runHeadRevision: 'a'.repeat(40), runId: 3, runAttempt: 4, ancestors: []};
   const origin = {...context, testedRevision: context.candidateRevision, workflowPath: '.github/workflows/ci.yml',
-    event: 'push', branch: 'main', jobId: 5};
+    event, branch: 'main', jobId: 5};
   delete origin.candidateRevision; delete origin.ancestors; delete origin.headRepositoryId;
   const files = new Map([...sharedFiles.map(path => [path, path]),
     ...mutationSnapshotExtras.map(path => [path, path]),
@@ -62,7 +62,7 @@ function fixture() {
   members.set('comparison-plan.json', jsonBytes(comparison)); members.set('comparison-observations.json', jsonBytes(observations));
   result.lean = lean; result.comparison = {baseline: comparison.baseline, confirmation: {status: 'confirmed'}, reuseAuthorized: false,
     recordedStatuses: comparison.actions.map(entry => ({...entry}))};
-  const report = sealAcceptance({result, observations, owner: {runId: 3, runAttempt: 4, jobId: 7}, event: 'push', branch: 'main',
+  const report = sealAcceptance({result, observations, owner: {runId: 3, runAttempt: 4, jobId: 7}, event, branch: 'main',
     sourceArtifact, certificateDigest: hash(members.get('checked.json'))});
   return {catalog, context, sourceArtifact, report, members,
     sourceZip: {read: async path => { assert(members.has(path), 'Missing actual source member'); return members.get(path); }}};
@@ -106,6 +106,12 @@ test('final applicability binds actual source receipts, scientific observations 
   }
   assert.equal(encode(f.report), before);
 });
+test('manual acceptance preserves actual receipt triggers and cannot relabel a push original', async () => {
+  const manual = fixture('workflow_dispatch');
+  assert.equal((await checkAcceptance(manual)).length, 1);
+  const push = fixture(); push.report.event = 'workflow_dispatch';
+  await assert.rejects(checkAcceptance(push));
+});
 
 test('only a fresh main comparison qualifies; recovered partial comparison and prior PR acceptance do not', () => {
   for (const change of [
@@ -118,8 +124,8 @@ test('only a fresh main comparison qualifies; recovered partial comparison and p
   ]) { const f = fixture(); change(f.report); assert.deepEqual(readyActions(f.report), []); }
 });
 
-test('the actual acceptance ZIP entrance rejects failed/check owners, wrong attempts, tampered bytes and missing archives', async t => {
-  const f = fixture(), directory = await mkdtemp(join(tmpdir(), 'actql-final-acceptance-'));
+for (const event of ['push', 'workflow_dispatch']) test(`actual ${event} acceptance ZIP rejects failed owners, wrong attempts, tampered bytes and missing archives`, async t => {
+  const f = fixture(event), directory = await mkdtemp(join(tmpdir(), 'actql-final-acceptance-'));
   t.after(() => rm(directory, {recursive: true}));
   const sourceArchive = join(directory, 'source.zip'), archive = join(directory, 'acceptance.zip');
   // Bind the API to independently written ZIP bytes, not a report's digest.
@@ -129,7 +135,7 @@ test('the actual acceptance ZIP entrance rejects failed/check owners, wrong atte
   f.report.result.applications.forEach(entry => { entry.archiveDigest = sourceDigest; });
   const bytes = zip([['verified-family.json', jsonBytes(f.report)]]); await writeFile(archive, bytes);
   const run = {id: 3, run_attempt: 4, head_sha: f.context.candidateRevision, workflow_id: 2, path: '.github/workflows/ci.yml',
-    repository: {id: 1, full_name: 'actql/actql'}, head_repository: {id: 1}, event: 'push', head_branch: 'main', status: 'completed', conclusion: 'success'};
+    repository: {id: 1, full_name: 'actql/actql'}, head_repository: {id: 1}, event, head_branch: 'main', status: 'completed', conclusion: 'success'};
   const job = {id: 7, name: 'check', run_id: 3, run_attempt: 4, head_sha: f.context.runHeadRevision, status: 'completed', conclusion: 'success'};
   const artifact = {id: 8, name: acceptanceName(f.context), size_in_bytes: bytes.length, digest: `sha256:${hash(bytes)}`,
     expired: false, expires_at: '2050-01-01T00:00:00Z', workflow_run: {id: 3, head_sha: f.context.runHeadRevision, repository_id: 1, head_repository_id: 1}};
@@ -143,7 +149,16 @@ test('the actual acceptance ZIP entrance rejects failed/check owners, wrong atte
   };
   const options = {...f, sourceArchive, archive, directory, artifactId: 8, request: request(), expectedDigest: hash(bytes)};
   assert.equal((await readAcceptance(options)).ready.length, 1);
+  let runReads = 0;
+  await assert.rejects(readAcceptance({...options, request: async path => {
+    const value = await request()(path);
+    if (path === '/actions/runs/3' && ++runReads > 1) value.event = event === 'push' ? 'workflow_dispatch' : 'push';
+    return value;
+  }}), /trigger changed/u);
+  assert.equal(runReads, 2);
   for (const mutate of [
+    value => value.run.event = event === 'push' ? 'workflow_dispatch' : 'push',
+    value => value.run.head_branch = 'feature',
     value => value.run.run_attempt++, value => value.run.conclusion = 'cancelled',
     value => value.job.conclusion = 'failure', value => value.job.name = 'session-evidence',
     value => value.artifact.workflow_run.repository_id++, value => value.artifact.digest = `sha256:${'9'.repeat(64)}`,

@@ -263,7 +263,8 @@ export function installNodeClientEffectRun({moon,
         throw expired(retained.ref);
       }
       const facts = {ref: retained.ref, identity, owner, prepared, compilation,
-        allowed, definition, runDefinition: retained.runDefinition};
+        allowed, definition, runDefinition: retained.runDefinition,
+        resultPolicyOriginal: evidence.resultPolicyOriginal};
       const preparedExecution = prepareExecution?.(Object.freeze(facts));
       if (typeof preparedExecution?.then === 'function') {
         void Promise.resolve(preparedExecution).catch(() => {});

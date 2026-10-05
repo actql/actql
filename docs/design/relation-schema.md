@@ -66,7 +66,8 @@ every declared column occurs in every row. Ordinary object value contracts keep
 their exact required-field rules.
 
 The execution profile permits projection, Required-only filter/derive expressions,
-Required-key sort, proven-order take, Required-key DISTINCT and GROUP on conditional inputs. Every syntactic
+Required-key sort, proven-order take, Required-key DISTINCT, complete-row
+DISTINCT and GROUP on conditional inputs. Every syntactic
 expression reference and authored sort key must be Required,
 including references in lazy/dead branches; runtime samples and `IS NOT NULL`
 do not provide a presence proof. Graph definition/label selection derives its
@@ -92,6 +93,13 @@ rows in first-occurrence order. Omitted, NULL and present values of unselected
 columns do not participate in equality; the entire sparse input and its presence
 slots still undergo admission and resource accounting. Its projected output is
 dense and uses the existing completion, Store export/import and cleanup owners.
+Complete-row DISTINCT instead includes every column's presence and value in
+equality and retains each survivor's complete admitted row. Omission is unequal
+to a present NULL. Its private index comparison places omission before present
+cells solely to group equal rows, discards that index order and emits survivors
+in first-occurrence order. Typed presence failure remains a failure rather than
+omission; no scalar represents missingness. This does not permit an authored
+Conditional reference or prove stable order.
 GROUP requires guaranteed group keys and every aggregate argument, filter and
 aggregate-local order reference, including dead expression branches. Both the
 selected exact-count and general-group providers admit and charge the complete
@@ -101,8 +109,7 @@ GROUP schema, nullability, empty-input and canonical group-order contracts;
 input Conditional columns are not propagated as undeclared output columns.
 Its existing row/completion and Store export/import owners retain the aggregate
 result independently of the consumed input's unused presence states.
-Sparse whole-row DISTINCT remains explicitly unsupported, not a comparison of
-only guaranteed columns. Selection and retained presence
+Selection and retained presence
 slots use the existing bounded row workspace and cleanup path. Other row consumers reject conditional inputs rather than rebuilding
 their schema as dense or filling absent cells with NULL. Public Results require
 required selected and ordering columns.

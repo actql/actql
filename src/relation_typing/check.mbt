@@ -459,12 +459,7 @@ fn check_impl(
           }
           Distinct =>
             match @decode.view(body) {
-              BoolValue(true) => {
-                if !@schema.all_fields_required(input) {
-                  fail(body, ConditionalInputNotImplemented)
-                }
-                DistinctRows
-              }
+              BoolValue(true) => DistinctRows
               ArrayValue(_) => {
                 let keys = row_keys(b, body, visible, unique=true)
                 if keys.is_empty() {

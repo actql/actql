@@ -250,6 +250,8 @@ fn bounded_row_comparison_step_with(
   left_row : Int,
   right_row : Int,
   terms : Int,
+  presence? : ((Int, Int) -> Result[Bool, OrderingIssue])? = None,
+  complete_values? : Bool = false,
 ) -> Result[Int?, OrderingIssue] {
   if terms < 0 || terms > orders.length() {
     return Err(InvalidInput)
@@ -272,10 +274,53 @@ fn bounded_row_comparison_step_with(
     return Ok(Some(0))
   }
   let order = orders[cursor.term]
+  if presence is Some(read_presence) {
+    let left_present = match read_presence(left_row, order.column) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    let right_present = match read_presence(right_row, order.column) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    if !left_present || !right_present {
+      if !spend_control(control, 1) {
+        return Err(Limit)
+      }
+      // This private index order groups equal complete rows. It neither
+      // fabricates a scalar nor grants authors permission to order by absence.
+      if left_present != right_present {
+        cursor.phase = -1
+        return Ok(Some(if left_present { 1 } else { -1 }))
+      }
+      cursor.term += 1
+      cursor.phase = 0
+      cursor.offset = 0
+      reset_bounded_text_charge(cursor.charge)
+      return Ok(None)
+    }
+  }
   let left = read_cell(left_row, order.column)
   let right = read_cell(right_row, order.column)
   guard left is Some(left) && right is Some(right) else {
     return Err(InvalidInput)
+  }
+  if complete_values && !(left is Text(_) && right is Text(_)) {
+    // Reuse the row-set owner's complete-value equality, including admitted
+    // arrays, objects and typed identities. This is not an authored sort key.
+    let compared = match compare_complete_value(left, right, control) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    if compared != 0 {
+      cursor.phase = -1
+      return Ok(Some(compared))
+    }
+    cursor.term += 1
+    cursor.phase = 0
+    cursor.offset = 0
+    reset_bounded_text_charge(cursor.charge)
+    return Ok(None)
   }
   match cursor.phase {
     0 => {
@@ -391,10 +436,32 @@ fn bounded_row_comparison_step(
     state.comparison,
     state.sort_orders,
     state.control,
-    (row, column) => bounded_binding_input_cell(state.input, row, column),
+    (row, column) => {
+      if state.distinct && state.preserve_presence {
+        // Complete-row equality reads admitted cells, not expression refs.
+        // The presence callback below preserves unavailable/invalid failures.
+        match bounded_binding_input_charge_cell(state.input, row, column) {
+          Ok(value) => value
+          Err(_) => None
+        }
+      } else {
+        bounded_binding_input_cell(state.input, row, column)
+      }
+    },
     left_row,
     right_row,
     terms,
+    presence=if state.distinct && state.preserve_presence {
+      Some(fn(row, column) {
+        match bounded_binding_input_charge_cell(state.input, row, column) {
+          Ok(value) => Ok(value is Some(_))
+          Err(_) => Err(InvalidInput)
+        }
+      })
+    } else {
+      None
+    },
+    complete_values=state.distinct && !state.dedupe,
   )
 }
 
@@ -741,13 +808,6 @@ fn bounded_binding_rows_step(
         }
         guard @schema.field_at(state.output_schema, state.column) is Some(field) else {
           return fail_bounded_binding_rows(InvalidExecution, progress, used)
-        }
-        if !supported_comparison(field.contract, field.contract) {
-          return fail_bounded_binding_rows(
-            UnsupportedDistinctField(field.name),
-            progress,
-            used,
-          )
         }
         if !reserve_slots(state.workspace, 1) ||
           !spend_control(state.control, 1) {
@@ -2742,7 +2802,11 @@ fn start_bounded_binding_rows_with_input(
       body is @lower.SnapshotMap(_) ||
       body is @lower.OrderedBindings(_) ||
       body is @lower.StableSort(_) ||
-      body is @lower.Limit(_, _, _)
+      body is @lower.Limit(_, _, _) ||
+      (
+        body is @lower.DistinctRows &&
+        @lower.kernel_distinct_projection(kernel) is None
+      )
     )
   if !@schema.all_fields_required(input_schema) &&
     !preserve_presence &&
