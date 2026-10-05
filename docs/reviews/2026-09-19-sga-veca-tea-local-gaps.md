@@ -5651,3 +5651,21 @@ reclamation remain separate observations. The gate requires the actual suite
 connection. Whole-Run exact budgets, packed/HTTP, Wasm/native, composite member
 identity encoding and other VecA comparisons are not newly established. See
 the [Pool scanning record](2026-10-06-local-pool-key-scanning.md).
+
+### Nearest typed-identity operator scanning
+
+Nearest now advances the existing typed key cursor through identity validation,
+both input sorts, duplicate checks and equal-score candidate ties. Independent
+control limits 1365/1364 and structural workspace 36/35, ordered results across
+quanta, cancellation inside each scan and caller input custody through confirmed
+stop and one cleanup are covered on JS. Existing nearest caller tests remain
+covered, including Relation and mixed inputs.
+
+The ordinary retained Host runs two explicit `to_vectors` bridges and nearest
+in one fused task, reads producer/two-consumer ordered Named Results and cancels
+inside the matching 513-code-unit validation scan. Stop request, physical stop,
+unavailable Results and snapshot reclamation remain separate. The evidence gate
+requires the actual public suite connection. Whole-Run exact Ledger budgets,
+Wasm/native, packed/HTTP, output identity rechecking/composite encoding and
+ranking scans are not newly established. See the
+[nearest scanning record](2026-10-06-local-nearest-key-scanning.md).

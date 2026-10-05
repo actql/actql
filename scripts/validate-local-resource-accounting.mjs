@@ -907,6 +907,8 @@ export function validateResourceAccounting({
           'adapters/host-node/public-expression-comparison-retention.test.mjs',
         'node:embedded_pool_keys':
           'adapters/host-node/public-pool-key-retention.test.mjs',
+        'node:embedded_nearest_keys':
+          'adapters/host-node/public-nearest-key-retention.test.mjs',
       }[item.suite];
       if (!suitePath || item.path !== suitePath ||
         JSON.stringify(item.targets) !== JSON.stringify(['node']) ||
@@ -932,6 +934,12 @@ export function validateResourceAccounting({
             'adapters/host-node/embedded-installation.test.mjs'), 'utf8')
             .includes("import './public-pool-key-retention.test.mjs';")) {
         fail(`${label}: Pool key public fixture is not suite-connected`);
+      }
+      if (item.suite === 'node:embedded_nearest_keys' &&
+          !fs.readFileSync(path.join(root,
+            'adapters/host-node/embedded-installation.test.mjs'), 'utf8')
+            .includes("import './public-nearest-key-retention.test.mjs';")) {
+        fail(`${label}: nearest key public fixture is not suite-connected`);
       }
       const namedCase = sourceText.includes(`name: '${item.fixture}'`) ||
         sourceText.includes(`test('${item.fixture}',`);
@@ -1355,6 +1363,15 @@ export function validateResourceAccounting({
       }
       if (!environmentRoles.has('pool_long_keys_public_store')) {
         fail(`${label}: Pool key public Store fixture is missing`);
+      }
+    }
+    if (route.family === 'VecA' && route.operation === 'nearest') {
+      for (const suffix of ['quantum', 'limits', 'stop_cleanup', 'public_barrier']) {
+        const role = `nearest_long_keys_${suffix}`;
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('nearest_long_keys_public_store')) {
+        fail(`${label}: nearest key public Store fixture is missing`);
       }
     }
     const sharedRules = route.shared_resource_rule ?? {};

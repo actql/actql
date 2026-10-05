@@ -9565,6 +9565,34 @@
       },
       "boundary_tests": [
         {
+          "role": "nearest_long_keys_quantum",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/nearest_text_scanning_wbtest.mbt",
+          "fixture": "nearest long identities preserve independent control limits and order"
+        },
+        {
+          "role": "nearest_long_keys_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/nearest_text_scanning_wbtest.mbt",
+          "fixture": "nearest long identities reject one-short control and workspace"
+        },
+        {
+          "role": "nearest_long_keys_stop_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/nearest_text_scanning_wbtest.mbt",
+          "fixture": "nearest long identity scans retain both inputs until confirmed stop"
+        },
+        {
+          "role": "nearest_long_keys_public_barrier",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/nearest_text_scanning_wbtest.mbt",
+          "fixture": "nearest public quantum stops inside long identity validation"
+        },
+        {
           "role": "nearest_direct_relation_work_exact_one_short",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -9657,6 +9685,13 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "nearest_long_keys_public_store",
+          "suite": "node:embedded_nearest_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-nearest-key-retention.test.mjs",
+          "fixture": "public retained nearest publishes and cancels inside long identity validation"
+        },
         {
           "role": "nearest_relation_host_in_flight_cancel",
           "suite": "node:duckdb_standard_host",

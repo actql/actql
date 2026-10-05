@@ -2146,7 +2146,9 @@ test "standard Host validates empty nearest queries" {
 }
 
 ///|
-fn direct_nearest_vector_carrier() -> @carrier_contract.Carrier {
+fn direct_nearest_vector_carrier(
+  text_identity? : Bool = false,
+) -> @carrier_contract.Carrier {
   @carrier_contract.vectors(
     @carrier_contract.rows(
       [
@@ -2154,7 +2156,11 @@ fn direct_nearest_vector_carrier() -> @carrier_contract.Carrier {
           @schema.Unqualified("id"),
           Some(
             @value_contract.primitive(
-              @value_contract.NumberType,
+              if text_identity {
+                @value_contract.StringType
+              } else {
+                @value_contract.NumberType
+              },
               nullable=false,
             ),
           ),
@@ -2175,8 +2181,10 @@ fn direct_nearest_vector_carrier() -> @carrier_contract.Carrier {
 }
 
 ///|
-fn direct_nearest_relation_carrier() -> @carrier_contract.Carrier {
-  guard direct_nearest_vector_carrier()
+fn direct_nearest_relation_carrier(
+  text_identity? : Bool = false,
+) -> @carrier_contract.Carrier {
+  guard direct_nearest_vector_carrier(text_identity~)
     is @carrier_contract.VectorValue(vectors) else {
     abort("vectors")
   }
@@ -2201,14 +2209,16 @@ fn direct_nearest_bind(
 }
 
 ///|
-fn direct_nearest_vector_owner() -> @lower.BoundPrepared {
+fn direct_nearest_vector_owner(
+  text_identity? : Bool = false,
+) -> @lower.BoundPrepared {
   direct_nearest_bind(
     @pipeline.check_carriers(
       input_cursor(
         "[{\"from\":\"rows\",\"to_vectors\":{" +
         "\"id\":\"id\",\"vector\":\"embedding\"}}]",
       ),
-      [("rows", direct_nearest_relation_carrier())],
+      [("rows", direct_nearest_relation_carrier(text_identity~))],
       None,
       None,
       {
