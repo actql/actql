@@ -25,6 +25,17 @@ export type SubmissionInput = Readonly<{
 }>;
 /** Original prepared JSON input, not evidence of sending, acceptance or permission to resend. */
 export declare function getSubmissionInput(result: unknown): SubmissionInput | undefined;
+export type SubmissionExplanation = Readonly<{summary: string}> & (
+  Readonly<{
+    observation: 'acceptance_unknown' | 'request_held';
+    next: Readonly<{operation: 'lookupRequest'; requestId: string;
+      lookupContext: Readonly<{endpoint: string; scopeRef: string}>}>;
+  }> | Readonly<{
+    observation: 'run_reference_received';
+    next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;
+  }>);
+/** Read-only advice for this exact SDK submit result; no retry or execution permission. */
+export declare function explainSubmission(result: unknown): SubmissionExplanation | undefined;
 /** Omitted for unavailable/stale input or a pointer without a submitted JSON node. No edits are applied. */
 export declare function resolveCheckLocation(outcome: CheckOutcome,
   location: WireCheckLocation, currentInput?: CheckInput):
