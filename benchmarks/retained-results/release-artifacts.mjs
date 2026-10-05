@@ -15,17 +15,26 @@ const modules = Object.freeze([
   'retained_host_bridge/retained_host_bridge.js',
 ]);
 
+// Read every byte on every invocation. A bounded 1 MiB stream reduces the
+// per-chunk asynchronous overhead for the Native binary without caching an
+// earlier identity or loading the entire binary into the parent heap.
+export async function sha256File(path) {
+  const hash = createHash('sha256');
+  for await (const bytes of createReadStream(path, {highWaterMark: 1024 * 1024})) {
+    hash.update(bytes);
+  }
+  return hash.digest('hex');
+}
+
 export async function releaseArtifactDigest(checkout) {
   const manifest = [];
   for (const name of modules) {
-    const hash = createHash('sha256');
     const path = join(checkout, '_build/js/release/build', name);
     try {
-      for await (const bytes of createReadStream(path)) hash.update(bytes);
+      manifest.push([name, await sha256File(path)]);
     } catch (error) {
       throw new Error(`MissingOrUnreadableReleaseArtifact:${name}`, {cause: error});
     }
-    manifest.push([name, hash.digest('hex')]);
   }
   return createHash('sha256').update(JSON.stringify(manifest)).digest('hex');
 }

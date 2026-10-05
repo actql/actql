@@ -14,6 +14,7 @@ import {prepareNativeDirectProduct, executeNativeDirectProduct, admitNativeDirec
 import {runNativeDirectPair} from './native-direct-pair.mjs';
 import {assessEquivalentSeries} from './equivalent-series-assessment.mjs';
 import {assessPairedTiming} from './paired-assessment.mjs';
+import {sha256File} from './release-artifacts.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const exec = promisify(execFile);
@@ -26,13 +27,13 @@ const profileBytes = await readFile(resolve(profilePath));
 const profile = JSON.parse(profileBytes);
 const fixture = retainedCase(workloads[0], 'narrow', 100);
 const binary = join(root, '_build/native/release/build/cmd/native_retained_case_probe/native_retained_case_probe.exe');
-const binaryDigest = digest(await readFile(binary));
+const binaryDigest = await sha256File(binary);
 const git = async args => (await exec('git', args, {cwd: root})).stdout.trim();
 const revision = await git(['rev-parse', 'HEAD']);
 const unchanged = async () => {
   assert.equal(await git(['rev-parse', 'HEAD']), revision);
   assert.equal(await git(['status', '--porcelain']), '', 'NativeComparisonRequiresCleanCheckout');
-  assert.equal(digest(await readFile(binary)), binaryDigest, 'NativeComparisonBinaryChanged');
+  assert.equal(await sha256File(binary), binaryDigest, 'NativeComparisonBinaryChanged');
 };
 await unchanged();
 const qualificationStart = performance.now();
@@ -79,7 +80,7 @@ try {
           residentPolicy: true, localRates: ['1000', '1000', '1000'], nativeRates: ['1000', '1000', '1000']});
         // Match the after leg's exact binary check inside its cycle rather
         // than attributing that shared inspection cost only to the new input.
-        assert.equal(digest(await readFile(invocation.binary)), binaryDigest);
+        assert.equal(await sha256File(invocation.binary), binaryDigest);
         const execution = await executeNativeDirectProduct(invocation, {root, timeoutMs: fixture.limits.timeoutMs});
         const cycleMs = performance.now() - started;
         const product = admitNativeDirectProduct(fixture, invocation, execution);

@@ -1,12 +1,11 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {execFile} from 'node:child_process';
-import {createReadStream} from 'node:fs';
 import {mkdir, readFile, rm} from 'node:fs/promises';
 import {join, resolve} from 'node:path';
 import {performance} from 'node:perf_hooks';
 import {isDeepStrictEqual, promisify} from 'node:util';
-import {releaseArtifactDigest} from './release-artifacts.mjs';
+import {releaseArtifactDigest, sha256File as fileHash} from './release-artifacts.mjs';
 import {retainedCase} from './fixtures.mjs';
 import {admitNativeEstimateProfile} from './native-estimate-profile.mjs';
 import {admitNativeResidentEstimateProfile, assertNativeMeasuredOffers} from './native-resident-estimate-profile.mjs';
@@ -15,12 +14,6 @@ import {prepareNativeDirectProduct, executeNativeDirectProduct,
   admitNativeDirectProduct} from './native-direct-product.mjs';
 
 const exec = promisify(execFile);
-
-async function fileHash(path) {
-  const hash = createHash('sha256');
-  for await (const bytes of createReadStream(path)) hash.update(bytes);
-  return hash.digest('hex');
-}
 
 async function checkoutState(root) {
   const git = async args => (await exec('git', args, {cwd: root})).stdout.trim();
