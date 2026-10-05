@@ -8,6 +8,7 @@ import {tmpdir} from 'node:os';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {DuckDBInstance} from '@duckdb/node-api';
 import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
+import {canonical, hash as canonicalHash} from './typed-catalog.mjs';
 import {authorizeLocalDatabase} from '../session.mjs';
 import {runNativeHostQuery} from '../host.mjs';
 import {runCapturedInternalStrategy} from '../../../../host-node/entry.mjs';
@@ -47,6 +48,19 @@ test('retained Relation forks execute bounded ranking and row transforms',
         'utf8'),
       await readFile(join(root, 'spec/contracts/actql-query-two-receipt.json'),
         'utf8')];
+    const analyticEnvironment = JSON.parse(args[0]);
+    Object.assign(analyticEnvironment.host_policy_profile.capacity, {
+      max_analytic_frame_memberships: 10000,
+      max_analytic_input_wire_bytes: 10000,
+      max_analytic_output_wire_bytes: 10000,
+      max_analytic_partition_wire_bytes: 10000,
+    });
+    const {evidence_bundle_cid: ignoredCid, ...analyticBody} =
+      analyticEnvironment;
+    void ignoredCid;
+    analyticEnvironment.evidence_bundle_cid = canonicalHash(analyticBody);
+    const analyticArgs = [canonical(analyticEnvironment),
+      analyticEnvironment.evidence_bundle_cid, ...args.slice(2)];
     const base = {
       version: 'actql/0.1', id: 'p',
       params: {minimum: {type: 'number', nullable: false}},
@@ -101,9 +115,12 @@ test('retained Relation forks execute bounded ranking and row transforms',
       ['unpivot', false, false],
       ['unnest', false, false],
       ['source-fork', false, false],
+      ['pivot', false, false],
+      ['analytic', false, false],
     ]) {
       const program = structuredClone(base);
-      if (['watermark', 'json-pick', 'unpivot', 'unnest'].includes(name)) {
+      if (['watermark', 'json-pick', 'unpivot', 'unnest', 'pivot']
+        .includes(name)) {
         for (const stage of program.stages.slice(1, 3)) {
           if (name === 'watermark') {
             stage.steps[0].values.schema.time = {
@@ -130,7 +147,7 @@ test('retained Relation forks execute bounded ranking and row transforms',
             stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
               ({...row, amount: row.id * 10}));
             stage.results.r.fields = ['id', 'origin', 'amount'];
-          } else {
+          } else if (name === 'unnest') {
             stage.steps[0].values.schema.items = {
               type: 'array', nullable: false,
               items: {type: 'number', nullable: false}, max_items: 2,
@@ -138,6 +155,17 @@ test('retained Relation forks execute bounded ranking and row transforms',
             stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
               ({...row, items: [row.id, row.id + 1]}));
             stage.results.r.fields = ['id', 'origin', 'items'];
+          } else {
+            stage.steps[0].values.schema.status = {
+              type: 'string', nullable: false,
+            };
+            stage.steps[0].values.schema.amount = {
+              type: 'number', nullable: false,
+            };
+            stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
+              ({...row, status: row.origin === 'l' ? 'a' : 'b',
+                amount: row.id * 10}));
+            stage.results.r.fields = ['id', 'origin', 'status', 'amount'];
           }
         }
       }
@@ -215,6 +243,31 @@ test('retained Relation forks execute bounded ranking and row transforms',
           {from: 'appended', select: ['id'], as: 'raw_ids'},
           {from: 'selected', append: {with: 'raw_ids'}, as: 'out'},
         ];
+      } else if (name === 'pivot') {
+        program.stages[3].steps = [
+          {from: 'l', append: {with: 'r'}, as: 'appended'},
+          {from: 'appended', pivot: {
+            index: ['id'], column: 'status', values: ['a', 'b'],
+            value: 'amount', aggregate: 'max',
+          }, as: 'pivoted'},
+          {from: 'pivoted', filter: 'b >= 30', as: 'greater'},
+          {from: 'greater', select: ['id'], as: 'selected'},
+          {from: 'appended', select: ['id'], as: 'raw_ids'},
+          {from: 'selected', append: {with: 'raw_ids'}, as: 'out'},
+        ];
+      } else if (name === 'analytic') {
+        program.stages[3].steps = [
+          {from: 'l', append: {with: 'r'}, as: 'appended'},
+          {from: 'appended', analytic: {
+            partition_by: [], order_by: [{id: 'asc'}, {origin: 'asc'}],
+            frame: {start: 'unbounded_preceding', end: 'current_row'},
+            functions: {n: {fn: 'count', field: 'id'}},
+          }, as: 'analyzed'},
+          {from: 'analyzed', filter: 'n >= 4', as: 'greater'},
+          {from: 'greater', select: ['id'], as: 'selected'},
+          {from: 'appended', select: ['id'], as: 'raw_ids'},
+          {from: 'selected', append: {with: 'raw_ids'}, as: 'out'},
+        ];
       } else {
         program.stages[3].steps = [
           {from: 'l', append: {with: 'r'}, as: 'appended'},
@@ -232,8 +285,9 @@ test('retained Relation forks execute bounded ranking and row transforms',
           {from: 'joined', select: ['id'], as: 'out'},
         ];
       }
+      const fixtureArgs = name === 'analytic' ? analyticArgs : args;
       const prepared = fixture.strategyFixtureCreate(
-        ...args, JSON.stringify(program));
+        ...fixtureArgs, JSON.stringify(program));
       const capture = await runNativeHostQuery(grant,
         fixture.strategyFixtureAcquisition(prepared), queryLimits);
       let execution;
@@ -259,9 +313,9 @@ test('retained Relation forks execute bounded ranking and row transforms',
       if (name === 'combined' || name === 'lag' ||
           name === 'watermark' || name === 'json-pick' ||
           name === 'row-window' || name === 'unpivot' || name === 'unnest' ||
-          name === 'source-fork') {
+          name === 'source-fork' || name === 'pivot' || name === 'analytic') {
         const retained = fixture.strategyFixtureCreate(
-          ...args, JSON.stringify(program));
+          ...fixtureArgs, JSON.stringify(program));
         const retainedCapture = await runNativeHostQuery(grant,
           fixture.strategyFixtureAcquisition(retained), queryLimits);
         const store = await createLocalRetainedStore({

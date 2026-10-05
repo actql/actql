@@ -8103,10 +8103,12 @@ async function exerciseStrategyGraph(
   branchedRankedSteps.push({from: 'joined', select: ['id'], as: 'out'});
   const branchedRowTransformPrograms = [
     'lag', 'watermark', 'json-pick', 'row-window', 'unpivot', 'unnest',
+    'pivot', 'analytic',
   ]
     .map(name => {
       const program = structuredClone(branchedRelationProgram);
-      if (['watermark', 'json-pick', 'unpivot', 'unnest'].includes(name)) {
+      if (['watermark', 'json-pick', 'unpivot', 'unnest', 'pivot']
+        .includes(name)) {
         for (const stageId of ['cross_left', 'cross_right']) {
           const stage = program.stages.find(item => item.id === stageId);
           if (name === 'watermark') {
@@ -8134,7 +8136,7 @@ async function exerciseStrategyGraph(
             stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
               ({...row, amount: row.id * 10}));
             stage.results.r.fields = ['id', 'amount'];
-          } else {
+          } else if (name === 'unnest') {
             stage.steps[0].values.schema.items = {
               type: 'array', nullable: false,
               items: {type: 'number', nullable: false}, max_items: 2,
@@ -8142,6 +8144,17 @@ async function exerciseStrategyGraph(
             stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
               ({...row, items: [row.id, row.id + 1]}));
             stage.results.r.fields = ['id', 'items'];
+          } else {
+            stage.steps[0].values.schema.status = {
+              type: 'string', nullable: false,
+            };
+            stage.steps[0].values.schema.amount = {
+              type: 'number', nullable: false,
+            };
+            stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
+              ({...row, status: stageId === 'cross_left' ? 'a' : 'b',
+                amount: row.id * 10}));
+            stage.results.r.fields = ['id', 'status', 'amount'];
           }
         }
       }
@@ -8171,6 +8184,19 @@ async function exerciseStrategyGraph(
           value_column: 'value',
         }, as: 'transformed'},
         {from: 'transformed', filter: 'value >= 30', as: 'filtered'},
+      ] : name === 'pivot' ? [
+        {from: 'appended', pivot: {
+          index: ['id'], column: 'status', values: ['a', 'b'],
+          value: 'amount', aggregate: 'max',
+        }, as: 'transformed'},
+        {from: 'transformed', filter: 'b >= 30', as: 'filtered'},
+      ] : name === 'analytic' ? [
+        {from: 'appended', analytic: {
+          partition_by: [], order_by: [{id: 'asc'}],
+          frame: {start: 'unbounded_preceding', end: 'current_row'},
+          functions: {n: {fn: 'count', field: 'id'}},
+        }, as: 'transformed'},
+        {from: 'transformed', filter: 'n >= 3', as: 'filtered'},
       ] : [
         {from: 'appended', unnest: {
           column: 'items', as: 'item', outer: false,
@@ -9661,12 +9687,14 @@ async function exerciseStrategyGraph(
     {name: 'append-fork-top-k-dedupe-join', source: branchedRankedProgram,
       expected: [4, 3, 1, 2].map(id => ({id})), fields: ['id']},
     ...branchedRowTransformPrograms.map(([name, source]) => ({
-      name: `append-fork-${name}-join`, source,
+      name: name === 'analytic' ? 'analytic-append-fork-join'
+        : `append-fork-${name}-join`, source,
       expected: (name === 'lag' ? [4, 1, 2, 3, 4]
         : name === 'watermark' ? [2, 1, 2, 3, 4]
         : name === 'json-pick' ? [3, 4, 1, 2, 3, 4]
         : name === 'row-window' ? [2, 3, 4, 1, 2, 3, 4]
         : name === 'unpivot' ? [3, 4, 1, 2, 3, 4]
+        : name === 'pivot' || name === 'analytic' ? [3, 4, 1, 2, 3, 4]
         : [3, 4, 4, 1, 2, 3, 4]).map(id => ({id})),
       fields: ['id'],
     })),

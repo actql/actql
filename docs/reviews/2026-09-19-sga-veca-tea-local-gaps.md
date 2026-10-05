@@ -854,6 +854,17 @@ fixture checks the same selected task output and cleanup. These routes use
 the existing window and expansion bounds and the shared fork owner; they
 do not prove every sliding-window or outer-expansion variant.
 
+The bounded group child also accepts a `MAX` pivot and a cumulative `COUNT`
+analytic inside the same Append fork. The pivot branch filters on a generated
+axis field; the analytic branch filters on its generated count. Each rejoins
+an independent projection of the Append output and publishes the fixed ID
+order `[3,4,1,2,3,4]` to the producer and two consumers. The fork keeps
+analytic under one task and leaves its exact aggregate/frame admission to
+the existing bounded group provider; it does not mark every analytic as an
+independently splittable task.
+These routes do not extend the numeric SUM/AVG profile or prove every frame
+and pivot variant.
+
 The same retained Host also runs `EXCEPT ALL` and Cross Join as the first
 binary child of separate fork/join Programs. The former publishes the
 duplicate-sensitive rows `[{id: 2}, {id: 1}, {id: 1}]`; the latter publishes

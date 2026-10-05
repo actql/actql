@@ -179,8 +179,14 @@ fn bounded_branched_relation_chain(
   for step in 0..<count {
     carrier_work(work)
     guard @lower.node_at(prepared, step) is Some(node) &&
-      @carrier.kind(@lower.node_output_carrier(node)) == @carrier.RelationKind &&
-      carrier_node_supports_selected_execution(node, work) else {
+      @carrier.kind(@lower.node_output_carrier(node)) == @carrier.RelationKind else {
+      return false
+    }
+    // A checked analytic may stay inside this bounded fork, but its exact
+    // aggregate and frame support is decided by the selected group provider.
+    // Do not advertise every analytic as an independently splittable task.
+    if !(@lower.payload(node) is @lower.Analytic(_)) &&
+      !carrier_node_supports_selected_execution(node, work) {
       return false
     }
     match @lower.payload(node) {
@@ -199,8 +205,10 @@ fn bounded_branched_relation_chain(
       | @lower.JsonPick(_)
       | @lower.Watermark(_)
       | @lower.RowWindow(_)
+      | @lower.Pivot(_)
       | @lower.Unpivot(_)
       | @lower.Unnest(_)
+      | @lower.Analytic(_)
       | @lower.AssertRows(_)
       | @lower.CountGroup(_) => ()
       _ => return false
