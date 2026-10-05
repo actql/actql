@@ -95,6 +95,40 @@ cancel-response loss or physical cleanup I/O failure.
 
 ## Verification by source revision
 
+### Follow-up ordinary Relation composition
+
+`deltaRelationCompositionScenario(fixture, operation)` in the same independent
+fixture module extends the application Program without replacing the execution
+path. It uses existing main's presence-aware derive, DISTINCT and GROUP owners.
+The four maintained operations are:
+
+| Operation | Meaning after Delta | Independent public result |
+| --- | --- | --- |
+| `keyed-distinct` | Derive Required `bucket = 1`, then `distinct: [bucket]` | One `{bucket:1}` row |
+| `whole-distinct` | Derive the same bucket, then `distinct: true` | Three typed node identities, each with bucket 1 |
+| `group` | Group on the Required bucket; count all rows and max the bucket | `{bucket:1,m:1,n:3}` |
+| `edge-group` | Group remaining edges on tenant_key; max edge_key and count | `{tenant_key:"a",m:10,n:1}` |
+
+The original graph has two independent parallel edges. Its authored Delta
+removes E11, so edge aggregation must count one edge, not the original two. The
+node inputs keep p absent, NULL and updated to 8. Node Store assertions inspect
+the bridge rows, derived sparse rows, and the consumer's complete retained
+output after source-read denial and verified reload. Whole-row DISTINCT retains
+these different complete rows rather than treating the common bucket as its key.
+Keyed DISTINCT projects away unspecified columns; GROUP emits only its declared
+keys/aggregates with count non-nullable and max nullable.
+
+The public test checks Local/HTTPS ordered initial read, reattach, metadata,
+Graph snapshot reload, Relation Store reload and temporary cleanup. A dead-branch
+reference to Conditional p in GROUP must still reject before Run admission or
+physical work. This is not INFER/Effect acceptance or additional kernel coverage.
+It also applies an independently authored removal of every node and edge, then
+checks empty node/edge GROUP streams after the same Store reload boundaries.
+The empty target retains the constructor's contract/domain and declaration-derived
+column names/types/nullability; it does not infer schema from observed rows.
+Select only this follow-up with `--delta-relation-only` on the existing packed
+Property Graph runner; the clean-source/package-manifest checks still apply.
+
 At `28b8653fdf266b5b775d78d8c64383bbe87eea9d`, the focused command below passed
 16/16 on each of JS, Wasm and native, sequentially on macOS with the pinned
 MoonBit toolchain. This does not establish Linux or whole-Core acceptance.
