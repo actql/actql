@@ -1166,6 +1166,15 @@ test('check retains detached submitted inputs while credentials are pending', as
 });
 
 // Compile an independent public consumer, including invalid reference/write uses.
+test('typed predicate diagnostics remain accessible through the SDK contract', () => {
+  execFileSync(process.execPath, [fileURLToPath(new URL(
+    '../../node_modules/typescript/bin/tsc', import.meta.url)),
+  '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
+  '--target', 'ES2022', fileURLToPath(new URL(
+    './predicate-reason.typecheck.mts', import.meta.url))],
+  {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
+});
+
 test('typed submission explanations preserve reference roles and read-only targets', () => {
   execFileSync(process.execPath, [fileURLToPath(new URL(
     '../../node_modules/typescript/bin/tsc', import.meta.url)),
