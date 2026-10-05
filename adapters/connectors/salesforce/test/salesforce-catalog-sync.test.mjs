@@ -582,6 +582,23 @@ test('Resource discovery preserves snapshot and display truncation separately',
       observationCid: partial.observationCid, reason: 'listing_truncated'});
   });
 
+test('a retained catalog with a not_found describe is recovered exactly',
+  async t => {
+    const setup = await fixture(t, {customStatus: 404});
+    const observed = await syncSalesforceCatalog(request(setup, {
+      retainResponses: true, maxRetainedBytes: 20000,
+    }));
+    assert.ok(JSON.parse(observed.observationJson).listed_resources
+      .some(entry => entry.outcome === 'not_found'));
+    const recovered = recoverRetainedSalesforceCatalog({
+      moon: salesforceMoon, retained: observed.retainedResponses,
+      expectedObservationCid: observed.observationCid,
+      maxRetainedBytes: 20000,
+    });
+    assert.equal(recovered.observationCid, observed.observationCid);
+    assert.equal(recovered.observationJson, observed.observationJson);
+  });
+
 test('recovered Resource discovery keeps partial metadata and current authority',
   async t => {
     const setup = await fixture(t, {customStatus: 403});
