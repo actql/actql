@@ -762,3 +762,27 @@ The first supported boundary is bound-input checking. Template-only checking,
 fix application, report retrieval, LSP conversion and execution/Delivery outcome
 explanations remain separate work. The input-report connection does not claim
 the design's S1–S9/X1–X17/invariant completion gate.
+
+
+### Graph components argument explanations
+
+The public `graph_operation_invalid` reason carries closed facts
+`operation: "components"` and `issue: "invalid_kind"` or
+`"invalid_output_rows"`. These facts project existing common Graph checker
+`InvalidBody` at `components.kind` and `InvalidCount` at
+`components.max_output_rows`; they do not introduce a second checker.
+The SDK explains the required weak/strong kind or positive safe integer row
+limit. Other Graph failures retain their existing classification and safe
+fallback. Neither the submitted value nor an internal Program path is exposed.
+
+The current Graph lowering produces generated Program positions. This
+projection omits locations until the source owner supplies authored provenance;
+a generated span is not a position in the submitted AQL-text. Absent and
+inaccessible Source dependencies stop before this dependent Graph diagnosis
+and retain the same protected unresolved result. Source-free valid weak and
+strong components remain verified. Checking does not execute a Graph task.
+
+This coordinated extension changes the registered `actql-check-reason/0.1`
+body and dependent outcome schema identities, validators and SDK wire types.
+It leaves `actql-diagnostics/0.1` unchanged. Mixed schema pins are rejected by
+existing contract validation; there is no compatibility adapter.

@@ -25,6 +25,23 @@ test('constraint explanations use owned families without choosing a failed numer
   'Correct the value to satisfy the declared constraint family.');
 });
 
+test('Graph explanations require a known operation and owned issue', () => {
+  assert.deepEqual(explainCheckReason({code: 'graph_operation_invalid',
+    facts: {operation: 'components', issue: 'invalid_kind'}}),
+  {kind: 'known', summary: 'The components kind is invalid.',
+    hint: 'Choose weak or strong for components kind.'});
+  assert.deepEqual(explainCheckReason({code: 'graph_operation_invalid',
+    facts: {operation: 'components', issue: 'invalid_output_rows'}}),
+  {kind: 'known', summary: 'The components output row limit is invalid.',
+    hint: 'Supply a positive safe integer for components max_output_rows.'});
+  for (const facts of [undefined, {}, {issue: 'invalid_kind'},
+    {operation: 'future_operation', issue: 'invalid_kind'},
+    {operation: 'components', issue: 'private_provider_text'}]) {
+    assert.deepEqual(explainCheckReason({code: 'graph_operation_invalid', facts}),
+      {kind: 'unknown', summary: 'No supported explanation is available for this reason.'});
+  }
+});
+
 const ref = Object.freeze({namespaceId: 'namespace-a',
   authorityScopeCid: `sha256:${'a'.repeat(64)}`,
   runDefinitionCid: `sha256:${'b'.repeat(64)}`});
