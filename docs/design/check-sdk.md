@@ -712,6 +712,29 @@ association. The helper is explicitly UTF-16, not an LSP server or edit applicat
 `explainCheckReason` provides safe English summaries/hints; unknown codes have an
 explicit generic explanation and confer no retry or execution permission.
 
+`explainCheckOutcome` formats the existing validated public outcome branch. A
+completed report explanation binds verdict, scope and context reference, with
+a complete account of discharged and outstanding obligations. A failed explanation retains any bound partial
+report as partial and never verified. Unavailable carries only its safe problem
+and correlation reference, without report binding. The helper preserves unknown
+problem codes as unknown within their received branch; malformed envelopes or
+unsupported variants have no explanation. It does not infer outcomes from
+problem codes, messages, severity or HTTP status.
+
+Analysis-budget exhaustion can be a completed/undetermined report. The separate
+reserved reporting budget can fail to construct that envelope, producing
+failed/`check_report_unbounded` without a partial report. The safe explanation
+directs reporting-capacity review to the checking-context owner for the original
+scope, without blaming input authors or reducing the checked scope. Checking
+verification provides no execution, cancellation or release conclusion.
+
+This SDK-only presentation adds no wire fields, schema identifiers, Host input
+retention or retrieval API. It does not alter `actql-diagnostics/0.1` or
+`actql-check-outcome/0.1`. A schema-valid parsed copy can receive safe prose
+without authenticating its origin or recovering original-input custody. Location
+resolution and any editor application still require their own submitted
+identity/revision association. These helpers apply no edits or automatic retries.
+
 The Host adds no document database, persistent input store, history or re-fetch
 API for checking. The existing request envelope/source limit is retained: 65,536
 UTF-16 source code units at request validation and 65,536 original source bytes

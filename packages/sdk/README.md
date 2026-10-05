@@ -357,9 +357,10 @@ Graph, VecA/TEA or Effect surface is implemented.
 ## Checking authored input
 
 ```js
-import {getCheckInput, resolveCheckLocation, explainCheckReason} from '@actql/sdk';
+import {getCheckInput, resolveCheckLocation, explainCheckReason, explainCheckOutcome} from '@actql/sdk';
 
 const outcome = await client.check('SELECT @missing AS n', {format: 'sql'});
+console.log(explainCheckOutcome(outcome));
 if (outcome.outcome === 'completed') {
   const {scope, context_ref, verdict, reasons, requirements} = outcome.report;
   for (const reason of [...reasons, ...requirements]) {
@@ -371,6 +372,27 @@ if (outcome.outcome === 'completed') {
   const submitted = getCheckInput(outcome, 'source');
 }
 ```
+
+`explainCheckOutcome(value)` validates the existing public envelope and describes
+its reported branch. A completed explanation keeps the verdict together with
+scope, context reference and `completeness: 'complete'`. A failed explanation
+keeps any bound partial report explicitly partial; it cannot verify. An
+unavailable explanation contains a correlation reference and no report or
+verdict. Unknown problem codes retain their branch with a generic explanation;
+malformed envelopes and unsupported variants return `undefined`.
+
+Analysis exhaustion may still produce a completed, undetermined report. Failure
+to construct the bounded report instead produces `failed` with
+`check_report_unbounded`; its hint asks the checking-context owner to review
+reporting capacity for the original scope. Neither describes an input violation.
+Verification describes checking only; execution, cancellation and release have
+their own owners and results.
+
+This formatter can describe a schema-valid parsed copy without the original
+input. It does not authenticate that copy, restore locations, apply edits or
+authorize another operation. Location helpers still require the exact SDK
+response and its original submitted snapshot. Explanations are immutable, safe
+English text; they do not expose private causes or inspect error messages.
 
 A completed check may be invalid or undetermined. Its verdict is always bound to
 scope/context and does not start or authorize a Run. Wrong supplied types expose
