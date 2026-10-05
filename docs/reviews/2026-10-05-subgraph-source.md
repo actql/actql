@@ -222,3 +222,56 @@ query identifiers. The corrected source explicitly spells `definition`,
 `domain`, `key` and `key_types` as identifiers while preserving the independently
 derived identity value. The original JSON-quoted-key text remains a syntax
 refusal. No grammar is widened or independent identity copied from runtime.
+
+## Completed scoped packed acceptance
+
+Verified clean source: **`dba3119c00470a47026f32f086ddd8df29ca00d8`**, including
+main #421. Command:
+
+```sh
+node scripts/test-packed-public-query.mjs --subgraph-only --keep-artifacts
+```
+
+The existing serial local guard selected `heavy: true`, a 1200-second budget
+and five-second TERM grace, with the pinned repository toolchain. Receipt
+`public-query-evidence-8Nh8WA`, guard `run-rpOdJ9`: **passed, complete,
+clean source, no evidence errors**. The normal prepack hooks built the runtime;
+there was no logging overlay, edited generated Program, skipped prepack,
+replacement checker, custom Graph executor or budget change.
+
+On **each** Embedded Local and public HTTPS path:
+
+- **13 positive inputs** (two independent JSON controls and 11 authored text
+  inputs) reached Named Results with independently expected rows, complete
+  ordered columns/types/nullability, stream completion and same-request/read
+  reuse. Parallel edges, induction, edge predicates/parameters, duplicate
+  selectors, NULL, empty schemas, static labels, quoted DATA/normalization
+  and independently derived explicit typed identity all passed.
+- **17 preparation refusals** returned existing typed input codes with
+  unchanged Run admission/provider-I/O counters. The retained task-bound,
+  key/property collision, opaque object literal and JSON-quoted-key examples
+  remain refusals for their distinct reasons, rather than successful coverage.
+- **One data-dependent missing-identity execution failure** exposed no Named
+  Result rows or description. Reattach/resend did not restart execution.
+
+README Local/HTTPS, the public check boundaries and deliberate missing-generated-
+asset refusal also passed as harness prerequisites. This is a selected Subgraph
+campaign, not all Graph operations, snapshots, INFER or full integration CI.
+
+Normally packed artifacts (SHA-256):
+
+| Package | Digest |
+|---|---|
+| `@actql/client-wire` | `a8d1f2a63ed08d3378765fbee905fb72233d19e66e8ce77d6f1398ae45dbe8b7` |
+| `@actql/sdk` | `a42baf2456b366d3a761f01cce27292ae1dcee13c8ce6113a3b70896bedd4e97` |
+| `@actql/run-host-core` | `cf74b3bf1a686c7acef26dd1d820e0802c815deb3b1bd984d7444d36336527a8` |
+| `@actql/local-node` | `e9009a1db698e00056bcbb3db124f6a854d51e4f4d5098b90ae6c65013062d3d` |
+| `@actql/node` | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+The following evidence-only commit changes this report; it does not rename the
+verified source or claim an additional campaign at a newer HEAD. Seven focused
+source tests passed with the final test changes before commit (`run-FohbbU`,
+`focused-test-4L5JtN`); that receipt retains its actual dirty-source state.
+Full Core, Wasm/native, proof, performance and full packed campaigns are not
+rerun locally. Exact submitted-HEAD automatic CI and content review remain
+separate obligations. Keep the PR Draft; no manual CI rerun or merge.
