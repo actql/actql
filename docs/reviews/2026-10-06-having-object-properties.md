@@ -89,3 +89,12 @@ D's cancellation, Model-wire and CTE/assert/Effect work; H's Effect value/hook
 and Ledger work; A's expression progress/retention; and C's Graph contracts are
 outside this unit. The final merge target is main; no sibling aggregate PR is
 required for this existing HAVING projection connection.
+
+The first clean-SHA packed attempt (`1e6f9f243987834780dab778f16ab2573a83a7e1`,
+`run-wMahaQ`) stopped at the independent JSON control before source execution.
+The concrete checker path was `params.high.fields.nested.fields.risk.max_utf8_bytes`:
+the test had placed a checked String-contract bound into the narrower author
+Parameter declaration grammar. Removing that invalid declaration member leaves
+the original rows, predicate, output types/nullability and Host ceilings intact.
+Read-only preparation against the already compiled runtime then accepted the
+independent Program; that diagnostic is not packed execution evidence.

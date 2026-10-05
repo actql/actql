@@ -2,7 +2,7 @@
 // nullable closed-object property contract. No compiler emits these fixtures.
 const number = {type: 'number', nullable: false};
 const nullableNumber = {...number, nullable: true};
-const string = {type: 'string', nullable: false, max_utf8_bytes: 4};
+const string = {type: 'string', nullable: false};
 const nested = {type: 'object', nullable: true, fields: {
   risk: string, reason: {...string, nullable: true},
 }};
