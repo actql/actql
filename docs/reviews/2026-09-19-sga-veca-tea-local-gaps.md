@@ -768,10 +768,10 @@ and checked by `check:local-resource-accounting`.
 | Executable production routes | 61 |
 | Typed pre-execution refusals (not execution success) | 8 |
 | Operation-specific boundary records | 61 |
-| Four-role lifecycle assurance | 60 |
-| Full route work/workspace assurance | 60 |
-| Path-scoped work/workspace assurance | 112 |
-| Selected-only assurance | 1 |
+| Four-role lifecycle assurance | 61 |
+| Full route work/workspace assurance | 61 |
+| Path-scoped work/workspace assurance | 113 |
+| Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
 ### Route evidence closure after the retained Store bounded lane
@@ -5101,3 +5101,21 @@ final-source CI still need evidence. The language contract also permits
 normalization of an external opaque Graph while preserving its evidence level;
 the current checker and managed storage accept only typed Property Graphs, so
 that separate route remains unconnected rather than silently falling back.
+
+
+### Stored Subgraph boundary evidence after Graph integration
+
+The unselected constructor/Subgraph provider now has a delivered Node timer
+cancellation fixture. Conformance setup supplies an admitted producer and a real
+two-operation generated sequence with no selected step. The existing Local Host
+driver polls the production provider and delivers cancellation only after all
+eight constructor rows and positive Subgraph progress. Stop, repeatable cleanup,
+and continued input availability are checked. Registration/dispatch plumbing is
+a test adapter; this is not a public Run, packed acceptance, or resource-ledger
+release claim. The selected public Host path remains a separate fixture.
+
+Both stored and view kernel entrypoints already have independent work 18/17 and
+workspace 30/29 boundary checks, plus cancellation and cleanup. Their distinct
+roles are now registered with the corresponding environment evidence. Removing
+the fused timer role, either stored assurance, or substituting selected-path
+cancellation is rejected by the resource audit tests.
