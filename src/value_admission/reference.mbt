@@ -413,11 +413,3 @@ pub fn reference_same_issuer(
 ) -> Bool {
   physical_equal(left.issuer.token, right.issuer.token)
 }
-
-///|
-fn emit_reference(
-  value : ReferenceValue,
-  output : @encode.Writer,
-) -> Unit raise @encode.EncodeFailure {
-  @identity.emit_value(value.envelope, output)
-}

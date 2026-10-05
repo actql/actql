@@ -1338,6 +1338,51 @@ expression cancellation guarantee. Intrinsic concatenation and long
 object-field/reference wire transitions remain separate work. Whole-operation
 assurance counts are unchanged.
 
+The following wire component connects long object keys and Reference envelopes
+to the existing resumable emitter. The encoder adds an opt-in ordered-object
+lane that verifies strictly increasing UTF-16 keys and retains only the previous
+borrowed key, rather than hashing every complete key. Comparison and quoting
+advance in at most 64 code units, preserving a crossing surrogate pair. Generic
+objects retain their existing unordered-key and duplicate-checking API. The
+generated encoder interface is produced by the pinned compiler.
+
+Admitted objects and Reference metadata use the same pending-frame stack and
+writer, with no copied envelope or second serializer. A pending key cursor is
+included in existing traversal custody. Completed Relation identity emission
+uses the same ordered-key cursor for payload and logical streams, reserving its
+handle before allocation. Small names keep their previous number of physical
+advances. Failure or cancellation closes unfinished cursor custody without
+revoking the completed producer or refunding work; no unfinished identity is
+issued.
+
+The unchanged parent failed the 4,096-character key's per-advance byte bound
+(`run-Rr0wmJ` / `focused-test-bw4SFu`, 0/1). Independent encoder fixtures cover
+all four sinks, escaping, surrogate boundaries, strict order, duplicate and
+reverse keys, invalid Unicode, exact/one-short bytes and writer interleaving.
+Reference metadata contains an independently authored long key and nested
+Text/NULL value; both metadata and Text yield through the same cursor. Shared
+wire and logical-row tests passed 36/36 focused JS cases before the completed
+Relation connection. Their evidence is `run-8fv5YV` / `focused-test-msQuNb`.
+
+The completed-Relation fixture fixes a 256-character column name with NULL,
+267 payload bytes and 295 logical-envelope bytes. Its two CIDs are independently
+computed from those authored preimages. Four name-measurement chunks, twelve
+key chunks and eight other transitions fix 24/23 work. Three ten-node writer
+envelopes, eight column-summary slots and one cursor fix 39/38 workspace.
+Cancellation in either pending key stream keeps the source alive and reclaims
+the scan's reservations. Existing fixed small-row CIDs and admission summaries
+remain unchanged. The selected identity cases passed 3/3 focused JS tests
+(`run-NkbuFC` / `focused-test-WVbbtc`) after correcting the new fixture's work
+arithmetic and removing its unrelated 64-byte synchronous export helper.
+
+This is a shared wire/identity component, not evidence that every retained
+Store route is complete. New-source real Node Store, packed consumers,
+Wasm/native execution and Linux integration remain unexecuted here. Intrinsic
+concatenation still has a synchronous final String copy; splitting its input
+walk alone would not close that boundary. Synchronous schema/order preparation
+and unrelated draining emitters remain distinct work. No whole-operation
+assurance count is promoted.
+
 #### Retained Relation obligation chains
 
 The retained materializing lane now binds checked obligations to the exact

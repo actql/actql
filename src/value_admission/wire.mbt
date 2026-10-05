@@ -2,8 +2,20 @@
 priv enum WireFrame {
   Read(Value)
   TextNext(@encode.StringEmitCursor)
+  KeyNext(@encode.OrderedKeyEmitCursor)
   ArrayNext(FrozenArray[Value], Int)
   ObjectNext(FrozenArray[(String, Value)], Int)
+  ObjectValueNext(FrozenArray[(String, Value)], Int)
+  CanonicalRead(@identity.CanonicalValue)
+  CanonicalArrayNext(@identity.FrozenArray[@identity.CanonicalValue], Int)
+  CanonicalObjectNext(
+    @identity.FrozenArray[(String, @identity.CanonicalValue)],
+    Int
+  )
+  CanonicalObjectValueNext(
+    @identity.FrozenArray[(String, @identity.CanonicalValue)],
+    Int
+  )
   VectorNext(FrozenArray[Double], Int)
 }
 
@@ -103,6 +115,9 @@ pub fn cancel_wire_emit(cursor : WireEmitCursor) -> Unit {
     if frame is TextNext(text) {
       @encode.cancel_string_value(text)
     }
+    if frame is KeyNext(key) {
+      @encode.cancel_ordered_key(key)
+    }
   }
   cursor.pending.clear()
 }
@@ -140,18 +155,22 @@ pub fn advance_wire_emit(
           pending.push(ArrayNext(items, 0))
         }
         Object(items) => {
-          @encode.begin_object(output)
+          @encode.begin_ordered_object(output)
           pending.push(ObjectNext(items, 0))
         }
         Vector(items) => {
           @encode.begin_array(output)
           pending.push(VectorNext(items, 0))
         }
-        Reference(reference) => emit_reference(reference, output)
+        Reference(reference) => pending.push(CanonicalRead(reference.envelope))
       }
     TextNext(text) =>
       if !@encode.advance_string_value(text) {
         pending.push(TextNext(text))
+      }
+    KeyNext(key) =>
+      if !@encode.advance_ordered_key(key) {
+        pending.push(KeyNext(key))
       }
     ArrayNext(items, index) =>
       if items.values.get(index) is Some(child) {
@@ -162,12 +181,73 @@ pub fn advance_wire_emit(
       }
     ObjectNext(items, index) =>
       if items.values.get(index) is Some((name, child)) {
-        @encode.key(output, name)
-        pending.push(ObjectNext(items, index + 1))
-        pending.push(Read(child))
+        if name.length() > 64 {
+          let key = @encode.start_ordered_key(output, name)
+          pending.push(ObjectValueNext(items, index))
+          pending.push(KeyNext(key))
+        } else {
+          @encode.ordered_key(output, name)
+          pending.push(ObjectNext(items, index + 1))
+          pending.push(Read(child))
+        }
       } else {
         @encode.end_object(output)
       }
+    ObjectValueNext(items, index) => {
+      guard items.values.get(index) is Some((_, child)) else {
+        raise @encode.InvalidStructure
+      }
+      pending.push(ObjectNext(items, index + 1))
+      pending.push(Read(child))
+    }
+    CanonicalRead(value) =>
+      match value {
+        @identity.Null => @encode.null_value(output)
+        @identity.Bool(value) => @encode.bool_value(output, value)
+        @identity.Number(value) => @encode.number_value(output, value)
+        @identity.String(value) =>
+          if value.length() <= 64 {
+            @encode.string_value(output, value)
+          } else {
+            pending.push(TextNext(@encode.start_string_value(output, value)))
+          }
+        @identity.Array(values) => {
+          @encode.begin_array(output)
+          pending.push(CanonicalArrayNext(values, 0))
+        }
+        @identity.Object(values) => {
+          @encode.begin_ordered_object(output)
+          pending.push(CanonicalObjectNext(values, 0))
+        }
+      }
+    CanonicalArrayNext(values, index) =>
+      if @identity.array_at(values, index) is Some(child) {
+        pending.push(CanonicalArrayNext(values, index + 1))
+        pending.push(CanonicalRead(child))
+      } else {
+        @encode.end_array(output)
+      }
+    CanonicalObjectNext(values, index) =>
+      if @identity.array_at(values, index) is Some((name, child)) {
+        if name.length() > 64 {
+          let key = @encode.start_ordered_key(output, name)
+          pending.push(CanonicalObjectValueNext(values, index))
+          pending.push(KeyNext(key))
+        } else {
+          @encode.ordered_key(output, name)
+          pending.push(CanonicalObjectNext(values, index + 1))
+          pending.push(CanonicalRead(child))
+        }
+      } else {
+        @encode.end_object(output)
+      }
+    CanonicalObjectValueNext(values, index) => {
+      guard @identity.array_at(values, index) is Some((_, child)) else {
+        raise @encode.InvalidStructure
+      }
+      pending.push(CanonicalObjectNext(values, index + 1))
+      pending.push(CanonicalRead(child))
+    }
     VectorNext(items, index) =>
       if items.values.get(index) is Some(child) {
         @encode.number_value(output, child)
