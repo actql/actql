@@ -2,6 +2,7 @@
 fn pool_relation_carrier(
   text_keys? : Bool = false,
   text_group? : Bool = false,
+  dimensions? : Int = 2,
 ) -> @carrier.Carrier {
   @carrier.relation(
     @carrier.rows(
@@ -34,7 +35,9 @@ fn pool_relation_carrier(
         ),
         (
           @schema.Unqualified("embedding"),
-          Some(@contract.vector_contract(2.0, nullable=false).unwrap()),
+          Some(
+            @contract.vector_contract(dimensions.to_double(), nullable=false).unwrap(),
+          ),
         ),
       ],
       field_set=@carrier.Closed,
@@ -48,13 +51,14 @@ fn pool_relation_carrier(
 fn pool_producer_owner(
   text_keys? : Bool = false,
   text_group? : Bool = false,
+  dimensions? : Int = 2,
 ) -> @lower.BoundPrepared {
   bind(
     @pipeline.check_carriers(
       cursor(
         "[{\"from\":\"rows\",\"to_vectors\":{\"id\":\"id\",\"vector\":\"embedding\"}}]",
       ),
-      [("rows", pool_relation_carrier(text_keys~, text_group~))],
+      [("rows", pool_relation_carrier(text_keys~, text_group~, dimensions~))],
       None,
       None,
       {
@@ -283,12 +287,13 @@ test "pool view checks exact work and workspace before publication" {
   let source = single_pool_source(producer)
   let material = @records.completed_material(source).unwrap()
   let owner = pool_owner(producer)
-  // One record uses 30 charged steps and 15 structural slots.
+  // One record uses 30 existing steps plus 31 append polls. Cursor custody
+  // adds 8+2*3+1+3*10=45 to the existing 15 structural slots.
   for
     (work, workspace, accepted) in [
-      (30, 15, true),
-      (29, 15, false),
-      (30, 14, false),
+      (61, 60, true),
+      (60, 60, false),
+      (61, 59, false),
     ] {
     let view = @carrier_runtime.material_prepare_view(
       material, owner, 0, producer,
@@ -304,11 +309,11 @@ test "pool view checks exact work and workspace before publication" {
         fn() { true },
         control_work_limit=Some(work),
       ) {
-      Err(PoolWorkspaceLimit) => assert_eq(workspace, 14)
+      Err(PoolWorkspaceLimit) => assert_eq(workspace, 59)
       Err(_) => fail("pool view failed before its selected boundary")
       Ok(execution) => {
         let mut terminal = false
-        for _ in 0..<36 {
+        for _ in 0..<70 {
           if !terminal {
             match advance_pool(execution, 1).unwrap() {
               PoolContinue(..) => ()
@@ -450,8 +455,10 @@ test "pool enforces cumulative one-record control work" {
   let owner = pool_owner(producer)
   // Admission and field scan: 17; scratch: 1; group boundary: 1;
   // two component folds: 6; three output fields: 3; commit: 1;
-  // terminal group boundary: 1. Total: 30 work units.
-  for (ceiling, accepted) in [(30, true), (29, false)] {
+  // terminal group boundary: 1. Existing total: 30. Record append polls:
+  // fields/required/identities including phase ends 10; key 3; record start
+  // 1; tuples 7+4+4; record finish and commit 2: 31. Total: 61.
+  for (ceiling, accepted) in [(61, true), (60, false)] {
     let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
     let execution = start_pool_with_control_work_limit(
       @bounded.control(),
@@ -465,7 +472,7 @@ test "pool enforces cumulative one-record control work" {
     ).unwrap()
     let mut terminal = false
     let mut charged = 0L
-    for _ in 0..<36 {
+    for _ in 0..<70 {
       if !terminal {
         match advance_pool(execution, 1).unwrap() {
           PoolContinue(work=next, ..) => {
@@ -474,7 +481,7 @@ test "pool enforces cumulative one-record control work" {
           }
           PoolComplete(output, work=next, ..) => {
             assert_true(accepted)
-            assert_eq(next, 30L)
+            assert_eq(next, 61L)
             guard @records.completed_storage(output) is Some(material) else {
               fail("pooled output missing")
             }
@@ -484,7 +491,7 @@ test "pool enforces cumulative one-record control work" {
           }
           PoolFailed(PoolWorkLimit, work=next, ..) => {
             assert_false(accepted)
-            assert_eq(next, 29L)
+            assert_eq(next, 60L)
             assert_true(pool_cleanup_pending(execution))
             terminal = true
           }
@@ -606,7 +613,9 @@ test "pool admits structural workspace before allocating sort state" {
   // Four retained records need two four-slot ordering arrays (32 slots).
   // The three output fields, two components, and two key slots add seven.
   // Keep this expected boundary independent of pool_workspace().
-  let required = 39
+  // Append snapshot/map (six), identity (one), fixed custody (eight) and
+  // three depth-ten stacks (30) add 45, making 84.
+  let required = 84
   assert_true(
     start_pool(
       @bounded.control(),
@@ -642,8 +651,9 @@ test "pool completes at its exact structural workspace boundary" {
   let owner = pool_owner(producer)
   let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
   // Two four-slot ordering arrays per retained record (32), plus three
-  // output fields, two components, and two key slots: 39 in total.
-  let required = 39
+  // output fields, two components, and two key slots: 39. The append cursor
+  // adds 45 as itemized above: 84 in total.
+  let required = 84
   let execution = start_pool(
     @bounded.control(),
     sequence(owner),

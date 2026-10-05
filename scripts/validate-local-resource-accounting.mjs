@@ -478,6 +478,8 @@ export function validateResourceAccounting({
         'moon:query_integration': 'query_integration',
         'moon:execution_relation': 'execution_relation',
         'moon:value_admission': 'value_admission',
+        'moon:managed_record_storage': 'managed_record_storage',
+        'moon:managed_record_runtime': 'managed_record_runtime',
         'moon:local_sga': 'local_sga',
         'moon:local_tea': 'local_tea',
         'moon:local_veca': 'local_veca',
@@ -1366,6 +1368,14 @@ export function validateResourceAccounting({
       }
     }
     if (route.family === 'VecA' && route.operation === 'pool_vectors') {
+      for (const role of ['pool_output_limits_stop_cleanup',
+        'pool_output_record_limits', 'pool_output_record_cleanup',
+        'pool_output_owner_exclusion']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('pool_output_public_store')) {
+        fail(`${label}: Pool output public Store fixture is missing`);
+      }
       for (const role of ['pool_relation_input_limits_stop_cleanup',
         'pool_relation_input_shared_vector']) {
         if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);

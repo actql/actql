@@ -46,6 +46,7 @@ priv enum PoolPhase {
   FinishComponent
   BuildOutput
   CommitOutput
+  AppendOutput
   Finish
 }
 
@@ -58,6 +59,7 @@ priv struct PoolState {
   value_limits : @value.Limits
   mut input_recheck : (@schema.FieldName, @value.RecheckCursor)?
   mut output : @records.OutputBuilder?
+  mut output_append : @records.RecordAppend?
   reduction : @numeric.PoolMethod
   dimensions : Int
   group_count : Int
@@ -172,6 +174,7 @@ fn pool_workspace(
   identities : Int,
   output_fields : Int,
   recheck_slots? : Int = 0,
+  append_slots? : Int = 0,
 ) -> Int? {
   guard pool_checked_add(groups, identities) is Some(keys) &&
     pool_checked_add(keys, 2) is Some(record_width) &&
@@ -180,7 +183,8 @@ fn pool_workspace(
     pool_checked_add(output_fields, dimensions) is Some(output_slots) &&
     pool_checked_add(sort_slots, output_slots) is Some(first) &&
     pool_checked_add(first, keys) is Some(second) &&
-    pool_checked_add(second, recheck_slots) is Some(total) else {
+    pool_checked_add(second, recheck_slots) is Some(third) &&
+    pool_checked_add(third, append_slots) is Some(total) else {
     return None
   }
   Some(total)
@@ -266,7 +270,12 @@ fn begin_pool_record(state : PoolState) -> Result[Unit, PoolIssue] {
 ///|
 fn load_pool_field(state : PoolState) -> Result[Unit, PoolIssue] {
   if state.source is Relation(input) {
-    guard relation_cell_recheck(input, state.record, state.field, state.value_limits)
+    guard relation_cell_recheck(
+        input,
+        state.record,
+        state.field,
+        state.value_limits,
+      )
       is Some(pending) else {
       return Err(InvalidPoolRecord(state.record))
     }
@@ -868,14 +877,10 @@ fn build_pool_output_field(state : PoolState) -> Result[Unit, PoolIssue] {
 ///|
 fn commit_pool_output(state : PoolState) -> Result[Unit, PoolIssue] {
   guard state.output is Some(output) else { return Err(InvalidPoolKernel) }
-  match @records.append_record(output, state.output_fields) {
-    Ok(_) => {
-      state.output_fields = []
-      state.pooled_vector = None
-      state.group_start = state.group_end
-      state.group_end = state.group_start + 1
-      state.compare_index = 0
-      state.phase = FindGroupEnd
+  match @records.start_record_append(output, state.output_fields) {
+    Ok(cursor) => {
+      state.output_append = Some(cursor)
+      state.phase = AppendOutput
       Ok(())
     }
     Err(issue) => Err(PoolOutput(issue))
@@ -953,7 +958,11 @@ fn pool_step(
             }
           }
           @value.RecheckFailed =>
-            return @bounded.Failed(InvalidPoolRecord(state.record), progress, used)
+            return @bounded.Failed(
+              InvalidPoolRecord(state.record),
+              progress,
+              used,
+            )
         }
       }
       MatchGroup => {
@@ -1122,8 +1131,29 @@ fn pool_step(
       CommitOutput => {
         used += 1
         match commit_pool_output(state) {
-          Ok(_) => progress += 1
+          Ok(_) => ()
           Err(issue) => return @bounded.Failed(issue, progress, used)
+        }
+      }
+      AppendOutput => {
+        used += 1
+        guard state.output_append is Some(cursor) else {
+          return @bounded.Failed(InvalidPoolKernel, progress, used)
+        }
+        match @records.advance_record_append(cursor) {
+          Ok(false) => ()
+          Ok(true) => {
+            state.output_append = None
+            state.output_fields = []
+            state.pooled_vector = None
+            state.group_start = state.group_end
+            state.group_end = state.group_start + 1
+            state.compare_index = 0
+            state.phase = FindGroupEnd
+            progress += 1
+          }
+          Err(issue) =>
+            return @bounded.Failed(PoolOutput(issue), progress, used)
         }
       }
       Finish => {
@@ -1144,6 +1174,10 @@ fn pool_step(
 
 ///|
 fn cleanup_pool_state(state : PoolState) -> Bool {
+  if state.output_append is Some(cursor) {
+    @records.cleanup_record_append(cursor) |> ignore
+    state.output_append = None
+  }
   if state.input_recheck is Some((_, cursor)) {
     @value.cancel_recheck_runtime_value(cursor)
     state.input_recheck = None
@@ -1218,8 +1252,19 @@ fn start_pool_carrier_source(
     component.contract is Some(component_contract) &&
     @carrier.lookup(output_rows, @schema.Unqualified("member_count"))
     is @carrier.Present({ contract: Some(member_count_contract), .. }) &&
+    @storage.append_workspace_slots(
+      output_fields,
+      @carrier.vector_identity_count(output_vectors),
+      limits.max_value_depth,
+    )
+    is Some(append_slots) &&
     pool_workspace(
-      records, dimensions, group_count, identity_count, output_fields,
+      records,
+      dimensions,
+      group_count,
+      identity_count,
+      output_fields,
+      append_slots~,
     )
     is Some(workspace) &&
     workspace <= limits.max_workspace_slots else {
@@ -1259,6 +1304,7 @@ fn start_pool_carrier_source(
     },
     input_recheck: None,
     output: Some(output),
+    output_append: None,
     reduction,
     dimensions,
     group_count,
@@ -1480,6 +1526,12 @@ pub fn start_relation_pool(
     @carrier.lookup(output_rows, @schema.Unqualified("member_count"))
     is @carrier.Present({ contract: Some(member_count_contract), .. }) &&
     pool_checked_add(limits.max_value_depth, 10) is Some(recheck_slots) &&
+    @storage.append_workspace_slots(
+      output_fields,
+      @carrier.vector_identity_count(output_vectors),
+      limits.max_value_depth,
+    )
+    is Some(append_slots) &&
     pool_workspace(
       @execution.producer_read_row_count(input),
       dimensions,
@@ -1487,6 +1539,7 @@ pub fn start_relation_pool(
       workspace_identities,
       output_fields,
       recheck_slots~,
+      append_slots~,
     )
     is Some(workspace) &&
     workspace <= limits.max_workspace_slots else {
@@ -1535,6 +1588,7 @@ pub fn start_relation_pool(
     },
     input_recheck: None,
     output: Some(output),
+    output_append: None,
     reduction,
     dimensions,
     group_count,

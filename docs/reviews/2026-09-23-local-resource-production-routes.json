@@ -9918,6 +9918,34 @@
           "fixture": "Relation Pool admission yields within unused arrays before stop"
         },
         {
+          "role": "pool_output_limits_stop_cleanup",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/pool_output_steps_wbtest.mbt",
+          "fixture": "Pool output Vector encoding yields with exact work and confirmed stop"
+        },
+        {
+          "role": "pool_output_record_limits",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/append_steps_wbtest.mbt",
+          "fixture": "record append keeps exact wire accounting across Text chunk yields"
+        },
+        {
+          "role": "pool_output_record_cleanup",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/append_steps_wbtest.mbt",
+          "fixture": "record append cancellation retains prior rows until builder cleanup"
+        },
+        {
+          "role": "pool_output_owner_exclusion",
+          "suite": "moon:managed_record_runtime",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_runtime/output_wbtest.mbt",
+          "fixture": "record output cursor excludes premature finish and releases custody once"
+        },
+        {
           "role": "pool_relation_input_shared_vector",
           "suite": "moon:value_admission",
           "targets": ["js", "wasm", "native"],
@@ -10009,6 +10037,13 @@
           "targets": ["node"],
           "path": "adapters/host-node/public-pool-key-retention.test.mjs",
           "fixture": "public retained Pool admits Relation input and cancels inside unused array"
+        },
+        {
+          "role": "pool_output_public_store",
+          "suite": "node:embedded_pool_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-pool-key-retention.test.mjs",
+          "fixture": "public retained Pool publishes and cancels inside output Vector encoding"
         },
         {
           "role": "pool_relation_host_in_flight_cancel",
