@@ -786,7 +786,6 @@ fn selected_relation_provider(
         if single_unsupported || chain_unsupported {
           return false
         }
-        let mut prior_inputs = 0
         for port in 0..<input_count {
           if !@lower.node_accepts_managed_relation_view(node, port) {
             return false
@@ -824,16 +823,14 @@ fn selected_relation_provider(
                   return false
                 }
                 used_by_later[producer_position] = true
-                prior_inputs += 1
               }
               None => return false
             }
           }
         }
-        if count > 1 && index > 0 && prior_inputs == 0 {
-          return false
-        }
       }
+      // An external-only child may form a second branch. Every private
+      // output before the final step must still be consumed within the task.
       for index in 0..<(count - 1) {
         if !used_by_later[index] {
           return false

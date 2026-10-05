@@ -1,5 +1,12 @@
 # Connector author foundation S1: Salesforce Read/Effect decomposition and minimal entry
 
+Historical baseline: the Salesforce Read execution/capture path described below
+is superseded by [the completed Read migration](2026-10-04-salesforce-neutral-read.md).
+Its retired files and exports are an inventory of the earlier implementation,
+not current entry points. Salesforce Effect and overall connector-authoring
+completion remain separate.
+
+
 S1 of the connector author foundation work order (`docs/reviews/2026-10-04-connector-authoring-foundation.md`, published separately),
 against OSS main `1ae27a69c` (#290, which includes A's exact DuckDB target from #291). This note records the decomposition tables,
 the contract deltas and the migration targets; it is paired with the Draft PR
