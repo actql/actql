@@ -32,6 +32,8 @@ pub(all) enum FrameBoundary {
   UnboundedFollowing
   Preceding(Int64)
   Following(Int64)
+  PrecedingParameter(String)
+  FollowingParameter(String)
 } derive(Eq, Debug)
 
 ///|
@@ -867,6 +869,15 @@ fn QueryParser::frame_boundary(
     self.keyword("CURRENT")
     self.keyword("ROW")
     return CurrentRow
+  }
+  if self.peek().value is Parameter(name) {
+    ignore(self.advance())
+    if self.has("PRECEDING") {
+      self.keyword("PRECEDING")
+      return PrecedingParameter(name)
+    }
+    self.keyword("FOLLOWING")
+    return FollowingParameter(name)
   }
   let distance = self.safe_integer(false)
   if self.has("PRECEDING") {

@@ -1,0 +1,12 @@
+{
+  "version": "actql-foundation-resolution-supplement/0.1",
+  "id": "complete-model-installed-late-execution-receipt",
+  "target": {
+    "id": "standard-model-installed-continuation-integration",
+    "digest": "e2b6edcc24519e127def6810bb0b5d2e8fe51583e53c90df64a3c0e0cad18465"
+  },
+  "inputs": [
+    "adopt-model-installed-execution-a0dc67b"
+  ],
+  "reason": "Preserve the original integration declaration and add the ancestor execution receipt introduced later by commit 0c9f74fb66ecade08ea96b3ec461415723acc1ac. The receipt was absent at the original declaration introduction; no source, existing declaration or validation rule is changed."
+}

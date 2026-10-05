@@ -673,6 +673,17 @@ export function createModelResumeState(database, {
       // journal write. No Run row is required; registration and every later
       // entry consult this same SQLite transaction domain. The controller must
       // acknowledge cancellation only after both journals are durably updated.
+      modelCancellationFenced(runId, runDefinitionCid) {
+        alive();
+        if (!text(runId) || !cid(runDefinitionCid)) fail('InvalidModelRunIdentity');
+        return transaction.run(() => {
+          const row = q.cancelled.get(runId);
+          if (row === undefined) return false;
+          const owner = admittedOwner(row.original_run_wire);
+          if (!same(JSON.parse(row.owner_json), owner)) fail('ModelRunIdentityMismatch');
+          return owner.runId === runId && owner.runDefinitionCid === runDefinitionCid;
+        });
+      },
       fenceRunCancellation({originalRunWire}) {
         alive();
         const owner = admittedOwner(originalRunWire);

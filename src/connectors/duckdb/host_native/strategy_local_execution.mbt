@@ -3,6 +3,7 @@
 /// attempt is already reserved when this owner is constructed; its complete
 /// callback is invoked only after the exact output file has been sealed.
 priv struct NativeStrategyLocalOwner {
+  task_index : Int
   operations : @local_driver.LocalDispatchOperations
   file : @retained_file.NativeRetainedTaskFile
   wire : @execution.RowWireLimits
@@ -66,6 +67,7 @@ fn start_native_strategy_local_owner(
     profile.max_file_bytes,
   ).map_err(issue => NativeStrategyLocalIssue::RetainedFile(issue))
   file.map(file => {
+    task_index: task,
     operations,
     file,
     wire: profile.wire,

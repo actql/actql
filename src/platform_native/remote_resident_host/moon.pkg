@@ -33,3 +33,7 @@ import {
   "actql/actql/platform_native/sqlite",
   "moonbitlang/core/json",
 }
+
+import {
+  "actql/actql/check_environment" @environment,
+} for "wbtest"
