@@ -221,3 +221,31 @@ pub fn client_run_cancellation_action(
     Err(_) => -1
   }
 }
+
+///|
+#export_name("clientRunCancellationConfirmed")
+pub fn client_run_cancellation_confirmed(
+  cancellation_requested : Bool,
+  model_fence_required : Bool,
+  model_fenced : Bool,
+  unresolved_model_calls : Bool,
+  unresolved_effects : Bool,
+  reconciliation_required : Bool,
+  publication_committed : Bool,
+  physical_stop_confirmed : Bool,
+  cleanup_confirmed : Bool,
+  revision_unchanged : Bool,
+) -> Bool {
+  @publication_host.confirm_client_run_cancellation({
+    cancellation_requested,
+    model_fence_required,
+    model_fenced,
+    unresolved_model_calls,
+    unresolved_effects,
+    reconciliation_required,
+    publication_committed,
+    physical_stop_confirmed,
+    cleanup_confirmed,
+    revision_unchanged,
+  })
+}

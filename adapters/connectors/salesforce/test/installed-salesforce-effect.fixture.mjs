@@ -288,7 +288,10 @@ export async function effectHost(t, installation, state, {effect,
     },
     // Recover the admitted Run of `requestId` in this process and continue
     // it through the installed factory's recovery projection.
-    async resume(requestId, runDefinitionCid, continuation) {
+    // `retainRecoveryOwner` receives the recovered Ledger handle's owner, as
+    // the Host's recovery custody does.
+    async resume(requestId, runDefinitionCid, continuation,
+      {retainRecoveryOwner} = {}) {
       const recovery = await recoverAdmittedEffectRun({requests: journal,
         store, key: {namespaceId: 'namespace-a', authorityScopeCid: cid('e'),
           requestId, runDefinitionCid},
@@ -300,7 +303,7 @@ export async function effectHost(t, installation, state, {effect,
           recovered: {requestIdentity: recovery.requestIdentity,
             requestScope: recovery.requestScope,
             computation: recovery.computation},
-          continuation, contractLimits: limits});
+          continuation, contractLimits: limits, retainRecoveryOwner});
       } catch (error) {
         outcomes.push({stage: {dispose() {},
           storedResults: recovery.computation.storedResults}});

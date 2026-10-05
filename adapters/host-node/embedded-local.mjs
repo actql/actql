@@ -52,7 +52,8 @@ import {createDiagnosticObserver} from
   '../host-common/diagnostic-observer.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
-import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
+import {installNodeClientDispatchOwner, confirmNodeRunCancellation, cancelNodeRunContinuation,
+  observeNodeRestoredModelStop, recordNodeRunPhysicalStop} from './client-dispatch-owner.mjs';
 import {createInstalledHostShutdown,
   retainInstalledHostInitializationFailure} from
   './installed-host-cleanup.mjs';
@@ -514,14 +515,16 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     }
     throw new Error('RunStateObservationUnstable');
   };
-  const cancelEffectContinuation = ref => {
+  const cancelEffectContinuation = async ref => {
     if (checkpoints === undefined) return false;
     const retained = journal.lookupRunDefinition(ref, moon, control);
     if (retained === undefined || !retained.cancellationRequested) {
       return false;
     }
-    const runId = control.runDefinitionRunId(retained.runDefinition);
-    return checkpoints.cancelEffectContinuation(runId, ref.runDefinitionCid);
+    return cancelNodeRunContinuation({ref, journal, store, checkpoints, moon, control,
+      currentDispatchIdle: () => dispatchOwner.operation(ref) === undefined &&
+        !effectResumeFlights.has(ref.runDefinitionCid) &&
+        !modelResumeFlights.has(ref.runDefinitionCid)});
   };
   const cancel = async ({ref, principalId: actual, connection}) => {
     if (!hostConnection({principalId: actual, connection, ref})) {
@@ -546,7 +549,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     }, moon, control);
     if (accepted.kind !== 'already_terminal') {
       dispatchOwner.cancel(ref);
-      cancelEffectContinuation(ref);
+      await cancelEffectContinuation(ref);
       void checkpoints?.sweep();
     }
     return accepted;
@@ -1089,7 +1092,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
               effectRun.recordReconciliation(...args)}));
         },
         observeStopped: terminalOutcome => {
-          journal.markPhysicalClose(facts.ref, activeResume === undefined ? terminalOutcome : null);
+          recordNodeRunPhysicalStop({ref: facts.ref, journal, moon, control},
+            activeResume === undefined ? terminalOutcome : null);
+          modelResume?.observeStopped?.();
           if (activeResume !== undefined) activeResume.observedTerminalOutcome = terminalOutcome;
         },
         barrierFailureOutcome: 'failed',
@@ -1355,7 +1360,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           // Only the existing publication owner can make recovery successful.
           // A reader refusal does not resolve the original physical outcome.
           if (await store.confirmCommittedIndex(accepted.ref) !== undefined) {
-            journal.markPhysicalClose(accepted.ref, null);
+            recordNodeRunPhysicalStop({ref: accepted.ref, journal, moon, control}, null);
           }
         },
       });
@@ -1728,7 +1733,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
         const key = view.runDefinitionCid;
         const ref = Object.freeze({namespaceId, authorityScopeCid,
           runDefinitionCid: key});
-        if (cancelEffectContinuation(ref)) {
+        if (await cancelEffectContinuation(ref)) {
           busy = true;
         }
         const runStatus = checkpoints.journal.getRunState(view.runId)?.status;
@@ -1921,7 +1926,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
             // The original Compute stopped before the Effect Checkpoint.
             // Its nonterminal stop observation is immutable. Effect failure
             // and reconciliation belong to the Checkpoint and Effect owners.
-            observeStopped: () => journal.markPhysicalClose(ref, null),
+            observeStopped: () => recordNodeRunPhysicalStop({ref, journal, moon, control}, null),
           });
           effectResumeFlights.set(key, flight);
           void flight.catch(error => {
@@ -1991,7 +1996,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           const unresolved = checkpoints.journal.hasUnresolvedModelCalls(runId);
           if (retained.cancellationRequested) {
             checkpoints.journal.fenceRunCancellation({originalRunWire: record.originals.originalRunWire});
-            cancelEffectContinuation(ref);
+            await cancelEffectContinuation(ref);
             if (unresolved) busy = true;
             continue;
           }
@@ -2049,6 +2054,11 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
             // own activation and per-call entry; Effect approval is separate.
             if (claim !== undefined) checkpoints.journal.renewResume(claim, leaseMs);
           };
+          let restorationDispatchEntered = false;
+          let restorationStopConfirmed = false;
+          // An older physical-close record cannot acknowledge a new
+          // continuation's reclamation. Only its current owner can do that.
+          const restorationReclaimed = () => !restorationDispatchEntered || restorationStopConfirmed;
           const runRestoredModel = async () => {
             assertCurrent();
             const current = journal.lookupRunDefinition(ref, moon, control);
@@ -2076,7 +2086,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
                   prepareAttemptId: null, runId, runDefinitionCid: ref.runDefinitionCid}) : active,
                 ...(parentCheckpoint === undefined ? {} : {parentResume: {
                   claim, checkpointCid: parentCheckpoint.checkpointCid}}),
-                assertCurrent};
+                assertCurrent, observeStopped: () => { restorationStopConfirmed = true; }};
+              restorationDispatchEntered = true;
               return executeEffectComputation(facts, undefined, undefined, modelResume);
             }
             if (parentCheckpoint !== undefined) throw new Error('ModelReadParentRunMismatch');
@@ -2084,6 +2095,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
             if (originalModelRunWire(plan.compiled, plan.runDefinition) !== record.originals.originalRunWire) {
               throw new Error('ModelResumeOriginalAdmissionChanged');
             }
+            restorationDispatchEntered = true;
             return dispatchOwner.track(ref, {
               run: async ({signal, retainExecution, beginPhysicalWork}) => {
                 assertCurrent();
@@ -2092,9 +2104,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
                   store, principalId, signal, retainExecution, beginPhysicalWork,
                   submission: token.snapshot.submission, existingModel: record, modelClaim: claim});
               },
-              observeStopped: () => journal.markPhysicalClose(ref,
-                journal.lookupRunDefinition(ref, moon, control)?.cancellationRequested === true &&
-                !checkpoints.journal.hasUnresolvedModelCalls(runId) ? 'cancelled' : null),
+              observeStopped: async () => {
+                await observeNodeRestoredModelStop({ref,
+                  journal, store, checkpoints, moon, control, cleanupConfirmed: true,
+                  physicalStopConfirmed: true});
+                restorationStopConfirmed = true;
+              },
             });
           };
           const flight = runRestoredModel().then(async result => {
@@ -2136,11 +2151,15 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
               checkpoints.journal.finishRun(runId, {status: 'succeeded',
                 runStateWire: JSON.stringify(published)});
             }
-          }).catch(error => {
+          }).catch(async error => {
             const code = error?.code ?? error?.message;
             const stopped = journal.lookupRunDefinition(ref, moon, control);
-            if (stopped?.cancellationRequested === true && stopped.physicalCloseConfirmed === true &&
-                !checkpoints.journal.hasUnresolvedModelCalls(runId)) {
+            if (stopped?.physicalCloseConfirmed === true &&
+                await confirmNodeRunCancellation({ref, journal, store, checkpoints,
+                  moon, control, cleanupConfirmed: restorationReclaimed(),
+                  physicalStopConfirmed: stopped.physicalCloseConfirmed}) &&
+                restorationReclaimed() &&
+                journal.lookupRunDefinition(ref, moon, control)?.revision === stopped.revision) {
               const state = checkpoints.journal.getRunState(runId);
               if (claim !== undefined && state?.status === 'resuming' && leaseFailure === undefined) {
                 checkpoints.journal.completeResume(claim, {status: 'cancelled'});
@@ -2149,7 +2168,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
               }
               return;
             }
-            if (code === 'ModelSavedTerminalFailure' && stopped?.physicalCloseConfirmed === true &&
+            if (code === 'ModelSavedTerminalFailure' && stopped?.physicalCloseConfirmed === true && restorationReclaimed() &&
                 !checkpoints.journal.hasUnresolvedModelCalls(runId)) {
               const state = checkpoints.journal.getRunState(runId);
               if (claim !== undefined && state?.status === 'resuming' && leaseFailure === undefined) {

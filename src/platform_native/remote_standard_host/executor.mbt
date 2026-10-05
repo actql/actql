@@ -57,6 +57,7 @@ struct NativeRemoteStandardRunOwner {
 priv enum NativeRemoteStandardRun {
   Compute(@native_host.NativeStandardStrategyRun)
   Acquired(@strategy.CapturedDAG, Int, Int)
+  AcquiredTask(@strategy.CapturedDAG, Int, @query.CapturedInputSource)
 }
 
 ///|
@@ -228,6 +229,34 @@ pub fn prepare_native_remote_standard_acquired_run_owner(
 }
 
 ///|
+/// Retain the original acquisition task output even when no public Named
+/// Result points at it. The capture must be the exact physical source owned
+/// by this checked Run; equal content or another prepared capture is refused.
+pub fn prepare_native_remote_standard_acquired_task_owner(
+  run : @strategy.CapturedDAG,
+  task : Int,
+  source : @query.CapturedInputSource,
+  finish_input_owner : () -> Bool,
+  source_observation? : ((@remote.DispatchRequest) -> Result[
+    @remote.RemoteSourceObservation,
+    @remote.DispatchIssue,
+  ])? = None,
+) -> Result[NativeRemoteStandardRunOwner, NativeRemoteStandardHostIssue] {
+  if !@strategy.captured_task_source_matches(run, task, source) {
+    return Err(InvalidConfiguration)
+  }
+  Ok({
+    run: AcquiredTask(run, task, source),
+    finish_output_owner: () => true,
+    finish_input_owner,
+    run_finished: false,
+    output_finished: false,
+    input_finished: false,
+    source_observation,
+  })
+}
+
+///|
 pub fn prepare_native_remote_standard_compute_owner(
   run : @native_host.NativeStandardStrategyRun,
   finish_output_owner : () -> Bool,
@@ -261,7 +290,7 @@ fn NativeRemoteStandardRunOwner::release(
           Ok(true) => self.run_finished = true
           Ok(false) | Err(_) => return false
         }
-      Acquired(run, _, _) => {
+      Acquired(run, _, _) | AcquiredTask(run, _, _) => {
         @strategy.stop_captured_dag(run)
         self.run_finished = true
       }
@@ -706,6 +735,21 @@ fn execute_native_remote_standard_task(
         @publication_host.prepare_captured_result_publication_export(
           run,
           result,
+          limits.output_export,
+        ) {
+        Ok(value) => value
+        Err(_) => return remote_standard_failure(bound, "source-export-prepare")
+      }
+    }
+    AcquiredTask(run, task, source) => {
+      if task != expected_task {
+        return remote_standard_failure(bound, "foreign-standard-task")
+      }
+      match
+        @publication_host.prepare_acquired_task_publication_export(
+          run,
+          task,
+          source,
           limits.output_export,
         ) {
         Ok(value) => value

@@ -14,6 +14,36 @@ projection is sent separately as the exact canonical JSON returned by
 Candidate metadata can still be sensitive and requires an explicit disclosure
 policy at the Host boundary.
 
+## Candidate projection identity
+
+The sole current candidate projection is the canonical JSON array
+`["actql-policy-candidates/0.1", program_definition_cid, generation, revision,
+search_complete, assignments]`. Its CID is SHA-256 over those exact UTF-8
+canonical bytes, including the version. Assignment order, positions, duration
+estimates, enforceable capacities, per-task offers, work lines and resident
+profiles retain their existing meaning. A null task position remains null;
+unknown duration and incomplete search never become a zero estimate or a claim
+of completeness.
+
+The initial-baseline correction replaces the former development 0.2 tag with
+0.1. The changed preimage has a different candidate CID and every newly prepared
+request binds that current CID. There is no alias or alternate legacy reader.
+The common owner creates projections for pending, in-memory consultations;
+standard Hosts forward them and admit only an exact request echo. The Native
+benchmark consumes the same current projection. No candidate schema registry or
+separately persisted candidate artifact is registered by these owners.
+
+Retained historical requests, responses or audit bytes must keep their original
+identities. Do not relabel a pending consultation or replay its old response
+against a newly prepared one. Any deployment with independently persisted or
+external consumers of the development tag must coordinate that boundary before
+upgrading; this correction provides no implicit migration of such records.
+The [independent candidate vector](../../portability/corpus/policy-candidates.json)
+fixes the complete current body and its CID, and the owned-version gate no longer
+permits the migrated writer or its consumers to emit a nonbaseline tag.
+
+## Host consultation
+
 The portable DuckDB/Local standard Host exposes this boundary through
 `prepare_dispatch_policy_choice`, `dispatch_policy_candidates`,
 `prepare_dispatch_policy_request` and `commit_dispatch_policy_response_json`.
