@@ -19,6 +19,7 @@ import {ExecutionAuthorizationError, createAuthorizationDecisionBudget} from
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {canonicalJson, contentCid, createLocalAuthorizationGate} from
   './local-account-config.mjs';
+import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {createPrivateEvidenceKey, loadPrivateEvidenceKey,
   openContinuationEvidence} from './local-continuation-evidence.mjs';
 import {loadCheckpointRuntime, openSqliteCheckpointJournal} from
@@ -1254,7 +1255,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
             // retain their exact association instead of confusing identities.
             const storedReview = evidence.reference(`model-${runId}`,
               'review_projection', reviewWire).semantic_cid;
-            const storedContinuation = canonicalJson({version: MODEL_CHECKPOINT_STORAGE,
+            const storedContinuation = canonicalValueJson({version: MODEL_CHECKPOINT_STORAGE,
               run_definition_cid: runDefinitionCid,
               model_invocation_scope_cid: scopeCid,
               review_projection_cid: review.identity, review_storage_cid: storedReview,
