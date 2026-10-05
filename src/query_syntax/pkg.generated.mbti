@@ -198,6 +198,8 @@ pub(all) enum FrameBoundary {
   UnboundedFollowing
   Preceding(Int64)
   Following(Int64)
+  PrecedingParameter(String)
+  FollowingParameter(String)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum GraphConstraint {

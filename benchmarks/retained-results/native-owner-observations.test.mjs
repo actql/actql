@@ -17,7 +17,7 @@ function evidence() {
     owners: [{...base, boundary: 'before-task'}, {...held, boundary: 'after-task'},
       {...held, boundary: 'before-close'}, {...closed, boundary: 'after-close'},
       {...closed, boundary: 'duplicate-close'}],
-    candidates: [{task: 1, body: ['actql-policy-candidates/0.2', 'program',
+    candidates: [{task: 1, body: ['actql-policy-candidates/0.1', 'program',
       0, 1, true, [[0, '3', '0', '64', '512', [null, offer]]]]}],
     choices: [{task: 1, position: 0, revision: 1, source: 'OfflineLatency',
       registration: 'duckdb', name: 'duckdb', resident: true}],
@@ -48,6 +48,7 @@ test('resident attempts include environment/import and retention includes metada
   assert.equal(result.phaseIntervals[1].precedingIntervalMicroseconds, 16);
 });
 for (const [name, mutate, issue] of [
+  ['unsupported candidate contract', e => { e.observations.candidates[0].body[0] = 'unsupported-policy-candidates'; }, /InvalidNativePlannerProjection/],
   ['unattributed attempt', e => { e.observations.owners[1].attempts++; }, /UnattributedNativePhysicalAttempt/],
   ['missing intermediate owner', e => { e.observations.owners.splice(1, 1); }, /MissingNativeOwnerBoundary/],
   ['wrong registration', e => { e.observations.choices[0].registration = 'local'; }, /NativeChoiceRegistrationMismatch/],

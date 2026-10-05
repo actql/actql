@@ -16,6 +16,8 @@ import test, {after} from 'node:test';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {connect, getCheckInput, resolveCheckLocation, resolveCheckTextRange, explainCheckReason} from '../../packages/sdk/index.mjs';
+import * as frontierSDK from '../../packages/sdk/index.mjs';
+
 import * as sdk from '../../packages/sdk/index.mjs';
 import {validCheckOutcome, checkReasonSchemaCid} from '../../packages/client-wire/index.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
@@ -212,6 +214,142 @@ const rightConfiguration = name => ({...configurations[name],
   aliases: name === 'absent' ? [] : [rightAlias]});
 
 const entrances = Object.freeze({local: localClient, http: httpClient});
+
+for (const [entrance, open] of Object.entries(entrances)) {
+  test(`${entrance}: typed Requirement frontiers retain context and ignore presentation order`, async t => {
+    let responses = 0;
+    const reorder = outcome => {
+      if (++responses === 2 && outcome.outcome === 'completed') {
+        const requirements = outcome.report.requirements.reverse();
+        outcome.report.requirements = [...requirements, requirements[0]];
+        for (const reason of requirements) {
+          reason.facts = {parameter: reason.facts.parameter, expected_type: reason.facts.expected_type};
+          delete reason.location;
+        }
+      }
+      return outcome;
+    };
+    const client = await open(t, configurations.denied, reorder);
+    const text = 'SELECT @a AS first, @b AS second';
+    const options = {format: 'sql', parameterDeclarations: {
+      a: {type: 'number'}, b: {type: 'string'}}, parameters: {}};
+    const first = await client.check(text, options);
+    const second = await client.check(text, options);
+    // Independent conditions come from the submitted declarations, not from
+    // the SDK frontier normalizer or a replayed product expectation.
+    for (const outcome of [first, second]) {
+      assert.equal(outcome.outcome, 'completed');
+      assert.equal(outcome.report.verdict, 'undetermined');
+      assert.deepEqual([...new Set(outcome.report.requirements.map(reason =>
+        reason.facts.parameter + ':' + reason.facts.expected_type))].sort(),
+      ['a:number', 'b:string']);
+      assert.deepEqual(outcome.report.coverage, {
+        limits: [{code: 'bound_values_missing'}], unresolved: []});
+    }
+    assert.equal(first.report.context_ref, second.report.context_ref);
+    assert.equal(typeof frontierSDK.getCheckRequirementFrontier, 'function', '[check-mutation:frontier-api]');
+    const frontier = frontierSDK.getCheckRequirementFrontier(first);
+    assert.deepEqual(frontier.scope, {kind: 'bound_input'});
+    assert.equal(frontier.contextRef, first.report.context_ref);
+    assert.equal(frontier.reasonSchemaCid, checkReasonSchemaCid);
+    assert.equal(frontier.requirements.length, 2);
+    assert.equal(Object.isFrozen(frontier.requirements), true);
+    assert.equal(frontierSDK.equalCheckRequirementFrontiers(first, second), true, '[check-mutation:frontier-order]');
+    const changed = await client.check(text, {...options, parameters: {a: 1}});
+    assert.equal(changed.report.verdict, 'undetermined');
+    assert.deepEqual(changed.report.requirements.map(reason => reason.facts),
+      [{parameter: 'b', expected_type: 'string'}]);
+    assert.notEqual(changed.report.context_ref, first.report.context_ref);
+    assert.equal(frontierSDK.equalCheckRequirementFrontiers(first, changed), false, '[check-mutation:frontier-context]');
+    const anotherBinding = await client.check(text, {...options, parameters: {a: 2}});
+    assert.notEqual(anotherBinding.report.context_ref, changed.report.context_ref);
+    assert.equal(frontierSDK.equalCheckRequirementFrontiers(changed, anotherBinding), false, '[check-mutation:frontier-context]');
+    assert.equal(frontierSDK.equalCheckRequirementFrontiers(first, structuredClone(first)), undefined,
+      '[check-mutation:frontier-bound]');
+    assert.equal(first.report.verdict, 'undetermined');
+    client.assertNoExecution();
+  });
+
+  test(`${entrance}: supplementation checks stop unchanged frontiers and bound changing contexts`, async t => {
+    const client = await open(t, configurations.denied);
+    let calls = 0;
+    const counted = {check: (...args) => { calls++; return client.check(...args); }};
+    const text = 'SELECT @a AS first, @b AS second';
+    const options = {format: 'sql', parameterDeclarations: {
+      a: {type: 'number'}, b: {type: 'string'}}, parameters: {}};
+    assert.equal(typeof frontierSDK.createCheckSupplementationSession, 'function', '[check-mutation:frontier-session-api]');
+    const repeated = frontierSDK.createCheckSupplementationSession(counted, {maxAttempts: 5});
+    const first = await repeated.check(text, options);
+    assert.deepEqual(first.decision, {kind: 'more_checks'});
+    const second = await repeated.check(text, options);
+    assert.deepEqual(second.decision, {kind: 'stop', reason: 'unchanged_frontier'}, '[check-mutation:frontier-stalled]');
+    await assert.rejects(repeated.check(text, {...options, parameters: {a: 1, b: 'bound'}}),
+      {code: 'CheckSupplementationStopped'});
+    assert.equal(calls, 2, '[check-mutation:frontier-no-repeat]');
+    const changing = frontierSDK.createCheckSupplementationSession(counted, {maxAttempts: 3});
+    for (const a of [1, 2, 3]) {
+      const result = await changing.check(text, {...options, parameters: {a}});
+      assert.equal(result.outcome.report.verdict, 'undetermined');
+      assert.equal(result.attempts, a, '[check-mutation:frontier-budget-count]');
+      assert.deepEqual(result.decision, a < 3 ? {kind: 'more_checks'}
+        : {kind: 'stop', reason: 'attempt_budget'}, '[check-mutation:frontier-budget]');
+    }
+    await assert.rejects(changing.check(text, {...options, parameters: {a: 4}}),
+      {code: 'CheckSupplementationStopped'});
+    assert.equal(calls, 5, '[check-mutation:frontier-no-repeat]');
+    const invalid = frontierSDK.createCheckSupplementationSession(counted, {maxAttempts: 3});
+    const result = await invalid.check(text + ' FROM records', {...options, parameters: {a: 'wrong', b: 'bound'}});
+    assert.equal(result.outcome.report.verdict, 'invalid');
+    assert.deepEqual(result.outcome.report.reasons.map(({code, facts}) => ({code, facts})),
+      [{code: 'supplied_value_type_mismatch',
+        facts: {parameter: 'a', expected_type: 'number', actual_type: 'string'}}]);
+    assert.deepEqual(result.outcome.report.requirements, []);
+    assert.deepEqual(result.outcome.report.coverage, {limits: [],
+      unresolved: [{boundary: 'source_resolution', reason: 'unresolved_protected'}]});
+    assert.deepEqual(result.decision, {kind: 'stop', reason: 'no_known_supplement'});
+    const complete = frontierSDK.createCheckSupplementationSession(counted, {maxAttempts: 3});
+    const verified = await complete.check(text, {...options, parameters: {a: 1, b: 'bound'}});
+    assert.equal(verified.outcome.report.verdict, 'verified');
+    assert.deepEqual(verified.decision, {kind: 'stop', reason: 'no_known_supplement'});
+    assert.equal(first.outcome.report.verdict, 'undetermined');
+    client.assertNoExecution();
+  });
+}
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: incomparable Requirement reports stop read-only supplementation`, async t => {
+    const options = {format: 'sql', parameterDeclarations: {a: {type: 'number'}}, parameters: {}};
+    for (const mode of ['unknown', 'partial', 'malformed']) {
+      let calls = 0;
+      const client = await contextClient(t, entrance, absentEnvironment, {mutateCheckReply(outcome) {
+        calls++;
+        if (mode === 'unknown') outcome.report.requirements[0].code = 'future_requirement';
+        else if (mode === 'partial') return {version: outcome.version,
+          reason_schema_cid: outcome.reason_schema_cid, outcome: 'failed',
+          problem: {code: 'check_internal'}, partial_report: outcome.report};
+        else outcome.report.requirements[0].facts.expected_type = 42;
+        return outcome;
+      }});
+      const session = frontierSDK.createCheckSupplementationSession(client, {maxAttempts: 3});
+      if (mode !== 'partial') {
+        // The existing closed Requirement schema refuses unknown codes and
+        // malformed known facts before the Host publishes a check envelope.
+        await assert.rejects(session.check('SELECT @a AS first', options),
+          {code: entrance === 'local' ? 'InvalidClientHostCheckOutcome' : 'ClientHostFailure'});
+      } else {
+        const result = await session.check('SELECT @a AS first', options);
+        assert.equal(result.outcome.outcome, 'failed');
+        assert.equal((result.outcome.report ?? result.outcome.partial_report).verdict, 'undetermined');
+        assert.equal(frontierSDK.getCheckRequirementFrontier(result.outcome), undefined,
+          '[check-mutation:frontier-unavailable]');
+        assert.deepEqual(result.decision, {kind: 'stop', reason: 'frontier_unavailable'});
+        await assert.rejects(session.check('SELECT @a AS first', options),
+          {code: 'CheckSupplementationStopped'});
+      }
+      assert.equal(calls, 1);
+    }
+  });
+}
+
 const contextRef = /^ctx:[0-9a-f]{64}$/u;
 // Context references are keyed per Host installation: they are compared
 // within one Host here, and across Hosts by the fixed-key tests below.
@@ -1318,6 +1456,150 @@ const propertyGraphLaw = JSON.parse(await readFile(join(repository,
   'spec/dependencies/actql-property-graph-laws.json'), 'utf8'));
 const fixtureCid = value => `sha256:${createHash('sha256')
   .update(canonicalText(value)).digest('hex')}`;
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: reused check replies retain independent Requirement frontiers`, async t => {
+    const cache = {};
+    const client = await contextClient(t, entrance, absentEnvironment, {mutateCheckReply(outcome) {
+      for (const key of Object.keys(cache)) delete cache[key];
+      return Object.assign(cache, outcome);
+    }});
+    const options = {format: 'sql', parameterDeclarations: {x: {type: 'number'}}};
+    const missing = await client.check('SELECT @x AS n', options);
+    const frontier = frontierSDK.getCheckRequirementFrontier(missing);
+    assert.deepEqual(frontier.requirements, [{code: 'parameter_value_required',
+      facts: {parameter: 'x', expected_type: 'number'}}], '[check-mutation:frontier-custody]');
+    assert.equal(frontierSDK.getCheckRequirementFrontier(cache), undefined);
+    const supplied = await client.check('SELECT @x AS n', {...options, parameters: {x: 1}});
+    assert.equal(supplied.report.verdict, 'verified');
+    assert.equal(frontierSDK.getCheckRequirementFrontier(missing), frontier,
+      '[check-mutation:frontier-custody]');
+    assert.equal(frontierSDK.equalCheckRequirementFrontiers(missing, supplied), false,
+      '[check-mutation:frontier-custody]');
+    assert.equal(frontierSDK.getCheckRequirementFrontier(cache), undefined);
+    assert.equal(sdk.explainCheckOutcome(missing).report.verdict, 'undetermined');
+    assert.equal(sdk.explainCheckOutcome(supplied).report.verdict, 'verified');
+  });
+
+  test(`${entrance}: reused check replies preserve original syntax inputs and positions`, async t => {
+    const cache = {};
+    const client = await contextClient(t, entrance, absentEnvironment, {mutateCheckReply(outcome) {
+      for (const key of Object.keys(cache)) delete cache[key];
+      return Object.assign(cache, outcome);
+    }});
+    const first = await client.check('SELECT', {format: 'sql'});
+    assert.equal(first.outcome, 'completed');
+    assert.equal(first.report.verdict, 'invalid');
+    const original = getCheckInput(first, 'source');
+    const location = first.report.reasons[0].location;
+    assert.deepEqual(location, {kind: 'text', document_id: 'source', revision: original.revision,
+      start_byte: 6, end_byte: 6, precision: 'exact'});
+    assert.equal(original.text, 'SELECT');
+    assert.equal(Object.isFrozen(first), true);
+    assert.equal(Object.isFrozen(cache), false, '[check-mutation:check-response-custody]');
+    assert.equal(Object.isFrozen(cache.report), false, '[check-mutation:check-response-custody]');
+    const text = "\ufeffSELECT 'é😀e\u0301' AS x,\r\n";
+    const second = await client.check(text, {format: 'sql'});
+    const next = getCheckInput(second, 'source');
+    assert.equal(second.report.verdict, 'invalid');
+    assert.notEqual(first, second);
+    assert.notEqual(first.report.context_ref, second.report.context_ref);
+    assert.notEqual(original.revision, next.revision);
+    assert.equal(next.text, text);
+    assert.deepEqual(second.report.reasons[0].location, {kind: 'text', document_id: 'source',
+      revision: next.revision, start_byte: 29, end_byte: 29, precision: 'exact'});
+    assert.deepEqual(resolveCheckTextRange(second, second.report.reasons[0].location).range,
+      {start: {line: 1, character: 0}, end: {line: 1, character: 0}});
+    const verified = await client.check('SELECT 1 AS n', {format: 'sql'});
+    assert.equal(verified.report.verdict, 'verified');
+    assert.equal(first.report.verdict, 'invalid');
+    assert.equal(getCheckInput(first, 'source'), original);
+    assert.equal(resolveCheckLocation(first, location).input, original);
+    assert.deepEqual(resolveCheckTextRange(first, location).range,
+      {start: {line: 0, character: 6}, end: {line: 0, character: 6}});
+    assert.equal(resolveCheckLocation(first, location, next), undefined);
+    assert.equal(resolveCheckTextRange(first, location, next), undefined);
+    assert.equal(resolveCheckLocation(structuredClone(first), location), undefined);
+    assert.equal(Object.isFrozen(cache), false, '[check-mutation:check-response-custody]');
+  });
+
+  test(`${entrance}: reused check replies retain structured and partial input custody`, async t => {
+    const cache = {};
+    let reporting = 'completed';
+    const client = await contextClient(t, entrance, absentEnvironment, {mutateCheckReply(outcome) {
+      // Reporting-failure injection carries the exact real checker report.
+      const received = reporting === 'partial' ? {version: outcome.version,
+        reason_schema_cid: outcome.reason_schema_cid, outcome: 'failed',
+        problem: {code: 'check_internal'}, partial_report: outcome.report}
+        : reporting === 'unavailable' ? {version: outcome.version,
+          reason_schema_cid: outcome.reason_schema_cid, outcome: 'unavailable',
+          problem: {code: 'check_unavailable'}, correlation_ref: 'fixture-unavailable'} : outcome;
+      for (const key of Object.keys(cache)) delete cache[key];
+      return Object.assign(cache, received);
+    }});
+    const parameters = {x: 'original-secret'};
+    const options = {format: 'sql', parameterDeclarations: {x: {type: 'number'}}, parameters};
+    const first = await client.check('SELECT @x AS n', options);
+    assert.equal(first.report.verdict, 'invalid');
+    assert.deepEqual(first.report.reasons[0].facts,
+      {parameter: 'x', expected_type: 'number', actual_type: 'string'});
+    const original = getCheckInput(first, 'parameters');
+    const location = first.report.reasons[0].location;
+    assert.deepEqual(location, {kind: 'structured', document_id: 'parameters',
+      revision: original.revision, pointer: '/x'});
+    assert.equal(JSON.stringify(first).includes('original-secret'), false);
+    assert.equal(Object.isFrozen(cache), false, '[check-mutation:check-response-custody]');
+    parameters.x = 1;
+    const second = await client.check('SELECT @x AS n', options);
+    assert.equal(second.report.verdict, 'verified');
+    const next = getCheckInput(second, 'parameters');
+    assert.deepEqual(next.value, {x: 1});
+    assert.notEqual(next.revision, original.revision);
+    assert.notEqual(first.report.context_ref, second.report.context_ref);
+    assert.deepEqual(getCheckInput(first, 'parameters').value, {x: 'original-secret'});
+    assert.equal(resolveCheckLocation(first, location, next), undefined);
+    reporting = 'partial';
+    const partial = await client.check('SELECT @x AS n', {...options, parameters: {x: 'original-secret'}});
+    assert.equal(partial.outcome, 'failed');
+    assert.equal(partial.partial_report.verdict, 'invalid');
+    const partialInput = getCheckInput(partial, 'parameters');
+    const partialLocation = partial.partial_report.reasons[0].location;
+    assert.deepEqual(resolveCheckLocation(partial, partialLocation).input.value, {x: 'original-secret'});
+    reporting = 'unavailable';
+    const unavailable = await client.check('SELECT @x AS n', options);
+    assert.equal(unavailable.outcome, 'unavailable');
+    assert.equal(getCheckInput(unavailable, 'source'), undefined);
+    assert.equal(unavailable.report, undefined);
+    assert.equal(unavailable.partial_report, undefined);
+    assert.equal(getCheckInput(partial, 'parameters'), partialInput);
+    assert.equal(partial.outcome, 'failed');
+    assert.equal(resolveCheckLocation(partial, partialLocation).input, partialInput);
+    assert.equal(first.outcome, 'completed');
+    assert.equal(first.report.verdict, 'invalid');
+    assert.equal(getCheckInput(first, 'parameters'), original);
+    assert.deepEqual(resolveCheckLocation(first, location).input.value, {x: 'original-secret'});
+    assert.equal(resolveCheckLocation(structuredClone(partial), partialLocation), undefined);
+  });
+}
+
+test('local: check reply custody refuses uncloneable values and copied shape loss', async t => {
+  for (const kind of ['proxy', 'date']) {
+    const client = await contextClient(t, 'local', absentEnvironment, {mutateCheckReply(outcome) {
+      // Both values satisfy the incoming shape; copying must preserve a valid
+      // plain public envelope before the SDK associates any original input.
+      const received = kind === 'proxy' ? new Proxy(outcome, {}) : Object.assign(new Date(0), outcome);
+      assert.equal(validCheckOutcome(received), true);
+      return received;
+    }});
+    let refused = false;
+    try { await client.check('SELECT', {format: 'sql'}); }
+    catch (cause) {
+      if (cause?.code !== 'InvalidHostCheckOutcome') throw cause;
+      refused = true;
+    }
+    assert.equal(refused, true, '[check-mutation:check-copied-shape]');
+  }
+});
 
 test('the admitted checker exposes exact selections without private Source inventories', () => {
   const flags = ['text_time', 'veca', 'rela', 'sga', 'tea', 'calendar', 'text_rank'];

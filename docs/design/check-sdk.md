@@ -903,6 +903,13 @@ S1–S9/X1–X17/invariant completion gate.
 
 `explainCancellation(result)` returns immutable read-only advice for the exact
 response or uncertain error produced by this SDK's `Execution.cancel()` call.
+The SDK detaches each validated cancellation response, so a Local port reusing
+its response object cannot change an earlier result's Run, kind, revision or
+explanation.
+The detached value is revalidated against the response schema and all three
+original Run fields. Clone failures or changed fields raise
+`InvalidHostCancellation` with the original Run's `outcome_unknown` advice;
+they never trigger another cancellation request.
 Validated `accepted`, `already_requested` and `already_terminal` observations
 retain the Host's control revision. The summary distinguishes recording a
 cancellation request, an existing request and a Run already terminal for
@@ -961,3 +968,51 @@ validators, generated wire types, SDK and independent fixtures are updated
 together; mixed pins are rejected. `actql-diagnostics/0.1` remains unchanged.
 There is no compatibility adapter, new parser, Host input persistence or
 retrieval API. Existing per-call input custody and destruction conditions apply.
+
+### Known Requirement frontier and bounded check supplementation
+
+The SDK exposes a comparable observation only for an exact completed check
+response retained by that SDK call. Current public Requirements are declared
+parameter values: their obligation key and expected type are typed facts;
+constraints and supplied bindings remain bound by the existing opaque
+`context_ref`. Compare bound scope/context, reason schema, the unordered typed
+Requirement set and outstanding coverage structurally. Optional presentation
+locations, fact-member order and duplicate presentation entries do not alter
+that set. Context changes are unequal even when the known obligations remain
+the same. No context hash, normalization or new identity domain is introduced.
+
+The SDK check supplementation session applies an explicit positive finite total
+attempt cap across context changes. Repeated equal frontiers, unavailable
+frontiers and absence of a known supplementation path stop the session. Failed
+checks consume attempts, concurrent calls refuse before invoking the Client,
+and stopped sessions perform no more I/O. The original checker outcome and
+verdict remain unchanged. The helper only calls the existing read-only check;
+it does not admit a supplement, accept a submission, advance a checkpoint or
+start a Run. Remaining local check capacity proves neither progress nor
+execution permission. Existing per-call Owner budgets remain authoritative;
+this SDK cap is not a measurement of cumulative server work.
+
+Copied and partial reports do not establish a comparable frontier. The current
+closed Requirement schema rejects unknown codes and malformed known facts.
+The defensive comparator also refuses obligations it cannot interpret. Future
+schema, mapping, Model or evidence Requirements need their own authoritative
+contracts before their admission conditions can participate in this helper.
+The known parameter frontier is not a claim of a complete future obligation
+list. No input custody or persistence behavior changes.
+
+### SDK custody of received check values
+
+A public Local Host port may reuse its response objects. The SDK detaches the
+validated check value, validates that owned value and only then associates the
+call's immutable submitted input and freezes the observation. This matches the
+independent value custody already supplied by HTTPS JSON decoding. Host-owned
+objects do not acquire SDK freezing, and later Host replies cannot rebind a
+previous SDK outcome to another source or parameter revision. A reporting
+failure with a valid partial report retains that report's submitted inputs;
+an unavailable outcome establishes no report or input association. Copying a
+report outside the SDK does not reconstruct its private input association.
+
+An uncloneable response or an invalid copied shape fails the existing transport
+contract check before any association. This changes neither the checker verdict
+nor the Host's scope/context or disclosure projection. No new source hash,
+persistence, retrieval API, compatibility route or execution state is added.

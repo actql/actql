@@ -1147,6 +1147,20 @@ fn analytic_boundary(
       construction.object([
         ("following", construction.add(Number(distance.to_double()))),
       ])
+    PrecedingParameter(name) =>
+      construction.object([
+        (
+          "preceding",
+          construction.object([("$param", construction.text(name))]),
+        ),
+      ])
+    FollowingParameter(name) =>
+      construction.object([
+        (
+          "following",
+          construction.object([("$param", construction.text(name))]),
+        ),
+      ])
   }
 }
 

@@ -1,3 +1,4 @@
+import './check-requirement-frontier.test.mjs';
 import './check-locations.test.mjs';
 import './effect-uncertainty.test.mjs';
 import test, {mock} from 'node:test';
@@ -1238,6 +1239,15 @@ test('typed cancellation explanations preserve observation-only targets', () => 
   '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
   '--target', 'ES2022', fileURLToPath(new URL(
     './cancellation-explanation.typecheck.mts', import.meta.url))],
+  {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
+});
+
+test('typed Requirement frontier consumers cannot change observations or issue writes', () => {
+  execFileSync(process.execPath, [fileURLToPath(new URL(
+    '../../node_modules/typescript/bin/tsc', import.meta.url)),
+  '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
+  '--target', 'ES2022', fileURLToPath(new URL(
+    './check-requirement-frontier.typecheck.mts', import.meta.url))],
   {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
 });
 
