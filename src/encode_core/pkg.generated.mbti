@@ -14,7 +14,7 @@ pub fn begin_object(Writer) -> Unit raise EncodeFailure
 
 pub fn bool_value(Writer, Bool) -> Unit raise EncodeFailure
 
-pub fn buffered_hashing_writer(Int, Int, Int, Int, retain_text? : Bool) -> Writer raise EncodeFailure
+pub fn buffered_hashing_writer(Int, Int, Int, Int) -> Writer raise EncodeFailure
 
 pub fn cancel_string_value(StringEmitCursor) -> Unit
 

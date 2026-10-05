@@ -29,7 +29,7 @@ priv enum OutputSink {
 // Draining transfers bytes, not permission to publish a completed document.
 priv struct BufferedHash {
   hash : @sha256.Hasher
-  text : StringBuilder?
+  text : StringBuilder
   limit : Int
   mut bytes : Int
 }
@@ -110,14 +110,11 @@ pub fn hashing_writer(
 /// provisional text between bounded batches and owns storage/I/O/backpressure.
 /// No callback, file handle or platform-specific dependency enters this writer.
 /// A batch overflow closes the writer, just like an aggregate output overflow.
-/// With retain_text=false, drain returns empty text but must still reset the
-/// same encoded batch byte counter. Hashing, admission and failure closure are unchanged.
 pub fn buffered_hashing_writer(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
   max_buffer_bytes : Int,
-  retain_text? : Bool = true,
 ) -> Writer raise EncodeFailure {
   if max_buffer_bytes < 0 {
     raise OutputLimit
@@ -128,7 +125,7 @@ pub fn buffered_hashing_writer(
     max_depth,
     BufferedHashOutput({
       hash: @sha256.hasher(),
-      text: if retain_text { Some(StringBuilder()) } else { None },
+      text: StringBuilder(),
       limit: max_buffer_bytes,
       bytes: 0,
     }),
@@ -138,21 +135,14 @@ pub fn buffered_hashing_writer(
 ///|
 /// Provisional canonical UTF-8 text only. Concatenate in drain order; draining
 /// neither finalizes the document nor resets aggregate byte/node/depth limits.
-/// Every pending batch must be drained before finish_hash[_usage], including
-/// verification sinks that discard text rather than retain it.
+/// All pending text must be drained before finish_hash[_usage].
 pub fn drain_hash_output(w : Writer) -> String raise EncodeFailure {
   active(w)
   guard w.output is BufferedHashOutput(buffer) else {
     fail(w, InvalidStructure)
   }
-  let text = match buffer.text {
-    Some(output) => {
-      let text = output.to_string()
-      output.reset()
-      text
-    }
-    None => ""
-  }
+  let text = buffer.text.to_string()
+  buffer.text.reset()
   buffer.bytes = 0
   text
 }
@@ -167,7 +157,7 @@ pub fn cancel_writer(w : Writer) -> Unit {
   match w.output {
     TextOutput(text) => text.reset()
     BufferedHashOutput(buffer) => {
-      if buffer.text is Some(text) { text.reset() }
+      buffer.text.reset()
       buffer.bytes = 0
     }
     MeasureOutput | HashOutput(_) => ()
@@ -269,7 +259,7 @@ fn ascii(w : Writer, text : String) -> Unit raise EncodeFailure {
     HashOutput(h) => hash_ascii_range(w, h, text, 0, text.length())
     BufferedHashOutput(buffer) => {
       hash_ascii_range(w, buffer.hash, text, 0, text.length())
-      if buffer.text is Some(output) { output.write_string(text) }
+      buffer.text.write_string(text)
     }
   }
 }
@@ -355,7 +345,7 @@ fn quoted_contents(
           HashOutput(h) => hash_scalar(w, h, scalar)
           BufferedHashOutput(buffer) => {
             hash_scalar(w, buffer.hash, scalar)
-            if buffer.text is Some(output) { output.write_char(scalar.unsafe_to_char()) }
+            buffer.text.write_char(scalar.unsafe_to_char())
           }
         }
       }
@@ -394,7 +384,7 @@ fn ascii_span(
     HashOutput(hash) => hash_ascii_range(w, hash, text, start, end)
     BufferedHashOutput(buffer) => {
       hash_ascii_range(w, buffer.hash, text, start, end)
-      if buffer.text is Some(output) { output.write_string(text.unsafe_substring(start~, end~)) }
+      buffer.text.write_string(text.unsafe_substring(start~, end~))
     }
   }
 }

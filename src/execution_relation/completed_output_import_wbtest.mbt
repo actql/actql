@@ -207,39 +207,3 @@ test "representation rebinding rejects equal independent completion and preserve
     rebind_producer_representation(original, copy) is Err(ProducerUnavailable),
   )
 }
-
-///|
-test "conversion discards text without weakening exact row batch capacity" {
-  let owner = capture_fixture()
-  for cap in [18, 19, 20] {
-    let (source, _) = retained_fixture(owner, Ref(true))
-    let conversion = prepare_completed_output_import(
-      source,
-      2,
-      stream_value_limits(),
-      row_wire_limits(),
-      cap,
-    ).unwrap()
-    append_completed_output_import(conversion, output_fixture_row(owner, 0)).unwrap()
-    if cap == 18 {
-      assert_true(
-        append_completed_output_import(conversion, output_fixture_row(owner, 1))
-        is Err(Encoding(Wire(Encoding(@encode.OutputLimit)))),
-      )
-      assert_true(finish_completed_output_import(conversion) is Err(Closed))
-    } else {
-      append_completed_output_import(conversion, output_fixture_row(owner, 1)).unwrap()
-      let completed = finish_completed_output_import(conversion).unwrap()
-      assert_true(completed_output_same_occurrence(source, completed))
-      // Internal cell order follows canonical schema references, separately
-      // from the authored select declaration [s, n].
-      assert_eq(completed_column_name(completed, 0), Some("n"))
-      assert_eq(completed_column_name(completed, 1), Some("s"))
-      assert_true(completed_cell(completed, 0, 0) is Some(Number(1)))
-      assert_true(completed_cell(completed, 1, 0) is Some(Number(2)))
-      assert_true(completed_cell(completed, 0, 1) is Some(Text("é")))
-      assert_true(completed_cell(completed, 1, 1) is Some(Text("😀")))
-      assert_true(finish_completed_output_import(conversion) is Err(Closed))
-    }
-  }
-}

@@ -846,3 +846,59 @@ use the same MoonBit toolchain and original non-diagnostic probe. The controller
 all eight changed source/interface/fixture files. Controller/report commits
 cannot retag either binary. Register the timing label before any execution,
 with no statistical/threshold changes.
+
+
+### Fixed bounded-text comparison: not adopted
+
+Controller `2dc1d3fea76c7e902e37c953bf11c517232db0ce`, compiled candidate
+`38b5f32e42ce7f0d3ecd18c518e95f1a4eca1776`, completed exactly two admitted
+prelaunches plus 21 alternating pairs: **44/44** full product/Owner admissions
+(`run-4o5mRG`). Reproduction at the recorded clean source uses the existing guard:
+
+```sh
+node benchmarks/retained-results/run-native-preparation-comparison.mjs \
+  _build/repro/native-probe-fe0b68242.exe \
+  /private/tmp/g-bounded-text-2dc1d3fea.json --bounded-text-discard
+```
+
+| After minus before | Mean difference (ms) | 95% interval (ms) | Result |
+| --- | ---: | ---: | --- |
+| Complete parent cycle | +2.269 | [-1.582, +6.351] | Indeterminate |
+| Native entry through result | +1.548 | [-2.054, +5.457] | Indeterminate |
+| Parent cycle excluding cleanup | +2.269 | [-1.551, +6.310] | Indeterminate |
+| Application preparation | +0.211 | [+0.003, +0.501] | Slower |
+| Compute/identity | -0.880 | [-3.367, +1.269] | Indeterminate |
+| Sequential task intervals | +0.349 | [-1.961, +2.417] | Indeterminate |
+| Cleanup | -0.0003 | [-0.134, +0.123] | Indeterminate |
+
+Source preparation is 224.014 ms separately. Prelaunch complete cycles are
+183.119 / 648.537 ms; corresponding Native-entry times are 149.884 / 148.422 ms.
+All samples and the external first-use gap remain without causal attribution.
+Actual three-resident selections, candidate/explanation correspondence, physical
+attempts, task holdings/usages, fixture identity and final usage match on both
+legs. Statistical regression passes **7/7** (`run-lDcDgv`); the complete-parent
+criterion is unmet. Do not adopt the product candidate or repeatedly measure it.
+Restore all eight source/interface/fixture files exactly to archived `fe0b68242`
+and restore the normal binary to `2152155c...`. This is a withdrawn performance
+experiment, not a delivered encoder API, new capacity guarantee or improvement.
+
+Original observation is `_build/repro/bounded-text-2dc1d3fea.json`, 6,913,876 bytes,
+`sha256:6a9856059924dd9564688a1333b00291da9a501bd22afc3cea863d728abf0a99`.
+`_build/repro/bounded-text-38b5f32e4/manifest.json` binds all before/candidate
+source bytes, the source patch, frozen controller/statistics, compiled source,
+exact binaries, observation and restoration. No integration-only rerun is
+necessary for restored source. Existing fixed-source evidence remains bound to
+its original compiled SHA, not this later report HEAD.
+
+Next investigation uses existing actual physical Compute intervals, which
+contain query preparation/execution, transport decoding, output admission and
+retained file writes. Their roughly 19 ms per task in this saved observation
+is not solely SQL time. Distinguish those boundaries before proposing another
+implementation. Do not weaken physical output/Owner checks or touch D/H/A's
+correctness work. #170 concrete execution improvement remains incomplete.
+
+The previous published HEAD `1c9bccc54d373f64c27ea1c5a48c74e7044c1b95` automatic
+run [37374138984](https://github.com/actql/actql/actions/runs/37374138984) completed
+with failure. Its selector had no executed steps; GitHub's check annotation says
+recent account payments failed or the spending limit must be increased. This is
+not a product-test failure or successful CI acceptance. No retry was requested.
