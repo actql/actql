@@ -15,18 +15,20 @@ const expected = ['a', 'b'].map(suffix => ({
   group: prefix + suffix, embedding: [1, 2], member_count: 1,
 }));
 
-function program(id, direct = false) {
+function program(id, direct = false, outputScan = false) {
+  const dimensions = outputScan ? 257 : 2;
   const schema = {
     id: {type: 'number', nullable: false},
-    group: {type: 'string', nullable: false},
-    embedding: {type: 'vector', dimensions: 2, nullable: false},
+    group: {type: outputScan ? 'number' : 'string', nullable: false},
+    embedding: {type: 'vector', dimensions, nullable: false},
     ...(direct ? {zz_unused: {type: 'array', nullable: false, max_items: 129,
       items: {type: 'number', nullable: false}}} : {}),
   };
   return {version: 'actql/0.1', id, stages: [
     {id: 'values', inputs: {}, steps: [{values: {schema,
-      rows: ['b', 'a'].map((suffix, index) => ({
-      id: index + 1, group: prefix + suffix, embedding: [1, 2],
+      rows: (outputScan ? ['a'] : ['b', 'a']).map((suffix, index) => ({
+      id: index + 1, group: outputScan ? 1 : prefix + suffix,
+      embedding: outputScan ? Array.from({length: dimensions}, () => 1) : [1, 2],
       ...(direct ? {zz_unused: Array.from({length: 129}, () => 1)} : {}),
     }))}, as: 'out'}, ...(direct ? [
       {from: 'out', assert_rows: {unique_by: ['id']}, as: 'keyed'},
@@ -51,7 +53,7 @@ function program(id, direct = false) {
   }};
 }
 
-async function runPublicPoolBarrier(t, {direct = false} = {}) {
+async function runPublicPoolBarrier(t, {direct = false, outputScan = false} = {}) {
     const directory = await mkdtemp(join(tmpdir(), 'actql-public-pool-key-'));
     const barrier = Promise.withResolvers();
     const released = Promise.withResolvers();
@@ -67,9 +69,14 @@ async function runPublicPoolBarrier(t, {direct = false} = {}) {
     let dispatches = 0;
     let completions = 0;
     let representations;
-    const fixtureId = direct ? 'public-pool-input' : 'public-pool-key';
+    const fixtureId = outputScan ? 'public-pool-output' :
+      direct ? 'public-pool-input' : 'public-pool-key';
+    const expectedRows = outputScan ? [{group: 1,
+      embedding: Array.from({length: 257}, () => 1), member_count: 1}] : expected;
     const trace = [];
     let prefixComplete = false;
+    let poolWork = 0;
+    let poolProgress = 0;
     const keys = generateKeyPairSync('ed25519');
     const authorization = {
       accountConfiguration: canonicalJson({
@@ -89,9 +96,23 @@ async function runPublicPoolBarrier(t, {direct = false} = {}) {
         if (cancelling) trace.push({...detail});
         if (!cancelling || detail.task !== 1) return;
         if (!direct && !prefixComplete) {
-          assert.equal(detail.progress, '2');
-          assert.equal(detail.work, '8');
+          assert.equal(detail.progress, outputScan ? '1' : '2');
+          assert.equal(detail.work, outputScan ? '4' : '8');
           prefixComplete = true;
+          return;
+        }
+        if (outputScan) {
+          // One 257-dimensional member needs >1,000 control steps before
+          // output, then >257 wire polls. 1280 lies inside the output vector;
+          // the kernel fixture independently fixes that shared cursor boundary.
+          poolWork += Number(detail.work);
+          poolProgress += Number(detail.progress);
+          assert.ok(Number(detail.work) <= 256);
+          if (poolWork < 1280) return;
+          assert.equal(poolWork, 1280);
+          assert.equal(poolProgress, 1);
+          barrier.resolve();
+          await released.promise;
           return;
         }
         // Carrier mode stops in long group validation after the bridge.
@@ -112,24 +133,25 @@ async function runPublicPoolBarrier(t, {direct = false} = {}) {
     };
     client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, retainedRelationOutput: true, authorization}});
-    const source = JSON.stringify(program(fixtureId, direct));
+    const source = JSON.stringify(program(fixtureId, direct, outputScan));
     const options = {format: 'json', requestId: fixtureId};
     const execution = await client.aql(source, options);
     const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
     assert.equal(state.status, 'succeeded', inspect(state, {depth: 6}));
-    for (const name of names) assert.deepEqual(await execution.result(name).all(), expected);
+    for (const name of names) assert.deepEqual(await execution.result(name).all(), expectedRows);
+    assert.deepEqual(Object.keys(state.result_availability).sort(), names.toSorted());
     assert.equal(completions, 1);
     assert.ok(representations?.some(item => item.representation === 'retained-file'));
     const finishedAdvances = advances;
     const repeat = await client.aql(source, options);
     assert.deepEqual(repeat.ref, execution.ref);
-    assert.deepEqual(await repeat.result('published').all(), expected);
+    assert.deepEqual(await repeat.result('published').all(), expectedRows);
     assert.equal(advances, finishedAdvances);
     assert.equal(dispatches, 1);
     assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
 
     cancelling = true;
-    const cancel = await client.aql(JSON.stringify(program(fixtureId + '-cancel', direct)),
+    const cancel = await client.aql(JSON.stringify(program(fixtureId + '-cancel', direct, outputScan)),
       {format: 'json', requestId: fixtureId + '-cancel'});
     await barrier.promise;
     const atBarrier = advances;
@@ -162,3 +184,6 @@ test('public retained Pool publishes and cancels inside long group validation',
 
 test('public retained Pool admits Relation input and cancels inside unused array',
   {timeout: 45_000}, t => runPublicPoolBarrier(t, {direct: true}));
+
+test('public retained Pool publishes and cancels inside output Vector encoding',
+  {timeout: 45_000}, t => runPublicPoolBarrier(t, {outputScan: true}));

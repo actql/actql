@@ -6266,7 +6266,7 @@ test "registered Relation pool returns a standalone Vectors generation" {
     }
     let limits = dispatch_test_limits()
     let provider = @local_veca_provider.provider(
-      direct_relation_pool_limits(38, 41),
+      direct_relation_pool_limits(83, 72),
       4096L,
       @execution.generated_sequence_capacity(
         generated,
@@ -6283,7 +6283,7 @@ test "registered Relation pool returns a standalone Vectors generation" {
     ).unwrap()
     let mut material = None
     let mut charged = 0L
-    for _ in 0..<60 {
+    for _ in 0..<100 {
       if material is None {
         match @local_connector.advance_managed_provider(execution, 1).unwrap() {
           @local_connector.Continue(work~, ..) => {
@@ -6299,7 +6299,7 @@ test "registered Relation pool returns a standalone Vectors generation" {
       }
     }
     let material = material.unwrap()
-    assert_eq(charged, 41L)
+    assert_eq(charged, 72L)
     assert_true(@carrier_runtime.material_available(material))
     assert_true(@local_connector.managed_provider_stopped(execution))
     assert_true(@local_connector.cleanup_managed_provider(execution).unwrap())
@@ -6335,13 +6335,13 @@ test "registered Relation pool retains exact limits and stopped cleanup" {
     limits.local_execution,
     limits.guards,
   ).unwrap()
-  // The same Relation kernel requires 41 work units and 38 workspace slots,
+  // The same Relation kernel requires 72 work units and 83 workspace slots,
   // independently itemized in the adjacent direct-kernel boundary fixture.
   for
     (work, workspace, stopping) in [
-      (40, 38, false),
-      (41, 37, false),
-      (41, 38, true),
+      (71, 83, false),
+      (72, 82, false),
+      (72, 83, true),
     ] {
     let provider = @local_veca_provider.provider(
       direct_relation_pool_limits(workspace, work),
@@ -6357,7 +6357,7 @@ test "registered Relation pool retains exact limits and stopped cleanup" {
     ).unwrap()
     let mut charged = 0L
     let mut terminal = false
-    for _ in 0..<60 {
+    for _ in 0..<100 {
       if !terminal {
         match @local_connector.advance_managed_provider(execution, 1).unwrap() {
           @local_connector.Continue(work~, ..) => {
@@ -6389,12 +6389,12 @@ test "registered Relation pool retains exact limits and stopped cleanup" {
     assert_true(terminal)
     assert_eq(
       charged,
-      if workspace == 37 {
+      if workspace == 82 {
         0L
       } else if stopping {
         1L
       } else {
-        40L
+        71L
       },
     )
     assert_true(@local_connector.cleanup_managed_provider(execution).unwrap())
@@ -6408,7 +6408,7 @@ test "registered Relation pool retains exact limits and stopped cleanup" {
     1000,
   ).unwrap()
   let provider = @local_veca_provider.provider(
-    direct_relation_pool_limits(38, 41),
+    direct_relation_pool_limits(83, 72),
     4096L,
     capacity,
   )
@@ -6445,14 +6445,15 @@ test "relation pool enforces exact work and workspace boundaries" {
   ).unwrap()
   // One five-slot record in each ordering array (10), three output fields,
   // two vector components, and three key slots require 18 workspace slots.
-  // The Relation recheck adds eight fixed and twelve continuation slots: 38.
+  // The Relation recheck adds twenty slots, append snapshot/map and depth
+  // stacks add 8+6+1+30=45: 18+20+45=83.
   assert_true(
     @local_veca.start_relation_pool(
       @bounded.control(),
       @execution.generated_prepared_sequence(task_test_generated(owner)),
       0,
       read,
-      direct_relation_pool_limits(37, 1000),
+      direct_relation_pool_limits(82, 1000),
       4096L,
       fn() { true },
     )
@@ -6465,7 +6466,7 @@ test "relation pool enforces exact work and workspace boundaries" {
     @execution.generated_prepared_sequence(task_test_generated(owner)),
     0,
     read,
-    direct_relation_pool_limits(38, 1000),
+    direct_relation_pool_limits(83, 1000),
     4096L,
     fn() { true },
   ).unwrap()
@@ -6484,20 +6485,22 @@ test "relation pool enforces exact work and workspace boundaries" {
   // identity encoding 2, component validation 2, collection/scratch 2,
   // group boundaries 2, component build/fold/finish 6, output fields 3,
   // and output commit 1. Recheck two scalars (4) and a Vector (5) before
-  // binding. The independent total is 32+9=41 control units.
-  for (ceiling, accepted) in [(41, true), (40, false)] {
+  // binding. Existing total 32+9=41. Append polls are fields/required/
+  // identities 10, key 3, record start 1, tuples 7+4+4, finish/commit 2:
+  // 31. The independent total is 41+31=72 control units.
+  for (ceiling, accepted) in [(72, true), (71, false)] {
     let bounded = @local_veca.start_relation_pool(
       @bounded.control(),
       @execution.generated_prepared_sequence(task_test_generated(owner)),
       0,
       read,
-      direct_relation_pool_limits(38, ceiling),
+      direct_relation_pool_limits(83, ceiling),
       4096L,
       fn() { true },
     ).unwrap()
     let mut terminal = false
     let mut charged = 0L
-    for _ in 0..<60 {
+    for _ in 0..<100 {
       if !terminal {
         match @local_veca.advance_pool(bounded, 1).unwrap() {
           @local_veca.PoolContinue(work~, ..) => {

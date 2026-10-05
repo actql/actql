@@ -5764,7 +5764,9 @@ generation reads remain unchanged; no implicit array conversion or synchronous
 fallback is added. Each Relation execution reserves one reusable cursor before
 output preparation and retains caller inputs until confirmed stop and cleanup.
 
-Independent scalar control/workspace boundaries are now Pool **41/40, 38/37**
+The following input-admission totals describe the previous component; the
+Pool record-admission section below supersedes its Pool totals.
+Independent scalar control/workspace boundaries were Pool **41/40, 38/37**
 and Relation Nearest **66/65, 51/50**. A 257-item unused Array independently
 requires **561/560** Pool control with **31/30** workspace, or **1104/1103**
 Nearest control with **43/42** workspace. Input node allowance **258/257**,
@@ -5785,3 +5787,26 @@ limits and unverified coverage are recorded in the
 Whole-Run exact Ledger limits, packed/HTTP, Wasm/native and new Store-failure
 campaigns are not newly claimed. See the
 [ranking input record](2026-10-06-local-ranking-input-admission.md).
+
+### Pool resumable output record admission
+
+Stored, Viewed and Relation Pool now retain one shared record append cursor.
+Field/identity admission and wire value/Text traversal are stepped under the
+existing Session. Record wire uses the existing measurement sink rather than
+assembling discarded record text. Builder finish and parallel append are
+excluded until commit or stopped cleanup; prior rows remain owned on failure.
+
+Independent Carrier control/workspace boundaries are **61/60, 60/59** for one
+two-dimensional member, and workspace **84/83** for four members. Relation
+Pool becomes **72/71, 83/82**; its unused-Array trial becomes **592/591, 55/54**.
+A 257-dimensional member fixes **1336/1335** control, **315/314** workspace and
+**273/272** stored construction work. Quanta 1/7/256 agree; cancellation inside
+output encoding retains custody until confirmed stop and reclaims it once.
+
+The normal installed Host reads three explicit Named Results from a real Store,
+reuses a request without Compute/dispatch and delivers cancellation inside output
+Vector encoding. Gate removal/foreign-suite checks require shared and operation
+evidence. Identity text assembly/hash/equality, schema/type/name scans, other
+record callers and whole-Run physical accounting remain separate residuals.
+This is not all-Local completion. See the
+[record-admission evidence](2026-10-06-local-pool-record-admission.md).

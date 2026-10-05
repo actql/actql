@@ -264,7 +264,8 @@ test "Relation Pool admission yields within unused arrays before stop" {
     1000,
   ).unwrap()
   // Original 32 plus one extra field/group/identity scan (3), two scalar
-  // rechecks (4), Vector (5), Array (517): 561. Workspace 18+8+3+2=31.
+  // rechecks (4), Vector (5), Array (517): 561. Append polls add 31: 592.
+  // Workspace 18+8+3+2=31 plus append custody 8+6+1+3*3=24: 55.
   // Depth three also admits the existing stored-record outer array,
   // field tuple and Vector envelope; depth two fails Store encoding.
   assert_true(
@@ -274,7 +275,7 @@ test "Relation Pool admission yields within unused arrays before stop" {
       0,
       read,
       {
-        ..direct_relation_pool_limits(30, 561),
+        ..direct_relation_pool_limits(54, 592),
         max_value_depth: 3,
         max_value_nodes: 258,
       },
@@ -284,14 +285,14 @@ test "Relation Pool admission yields within unused arrays before stop" {
     is Err(@local_veca.PoolWorkspaceLimit),
   )
   for quantum in [1, 7, 256] {
-    for (limit, success) in [(561, true), (560, false)] {
+    for (limit, success) in [(592, true), (591, false)] {
       let active = @local_veca.start_relation_pool(
         @bounded.control(),
         prepared_sequence(owner),
         0,
         read,
         {
-          ..direct_relation_pool_limits(31, limit),
+          ..direct_relation_pool_limits(55, limit),
           max_value_depth: 3,
           max_value_nodes: 258,
         },
@@ -299,13 +300,13 @@ test "Relation Pool admission yields within unused arrays before stop" {
         fn() { true },
       ).unwrap()
       let mut terminal = false
-      for _ in 0..<580 {
+      for _ in 0..<610 {
         if !terminal {
           match @local_veca.advance_pool(active, quantum).unwrap() {
             @local_veca.PoolContinue(..) => ()
             @local_veca.PoolComplete(output, work~, ..) => {
               assert_true(success)
-              assert_eq(work, 561L)
+              assert_eq(work, 592L)
               let storage = @records.completed_storage(output).unwrap()
               assert_eq(@record_storage.record_count(storage), 1)
               let field = @record_storage.record_field_at(storage, 0, 0).unwrap()
@@ -321,7 +322,7 @@ test "Relation Pool admission yields within unused arrays before stop" {
             @local_veca.PoolFailed(issue, work~, ..) => {
               assert_eq(issue, @local_veca.PoolWorkLimit)
               assert_false(success)
-              assert_eq(work, 560L)
+              assert_eq(work, 591L)
               terminal = true
             }
             _ => fail("Pool nested input has an unrelated failure")
@@ -341,7 +342,7 @@ test "Relation Pool admission yields within unused arrays before stop" {
     0,
     read,
     {
-      ..direct_relation_pool_limits(31, 561),
+      ..direct_relation_pool_limits(55, 592),
       max_value_depth: 3,
       max_value_nodes: 258,
     },
@@ -364,7 +365,7 @@ test "Relation Pool admission yields within unused arrays before stop" {
     0,
     read,
     {
-      ..direct_relation_pool_limits(31, 561),
+      ..direct_relation_pool_limits(55, 592),
       max_value_depth: 3,
       max_value_nodes: 257,
     },
@@ -372,7 +373,7 @@ test "Relation Pool admission yields within unused arrays before stop" {
     fn() { true },
   ).unwrap()
   let mut rejected = false
-  for _ in 0..<580 {
+  for _ in 0..<610 {
     if !rejected {
       match @local_veca.advance_pool(short_nodes, 1).unwrap() {
         @local_veca.PoolContinue(..) => ()
