@@ -42,6 +42,9 @@ run('bash', ['-eu', '-c', quickstart.install], root,
 for (const [source, destination] of [
   ['scripts/fixtures/packed-readme-quickstart.mjs', 'readme-acceptance.mjs'],
   ['scripts/fixtures/public-query-input.mjs', 'public-query-input.mjs'],
+  ['scripts/fixtures/analytic-frame-parameter-source-input.mjs', 'analytic-frame-parameter-source-input.mjs'],
+  ['docs/reviews/fixtures/analytic-frame-parameter.reversed-following.program.json', 'analytic-frame-parameter.reversed-following.program.json'],
+  ['docs/reviews/fixtures/analytic-frame-parameter.reversed-preceding.program.json', 'analytic-frame-parameter.reversed-preceding.program.json'],
   ['scripts/fixtures/public-query-cases.mjs', 'public-query-cases.mjs'],
   ['scripts/fixtures/public-query-profiles.mjs', 'public-query-profiles.mjs'],
   ['scripts/fixtures/group-star-source-input.mjs', 'group-star-source-input.mjs'],
@@ -147,6 +150,9 @@ if (process.argv.includes('--grouped-in-only')) {
 }
 if (process.argv.includes('--distinct-order-only')) {
   runtimeEnvironment.ACTQL_TEST_DISTINCT_ORDER_ONLY = '1';
+}
+if (process.argv.includes('--analytic-frame-parameter-only')) {
+  runtimeEnvironment.ACTQL_TEST_ANALYTIC_FRAME_PARAMETER_ONLY = '1';
 }
 if (process.argv.includes('--analytic-property-only')) {
   runtimeEnvironment.ACTQL_TEST_ANALYTIC_PROPERTY_ONLY = '1';
@@ -305,7 +311,7 @@ if (process.argv.includes('--cancellation-only')) {
 }
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
-const narrowPublicQuery = process.argv.some(flag => ['--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
+const narrowPublicQuery = process.argv.some(flag => ['--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
   '--analytic-offset-only',
   '--join-property-only', '--aggregate-property-only', '--analytic-property-only', '--graph-match-only',
   '--graph-diagnostics-only',
@@ -357,7 +363,7 @@ if (plannerSelectionOnly || twoSourceExampleOnly ||
 // its Store. Restore retained Results in a new process without resubmission.
 // Narrow selections without the String fixture have no retained String Run.
 // Keep restart acceptance for full/source-free selections that create it.
-if (!process.argv.some(flag => ['--analytic-profiles-only', '--analytic-order-only', '--join-property-only', '--aggregate-property-only', '--analytic-property-only', '--quoted-identifiers-only', '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
+if (!process.argv.some(flag => ['--analytic-frame-parameter-only', '--analytic-profiles-only', '--analytic-order-only', '--join-property-only', '--aggregate-property-only', '--analytic-property-only', '--quoted-identifiers-only', '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
   '--analytic-offset-only',
   '--graph-match-only',
   '--graph-diagnostics-only',
@@ -370,7 +376,8 @@ if (!process.argv.some(flag => ['--analytic-profiles-only', '--analytic-order-on
   console.log(run(process.execPath, ['string-values-restart.mjs'], root,
     runtimeEnvironment, 120000).trimEnd());
 }
-if (process.argv.includes('--analytic-profiles-only') ||
+if (process.argv.includes('--analytic-frame-parameter-only') ||
+    process.argv.includes('--analytic-profiles-only') ||
     process.argv.includes('--analytic-order-only') ||
     process.argv.includes('--order-ordinal-only') ||
     process.argv.includes('--analytic-offset-only') ||
