@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "model-invocation-checkpoint-registration",
+  "kind": "change",
+  "revision": "f26a8736eecd6b6d4cba8bc6bbfc7407b0060a42",
+  "parents": [
+    "c26339bed484c1965da78f6a9540333c2583ea31"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "c26339bed484c1965da78f6a9540333c2583ea31",
+          "digest": "cc319786f188d46e7357d53dea5269f4ad7375ebc6ba0b3c587079c006068c91",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "0f9044f72618df11933262007e360182e3d02066a8e812639a1cd67e6595a9c8",
+      "afterMode": "100644",
+      "reason": "Register Model invocation scope conformance, SDK signing and per-call Checkpoint persistence/crypto regressions in existing gates while retaining every existing command, build and job."
+    }
+  ]
+}

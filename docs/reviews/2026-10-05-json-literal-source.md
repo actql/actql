@@ -38,3 +38,19 @@ execution evidence. The imported profile's adoption ledger retains its
 historical runtime-conformance status. New source acceptance and Graph Delta
 composition are separate completion units; no A/C boundary review, full
 GoogleSQL JSON numeric range, Wasm/Native runtime or final CI success is claimed.
+
+## Parent integration on 2026-10-06
+
+Normally integrated common typed JSON `00521024e055471a00736c8a2c024166f35267af`,
+which includes main `eb74d7b65d0f338ef5862a7d9cd7397744a08eaa`. The ordinary
+packed harness retains both JSON selections and main's new analytic/membership
+selections. Historical Run vectors retain their complete original closures;
+current vectors use the combined expression law and source grammar.
+
+On the merge tree, selected JSON parsing/lowering and grouped-IN caller tests
+passed 6/6 (`run-SkIaME`, `focused-test-Rf8rAg`); independent grammar/Run
+vector tests passed 3/3 (`run-E4AbTP`, `focused-test-DFkeFP`). Compiler pins,
+document imports and canonical vectors were regenerated from merged bodies.
+Previous packed acceptance remains evidence for its original clean source SHA.
+Integrated packed execution is recorded separately after the Delta child
+adopts this parent; no runtime output supplied the fixture expectations.

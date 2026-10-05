@@ -193,26 +193,30 @@ test "mapped inference inputs have independent exact and one-short preparation b
       #|[{"id":"a","text":"urgent","secret":"private-a"}]
     ),
   )
-  // Forty-three preparation transitions, twelve snapshot-name bytes, two
-  // expression transitions and four field-name bytes cost 61 work units.
+  // Forty-three preparation transitions plus one TextUnits poll for the
+  // key "a" and one for the mapped "urgent" value, twelve snapshot-name
+  // bytes, two expression transitions and four field-name bytes cost 63 work
+  // units. Text recheck still charges two value nodes and seven text bytes.
   // Source/key metadata and shared sorting peak at nine slots; a three-field
   // snapshot, one detached root, mapped value and row container peak at 13.
   // Shared sort cleanup leaves only one output index per row before mapping.
   let exact = {
     ..infer_preflight_limits(),
-    max_work: 61,
+    max_work: 63,
     max_workspace_slots: 13,
     values: { max_nodes: 2, max_text_bytes: 7, max_depth: 0, },
   }
   let execution = start_infer_rows_preparation(@bounded.control(), input, exact).unwrap()
   let prepared = infer_preflight_drain(execution).unwrap()
-  assert_eq(infer_rows_preparation_usage(execution), (61, 6, 13))
+  assert_eq(infer_rows_preparation_usage(execution), (63, 6, 13))
+  assert_eq(execution.state.value_nodes, 0)
+  assert_eq(execution.state.value_bytes, 0)
   assert_true(cleanup_infer_rows_preparation(execution).unwrap())
   assert_true(cleanup_prepared_infer_rows(prepared))
   assert_eq(infer_rows_preparation_usage(execution).1, 0)
   for
     (limits, workspace) in [
-      ({ ..exact, max_work: 60, }, false),
+      ({ ..exact, max_work: 62, }, false),
       ({ ..exact, max_workspace_slots: 12, }, true),
     ] {
     let execution = start_infer_rows_preparation(

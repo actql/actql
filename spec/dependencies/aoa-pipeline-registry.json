@@ -477,7 +477,7 @@
     "execution_contract": {
       "file": "spec/contracts/actql-aoa.json",
       "pointer": "/execution_contracts/ACTQL.expression_fragment~10.1",
-      "cid": "sha256:b255a7e460b79995eb5e2cacf4a6381810ef15f48b7898beca490b77f2ac2495"
+      "cid": "sha256:a1ee4878ec4b3895834fde8e95320bbca28c5347247094d7b28fe079de33bb35"
     }
   },
   "BRIDGE.rows.to_property_graph": {

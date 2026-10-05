@@ -26,6 +26,9 @@ function run(command, args, cwd = root, env = environment,
   return capture(command, args, {cwd, env, timeout});
 }
 console.log(`Packed public-query evidence: ${directory}`);
+console.log(run(process.execPath, ['--test', 'scripts/analytic-offset-profiles.test.mjs',
+  'scripts/public-query-profiles.test.mjs'],
+  repository).trimEnd());
 const packages = ['client-wire', 'sdk', 'run-host-core', 'local-node', 'node'];
 for (const name of packages) {
   await packedClientPackage({repository, name, destination: root,
@@ -42,13 +45,17 @@ for (const [source, destination] of [
   ['scripts/fixtures/public-query-cases.mjs', 'public-query-cases.mjs'],
   ['scripts/fixtures/json-literal-source-input.mjs', 'json-literal-source-input.mjs'],
   ['scripts/fixtures/typed-json-literal-input.mjs', 'typed-json-literal-input.mjs'],
+  ['scripts/fixtures/public-query-profiles.mjs', 'public-query-profiles.mjs'],
   ['scripts/fixtures/group-star-source-input.mjs', 'group-star-source-input.mjs'],
   ['scripts/fixtures/aggregate-property-source-input.mjs', 'aggregate-property-source-input.mjs'],
   ['scripts/fixtures/group-ordinal-source-input.mjs', 'group-ordinal-source-input.mjs'],
   ['scripts/fixtures/order-ordinal-source-input.mjs', 'order-ordinal-source-input.mjs'],
   ['scripts/fixtures/quoted-identifier-source-input.mjs', 'quoted-identifier-source-input.mjs'],
   ['scripts/fixtures/distinct-order-source-input.mjs', 'distinct-order-source-input.mjs'],
+  ['scripts/fixtures/grouped-in-source-input.mjs', 'grouped-in-source-input.mjs'],
   ['scripts/fixtures/order-property-source-input.mjs', 'order-property-source-input.mjs'],
+  ['scripts/fixtures/analytic-order-source-input.mjs', 'analytic-order-source-input.mjs'],
+  ['docs/reviews/fixtures/analytic-order-property-repro.program.json', 'analytic-order-property-repro.program.json'],
   ['scripts/fixtures/join-property-source-input.mjs', 'join-property-source-input.mjs'],
   ['scripts/fixtures/analytic-property-source-input.mjs', 'analytic-property-source-input.mjs'],
   ['scripts/fixtures/group-select-scope-source-input.mjs', 'group-select-scope-source-input.mjs'],
@@ -64,6 +71,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/property-graph-traverse-path-source-input.mjs', 'property-graph-traverse-path-source-input.mjs'],
   ['scripts/fixtures/property-graph-diagnostics-source-input.mjs', 'property-graph-diagnostics-source-input.mjs'],
   ['scripts/fixtures/subgraph-source-input.mjs', 'subgraph-source-input.mjs'],
+  ['scripts/fixtures/analytic-offset-source-input.mjs', 'analytic-offset-source-input.mjs'],
   ['scripts/fixtures/property-graph-equality-source-input.mjs', 'property-graph-equality-source-input.mjs'],
   ['scripts/fixtures/graph-projection-property-source-input.mjs', 'graph-projection-property-source-input.mjs'],
   ['scripts/fixtures/string-values-restart.mjs', 'string-values-restart.mjs'],
@@ -142,6 +150,9 @@ if (process.argv.includes('--property-graph-source-only')) {
 if (process.argv.includes('--graph-property-predicate-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_PROPERTY_PREDICATE_ONLY = '1';
 }
+if (process.argv.includes('--grouped-in-only')) {
+  runtimeEnvironment.ACTQL_TEST_GROUPED_IN_ONLY = '1';
+}
 if (process.argv.includes('--distinct-order-only')) {
   runtimeEnvironment.ACTQL_TEST_DISTINCT_ORDER_ONLY = '1';
 }
@@ -162,6 +173,9 @@ if (process.argv.includes('--graph-rows-only')) {
 }
 if (process.argv.includes('--subgraph-only')) {
   runtimeEnvironment.ACTQL_TEST_SUBGRAPH_ONLY = '1';
+}
+if (process.argv.includes('--analytic-offset-only')) {
+  runtimeEnvironment.ACTQL_TEST_ANALYTIC_OFFSET_ONLY = '1';
 }
 if (process.argv.includes('--graph-traverse-paths-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_TRAVERSE_PATHS_ONLY = '1';
@@ -210,6 +224,12 @@ if (process.argv.includes('--aggregate-property-only')) {
 }
 if (process.argv.includes('--group-scope-only')) {
   runtimeEnvironment.ACTQL_TEST_GROUP_SCOPE_ONLY = '1';
+}
+if (process.argv.includes('--analytic-profiles-only')) {
+  runtimeEnvironment.ACTQL_TEST_ANALYTIC_PROFILES_ONLY = '1';
+}
+if (process.argv.includes('--analytic-order-only')) {
+  runtimeEnvironment.ACTQL_TEST_ANALYTIC_ORDER_ONLY = '1';
 }
 if (process.argv.includes('--join-property-only')) {
   runtimeEnvironment.ACTQL_TEST_JOIN_PROPERTY_ONLY = '1';
@@ -293,7 +313,8 @@ if (process.argv.includes('--cancellation-only')) {
 }
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
-const narrowPublicQuery = process.argv.some(flag => ['--json-literal-source-only', '--typed-json-literal-only', '--source-free-only',
+const narrowPublicQuery = process.argv.some(flag => ['--json-literal-source-only', '--typed-json-literal-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
+  '--analytic-offset-only',
   '--join-property-only', '--aggregate-property-only', '--analytic-property-only', '--graph-match-only',
   '--graph-diagnostics-only',
   '--graph-projection-property-only',
@@ -338,12 +359,14 @@ try {
       await readFile(join(root, 'planner-selection-packed-report.json')));
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
 }
-if (plannerSelectionOnly || twoSourceExampleOnly) return;
+if (plannerSelectionOnly || twoSourceExampleOnly ||
+    process.argv.includes('--grouped-in-only')) return;
 // The first Host process has exited: no live Local installation still owns
 // its Store. Restore retained Results in a new process without resubmission.
 // Narrow selections without the String fixture have no retained String Run.
 // Keep restart acceptance for full/source-free selections that create it.
-if (!process.argv.some(flag => ['--json-literal-source-only', '--typed-json-literal-only', '--join-property-only', '--aggregate-property-only', '--analytic-property-only', '--quoted-identifiers-only', '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
+if (!process.argv.some(flag => ['--json-literal-source-only', '--typed-json-literal-only', '--analytic-profiles-only', '--analytic-order-only', '--join-property-only', '--aggregate-property-only', '--analytic-property-only', '--quoted-identifiers-only', '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
+  '--analytic-offset-only',
   '--graph-match-only',
   '--graph-diagnostics-only',
   '--graph-projection-property-only',
@@ -357,7 +380,10 @@ if (!process.argv.some(flag => ['--json-literal-source-only', '--typed-json-lite
 }
 if (process.argv.includes('--json-literal-source-only') ||
     process.argv.includes('--typed-json-literal-only') ||
+    process.argv.includes('--analytic-profiles-only') ||
+    process.argv.includes('--analytic-order-only') ||
     process.argv.includes('--order-ordinal-only') ||
+    process.argv.includes('--analytic-offset-only') ||
     process.argv.includes('--subgraph-only') ||
     process.argv.includes('--graph-match-only') ||
     process.argv.includes('--join-property-only') ||

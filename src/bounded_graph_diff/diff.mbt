@@ -813,7 +813,7 @@ pub fn cleanup(value : Preparation) -> Bool {
     @snapshot.cleanup(snapshot) |> ignore
     value.right_snapshot = None
   }
-  value.chunks.clear()
+  retire_body_chunks(value.chunks)
   if value.body_admission is Some(admission) {
     cleanup_body(admission)
   }

@@ -392,3 +392,48 @@ test "expression budget and unsupported handlers are explicit implementation fai
   }
   assert_eq(issue.kind, @lowering_relation.ExpressionNotImplemented("between"))
 }
+
+///|
+test "membership lowers typed scalar holes into one ordered literal array" {
+  let d = declarations()
+  for tag in ["in", "not_in"] {
+    let owner = @lowering_relation.bind_parameters(
+      prepared_with(
+        d,
+        tail=",{\"derive\":{\"v\":{\"" +
+          tag +
+          "\":[{\"field\":\"id\"},{\"literal\":[{\"$param\":\"amount\"},null,-2,{\"$param\":\"amount\"}]}]}}}",
+      ),
+      Some(bound(d)),
+      max_parameters=1,
+      max_name_bytes=6,
+    ).unwrap()
+    let expression = @lowering_relation.lower_expression(
+      owner,
+      1,
+      0,
+      expression_limits(),
+    ).unwrap()
+    assert_eq(
+      expression_wire(expression),
+      "{\"body\":[{\"body\":\"id\",\"op\":\"field\"},{\"body\":[7,null,-2,7],\"op\":\"literal\"}],\"op\":\"" +
+      tag +
+      "\"}",
+    )
+    assert_true(
+      @lowering_relation.expression_body(expression)
+      is @lowering_relation.Binary(_, _, _),
+    )
+    for
+      cap in [
+        { ..expression_limits(), max_nodes: 6, },
+        { ..expression_limits(), max_literal_nodes: 4, },
+        { ..expression_limits(), max_depth: 1, },
+      ] {
+      assert_true(
+        @lowering_relation.lower_expression(owner, 1, 0, cap)
+        is Err({ kind: @lowering_relation.ExpressionBudgetExceeded, .. }),
+      )
+    }
+  }
+}

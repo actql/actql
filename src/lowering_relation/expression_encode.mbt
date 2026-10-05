@@ -32,6 +32,8 @@ fn binary_name(op : BinaryOperator) -> String {
     Greater => "gt"
     GreaterEqual => "gte"
     NullIf => "nullif"
+    In => "in"
+    NotIn => "not_in"
   }
 }
 

@@ -63,12 +63,21 @@ test('machine Program vocabulary matches the current closed inventory', () => {
   // separately selected keyed machine constructor has a frontend spelling.
   assert.deepEqual([...operations, 'property_graph'].sort(), [...manifest.operations].sort());
   // PR-0 is a frozen historical observation, not the live compilation manifest.
-  const {grammar_manifest_cid: _oldCid, ...oldBody} = baseline.grammar_manifest;
+  const {grammar_manifest_cid: _oldCid,
+    expression_contract_cid: oldExpression, ...oldBody} = baseline.grammar_manifest;
   const {grammar_manifest_cid: _newCid, structural_text_grammar_sha256: grammar,
     structural_text_rules_sha256: rules,
     query_text_grammar_sha256: queryGrammar,
     query_text_rules_sha256: queryRules, source_grammar_cid: sourceGrammar,
-    operations: currentOperations, ...unchangedBody} = manifest;
+    operations: currentOperations, expression_contract_cid: currentExpression,
+    ...unchangedBody} = manifest;
+  const expressions = json('spec/contracts/actql-expressions.json');
+  assert.equal(currentExpression, machineCid(expressions));
+  // The adopted shared membership exception changes the current contract,
+  // while the PR-0 baseline continues to identify the original law body.
+  const priorExpressions = structuredClone(expressions);
+  delete priorExpressions.laws.membership;
+  assert.equal(oldExpression, machineCid(priorExpressions));
   const currentProgram = json('spec/contracts/actql-protocol-schemas.json')
     .artifact_schemas.executable_plan.properties.execution_material.properties.program;
   assert.equal(machineCid(currentProgram), sourceGrammar);
@@ -221,4 +230,32 @@ test('exact String parameter vectors preserve every unrelated historical expecta
       expected_cid: 'sha256:' + hash(Buffer.from(bytes, 'utf8')),
     });
   }
+});
+
+// Machine controls omit absent declarations: the Program grammar rejects an
+// explicitly empty params map before membership typing or execution can run.
+import {groupedInSuccesses} from './fixtures/grouped-in-source-input.mjs';
+test('membership machine controls never emit empty parameter declarations', () => {
+  const driver = read('scripts/test-packed-public-query.mjs');
+  const narrowSelection = driver.slice(driver.indexOf('const narrowPublicQuery'),
+    driver.indexOf('try {', driver.indexOf('const narrowPublicQuery')));
+  assert.ok(narrowSelection.includes("'--grouped-in-only'"));
+  const completedSelection = driver.slice(
+    driver.indexOf('if (plannerSelectionOnly || twoSourceExampleOnly'),
+    driver.indexOf('// The first Host process has exited'));
+  assert.ok(completedSelection.includes("'--grouped-in-only'"));
+  const controls = groupedInSuccesses.filter(item => item.format === 'json');
+  assert.ok(controls.length >= 6);
+  for (const item of controls) {
+    const program = JSON.parse(item.text);
+    if (Object.hasOwn(program, 'params'))
+      assert.ok(Object.keys(program.params).length > 0, item.name);
+    for (const step of program.stages.flatMap(stage => stage.steps))
+      if (Object.hasOwn(step, 'derive')) {
+        assert.equal(Array.isArray(step.derive), false, item.name);
+        assert.deepEqual(Object.keys(step.derive).sort(), ['excluded', 'included']);
+      }
+  }
+  assert.ok(controls.some(item => !Object.hasOwn(JSON.parse(item.text), 'params')));
+  assert.ok(controls.some(item => Object.hasOwn(JSON.parse(item.text), 'params')));
 });

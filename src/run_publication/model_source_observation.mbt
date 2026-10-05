@@ -115,3 +115,12 @@ pub fn restore_model_source_observation(
     completed_at,
   )
 }
+
+///|
+/// Immutable authenticated capture originals for durable fixed-input custody.
+/// This reader grants neither current Source access nor Model dispatch.
+pub fn model_source_observation_originals(
+  value : ModelSourceObservation,
+) -> (RunEvidenceValue, RunEvidenceValue, String, String) {
+  (value.source, value.input, value.started_at, value.completed_at)
+}

@@ -7,6 +7,7 @@ priv enum BoundedJoinPhase {
   ResolveSource
   BeginPair
   BuildCell
+  RecheckCell
   ChargeCell
   CommitRow
   FinishOutput
@@ -43,6 +44,7 @@ priv struct BoundedJoinState {
   mut checked_row : Array[@admitted.Value]
   mut pair : JoinPair?
   mut pending : @admitted.Value?
+  mut output_recheck : @admitted.RecheckCursor?
   mut measure : SteppedValueMeasure?
   mut key_left_column : Int
 }
@@ -95,6 +97,10 @@ fn bounded_join_failure(
 fn cleanup_bounded_join_state(state : BoundedJoinState) -> Bool {
   cleanup_binary_input_scan(state.input_scan)
   cleanup_bounded_join_pairs(state.pairs)
+  if state.output_recheck is Some(cursor) {
+    @admitted.cancel_recheck_runtime_value(cursor)
+    state.output_recheck = None
+  }
   if state.measure is Some(cursor) {
     clear_stepped_measure(cursor)
     state.measure = None
@@ -112,6 +118,28 @@ fn cleanup_bounded_join_state(state : BoundedJoinState) -> Bool {
     state.rows.val = None
     state.live.val = false
   }
+  true
+}
+
+///|
+fn bounded_join_begin_cell_measure(
+  state : BoundedJoinState,
+  admitted : @admitted.Value,
+) -> Bool {
+  guard start_stepped_measure_result(Captured(admitted), state.workspace)
+    is Some(cursor) else {
+    return false
+  }
+  // Retain the cursor even if the additional name-frame reservation fails.
+  state.measure = Some(cursor)
+  if !push_stepped_measure(
+      cursor,
+      SteppedTextNext(state.names[state.column], 0),
+    ) {
+    return false
+  }
+  state.pending = Some(admitted)
+  state.phase = ChargeCell
   true
 }
 
@@ -319,8 +347,28 @@ fn bounded_join_step(
               Some(value) => value
               None => {
                 guard bounded_binding_input_cell(input, row, source.1)
-                  is Some(value) &&
-                  checked_ordered_output_value(
+                  is Some(value) else {
+                  return bounded_join_failure(InvalidExecution, progress, used)
+                }
+                if !bounded_small_output_value(value) {
+                  guard start_ordered_output_value_recheck(
+                      value,
+                      field.contract,
+                      state.admitted_limits,
+                    )
+                    is Some(cursor) else {
+                    return bounded_join_failure(
+                      InvalidExecution,
+                      progress,
+                      used,
+                    )
+                  }
+                  state.output_recheck = Some(cursor)
+                  state.phase = RecheckCell
+                  used += 1
+                  continue
+                }
+                guard checked_ordered_output_value(
                     value,
                     field.contract,
                     state.admitted_limits,
@@ -332,20 +380,26 @@ fn bounded_join_step(
               }
             }
         }
-        guard start_stepped_measure_result(Captured(admitted), state.workspace)
-          is Some(cursor) else {
+        if !bounded_join_begin_cell_measure(state, admitted) {
           return bounded_join_failure(Rows(RowLimit), progress, used)
         }
-        state.measure = Some(cursor)
-        // Field names contribute text/work, not an additional value node.
-        if !push_stepped_measure(
-            cursor,
-            SteppedTextNext(state.names[state.column], 0),
-          ) {
-          return bounded_join_failure(Rows(RowLimit), progress, used)
+        used += 1
+      }
+      RecheckCell => {
+        guard state.output_recheck is Some(cursor) else {
+          return bounded_join_failure(InvalidExecution, progress, used)
         }
-        state.pending = Some(admitted)
-        state.phase = ChargeCell
+        match @admitted.advance_recheck_runtime_value(cursor) {
+          RecheckContinue => ()
+          RecheckFailed =>
+            return bounded_join_failure(InvalidExecution, progress, used + 1)
+          RecheckComplete(checked, _, _) => {
+            state.output_recheck = None
+            if !bounded_join_begin_cell_measure(state, checked.value) {
+              return bounded_join_failure(Rows(RowLimit), progress, used + 1)
+            }
+          }
+        }
         used += 1
       }
       ChargeCell => {
@@ -608,6 +662,7 @@ pub fn start_bounded_join(
     checked_row: [],
     pair: None,
     pending: None,
+    output_recheck: None,
     measure: None,
     key_left_column: 0,
   }

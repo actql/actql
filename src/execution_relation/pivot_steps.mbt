@@ -61,6 +61,8 @@ priv struct PivotEvaluation[T] {
   mut compare_offset : Int
   mut contributor : String
   mut row : Array[Value]
+  mut row_retention : SteppedRowRetention?
+  mut row_retained : Bool
   mut reduction : NumericAggregateStep?
   mut outcome : @numeric.Outcome?
   mut emitted : Int
@@ -157,6 +159,8 @@ fn[T : RelationRows] start_pivot_evaluation(
     compare_offset: 0,
     contributor: "",
     row: [],
+    row_retention: None,
+    row_retained: false,
     reduction: None,
     outcome: None,
     emitted: 0,
@@ -181,6 +185,11 @@ fn[T] close_pivot_evaluation(state : PivotEvaluation[T]) -> Unit {
     (reduction.close)() |> ignore
     state.reduction = None
   }
+  if state.row_retention is Some(cursor) {
+    close_stepped_row_retention(cursor)
+    state.row_retention = None
+  }
+  state.row = []
   state.closed = true
 }
 
@@ -620,6 +629,7 @@ fn[T : RelationRows] advance_pivot_evaluation_impl(
         []
       }
       s.position = group.start
+      s.row_retained = false
       s.member_phase = 0
       s.phase = 16
       Ok(None)
@@ -630,8 +640,36 @@ fn[T : RelationRows] advance_pivot_evaluation_impl(
     17 => pivot_advance_output(s)
     // Accept the group row.
     18 => {
-      if !retain_row(s.row, s.output_names, s.output) {
-        return Err(RowLimit)
+      if !s.row_retained {
+        if s.row_retention is Some(cursor) {
+          match advance_stepped_row_retention(cursor) {
+            Err(issue) => return Err(issue)
+            Ok(false) => return Ok(None)
+            Ok(true) => {
+              s.row_retention = None
+              s.row_retained = true
+            }
+          }
+          return Ok(None)
+        }
+        if bounded_small_retained_row(s.row, s.output_names) {
+          if !retain_row(s.row, s.output_names, s.output) {
+            return Err(RowLimit)
+          }
+          s.row_retained = true
+        } else {
+          match
+            start_stepped_row_retention(
+              s.row,
+              s.output_names,
+              s.output,
+              s.workspace,
+            ) {
+            Err(issue) => return Err(issue)
+            Ok(cursor) => s.row_retention = Some(cursor)
+          }
+          return Ok(None)
+        }
       }
       let group = s.groups[pivot_group_at(s)]
       match (s.accept_row)(s.row, group.representative.unwrap_or(-1)) {

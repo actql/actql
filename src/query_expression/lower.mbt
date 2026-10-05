@@ -281,6 +281,11 @@ fn append_resolved(
   }
   let nodes : Array[@builder.Node] = []
   let literals : Array[@builder.Node?] = []
+  // Grouping preserves an atom's role in the common IN literal array. Keep
+  // this classification in the bounded postorder pass rather than reopening
+  // the AST or treating arbitrary expression nodes as parameter holes.
+  let numbers : Array[Double?] = []
+  let parameters : Array[Bool] = []
   let mut current : @origin.Origin? = None
   let mut work = 0
   try {
@@ -294,13 +299,19 @@ fn append_resolved(
       current = Some(origin)
       let lowering : Lowering = { builder, origin, }
       let mut literal : @builder.Node? = None
+      let mut numeric : Double? = None
+      let mut parameter = false
       let result = match node.kind {
         Null | Boolean(_) | Number(_) | StringLiteral(_) => {
           let raw = lowering.add(
             match node.kind {
               Null => Null
               Boolean(value) => Bool(value)
-              Number(text) => Number(number(text))
+              Number(text) => {
+                let value = number(text)
+                numeric = Some(value)
+                Number(value)
+              }
               StringLiteral(value) => String(value)
               _ => raise Abort(InvalidArguments)
             },
@@ -357,25 +368,28 @@ fn append_resolved(
               value
             }
           }
-        ParameterReference(name) =>
+        ParameterReference(name) => {
+          parameter = true
           lowering.form("$param", lowering.add(String(name)))
+        }
         Parenthesized(child) => {
           literal = literals[child]
+          numeric = numbers[child]
+          parameter = parameters[child]
           nodes[child]
         }
         Unary(op, child) =>
           match op {
             "NOT" => lowering.form("not", nodes[child])
             "+" | "-" =>
-              match @query.expression_node(ast, child).unwrap().kind {
-                Number(text) => {
-                  let value = number(text)
+              match numbers[child] {
+                Some(value) => {
                   if op == "-" && value == 0.0 {
                     raise Abort(InvalidNumber)
                   }
-                  let raw = lowering.add(
-                    Number(if op == "-" { -value } else { value }),
-                  )
+                  let value = if op == "-" { -value } else { value }
+                  numeric = Some(value)
+                  let raw = lowering.add(Number(value))
                   literal = Some(raw)
                   lowering.form("literal", raw)
                 }
@@ -431,8 +445,7 @@ fn append_resolved(
             for j in 1..<args.length() {
               match literals[args[j]] {
                 Some(raw) => items.push(raw)
-                None if @query.expression_node(ast, args[j]).unwrap().kind
-                  is ParameterReference(_) => items.push(nodes[args[j]])
+                None if parameters[args[j]] => items.push(nodes[args[j]])
                 None => raise Abort(InvalidArguments)
               }
             }
@@ -510,6 +523,8 @@ fn append_resolved(
       }
       nodes.push(result)
       literals.push(literal)
+      numbers.push(numeric)
+      parameters.push(parameter)
     }
     Ok(nodes[@query.expression_root(ast)])
   } catch {

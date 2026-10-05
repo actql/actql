@@ -18,12 +18,13 @@ test('source-free composed Model admission retains custody without opening an in
   const resultPolicy = graphResultDataPolicy;
   const policyLimits = Object.freeze({maxWireBytes: 1024, maxNodes: 100, maxDepth: 8});
   await assert.rejects(openEffectComputation({
-    moon: {clientProgramEffectAcquisitionCount(actual) {
+    modelController: {discover: () => []},
+    moon: {clientProgramInferPlanBoundary: () => ({_0: 0}), clientProgramEffectAcquisitionCount(actual) {
       assert.equal(actual, prepared);
       return 0;
     }},
     acquired: {prepared, resultDataPolicy: resultPolicy, resultDataPolicyLimits: policyLimits,
-      control: {adoptCheckedClientEffectInferRun(allowed, definition, policy, limits) {
+      control: {runDefinitionRunId: () => 'fixture-run', adoptCheckedClientEffectInferRun(allowed, definition, policy, limits) {
         assert.equal(policy, resultPolicy);
         assert.equal(limits, policyLimits);
         assert.ok(custody);

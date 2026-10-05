@@ -20,6 +20,8 @@ pub fn advance_delta_apply(DeltaApplyExecution, Int) -> Result[DeltaApplyPoll, D
 
 pub fn advance_delta_apply_input(DeltaApplyInputPreparation, Int) -> Result[DeltaApplyInputPoll, DeltaApplyIssue]
 
+pub fn advance_delta_diff(DeltaDiffExecution, Int) -> Result[DeltaDiffPoll, DeltaDiffIssue]
+
 pub fn advance_graph_bounds(GraphBoundsExecution, Int) -> Result[GraphBoundsPoll, GraphBoundsIssue]
 
 pub fn advance_graph_degree(GraphDegreeExecution, Int) -> Result[GraphDegreePoll, GraphBoundsIssue]
@@ -41,6 +43,8 @@ pub fn cleanup_components(ComponentsExecution) -> Result[Bool, ComponentsIssue]
 pub fn cleanup_delta_apply(DeltaApplyExecution) -> Result[Bool, DeltaApplyIssue]
 
 pub fn cleanup_delta_apply_input(DeltaApplyInputPreparation) -> Unit
+
+pub fn cleanup_delta_diff(DeltaDiffExecution) -> Result[Bool, DeltaDiffIssue]
 
 pub fn cleanup_graph_bounds(GraphBoundsExecution) -> Result[Bool, GraphBoundsIssue]
 
@@ -65,6 +69,8 @@ pub fn components_max_noninterruptible_value_bytes(ComponentsExecution) -> Int
 pub fn components_max_noninterruptible_value_nodes(ComponentsExecution) -> Int
 
 pub fn delta_apply_cleanup_pending(DeltaApplyExecution) -> Bool
+
+pub fn delta_diff_cleanup_pending(DeltaDiffExecution) -> Bool
 
 pub fn graph_bounds_cleanup_pending(GraphBoundsExecution) -> Bool
 
@@ -113,6 +119,8 @@ pub fn start_components_view(@bounded_execution.Control, @execution_relation.Com
 pub fn start_delta_apply_from_admitted_input(@bounded_execution.Control, DeltaApplyInputPreparation, control_work_limit? : Int?) -> Result[DeltaApplyExecution, DeltaApplyIssue]
 
 pub fn start_delta_apply_inputs(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @execution_relation.ProducerRead, @bounded_graph_diff.Limits, @managed_graph_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[DeltaApplyExecution, DeltaApplyIssue]
+
+pub fn start_delta_diff_views(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, @bounded_graph_diff.Limits, Int, Int, Int) -> Result[DeltaDiffExecution, DeltaDiffIssue]
 
 pub fn start_graph_bounds(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[GraphBoundsExecution, GraphBoundsIssue]
 
@@ -208,6 +216,25 @@ pub enum DeltaApplyPoll {
   DeltaApplyComplete(@managed_graph_runtime.Completed, progress~ : Int64, work~ : Int64)
   DeltaApplyFailed(DeltaApplyIssue, progress~ : Int64, work~ : Int64)
   DeltaApplyStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+type DeltaDiffExecution
+
+pub(all) enum DeltaDiffIssue {
+  InvalidDeltaDiffKernel
+  DeltaDiffInputUnavailable
+  DeltaDiffWorkLimit
+  DeltaDiffKernel(@bounded_graph_diff.Issue)
+  DeltaDiffOutput(@execution_relation.CaptureIssue)
+  DeltaDiffCompletion(@execution_relation.TrustedOutputIssue)
+  DeltaDiffExecutionIssue(@bounded_execution.Issue)
+} derive(Eq, @debug.Debug)
+
+pub enum DeltaDiffPoll {
+  DeltaDiffContinue(progress~ : Int64, work~ : Int64)
+  DeltaDiffComplete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
+  DeltaDiffFailed(DeltaDiffIssue, progress~ : Int64, work~ : Int64)
+  DeltaDiffStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
 }
 
 type GraphBoundsExecution

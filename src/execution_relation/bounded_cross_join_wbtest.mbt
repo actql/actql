@@ -36,6 +36,7 @@ fn bounded_cross_fixture(
   left_rows? : String = "[{\"id\":1},{\"id\":2}]",
   right_rows? : String = "[{\"tag\":\"a\"},{\"tag\":\"b\"}]",
   self_source? : Bool = false,
+  output_values? : ValueLimits = run_limits().output_values,
 ) -> (
   @bounded.Control,
   Result[BoundedCrossJoinExecution, BoundedCrossJoinIssue],
@@ -130,7 +131,7 @@ fn bounded_cross_fixture(
       max_depth: 100,
       max_work: 10000,
     },
-    run_limits().output_values,
+    output_values,
     max_work,
     100,
     max_entries,
