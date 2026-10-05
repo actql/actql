@@ -3,6 +3,7 @@ package "actql/actql/local_sga"
 
 import {
   "actql/actql/bounded_execution",
+  "actql/actql/bounded_graph_diff",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
   "actql/actql/managed_carrier_runtime",
@@ -14,6 +15,8 @@ import {
 
 // Values
 pub fn advance_components(ComponentsExecution, Int) -> Result[ComponentsPoll, ComponentsIssue]
+
+pub fn advance_delta_apply(DeltaApplyExecution, Int) -> Result[DeltaApplyPoll, DeltaApplyIssue]
 
 pub fn advance_graph_bounds(GraphBoundsExecution, Int) -> Result[GraphBoundsPoll, GraphBoundsIssue]
 
@@ -28,6 +31,8 @@ pub fn advance_normalize(NormalizeExecution, Int) -> Result[NormalizePoll, Norma
 pub fn advance_traverse(TraverseExecution, Int) -> Result[TraversePoll, TraverseIssue]
 
 pub fn cleanup_components(ComponentsExecution) -> Result[Bool, ComponentsIssue]
+
+pub fn cleanup_delta_apply(DeltaApplyExecution) -> Result[Bool, DeltaApplyIssue]
 
 pub fn cleanup_graph_bounds(GraphBoundsExecution) -> Result[Bool, GraphBoundsIssue]
 
@@ -46,6 +51,8 @@ pub fn components_cleanup_pending(ComponentsExecution) -> Bool
 pub fn components_max_noninterruptible_value_bytes(ComponentsExecution) -> Int
 
 pub fn components_max_noninterruptible_value_nodes(ComponentsExecution) -> Int
+
+pub fn delta_apply_cleanup_pending(DeltaApplyExecution) -> Bool
 
 pub fn graph_bounds_cleanup_pending(GraphBoundsExecution) -> Bool
 
@@ -105,6 +112,8 @@ pub fn start_match_nodes_view(@bounded_execution.Control, @execution_relation.Co
 
 pub fn start_normalize_view(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @managed_graph_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[NormalizeExecution, NormalizeIssue]
 
+pub fn start_prepared_delta_apply(@bounded_execution.Control, @bounded_graph_diff.ApplyPreparation, @managed_graph_runtime.OutputBuilder, () -> Bool, control_work_limit? : Int?) -> Result[DeltaApplyExecution, DeltaApplyIssue]
+
 pub fn start_traverse(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], max_paths? : Int) -> Result[TraverseExecution, TraverseIssue]
 
 pub fn start_traverse_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], max_paths? : Int) -> Result[TraverseExecution, TraverseIssue]
@@ -143,6 +152,24 @@ pub enum ComponentsPoll {
   ComponentsComplete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
   ComponentsFailed(ComponentsIssue, progress~ : Int64, work~ : Int64)
   ComponentsStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+type DeltaApplyExecution
+
+pub(all) enum DeltaApplyIssue {
+  InvalidDeltaApplyKernel
+  DeltaApplyInputUnavailable
+  DeltaApplyControlWorkLimit
+  DeltaApplyKernel(@bounded_graph_diff.Issue)
+  DeltaApplyOutput(@managed_graph_runtime.Issue)
+  DeltaApplyExecutionIssue(@bounded_execution.Issue)
+} derive(Eq, @debug.Debug)
+
+pub enum DeltaApplyPoll {
+  DeltaApplyContinue(progress~ : Int64, work~ : Int64)
+  DeltaApplyComplete(@managed_graph_runtime.Completed, progress~ : Int64, work~ : Int64)
+  DeltaApplyFailed(DeltaApplyIssue, progress~ : Int64, work~ : Int64)
+  DeltaApplyStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
 }
 
 type GraphBoundsExecution

@@ -195,6 +195,7 @@ pub fn prepare_apply(
   limits : Limits,
   storage_limits : @storage.Limits,
   reference_issuer? : @value.ReferenceIssuer? = None,
+  output_builder? : @storage.Builder? = None,
 ) -> Result[ApplyPreparation, Issue] {
   prepare_apply_source(
     Stored(base),
@@ -202,6 +203,7 @@ pub fn prepare_apply(
     limits,
     storage_limits,
     reference_issuer~,
+    output_builder~,
   )
 }
 
@@ -215,6 +217,7 @@ pub fn prepare_apply_view(
   limits : Limits,
   storage_limits : @storage.Limits,
   reference_issuer? : @value.ReferenceIssuer? = None,
+  output_builder? : @storage.Builder? = None,
 ) -> Result[ApplyPreparation, Issue] {
   prepare_apply_source(
     Viewed(base, graph),
@@ -222,6 +225,7 @@ pub fn prepare_apply_view(
     limits,
     storage_limits,
     reference_issuer~,
+    output_builder~,
   )
 }
 
@@ -232,6 +236,7 @@ fn prepare_apply_source(
   limits : Limits,
   storage_limits : @storage.Limits,
   reference_issuer~ : @value.ReferenceIssuer?,
+  output_builder~ : @storage.Builder?,
 ) -> Result[ApplyPreparation, Issue] {
   if !valid_limits(limits) {
     return Err(InvalidLimits)
@@ -244,6 +249,12 @@ fn prepare_apply_source(
     })
     is Ok(contract) else {
     return Err(InvalidGraph)
+  }
+  // The output owner and kernel share a single provisional builder. Equal
+  // schemas or finished payload CIDs cannot substitute a different builder.
+  if output_builder is Some(builder) &&
+    !@storage.builder_accepts_output(builder, graph, storage_limits) {
+    return Err(Storage(@storage.WrongCarrier))
   }
   let usage = @decode.admission_usage(delta)
   if usage.nodes > limits.max_output_nodes ||
@@ -316,7 +327,7 @@ fn prepare_apply_source(
     pending_output: None,
     pending_edge: false,
     chunks: [],
-    builder: None,
+    builder: output_builder,
     result: None,
     phase: BaseSnapshot,
     base_cursor: 0,
@@ -355,6 +366,19 @@ pub enum ApplyPoll {
   ApplyContinue(progress~ : Int64, work~ : Int64)
   ApplyComplete(@storage.Storage, progress~ : Int64, work~ : Int64)
   ApplyFailed(Issue, progress~ : Int64, work~ : Int64)
+}
+
+///|
+/// Bind the prepared kernel to the caller's one provisional output. This is
+/// valid only before execution; it conveys no right to substitute operands.
+pub fn apply_uses_output_builder(
+  value : ApplyPreparation,
+  builder : @storage.Builder,
+) -> Bool {
+  value.phase == BaseSnapshot &&
+  value.builder is Some(actual) &&
+  physical_equal(actual, builder) &&
+  @storage.builder_accepts_output(builder, value.graph, value.storage_limits)
 }
 
 ///|
@@ -472,15 +496,32 @@ pub fn advance_apply(
             value.body_admission = None
             value.base_body = Some(body.value)
             value.base_decoded = Some(decoded)
-            value.builder = match
-              @storage.prepare(
-                @carrier.graph_carrier(value.graph),
-                DeclaredNodes,
+            if value.builder is None {
+              value.builder = match
+                @storage.prepare(
+                  @carrier.graph_carrier(value.graph),
+                  DeclaredNodes,
+                  value.storage_limits,
+                ) {
+                Ok(builder) => Some(builder)
+                Err(issue) =>
+                  return Ok(
+                    apply_failure(value, Storage(issue), used, progress),
+                  )
+              }
+            } else if !@storage.builder_accepts_output(
+                value.builder.unwrap(),
+                value.graph,
                 value.storage_limits,
               ) {
-              Ok(builder) => Some(builder)
-              Err(issue) =>
-                return Ok(apply_failure(value, Storage(issue), used, progress))
+              return Ok(
+                apply_failure(
+                  value,
+                  Storage(@storage.WrongCarrier),
+                  used,
+                  progress,
+                ),
+              )
             }
             value.phase = ApplyNodes
           }

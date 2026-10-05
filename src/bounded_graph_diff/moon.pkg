@@ -19,4 +19,7 @@ import {
   "actql/actql/managed_graph_runtime" @graph_runtime,
   "actql/actql/lowering_relation" @lower,
   "actql/actql/pipeline_typing" @pipeline,
+  "actql/actql/relation_schema" @schema,
+  "actql/actql/local_sga" @sga,
+  "actql/actql/bounded_execution" @bounded,
 } for "wbtest"

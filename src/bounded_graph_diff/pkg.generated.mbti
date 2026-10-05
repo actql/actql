@@ -17,6 +17,8 @@ pub fn advance(Preparation, Int) -> Result[Poll, Issue]
 
 pub fn advance_apply(ApplyPreparation, Int) -> Result[ApplyPoll, Issue]
 
+pub fn apply_uses_output_builder(ApplyPreparation, @managed_graph_storage.Builder) -> Bool
+
 pub fn base_cid(Delta) -> String
 
 pub fn cleanup(Preparation) -> Bool
@@ -25,9 +27,9 @@ pub fn cleanup_apply(ApplyPreparation) -> Bool
 
 pub fn prepare(@managed_graph_storage.Storage, @managed_graph_storage.Storage, @value_contract.Contract, String, Limits) -> Result[Preparation, Issue]
 
-pub fn prepare_apply(@managed_graph_storage.Storage, @decode_core.Cursor, Limits, @managed_graph_storage.Limits, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[ApplyPreparation, Issue]
+pub fn prepare_apply(@managed_graph_storage.Storage, @decode_core.Cursor, Limits, @managed_graph_storage.Limits, reference_issuer? : @value_admission.ReferenceIssuer?, output_builder? : @managed_graph_storage.Builder?) -> Result[ApplyPreparation, Issue]
 
-pub fn prepare_apply_view(@managed_carrier_runtime.ProducerView, @carrier_contract.Graph, @decode_core.Cursor, Limits, @managed_graph_storage.Limits, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[ApplyPreparation, Issue]
+pub fn prepare_apply_view(@managed_carrier_runtime.ProducerView, @carrier_contract.Graph, @decode_core.Cursor, Limits, @managed_graph_storage.Limits, reference_issuer? : @value_admission.ReferenceIssuer?, output_builder? : @managed_graph_storage.Builder?) -> Result[ApplyPreparation, Issue]
 
 pub fn prepare_view(@managed_carrier_runtime.ProducerView, @carrier_contract.Graph, @managed_carrier_runtime.ProducerView, @carrier_contract.Graph, @value_contract.Contract, String, Limits) -> Result[Preparation, Issue]
 

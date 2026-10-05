@@ -13,6 +13,7 @@ import {
   "actql/actql/relation_schema" @schema,
   "actql/actql/value_admission" @value,
   "actql/actql/value_contract" @contract,
+  "actql/actql/bounded_graph_diff" @delta,
 }
 
 import {
