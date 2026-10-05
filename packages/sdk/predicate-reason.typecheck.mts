@@ -55,3 +55,13 @@ const privateUnused: Reason = {code: 'parameter_unused', facts: {parameter: 'min
 // @ts-expect-error Structured locations cannot designate the text source input.
 const wrongUnusedDocument: Reason = {code: 'parameter_unused', facts: {parameter: 'minimum'}, location: {kind: 'structured', document_id: 'source', revision: `rev:${'1'.repeat(64)}`, pointer: '/minimum'}};
 void privateUnused; void wrongUnusedDocument;
+
+const operationParameter: Reason = {code: 'operation_parameter_invalid',
+  facts: {parameter: 'before', domain: 'positive_safe_integer'},
+  location: {kind: 'structured', document_id: 'parameters', revision: `rev:${'1'.repeat(64)}`, pointer: '/before'}};
+explainCheckReason(operationParameter);
+// @ts-expect-error Scalar domains are closed and do not contain provider labels.
+const privateDomain: Reason = {code: 'operation_parameter_invalid', facts: {parameter: 'before', domain: 'private_provider_domain'}};
+// @ts-expect-error Scalar facts never contain submitted values or owner indexes.
+const privateScalar: Reason = {code: 'operation_parameter_invalid', facts: {parameter: 'before', domain: 'positive_safe_integer', value: 0}};
+void privateDomain; void privateScalar;
