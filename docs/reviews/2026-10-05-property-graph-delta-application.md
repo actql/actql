@@ -257,3 +257,34 @@ billing/spending-limit annotation. No product test ran in the failed startup
 jobs, and no manual rerun was made. Local acceptance does not imply hosted CI
 success. Diff does not complete other structural Graph consumers, INFER/Effect
 composition, Graph catalog persistence or the deferred naming change.
+
+### Streamed snapshot fragment lifetime
+
+The pinned core's non-JS `Array.clear()` only truncates length: the old backing
+still retains removed element references. The diff preparation and its body
+admission share the streamed-fragment array, so clearing it after `join` did
+not retire that backing while the parser or later Relation import continued.
+The focused Wasm counterexample observed capacity 16 instead of 0 both at the
+parser transfer and after cancellation (2/2 failures, attempt `run-34RFTR`).
+An earlier test draft did not compile because the private phase enum has no
+`Eq`; that launch is not counted as a reproduced runtime failure.
+
+The shared body owner now clears and shrinks the empty fragment array at
+transfer and cleanup. Both diff and application cleanup use this same helper.
+The pinned non-JS `shrink_to_fit` replaces the backing at the current length,
+releasing its removed roots; for length zero it copies no survivors. Repeated
+cleanup remains terminal and does not change reported work. Borrowed Graphs,
+the parser's joined text and accepted output material retain their existing
+owners. This establishes retirement of the direct fragment backing, not a
+claim about immediate garbage collection or a total physical Graph bound.
+
+Regression coverage holds the body handle across cancellation at parse,
+decode and Value admission, checks zero fragment capacity after transfer, and
+covers application cancellation before and after transfer. The affected
+kernel package passed 44/44 on JS, Wasm and native; focused managed Graph diff
+integration passed 6/6 on JS. Native used the bounded existing SQLite namespace
+wrapper and removed its own stopped namespace. Evidence is retained in local
+attempts `run-OKATe2`, `run-q2xNpo`, `run-3mrEhB` and `run-Chnf9t` respectively.
+These checks ran on the source change before publication; exact revision and
+fresh package acceptance are recorded separately in the PR. Older packed
+results are not evidence for the changed runtime.
