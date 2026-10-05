@@ -192,6 +192,16 @@ export function explainCheckReason(reason) {
     const [summary, hint] = expressionExplanations[issue];
     return Object.freeze({kind: 'known', summary, hint});
   }
+  const graphExplanations = {
+    invalid_kind: ['The components kind is invalid.', 'Choose weak or strong for components kind.'],
+    invalid_output_rows: ['The components output row limit is invalid.', 'Supply a positive safe integer for components max_output_rows.'],
+  };
+  if (reason?.code === 'graph_operation_invalid' &&
+      reason?.facts?.operation === 'components' && typeof issue === 'string' &&
+      Object.hasOwn(graphExplanations, issue)) {
+    const [summary, hint] = graphExplanations[issue];
+    return Object.freeze({kind: 'known', summary, hint});
+  }
   const constraintHints = {
     numeric: 'Supply a number satisfying the declared integer, minimum and maximum constraints.',
     duration: 'Supply a string in the admitted duration format.',

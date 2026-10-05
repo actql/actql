@@ -278,6 +278,58 @@ for (const [entrance, open] of Object.entries(entrances)) {
     client.assertNoExecution();
   });
 
+  test(`${entrance}: Graph components expose typed argument violations`, async t => {
+    const client = await open(t, configurations.denied);
+    const prefix = 'DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH ' +
+      '(NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); ';
+    for (const format of ['aql-text']) {
+      for (const kind of ['weak', 'strong']) {
+        const outcome = await client.check(prefix +
+          `FROM g |> components(kind: '${kind}') |> SELECT component_size`, {format});
+        assert.equal(outcome.outcome, 'completed');
+        assert.equal(outcome.report.verdict, 'verified', JSON.stringify(outcome.report));
+        assert.deepEqual(outcome.report.reasons, []);
+      }
+      for (const [arguments_, issue, summary, hint] of [
+        ["kind: 'private-kind-value'", 'invalid_kind',
+          'The components kind is invalid.', 'Choose weak or strong for components kind.'],
+        ["kind: 'weak', max_output_rows: 0", 'invalid_output_rows',
+          'The components output row limit is invalid.',
+          'Supply a positive safe integer for components max_output_rows.'],
+        ["kind: 'weak', max_output_rows: 1.5", 'invalid_output_rows',
+          'The components output row limit is invalid.',
+          'Supply a positive safe integer for components max_output_rows.'],
+      ]) {
+        const text = '/*😀*/\r\n' + prefix +
+          `FROM g |> components(${arguments_}) |> SELECT component_size`;
+        const outcome = await client.check(text, {format});
+        assert.equal(outcome.outcome, 'completed');
+        assert.equal(outcome.report.verdict, 'invalid', '[check-mutation:graph-argument-verdict]');
+        // Program paths and unproven argument precision are not input positions.
+        assert.deepEqual(outcome.report.reasons, [{code: 'graph_operation_invalid',
+          facts: {operation: 'components', issue}}], '[check-mutation:graph-argument-reason]');
+        assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+        assert.deepEqual(outcome.report.requirements, []);
+        assert.equal(getCheckInput(outcome, 'source').text, text);
+        assert.deepEqual(explainCheckReason(outcome.report.reasons[0]),
+          {kind: 'known', summary, hint});
+        assert.equal(JSON.stringify(outcome).includes('private-kind-value'), false);
+      }
+    }
+    const absent = await open(t, configurations.absent);
+    const protectedText = prefix.replace('SELECT 1 AS node_key',
+      'SELECT id AS node_key FROM records') +
+      "FROM g |> components(kind: 'private-kind-value') |> SELECT component_size";
+    for (const boundary of [client, absent]) {
+      const outcome = await boundary.check(protectedText, {format: 'aql-text'});
+      assert.equal(outcome.report.verdict, 'undetermined');
+      assert.deepEqual(outcome.report.reasons, [], '[check-mutation:graph-protected]');
+      assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: protectedSource});
+      boundary.assertNoExecution();
+    }
+    client.assertNoExecution();
+  });
+
   test(`${entrance}: unresolved column expressions retain authored source positions`, async t => {
     const client = await open(t, configurations.denied);
     const visible = await open(t, configurations.allowed);
