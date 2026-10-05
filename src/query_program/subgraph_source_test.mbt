@@ -74,6 +74,44 @@ test "Subgraph predicate parameters preserve the independent expression Program"
 }
 
 ///|
+test "Subgraph typed identity keys use query identifiers rather than JSON String keys" {
+  let parsed = @query.parse_sga_call(
+    "subgraph(nodes: {ids: [{`definition`: 'N', domain: 'domain', key: [1], key_types: [{kind: 'number'}]}]})",
+    syntax_limits(),
+  ).unwrap()
+  assert_eq(parsed.arguments, [
+    (
+      "nodes",
+      @query.ObjectValue([
+        (
+          "ids",
+          @query.ListValue([
+            @query.ObjectValue([
+              ("definition", @query.TextValue("N")),
+              ("domain", @query.TextValue("domain")),
+              ("key", @query.ListValue([@query.NumberValue("1")])),
+              (
+                "key_types",
+                @query.ListValue([
+                  @query.ObjectValue([("kind", @query.TextValue("number"))]),
+                ]),
+              ),
+            ]),
+          ]),
+        ),
+      ]),
+    ),
+  ])
+  assert_true(
+    @query.parse_sga_call(
+      "subgraph(nodes: {ids: [{\"definition\": 'N'}]})",
+      syntax_limits(),
+    )
+    is Err({ issue: Syntax("Expected identifier"), .. }),
+  )
+}
+
+///|
 test "Subgraph source preserves predicates across inline, DATA and MATCH boundaries" {
   let prefix = graph_rows_prefix() +
     "DATA selected = FROM g |> node_rows() |> WHERE node_key = 1 |> SELECT id; "

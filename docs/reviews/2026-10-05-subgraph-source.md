@@ -61,7 +61,7 @@ grammar, schema, pin, stored identity or version changes.
 ## Independent public obligations
 
 The [authored fixture](../../scripts/fixtures/subgraph-source-input.mjs) contains
-**13 positive cases, 16 preparation refusals and one execution failure**.
+**13 positive cases, 17 preparation refusals and one execution failure**.
 Two complete JSON controls use direct Values; the source uses ordinary
 SELECT/UNION producers. Structures and CIDs may differ, while the independently
 specified meaning must agree. No harness modifies a lowered Program.
@@ -205,3 +205,20 @@ unchanged. The original object-literal form is retained as a preparation
 refusal with the same declaration/value, rather than changing literal semantics.
 The logging-only disposable adapter was again restored byte-for-byte; the
 diagnostic is not a pristine execution pass.
+
+Clean source `331e450afa5ae982eaba02207f6f46e12e26aaae` was normally packed
+under `run-zIws1o`, receipt `public-query-evidence-QeG8oP`. Local reached
+**12/13 positives**, including the corrected parameter predicate and duplicate
+selector identities. The last explicit-identity source refused with
+`ClientProgramInvalidInput`. Remaining refusals, runtime membership failure and
+Subgraph HTTPS were not reached. The six focused Subgraph source tests also
+passed before this commit (`run-dTkF15`, `focused-test-iaEX8P`); that receipt
+records the uncommitted test/fixture changes and is not a clean 331e450 run.
+
+The retained-installation diagnostic `run-3WPneA` fixed the refusal as
+`QuerySyntax(Expected identifier)` at byte 162. The fixture had embedded
+`JSON.stringify(identity)` into a named-call object: JSON String keys are not
+query identifiers. The corrected source explicitly spells `definition`,
+`domain`, `key` and `key_types` as identifiers while preserving the independently
+derived identity value. The original JSON-quoted-key text remains a syntax
+refusal. No grammar is widened or independent identity copied from runtime.

@@ -82,6 +82,9 @@ const singleDomain = 'sha256:' + createHash('sha256').update(canonical({
   constructor: singleConstructor, producer_definitions: [singleProducer],
   version: 'actql-property-graph-definition/0.1'})).digest('hex');
 const singleIdentity = {definition: 'N', domain: singleDomain, key: [1], key_types: [{kind: 'number'}]};
+// Named-call object keys are query identifiers; JSON-quoted keys are Strings.
+const singleIdentitySource = '{definition: "N", domain: ' + JSON.stringify(singleDomain) +
+  ', key: [1], key_types: [{kind: "number"}]}';
 const taskBoundSource = prefix
   .replace('SELECT 2 AS node_key, 20 AS p UNION ALL SELECT 1 AS node_key, IF(TRUE, 10, CAST(NULL AS FLOAT64)) AS p',
     'SELECT 3 AS node_key, CAST(NULL AS FLOAT64) AS p UNION ALL SELECT 2 AS node_key, 20 AS p UNION ALL SELECT 1 AS node_key, 10 AS p')
@@ -134,7 +137,7 @@ export const subgraphSourceSuccesses = [
   {name: 'subgraph-explicit-typed-identity', format: 'aql-text',
     text: 'DATA n = SELECT 1 AS node_key, 7 AS p; DATA g = PROPERTY GRAPH ' +
       '(NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p))); ' +
-      'FROM g |> subgraph(nodes: {ids: [' + JSON.stringify(singleIdentity) + ']})' + tail(false),
+      'FROM g |> subgraph(nodes: {ids: [' + singleIdentitySource + ']})' + tail(false),
     results: {answer: {rows: [{node_key: 1, p: 7}], columns:
       [{name: 'node_key', contract: number}, {name: 'p', contract: number}]}}, sourceReadCount: 0},
 ];
@@ -167,6 +170,10 @@ export const subgraphSourceRefusals = [
     text: prefix + selected('node_key <= 2') +
       'FROM g |> subgraph(nodes: {from: selected, id: "id"}, edges: {gt: [{field: "w"}, {literal: @minimum}]})' + tail(true),
     parameterDeclarations: {minimum: {type: 'number'}}, parameters: {minimum: 10}},
+  {name: 'subgraph-json-string-keys-are-not-identifiers', format: 'aql-text',
+    text: 'DATA n = SELECT 1 AS node_key, 7 AS p; DATA g = PROPERTY GRAPH ' +
+      '(NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p))); ' +
+      'FROM g |> subgraph(nodes: {ids: [' + JSON.stringify(singleIdentity) + ']})' + tail(false)},
 ];
 const collidingControl = JSON.parse(program(false, false));
 collidingControl.stages[0].steps[2].property_graph.nodes[0].labels[0].properties =
