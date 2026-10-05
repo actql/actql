@@ -240,6 +240,7 @@ test "presence whole-row distinct unavailable cells are not omissions" {
     phase: -1,
     offset: 0,
     charge: { offset: 0, next: 0, remaining: 0, },
+    tree: None,
   }
   assert_true(
     bounded_row_comparison_step_with(

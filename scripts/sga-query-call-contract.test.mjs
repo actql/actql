@@ -59,14 +59,15 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.equal(body.query_text_grammar_sha256,
     '7cd11ce7c1e58b585756ef3c8ac0eb078cf2bbb7003086263f665e26251b7f0e');
   assert.equal(body.query_text_rules_sha256,
-    'd91710b1985ec0156bc9ca905d0ac3d8a86eac24a99ac19a6b5755be091f6561');
+    '96919df5ec9dee76c7f435ff6045b61fd85a6ac086fa047bc8e07c397dc05678');
   assert.equal(body.source_grammar_cid,
     'sha256:487b95656a825703baa75f2e108ac94d3d8a38fa113bb2ef12a3532cac2654ae');
   // Historical manifests retain the pre-alignment expression law rather than
   // being relabeled with the new shared membership meaning.
   const priorExpression = structuredClone(expression);
   delete priorExpression.laws.membership;
-  const beforeMembershipBody = {...body, expression_contract_cid: cid(priorExpression)};
+  const beforeMembershipBody = {...body, expression_contract_cid: cid(priorExpression),
+    query_text_rules_sha256:'d91710b1985ec0156bc9ca905d0ac3d8a86eac24a99ac19a6b5755be091f6561'};
   assert.equal(beforeMembershipBody.expression_contract_cid,
     'sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb');
   const historicalBody = {...beforeMembershipBody, query_text_rules_sha256: 'e4639cbce44c77135b0f162475ca653b9774ef593a4c02434f6ea30b34ff2eb2'};
@@ -125,7 +126,10 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     'sha256:efd71d7d2e6495894932d871a093f184332c4c1a8f0350ad9d42d47e391176a0');
   assert.equal(cid(beforeMembershipBody),
     'sha256:cb47f1587dd7cb896f57d56d2aab4eacca6cd6fb673ab8f258b777947b142f14');
-  const expected = 'sha256:cf717bd4a252742b0f29f3badb6b0bd1a876833879fc30e6fefec15f95506fb5';
+  assert.equal(cid({...body, query_text_rules_sha256:
+    'd91710b1985ec0156bc9ca905d0ac3d8a86eac24a99ac19a6b5755be091f6561'}),
+    'sha256:cf717bd4a252742b0f29f3badb6b0bd1a876833879fc30e6fefec15f95506fb5');
+  const expected = 'sha256:c7db9149ce04b3f85a273f97b5e4b1647e62e352484fb56309f5a347744fe37b';
   assert.equal(cid(historicalBody),
     'sha256:2a5854a264c13c65bf7c2ecbc6f59f9ec09e0c590aacc1c8aed6ec247da80067');
   assert.equal(cid({...beforeMembershipBody, query_text_rules_sha256:

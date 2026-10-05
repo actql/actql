@@ -1,6 +1,6 @@
 import test, {mock} from 'node:test';
 import assert from 'node:assert/strict';
-import {checkReasonSchemaCid} from '@actql/client-wire';
+import {checkReasonSchemaCid, checkOutcomeSchemaCid} from '@actql/client-wire';
 import {connect, getCheckInput, resolveCheckLocation, resolveCheckTextRange} from './index.mjs';
 
 const revision = 'rev:' + '4'.repeat(64);
@@ -13,7 +13,7 @@ const profile = {version: 'actql-client-host/0.1', mode: 'remote', owner: 'remot
 async function checkedInput(t, text, byteLength) {
   mock.method(globalThis, 'fetch', async url => url.pathname.endsWith('/connect')
     ? Response.json(profile) : Response.json({version: 'actql-check-outcome/0.1',
-      reason_schema_cid: checkReasonSchemaCid, outcome: 'completed', report: {
+      reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'completed', report: {
         context_ref: 'ctx:fixture', scope: {kind: 'bound_input'}, verdict: 'invalid',
         inputs: [{document_id: 'source', kind: 'text', revision, byte_length: byteLength}],
         reasons: [{code: 'query_syntax_invalid', location: {kind: 'text',
@@ -91,7 +91,7 @@ async function checkedStructuredInput(t) {
     pointer: ''};
   mock.method(globalThis, 'fetch', async url => url.pathname.endsWith('/connect')
     ? Response.json(profile) : Response.json({version: 'actql-check-outcome/0.1',
-      reason_schema_cid: checkReasonSchemaCid, outcome: 'completed', report: {
+      reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'completed', report: {
         context_ref: 'ctx:fixture', scope: {kind: 'bound_input'}, verdict: 'invalid',
         inputs: [{document_id: 'source', kind: 'text', revision, byte_length: 13},
           {document_id: 'parameters', kind: 'structured', revision, byte_length: 135}],

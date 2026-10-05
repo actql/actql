@@ -5,7 +5,9 @@ priv enum RelationIdentityPhase {
   MeasureName(SteppedValueMeasure)
   MeasureCell(SteppedValueMeasure)
   MeasureWire(IdentityWireCursor, @encode.Writer)
+  EmitPayloadKey(@encode.OrderedKeyEmitCursor)
   EmitPayload(IdentityWireCursor)
+  EmitLogicalKey(@encode.OrderedKeyEmitCursor)
   EmitLogical(IdentityWireCursor)
   Done
 }
@@ -148,6 +150,8 @@ pub fn cancel_completed_relation_identity_scan(
     MeasureName(cursor) | MeasureCell(cursor) => clear_stepped_measure(cursor)
     MeasureWire(cursor, _) | EmitPayload(cursor) | EmitLogical(cursor) =>
       cancel_identity_wire(cursor)
+    EmitPayloadKey(cursor) | EmitLogicalKey(cursor) =>
+      @encode.cancel_ordered_key(cursor)
     BeginRow | BeginColumn | Done => ()
   }
   cancel_completed_output_export(value.stream)
@@ -175,9 +179,9 @@ fn advance_identity_scan_frame(
         if !charge_node(stream.budget, 1) {
           return Err(Admission(CaptureLimit))
         }
-        @encode.begin_object(stream.writer)
+        @encode.begin_ordered_object(stream.writer)
         if stream.logical_writer is Some(writer) {
-          @encode.begin_object(writer)
+          @encode.begin_ordered_object(writer)
         }
         value.column = 0
         value.phase = BeginColumn
@@ -265,19 +269,56 @@ fn advance_identity_scan_frame(
           if cell is Null || cell is Captured(@admitted.Null) {
             stream.column_null_rows[column] += 1
           }
-          @encode.key(stream.writer, stream.order.columns[column].0)
-          value.phase = EmitPayload(identity_scan_emit(cell, stream.writer))
+          let name = stream.order.columns[column].0
+          if name.length() > 64 {
+            if !reserve_slots(value.workspace, 1) {
+              return Err(Admission(CaptureLimit))
+            }
+            value.phase = EmitPayloadKey(
+              @encode.start_ordered_key(stream.writer, name),
+            )
+          } else {
+            @encode.ordered_key(stream.writer, name)
+            value.phase = EmitPayload(identity_scan_emit(cell, stream.writer))
+          }
+        }
+      EmitPayloadKey(cursor) =>
+        if @encode.advance_ordered_key(cursor) {
+          release_slots(value.workspace, 1)
+          value.phase = EmitPayload(
+            identity_scan_emit(identity_scan_cell(value), stream.writer),
+          )
         }
       EmitPayload(cursor) =>
         if advance_identity_wire(cursor) {
           if stream.logical_writer is Some(writer) {
-            @encode.key(writer, stream.order.columns[value.column].0)
-            value.phase = EmitLogical(
-              identity_scan_emit(identity_scan_cell(value), writer),
-            )
+            let name = stream.order.columns[value.column].0
+            if name.length() > 64 {
+              if !reserve_slots(value.workspace, 1) {
+                return Err(Admission(CaptureLimit))
+              }
+              value.phase = EmitLogicalKey(
+                @encode.start_ordered_key(writer, name),
+              )
+            } else {
+              @encode.ordered_key(writer, name)
+              value.phase = EmitLogical(
+                identity_scan_emit(identity_scan_cell(value), writer),
+              )
+            }
           } else {
             return Err(Closed)
           }
+        }
+      EmitLogicalKey(cursor) =>
+        if @encode.advance_ordered_key(cursor) {
+          release_slots(value.workspace, 1)
+          guard stream.logical_writer is Some(writer) else {
+            return Err(Closed)
+          }
+          value.phase = EmitLogical(
+            identity_scan_emit(identity_scan_cell(value), writer),
+          )
         }
       EmitLogical(cursor) =>
         if advance_identity_wire(cursor) {

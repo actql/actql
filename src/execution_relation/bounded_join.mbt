@@ -565,6 +565,7 @@ pub fn start_bounded_join(
       phase: -1,
       offset: 0,
       charge: { offset: 0, next: 0, remaining: 0, },
+      tree: None,
     },
     phase: ValidateSide,
     on_left: true,
