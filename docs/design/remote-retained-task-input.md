@@ -221,3 +221,20 @@ saved fields. The existing Native constructor delegates to its actual execution
 Site. Authority, current lifetime and both Transfer grants remain separate
 checks. Across asynchronous Cloud persistence and delivery, the caller must
 retain its existing Owner revision fence and revalidate before sending.
+
+The resident consumer execution entry reads the exact saved envelope and
+rebuilds its admitted Run before calling a trusted retained-input restoration
+port. That port must reissue the checked edge from this preparation and admit
+the saved binding against the current original producer observation and the
+actual committed Transfer record/receipt. Reusing an input tied to a different
+preparation fails the existing capture-owner check; equal rows or schema do not
+replace that check. This restoration creates neither a borrow nor a reservation.
+
+The existing pinned borrow must name the exact consumer dispatch occurrence.
+Pre-admission refusal keeps it with the caller. The Runtime rechecks the original
+Run lifetime and live input custody at its exclusive start boundary, preserves
+the exact claim and performs Compute through the existing retained executor.
+After capture, its output cleanup returns that borrow; an unconfirmed Runtime
+close retains the same Runtime for retry. A guard refusal before capture cannot
+return a borrow that the Runtime never acquired. The entry does not deliver a
+poll operation, publish a Result, reclaim either holding or complete Run release.
