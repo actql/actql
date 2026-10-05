@@ -77,6 +77,8 @@ priv enum BoundedSequencePhase {
   EvaluatePredicate
   PrepareOutput
   BuildOutputRow
+  ResolveOutputKey
+  ResolveOutputPattern
   CheckOutputRow
   CommitOutputRow
   FinishOutput
@@ -140,9 +142,13 @@ priv struct BoundedSequenceState {
   mut predicate_execution : PredicateExpressionExecution?
   mut output_match : Int
   mut output_column : Int
+  mut output_key : Int
+  mut output_pattern : Int
   mut output_scope : SlotScope?
   mut output_row : Array[Value]
-  mut checked_row : Array[@admitted.CheckedValue]
+  mut checked_row : Array[@admitted.Value]
+  mut output_recheck : @admitted.RecheckCursor?
+  mut output_charge : BoundedOutputRowCharge?
 }
 
 ///|
@@ -205,6 +211,14 @@ fn bounded_sequence_failure(
 
 ///|
 fn cleanup_bounded_sequence_state(state : BoundedSequenceState) -> Bool {
+  if state.output_recheck is Some(cursor) {
+    @admitted.cancel_recheck_runtime_value(cursor)
+    state.output_recheck = None
+  }
+  if state.output_charge is Some(cursor) {
+    cleanup_bounded_output_row_charge(cursor)
+    state.output_charge = None
+  }
   if state.sort is Some(active) {
     cleanup_bounded_index_sort(active) |> ignore
     state.sort = None
@@ -439,58 +453,6 @@ fn bounded_sequence_release_matches(state : BoundedSequenceState) -> Unit {
   }
   state.matches.clear()
   release_slots(state.workspace, released)
-}
-
-///|
-fn bounded_sequence_output_value(
-  state : BoundedSequenceState,
-  match_ : BoundedSequencePartial,
-  name : String,
-) -> Result[Value?, BoundedSequenceMatchIssue] {
-  let first = state.ordered[match_.positions[0]]
-  let last = state.ordered[match_.positions[match_.positions.length() - 1]]
-  for index in 0..<state.key_columns.length() {
-    if @lower.sequence_match_key_at(state.kernel, index).map(
-        @schema.reference_name,
-      ) ==
-      Some(name) {
-      return Ok(
-        bounded_sequence_input_cell(
-          state.input,
-          first,
-          state.key_columns[index],
-        ),
-      )
-    }
-  }
-  if name == "match_start_ms" {
-    return Ok(Some(Number(state.clocks[first].to_double())))
-  }
-  if name == "match_end_ms" {
-    return Ok(Some(Number(state.clocks[last].to_double())))
-  }
-  for pattern in 0..<state.pattern_count {
-    guard @lower.sequence_match_pattern_label(state.kernel, pattern)
-      is Some(label) else {
-      return Ok(None)
-    }
-    let source = state.ordered[match_.positions[pattern]]
-    if !charge_text_append(state.control, label, 3) {
-      return Err(Rows(RowLimit))
-    }
-    if name == label + "_id" {
-      return Ok(
-        bounded_sequence_input_cell(state.input, source, state.identity_column),
-      )
-    }
-    if !charge_text_append(state.control, label, 8) {
-      return Err(Rows(RowLimit))
-    }
-    if name == label + "_time_ms" {
-      return Ok(Some(Number(state.clocks[source].to_double())))
-    }
-  }
-  Ok(None)
 }
 
 ///|
@@ -1156,39 +1118,148 @@ fn bounded_sequence_step(
           state.phase = CheckOutputRow
           continue
         }
-        let value = match
-          bounded_sequence_output_value(
-            state,
-            state.matches[state.output_match],
-            state.output_names[state.output_column],
-          ) {
-          Ok(Some(value)) => value
-          Ok(None) =>
+        state.output_key = 0
+        state.output_pattern = 0
+        state.phase = ResolveOutputKey
+      }
+      ResolveOutputKey => {
+        let name = state.output_names[state.output_column]
+        let match_ = state.matches[state.output_match]
+        let first = state.ordered[match_.positions[0]]
+        if state.output_key < state.key_columns.length() {
+          guard @lower.sequence_match_key_at(state.kernel, state.output_key)
+            is Some(key) else {
             return bounded_sequence_failure(InvalidExecution, progress, used)
-          Err(issue) => return bounded_sequence_failure(issue, progress, used)
+          }
+          if !spend_control(state.control, 1) {
+            return bounded_sequence_failure(Rows(RowLimit), progress, used)
+          }
+          if @schema.reference_name(key) == name {
+            guard bounded_sequence_input_cell(
+                state.input,
+                first,
+                state.key_columns[state.output_key],
+              )
+              is Some(value) else {
+              return bounded_sequence_failure(InvalidExecution, progress, used)
+            }
+            state.output_row.push(value)
+            state.output_column += 1
+            state.phase = BuildOutputRow
+          } else {
+            state.output_key += 1
+          }
+          used += 1
+          progress += 1
+        } else if name == "match_start_ms" || name == "match_end_ms" {
+          let row = if name == "match_start_ms" {
+            first
+          } else {
+            state.ordered[match_.positions[match_.positions.length() - 1]]
+          }
+          state.output_row.push(Number(state.clocks[row].to_double()))
+          state.output_column += 1
+          state.phase = BuildOutputRow
+          used += 1
+          progress += 1
+        } else {
+          state.phase = ResolveOutputPattern
         }
-        state.output_row.push(value)
-        state.output_column += 1
+      }
+      ResolveOutputPattern => {
+        if state.output_pattern == state.pattern_count {
+          return bounded_sequence_failure(InvalidExecution, progress, used)
+        }
+        guard @lower.sequence_match_pattern_label(
+            state.kernel,
+            state.output_pattern,
+          )
+          is Some(label) else {
+          return bounded_sequence_failure(InvalidExecution, progress, used)
+        }
+        let name = state.output_names[state.output_column]
+        let match_ = state.matches[state.output_match]
+        let source = state.ordered[match_.positions[state.output_pattern]]
+        if !charge_text_append(state.control, label, 3) {
+          return bounded_sequence_failure(Rows(RowLimit), progress, used)
+        }
+        if name == label + "_id" {
+          guard bounded_sequence_input_cell(
+              state.input,
+              source,
+              state.identity_column,
+            )
+            is Some(value) else {
+            return bounded_sequence_failure(InvalidExecution, progress, used)
+          }
+          state.output_row.push(value)
+          state.output_column += 1
+          state.phase = BuildOutputRow
+        } else {
+          if !charge_text_append(state.control, label, 8) {
+            return bounded_sequence_failure(Rows(RowLimit), progress, used)
+          }
+          if name == label + "_time_ms" {
+            state.output_row.push(Number(state.clocks[source].to_double()))
+            state.output_column += 1
+            state.phase = BuildOutputRow
+          } else {
+            state.output_pattern += 1
+          }
+        }
         used += 1
         progress += 1
       }
       CheckOutputRow => {
+        if state.output_recheck is Some(cursor) {
+          match @admitted.advance_recheck_runtime_value(cursor) {
+            RecheckContinue => ()
+            RecheckFailed =>
+              return bounded_sequence_failure(
+                InvalidExecution,
+                progress,
+                used + 1,
+              )
+            RecheckComplete(checked, _, _) => {
+              state.output_recheck = None
+              state.checked_row.push(checked.value)
+              state.output_column += 1
+            }
+          }
+          used += 1
+          continue
+        }
         if state.output_column == state.output_names.length() {
           state.phase = CommitOutputRow
           continue
         }
         guard @schema.field_at(state.output_schema, state.output_column)
-          is Some(field) &&
-          checked_ordered_output_value(
-            state.output_row[state.output_column],
-            field.contract,
-            state.admitted_limits,
-          )
-          is Some(value) else {
+          is Some(field) else {
           return bounded_sequence_failure(InvalidExecution, progress, used)
         }
-        state.checked_row.push(value)
-        state.output_column += 1
+        let cell = state.output_row[state.output_column]
+        if bounded_small_output_value(cell) {
+          guard checked_ordered_output_value(
+              cell,
+              field.contract,
+              state.admitted_limits,
+            )
+            is Some(checked) else {
+            return bounded_sequence_failure(InvalidExecution, progress, used)
+          }
+          state.checked_row.push(checked.value)
+          state.output_column += 1
+        } else {
+          guard start_ordered_output_value_recheck(
+              cell,
+              field.contract,
+              state.admitted_limits,
+            )
+            is Some(cursor) else {
+            return bounded_sequence_failure(InvalidExecution, progress, used)
+          }
+          state.output_recheck = Some(cursor)
+        }
         used += 1
         progress += 1
       }
@@ -1196,10 +1267,40 @@ fn bounded_sequence_step(
         guard state.output is Some(output) else {
           return bounded_sequence_failure(InvalidExecution, progress, used)
         }
-        match append_admitted_output(output, state.checked_row) {
-          Ok(_) => ()
-          Err(issue) =>
+        if state.output_charge is None {
+          match
+            start_bounded_output_row_charge(
+              output,
+              state.checked_row,
+              state.workspace,
+            ) {
+            Err(OutputCapture(issue)) =>
+              return bounded_sequence_failure(
+                Capture(issue),
+                progress,
+                used + 1,
+              )
+            Err(OutputWorkspace) =>
+              return bounded_sequence_failure(
+                Rows(RowLimit),
+                progress,
+                used + 1,
+              )
+            Ok(cursor) => state.output_charge = Some(cursor)
+          }
+          used += 1
+          continue
+        }
+        match advance_bounded_output_row_charge(state.output_charge.unwrap()) {
+          Err(OutputCapture(issue)) =>
             return bounded_sequence_failure(Capture(issue), progress, used + 1)
+          Err(OutputWorkspace) =>
+            return bounded_sequence_failure(Rows(RowLimit), progress, used + 1)
+          Ok(false) => {
+            used += 1
+            continue
+          }
+          Ok(true) => state.output_charge = None
         }
         guard state.output_scope is Some(scope) && scope.close() else {
           return bounded_sequence_failure(InvalidExecution, progress, used)
@@ -1396,9 +1497,13 @@ fn start_bounded_sequence_match_input(
     predicate_execution: None,
     output_match: 0,
     output_column: 0,
+    output_key: 0,
+    output_pattern: 0,
     output_scope: None,
     output_row: [],
     checked_row: [],
+    output_recheck: None,
+    output_charge: None,
   }
   let (session, token) = @bounded.start(
     engine,

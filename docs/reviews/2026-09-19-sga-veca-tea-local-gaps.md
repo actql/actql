@@ -1094,8 +1094,31 @@ inside both large-Text recheck and output charging. Values has a separate
 input-measurement cancellation and exact/one-short fixture. The two-row managed
 Values control now exposes 21 advances instead of 11, with ten formerly combined
 row-output transitions; its logical and control budget totals are unchanged.
-Focused JS kernels and managed callers pass 61 tests. This is not yet a passing
-new-source retained Store Host, packed, Wasm/native or Linux CI result.
+Focused JS kernels and managed callers pass 61 tests. The retained Store Host
+test also passed at `45f9b9d2a2792a70c3ccd8ee364bbdfb8b78c848`, including
+long-Text unpivot, unnest and row-window publication to two consumers. This is
+not packed, Wasm/native or Linux CI evidence for these output changes.
+
+The bounded Interval Join, As-of Join and Sequence Match output owners now
+reuse the same copied-cell recheck and row-charge cursors. Uncommitted cells,
+temporary measurement frames and unpublished rows remain with the existing
+cleanup owner. Sequence output field resolution examines one group key or
+pattern per quantum instead of scanning them all within one output step.
+Each key probe is charged; the fixed five-row fixture adds 21 probes to its
+621-unit control bound, giving an independent 642-unit exact limit. Search,
+matching, tie and identity rules are unchanged.
+The shared temporal fixture derives output node/byte/work limits and temporary
+workspace peaks from literal rows and metadata, tests the typed one-short
+failures, and cancels after a real Text chunk in both validation and charging.
+Borrowed source completion remains readable after cleanup. Registered retained
+providers still use these same kernels. New long-Text Join/Sequence publication
+cases use the existing real Store and two-consumer Host harness; their source
+SHA execution evidence is recorded separately from the parent expansion run.
+The selected JS temporal kernels and retained-provider caller tests pass 40
+tests. That result is not yet retained Store Host execution, packed acceptance,
+Wasm/native or Linux CI evidence for the temporal output changes.
+Other temporal initialization and comparison boundaries remain governed by
+their existing evidence, not inferred from these output-only regressions.
 
 #### Retained Relation obligation chains
 
