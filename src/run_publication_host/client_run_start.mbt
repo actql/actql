@@ -140,3 +140,37 @@ pub fn prepare_client_run_cancellation(
     Ok(AcceptCancellation)
   }
 }
+
+///|
+/// Observations of the exact admitted Run, collected after physical stop.
+/// Intent, send fencing, stop and reclamation are independent facts. Neither
+/// an abort signal nor an empty process-local worker map supplies these facts.
+pub(all) struct ClientRunCancellationFacts {
+  cancellation_requested : Bool
+  model_fence_required : Bool
+  model_fenced : Bool
+  unresolved_model_calls : Bool
+  unresolved_effects : Bool
+  reconciliation_required : Bool
+  publication_committed : Bool
+  physical_stop_confirmed : Bool
+  cleanup_confirmed : Bool
+  revision_unchanged : Bool
+}
+
+///|
+/// Shared terminal eligibility for live and restored physical owners. This
+/// does not accept a cancellation, observe physical stop, or discard evidence.
+pub fn confirm_client_run_cancellation(
+  facts : ClientRunCancellationFacts,
+) -> Bool {
+  facts.cancellation_requested &&
+  (!facts.model_fence_required || facts.model_fenced) &&
+  !facts.unresolved_model_calls &&
+  !facts.unresolved_effects &&
+  !facts.reconciliation_required &&
+  !facts.publication_committed &&
+  facts.physical_stop_confirmed &&
+  facts.cleanup_confirmed &&
+  facts.revision_unchanged
+}

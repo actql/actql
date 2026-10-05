@@ -6,6 +6,7 @@ import {
   "actql/actql/run_publication_host" @host,
   "actql/actql/run_publication" @publication,
   "actql/actql/remote_site_protocol" @remote,
+  "actql/actql/remote_transfer" @transfer,
   "actql/actql/check_environment" @environment,
   "actql/actql/program_check" @checked,
   "actql/actql/stage_syntax" @syntax,

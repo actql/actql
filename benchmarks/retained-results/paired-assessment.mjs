@@ -6,8 +6,13 @@ export function assessPairedTiming(pairs, {
   minimumPairs = 7, resamples = 10000, confidence = 0.95, seed = 0x41637451,
 }) {
   if (!['baseline-actql', 'direct-duckdb',
-    'direct-duckdb-with-identical-obligations-and-independent-holding'].includes(comparator) ||
-      !['executionMs', 'warmMs', 'coldMs', 'cleanupMs'].includes(field) ||
+    'direct-duckdb-with-identical-obligations-and-independent-holding',
+    'uncalibrated-native-selection', 'artifact-read-buffer-64k', 'source-open-read-write', 'native-ascii-word-loop', 'canonical-continuation-rewrap', 'retained-preflight-iterator', 'bounded-text-retention', 'native-per-row-drain'].includes(comparator) ||
+      !['executionMs', 'warmMs', 'coldMs', 'cleanupMs', 'processCycleMs', 'benchmarkCycleMs', 'databasePreparationMs', 'applicationPreparationMs', 'computeAndIdentityMs'].includes(field) ||
+      field === 'processCycleMs' && !['uncalibrated-native-selection', 'artifact-read-buffer-64k', 'source-open-read-write', 'native-ascii-word-loop', 'canonical-continuation-rewrap', 'retained-preflight-iterator', 'bounded-text-retention', 'native-per-row-drain'].includes(comparator) ||
+      field === 'benchmarkCycleMs' && !['artifact-read-buffer-64k', 'source-open-read-write'].includes(comparator) ||
+      field === 'databasePreparationMs' && comparator !== 'source-open-read-write' ||
+      ['applicationPreparationMs', 'computeAndIdentityMs'].includes(field) && !['native-ascii-word-loop', 'canonical-continuation-rewrap', 'retained-preflight-iterator', 'bounded-text-retention', 'native-per-row-drain'].includes(comparator) ||
       !['ratio', 'difference'].includes(mode) || !Number.isFinite(threshold) ||
       !Number.isSafeInteger(minimumPairs) || minimumPairs < 7 ||
       !Number.isSafeInteger(resamples) || resamples < 10000 || resamples > 1000000 ||

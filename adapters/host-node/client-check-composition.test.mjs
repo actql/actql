@@ -2,7 +2,7 @@
 // checker. Public Local/HTTP verdict expectations live in client-check.test.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {checkReasonSchemaCid} from '../../packages/client-wire/index.mjs';
+import {checkReasonSchemaCid, checkOutcomeSchemaCid} from '../../packages/client-wire/index.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
 
 const environment = Object.freeze({});
@@ -26,11 +26,11 @@ function fixture(states = [], publication = aliases) {
       return '{"host_policy_profile":{},"model_task_contract_cids":[],"profiles":{}}';
     },
     clientProgramCheckUnavailable: correlation_ref => JSON.stringify({
-      version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid, outcome: 'unavailable',
+      version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'unavailable',
       problem: {code: 'check_unavailable'}, correlation_ref}),
     clientProgramCheckSource: (...args) => {
       checked.push(args);
-      return JSON.stringify({version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid,
+      return JSON.stringify({version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid,
         outcome: 'completed', report: {context_ref: args[6], inputs: [{document_id: 'source', revision: args[7], kind: 'text', byte_length: Buffer.byteLength(args[0])}],
           requirements: [], scope: {kind: 'bound_input'}, verdict: 'verified', reasons: [],
           coverage: {limits: [], unresolved: []}}});
@@ -52,9 +52,37 @@ function fixture(states = [], publication = aliases) {
   const check = installNodeClientCheck({moon, environment, sourceAccesses,
     publication: {environmentCid, aliases: publication},
     contextKey: new Uint8Array(32).fill(7)});
-  return {check, calls, checked, visible: () =>
+  return {check, moon, calls, checked, visible: () =>
     JSON.parse(checked.at(-1)[3]).aliases};
 }
+
+test('composition: rejected producer replies retain the original attempt reference', async () => {
+  for (const corrupt of [
+    reply => { delete reply.outcome_schema_cid; },
+    reply => { reply.outcome_schema_cid = `sha256:${'0'.repeat(64)}`; },
+    reply => { reply.report.context_ref = 'private producer context'; reply.private = 'private producer data'; },
+  ]) {
+    const f = fixture();
+    const produce = f.moon.clientProgramCheckSource;
+    f.moon.clientProgramCheckSource = (...args) => {
+      const reply = JSON.parse(produce(...args));
+      corrupt(reply);
+      return JSON.stringify(reply);
+    };
+    const first = await f.check(request());
+    const reference = f.checked[0][10];
+    assert.match(reference, /^corr:[0-9a-f]{32}$/u);
+    assert.deepEqual(first, {version: 'actql-check-outcome/0.1',
+      outcome: 'failed', correlation_ref: reference,
+      problem: {code: 'check_internal'}, reason_schema_cid: checkReasonSchemaCid,
+      outcome_schema_cid: checkOutcomeSchemaCid});
+    assert.equal(Object.isFrozen(first), true);
+    assert.equal(Object.isFrozen(first.problem), true);
+    const second = await f.check(request());
+    assert.equal(second.correlation_ref, f.checked[1][10]);
+    assert.notEqual(second.correlation_ref, reference);
+  }
+});
 
 test('composition: zero, one and two owners check source-free input once', async () => {
   for (const states of [[], [{index: 0, action: 'dispatch'}],
@@ -163,12 +191,12 @@ test('composition: exact Unicode source and received-input fallback have fixed r
   async () => {
     const texts = ["SELECT 'caf\u00e9' AS label", "SELECT 'cafe\u0301' AS label"];
     const vectors = [{parameterDeclarations: undefined, refs: [
-      'ctx:46982a2ccd38dbd5279e65a30ffd300fd0aaf1ffd1674e76c146d0f501b0b286',
-      'ctx:6924a09081c2abb5411f4d94075a19b719ff9881f788c2ec972bf6976faeae87',
+      'ctx:7bdf25826d055120d261125c0646e5faa78d22297a18eab672b0e7147b2177f7',
+      'ctx:6ad6949627879464aa786b87ef2d3ac4a536b45333b6606f91122edd510c75c2',
     ]}, {parameterDeclarations: {'\u00e9': {type: 'string'}, 'e\u0301': {type: 'string'}},
       refs: [
-        'ctx:344593e878a1e3a1f268053d16030febe13fca9e51505d706dc170bcf0c0e0a6',
-        'ctx:9aeb45fd652ad9ed69d176d196f2d50d28c48bfa01f2d1c274a711f2effb3e73',
+        'ctx:f092fa519645c66c63de4cc25537e1dd72db7de3b3f68d672b476d291bf54376',
+        'ctx:e8511ad40789f285ce3b38a9dd02b5472c7286a512357603d0e1bc7bfc5babb9',
       ]}];
     const f = fixture([], []);
     for (const {parameterDeclarations, refs} of vectors) {
