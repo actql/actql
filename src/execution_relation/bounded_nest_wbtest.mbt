@@ -9,6 +9,7 @@ fn bounded_nest_fixture(
   right_schema? : String = "{\"key\":{\"type\":\"number\",\"nullable\":true},\"value\":{\"type\":\"number\",\"nullable\":true}}",
   left_rows? : String = "[{\"id\":1,\"key\":1},{\"id\":2,\"key\":1},{\"id\":3,\"key\":null},{\"id\":4,\"key\":2}]",
   right_rows? : String = "[{\"key\":1,\"value\":null},{\"key\":1,\"value\":10},{\"key\":null,\"value\":30}]",
+  output_values? : ValueLimits = run_limits().output_values,
   input_nodes? : Int = 1000,
   max_rows? : Int = 10,
 ) -> (
@@ -107,7 +108,7 @@ fn bounded_nest_fixture(
       max_depth: 100,
       max_work: 10000,
     },
-    run_limits().output_values,
+    output_values,
     max_work,
     100,
     max_entries,
@@ -253,7 +254,10 @@ fn bounded_nest_released(execution : BoundedNestExecution) -> Bool {
   state.recheck is None &&
   state.entries.length() == 0 &&
   state.matches.length() == 0 &&
-  state.checked_row.length() == 0 &&
+  state.output_row.length() == 0 &&
+  state.output_pending is None &&
+  state.output_measure is None &&
+  !state.output_row_open &&
   state.workspace.live == 0
 }
 
@@ -373,6 +377,151 @@ test "bounded nest nested phases visit one element per advance" {
   assert_true(advances.get_or_default(nest_phase_id(BuildCell), 0) >= 30)
   assert_true(cleanup_bounded_nest(execution).unwrap())
   assert_true(bounded_nest_released(execution))
+}
+
+///|
+test "bounded nest charges a copied raw text through recheck and output" {
+  let label = "x".repeat(4096)
+  let left_schema = "{\"id\":{\"type\":\"number\",\"nullable\":false},\"key\":{\"type\":\"number\",\"nullable\":true},\"label\":{\"type\":\"string\",\"nullable\":false}}"
+  let left_rows = "[{\"id\":1,\"key\":1,\"label\":\"" + label + "\"}]"
+  let right_rows = "[{\"key\":1,\"value\":10}]"
+  let output_values : ValueLimits = {
+    max_nodes: 7,
+    max_text_bytes: 4117,
+    max_depth: 4,
+    max_work: 4124,
+  }
+  for (cancel_recheck, cancel_measure) in [(true, false), (false, true)] {
+    let (control, started, reads) = bounded_nest_fixture(
+      left_schema~,
+      left_rows~,
+      right_rows~,
+      output_values~,
+      max_work=100000,
+      max_entries=1000,
+    )
+    let execution = started.unwrap()
+    let mut reached = false
+    for _ in 0..<20000 {
+      if !reached {
+        match advance_bounded_nest(execution, 1).unwrap() {
+          BoundedNestContinue(..) => {
+            let label_cell = @schema.field_at(
+                execution.state.output_schema,
+                execution.state.column,
+              )
+              is Some(field) &&
+              @schema.reference_name(field.name) == "label"
+            reached = label_cell &&
+              (
+                (cancel_recheck && execution.state.recheck is Some(_)) ||
+                (cancel_measure && execution.state.output_measure is Some(_))
+              )
+            if reached {
+              break
+            }
+          }
+          _ => fail("nest output completed before the requested stop point")
+        }
+      }
+    }
+    assert_true(reached)
+    // Advance the node check and a Text chunk before either cancellation.
+    for _ in 0..<2 {
+      assert_true(
+        advance_bounded_nest(execution, 1) is Ok(BoundedNestContinue(..)),
+      )
+    }
+    assert_false(execution.state.accepted.val)
+    assert_true(execution.state.rows.val is None)
+    assert_true(
+      execution.state.output is Some(output) && output.buffer.rows.is_empty(),
+    )
+    assert_true(
+      (cancel_recheck && execution.state.recheck is Some(_)) ||
+      (cancel_measure && execution.state.output_measure is Some(_)),
+    )
+    if cancel_measure {
+      assert_true(
+        execution.state.output_measure is Some(cursor) &&
+        cursor.frames is [SteppedTextNext(_, 64)],
+      )
+    }
+    assert_true(@bounded.request_cancel(control))
+    assert_true(
+      advance_bounded_nest(execution, 1) is Ok(BoundedNestStopped(_, ..)),
+    )
+    assert_true(cleanup_bounded_nest(execution).unwrap())
+    assert_true(bounded_nest_released(execution))
+    assert_false(execution.state.accepted.val)
+    assert_true(execution.state.rows.val is None)
+    assert_true(execution.state.output is None)
+    assert_eq(execution.state.workspace.live, 0)
+    assert_true(reads.all(read => producer_read_available(read)))
+  }
+  for
+    (nodes, bytes, work, should_complete) in [
+      (7, 4117, 4124, true),
+      (6, 4117, 4124, false),
+      (7, 4116, 4124, false),
+      (7, 4117, 4123, false),
+    ] {
+    let (_, started, _) = bounded_nest_fixture(
+      left_schema~,
+      left_rows~,
+      right_rows~,
+      output_values={
+        ..output_values,
+        max_nodes: nodes,
+        max_text_bytes: bytes,
+        max_work: work,
+      },
+      max_work=100000,
+      max_entries=1000,
+    )
+    let execution = started.unwrap()
+    match drive_bounded_nest(execution) {
+      BoundedNestComplete(output, ..) => {
+        assert_true(should_complete)
+        let column = Array::makei(completed_column_count(output), index => {
+            completed_column_name(output, index).unwrap()
+          })
+          .search("label")
+          .unwrap()
+        guard completed_cell(output, 0, column) is Some(Text(actual)) else {
+          fail("nest raw text was not retained")
+        }
+        assert_eq(actual, label)
+        assert_eq(bounded_nest_item_counts(output), [1])
+      }
+      BoundedNestFailed(Capture(CaptureLimit), ..) =>
+        assert_false(should_complete)
+      _ => fail("nest output budget ended unexpectedly")
+    }
+    assert_true(cleanup_bounded_nest(execution).unwrap())
+    assert_true(bounded_nest_released(execution))
+  }
+  // Key and field metadata (2 + 2), four output triples (12), one child
+  // index triple (3), one match, the retained row and builder (4 + 1),
+  // one projected item, and one measurement frame peak at 27 slots.
+  for (entries, should_complete) in [(27, true), (26, false)] {
+    let (_, started, _) = bounded_nest_fixture(
+      left_schema~,
+      left_rows~,
+      right_rows~,
+      output_values~,
+      max_work=100000,
+      max_entries=entries,
+    )
+    let execution = started.unwrap()
+    match drive_bounded_nest(execution) {
+      BoundedNestComplete(_, ..) => assert_true(should_complete)
+      BoundedNestFailed(Rows(RowLimit), ..) => assert_false(should_complete)
+      _ => fail("nest output workspace ended unexpectedly")
+    }
+    assert_true(cleanup_bounded_nest(execution).unwrap())
+    assert_true(bounded_nest_released(execution))
+  }
 }
 
 ///|

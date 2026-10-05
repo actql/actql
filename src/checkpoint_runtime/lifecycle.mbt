@@ -20,7 +20,7 @@ pub fn run_transition_allowed(
     (Preparing | Running | Resuming, WaitingCheckpoint) => true
     (WaitingCheckpoint, Resuming) => true
     (WaitingCheckpoint, Cancelled | NeedsReconciliation) => true
-    (Preparing | Resuming, Cancelled) => true
+    (Preparing | Running | Resuming, Cancelled) => true
     (Preparing | Running | Resuming, Succeeded | Failed | NeedsReconciliation) =>
       true
     (NeedsReconciliation, NeedsReconciliation | Succeeded | Failed) => true

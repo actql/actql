@@ -173,6 +173,8 @@ pub fn salesforce_query_read_page_count(@catalog.QueryRead) -> Int
 
 pub fn salesforce_query_read_row_count(@catalog.QueryRead) -> Int64
 
+pub fn salesforce_query_read_value_violation(@catalog.ReadProjection, SalesforceCatalogBridgeIssue) -> String?
+
 pub fn salesforce_read_projection_observation_cid(@catalog.ReadProjection) -> String
 
 pub fn salesforce_read_projection_ordered_by_id(@catalog.ReadProjection) -> Bool

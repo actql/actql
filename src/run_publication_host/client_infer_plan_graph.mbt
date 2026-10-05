@@ -674,3 +674,12 @@ fn issue_client_infer_plan_graph_for_occurrence(
     _ => Err(Encoding)
   }
 }
+
+///|
+/// Coordinates of this immutable installed plan. This profile does not replan
+/// an occurrence; its first and only strategy revision is zero.
+pub fn client_infer_plan_boundary(
+  value : ClientInferPlanGraph,
+) -> (Int, Int, Int, String) {
+  (value.task, value.stage, 0, value.barrier_cid)
+}

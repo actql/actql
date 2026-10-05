@@ -569,8 +569,8 @@ fn infer(
     }
     "in" | "not_in" => {
       let (base, _) = head(t, values[1], source)
-      let item = match t.entries[base].kind {
-        Sequence(item, _) => item
+      let (item, max_items) = match t.entries[base].kind {
+        Sequence(item, max_items) => (item, max_items)
         _ => fail(source, TypeMismatch("membership array"))
       }
       // The independently known left operand can resolve NULL list items.
@@ -581,7 +581,6 @@ fn infer(
         provide(t, item, left.inferred, source)
       }
       let lc = operand(t, nodes, node, 0)
-      let rc = operand(t, nodes, node, 1)
       let ic = resolve_type(t, item, source)
       if !["string", "number", "decimal", "boolean", "date", "timestamp"].contains(
           type_name(lc),
@@ -592,7 +591,9 @@ fn infer(
       primitive(
         t,
         BooleanType,
-        lc.nullable || rc.nullable || ic.nullable,
+        // A NULL array denotes the empty set, not an unknown comparison.
+        // A proven empty set cannot produce NULL even for a nullable left.
+        max_items != Some(0L) && (lc.nullable || ic.nullable),
         source,
       )
     }

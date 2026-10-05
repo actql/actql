@@ -784,7 +784,7 @@ pub fn cleanup_apply(value : ApplyPreparation) -> Bool {
     cleanup_before(admission)
   }
   value.before_admission = None
-  value.chunks.clear()
+  retire_body_chunks(value.chunks)
   if value.body_admission is Some(admission) {
     cleanup_body(admission)
   }

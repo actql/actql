@@ -26,6 +26,7 @@ priv enum BoundedBindingRowsPhase {
   EvaluatePredicate
   BuildOutputRow
   CopyPresenceRow
+  RecheckPresenceCell
   CheckOutputRow
   ChargeOutputRow
   ChargeCaptureRow
@@ -568,6 +569,7 @@ priv struct BoundedBindingRowsState {
   mut output_row : Array[Value]
   // Exact admitted copies still pass stepped output and capture limits.
   mut checked_row : Array[BoundedOutputCell]
+  mut output_recheck : @admitted.RecheckCursor?
   mut output_charge_open : Bool
   mut output_charge_column : Int
   mut output_charge_measure : SteppedValueMeasure?
@@ -700,6 +702,10 @@ fn bounded_small_output_value(value : Value) -> Bool {
 
 ///|
 fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {
+  if state.output_recheck is Some(cursor) {
+    @admitted.cancel_recheck_runtime_value(cursor)
+    state.output_recheck = None
+  }
   if state.sort_execution is Some(execution) {
     // The parent may already be stopped while its child sort still owns two
     // private arrays. Observe the child's stop before releasing its custody.
@@ -2048,8 +2054,24 @@ fn bounded_binding_rows_step(
         let name = state.output_names[state.column]
         let cell = if state.binding_ordinals.get(name) is Some(slot) {
           guard state.values.get(slot) is Some(value) &&
-            @schema.field_at(state.output_schema, state.column) is Some(field) &&
-            checked_ordered_output_value(
+            @schema.field_at(state.output_schema, state.column) is Some(field) else {
+            return fail_bounded_binding_rows(InvalidExecution, progress, used)
+          }
+          if !bounded_small_output_value(value) {
+            guard start_ordered_output_value_recheck(
+                value,
+                field.contract,
+                state.admitted_limits,
+              )
+              is Some(cursor) else {
+              return fail_bounded_binding_rows(InvalidExecution, progress, used)
+            }
+            state.output_recheck = Some(cursor)
+            state.phase = RecheckPresenceCell
+            used += 1
+            continue
+          }
+          guard checked_ordered_output_value(
               value,
               field.contract,
               state.admitted_limits,
@@ -2105,6 +2127,27 @@ fn bounded_binding_rows_step(
         }
         state.presence_cells.push(cell)
         state.column += 1
+        used += 1
+      }
+      RecheckPresenceCell => {
+        guard state.output_recheck is Some(cursor) else {
+          return fail_bounded_binding_rows(InvalidExecution, progress, used)
+        }
+        match @admitted.advance_recheck_runtime_value(cursor) {
+          RecheckContinue => ()
+          RecheckFailed =>
+            return fail_bounded_binding_rows(
+              InvalidExecution,
+              progress,
+              used + 1,
+            )
+          RecheckComplete(checked, _, _) => {
+            state.output_recheck = None
+            state.presence_cells.push(Some(checked.value))
+            state.column += 1
+            state.phase = CopyPresenceRow
+          }
+        }
         used += 1
       }
       BuildOutputRow => {
@@ -2169,6 +2212,24 @@ fn bounded_binding_rows_step(
         used += 1
       }
       CheckOutputRow => {
+        if state.output_recheck is Some(cursor) {
+          match @admitted.advance_recheck_runtime_value(cursor) {
+            RecheckContinue => ()
+            RecheckFailed =>
+              return fail_bounded_binding_rows(
+                InvalidExecution,
+                progress,
+                used + 1,
+              )
+            RecheckComplete(checked, _, _) => {
+              state.output_recheck = None
+              state.checked_row.push(CheckedOutputCell(checked))
+              state.column += 1
+            }
+          }
+          used += 1
+          continue
+        }
         if state.column == state.output_names.length() {
           state.phase = if state.output_requires_steps {
             ChargeOutputRow
@@ -2211,6 +2272,24 @@ fn bounded_binding_rows_step(
               None => None
             }
           None => None
+        }
+        if exact_admitted is None &&
+          !bounded_small_output_value(state.output_row[state.column]) {
+          if !reserve_slots(state.workspace, 1) {
+            return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+          }
+          guard start_ordered_output_value_recheck(
+              state.output_row[state.column],
+              field.contract,
+              state.admitted_limits,
+            )
+            is Some(cursor) else {
+            return fail_bounded_binding_rows(InvalidExecution, progress, used)
+          }
+          state.output_requires_steps = true
+          state.output_recheck = Some(cursor)
+          used += 1
+          continue
         }
         let checked = match exact_admitted {
           Some(admitted) if !bounded_small_output_value(
@@ -3340,6 +3419,7 @@ fn start_bounded_binding_rows_with_input(
     slot_roots: [],
     output_row: [],
     checked_row: [],
+    output_recheck: None,
     output_charge_open: false,
     output_charge_column: 0,
     output_charge_measure: None,

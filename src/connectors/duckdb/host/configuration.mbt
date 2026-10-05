@@ -47,6 +47,15 @@ pub fn configured_native_host_limits(
 }
 
 ///|
+/// Read the actual admitted acquisition choice; this grants no new authority
+/// and does not change the configured candidate or execution limits.
+pub fn configured_native_host_choice(
+  value : NativeHostConfiguration,
+) -> @planning.AcquisitionChoice {
+  value.choice
+}
+
+///|
 /// The checked logical Source selected by this configuration. Physical
 /// location is independently supplied by the trusted Site binding.
 pub fn configured_native_host_source(

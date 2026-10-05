@@ -582,6 +582,23 @@ test('Resource discovery preserves snapshot and display truncation separately',
       observationCid: partial.observationCid, reason: 'listing_truncated'});
   });
 
+test('a retained catalog with a not_found describe is recovered exactly',
+  async t => {
+    const setup = await fixture(t, {customStatus: 404});
+    const observed = await syncSalesforceCatalog(request(setup, {
+      retainResponses: true, maxRetainedBytes: 20000,
+    }));
+    assert.ok(JSON.parse(observed.observationJson).listed_resources
+      .some(entry => entry.outcome === 'not_found'));
+    const recovered = recoverRetainedSalesforceCatalog({
+      moon: salesforceMoon, retained: observed.retainedResponses,
+      expectedObservationCid: observed.observationCid,
+      maxRetainedBytes: 20000,
+    });
+    assert.equal(recovered.observationCid, observed.observationCid);
+    assert.equal(recovered.observationJson, observed.observationJson);
+  });
+
 test('recovered Resource discovery keeps partial metadata and current authority',
   async t => {
     const setup = await fixture(t, {customStatus: 403});
@@ -3085,9 +3102,13 @@ test('Site rejects a provider value that violates the selected field type',
     })});
     const plan = await queryProjection(setup);
     let delivered = 0;
-    await assert.rejects(readSalesforceQuery(queryRequest(setup, plan, {
+    const failure = await readSalesforceQuery(queryRequest(setup, plan, {
       consumePage: async () => { delivered += 1; },
-    })), {code: 'MoonBitHostFailure'});
+    })).then(() => undefined, error => error);
+    // A typed violation naming the field and kind, never the value.
+    assert.equal(failure?.code, 'SalesforceValueViolation');
+    assert.deepEqual(failure.violation, {expected_type: 'string',
+      field: 'Id', kind: 'type', resource: 'Account'});
     assert.equal(delivered, 0);
     assert.equal(setup.seen.filter(entry => entry.path?.includes('/query'))
       .length, 1);

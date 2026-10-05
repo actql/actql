@@ -79,6 +79,8 @@ pub fn configured_capture_requirement(CaptureConfiguration) -> @query_planning.Q
 
 pub fn configured_native_capacity(NativeHostConfiguration) -> NativeCapacity?
 
+pub fn configured_native_host_choice(NativeHostConfiguration) -> @query_planning.AcquisitionChoice
+
 pub fn configured_native_host_limits(NativeHostConfiguration) -> NativeHostLimits
 
 pub fn configured_native_host_source(NativeHostConfiguration) -> (String, String)

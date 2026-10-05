@@ -100,17 +100,17 @@ test('Native cases prepare a source without running Node candidate calibration',
   const directory = await mkdtemp(join(tmpdir(), 'actql-equivalent-matrix-'));
   const outputDirectory = join(directory, 'results');
   const target = retainedMatrix().find(value =>
-    value.id === 'native-acquisition-full-validation-low-selectivity/narrow/10000');
+    value.rows === 10000 && value.workload !== retainedMatrix()[0].workload);
   let nativeCalibrations = 0, nativeSources = 0, nativePairs = 0;
   try {
     const result = await runEquivalentMatrix({checkout, outputDirectory,
       inspect: async () => ({revision: 'a'.repeat(40), dirty: false}),
-      caseId: target.id, productProfile: 'native-eligible',
+      caseId: target.id, productProfile: 'native-direct',
       calibrate: async () => { throw new Error('NodeCalibrationMustNotRun'); },
       nativeCalibrate: async () => {
         nativeCalibrations++;
         return {trainingCaseId:
-          'native-acquisition-full-validation-low-selectivity/narrow/100',
+          `${target.workload}/${target.layout}/100`,
         estimateSource: 'sha256:' + 'b'.repeat(64)};
       },
       nativeSource: async () => {
@@ -128,10 +128,19 @@ test('Native cases prepare a source without running Node candidate calibration',
     assert.equal(nativePairs, 7);
     const record = JSON.parse(await readFile(join(outputDirectory,
       'case-00.json')));
+    assert.equal(record.host, 'native');
+    assert.equal(record.experimentCondition, 'explicit-host');
     assert.equal(record.trainingAttempts.length, 1);
     assert.equal(record.trainingAttempts[0].profile, 'native-direct');
     assert.equal(record.pairs.length, 7);
   } finally {
     await rm(directory, {recursive: true, force: true});
   }
+});
+
+
+test('the implicit row-based Host profile is no longer accepted', async () => {
+  await assert.rejects(runEquivalentMatrix({checkout,
+    outputDirectory: '/private/tmp/unused-native-implicit-profile',
+    productProfile: 'native-eligible'}), /InvalidEquivalentMatrixRun/);
 });

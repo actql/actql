@@ -84,10 +84,12 @@
     {"family": "SGA", "operation": "match_edges", "path": "entrypoint"},
     {"family": "SGA", "operation": "match_edges", "path": "selected_entrypoint"},
     {"family": "SGA", "operation": "traverse", "path": "entrypoint"},
+    {"family": "SGA", "operation": "subgraph", "path": "entrypoint"},
     {"family": "SGA", "operation": "subgraph", "path": "selected_entrypoint"},
     {"family": "SGA", "operation": "graphs_equal", "path": "entrypoint"},
     {"family": "SGA", "operation": "graphs_equal", "path": "selected_entrypoint"},
     {"family": "SGA", "operation": "apply_graph_delta", "path": "entrypoint"},
+    {"family": "SGA", "operation": "graph_diff", "path": "entrypoint"},
     {"family": "SGA", "operation": "normalize_graph", "path": "entrypoint"},
     {"family": "SGA", "operation": "normalize_graph", "path": "selected_entrypoint"},
     {"family": "TEA", "operation": "window_events", "path": "entrypoint"},
@@ -156,6 +158,7 @@
       },
       "sources": [
         "src/execution_relation/row_workspace.mbt",
+        "src/execution_relation/bounded_output_row_charge.mbt",
         "src/execution_relation/admitted_output_stream.mbt",
         "src/connectors/local/driver/managed_dispatch.mbt"
       ],
@@ -205,6 +208,7 @@
         "src/local_sga/match_nodes.mbt",
         "src/local_sga/match_edges.mbt",
         "src/local_sga/traverse_paths.mbt",
+        "src/local_sga/delta_diff.mbt",
         "src/managed_graph_storage/property_storage.mbt",
         "src/managed_graph_runtime/output.mbt"
       ],
@@ -250,9 +254,24 @@
           ],
           "path": "src/query_integration/property_graph_snapshot_wbtest.mbt",
           "fixture": "property snapshot reload capacity cancellation input loss and work exhaustion never hand off partial material"
+        },
+        {
+          "facets": ["charged_bounded_work"],
+          "path": "src/query_integration/property_graph_diff_provider_wbtest.mbt",
+          "fixture": "Graph diff provider admits exact workspace and control work and rejects one short"
+        },
+        {
+          "facets": ["finite_stop_observation", "cleanup_owner"],
+          "path": "src/query_integration/property_graph_diff_provider_wbtest.mbt",
+          "fixture": "Graph diff provider cancellation preserves work and borrowed input custody across import"
+        },
+        {
+          "facets": ["cleanup_owner"],
+          "path": "src/query_integration/property_graph_diff_provider_wbtest.mbt",
+          "fixture": "Graph diff provider refuses Delta row and value capacity without publishing or reclaiming inputs"
         }
       ],
-      "profile_scope": "Current keyed constructor, MATCH and TRAIL resource/custody evidence only. Blocked Graph consumers have no current resource-completeness claim."
+      "profile_scope": "Current keyed constructor, MATCH and TRAIL resource/custody evidence and current diff logical work/workspace/cancellation boundaries. Diff route registration is not a physical-byte or total-Graph-heap theorem. Blocked Graph consumers have no current resource-completeness claim."
     },
     "tea_events": {
       "work_unit": "one event field, sort comparison, membership, candidate pair, pattern cell, identity scalar, or output append",

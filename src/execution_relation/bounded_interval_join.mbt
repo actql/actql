@@ -56,7 +56,9 @@ priv struct BoundedIntervalState {
   mut emit_continuation : IntervalEmitContinuation
   mut column : Int
   mut output_row : Array[Value]
-  mut checked_row : Array[@admitted.CheckedValue]
+  mut checked_row : Array[@admitted.Value]
+  mut output_recheck : @admitted.RecheckCursor?
+  mut output_charge : BoundedOutputRowCharge?
 }
 
 ///|
@@ -77,6 +79,7 @@ struct BoundedIntervalJoinExecution {
   ]
   mut token : @bounded.Token?
   accepted : Ref[Bool]
+  state : BoundedIntervalState
 }
 
 ///|
@@ -106,6 +109,14 @@ fn bounded_interval_failure(
 
 ///|
 fn cleanup_bounded_interval_state(state : BoundedIntervalState) -> Bool {
+  if state.output_recheck is Some(cursor) {
+    @admitted.cancel_recheck_runtime_value(cursor)
+    state.output_recheck = None
+  }
+  if state.output_charge is Some(cursor) {
+    cleanup_bounded_output_row_charge(cursor)
+    state.output_charge = None
+  }
   if state.output is Some(output) {
     cancel_admitted_output(output) |> ignore
     state.output = None
@@ -382,34 +393,97 @@ fn bounded_interval_step(
         used += 1
       }
       CheckOutputRow => {
+        if state.output_recheck is Some(cursor) {
+          match @admitted.advance_recheck_runtime_value(cursor) {
+            RecheckContinue => ()
+            RecheckFailed =>
+              return bounded_interval_failure(
+                InvalidExecution,
+                progress,
+                used + 1,
+              )
+            RecheckComplete(checked, _, _) => {
+              state.output_recheck = None
+              state.checked_row.push(checked.value)
+              state.column += 1
+            }
+          }
+          used += 1
+          continue
+        }
         if state.column == state.columns.length() {
           state.phase = CommitOutputRow
           continue
         }
-        guard @schema.field_at(state.output_schema, state.column) is Some(field) &&
-          checked_ordered_output_value(
-            state.output_row[state.column],
-            field.contract,
-            state.admitted_limits,
-          )
-          is Some(value) else {
+        guard @schema.field_at(state.output_schema, state.column) is Some(field) else {
           return bounded_interval_failure(InvalidExecution, progress, used)
         }
         if !reserve_slots(state.workspace, 1) {
           return bounded_interval_failure(Rows(RowLimit), progress, used)
         }
-        state.checked_row.push(value)
-        state.column += 1
+        let cell = state.output_row[state.column]
+        if bounded_small_output_value(cell) {
+          guard checked_ordered_output_value(
+              cell,
+              field.contract,
+              state.admitted_limits,
+            )
+            is Some(checked) else {
+            return bounded_interval_failure(InvalidExecution, progress, used)
+          }
+          state.checked_row.push(checked.value)
+          state.column += 1
+        } else {
+          guard start_ordered_output_value_recheck(
+              cell,
+              field.contract,
+              state.admitted_limits,
+            )
+            is Some(cursor) else {
+            return bounded_interval_failure(InvalidExecution, progress, used)
+          }
+          state.output_recheck = Some(cursor)
+        }
         used += 1
       }
       CommitOutputRow => {
         guard state.output is Some(output) else {
           return bounded_interval_failure(InvalidExecution, progress, used)
         }
-        match append_admitted_output(output, state.checked_row) {
-          Err(issue) =>
+        if state.output_charge is None {
+          match
+            start_bounded_output_row_charge(
+              output,
+              state.checked_row,
+              state.workspace,
+            ) {
+            Err(OutputCapture(issue)) =>
+              return bounded_interval_failure(
+                Capture(issue),
+                progress,
+                used + 1,
+              )
+            Err(OutputWorkspace) =>
+              return bounded_interval_failure(
+                Rows(RowLimit),
+                progress,
+                used + 1,
+              )
+            Ok(cursor) => state.output_charge = Some(cursor)
+          }
+          used += 1
+          continue
+        }
+        match advance_bounded_output_row_charge(state.output_charge.unwrap()) {
+          Err(OutputCapture(issue)) =>
             return bounded_interval_failure(Capture(issue), progress, used + 1)
-          Ok(_) => ()
+          Err(OutputWorkspace) =>
+            return bounded_interval_failure(Rows(RowLimit), progress, used + 1)
+          Ok(false) => {
+            used += 1
+            continue
+          }
+          Ok(true) => state.output_charge = None
         }
         release_slots(
           state.workspace,
@@ -690,6 +764,8 @@ pub fn start_bounded_interval_join(
     column: 0,
     output_row: [],
     checked_row: [],
+    output_recheck: None,
+    output_charge: None,
   }
   let (session, token) = @bounded.start(
     engine,
@@ -701,7 +777,7 @@ pub fn start_bounded_interval_join(
       true
     },
   )
-  Ok({ session, token: Some(token), accepted, })
+  Ok({ session, token: Some(token), accepted, state, })
 }
 
 ///|
@@ -738,7 +814,19 @@ pub fn advance_bounded_interval_join(
 pub fn cleanup_bounded_interval_join(
   value : BoundedIntervalJoinExecution,
 ) -> Result[Bool, BoundedIntervalJoinIssue] {
-  @bounded.cleanup(value.session).map_err(issue => Execution(issue))
+  let changed = match @bounded.cleanup(value.session) {
+    Ok(changed) => changed
+    Err(issue) => return Err(Execution(issue))
+  }
+  if !@bounded.cleanup_pending(value.session) &&
+    (
+      value.state.workspace.live != 0 ||
+      value.state.output_recheck is Some(_) ||
+      value.state.output_charge is Some(_)
+    ) {
+    return Err(InvalidExecution)
+  }
+  Ok(changed)
 }
 
 ///|

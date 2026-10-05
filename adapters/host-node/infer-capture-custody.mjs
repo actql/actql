@@ -11,7 +11,7 @@ const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
 
 export function openNodeInferCaptureCustody({moon, control, operation, plan,
   store, storeAuthorityCid, sourceEvidence = [], replay = false, faultInjection,
-  publicationFor}) {
+  publicationFor, durableCalls = false}) {
   if (typeof publicationFor !== 'function' || !Array.isArray(sourceEvidence)) {
     throw new TypeError('InvalidInferCaptureCustody');
   }
@@ -23,11 +23,16 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
   let persistCapture;
   let attemptsStored = false;
   let sourceStored = false;
+  let settling;
+  let observeModelEntry;
+  let modelEntryFor;
+
   // A failed write retains its exact physical owner. Cleanup retries only
   // that write, never operation.run or the provider.
   const cleanup = async () => {
     if (reclaimed) return true;
     if (!operation.physicalStopped()) return false;
+    if (settling !== undefined) await persistSettlement();
     // Once a response has been accepted, reclamation cannot discard it
     // merely because a private write failed. Resume persistence of the same
     // common-owned evidence; this never reruns Compute or dispatch.
@@ -67,8 +72,14 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
       moon.clientProgramReleaseInferOutput(captureOutput);
       captureOutput = undefined;
     }
-    reclaimed = operation.cleanup();
-    return reclaimed;
+    for (;;) {
+      const before = operation.cleanupProgress?.();
+      reclaimed = operation.cleanup();
+      if (reclaimed || operation.cleanupProgress?.() === before) return reclaimed;
+      // The common owner released one more physical cursor. Yield before
+      // advancing cleanup again; an unchanged/pending cursor remains owned.
+      await yieldEventLoop();
+    }
   };
   const custody = Object.freeze({cleanup,
     cleanupPending: () => !reclaimed,
@@ -89,23 +100,24 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     }
     return true;
   }
-  async function hold(name, slot, wire, semanticCid) {
+  async function hold(name, slot, wire, semanticCid, entry, phase = 'settled') {
     if (pendingHolding !== undefined) {
       await pendingHolding.commit();
       pendingHolding = undefined;
     }
     pendingHolding = preparePrivatePublicationHolding(store, {name, wire,
-      semanticCid, holdingCid: control.modelPrivateHoldingCid(
-        plan.runDefinition, storeAuthorityCid, name, slot)});
+      semanticCid, holdingCid: entry === undefined
+        ? control.modelPrivateHoldingCid(plan.runDefinition, storeAuthorityCid, name, slot)
+        : control.modelScopedPrivateHoldingCid(plan.runDefinition, storeAuthorityCid, entry, name, phase)});
     await faultInjection?.('infer_private_holding_commit', {role: name, slot});
     await pendingHolding.commit();
     pendingHolding = undefined;
   }
-  async function holdEvidence(name, slot, evidence) {
+  async function holdEvidence(name, slot, evidence, entry, phase) {
     const wire = moon.strategyRunEvidenceJson(evidence);
     const admitted = control.admitRunEvidence(name, wire,
       {maxWireBytes: 16384, maxNodes: 1024, maxDepth: 20});
-    await hold(name, slot, admitted.wire, admitted.identity);
+    await hold(name, slot, admitted.wire, admitted.identity, entry, phase);
     return admitted;
   }
   async function persistStoppedAttempts() {
@@ -115,8 +127,20 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     if (!Number.isInteger(attempts) || attempts < 0 || attempts > 128) {
       throw new Error('InstalledInferAttemptInventoryUnavailable');
     }
-    for (let slot = 0; slot < attempts; slot++) {
+    for (let index = 0; index < attempts; index++) {
+      const slot = operation.stoppedAttemptSlot?.(index) ?? index;
       const proof = operation.attemptEvidence(slot);
+      const entry = durableCalls ? modelEntryFor?.(slot) : undefined;
+      let terminalFailure = false;
+      if (durableCalls) {
+        const outcome = JSON.parse(moon.strategyRunEvidenceJson(
+          moon.clientProgramInferAttemptLeaf(proof, 'outcome')));
+        // Adopted responses/failures reached their settled Store cells before
+        // the next send. A stopped unknown keeps separate entered-phase proof.
+        if (['ok', 'provider_failure'].includes(outcome.category)) continue;
+        terminalFailure = outcome.category === 'contract_violation';
+        if (entry === undefined) throw new Error('InferStoppedAttemptEntryMissing');
+      }
       for (const [kind, name] of [
         ['attempt', 'model_call_attempt'],
         ['accounting', 'model_attempt_accounting'],
@@ -124,8 +148,10 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
         ['authority', 'model_dispatch_authority'],
       ]) {
         await holdEvidence(name, slot,
-          moon.clientProgramInferAttemptLeaf(proof, kind));
+          moon.clientProgramInferAttemptLeaf(proof, kind), entry,
+          durableCalls && !terminalFailure ? 'entered' : undefined);
       }
+      if (terminalFailure) await observeModelEntry(entry);
       await yieldEventLoop();
     }
     attemptsStored = true;
@@ -136,6 +162,48 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
       await hold('source_evidence', slot, evidence.wire, evidence.identity);
     }
     sourceStored = true;
+  }
+  async function persistSettlement() {
+    if (settling === undefined) throw new Error('InferSettlementMissing');
+    const current = settling;
+    const slot = operation.settlementSlot(current.settlement);
+    if (slot !== current.entry.ordinal) throw new Error('InferSettlementBindingMismatch');
+    await persistSourceObservation();
+    const proof = operation.attemptEvidence(slot);
+    for (const [kind, name] of [
+      ['attempt', 'model_call_attempt'], ['accounting', 'model_attempt_accounting'],
+      ['outcome', 'model_attempt_outcome'], ['authority', 'model_dispatch_authority'],
+    ]) {
+      await holdEvidence(name, slot, moon.clientProgramInferAttemptLeaf(proof, kind), current.entry);
+    }
+    await holdEvidence('model_slot_capture', slot, operation.issuedSlotCapture(slot), current.entry);
+    const observation = operation.invocationEvidence(slot);
+    if (observation !== undefined) {
+      await holdEvidence('model_invocation_evidence', slot, observation, current.entry);
+    }
+    current.exporter ??= checked(moon.clientProgramStartInferCallSettlementExport(
+      current.settlement, 1048576, 1000000));
+    while (!current.complete) {
+      const progress = checked(moon.clientProgramAdvanceInferCaptureExport(current.exporter, 256));
+      current.wire += progress._1;
+      current.complete = progress._0;
+      if (!current.complete) await yieldEventLoop();
+    }
+    await hold('model_capture_bundle', slot, current.wire,
+      moon.clientProgramInferCaptureExportIdentity(current.exporter), current.entry);
+    await faultInjection?.('infer_model_response_stored', {slot,
+      scopeCid: current.entry.scopeCid, attemptCid: current.entry.attemptCid});
+    if (typeof observeModelEntry !== 'function') throw new Error('InferSettlementObserverMissing');
+    const observed = await observeModelEntry(current.entry);
+    if (!['SavedSuccess', 'SavedFailure'].includes(observed?.state)) {
+      throw new Error('InferSettlementNotDurable');
+    }
+    await faultInjection?.('infer_model_settlement_committed', {slot,
+      scopeCid: current.entry.scopeCid, attemptCid: current.entry.attemptCid, state: observed.state});
+    if (!checked(moon.clientProgramCleanupInferCaptureExport(current.exporter))) throw pending();
+    operation.acknowledgeSettlement(current.settlement);
+    settling = undefined;
+    return observed;
   }
   const modelEvidence = [];
   let wire = '';
@@ -205,7 +273,30 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
       publication.invocation.identity);
     captureStored = true;
   };
-  return Object.freeze({custody, retainCompleted,
+  return Object.freeze({custody, retainCompleted, persistStoppedAttempts,
+    configureModelJournal({observe, entry}) {
+      if (!durableCalls || typeof observe !== 'function' || observeModelEntry !== undefined) {
+        throw new TypeError('InvalidInferModelJournal');
+      }
+      if (typeof entry !== 'function') throw new TypeError('InvalidInferModelEntryReader');
+      observeModelEntry = observe;
+      modelEntryFor = entry;
+      operation.installSettlementCleanup(async settlement => {
+        const receipt = entry(operation.settlementSlot(settlement));
+        if (receipt === undefined) throw new Error('InferSettlementEntryMissing');
+        settling ??= {settlement, entry: receipt, wire: '', complete: false};
+        return persistSettlement();
+      });
+    },
+    async persistSettlement(settlement, entry) {
+      if (!durableCalls || settling !== undefined &&
+          (operation.settlementSlot(settling.settlement) !== operation.settlementSlot(settlement) ||
+            settling.entry.attemptCid !== entry.attemptCid)) {
+        throw new Error('ForeignInferSettlement');
+      }
+      settling ??= {settlement, entry, wire: '', complete: false};
+      return persistSettlement();
+    },
     async persist() {
       if (capture === undefined) throw new Error('InstalledInferCaptureUnavailable');
       await persistCapture();

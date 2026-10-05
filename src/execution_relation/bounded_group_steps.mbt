@@ -42,6 +42,10 @@ priv struct BoundedGroup[T] {
   mut ranges : AggregateGroupRangeExecution[T]?
   mut group_index : Int
   mut aggregate_values : Array[Value]
+  mut output_row : Array[Value]
+  mut output_column : Int
+  mut row_retention : SteppedRowRetention?
+  mut row_retained : Bool
   mut evaluation : AggregateEvaluation[T]?
   mut baseline : Int
   mut closed : Bool
@@ -99,6 +103,10 @@ fn[T : RelationRows] start_bounded_group(
     ranges: None,
     group_index: 0,
     aggregate_values: [],
+    output_row: [],
+    output_column: 0,
+    row_retention: None,
+    row_retained: false,
     evaluation: None,
     baseline: 0,
     closed: false,
@@ -119,6 +127,11 @@ fn[T] close_bounded_group(state : BoundedGroup[T]) -> Unit {
   if state.evaluation is Some(value) {
     close_aggregate_evaluation(value)
   }
+  if state.row_retention is Some(cursor) {
+    close_stepped_row_retention(cursor)
+    state.row_retention = None
+  }
+  state.output_row = []
   state.closed = true
 }
 
@@ -403,6 +416,9 @@ fn[T : RelationRows] advance_bounded_group_impl(
         return Err(RowLimit)
       }
       s.aggregate_values = []
+      s.output_row = []
+      s.output_column = 0
+      s.row_retained = false
       s.index = 0
       s.phase = 10
       Ok(None)
@@ -454,24 +470,62 @@ fn[T : RelationRows] advance_bounded_group_impl(
     // Emit the group's row.
     11 => {
       let range = s.groups[s.group_index]
-      let row : Array[Value] = []
-      for pair in s.projection {
-        let (aggregate, index) = pair
+      // Preserve the finite scalar fast path, but do not construct a wide
+      // output array in one advance. Its complete reservation is already held.
+      let end = if s.projection.length() <= 8 {
+        s.projection.length()
+      } else {
+        Int::min(s.output_column + 1, s.projection.length())
+      }
+      while s.output_column < end {
+        let (aggregate, index) = s.projection[s.output_column]
         if aggregate {
-          row.push(s.aggregate_values[index])
+          s.output_row.push(s.aggregate_values[index])
         } else {
           guard range.representative is Some(source) else {
             return Err(InvalidRows)
           }
-          row.push(IndexedRows::read_cell(s.input, source, index))
+          s.output_row.push(IndexedRows::read_cell(s.input, source, index))
         }
+        s.output_column += 1
       }
-      if !retain_row(row, s.output_names, s.output) {
-        return Err(RowLimit)
+      if s.output_column < s.projection.length() {
+        return Ok(None)
+      }
+      if !s.row_retained {
+        if s.row_retention is Some(cursor) {
+          match advance_stepped_row_retention(cursor) {
+            Err(issue) => return Err(issue)
+            Ok(false) => return Ok(None)
+            Ok(true) => {
+              s.row_retention = None
+              s.row_retained = true
+            }
+          }
+          return Ok(None)
+        }
+        if bounded_small_retained_row(s.output_row, s.output_names) {
+          if !retain_row(s.output_row, s.output_names, s.output) {
+            return Err(RowLimit)
+          }
+          s.row_retained = true
+        } else {
+          match
+            start_stepped_row_retention(
+              s.output_row,
+              s.output_names,
+              s.output,
+              s.workspace,
+            ) {
+            Err(issue) => return Err(issue)
+            Ok(cursor) => s.row_retention = Some(cursor)
+          }
+          return Ok(None)
+        }
       }
       match
         (s.accept_row)(
-          row,
+          s.output_row,
           range.representative.unwrap_or(-1),
           s.output_names,
           None,
@@ -480,6 +534,7 @@ fn[T : RelationRows] advance_bounded_group_impl(
         Err(issue) => return Err(issue)
       }
       release_slots(s.workspace, aggregate_count)
+      s.output_row = []
       s.group_index += 1
       s.phase = 9
       Ok(None)

@@ -8,6 +8,7 @@ pub fn checkpoint_kind_token(kind : CheckpointKind) -> String {
     ReadAccess => "read_access"
     DataEgress => "data_egress"
     CostScope => "cost_scope"
+    ModelInvocation => "model_invocation"
     EffectSet => "effect_set"
   }
 }
@@ -19,6 +20,7 @@ pub fn parse_checkpoint_kind(token : String) -> CheckpointKind? {
     "read_access" => Some(ReadAccess)
     "data_egress" => Some(DataEgress)
     "cost_scope" => Some(CostScope)
+    "model_invocation" => Some(ModelInvocation)
     "effect_set" => Some(EffectSet)
     _ => None
   }
@@ -70,6 +72,7 @@ pub fn checkpoint_artifact_type(kind : CheckpointKind) -> String {
     ReadAccess => "read_scope"
     DataEgress => "egress_scope"
     CostScope => "budget_scope"
+    ModelInvocation => "model_invocation_scope"
     EffectSet => "effect_set_preview"
   }
 }
@@ -84,7 +87,7 @@ pub fn checkpoint_combination_valid(
   match (subject, phase, kind) {
     (PrepareAttempt(..), Preflight, RunScope) => true
     (_, Preflight, ReadAccess) => true
-    (RunUnit(..), Preflight, DataEgress | CostScope) => true
+    (RunUnit(..), Preflight, DataEgress | CostScope | ModelInvocation) => true
     (RunUnit(..), Commit, EffectSet) => true
     _ => false
   }

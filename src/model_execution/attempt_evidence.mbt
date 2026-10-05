@@ -1,5 +1,5 @@
 ///|
-priv struct ModelAttemptTrace {
+struct ModelAttemptTrace {
   attempt : @publication.RunEvidenceValue
   call : @publication.RunEvidenceValue
   authority : @publication.RunEvidenceValue
@@ -152,7 +152,7 @@ pub fn stopped_model_attempt_count(execution : ModelExecution) -> Int? {
   if !@bounded.session_stopped(execution.session) || execution.state.reclaimed {
     return None
   }
-  Some(execution.state.attempts.length())
+  Some(execution.state.attempt_slots.length())
 }
 
 ///|
@@ -162,7 +162,10 @@ pub fn model_execution_attempt_evidence(
   execution : ModelExecution,
   slot : Int,
 ) -> Result[ModelAttemptEvidence, ModelExecutionIssue] {
-  guard @bounded.session_stopped(execution.session) &&
+  guard (
+      @bounded.session_stopped(execution.session) ||
+      (execution.state.durable_calls && slot < execution.state.next_slot)
+    ) &&
     execution.state.attempts.get(slot) is Some(trace) else {
     return Err(OutputIdentity)
   }
@@ -300,4 +303,16 @@ pub fn model_attempt_authority(
   value : ModelAttemptEvidence,
 ) -> @publication.RunEvidenceValue {
   value.authority
+}
+
+///|
+pub fn stopped_model_attempt_slot(
+  execution : ModelExecution,
+  index : Int,
+) -> Int? {
+  if !@bounded.session_stopped(execution.session) || execution.state.reclaimed {
+    None
+  } else {
+    execution.state.attempt_slots.get(index)
+  }
 }

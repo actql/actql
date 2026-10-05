@@ -354,7 +354,7 @@ fn advance_guarded_relation(
             ),
           )
         }
-        Continue(..) => Ok(poll)
+        Continue(..) | Waiting(..) | Settling(_, ..) => Ok(poll)
       }
     }
     Finished => Err(@connector.InvalidLimits)
