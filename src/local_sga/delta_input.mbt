@@ -142,17 +142,21 @@ fn advance_delta_input(
         }
         input.writer = None
         input.parser = match
-          @source.start_json_parse(text, {
-            max_input_bytes: input.limits.max_output_text_bytes,
-            max_nodes: Int::min(
-              input.limits.max_output_nodes,
-              input.limits.value_limits.max_nodes,
-            ),
-            max_depth: Int::min(
-              input.limits.max_output_depth,
-              input.limits.value_limits.max_depth,
-            ),
-          }) {
+          @source.start_json_parse(
+            text,
+            {
+              max_input_bytes: input.limits.max_output_text_bytes,
+              max_nodes: Int::min(
+                input.limits.max_output_nodes,
+                input.limits.value_limits.max_nodes,
+              ),
+              max_depth: Int::min(
+                input.limits.max_output_depth,
+                input.limits.value_limits.max_depth,
+              ),
+            },
+            data_keys=true,
+          ) {
           Ok(parser) => Some(parser)
           Err(_) => return DeltaInputFailed(DeltaApplyInvalidInput, work=used)
         }

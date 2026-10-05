@@ -483,7 +483,7 @@ test('baseline preimages and changed normative pins independently determine the 
     }).run.run_definition_cid,
     pin('809c490a2351d8c474cd9fe8edecd84ebcee7aca6bd25b19128691b35133d790'));
   assert.equal(current.run.run_definition_cid,
-    pin('3e9650d6e732f19032af1c7632a65703b92d38d2bab15686c8375fd1c1529c3c'));
+    pin('3aab6f9f328e3bffb381569f9a10bc93fa88a60785da835ceb2921b1feb6122d'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');
