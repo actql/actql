@@ -46,6 +46,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/quoted-identifier-source-input.mjs', 'quoted-identifier-source-input.mjs'],
   ['scripts/fixtures/distinct-order-source-input.mjs', 'distinct-order-source-input.mjs'],
   ['scripts/fixtures/order-property-source-input.mjs', 'order-property-source-input.mjs'],
+  ['scripts/fixtures/analytic-property-source-input.mjs', 'analytic-property-source-input.mjs'],
   ['scripts/fixtures/group-select-scope-source-input.mjs', 'group-select-scope-source-input.mjs'],
   ['scripts/fixtures/having-projection-source-input.mjs', 'having-projection-source-input.mjs'],
   ['scripts/fixtures/implicit-property-source-input.mjs', 'implicit-property-source-input.mjs'],
@@ -133,6 +134,9 @@ if (process.argv.includes('--graph-property-predicate-only')) {
 }
 if (process.argv.includes('--distinct-order-only')) {
   runtimeEnvironment.ACTQL_TEST_DISTINCT_ORDER_ONLY = '1';
+}
+if (process.argv.includes('--analytic-property-only')) {
+  runtimeEnvironment.ACTQL_TEST_ANALYTIC_PROPERTY_ONLY = '1';
 }
 if (process.argv.includes('--graph-projection-property-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_PROJECTION_PROPERTY_ONLY = '1';
@@ -274,7 +278,7 @@ if (process.argv.includes('--cancellation-only')) {
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
 const narrowPublicQuery = process.argv.some(flag => ['--source-free-only',
-  '--graph-match-only',
+  '--analytic-property-only', '--graph-match-only',
   '--graph-diagnostics-only',
   '--graph-projection-property-only',
   '--graph-property-predicate-only',
@@ -323,7 +327,7 @@ if (plannerSelectionOnly || twoSourceExampleOnly) return;
 // its Store. Restore retained Results in a new process without resubmission.
 // Narrow selections without the String fixture have no retained String Run.
 // Keep restart acceptance for full/source-free selections that create it.
-if (!process.argv.some(flag => ['--quoted-identifiers-only', '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
+if (!process.argv.some(flag => ['--analytic-property-only', '--quoted-identifiers-only', '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
   '--graph-match-only',
   '--graph-diagnostics-only',
   '--graph-projection-property-only',
@@ -339,6 +343,7 @@ if (process.argv.includes('--order-ordinal-only') ||
     process.argv.includes('--subgraph-only') ||
     process.argv.includes('--graph-match-only') ||
     process.argv.includes('--graph-diagnostics-only') ||
+    process.argv.includes('--analytic-property-only') ||
     process.argv.includes('--quoted-identifiers-only') ||
     process.argv.includes('--order-property-only') ||
     process.argv.includes('--graph-projection-property-only') ||
