@@ -5109,6 +5109,31 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "typed_literal"
+              ],
+              "properties": {
+                "typed_literal": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "type",
+                    "value"
+                  ],
+                  "properties": {
+                    "type": {
+                      "const": "json"
+                    },
+                    "value": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
             }
           ]
         },
@@ -10563,6 +10588,29 @@
                         }
                       ]
                     }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "typed_literal"
+                },
+                "body": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "$json"
+                  ],
+                  "properties": {
+                    "$json": {}
                   }
                 }
               }
@@ -21615,6 +21663,31 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "typed_literal"
+              ],
+              "properties": {
+                "typed_literal": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "type",
+                    "value"
+                  ],
+                  "properties": {
+                    "type": {
+                      "const": "json"
+                    },
+                    "value": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
             }
           ]
         },
@@ -26171,6 +26244,29 @@
                         }
                       ]
                     }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "typed_literal"
+                },
+                "body": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "$json"
+                  ],
+                  "properties": {
+                    "$json": {}
                   }
                 }
               }
@@ -33253,6 +33349,31 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "typed_literal"
+              ],
+              "properties": {
+                "typed_literal": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "type",
+                    "value"
+                  ],
+                  "properties": {
+                    "type": {
+                      "const": "json"
+                    },
+                    "value": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
             }
           ]
         },
@@ -37812,6 +37933,29 @@
                   }
                 }
               }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "op",
+                "body"
+              ],
+              "properties": {
+                "op": {
+                  "const": "typed_literal"
+                },
+                "body": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "$json"
+                  ],
+                  "properties": {
+                    "$json": {}
+                  }
+                }
+              }
             }
           ]
         },
@@ -38557,7 +38701,27 @@
     "authority": "Effect selectors keep their restricted operand/tree admission. Pure profile evaluation grants no provider access. New node contracts require explicit capability admission; old Plan/contract CIDs retain their prior meaning.",
     "fragment_capacity": "actql.expression-fragment.capacity is an extension-local contract-ceiling law. Its source is the canonical bound request CID and exact request pointer; dependencies contain only that CID. Resolved limits retain the existing witness/limit wire shape, engine_atomic enforcement and breach fail. This contract registers the law only for fragment revalidation, not in the shared bound-law registry. Limits are sorted by request pointer and regenerated, including all aggregate max_items guards.",
     "fragment_binding": "actql-expression-fragment/0.1 self-CID excludes only fragment_cid. expression_contract_cid pins this contract. request binds source schemas, canonical source pipeline, typed parameter values and ceilings. graph has inline expression nodes at REL.derive /exprs/name, REL.where and REL.assert_all /expr, REL.groupBy /aggs/name/expr and optional /aggs/name/filter. Pointers are relative to params and RFC6901 escaped. Roots are ordered by graph step order then pointer code-unit order; each root stores source, node, checked contract and demand paths rooted at /roots/index/source. Aggregate arguments prepend their own filter-root true test. Admission recompiles request and requires exact equality of graph, root list, types and demand. Schema/self-CID alone is insufficient. Other consumers require a separately admitted binding contract; this revision does not grant them an implicit root position.",
-    "ordered_derive_binding": "Ordered REL.derive uses the registered row-kernel parameter alternative, with roots at /bindings/i/expr. Bindings remain in authored order; root-list serialization still uses graph-step order then pointer UTF-16 order and does not determine evaluation order. Every field node has exactly one occurrence reference to an input field or earlier slot; literal payloads are opaque. row_kernel_evidence is required exactly when ordered nodes occur, containing their derive bindings and exactly the referenced row contexts and row limits, each once in self-CID order. Regeneration checks complete evidence, same-node/input/type ownership, exact prior-slot prefixes, limits and all self-CIDs. No root or evidence is invented for an absent node. The row-kernel contract is selected through the containing registry, not recursively pinned by this expression contract. Ordered request.pipeline step params contain exactly bindings of name and canonical source expr; parameter references remain source syntax. They contain no references, extension pin, machine nodes or evidence. Graph params contain the selected extension pin, lowered bindings and regenerated references. derive_binding.aoa_node_cid hashes the complete corresponding graph.steps entry {id,in,op,params}, with no wrapper, field omission or evidence. Step and input names are the canonical fragment graph names, not process-local handles."
+    "ordered_derive_binding": "Ordered REL.derive uses the registered row-kernel parameter alternative, with roots at /bindings/i/expr. Bindings remain in authored order; root-list serialization still uses graph-step order then pointer UTF-16 order and does not determine evaluation order. Every field node has exactly one occurrence reference to an input field or earlier slot; literal payloads are opaque. row_kernel_evidence is required exactly when ordered nodes occur, containing their derive bindings and exactly the referenced row contexts and row limits, each once in self-CID order. Regeneration checks complete evidence, same-node/input/type ownership, exact prior-slot prefixes, limits and all self-CIDs. No root or evidence is invented for an absent node. The row-kernel contract is selected through the containing registry, not recursively pinned by this expression contract. Ordered request.pipeline step params contain exactly bindings of name and canonical source expr; parameter references remain source syntax. They contain no references, extension pin, machine nodes or evidence. Graph params contain the selected extension pin, lowered bindings and regenerated references. derive_binding.aoa_node_cid hashes the complete corresponding graph.steps entry {id,in,op,params}, with no wrapper, field omission or evidence. Step and input names are the canonical fragment graph names, not process-local handles.",
+    "typed_json_literal": {
+      "version": "actql-typed-json-literal/0.1",
+      "source": "A closed typed_literal {type: json, value: decoded JSON text} is an opaque expression leaf. JSON text is data, never expression syntax, a Parameter hole or reference authority.",
+      "output": "The complete JSON value has the existing non-null json contract. JSON null, boolean, number and string are distinct from SQL NULL and ordinary scalar contracts. Existing literal null is SQL NULL; existing ordinary scalar literal inference and object/array literal inference are unchanged.",
+      "decoding": "Decode standard JSON without NFC or newline normalization of data keys or string values. Keep the first occurrence of each exact decoded duplicate object key. Parse and bound the complete input, including discarded duplicates. Preserve array order. Sort object keys by UTF-16 only for canonical encoding.",
+      "numbers": "Use the existing finite binary64 value domain without silent rounding. The original decimal token must roundtrip mathematically through the shortest binary64 decimal spelling; reject precision loss, non-finite values and negative zero explicitly. This is a bounded numeric subset of GoogleSQL JSON, not support for its complete signed/unsigned integer domain. Number token length is at most 1500 characters.",
+      "bounds": "JSON depth is at most 500 and is additionally bounded by the caller depth ceiling. Charge complete decoded source nodes, decoded text and parsing work, including discarded duplicate values. Existing value, expression, canonical-wire and execution ceilings remain applicable. No truncation or partial result is permitted.",
+      "runtime": "The common Value owner retains a JSON domain around an immutable JSON-only payload. Typed runtime recheck rejects a bare scalar or object for a JSON contract; JSON payloads cannot contain typed dates, decimals, vectors or opaque references. IS NULL tests SQL NULL, so JSON null is not SQL NULL.",
+      "wire": "Every non-SQL-NULL JSON cell uses the closed canonical typed-wire envelope {$json: payload}; SQL NULL uses null and requires a nullable contract. Decode this envelope only under a checked JSON contract and an explicit typed-wire entry. An ordinary JSON object with a $json member is payload and is enclosed again; authored raw data never selects a type or authority by its keys.",
+      "identity": "Canonical typed-wire bytes and expression nodes distinguish JSON domains from ordinary scalars and SQL NULL. JSON data keys retain their Unicode scalar sequence. Existing identifier normalization remains separate. Bound wire byte measurements include the envelope. Storage/replay uses the same typed-wire contract and exact pins; old untagged typed JSON wire is not accepted as the new format.",
+      "consumers": "Graph Delta and snapshot identity-body parsers consume an explicitly checked JSON payload through the common read-only accessor. Their semantic body format is not the typed-cell envelope. No graph identity, execution owner or authority is invented by this conversion.",
+      "wire_contract_cid": "sha256:8ce92036074141bdc4b39436fe2460c7d1460810af1c345b45c6fc102b36791b"
+    },
+    "typed_json_wire": {
+      "version": "actql-json-value-wire/0.1",
+      "representation": "Every non-SQL-NULL JSON typed cell is the closed object {$json: payload}. SQL NULL is null and requires a nullable contract. Other typed scalar representations are unchanged.",
+      "admission": "Decode the envelope only in explicit typed-wire admission under a checked JSON contract. Raw authored JSON is not a wire envelope. An object payload containing $json is enclosed again. Reject old untagged JSON cells; no fallback.",
+      "payload": "Retain JSON null, finite canonical numbers, booleans, exact Unicode strings, arrays in order and objects with exact data keys sorted by UTF-16. Typed references and other typed values are not JSON payloads.",
+      "bounds": "Physical wire byte, node and depth accounting includes the envelope. Logical payload accounting counts the JSON payload once. Failure never truncates a value."
+    }
   },
   "regex_ast_contract": {
     "path": "spec/contracts/actql-regex-ast.json",

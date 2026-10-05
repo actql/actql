@@ -35,6 +35,7 @@ struct CursorAdmission {
   pending : Array[CursorFrame]
   mut value : CanonicalValue?
   mut terminal : Bool
+  data_keys : Bool
 }
 
 ///|
@@ -52,6 +53,7 @@ pub fn start_cursor_admission(
   max_depth : Int,
   max_utf16_units : Int,
   max_raw_text_bytes : Int,
+  data_keys? : Bool = false,
 ) -> CursorAdmission? {
   if max_nodes < 1 ||
     max_depth < 0 ||
@@ -68,6 +70,7 @@ pub fn start_cursor_admission(
     pending: [CursorRead(root, 0)],
     value: None,
     terminal: false,
+    data_keys,
   })
 }
 
@@ -156,7 +159,11 @@ fn CursorAdmission::step(
         if budget.nodes == 0 {
           raise InputLimit
         }
-        let name = cursor_admission_text(admission, raw_name, identifier=true)
+        let name = cursor_admission_text(
+          admission,
+          raw_name,
+          identifier=!admission.data_keys,
+        )
         if seen.contains(name) {
           raise DuplicateKey(name)
         }

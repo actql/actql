@@ -117,6 +117,10 @@ fn measure(value : @admitted.Value, depth : Int, b : ValueBudget) -> Bool {
           return false
         }
         match value {
+          @admitted.JsonData(payload) => {
+            b.nodes -= 1
+            stack.push(Read(payload, depth))
+          }
           @admitted.Null | @admitted.Boolean(_) | @admitted.Number(_) => ()
           @admitted.Text(s) | @admitted.Date(s) | @admitted.Timestamp(s) =>
             if !charge_text(b, s) {
@@ -331,6 +335,10 @@ fn advance_stepped_measure_result(
         return SteppedMeasureLimit
       }
       match value {
+        @admitted.JsonData(payload) => {
+          budget.nodes -= 1
+          push_stepped_measure(cursor, SteppedRead(payload, depth))
+        }
         @admitted.Null | @admitted.Boolean(_) | @admitted.Number(_) => true
         @admitted.Text(text)
         | @admitted.Date(text)

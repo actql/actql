@@ -209,7 +209,7 @@ pub fn append_property_edge(
     )
   }
   let (key, key_bytes, key_work) = match
-    encoded_values(builder, [identity], 0, work + 1) {
+    encoded_values(builder, [identity], 0, work + 1, identity_body=true) {
     Ok(value) => value
     Err(issue) => return fail(builder, issue)
   }
@@ -254,7 +254,7 @@ pub fn append_property_edge(
   let mut target_index = None
   if source is Some(source) {
     let (key, size, used) = match
-      encoded_values(builder, [source], bytes, work + 1) {
+      encoded_values(builder, [source], bytes, work + 1, identity_body=true) {
       Ok(value) => value
       Err(issue) => return fail(builder, issue)
     }
@@ -264,7 +264,7 @@ pub fn append_property_edge(
   }
   if target is Some(target) {
     let (key, size, used) = match
-      encoded_values(builder, [target], bytes, work + 1) {
+      encoded_values(builder, [target], bytes, work + 1, identity_body=true) {
       Ok(value) => value
       Err(issue) => return fail(builder, issue)
     }
@@ -393,7 +393,7 @@ fn property_lookup_scope(
   edge~ : Bool,
 ) -> Result[Unit, Issue] {
   let profile = @carrier.graph_property_definition(value.graph)
-  guard identity.value is @value.Object(fields) &&
+  guard @value.json_payload(identity.value) is Some(@value.Object(fields)) &&
     @value.element_count(fields) == 4 &&
     @value.element_at(fields, 0) is Some(("definition", @value.Text(name))) &&
     @value.element_at(fields, 1) is Some(("domain", @value.Text(domain))) &&
@@ -556,7 +556,10 @@ pub fn edge_identity_index(
       value.limits.max_value_depth,
     )
     @encode.begin_array(out)
-    @value.emit_wire_value(identity.value, out)
+    guard @value.json_payload(identity.value) is Some(payload) else {
+      return Err(InvalidIdentity)
+    }
+    @value.emit_wire_value(payload, out)
     @encode.end_array(out)
     Ok(value.edge_keys.get(@encode.finish(out)))
   } catch {

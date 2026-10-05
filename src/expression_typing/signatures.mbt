@@ -282,6 +282,21 @@ fn infer(
   }
   match tag {
     "#null" => put(t, Hole, true, source)
+    "typed_literal" => {
+      let text = string(part(node.body, "value"))
+      let (value, nodes, _) = match
+        @value.admit_json_literal(text, {
+          max_nodes: t.budget.limits.max_nodes,
+          max_depth: t.budget.limits.max_depth,
+          max_text_bytes: t.budget.text,
+        }) {
+        Ok(value) => value
+        Err(issue) => fail(source, InvalidJsonLiteral(issue))
+      }
+      charge(t.budget, source, text)
+      spend(t.budget, source, amount=nodes)
+      typed(t, value.contract, source)
+    }
     "literal" =>
       match @decode.view(node.body) {
         NullValue => put(t, Hole, true, source)

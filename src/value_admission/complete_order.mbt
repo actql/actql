@@ -62,6 +62,11 @@ pub fn complete_order_key(
       match frame {
         OrderRead(value) =>
           match value {
+            JsonData(value) => {
+              begin_order_value(out, "json")
+              pending.push(OrderEndAggregate)
+              pending.push(OrderRead(value))
+            }
             Null => {
               begin_order_value(out, "null")
               @encode.end_array(out)

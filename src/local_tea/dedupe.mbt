@@ -217,7 +217,10 @@ fn event_value_supported(value : @value.CheckedValue) -> Bool {
     | @value.Timestamp(_)
     | @value.Decimal(_) => true
     @value.Reference(reference) => @value.reference_available(reference)
-    @value.Array(_) | @value.Object(_) | @value.Vector(_) => false
+    @value.Array(_)
+    | @value.Object(_)
+    | @value.Vector(_)
+    | @value.JsonData(_) => false
   }
 }
 

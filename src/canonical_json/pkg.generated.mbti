@@ -27,9 +27,9 @@ pub fn cid_value(CanonicalValue, Int, Int, Int) -> String raise @encode_core.Enc
 
 pub fn emit_value(CanonicalValue, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
-pub fn from_json(Json, Int, Int, Int) -> CanonicalValue raise CanonicalFailure
+pub fn from_json(Json, Int, Int, Int, data_keys? : Bool) -> CanonicalValue raise CanonicalFailure
 
-pub fn from_source(@source_value.Node, Int, Int, Int) -> CanonicalValue raise CanonicalFailure
+pub fn from_source(@source_value.Node, Int, Int, Int, data_keys? : Bool) -> CanonicalValue raise CanonicalFailure
 
 pub fn measure_value(CanonicalValue, Int, Int, Int) -> Int raise @encode_core.EncodeFailure
 
@@ -43,7 +43,7 @@ pub fn object_with_string_field(CanonicalValue, String, String) -> CanonicalValu
 
 pub fn object_without_field(CanonicalValue, String) -> CanonicalValue?
 
-pub fn start_cursor_admission(@decode_core.Cursor, Int, Int, Int, Int) -> CursorAdmission?
+pub fn start_cursor_admission(@decode_core.Cursor, Int, Int, Int, Int, data_keys? : Bool) -> CursorAdmission?
 
 pub fn start_emit(CanonicalValue, @encode_core.Writer) -> CanonicalEmit
 

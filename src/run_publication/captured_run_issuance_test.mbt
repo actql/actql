@@ -31,7 +31,10 @@ fn captured_test_wire(value : @json.CanonicalValue) -> String {
 }
 
 ///|
-fn captured_run_test_chain(with_model? : Bool = false) -> CapturedRunTestChain {
+fn captured_run_test_chain(
+  with_model? : Bool = false,
+  logical_cid? : String? = None,
+) -> CapturedRunTestChain {
   let program = ordering_test_cid("8")
   let template = receipt_test_template(program)
   let admission = receipt_test_admission(template, program)
@@ -65,7 +68,7 @@ fn captured_run_test_chain(with_model? : Bool = false) -> CapturedRunTestChain {
   )
   let evidence = issue_result_occurrence_evidence(
     definition,
-    logical,
+    logical_cid.unwrap_or(logical),
     ordering_test_cid("9"),
     ordering_test_cid("a"),
     [],
@@ -556,4 +559,66 @@ test "Captured Run and Receipt bind the same model evidence set" {
     )
     is Err(CaptureIssuanceReferenceMismatch("model_evidence")),
   )
+}
+
+///|
+test "Captured Run sealing and restoration retain typed JSON data keys" {
+  // Independent SHA-256 of {"sort":"relation","value":[{"value":{"$json":{"é":null}}}]}.
+  let chain = captured_run_test_chain(
+    logical_cid=Some(
+      "sha256:2c63c45bcaf4b24b8b71f57c6a44d361f580b88b647b3c764b0e174691fbc43d",
+    ),
+  )
+  let snapshot = admit_captured_result_snapshot(
+    chain.definition,
+    chain.artifact,
+    "[{\"value\":{\"$json\":{\"é\":null}}}]",
+    ["value"],
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let captured = issue_effect_free_captured_run(
+    chain.run,
+    chain.invocation,
+    [chain.definition],
+    [chain.artifact],
+    chain.manifest,
+    chain.receipt,
+    [snapshot],
+    [],
+    chain.authoring,
+    [],
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let restored = admit_publication_contract(
+    "captured_run",
+    publication_contract_json(captured),
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  assert_eq(
+    publication_contract_identity(restored),
+    publication_contract_identity(captured),
+  )
+  let source = @source.parse_json_bytes_preserving(
+    @utf8.encode(publication_contract_json(restored)),
+    { max_input_bytes: 65536, max_nodes: 4096, max_depth: 32, },
+  ).unwrap()
+  let value = @json.from_source(source, 4096, 32, 65536, data_keys=true) catch {
+    _ => abort("Invalid retained JSON value")
+  }
+  let context = @json.object_field(value, "effect_context").unwrap()
+  let values = @json.object_field(context, "result_values").unwrap()
+  guard @json.object_field(values, "answer") is Some(@json.Array(rows)) else {
+    fail("Missing retained Result")
+  }
+  let row = @json.array_at(rows, 0).unwrap()
+  let cell = @json.object_field(row, "value").unwrap()
+  let payload = @json.object_field(cell, "$json").unwrap()
+  assert_true(@json.object_field(payload, "é") is Some(@json.Null))
+  assert_true(@json.object_field(payload, "é") is None)
 }

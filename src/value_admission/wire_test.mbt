@@ -56,13 +56,23 @@ test "typed wire fixed scalar and opaque object vectors" {
       ("[]", 2, 1, 1),
       ("{}", 2, 1, 1),
     ] {
-    assert_wire(
-      accept(simple("json", nullable=true), text),
-      text,
-      bytes,
-      nodes,
-      depth,
-    )
+    if text == "null" {
+      assert_wire(
+        accept(simple("json", nullable=true), text),
+        text,
+        bytes,
+        nodes,
+        depth,
+      )
+    } else {
+      assert_wire(
+        accept(simple("json", nullable=true), text),
+        "{\"$json\":" + text + "}",
+        bytes + 10,
+        nodes + 1,
+        depth + 1,
+      )
+    }
   }
   assert_wire(
     accept(simple("date"), "\"0000-02-29\""),
@@ -141,5 +151,11 @@ test "typed wire traverses deep values without recursion or whole output allocat
   let depth = 10000
   let text = "[".repeat(depth) + "null" + "]".repeat(depth)
   let value = accept(simple("json"), text)
-  assert_wire(value, text, depth * 2 + 4, depth + 1, depth)
+  assert_wire(
+    value,
+    "{\"$json\":" + text + "}",
+    depth * 2 + 14,
+    depth + 2,
+    depth + 1,
+  )
 }

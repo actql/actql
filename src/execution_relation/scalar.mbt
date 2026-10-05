@@ -34,6 +34,7 @@ pub fn capture(value : @admitted.Value) -> Value {
     | @admitted.Decimal(_)
     | @admitted.Array(_)
     | @admitted.Object(_)
+    | @admitted.JsonData(_)
     | @admitted.Vector(_)
     | @admitted.Reference(_) => Captured(value)
   }

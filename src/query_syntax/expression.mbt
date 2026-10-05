@@ -20,6 +20,7 @@ pub(all) enum ExpressionKind {
   Boolean(Bool)
   Number(String)
   StringLiteral(String)
+  JsonLiteral(String)
   Reference(Array[NamePart])
   ParameterReference(String)
   Unary(String, Int)
@@ -354,6 +355,32 @@ fn ExpressionParser::path(
 }
 
 ///|
+// A typed literal shares ordinary decoded String chunks. JSON parsing happens
+// after lexical decoding; it does not reinterpret the source's escape syntax.
+fn ExpressionParser::string_chunks(
+  self : ExpressionParser,
+  first : Token,
+) -> (String, Int) raise ExpressionAbort {
+  guard first.value is Text(value) else {
+    raise ExpressionAbort("Expected String literal", first.start)
+  }
+  let chunks = StringBuilder()
+  chunks.write_string(value)
+  let mut end = first.end
+  while self.peek().value is Text(next) {
+    let token = self.peek()
+    if token.start == end {
+      raise ExpressionAbort("Literal chunks require separation", token.start)
+    }
+    self.spend()
+    ignore(self.advance())
+    chunks.write_string(next)
+    end = token.end
+  }
+  (chunks.to_string(), end)
+}
+
+///|
 // Explicit Pratt continuations bound heap work without recursive native calls.
 fn ExpressionParser::expression(
   self : ExpressionParser,
@@ -370,26 +397,14 @@ fn ExpressionParser::expression(
         let t = self.advance()
         frames.push(Tail(-1, minimum, depth))
         match t.value {
-          Text(value) => {
-            let chunks = StringBuilder()
-            chunks.write_string(value)
-            let mut end = t.end
-            while self.peek().value is Text(next) {
-              let token = self.peek()
-              // GoogleSQL chunks need intervening whitespace or a comment.
-              // Identifiers and Graph annotation tokens never concatenate.
-              if token.start == end {
-                raise ExpressionAbort(
-                  "Literal chunks require separation",
-                  token.start,
-                )
-              }
-              self.spend()
-              ignore(self.advance())
-              chunks.write_string(next)
-              end = token.end
-            }
-            result = self.add(StringLiteral(chunks.to_string()), t.start, end)
+          Text(_) => {
+            let (value, end) = self.string_chunks(t)
+            result = self.add(StringLiteral(value), t.start, end)
+          }
+          Word(name) if upper_ascii(name) == "JSON" &&
+            self.peek().value is Text(_) => {
+            let (value, end) = self.string_chunks(self.advance())
+            result = self.add(JsonLiteral(value), t.start, end)
           }
           Numeric(value) => result = self.add(Number(value), t.start, t.end)
           Parameter(name) =>

@@ -84,11 +84,7 @@ fn advance_before(check : BeforeAdmission, quantum : Int) -> BeforePoll {
             check.admission = None
             check.before = Some(before)
             guard check.actual is Some(actual) &&
-              @value.start_recheck_runtime_value(
-                actual,
-                json_contract(),
-                check.limits,
-              )
+              @value.start_json_payload_recheck(actual, check.limits)
               is Some(recheck) else {
               return BeforeFailed(BeforeMismatch, work=used)
             }

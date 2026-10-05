@@ -5,6 +5,7 @@ import {
   "actql/actql/decode_core",
   "actql/actql/expression_syntax",
   "actql/actql/parameter_binding",
+  "actql/actql/value_admission",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
 }
@@ -122,6 +123,7 @@ pub(all) enum IssueKind {
   NullTypeUnresolved
   ForbiddenConstructorValue
   InvalidStaticOption(String)
+  InvalidJsonLiteral(@value_admission.JsonLiteralIssue)
   BudgetExceeded
 } derive(Eq, @debug.Debug)
 

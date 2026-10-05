@@ -32,7 +32,7 @@
       "ordered_bindings": {
         "file": "spec/contracts/actql-aoa.json",
         "pointer": "/execution_contracts/REL.derive.ordered",
-        "cid": "sha256:5c42162fa5adc40007f7e4630fa30e835c0dce20f74785be074f4490aff522de"
+        "cid": "sha256:9a09e6e977677472109ad77687f8a900a9e5d997cc521f07c9ff91730aee8922"
       }
     }
   },
@@ -477,7 +477,7 @@
     "execution_contract": {
       "file": "spec/contracts/actql-aoa.json",
       "pointer": "/execution_contracts/ACTQL.expression_fragment~10.1",
-      "cid": "sha256:1282c3d8af052606f64be809cead104630c67a8b676050bcdc7edd4a884b9b60"
+      "cid": "sha256:b255a7e460b79995eb5e2cacf4a6381810ef15f48b7898beca490b77f2ac2495"
     }
   },
   "BRIDGE.rows.to_property_graph": {

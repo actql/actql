@@ -67,7 +67,6 @@ priv enum Phase {
 /// The decoded immutable records are shared by action arrays, never repaired.
 struct Preparation {
   right : DiffSource
-  delta_contract : @contract.Contract
   graph_contract_cid : String
   limits : Limits
   mut snapshot_preparation : @snapshot.Preparation?
@@ -189,11 +188,6 @@ fn start_snapshot(
       @snapshot.prepare_property_view(view, graph, snapshot_limits(limits))
   }
   result.map_err(issue => Snapshot(issue))
-}
-
-///|
-fn json_contract() -> @contract.Contract {
-  @contract.primitive(JsonType, nullable=false)
 }
 
 ///|
@@ -335,7 +329,7 @@ fn prepare_source(
       limits.max_output_text_bytes,
     )
     is Some(empty) &&
-    @value.recheck_runtime_value_usage(empty, delta_contract, {
+    @value.recheck_json_payload_usage(empty, {
       max_nodes: limits.max_output_nodes,
       max_depth: limits.max_output_depth,
       max_text_bytes: limits.max_output_text_bytes,
@@ -357,7 +351,6 @@ fn prepare_source(
   }
   Ok({
     right,
-    delta_contract,
     graph_contract_cid,
     limits,
     snapshot_preparation,
@@ -403,7 +396,7 @@ fn prepare_action(
   item : @value.Value,
   array : @value.ArrayBuilder,
 ) -> PendingAction? {
-  guard @value.start_recheck_runtime_value(item, json_contract(), {
+  guard @value.start_json_payload_recheck(item, {
       max_nodes: value.limits.max_output_nodes - value.output_nodes,
       max_depth: value.limits.max_output_depth,
       max_text_bytes: value.limits.max_output_text_bytes - value.output_text,
@@ -531,7 +524,7 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
             used += work.to_int64()
             value.body_admission = None
             if value.phase == ReadLeftBody {
-              value.left_body = Some(body.value)
+              value.left_body = @value.json_payload(body.value)
               value.snapshot_preparation = match
                 start_snapshot(value.right, value.limits) {
                 Ok(preparation) => Some(preparation)
@@ -539,7 +532,7 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
               }
               value.phase = SnapshotRight
             } else {
-              value.right_body = Some(body.value)
+              value.right_body = @value.json_payload(body.value)
               value.phase = Nodes
             }
           }
@@ -629,13 +622,12 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
             let checker = match value.comparison_recheck {
               Some(checker) => checker
               None => {
-                guard @value.start_recheck_runtime_value(
+                guard @value.start_json_payload_recheck(
                     if checking_before {
                       before
                     } else {
                       after
                     },
-                    json_contract(),
                     value.limits.value_limits,
                   )
                   is Some(checker) else {
@@ -736,7 +728,7 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
             value.limits.max_output_text_bytes,
           )
           is Some(raw) &&
-          @value.start_recheck_runtime_value(raw, value.delta_contract, {
+          @value.start_json_payload_recheck(raw, {
             max_nodes: value.limits.max_output_nodes,
             max_depth: value.limits.max_output_depth,
             max_text_bytes: value.limits.max_output_text_bytes,
