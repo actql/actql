@@ -145,6 +145,47 @@ export function resolveCheckTextRange(outcome, location, currentInput) {
 }
 
 // Presentation never participates in verdicts, admission or retry decisions.
+export function explainCheckOutcome(outcome) {
+  if (!validCheckOutcome(outcome)) return undefined;
+  const reportExplanation = (report, completeness) => ({completeness,
+    verdict: report.verdict, scope: {...report.scope}, contextRef: report.context_ref});
+  if (outcome.outcome === 'completed') {
+    const explanations = {
+      invalid: ['The report establishes an input violation in its checking scope.',
+        'Review the disclosed reasons and correct the submitted revision where indicated.'],
+      verified: ['The report verifies only its bound checking scope and context.',
+        'Use the execution, cancellation and release owners for their respective results.'],
+      undetermined: ['The report cannot establish verification or a proven input violation in its checking scope.',
+        'Review missing inputs and disclosed checking limits; an outstanding obligation is not an input error.'],
+    };
+    const [summary, hint] = explanations[outcome.report.verdict];
+    return freezeInput({outcome: 'completed', summary, hint,
+      report: reportExplanation(outcome.report, 'complete')});
+  }
+  if (outcome.outcome === 'failed') {
+    const explanations = {
+      check_report_unbounded: ['The reporting budget could not produce a complete bound check report.',
+        'Ask the checking-context owner to review reporting capacity for the original checking scope.'],
+      check_internal: ['An internal checking failure prevented a complete bound check report.',
+        'Ask the checking-context owner to investigate the reporting failure.'],
+    };
+    const known = Object.hasOwn(explanations, outcome.problem.code);
+    const [summary, hint] = known ? explanations[outcome.problem.code]
+      : ['A complete bound check report could not be issued; this problem code has no supported explanation.',
+        'Ask the checking-context owner to investigate; a partial report does not verify the input.'];
+    return freezeInput({outcome: 'failed', summary, hint,
+      problem: {kind: known ? 'known' : 'unknown', code: outcome.problem.code},
+      ...(outcome.partial_report === undefined ? {} : {
+        report: reportExplanation(outcome.partial_report, 'partial')})});
+  }
+  return freezeInput({outcome: 'unavailable',
+    summary: 'The scope and checking context needed for a safe public report are unavailable.',
+    hint: 'Ask the checking-context owner to review the published context; this response does not establish an input error.',
+    problem: {kind: outcome.problem.code === 'check_unavailable' ? 'known' : 'unknown',
+      code: outcome.problem.code}, correlationRef: outcome.correlation_ref});
+}
+
+// Reason presentation does not decide the report's verdict or outcome branch.
 export function explainCheckReason(reason) {
   const explanations = {
     query_syntax_invalid: ['The query syntax is invalid.', 'Correct the query syntax at the reported location when available.'],
