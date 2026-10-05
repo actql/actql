@@ -33,4 +33,5 @@ import {
 import {
   "actql/actql/platform_native/sqlite",
   "moonbitlang/core/env",
+  "actql/actql/check_environment" @environment,
 } for "wbtest"

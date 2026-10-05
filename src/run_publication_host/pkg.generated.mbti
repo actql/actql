@@ -370,6 +370,18 @@ pub fn client_result_transformation_plan(ClientResultTransformation) -> ClientRe
 
 pub fn client_result_transformation_task(ClientResultTransformation) -> Int
 
+pub fn client_retained_input_edge_projection(ClientRetainedInputEdge) -> Array[String]
+
+pub fn client_retained_input_producer_available(ClientRetainedInputProducer) -> Bool
+
+pub fn client_retained_input_producer_dispatch(ClientRetainedInputProducer) -> @remote_site_protocol.DispatchRequest
+
+pub fn client_retained_input_producer_edge(ClientRetainedInputProducer) -> ClientRetainedInputEdge
+
+pub fn client_retained_input_producer_evidence(ClientRetainedInputProducer) -> @remote_site_protocol.RemoteExecutionEvidence
+
+pub fn client_retained_input_producer_subject(ClientRetainedInputProducer) -> @remote_site_protocol.RemoteManagedOutputSubject
+
 pub fn client_standard_program_preparation_limits() -> ClientProgramPreparationLimits
 
 pub fn client_standard_values_sequence_limits() -> @lowering_relation.SequenceLimits
@@ -653,6 +665,10 @@ pub fn prepare_client_query_requirement(PreparedClientProgram, @execution_relati
 pub fn prepare_client_request_identity(PreparedClientProgram, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
 pub fn prepare_client_result_transformation(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientResultTransformation, ClientResultTransformationIssue]
+
+pub fn prepare_client_retained_input_edge(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int) -> Result[ClientRetainedInputEdge, ClientRetainedInputIssue]
+
+pub fn prepare_client_retained_input_producer(ClientRetainedInputEdge, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject) -> Result[ClientRetainedInputProducer, ClientRetainedInputIssue]
 
 pub fn prepare_client_run_cancellation(@run_publication.PublicationContract, String, Bool, Bool, Bool) -> Result[ClientRunCancellationAction, ClientRunStartIssue]
 
@@ -1393,6 +1409,29 @@ pub struct ClientResultTransformationPreparation {
 pub fn ClientResultTransformationPreparation::advance(Self, Int) -> Result[(Bool, Int), ClientResultTransformationIssue]
 pub fn ClientResultTransformationPreparation::cancel(Self) -> Bool
 pub fn ClientResultTransformationPreparation::finish(Self) -> Result[PublicationOutputExport, ClientResultTransformationIssue]
+
+pub struct ClientRetainedInputEdge {
+  run_definition_cid : String
+  producer : ClientTaskFragmentNode
+  consumer : ClientTaskFragmentNode
+  input_port : String
+}
+
+pub(all) enum ClientRetainedInputIssue {
+  Run(ClientTaskRunBindingIssue)
+  Fragment(ClientTaskFragmentIssue)
+  MissingEdge
+  ContractMismatch
+  ForeignProducer
+  ProducerUnavailable
+}
+
+pub struct ClientRetainedInputProducer {
+  edge : ClientRetainedInputEdge
+  record : @remote_site_protocol.DispatchRecord
+  evidence : @remote_site_protocol.RemoteExecutionEvidence
+  subject : @remote_site_protocol.RemoteManagedOutputSubject
+}
 
 pub(all) enum ClientRunCancellationAction {
   AcceptCancellation

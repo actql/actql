@@ -252,6 +252,15 @@ pub fn destination_material_use_receipt_cid(
 }
 
 ///|
+/// Exact durable destination-use occurrence; equal receipts do not authorize
+/// a reader belonging to another use of the same transferred material.
+pub fn destination_material_use_id(
+  material : NativeRemoteDestinationMaterialUse,
+) -> String {
+  material.use_id
+}
+
+///|
 fn admit_source(
   request : @transfer.RemoteTransferRequest,
   chunks : Array[Bytes],

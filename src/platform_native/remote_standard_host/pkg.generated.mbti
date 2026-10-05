@@ -28,6 +28,8 @@ pub fn acquire_native_remote_standard_physical_source(NativeRemoteStandardTransf
 
 pub fn acquire_native_remote_standard_transfer_source(@remote_transfer_journal.Journal, @filesystem.Root, NativeRemoteStandardTransferInput, NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferSourceLimits) -> Result[NativeRemoteStandardTransferSource, NativeRemoteStandardInputFailure]
 
+pub fn admit_native_remote_retained_task_input(@remote_site_protocol.RemoteInputBinding, @run_publication_host.ClientRetainedInputProducer, @remote_transfer.RemoteTransferRecord, @remote_transfer.RemoteTransferDestinationReceipt, String, NativeRemoteRetainedInputCurrent, Int) -> Result[NativeRemoteRetainedTaskInput, NativeRemoteRetainedTaskInputIssue]
+
 pub fn admit_native_remote_standard_transfer_input(@remote_site_protocol.RemoteInputBinding, Int, Int, Int, Int64) -> Result[NativeRemoteStandardTransferInput, NativeRemoteStandardTransferInputIssue]
 
 pub fn cancel_native_remote_standard_physical_admission(NativeRemoteStandardPhysicalAdmission) -> NativeRemoteStandardInputFailure
@@ -44,9 +46,13 @@ pub fn finish_native_remote_standard_physical_run_admission(NativeRemoteStandard
 
 pub fn finish_native_remote_standard_transfer_source(NativeRemoteStandardTransferSource) -> Bool
 
+pub fn install_native_remote_retained_input_current(() -> @execution_site.ExecutionSite, () -> String, () -> Int64, (@run_publication_host.ClientRetainedInputProducer, @remote_transfer.RemoteTransferRequest) -> Bool) -> NativeRemoteRetainedInputCurrent
+
 pub fn install_native_remote_standard_bound_task_executor(String, String, Int, NativeRemoteStandardBoundRunFactory, NativeRemoteStandardTaskLimits) -> Result[NativeRemoteStandardTaskExecutor, NativeRemoteStandardHostIssue]
 
 pub fn install_native_remote_standard_store_task_executor(String, String, Int, NativeRemoteStandardStoreRunFactory, NativeRemoteStandardTaskLimits) -> Result[NativeRemoteStandardTaskExecutor, NativeRemoteStandardHostIssue]
+
+pub fn native_remote_retained_task_input_binding(NativeRemoteRetainedTaskInput) -> @remote_site_protocol.RemoteInputBinding
 
 pub fn native_remote_standard_direct_run_admission_authorizes(NativeRemoteStandardPhysicalRunAdmission, @remote_transfer.RemoteTransferRequest, @remote_transfer.RemoteTransferDestinationReceipt) -> Bool
 
@@ -85,6 +91,8 @@ pub fn open_native_remote_standard_site_runtime(@execution_site.ExecutionSite, @
 pub fn persist_native_remote_observed_output_payload(@remote_runtime.NativeRemoteRuntime, @remote_journal.Journal, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, @publication_payload.PublicationPayloadRequest, @publication_store.Store, Int, after_append? : () -> Unit) -> Result[@publication_store.NativePublicationPayloadInfo, NativeRemoteStandardPayloadFailure]
 
 pub fn prepare_native_remote_observed_output_plan(String, Int, @remote_runtime.NativeRemoteOutputFacts, NativeRemoteObservedOutputIntent) -> Result[NativeRemoteObservedOutputPlan, NativeRemoteObservedOutputPlanIssue]
+
+pub fn prepare_native_remote_retained_task_input(@run_publication_host.ClientRetainedInputProducer, @remote_transfer.RemoteTransferRecord, @remote_transfer.RemoteTransferDestinationReceipt, String, NativeRemoteRetainedInputCurrent, Int) -> Result[NativeRemoteRetainedTaskInput, NativeRemoteRetainedTaskInputIssue]
 
 pub fn prepare_native_remote_standard_acquired_run_owner(@physical_strategy.CapturedDAG, Int, () -> Bool, source_observation? : ((@remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.RemoteSourceObservation, @remote_site_protocol.DispatchIssue])?) -> Result[NativeRemoteStandardRunOwner, NativeRemoteStandardHostIssue]
 
@@ -130,6 +138,8 @@ pub fn retry_native_remote_standard_payload_failure_cleanup(NativeRemoteStandard
 
 pub fn send_native_remote_observed_output_direct(@remote_runtime.NativeRemoteRuntime, @remote_journal.Journal, @http_client.Client, @remote_transfer_journal.Journal, String, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, @remote_transfer.RemoteTransferRequest, Int) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteStandardSiteComponentIssue]
 
+pub fn validate_native_remote_retained_task_input_borrow(NativeRemoteRetainedTaskInput, @remote_transfer_client.NativeRemoteDestinationMaterialUse, NativeRemoteRetainedInputCurrent) -> Result[Unit, NativeRemoteRetainedTaskInputIssue]
+
 // Errors
 
 // Types and methods
@@ -159,6 +169,33 @@ pub(all) enum NativeRemoteObservedOutputPlanIssue {
   InvalidOutputFacts
   Publication(@publication_payload.PublicationPayloadIssue)
   Transfer(@remote_transfer.RemoteTransferIssue)
+}
+
+pub struct NativeRemoteRetainedInputCurrent {
+  site : () -> @execution_site.ExecutionSite
+  authority : () -> String
+  now_unix_ms : () -> Int64
+  authorized : (@run_publication_host.ClientRetainedInputProducer, @remote_transfer.RemoteTransferRequest) -> Bool
+}
+
+pub struct NativeRemoteRetainedTaskInput {
+  producer : @run_publication_host.ClientRetainedInputProducer
+  transfer_record : @remote_transfer.RemoteTransferRecord
+  physical : NativeRemoteStandardTransferInput
+  binding : @remote_site_protocol.RemoteInputBinding
+}
+
+pub(all) enum NativeRemoteRetainedTaskInputIssue {
+  ProducerUnavailable
+  ForeignTransfer
+  TransferNotCommitted
+  StaleSiteGeneration
+  ForeignAuthority
+  AuthorizationUnavailable
+  TransferExpired
+  InputMaterialUnavailable
+  InvalidBinding
+  Encoding
 }
 
 type NativeRemoteStandardBoundRun

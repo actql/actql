@@ -1,0 +1,202 @@
+///|
+/// One input edge of the original admitted Run. This reference contains no
+/// execution permission, live material, borrow or capacity reservation.
+pub struct ClientRetainedInputEdge {
+  run_definition_cid : String
+  producer : ClientTaskFragmentNode
+  consumer : ClientTaskFragmentNode
+  input_port : String
+}
+
+///|
+/// An exact completed producer occurrence, never an equal-content substitute.
+/// Current physical custody must still be admitted by the Transfer owner.
+pub struct ClientRetainedInputProducer {
+  edge : ClientRetainedInputEdge
+  record : @remote.DispatchRecord
+  evidence : @remote.RemoteExecutionEvidence
+  subject : @remote.RemoteManagedOutputSubject
+}
+
+///|
+pub(all) enum ClientRetainedInputIssue {
+  Run(ClientTaskRunBindingIssue)
+  Fragment(ClientTaskFragmentIssue)
+  MissingEdge
+  ContractMismatch
+  ForeignProducer
+  ProducerUnavailable
+}
+
+///|
+/// Resolve an input from the checked graph, including split-operation ports.
+/// Callers cannot select another producer by supplying a matching schema.
+pub fn prepare_client_retained_input_edge(
+  prepared : PreparedClientProgram,
+  compilation : ClientTaskCompilation,
+  admission : @publication.RunPublicationAdmission,
+  definition : @publication.PublicationContract,
+  consumer_task : Int,
+  input_index : Int,
+) -> Result[ClientRetainedInputEdge, ClientRetainedInputIssue] {
+  let run = match
+    bind_client_task_run(prepared, compilation, admission, definition) {
+    Ok(value) => value
+    Err(issue) => return Err(Run(issue))
+  }
+  let graph = prepared_client_graph(prepared)
+  if consumer_task < 0 ||
+    input_index < 0 ||
+    consumer_task >= @strategy.graph_task_count(graph) {
+    return Err(MissingEdge)
+  }
+  let mut selected = None
+  for index in 0..<@strategy.graph_data_count(graph) {
+    guard @strategy.graph_data_at(graph, index) is Some(edge) else {
+      return Err(MissingEdge)
+    }
+    if @strategy.data_edge_consumer(edge) == consumer_task &&
+      @strategy.data_edge_input(edge) == input_index {
+      if selected is Some(_) {
+        return Err(MissingEdge)
+      }
+      selected = Some(edge)
+    }
+  }
+  guard selected is Some(edge) else { return Err(MissingEdge) }
+  let producer_task = @strategy.data_edge_producer(edge)
+  if producer_task < 0 || producer_task >= consumer_task {
+    return Err(MissingEdge)
+  }
+  let fragment = fn(task : Int) {
+    issue_prepared_client_task_fragment(
+      prepared,
+      task,
+      client_standard_values_sequence_limits(),
+      1000000,
+      100000,
+      100,
+    )
+  }
+  let producer = match fragment(producer_task) {
+    Ok(value) => value
+    Err(issue) => return Err(Fragment(issue))
+  }
+  let consumer = match fragment(consumer_task) {
+    Ok(value) => value
+    Err(issue) => return Err(Fragment(issue))
+  }
+  guard client_task_edge_input(graph, edge) is Some((input_port, carrier)) &&
+    client_task_carrier_contract(carrier, 1000000, 100000, 100)
+    is Some((sort, contract)) else {
+    return Err(ContractMismatch)
+  }
+  if sort != producer.output_carrier || contract != producer.output_contract_cid {
+    return Err(ContractMismatch)
+  }
+  Ok({
+    run_definition_cid: client_task_run_binding_definition_cid(run),
+    producer,
+    consumer,
+    input_port,
+  })
+}
+
+///|
+/// Join the exact dispatch, durable completion and its admitted output subject.
+/// A historical completion without current retained material cannot issue a
+/// new input. No JSON, caller-supplied task key or attempt label stands in for
+/// these owned values.
+pub fn prepare_client_retained_input_producer(
+  edge : ClientRetainedInputEdge,
+  record : @remote.DispatchRecord,
+  evidence : @remote.RemoteExecutionEvidence,
+  subject : @remote.RemoteManagedOutputSubject,
+) -> Result[ClientRetainedInputProducer, ClientRetainedInputIssue] {
+  let request = @remote.dispatch_record_request(record)
+  if @remote.dispatch_request_task_scope(request) !=
+    (edge.run_definition_cid, edge.producer.node_id) ||
+    !@remote.remote_managed_output_subject_matches_evidence(
+      subject, evidence, request,
+    ) ||
+    @remote.remote_managed_output_subject_projection(subject)[4] !=
+    edge.producer.output_contract_cid {
+    return Err(ForeignProducer)
+  }
+  let value = { edge, record, evidence, subject, }
+  if !client_retained_input_producer_available(value) {
+    return Err(ProducerUnavailable)
+  }
+  Ok(value)
+}
+
+///|
+/// Recheck the original mutable dispatch record before each custody handoff.
+/// This does not prove that physical bytes are present or grant a read permit.
+pub fn client_retained_input_producer_available(
+  value : ClientRetainedInputProducer,
+) -> Bool {
+  if !@remote.remote_completion_evidence_available(value.record) {
+    return false
+  }
+  let (_, state, cleanup, _, _) = @remote.dispatch_record_state(value.record)
+  if cleanup != @remote.CleanupActive {
+    return false
+  }
+  let (material, holding, _, _) = @remote.remote_managed_output_subject_retention(
+    value.subject,
+  )
+  match state {
+    @remote.EvidenceDurable(saved_material, saved_holding, saved_evidence) =>
+      material == saved_material &&
+      holding == saved_holding &&
+      saved_evidence == @remote.remote_execution_evidence_cid(value.evidence)
+    _ => false
+  }
+}
+
+///|
+/// Immutable checked ports; schema and order remain bound by the original
+/// fragment identities rather than being reinterpreted by the Cloud caller.
+pub fn client_retained_input_edge_projection(
+  value : ClientRetainedInputEdge,
+) -> Array[String] {
+  [
+    value.run_definition_cid,
+    value.producer.node_id,
+    value.producer.output_port,
+    value.producer.logical_cid,
+    value.producer.output_contract_cid,
+    value.consumer.node_id,
+    value.consumer.logical_cid,
+    value.input_port,
+  ]
+}
+
+///|
+pub fn client_retained_input_producer_dispatch(
+  value : ClientRetainedInputProducer,
+) -> @remote.DispatchRequest {
+  @remote.dispatch_record_request(value.record)
+}
+
+///|
+pub fn client_retained_input_producer_subject(
+  value : ClientRetainedInputProducer,
+) -> @remote.RemoteManagedOutputSubject {
+  value.subject
+}
+
+///|
+pub fn client_retained_input_producer_evidence(
+  value : ClientRetainedInputProducer,
+) -> @remote.RemoteExecutionEvidence {
+  value.evidence
+}
+
+///|
+pub fn client_retained_input_producer_edge(
+  value : ClientRetainedInputProducer,
+) -> ClientRetainedInputEdge {
+  value.edge
+}
