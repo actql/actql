@@ -418,6 +418,17 @@ fn[T : IndexedRows] compare_complete_row_indices(
   control : ControlBudget,
 ) -> Result[Int, OrderingIssue] {
   for column in columns {
+    let left_present = input.cell_present(left, column)
+    let right_present = input.cell_present(right, column)
+    if !left_present || !right_present {
+      if !spend_control(control, 1) {
+        return Err(Limit)
+      }
+      if left_present != right_present {
+        return Ok(if left_present { 1 } else { -1 })
+      }
+      continue
+    }
     let comparison = match
       compare_complete_value(
         IndexedRows::read_cell(input, left, column),

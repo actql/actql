@@ -80,8 +80,8 @@ it does not make other consumer families or upstream checks optional.
 `BoundAuthorGuards`. It retains the exact occurrence index and effective binding
 for each authored scope and computes `effective_maximum` independently as the
 minimum of its Host candidates and authored restriction. Equal or looser guards
-remain present; omission does not synthesize a guard. `host_limit` (and the
-compatibility reader `limit`) returns the original Host-only input claim, not
+remain present; omission does not synthesize a guard. `host_limit` returns the
+original Host-only input claim, not
 the final guard-inclusive minimum. Enforcement consumers use `effective_maximum`.
 
 The collection requires one consistent immutable Parameter binding among its

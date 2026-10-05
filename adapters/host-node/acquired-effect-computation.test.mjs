@@ -1,8 +1,47 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {graphResultDataPolicy} from '../../scripts/fixtures/graph-infer-effect-input.mjs';
 import {acquisitionEndHandoff, acquisitionFailure} from
   '../host-common/acquisition-outcome.mjs';
-import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
+import {openAcquiredEffectComputation as openEffectComputation} from './acquired-effect-computation.mjs';
+
+// These single-source failure fixtures stop before the compiled runtime.
+const openAcquiredEffectComputation = options => openEffectComputation({
+  moon: {clientProgramEffectAcquisitionCount: () => 1}, ...options,
+});
+
+test('source-free composed Model admission retains custody without opening an installed Source', async () => {
+  const prepared = {};
+  const failure = new Error('ModelOwnerUnavailable');
+  let custody;
+  let sourceCalls = 0;
+  const resultPolicy = graphResultDataPolicy;
+  const policyLimits = Object.freeze({maxWireBytes: 1024, maxNodes: 100, maxDepth: 8});
+  await assert.rejects(openEffectComputation({
+    moon: {clientProgramEffectAcquisitionCount(actual) {
+      assert.equal(actual, prepared);
+      return 0;
+    }},
+    acquired: {prepared, resultDataPolicy: resultPolicy, resultDataPolicyLimits: policyLimits,
+      control: {adoptCheckedClientEffectInferRun(allowed, definition, policy, limits) {
+        assert.equal(policy, resultPolicy);
+        assert.equal(limits, policyLimits);
+        assert.ok(custody);
+        throw failure;
+      }}},
+    infer: {occurrence: {}}, now: () => '2026-10-04T00:00:00.000Z',
+    retainComputationOwner(value) { custody = value; },
+    sourceProfile: {
+      prepare() { sourceCalls++; throw new Error('UnexpectedSourcePreparation'); },
+      open() { sourceCalls++; throw new Error('UnexpectedSourceOpen'); },
+    },
+  }), error => error === failure);
+  assert.equal(sourceCalls, 0);
+  assert.equal(await custody.cleanup(), false);
+  await custody.close();
+  assert.equal(await custody.cleanup(), true);
+  assert.equal(custody.cleanupPending(), false);
+});
 
 test('acquisition end handoff rejects an unissued or conflicting statement',
   () => {

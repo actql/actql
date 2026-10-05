@@ -62,14 +62,14 @@ test "sequence atomic checks retain independent original claims and reject forei
           (@sequence_limits.MatchesPerKey, 3L),
           (OutputRows, 7L),
         ] {
-        let claim = @sequence_limits.limit(check.limits, scope)
+        let claim = @sequence_limits.host_limit(check.limits, scope)
         assert_eq(
           @derivation.minimum_value(@wire.limit_minimum(claim)),
           expected,
         )
         assert_eq(@wire.limit_enforcement(claim), @wire.EngineAtomic)
         assert_true(
-          physical_equal(claim, @sequence_limits.limit(limits, scope)),
+          physical_equal(claim, @sequence_limits.host_limit(limits, scope)),
         )
       }
       assert_eq(
