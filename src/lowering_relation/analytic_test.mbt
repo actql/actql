@@ -285,11 +285,13 @@ test "analytic canonical source shares exact node and work limits across calls" 
     "\"a\":{\"fn\":\"lead\",\"expr\":\"amount + 1\"}}}",
   )
   let limits = expression_limits()
-  let (_, remaining) = @lowering_relation.prepare_analytic(
-    owner, 0, 100, 1000, limits,
-  ).unwrap()
-  let nodes = limits.max_nodes - remaining.max_nodes
-  let work = limits.max_work - remaining.max_work
+  // Count the fixture independently of the returned balance. Lowering the
+  // property and addition uses 3 + 3 nodes and 12 + 11 work. Their source
+  // sidecars use 19 + 13 slots and 43 + 22 work. The property source's one
+  // comparison scans "value" and "name" (5 + 4 UTF-16 units), moves one
+  // field, and reads/places the inserted field once each.
+  let nodes = 3 + 3 + 19 + 13
+  let work = 12 + 11 + 43 + 22
   let exact = { ..limits, max_nodes: nodes, max_work: work, }
   let (_, empty) = @lowering_relation.prepare_analytic(
     owner, 0, 100, 1000, exact,
@@ -304,6 +306,61 @@ test "analytic canonical source shares exact node and work limits across calls" 
     assert_true(
       @lowering_relation.prepare_analytic(owner, 0, 100, 1000, short)
       is Err(@lowering_relation.AnalyticExpressionFailure(_)),
+    )
+  }
+}
+
+///|
+test "analytic canonical source meters fixed comparison move and UTF-16 scan work" {
+  // Each fixture lowers one literal: 1 annotation + 2 expression visits +
+  // 4 literal visits = 7 work. Source traversal adds 5 visits + 8 field
+  // reads/appends + 2 map writes + 4 child pushes = 19 work before sorting.
+  // Two insertions read and place their field for 4 more work. The shared
+  // prefix includes a surrogate pair: key lengths are 10, 9, and 11 UTF-16
+  // units, not UTF-8 bytes or Unicode scalar counts.
+  for
+    (fields, comparisons, moves, scans) in [
+      (
+        "\"prefix😀aa\":1,\"prefix😀b\":2,\"prefix😀ccc\":3",
+        2,
+        0,
+        10 + 9 + (9 + 11),
+      ),
+      (
+        "\"prefix😀ccc\":3,\"prefix😀b\":2,\"prefix😀aa\":1",
+        3,
+        3,
+        11 + 9 + (11 + 10) + (9 + 10),
+      ),
+      (
+        "\"prefix😀b\":2,\"prefix😀aa\":1,\"prefix😀ccc\":3",
+        2,
+        1,
+        9 + 10 + (9 + 11),
+      ),
+    ] {
+    let owner = analytic_owner(
+      "\"analytic\":{\"partition_by\":[],\"order_by\":[{\"id\":\"asc\"}]," +
+      "\"functions\":{\"out\":{\"fn\":\"lag\",\"expr\":{\"literal\":{" +
+      fields +
+      "}}}}}",
+    )
+    let required_work = 7 + 19 + 4 + comparisons + moves + scans
+    let exact = { ..expression_limits(), max_work: required_work, }
+    let (_, remaining) = @lowering_relation.prepare_analytic(
+      owner, 0, 100, 1000, exact,
+    ).unwrap()
+    assert_eq(remaining.max_work, 0)
+    assert_true(
+      @lowering_relation.prepare_analytic(owner, 0, 100, 1000, {
+        ..exact,
+        max_work: required_work - 1,
+      })
+      is Err(
+        @lowering_relation.AnalyticExpressionFailure(
+          { kind: @lowering_relation.ExpressionBudgetExceeded, .. }
+        )
+      ),
     )
   }
 }
@@ -413,17 +470,9 @@ test "analytic canonical preparation shares limits across sequence steps" {
   let second = "\"analytic\":{\"partition_by\":[],\"order_by\":[{\"id\":\"asc\"}],\"functions\":{\"b\":{\"fn\":\"lag\",\"expr\":\"amount + 1\"}}}"
   let owner = analytic_owner(first + "},{" + second)
   let limits = expression_limits()
-  let (_, after_first) = @lowering_relation.prepare_analytic(
-    owner, 0, 100, 1000, limits,
-  ).unwrap()
-  let (_, after_both) = @lowering_relation.prepare_analytic(
-    owner, 1, 100, 1000, after_first,
-  ).unwrap()
-  let exact = {
-    ..limits,
-    max_nodes: limits.max_nodes - after_both.max_nodes,
-    max_work: limits.max_work - after_both.max_work,
-  }
+  // Each addition lowers 3 expression nodes with 11 work. Its source has
+  // 6 visits, 3 fields, 3 objects and 2 array elements: 13 slots, 22 work.
+  let exact = { ..limits, max_nodes: 2 * (3 + 13), max_work: 2 * (11 + 22), }
   assert_true(
     @lowering_relation.prepare_sequence(owner, {
       ..sequence_limits(),
