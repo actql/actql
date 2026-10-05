@@ -105,9 +105,10 @@ try {
   const fields = ['processCycleMs', 'executionMs', 'coldMs', 'warmMs', 'cleanupMs', 'applicationPreparationMs', 'computeAndIdentityMs'];
   const timing = Object.fromEntries(fields.map(field => [field, assessPairedTiming(pairs,
     {comparator: label, field, mode: 'difference', threshold: 0, minimumPairs: 21})]));
-  const improvement = timing.processCycleMs.status === 'pass' && timing.processCycleMs.upper < 0;
-  await save({status: 'completed', timing, improvement});
-  console.log(JSON.stringify({revision, destination, timing, improvement}));
+  const observedCycleReduction = timing.processCycleMs.status === 'pass' && timing.processCycleMs.upper < 0;
+  const qualification = 'Observed timing only; assess first-use/environmental effects separately before attributing a runtime speedup';
+  await save({status: 'completed', timing, observedCycleReduction, qualification});
+  console.log(JSON.stringify({revision, destination, timing, observedCycleReduction, qualification}));
 } catch (error) {
   await save({status: 'failed', error: {name: error.name, message: error.message, code: error.code}});
   throw error;

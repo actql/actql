@@ -340,3 +340,81 @@ The `execution_us` clock starts at probe entry and includes application and
 acquisition preparation through final identity. Earlier table labels calling it
 physical execution were inaccurate; the raw observations are preserved and the
 labels above are corrected. Actual enclosing/nested phases remain separate.
+
+
+### Fixed-source results and remaining qualification
+
+Experiment source: `fe0b68242d9e240494e85ecb0438f74f55855c88` (clean).
+Native release: 12,405,024 bytes,
+`sha256:2152155cc13ae8003df3c8b46a13ae45edf4a567554d579a440332475dd18f80`.
+Selected JS release modules:
+`0d92ea84a7ce4fe4a03c1d87aa5e82b574893e84dc032efd28703a829765fe4a`.
+Only SHA-256 implementation and its whitebox tests differ in `src/` from the
+archived original. No Owner, work/capacity ceiling or semantic input changes.
+
+All 42 Native executions passed full existing product/Owner admission. Every
+actual plan selected three resident tasks, and both sides agreed on candidates,
+assessments/explanations, task usage, holdings, acquisition evidence and final
+ledger usage. Common source preparation was `200.595 ms`, reported separately.
+
+| Boundary, after minus before | Mean | 95% paired interval | Observed result |
+| --- | ---: | ---: | --- |
+| Parent cycle including files, binary hash and admission | -10.418 ms | -28.959 to -0.667 ms | Reduction in this series |
+| Native probe entry through final result identity | -1.225 ms | -2.259 to -0.378 ms | Reduction in this series |
+| Application preparation | -0.578 ms | -1.449 to -0.048 ms | Reduction in this series |
+| Within-Run task intervals | -0.362 ms | -0.908 to +0.101 ms | Indeterminate |
+| Compute through result identity | -0.452 ms | -1.073 to +0.075 ms | Indeterminate |
+| Physical cleanup | -0.025 ms | -0.065 to +0.016 ms | Indeterminate |
+
+The first parent cycles were `601.712` and `411.192 ms`, while their Native
+entry-to-result clocks were `35.164` and `31.222 ms`. That gap is observed;
+whether Node first-use, OS/image initialization or scheduling caused it is not
+established. A later original-binary application interval was also `14.601 ms`.
+Neither sample is removed. The median parent-cycle difference was `-0.961 ms`;
+this is descriptive, not a replacement primary statistic. The mean reduction
+is not attributed exclusively to ASCII absorption and is not a universal or
+first-request speedup. The original raw `improvement=true` reports its timing
+criterion only; the controller now names that flag `observedCycleReduction`.
+A matched comparison that resolves the first-use boundary remains required
+before closing the runtime-performance task.
+
+Separate acceptance at the same experiment source passed:
+
+- New measured profile: 12 forced training/mixed executions and held-out
+  ordinary selection. Local rates `[1,1,1]`, fresh `[5,5,6]`; resident task
+  rates `[2,2,2]`, preparation 4 ms, cleanup 1 ms, known imports 1 ms.
+  Unknown imports remain unknown. Ordinary held-out selection was three Local
+  tasks; this is distinct from the fixed resident timing experiment.
+- Existing calibrated release-pair entry succeeded. Seven independent-
+  obligation pairs passed the original gates: warm overhead mean `-1.864 ms`,
+  upper `-1.481 ms` against 10 ms; cold overhead mean `-80.298 ms`, upper
+  `-76.388 ms` against 100 ms. No threshold changed.
+- Node Native/Broad acquisition with equivalent residual output and existing
+  process-request cancellation: 2/2. This cancellation includes real stop/exit
+  and retained completion; it is not public Run `Cancelled` certification.
+- Native 100-row resident/fresh/Local choices, cheaper attempt-cap refusal,
+  retained holding and task-between close: 1/1 (five settings). The close case
+  remains `stopped-between-tasks`, not formal cancellation.
+- Before commit, implementation-matching SHA-256 tests passed 14/14 on JS and
+  14/14 Native; hash/ASCII/fragment-integrity consumers passed 6/6; statistical
+  checks passed 7/7. These receipts are working-diff checks, not new-SHA runs.
+
+Commands, exact artifact/input digests and receipts are recorded in
+`_build/repro/artifacts-fe0b68242.json`. The original comparison is
+`_build/repro/ascii-word-comparison-fe0b68242.json`,
+`sha256:227a843d8982834fe182f9f6f0ea788f7d288448461301aa2f8f69d66bf8b228`;
+calibration is `calibration-fe0b68242.json`,
+`sha256:54db092ae8c50efb32ea075ea1892a33290ec072833f8451440be6426782d1ee`;
+original gate is `equivalent-series-fe0b68242.json`,
+`sha256:a0a8e753d3158fa28fdf602872ac9dee8a4f2754e1615911882c7df971d7e4a4`.
+Separate descriptive analysis does not rewrite these originals.
+
+Successful bounded receipts: Native build `run-JGfPyu`, selected JS build
+`run-MQhAsr`, comparison `run-QYvBmf`, calibration `run-qt3ahF`, existing
+release/gate and Node checks `run-7tptrb`, Native owner `run-CskUP2`.
+Initial test-helper visibility failure `run-bupelz` and a rejected nested-guard
+invocation `run-vYknlI` are retained and excluded from success counts.
+No full Core, Wasm, packed acceptance or performance matrix was run. #412's
+isolated-image acceptance and unproved physical capacity remain separate.
+The final report commit changes classification/documentation only; the actual
+compiled and measured source remains the experiment revision above.
