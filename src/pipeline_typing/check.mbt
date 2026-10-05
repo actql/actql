@@ -791,6 +791,64 @@ fn check_impl(
       current = Some(target)
       continue
     }
+    if key == "graphs_equal" {
+      let object = match @decode.closed_object(operation_body, ["with"]) {
+        Ok(object) => object
+        Err(_) => fail(operation_body, InvalidBody)
+      }
+      let with_at = match @decode.required(object, "with") {
+        Ok(at) => at
+        Err(_) => fail(operation_body, InvalidBody)
+      }
+      let right = resolve_target(b, with_at, names)
+      let checked = match
+        @graph.check_property_equality(
+          operation_body,
+          carrier(input, inputs, steps),
+          carrier(right, inputs, steps),
+          {
+            max_work: b.work,
+            max_nodes: b.nodes,
+            max_depth: limits.max_depth,
+            max_text_bytes: b.text,
+          },
+        ) {
+        Ok(value) => value
+        Err(issue) =>
+          raise Stop({
+            kind: Graph(issue.kind),
+            source: operation_body,
+            path: issue.path.copy(),
+            span: issue.span,
+            range: None,
+          })
+      }
+      let used = @graph.property_equality_usage(checked)
+      b.work -= used.work
+      b.nodes -= used.nodes
+      b.text -= used.text_bytes
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation: GraphEquality(right~, checked~),
+        output: @graph.property_equality_output(checked),
+        connections: {
+          entries: [
+            { role: Left, target: input, },
+            { role: Right, target: right, },
+          ],
+        },
+        window: None,
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
+    }
     if key == "graph_diff" || key == "apply_graph_delta" {
       let object = match
         @decode.closed_object(
@@ -878,10 +936,7 @@ fn check_impl(
       current = Some(target)
       continue
     }
-    if key == "graphs_equal" ||
-      key == "graft_graph" ||
-      key == "union_graphs" ||
-      key == "subtract_graphs" {
+    if key == "graft_graph" || key == "union_graphs" || key == "subtract_graphs" {
       let object = match
         @decode.closed_object(
           operation_body,
@@ -1015,18 +1070,60 @@ fn check_impl(
         Ok(value) => value
         Err(_) => fail(at, InvalidBody)
       }
-      if @decode.lookup(selector, "from") is Some(reference) {
-        ignore(resolve_target(b, reference, names))
+      let selected = @decode.lookup(selector, "from").map(reference => {
+        resolve_target(b, reference, names)
+      })
+      let checked = match
+        @graph.check_subgraph(
+          operation_body,
+          carrier(input, inputs, steps),
+          selected.map(target => carrier(target, inputs, steps)),
+          parameters,
+          {
+            max_work: b.work,
+            max_nodes: b.nodes,
+            max_depth: limits.max_depth,
+            max_text_bytes: b.text,
+            max_tokens: b.tokens,
+          },
+        ) {
+        Ok(value) => value
+        Err(issue) => {
+          let diagnostic = @graph.match_diagnostic(issue, operation_body)
+          raise Stop({
+            kind: GraphMatch(diagnostic.kind),
+            source: operation_body,
+            path: diagnostic.path.copy(),
+            span: diagnostic.span,
+            range: diagnostic.range,
+          })
+        }
       }
-      // No induced-subgraph implementation is connected to the current contract.
-      match carrier(input, inputs, steps) {
-        @carrier.GraphValue(_) =>
-          fail(operation_body, Graph(@graph.UnsupportedGraphOperation))
-        @carrier.Opaque(GraphKind) =>
-          fail(operation_body, Graph(@graph.IncompleteGraph))
-        other =>
-          fail(operation_body, Graph(@graph.WrongCarrier(@carrier.kind(other))))
+      let used = @graph.subgraph_usage(checked)
+      b.work -= used.work
+      b.nodes -= used.nodes
+      b.text -= used.text_bytes
+      b.tokens -= used.tokens
+      let entries = [{ role: Primary, target: input, }]
+      if selected is Some(target) {
+        entries.push({ role: Right, target, })
       }
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation: Subgraph(selector=selected, checked~),
+        output: @graph.subgraph_output(checked),
+        connections: { entries, },
+        window: None,
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
     }
     if key == "traverse" {
       let root = match
@@ -2068,7 +2165,7 @@ fn check_impl(
         Values(_) | TimeSeries(_) => []
         Calendar(_) | Pool(_) | Ranking(_) =>
           [{ role: Primary, target: input, }]
-        Traverse(selector~, ..) => {
+        Subgraph(selector~, ..) | Traverse(selector~, ..) => {
           let entries = [{ role: Primary, target: input, }]
           if selector is Some(t) {
             entries.push({ role: Right, target: t, })
@@ -2084,6 +2181,7 @@ fn check_impl(
         | GraphMatch(_)
         | GraphBounds(_)
         | GraphDegree(_)
+        | GraphEquality(..)
         | GraphComponents(_)
         | Event(_)
         | Sequence(_)

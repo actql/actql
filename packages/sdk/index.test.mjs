@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {createServer} from 'node:http';
 import {checkReasonSchemaCid} from '@actql/client-wire';
-import {connect, ClientError, getCheckInput, resolveCheckLocation, explainCheckReason} from './index.mjs';
+import {connect, ClientError, getCheckInput, getSubmissionInput, resolveCheckLocation, explainCheckReason} from './index.mjs';
 
 test('constraint explanations use owned families without choosing a failed numeric bound', () => {
   const hints = {
@@ -778,7 +778,7 @@ test('submit fixes Program and parameters before asynchronous token lookup',
     program.marker = 'changed';
     parameters.value = 'changed';
     releaseToken('token');
-    await submitted;
+    const execution = await submitted;
     assert.deepEqual(requests[1].body, {
       connection: {mode: 'remote', owner: 'remote',
         consentRefs: [], runners: []},
@@ -786,7 +786,81 @@ test('submit fixes Program and parameters before asynchronous token lookup',
       input: {version: 'actql/0.1', marker: 'original'},
       parameters: {value: 'original'},
     });
+    const snapshot = getSubmissionInput(execution);
+    assert.deepEqual(snapshot.input, {version: 'actql/0.1', marker: 'original'});
+    assert.deepEqual(snapshot.parameters, {value: 'original'});
+    assert.equal(Object.isFrozen(snapshot.input), true);
+    assert.equal(Object.isFrozen(snapshot.parameters), true);
+    assert.equal(snapshot.lookupContext.endpoint, 'https://host.example/');
+    assert.equal(snapshot.lookupContext.scopeRef, 'scope-a');
+    assert.equal('token' in snapshot, false);
   });
+
+test('overlapping unknown submits keep their own exact text and declarations', async t => {
+  const waiting = new Map();
+  mock.method(globalThis, 'fetch', async (url, init) => {
+    if (url.pathname.endsWith('/connect')) return Response.json(profile);
+    const body = JSON.parse(init.body);
+    return new Promise(resolve => waiting.set(body.requestId, resolve));
+  });
+  t.after(() => mock.restoreAll());
+  const client = await connect(options);
+  const text = 'SELECT "e\u0301"\r\nFROM @x';
+  const declarations = {p: {type: 'String'}};
+  const parameters = {p: 'original'};
+  const first = client.aql(text, {format: 'sql', requestId: 'first',
+    parameterDeclarations: declarations, parameters}).catch(error => error);
+  const second = client.start({version: 'actql/0.1', marker: 'second'},
+    {requestId: 'second', parameters: {p: 'second'}}).catch(error => error);
+  declarations.p.type = 'Int';
+  parameters.p = 'edited';
+  await new Promise(resolve => setImmediate(resolve));
+  waiting.get('second')(Response.json({bad: true}));
+  const secondError = await second;
+  waiting.get('first')(Response.json({bad: true}));
+  const firstError = await first;
+  assert.equal(firstError.code, 'SubmissionUnknown');
+  assert.equal(secondError.code, 'SubmissionUnknown');
+  assert.deepEqual(getSubmissionInput(firstError).input,
+    {text, format: 'sql', parameterDeclarations: {p: {type: 'String'}}},
+    '[check-mutation:submission-input]');
+  assert.deepEqual(getSubmissionInput(firstError).parameters, {p: 'original'});
+  assert.deepEqual(getSubmissionInput(secondError).input,
+    {version: 'actql/0.1', marker: 'second'});
+  assert.equal(getSubmissionInput(firstError).requestId, 'first');
+  assert.equal(getSubmissionInput(secondError).requestId, 'second');
+  assert.equal(Object.isFrozen(getSubmissionInput(firstError).input.parameterDeclarations.p), true);
+  assert.equal(getSubmissionInput({...firstError}), undefined);
+  assert.equal(getSubmissionInput(JSON.parse(JSON.stringify(firstError))), undefined);
+});
+
+test('local credential and payload failures do not acquire submission input', async t => {
+  const foreign = new Error('CredentialUnavailable');
+  const operations = [];
+  mock.method(globalThis, 'fetch', async url => {
+    operations.push(url.pathname.split('/').at(-1));
+    return Response.json(profile);
+  });
+  t.after(() => mock.restoreAll());
+  let calls = 0;
+  const client = await connect({...options, token: () => {
+    if (++calls === 1) return 'token';
+    throw foreign;
+  }});
+  for (const marker of ['first', 'second']) {
+    await assert.rejects(client.start({marker}), error => error === foreign);
+    assert.equal(getSubmissionInput(foreign), undefined);
+  }
+  await assert.rejects(client.start({value: 1n}), error => {
+    assert.equal(error.code, 'InvalidClientPayload');
+    assert.equal(getSubmissionInput(error), undefined);
+    return true;
+  });
+  for (const value of [undefined, null, 1, 'error', {}, new ClientError('SubmissionUnknown')]) {
+    assert.equal(getSubmissionInput(value), undefined);
+  }
+  assert.deepEqual(operations, ['connect']);
+});
 
 test('request lookup distinguishes retained Run, absence and malformed Host reply',
   async t => {

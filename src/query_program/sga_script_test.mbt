@@ -45,7 +45,6 @@ test "SGA script rejects unknown references unconnected consumers and extra inpu
     suffix in [
       "DATA normalized = FROM g |> normalize_graph(with: 'g'); FROM GRAPH normalized |> MATCH WALK (a:Node) |> SELECT a.id",
       "DATA normalized = FROM g |> normalize_graph(extra: true); FROM GRAPH normalized |> MATCH WALK (a:Node) |> SELECT a.id",
-      "DATA selected = FROM g |> components(kind: 'weak'); FROM selected |> SELECT node_id",
       "DATA combined = mean_graphs(with: [g, g]); FROM GRAPH combined |> MATCH WALK (a:Node) |> SELECT a.id",
       "DATA normalized = FROM g |> normalize_graph() |> SELECT id; FROM normalized |> SELECT id",
       "FROM n |> normalize_graph() |> SELECT id",

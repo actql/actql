@@ -22,6 +22,11 @@ pub fn operation_profile_requirement(
         | EnforceDiagnosticRelationRows
         | BindDiagnosticThreshold(_) => None
       }
+    PropertyEqualityRequirement(o) =>
+      match o {
+        AdmitBothPropertyGraphs => Some(PropertyGraph)
+        CompareCompleteGraphValues | ResolvePropertyEqualityResources => None
+      }
     NormalizeRequirement(o) =>
       match o {
         AdmitNormalizeGraph => Some(PropertyGraph)
@@ -44,6 +49,16 @@ pub fn operation_profile_requirement(
         | EnforceComponentOutputRows
         | EnforceComponentAuthorGuard
         | BindComponentAuthorGuard(_) => None
+      }
+    SubgraphRequirement(o) =>
+      match o {
+        ResolveSubgraphProfile => Some(PropertyGraph)
+        AdmitSubgraphInput
+        | InduceSelectedEndpoints
+        | FilterInducedEdges
+        | PreserveSubgraphIdentitiesAndProperties
+        | PreserveSubgraphPolicyAndScope
+        | ResolveSubgraphResources => None
       }
     TraverseRequirement(o) =>
       match o {

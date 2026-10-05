@@ -351,8 +351,6 @@ test "unconnected current Graph consumers cannot manufacture a legacy checked pi
         identity +
         "]},\"direction\":\"out\",\"max_hops\":1}",
       ),
-      ("subgraph", "{\"nodes\":{\"where\":\"active\"},\"edges\":\"active\"}"),
-      ("graphs_equal", "{\"with\":\"peer\"}"),
       ("graft_graph", "{\"with\":\"peer\"}"),
       ("subtract_graphs", "{\"with\":\"peer\"}"),
       ("union_graphs", "{\"with\":[\"peer\",\"g\",\"peer\"]}"),

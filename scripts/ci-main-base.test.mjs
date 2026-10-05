@@ -61,6 +61,35 @@ test('real gate inventory accepts complete full main with skipped focused-only j
   assert.equal((await resolveMainBaseline(options)).baseSha, base);
   assert.deepEqual(options.requiredJobs, fullWorkflowJobs);
 });
+test('manual main checkpoint accepts the approved optional macOS skip and retains all primary targets', async () => {
+  const {options, state, calls} = fullWorkflowFixture();
+  state.run.event = 'workflow_dispatch';
+  state.jobs.jobs.find(job => job.name === 'native-macos').conclusion = 'skipped';
+  assert.equal((await resolveMainBaseline(options)).baseSha, base);
+  assert(calls.some(path => path.includes('/runs?branch=main&status=success&')));
+  for (const name of fullWorkflowJobs.filter(name => name !== 'native-macos')) {
+    const f = fullWorkflowFixture(); f.state.run.event = 'workflow_dispatch';
+    f.state.jobs.jobs.find(job => job.name === name).conclusion = 'skipped';
+    assert.equal((await resolveMainBaseline(f.options)).baseSha, null, name);
+  }
+});
+test('manual branch, probe-only inventory and missing optional job cannot become a main checkpoint', async () => {
+  for (const change of [
+    f => f.state.run.head_branch = 'feature',
+    f => { f.state.jobs.jobs = f.state.jobs.jobs.filter(job => job.name === 'check'); },
+    f => { f.state.jobs.jobs = f.state.jobs.jobs.filter(job => job.name !== 'native-macos'); },
+    f => { f.state.jobs.jobs.find(job => job.name === 'native-macos').conclusion = 'failure'; },
+  ]) {
+    const f = fullWorkflowFixture(); f.state.run.event = 'workflow_dispatch'; change(f);
+    f.state.jobs.total_count = f.state.jobs.jobs.length;
+    assert.equal((await resolveMainBaseline(f.options)).baseSha, null);
+  }
+});
+test('checkpoint reread cannot change the original trigger from dispatch to push', async () => {
+  const f = fullWorkflowFixture(); f.state.run.event = 'workflow_dispatch';
+  f.state.current = {...f.state.run, event: 'push'};
+  assert.equal((await resolveMainBaseline(f.options)).baseSha, null);
+});
 test('every full-workflow family remains required despite the focused-only skip', async () => {
   for (const name of fullWorkflowJobs) {
     const {options, state} = fullWorkflowFixture();

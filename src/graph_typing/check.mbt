@@ -22,6 +22,7 @@ pub(all) enum IssueKind {
   IncompleteGraph
   UnsupportedGraphProfile
   UnsupportedGraphOperation
+  IncompatibleGraphDomains
   UnknownDeltaField(String)
   UntypedDeltaField(String)
   InvalidDeltaType

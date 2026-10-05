@@ -193,6 +193,37 @@ test('cancel during Local storage seal waits for the started work and never publ
   assert.equal(f.events.includes('settle'), true);
 });
 
+test('cancel during asynchronous Store acquisition never reserves or publishes',
+  async () => {
+    let resolveLease;
+    const lease = new Promise(resolve => { resolveLease = resolve; });
+    const controller = new AbortController();
+    let closed = false, cleaned = false, reserves = 0;
+    const store = {
+      status: () => ({reservedBytes: cleaned ? 0 : 100,
+        cleanupPending: closed && !cleaned}),
+      reserve() { reserves++; throw new Error('UnexpectedStoreReservation'); },
+      close() { closed = true; },
+      async cleanup() { cleaned = true; },
+    };
+    const f = fixture({lease});
+    const work = f.entry.run({}, controller.signal);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.ok(f.events.includes('lease'));
+    controller.abort();
+    resolveLease(store);
+    let failure;
+    await assert.rejects(work, error => {
+      failure = error;
+      return error.name === 'AbortError';
+    });
+    assert.equal(reserves, 0);
+    assert.equal(f.events.includes('complete'), false);
+    await failure.cleanupHandle.retry();
+    assert.equal(cleaned, true);
+    assert.equal(f.released(), true);
+  });
+
 test('reasonless Store rejection remains failed and copied Local wiring is not accepted', async () => {
   const f = fixture({seal: () => Promise.reject()});
   let failure;

@@ -37,8 +37,10 @@ fn operation_count_contract(
     @pipeline.GraphMatch(_)
     | @pipeline.GraphBounds(_)
     | @pipeline.GraphDegree(_)
+    | @pipeline.GraphEquality(..)
     | @pipeline.GraphNormalize(_)
     | @pipeline.GraphComponents(_)
+    | @pipeline.Subgraph(..)
     | @pipeline.Traverse(..) => PropertyGraph
     @pipeline.Projection(_) => ClassificationOnly
     // Delta's graph/action ceilings are not yet selected here. Retain the
