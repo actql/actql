@@ -903,6 +903,11 @@ async function connectSelected(selected, port) {
         throw new ClientError('InvalidHostCheckOutcome', {cause});
       }
       if (!validCheckOutcome(outcome)) fail('InvalidHostCheckOutcome');
+      // Own this call's value before binding or freezing it. A Local Host may
+      // reuse its response object without replacing a previous SDK observation.
+      try { outcome = structuredClone(outcome); }
+      catch { fail('InvalidHostCheckOutcome'); }
+      if (!validCheckOutcome(outcome)) fail('InvalidHostCheckOutcome');
       const report = outcome.report ?? outcome.partial_report;
       if (report) {
         const received = new Map([['source', {kind: 'text', text: body.input.text}]]);

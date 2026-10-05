@@ -7,7 +7,19 @@ import {mutationAcceptance} from './check-disclosure-mutations.mjs';
 const path = 'packages/sdk/index.mjs';
 const acceptance = 'adapters/host-node/client-submission-input.test.mjs';
 const cancellationAcceptance = 'adapters/host-node/client-cancel-response-loss.test.mjs';
+const checkAcceptance = 'adapters/host-node/client-check.test.mjs';
 const expected = (phase, assertion = 'submission-input') => {
+  if (phase === 'check-shape') {
+    return [{name: 'local: check reply custody refuses uncloneable values and copied shape loss',
+      assertions: [{id: assertion, operator: 'rejects'}]}];
+  }
+  if (phase === 'check-custody') {
+    return ['preserve original syntax inputs and positions',
+      'retain structured and partial input custody'].map(name => ({
+      name: `local: reused check replies ${name}`,
+      assertions: [{id: assertion, operator: 'strictEqual'}],
+    }));
+  }
   if (phase.startsWith('cancellation-')) {
     const name = phase === 'cancellation-recorded'
       ? 'Run cancellation explanations retain recorded control facts'
@@ -72,10 +84,22 @@ const mutations = [
     "        if (value instanceof Response) fail('InvalidLocalHostPortResponse');",
     'cancellation-unknown', 'cancel-unknown-explanation'],
 
+  ['check response reuse overwrites original input custody',
+    '      try { outcome = structuredClone(outcome); }\n' +
+      "      catch { fail('InvalidHostCheckOutcome'); }\n", '',
+    'check-custody', 'check-response-custody'],
+
+  ['copied check response loses its wire shape without refusal',
+    "      catch { fail('InvalidHostCheckOutcome'); }\n" +
+      "      if (!validCheckOutcome(outcome)) fail('InvalidHostCheckOutcome');",
+    "      catch { fail('InvalidHostCheckOutcome'); }",
+    'check-shape', 'check-copied-shape'],
+
 ];
 const accepted = (phase, assertion) => {
   const tests = expected(phase, assertion);
-  const file = phase.startsWith('cancellation-') ? cancellationAcceptance : acceptance;
+  const file = phase === 'check-custody' || phase === 'check-shape' ? checkAcceptance
+    : phase.startsWith('cancellation-') ? cancellationAcceptance : acceptance;
   const result = spawnSync(process.execPath, ['scripts/local-checks.mjs', 'test', 'node',
     '--timeout-seconds', '120', '--', '--test-name-pattern',
     `^(?:${tests.map(value => value.name).join('|')})$`, file],

@@ -846,3 +846,20 @@ identity, immutable intent, revision conflicts and reconciliation contract
 before the complete cancellation-outcome design can be exposed. A recorded
 physical-start/close control fixture does not prove delayed live-worker stop
 or external Effect reconciliation.
+
+### SDK custody of received check values
+
+A public Local Host port may reuse its response objects. The SDK detaches the
+validated check value, validates that owned value and only then associates the
+call's immutable submitted input and freezes the observation. This matches the
+independent value custody already supplied by HTTPS JSON decoding. Host-owned
+objects do not acquire SDK freezing, and later Host replies cannot rebind a
+previous SDK outcome to another source or parameter revision. A reporting
+failure with a valid partial report retains that report's submitted inputs;
+an unavailable outcome establishes no report or input association. Copying a
+report outside the SDK does not reconstruct its private input association.
+
+An uncloneable response or an invalid copied shape fails the existing transport
+contract check before any association. This changes neither the checker verdict
+nor the Host's scope/context or disclosure projection. No new source hash,
+persistence, retrieval API, compatibility route or execution state is added.
