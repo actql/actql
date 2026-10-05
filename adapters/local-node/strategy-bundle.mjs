@@ -2,7 +2,7 @@
 // MoonBit; this wrapper never evaluates an expression or synthesizes a result.
 import {readLocalRetainedInput} from './retained-input.mjs';
 import {localComputeFaultInjection, localRetainedStore,
-  localSnapshotStore} from './retained-store.mjs';
+  localSnapshotStore, localExecutionPauseHandler} from './retained-store.mjs';
 import {prepareLocalRetainedOutput} from './retained-output.mjs';
 import {closeCompletedLocalManagedOutput} from './managed-output-custody.mjs';
 import {prepareLocalCarrierSnapshot, prepareLocalRelationSnapshot} from './carrier-snapshot.mjs';
@@ -17,13 +17,20 @@ const yieldToHost = () => new Promise(resolve => setTimeout(resolve, 0));
 const managedWorkQuantum = 256;
 const managedFinalizationQuantum = 32;
 
-const validateManagedAdvance = (observation, quantum, errorName) => {
+const validateManagedAdvance = (observation, quantum, errorName, allowPause = false) => {
+  const waiting = observation?.waiting === true;
+  const settlement = observation?.settlement;
+  const settling = settlement !== undefined && settlement !== null;
+  const paused = waiting || settling;
   if (observation == null || typeof observation !== 'object' ||
       typeof observation.complete !== 'boolean' ||
       typeof observation.progress !== 'bigint' ||
       typeof observation.work !== 'bigint' || observation.progress < 0n ||
       observation.work < 0n || observation.work > BigInt(quantum) ||
-      (!observation.complete && observation.work === 0n)) {
+      (observation.waiting !== undefined && typeof observation.waiting !== 'boolean') ||
+      (settling && (!Number.isSafeInteger(settlement) || settlement < 0)) ||
+      (paused && (!allowPause || observation.complete || waiting && settling)) ||
+      (!observation.complete && !paused && observation.work === 0n)) {
     throw new Error(errorName);
   }
   return observation;
@@ -48,7 +55,7 @@ const stopBoundedExecution = (operations, checked) => {
 // Local computation is bounded on every path: there is no synchronous
 // whole-task execute fallback.
 const runManagedExecution = async (
-  operations, checked, signal, faultInjection, task,
+  operations, checked, signal, faultInjection, task, handlePause, checkpointPause,
 ) => {
   if (typeof operations.advance !== 'function') {
     throw new Error('MissingBoundedLocalExecution');
@@ -62,6 +69,7 @@ const runManagedExecution = async (
       checked(operations.advance(managedWorkQuantum)),
       managedWorkQuantum,
       'InvalidLocalManagedAdvance',
+      true,
     );
     if (faultInjection !== undefined && observation.work > 0n &&
         !observation.complete) {
@@ -75,6 +83,33 @@ const runManagedExecution = async (
       signal.throwIfAborted();
     }
     if (observation.complete) return;
+    if (observation.waiting === true || observation.settlement != null) {
+      if (typeof handlePause !== 'function') {
+        throw new Error('MissingLocalExecutionPauseHandler');
+      }
+      const onAbort = () => stopBoundedExecution(operations, checked);
+      signal?.addEventListener('abort', onAbort, {once: true});
+      let decision;
+      try {
+        // No timer or further advance runs while the physical Store or the
+        // existing authority owner handles this explicit pause.
+        decision = await handlePause(Object.freeze({task,
+          status: observation.waiting === true ? 'waiting' : 'settling',
+          ...(observation.settlement == null ? {} : {slot: observation.settlement}),
+          signal}));
+      } finally { signal?.removeEventListener('abort', onAbort); }
+      signal?.throwIfAborted();
+      if (decision?.action === 'waiting_checkpoint' && decision.checkpoint != null) {
+        checkpointPause(decision);
+        // Unwind representation uses before handing physical cleanup to the
+        // caller. This private control signal is never a Run failure.
+        throw decision;
+      }
+      if (decision?.action !== 'resume') {
+        throw new Error('InvalidLocalExecutionPauseDecision');
+      }
+      continue;
+    }
     await yieldToHost();
   }
 };
@@ -108,6 +143,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
   const createLease = localRetainedStore(configuration);
   const createSnapshotLease = localSnapshotStore(configuration);
   const faultInjection = localComputeFaultInjection(configuration);
+  const handlePause = localExecutionPauseHandler(configuration);
   const registration = moon.strategyModule_local_Registration(setup);
   let nextMaterial = 1;
   return Object.freeze({
@@ -253,6 +289,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
       );
       let available = true;
       let snapshot, snapshotDiagnostic, relationSnapshotDiagnostic;
+      let checkpointPause;
       try {
         const transfers = operations.inputs;
         const relationInputs = dispatchInputs.filter(input =>
@@ -323,7 +360,8 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           async () => {
             for (const transfer of transfers) checked(transfer.finish());
             await runManagedExecution(operations, checked, signal,
-              faultInjection, prepared.task);
+              faultInjection, prepared.task, handlePause,
+              decision => { checkpointPause = decision; });
           },
           signal,
           undefined,
@@ -442,12 +480,18 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
       } catch (error) {
         available = false;
         stopBoundedExecution(operations, checked);
-        throw settleFailedManagedOperations(
+        const stopped = settleFailedManagedOperations(
           operations, checked, error, failureProgress,
           snapshot == null ? [] : [{
             close: snapshot.close, cleanupHandle: snapshot.cleanupHandle,
           }],
         );
+        if (checkpointPause !== undefined) return Object.freeze({
+          status: 'waiting_checkpoint', checkpoint: checkpointPause.checkpoint,
+          cleanupPending: stopped?.cleanupPending === true,
+          cleanupHandle: stopped?.cleanupHandle,
+        });
+        throw stopped;
       }
     },
     async run(task, signal, completionPermit) {
@@ -460,6 +504,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
       );
       let importedRows = 0, importedBytes = 0n;
       let output;
+      let checkpointPause;
       try {
         if (operations.output != null) output = prepareLocalRetainedOutput(
           operations.output, createLease, checked, signal, faultInjection,
@@ -474,7 +519,8 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         }
         await runManagedExecution(operations, checked, signal,
           faultInjection,
-          faultInjection === undefined ? undefined : moon.strategyHostTask(task));
+          typeof moon.strategyHostTask === 'function' ? moon.strategyHostTask(task) : undefined, handlePause,
+          decision => { checkpointPause = decision; });
         const exported = output ? await output.write() : {};
         checked(operations.settle());
         recordManagedFailureExecutionSettled(failureProgress);
@@ -515,7 +561,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           } : () => operations.close()};
       } catch (error) {
         stopBoundedExecution(operations, checked);
-        throw settleFailedManagedOperations(
+        const stopped = settleFailedManagedOperations(
           operations,
           checked,
           error,
@@ -525,6 +571,12 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
             cleanupHandle: output.cleanupHandle,
           }],
         );
+        if (checkpointPause !== undefined) return Object.freeze({
+          status: 'waiting_checkpoint', checkpoint: checkpointPause.checkpoint,
+          cleanupPending: stopped?.cleanupPending === true,
+          cleanupHandle: stopped?.cleanupHandle,
+        });
+        throw stopped;
       }
     },
   });

@@ -16,6 +16,7 @@ import test, {after} from 'node:test';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {connect, getCheckInput, resolveCheckLocation, resolveCheckTextRange, explainCheckReason} from '../../packages/sdk/index.mjs';
+import * as sdk from '../../packages/sdk/index.mjs';
 import {validCheckOutcome, checkReasonSchemaCid} from '../../packages/client-wire/index.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {createNodeAuthorizationGate} from './authorization.mjs';
@@ -1058,6 +1059,101 @@ for (const entrance of ['local', 'http']) {
     assert.equal(unsupported.report.verdict, 'undetermined');
     assert.deepEqual(unsupported.report.reasons, []);
     assert.deepEqual(unsupported.report.coverage.limits, [{code: 'implementation_limit'}]);
+  });
+
+  test(`${entrance}: check outcome explanations preserve reporting boundaries`, async t => {
+    const client = await contextClient(t, entrance, absentEnvironment,
+      {maxRequestBytes: 262144});
+    // Independent input count: the declarations fit input/analysis bounds,
+    // while 512 missing-value explanations exceed the reserved report budget.
+    const declarations = Object.fromEntries(Array.from({length: 512}, (_, i) =>
+      [`p${String(i).padStart(3, '0')}`, {type: 'number'}]));
+    const unbounded = await client.check('SELECT 1 AS n', {format: 'sql',
+      parameterDeclarations: declarations, parameters: {}});
+    assert.deepEqual(unbounded, {version: 'actql-check-outcome/0.1',
+      reason_schema_cid: checkReasonSchemaCid, outcome: 'failed',
+      problem: {code: 'check_report_unbounded'}});
+    assert.equal(typeof sdk.explainCheckOutcome, 'function',
+      '[check-mutation:check-outcome-explanation]');
+    assert.deepEqual(sdk.explainCheckOutcome(unbounded), {outcome: 'failed',
+      problem: {kind: 'known', code: 'check_report_unbounded'},
+      summary: 'The reporting budget could not produce a complete bound check report.',
+      hint: 'Ask the checking-context owner to review reporting capacity for the original checking scope.'},
+    '[check-mutation:check-outcome-explanation]');
+
+    for (const [text, options, verdict, summary, hint] of [
+      ['SELECT 1 AS n', {}, 'verified',
+        'The report verifies only its bound checking scope and context.',
+        'Use the execution, cancellation and release owners for their respective results.'],
+      ['SELECT', {}, 'invalid',
+        'The report establishes an input violation in its checking scope.',
+        'Review the disclosed reasons and correct the submitted revision where indicated.'],
+      ['SELECT @x AS n', {parameterDeclarations: {x: {type: 'number'}}, parameters: {}},
+        'undetermined',
+        'The report cannot establish verification or a proven input violation in its checking scope.',
+        'Review missing inputs and disclosed checking limits; an outstanding obligation is not an input error.'],
+    ]) {
+      const outcome = await client.check(text, {format: 'sql', ...options});
+      assert.equal(outcome.outcome, 'completed');
+      assert.equal(outcome.report.verdict, verdict);
+      const expected = {outcome: 'completed', summary, hint,
+        report: {completeness: 'complete', verdict, scope: {kind: 'bound_input'},
+          contextRef: outcome.report.context_ref}};
+      const explanation = sdk.explainCheckOutcome(outcome);
+      assert.deepEqual(explanation, expected, '[check-mutation:check-outcome-explanation]');
+      assert.equal(Object.isFrozen(explanation.report.scope), true);
+      // Safe text survives transport copies; original-input custody does not.
+      const copy = structuredClone(outcome);
+      assert.deepEqual(sdk.explainCheckOutcome(copy), expected);
+      assert.equal(getCheckInput(copy, 'source'), undefined);
+    }
+    const overBudget = `/*${'é'.repeat(32758)}*/SELECT 1 AS n`;
+    assert.equal(Buffer.byteLength(overBudget), 65533);
+    const analysis = await client.check(overBudget + '    ', {format: 'sql'});
+    assert.equal(analysis.outcome, 'completed');
+    assert.equal(analysis.report.verdict, 'undetermined');
+    assert.deepEqual(analysis.report.coverage.limits, [{code: 'analysis_budget_exhausted'}]);
+    assert.equal(sdk.explainCheckOutcome(analysis).report.verdict, 'undetermined',
+      '[check-mutation:check-outcome-explanation]');
+    assert.equal(sdk.explainCheckOutcome(analysis).report.completeness, 'complete');
+  });
+
+  test(`${entrance}: check outcome explanations preserve partial and unavailable boundaries`, async t => {
+    let branch = 'partial';
+    const client = await contextClient(t, entrance, absentEnvironment, {
+      // Fault injection into the real Host boundary. These two shapes are
+      // schema acceptance evidence, not claims of a natural Owner failure.
+      mutateCheckReply: outcome => branch === 'partial' ? {
+        version: outcome.version, reason_schema_cid: outcome.reason_schema_cid,
+        outcome: 'failed', problem: {code: 'check_internal'}, partial_report: outcome.report,
+      } : {version: outcome.version, reason_schema_cid: outcome.reason_schema_cid,
+        outcome: 'unavailable', correlation_ref: 'corr:check-fixture',
+        problem: {code: 'check_unavailable'}},
+    });
+    const partial = await client.check('SELECT', {format: 'sql'});
+    const explanation = sdk.explainCheckOutcome(partial);
+    assert.deepEqual(explanation, {outcome: 'failed',
+      problem: {kind: 'known', code: 'check_internal'},
+      summary: 'An internal checking failure prevented a complete bound check report.',
+      hint: 'Ask the checking-context owner to investigate the reporting failure.',
+      report: {completeness: 'partial', verdict: 'invalid', scope: {kind: 'bound_input'},
+        contextRef: partial.partial_report.context_ref}},
+    '[check-mutation:check-outcome-partial]');
+    assert.equal(resolveCheckLocation(partial, partial.partial_report.reasons[0].location).text, '');
+    branch = 'unavailable';
+    const unavailable = await client.check('SELECT 1 AS n', {format: 'sql'});
+    assert.deepEqual(sdk.explainCheckOutcome(unavailable), {outcome: 'unavailable',
+      problem: {kind: 'known', code: 'check_unavailable'}, correlationRef: 'corr:check-fixture',
+      summary: 'The scope and checking context needed for a safe public report are unavailable.',
+      hint: 'Ask the checking-context owner to review the published context; this response does not establish an input error.'},
+    '[check-mutation:check-outcome-unavailable]');
+    assert.equal(getCheckInput(unavailable, 'source'), undefined);
+    assert.deepEqual(sdk.explainCheckOutcome(partial), explanation);
+    const copied = structuredClone(partial);
+    copied.partial_report.verdict = 'verified';
+    copied.partial_report.reasons = [];
+    assert.equal(sdk.explainCheckOutcome(copied), undefined,
+      '[check-mutation:check-outcome-invalid]');
   });
 }
 const numericContract = JSON.parse(await readFile(join(repository,

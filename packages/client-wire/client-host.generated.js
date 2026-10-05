@@ -537,76 +537,190 @@ const schemas = {
     }
   },
   "checkpoint_summary": {
-    "type": "object",
-    "required": [
-      "checkpointId",
-      "checkpointCid",
-      "kind",
-      "phase",
-      "subject",
-      "requiredArtifact",
-      "reviewProjectionCid",
-      "requirements",
-      "createdAt",
-      "expiresAt",
-      "humanSummary"
-    ],
-    "additionalProperties": false,
-    "properties": {
-      "checkpointId": {
-        "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
-        "minLength": 1,
-        "maxLength": 256
-      },
-      "checkpointCid": {
-        "type": "string",
-        "pattern": "^sha256:[0-9a-f]{64}$"
-      },
-      "kind": {
-        "enum": [
-          "run_scope",
-          "read_access",
-          "data_egress",
-          "cost_scope",
-          "effect_set"
-        ]
-      },
-      "phase": {
-        "enum": [
-          "preflight",
-          "commit"
-        ]
-      },
-      "subject": {
-        "oneOf": [
-          {
+    "oneOf": [
+      {
+        "type": "object",
+        "required": [
+          "checkpointId",
+          "checkpointCid",
+          "kind",
+          "phase",
+          "subject",
+          "requiredArtifact",
+          "reviewProjectionCid",
+          "requirements",
+          "createdAt",
+          "expiresAt",
+          "humanSummary"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "checkpointId": {
+            "type": "string",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "checkpointCid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "kind": {
+            "enum": [
+              "run_scope",
+              "read_access",
+              "data_egress",
+              "cost_scope",
+              "effect_set"
+            ]
+          },
+          "phase": {
+            "enum": [
+              "preflight",
+              "commit"
+            ]
+          },
+          "subject": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "prepareAttemptId",
+                  "requestId"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "prepare_attempt"
+                  },
+                  "prepareAttemptId": {
+                    "type": "string",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "requestId": {
+                    "type": "string",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "minLength": 1,
+                    "maxLength": 256
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "runId",
+                  "runDefinitionCid"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "run_unit"
+                  },
+                  "runId": {
+                    "type": "string",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "runDefinitionCid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
+              }
+            ]
+          },
+          "requiredArtifact": {
             "type": "object",
             "required": [
-              "kind",
-              "prepareAttemptId",
-              "requestId"
+              "type",
+              "cid"
             ],
             "additionalProperties": false,
             "properties": {
-              "kind": {
-                "const": "prepare_attempt"
-              },
-              "prepareAttemptId": {
+              "type": {
                 "type": "string",
                 "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
                 "minLength": 1,
                 "maxLength": 256
               },
-              "requestId": {
+              "cid": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
-                "minLength": 1,
-                "maxLength": 256
+                "pattern": "^sha256:[0-9a-f]{64}$"
               }
             }
           },
-          {
+          "reviewProjectionCid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "requirements": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "expiresAt": {
+            "type": "string",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "humanSummary": {
+            "type": "string",
+            "maxLength": 1024
+          }
+        }
+      },
+      {
+        "type": "object",
+        "required": [
+          "checkpointId",
+          "checkpointCid",
+          "kind",
+          "phase",
+          "subject",
+          "requiredArtifact",
+          "reviewProjectionCid",
+          "requirements",
+          "createdAt",
+          "expiresAt",
+          "humanSummary",
+          "preparedInvocationCid"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "checkpointId": {
+            "type": "string",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "checkpointCid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "kind": {
+            "const": "model_invocation"
+          },
+          "phase": {
+            "const": "preflight"
+          },
+          "subject": {
             "type": "object",
             "required": [
               "kind",
@@ -629,60 +743,61 @@ const schemas = {
                 "pattern": "^sha256:[0-9a-f]{64}$"
               }
             }
-          }
-        ]
-      },
-      "requiredArtifact": {
-        "type": "object",
-        "required": [
-          "type",
-          "cid"
-        ],
-        "additionalProperties": false,
-        "properties": {
-          "type": {
+          },
+          "requiredArtifact": {
+            "type": "object",
+            "required": [
+              "type",
+              "cid"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "const": "model_invocation_scope"
+              },
+              "cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            }
+          },
+          "reviewProjectionCid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "requirements": {
+            "type": "array",
+            "uniqueItems": true,
+            "minItems": 1,
+            "maxItems": 1,
+            "items": {
+              "type": "string",
+              "const": "invocation_scope_approved"
+            }
+          },
+          "createdAt": {
             "type": "string",
             "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
             "minLength": 1,
             "maxLength": 256
           },
-          "cid": {
+          "expiresAt": {
+            "type": "string",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "humanSummary": {
+            "type": "string",
+            "maxLength": 1024
+          },
+          "preparedInvocationCid": {
             "type": "string",
             "pattern": "^sha256:[0-9a-f]{64}$"
           }
         }
-      },
-      "reviewProjectionCid": {
-        "type": "string",
-        "pattern": "^sha256:[0-9a-f]{64}$"
-      },
-      "requirements": {
-        "type": "array",
-        "uniqueItems": true,
-        "items": {
-          "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
-          "minLength": 1,
-          "maxLength": 256
-        }
-      },
-      "createdAt": {
-        "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
-        "minLength": 1,
-        "maxLength": 256
-      },
-      "expiresAt": {
-        "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
-        "minLength": 1,
-        "maxLength": 256
-      },
-      "humanSummary": {
-        "type": "string",
-        "maxLength": 1024
       }
-    }
+    ]
   },
   "checkpoint_review": {
     "type": "object",
@@ -1228,7 +1343,8 @@ const schemas = {
               "read_access",
               "data_egress",
               "cost_scope",
-              "effect_set"
+              "effect_set",
+              "model_invocation"
             ]
           }
         }

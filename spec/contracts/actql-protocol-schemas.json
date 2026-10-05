@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:05ce90dbfb303c577858283369b90503ddf1bb4410947b66bf93a4b81a939666",
+  "artifact_registry_cid": "sha256:7f879fd423992c314cbe9917f653b6e4954004b208e7cb60ec7cd8d921d98155",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10683,18 +10683,18 @@
     "execution_context": "sha256:49bb0acf26e64ffc1d0802b03b251f27476732ad28c80f0c89b35c5cbf5734b2",
     "run_policy": "sha256:d1c763d2ba8357fd33fa41afd690eed8088a310e4640fa615907c4866a125db6",
     "prepared_invocation": "sha256:b3aa019105b4b6db51c69b2b96771ebe184f87c1f7eff3347bf5aef1cd9482f9",
-    "run_review_projection": "sha256:a883398aa5f831befbc132a18a48c4233b4596edcec616d5d3328aea62df8c38",
+    "run_review_projection": "sha256:6c1ee39379eb6a433bc555cbea5918dfb8d757ee12b7afa20de63fb34caad11e",
     "run_scope_approval": "sha256:ab7aa04f5afe9b7479ab2bc1ad078b2df41bde6248fd6eae1d0f88a94ffaa3de",
     "run_authorization": "sha256:f3085180be28dfc3f7b6151adf56796255a257a73205fabf674be281a05e4ed9",
     "run_definition": "sha256:62b4314c02685e9c685870abcc1eb690bff333e7e743ec81ae3ad87f7b3ac045",
-    "execution_checkpoint": "sha256:03fbd027709bbb7fae5563ec05ce56c899f9af21695f4e989b4b2e0306b91d2b",
+    "execution_checkpoint": "sha256:2463a0ebef2f3b78f2603d934a4e4e85851a4afa956abcdedec641594c92f91c",
     "checkpoint_resolution": "sha256:46a6fdc061fa09bfbed96bbaf438cf051d343ed304870db13d5893529238dba5",
-    "verified_checkpoint_resolution": "sha256:c8304cef7cad5b5e0a8afd8a3f1a4e5b346147218bd2a46ac7994baeaa21a625",
+    "verified_checkpoint_resolution": "sha256:6dc98be34ae34a02069f644651abbf9eb90ac3117495895e83362faf32c12b76",
     "result_manifest": "sha256:8f308beba1e134bb0bbf013f961015a39301ab05dc24d54c0fbfbcddde6eeafa",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
     "plan_document": "sha256:4ccb9e9e3c885c48a19359c2771456a0d25fa9dfb44bf27130d6a655257ace45",
     "plan_result": "sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7",
-    "run_state": "sha256:e61cdac45a5af98ca5362ee945511d705c373613cd4e9dc42009e036eb9fcb84",
+    "run_state": "sha256:bee392c34643093d135c15a094c27b62745f5ef0282f7fe41692791676f59f5e",
     "captured_run": "sha256:d10eba96fc9983ffe709fee16faab30c9912af109d4310acad64fc675360b0c7",
     "execution_account_config": "sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20",
     "caller_input_intent": "sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d",
@@ -10706,7 +10706,7 @@
     "model_input_artifact": "sha256:86e9e2c7b59634e8235b80a12b241a26f4f32f913dd30064aed36dfaecaf318c",
     "model_input_key": "sha256:103b8c1515bb65f7ccd9f6963d798fcd20ce598cb7b266e09f2b32fac5831af0",
     "model_call_slot": "sha256:a83e0af3e07986b5655463e0d39da3eb6c74cbefb327e65525de4be0035eac2b",
-    "model_dispatch_authority": "sha256:b00aae86b12bae22d8ef3f62d98d1a192fa9253371407fde016fc23a28117d09",
+    "model_dispatch_authority": "sha256:2ef4cc7eb176d29e8abadf8be9c4741b4253ddfae554667dc51e68fe5c0c0a72",
     "model_call_attempt": "sha256:c80b4873ed75130e12006eb5f00154d77b74a85394eb1a7dbf517078d4db2741",
     "model_attempt_accounting": "sha256:64060e2b23925f0d7be708240f504df312f7e46706e2a5fefd7c46d8d421430f",
     "model_attempt_outcome": "sha256:90afd9fed54246784afb4b8922a0ec228c048d50e75f53598702a4c5ca0770b7",
@@ -10714,7 +10714,9 @@
     "model_retry_policy": "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c",
     "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55",
     "check_outcome": "sha256:9b4dd3d89263735a88409eb9991aa22877146f06f5e72f48d519e8ebf059dc30",
-    "check_reason": "sha256:6c1c1eb6f5d8ac67e831f7c49ef8b2defe598c951ef542b12360e1356037ce76"
+    "check_reason": "sha256:6c1c1eb6f5d8ac67e831f7c49ef8b2defe598c951ef542b12360e1356037ce76",
+    "model_provider_binding": "sha256:a4a37e0016403b483aa267dca7aae6c682940d2b23343b95defbcac2a1ca92b3",
+    "model_invocation_scope": "sha256:2ae55fd7143e29dc3468123dbea9979c65f0aeac9adc392098db87679ebf88c3"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -40417,7 +40419,47 @@
           "format": "date-time"
         },
         "displayed_scope": {
-          "type": "object"
+          "type": "object",
+          "properties": {
+            "model_invocation_scope_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "model_call_slot_cids": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "required": [
+                  "model_invocation_scope_cid"
+                ]
+              },
+              "then": {
+                "required": [
+                  "model_call_slot_cids"
+                ]
+              }
+            },
+            {
+              "if": {
+                "required": [
+                  "model_call_slot_cids"
+                ]
+              },
+              "then": {
+                "required": [
+                  "model_invocation_scope_cid"
+                ]
+              }
+            }
+          ]
         },
         "displayed_authoring_context": {
           "type": "array",
@@ -40712,7 +40754,8 @@
             "read_access",
             "data_egress",
             "cost_scope",
-            "effect_set"
+            "effect_set",
+            "model_invocation"
           ]
         },
         "required_artifact": {
@@ -40729,7 +40772,8 @@
                 "read_scope",
                 "egress_scope",
                 "budget_scope",
-                "effect_set_preview"
+                "effect_set_preview",
+                "model_invocation_scope"
               ]
             },
             "artifact_cid": {
@@ -41124,6 +41168,64 @@
                     "partial_application_accepted"
                   ]
                 }
+              ]
+            }
+          }
+        },
+        {
+          "properties": {
+            "subject": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "run_id",
+                "unit_id",
+                "continuation"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "run_unit"
+                },
+                "run_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "unit_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "continuation": {
+                  "const": "resume_unit"
+                }
+              }
+            },
+            "phase": {
+              "const": "preflight"
+            },
+            "kind": {
+              "const": "model_invocation"
+            },
+            "required_artifact": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "artifact_type",
+                "artifact_cid"
+              ],
+              "properties": {
+                "artifact_type": {
+                  "const": "model_invocation_scope"
+                },
+                "artifact_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              }
+            },
+            "requirements": {
+              "const": [
+                "invocation_scope_approved"
               ]
             }
           }
@@ -41553,7 +41655,8 @@
                     "run_scope",
                     "read_access",
                     "data_egress",
-                    "cost_scope"
+                    "cost_scope",
+                    "model_invocation"
                   ]
                 },
                 "checkpoint_cid": {
@@ -72623,7 +72726,8 @@
                 "read_access",
                 "data_egress",
                 "cost_scope",
-                "effect_set"
+                "effect_set",
+                "model_invocation"
               ]
             }
           }
@@ -75511,6 +75615,10 @@
           }
         },
         "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "model_invocation_scope_cid": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
         }
@@ -79033,6 +79141,159 @@
           }
         }
       ]
+    },
+    "model_provider_binding": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-model-provider-binding-0.1.json",
+      "title": "actql-model-provider-binding-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "provider_id",
+        "installation_revision_cid",
+        "configuration_contract_cid",
+        "configuration_cid",
+        "self_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-model-provider-binding/0.1"
+        },
+        "provider_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "installation_revision_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "configuration_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "configuration_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "model_invocation_scope": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-model-invocation-scope-0.1.json",
+      "title": "actql-model-invocation-scope-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "run_definition_cid",
+        "task_index",
+        "strategy_revision",
+        "inference_barrier_cid",
+        "input_artifact_cid",
+        "model_call_slot_cids",
+        "provider_binding_cid",
+        "authorization_context",
+        "self_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-model-invocation-scope/0.1"
+        },
+        "run_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "task_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "strategy_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "inference_barrier_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "input_artifact_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "model_call_slot_cids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "provider_binding_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "authorization_context": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "account_id",
+            "configuration_cid",
+            "entry_id",
+            "principal",
+            "connection",
+            "resource",
+            "operation",
+            "boundary",
+            "context_cid"
+          ],
+          "properties": {
+            "account_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "configuration_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "entry_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "principal": {
+              "type": "string",
+              "minLength": 1
+            },
+            "connection": {
+              "type": "string",
+              "minLength": 1
+            },
+            "resource": {
+              "type": "string",
+              "minLength": 1
+            },
+            "operation": {
+              "const": "infer"
+            },
+            "boundary": {
+              "const": "activation"
+            },
+            "context_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
     }
   }
 }

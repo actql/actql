@@ -20,6 +20,7 @@ This document owns run-wire, checkpoint-wire, resolution-wire, preview-wire, app
 
 - [Terms](#run-terms)
 - [Checkpoint and Resolution admission](#resolution-admission)
+- [Fixed Model invocation approval](#model-invocation-approval)
 - [Private preview row state](#preview-row-state)
 - [Stage wire and immutable history](#stage-wire)
 - [Policy and human risk acceptance](#policy-risk-acceptance)
@@ -126,6 +127,7 @@ The valid combinations are exactly:
 | `prepare_attempt` or `run_unit` | `preflight` | `read_access` | `read_scope` |
 | `run_unit` | `preflight` | `data_egress` | `egress_scope` |
 | `run_unit` | `preflight` | `cost_scope` | `budget_scope` |
+| `run_unit` | `preflight` | `model_invocation` | `model_invocation_scope` |
 | `run_unit` | `commit` | `effect_set` | `effect_set_preview` |
 
 A `prepare_attempt` subject contains `prepare_attempt_id` and
@@ -197,6 +199,95 @@ CID of the wrapper without both `host_attestation` and
 `verified_resolution_cid`. The signed CID binds the artifact `version`, so a
 signature cannot be replayed as another artifact kind. `proof.key_id` and
 `host_attestation.host_key_id` select only Host-trusted keys.
+
+<a id="model-invocation-approval"></a>
+
+### Fixed Model invocation approval
+
+<!-- requirement-block: model-invocation-approval.fixed-scope -->
+Before requesting delegated approval, the Run owner MUST fix an
+`actql-model-invocation-scope/0.1` original with `run_definition_cid`,
+`task_index`, `strategy_revision`, `inference_barrier_cid`,
+`input_artifact_cid`, the complete ordered duplicate-free
+`model_call_slot_cids`, `provider_binding_cid`, `authorization_context` and
+`self_cid`. Its self CID hashes the complete canonical body excluding only
+`self_cid`. An empty call inventory is valid for an empty checked input and
+grants no provider send. Order and multiplicity in the actual checked input
+remain bound through the original input and call-slot artifacts.
+
+<!-- requirement-block: model-invocation-approval.original-closure -->
+The owner MUST admit and retain the scope's referenced originals and verify
+their complete dependency closure against the actual Run occurrence, checked
+Model contracts, actual input rows and keys, request arguments, retry policy,
+limits and egress scope. An unexplained caller-supplied CID is not evidence of
+those facts. Existing `plan.request_cid` and `fixed_request_cid` identify the
+original request-expression mapping; neither is an alias for the invocation
+scope. Changing any identity-bearing occurrence, input, request, contract,
+provider binding or authorization fact requires a new scope and decision.
+
+<!-- requirement-block: model-invocation-approval.authorization-context -->
+The closed `authorization_context` MUST contain `account_id`,
+`configuration_cid`, `entry_id`, `principal`, `connection`, `resource`,
+`operation: infer`, `boundary: activation` and `context_cid`, taken from
+trusted current authority. It omits `subject_cid` to avoid a self-cycle. The
+completed scope CID becomes the Activation decision's `subject_cid`, the
+Checkpoint's `required_artifact.artifact_cid` and the Resolution's
+`required_artifact_cid`.
+
+<!-- requirement-block: model-invocation-approval.provider-binding -->
+The Host MUST derive and admit `actql-model-provider-binding/0.1` from
+nonsecret installation and configuration originals: `provider_id`,
+`installation_revision_cid`, `configuration_contract_cid`,
+`configuration_cid` and `self_cid`. Its self CID excludes only `self_cid`.
+The installation binds implementation revision, route, tenant, security
+principal and request shaping. Credential secret values and function text are
+excluded; ordinary secret rotation alone does not alter this nonsecret
+binding. A change to target, principal or request shaping changes the binding,
+even if the provider's display name remains unchanged.
+
+<!-- requirement-block: model-invocation-approval.exact-review -->
+The existing `actql-run-review-projection/0.1` MUST bind its
+`displayed_scope.model_invocation_scope_cid` and
+`displayed_scope.model_call_slot_cids` to this exact scope and inventory.
+Redaction may hide private request content but never substitute identities or
+omit calls. Its `prepared_invocation_cid` and the run-scope compatibility
+approval's corresponding field identify the actual original PreparedInvocation
+retained by this Run's admission, not the Model scope. The common verifier
+checks that association against retained originals; a matching caller summary
+or unrelated PreparedInvocation is insufficient. Public Model Checkpoint
+summary metadata carries that original as `preparedInvocationCid` only for
+`model_invocation`; consumers that cannot verify this kind refuse it explicitly.
+
+<!-- requirement-block: model-invocation-approval.per-call-send -->
+Before each new delegated Model send, the owner MUST have current approved
+scope, `infer` authority and independent egress permission, and durably record
+send start for that exact call in the existing call owner before physical
+dispatch. The Model dispatch authority carries `model_invocation_scope_cid`
+for every new delegated send. Approval fixes the call set, while durable
+send-start, received-response and result-unknown evidence is per call rather
+than one once-only marker for the complete set. No Model call precedes its
+required invocation approval, and no Effect write precedes its required
+Effect approval.
+
+<!-- requirement-block: model-invocation-approval.restart-reuse -->
+On restart, the owner MUST reuse durably saved responses and never resend a
+call whose original send may have started without a saved response. Such a
+call remains `result_unknown` attempt evidence, not a fabricated provider
+failure, successful slot capture or completed barrier. Proven-unsent calls
+may progress under current approval, infer authority and egress, subject to
+the checked failure policy; one unknown call does not itself authorize
+replaying another. A completed barrier still requires its ordinary actual
+slot observations and completeness evidence.
+
+<!-- requirement-block: model-invocation-approval.expiry-and-history -->
+Expiry, cancellation, rejection or changed authority MUST stop all remaining
+unsent calls without erasing sent-call observation, accounting or cleanup
+obligations. Historical authority and response bytes without the optional
+scope field remain valid for no-send replay and observation only; recovery
+never upgrades them into permission for a new send. Per-call recovery extends
+the existing call ownership and durable evidence path, not a second scheduler
+or journal. Source read, Model invocation, egress and Effect permissions never
+substitute for one another.
 
 <a id="preview-row-state"></a>
 
@@ -466,13 +557,20 @@ CID. Routing semantics are owned by [Account authorization routing](../execution
 
 <!-- requirement-block: account-config.the-run-owner-must-present-a-basic-operation-class -->
 The trusted Run owner MUST present the operation identifier of a protected
-boundary as `read`, `write` or `effect`, derived from that boundary's existing
+boundary as `read`, `write`, `infer` or `effect`, derived from that boundary's existing
 operation contract: `read` for preparation input capture, acquisition and
-catalog, metadata or inference reads; `write` for dispatching work to, or
+catalog or metadata reads, including Model metadata; `infer` for invoking a
+Model provider; `write` for dispatching work to, or
 transferring or egressing data to, another Site, recipient or Store; and
 `effect` for an Effect commit. Covered pure computation is not a protected
 operation. The boundary kind belongs to the decision subject, never to the
 operation identifier.
+
+<!-- requirement-block: account-config.finite-read-grants-do-not-expand -->
+Admission MUST NOT expand a finite `read` grant or a previously materialized
+bootstrap profile to include `infer`. Explicit `{all: true}` retains its
+declared current-and-future-member semantics. Model invocation, Source read,
+data egress and Effect commit remain independent protected decisions.
 
 <!-- requirement-block: account-config.a-configuration-must-use-one-canonical-spelling account-config.identifiers-must-match-by-exact-equality account-config.admission-must-decide-overlap-by-this-exact-rule -->
 A configuration MUST use one canonical spelling: entries in strictly
@@ -618,14 +716,16 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_context sha256:49bb0acf26e64ffc1d0802b03b251f27476732ad28c80f0c89b35c5cbf5734b2
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_policy sha256:d1c763d2ba8357fd33fa41afd690eed8088a310e4640fa615907c4866a125db6
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/prepared_invocation sha256:b3aa019105b4b6db51c69b2b96771ebe184f87c1f7eff3347bf5aef1cd9482f9
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_review_projection sha256:a883398aa5f831befbc132a18a48c4233b4596edcec616d5d3328aea62df8c38
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_review_projection sha256:6c1ee39379eb6a433bc555cbea5918dfb8d757ee12b7afa20de63fb34caad11e
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_scope_approval sha256:ab7aa04f5afe9b7479ab2bc1ad078b2df41bde6248fd6eae1d0f88a94ffaa3de
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_authorization sha256:f3085180be28dfc3f7b6151adf56796255a257a73205fabf674be281a05e4ed9
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_definition sha256:62b4314c02685e9c685870abcc1eb690bff333e7e743ec81ae3ad87f7b3ac045
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_checkpoint sha256:03fbd027709bbb7fae5563ec05ce56c899f9af21695f4e989b4b2e0306b91d2b
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_checkpoint sha256:2463a0ebef2f3b78f2603d934a4e4e85851a4afa956abcdedec641594c92f91c
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_provider_binding sha256:a4a37e0016403b483aa267dca7aae6c682940d2b23343b95defbcac2a1ca92b3
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_invocation_scope sha256:2ae55fd7143e29dc3468123dbea9979c65f0aeac9adc392098db87679ebf88c3
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/checkpoint_resolution sha256:46a6fdc061fa09bfbed96bbaf438cf051d343ed304870db13d5893529238dba5
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/verified_checkpoint_resolution sha256:c8304cef7cad5b5e0a8afd8a3f1a4e5b346147218bd2a46ac7994baeaa21a625
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_state sha256:e61cdac45a5af98ca5362ee945511d705c373613cd4e9dc42009e036eb9fcb84
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/verified_checkpoint_resolution sha256:6dc98be34ae34a02069f644651abbf9eb90ac3117495895e83362faf32c12b76
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_state sha256:bee392c34643093d135c15a094c27b62745f5ef0282f7fe41692791676f59f5e
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_account_config sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/captured_run sha256:d10eba96fc9983ffe709fee16faab30c9912af109d4310acad64fc675360b0c7
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_evidence sha256:9aca3664e28a690ef22c34a577e2089631b01a45a3b80df92ebae276db47b596

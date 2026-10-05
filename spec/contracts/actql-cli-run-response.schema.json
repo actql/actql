@@ -72,7 +72,8 @@
                 "read_access",
                 "data_egress",
                 "cost_scope",
-                "effect_set"
+                "effect_set",
+                "model_invocation"
               ]
             }
           }

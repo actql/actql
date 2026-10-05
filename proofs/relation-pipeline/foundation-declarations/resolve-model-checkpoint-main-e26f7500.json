@@ -1,0 +1,90 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-model-checkpoint-main-e26f7500",
+  "kind": "resolution",
+  "revision": "e26f75000ea973b6bd1bb549972cf50cb9569f4b",
+  "parents": [
+    "3d5f9f2568f8247c45a182295bbe5500f5479954",
+    "4a63d0e699674df519c9d35a990080026000e560"
+  ],
+  "mergeBases": [
+    "b8168747b9fafd41c22f8e7e164977092115a8ca"
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-3877b637406b",
+    "adopt-63b114ad524b",
+    "adopt-678626b010b4",
+    "adopt-7427f7f09276",
+    "adopt-9a7c592a8ed9",
+    "adopt-b480cffb6e6d",
+    "adopt-bf2d058c21c1",
+    "adopt-f24288853c19",
+    "adopt-sga-query-contract",
+    "ci-mandatory-preflight",
+    "frontend-sga-main-integration",
+    "frontend-unified-graph-source-integration",
+    "github-issue-read-registration",
+    "github-issue-source-acceptance-registration",
+    "graph-composition-fixture-registration",
+    "main-pr233-package-resolution",
+    "model-invocation-checkpoint-registration",
+    "packed-composed-infer-effect-acceptance",
+    "pr164-main-a32-verification-resolution",
+    "pr164-main4f-runtime-check-resolution",
+    "pr164-property-graph-source",
+    "public-column-published-main-resolution",
+    "public-text-computation-bridge-ci",
+    "read-progress-current-main-resolution",
+    "remove-duplicate-runtime-package-checks",
+    "resident-cancellation-issuer-registration",
+    "resident-cancellation-native-registration",
+    "resident-source-native-registration",
+    "resolve-cancellation-foundation-main-5caeccc79",
+    "resolve-composition-custody-main-maximal-bases",
+    "resolve-composition-frontend-latest-main",
+    "resolve-composition-infer-main-maximal-bases",
+    "resolve-composition-resident-source-main",
+    "resolve-composition-reviewed-supplements-main",
+    "resolve-frontend-graph-label-dependency-5fa4bc547",
+    "resolve-frontend-graph-row-input-main-0e1516677",
+    "resolve-frontend-group-ordinals-parent-bf39d807d",
+    "resolve-github-issue-driver-main-5dcef9189",
+    "resolve-github-issue-source-main",
+    "resolve-graph-composition-accepted-effect-main-1edb1560c",
+    "resolve-graph-composition-cancellation-main",
+    "resolve-graph-composition-current-main-d8dd3a918",
+    "resolve-graph-composition-resident-cleanup-main",
+    "resolve-graph-composition-text-main",
+    "resolve-graph-policy-source-approval-main-13c0d39d2",
+    "resolve-graph-retention-policy-main-e3ecb26c9",
+    "resolve-resident-cancel-foundation-7b5a8048",
+    "resolve-resident-source-latest-main",
+    "scoped-session-acquisition-main-resolution",
+    "sdk-cancel-response-loss-registration",
+    "sdk-jsonl-row-refusal-main-resolution",
+    "sdk-jsonl-row-refusal-registration",
+    "sdk-read-progress-registration",
+    "source-free-effect-retention-original-regression"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "3d5f9f2568f8247c45a182295bbe5500f5479954",
+          "digest": "0f9044f72618df11933262007e360182e3d02066a8e812639a1cd67e6595a9c8",
+          "mode": "100644"
+        },
+        {
+          "revision": "4a63d0e699674df519c9d35a990080026000e560",
+          "digest": "6d34976e2a7e4a48cfa2ab54b229388a02aff4fee27129d4e882b8d5eb75b02f",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "b14b913b9ef0555a966ee7563fe9efa38536995adaef83b7cc524c9c45bc3e57",
+      "afterMode": "100644",
+      "reason": "Record the existing normal main merge that preserves inherited distribution verification commands together with Model checkpoint acceptance registration. Both parents changed package.json relative to the complete maximal merge base. Retain all ancestral package source groups without rewriting the merge, its source, any earlier declaration, or a verification rule."
+    }
+  ]
+}

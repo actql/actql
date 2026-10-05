@@ -8,7 +8,7 @@ import {checkpointLimits, clientSourceFormats, isClientSubmitRejection, validCan
   validResourceListing, validResourcePeek, resultDescriptionLimits,
   validResultDescription, validCheckOutcome} from
   '@actql/client-wire';
-import {bytesCid, contentCid, checkedSigner, signedAnswer} from './checkpoints.mjs';
+import {reviewBytesMatchCid, contentCid, checkedSigner, signedAnswer} from './checkpoints.mjs';
 // The response owns only a weak association to this call's immutable inputs.
 // A parsed/copied report has no such association and cannot resolve a location.
 const checkInputs = new WeakMap();
@@ -18,6 +18,9 @@ const submissionInputs = new WeakMap();
 const submissionContexts = new WeakMap();
 // Presentation is bound by the validated submit branch, never an error string.
 const submissionExplanations = new WeakMap();
+// Validated observations keep only a weak, immutable presentation snapshot.
+// This is not an Effect ledger or a certificate joining Owner revisions.
+const effectUncertainties = new WeakMap();
 // Presentation retains validated Run-control observations, not another owner.
 const cancellationExplanations = new WeakMap();
 const utf8 = new TextEncoder();
@@ -42,6 +45,29 @@ export function getSubmissionInput(result) {
 export function explainSubmission(result) {
   return submissionExplanations.get(result);
 }
+
+export function explainEffectUncertainty(state) {
+  return effectUncertainties.get(state);
+}
+
+const retainEffectUncertainty = (state, ref) => {
+  if (state.status === 'needs_reconciliation' &&
+      state.next_action.kind === 'reconcile') {
+    // A Local port may reuse a cached object for another observation/Run.
+    // Each returned SDK response must keep its own original association.
+    state = structuredClone(state);
+    effectUncertainties.set(state, freezeInput({
+      observation: 'effect_outcome_unknown',
+      summary: 'External Effect outcomes are unknown. Computation stop does not establish their outcome or resource release.',
+      effects: [...state.next_action.effects],
+      physicalStop: state.control?.physical_stop ?? 'unknown',
+      ...(state.control === undefined ? {} :
+        {controlRevision: state.control.revision}),
+      next: {operation: 'status', ref: {...ref}},
+    }));
+  }
+  return state;
+};
 
 export function explainCancellation(result) {
   return cancellationExplanations.get(result);
@@ -145,6 +171,47 @@ export function resolveCheckTextRange(outcome, location, currentInput) {
 }
 
 // Presentation never participates in verdicts, admission or retry decisions.
+export function explainCheckOutcome(outcome) {
+  if (!validCheckOutcome(outcome)) return undefined;
+  const reportExplanation = (report, completeness) => ({completeness,
+    verdict: report.verdict, scope: {...report.scope}, contextRef: report.context_ref});
+  if (outcome.outcome === 'completed') {
+    const explanations = {
+      invalid: ['The report establishes an input violation in its checking scope.',
+        'Review the disclosed reasons and correct the submitted revision where indicated.'],
+      verified: ['The report verifies only its bound checking scope and context.',
+        'Use the execution, cancellation and release owners for their respective results.'],
+      undetermined: ['The report cannot establish verification or a proven input violation in its checking scope.',
+        'Review missing inputs and disclosed checking limits; an outstanding obligation is not an input error.'],
+    };
+    const [summary, hint] = explanations[outcome.report.verdict];
+    return freezeInput({outcome: 'completed', summary, hint,
+      report: reportExplanation(outcome.report, 'complete')});
+  }
+  if (outcome.outcome === 'failed') {
+    const explanations = {
+      check_report_unbounded: ['The reporting budget could not produce a complete bound check report.',
+        'Ask the checking-context owner to review reporting capacity for the original checking scope.'],
+      check_internal: ['An internal checking failure prevented a complete bound check report.',
+        'Ask the checking-context owner to investigate the reporting failure.'],
+    };
+    const known = Object.hasOwn(explanations, outcome.problem.code);
+    const [summary, hint] = known ? explanations[outcome.problem.code]
+      : ['A complete bound check report could not be issued; this problem code has no supported explanation.',
+        'Ask the checking-context owner to investigate; a partial report does not verify the input.'];
+    return freezeInput({outcome: 'failed', summary, hint,
+      problem: {kind: known ? 'known' : 'unknown', code: outcome.problem.code},
+      ...(outcome.partial_report === undefined ? {} : {
+        report: reportExplanation(outcome.partial_report, 'partial')})});
+  }
+  return freezeInput({outcome: 'unavailable',
+    summary: 'The scope and checking context needed for a safe public report are unavailable.',
+    hint: 'Ask the checking-context owner to review the published context; this response does not establish an input error.',
+    problem: {kind: outcome.problem.code === 'check_unavailable' ? 'known' : 'unknown',
+      code: outcome.problem.code}, correlationRef: outcome.correlation_ref});
+}
+
+// Reason presentation does not decide the report's verdict or outcome branch.
 export function explainCheckReason(reason) {
   const explanations = {
     query_syntax_invalid: ['The query syntax is invalid.', 'Correct the query syntax at the reported location when available.'],
@@ -793,12 +860,12 @@ async function connectSelected(selected, port) {
       status: async ({signal} = {}) => {
         const state = await readControl('status', {}, signal);
         if (!validRunState(state)) fail('InvalidHostRunState');
-        return state;
+        return retainEffectUncertainty(state, ref);
       },
       wait: async ({until, signal} = {}) => {
         const state = await readControl('wait', {until: until ?? null}, signal);
         if (!validRunState(state)) fail('InvalidHostRunState');
-        return state;
+        return retainEffectUncertainty(state, ref);
       },
       cancel: async ({signal} = {}) => {
         const context = freezeInput({ref: {...ref}});
@@ -818,7 +885,7 @@ async function connectSelected(selected, port) {
       reconcile: async ({signal} = {}) => {
         const state = await readControl('reconcile', {}, signal);
         if (!validRunState(state)) fail('InvalidHostRunState');
-        return state;
+        return retainEffectUncertainty(state, ref);
       },
     });
   };
@@ -1112,7 +1179,7 @@ async function connectSelected(selected, port) {
       const bytes = Uint8Array.from(atob(review.contentBase64),
         character => character.charCodeAt(0));
       if (bytes.byteLength !== review.byteLength ||
-          await bytesCid(bytes) !== review.artifactCid ||
+          !await reviewBytesMatchCid(bytes, review.artifactCid) ||
           typeof checkpoint === 'object' &&
             checkpoint.reviewProjectionCid !== undefined &&
             checkpoint.reviewProjectionCid !== review.artifactCid) {

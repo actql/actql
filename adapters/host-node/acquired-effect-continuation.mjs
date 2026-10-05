@@ -17,9 +17,10 @@ const bindingFor = (runDefinitionCid, scope, acquisition) => canonicalJson({
   version: CAPTURE, run_definition_cid: runDefinitionCid, scope, acquisition});
 
 export function acquiredEffectContinuation({checkpoints, moon, acquired,
-  submission, declaredResults, principalId, unitId, resume,
+  submission, declaredResults, principalId, unitId, resume, restore,
   signal, currentRun = () => true}) {
   if (checkpoints === undefined) return undefined;
+  if (resume !== undefined && restore !== undefined) fail('ConflictingSourceContinuation');
   const runDefinitionCid = acquired.runDefinition.identity;
   const runId = acquired.control.runDefinitionRunId(acquired.runDefinition);
   const states = new Map();
@@ -39,7 +40,7 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
   };
   const continuationWire = () => canonicalJson({version: VERSION,
     run_definition_cid: runDefinitionCid, unit_id: unitId,
-    submission, pending_task: pendingTask,
+    submission, pending_task: pendingTask ?? null,
     capture_started_at: captureStartedAt ?? null,
     capture_completed_at: captureCompletedAt ?? null,
     sources: [...states.values()].map(state => ({scope: state.scope,
@@ -115,6 +116,7 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
     state.record = record;
   }
   return Object.freeze({
+    restoringModel: restore !== undefined,
     nextJournal,
     accessFor(base, occurrence) {
       if (states.has(occurrence.task)) fail('DuplicateSourceContinuationOccurrence');
@@ -129,12 +131,14 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
         state.scope = JSON.parse(canonicalJson(sourceScope(source.preparedSource)));
         state.source = source;
       }
-      if (resume === undefined) return;
-      const saved = resume.continuation;
+      const restoring = resume ?? restore;
+      if (restoring === undefined) return;
+      const saved = restoring.continuation;
       if (saved?.version !== VERSION || saved.run_definition_cid !== runDefinitionCid ||
           saved.unit_id !== unitId || !same(saved.submission, submission) ||
           !Array.isArray(saved.sources) || saved.sources.length !== states.size ||
-          !Number.isSafeInteger(saved.pending_task)) fail('HeldAcquisitionChanged');
+          (restore === undefined ? !Number.isSafeInteger(saved.pending_task)
+            : saved.pending_task !== null)) fail('HeldAcquisitionChanged');
       for (const item of saved.sources) {
         const state = states.get(item.scope?.task);
         if (state === undefined || !same(state.scope, item.scope)) fail('HeldAcquisitionChanged');
@@ -142,10 +146,10 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
       }
       captureStartedAt = saved.capture_started_at ?? undefined;
       captureCompletedAt = saved.capture_completed_at ?? undefined;
-      const references = await checkpoints.computationSourceReferences(resume.view);
+      const references = await checkpoints.computationSourceReferences(restoring.view);
       if (references.length > states.size) fail('DuplicateRetainedSourceCapture');
       for (const captureCid of references) {
-        const bytes = await checkpoints.readComputationSource(resume.view, captureCid, 2_000_000);
+        const bytes = await checkpoints.readComputationSource(restoring.view, captureCid, 2_000_000);
         const record = JSON.parse(bytes.toString('utf8'));
         const state = states.get(record.scope?.task);
         if (record.version !== CAPTURE || record.run_definition_cid !== runDefinitionCid ||
@@ -164,7 +168,7 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
         }
       }
       for (const state of states.values()) {
-        if (state.captureCid !== undefined && state.record === undefined) {
+        if ((restore !== undefined || state.captureCid !== undefined) && state.record === undefined) {
           fail('SourceCaptureCustodyUnavailable');
         }
       }
@@ -187,6 +191,7 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
               !currentApproval(state.checkpointCid))) throw new ExecutionAuthorizationError(current);
         return {retained: state.record};
       }
+      if (restore !== undefined) fail('SourceCaptureCustodyUnavailable');
       const resumed = resume !== undefined &&
         source.occurrence.task === resume.continuation.pending_task;
       const decision = resumed ? await gate.resume({resumption: {claim: {
@@ -241,6 +246,19 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
       if (resume?.active) {
         await persistSource(state);
       }
+    },
+    async retainAll() {
+      signal?.throwIfAborted();
+      if (!live || !currentRun()) fail('ClientRunCancellationRequested');
+      for (const state of states.values()) {
+        if (state.captured === undefined) fail('SourceCaptureCustodyUnavailable');
+        if (state.captureCid === undefined) await persistSource(state);
+        if (state.record === undefined) fail('SourceCaptureCustodyUnavailable');
+      }
+      // A Model boundary is after every source capture, not a pending Source
+      // read. Its complete closure can only restore those exact originals.
+      pendingTask = undefined;
+      return JSON.parse(continuationWire());
     },
     times: () => ({captureStartedAt, captureCompletedAt}),
     async close() {

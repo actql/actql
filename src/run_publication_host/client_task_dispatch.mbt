@@ -71,6 +71,33 @@ pub fn prepare_client_task_dispatch(
   dispatch_id : String,
   selected : ClientValuesSiteSelection,
 ) -> Result[@remote.DispatchRequest, ClientTaskDispatchIssue] {
+  client_task_dispatch_with_input(
+    prepared,
+    compilation,
+    admission,
+    definition,
+    request,
+    task,
+    task_attempt,
+    dispatch_id,
+    selected,
+    () => prepare_client_task_input_binding(prepared, task),
+  )
+}
+
+///|
+fn client_task_dispatch_with_input(
+  prepared : PreparedClientProgram,
+  compilation : ClientTaskCompilation,
+  admission : @publication.RunPublicationAdmission,
+  definition : @publication.PublicationContract,
+  request : ClientRequestIdentity,
+  task : Int,
+  task_attempt : Int,
+  dispatch_id : String,
+  selected : ClientValuesSiteSelection,
+  load_input : () -> Result[@remote.RemoteInputBinding, ClientTaskDispatchIssue],
+) -> Result[@remote.DispatchRequest, ClientTaskDispatchIssue] {
   let binding = match
     bind_client_task_run(prepared, compilation, admission, definition) {
     Ok(value) => value
@@ -85,7 +112,7 @@ pub fn prepare_client_task_dispatch(
   if client_task_compilation_infer(compilation) is Some(_) {
     return Err(UnsupportedTask)
   }
-  let input = match prepare_client_task_input_binding(prepared, task) {
+  let input = match load_input() {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

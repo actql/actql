@@ -9805,7 +9805,7 @@
     },
     {
       "requirement_id": "actql.execution/run-states.state-meaning-terminal-preparing",
-      "statement_sha256": "c2092ad6eb2f228d5227475aad153ef0f6cdfb48223d1edef0caa5bd791a487f",
+      "statement_sha256": "94a14acd7582a10ea04d4a88a2ecfbb58d08952ea164335fbbfd248dd08140b9",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -9827,7 +9827,7 @@
     },
     {
       "requirement_id": "actql.execution/run-states.from-to-required-condition-preparing",
-      "statement_sha256": "ae3429e732f94d922fb467ab0a66e56e9f4cb52ac1ecf8d8ee0a9496adc14ffc",
+      "statement_sha256": "8acd301e980dd291b3d556782750c523b3fea340e37ccc7160aa0791c954dad5",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -12907,7 +12907,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "81355df0d2866228194dbd85d129f8f9ac0501d5afa18473b716c65d31377039",
+      "statement_sha256": "7ceadef2b086940c4ddffedae0a8ceab56d6121e10f225d23989f72780e5dada",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -13600,10 +13600,10 @@
     },
     {
       "requirement_id": "actql.protocol.run/resolution-admission.subject-phase-kind-required-artifact",
-      "statement_sha256": "3c0316f6758019d70cfc81bc1cf27d9a0703f7c0fc3590cb429655f0a47add64",
+      "statement_sha256": "77051a247898f654d043d810272480d5de305b439a15e5a88f96700a3ad8719c",
       "status": "pending",
       "reason": "implementation_evidence_required",
-      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "next_action": "Verify the adopted contract against each execution owner with independent positive, negative and restart evidence.",
       "source": {
         "anchor": "resolution-admission",
         "kind": "table"
@@ -13727,6 +13727,94 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "resolution-admission",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/model-invocation-approval.fixed-scope",
+      "statement_sha256": "dabd1a9ba2de88b4dd939988b612c56a874ee1cfaf33b7a9826722f53f9ae557",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the adopted contract against each execution owner with independent positive, negative and restart evidence.",
+      "source": {
+        "anchor": "model-invocation-approval",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/model-invocation-approval.original-closure",
+      "statement_sha256": "f0ee7442ea2145c90ad4bf30ff11016606507b8a1b13fea0c847074e2339d599",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the adopted contract against each execution owner with independent positive, negative and restart evidence.",
+      "source": {
+        "anchor": "model-invocation-approval",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/model-invocation-approval.authorization-context",
+      "statement_sha256": "2d1a1c9ce22228075efa4cdc283968260792ce585071af3521f78ab2c40507b6",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the adopted contract against each execution owner with independent positive, negative and restart evidence.",
+      "source": {
+        "anchor": "model-invocation-approval",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/model-invocation-approval.provider-binding",
+      "statement_sha256": "117a963d70a3a2b4578e442021e816ab651d0f5774128455f77c272055f0e1e5",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the adopted contract against each execution owner with independent positive, negative and restart evidence.",
+      "source": {
+        "anchor": "model-invocation-approval",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/model-invocation-approval.exact-review",
+      "statement_sha256": "b8088314dd672d1afd838d681db88f8be06f428ca1b431a290f7d3ca0b79b547",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the adopted contract against each execution owner with independent positive, negative and restart evidence.",
+      "source": {
+        "anchor": "model-invocation-approval",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/model-invocation-approval.per-call-send",
+      "statement_sha256": "558de8d2ad0dbb0cd7b050f0dcf4d430044a22240c1ea73fbb330d46fc340a28",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the adopted contract against each execution owner with independent positive, negative and restart evidence.",
+      "source": {
+        "anchor": "model-invocation-approval",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/model-invocation-approval.restart-reuse",
+      "statement_sha256": "47d2813b014cf55a79d34529f24b7fc513c9a5d6e8fbe8c466d37ebf0fabac28",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the adopted contract against each execution owner with independent positive, negative and restart evidence.",
+      "source": {
+        "anchor": "model-invocation-approval",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/model-invocation-approval.expiry-and-history",
+      "statement_sha256": "63e977aac5bcff23ad555c616c7fe33afa78dcc723dc6298875098aa44ef5a9c",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the adopted contract against each execution owner with independent positive, negative and restart evidence.",
+      "source": {
+        "anchor": "model-invocation-approval",
         "kind": "prose"
       }
     },
@@ -13908,10 +13996,21 @@
     },
     {
       "requirement_id": "actql.protocol.run/account-config.the-run-owner-must-present-a-basic-operation-class",
-      "statement_sha256": "bd9dbacf9ae051e7de398c6533ee1bb1b921d46eb003217cd7216dc45045b4bc",
+      "statement_sha256": "0c3a92bdabe508a29d88c04d72a3a01f7b6fdcedf10b053b530cc8acbd3e825e",
       "status": "pending",
       "reason": "implementation_evidence_required",
-      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "next_action": "Verify the adopted contract against each execution owner with independent positive, negative and restart evidence.",
+      "source": {
+        "anchor": "account-config",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/account-config.finite-read-grants-do-not-expand",
+      "statement_sha256": "0fc5556ed134a5b4f2c2a040f9fa73a86b79a96a85ecc1dae724a90bd735842f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the adopted contract against each execution owner with independent positive, negative and restart evidence.",
       "source": {
         "anchor": "account-config",
         "kind": "prose"
@@ -14084,13 +14183,13 @@
     },
     {
       "requirement_id": "actql.protocol.run/machine-contracts.exact-artifacts",
-      "statement_sha256": "da64f38c6a29c905c5304a05efd794e0d7f40d68e49f60cc1a303f166a20f53e",
+      "statement_sha256": "583123c6977af6f09d0c71ec97e48ba9993f4552a2569428544e3ff85c6cbcca",
       "status": "pending",
       "reason": "implementation_evidence_required",
-      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "next_action": "Verify the adopted contract against each execution owner with independent positive, negative and restart evidence.",
       "source": {
         "anchor": "machine-contracts",
-        "kind": "law"
+        "kind": "prose"
       }
     },
     {

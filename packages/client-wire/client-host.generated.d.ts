@@ -143,6 +143,26 @@ export type WireCheckpointSummaryShape = Readonly<{
   createdAt: string;
   expiresAt: string;
   humanSummary: string;
+}> | Readonly<{
+  checkpointId: string;
+  checkpointCid: string;
+  kind: "model_invocation";
+  phase: "preflight";
+  subject: Readonly<{
+  kind: "run_unit";
+  runId: string;
+  runDefinitionCid: string;
+}>;
+  requiredArtifact: Readonly<{
+  type: "model_invocation_scope";
+  cid: string;
+}>;
+  reviewProjectionCid: string;
+  requirements: readonly "invocation_scope_approved"[];
+  createdAt: string;
+  expiresAt: string;
+  humanSummary: string;
+  preparedInvocationCid: string;
 }>;
 
 export type WireCheckpointReviewShape = Readonly<{
@@ -252,7 +272,7 @@ export type WireRunStateShape = Readonly<{
   checkpoint?: Readonly<{
   checkpoint_id: string;
   checkpoint_cid: string;
-  kind: "run_scope" | "read_access" | "data_egress" | "cost_scope" | "effect_set";
+  kind: "run_scope" | "read_access" | "data_egress" | "cost_scope" | "effect_set" | "model_invocation";
 }>;
   next_action: Readonly<{
   kind: "resolve_checkpoint";
