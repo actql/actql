@@ -76,6 +76,11 @@ Matching implementation candidates passed:
 - Ranking caller JS: **14/14**, `run-JwLLw8`, `focused-test-o5EWKk`.
 - Ranking workspace and reused shared row cursor JS: **10/10**,
   `run-5p6yn8`, `focused-test-tqHdTW`.
+- Committed runtime source `664cab5749c86fa604731af12270d9cd3f29e4f6`:
+  ranking callers **14/14**, `run-4TzXgF`, `focused-test-RM5XSQ`;
+  ordinary retained Host plus resource gate/index **212/212** (1 + 207 + 4),
+  `run-N0SVtb`, `focused-test-V4PPgg`.
+  The final cleanup changes only this documentation, not runtime/test inputs.
 - The final submitted SHA, exact-SHA public regression and evidence-gate results
   are recorded in the pull request. Candidate evidence is not called CI evidence.
 
@@ -113,7 +118,8 @@ Draft CI is preparation only and is not merge verification.
 Ranking input checked-cell rechecks and authored field-name matching still have
 synchronous helpers, including unused nested columns. Those require a separate
 raw-read/shared-recheck connection and an audit of nested-name/vector scans.
+Output field-name equality also retains its existing schema-name contract;
+resolving one group position does not make a long identifier comparison stepped.
 Conservative noninterruptible value-size observations are intentionally
 unchanged. This closes output recheck/measurement, not all ranking or Local
 retention work.
-
