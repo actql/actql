@@ -1,0 +1,10 @@
+{
+  "parameters": {
+    "a": {"score": 10},
+    "b": {"score": 20},
+    "c": null,
+    "oa": {"score": 30},
+    "ob": {"score": 5},
+    "oc": {"score": 15}
+  }
+}

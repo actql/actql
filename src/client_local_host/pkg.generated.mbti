@@ -57,6 +57,14 @@ pub fn client_infer_completed_input(ClientInferInputExecution) -> @execution_rel
 
 pub fn client_infer_completion_preparation(ClientInferInputExecution, @execution_relation.PreparedInferRows) -> @execution_relation.CompletionPreparation?
 
+pub fn client_infer_retained_input_export_binding(ClientInferRetainedInputExport) -> String
+
+pub fn client_infer_retained_input_export_descriptor(ClientInferRetainedInputExport) -> String
+
+pub fn client_infer_retained_input_export_matches(ClientInferRetainedInputExport, @execution_relation.CompletedOutput) -> Bool
+
+pub fn client_infer_retained_input_export_rows(ClientInferRetainedInputExport) -> Array[String]
+
 pub fn client_local_import_limits(@connector_sdk.FixedComputeCapacity, @execution_relation.ValueLimits) -> @local.LocalImportLimits
 
 pub fn client_query_residual_execution(ClientQueryResidual) -> @local.ManagedProviderExecution
@@ -82,6 +90,8 @@ pub fn complete_client_broad_query_residual(ClientQueryResidual, @acquisition.Du
 pub fn complete_client_broad_residual(ClientBroadResidual) -> Result[@acquisition.DuckDBBroadObservation, @host.BroadHostIssue]
 
 pub fn execute_source_free_values(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
+
+pub fn export_client_infer_retained_input(@execution_relation.CompletedOutput, String) -> Result[ClientInferRetainedInputExport, ClientInferRetainedInputIssue]
 
 pub fn export_client_source_capture(@execution_query.CapturedInputSource, @query_planning.QueryRequirement, String) -> Result[ClientSourceCaptureExport, ClientSourceCaptureIssue]
 
@@ -149,6 +159,8 @@ pub fn prepare_multi_captured_local_installed_ledger(@run_publication_host.Prepa
 
 pub fn prepare_multi_captured_local_ledger(@run_publication_host.PreparedClientProgram, Array[@host.NativeHostConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 
+pub fn read_client_infer_retained_input_descriptor(String) -> Result[@execution_relation.RetainedCompletionDescriptor, ClientInferRetainedInputIssue]
+
 pub fn read_client_source_capture_descriptor(String) -> Result[@execution_relation.RetainedCompletionDescriptor, ClientSourceCaptureIssue]
 
 pub fn restore_accounted_client_source_capture(@query_planning.QueryRequirement, String, String, String, String, Array[String], @physical_resources.Ledger, ClientDuckDBCaptureCapacity, () -> Bool) -> Result[ClientAccountedSourceCapture, ClientSourceCaptureIssue]
@@ -170,6 +182,10 @@ pub fn start_client_infer_input(@run_publication_host.PreparedClientProgram, Int
 pub fn start_client_infer_suffix(@execution_relation.GeneratedSequence, Array[@execution_relation.CompletedOutput], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> Result[@local.ManagedProviderExecution, ClientInferInputIssue]
 
 pub fn start_client_query_residual(@execution_query.QuerySequence, @execution_query.QueryReceipt, () -> Bool, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int, Int, max_name_bytes~ : Int) -> Result[@local.ManagedProviderExecution, ClientQueryResidualIssue]
+
+pub fn start_client_restored_composed_infer_input(@run_publication_host.ClientInferOccurrence, @execution_relation.GeneratedSequence, String, String, String, Array[String], () -> Bool, @execution_relation.SequenceExecutionLimits, @execution_relation.InferPreparationLimits) -> Result[ClientInferInputExecution, ClientInferInputIssue]
+
+pub fn start_client_restored_infer_input(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String, String, String, Array[String], () -> Bool, @execution_relation.SequenceExecutionLimits, @execution_relation.InferPreparationLimits, fragment_body? : String?, ordered_body? : String?) -> Result[ClientInferInputExecution, ClientInferInputIssue]
 
 // Errors
 
@@ -206,6 +222,7 @@ pub(all) enum ClientInferInputIssue {
   Mapping(@execution_relation.InferPreparationIssue)
   ProducerRead(@execution_relation.ProducerReadIssue)
   Capture(@execution_query.CapturedSourceIssue)
+  RetainedInput(ClientInferRetainedInputIssue)
 }
 
 pub enum ClientInferInputPoll {
@@ -213,6 +230,25 @@ pub enum ClientInferInputPoll {
   Complete(@execution_relation.PreparedInferRows, work~ : Int64)
   Stopped(work~ : Int64)
   Failed(ClientInferInputIssue, work~ : Int64)
+}
+
+pub struct ClientInferRetainedInputExport {
+  input : @execution_relation.CompletedOutput
+  evidence : @execution_relation.RetainedCompletionEvidence
+  binding : String
+  descriptor_wire : String
+  rows : Array[String]
+}
+
+pub(all) enum ClientInferRetainedInputIssue {
+  BindingMismatch
+  InvalidDescriptor
+  CustodyUnavailable
+  Export(@execution_relation.CompletedExportIssue)
+  Evidence(@execution_relation.RetainedCompletionEvidenceIssue)
+  Content(@execution_relation.RetainedContentReadIssue)
+  Readmission(@execution_relation.TrustedOutputIssue)
+  Import(@execution_relation.CompletedImportIssue)
 }
 
 type ClientInstalledCaptureCapacity

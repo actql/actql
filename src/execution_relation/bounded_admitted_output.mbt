@@ -309,3 +309,24 @@ pub fn admitted_output_preparation_rows(
     value.state.material
   }
 }
+
+///|
+/// Transfer accepted immutable rows to the enclosing execution owner once.
+/// This is material custody only, not Compute completion. Retiring this import
+/// afterwards must not clear the row containers now owned by the recipient.
+pub fn take_admitted_output_preparation_rows(
+  value : AdmittedOutputPreparation,
+) -> AdmittedOutputRows? {
+  guard !value.state.reclaimed &&
+    value.accepted &&
+    value.state.material is Some(rows) else {
+    return None
+  }
+  value.state.material = None
+  value.state.pending = None
+  value.state.cells.clear()
+  release_slots(value.state.workspace, value.state.workspace.live)
+  value.state.reclaimed = true
+  value.accepted = false
+  Some(rows)
+}

@@ -252,6 +252,23 @@ pub fn destination_material_use_receipt_cid(
 }
 
 ///|
+/// Exact durable destination-use occurrence; equal receipts do not authorize
+/// a reader belonging to another use of the same transferred material.
+pub fn destination_material_use_id(
+  material : NativeRemoteDestinationMaterialUse,
+) -> String {
+  material.use_id
+}
+
+///|
+/// The durable reader occurrence, separate from the destination holding use.
+pub fn destination_material_use_reader_id(
+  material : NativeRemoteDestinationMaterialUse,
+) -> String {
+  material.reader_id
+}
+
+///|
 fn admit_source(
   request : @transfer.RemoteTransferRequest,
   chunks : Array[Bytes],
@@ -1702,8 +1719,42 @@ pub fn pin_durable_store_destination_material(
   reader_id : String,
   expected_receipt_cid : String,
 ) -> Result[NativeRemoteDestinationMaterialUse, NativeRemoteTransferClientIssue] {
-  if @transfer.request_projection(request)[1] != "store" ||
-    use_id.is_empty() ||
+  if @transfer.request_projection(request)[1] != "store" {
+    return Err(InvalidRequest)
+  }
+  pin_durable_destination_material(
+    journal, root, request, use_id, reader_id, expected_receipt_cid,
+  )
+}
+
+///|
+/// Borrow an exact committed Direct destination. Its allocation use is fixed
+/// by the existing Direct receiver; the reader is the consumer occurrence.
+pub fn pin_durable_direct_destination_material(
+  journal : @journal.Journal,
+  root : @filesystem.Root,
+  request : @transfer.RemoteTransferRequest,
+  reader_id : String,
+  expected_receipt_cid : String,
+) -> Result[NativeRemoteDestinationMaterialUse, NativeRemoteTransferClientIssue] {
+  if @transfer.request_projection(request)[1] != "direct" {
+    return Err(InvalidRequest)
+  }
+  pin_durable_destination_material(
+    journal, root, request, "direct-destination", reader_id, expected_receipt_cid,
+  )
+}
+
+///|
+fn pin_durable_destination_material(
+  journal : @journal.Journal,
+  root : @filesystem.Root,
+  request : @transfer.RemoteTransferRequest,
+  use_id : String,
+  reader_id : String,
+  expected_receipt_cid : String,
+) -> Result[NativeRemoteDestinationMaterialUse, NativeRemoteTransferClientIssue] {
+  if use_id.is_empty() ||
     reader_id.is_empty() ||
     expected_receipt_cid.is_empty() {
     return Err(InvalidRequest)
@@ -1746,6 +1797,15 @@ pub fn validate_destination_material_use(
   if material.released || material.reading {
     return Err(ReconciliationRequired)
   }
+  match
+    material.journal.validate_destination_reader(
+      material.request,
+      material.receipt,
+      material.reader_id,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Durable(issue))
+  }
   let cids = @transfer.request_chunk_cids(material.request)
   let lengths = @transfer.request_chunk_byte_lengths(material.request)
   if cids.length() != lengths.length() {
@@ -1787,6 +1847,15 @@ pub fn validate_destination_material_use(
   }
   if actual != destination_material_use_generation(material) {
     return Err(ReconciliationRequired)
+  }
+  match
+    material.journal.validate_destination_reader(
+      material.request,
+      material.receipt,
+      material.reader_id,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Durable(issue))
   }
   material.allocations = allocations
   material.generations = generations
@@ -1931,6 +2000,14 @@ pub fn release_destination_material_use(
 /// material state prevents new readers before physical deletion begins, and
 /// capacity is returned only after every owned generation is durably absent.
 pub fn reclaim_durable_store_destination_material(
+  material : NativeRemoteDestinationMaterialUse,
+) -> Result[Bool, NativeRemoteTransferClientIssue] {
+  reclaim_durable_destination_material(material)
+}
+
+///|
+/// Direct and Store destinations share the same durable material cleanup Owner.
+pub fn reclaim_durable_destination_material(
   material : NativeRemoteDestinationMaterialUse,
 ) -> Result[Bool, NativeRemoteTransferClientIssue] {
   if material.reading {

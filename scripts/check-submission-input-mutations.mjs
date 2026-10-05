@@ -7,7 +7,16 @@ import {mutationAcceptance} from './check-disclosure-mutations.mjs';
 const path = 'packages/sdk/index.mjs';
 const acceptance = 'adapters/host-node/client-submission-input.test.mjs';
 const cancellationAcceptance = 'adapters/host-node/client-cancel-response-loss.test.mjs';
+const checkAcceptance = 'adapters/host-node/client-check.test.mjs';
 const expected = (phase, assertion = 'submission-input') => {
+  if (phase.startsWith('check-outcome-')) {
+    const name = phase === 'check-outcome-reporting'
+      ? 'check outcome explanations preserve reporting boundaries'
+      : 'check outcome explanations preserve partial and unavailable boundaries';
+    return ['local', 'http'].map(entrance => ({name: `${entrance}: ${name}`,
+      assertions: [{id: assertion, operator: phase === 'check-outcome-validation'
+        ? 'strictEqual' : 'deepStrictEqual'}]}));
+  }
   if (phase.startsWith('cancellation-')) {
     const name = phase === 'cancellation-recorded'
       ? 'Run cancellation explanations retain recorded control facts'
@@ -71,11 +80,29 @@ const mutations = [
     "            cancellationContext, 'outcome_unknown');\n        }",
     "        if (value instanceof Response) fail('InvalidLocalHostPortResponse');",
     'cancellation-unknown', 'cancel-unknown-explanation'],
+  ['check reporting budget is blamed on an invalid input',
+    'The reporting budget could not produce a complete bound check report.',
+    'The submitted input is invalid.', 'check-outcome-reporting', 'check-outcome-explanation'],
+  ['check verification is presented as execution and release success',
+    'The report verifies only its bound checking scope and context.',
+    'Execution and release succeeded.', 'check-outcome-reporting', 'check-outcome-explanation'],
+  ['check partial report is presented as complete',
+    "reportExplanation(outcome.partial_report, 'partial')",
+    "reportExplanation(outcome.partial_report, 'complete')",
+    'check-outcome-partial', 'check-outcome-partial'],
+  ['check unavailable is presented as completed',
+    "return freezeInput({outcome: 'unavailable',",
+    "return freezeInput({outcome: 'completed',",
+    'check-outcome-unavailable', 'check-outcome-unavailable'],
+  ['check explanation bypasses malformed outcome validation',
+    '  if (!validCheckOutcome(outcome)) return undefined;', '',
+    'check-outcome-validation', 'check-outcome-invalid'],
 
 ];
 const accepted = (phase, assertion) => {
   const tests = expected(phase, assertion);
-  const file = phase.startsWith('cancellation-') ? cancellationAcceptance : acceptance;
+  const file = phase.startsWith('check-outcome-') ? checkAcceptance
+    : phase.startsWith('cancellation-') ? cancellationAcceptance : acceptance;
   const result = spawnSync(process.execPath, ['scripts/local-checks.mjs', 'test', 'node',
     '--timeout-seconds', '120', '--', '--test-name-pattern',
     `^(?:${tests.map(value => value.name).join('|')})$`, file],

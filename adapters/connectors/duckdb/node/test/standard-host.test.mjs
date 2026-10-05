@@ -62,37 +62,16 @@ import {
 } from '../../../../host-node/result-access.mjs';
 import {canonical, hash as canonicalHash} from './typed-catalog.mjs';
 import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
-import {deltaApplicationScenario} from
+import {deltaApplicationScenario, deltaDiffScenario} from
   '../../../../../scripts/fixtures/property-graph-delta-application.mjs';
+import {publicationResultExportLimits, standardPublicationPlan} from
+  './publication-plan-fixture.mjs';
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
   maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
   memoryBytes: 128 * 1024 * 1024, threads: 1 };
-const publicationResultExportLimits = Object.freeze({
-  maxResultFields: 10,
-  maxResultMappingWork: 1000,
-  maxResultOrderWork: 10000,
-  maxResultWorkspaceEntries: 100,
-  maxRows: 100,
-  maxValueNodes: 10000,
-  maxValueTextBytes: 100000,
-  maxValueDepth: 64,
-  maxValueWork: 100000,
-  maxWireBytes: 100000,
-  maxWireNodes: 10000,
-  maxWireDepth: 64,
-  maxColumns: 10,
-  maxOrderWork: 10000,
-  maxLogicalWireBytes: 100000,
-  maxLogicalWireNodes: 10003,
-  maxLogicalWireDepth: 66,
-  maxSchemaFields: 10,
-  maxSchemaBytes: 100000,
-  maxSchemaNodes: 10000,
-  maxSchemaDepth: 64,
-  maxBatchBytes: 4096,
-});
+
 
 // Read a completed run's Named Result through the existing publication
 // export, which reads managed and captured outputs alike, and return its
@@ -181,183 +160,7 @@ function sgaEnvironmentArguments(args) {
   ];
 }
 
-function standardPublicationPlan(
-  runtime,
-  programDefinitionCid,
-  resultCount,
-  attemptId,
-) {
-  const control = runtime.publicationControl;
-  const contractLimits = Object.freeze({
-    maxWireBytes: 100000,
-    maxNodes: 10000,
-    maxDepth: 64,
-  });
-  const effectiveDataPolicyCid = hash('effective-policy');
-  const template = control.sealRunEvidence(
-    'bound_invocation_template',
-    JSON.stringify({
-      version: 'actql-bound-invocation-template/0.1',
-      program_definition_cid: programDefinitionCid,
-      parameter_values_cid: hash('parameter-values'),
-      invocation_bindings_cid: hash('invocation-bindings'),
-      check_environment_cid: hash('check-environment'),
-      grammar_manifest_cid: hash('grammar-manifest'),
-      required_profile_contracts: [],
-      barrier_contract_manifest_cid: hash('barrier-contract-manifest'),
-      source_evidence: 'unbound',
-    }),
-    contractLimits,
-  );
-  const compiledPlan = control.seal('compiled_plan', JSON.stringify({
-    version: 'actql-compiled-plan/0.1',
-    compiler_version: 'compiler-test-0.1',
-    aoa_ir_version: 'aoa-ir-test-0.1',
-    executable_plan_cid: hash('executable-plan'),
-    program_definition_cid: programDefinitionCid,
-    program_semantics_cid: hash('program-semantics'),
-    aoa_contract_cid: hash('aoa-contract'),
-    aoa_logical_cid: hash('aoa-logical'),
-  }), contractLimits);
-  const prepared = control.sealRunEvidence(
-    'prepared_invocation',
-    JSON.stringify({
-      version: 'actql-prepared-invocation/0.1',
-      invocation_template_cid: template.identity,
-      compiled_plan_cid: compiledPlan.identity,
-      execution_context_cid: hash('execution-context'),
-      host_policy_cid: hash('host-policy'),
-      policy_decision: 'allow',
-      expires_at: '2026-09-18T03:00:00.000Z',
-    }),
-    contractLimits,
-  );
-  const authorization = control.sealRunEvidence(
-    'run_authorization',
-    JSON.stringify({
-      version: 'actql-run-authorization/0.1',
-      prepared_invocation_cid: prepared.identity,
-      execution_context_cid: hash('execution-context'),
-      host_policy_cid: hash('host-policy'),
-      decision: 'allowed',
-    }),
-    contractLimits,
-  );
-  const admission = control.admitRunPublication(
-    template,
-    prepared,
-    authorization,
-    compiledPlan,
-  );
-  const runDefinition = control.issueRunDefinition(admission, {
-    scopeId: 'standard-publication-scope',
-    runId: `standard-publication-${attemptId}`,
-    inputArtifactSetCid: hash('input-artifact-set'),
-    createdAt: '2026-09-18T00:00:00.000Z',
-    validUntil: '2026-09-18T02:30:00.000Z',
-  }, contractLimits);
-  const observation = control.sealRunEvidence(
-    'observation_set',
-    JSON.stringify({
-      version: 'actql-observation-set/0.1',
-      invocation_template_cid: template.identity,
-      source_evidence_cids: [],
-      captured_input_artifact_cids: [],
-      consistency: 'no_external_sources',
-      capture_started_at: null,
-      capture_completed_at: null,
-      replayability: {
-        materialized: false,
-        availability_evidence_cids: [],
-      },
-      data_policy_cid: effectiveDataPolicyCid,
-    }),
-    contractLimits,
-  );
-  const invocation = control.issueRunInvocation(
-    template,
-    observation,
-    contractLimits,
-  );
-  const retention = control.seal(
-    'result_retention_policy',
-    JSON.stringify({
-      version: 'actql-result-retention-policy/0.1',
-      retention_contract_cid: hash('retention-contract'),
-      effective_data_policy_cid: effectiveDataPolicyCid,
-      available_until: '2026-09-18T01:00:00.000Z',
-      delete_by: '2026-09-18T02:00:00.000Z',
-      extension_ceiling_at: '2026-09-18T03:00:00.000Z',
-      metadata_retention_policy_cid: hash('metadata-retention'),
-      metadata_delete_by: '2026-09-18T04:00:00.000Z',
-      clock_contract_cid: hash('clock-contract'),
-    }),
-    contractLimits,
-  );
-  const normalizationJournal = control.sealRunEvidence(
-    'normalization_journal',
-    JSON.stringify({
-      version: 'actql-normalization-journal/0.1',
-      rule_catalog_cid: hash('rule-catalog'),
-      entries: [],
-    }),
-    contractLimits,
-  );
-  const authoringContext = control.sealRunEvidence(
-    'authoring_context',
-    JSON.stringify({
-      version: 'actql-authoring-context/0.1',
-      program_definition_cid: programDefinitionCid,
-      annotations: [],
-    }),
-    contractLimits,
-  );
-  return Object.freeze({
-    admission,
-    runDefinition,
-    invocation,
-    observation,
-    normalizationJournal,
-    authoringContext,
-    results: Object.freeze(Array.from({length: resultCount}, (_, index) =>
-      Object.freeze({
-        retention,
-        evidenceContext: Object.freeze({
-          computationContractCid: hash(`checked-computation-${index}`),
-          inputRelationCids: Object.freeze([]),
-          scopeCid: hash(`result-scope-${index}`),
-          effectiveDataPolicyCid,
-          authorityScopeCid: hash('authority-scope'),
-        }),
-      }))),
-    receiptEvidence: Object.freeze({
-      bindings: Object.freeze([]),
-      sourceEvidence: Object.freeze([]),
-      modelEvidence: Object.freeze([]),
-      barrierAttemptReceiptCids: Object.freeze([]),
-    }),
-    captureEvidence: Object.freeze({
-      pendingSourceStateAdvances: Object.freeze([]),
-      modelEvidence: Object.freeze([]),
-    }),
-    request: Object.freeze({
-      namespaceId: 'namespace-a',
-      authorityScopeCid: hash('authority-scope'),
-      publicationPolicyCid: hash('publication-policy'),
-      publicationTargetCid: hash('publication-target'),
-      requestedAt: '2026-09-18T00:00:00.000Z',
-    }),
-    attempt: Object.freeze({
-      attemptId,
-      fenceCid: hash('publication-fence'),
-      externalIdempotencyKey: undefined,
-      startedAt: '2026-09-18T00:00:01.000Z',
-    }),
-    outputLimits: publicationResultExportLimits,
-    contractLimits,
-    now: () => '2026-09-18T00:00:02.000Z',
-  });
-}
+
 const hash = value => `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
 
 // Conformance-only contribution body. It uses the selected product
@@ -551,6 +354,8 @@ async function subgraphHostCancellation() {
   const runtime = new Proxy(moon,{get(target,name,receiver) {
     if (name === 'strategyModule_local_Registration') return ()=>({});
     if (name === 'strategyHostRegistrationSelectionKey') return ()=>'subgraph-conformance';
+    // Task identity is dispatch plumbing in this isolated provider fixture.
+    if (name === 'strategyHostTask') return ()=>0;
     if (name === 'strategyModule_local_Dispatch') return ()=>({$tag:1,_0:operations});
     return Reflect.get(target,name,receiver);
   }});
@@ -576,7 +381,7 @@ async function subgraphHostCancellation() {
 test('fused Subgraph stops after construction and positive selection work through the Local Host driver',
   {timeout:30_000}, () => subgraphHostCancellation());
 
-async function deltaHostCancellation(phase) {
+async function deltaHostCancellation(phase, diff = false) {
   // Use the installed common Program/Plan/provider, not a test-only Delta
   // provider or pre-decoded replacement. Observe real operations as in the
   // existing Host cancellation corpus; the proxy supplies no result/state.
@@ -584,7 +389,9 @@ async function deltaHostCancellation(phase) {
     '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js')));
   const fixture = JSON.parse(await readFile(join(root,
     'scripts/fixtures/property-graph-presence.program.json'), 'utf8'));
-  const {document} = deltaApplicationScenario(fixture, 'node_rows');
+  const {document} = diff ? deltaDiffScenario(fixture, 'node_rows')
+    : deltaApplicationScenario(fixture, 'node_rows');
+  const targetTask = diff ? 6 : 5;
   const environmentBody = JSON.parse(await readFile(join(root,
     'spec/local-check-environment.json'), 'utf8'));
   delete environmentBody.evidence_bundle_cid;
@@ -630,12 +437,12 @@ async function deltaHostCancellation(phase) {
       starts.push(task);
       const operations = checked(target.strategyModule_local_ManagedStart(configuration));
       return {$tag:1,_0:new Proxy(operations, {get(owner, name, ownerReceiver) {
-        if (task !== 5 || !['advance','request_cancel','execution_stopped','cleanup_refresh'].includes(name)) {
+        if (task !== targetTask || !['advance','request_cancel','execution_stopped','cleanup_refresh'].includes(name)) {
           return Reflect.get(owner, name, ownerReceiver);
         }
         if (name === 'advance') return quantum => {
           // Narrow the real bounded operation's quantum, not its work/state.
-          const result = owner.advance(Math.min(quantum, phase === 'application' ? 32 : 1));
+          const result = owner.advance(Math.min(quantum, phase === 'conversion' ? 1 : 32));
           const poll = checked(result);
           deltaPolls.push(poll);
           // Input conversion/handoff report zero progress. Positive progress
@@ -663,12 +470,13 @@ async function deltaHostCancellation(phase) {
     assert.equal(scheduled, true);
     assert.equal(delivered, true);
     assert(workAtDelivery > 0n, 'cancel is delivered only after actual Delta work');
-    if (phase === 'application') assert(deltaPolls.some(poll=>poll.progress > 0n),
-      'bounded application, not merely conversion, made progress before cancellation');
+    if (phase !== 'conversion') assert(deltaPolls.some(poll=>poll.progress > 0n),
+      'bounded Delta kernel, not merely conversion, made progress before cancellation');
     assert.equal(execution.status, 'host-tasks-failed');
     assert.equal(execution.failure?.name, 'AbortError');
-    assert.deepEqual(starts, [0,1,2,3,4,5]);
-    assert.deepEqual(execution.completed.map(value=>value.task), [0,1,2,3,4]);
+    const expectedStarts = Array.from({length:targetTask + 1},(_,task)=>task);
+    assert.deepEqual(starts, expectedStarts);
+    assert.deepEqual(execution.completed.map(value=>value.task), expectedStarts.slice(0,-1));
     assert(deltaPolls.every(poll=>poll.complete === false), 'no partial Delta output is completed');
     assert(lifecycle.some(event=>event.name === 'request_cancel' && event.delivered));
     assert(lifecycle.some(event=>event.name === 'execution_stopped' && event.result === true && event.delivered));
@@ -679,7 +487,7 @@ async function deltaHostCancellation(phase) {
       assert.equal(execution.cleanupPending(), false);
       // Holdings is the monotonic allocation count, not live capacity. Keep
       // that accounting history while returning all held/reserved bytes.
-      assert.equal(execution.usage().holdings, 5n);
+      assert.equal(execution.usage().holdings, BigInt(targetTask));
       assert.equal(execution.usage().heldBytes, 0n);
       assert.equal(execution.usage().reservedRetentionBytes, 0n);
       assert.equal(execution.usage().reservedTransferBytes, 0n);
@@ -689,7 +497,8 @@ async function deltaHostCancellation(phase) {
       await execution.close();
       assert.equal(await execution.cleanup(), true);
       assert.equal(deltaPolls.length, settledPollCount, 'cleanup does not resume Compute');
-      assert.deepEqual(starts, [0,1,2,3,4,5], 'cleanup does not start a new task');
+      assert.deepEqual(starts, Array.from({length:targetTask + 1},(_,task)=>task),
+        'cleanup does not start a new task');
       assert.deepEqual(execution.usage(), settledUsage, 'duplicate close does not change resource accounting');
     }
   }
@@ -699,6 +508,8 @@ test('Delta application stops after positive work through the installed Local Ho
   {timeout:30_000}, () => deltaHostCancellation('conversion'));
 test('Delta application stops after positive work through the installed Local Host during bounded application',
   {timeout:30_000}, () => deltaHostCancellation('application'));
+test('Graph diff stops after positive work through the installed Local Host without publishing Delta',
+  {timeout:30_000}, () => deltaHostCancellation('diff', true));
 
 test('standard native and broad Node Hosts own verification through real capture and consumer', async () => {
   const exec = promisify(execFile);
@@ -9540,6 +9351,32 @@ async function exerciseStrategyGraph(
     }
     return program;
   };
+  const retainedLongTextAppend = structuredClone(externalAppendProgram);
+  // The shared Host fixture admits at most 1,000 canonical bytes per value.
+  // This still crosses eight 64-unit output chunks without changing policy.
+  const retainedOutputText = 'x'.repeat(512);
+  for (const stage of retainedLongTextAppend.stages.filter(stage =>
+    stage.id === 'cross_left' || stage.id === 'cross_right')) {
+    stage.steps[0].values.schema.tag = {type: 'string', nullable: false};
+    stage.steps[0].values.rows = stage.id === 'cross_left'
+      ? [{id: 1, tag: retainedOutputText}] : [];
+    stage.results.r.fields = ['id', 'tag'];
+  }
+  // Derive retains both the original Text and its computed copy in one row.
+  // Keep their combined size below the existing 1,000-byte value envelope.
+  const retainedDerivedText = 'x'.repeat(400);
+  const retainedLongTextDerive = structuredClone(retainedLongTextAppend);
+  retainedLongTextDerive.stages.find(stage => stage.id === 'cross_left')
+    .steps[0].values.rows[0].tag = retainedDerivedText;
+  const retainedLongTextJoin = structuredClone(retainedLongTextAppend);
+  retainedLongTextJoin.stages.find(stage => stage.id === 'cross_right')
+    .steps[0].values.rows = [{id: 1, tag: 'right-side'}];
+  retainedLongTextJoin.stages.find(stage => stage.id === 'crossed').steps[0] = {
+    from: 'l', join: {
+      with: 'r', kind: 'inner', on: [{left: 'id', right: 'id'}],
+      select: {id: 'left.id', tag: 'left.tag'},
+    }, as: 'out',
+  };
   const retainedBinaryFork = (source, fields) => {
     const program = structuredClone(source);
     const producer = program.stages.find(stage => stage.id === 'crossed');
@@ -9748,6 +9585,31 @@ async function exerciseStrategyGraph(
     }
     return program;
   };
+  const retainedLongTextTemporalJoin = kind => {
+    const program = retainedTemporalJoinProgram(kind);
+    const left = program.stages.find(stage => stage.id === 'cross_left');
+    const right = program.stages.find(stage => stage.id === 'cross_right');
+    const joined = program.stages.find(stage => stage.id === 'crossed');
+    left.steps[0].values.schema.tag = {type: 'string', nullable: false};
+    left.steps[0].values.rows = [{...left.steps[0].values.rows[0],
+      tag: retainedOutputText}];
+    right.steps[0].values.rows = [right.steps[0].values.rows[0]];
+    left.results.r.fields = Object.keys(left.steps[0].values.schema);
+    joined.steps[0][kind === 'interval' ? 'interval_join' : 'asof_join']
+      .select.tag = 'left.tag';
+    const fields = kind === 'interval'
+      ? ['left_value', 'right_value', 'tag'] : ['id', 'value', 'tag'];
+    return retainedFamilyChain(program, 'crossed',
+      [{filter: 'true'}, {select: fields}], fields);
+  };
+  const retainedLongTextSequence = structuredClone(retainedRelationSequenceProgram);
+  const longSequenceInput = retainedLongTextSequence.stages.find(stage =>
+    stage.id === 'values_a');
+  longSequenceInput.steps[0].values.schema.id = {type: 'string', nullable: false};
+  longSequenceInput.steps[0].values.rows = [
+    {id: retainedOutputText, key: 1, clock: 1, value: 1},
+    {id: 'end', key: 1, clock: 2, value: 2},
+  ];
   const relationSessionFields = ['id', 'session_start_ms', 'session_end_ms'];
   const retainedRelationSessionProgram = structuredClone(zeroInputProgram);
   const sessionInput = retainedRelationSessionProgram.stages.find(stage =>
@@ -9820,6 +9682,15 @@ async function exerciseStrategyGraph(
     firstStage: 'consumer_a', secondStage: 'consumer_b',
     expected: [sequenceExpected[1], sequenceExpected[0]],
     fields: relationSequenceFields, fixtureArgs: sequencePolicyArgs(2, 3)},
+    {name: 'sequence-long-text-filter-select-chain', source: retainedFamilyChain(
+      retainedLongTextSequence, 'matched',
+      [{filter: 'key = 1'}, {select: relationSequenceFields}], relationSequenceFields),
+    temporal: true, sequence: true,
+    producerStage: 'matched', producerTask: 2, totalTasks: 4,
+    firstStage: 'consumer_a', secondStage: 'consumer_b',
+    expected: [{end_id: 'end', end_time_ms: 2, key: 1, match_end_ms: 2,
+      match_start_ms: 1, start_id: retainedOutputText, start_time_ms: 1}],
+    fields: relationSequenceFields, fixtureArgs: sequencePolicyArgs(2, 3)},
     {name: 'time-series-filter-select-chain', source: retainedFamilyChain(
       retainedTimeSeriesProgram, 'values_a',
       [{filter: 'true'}, {select: ['time']}], ['time']),
@@ -9841,6 +9712,14 @@ async function exerciseStrategyGraph(
       retainedTemporalJoinProgram('asof'), 'crossed',
       [{filter: 'value > 200'}, {select: ['id', 'value']}], ['id', 'value']),
     temporal: true, expected: [{id: 1, value: 300}], fields: ['id', 'value']},
+    {name: 'interval-long-text-filter-select-chain',
+      source: retainedLongTextTemporalJoin('interval'), temporal: true,
+      expected: [{left_value: 10, right_value: 20, tag: retainedOutputText}],
+      fields: ['left_value', 'right_value', 'tag']},
+    {name: 'asof-long-text-filter-select-chain',
+      source: retainedLongTextTemporalJoin('asof'), temporal: true,
+      expected: [{id: 1, tag: retainedOutputText, value: 100}],
+      fields: ['id', 'value', 'tag']},
     {name: 'asof-arithmetic-control-chain', source: retainedFamilyChain(
       retainedTemporalJoinProgram('asof'), 'crossed',
       [{filter: 'id >= 1'}], ['id', 'value']),
@@ -9961,6 +9840,56 @@ async function exerciseStrategyGraph(
     {name: 'append-filter-select', source: retainedBinaryChain(
       externalAppendProgram, [{filter: 'id > 1'}, {select: ['id']}], ['id']),
     expected: [{id: 2}, {id: 3}, {id: 4}], fields: ['id']},
+    {name: 'append-long-text-filter', source: retainedBinaryChain(
+      retainedLongTextAppend, [{filter: 'id > 0'}], ['id', 'tag']),
+    expected: [{id: 1, tag: retainedOutputText}], fields: ['id', 'tag']},
+    {name: 'join-long-text-filter-select', source: retainedBinaryChain(
+      retainedLongTextJoin, [{filter: 'id > 0'}, {select: ['id', 'tag']}],
+      ['id', 'tag']),
+    expected: [{id: 1, tag: retainedOutputText}], fields: ['id', 'tag']},
+    {name: 'append-long-text-derive-select', source: retainedBinaryChain(
+      retainedLongTextDerive,
+      [{derive: {copy: 'tag'}}, {select: ['copy', 'id', 'tag']}],
+      ['copy', 'id', 'tag']),
+    expected: [{copy: retainedDerivedText, id: 1, tag: retainedDerivedText}],
+    fields: ['copy', 'id', 'tag']},
+    {name: 'unpivot-long-text-filter-select', source: retainedUnaryChain(
+      [{unpivot: {columns: ['jan'], keep: ['id', 'tag'],
+        name_column: 'metric', value_column: 'amount'}}],
+      [{filter: 'id > 0'}, {select: ['amount', 'id', 'metric', 'tag']}],
+      ['amount', 'id', 'metric', 'tag'],
+      [{id: 1, jan: 2, tag: retainedOutputText}], {
+        id: {type: 'number', nullable: false},
+        jan: {type: 'number', nullable: false},
+        tag: {type: 'string', nullable: false},
+      }),
+    expected: [{amount: 2, id: 1, metric: 'jan', tag: retainedOutputText}],
+    fields: ['amount', 'id', 'metric', 'tag']},
+    {name: 'unnest-long-text-filter-select', source: retainedUnaryChain(
+      [{unnest: {column: 'items', as: 'item', with_index: 'position',
+        outer: true}}],
+      [{filter: 'id > 0'}, {select: ['id', 'item', 'position', 'tag']}],
+      ['id', 'item', 'position', 'tag'],
+      [{id: 1, items: [2], tag: retainedOutputText}], {
+        id: {type: 'number', nullable: false},
+        items: {type: 'array', nullable: false, max_items: 1,
+          items: {type: 'number', nullable: false}},
+        tag: {type: 'string', nullable: false},
+      }),
+    expected: [{id: 1, item: 2, position: 0, tag: retainedOutputText}],
+    fields: ['id', 'item', 'position', 'tag']},
+    {name: 'row-window-long-text-filter-select', source: retainedUnaryChain(
+      [{row_window: {kind: 'fixed', time: 'at', size: 10}}],
+      [{filter: 'id > 0'},
+        {select: ['id', 'tag', 'window_start', 'window_end']}],
+      ['id', 'tag', 'window_start', 'window_end'],
+      [{at: 5, id: 1, tag: retainedOutputText}], {
+        at: {type: 'number', nullable: false},
+        id: {type: 'number', nullable: false},
+        tag: {type: 'string', nullable: false},
+      }),
+    expected: [{id: 1, tag: retainedOutputText, window_start: 0, window_end: 10}],
+    fields: ['id', 'tag', 'window_start', 'window_end']},
     {name: 'append-filter-arithmetic-control', source: retainedBinaryChain(
       externalAppendProgram, [{filter: 'id >= 1'}], ['id']),
     expected: [1, 2, 3, 4].map(id => ({id})), fields: ['id']},
@@ -10197,6 +10126,17 @@ async function exerciseStrategyGraph(
     ], fields: [
       'id', 'time', 'watermark_decision', 'watermark_late', 'watermark_ms',
     ]},
+    {name: 'group-long-text-filter-select', source: retainedUnaryChain(
+      [{group: {by: ['tag'], aggregates: {
+        maximum: {fn: 'max', field: 'amount'},
+      }}}], [{filter: 'maximum > 0'}, {select: ['maximum', 'tag']}],
+      ['maximum', 'tag'], [{id: 1, amount: 7, tag: 'g'.repeat(512)}], {
+        id: {type: 'number', nullable: false},
+        amount: {type: 'number', nullable: false},
+        tag: {type: 'string', nullable: false},
+      }),
+    expected: [{maximum: 7, tag: 'g'.repeat(512)}],
+    fields: ['maximum', 'tag']},
     {name: 'group-filter-select', source: retainedUnaryChain(
       [{group: {by: ['id'], aggregates: {n: {fn: 'count'}}}}],
       [{filter: 'n > 0'}, {select: ['id', 'n']}],
@@ -10267,6 +10207,17 @@ async function exerciseStrategyGraph(
     expected: [1, 2, 3, 4].map(id =>
       ({id, window_start: 0, window_end: 10})),
     fields: ['id', 'window_start', 'window_end']},
+    {name: 'analytic-long-text-filter-select', source: retainedUnaryChain(
+      [{analytic: {
+        partition_by: ['tag'], order_by: [{id: 'asc'}],
+        functions: {position: {fn: 'row_number'}},
+      }}], [{filter: 'position > 0'}, {select: ['id', 'position', 'tag']}],
+      ['id', 'position', 'tag'], [{id: 1, tag: 'g'.repeat(512)}], {
+        id: {type: 'number', nullable: false},
+        tag: {type: 'string', nullable: false},
+      }),
+    expected: [{id: 1, position: 1, tag: 'g'.repeat(512)}],
+    fields: ['id', 'position', 'tag']},
     {name: 'analytic-filter-select', source: retainedUnaryChain(
       [{analytic: {
         partition_by: [], order_by: [{id: 'asc'}],
@@ -10290,6 +10241,19 @@ async function exerciseStrategyGraph(
     expected: [
       {id: 1, total: 2}, {id: 2, total: 5}, {id: 3, total: 9},
     ], fields: ['id', 'total']},
+    {name: 'pivot-long-text-filter-select', source: retainedUnaryChain(
+      [{pivot: {
+        index: ['tag'], column: 'status', values: ['open'],
+        value: 'amount', aggregate: 'count',
+      }}], [{filter: 'open > 0'}, {select: ['open', 'tag']}],
+      ['open', 'tag'], [{id: 1, amount: 7, status: 'open',
+        tag: 'g'.repeat(512)}], {
+        id: {type: 'number', nullable: false},
+        amount: {type: 'number', nullable: false},
+        status: {type: 'string', nullable: false},
+        tag: {type: 'string', nullable: false},
+      }),
+    expected: [{open: 1, tag: 'g'.repeat(512)}], fields: ['open', 'tag']},
     {name: 'pivot-filter-select', source: retainedUnaryChain(
       [{pivot: {
         index: ['id'], column: 'status', values: ['a', 'b'],
@@ -10923,11 +10887,11 @@ async function exerciseStrategyGraph(
     {name: 'append-work-short', program: appendBoundary, work: 25, space: 10},
     {name: 'append-space-short', program: appendBoundary, work: 26, space: 9},
     {name: 'append-chain-exact', program: appendChainBoundary,
-      work: 72, space: 10, expected: [{id: 2}, {id: 3}]},
+      work: 81, space: 10, expected: [{id: 2}, {id: 3}]},
     {name: 'append-chain-work-short', program: appendChainBoundary,
-      work: 71, space: 10},
+      work: 80, space: 10},
     {name: 'append-chain-space-short', program: appendChainBoundary,
-      work: 72, space: 9},
+      work: 81, space: 9},
     {name: 'set-work-exact', program: setWorkBoundary, work: 19, space: 100,
       expected: [{id: 1}]},
     {name: 'set-work-short', program: setWorkBoundary, work: 18, space: 100},
