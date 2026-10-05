@@ -2,10 +2,12 @@ import './check-locations.test.mjs';
 import test, {mock} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {createServer} from 'node:http';
 import {checkReasonSchemaCid} from '@actql/client-wire';
-import {connect, ClientError, getCheckInput, getSubmissionInput, resolveCheckLocation, explainCheckReason} from './index.mjs';
+import {connect, ClientError, getCheckInput, getSubmissionInput, explainSubmission, resolveCheckLocation, explainCheckReason} from './index.mjs';
 
 test('constraint explanations use owned families without choosing a failed numeric bound', () => {
   const hints = {
@@ -828,6 +830,21 @@ test('overlapping unknown submits keep their own exact text and declarations', a
   assert.deepEqual(getSubmissionInput(secondError).input,
     {version: 'actql/0.1', marker: 'second'});
   assert.equal(getSubmissionInput(firstError).requestId, 'first');
+  const firstExplanation = explainSubmission(firstError);
+  assert.deepEqual(firstExplanation, {
+    observation: 'acceptance_unknown',
+    summary: 'Submission acceptance is unknown. Work may already have started.',
+    next: {operation: 'lookupRequest', requestId: 'first',
+      lookupContext: {endpoint: 'https://host.example/', scopeRef: 'scope-a'}},
+  });
+  assert.equal(explainSubmission(secondError).next.requestId, 'second');
+  firstError.code = 'Accepted';
+  firstError.requestId = 'second';
+  firstError.message = 'Execution succeeded';
+  assert.equal(explainSubmission(firstError), firstExplanation);
+  assert.equal(Object.isFrozen(firstExplanation.next.lookupContext), true);
+  assert.equal(explainSubmission({...firstError}), undefined);
+  assert.equal(explainSubmission(JSON.parse(JSON.stringify(firstError))), undefined);
   assert.equal(getSubmissionInput(secondError).requestId, 'second');
   assert.equal(Object.isFrozen(getSubmissionInput(firstError).input.parameterDeclarations.p), true);
   assert.equal(getSubmissionInput({...firstError}), undefined);
@@ -850,14 +867,17 @@ test('local credential and payload failures do not acquire submission input', as
   for (const marker of ['first', 'second']) {
     await assert.rejects(client.start({marker}), error => error === foreign);
     assert.equal(getSubmissionInput(foreign), undefined);
+    assert.equal(explainSubmission(foreign), undefined);
   }
   await assert.rejects(client.start({value: 1n}), error => {
     assert.equal(error.code, 'InvalidClientPayload');
     assert.equal(getSubmissionInput(error), undefined);
+    assert.equal(explainSubmission(error), undefined);
     return true;
   });
   for (const value of [undefined, null, 1, 'error', {}, new ClientError('SubmissionUnknown')]) {
     assert.equal(getSubmissionInput(value), undefined);
+    assert.equal(explainSubmission(value), undefined);
   }
   assert.deepEqual(operations, ['connect']);
 });
@@ -1118,4 +1138,14 @@ test('check retains detached submitted inputs while credentials are pending', as
   assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location,
     {...getCheckInput(outcome, 'parameters'), value: parameters}), undefined);
   assert.equal(explainCheckReason({code: 'future_problem'}).kind, 'unknown');
+});
+
+// Compile an independent public consumer, including invalid reference/write uses.
+test('typed submission explanations preserve reference roles and read-only targets', () => {
+  execFileSync(process.execPath, [fileURLToPath(new URL(
+    '../../node_modules/typescript/bin/tsc', import.meta.url)),
+  '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',
+  '--target', 'ES2022', fileURLToPath(new URL(
+    './submission-explanation.typecheck.mts', import.meta.url))],
+  {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
 });
