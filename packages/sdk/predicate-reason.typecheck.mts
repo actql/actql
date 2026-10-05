@@ -9,6 +9,15 @@ const unknownIssue: Reason = {code: 'query_expression_invalid', facts: {issue: '
 const privateValue: Reason = {code: 'query_expression_invalid', facts: {issue: 'expected_boolean', value: 1}};
 void unknownIssue; void privateValue;
 
+const selector: Reason = {code: 'graph_operation_invalid',
+  facts: {operation: 'subgraph', issue: 'invalid_node_selector'}};
+explainCheckReason(selector);
+// @ts-expect-error Operation and issue must belong to the same closed facts variant.
+const mismatchedSelector: Reason = {code: 'graph_operation_invalid', facts: {operation: 'subgraph', issue: 'invalid_kind'}};
+// @ts-expect-error The selector explanation does not contain a submitted value.
+const privateSelector: Reason = {code: 'graph_operation_invalid', facts: {operation: 'subgraph', issue: 'invalid_node_selector', value: [1]}};
+void mismatchedSelector; void privateSelector;
+
 declare const client: Client;
 const outcome = await client.check('SELECT id FROM records WHERE id', {format: 'sql'});
 if (outcome.outcome === 'completed') {

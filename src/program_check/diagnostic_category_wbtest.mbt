@@ -65,6 +65,7 @@ test "Graph query categories retain typed input limits and unknown failures" {
     (Typing(BudgetExceeded), CompileLimit),
     (Value(BudgetExceeded), CompileLimit),
     (Value(UnsupportedReference), UnsupportedImplementation),
+    (Structure(UnsupportedGraphOperation), UnsupportedImplementation),
     (Structure(IncompleteGraph), UnclassifiedFailure),
     (Typing(InvalidScope("internal")), UnclassifiedFailure),
   ]

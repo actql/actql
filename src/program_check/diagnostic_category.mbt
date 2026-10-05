@@ -187,7 +187,8 @@ fn graph_match_diagnostic_category(
     Structure(ContractMismatch(IncompatibleContracts(_, _))) => InvalidInput
     Structure(IncompleteGraph | ContractMismatch(_))
     | Typing(InvalidScope(_)) => UnclassifiedFailure
-    Value(UnsupportedReference) => UnsupportedImplementation
+    Structure(UnsupportedGraphOperation) | Value(UnsupportedReference) =>
+      UnsupportedImplementation
     Structure(_)
     | Typing(_)
     | Value(_)

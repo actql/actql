@@ -79,9 +79,15 @@ test('Graph explanations require a known operation and owned issue', () => {
     facts: {operation: 'components', issue: 'invalid_output_rows'}}),
   {kind: 'known', summary: 'The components output row limit is invalid.',
     hint: 'Supply a positive safe integer for components max_output_rows.'});
+  assert.deepEqual(explainCheckReason({code: 'graph_operation_invalid',
+    facts: {operation: 'subgraph', issue: 'invalid_node_selector'}}),
+  {kind: 'known', summary: 'The Subgraph node selector is invalid.',
+    hint: 'Provide one selector: nonempty ids, a named Relation with an id field, or a node where predicate.'});
   for (const facts of [undefined, {}, {issue: 'invalid_kind'},
     {operation: 'future_operation', issue: 'invalid_kind'},
-    {operation: 'components', issue: 'private_provider_text'}]) {
+    {operation: 'components', issue: 'private_provider_text'},
+    {operation: 'components', issue: 'invalid_node_selector'},
+    {operation: 'subgraph', issue: 'invalid_kind'}]) {
     assert.deepEqual(explainCheckReason({code: 'graph_operation_invalid', facts}),
       {kind: 'unknown', summary: 'No supported explanation is available for this reason.'});
   }
