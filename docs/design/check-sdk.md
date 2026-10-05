@@ -774,6 +774,20 @@ explanations remain separate work. The input-report connection does not claim
 the design's S1–S9/X1–X17/invariant completion gate.
 
 
+### Predicate type explanations
+
+The registered `query_expression_invalid` reason also carries
+`facts.issue: "expected_boolean"` for the common Relation checker's
+`ExpectedBoolean` rejection. The SDK explains that a predicate requires Boolean
+type and suggests a Boolean condition such as a comparison. It does not reveal
+the submitted value or invent an actual type absent from the retained issue.
+
+The checker-facing span does not retain authored/generated provenance, so this
+projection omits the location. A lowered Program path is not an original SQL
+position. Absent and inaccessible Source dependencies stop before dependent
+predicate checking and retain equivalent protected unresolved coverage.
+The verdict still comes from the common checker; explanations are advisory.
+
 ### Graph components argument explanations
 
 The public `graph_operation_invalid` reason carries closed facts

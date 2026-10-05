@@ -163,6 +163,7 @@ export function explainCheckReason(reason) {
     return Object.freeze({kind: 'known', summary, hint});
   }
   const expressionExplanations = {
+    expected_boolean: ['A predicate must have Boolean type.', 'Use a Boolean condition, such as a comparison, in the predicate.'],
     unknown_reference: ['An expression reference cannot be resolved in the checked scope.', 'Use a declared reference from the disclosed query context.'],
     invalid_arguments: ['Expression arguments violate the selected operation contract.', 'Correct the argument count or form required by the selected operation.'],
     invalid_number: ['A numeric expression is outside the admitted numeric domain.', 'Use a finite number in the admitted precision and signed-zero domain.'],

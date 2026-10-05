@@ -27,6 +27,14 @@ test('constraint explanations use owned families without choosing a failed numer
   'Correct the value to satisfy the declared constraint family.');
 });
 
+test('Boolean predicate explanations retain the requirement without exposing input text', () => {
+  assert.deepEqual(explainCheckReason({code: 'query_expression_invalid',
+    facts: {issue: 'expected_boolean', value: 'private-predicate'}}),
+  {kind: 'known', summary: 'A predicate must have Boolean type.',
+    hint: 'Use a Boolean condition, such as a comparison, in the predicate.'});
+  assert.equal(explainCheckReason({code: 'future_code', facts: {issue: 'expected_boolean'}}).kind, 'unknown');
+});
+
 test('Graph explanations require a known operation and owned issue', () => {
   assert.deepEqual(explainCheckReason({code: 'graph_operation_invalid',
     facts: {operation: 'components', issue: 'invalid_kind'}}),
