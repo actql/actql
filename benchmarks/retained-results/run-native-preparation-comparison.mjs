@@ -34,13 +34,16 @@ const afterDigest = await sha256File(afterBinary);
 assert.notEqual(afterDigest, beforeDigest, 'NativeAsciiChangeNotBuilt');
 const git = async args => (await exec('git', args, {cwd: root})).stdout.trim();
 const revision = await git(['rev-parse', 'HEAD']);
-const compiledSourceRevision = matchedFirstUse && !continuation ? 'fe0b68242d9e240494e85ecb0438f74f55855c88' : revision;
-if (matchedFirstUse && !continuation) {
-  assert.equal(await git(['diff', '--name-only', compiledSourceRevision, revision, '--', 'src']), '',
-    'NativeAsciiCompiledSourceChanged');
-  assert.equal(afterDigest, '2152155cc13ae8003df3c8b46a13ae45edf4a567554d579a440332475dd18f80',
-    'NativeAsciiCompiledBinaryChanged');
-}
+// These fixed experiments use archived builds, not a guessed current-HEAD
+// build. A later documentation/controller revision cannot retag the binary.
+const compiledSourceRevision = continuation ? '09b003893564cd01d4ff36ae4a6b2302839bd852'
+  : 'fe0b68242d9e240494e85ecb0438f74f55855c88';
+assert.equal(await git(['diff', '--name-only', compiledSourceRevision, revision, '--', 'src']), '',
+  'NativePreparationCompiledSourceChanged');
+assert.equal(afterDigest, continuation
+  ? 'c60bcc58aa831f91167fe06246ae3c13e7e5e538e05d21a34ada84165a4c2543'
+  : '2152155cc13ae8003df3c8b46a13ae45edf4a567554d579a440332475dd18f80',
+  'NativePreparationCompiledBinaryChanged');
 const sourceChanges = (await git(['diff', '--name-only', baselineRevision, revision, '--', 'src'])).split('\n').filter(Boolean);
 assert.deepEqual(sourceChanges.sort(), continuation
   ? ['src/canonical_json/cursor_admission_wbtest.mbt', 'src/canonical_json/encode.mbt']
