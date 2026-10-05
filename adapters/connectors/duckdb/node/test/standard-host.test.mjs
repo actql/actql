@@ -9306,6 +9306,15 @@ async function exerciseStrategyGraph(
   const retainedLongTextDerive = structuredClone(retainedLongTextAppend);
   retainedLongTextDerive.stages.find(stage => stage.id === 'cross_left')
     .steps[0].values.rows[0].tag = retainedDerivedText;
+  const retainedLongTextJoin = structuredClone(retainedLongTextAppend);
+  retainedLongTextJoin.stages.find(stage => stage.id === 'cross_right')
+    .steps[0].values.rows = [{id: 1, tag: 'right-side'}];
+  retainedLongTextJoin.stages.find(stage => stage.id === 'crossed').steps[0] = {
+    from: 'l', join: {
+      with: 'r', kind: 'inner', on: [{left: 'id', right: 'id'}],
+      select: {id: 'left.id', tag: 'left.tag'},
+    }, as: 'out',
+  };
   const retainedBinaryFork = (source, fields) => {
     const program = structuredClone(source);
     const producer = program.stages.find(stage => stage.id === 'crossed');
@@ -9771,6 +9780,10 @@ async function exerciseStrategyGraph(
     expected: [{id: 2}, {id: 3}, {id: 4}], fields: ['id']},
     {name: 'append-long-text-filter', source: retainedBinaryChain(
       retainedLongTextAppend, [{filter: 'id > 0'}], ['id', 'tag']),
+    expected: [{id: 1, tag: retainedOutputText}], fields: ['id', 'tag']},
+    {name: 'join-long-text-filter-select', source: retainedBinaryChain(
+      retainedLongTextJoin, [{filter: 'id > 0'}, {select: ['id', 'tag']}],
+      ['id', 'tag']),
     expected: [{id: 1, tag: retainedOutputText}], fields: ['id', 'tag']},
     {name: 'append-long-text-derive-select', source: retainedBinaryChain(
       retainedLongTextDerive,

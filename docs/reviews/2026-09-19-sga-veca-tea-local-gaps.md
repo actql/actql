@@ -1120,6 +1120,26 @@ Text copy, producer publication and two consumers; execution on its submitted
 source SHA is recorded separately. These output tests do not certify the
 whole expression evaluator or direct publication of conditional columns.
 
+The bounded equality Join owner now also steps validation when a completed
+RowTable lacks a reusable admitted-cell proof. Its existing admitted-input
+path, pair ordering, nullable outer-side extension, charged measurement and
+exact completion bindings are unchanged. Cleanup cancels the pending recheck
+before discarding unpublished cells or releasing their workspace.
+A generated Values completion supplies the raw RowTable regression without
+manually constructing execution state. Before the fix, a quantum-one poll
+finished a 4,096-byte Text check; the new cancellation assertion failed while
+the independent result/limit control passed. After the fix the focused Join
+and managed-caller selection passes 13 tests. The final three-test output
+fixture additionally checks a literal 24-slot workspace peak and typed
+one-short rejection. Its one-row envelope is four nodes, 8,195 bytes and
+8,199 output work units, with two 4,096-byte copied cells.
+A retained Join/filter/select Host case reads a 512-byte Text through the
+existing publication and two-consumer harness. That Host case is a production
+connection control, not evidence that retained input always uses raw RowTable
+storage; the component regression covers that distinct representation.
+New-source Host execution, other targets and Linux CI remain separately
+recorded obligations, not inferred from these JS checks.
+
 #### Retained Relation obligation chains
 
 The retained materializing lane now binds checked obligations to the exact
