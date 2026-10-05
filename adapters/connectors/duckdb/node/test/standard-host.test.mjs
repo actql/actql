@@ -1806,6 +1806,18 @@ async function exerciseStrategyGraph(
     fields:['id','node_name'], secondFields:['node_name'],
     expected:[{id:1,node_name:'first'},{id:2,node_name:'second'}],
   }, {
+    name: 'retained-relation-selected-subgraph',
+    retainedOutput:true, selectedStructural:true,
+    steps:[
+      {from:'g',match_nodes:{definition:'N',bindings:{identity:'element'},
+        where:'true',fields:['element']},as:'selected'},
+      {from:'g',subgraph:{nodes:{from:'selected',id:'element'}},as:'slice'},
+      {from:'slice',match_nodes:{definition:'N',where:'true',
+        fields:['id','node_name']},as:'out'},
+    ],
+    fields:['id','node_name'],secondFields:['node_name'],
+    expected:[{id:1,node_name:'first'},{id:2,node_name:'second'}],
+  }, {
     name: 'retained-normalized-node-match', retainedOutput:true,
     steps:[
       {from:'g',normalize_graph:true,as:'normalized'},
@@ -1964,6 +1976,16 @@ async function exerciseStrategyGraph(
     ],
     fields:['id','node_name'],secondFields:['node_name'],
     expected:[{id:2,node_name:'second'}],completedTasks:9,
+  }, {
+    name: 'retained-external-relation-subgraph',
+    retainedOutput:true,retainedTraversal:true,
+    steps:[
+      {from:'g',subgraph:{nodes:{from:'seeds',id:'element'}},as:'slice'},
+      {from:'slice',match_nodes:{definition:'N',where:'true',
+        fields:['id','node_name']},as:'out'},
+    ],
+    fields:['id','node_name'],secondFields:['node_name'],
+    expected:[{id:1,node_name:'first'},{id:2,node_name:'second'}],
   }, {
     name:'retained-trail-relation-filter', retainedOutput:true,
     retainedTraversal:true,
@@ -4732,6 +4754,21 @@ async function exerciseStrategyGraph(
     step:{from:'g',match_edges:{definition:'E',where:'weight > 10',
       fields:['src','dst','weight']},as:'out'},
     fields:['src','dst','weight'],
+  }, {
+    name: 'retained-relation-selected-subgraph-in-flight',
+    selectedStructural:true,
+    retainedOutput:true,rows:40,advanceQuantum:1,
+    constructionProgress:80,constructionStarts:[1],
+    cancelOnManagedStart:3,managedStarts:3,cancelTask:4,
+    minimumCompletedRows:1,completedTasks:[1,2,3],
+    steps:[
+      {from:'g',match_nodes:{definition:'N',bindings:{identity:'element'},
+        where:'true',fields:['element']},as:'selected'},
+      {from:'g',subgraph:{nodes:{from:'selected',id:'element'}},as:'slice'},
+      {from:'slice',match_nodes:{definition:'N',where:'true',
+        fields:['id','node_name']},as:'out'},
+    ],
+    fields:['id','node_name'],
   }, {
     name: 'retained-graph-normalize-in-flight',
     retainedOutput: true,
@@ -7970,6 +8007,13 @@ async function exerciseStrategyGraph(
     consumer.steps[0].select = ['id'];
     consumer.results.r.fields = ['id'];
   }
+  const branchedRelationProgram = structuredClone(externalAppendProgram);
+  branchedRelationProgram.stages.find(stage => stage.id === 'crossed').steps = [
+    {from: 'l', append: {with: 'r'}, as: 'appended'},
+    {from: 'appended', filter: 'id > 1', as: 'greater'},
+    {from: 'appended', filter: 'id < 3', as: 'less'},
+    {from: 'greater', append: {with: 'less'}, as: 'out'},
+  ];
   for (const [name, program, tasks] of [
     ['values', zeroInputProgram, [1, 2, 3]],
     ['captured Relation filter/select chain', capturedRelationChainProgram,
@@ -8005,6 +8049,7 @@ async function exerciseStrategyGraph(
     ['partitioned top k', partitionedTopKProgram, [1, 2, 3, 4, 5]],
     ['append', appendProgram, [1, 2, 3, 4, 5]],
     ['append filter chain', appendFilterProgram, [1, 2, 3, 4, 5]],
+    ['external append fork-join', branchedRelationProgram, [1, 2, 3, 4, 5]],
     ['filter then append captured input', filterThenAppendProgram,
       [1, 2, 3, 4]],
     ['direct cross join', directCrossJoinProgram, [1, 2, 3, 4, 5]],
@@ -8110,6 +8155,10 @@ async function exerciseStrategyGraph(
       if (name === 'append filter chain') {
         assert.deepEqual(zeroInputExecution.completed.map(item => item.outputRows),
           [1, 1, 1, 1, 1]);
+      }
+      if (name === 'external append fork-join') {
+        assert.deepEqual(zeroInputExecution.completed.map(item => item.outputRows),
+          [2, 2, 5, 5, 5]);
       }
       if (name === 'captured Relation filter/select chain') {
         assert.deepEqual(
@@ -9391,6 +9440,8 @@ async function exerciseStrategyGraph(
       externalAppendProgram,
       [{append: {with: 'r'}}, {filter: 'id > 1'}], ['id']),
     expected: [2, 3, 4, 3, 4].map(id => ({id})), fields: ['id']},
+    {name: 'append-fork-join', source: branchedRelationProgram,
+      expected: [2, 3, 4, 1, 2].map(id => ({id})), fields: ['id']},
     {name: 'except-all-filter', source: retainedBinaryChain(
       retainedSetProgram('except'), [{filter: 'id > 1'}], ['id']),
     expected: [{id: 2}], fields: ['id']},
@@ -9869,13 +9920,19 @@ async function exerciseStrategyGraph(
     }
   }
   for (const {name, mode: fixtureMode, temporal, chain = false,
-    eventsAsOf = false} of [
+    eventsAsOf = false, branched = false} of [
     {name: 'cancel'}, {name: 'cancel-after-filter'},
+    {name: 'branch-cancel-after-filter', mode: 'cancel-after-filter',
+      branched: true},
     {name: 'nest-cancel'},
     {name: 'cancel-after-group'},
     {name: 'cancel-after-numeric-group'},
     {name: 'compute-failure'},
+    {name: 'branch-compute-failure', mode: 'compute-failure', branched: true},
     {name: 'store-failure'}, {name: 'finalize-failure'},
+    {name: 'branch-store-failure', mode: 'store-failure', branched: true},
+    {name: 'branch-finalize-failure', mode: 'finalize-failure',
+      branched: true},
     {name: 'cancel', temporal: 'series'},
     {name: 'cancel', temporal: 'interval'},
     {name: 'cancel', temporal: 'asof'},
@@ -9930,6 +9987,7 @@ async function exerciseStrategyGraph(
       ? retainedRelationSequenceProgram : session
       ? retainedRelationSessionProgram : retainedTemporalJoinProgram(temporal))
       : nestCancel ? structuredClone(nestProgram)
+      : branched ? structuredClone(branchedRelationProgram)
       : retainedBinaryChain(externalAppendProgram,
       grouped
         ? [{group: {by: ['id'], aggregates: {
@@ -9939,6 +9997,12 @@ async function exerciseStrategyGraph(
         : [{filter: mode === 'compute-failure'
           ? '1 / (id - id) > 0' : 'id >= 10'}],
       grouped ? ['id', 'n'] : ['id']);
+    if (branched && computeFailure) {
+      const branch = program.stages.find(stage => stage.id === 'crossed');
+      branch.steps.push({from: 'out', filter: '1 / (id - id) > 0',
+        as: 'failed'});
+      branch.results.r.from = 'failed';
+    }
     if (chain) {
       const producerId = series ? 'values_a' : sequence ? 'matched'
         : session ? 'sessionized' : 'crossed';
@@ -10091,7 +10155,7 @@ async function exerciseStrategyGraph(
                   const poll = checked(result);
                   producerWork += poll.work;
                   if ((mode === 'cancel-after-filter' || grouped) &&
-                      producerWork > (chain && series ? 5n
+                      producerWork > (branched ? 73n : chain && series ? 5n
                         : chain && session ? 58n : 29n) &&
                       !poll.complete) {
                     sawLaterWork = true;
@@ -10174,7 +10238,9 @@ async function exerciseStrategyGraph(
         assert.equal(execution.failure?.code, 'MoonBitHostFailure');
         const arithmeticFailure = eventsAsOf
           ? fixture.strategyFixtureRetainedEventsAsOfArithmetic
-          : fixture.strategyFixtureRetainedChainFilterArithmetic;
+          : branched
+            ? fixture.strategyFixtureRetainedBranchFilterArithmetic
+            : fixture.strategyFixtureRetainedChainFilterArithmetic;
         assert.equal(arithmeticFailure(execution.failure.cause), true);
         if (mode === 'compute-cleanup-failure') {
           await assert.rejects(async () => execution.close(),

@@ -41,6 +41,16 @@ pub fn operation_profile_requirement(
         | EnforceComponentAuthorGuard
         | BindComponentAuthorGuard(_) => None
       }
+    SubgraphRequirement(o) =>
+      match o {
+        ResolveSubgraphProfile => Some(PropertyGraph)
+        AdmitSubgraphInput
+        | InduceSelectedEndpoints
+        | FilterInducedEdges
+        | PreserveSubgraphIdentitiesAndProperties
+        | PreserveSubgraphPolicyAndScope
+        | ResolveSubgraphResources => None
+      }
     TraverseRequirement(o) =>
       match o {
         ResolvePropertyGraphTraversalProfile => Some(PropertyGraph)
