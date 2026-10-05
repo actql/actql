@@ -888,6 +888,7 @@ async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
   closed = false, connectionAllowed = true,
   sdkConnect = connect,
   maxRequestBytes = 65536,
+  mutateCheckReply,
   profiles = [false, false, true, true, false, false, false]} = {}) {
   const admitted = moon.clientProgramCheckEnvironment(canonicalText(wire),
     wire.evidence_bundle_cid, ...profiles);
@@ -910,7 +911,8 @@ async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
       maxRows: 10, maxBatchRows: 10, maxBatchRetainedValueBytes: 2048}};
   const configuration = {authenticate: () => owner,
     authorizeConnection: ({operation}) => operation === 'connect' || connectionAllowed,
-    negotiate: () => profile, check,
+    negotiate: () => profile,
+    check: mutateCheckReply ? async request => mutateCheckReply(await check(request)) : check,
     maxRowBytes: 1024, maxRequestBytes};
   if (entrance === 'local') {
     const client = await connectInProcess({mode, owner: mode},
@@ -993,6 +995,89 @@ test('the admitted checker exposes exact selections without private Source inven
 });
 
 for (const entrance of ['local', 'http']) {
+  test(`${entrance}: structured check locations name only submitted JSON nodes`, async t => {
+    const client = await contextClient(t, entrance, absentEnvironment);
+    const refusedLocation = async operation => {
+      let refused = false;
+      try { await operation; }
+      catch (cause) {
+        if (cause?.code !== 'InvalidHostCheckOutcome') throw cause;
+        refused = true;
+      }
+      assert.equal(refused, true, '[check-mutation:structured-refusal]');
+    };
+    const cases = [
+      [{type: 'array', items: {type: 'number'}}, [1, 'private-value'], '/options/1'],
+      [{type: 'object', fields: {'': {type: 'number'}}}, {'': 'private-value'},
+        '/options/fields/', 'parameter_declarations'],
+      [{type: 'object', fields: {'a/b~c': {type: 'number'}}},
+        {'a/b~c': 'private-value'}, '/options/a~1b~0c'],
+      [{type: 'object', fields: {'~1': {type: 'number'}}},
+        {'~1': 'private-value'}, '/options/~01'],
+      [{type: 'object', fields: {'é😀': {type: 'number'}}},
+        {'é😀': 'private-value'}, '/options/é😀'],
+      [{type: 'object', fields: JSON.parse('{"__proto__":{"type":"number"}}')},
+        JSON.parse('{"__proto__":"private-value"}'), '/options/__proto__'],
+      [{type: 'object', fields: {constructor: {type: 'number'}}},
+        {constructor: 'private-value'}, '/options/constructor'],
+    ];
+    for (const [declaration, value, pointer, documentId = 'parameters'] of cases) {
+      let outcome;
+      try {
+        outcome = await client.check('SELECT 1 AS n', {format: 'sql',
+          parameterDeclarations: {options: declaration}, parameters: {options: value}});
+      } catch (cause) {
+        if (cause?.code !== 'InvalidHostCheckOutcome') throw cause;
+      }
+      assert.notEqual(outcome, undefined, '[check-mutation:structured-valid]');
+      assert.equal(outcome.report.verdict, 'invalid');
+      const location = outcome.report.reasons[0].location;
+      assert.equal(location.pointer, pointer);
+      assert.equal(resolveCheckLocation(outcome, location)?.input,
+        getCheckInput(outcome, documentId), '[check-mutation:structured-resolved]');
+      assert.equal(resolveCheckLocation(outcome, {...location, pointer: ''})?.input,
+        getCheckInput(outcome, documentId));
+      assert.equal(resolveCheckLocation(outcome, location,
+        {...getCheckInput(outcome, documentId), value: {options: 'edited'}}), undefined);
+      assert.equal(resolveCheckLocation(JSON.parse(JSON.stringify(outcome)), location), undefined);
+      assert.ok(!JSON.stringify(outcome).includes('private-value'));
+    }
+    for (const partial of [false, true]) {
+      const mutate = edit => outcome => {
+        const report = structuredClone(outcome.report);
+        edit(report);
+        return partial ? {version: outcome.version, reason_schema_cid: outcome.reason_schema_cid,
+          outcome: 'failed', problem: {code: 'check_internal'}, partial_report: report}
+          : {...outcome, report};
+      };
+      const arrayOptions = {format: 'sql',
+        parameterDeclarations: {options: {type: 'array', items: {type: 'number'}}},
+        parameters: {options: ['private-value']}};
+      for (const pointer of ['/options/1', '/options/00', '/options/-',
+        '/options/length', '/options/map', '/options/constructor',
+        '/options/__proto__', '/options/0/x', '/options/9007199254740993']) {
+        const malformed = await contextClient(t, entrance, absentEnvironment,
+          {mutateCheckReply: mutate(report => { report.reasons[0].location.pointer = pointer; })});
+        await refusedLocation(malformed.check('SELECT 1 AS n', arrayOptions));
+      }
+      const objectOptions = {format: 'sql',
+        parameterDeclarations: {options: {type: 'object', fields: {count: {type: 'number'}}}},
+        parameters: {options: {count: 'private-value'}}};
+      for (const pointer of ['/options/missing', '/options/toString',
+        '/options/__proto__', '/options/constructor', '/options/count/length']) {
+        const malformed = await contextClient(t, entrance, absentEnvironment,
+          {mutateCheckReply: mutate(report => { report.reasons[0].location.pointer = pointer; })});
+        await refusedLocation(malformed.check('SELECT 1 AS n', objectOptions));
+      }
+      const missing = await contextClient(t, entrance, absentEnvironment,
+        {mutateCheckReply: mutate(report => {
+          report.requirements[0].location.pointer = '/undeclared';
+        })});
+      await refusedLocation(missing.check('SELECT 1 AS n', {format: 'sql',
+        parameterDeclarations: {options: {type: 'number'}}}));
+    }
+  });
+
   test(`${entrance}: source byte exhaustion is a limit of the original bound check`, async t => {
     // Use the existing configurable HTTP ingress budget to reach the parser's
     // smaller source budget. Default HTTP ingress still refuses oversized wire.

@@ -27,6 +27,25 @@ export function getCheckInput(outcome, documentId, revision) {
     ? input : undefined;
 }
 
+const structuredNodeExists = (value, pointer) => {
+  if (typeof pointer !== 'string' || pointer.length > 4096 ||
+      !/^(?:\/(?:[^~]|~[01])*)*$/u.test(pointer)) return false;
+  if (pointer === '') return true;
+  for (const token of pointer.slice(1).split('/')) {
+    // Decode slash first so a literal ~1 encoded as ~01 stays a member name.
+    const key = token.replaceAll('~1', '/').replaceAll('~0', '~');
+    if (value === null || typeof value !== 'object') return false;
+    if (Array.isArray(value)) {
+      if (!/^(?:0|[1-9][0-9]*)$/u.test(key)) return false;
+      const index = Number(key);
+      if (!Number.isSafeInteger(index) || index >= value.length) return false;
+    }
+    if (!Object.hasOwn(value, key)) return false;
+    value = value[key];
+  }
+  return true;
+};
+
 // Reading original bytes and converting offsets is not parsing the language.
 export function resolveCheckLocation(outcome, location, currentInput) {
   const original = getCheckInput(outcome, location?.document_id, location?.revision);
@@ -38,6 +57,7 @@ export function resolveCheckLocation(outcome, location, currentInput) {
       (input.kind === 'text' ? input.text !== original.text :
         JSON.stringify(input.value) !== JSON.stringify(original.value))) return undefined;
   if (location.kind === 'structured') {
+    if (!structuredNodeExists(original.value, location.pointer)) return undefined;
     return Object.freeze({...location, input});
   }
   const bytes = utf8.encode(original.text);

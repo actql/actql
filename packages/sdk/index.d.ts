@@ -14,7 +14,7 @@ export type CheckInput = Readonly<{documentId: string; revision: string}> & (
 /** Available only for the exact response of this SDK check call. */
 export declare function getCheckInput(outcome: CheckOutcome, documentId: string,
   revision?: string): CheckInput | undefined;
-/** Omitted when original input is unavailable, stale or mismatched. No edits are applied. */
+/** Omitted for unavailable/stale input or a pointer without a submitted JSON node. No edits are applied. */
 export declare function resolveCheckLocation(outcome: CheckOutcome,
   location: WireCheckLocation, currentInput?: CheckInput):
   (WireCheckLocation & Readonly<{input: CheckInput; text?: string}>) | undefined;
