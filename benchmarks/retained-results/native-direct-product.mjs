@@ -69,6 +69,7 @@ export async function prepareNativeDirectProduct({root, fixture, database,
   const localEligible = registeredLocalEligibility(fixture).eligible;
   const expected = fixture.identity();
   return Object.freeze({binary, expected, finalTask, localEligible,
+    executionCap: limits.execution_bytes, attemptCap,
     arguments: Object.freeze([
       '--application-root', directory,
       '--database', database,
@@ -226,6 +227,10 @@ export function admitNativeDirectProduct(fixture, invocation, execution) {
   const ownerCorrespondence = admitNativeOwnerObservations(
     execution.ownerObservations, taskHoldings, ids.map(task => selected.get(task)),
     record.usage);
+  assert(ownerCorrespondence.observations.owners.every(owner =>
+    BigInt(owner.reservedExecutionBytes) <= invocation.executionCap &&
+    owner.attempts <= invocation.attemptCap),
+  'NativeOwnerExceedsDeclaredExecutionCap');
   return Object.freeze({record, taskIntervals, taskUsages, taskHoldings,
     acquisitionChoice, ownerCorrespondence, selections, selected: ids.map(task => selected.get(task)),
     acquisitionEvidenceMetadata,

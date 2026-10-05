@@ -23,7 +23,10 @@ comparable replacement for historical formal results.
   `HostPreferred` result is not a comparison against a nonexistent Broad offer.
 - Compute records existing candidate projections and the selected registration,
   assessment position, strategy revision, resident flag and selection source
-  before execution. Materializing the projection uses existing bounded policy
+  before execution. The actual owner explanation also retains rejected
+  assessments and is bound to the same revision, selected task, capability,
+  resident profile, quantities and reason. A post-completion explanation cannot
+  stand in for this pre-execution observation. Materializing the projection uses existing bounded policy
   consultation and charges its planning work. Diagnostic estimates remain
   explicit inputs, never evidence of calibrated ordinary performance.
 - Per-task snapshots read the real Run ledger and resident owner counters.
@@ -43,17 +46,34 @@ comparable replacement for historical formal results.
 ## Focused development verification
 
 The 100-row Native diagnostic uses the existing registered source and independent
-expected result CID/stage cardinalities. Its four conditions are resident
-selection, fresh selection, cancellation after one completed task and rejection
-with attempt cap one. Resident execution accounts for task deltas `[3, 1, 1]`;
+expected result CID/stage cardinalities. Its six conditions are resident
+selection, fresh selection, cheaper Local selection, refusal of cheaper
+resident strategies with attempt cap four, cancellation after one completed
+task and rejection with attempt cap one. Resident execution accounts for task deltas `[3, 1, 1]`;
 fresh execution accounts for `[1, 1, 1]`. Cancellation retains the first result
 and live resident reservation until explicit close. Insufficient attempts must
 reject before Compute and still confirm close.
 
+The four-attempt case admits three fresh Compute attempts but cannot admit the
+five attempts needed by resident preparation/import plus Compute. At every
+selection, an actual rejected assessment has `attempt_limit` and a lower
+estimated duration than the selected feasible assessment. The test checks these
+structured values, rather than searching for an error word or inventing a
+selection reason. Lowering the execution cap alone is not this experiment:
+the existing application sizes its offered Native envelope from that cap, so a
+fresh offer can remain feasible. No capability or upper bound was rewritten.
+
 These are development-source diagnostics until a submitted revision and artifact
 are bound in the PR record. The focused debug build and four-condition test
 succeeded. Two portable parser/runner files passed 16 tests before the final
-diagnostic refusal observation was added. The prior release build timed out at
+diagnostic refusal observation was added. The updated six-condition Native test
+and 15 targeted parser tests passed 16/16 on development sources after the
+pre-execution explanation was added. Evidence:
+`_build/local-checks/attempts/run-UCZNYl` and
+`_build/focused-evidence/focused-test-ENC05X`; the incremental Native debug build
+is `_build/local-checks/attempts/run-KfJzVy`. These are debug acceptance and
+synthetic observation refusal evidence, not release performance measurements.
+The prior release build timed out at
 its 180-second bound and is not counted as release acceptance. No full matrix,
 packed acceptance or formal performance campaign was run locally.
 

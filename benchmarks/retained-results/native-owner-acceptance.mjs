@@ -29,7 +29,7 @@ function closed(observations) {
   assert.deepEqual(twice, {...after, boundary: 'duplicate-close'});
 }
 
-test('100 rows: actual resident/fresh choices, cancellation and insufficient attempts',
+test('100 rows: actual resident/fresh/Local choices, cheaper capacity refusal and close',
   {timeout: 60000}, async () => {
     const directory = await mkdtemp(join(tmpdir(), 'actql-native-owner-'));
     try {
@@ -41,14 +41,20 @@ test('100 rows: actual resident/fresh choices, cancellation and insufficient att
       for (const [label, settings] of [
         ['resident', {residentPolicy: true}],
         ['fresh', {residentPolicy: false}],
+        ['local', {residentPolicy: false, localRates: ['1', '1', '1'],
+          nativeRates: ['2147483647', '2147483647', '2147483647']}],
+        // Three Compute attempts fit; resident preparation/import would need
+        // five. Its lower estimate must not override the actual attempt cap.
+        ['bounded', {residentPolicy: true, attemptCap: 4}],
         ['cancel', {residentPolicy: true, cancelAfterTask: 1}],
         ['reject', {residentPolicy: true, attemptCap: 1}],
       ]) {
         const child = join(directory, label);
         await mkdir(child);
         const invocation = await prepareNativeDirectProduct({root, fixture,
-          database, directory: child, ...settings,
-          localRates: ['1000', '1000', '1000'], nativeRates: ['1000', '1000', '1000']});
+          database, directory: child,
+          localRates: ['1000', '1000', '1000'], nativeRates: ['1000', '1000', '1000'],
+          ...settings});
         if (label === 'reject') {
           let failure;
           try {await exec(invocation.binary, invocation.arguments,
@@ -80,6 +86,19 @@ test('100 rows: actual resident/fresh choices, cancellation and insufficient att
           const product = admitNativeDirectProduct(fixture, invocation, execution);
           assert(product.ownerCorrespondence.observations.choices.every(choice =>
             choice.resident === (label === 'resident')));
+          assert.deepEqual(product.selected, Array(3).fill(
+            label === 'local' ? 'local' : 'duckdb'),
+          JSON.stringify({label, explanations: product.ownerCorrespondence.observations.explanations}));
+          if (label === 'bounded') {
+            assert(product.ownerCorrespondence.observations.explanations.every(
+              ({body}) => body.assessed_strategies.some(assessment =>
+                assessment.rejection === 'attempt_limit' &&
+                assessment.estimated_milliseconds !== null &&
+                body.selection.remaining_at_selection.estimated_milliseconds !== null &&
+                BigInt(assessment.estimated_milliseconds) <
+                  BigInt(body.selection.remaining_at_selection.estimated_milliseconds))),
+            'MissingCheaperCandidateCapacityRefusal');
+          }
           assert.deepEqual(product.ownerCorrespondence.attempts.map(attempt =>
             attempt.physicalAttempts), label === 'resident' ? [3, 1, 1] : [1, 1, 1]);
           // Exact independent rows/CID and per-stage cardinalities are checked by

@@ -203,6 +203,15 @@ fn execute_timed_native_strategy_run(
           Err(issue) => return Err(@host.Dispatch(issue))
           Ok(_) => ()
         }
+        // Preserve the owner's rejected assessments as well as feasible
+        // policy candidates. Unknown estimates and capacity refusals stay
+        // distinguishable from an executed physical provider.
+        println(
+          "compute-explanation:" +
+          next_task.to_string() +
+          ":" +
+          @strategy.explain_captured_strategy(captured, 65536, 10000).unwrap(),
+        )
         let revision = @strategy.strategy_history_at(
           captured,
           @strategy.strategy_history_count(captured) - 1,

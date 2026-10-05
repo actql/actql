@@ -29,6 +29,12 @@ export function nativeOwnerObservations(stdout) {
       return {task: Number(match[1]), body: JSON.parse(match[2])};
     });
   const choices = parsed(lines, 'compute-choice:');
+  const explanations = lines.filter(line => line.startsWith('compute-explanation:'))
+    .map(line => {
+      const match = /^compute-explanation:([1-9][0-9]*):(.*)$/.exec(line);
+      assert(match, 'InvalidNativePlannerExplanation');
+      return {task: Number(match[1]), body: JSON.parse(match[2])};
+    });
   const acquisitionChoices = parsed(lines, 'acquisition-choice:');
   const plannerObserver = prefix => lines.filter(line => line.startsWith(prefix))
     .map(line => {
@@ -44,8 +50,9 @@ export function nativeOwnerObservations(stdout) {
     const before = lines.findIndex(line => line.startsWith('compute-candidates:' + choice.task + ':'));
     const chosen = lines.findIndex(line => line.startsWith('compute-choice:') &&
       JSON.parse(line.slice('compute-choice:'.length)).task === choice.task);
+    const explained = lines.findIndex(line => line.startsWith('compute-explanation:' + choice.task + ':'));
     const after = lines.findIndex(line => line.startsWith('task-elapsed-us:' + choice.task + ':'));
-    assert(before >= 0 && chosen > before && after > chosen,
+    assert(before >= 0 && explained > before && chosen > explained && after > chosen,
       'NativeChoiceNotObservedBeforeCompletion');
   }
   const phases = lines.filter(line => line.startsWith('phase-time-us:'))
@@ -64,7 +71,7 @@ export function nativeOwnerObservations(stdout) {
   });
   assert.equal(observerMicroseconds.length, owners.length,
     'MissingNativeObserverInterval');
-  return {owners, candidates, choices, phases, observerMicroseconds,
+  return {owners, candidates, choices, explanations, phases, observerMicroseconds,
     acquisitionChoices, plannerObserverTime, plannerObserverWork};
 }
 
@@ -80,6 +87,8 @@ export function admitNativeOwnerObservations(observations, taskHoldings, selecte
     'MissingNativePlannerCandidates');
   assert.deepEqual(choices.map(item => item.task), ids,
     'MissingNativePlannerChoice');
+  assert.deepEqual(observations.explanations?.map(item => item.task), ids,
+    'MissingNativePlannerExplanation');
   assert.deepEqual(owners.map(item => [item.boundary, item.task]),
     [...ids.flatMap(task => [['before-task', task], ['after-task', task]]),
       ...['before-close', 'after-close', 'duplicate-close'].map(boundary =>
@@ -113,6 +122,29 @@ export function admitNativeOwnerObservations(observations, taskHoldings, selecte
     const offer = assignment[5].find(offer => offer?.[0] === task);
     assert(offer && offer[1] === choice.registration,
       'NativeChoiceRegistrationMismatch');
+    const explanation = observations.explanations[index].body;
+    const selection = explanation.selection;
+    assert(explanation.kind === 'host-private-strategy-explanation/0.1' &&
+      explanation.selection_state === 'selected' && selection?.dispatch_authorized &&
+      selection.revision === choice.revision &&
+      explanation.assessment_revision === choice.revision,
+    'NativeExplanationSelectionMismatch');
+    assert(selection.remaining_at_selection?.position === choice.position &&
+      selection.remaining_at_selection.rejection === null,
+    'NativeExplanationAssessmentMismatch');
+    const assessment = selection.remaining_at_selection;
+    assert.deepEqual([assessment.estimated_milliseconds, assessment.transfer_bytes,
+      assessment.retained_bytes, assessment.execution_bytes], assignment.slice(1, 5),
+    'NativeExplanationProjectionMismatch');
+    const selectedTask = selection.tasks.find(item => item.task === task);
+    assert(selectedTask && selectedTask.completed === false &&
+      selectedTask.capability === choice.name &&
+      (selectedTask.resident_profile !== null) === choice.resident,
+    'NativeExplanationTaskMismatch');
+    assert.equal(selection.reason,
+      {OfflineLatency: 'estimated_fastest', BoundedLatency: 'bounded_frontier',
+        HostProposal: 'host_preferred'}[choice.source],
+    'NativeExplanationReasonMismatch');
     assert(BigInt(retainedChargeBytes) <= BigInt(offer[5]),
       'NativeHoldingExceedsSelectedBound');
     assert.equal(offer[9] !== null, choice.resident,
