@@ -334,7 +334,8 @@ try {
       await readFile(join(root, 'planner-selection-packed-report.json')));
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
 }
-if (plannerSelectionOnly || twoSourceExampleOnly) return;
+if (plannerSelectionOnly || twoSourceExampleOnly ||
+    process.argv.includes('--grouped-in-only')) return;
 // The first Host process has exited: no live Local installation still owns
 // its Store. Restore retained Results in a new process without resubmission.
 // Narrow selections without the String fixture have no retained String Run.

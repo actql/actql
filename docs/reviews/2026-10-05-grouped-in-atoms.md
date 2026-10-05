@@ -57,6 +57,14 @@ a distinct execution entry: the dedicated membership test now passes its
 true/false/NULL rows through that existing admitted API. This does not certify
 all JSON derive forms at the public boundary. Both failed packed attempts are retained separately.
 
+Candidate `a3dfec0b0b7837b6c6c4cc8cc2391f5811f5c9c4` then passed all 17
+positive and seven refusal cases in each of Local and HTTPS. Its overall driver
+still failed afterward by incorrectly starting the unrelated retained-String
+restart check, whose input is absent from this narrow selection. The selector
+now returns after the completed membership campaign and its evidence capture;
+full/source-free String restart routes are unchanged. That intermediate command
+failure is retained separately from the final candidate's terminal status.
+
 The ordinary public corpus contains 17 positive and seven refusal cases,
 including direct false/true/NULL SELECT results in JSON, SQL and Pipe, NULL-item
 match precedence, and supported JSON empty/NULL-array boundaries. Fresh packed

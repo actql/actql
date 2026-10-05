@@ -232,6 +232,10 @@ test('membership machine controls never emit empty parameter declarations', () =
   const narrowSelection = driver.slice(driver.indexOf('const narrowPublicQuery'),
     driver.indexOf('try {', driver.indexOf('const narrowPublicQuery')));
   assert.ok(narrowSelection.includes("'--grouped-in-only'"));
+  const completedSelection = driver.slice(
+    driver.indexOf('if (plannerSelectionOnly || twoSourceExampleOnly'),
+    driver.indexOf('// The first Host process has exited'));
+  assert.ok(completedSelection.includes("'--grouped-in-only'"));
   const controls = groupedInSuccesses.filter(item => item.format === 'json');
   assert.ok(controls.length >= 6);
   for (const item of controls) {
