@@ -201,6 +201,16 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
       else introductions.set(path, { entry, revisions: [revision] });
     }
   }
+  // A committed, digest-bound supplement may normalize only an exact redundant
+  // singleton. Originals and their introductions remain immutable. Full schema,
+  // target digest and introduction checks below still apply to every supplement.
+  const singleBaseNormalizations = new Map();
+  for (const [, entry] of supplementsAt(head)) {
+    const record = JSON.parse(bytes(entry));
+    if (record.version !== 'actql-foundation-single-base-normalization/0.1') continue;
+    assert(!singleBaseNormalizations.has(record.target?.id), 'Duplicate foundation single-base normalization');
+    singleBaseNormalizations.set(record.target?.id, record);
+  }
   const declarations = [], byRevision = new Map(), byId = new Map();
   for (const [path, entry] of declarationsAt(head)) {
     const declarationBytes = bytes(entry);
@@ -223,6 +233,11 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     assert.deepEqual(declaration.parents, parents(declaration.revision), 'Incorrect foundation supporting parents');
     if (declaration.parents.length === 2 && mergeBases(declaration.revision).length > 1) {
       assert.deepEqual(declaration.mergeBases, mergeBases(declaration.revision), 'Incomplete or noncanonical foundation merge bases');
+    } else if (singleBaseNormalizations.has(declaration.id)) {
+      assert(declaration.kind === 'resolution' && declaration.parents.length === 2,
+        'Invalid foundation single-base normalization target');
+      assert.deepEqual(declaration.mergeBases, mergeBases(declaration.revision),
+        'Incorrect foundation singleton merge base');
     } else assert(!Object.hasOwn(declaration, 'mergeBases'), 'Spurious foundation merge bases');
     const declarationIntroductions = sorted(introductions.get(path).revisions);
     for (const introduction of declarationIntroductions) {
@@ -259,8 +274,9 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     const raw = bytes(entry), supplement = JSON.parse(raw);
     assert(raw.equals(Buffer.from(`${JSON.stringify(supplement, null, 2)}\n`)), 'Noncanonical foundation supplement JSON');
     const completion = supplement.version === 'actql-foundation-change-completion/0.1';
-    keys(supplement, ['version', 'id', 'target', completion ? 'changes' : 'inputs', 'reason'], 'foundation supplement');
-    if (!completion) assert.equal(supplement.version, 'actql-foundation-resolution-supplement/0.1');
+    const normalization = supplement.version === 'actql-foundation-single-base-normalization/0.1';
+    keys(supplement, ['version', 'id', 'target', ...(normalization ? [] : [completion ? 'changes' : 'inputs']), 'reason'], 'foundation supplement');
+    if (!completion && !normalization) assert.equal(supplement.version, 'actql-foundation-resolution-supplement/0.1');
     assert.match(supplement.id, id, 'Invalid foundation supplement ID');
     assert.equal(path, `${supplementDirectory}/${supplement.id}.json`, 'Ambiguous foundation supplement filename');
     keys(supplement.target, ['id', 'digest'], 'foundation supplement target');
@@ -268,7 +284,12 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     assert(original?.kind === (completion ? 'change' : 'resolution'), 'Unknown or wrong-kind foundation supplement target');
     assert.equal(supplement.target.digest, original.digest, 'Changed foundation supplement original');
     assert(typeof supplement.reason === 'string' && supplement.reason.trim(), 'Missing foundation supplement rationale');
-    if (completion) {
+    if (normalization) {
+      assert(original.parents.length === 2 && mergeBases(original.revision).length === 1,
+        'Non-singleton foundation normalization target');
+      assert.deepEqual(original.mergeBases, mergeBases(original.revision),
+        'Incorrect foundation singleton merge base');
+    } else if (completion) {
       assert(Array.isArray(supplement.changes) && supplement.changes.length, 'Empty foundation completion changes');
       const paths = supplement.changes.map(change => change.path);
       assert.deepEqual(paths, sorted(new Set(paths)), 'Noncanonical foundation completion paths');
@@ -296,7 +317,7 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     for (const introduction of introduced) {
       assert(original.introductions.some(prior => prior !== introduction && ancestor(prior, introduction)),
         'Foundation supplement must follow its original declaration');
-      if (!completion) for (const input of supplement.inputs) {
+      if (!completion && !normalization) for (const input of supplement.inputs) {
         const dependency = declarations.find(value => value.id === input);
         assert(dependency.introductions.some(prior => prior !== introduction && ancestor(prior, introduction)),
           'Foundation supplement must follow its dependency declaration');
@@ -304,6 +325,7 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     }
     const record = { path, digest: hash(raw), introductions: introduced, ...supplement };
     supplements.push(record);
+    if (normalization) continue;
     const collection = completion ? completionsByTarget : supplementsByTarget;
     if (!collection.has(original.id)) collection.set(original.id, []);
     collection.get(original.id).push(record);
@@ -384,7 +406,9 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
         }
         assert.deepEqual(inputRevisions, inputs, 'Incomplete or ambiguous foundation resolution inputs');
       }
-      const current = foundationSourceBinding({ ...declaration, changes: effectiveChanges(declaration) }, inputRevisions);
+      const effectiveDeclaration = { ...declaration, changes: effectiveChanges(declaration) };
+      if (singleBaseNormalizations.has(declaration.id)) delete effectiveDeclaration.mergeBases;
+      const current = foundationSourceBinding(effectiveDeclaration, inputRevisions);
       if (binding) assert.deepEqual(current, binding, 'Conflicting foundation source-binding declarations');
       else binding = current;
     }

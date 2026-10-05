@@ -15,6 +15,7 @@ import {installNodeClientRunStart} from './client-run-start.mjs';
 import {installNodeClientEffectRun} from './client-effect-run.mjs';
 import {runCapturedEffectComputation} from './entry.mjs';
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
+import {withLocalExecutionPauseHandler} from '../local-node/retained-store.mjs';
 import {acquiredEffectContinuation} from './acquired-effect-continuation.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {capturedDuckDBConfiguration} from './captured-duckdb-source.mjs';
@@ -1060,6 +1061,10 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
                   sourceAccess: sourceProfile?.sourceAccess, signal, now,
                   retainComputationOwner, infer: inferSelections.get(facts.prepared),
                   computeConfigurations: {local: localSnapshotConfiguration},
+                  withComputePauseHandler: (configurations, handlePause) => ({
+                    ...configurations,
+                    local: withLocalExecutionPauseHandler(configurations.local, handlePause),
+                  }),
                   store, principalId, faultInjection: authorization?.faultInjection,
                   observe: authorization?.observe, sourceContinuation,
                   modelController, submission: effectSubmissions.get(facts.prepared),
