@@ -5557,3 +5557,15 @@ capacity-admission change connects both existing Host claims, and the same
 public Program now publishes its retained producer and two consumer Results.
 The failed evidence and the newer passing boundary are distinguished in the
 [Sequence boundary record](2026-10-06-local-sequence-comparison.md).
+
+### Interval join internal Text comparison boundary
+
+Interval pair-key comparison now retains the existing stepped complete-value
+Text cursor instead of synchronously scanning long operands. Focused JS evidence
+checks quantum-invariant results and logical control work, comparison and whole-
+operation exact/one-short limits, cancellation inside charging/scanning, and
+single cleanup with live caller inputs. The ordinary installed retained Host
+also publishes independent ordered producer/two-consumer Results with long keys,
+duplicates and NULL non-matching; request reuse performs no additional Compute.
+Public comparison-phase stop latency and Wasm/native execution are not newly
+claimed. See the [interval boundary record](2026-10-06-local-interval-comparison.md).
