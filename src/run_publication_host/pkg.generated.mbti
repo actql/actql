@@ -528,6 +528,8 @@ pub fn encode_plan_fact_manifest_identity(String, Int, Int, Int) -> Result[PlanF
 
 pub fn install_client_retained_input_current(() -> @execution_site.ExecutionSite, () -> String, () -> Int64, (ClientRetainedInputProducer, @remote_transfer.RemoteTransferRequest) -> Bool) -> ClientRetainedInputCurrent
 
+pub fn install_client_retained_input_owner_current((String, String, String) -> Bool, () -> String, () -> Int64, (ClientRetainedInputProducer, @remote_transfer.RemoteTransferRequest) -> Bool) -> ClientRetainedInputCurrent
+
 pub fn issue_acquired_client_effect_local_invocation(PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, Int, Int, Int, unit? : Int) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue]
 
 pub fn issue_acquired_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectLocalResultExport, ClientEffectAcquiredEvidence, ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
@@ -690,9 +692,13 @@ pub fn plan_fact_manifest_identity_cid(PlanFactManifestIdentity) -> String
 
 pub fn plan_fact_manifest_identity_wire(PlanFactManifestIdentity) -> String
 
+pub fn prepare_acquired_task_publication_export(@physical_strategy.CapturedDAG, Int, @execution_query.CapturedInputSource, PublicationOutputExportLimits) -> Result[PublicationOutputExport, PublicationOutputExportIssue]
+
 pub fn prepare_all_captured_result_publication_exports(@physical_strategy.CapturedDAG, PublicationOutputExportLimits, converted_outputs? : Array[@execution_relation.CompletedOutput?], max_pins? : Int) -> Result[Array[PublicationOutputExport], PublicationOutputExportIssue]
 
 pub fn prepare_captured_result_publication_export(@physical_strategy.CapturedDAG, Int, PublicationOutputExportLimits, converted_output? : @execution_relation.CompletedOutput, max_pins? : Int) -> Result[PublicationOutputExport, PublicationOutputExportIssue]
+
+pub fn prepare_client_coordinator_retained_input_producer(ClientRetainedInputEdge, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, () -> @remote_site_protocol.CoordinatorDispatchIntentRecord?) -> Result[ClientRetainedInputProducer, ClientRetainedInputIssue]
 
 pub fn prepare_client_effect_computation(String, @stage_syntax.Format, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], ClientEffectComputationLimits) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue]
 
@@ -1485,7 +1491,7 @@ pub fn ClientResultTransformationPreparation::cancel(Self) -> Bool
 pub fn ClientResultTransformationPreparation::finish(Self) -> Result[PublicationOutputExport, ClientResultTransformationIssue]
 
 pub struct ClientRetainedInputCurrent {
-  site : () -> @execution_site.ExecutionSite
+  site_binding_current : (String, String, String) -> Bool
   authority : () -> String
   now_unix_ms : () -> Int64
   authorized : (ClientRetainedInputProducer, @remote_transfer.RemoteTransferRequest) -> Bool
@@ -1512,9 +1518,10 @@ pub(all) enum ClientRetainedInputIssue {
 
 pub struct ClientRetainedInputProducer {
   edge : ClientRetainedInputEdge
-  record : @remote_site_protocol.DispatchRecord
+  request : @remote_site_protocol.DispatchRequest
   evidence : @remote_site_protocol.RemoteExecutionEvidence
   subject : @remote_site_protocol.RemoteManagedOutputSubject
+  available : () -> Bool
 }
 
 pub(all) enum ClientRetainedTaskDispatchIssue {
@@ -1982,6 +1989,7 @@ pub(all) enum PublicationOutputExportIssue {
   Evidence(@run_publication.ResultEvidenceIssuanceIssue)
   Artifact(@run_publication.ResultArtifactIssuanceIssue)
   Capture(@run_publication.CapturedRunIssuanceIssue)
+  Source(@execution_query.CapturedSourceIssue)
 }
 
 pub(all) struct PublicationOutputExportLimits {

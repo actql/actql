@@ -10,7 +10,7 @@ fn strategy_policy_candidate_set(
   }
   try {
     @encode.begin_array(writer)
-    @encode.string_value(writer, "actql-policy-candidates/0.2")
+    @encode.string_value(writer, "actql-policy-candidates/0.1")
     @encode.string_value(
       writer,
       graph_program_definition_cid(choices.run.graph),

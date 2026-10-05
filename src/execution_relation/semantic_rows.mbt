@@ -124,6 +124,25 @@ fn advance_bounded_text_charge(
 }
 
 ///|
+/// Advance the shared canonical UTF-16 order by at most one code unit. The
+/// caller owns the charged operands and offset; no substring is constructed.
+fn bounded_utf16_comparison_step(
+  left : String,
+  right : String,
+  offset : Int,
+) -> (Int?, Int) {
+  if offset < left.length() && offset < right.length() {
+    let a = left[offset]
+    let b = right[offset]
+    if a == b {
+      return (None, offset + 1)
+    }
+    return (Some(if a < b { -1 } else { 1 }), offset)
+  }
+  (Some(Int::compare(left.length(), right.length())), offset)
+}
+
+///|
 priv struct BoundedCompleteValueComparison {
   mut phase : Int
   mut offset : Int
@@ -186,25 +205,13 @@ fn bounded_complete_value_comparison_step(
       Ok(None)
     }
     3 => {
-      let compared = if cursor.offset < a.length() && cursor.offset < b.length() {
-        let left_unit = a[cursor.offset]
-        let right_unit = b[cursor.offset]
-        if left_unit == right_unit {
-          cursor.offset += 1
-          return Ok(None)
-        }
-        if left_unit < right_unit {
-          -1
-        } else {
-          1
-        }
-      } else if a.length() < b.length() {
-        -1
-      } else if a.length() > b.length() {
-        1
-      } else {
-        0
-      }
+      let (compared, offset) = bounded_utf16_comparison_step(
+        a,
+        b,
+        cursor.offset,
+      )
+      cursor.offset = offset
+      guard compared is Some(compared) else { return Ok(None) }
       cursor.phase = -1
       cursor.offset = 0
       Ok(Some(compared))

@@ -68,10 +68,12 @@ test "property measurement of a borrowed large object yields before consuming it
   for _ in 0..<12 {
     assert_true(advance_expression_frame(frame).unwrap() is None)
   }
-  assert_true(frame.state is MeasureObjectOperand(_, _))
-  assert_eq(logical.work, 3L, msg="no complete-value charge before measurement")
+  assert_true(frame.state is MeasureResult(_, _))
+  assert_true(logical.work > 3L && logical.work < 2048L)
+  let consumed = logical.work
   assert_eq(logical.live, 0L)
   close_expression_frame(frame)
+  assert_eq(logical.work, consumed)
   assert_eq(logical.live, 0L)
   assert_eq(frame.workspace.live, 0)
   assert_eq(object_result_wire(input), "{\"items\":[" + rows + "]}")

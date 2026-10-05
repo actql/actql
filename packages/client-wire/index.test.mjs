@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {checkpointLimits, clientHostOperations, clientSourceFormats, isClientSubmitRejection,
-  validCheckpointPage,
+  validCheckpointPage, validCheckOutcome,
   validCheckpointReview, validClientAdmission, validClientBody,
   validClientConnection, validClientProfile, validDeliveryAttemptLookup,
   validHeldRequest, validRequestCancellation, validRequestLookup, validResolveResults, validRunRef,
@@ -495,5 +495,46 @@ test('Resource discovery requests and replies stay within their bounds', () => {
   ]) {
     assert.equal(validResourcePeek({...reply, ...change}, peekExpected),
       false, JSON.stringify(change));
+  }
+});
+
+test('independent default mismatch fixture binds closed facts to the declaration revision', () => {
+  const original = JSON.parse(readFileSync(new URL(
+    './fixtures/check-default-type.invalid.json', import.meta.url), 'utf8'));
+  assert.equal(validCheckOutcome(original), true);
+  for (const update of [
+    answer => { answer.report.reasons[0].location.document_id = 'parameters'; },
+    answer => { answer.report.reasons[0].location.revision = `rev:${'6'.repeat(64)}`; },
+    answer => { delete answer.report.reasons[0].facts.actual_type; },
+    answer => { answer.report.reasons[0].facts.value = 'private-default'; },
+    answer => { answer.report.verdict = 'verified'; },
+    answer => { answer.reason_schema_cid = 'sha256:6c1c1eb6f5d8ac67e831f7c49ef8b2defe598c951ef542b12360e1356037ce76'; },
+  ]) {
+    const changed = structuredClone(original); update(changed);
+    assert.equal(validCheckOutcome(changed), false);
+  }
+});
+
+
+test('independent unused Parameter fixture requires closed facts and original declaration custody', () => {
+  const original = JSON.parse(readFileSync(new URL(
+    './fixtures/check-unused-parameter.invalid.json', import.meta.url), 'utf8'));
+  assert.equal(validCheckOutcome(original), true);
+  const unlocated = structuredClone(original); delete unlocated.report.reasons[0].location;
+  assert.equal(validCheckOutcome(unlocated), true);
+  for (const update of [
+    answer => { delete answer.report.reasons[0].facts; },
+    answer => { answer.report.reasons[0].facts.value = 'private-default'; },
+    answer => { answer.report.reasons[0].facts.expected_type = 'number'; },
+    answer => { answer.report.reasons[0].facts.constraint = 'numeric'; },
+    answer => { answer.report.reasons[0].location.document_id = 'parameters'; },
+    answer => { answer.report.reasons[0].location = {kind: 'text', document_id: 'source',
+      revision: `rev:${'5'.repeat(64)}`, start_byte: 0, end_byte: 1, precision: 'exact'}; },
+    answer => { answer.report.reasons[0].location.revision = `rev:${'5'.repeat(64)}`; },
+    answer => { answer.report.verdict = 'verified'; },
+    answer => { answer.reason_schema_cid = 'sha256:ceb2a05aa8eee7b8c62fc9e734d5488e1c3b9ddd4fc57bbbd1b419cb2bb88261'; },
+  ]) {
+    const changed = structuredClone(original); update(changed);
+    assert.equal(validCheckOutcome(changed), false);
   }
 });
