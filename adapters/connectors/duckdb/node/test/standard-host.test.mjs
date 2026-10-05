@@ -62,6 +62,8 @@ import {
 } from '../../../../host-node/result-access.mjs';
 import {canonical, hash as canonicalHash} from './typed-catalog.mjs';
 import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
+import {deltaApplicationScenario} from
+  '../../../../../scripts/fixtures/property-graph-delta-application.mjs';
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -491,6 +493,130 @@ async function runDelayedManagedStop(
     throw failure;
   }
 }
+
+async function deltaHostCancellation(phase) {
+  // Use the installed common Program/Plan/provider, not a test-only Delta
+  // provider or pre-decoded replacement. Observe real operations as in the
+  // existing Host cancellation corpus; the proxy supplies no result/state.
+  const moon = await import(pathToFileURL(join(root,
+    '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js')));
+  const fixture = JSON.parse(await readFile(join(root,
+    'scripts/fixtures/property-graph-presence.program.json'), 'utf8'));
+  const {document} = deltaApplicationScenario(fixture, 'node_rows');
+  const environmentBody = JSON.parse(await readFile(join(root,
+    'spec/local-check-environment.json'), 'utf8'));
+  delete environmentBody.evidence_bundle_cid;
+  // Match the installed Host's declaration ceilings; do not remove runtime
+  // admission or substitute a looser, test-only Graph execution policy.
+  Object.assign(environmentBody.host_policy_profile.capacity, {
+    max_graph_construction_edges:1000,
+    max_graph_construction_input_rows:1000,
+    max_graph_construction_nodes:1000,
+  });
+  const environmentWire = canonical({...environmentBody,
+    evidence_bundle_cid:canonicalHash(environmentBody)});
+  const lawCid = async path => canonicalHash(JSON.parse(await readFile(join(root, path), 'utf8')));
+  const environment = moon.clientProgramCheckEnvironmentWithPropertyGraphProfile(
+    environmentWire, JSON.parse(environmentWire).evidence_bundle_cid,
+    false, true, true, true, true, false, false,
+    await lawCid('spec/contracts/actql-numeric-reduction.json'),
+    await lawCid('spec/dependencies/actql-property-graph-laws.json'));
+  assert.ok(environment);
+  const preparation = moon.clientProgramPrepareEffectFreeWithParameters(JSON.stringify(document), 'json', environment);
+  const prepared = moon.clientProgramPreparationReady(preparation);
+  assert.ok(prepared, inspect({code:moon.clientProgramPreparationIssueCode(preparation),
+    issue:moon.clientProgramPreparationIssue(preparation)}, {depth:8}));
+  assert.ok(checked(moon.clientProgramIssueTaskPlanGraph(prepared)));
+  const registry = await readFile(join(root, 'spec/dependencies/aoa-pipeline-registry.json'), 'utf8');
+  const aoa = JSON.parse(await readFile(join(root, 'spec/contracts/actql-aoa.json'), 'utf8'));
+  const setup = moon.clientProgramOpenSourceFreeLocalHost(prepared, registry,
+    JSON.stringify(aoa.execution_contracts['REL.values']), 1n, 0n, 0n, 0n,
+    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+    JSON.stringify(aoa.execution_contracts['REL.derive.ordered']));
+  assert.ok(setup);
+  const abort = new AbortController();
+  const starts = [], deltaPolls = [], lifecycle = [];
+  let scheduled = false, delivered = false, workAtDelivery;
+  abort.signal.addEventListener('abort', () => {
+    delivered = true;
+    workAtDelivery = deltaPolls.reduce((sum, poll) => sum + poll.work, 0n);
+  }, {once:true});
+  const observed = new Proxy(moon, {get(target, property, receiver) {
+    if (property !== 'strategyModule_local_ManagedStart') return Reflect.get(target, property, receiver);
+    return configuration => {
+      const task = target.strategyHostNextTask(setup);
+      starts.push(task);
+      const operations = checked(target.strategyModule_local_ManagedStart(configuration));
+      return {$tag:1,_0:new Proxy(operations, {get(owner, name, ownerReceiver) {
+        if (task !== 5 || !['advance','request_cancel','execution_stopped','cleanup_refresh'].includes(name)) {
+          return Reflect.get(owner, name, ownerReceiver);
+        }
+        if (name === 'advance') return quantum => {
+          // Narrow the real bounded operation's quantum, not its work/state.
+          const result = owner.advance(Math.min(quantum, phase === 'application' ? 32 : 1));
+          const poll = checked(result);
+          deltaPolls.push(poll);
+          // Input conversion/handoff report zero progress. Positive progress
+          // is returned only after the bounded application has begun; do not
+          // relabel cancellation during conversion as kernel cancellation.
+          if (!scheduled && !poll.complete && poll.work > 0n &&
+              (phase === 'conversion' || poll.progress > 0n)) {
+            scheduled = true;
+            setTimeout(() => abort.abort(), 0);
+          }
+          return result;
+        };
+        return (...args) => {
+          const result = owner[name](...args);
+          lifecycle.push({name,result,delivered});
+          return result;
+        };
+      }})};
+    };
+  }});
+  let execution;
+  try {
+    execution = await runInstalledStrategy(setup, runtimeCore(moon),
+      [localStrategyContribution(observed, setup, checked)], abort.signal);
+    assert.equal(scheduled, true);
+    assert.equal(delivered, true);
+    assert(workAtDelivery > 0n, 'cancel is delivered only after actual Delta work');
+    if (phase === 'application') assert(deltaPolls.some(poll=>poll.progress > 0n),
+      'bounded application, not merely conversion, made progress before cancellation');
+    assert.equal(execution.status, 'host-tasks-failed');
+    assert.equal(execution.failure?.name, 'AbortError');
+    assert.deepEqual(starts, [0,1,2,3,4,5]);
+    assert.deepEqual(execution.completed.map(value=>value.task), [0,1,2,3,4]);
+    assert(deltaPolls.every(poll=>poll.complete === false), 'no partial Delta output is completed');
+    assert(lifecycle.some(event=>event.name === 'request_cancel' && event.delivered));
+    assert(lifecycle.some(event=>event.name === 'execution_stopped' && event.result === true && event.delivered));
+  } finally {
+    if (execution) {
+      await execution.close();
+      assert.equal(await execution.cleanup(), true);
+      assert.equal(execution.cleanupPending(), false);
+      // Holdings is the monotonic allocation count, not live capacity. Keep
+      // that accounting history while returning all held/reserved bytes.
+      assert.equal(execution.usage().holdings, 5n);
+      assert.equal(execution.usage().heldBytes, 0n);
+      assert.equal(execution.usage().reservedRetentionBytes, 0n);
+      assert.equal(execution.usage().reservedTransferBytes, 0n);
+      assert.equal(execution.usage().reservedExecutionBytes, 0n);
+      const settledUsage = execution.usage();
+      const settledPollCount = deltaPolls.length;
+      await execution.close();
+      assert.equal(await execution.cleanup(), true);
+      assert.equal(deltaPolls.length, settledPollCount, 'cleanup does not resume Compute');
+      assert.deepEqual(starts, [0,1,2,3,4,5], 'cleanup does not start a new task');
+      assert.deepEqual(execution.usage(), settledUsage, 'duplicate close does not change resource accounting');
+    }
+  }
+}
+
+test('Delta application stops after positive work through the installed Local Host during input conversion',
+  {timeout:30_000}, () => deltaHostCancellation('conversion'));
+test('Delta application stops after positive work through the installed Local Host during bounded application',
+  {timeout:30_000}, () => deltaHostCancellation('application'));
 
 test('standard native and broad Node Hosts own verification through real capture and consumer', async () => {
   const exec = promisify(execFile);
@@ -8048,6 +8174,30 @@ async function exerciseStrategyGraph(
       {from: 'joined', select: ['id'], as: 'raw_ids'},
       {from: 'greater', append: {with: 'raw_ids'}, as: 'out'},
     ];
+  const branchedWindowGroupProgram = structuredClone(externalAppendProgram);
+  const windowGroupForkFields = ['n', 'window_start', 'window_end'];
+  const windowGroupFork = branchedWindowGroupProgram.stages.find(stage =>
+    stage.id === 'crossed');
+  windowGroupFork.steps = [
+    {from: 'l', append: {with: 'r'}, as: 'appended'},
+    {from: 'appended', row_window: {
+      kind: 'fixed', time: 'id', size: 2,
+    }, as: 'windowed'},
+    {from: 'windowed', window_group: {
+      by: [], aggregates: {n: {fn: 'count'}},
+    }, as: 'grouped'},
+    {from: 'grouped', filter: 'n >= 2', as: 'selected'},
+    {from: 'grouped', select: windowGroupForkFields, as: 'raw_groups'},
+    {from: 'selected', append: {with: 'raw_groups'}, as: 'out'},
+  ];
+  windowGroupFork.results.r.fields = windowGroupForkFields;
+  for (const consumer of branchedWindowGroupProgram.stages.filter(stage =>
+    stage.id.startsWith('external_cross_consumer_'))) {
+    const fields = consumer.id.endsWith('_a')
+      ? windowGroupForkFields : [...windowGroupForkFields].reverse();
+    consumer.steps[0].select = fields;
+    consumer.results.r.fields = fields;
+  }
   const branchedSourceForkProgram = structuredClone(externalAppendProgram);
   branchedSourceForkProgram.stages.find(stage => stage.id === 'crossed').steps = [
     {from: 'l', append: {with: 'r'}, as: 'appended'},
@@ -8135,6 +8285,25 @@ async function exerciseStrategyGraph(
     from: 'ranked_greater', append: {with: 'deduped_less'}, as: 'joined',
   };
   branchedRankedSteps.push({from: 'joined', select: ['id'], as: 'out'});
+  const branchedPartitionedTopKProgram = structuredClone(branchedRankedProgram);
+  const partitionedRight = branchedPartitionedTopKProgram.stages.find(stage =>
+    stage.id === 'cross_right');
+  partitionedRight.steps[0].values.rows = [3, 4].map(id =>
+    ({id, origin: 'right'}));
+  const partitionedProducer = branchedPartitionedTopKProgram.stages.find(
+    stage => stage.id === 'crossed');
+  partitionedProducer.steps = [
+    {from: 'l', append: {with: 'r'}, as: 'appended'},
+    {from: 'appended', assert_rows: {unique_by: ['id']}, as: 'unique'},
+    {from: 'unique', top_k_by: {
+      partition_by: ['origin'], k: 1, by: [{id: 'desc'}],
+    }, as: 'ranked'},
+    {from: 'ranked', filter: 'id >= 4', as: 'selected'},
+    {from: 'selected', select: ['id'], as: 'selected_ids'},
+    {from: 'ranked', select: ['id'], as: 'raw_ids'},
+    {from: 'selected_ids', append: {with: 'raw_ids'}, as: 'out'},
+  ];
+  partitionedProducer.results.r.fields = ['id'];
   const branchedRowTransformPrograms = [
     'lag', 'watermark', 'json-pick', 'row-window', 'unpivot', 'unnest',
     'pivot', 'analytic', 'nest',
@@ -9730,6 +9899,13 @@ async function exerciseStrategyGraph(
       fields: ['id', 'matched']},
     {name: 'append-inner-join-fork', source: branchedInnerJoinChildProgram,
       expected: [2, 1, 2].map(id => ({id})), fields: ['id']},
+    {name: 'append-window-group-fork', source: branchedWindowGroupProgram,
+      expected: [
+        {n: 2, window_start: 2, window_end: 4},
+        {n: 1, window_start: 0, window_end: 2},
+        {n: 2, window_start: 2, window_end: 4},
+        {n: 1, window_start: 4, window_end: 6},
+      ], fields: windowGroupForkFields},
     {name: 'append-source-fork-join', source: branchedSourceForkProgram,
       expected: [1, 2, 3, 4, 2].map(id => ({id})), fields: ['id']},
     {name: 'append-fork-group-join', source: branchedGroupProgram,
@@ -9744,6 +9920,9 @@ async function exerciseStrategyGraph(
       expected: [4, 3, 1, 2].map(id => ({id})), fields: ['id']},
     {name: 'append-fork-top-k-dedupe-join', source: branchedRankedProgram,
       expected: [4, 3, 1, 2].map(id => ({id})), fields: ['id']},
+    {name: 'append-fork-partitioned-top-k-join',
+      source: branchedPartitionedTopKProgram,
+      expected: [4, 2, 4].map(id => ({id})), fields: ['id']},
     ...branchedRowTransformPrograms.map(([name, source]) => ({
       name: name === 'analytic' ? 'analytic-append-fork-join'
         : `append-fork-${name}-join`, source,

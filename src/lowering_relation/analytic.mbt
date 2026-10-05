@@ -30,6 +30,8 @@ struct PreparedAnalyticCall {
   name : String
   function : PreparedAnalyticFunction
   result : @contract.Contract
+  argument_source : AnalyticSource?
+  filter_source : AnalyticSource?
 }
 
 ///|
@@ -352,7 +354,48 @@ pub fn prepare_analytic(
         PreparedFrameAggregate(prepared)
       }
     }
-    calls.push({ name: call.name, function, result: call.result, })
+    let (argument, filter) = match function {
+      PreparedLag(expression, _)
+      | PreparedLead(expression, _)
+      | PreparedFirstValue(expression)
+      | PreparedLastValue(expression) => (Some(expression), None)
+      PreparedFrameAggregate(aggregate) =>
+        (
+          match aggregate.argument {
+            AggregateExpression(expression) => Some(expression)
+            AggregateRows | AggregateField(_) => None
+          },
+          aggregate.filter,
+        )
+      PreparedRowNumber | PreparedRank | PreparedDenseRank => (None, None)
+    }
+    let prepare_source = fn(
+      expression : Expression?,
+    ) -> Result[AnalyticSource?, AnalyticIssue] {
+      guard expression is Some(expression) else { return Ok(None) }
+      match prepare_analytic_source(expression, remaining) {
+        Ok((source, next)) => {
+          remaining = next
+          Ok(Some(source))
+        }
+        Err(issue) => Err(AnalyticExpressionFailure(issue))
+      }
+    }
+    let argument_source = match prepare_source(argument) {
+      Ok(source) => source
+      Err(issue) => return Err(issue)
+    }
+    let filter_source = match prepare_source(filter) {
+      Ok(source) => source
+      Err(issue) => return Err(issue)
+    }
+    calls.push({
+      name: call.name,
+      function,
+      result: call.result,
+      argument_source,
+      filter_source,
+    })
   }
   Ok(
     (
@@ -536,6 +579,7 @@ fn emit_prepared_frame_boundary(
 ///|
 fn emit_analytic_aggregate_call(
   aggregate : PreparedAggregate,
+  call : PreparedAnalyticCall,
   out : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
   if !aggregate.order.is_empty() {
@@ -555,14 +599,20 @@ fn emit_analytic_aggregate_call(
       @encode.key(out, "field")
       @encode.string_value(out, @schema.reference_name(field))
     }
-    AggregateExpression(expression) => {
+    AggregateExpression(_) => {
+      guard call.argument_source is Some(source) else {
+        raise @encode.InvalidStructure
+      }
       @encode.key(out, "expr")
-      emit_expression_source(expression, out)
+      emit_analytic_source(source, out)
     }
   }
-  if aggregate.filter is Some(filter) {
+  if aggregate.filter is Some(_) {
+    guard call.filter_source is Some(source) else {
+      raise @encode.InvalidStructure
+    }
     @encode.key(out, "filter")
-    emit_expression_source(filter, out)
+    emit_analytic_source(source, out)
   }
   @encode.key(out, "fn")
   @encode.string_value(out, group_aggregate_function_name(aggregate.function))
@@ -613,9 +663,12 @@ fn emit_analytic_params(
         @encode.key(out, "fn")
         @encode.string_value(out, "dense_rank")
       }
-      PreparedLag(expression, offset) | PreparedLead(expression, offset) => {
+      PreparedLag(_, offset) | PreparedLead(_, offset) => {
+        guard call.argument_source is Some(source) else {
+          raise @encode.InvalidStructure
+        }
         @encode.key(out, "expr")
-        emit_expression_source(expression, out)
+        emit_analytic_source(source, out)
         @encode.key(out, "fn")
         @encode.string_value(
           out,
@@ -628,9 +681,12 @@ fn emit_analytic_params(
         @encode.key(out, "offset")
         @encode.number_value(out, offset.to_double())
       }
-      PreparedFirstValue(expression) | PreparedLastValue(expression) => {
+      PreparedFirstValue(_) | PreparedLastValue(_) => {
+        guard call.argument_source is Some(source) else {
+          raise @encode.InvalidStructure
+        }
         @encode.key(out, "expr")
-        emit_expression_source(expression, out)
+        emit_analytic_source(source, out)
         @encode.key(out, "fn")
         @encode.string_value(
           out,
@@ -642,7 +698,7 @@ fn emit_analytic_params(
         )
       }
       PreparedFrameAggregate(aggregate) =>
-        emit_analytic_aggregate_call(aggregate, out)
+        emit_analytic_aggregate_call(aggregate, call, out)
     }
     @encode.end_object(out)
   }

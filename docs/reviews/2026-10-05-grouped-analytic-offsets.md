@@ -103,3 +103,27 @@ independent JSON fixtures. The pack is explicitly evidence for `3e8f105f...`;
 documentation changes are not a second execution run. There is no unmerged Git
 dependency. The capacity boundary from #430 and common IN execution from #435
 remain separate unresolved units; neither is claimed as fixed here.
+
+## Current-main integration
+
+The follow-up normally merges main
+`ded488baccbdd37892fce3a03ac158f33d676348` into the existing OFFSET branch.
+The compiler retains the current main property-aware analytic arguments,
+aggregate expressions and JOIN projection/predicate paths alongside grouped
+literal/parameter OFFSET lowering. Both packed selectors and normal corpus
+registration retain the existing analytic-property, aggregate-property and
+JOIN-property cases and the new OFFSET cases.
+
+The merged packed harness creates a separate immutable installation profile
+for OFFSET. Its independently declared 1,048,576-byte analytic wire ceilings
+stay local to those cases; existing main cases keep 10,000-byte analytic wire
+ceilings. The frame-membership ceiling stays 10,000, and the production defaults
+and 512 MiB execution budget remain unchanged. Normal combined corpus runs
+partition the cases before creating Hosts, with separate databases, profile
+files and Local/HTTPS state directories. They preserve each authored expectation
+and run each selected case once. The standard profile retains the original
+paths used by retained-result restart acceptance.
+
+The historical commands and tarball digests above remain evidence for their
+stated implementation revision. Current-main follow-up evidence is recorded
+separately after the focused checks and a fresh normal-prepack acceptance run.

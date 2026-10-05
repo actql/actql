@@ -36,6 +36,14 @@ export type SubmissionExplanation = Readonly<{summary: string}> & (
   }>);
 /** Read-only advice for this exact SDK submit result; no retry or execution permission. */
 export declare function explainSubmission(result: unknown): SubmissionExplanation | undefined;
+export type CancellationExplanation = Readonly<{
+  summary: string;
+  next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;
+}> & (Readonly<{
+  observation: 'accepted' | 'already_requested' | 'already_terminal'; revision: number;
+}> | Readonly<{observation: 'outcome_unknown'}>);
+/** Read-only advice for this exact Execution.cancel result; no cancellation-operation identity or stop/release proof. */
+export declare function explainCancellation(result: unknown): CancellationExplanation | undefined;
 /** Omitted for unavailable/stale input or a pointer without a submitted JSON node. No edits are applied. */
 export declare function resolveCheckLocation(outcome: CheckOutcome,
   location: WireCheckLocation, currentInput?: CheckInput):

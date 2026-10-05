@@ -39,7 +39,7 @@ const sql = 'SELECT id, LAG(amount, ((2))) OVER (ORDER BY id) AS previous, '
   + 'LEAD(amount, (@p)) OVER (ORDER BY id) AS next FROM records '
   + 'WHERE id > 0 ORDER BY id';
 const success = (name, text, extra = {}) => ({name: 'analytic-offset-' + name,
-  format: 'sql', text, sourceRows, expected, columns,
+  format: 'sql', hostProfile: 'analytic-offset', text, sourceRows, expected, columns,
   parameterDeclarations: declarations, parameters: {p: 1},
   sourceReadSessionCount: 1, ...extra});
 export const analyticOffsetSuccesses = [
@@ -72,4 +72,4 @@ export const analyticOffsetRefusals = [
     parameters: {p: value}})),
   {name: 'dynamic', text: 'SELECT LAG(amount, (id)) OVER (ORDER BY id) AS previous FROM records'},
   {name: 'arithmetic', text: 'SELECT LEAD(amount, (1 + 1)) OVER (ORDER BY id) AS next FROM records'},
-].map(item => ({format: 'sql', ...item, name: 'analytic-offset-refuse-' + item.name}));
+].map(item => ({format: 'sql', hostProfile: 'analytic-offset', ...item, name: 'analytic-offset-refuse-' + item.name}));
