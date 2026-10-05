@@ -370,6 +370,11 @@ export async function openSalesforceEffectSiteFixture(t, {
       request.on('data', chunk => chunks.push(chunk));
       request.on('end', () => {
         observed.body = Buffer.concat(chunks).toString('utf8');
+        if (state !== undefined &&
+            holdWrites.includes(singleWriteSequence())) {
+          onHeldWrite?.(singleWriteSequence());
+          return;
+        }
         const {Optional_Text__c: optional, ...required} =
           JSON.parse(observed.body);
         assert.deepEqual(required, {External_Key__c: required.Name,

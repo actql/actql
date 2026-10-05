@@ -4,7 +4,8 @@
 // the credential Site). Capture, the Effect Set Preview, the Effect Ledger
 // claims, apply, the Receipt, publication and recovery are the common
 // owners'. The path of a member is selected by its Mapping's checked
-// `effect_kind`; `create` and `update` are installed.
+// `effect_kind`: a `create` has no target; an `update` or `upsert` selects
+// an existing target whose observed version guards the write.
 //
 // A connector supplies a write driver. Every kind:
 // - `kinds`: the effect kinds it writes.
@@ -90,7 +91,10 @@ const defaultProfile = Object.freeze({
   targetCheck: 'actql-installed-row-effect-check/0.1',
   unit: 'actql-installed-row-effect-unit/0.1',
 });
-const kinds = Object.freeze(['create', 'update']);
+const kinds = Object.freeze(['create', 'update', 'upsert']);
+// A guarded write selects an existing target and is guarded by its observed
+// version.
+const guarded = kind => kind !== 'create';
 const footprintKinds = Object.freeze(['exact_targets', 'collection',
   'opaque']);
 
@@ -152,7 +156,7 @@ function checkDriver(driver) {
       (driver.check !== undefined && (!text(driver.check?.resource) ||
         !text(driver.check.operation) ||
         typeof driver.checkRequest !== 'function')) ||
-      (driver.kinds.includes('update') && (!text(driver.targetRead?.operation) ||
+      (driver.kinds.some(guarded) && (!text(driver.targetRead?.operation) ||
         typeof driver.observeTargets !== 'function' ||
         typeof driver.recoverRequests !== 'function' ||
         typeof driver.requestCid !== 'function')) ||
@@ -300,7 +304,7 @@ export async function createInstalledRowEffect({moon, mappings,
     if (!request || !cidPattern.test(requestCid ?? '') ||
         facts === null || typeof facts !== 'object' ||
         facts.value === null || typeof facts.value !== 'object' ||
-        (member.kind === 'update') === (facts.target === undefined)) {
+        guarded(member.kind) === (facts.target === undefined)) {
       fail('InvalidInstalledRowEffectRequest');
     }
     return Object.freeze({request, requestCid, value: facts.value,
@@ -315,7 +319,7 @@ export async function createInstalledRowEffect({moon, mappings,
       selector: row.selector, current});
     const entry = entryOf(member, prepared?.request, prepared?.requestCid);
     if (!sameValue(entry.value, row.value) ||
-        (member.kind === 'update' && !sameValue(entry.target, row.selector))) {
+        (guarded(member.kind) && !sameValue(entry.target, row.selector))) {
       fail('ForeignInstalledRowEffectRequest');
     }
     return entry;
@@ -512,7 +516,7 @@ export async function createInstalledRowEffect({moon, mappings,
     entry, previewRow}) => {
     if (claim.canonicalRequestCid !== entry.requestCid ||
         !sameValue(entry.value, previewRow.after?.value) ||
-        (member.kind === 'update' &&
+        (guarded(member.kind) &&
           !sameValue(entry.target, previewRow.target_row_identity))) {
       fail('ForeignInstalledRowEffectRequest');
     }
@@ -545,7 +549,7 @@ export async function createInstalledRowEffect({moon, mappings,
       // Every read is decided before this refresh's provider I/O.
       const reads = [];
       for (const [index, member] of members.entries()) {
-        reads.push(member.kind !== 'update' ? undefined :
+        reads.push(!guarded(member.kind) ? undefined :
           await decideTargetRead({member, runInvocationCid,
             dispatchRequestCid: dispatches[index], subjectCid, signal,
             targetReads}));
@@ -564,7 +568,7 @@ export async function createInstalledRowEffect({moon, mappings,
         subjectOf: () => subjectCid, signal});
       const guardVersions = [];
       for (const [index, member] of members.entries()) {
-        if (member.kind !== 'update') continue;
+        if (!guarded(member.kind)) continue;
         const observed = await observeRows({member, entries: entries[index],
           current: fresh[index], read: reads[index], signal});
         guardVersions.push(...observed.map(row => row.versionCid));
@@ -874,7 +878,7 @@ export async function createInstalledRowEffect({moon, mappings,
     // I/O: a held or denied read authors no Preview.
     const reads = [];
     for (const [index, member] of members.entries()) {
-      reads.push(member.kind !== 'update' ? undefined :
+      reads.push(!guarded(member.kind) ? undefined :
         await decideTargetRead({member, runInvocationCid,
           dispatchRequestCid: dispatches[index],
           subjectCid: checkSubject(runInvocationCid, member), signal,
@@ -893,7 +897,7 @@ export async function createInstalledRowEffect({moon, mappings,
       const entries = requestsOf(member, proposals[index].map(proposal => {
         const changes = JSON.parse(proposal.changesWire);
         return {value: changes.value,
-          selector: member.kind === 'update'
+          selector: guarded(member.kind)
             ? JSON.parse(proposal.selectorWire) : undefined};
       }), description);
       if (member.kind === 'create') {
@@ -936,7 +940,7 @@ export async function createInstalledRowEffect({moon, mappings,
       if (member.changes.length !== entries[index].length ||
           member.changes.some((change, row) =>
             !sameValue(change.after?.value, entries[index][row].value) ||
-            (members[index].kind === 'update' && !sameValue(
+            (guarded(members[index].kind) && !sameValue(
               change.target_row_identity, entries[index][row].target)))) {
         fail('InstalledRowEffectPreviewOrderMismatch');
       }
@@ -1141,7 +1145,7 @@ export async function createInstalledRowEffect({moon, mappings,
       if (claims.length !== changes.length) {
         fail('InstalledEffectContinuationMismatch');
       }
-      const rows = member.kind === 'create'
+      const rows = rebuilt === undefined
         ? changes.map(change => {
           const prepared = owned.prepareRequest({member,
             value: change.after?.value, selector: undefined,
@@ -1156,7 +1160,7 @@ export async function createInstalledRowEffect({moon, mappings,
       rows.forEach((entry, row) => {
         if (entry.requestCid !== claims[row].canonicalRequestCid ||
             !sameValue(entry.value, changes[row].after?.value) ||
-            (member.kind === 'update' && !sameValue(entry.target,
+            (guarded(member.kind) && !sameValue(entry.target,
               changes[row].target_row_identity))) {
           fail('ForeignInstalledRowEffectRequest');
         }

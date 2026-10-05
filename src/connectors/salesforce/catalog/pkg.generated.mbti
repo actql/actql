@@ -226,6 +226,8 @@ pub fn single_write_request_resource(SingleWriteRequest) -> String
 
 pub fn single_write_request_target_identity(SingleWriteRequest, Int) -> Result[WriteTargetIdentity?, WriteCollectionRequestIssue]
 
+pub fn single_write_request_target_json(SingleWriteRequest) -> String?
+
 pub fn single_write_request_value(SingleWriteRequest) -> String
 
 pub fn static_declaration_catalog(StaticDeclaration) -> String

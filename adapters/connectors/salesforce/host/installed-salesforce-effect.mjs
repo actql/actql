@@ -52,8 +52,8 @@ import {createInstalledRowEffect} from
   '../../../host-node/installed-row-effect.mjs';
 import {installedConnectors} from
   '../../../connectors-builtin/installations.generated.mjs';
-import {salesforceRowEffectSite, salesforceUpdateDriver} from
-  './salesforce-update-driver.mjs';
+import {salesforceRowEffectSite, salesforceWriteDriver} from
+  './salesforce-write-driver.mjs';
 import {observeSalesforceTargetSet} from
   '../site/salesforce-target-observation.mjs';
 
@@ -454,11 +454,9 @@ async function installedSalesforceEffect({moon, salesforceMoon, site,
     occurrence++}`;
   const siteBindingCid = installedSalesforceSiteBinding(site, connectorId)
     .bindingCid;
-  // Sets whose members are all record updates run on the Host's
-  // provider-neutral installed row Effect, under this connector's registered
-  // identity profile, so a Run captured before the move keeps its identities.
-  // Every other Set stays on this factory. The path is chosen once per Set,
-  // before any I/O, and a failure on one path never falls back to the other.
+  // Every Set runs on the Host's provider-neutral installed row Effect,
+  // under this connector's registered identity profile, so a Run captured
+  // before the move to it keeps its identities.
   const rowEffect = await createInstalledRowEffect({moon,
     mappings: installed.mappings.map(mapping => ({
       resource: mapping.write.resource, mappingRef: mapping.mappingRef,
@@ -473,13 +471,11 @@ async function installedSalesforceEffect({moon, salesforceMoon, site,
       entry.registration === site.connectorRegistration),
     ledgerRoot, ...(openRowLedger === undefined ? {} :
       {openLedger: openRowLedger}),
-    driver: salesforceUpdateDriver({salesforceMoon, site,
+    driver: salesforceWriteDriver({salesforceMoon, site,
       mappingOf: mappingCid => installed.mappings.find(mapping =>
         mapping.mappingCid === mappingCid),
       nextOccurrence, siteBindingCid,
       generationCid: installed.generationCid, limits})});
-  const updateOnly = kinds => kinds.length > 0 &&
-    kinds.every(kind => kind === 'update');
   const openLedger = identity => openEffectLedger({moon, root: ledgerRoot,
     authorityScopeCid: moon.clientRequestAuthorityScopeCid(identity),
     callerRequestId: moon.clientRequestCallerId(identity),
@@ -1162,27 +1158,8 @@ async function installedSalesforceEffect({moon, salesforceMoon, site,
       target: JSON.parse(mapping.body).target_ref,
       mappingRef: mapping.mappingRef, mappingCid: mapping.mappingCid}))),
     targetReadInventory,
-    prepareCaptured: input => {
-      // The checked kinds of the Program's members, from its installed
-      // Mappings, decide the path before any Store or provider I/O.
-      const members = membersOf(moon, input.prepared, installed, input.unit);
-      return updateOnly(members.map(member => member.kind))
-        ? rowEffect.prepareCaptured(input) : prepareCaptured(input);
-    },
-    prepareRecovered: input => {
-      // The kinds of the exact saved Preview decide the path of a recovered
-      // capture; an unreadable Preview is refused, never tried both ways.
-      let kinds;
-      try {
-        kinds = JSON.parse(input.control.effectComputationPreviewWire(
-          input.recovered.computation.preview)).effects.map(member =>
-          member.effect_kind);
-      } catch (error) {
-        fail('InstalledEffectContinuationMismatch', error);
-      }
-      return updateOnly(kinds) ? rowEffect.prepareRecovered(input)
-        : prepareRecovered(input);
-    },
+    prepareCaptured: input => rowEffect.prepareCaptured(input),
+    prepareRecovered: input => rowEffect.prepareRecovered(input),
     close: () => site.close(),
   });
 }

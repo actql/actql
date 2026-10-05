@@ -15,9 +15,9 @@ import {execFileSync} from 'node:child_process';
 import {mkdir, rm, writeFile} from 'node:fs/promises';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {STATE_VERSION, approve, digests, install, newKeys, openHost,
-  openOrg, runtimeBundleCid, startHostProcess, updateProgram, waitFor} from
-  './update-state.mjs';
+import {STATE_VERSION, approve, digests, install, kindProgram, kindWrites,
+  newKeys, openHost, openOrg, runtimeBundleCid, startHostProcess,
+  waitFor} from './update-state.mjs';
 
 const repository = fileURLToPath(new URL('../../../../../', import.meta.url));
 const output = resolve(process.argv[2] ?? '');
@@ -47,6 +47,11 @@ function issueOrgCertificates(directory) {
 const git = (...args) => execFileSync('git', args, {cwd: repository,
   encoding: 'utf8'}).trim();
 
+// The write kind of a phase: `create-…` and `upsert-…` phases write that
+// kind; every other phase updates.
+const kindOf = name => name.startsWith('create-') ? 'create'
+  : name.startsWith('upsert-') ? 'upsert' : 'update';
+
 async function phase(name, ids, drive) {
   const root = join(output, 'work', name);
   const pristine = join(output, 'saved', name);
@@ -60,18 +65,18 @@ async function phase(name, ids, drive) {
   const t = {after: fn => afters.push(fn)};
   let held;
   const heldWrite = new Promise(resolveHeld => { held = resolveHeld; });
-  const holdWrites = name === 'unknown-after-send' ? [1]
+  const holdWrites = name.endsWith('unknown-after-send') ? [1]
     : name === 'response-saved' ? [2] : [];
   const org = await openOrg(t, {port: 0, certificateDirectory: tls, records,
     holdWrites, onHeldWrite: held});
   try {
-    const installation = await install({root, org, keys});
+    const installation = await install({root, org, keys,
+      writes: [kindWrites[kindOf(name)]]});
     const tlsRoot = join(root, 'host-tls');
     await mkdir(tlsRoot, {recursive: true});
     const context = {installation, org, keys, tlsRoot, heldWrite,
-      orgId: org.orgId};
+      orgId: org.orgId, kind: kindOf(name)};
     const requestRef = await drive(context, ids);
-    const writes = org.seen.filter(item => item.method === 'PATCH');
     const manifest = {
       version: STATE_VERSION, phase: name,
       generated_by: {checkout: git('rev-parse', 'HEAD'),
@@ -85,8 +90,10 @@ async function phase(name, ids, drive) {
         org_id: org.orgId},
       request: {ids, ref: requestRef},
       expected: {
-        writes_during_generation: writes.map(item =>
-          decodeURIComponent(item.path.split('/').at(-1))),
+        writes_during_generation: org.seen.filter(item =>
+          item.method === 'PATCH' || item.method === 'POST').map(item =>
+          `${item.method} ${decodeURIComponent(item.path.split('/')
+            .slice(-2).join('/'))}`),
         records_after_generation: org.records(),
       },
     };
@@ -104,8 +111,9 @@ async function phase(name, ids, drive) {
 async function submitHeld(context, ids) {
   const host = await openHost(context);
   const client = await host.as('owner-token');
-  const execution = await client.aql(updateProgram(
-    context.installation.mappingRef, ids), {format: 'json',
+  const program = kindProgram(context.kind, context.installation.mappingRef,
+    ids);
+  const execution = await client.aql(program, {format: 'json',
     requestId: 'cross-version-update'});
   await waitFor(async () => (await execution.status()).status ===
     'waiting_checkpoint');
@@ -152,6 +160,24 @@ results.push(await phase('response-saved',
     await killedWhileHeld(context);
     return execution.ref;
   }));
+// Sets of the other installed kinds, captured by the same factory.
+for (const kind of ['create', 'upsert']) {
+  results.push(await phase(`${kind}-held-for-approval`, ['a00000000000001'],
+    async context => (await submitHeld(context, ['a00000000000001'])).ref));
+  results.push(await phase(`${kind}-approval-saved`, ['a00000000000001'],
+    async (context, ids) => {
+      const execution = await submitHeld(context, ids);
+      await approveStopped(context, execution);
+      return execution.ref;
+    }));
+  results.push(await phase(`${kind}-unknown-after-send`, ['a00000000000001'],
+    async (context, ids) => {
+      const execution = await submitHeld(context, ids);
+      await approveStopped(context, execution);
+      await killedWhileHeld(context);
+      return execution.ref;
+    }));
+}
 console.log(JSON.stringify(results.map(result => ({phase: result.phase,
   writes: result.expected.writes_during_generation,
   runtime: result.runtime_bundle_cid})), null, 2));

@@ -90,9 +90,21 @@ export function openOrg(t, {port, certificateDirectory, records,
     certificateDirectory, certificateDays: 3650, holdWrites, onHeldWrite});
 }
 
-// Install the source and the update Effect under `root` for `org`, and
-// publish both. Returns the paths a Host is opened with.
-export async function install({root, org, keys}) {
+// The installed write of each kind: a Result-backed create, an update and an
+// upsert of Test_Record__c. The installed path takes one kind per Set.
+export const kindWrites = Object.freeze({
+  create: {resource: 'Test_Record__c', kind: 'createFromResult', sources: [
+    {target: 'External_Key__c', field: 'id', nullBehavior: 'reject'},
+    {target: 'Name', field: 'id', nullBehavior: 'reject'}]},
+  update: {resource: 'Test_Record__c', kind: 'update', fields: ['Name']},
+  upsert: {resource: 'Test_Record__c', kind: 'upsert', key: 'External_Key__c',
+    fields: ['Name']}});
+
+// Install the source and the Effect `writes` (default: an update of Name)
+// under `root` for `org`, and publish both. Returns the paths a Host is
+// opened with and the published Mappings.
+export async function install({root, org, keys,
+  writes = [{resource: 'Test_Record__c', kind: 'update', fields: ['Name']}]}) {
   await mkdir(root, {recursive: true});
   await writeFile(join(root, 'credential.key'), keys.authorityPrivate);
   await writeFile(join(root, 'org-ca.crt'), org.credential.ca);
@@ -128,25 +140,31 @@ export async function install({root, org, keys}) {
     siteProfilePath: sitePath,
     publicationPath: join(root, 'effect-publication.json'),
     connectorId: 'crm-main',
-    accountConfigurationWire: accountConfiguration(org.orgId),
-    writes: [{resource: 'Test_Record__c', kind: 'update',
-      fields: ['Name']}]}));
+    accountConfigurationWire: accountConfiguration(org.orgId), writes}));
   const published = await publishInstalledEffect({effectProfilePath,
     directory, resolveEffectSecret: secret});
   return {directory, sourceProfilePath, effectProfilePath,
     mappingRef: published.mappings[0].mappingRef};
 }
 
-// The Name update of `ids` through `mappingRef`.
-export const updateProgram = (mappingRef, ids) => JSON.stringify({
-  version: 'actql/0.1', id: 'client-values', stages: [{id: 'source',
-    inputs: {}, steps: [{values: {schema: {id: {type: 'string',
-      nullable: false}}, rows: ids.map(id => ({id}))}, as: 'selected'}],
-    results: {rows: {from: 'selected', fields: ['id']}},
-    effects: {save: {update: {target: 'connector://crm-main/Test_Record__c',
-      mapping: mappingRef, from: {result: 'rows'}, id: 'id',
-      set: {Name: {field: 'id'}}}}}}],
-  results: {answer: {from: {stage: 'source', result: 'rows'}}}});
+// One Set of `kind` from the rows `ids` through `mappingRef`: a create keyed
+// and named by each id, or an update or upsert naming the record by it.
+export const kindProgram = (kind, mappingRef, ids) => {
+  const target = 'connector://crm-main/Test_Record__c';
+  const effect = kind === 'create'
+    ? {create: {target, mapping: mappingRef, from: {result: 'rows'}}}
+    : kind === 'update'
+      ? {update: {target, mapping: mappingRef, from: {result: 'rows'},
+        id: 'id', set: {Name: {field: 'id'}}}}
+      : {upsert: {target, mapping: mappingRef, from: {result: 'rows'},
+        key: 'id', set: {Name: {field: 'id'}}}};
+  return JSON.stringify({version: 'actql/0.1', id: 'client-values',
+    stages: [{id: 'source', inputs: {}, steps: [{values: {schema: {
+      id: {type: 'string', nullable: false}}, rows: ids.map(id => ({id}))},
+    as: 'selected'}], results: {rows: {from: 'selected', fields: ['id']}},
+    effects: {save: effect}}],
+    results: {answer: {from: {stage: 'source', result: 'rows'}}}});
+};
 
 const tlsMaterial = (() => {
   let material;

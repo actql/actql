@@ -42,8 +42,14 @@ async function restore(t, phase, {alter} = {}) {
     effectProfilePath: join(root, 'effect-profile.json')};
   const context = {installation, orgId: org.orgId, keys,
     tlsRoot: root};
-  const writes = () => org.seen.filter(item => item.method === 'PATCH')
-    .map(item => decodeURIComponent(item.path.split('/').at(-1)));
+  // Record writes: an update's record Id, or for a create or an upsert
+  // phase the method and the last two path segments.
+  const writes = () => org.seen.filter(item => item.method === 'PATCH' ||
+    item.method === 'POST').map(item => /^(create|upsert)-/u.test(
+    manifest.phase)
+    ? `${item.method} ${decodeURIComponent(item.path.split('/').slice(-2)
+      .join('/'))}`
+    : decodeURIComponent(item.path.split('/').at(-1)));
   return {manifest, org, context, writes, ref: manifest.request.ref};
 }
 
@@ -167,5 +173,49 @@ for (const [label, alter] of Object.entries(alterations)) {
         await opened.host.close();
       }
       assert.deepEqual(writes(), []);
+    });
+}
+
+// Sets of the other installed kinds, captured before the move.
+const kindWrites = {create: 'POST Test_Record__c/',
+  upsert: 'PATCH External_Key__c/a00000000000001'};
+for (const [kind, write] of Object.entries(kindWrites)) {
+  test(`${kind} held for approval: nothing is sent until approval, then once`,
+    {skip}, async t => {
+      const {context, writes, ref} = await restore(t,
+        `${kind}-held-for-approval`);
+      const first = await openHost(context);
+      const attached = await (await first.as('owner-token')).attach(ref);
+      assert.equal((await attached.status()).status, 'waiting_checkpoint');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      assert.deepEqual(writes(), []);
+      await approve(first, {ref}, context.keys);
+      await first.close();
+      const {host, state} = await settled(t, context, ref);
+      assert.equal(state.status, 'succeeded', JSON.stringify(state));
+      assert.deepEqual(writes(), [write]);
+      await host.close();
+    });
+
+  test(`${kind} with approval saved: sent exactly once`, {skip}, async t => {
+    const {context, writes, ref} = await restore(t, `${kind}-approval-saved`);
+    const {host, state} = await settled(t, context, ref);
+    assert.equal(state.status, 'succeeded', JSON.stringify(state));
+    assert.deepEqual(writes(), [write]);
+    await host.close();
+    const again = await settled(t, context, ref);
+    assert.equal(again.state.status, 'succeeded');
+    assert.deepEqual(writes(), [write]);
+  });
+
+  test(`${kind} unknown after the send started: never resent`, {skip},
+    async t => {
+      const {context, writes, ref} = await restore(t,
+        `${kind}-unknown-after-send`);
+      const {host, state} = await settled(t, context, ref);
+      assert.equal(state.status, 'needs_reconciliation',
+        JSON.stringify(state));
+      assert.deepEqual(writes(), []);
+      await host.close();
     });
 }

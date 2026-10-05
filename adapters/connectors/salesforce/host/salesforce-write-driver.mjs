@@ -1,4 +1,5 @@
-// Salesforce record updates as a write driver of the Host's provider-neutral
+// Salesforce record writes (create, update and upsert) as a write driver of
+// the Host's provider-neutral
 // installed row Effect (adapters/host-node/installed-row-effect.mjs). The
 // common owners decide capture, the Preview, approval, the Effect Ledger,
 // apply, recovery and publication; this driver keeps only Salesforce's own
@@ -29,10 +30,16 @@ const fail = code => {
   throw Object.assign(new Error(code), {code});
 };
 
-const UPDATE_OPERATION = 'salesforce:record:update';
 const OBSERVE_OPERATION = 'salesforce:record:observe';
-// The Salesforce write projection and request code of an update.
-const UPDATE_CODE = 1;
+// The grant operation, and the Salesforce write projection and request code,
+// of each installed write kind.
+const grantOperations = Object.freeze({create: 'salesforce:record:create',
+  update: 'salesforce:record:update', upsert: 'salesforce:record:upsert'});
+const kindCodes = Object.freeze({create: 0, update: 1, upsert: 2});
+// The installed write kind of each Effect kind (a create is installed from a
+// Result).
+const installedKinds = Object.freeze({create: 'createFromResult',
+  update: 'update', upsert: 'upsert'});
 
 const parseExact = wire => {
   if (typeof wire !== 'string') fail('InvalidSalesforceUpdateDriver');
@@ -56,12 +63,12 @@ function writeBody(salesforceMoon, result, projection) {
   return checked(result);
 }
 
-// The update driver over one installed Salesforce Site. `mappingOf(cid)` is
+// The write driver over one installed Salesforce Site. `mappingOf(cid)` is
 // the installed execution Mapping (`{write, mapping}`) of a Mapping CID;
 // `nextOccurrence(label)` names one describe of this installation;
 // `siteBindingCid` and `generationCid` are the installed Site binding and
 // published generation a resumed target-read approval must name.
-export function salesforceUpdateDriver({salesforceMoon, site, mappingOf,
+export function salesforceWriteDriver({salesforceMoon, site, mappingOf,
   nextOccurrence, siteBindingCid, generationCid, limits}) {
   if (!salesforceMoon || !site || typeof mappingOf !== 'function' ||
       typeof nextOccurrence !== 'function' || typeof siteBindingCid !==
@@ -70,12 +77,16 @@ export function salesforceUpdateDriver({salesforceMoon, site, mappingOf,
   }
   const installedOf = member => {
     const installed = mappingOf(member.mapping.mappingCid);
-    if (installed?.write?.kind !== 'update') {
+    if (installed?.write?.kind !== installedKinds[member.kind]) {
       fail('SalesforceEffectMappingNotInstalled');
     }
     return installed;
   };
-  const fieldsOf = member => [...installedOf(member).write.fields];
+  const fieldsOf = member => {
+    const write = installedOf(member).write;
+    return [...(write.fields ?? write.sources.map(source => source.target))];
+  };
+  const keyOf = member => installedOf(member).write.key ?? '';
   const projectionOf = (member, observation) => {
     const binding = JSON.parse(
       salesforceMoon.salesforceCatalogObservationJson(observation)).binding;
@@ -87,8 +98,8 @@ export function salesforceUpdateDriver({salesforceMoon, site, mappingOf,
         binding.site_generation, binding.connector_registration,
         binding.connector_revision, binding.resource_origin,
         binding.run_invocation_cid, binding.dispatch_request_cid,
-        binding.sync_occurrence, member.resource, UPDATE_CODE, '', fields,
-        fields.length),
+        binding.sync_occurrence, member.resource, kindCodes[member.kind],
+        keyOf(member), fields, fields.length),
       salesforceMoon, observation);
   };
   const requestCid = request => checked(
@@ -96,9 +107,9 @@ export function salesforceUpdateDriver({salesforceMoon, site, mappingOf,
       site.instanceOrigin, limits.maxIdentityBytes));
 
   return Object.freeze({
-    kinds: Object.freeze(['update']),
+    kinds: Object.freeze(['create', 'update', 'upsert']),
     targetRead: Object.freeze({operation: OBSERVE_OPERATION}),
-    writeOperation: () => UPDATE_OPERATION,
+    writeOperation: member => grantOperations[member.kind],
 
     // The Resource's current describe, bound to the member's dispatch.
     describe: ({member, runInvocationCid, dispatchRequestCid, label,
@@ -114,7 +125,7 @@ export function salesforceUpdateDriver({salesforceMoon, site, mappingOf,
         member_index: member.memberIndex,
         mapping_cid: member.mapping.mappingCid,
         mapping_ref: member.mapping.mappingRef, resource: member.resource,
-        effect_kind: member.kind, key: '', fields: fieldsOf(member)};
+        effect_kind: member.kind, key: keyOf(member), fields: fieldsOf(member)};
       const binding = checkpointApprovalFacts(decision)?.physicalBindings
         ?.find(candidate => Object.entries(expected).every(([key, value]) =>
           canonicalJson(candidate[key]) === canonicalJson(value)));
@@ -135,20 +146,22 @@ export function salesforceUpdateDriver({salesforceMoon, site, mappingOf,
       // body are prepared: no target or write I/O has started for the row.
       const request = checkedEffectPreparation(
         salesforceMoon.salesforcePrepareSingleWriteRequest(body,
-          site.apiVersion, UPDATE_CODE, selector, 0,
+          site.apiVersion, kindCodes[member.kind],
+          member.kind === 'create' ? '' : selector, 0,
           limits.request.maxPathBytes, limits.request.maxTargetBytes,
           limits.request.maxBodyBytes));
       return {request, requestCid: requestCid(request)};
     },
 
-    // The value the request writes (as ActQL values) and the record Id it
-    // selects.
-    requestFacts: request => ({
-      value: parseExact(salesforceMoon.salesforceSingleWriteRequestValue(
-        request)),
-      target: decodeURIComponent(
-        salesforceMoon.salesforceSingleWriteRequestPath(request)
-          .split('/').at(-1))}),
+    // The value the request writes (as ActQL values) and the record it
+    // selects (its Id or typed external value; none for a create).
+    requestFacts: request => {
+      const target = salesforceMoon.salesforceSingleWriteRequestTargetJson(
+        request);
+      return {value: parseExact(
+        salesforceMoon.salesforceSingleWriteRequestValue(request)),
+      ...(target === undefined ? {} : {target: parseExact(target)})};
+    },
     requestCid,
 
     // A refusal by a fully described current Catalog is definitive; an
@@ -192,8 +205,9 @@ export function salesforceUpdateDriver({salesforceMoon, site, mappingOf,
       const requests = entries.map(entry => entry.request);
       const capability = issueSalesforceEffectCapability({
         moon: salesforceMoon, requests, currentObservation: current.observation,
-        authority: site.attestEffectCapability({operation: UPDATE_OPERATION,
-          runInvocationCid, dispatchRequestCid}),
+        authority: site.attestEffectCapability({
+          operation: grantOperations[member.kind], runInvocationCid,
+          dispatchRequestCid}),
         credential: site.credential, mapping: installedOf(member).mapping,
         maxRows: limits.maxRows, maxBytes: limits.preview.maxWireBytes});
       const inspected = inspectSalesforceEffectCapability(capability,
@@ -221,7 +235,7 @@ export function salesforceUpdateDriver({salesforceMoon, site, mappingOf,
       kind: 'salesforce-named-catalog', observationCid: current.observationCid,
       wire: JSON.stringify({evidence: current.evidence,
         apiVersion: site.apiVersion, resourceName: member.resource,
-        operation: 'update', externalTargetField: '',
+        operation: member.kind, externalTargetField: keyOf(member),
         fieldNames: fieldsOf(member), resourceOrigin: site.instanceOrigin})}),
 
     recoverRequests({durable, recorded, previewWire, body}) {

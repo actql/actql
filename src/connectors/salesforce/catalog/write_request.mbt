@@ -54,6 +54,18 @@ pub fn single_write_request_value(value : SingleWriteRequest) -> String {
 }
 
 ///|
+/// The record the request selects, as the Preview's target row identity
+/// spells it: an Id or external text as a JSON string, an external integer
+/// as a JSON number. None for a create, which selects no record.
+pub fn single_write_request_target_json(value : SingleWriteRequest) -> String? {
+  match value.target {
+    RecordId(text) | ExternalText(text) => Some(text.to_json().stringify())
+    ExternalInt(number) => Some(number.to_json().stringify())
+    NoWriteTarget => None
+  }
+}
+
+///|
 pub fn single_write_request_method(value : SingleWriteRequest) -> String {
   value.verb
 }
