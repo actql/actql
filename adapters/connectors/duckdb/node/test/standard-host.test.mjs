@@ -9786,6 +9786,43 @@ async function exerciseStrategyGraph(
     {name: 'append-long-text-filter', source: retainedBinaryChain(
       retainedLongTextAppend, [{filter: 'id > 0'}], ['id', 'tag']),
     expected: [{id: 1, tag: retainedOutputText}], fields: ['id', 'tag']},
+    {name: 'unpivot-long-text-filter-select', source: retainedUnaryChain(
+      [{unpivot: {columns: ['jan'], keep: ['id', 'tag'],
+        name_column: 'metric', value_column: 'amount'}}],
+      [{filter: 'id > 0'}, {select: ['amount', 'id', 'metric', 'tag']}],
+      ['amount', 'id', 'metric', 'tag'],
+      [{id: 1, jan: 2, tag: retainedOutputText}], {
+        id: {type: 'number', nullable: false},
+        jan: {type: 'number', nullable: false},
+        tag: {type: 'string', nullable: false},
+      }),
+    expected: [{amount: 2, id: 1, metric: 'jan', tag: retainedOutputText}],
+    fields: ['amount', 'id', 'metric', 'tag']},
+    {name: 'unnest-long-text-filter-select', source: retainedUnaryChain(
+      [{unnest: {column: 'items', as: 'item', with_index: 'position',
+        outer: true}}],
+      [{filter: 'id > 0'}, {select: ['id', 'item', 'position', 'tag']}],
+      ['id', 'item', 'position', 'tag'],
+      [{id: 1, items: [2], tag: retainedOutputText}], {
+        id: {type: 'number', nullable: false},
+        items: {type: 'array', nullable: false, max_items: 1,
+          items: {type: 'number', nullable: false}},
+        tag: {type: 'string', nullable: false},
+      }),
+    expected: [{id: 1, item: 2, position: 0, tag: retainedOutputText}],
+    fields: ['id', 'item', 'position', 'tag']},
+    {name: 'row-window-long-text-filter-select', source: retainedUnaryChain(
+      [{row_window: {kind: 'fixed', time: 'at', size: 10}}],
+      [{filter: 'id > 0'},
+        {select: ['id', 'tag', 'window_start', 'window_end']}],
+      ['id', 'tag', 'window_start', 'window_end'],
+      [{at: 5, id: 1, tag: retainedOutputText}], {
+        at: {type: 'number', nullable: false},
+        id: {type: 'number', nullable: false},
+        tag: {type: 'string', nullable: false},
+      }),
+    expected: [{id: 1, tag: retainedOutputText, window_start: 0, window_end: 10}],
+    fields: ['id', 'tag', 'window_start', 'window_end']},
     {name: 'append-filter-arithmetic-control', source: retainedBinaryChain(
       externalAppendProgram, [{filter: 'id >= 1'}], ['id']),
     expected: [1, 2, 3, 4].map(id => ({id})), fields: ['id']},

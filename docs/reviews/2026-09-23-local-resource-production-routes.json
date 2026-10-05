@@ -1774,6 +1774,27 @@
       },
       "boundary_tests": [
         {
+          "role": "row_window_output_values_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_expansion_output_wbtest.mbt",
+          "fixture": "expansion output keeps exact node byte and work limits"
+        },
+        {
+          "role": "row_window_output_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_expansion_output_wbtest.mbt",
+          "fixture": "expansion output stops inside recheck and charge without releasing inputs"
+        },
+        {
+          "role": "row_window_output_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_expansion_output_wbtest.mbt",
+          "fixture": "expansion output reserves traversal frames before one-short workspace"
+        },
+        {
           "role": "row_window_empty_schema_workspace_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -1903,6 +1924,13 @@
           ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "split-values-row-window-in-flight"
+        },
+        {
+          "role": "row_window_retained_long_text_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "row-window-long-text-filter-select"
         },
         {
           "role": "row_window_ordinary_host_timer",
@@ -2469,6 +2497,27 @@
       },
       "boundary_tests": [
         {
+          "role": "unpivot_output_values_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_expansion_output_wbtest.mbt",
+          "fixture": "expansion output keeps exact node byte and work limits"
+        },
+        {
+          "role": "unpivot_output_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_expansion_output_wbtest.mbt",
+          "fixture": "expansion output stops inside recheck and charge without releasing inputs"
+        },
+        {
+          "role": "unpivot_output_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_expansion_output_wbtest.mbt",
+          "fixture": "expansion output reserves traversal frames before one-short workspace"
+        },
+        {
           "role": "unpivot_fixed_sequence_work_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -2681,6 +2730,13 @@
           ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "captured-unpivot-chain-in-flight"
+        },
+        {
+          "role": "unpivot_retained_long_text_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "unpivot-long-text-filter-select"
         },
         {
           "role": "unpivot_ordinary_host_timer",
@@ -2943,6 +2999,27 @@
       },
       "boundary_tests": [
         {
+          "role": "unnest_output_values_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_expansion_output_wbtest.mbt",
+          "fixture": "expansion output keeps exact node byte and work limits"
+        },
+        {
+          "role": "unnest_output_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_expansion_output_wbtest.mbt",
+          "fixture": "expansion output stops inside recheck and charge without releasing inputs"
+        },
+        {
+          "role": "unnest_output_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_expansion_output_wbtest.mbt",
+          "fixture": "expansion output reserves traversal frames before one-short workspace"
+        },
+        {
           "role": "unnest_fixed_sequence_work_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -3134,6 +3211,13 @@
           ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "nest-output-unnest-chain-in-flight"
+        },
+        {
+          "role": "unnest_retained_long_text_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "unnest-long-text-filter-select"
         },
         {
           "role": "unnest_ordinary_host_timer",
@@ -5409,6 +5493,27 @@
       },
       "boundary_tests": [
         {
+          "role": "values_output_values_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_expansion_output_wbtest.mbt",
+          "fixture": "expansion output keeps exact node byte and work limits"
+        },
+        {
+          "role": "values_output_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_expansion_output_wbtest.mbt",
+          "fixture": "expansion output stops inside recheck and charge without releasing inputs"
+        },
+        {
+          "role": "values_output_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_expansion_output_wbtest.mbt",
+          "fixture": "expansion output reserves traversal frames before one-short workspace"
+        },
+        {
           "role": "zero_input_quantum_and_output",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
@@ -5598,6 +5703,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs",
           "fixture": "one-short scalar chain work"
+        },
+        {
+          "role": "values_retained_long_text_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "append-long-text-filter"
         },
         {
           "role": "retained_source_free_host_workspace_short",

@@ -1081,6 +1081,22 @@ the ten-slot structural workspace bound is unchanged. This updates the earlier
 connection controls; running those boundaries on the new source SHA and Linux
 CI is separate from the focused kernel and managed-chain evidence.
 
+The Values, unpivot, unnest and row-window output owners now reuse the same
+private row-charge cursor and resumable copied-cell recheck. Values also uses
+the existing stepped input measurement before recheck; it no longer measures
+a large literal or parameter cell synchronously inside one poll. Row storage
+stays with its original owner until commit or cleanup, and a failed or stopped
+cursor is cancelled before unpublished output is discarded. Borrowed completed
+inputs remain available after cleanup.
+The shared expansion fixture derives separate node, byte, work and workspace
+limits from each output shape, checks each one-short typed cause, and stops
+inside both large-Text recheck and output charging. Values has a separate
+input-measurement cancellation and exact/one-short fixture. The two-row managed
+Values control now exposes 21 advances instead of 11, with ten formerly combined
+row-output transitions; its logical and control budget totals are unchanged.
+Focused JS kernels and managed callers pass 61 tests. This is not yet a passing
+new-source retained Store Host, packed, Wasm/native or Linux CI result.
+
 #### Retained Relation obligation chains
 
 The retained materializing lane now binds checked obligations to the exact
