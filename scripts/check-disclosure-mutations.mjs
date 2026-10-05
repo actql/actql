@@ -219,6 +219,12 @@ const mutations = [
   ['an unsupported Subgraph selector is reported as invalid input',
     'UnsupportedImplementation =>\n          findings.push(Limit("implementation_limit"))',
     'UnsupportedImplementation =>\n          findings.push(Violation("program_invalid"))'],
+  ['a Subgraph selector violation is fabricated behind protected resolution',
+    'QueryLowering(UnknownRelation) =>\n' +
+    '          findings.push(Unresolved("source_resolution"))',
+    'QueryLowering(UnknownRelation) => {\n' +
+    '          findings.push(Unresolved("source_resolution"))\n' +
+    '          findings.push(GraphViolation("subgraph", "invalid_node_selector"))\n        }'],
 ];
 
 const strict = id => ({id, operator: 'strictEqual'});
@@ -294,6 +300,7 @@ const targets = [
   ...Array.from({length: 5}, () =>
     ['Subgraph selector violations preserve the common Owner reason',
       [strict('subgraph-verdict'), deep('subgraph-reason'), strict('subgraph-limit-verdict')]]),
+  ['Subgraph selector violations preserve the common Owner reason', [deep('subgraph-protected')]],
 ];
 
 // Reuse the common reporter and nonzero-execution evidence. A process failure

@@ -510,7 +510,7 @@ position. Absent and inaccessible Source dependencies stop before dependent
 predicate checking and retain equivalent protected unresolved coverage.
 The verdict still comes from the common checker; explanations are advisory.
 
-### Graph components argument explanations
+### Graph argument explanations
 
 The public `graph_operation_invalid` reason carries closed facts
 `operation: "components"` and `issue: "invalid_kind"` or
@@ -530,8 +530,18 @@ inaccessible Source dependencies stop before this dependent Graph diagnosis
 and retain the same protected unresolved result. Source-free valid weak and
 strong components remain verified. Checking does not execute a Graph task.
 
+Subgraph selector violations carry `operation: "subgraph"` and
+`issue: "invalid_node_selector"`. The SDK describes the closed selector forms:
+nonempty ids, a named Relation with an id field, or a node where predicate.
+The currently unimplemented where form is an implementation limit with an
+undetermined verdict. Invalid selectors are input violations. Generated
+Program paths are not authored locations, so these explanations omit positions.
+Protected dependencies suppress dependent Graph explanations while independent
+supplied-value violations remain public.
+
 This coordinated extension changes the registered `actql-check-reason/0.1`
-body and dependent outcome schema identities, validators and SDK wire types.
+body, its identity pins, validators and SDK wire types. The Subgraph extension
+changes only the reason-schema CID; the outcome-schema body and CID remain unchanged.
 It leaves `actql-diagnostics/0.1` unchanged. Mixed schema pins are rejected by
 existing contract validation; there is no compatibility adapter.
 
