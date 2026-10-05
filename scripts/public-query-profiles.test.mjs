@@ -128,8 +128,10 @@ test('ORDER OFFSET and property corpora stay independent in one mixed run', () =
 test('combined packed selection registers every analytic corpus and isolates mutable state', async () => {
   const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const selected = fixture.slice(fixture.indexOf('const scopeInputs = analyticProfilesOnly'),
-    fixture.indexOf(': analyticOrderOnly'));
+  const start = fixture.indexOf('analyticProfilesOnly ? {');
+  const end = fixture.indexOf(': analyticOrderOnly', start);
+  assert.ok(start >= 0 && end > start, 'combined analytic branch must exist');
+  const selected = fixture.slice(start, end);
   for (const name of ['analyticOrderInputs', 'analyticPropertySuccesses', 'analyticOffsetSuccesses',
     'analyticOrderRefusals', 'analyticPropertyRefusals', 'analyticOffsetRefusals',
     'analyticOrderExecutionFailures']) assert.ok(selected.includes(name), name);
