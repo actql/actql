@@ -805,7 +805,9 @@ async function connectSelected(selected, port) {
           throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),
             context, 'outcome_unknown');
         }
-        return retainCancellationExplanation(response, context, response.kind, response.revision);
+        // Local ports may reuse their response object across operations.
+        const received = structuredClone(response);
+        return retainCancellationExplanation(received, context, received.kind, received.revision);
       },
       // The Run's current state after the Host's reconciliation attempt. An
       // unknown Effect outcome stays `needs_reconciliation` until the Host

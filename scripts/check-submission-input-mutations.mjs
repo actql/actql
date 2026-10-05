@@ -8,6 +8,10 @@ const path = 'packages/sdk/index.mjs';
 const acceptance = 'adapters/host-node/client-submission-input.test.mjs';
 const cancellationAcceptance = 'adapters/host-node/client-cancel-response-loss.test.mjs';
 const expected = (phase, assertion = 'submission-input') => {
+  if (phase === 'cancellation-custody') return [{
+    name: 'in-process: reused cancellation replies preserve each original Run observation',
+    assertions: [{id: assertion, operator: 'deepStrictEqual'}],
+  }];
   if (phase.startsWith('cancellation-')) {
     const name = phase === 'cancellation-recorded'
       ? 'Run cancellation explanations retain recorded control facts'
@@ -71,7 +75,9 @@ const mutations = [
     "            cancellationContext, 'outcome_unknown');\n        }",
     "        if (value instanceof Response) fail('InvalidLocalHostPortResponse');",
     'cancellation-unknown', 'cancel-unknown-explanation'],
-
+  ['cancellation response reuse changes an earlier Run observation',
+    'const received = structuredClone(response);', 'const received = response;',
+    'cancellation-custody', 'cancel-custody'],
 ];
 const accepted = (phase, assertion) => {
   const tests = expected(phase, assertion);
