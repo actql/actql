@@ -113,6 +113,26 @@ function savedEvidence(f, ordinal, role, expectedState = 'SavedSuccess') {
 }
 
 for (const transport of ['local', 'https']) {
+  test(`public Model ${transport}: cancellation retains a sent unknown across restart`, async t => {
+    const f = await fixture(t, {transport, count: 3});
+    const waiting = f.phase('wait');
+    f.phase('approve-crash-unknown', {}, 77);
+    assertSends(f, ['alpha', 'bravo']);
+    assert.deepEqual(slotStates(f.journal()), ['SavedSuccess', 'EnteredUnknown', 'Unsent']);
+    await pause(1100);
+    const cancelled = f.phase('cancel');
+    assertSameRun(waiting, cancelled);
+    assert.equal(cancelled.status, 'needs_reconciliation');
+    assertSends(f, ['alpha', 'bravo']);
+    assert.deepEqual(slotStates(f.journal()), ['SavedSuccess', 'EnteredUnknown', 'Unsent']);
+    assert.equal(savedEvidence(f, 0, 'model_slot_capture').outcome, 'ok');
+    const replay = f.phase('resume');
+    assertSameRun(waiting, replay);
+    assert.equal(replay.status, 'needs_reconciliation');
+    assertSends(f, ['alpha', 'bravo']);
+    assert.equal(f.journal().fences.length, 1);
+  });
+
   test(`public Model ${transport}: immediate Allow finishes once across process restart`, async t => {
     const f = await fixture(t, {transport, immediate: true});
     const finished = f.phase('immediate');
@@ -190,79 +210,82 @@ for (const transport of ['local', 'https']) {
   });
 }
 
-for (const onNonSuccess of ['outcomes', 'fail']) {
-  test(`public Model: saved/unknown/unsent crash preserves uncertainty under ${onNonSuccess}`, async t => {
-    const f = await fixture(t, {count: 3, onNonSuccess});
+for (const transport of ['local', 'https']) {
+  for (const onNonSuccess of ['outcomes', 'fail']) {
+    test(`public Model ${transport}: saved/unknown/unsent crash preserves uncertainty under ${onNonSuccess}`, async t => {
+      const f = await fixture(t, {transport, count: 3, onNonSuccess});
+      const waiting = f.phase('wait');
+      f.phase('approve-crash-unknown', {}, 77);
+      assertSends(f, ['alpha', 'bravo']);
+      assert.deepEqual(slotStates(f.journal()), ['SavedSuccess', 'EnteredUnknown', 'Unsent']);
+      await pause(1100);
+      const replay = f.phase('resume');
+      assertSameRun(waiting, replay);
+      assert.equal(replay.status, 'needs_reconciliation');
+      assert.equal(replay.rows, undefined);
+      assertSends(f, onNonSuccess === 'outcomes' ? ['alpha', 'bravo', 'charlie'] : ['alpha', 'bravo']);
+      assert.deepEqual(slotStates(f.journal()), ['SavedSuccess', 'EnteredUnknown',
+        onNonSuccess === 'outcomes' ? 'SavedSuccess' : 'Unsent']);
+      const again = f.phase('resume-again');
+      assertSameRun(waiting, again);
+      assert.equal(again.status, 'needs_reconciliation');
+      assertSends(f, onNonSuccess === 'outcomes' ? ['alpha', 'bravo', 'charlie'] : ['alpha', 'bravo']);
+    });
+  }
+
+  test(`public Model ${transport}: cancellation of a waiting Run fences all sends across restart`, async t => {
+    const f = await fixture(t, {transport});
     const waiting = f.phase('wait');
-    f.phase('approve-crash-unknown', {}, 77);
-    assertSends(f, ['alpha', 'bravo']);
-    assert.deepEqual(slotStates(f.journal()), ['SavedSuccess', 'EnteredUnknown', 'Unsent']);
-    await pause(1100);
+    const cancelled = f.phase('cancel');
+    assertSameRun(waiting, cancelled);
+    assert.equal(cancelled.status, 'cancelled');
+    assertSends(f, []);
     const replay = f.phase('resume');
     assertSameRun(waiting, replay);
-    assert.equal(replay.status, 'needs_reconciliation');
-    assert.equal(replay.rows, undefined);
-    assertSends(f, onNonSuccess === 'outcomes' ? ['alpha', 'bravo', 'charlie'] : ['alpha', 'bravo']);
-    assert.deepEqual(slotStates(f.journal()), ['SavedSuccess', 'EnteredUnknown',
-      onNonSuccess === 'outcomes' ? 'SavedSuccess' : 'Unsent']);
-    const again = f.phase('resume-again');
-    assertSameRun(waiting, again);
-    assert.equal(again.status, 'needs_reconciliation');
-    assertSends(f, onNonSuccess === 'outcomes' ? ['alpha', 'bravo', 'charlie'] : ['alpha', 'bravo']);
+    assert.equal(replay.status, 'cancelled');
+    assertSends(f, []);
+    assert.equal(f.journal().fences.length, 1);
   });
+
+  test(`public Model ${transport}: cancellation after one saved response retains it and prevents later sends`, async t => {
+    const f = await fixture(t, {transport, count: 3});
+    const waiting = f.phase('wait');
+    const cancelled = f.phase('approve-cancel-saved');
+    assertSameRun(waiting, cancelled);
+    assert.equal(cancelled.status, 'cancelled');
+    assertSends(f, ['alpha']);
+    assert.deepEqual(slotStates(f.journal()), ['SavedSuccess', 'Unsent', 'Unsent']);
+    assert.equal(savedEvidence(f, 0, 'model_slot_capture').outcome, 'ok');
+    assert.equal(f.phase('resume').status, 'cancelled');
+    assertSends(f, ['alpha']);
+  });
+
+  test(`public Model ${transport}: expired Checkpoint cannot cause a provider send after restart`, async t => {
+    const f = await fixture(t, {transport, checkpointTtlMs: 1000});
+    const waiting = f.phase('wait');
+    await pause(1100);
+    const replay = f.phase('probe');
+    assertSameRun(waiting, replay);
+    assert.notEqual(replay.status, 'succeeded');
+    assertSends(f, []);
+    assert.deepEqual(slotStates(f.journal()), ['Unsent']);
+    assert.equal(f.journal().checkpoints[0].closure, 'expired');
+  });
+
+  test(`public Model ${transport}: approving an old provider scope never authorizes a replacement binding`, async t => {
+    const f = await fixture(t, {transport});
+    const waiting = f.phase('wait');
+    const original = f.journal().scopes[0];
+    const replay = f.phase('approve-replacement-probe', {providerRevision: 'public-model-fixture-2'});
+    assertSameRun(waiting, replay);
+    assert.notEqual(replay.status, 'succeeded');
+    assertSends(f, []);
+    assert.deepEqual(slotStates(f.journal()), ['Unsent']);
+    assert.equal(f.journal().scopes[0].scope_cid, original.scope_cid);
+    assert.equal(f.journal().scopes[0].originals_json, original.originals_json);
+  });
+
 }
-
-test('public Model: cancellation of a waiting Run fences all sends across restart', async t => {
-  const f = await fixture(t);
-  const waiting = f.phase('wait');
-  const cancelled = f.phase('cancel');
-  assertSameRun(waiting, cancelled);
-  assert.equal(cancelled.status, 'cancelled');
-  assertSends(f, []);
-  const replay = f.phase('resume');
-  assertSameRun(waiting, replay);
-  assert.equal(replay.status, 'cancelled');
-  assertSends(f, []);
-  assert.equal(f.journal().fences.length, 1);
-});
-
-test('public Model: cancellation after one saved response retains it and prevents later sends', async t => {
-  const f = await fixture(t, {count: 3});
-  const waiting = f.phase('wait');
-  const cancelled = f.phase('approve-cancel-saved');
-  assertSameRun(waiting, cancelled);
-  assert.equal(cancelled.status, 'cancelled');
-  assertSends(f, ['alpha']);
-  assert.deepEqual(slotStates(f.journal()), ['SavedSuccess', 'Unsent', 'Unsent']);
-  assert.equal(savedEvidence(f, 0, 'model_slot_capture').outcome, 'ok');
-  assert.equal(f.phase('resume').status, 'cancelled');
-  assertSends(f, ['alpha']);
-});
-
-test('public Model: expired Checkpoint cannot cause a provider send after restart', async t => {
-  const f = await fixture(t, {checkpointTtlMs: 1000});
-  const waiting = f.phase('wait');
-  await pause(1100);
-  const replay = f.phase('probe');
-  assertSameRun(waiting, replay);
-  assert.notEqual(replay.status, 'succeeded');
-  assertSends(f, []);
-  assert.deepEqual(slotStates(f.journal()), ['Unsent']);
-  assert.equal(f.journal().checkpoints[0].closure, 'expired');
-});
-
-test('public Model: approving an old provider scope never authorizes a replacement binding', async t => {
-  const f = await fixture(t);
-  const waiting = f.phase('wait');
-  const original = f.journal().scopes[0];
-  const replay = f.phase('approve-replacement-probe', {providerRevision: 'public-model-fixture-2'});
-  assertSameRun(waiting, replay);
-  assert.notEqual(replay.status, 'succeeded');
-  assertSends(f, []);
-  assert.deepEqual(slotStates(f.journal()), ['Unsent']);
-  assert.equal(f.journal().scopes[0].scope_cid, original.scope_cid);
-  assert.equal(f.journal().scopes[0].originals_json, original.originals_json);
-});
 
 test('public Model: immediate Allow partial crash uses the same journal and never repeats its saved send', async t => {
   const f = await fixture(t, {immediate: true, count: 3});

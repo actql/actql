@@ -12,6 +12,8 @@ function fixture(changes = {}) {
   const observed = [];
   let entered;
   const ready = new Promise(resolve => { entered = resolve; });
+  let confirmStop;
+  const stop = new Promise(resolve => { confirmStop = resolve; });
   const owner = installNodeClientDispatchOwner({moon: {},
     control: {runDefinitionRunId: () => 'run'},
     journal: {reservePhysicalStart: () => true,
@@ -29,14 +31,16 @@ function fixture(changes = {}) {
     hostConnection: () => true,
     planFor: () => ({kind: 'infer', runDefinition: {wire: 'definition'}}),
     runInfer: async ({retainExecution, signal}) => {
-      retainExecution({async close() {}, cleanup: () => facts.cleanup,
+      retainExecution({async close() {
+        if (facts.stopPending) await stop;
+      }, cleanup: () => facts.cleanup,
         cleanupPending: () => !facts.cleanup});
       entered();
       await new Promise((_, reject) => signal.addEventListener('abort',
         () => reject(signal.reason), {once: true}));
     },
   });
-  return {facts, owner, ref, ready, observed,
+  return {facts, owner, ref, ready, observed, confirmStop,
     start: () => owner.start({preparedProgram: {}, principalId: 'owner',
       requestId: 'request', connection: {}}, {}, {ref,
       runDefinition: {wire: 'definition'}, dispatchReserved: false,
@@ -64,6 +68,18 @@ test('a committed publication wins over the cancellation request', async () => {
   f.owner.cancel(f.ref);
   await f.owner.drain();
   assert.deepEqual(f.observed, [null]);
+});
+
+test('cancellation cannot terminate before physical stop acknowledgement', async () => {
+  const f = fixture({stopPending: true});
+  await f.start(); await f.ready;
+  f.owner.cancel(f.ref);
+  const draining = f.owner.drain();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(f.observed, []);
+  f.confirmStop();
+  await draining;
+  assert.deepEqual(f.observed, ['cancelled']);
 });
 
 test('cleanup pending cannot confirm cancellation; retry closes exactly once', async () => {

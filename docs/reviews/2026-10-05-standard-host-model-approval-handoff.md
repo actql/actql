@@ -60,8 +60,10 @@ retained readmission cases passed (`run-NfNnQQ`, `focused-test-JN99lc`).
 Receipts live in this worktree's `_build/local-checks/attempts/` and
 `_build/focused-evidence/`; they are local evidence, not CI results.
 
-Source acceptance inherited from #363 is not fresh-packed acceptance. Its
-mixed saved/unknown/unsent tests currently cover Local only; the independent
+Source acceptance inherited from #363 is not fresh-packed acceptance. The
+existing mixed saved/unknown/unsent, expiry, replacement and cancellation tests
+now select Local and HTTPS, without a second process fixture. These extended
+selections have not yet been executed at the new HEAD. The independent
 Model/Effect approval case covers HTTPS with Host reopening in one process.
 External HTTPS mixed unknown, full-process Effect restart, current provider
 replacement/expiry/cancellation, and public confirmation of the newly agreed conditional common
@@ -80,6 +82,8 @@ SDK value-preserving canonical encoder, without changing account configuration
 identity. Separate composed, decomposed, CR and LF fixtures pin the data bytes.
 The four fixtures and selected Host/registration regressions passed together
 (53 cases, `run-qniS6O`, `focused-test-Y0kwhS`) after the fix.
+An additional physical-stop acknowledgement counterexample passed with the
+six existing cancellation cases (`run-mViPvL`, `focused-test-LydL9X`).
 
 The retained-history scan previously stopped at inherited singleton
 `mergeBases` in `resolve-model-checkpoint-main-db141961.json` and
