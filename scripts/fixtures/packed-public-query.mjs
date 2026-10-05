@@ -1,3 +1,5 @@
+import {graphDeltaSourceControls, graphDeltaSourceRefusals, graphDeltaSourceExecutionFailures}
+  from './graph-delta-source-input.mjs';
 import {subgraphSourceSuccesses, subgraphSourceRefusals, subgraphSourceExecutionFailures}
   from './subgraph-source-input.mjs';
 // Copied unchanged into the external tarball installation by the driver.
@@ -68,6 +70,8 @@ import {graphDiagnosticSourceSuccesses, graphDiagnosticSourceRefusals, graphDiag
 if (process.env.ACTQL_TEST_TWO_SOURCE_ONLY === '1') {
   await import('./packed-two-source-public-query.mjs');
 } else {
+const graphDeltaOnly = process.env.ACTQL_TEST_GRAPH_DELTA_SOURCE_ONLY === '1';
+const graphDeltaSourceSuccesses = await graphDeltaSourceControls(new URL('./fixtures/', import.meta.url));
 const propertyGraphOnly = process.env.ACTQL_TEST_PROPERTY_GRAPH_SOURCE_ONLY === "1";
 const graphPropertyPredicateOnly = process.env.ACTQL_TEST_GRAPH_PROPERTY_PREDICATE_ONLY === '1';
 const subgraphOnly = process.env.ACTQL_TEST_SUBGRAPH_ONLY === '1';
@@ -101,7 +105,7 @@ const acquiredDataOnly = process.env.ACTQL_TEST_ACQUIRED_DATA_ONLY === '1';
 const dataSetStrategyOnly = process.env.ACTQL_TEST_DATA_SET_STRATEGY_ONLY === '1';
 const orderPropertyOnly = process.env.ACTQL_TEST_ORDER_PROPERTY_ONLY === '1';
 const joinPropertyOnly = process.env.ACTQL_TEST_JOIN_PROPERTY_ONLY === '1';
-const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || joinPropertyOnly;
+const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || joinPropertyOnly || graphDeltaOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const joinChain = JSON.parse(await readFile('join-chain-cases.json', 'utf8'));
 const groupScope = JSON.parse(await readFile('group-scope-cases.json', 'utf8'));
@@ -118,7 +122,8 @@ const dataSetStrategyInputs = {
     ]}}}],
   refusals: [],
 };
-const scopeInputs = joinPropertyOnly ? {successes: joinPropertySuccesses, refusals: joinPropertyRefusals}
+const scopeInputs = graphDeltaOnly ? {successes: graphDeltaSourceSuccesses, refusals: graphDeltaSourceRefusals, executionFailures: graphDeltaSourceExecutionFailures}
+  : joinPropertyOnly ? {successes: joinPropertySuccesses, refusals: joinPropertyRefusals}
   : aggregatePropertyOnly ? {successes: aggregatePropertySuccesses, refusals: aggregatePropertyRefusals}
   : analyticPropertyOnly ? {successes: analyticPropertySuccesses, refusals: analyticPropertyRefusals}
   : subgraphOnly ? {successes: subgraphSourceSuccesses, refusals: subgraphSourceRefusals, executionFailures: subgraphSourceExecutionFailures}
@@ -161,6 +166,9 @@ const scopeInputs = joinPropertyOnly ? {successes: joinPropertySuccesses, refusa
   refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...relationDataRefusals, ...acquiredDataRefusals, ...propertyGraphSourceRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals, ...groupStarRefusals, ...groupOrdinalRefusals],
   executionFailures: [...pipeResultExecutionFailures, ...propertyGraphSourceExecutionFailures]};
 if (!scopeOnly) {
+  scopeInputs.successes.push(...graphDeltaSourceSuccesses);
+  scopeInputs.refusals.push(...graphDeltaSourceRefusals);
+  scopeInputs.executionFailures.push(...graphDeltaSourceExecutionFailures);
   scopeInputs.successes.push(...joinPropertySuccesses);
   scopeInputs.refusals.push(...joinPropertyRefusals);
   scopeInputs.successes.push(...subgraphSourceSuccesses);

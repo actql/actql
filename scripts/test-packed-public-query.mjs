@@ -62,6 +62,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/property-graph-traverse-path-source-input.mjs', 'property-graph-traverse-path-source-input.mjs'],
   ['scripts/fixtures/property-graph-diagnostics-source-input.mjs', 'property-graph-diagnostics-source-input.mjs'],
   ['scripts/fixtures/subgraph-source-input.mjs', 'subgraph-source-input.mjs'],
+  ['scripts/fixtures/graph-delta-source-input.mjs', 'graph-delta-source-input.mjs'],
   ['scripts/fixtures/property-graph-equality-source-input.mjs', 'property-graph-equality-source-input.mjs'],
   ['scripts/fixtures/graph-projection-property-source-input.mjs', 'graph-projection-property-source-input.mjs'],
   ['scripts/fixtures/string-values-restart.mjs', 'string-values-restart.mjs'],
@@ -105,6 +106,8 @@ assert.equal(exampleCommands.length, 2);
 run('bash', ['-eu', '-c', exampleCommands[0][1]], root,
   {...environment, ACTQL_CHECKOUT: repository});
 await mkdir(join(root, 'fixtures'));
+await writeFile(join(root, 'fixtures/property-graph-delta-application.mjs'),
+  await readFile(join(repository, 'scripts/fixtures/property-graph-delta-application.mjs')));
 await writeFile(join(root, 'fixtures/property-graph-parallel.program.json'),
   await readFile(join(repository, 'scripts/fixtures/property-graph-parallel.program.json')));
 await writeFile(join(root, 'fixtures/property-graph-presence.program.json'),
@@ -151,6 +154,9 @@ if (process.argv.includes('--graph-match-only')) {
 }
 if (process.argv.includes('--graph-rows-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_ROWS_ONLY = '1';
+}
+if (process.argv.includes('--graph-delta-source-only')) {
+  runtimeEnvironment.ACTQL_TEST_GRAPH_DELTA_SOURCE_ONLY = '1';
 }
 if (process.argv.includes('--subgraph-only')) {
   runtimeEnvironment.ACTQL_TEST_SUBGRAPH_ONLY = '1';
@@ -286,7 +292,7 @@ if (process.argv.includes('--cancellation-only')) {
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
 const narrowPublicQuery = process.argv.some(flag => ['--source-free-only',
-  '--join-property-only', '--aggregate-property-only', '--analytic-property-only', '--graph-match-only',
+  '--graph-delta-source-only', '--join-property-only', '--aggregate-property-only', '--analytic-property-only', '--graph-match-only',
   '--graph-diagnostics-only',
   '--graph-projection-property-only',
   '--graph-property-predicate-only',
