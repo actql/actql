@@ -22,6 +22,7 @@ import {
   "actql/actql/physical_strategy" @strategy,
   "actql/actql/physical_resources" @resources,
   "actql/actql/execution_query" @query,
+  "actql/actql/execution_relation" @execution,
   "actql/actql/query_planning" @planning,
   "actql/actql/platform_native/publication_store",
   "actql/actql/platform_native/remote_standard_host" @output,

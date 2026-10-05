@@ -15,6 +15,36 @@ fn stepped_output_fixture(
 }
 
 ///|
+test "bounded output import transfers accepted rows once without cleanup erasing them" {
+  let (_, active) = stepped_output_fixture(
+    { max_nodes: 6, max_text_bytes: 10, max_depth: 2, max_work: 16, },
+    28,
+    7,
+  )
+  assert_true(take_admitted_output_preparation_rows(active) is None)
+  let mut complete = false
+  for _ in 0..<28 {
+    match advance_admitted_output_preparation(active, 1).unwrap() {
+      AdmittedOutputContinue(..) => ()
+      AdmittedOutputComplete(_, ..) => {
+        complete = true
+        break
+      }
+      _ => fail("row handoff import failed")
+    }
+  }
+  assert_true(complete)
+  let rows = take_admitted_output_preparation_rows(active).unwrap()
+  assert_eq(rows.rows.length(), 2)
+  assert_eq(active.state.workspace.live, 0)
+  assert_true(take_admitted_output_preparation_rows(active) is None)
+  assert_true(admitted_output_preparation_rows(active) is None)
+  assert_true(cleanup_admitted_output_preparation(active).unwrap())
+  assert_eq(rows.rows.length(), 2)
+  assert_eq(admitted_output_usage(rows), { nodes: 6, text_bytes: 10, work: 16, })
+}
+
+///|
 test "bounded output import preserves exact logical charges and admits cells incrementally" {
   let limits : ValueLimits = {
     max_nodes: 6,
@@ -22,16 +52,18 @@ test "bounded output import preserves exact logical charges and admits cells inc
     max_depth: 2,
     max_work: 16,
   }
-  // Two rows: each costs Begin + two(Read + Admit + AdmitComplete + Name + Value)
-  // + Commit, followed by the terminal Begin + Seal. Each scalar admission
-  // uses one node and a separate terminal step. Row storage is six slots,
-  // plus one measurement frame.
-  let (output, active) = stepped_output_fixture(limits, 26, 7)
+  // Each row has a number and Text: Begin + (Read + Node + Complete + Name
+  // + Value) + (Read + Node + TextUnits + Complete + Name + Value) + Commit.
+  // The two short Text values, "é" and "😀", each need one TextUnits poll.
+  // Two 13-step rows plus terminal Begin + Seal cost 28 physical work units;
+  // logical usage remains six nodes, ten text bytes and sixteen work units.
+  // Row storage is six slots, plus one measurement frame.
+  let (output, active) = stepped_output_fixture(limits, 28, 7)
   assert_true(admitted_output_preparation_rows(active) is None)
   assert_true(finish_admitted_output(output) is Err(ClosedCapture))
   let mut total = 0L
   let mut material : AdmittedOutputRows? = None
-  for _ in 0..<26 {
+  for _ in 0..<28 {
     match advance_admitted_output_preparation(active, 1).unwrap() {
       AdmittedOutputContinue(work~) => {
         assert_eq(work - total, 1L)
@@ -46,7 +78,7 @@ test "bounded output import preserves exact logical charges and admits cells inc
       _ => fail("bounded import did not complete")
     }
   }
-  assert_eq(total, 26L)
+  assert_eq(total, 28L)
   let rows = material.unwrap()
   assert_eq(admitted_output_row_count(rows), 2)
   assert_eq(admitted_output_usage(rows), { nodes: 6, text_bytes: 10, work: 16, })
@@ -70,11 +102,11 @@ test "bounded output import rejects independent one-short limits and retains cle
   }
   for
     (values, work, workspace) in [
-      (limits, 25, 7),
-      (limits, 26, 6),
-      ({ ..limits, max_work: 15, }, 26, 7),
-      ({ ..limits, max_nodes: 5, }, 26, 7),
-      ({ ..limits, max_text_bytes: 9, }, 26, 7),
+      (limits, 27, 7),
+      (limits, 28, 6),
+      ({ ..limits, max_work: 15, }, 28, 7),
+      ({ ..limits, max_nodes: 5, }, 28, 7),
+      ({ ..limits, max_text_bytes: 9, }, 28, 7),
     ] {
     let (_, active) = stepped_output_fixture(values, work, workspace)
     let mut rejected = false
@@ -104,7 +136,7 @@ test "bounded output import cancellation does not seal pending material or read 
     max_depth: 2,
     max_work: 16,
   }
-  let (_, active) = stepped_output_fixture(limits, 26, 7)
+  let (_, active) = stepped_output_fixture(limits, 28, 7)
   assert_true(
     advance_admitted_output_preparation(active, 1).unwrap()
     is AdmittedOutputContinue(work=1L),

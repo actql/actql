@@ -660,17 +660,34 @@ test "raw row table count output recheck stops between text chunks" {
     }
   }
   assert_true(reached_recheck)
-  assert_true(
-    advance_bounded_global_count(execution, 1).unwrap()
-    is BoundedGlobalCountContinue(..),
-  )
+  // Advance the node check and one TextUnits chunk before cancelling.
+  for _ in 0..<2 {
+    assert_true(
+      advance_bounded_global_count(execution, 1).unwrap()
+      is BoundedGlobalCountContinue(..),
+    )
+  }
   assert_true(bounded_global_count_rechecking_output(execution))
+  assert_false(execution.accepted.val)
+  assert_true(execution.state.rows.val is None)
+  assert_true(
+    execution.state.output is Some(output) && output.buffer.rows.is_empty(),
+  )
+  assert_true(execution.state.output_pending is None)
   assert_true(@bounded.request_cancel(control))
   assert_true(
     advance_bounded_global_count(execution, 1).unwrap()
     is BoundedGlobalCountStopped(_, ..),
   )
   assert_true(cleanup_bounded_global_count(execution).unwrap())
+  assert_false(execution.accepted.val)
+  assert_true(execution.state.rows.val is None)
+  assert_true(execution.state.output is None)
+  assert_true(execution.state.output_recheck is None)
+  assert_true(execution.state.output_measure is None)
+  assert_true(execution.state.output_pending is None)
+  assert_true(execution.state.output_row.is_empty())
+  assert_eq(execution.state.workspace.live, 0)
   assert_true(completed_output_available(source))
 }
 

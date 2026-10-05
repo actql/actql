@@ -5,6 +5,7 @@ priv enum WireFrame {
   ArrayNext(FrozenArray[Value], Int)
   ObjectNext(FrozenArray[(String, Value)], Int)
   VectorNext(FrozenArray[Double], Int)
+  ReferenceNext(@identity.CanonicalEmit)
 }
 
 ///|
@@ -100,8 +101,10 @@ pub fn start_wire_emit(
 /// Drop pending frames; the writer stays owned by the caller.
 pub fn cancel_wire_emit(cursor : WireEmitCursor) -> Unit {
   for frame in cursor.pending {
-    if frame is TextNext(text) {
-      @encode.cancel_string_value(text)
+    match frame {
+      TextNext(text) => @encode.cancel_string_value(text)
+      ReferenceNext(reference) => @identity.cancel_emit(reference)
+      _ => ()
     }
   }
   cursor.pending.clear()
@@ -147,7 +150,10 @@ pub fn advance_wire_emit(
           @encode.begin_array(output)
           pending.push(VectorNext(items, 0))
         }
-        Reference(reference) => emit_reference(reference, output)
+        Reference(reference) =>
+          pending.push(
+            ReferenceNext(@identity.start_emit(reference.envelope, output)),
+          )
       }
     TextNext(text) =>
       if !@encode.advance_string_value(text) {
@@ -174,6 +180,10 @@ pub fn advance_wire_emit(
         pending.push(VectorNext(items, index + 1))
       } else {
         @encode.end_array(output)
+      }
+    ReferenceNext(reference) =>
+      if !@identity.advance_emit(reference) {
+        pending.push(ReferenceNext(reference))
       }
   }
   pending.is_empty()

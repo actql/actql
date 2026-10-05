@@ -31,6 +31,9 @@ async ({root, directory, run, recordTarball}) => {
   {cwd: root, env, timeout: 240000});
   for (const [source, name] of [
     ['scripts/fixtures/packed-acquired-infer.mjs', 'acceptance.mjs'],
+    ['scripts/fixtures/model-custody-fixture.mjs', 'model-custody-fixture.mjs'],
+    ['scripts/fixtures/model-provider-binding-fixture.mjs',
+      'model-provider-binding-fixture.mjs'],
     ['scripts/fixtures/installed-infer-fixture.mjs', 'installed-infer-fixture.mjs'],
     ['scripts/fixtures/installed-acquired-infer-fixture.mjs',
       'installed-acquired-infer-fixture.mjs'],

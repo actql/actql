@@ -1052,3 +1052,63 @@ test('four published CI records share one binding and the resident package merge
   assert.equal(bindings[4].inputs.length, 15);
   assert.deepEqual(bindings[4].changes.map(change => change.path), [PACKAGE]);
 });
+
+function redundantSingleBase(t, edit = () => {}) {
+  const { repo, resolution } = overlappingBranches(t, { recordResolution: false });
+  resolution.mergeBases = repo.git('merge-base', '--all', ...resolution.parents).split('\n');
+  edit(resolution, repo);
+  repo.record(resolution);
+  const original = readFileSync(join(repo.root, repo.declarationPath(resolution.id)));
+  const supplement = { version: 'actql-foundation-single-base-normalization/0.1',
+    id: 'normalize-single-base', target: { id: resolution.id, digest: sha256(original) },
+    reason: 'Retain the immutable record and independently verify its redundant singleton against Git' };
+  const record = () => {
+    repo.write(`${DECLARATION_DIRECTORY}-supplements/${supplement.id}.json`, `${JSON.stringify(supplement, null, 2)}\n`);
+    repo.commit('Append exact single-base normalization');
+  };
+  return { repo, resolution, original, supplement, record };
+}
+
+test('exact single-base normalization retains original bytes and all dependency checks', t => {
+  const f = redundantSingleBase(t);
+  assert.throws(() => compose(f.repo), /Spurious foundation merge bases/);
+  f.record();
+  const aggregate = compose(f.repo);
+  assert.deepEqual(readFileSync(join(f.repo.root, f.repo.declarationPath(f.resolution.id))), f.original);
+  assert.equal(declaration(aggregate, f.resolution.id).digest, sha256(f.original));
+  assert.deepEqual(aggregate.supplements[0].target, f.supplement.target);
+  assert.equal(aggregate.integrations[0].mergeBase, f.resolution.mergeBases[0]);
+});
+
+for (const [name, edit] of [
+  ['wrong base', value => { value.mergeBases = ['f'.repeat(40)]; }],
+  ['empty bases', value => { value.mergeBases = []; }],
+  ['duplicate base', value => { value.mergeBases.push(value.mergeBases[0]); }],
+  ['missing metadata', value => { delete value.mergeBases; }],
+  ['missing dependency', value => { value.inputs.pop(); }],
+]) test(`single-base normalization rejects ${name}`, t => {
+  const f = redundantSingleBase(t, edit);
+  f.record();
+  rejects(f.repo);
+});
+
+for (const [name, edit] of [
+  ['wrong digest', value => { value.target.digest = '0'.repeat(64); }],
+  ['unknown target', value => { value.target.id = 'absent'; }],
+  ['extra fields', value => { value.inputs = []; }],
+]) test(`single-base normalization rejects supplement ${name}`, t => {
+  const f = redundantSingleBase(t);
+  edit(f.supplement);
+  f.record();
+  rejects(f.repo);
+});
+
+test('single-base normalization cannot excuse multiple maximal bases', t => {
+  const { repo, resolution } = protectedCrissCross(t);
+  const raw = readFileSync(join(repo.root, repo.declarationPath(resolution.id)));
+  const supplement = { version: 'actql-foundation-single-base-normalization/0.1',
+    id: 'not-single', target: { id: resolution.id, digest: sha256(raw) }, reason: 'Invalid multi-base target' };
+  repo.write(`${DECLARATION_DIRECTORY}-supplements/not-single.json`, `${JSON.stringify(supplement, null, 2)}\n`);
+  repo.commit('Attempt multi-base normalization');
+  assert.throws(() => compose(repo), /Non-singleton foundation normalization target/);
+});

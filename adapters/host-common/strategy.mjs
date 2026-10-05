@@ -290,9 +290,13 @@ export async function runInstalledStrategy(
   sitePolicy,
   beforeCompute,
   authorization = missingAuthorizationGate(),
+  observeTaskStart,
 ) {
   if (observeCompletion !== undefined && typeof observeCompletion !== 'function') {
     throw new StrategyHostError('InvalidCompletionObserver');
+  }
+  if (observeTaskStart !== undefined && typeof observeTaskStart !== 'function') {
+    throw new StrategyHostError('InvalidTaskStartObserver');
   }
   if (authorization === null || typeof authorization !== 'object' ||
       typeof authorization.authorize !== 'function' ||
@@ -527,6 +531,7 @@ export async function runInstalledStrategy(
   let cleanupInFlight;
   let failed = false;
   let failure;
+  let checkpointPause;
   let closed = false;
   let closeResult;
   const rememberCleanup = (error, releaseOwner) => {
@@ -743,6 +748,21 @@ export async function runInstalledStrategy(
       // authorized. A deny, failure, unsupported defer or persisted wait
       // stops the Run through the existing stop path.
       await authorizeActivation(siteCandidate.site, entry, index);
+      let plannerObserverMilliseconds;
+      if (observeTaskStart) {
+        const observationStarted = performance.now();
+        // The real dispatcher has selected the task/placement. Snapshot only
+        // bounded diagnostics before any Site operation or Compute begins.
+        // The callback's return value never replaces the selected task.
+        await observeTaskStart(Object.freeze({task: index,
+          registrationKey: entry.managedSelectionKey, managed: Boolean(managed),
+          executionSite: executionSiteDescription(siteCandidate.site),
+          explanation: core.explain(setup, 65536, 10000),
+          usage: Object.freeze({...core.usage(setup)}),
+        }));
+        plannerObserverMilliseconds = performance.now() - observationStarted;
+        signal?.throwIfAborted();
+      }
       const siteBinding = bindExecutionSiteCandidate(siteCandidate);
       const siteOperation = startExecutionSiteOperation(siteBinding);
       let siteInputsResolved = siteCandidate.transfers.length === 0;
@@ -783,6 +803,26 @@ export async function runInstalledStrategy(
         result = await (managed
           ? entry.runPrepared(siteTask, signal)
           : entry.run(task, signal, siteCompletionPermit));
+        if (result?.status === 'waiting_checkpoint') {
+          if (result.checkpoint == null) {
+            throw new StrategyHostError('InvalidStrategyCheckpointPause');
+          }
+          // A persisted wait stops only this physical dispatch. It is not a
+          // Run cancellation fence or a successful task/result publication.
+          checkpointPause = result.checkpoint;
+          try {
+            const stopped = settleSiteAfterFailure(siteOperation, result);
+            rememberCleanup(stopped, result.cleanupPending ? result : undefined);
+          } catch (error) {
+            // Cleanup trouble cannot erase an already committed Checkpoint.
+            // Keep the physical responsibility visible on this waiting owner.
+            rememberCleanup(error, result);
+            unconfirmedSiteOperations.add(siteOperation);
+          }
+          try { core.stop(setup); }
+          catch (error) { rememberCleanup(error, core); }
+          break;
+        }
         const connectorOwnedOutput = Boolean(managed || result?.close);
         const managedBindingClaimed = result?.completed != null ||
           result?.material != null;
@@ -928,6 +968,7 @@ export async function runInstalledStrategy(
       }
       completed.push(Object.freeze({
         ...result?.diagnostic,
+        ...(plannerObserverMilliseconds === undefined ? {} : {plannerObserverMilliseconds}),
         taskElapsedMilliseconds: performance.now() - taskStarted,
         task: index,
         executionSite: executionSiteDescription(siteCandidate.site),
@@ -968,7 +1009,9 @@ export async function runInstalledStrategy(
         }
       }
     }
-    if (!core.finished(setup)) throw new StrategyHostError('StrategyNotComplete');
+    if (checkpointPause === undefined && !core.finished(setup)) {
+      throw new StrategyHostError('StrategyNotComplete');
+    }
   } catch (error) {
     rememberFailure(error);
     try { core.stop(setup); }
@@ -976,21 +1019,23 @@ export async function runInstalledStrategy(
   } finally {
     for (const entry of installed.values()) {
       try { await entry.finish?.(); }
-      catch (error) { rememberFailure(error, entry); }
+      catch (error) {
+        if (checkpointPause !== undefined) rememberCleanup(error, entry);
+        else rememberFailure(error, entry);
+      }
     }
     active.delete(setup);
   }
-  const runFinished = failed ? false : core.finished(setup);
-  const outcome = executionSiteHostTaskRunOutcome(
-    siteInstallation,
-    failed,
-    runFinished,
-  );
+  const runFinished = failed || checkpointPause !== undefined ? false : core.finished(setup);
+  const outcome = checkpointPause !== undefined && !failed ? undefined
+    : executionSiteHostTaskRunOutcome(siteInstallation, failed, runFinished);
   if (outcome === 2) throw new StrategyHostError('InvalidStrategyOutcome');
   let execution;
   execution = Object.freeze({
     // Internal task records only, not Program/Run publication or partial success.
-    status: outcome === 1 ? 'host-tasks-failed' : 'host-tasks-completed',
+    status: checkpointPause !== undefined && !failed ? 'host-tasks-waiting'
+      : outcome === 1 ? 'host-tasks-failed' : 'host-tasks-completed',
+    ...(checkpointPause === undefined ? {} : {checkpoint: checkpointPause}),
     failure,
     completed: Object.freeze(completed),
     candidateExclusions: Object.freeze(candidateExclusions),

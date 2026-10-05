@@ -29,9 +29,15 @@ pub fn destination_material_use_available(NativeRemoteDestinationMaterialUse) ->
 
 pub fn destination_material_use_generation(NativeRemoteDestinationMaterialUse) -> String
 
+pub fn destination_material_use_id(NativeRemoteDestinationMaterialUse) -> String
+
+pub fn destination_material_use_reader_id(NativeRemoteDestinationMaterialUse) -> String
+
 pub fn destination_material_use_receipt_cid(NativeRemoteDestinationMaterialUse) -> String
 
 pub fn durable_store_object_next_chunk(@remote_transfer_journal.Journal, @filesystem.Root, @remote_transfer.RemoteTransferRequest) -> Result[Int, NativeRemoteTransferClientIssue]
+
+pub fn pin_durable_direct_destination_material(@remote_transfer_journal.Journal, @filesystem.Root, @remote_transfer.RemoteTransferRequest, String, String) -> Result[NativeRemoteDestinationMaterialUse, NativeRemoteTransferClientIssue]
 
 pub fn pin_durable_store_destination_material(@remote_transfer_journal.Journal, @filesystem.Root, @remote_transfer.RemoteTransferRequest, String, String, String) -> Result[NativeRemoteDestinationMaterialUse, NativeRemoteTransferClientIssue]
 
@@ -40,6 +46,8 @@ pub fn prepare_transfer_chunk_source(String, String, (Int) -> Result[Bytes, Stri
 pub fn read_durable_store_object_chunk(@remote_transfer_journal.Journal, @filesystem.Root, @remote_transfer.RemoteTransferRequest, Int, Int) -> Result[Bytes, NativeRemoteTransferClientIssue]
 
 pub fn receive_durable_store_transfer(@remote_transfer_journal.Journal, @http_client.Client, @filesystem.Root, String, @remote_transfer.RemoteTransferRequest, String, Int64, Int64) -> Result[@remote_transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue]
+
+pub fn reclaim_durable_destination_material(NativeRemoteDestinationMaterialUse) -> Result[Bool, NativeRemoteTransferClientIssue]
 
 pub fn reclaim_durable_store_destination_material(NativeRemoteDestinationMaterialUse) -> Result[Bool, NativeRemoteTransferClientIssue]
 

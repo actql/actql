@@ -537,76 +537,190 @@ const schemas = {
     }
   },
   "checkpoint_summary": {
-    "type": "object",
-    "required": [
-      "checkpointId",
-      "checkpointCid",
-      "kind",
-      "phase",
-      "subject",
-      "requiredArtifact",
-      "reviewProjectionCid",
-      "requirements",
-      "createdAt",
-      "expiresAt",
-      "humanSummary"
-    ],
-    "additionalProperties": false,
-    "properties": {
-      "checkpointId": {
-        "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
-        "minLength": 1,
-        "maxLength": 256
-      },
-      "checkpointCid": {
-        "type": "string",
-        "pattern": "^sha256:[0-9a-f]{64}$"
-      },
-      "kind": {
-        "enum": [
-          "run_scope",
-          "read_access",
-          "data_egress",
-          "cost_scope",
-          "effect_set"
-        ]
-      },
-      "phase": {
-        "enum": [
-          "preflight",
-          "commit"
-        ]
-      },
-      "subject": {
-        "oneOf": [
-          {
+    "oneOf": [
+      {
+        "type": "object",
+        "required": [
+          "checkpointId",
+          "checkpointCid",
+          "kind",
+          "phase",
+          "subject",
+          "requiredArtifact",
+          "reviewProjectionCid",
+          "requirements",
+          "createdAt",
+          "expiresAt",
+          "humanSummary"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "checkpointId": {
+            "type": "string",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "checkpointCid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "kind": {
+            "enum": [
+              "run_scope",
+              "read_access",
+              "data_egress",
+              "cost_scope",
+              "effect_set"
+            ]
+          },
+          "phase": {
+            "enum": [
+              "preflight",
+              "commit"
+            ]
+          },
+          "subject": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "prepareAttemptId",
+                  "requestId"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "prepare_attempt"
+                  },
+                  "prepareAttemptId": {
+                    "type": "string",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "requestId": {
+                    "type": "string",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "minLength": 1,
+                    "maxLength": 256
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "runId",
+                  "runDefinitionCid"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "run_unit"
+                  },
+                  "runId": {
+                    "type": "string",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "runDefinitionCid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
+              }
+            ]
+          },
+          "requiredArtifact": {
             "type": "object",
             "required": [
-              "kind",
-              "prepareAttemptId",
-              "requestId"
+              "type",
+              "cid"
             ],
             "additionalProperties": false,
             "properties": {
-              "kind": {
-                "const": "prepare_attempt"
-              },
-              "prepareAttemptId": {
+              "type": {
                 "type": "string",
                 "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
                 "minLength": 1,
                 "maxLength": 256
               },
-              "requestId": {
+              "cid": {
                 "type": "string",
-                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
-                "minLength": 1,
-                "maxLength": 256
+                "pattern": "^sha256:[0-9a-f]{64}$"
               }
             }
           },
-          {
+          "reviewProjectionCid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "requirements": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "expiresAt": {
+            "type": "string",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "humanSummary": {
+            "type": "string",
+            "maxLength": 1024
+          }
+        }
+      },
+      {
+        "type": "object",
+        "required": [
+          "checkpointId",
+          "checkpointCid",
+          "kind",
+          "phase",
+          "subject",
+          "requiredArtifact",
+          "reviewProjectionCid",
+          "requirements",
+          "createdAt",
+          "expiresAt",
+          "humanSummary",
+          "preparedInvocationCid"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "checkpointId": {
+            "type": "string",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "checkpointCid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "kind": {
+            "const": "model_invocation"
+          },
+          "phase": {
+            "const": "preflight"
+          },
+          "subject": {
             "type": "object",
             "required": [
               "kind",
@@ -629,60 +743,61 @@ const schemas = {
                 "pattern": "^sha256:[0-9a-f]{64}$"
               }
             }
-          }
-        ]
-      },
-      "requiredArtifact": {
-        "type": "object",
-        "required": [
-          "type",
-          "cid"
-        ],
-        "additionalProperties": false,
-        "properties": {
-          "type": {
+          },
+          "requiredArtifact": {
+            "type": "object",
+            "required": [
+              "type",
+              "cid"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "const": "model_invocation_scope"
+              },
+              "cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            }
+          },
+          "reviewProjectionCid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "requirements": {
+            "type": "array",
+            "uniqueItems": true,
+            "minItems": 1,
+            "maxItems": 1,
+            "items": {
+              "type": "string",
+              "const": "invocation_scope_approved"
+            }
+          },
+          "createdAt": {
             "type": "string",
             "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
             "minLength": 1,
             "maxLength": 256
           },
-          "cid": {
+          "expiresAt": {
+            "type": "string",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "humanSummary": {
+            "type": "string",
+            "maxLength": 1024
+          },
+          "preparedInvocationCid": {
             "type": "string",
             "pattern": "^sha256:[0-9a-f]{64}$"
           }
         }
-      },
-      "reviewProjectionCid": {
-        "type": "string",
-        "pattern": "^sha256:[0-9a-f]{64}$"
-      },
-      "requirements": {
-        "type": "array",
-        "uniqueItems": true,
-        "items": {
-          "type": "string",
-          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
-          "minLength": 1,
-          "maxLength": 256
-        }
-      },
-      "createdAt": {
-        "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
-        "minLength": 1,
-        "maxLength": 256
-      },
-      "expiresAt": {
-        "type": "string",
-        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
-        "minLength": 1,
-        "maxLength": 256
-      },
-      "humanSummary": {
-        "type": "string",
-        "maxLength": 1024
       }
-    }
+    ]
   },
   "checkpoint_review": {
     "type": "object",
@@ -1228,7 +1343,8 @@ const schemas = {
               "read_access",
               "data_egress",
               "cost_scope",
-              "effect_set"
+              "effect_set",
+              "model_invocation"
             ]
           }
         }
@@ -2046,7 +2162,8 @@ const schemas = {
                                 "invalid_number",
                                 "invalid_parameter",
                                 "unknown_reference",
-                                "invalid_arguments"
+                                "invalid_arguments",
+                                "expected_boolean"
                               ]
                             }
                           }
@@ -2224,7 +2341,8 @@ const schemas = {
                                 "enum": [
                                   "unknown_reference",
                                   "invalid_arguments",
-                                  "invalid_number"
+                                  "invalid_number",
+                                  "expected_boolean"
                                 ]
                               }
                             }
@@ -2554,7 +2672,8 @@ const schemas = {
                                 "invalid_number",
                                 "invalid_parameter",
                                 "unknown_reference",
-                                "invalid_arguments"
+                                "invalid_arguments",
+                                "expected_boolean"
                               ]
                             }
                           }
@@ -2732,7 +2851,8 @@ const schemas = {
                                 "enum": [
                                   "unknown_reference",
                                   "invalid_arguments",
-                                  "invalid_number"
+                                  "invalid_number",
+                                  "expected_boolean"
                                 ]
                               }
                             }
@@ -2929,7 +3049,7 @@ const schemas = {
             ]
           },
           "reason_schema_cid": {
-            "const": "sha256:01c234321105135fa577b40c78b2a99324667389c1f61cfc18b3a3ed05d272a1"
+            "const": "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -3299,7 +3419,8 @@ const schemas = {
                                 "invalid_number",
                                 "invalid_parameter",
                                 "unknown_reference",
-                                "invalid_arguments"
+                                "invalid_arguments",
+                                "expected_boolean"
                               ]
                             }
                           }
@@ -3477,7 +3598,8 @@ const schemas = {
                                 "enum": [
                                   "unknown_reference",
                                   "invalid_arguments",
-                                  "invalid_number"
+                                  "invalid_number",
+                                  "expected_boolean"
                                 ]
                               }
                             }
@@ -3807,7 +3929,8 @@ const schemas = {
                                 "invalid_number",
                                 "invalid_parameter",
                                 "unknown_reference",
-                                "invalid_arguments"
+                                "invalid_arguments",
+                                "expected_boolean"
                               ]
                             }
                           }
@@ -3985,7 +4108,8 @@ const schemas = {
                                 "enum": [
                                   "unknown_reference",
                                   "invalid_arguments",
-                                  "invalid_number"
+                                  "invalid_number",
+                                  "expected_boolean"
                                 ]
                               }
                             }
@@ -4194,7 +4318,7 @@ const schemas = {
             }
           },
           "reason_schema_cid": {
-            "const": "sha256:01c234321105135fa577b40c78b2a99324667389c1f61cfc18b3a3ed05d272a1"
+            "const": "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -4235,7 +4359,7 @@ const schemas = {
             }
           },
           "reason_schema_cid": {
-            "const": "sha256:01c234321105135fa577b40c78b2a99324667389c1f61cfc18b3a3ed05d272a1"
+            "const": "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -5275,7 +5399,7 @@ const operationKeys = {
   ]
 };
 
-export const checkReasonSchemaCid = "sha256:01c234321105135fa577b40c78b2a99324667389c1f61cfc18b3a3ed05d272a1";
+export const checkReasonSchemaCid = "sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa";
 function valid(value, schema) {
   if (schema.$ref) return valid(value, schemas[schema.$ref]);
   if (schema.oneOf && schema.oneOf.filter(rule => valid(value, rule)).length !== 1) return false;

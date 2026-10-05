@@ -1,6 +1,7 @@
 // Independent acceptance input for #182. One Program owns every operation;
 // the harness installs fixtures and submits it, never runs its stages itself.
 import assert from 'node:assert/strict';
+import {providerBindingOriginals} from './model-provider-binding-fixture.mjs';
 import {readFileSync} from 'node:fs';
 
 const fixture = name => JSON.parse(readFileSync(new URL(name, import.meta.url), 'utf8'));
@@ -99,6 +100,8 @@ export function registerCompositionModel(moon, taskCid, record, {cleanup = () =>
     return value._0;
   };
   return [{providerId: 'models/composition',
+    bindingOriginals: providerBindingOriginals('models/composition', {
+      selector: 'composition-risk-model', revision: 'independent-composition-provider-1'}),
     invoke() { throw new Error('UnpreparedCompositionModelCall'); },
     validatePrompt(actual, selector, wire) {
       return actual === taskCid && selector === 'composition-risk-model' &&
