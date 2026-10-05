@@ -1,0 +1,40 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import test from 'node:test';
+import {havingAggregateProgram, havingAggregateSuccesses, havingAggregateRefusals,
+  havingAggregateExecutionFailures} from './fixtures/having-aggregate-source-input.mjs';
+
+test('HAVING fixtures distinguish input multiplicity, NULL and pre-group alias values', () => {
+  const cases = new Map(havingAggregateSuccesses.map(item => [item.name, item]));
+  const hidden = cases.get('having-aggregate-hidden-count-star');
+  assert.deepEqual(hidden.expected, [{id: 1}, {id: 3}]);
+  assert.deepEqual(cases.get('having-aggregate-alias-input-collision').expected,
+    [{id: -3, total: 6}]);
+  assert.deepEqual(cases.get('having-aggregate-qualified-input-control').expected, []);
+  assert.deepEqual(cases.get('having-aggregate-null-and-distinct').expected, [{id: 2}, {id: 3}]);
+  assert.deepEqual(cases.get('having-aggregate-empty-grouped').columns, hidden.columns);
+  assert.deepEqual(cases.get('having-aggregate-empty-global').expected, [{n: 0}]);
+  const control = JSON.parse(cases.get('having-aggregate-independent-json').text);
+  assert.deepEqual(control, havingAggregateProgram);
+  assert.deepEqual(control.stages[0].steps[0].filter, {gt: [{field: 'id'}, {literal: 0}]});
+  assert.deepEqual(control.stages[1].steps[0].group,
+    {by: ['id'], aggregates: {cardinality: {fn: 'count'}}});
+  assert.deepEqual(control.stages[1].steps[2], {select: ['id']});
+});
+
+test('HAVING aggregate cases join the ordinary packed corpus and a focused selection', async () => {
+  const all = [...havingAggregateSuccesses, ...havingAggregateRefusals,
+    ...havingAggregateExecutionFailures];
+  assert.equal(new Set(all.map(item => item.name)).size, all.length);
+  const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  for (const [kind, name] of [['successes', 'havingAggregateSuccesses'],
+    ['refusals', 'havingAggregateRefusals'], ['executionFailures', 'havingAggregateExecutionFailures']]) {
+    assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${name})`));
+  }
+  assert.ok(fixture.includes('havingAggregateOnly ? {successes: havingAggregateSuccesses'));
+  assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_HAVING_AGGREGATE_ONLY = '1'"));
+  assert.ok(driver.includes("['scripts/fixtures/having-aggregate-source-input.mjs', 'having-aggregate-source-input.mjs']"));
+  const end = driver.slice(driver.indexOf('if (plannerSelectionOnly || twoSourceExampleOnly ||'));
+  assert.match(end, /process\.argv\.includes\('--having-aggregate-only'\).*?return;/su);
+});

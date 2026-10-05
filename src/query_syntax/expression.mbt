@@ -198,6 +198,7 @@ priv enum ExpressionFrame {
 ///|
 priv suberror ExpressionAbort {
   ExpressionAbort(String, Int)
+  ExpressionDiagnostic(Diagnostic)
 }
 
 ///|
@@ -208,6 +209,11 @@ priv struct ExpressionParser {
   depths : Array[Int]
   mut offset : Int
   mut work : Int
+  mut embedded_nodes : Int
+  primary : ((Int, ExpressionLimits) -> Result[
+    (NamePart, Int, Int, Int)?,
+    Diagnostic,
+  ])?
 }
 
 ///|
@@ -256,7 +262,7 @@ fn ExpressionParser::add(
   start : Int,
   end : Int,
 ) -> Int raise ExpressionAbort {
-  if self.nodes.length() >= self.limits.max_nodes {
+  if self.nodes.length() + self.embedded_nodes >= self.limits.max_nodes {
     raise ExpressionAbort("Expression node limit", start)
   }
   // Postfix chains do not enter a recursive Pratt continuation. Measure their
@@ -427,6 +433,36 @@ fn ExpressionParser::expression(
       Enter(minimum, depth) => {
         if depth > self.limits.max_depth {
           raise ExpressionAbort("Expression depth limit", self.peek().start)
+        }
+        // Clause-owned calls retain token spans and use the same admitted
+        // token stream. Ordinary scalar expression parsing has no resolver.
+        if self.primary is Some(primary) {
+          let remaining = {
+            ..self.limits,
+            max_nodes: self.limits.max_nodes -
+            self.nodes.length() -
+            self.embedded_nodes -
+            1,
+            max_depth: self.limits.max_depth - depth,
+            max_work: self.limits.max_work - self.work,
+          }
+          match primary(self.offset, remaining) {
+            Err(error) => raise ExpressionDiagnostic(error)
+            Ok(Some((name, next, work, nodes))) => {
+              self.work += work
+              self.embedded_nodes += nodes
+              let start = self.peek().start
+              self.offset = next
+              result = self.add(
+                Reference([name]),
+                start,
+                self.source.tokens[next - 1].end,
+              )
+              frames.push(Tail(-1, minimum, depth))
+              continue
+            }
+            Ok(None) => ()
+          }
         }
         let t = self.advance()
         frames.push(Tail(-1, minimum, depth))
@@ -862,6 +898,22 @@ fn parse_fragment(
   offset : Int,
   limits : ExpressionLimits,
 ) -> Result[(Expression, Int), Diagnostic] {
+  match parse_fragment_resolved(source, offset, limits, None) {
+    Ok((expression, next, _)) => Ok((expression, next))
+    Err(error) => Err(error)
+  }
+}
+
+///|
+fn parse_fragment_resolved(
+  source : Tokens,
+  offset : Int,
+  limits : ExpressionLimits,
+  primary : ((Int, ExpressionLimits) -> Result[
+    (NamePart, Int, Int, Int)?,
+    Diagnostic,
+  ])?,
+) -> Result[(Expression, Int, Int), Diagnostic] {
   let parser : ExpressionParser = {
     source,
     limits,
@@ -869,13 +921,20 @@ fn parse_fragment(
     depths: [],
     offset,
     work: 0,
+    embedded_nodes: 0,
+    primary,
   }
   try {
     let root = parser.expression()
     Ok(
-      ({ source, nodes: parser.nodes, root, work: parser.work, }, parser.offset),
+      (
+        { source, nodes: parser.nodes, root, work: parser.work, },
+        parser.offset,
+        parser.embedded_nodes,
+      ),
     )
   } catch {
+    ExpressionDiagnostic(error) => Err(error)
     ExpressionAbort(message, at) =>
       Err({
         issue: Syntax(message),

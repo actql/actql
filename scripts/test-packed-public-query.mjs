@@ -55,6 +55,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/public-query-cases.mjs', 'public-query-cases.mjs'],
   ['scripts/fixtures/typed-json-literal-input.mjs', 'typed-json-literal-input.mjs'],
   ['scripts/fixtures/public-query-profiles.mjs', 'public-query-profiles.mjs'],
+  ['scripts/fixtures/having-aggregate-source-input.mjs', 'having-aggregate-source-input.mjs'],
   ['scripts/fixtures/analytic-countif-source-input.mjs', 'analytic-countif-source-input.mjs'],
   ['scripts/fixtures/statistical-aggregate-source-input.mjs', 'statistical-aggregate-source-input.mjs'],
   ['scripts/fixtures/property-graph-subtraction-source-input.mjs', 'property-graph-subtraction-source-input.mjs'],
@@ -231,6 +232,9 @@ if (process.argv.includes('--graph-union-only')) {
 }
 if (process.argv.includes('--statistical-aggregate-only')) {
   runtimeEnvironment.ACTQL_TEST_STATISTICAL_AGGREGATE_ONLY = '1';
+}
+if (process.argv.includes('--having-aggregate-only')) {
+  runtimeEnvironment.ACTQL_TEST_HAVING_AGGREGATE_ONLY = '1';
 }
 if (process.argv.includes('--analytic-countif-only')) {
   runtimeEnvironment.ACTQL_TEST_ANALYTIC_COUNTIF_ONLY = '1';
