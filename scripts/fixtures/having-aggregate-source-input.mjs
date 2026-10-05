@@ -22,6 +22,21 @@ const query = 'SELECT id FROM records WHERE id > 0 GROUP BY id HAVING COUNT(*) >
 const success = (name, text, extra = {}) => ({name: 'having-aggregate-' + name,
   format: 'sql', text, sourceRows: rows, expected, columns: columns(['id']),
   sourceReadSessionCount: 1, ...extra});
+// Independent ordinary Program for the separate single-JOIN source gap. It
+// retains the same predicate, authored JOIN ceiling, multiplicity and Result.
+export const havingSingleJoinProgram = {version: 'actql/0.1', id: 'fixture.having_single_join',
+  stages: [havingAggregateProgram.stages[0],
+    {id: 'seed', inputs: {}, steps: [{values: {schema: {k: number}, rows: [{k: 1}]}, as: 'one'}],
+      results: {rows: {from: 'one', fields: ['k']}}},
+    {id: 'main', inputs: {picked: {result: {stage: 'capture', result: 'source'}},
+      seed: {result: {stage: 'seed', result: 'rows'}}},
+    steps: [{from: 'picked', join: {with: 'seed', kind: 'inner',
+      on: [{left: 'id', right: 'k'}], max_output_rows: 10, select: {id: 'left.id'}}},
+    {group: {by: ['id'], aggregates: {n: {fn: 'count'}}}},
+    {filter: {gt: [{field: 'n'}, {literal: 1}]}}, {select: ['id', 'n']},
+    {sort: [{field: 'id', dir: 'asc', nulls: 'first'}], as: 'ordered'}],
+    results: {rows: {from: 'ordered', fields: ['id', 'n']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
 export const havingAggregateSuccesses = [
   success('independent-json', JSON.stringify(havingAggregateProgram), {format: 'json'}),
   success('hidden-count-star', query),
@@ -40,8 +55,10 @@ export const havingAggregateSuccesses = [
   success('declared-parameters-pipe-tail', 'SELECT id FROM records WHERE id > 0 GROUP BY id HAVING COUNT(*) > @minimum |> SELECT id + 1 AS next |> ORDER BY next',
     {format: 'aql-text', parameterDeclarations: {minimum: number}, parameters: {minimum: 1},
       expected: [{next: 2}, {next: 4}], columns: columns(['next'])}),
-  success('scoped-cte-join', 'WITH picked AS (SELECT id FROM records WHERE id > 0) SELECT p.id, COUNT(*) AS n FROM picked AS p JOIN (SELECT 1 AS k) AS seed ON p.id = seed.k MAX_OUTPUT_ROWS 10 GROUP BY p.id HAVING COUNT(*) > 1 ORDER BY id',
+  success('scoped-cte-join-chain', 'WITH picked AS (SELECT id FROM records WHERE id > 0) SELECT p.id, COUNT(*) AS n FROM picked AS p JOIN (SELECT 1 AS k) AS seed ON p.id = seed.k MAX_OUTPUT_ROWS 10 JOIN (SELECT 1 AS k) AS second ON p.id = second.k MAX_OUTPUT_ROWS 10 GROUP BY p.id HAVING COUNT(*) > 1 ORDER BY id',
     {expected: [{id: 1, n: 2}], columns: columns(['id', 'n'])}),
+  success('single-join-json-control', JSON.stringify(havingSingleJoinProgram),
+    {format: 'json', expected: [{id: 1, n: 2}], columns: columns(['id', 'n'])}),
   success('empty-grouped', query, {sourceRows: [], expected: []}),
   success('empty-global', 'SELECT COUNT(*) AS n FROM records HAVING COUNT(*) = 0',
     {sourceRows: [], expected: [{n: 0}], columns: columns(['n'])}),
@@ -53,6 +70,12 @@ export const havingAggregateRefusals = [
   'SELECT id, COUNT(*) AS n FROM records GROUP BY id HAVING SUM(n) > 0',
   'SELECT id FROM records GROUP BY id HAVING COUNT(DISTINCT *) > 0',
 ].map((text, index) => ({name: 'having-aggregate-refuse-' + index, format: 'sql', text}));
+// This valid query is an existing single-JOIN lowering gap, not a language
+// restriction or a completed positive acceptance. Keep the failed source.
+havingAggregateRefusals.push({name: 'having-aggregate-known-single-join-gap', format: 'sql',
+  text: 'WITH picked AS (SELECT id FROM records WHERE id > 0) SELECT p.id, COUNT(*) AS n FROM picked AS p JOIN (SELECT 1 AS k) AS seed ON p.id = seed.k MAX_OUTPUT_ROWS 10 GROUP BY p.id HAVING COUNT(*) > 1 ORDER BY id',
+  expectedCode: 'ClientProgramUnsupported',
+  knownImplementationGap: true, intendedExpected: [{id: 1, n: 2}]});
 export const havingAggregateExecutionFailures = [{
   name: 'having-aggregate-demanded-expression-failure', format: 'sql',
   text: 'SELECT id FROM records GROUP BY id HAVING SUM(1 / 0) > 0',

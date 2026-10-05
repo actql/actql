@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
-import {havingAggregateProgram, havingAggregateSuccesses, havingAggregateRefusals,
+import {havingAggregateProgram, havingSingleJoinProgram, havingAggregateSuccesses, havingAggregateRefusals,
   havingAggregateExecutionFailures} from './fixtures/having-aggregate-source-input.mjs';
 
 test('HAVING fixtures distinguish input multiplicity, NULL and pre-group alias values', () => {
@@ -14,6 +14,16 @@ test('HAVING fixtures distinguish input multiplicity, NULL and pre-group alias v
   assert.deepEqual(cases.get('having-aggregate-null-and-distinct').expected, [{id: 2}, {id: 3}]);
   assert.deepEqual(cases.get('having-aggregate-empty-grouped').columns, hidden.columns);
   assert.deepEqual(cases.get('having-aggregate-empty-global').expected, [{n: 0}]);
+  assert.deepEqual(cases.get('having-aggregate-scoped-cte-join-chain').expected,
+    [{id: 1, n: 2}]);
+  const gap = havingAggregateRefusals.find(item => item.knownImplementationGap);
+  assert.deepEqual(gap.intendedExpected, [{id: 1, n: 2}]);
+  assert.match(gap.text, /HAVING COUNT\(\*\) > 1/u);
+  assert.deepEqual(JSON.parse(cases.get('having-aggregate-single-join-json-control').text),
+    havingSingleJoinProgram);
+  assert.equal(havingSingleJoinProgram.stages[2].steps[0].join.max_output_rows, 10);
+  assert.deepEqual(havingSingleJoinProgram.stages[2].steps[1].group,
+    {by: ['id'], aggregates: {n: {fn: 'count'}}});
   const control = JSON.parse(cases.get('having-aggregate-independent-json').text);
   assert.deepEqual(control, havingAggregateProgram);
   assert.deepEqual(control.stages[0].steps[0].filter, {gt: [{field: 'id'}, {literal: 0}]});

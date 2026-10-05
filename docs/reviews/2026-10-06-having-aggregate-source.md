@@ -65,10 +65,10 @@ separate fixes needs their fixed-SHA evidence; this change does not certify them
 - Complete authored Program controls cover hidden COUNT and reuse of a selected
   qualified SUM. The common checker receives its existing numeric profile;
   omission still produces the specific NumericReductionProfile request.
-- The public fixture has twelve normal cases: independent JSON, hidden and
+- The public fixture has thirteen normal cases: independent JSON controls, hidden and
   repeated counts, LIMIT/OFFSET, selected/hidden arguments, SUM reuse, alias
   collision versus qualified input, NULL and DISTINCT, typed parameters with a
-  Pipe tail, a scoped CTE JOIN with explicit ceiling 10, and grouped/global
+  Pipe tail, a scoped CTE JOIN chain with explicit ceilings 10, and grouped/global
   empty input. Expected rows and full column contracts are independently authored.
 - Five static refusals cover non-Boolean COUNTIF, undeclared parameters,
   ungrouped input, a nested aggregate alias and invalid DISTINCT star. Existing
@@ -84,3 +84,52 @@ Working-tree tests, clean-SHA tests, package digests and packed results are
 reported separately in the PR body and external evidence. No full Core, full
 packed, proof, performance or Cloud campaign is requested for this unit.
 Interface generation on supported targets is not Wasm/Native execution proof.
+
+## Separate existing single-JOIN grouping gap
+
+The first clean-SHA packed campaign used
+`b312c319dcf3c9bf366f49b2d2b49016fe8b3c8b`. The first nine Local normal
+cases passed. The following valid source was refused before Run acceptance:
+
+```sql
+WITH picked AS (SELECT id FROM records WHERE id > 0)
+SELECT p.id, COUNT(*) AS n
+FROM picked AS p
+JOIN (SELECT 1 AS k) AS seed
+  ON p.id = seed.k MAX_OUTPUT_ROWS 10
+GROUP BY p.id
+HAVING COUNT(*) > 1
+ORDER BY id
+```
+
+The independently intended rows remain `[{"id":1,"n":2}]` with nonnullable
+number columns in the order `id,n`. The original source and expectation are
+retained in `having-aggregate-source-input.mjs`; its current refusal is recorded
+as a known implementation gap, not as invalid SQL or successful execution.
+`havingSingleJoinProgram` is an independently authored ordinary Program control
+with the same predicate, JOIN ceiling, count, projection and order.
+
+The first rejection is `UnsupportedCte` inside `compile_join_steps`, where the
+single-JOIN specialization expects SELECT at the first non-WHERE operation.
+This query instead starts with GROUP. `lower_script_join_relation` selects that
+specialization for one JOIN, whereas existing multi-JOIN queries reach
+`compile_join_chain_steps` and the shared scoped `compile_steps` path. Replacing
+`HAVING COUNT(*) > 1` with the already supported `HAVING n > 1` retains exactly
+the same rejection, fixed by a typed regression. No common execution failure is
+established by this source refusal.
+
+This is the concrete handoff to D's CTE/JOIN connection boundary. B does not
+change that routing, either JOIN implementation, the CTE validator, predicate
+handling, or authored ceilings in this HAVING unit. The positive scoped fixture
+uses the existing two-JOIN route with a second one-row Relation and independently
+retains `[{"id":1,"n":2}]`. This is a separate supported input, not evidence
+that the original one-JOIN source is repaired.
+
+Failed campaign evidence is retained under
+`../worktrees/.codex-scratch/public-query-evidence-sqHjIq` relative to the main
+workspace repository, and the local gate under `_build/local-checks/attempts/run-vIfYJI`.
+The first campaign did not reach its remaining normal cases, refusals, demanded
+arithmetic failure or HTTPS HAVING cases. The harness saved stdout/stderr and
+command status before removing only that campaign's temporary installations and
+Stores. Later source revisions require their own clean-SHA package manifest;
+the failed campaign's package identities are not reused as new-SHA evidence.
