@@ -6,6 +6,7 @@ import {enableNodeCompileCache} from '../../../../host-node/compile-cache.mjs';
 import {prepareExampleText} from './physical-strategy.mjs';
 import {bindProcessStore} from '../../../../store-local/process-binding.mjs';
 import {installProcessCompletionObserver} from '../../../../host-node/process-completion-observer.mjs';
+import {installCompletionObserver, completionObserver} from '../../../../host-common/completion-observer.mjs';
 
 enableNodeCompileCache();
 
@@ -20,8 +21,20 @@ serveManagedStrategy(async (input, _signal, context) => {
   return {resourceLimits: plan.resourceLimits, usage: plan.usage,
     taskIdentities: () => JSON.parse(JSON.stringify(plan.taskIdentities())), async open(signal, context) {
     const binding = controlStore ? bindProcessStore(context) : undefined;
-    const observer = binding ? await installProcessCompletionObserver(binding,
+    const completion = binding ? await installProcessCompletionObserver(binding,
       {maxCompletions: 4, maxInputs: 2, maxColumns: input.dataProfile?.columns ?? 10}, plan.completionTask) : undefined;
+    const plannerObservations = [];
+    // Quantities/explanations only: do not retain output or task handles in
+    // benchmark diagnostics. Existing completion custody still owns handoff.
+    const observer = completion ? installCompletionObserver(async value => {
+      await completionObserver(completion)?.(value);
+      plannerObservations.push({boundary: 'after-task', task: value.task,
+        elapsedMilliseconds: performance.now(), usage: plan.usage()});
+    }, value => {
+      plannerObservations.push({boundary: 'before-task',
+        elapsedMilliseconds: performance.now(), ...value,
+        driverUsage: value.usage, usage: plan.usage()});
+    }) : undefined;
     let opened;
     try { opened = await plan.open(signal, binding); }
     catch (error) {
@@ -29,6 +42,7 @@ serveManagedStrategy(async (input, _signal, context) => {
       throw error;
     }
     return {...opened, observer, describe: execution => JSON.parse(JSON.stringify(
-      opened.describe(execution), (_, value) => typeof value === 'bigint' ? value.toString() : value))};
+      {...opened.describe(execution), planner_observations: plannerObservations},
+      (_, value) => typeof value === 'bigint' ? value.toString() : value))};
   }};
 }, {maxBytes: 1000000, maxNodes: 100000, maxDepth: 64});

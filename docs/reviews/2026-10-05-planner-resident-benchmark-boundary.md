@@ -9,8 +9,9 @@ ownership and measurement connections first; one same-condition latency
 improvement afterward. Instrumentation alone does not complete the task.
 
 This branch changes benchmark runners and the Native diagnostic command. Its
-only product-facing addition is a read-only getter for the already selected
-Native acquisition choice. It does not change bounded output, resource-owner or
+product-facing observations are a read-only getter for the already selected
+Native acquisition choice and an optional installed Node task-start observer.
+It does not change bounded output, resource-owner or
 ledger implementations, incremental-evidence reuse, or PR CI job selection.
 The manual performance matrix profile is renamed to `native-direct` to remove
 implicit Host routing. This is a changed experimental condition, not a directly
@@ -48,11 +49,18 @@ comparable replacement for historical formal results.
 The 100-row Native diagnostic uses the existing registered source and independent
 expected result CID/stage cardinalities. Its six conditions are resident
 selection, fresh selection, cheaper Local selection, refusal of cheaper
-resident strategies with attempt cap four, cancellation after one completed
+resident strategies with attempt cap four, stop/close after one completed
 task and rejection with attempt cap one. Resident execution accounts for task deltas `[3, 1, 1]`;
-fresh execution accounts for `[1, 1, 1]`. Cancellation retains the first result
+fresh execution accounts for `[1, 1, 1]`. The between-task stop retains the first result
 and live resident reservation until explicit close. Insufficient attempts must
 reject before Compute and still confirm close.
+
+`stop-after-task` ends the probe loop without starting the next task, then
+closes the existing Run and acquisition owner. Its output is
+`stopped-between-tasks`. This proves retained responsibility and return at that
+boundary; it does not prove acceptance/propagation of a formal cancellation
+request or a terminal cancellation observation. Formal cancellation acceptance
+remains a separate obligation for the first delivery unit.
 
 The four-attempt case admits three fresh Compute attempts but cannot admit the
 five attempts needed by resident preparation/import plus Compute. At every
@@ -64,8 +72,9 @@ the existing application sizes its offered Native envelope from that cap, so a
 fresh offer can remain feasible. No capability or upper bound was rewritten.
 
 These are development-source diagnostics until a submitted revision and artifact
-are bound in the PR record. The focused debug build and four-condition test
-succeeded. Two portable parser/runner files passed 16 tests before the final
+are bound in the PR record. The initial focused debug build and four-condition
+test succeeded; its former cancellation label was corrected to a between-task
+stop. Two portable parser/runner files passed 16 tests before the final
 diagnostic refusal observation was added. The updated six-condition Native test
 and 15 targeted parser tests passed 16/16 on development sources after the
 pre-execution explanation was added. Evidence:
@@ -78,9 +87,53 @@ its 180-second bound and is not counted as release acceptance. No full matrix,
 packed acceptance or formal performance campaign was run locally.
 
 The Native acceptance file is deliberately outside `*.test.mjs` discovery. The
-existing Native direct-pair acceptance invokes it with its already built release
-binary. Portable parser refusal tests are synthetic observation tests, not
+Native diagnostic is selected explicitly, separately from the existing release
+gate. `nativeRegisteredResidentOffer` remains false and the existing
+`test-native-direct-pair.mjs` keeps its original uncalibrated Local expectation;
+unverified resident defaults and extra gate work are not enabled. Portable parser refusal tests are synthetic observation tests, not
 mutations of the Native owner implementation.
+
+### Review corrections and Node correspondence
+
+The review of `ad8c7ee6a17f09c1fef364eed3d3b62abaa82cf7` identified the
+incorrect cancellation label and unverified changes to the registered release
+gate. The stop label/CLI were corrected without an old-name fallback. The
+resident default was restored to false, and `scripts/test-native-direct-pair.mjs`
+was restored byte-for-byte to the base-main version. The six-condition debug
+diagnostic plus focused runner checks passed 6/6 at
+`_build/local-checks/attempts/run-5CN1SI`; its build is `run-RmDSI5`.
+This closes the misleading evidence label, not formal cancellation acceptance.
+
+The installed Node driver can now copy the actual selected planner explanation
+and ledger quantities after authorization and before Compute starts. The
+callback cannot replace the selected task. The managed worker preserves its
+existing completion custody callback, then records after-task quantities.
+The diagnostics contain no task/output handles or additional holding references.
+Without an installed task-start observer, the driver performs no extra explain
+call. Observer exceptions and AbortSignal use the existing stop/finalizer path.
+
+The explicitly selected `node-owner-acceptance.mjs` uses the existing 100-row
+comparator and independent result/stage expectations. Actual resident task
+attempt deltas are `[3, 1, 1]`: first Compute, environment and import, then two
+Compute attempts. Acquisition precedes these snapshots; the parent additionally
+accounts for one execution process. Driver quantities, explanation and child
+ledger are compared at the same boundary; actual connector preparation accounts
+for the deltas. Selected retention bounds, live resident reservation and final
+confirmed resource return remain checked. This is finite correspondence, not
+opaque attempt identity or physical heap proof.
+
+The real Node check passed 1/1 at `_build/local-checks/attempts/run-05NKpb`.
+Copies of its observations with a completed selected task, extra unaccounted
+attempt, or early resident reservation release are rejected. These are
+observation-tampering checks, not mutations of the product. The three focused
+driver/installed-observer tests passed 3/3 at `run-3YvinC`, including callback
+failure/abort before Compute. Their stub-based abort check does not establish
+the requested real resident cancellation acceptance. JS preparation was limited
+to four consuming runtime packages (`run-WYkraN`).
+
+These development checks do not establish calibrated performance, a causal
+instrumentation overhead comparison, or public Native/Broad equivalence. Their
+preparation/worker intervals overlap and must not be summed into total time.
 
 ## Remaining first-unit obligations
 
@@ -122,15 +175,16 @@ No product limit/owner changes or broader matrix were added.
 
 ### Acceptance still required
 
-1. Connect Node Host acquisition and Compute observations, and check actual
+1. Check real formal cancellation through the existing request/Owner path.
+   Connect Node Host acquisition observations and check actual
    Native/Broad choices including residual processing under equivalent results
    and obligations. Reuse the existing public selection path.
 2. Bind submitted revision, binary, toolchain and explicit condition to the
    focused execution record. Current debug diagnostics are not a clean submitted
    release performance result.
-3. Confirm existing Native direct-pair acceptance and calibrated ordinary
-   selection under the changed resident offer. No bounds or comparison obligations
-   are waived.
+3. Confirm existing Native direct-pair release acceptance and calibrated ordinary
+   selection. Resident offers remain explicit diagnostics until this evidence
+   supports any default change. No bounds or comparison obligations are waived.
 4. Assess instrumentation overhead and preserve cold/warm preparation, transfer,
    identity, holding, cleanup and total intervals. A phase label alone is not
    timing evidence.

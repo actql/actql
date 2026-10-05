@@ -230,6 +230,7 @@ export async function runRetainedComparator(fixture, contracts, database, direct
       controlMemory: memoryReport, controlTransport: result.process().transport,
       usage: usage(host.usage()), storage: result.storageUsage(), tasks: result.report.completed,
       explanation: result.report.explanation,
+      plannerObservations: result.report.planner_observations,
       includes: ['Host-preparation', 'child-start', 'acquisition', 'validation', 'Compute',
         'required-identities', 'independent-holding', 'child-exit'],
       excludes: ['build', 'source-setup', 'independent-oracle', 'fresh-reader'],
