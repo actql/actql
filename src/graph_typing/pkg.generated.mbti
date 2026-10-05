@@ -45,6 +45,8 @@ pub fn check_selector(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_c
 
 pub fn check_subgraph(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedSubgraph, MatchIssue]
 
+pub fn check_subtraction(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedSubtraction, Issue]
+
 pub fn check_traverse(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedTraverse, MatchIssue]
 
 pub fn check_union(@decode_core.Cursor, Array[@carrier_contract.Carrier], Limits) -> Result[CheckedUnion, Issue]
@@ -303,6 +305,12 @@ pub fn subgraph_source(CheckedSubgraph) -> @decode_core.Cursor
 
 pub fn subgraph_usage(CheckedSubgraph) -> PredicateUsage
 
+pub fn subtraction_composition(CheckedSubtraction) -> CheckedUnion
+
+pub fn subtraction_output(CheckedSubtraction) -> @carrier_contract.Carrier
+
+pub fn subtraction_usage(CheckedSubtraction) -> Usage
+
 pub fn traverse_bounds(CheckedTraverse) -> (Double, Double)
 
 pub fn traverse_emission(CheckedTraverse) -> PathOutput
@@ -387,6 +395,8 @@ type CheckedPropertyEquality
 type CheckedSelector
 
 type CheckedSubgraph
+
+type CheckedSubtraction
 
 type CheckedTraverse
 

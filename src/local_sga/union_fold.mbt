@@ -6,6 +6,7 @@ priv enum UnionFoldPhase {
   ReadUnionKeys
   ReadUnionProperties
   MergeUnionProperty
+  CheckSubtractionEndpointClosure
   StartUnionAppend
   AppendUnionRecord
   FinishUnionFold
@@ -31,6 +32,7 @@ pub(all) enum UnionIssue {
 /// port; this cursor cannot publish a Graph or claim either input's custody.
 priv struct UnionFoldPreparation {
   checked : @graph_type.CheckedUnion
+  subtraction : Bool
   fold : Int
   left : GraphReadSource
   right : GraphReadSource
@@ -75,7 +77,11 @@ fn prepare_union_fold(
   builder : @storage.Builder,
   limits : @storage.Limits,
   remaining : Int,
+  subtraction? : Bool = false,
 ) -> Result[UnionFoldPreparation, UnionIssue] {
+  if subtraction && (fold != 0 || @graph_type.union_input_count(checked) != 2) {
+    return Err(InvalidUnionFold)
+  }
   guard @graph_type.union_fold_output(checked, fold)
     is Some(@carrier.GraphValue(graph)) &&
     @storage.builder_accepts_output(builder, graph, limits) &&
@@ -86,6 +92,7 @@ fn prepare_union_fold(
   }
   Ok({
     checked,
+    subtraction,
     fold,
     left,
     right,
@@ -251,6 +258,11 @@ fn advance_union_fold(
           value.scan_side = 1
           value.scan_index = 0
         } else if value.selected is Some(_) {
+          if value.subtraction && value.left_index < 0 {
+            value.previous = value.selected
+            union_fold_reset_scan(value)
+            continue
+          }
           value.identity = if value.edge {
             graph_read_edge_identity(
               union_fold_source(value),
@@ -479,7 +491,16 @@ fn advance_union_fold(
           }
           value.phase = MergeUnionProperty
         } else {
-          value.phase = StartUnionAppend
+          let remove_shared = value.subtraction &&
+            value.right_index >= 0 &&
+            @graph_type.union_strategy_count(value.checked, edge=value.edge) ==
+            0
+          if value.subtraction && value.edge && !remove_shared {
+            value.endpoint = 0
+            value.phase = CheckSubtractionEndpointClosure
+          } else {
+            value.phase = StartUnionAppend
+          }
         }
       }
       MergeUnionProperty => {
@@ -504,8 +525,51 @@ fn advance_union_fold(
           }
         }
       }
+      CheckSubtractionEndpointClosure => {
+        work += 1
+        guard graph_read_edge_endpoints(value.left, value.left_index)
+          is Some((src, dst)) &&
+          graph_read_node_identity_order_key(
+            value.left,
+            if value.endpoint == 0 {
+              src
+            } else {
+              dst
+            },
+          )
+          is Some(token) &&
+          @storage.builder_contains_node_identity_order_key(
+            value.builder,
+            token,
+          )
+          is Some(retained) else {
+          return union_fold_failed(value, UnionInputUnavailable, work)
+        }
+        if !retained {
+          value.keys.clear()
+          value.properties.clear()
+          value.previous = value.selected
+          union_fold_reset_scan(value)
+        } else if value.endpoint == 0 {
+          value.endpoint = 1
+        } else {
+          value.phase = StartUnionAppend
+        }
+      }
       StartUnionAppend => {
         work += 1
+        // Even a removed shared record reaches this point only after full
+        // aligned payload comparison, including exact edge endpoints. A
+        // nonempty map retains the transformed entity, even if unchanged.
+        if value.subtraction &&
+          value.right_index >= 0 &&
+          @graph_type.union_strategy_count(value.checked, edge=value.edge) == 0 {
+          value.keys.clear()
+          value.properties.clear()
+          value.previous = value.selected
+          union_fold_reset_scan(value)
+          continue
+        }
         guard value.identity is Some(identity) else {
           return union_fold_failed(value, InvalidUnionFold, work)
         }
