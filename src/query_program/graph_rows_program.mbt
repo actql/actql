@@ -143,6 +143,12 @@ fn lower_script_graph_rows(
     if row_input is Some(_) {
       raise Abort(UnsupportedGraph)
     }
+    if call.operation == "subgraph" {
+      current = lower_script_subgraph(
+        construction, query, call, current, known, limits, steps, reserved,
+      )
+      continue
+    }
     if script_graph_diagnostic_fields(call.operation) is Some(fields) {
       row_input = Some(
         lower_script_graph_diagnostic(

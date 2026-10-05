@@ -1,3 +1,5 @@
+import {subgraphSourceSuccesses, subgraphSourceRefusals, subgraphSourceExecutionFailures}
+  from './subgraph-source-input.mjs';
 // Copied unchanged into the external tarball installation by the driver.
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
@@ -58,6 +60,7 @@ if (process.env.ACTQL_TEST_TWO_SOURCE_ONLY === '1') {
 } else {
 const propertyGraphOnly = process.env.ACTQL_TEST_PROPERTY_GRAPH_SOURCE_ONLY === "1";
 const graphPropertyPredicateOnly = process.env.ACTQL_TEST_GRAPH_PROPERTY_PREDICATE_ONLY === '1';
+const subgraphOnly = process.env.ACTQL_TEST_SUBGRAPH_ONLY === '1';
 const graphDiagnosticsOnly = process.env.ACTQL_TEST_GRAPH_DIAGNOSTICS_ONLY === '1';
 const graphRowsOnly = process.env.ACTQL_TEST_GRAPH_ROWS_ONLY === '1';
 const graphEqualityOnly = process.env.ACTQL_TEST_GRAPH_EQUALITY_ONLY === '1';
@@ -83,7 +86,7 @@ const dataOnly = process.env.ACTQL_TEST_RELATION_DATA_ONLY === '1';
 const acquiredDataOnly = process.env.ACTQL_TEST_ACQUIRED_DATA_ONLY === '1';
 const dataSetStrategyOnly = process.env.ACTQL_TEST_DATA_SET_STRATEGY_ONLY === '1';
 const orderPropertyOnly = process.env.ACTQL_TEST_ORDER_PROPERTY_ONLY === '1';
-const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly;
+const scopeOnly = subgraphOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const joinChain = JSON.parse(await readFile('join-chain-cases.json', 'utf8'));
 const groupScope = JSON.parse(await readFile('group-scope-cases.json', 'utf8'));
@@ -100,7 +103,8 @@ const dataSetStrategyInputs = {
     ]}}}],
   refusals: [],
 };
-const scopeInputs = graphDiagnosticsOnly ? {successes: graphDiagnosticSourceSuccesses, refusals: graphDiagnosticSourceRefusals, executionFailures: graphDiagnosticSourceExecutionFailures}
+const scopeInputs = subgraphOnly ? {successes: subgraphSourceSuccesses, refusals: subgraphSourceRefusals, executionFailures: subgraphSourceExecutionFailures}
+  : graphDiagnosticsOnly ? {successes: graphDiagnosticSourceSuccesses, refusals: graphDiagnosticSourceRefusals, executionFailures: graphDiagnosticSourceExecutionFailures}
   : orderPropertyOnly ? {successes: orderPropertySuccesses, refusals: orderPropertyRefusals}
   : graphProjectionPropertyOnly ? {successes: graphProjectionPropertySuccesses, refusals: graphProjectionPropertyRefusals}
   : graphPropertyPredicateOnly ? {successes: graphPropertyPredicateSuccesses, refusals: graphPropertyPredicateRefusals}
@@ -136,6 +140,9 @@ const scopeInputs = graphDiagnosticsOnly ? {successes: graphDiagnosticSourceSucc
   refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...relationDataRefusals, ...acquiredDataRefusals, ...propertyGraphSourceRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals, ...groupStarRefusals, ...groupOrdinalRefusals],
   executionFailures: [...pipeResultExecutionFailures, ...propertyGraphSourceExecutionFailures]};
 if (!scopeOnly) {
+  scopeInputs.successes.push(...subgraphSourceSuccesses);
+  scopeInputs.refusals.push(...subgraphSourceRefusals);
+  scopeInputs.executionFailures.push(...subgraphSourceExecutionFailures);
   scopeInputs.successes.push(...orderPropertySuccesses);
   scopeInputs.refusals.push(...orderPropertyRefusals);
   scopeInputs.successes.push(...graphProjectionPropertySuccesses);
