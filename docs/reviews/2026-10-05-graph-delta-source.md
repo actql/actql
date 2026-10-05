@@ -65,6 +65,14 @@ their zero-read count, so the harness expected one external read per case.
 That fixture accounting is corrected; rows, contracts and refusal expectations
 are unchanged. This run is not full public acceptance evidence.
 
+The second packed run (`run-sCzVlj`, source
+`53386d620120e22dba24e58d1510e448d9366463`) passed the selected Local and
+HTTPS corpus, including preparation refusals, but the driver then attempted
+unrelated String restart acceptance without a String fixture. The new narrow
+selection is now registered at the existing restart/native dispatch boundaries
+as well. This run establishes its completed boundary cases, not overall driver
+success.
+
 ## Separate JSON literal dependency
 
 Normal source execution needs an ordinary JSON-producing expression. The common
