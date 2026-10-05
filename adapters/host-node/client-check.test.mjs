@@ -3108,3 +3108,70 @@ for (const entrance of ['local', 'http']) {
     }
   });
 }
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: check rejects invalid owned frame scalar values`, async t => {
+    const client = await contextClient(t, entrance, sourceEnvironment,
+      {aliases: [alias], readOutcome: 'allow'});
+    for (const direction of ['PRECEDING', 'FOLLOWING']) {
+      const text = 'SELECT FIRST_VALUE(amount) OVER '
+        + `(ORDER BY id ROWS BETWEEN @before ${direction} AND @after ${direction}) AS first FROM records`;
+      for (const before of [0, -1, 1.5, 9007199254740992]) {
+        const outcome = await client.check(text, {format: 'sql',
+          parameterDeclarations: {before: {type: 'number', nullable: false},
+            after: {type: 'number', nullable: false}}, parameters: {before, after: 2}});
+        assert.equal(outcome.outcome, 'completed', '[check-mutation:frame-scalar-outcome]');
+        assert.equal(outcome.report.verdict, 'invalid', '[check-mutation:frame-scalar-verdict]');
+        assert.deepEqual(outcome.report.reasons.map(({code, facts}) => ({code, facts})),
+          [{code: 'operation_parameter_invalid', facts: {parameter: 'before', domain: 'positive_safe_integer'}}]);
+        assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+        assert.deepEqual(outcome.report.requirements, []);
+      }
+    }
+  });
+}
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: frame scalar admission retains equal bounds and protected obligations`, async t => {
+    const text = direction => 'SELECT FIRST_VALUE(amount) OVER '
+      + `(ORDER BY id ROWS BETWEEN @before ${direction} AND @after ${direction}) AS first FROM records`;
+    const declarations = {before: {type: 'number', nullable: false},
+      after: {type: 'number', nullable: false}};
+    const wire = withPolicy(sourceEnvironment, {capacity: {
+      ...sourceEnvironment.host_policy_profile.capacity,
+      max_analytic_input_wire_bytes: 10000, max_analytic_output_wire_bytes: 10000,
+      max_analytic_partition_wire_bytes: 10000, max_analytic_frame_memberships: 10000,
+    }});
+    const visible = await contextClient(t, entrance, wire, {aliases: [alias], readOutcome: 'allow'});
+    for (const direction of ['PRECEDING', 'FOLLOWING']) {
+      const valid = await visible.check(text(direction), {format: 'sql',
+        parameterDeclarations: declarations, parameters: {before: 2, after: 2}});
+      assert.equal(valid.outcome, 'completed');
+      assert.equal(valid.report.verdict, 'verified');
+      assert.deepEqual(valid.report.reasons, []);
+      assert.deepEqual(valid.report.coverage, {limits: [], unresolved: []});
+      assert.deepEqual(valid.report.requirements, []);
+    }
+    const clients = [
+      await contextClient(t, entrance, sourceEnvironment),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'deny'}),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'allow', closed: true}),
+    ];
+    for (const parameters of [{before: 0, after: 2}, {before: 'private-distance', after: 2}]) {
+      const outcomes = await Promise.all(clients.map(client => client.check(text('PRECEDING'),
+        {format: 'sql', parameterDeclarations: declarations, parameters})));
+      assert.deepEqual(outcomes[0], outcomes[1], '[check-mutation:frame-scalar-disclosure]');
+      assert.deepEqual(outcomes[0], outcomes[2], '[check-mutation:frame-scalar-disclosure]');
+      const wrongType = typeof parameters.before === 'string';
+      const {report} = outcomes[0];
+      assert.equal(report.verdict, wrongType ? 'invalid' : 'undetermined');
+      assert.deepEqual(report.coverage, {limits: [],
+        unresolved: [{boundary: 'source_resolution', reason: 'unresolved_protected'}]});
+      assert.deepEqual(report.reasons.map(({code, facts}) => ({code, ...(facts ? {facts} : {})})),
+        wrongType ? [{code: 'supplied_value_type_mismatch',
+          facts: {parameter: 'before', expected_type: 'number', actual_type: 'string'}}] : []);
+      assert.equal(JSON.stringify(outcomes).includes('private-distance'), false);
+      if (wrongType) assert.equal(resolveCheckLocation(outcomes[0], report.reasons[0].location).pointer, '/before');
+    }
+  });
+}
