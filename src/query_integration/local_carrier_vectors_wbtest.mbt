@@ -6047,7 +6047,9 @@ test "direct nearest Relation inputs keep exact work and workspace bounds" {
   let candidate_output = direct_nearest_relation_output(candidates)
   let query_output = direct_nearest_relation_output(queries)
   let generated = task_test_generated(owner)
-  for (ceiling, accepted) in [(52, true), (51, false)] {
+  // Each Relation adds scalar (2) and two-component Vector (5) rechecks:
+  // 52+2*7=66. One shared depth-ten cursor reserves 8+10+2=20 slots.
+  for (ceiling, accepted) in [(66, true), (65, false)] {
     let candidate_read = @execution.prepare_producer_read(
       owner,
       @execution.bind_completed_input(owner, 0, candidates, candidate_output).unwrap(),
@@ -6061,7 +6063,7 @@ test "direct nearest Relation inputs keep exact work and workspace bounds" {
       1000,
     ).unwrap()
     // Two three-slot records, four score slots, three ordering slots,
-    // two identity slots, and sixteen fixed slots require 31 workspace slots.
+    // two identity slots, sixteen fixed slots, and twenty cursor slots: 51.
     let execution = @local_veca.start_nearest_inputs_with_control_work_limit(
       @bounded.control(),
       @execution.generated_completion_preparation(generated),
@@ -6071,14 +6073,14 @@ test "direct nearest Relation inputs keep exact work and workspace bounds" {
       @local_veca.nearest_relation_producer(query_read),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      31,
+      51,
       1000,
       1000,
       ceiling,
     ).unwrap()
     let mut terminal = false
     let mut charged = 0L
-    for _ in 0..<64 {
+    for _ in 0..<80 {
       if !terminal {
         match @local_veca.advance_nearest(execution, 1).unwrap() {
           @local_veca.NearestContinue(work~, ..) => {
@@ -6131,10 +6133,10 @@ test "direct nearest Relation inputs keep exact work and workspace bounds" {
       @local_veca.nearest_relation_producer(query_read),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      30,
+      50,
       1000,
       1000,
-      52,
+      66,
     )
     is Err(@local_veca.NearestWorkspaceLimit),
   )
@@ -6264,7 +6266,7 @@ test "registered Relation pool returns a standalone Vectors generation" {
     }
     let limits = dispatch_test_limits()
     let provider = @local_veca_provider.provider(
-      direct_relation_pool_limits(18, 32),
+      direct_relation_pool_limits(38, 41),
       4096L,
       @execution.generated_sequence_capacity(
         generated,
@@ -6281,7 +6283,7 @@ test "registered Relation pool returns a standalone Vectors generation" {
     ).unwrap()
     let mut material = None
     let mut charged = 0L
-    for _ in 0..<40 {
+    for _ in 0..<60 {
       if material is None {
         match @local_connector.advance_managed_provider(execution, 1).unwrap() {
           @local_connector.Continue(work~, ..) => {
@@ -6297,7 +6299,7 @@ test "registered Relation pool returns a standalone Vectors generation" {
       }
     }
     let material = material.unwrap()
-    assert_eq(charged, 32L)
+    assert_eq(charged, 41L)
     assert_true(@carrier_runtime.material_available(material))
     assert_true(@local_connector.managed_provider_stopped(execution))
     assert_true(@local_connector.cleanup_managed_provider(execution).unwrap())
@@ -6333,13 +6335,13 @@ test "registered Relation pool retains exact limits and stopped cleanup" {
     limits.local_execution,
     limits.guards,
   ).unwrap()
-  // The same Relation kernel requires 32 work units and 18 workspace slots,
+  // The same Relation kernel requires 41 work units and 38 workspace slots,
   // independently itemized in the adjacent direct-kernel boundary fixture.
   for
     (work, workspace, stopping) in [
-      (31, 18, false),
-      (32, 17, false),
-      (32, 18, true),
+      (40, 38, false),
+      (41, 37, false),
+      (41, 38, true),
     ] {
     let provider = @local_veca_provider.provider(
       direct_relation_pool_limits(workspace, work),
@@ -6355,7 +6357,7 @@ test "registered Relation pool retains exact limits and stopped cleanup" {
     ).unwrap()
     let mut charged = 0L
     let mut terminal = false
-    for _ in 0..<40 {
+    for _ in 0..<60 {
       if !terminal {
         match @local_connector.advance_managed_provider(execution, 1).unwrap() {
           @local_connector.Continue(work~, ..) => {
@@ -6387,12 +6389,12 @@ test "registered Relation pool retains exact limits and stopped cleanup" {
     assert_true(terminal)
     assert_eq(
       charged,
-      if workspace == 17 {
+      if workspace == 37 {
         0L
       } else if stopping {
         1L
       } else {
-        31L
+        40L
       },
     )
     assert_true(@local_connector.cleanup_managed_provider(execution).unwrap())
@@ -6406,7 +6408,7 @@ test "registered Relation pool retains exact limits and stopped cleanup" {
     1000,
   ).unwrap()
   let provider = @local_veca_provider.provider(
-    direct_relation_pool_limits(18, 32),
+    direct_relation_pool_limits(38, 41),
     4096L,
     capacity,
   )
@@ -6443,13 +6445,14 @@ test "relation pool enforces exact work and workspace boundaries" {
   ).unwrap()
   // One five-slot record in each ordering array (10), three output fields,
   // two vector components, and three key slots require 18 workspace slots.
+  // The Relation recheck adds eight fixed and twelve continuation slots: 38.
   assert_true(
     @local_veca.start_relation_pool(
       @bounded.control(),
       @execution.generated_prepared_sequence(task_test_generated(owner)),
       0,
       read,
-      direct_relation_pool_limits(17, 1000),
+      direct_relation_pool_limits(37, 1000),
       4096L,
       fn() { true },
     )
@@ -6462,7 +6465,7 @@ test "relation pool enforces exact work and workspace boundaries" {
     @execution.generated_prepared_sequence(task_test_generated(owner)),
     0,
     read,
-    direct_relation_pool_limits(18, 1000),
+    direct_relation_pool_limits(38, 1000),
     4096L,
     fn() { true },
   ).unwrap()
@@ -6480,20 +6483,21 @@ test "relation pool enforces exact work and workspace boundaries" {
   // One record: setup 3, three field scans 9, group/identity checks 2,
   // identity encoding 2, component validation 2, collection/scratch 2,
   // group boundaries 2, component build/fold/finish 6, output fields 3,
-  // and output commit 1. The independent total is 32 control units.
-  for (ceiling, accepted) in [(32, true), (31, false)] {
+  // and output commit 1. Recheck two scalars (4) and a Vector (5) before
+  // binding. The independent total is 32+9=41 control units.
+  for (ceiling, accepted) in [(41, true), (40, false)] {
     let bounded = @local_veca.start_relation_pool(
       @bounded.control(),
       @execution.generated_prepared_sequence(task_test_generated(owner)),
       0,
       read,
-      direct_relation_pool_limits(18, ceiling),
+      direct_relation_pool_limits(38, ceiling),
       4096L,
       fn() { true },
     ).unwrap()
     let mut terminal = false
     let mut charged = 0L
-    for _ in 0..<40 {
+    for _ in 0..<60 {
       if !terminal {
         match @local_veca.advance_pool(bounded, 1).unwrap() {
           @local_veca.PoolContinue(work~, ..) => {
@@ -6541,7 +6545,9 @@ test "fused nearest charges exact Relation inputs and reclaims cancellation" {
   let candidate_output = direct_nearest_relation_output(candidates)
   let query_output = direct_nearest_relation_output(queries)
   let generated = task_test_generated(owner)
-  for (ceiling, accepted) in [(52, true), (51, false)] {
+  // Same common Relation rechecks and shared cursor as direct nearest:
+  // existing 52 plus fourteen input polls, existing 31 plus twenty slots.
+  for (ceiling, accepted) in [(66, true), (65, false)] {
     let candidate_read = @execution.prepare_producer_read(
       owner,
       @execution.bind_completed_input(owner, 0, candidates, candidate_output).unwrap(),
@@ -6564,7 +6570,7 @@ test "fused nearest charges exact Relation inputs and reclaims cancellation" {
       @local_veca.nearest_relation_producer(query_read),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      31,
+      51,
       1000,
       1000,
       [candidate_read, query_read],
@@ -6572,7 +6578,7 @@ test "fused nearest charges exact Relation inputs and reclaims cancellation" {
     ).unwrap()
     let mut terminal = false
     let mut charged = 0L
-    for _ in 0..<64 {
+    for _ in 0..<80 {
       if !terminal {
         match @local_veca.advance_nearest(execution, 1).unwrap() {
           @local_veca.NearestContinue(work~, ..) => {
@@ -6625,11 +6631,11 @@ test "fused nearest charges exact Relation inputs and reclaims cancellation" {
       @local_veca.nearest_relation_producer(query_read),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      30,
+      50,
       1000,
       1000,
       [candidate_read, query_read],
-      52,
+      66,
     )
     is Err(@local_veca.NearestWorkspaceLimit),
   )
@@ -6645,7 +6651,7 @@ test "fused nearest charges exact Relation inputs and reclaims cancellation" {
     @local_veca.nearest_relation_producer(query_read),
     10,
     { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    31,
+    51,
     1000,
     1000,
     [candidate_read, query_read],

@@ -9635,6 +9635,20 @@
           "fixture": "direct nearest Relation inputs keep exact work and workspace bounds"
         },
         {
+          "role": "nearest_relation_input_limits_stop_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/vector_input_recheck_wbtest.mbt",
+          "fixture": "nearest Relation admission yields within unused arrays before stop"
+        },
+        {
+          "role": "nearest_relation_input_shared_vector",
+          "suite": "moon:value_admission",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/value_admission/recheck_nested_steps_wbtest.mbt",
+          "fixture": "runtime vector recheck yields between components with exact node usage"
+        },
+        {
           "role": "nearest_direct_relation_workspace_exact_one_short",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -9733,6 +9747,13 @@
           "targets": ["node"],
           "path": "adapters/host-node/public-nearest-key-retention.test.mjs",
           "fixture": "public retained nearest cancels output after its first committed row"
+        },
+        {
+          "role": "nearest_relation_input_public_store",
+          "suite": "node:embedded_nearest_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-nearest-key-retention.test.mjs",
+          "fixture": "public retained nearest admits Relation inputs and cancels inside unused array"
         },
         {
           "role": "nearest_relation_host_in_flight_cancel",
@@ -9890,6 +9911,20 @@
           "fixture": "relation pool enforces exact work and workspace boundaries"
         },
         {
+          "role": "pool_relation_input_limits_stop_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/vector_input_recheck_wbtest.mbt",
+          "fixture": "Relation Pool admission yields within unused arrays before stop"
+        },
+        {
+          "role": "pool_relation_input_shared_vector",
+          "suite": "moon:value_admission",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/value_admission/recheck_nested_steps_wbtest.mbt",
+          "fixture": "runtime vector recheck yields between components with exact node usage"
+        },
+        {
           "role": "pool_relation_workspace_exact_one_short",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -9967,6 +10002,13 @@
           "targets": ["node"],
           "path": "adapters/host-node/public-pool-key-retention.test.mjs",
           "fixture": "public retained Pool publishes and cancels inside long group validation"
+        },
+        {
+          "role": "pool_relation_input_public_store",
+          "suite": "node:embedded_pool_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-pool-key-retention.test.mjs",
+          "fixture": "public retained Pool admits Relation input and cancels inside unused array"
         },
         {
           "role": "pool_relation_host_in_flight_cancel",

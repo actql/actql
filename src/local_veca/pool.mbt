@@ -26,6 +26,7 @@ priv enum PoolPhase {
   InitializeGroups
   InitializeIdentities
   ReadField
+  RecheckField
   MatchGroup
   MatchIdentity
   ValidateGroups
@@ -55,6 +56,7 @@ priv struct PoolState {
   output_vectors : @carrier.Vectors
   prepared : @lower.PreparedVector
   value_limits : @value.Limits
+  mut input_recheck : (@schema.FieldName, @value.RecheckCursor)?
   mut output : @records.OutputBuilder?
   reduction : @numeric.PoolMethod
   dimensions : Int
@@ -169,6 +171,7 @@ fn pool_workspace(
   groups : Int,
   identities : Int,
   output_fields : Int,
+  recheck_slots? : Int = 0,
 ) -> Int? {
   guard pool_checked_add(groups, identities) is Some(keys) &&
     pool_checked_add(keys, 2) is Some(record_width) &&
@@ -176,7 +179,8 @@ fn pool_workspace(
     pool_checked_multiply(ordered, 2) is Some(sort_slots) &&
     pool_checked_add(output_fields, dimensions) is Some(output_slots) &&
     pool_checked_add(sort_slots, output_slots) is Some(first) &&
-    pool_checked_add(first, keys) is Some(total) else {
+    pool_checked_add(first, keys) is Some(second) &&
+    pool_checked_add(second, recheck_slots) is Some(total) else {
     return None
   }
   Some(total)
@@ -231,20 +235,9 @@ fn pool_record_field_at(
         Ok(value) => Some(value)
         Err(_) => None
       }
-    Relation(input) => {
-      guard @schema.field_at(@execution.producer_read_schema(input), field)
-        is Some(expected) &&
-        @execution.producer_read_checked_cell(
-          input,
-          record,
-          field,
-          state.value_limits,
-        )
-        is Some(checked) else {
-        return None
-      }
-      Some((expected.name, checked))
-    }
+    // Relation cells are staged by load_pool_field and rechecked before
+    // binding. Do not restore whole-value validation to this accessor.
+    Relation(_) => None
   }
 }
 
@@ -272,10 +265,28 @@ fn begin_pool_record(state : PoolState) -> Result[Unit, PoolIssue] {
 
 ///|
 fn load_pool_field(state : PoolState) -> Result[Unit, PoolIssue] {
+  if state.source is Relation(input) {
+    guard relation_cell_recheck(input, state.record, state.field, state.value_limits)
+      is Some(pending) else {
+      return Err(InvalidPoolRecord(state.record))
+    }
+    state.input_recheck = Some(pending)
+    state.phase = RecheckField
+    return Ok(())
+  }
   guard pool_record_field_at(state, state.record, state.field)
     is Some((name, checked)) else {
     return Err(InvalidPoolRecord(state.record))
   }
+  bind_pool_field(state, name, checked)
+}
+
+///|
+fn bind_pool_field(
+  state : PoolState,
+  name : @schema.FieldName,
+  checked : @value.CheckedValue,
+) -> Result[Unit, PoolIssue] {
   if @schema.reference_name(name) == state.component_name {
     if state.source_vector is Some(_) {
       return Err(InvalidPoolVector(state.record))
@@ -927,6 +938,24 @@ fn pool_step(
           }
         }
       }
+      RecheckField => {
+        used += 1
+        guard state.input_recheck is Some((name, cursor)) else {
+          return @bounded.Failed(InvalidPoolKernel, progress, used)
+        }
+        match @value.advance_recheck_runtime_value(cursor) {
+          @value.RecheckContinue => ()
+          @value.RecheckComplete(checked, _, _) => {
+            state.input_recheck = None
+            match bind_pool_field(state, name, checked) {
+              Ok(_) => ()
+              Err(issue) => return @bounded.Failed(issue, progress, used)
+            }
+          }
+          @value.RecheckFailed =>
+            return @bounded.Failed(InvalidPoolRecord(state.record), progress, used)
+        }
+      }
       MatchGroup => {
         used += 1
         match match_pool_group(state) {
@@ -1115,6 +1144,11 @@ fn pool_step(
 
 ///|
 fn cleanup_pool_state(state : PoolState) -> Bool {
+  if state.input_recheck is Some((_, cursor)) {
+    @value.cancel_recheck_runtime_value(cursor)
+    state.input_recheck = None
+  }
+  state.current_field = None
   if state.output_vector is Some(builder) {
     @value.cancel_vector_value(builder) |> ignore
     state.output_vector = None
@@ -1223,6 +1257,7 @@ fn start_pool_carrier_source(
       max_depth: limits.max_value_depth,
       max_text_bytes: limits.max_value_bytes,
     },
+    input_recheck: None,
     output: Some(output),
     reduction,
     dimensions,
@@ -1444,12 +1479,14 @@ pub fn start_relation_pool(
     component.contract is Some(component_contract) &&
     @carrier.lookup(output_rows, @schema.Unqualified("member_count"))
     is @carrier.Present({ contract: Some(member_count_contract), .. }) &&
+    pool_checked_add(limits.max_value_depth, 10) is Some(recheck_slots) &&
     pool_workspace(
       @execution.producer_read_row_count(input),
       dimensions,
       group_count,
       workspace_identities,
       output_fields,
+      recheck_slots~,
     )
     is Some(workspace) &&
     workspace <= limits.max_workspace_slots else {
@@ -1496,6 +1533,7 @@ pub fn start_relation_pool(
       max_depth: limits.max_value_depth,
       max_text_bytes: limits.max_value_bytes,
     },
+    input_recheck: None,
     output: Some(output),
     reduction,
     dimensions,

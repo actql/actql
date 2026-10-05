@@ -15,20 +15,28 @@ const expectedRows = prefix => ['a', 'b'].flatMap(query => ['a', 'b'].map((candi
   rank: index + 1, score: 5,
 })));
 
-function program(id, prefix) {
+function program(id, prefix, direct = false) {
+  const schema = {
+    id: {type: 'string', nullable: false},
+    embedding: {type: 'vector', dimensions: 2, nullable: false},
+    ...(direct ? {zz_unused: {type: 'array', nullable: false, max_items: 129,
+      items: {type: 'number', nullable: false}}} : {}),
+  };
   return {version: 'actql/0.1', id, stages: [
     ...['candidates', 'queries'].map(name => ({id: name, inputs: {},
-      steps: [{values: {schema: {
-        id: {type: 'string', nullable: false},
-        embedding: {type: 'vector', dimensions: 2, nullable: false},
-      }, rows: ['b', 'a'].map(suffix => ({
+      steps: [{values: {schema, rows: ['b', 'a'].map(suffix => ({
         id: prefix + suffix, embedding: [1, 2],
-      }))}, as: 'out'}], results: {r: {from: 'out', fields: ['id', 'embedding']}},
+        ...(direct ? {zz_unused: Array.from({length: 129}, () => 1)} : {}),
+      }))}, as: 'out'}], results: {r: {from: 'out', fields: Object.keys(schema)}},
     })),
     {id: 'nearest', inputs: {
       queries: {result: {stage: 'queries', result: 'r'}},
       candidates: {result: {stage: 'candidates', result: 'r'}},
-    }, steps: [
+    }, steps: direct ? [
+      {from: 'candidates', nearest: {queries: 'queries', metric: 'dot', k: 2,
+        candidate_id: 'id', candidate_vector: 'embedding',
+        query_id: 'id', query_vector: 'embedding'}, as: 'out'},
+    ] : [
       {from: 'candidates', to_vectors: {id: 'id', vector: 'embedding'}, as: 'cv'},
       {from: 'queries', to_vectors: {id: 'id', vector: 'embedding'}, as: 'qv'},
       {from: 'cv', nearest: {queries: 'qv', metric: 'dot', k: 2}, as: 'out'},
@@ -44,7 +52,9 @@ function program(id, prefix) {
   }};
 }
 
-async function runPublicNearestBarrier(t, {prefixLength, barrierWork, barrierProgress}) {
+async function runPublicNearestBarrier(t, {
+  prefixLength, barrierWork, barrierProgress, direct = false,
+}) {
     const prefix = 'x'.repeat(prefixLength);
     const expected = expectedRows(prefix);
     const directory = await mkdtemp(join(tmpdir(), 'actql-public-nearest-key-'));
@@ -63,6 +73,7 @@ async function runPublicNearestBarrier(t, {prefixLength, barrierWork, barrierPro
     let bridges = 0;
     let nearestWork = 0;
     let representations;
+    const fixtureId = direct ? 'public-nearest-input' : 'public-nearest-key';
     const trace = [];
     const keys = generateKeyPairSync('ed25519');
     const authorization = {
@@ -82,15 +93,17 @@ async function runPublicNearestBarrier(t, {prefixLength, barrierWork, barrierPro
         advances++;
         if (cancelling) trace.push({...detail});
         if (!cancelling || detail.task !== 2) return;
-        if (bridges < 2) {
+        if (!direct && bridges < 2) {
           assert.equal(detail.progress, '2');
           // Each bridge reads two fields and commits one record, twice.
           assert.equal(detail.work, '6');
           bridges++;
           return;
         }
-        // Both bridges and nearest stay in the same fused task. Core phase
-        // totals fix the matching barrier, without sleeps or task splitting.
+        // The existing Carrier cases retain both bridges in the fused task.
+        // Direct Relation input: two field rechecks finish before zz_unused;
+        // fewer than 256 polls remain for its 261-poll array walk, so this
+        // boundary cannot finish the first input. No sleep selects the phase.
         assert.equal(detail.work, '256');
         nearestWork += Number(detail.work);
         if (nearestWork < barrierWork) {
@@ -111,8 +124,8 @@ async function runPublicNearestBarrier(t, {prefixLength, barrierWork, barrierPro
     };
     client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, retainedRelationOutput: true, authorization}});
-    const source = JSON.stringify(program('public-nearest-key', prefix));
-    const options = {format: 'json', requestId: 'public-nearest-key'};
+    const source = JSON.stringify(program(fixtureId, prefix, direct));
+    const options = {format: 'json', requestId: fixtureId};
     const execution = await client.aql(source, options);
     const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
     assert.equal(state.status, 'succeeded', inspect(state, {depth: 6}));
@@ -128,8 +141,8 @@ async function runPublicNearestBarrier(t, {prefixLength, barrierWork, barrierPro
     assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
 
     cancelling = true;
-    const cancel = await client.aql(JSON.stringify(program('public-nearest-key-cancel', prefix)),
-      {format: 'json', requestId: 'public-nearest-key-cancel'});
+    const cancel = await client.aql(JSON.stringify(program(fixtureId + '-cancel', prefix, direct)),
+      {format: 'json', requestId: fixtureId + '-cancel'});
     await Promise.race([barrier.promise,
       cancel.wait({signal: AbortSignal.timeout(10_000)}).then(state => {
         throw new Error(`nearest missed bounded barrier: ${inspect({state, trace}, {depth: 6})}`);
@@ -167,4 +180,9 @@ test('public retained nearest publishes and cancels inside long identity validat
 test('public retained nearest cancels output after its first committed row',
   {timeout: 45_000}, t => runPublicNearestBarrier(t, {
     prefixLength: 660, barrierWork: 6144, barrierProgress: 1,
+  }));
+
+test('public retained nearest admits Relation inputs and cancels inside unused array',
+  {timeout: 45_000}, t => runPublicNearestBarrier(t, {
+    prefixLength: 1, barrierWork: 256, barrierProgress: 0, direct: true,
   }));
