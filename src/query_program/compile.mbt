@@ -1176,7 +1176,7 @@ fn lower_analytic_call(
       if call.window.frame is None {
         raise Abort(UnsupportedAnalytic)
       }
-      if !["COUNT", "SUM", "AVG", "MIN", "MAX"].contains(
+      if !["COUNT", "COUNTIF", "SUM", "AVG", "MIN", "MAX"].contains(
           aggregate.function_name,
         ) {
         raise Abort(UnsupportedAnalytic)
