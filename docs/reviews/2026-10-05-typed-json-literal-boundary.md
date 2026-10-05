@@ -147,8 +147,25 @@ Run vectors. The two Values issuance/identity callers passed 2/2
 later changes affect test oracles, expectations and this report; the packed
 source SHA above remains explicit rather than being relabeled as later HEAD.
 
-Remaining: A/C reviews, Wasm/Native runtime
-execution and CI. The separate Frontend branch must emit this structured leaf
-and compare a complete independently authored Program. The Delta branch must
-then execute valid authored JSON source through apply_graph_delta; its earlier
-machine controls and refusal acceptance are separate evidence.
+The subsequent clean packed Graph diagnostics probe at
+`f80c8133158ee2bd4cf73cf4f5544d3c67dc26c2` reached a successful degree Result,
+then failed its old untagged JSON identity expectation (`run-4zUkBL`,
+`public-query-evidence-gA3vFP`, command `012`). The semantic identity, domain,
+degree and order matched. Dependent diagnostics/traversal source fixtures now
+spell the common JSON envelope, including ARRAY<JSON> items. The existing
+public Graph caller's independently authored Relation row/Store preimages use
+the same declared wire; its Graph snapshot and Delta semantic preimages remain
+unchanged. This is a dependent fixture update, not a change to Graph identity.
+
+The separate Frontend's clean packed source acceptance passed at
+`078c600a0c21918339d7b078847e1749ad8532fb`
+(`run-0feaIR`, `public-query-evidence-1tZPe2`). The Delta source path also
+passed at `1bf39f4d8898b8118a2294a8541edb094bc2cf33`
+(`run-GmKhiP`, `public-query-evidence-sJpmho`), including an authored generic
+JSON literal passed to apply_graph_delta and independently expected p=8.
+Each record covers Local and HTTPS and preserves its own clean source SHA;
+these results are not relabeled as the common branch's later HEAD.
+
+Remaining: the affected Graph fixture execution checks, A/C boundary reviews,
+Wasm/Native runtime execution and required CI. These PRs do not complete the
+whole Frontend profile or all Graph consumers.
