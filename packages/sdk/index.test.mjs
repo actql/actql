@@ -1259,3 +1259,12 @@ test('typed check outcome explanations preserve report binding and incomplete br
     './check-outcome-explanation.typecheck.mts', import.meta.url))],
   {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
 });
+
+
+test('unused Parameter explanations distinguish a declaration violation from a missing value', () => {
+  assert.deepEqual(explainCheckReason({code: 'parameter_unused', facts: {parameter: 'unused'}}),
+  {kind: 'known', summary: 'A declared parameter is not used by the complete Program.',
+    hint: 'Remove the unused declaration or reference the parameter in the Program, then check again.'});
+  assert.notEqual(explainCheckReason({code: 'parameter_unused'}).hint,
+    explainCheckReason({code: 'parameter_value_required'}).hint);
+});

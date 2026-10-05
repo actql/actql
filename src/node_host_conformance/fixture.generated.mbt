@@ -1955,6 +1955,12 @@ fn local_values_unary_program(kind : String) -> String {
     "filter_structured" =>
       "{\"filter\":{\"gt\":[{\"field\":\"id\"},{\"$param\":\"minimum\"}]},\"as\":\"out\"}"
     "filter_null" => "{\"filter\":\"amount > 0\",\"as\":\"out\"}"
+    "filter_long_text" =>
+      "{\"filter\":{\"eq\":[{\"literal\":\"" +
+      String::make(256, 'g') +
+      "\"},{\"literal\":\"" +
+      String::make(256, 'g') +
+      "\"}]},\"as\":\"out\"}"
     "filter_failure" => "{\"filter\":\"false AND 1 / 0 > 0\",\"as\":\"out\"}"
     "derive_map" => "{\"derive\":{\"next\":\"id + $minimum\"},\"as\":\"out\"}"
     "derive_long_text" =>

@@ -93,6 +93,20 @@ priv enum Evaluation {
   FinishObject(ObjectExpressionState)
   MeasureObject(ObjectExpressionState, Value, LogicalMeasureCursor)
   MeasureResult(Value, LogicalMeasureCursor)
+  CompareBinary(BinaryComparisonState)
+}
+
+///|
+priv struct BinaryComparisonState {
+  expression : @lower.Expression
+  op : @lower.BinaryOperator
+  left : Value
+  right : Value
+  left_root : ExpressionRootLease?
+  right_root : ExpressionRootLease?
+  charge : BoundedTextCharge
+  mut phase : Int
+  mut offset : Int
 }
 
 ///|
@@ -405,10 +419,15 @@ fn advance_expression_frame_impl(
     }
   }
   while true {
-    if budget.remaining == 0 {
-      return Err({ kind: ControlLimit, expression: frame.active, })
+    // Right paid the transition and the operand byte charge covers both scans.
+    // Splitting those scans must not add a charge for each resume or refund
+    // work. The next semantic Return still pays its usual transition.
+    if !(frame.state is CompareBinary(_)) {
+      if budget.remaining == 0 {
+        return Err({ kind: ControlLimit, expression: frame.active, })
+      }
+      budget.remaining = budget.remaining - 1
     }
-    budget.remaining = budget.remaining - 1
     match frame.state {
       Enter(expr) => {
         frame.active = expr
@@ -818,6 +837,50 @@ fn advance_expression_frame_impl(
               }
               frame.current_root = None
               frame.state = Membership(state)
+              if !drain {
+                return Ok(None)
+              }
+              continue
+            }
+            if (left is Text(text) && text.length() > 64) ||
+              (value is Text(text) && text.length() > 64) {
+              match
+                expression_event_consume(
+                  logical_work,
+                  left,
+                  expr,
+                  root=left_root,
+                ) {
+                Err(issue) => return Err(issue)
+                Ok(_) => ()
+              }
+              match
+                expression_event_consume(
+                  logical_work,
+                  value,
+                  expr,
+                  root=frame.current_root,
+                ) {
+                Err(issue) => return Err(issue)
+                Ok(_) => ()
+              }
+              // Reuse the popped continuation's slot and reserve the second
+              // cursor handle before constructing the pending comparison.
+              if !reserve_slots(workspace, 1) {
+                return Err({ kind: WorkspaceLimit, expression: expr, })
+              }
+              frame.state = CompareBinary({
+                expression: expr,
+                op,
+                left,
+                right: value,
+                left_root,
+                right_root: frame.current_root,
+                charge: { offset: 0, next: 0, remaining: 0, },
+                phase: 0,
+                offset: 0,
+              })
+              frame.current_root = None
               if !drain {
                 return Ok(None)
               }
@@ -1312,6 +1375,88 @@ fn advance_expression_frame_impl(
             frame.current_root = Some(root)
             frame.state = Return(value)
           }
+        }
+      }
+      CompareBinary(state) => {
+        frame.active = state.expression
+        if state.phase < 2 {
+          let operand = if state.phase == 0 { state.left } else { state.right }
+          match bounded_comparison_charge_text(operand) {
+            Err(Scalar(issue)) =>
+              return Err({ kind: Scalar(issue), expression: state.expression, })
+            Err(_) =>
+              return Err({ kind: ControlLimit, expression: state.expression, })
+            Ok(Some(text)) =>
+              match advance_bounded_text_charge(state.charge, budget, text) {
+                Err(_) =>
+                  return Err({
+                    kind: ControlLimit,
+                    expression: state.expression,
+                  })
+                Ok(false) => {
+                  if !drain {
+                    return Ok(None)
+                  }
+                  continue
+                }
+                Ok(true) => ()
+              }
+            Ok(None) =>
+              match charge_comparison_operand(budget, operand) {
+                Err(ComparisonChargeLimit) =>
+                  return Err({
+                    kind: ControlLimit,
+                    expression: state.expression,
+                  })
+                Err(ComparisonChargeInvalidOperand) =>
+                  return Err({
+                    kind: Scalar(InvalidOperand),
+                    expression: state.expression,
+                  })
+                Ok(_) => ()
+              }
+          }
+          state.phase += 1
+          reset_bounded_text_charge(state.charge)
+        } else {
+          let comparison_operator = match state.op {
+            Add | Subtract | Multiply | Divide | Modulo | In | NotIn => false
+            _ => true
+          }
+          let result = if comparison_operator &&
+            state.left is Text(left) &&
+            state.right is Text(right) {
+            let (compared, offset) = bounded_utf16_comparison_step(
+              left,
+              right,
+              state.offset,
+            )
+            state.offset = offset
+            guard compared is Some(compared) else {
+              if !drain {
+                return Ok(None)
+              }
+              continue
+            }
+            binary_comparison_result(state.op, state.left, compared)
+          } else {
+            binary(state.op, state.left, state.right)
+          }
+          let result = match result {
+            Ok(value) => value
+            Err(issue) =>
+              return Err({ kind: Scalar(issue), expression: state.expression, })
+          }
+          match expression_event_release(state.left_root, state.expression) {
+            Err(issue) => return Err(issue)
+            Ok(_) => ()
+          }
+          match expression_event_release(state.right_root, state.expression) {
+            Err(issue) => return Err(issue)
+            Ok(_) => ()
+          }
+          release_slots(workspace, 2)
+          frame.state = Return(result)
         }
       }
       MeasureResult(value, cursor) => {

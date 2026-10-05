@@ -5,6 +5,8 @@ fn local_managed_unary_expected(kind : String) -> Array[String] {
     "filter_nested" => ["{\"id\":2,\"payload\":[]}"]
     "filter_text" | "filter_structured" => ["{\"amount\":null,\"id\":2}"]
     "filter_null" => ["{\"amount\":10,\"id\":1}"]
+    "filter_long_text" =>
+      ["{\"amount\":10,\"id\":1}", "{\"amount\":null,\"id\":2}"]
     "assert_where" | "assert_unique" =>
       ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":null}"]
     "derive_map" =>
@@ -212,6 +214,7 @@ fn local_managed_unary_consumer_expected(kind : String) -> Array[String] {
   } else if kind == "rename_swap" {
     ["{\"amount\":1,\"id\":10}", "{\"amount\":2,\"id\":null}"]
   } else if kind == "derive_empty" ||
+    kind == "filter_long_text" ||
     kind == "rename_empty" ||
     kind == "drop_empty" {
     ["{\"id\":1,\"amount\":10}", "{\"id\":2,\"amount\":null}"]
@@ -430,6 +433,7 @@ fn run_local_managed_unary_case(
     kind == "select" ||
     kind == "derive_map" ||
     kind == "derive_long_text" ||
+    kind == "filter_long_text" ||
     kind == "derive_empty" ||
     kind == "derive_ordered" ||
     kind == "assert_where" ||
@@ -1198,6 +1202,11 @@ test "ordinary Local derive resumes within quantum and preserves row order" {
 ///|
 test "ordinary Local long Text derive feeds two Computes within quantum" {
   run_local_managed_unary_case("derive_long_text")
+}
+
+///|
+test "ordinary Local long Text filter feeds two Computes within quantum" {
+  run_local_managed_unary_case("filter_long_text")
 }
 
 ///|

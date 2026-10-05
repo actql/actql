@@ -128,7 +128,12 @@ const retainEffectUncertainty = (state, ref) => {
       state.next_action.kind === 'reconcile') {
     // A Local port may reuse a cached object for another observation/Run.
     // Each returned SDK response must keep its own original association.
-    state = structuredClone(state);
+    try { state = structuredClone(state); }
+    catch { fail('InvalidHostRunState'); }
+    // A Local value can lose fields when copied. Retain only a validated
+    // copied reconciliation state, before reading or explaining its facts.
+    if (!validRunState(state) || state.status !== 'needs_reconciliation' ||
+        state.next_action.kind !== 'reconcile') fail('InvalidHostRunState');
     effectUncertainties.set(state, freezeInput({
       observation: 'effect_outcome_unknown',
       summary: 'External Effect outcomes are unknown. Computation stop does not establish their outcome or resource release.',
@@ -291,6 +296,8 @@ export function explainCheckReason(reason) {
     query_expression_invalid: ['An expression violates its reference, argument or numeric contract.', 'Correct the expression under the selected query contract.'],
     query_lexical_invalid: ['A query token violates its lexical syntax.', 'Correct the token at the reported location when available.'],
     parameter_undeclared: ['The query refers to an undeclared parameter.', 'Declare the parameter or correct its reference; a value alone cannot declare it.'],
+    parameter_unused: ['A declared parameter is not used by the complete Program.',
+      'Remove the unused declaration or reference the parameter in the Program, then check again.'],
     query_invalid: ['The query violates its language or name-resolution contract.', 'Correct the query using its declared names and visible context.'],
     parameter_declarations_invalid: ['The parameter declarations are invalid.', 'Correct the supplied declarations.'],
     supplied_parameters_invalid: ['The supplied parameter input is invalid.', 'Correct the supplied parameter map.'],

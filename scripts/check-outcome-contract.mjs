@@ -73,6 +73,12 @@ export const checkReasonSchema = {
         {not: {required: ['expected_type']}}, {not: {required: ['constraint']}}]}}}},
     {if: {properties: {code: {const: 'parameter_value_required'}}},
       then: {required: ['facts'], properties: {facts: {required: ['expected_type'], not: {required: ['actual_type']}}}}},
+    {if: {properties: {code: {const: 'parameter_unused'}}},
+      then: {required: ['facts'], properties: {
+        facts: {type: 'object', additionalProperties: false,
+          required: ['parameter'], properties: {parameter: parameterName}},
+        location: {properties: {kind: {const: 'structured'},
+          document_id: {const: 'parameter_declarations'}}}}}},
     {if: {properties: {code: {const: 'supplied_value_constraint_violation'}}},
       then: {required: ['facts'], properties: {facts: {required: ['constraint']}}}},
     {if: {properties: {code: {const: 'query_lexical_invalid'}}},
@@ -87,7 +93,7 @@ export const checkReasonSchema = {
         properties: {operation: {enum: ['components', 'subgraph']},
           issue: {enum: [...graphIssues, ...subgraphIssues]}}},
         location: {properties: {kind: {const: 'text'}}}}}},
-    {if: {properties: {code: {not: {enum: ['supplied_value_type_mismatch', 'parameter_default_type_mismatch', 'parameter_value_required', 'parameter_undeclared', 'supplied_value_constraint_violation', 'query_lexical_invalid', 'query_expression_invalid', 'graph_operation_invalid']}}}},
+    {if: {properties: {code: {not: {enum: ['supplied_value_type_mismatch', 'parameter_default_type_mismatch', 'parameter_value_required', 'parameter_undeclared', 'parameter_unused', 'supplied_value_constraint_violation', 'query_lexical_invalid', 'query_expression_invalid', 'graph_operation_invalid']}}}},
       then: {not: {required: ['facts']}}},
   ],
 };

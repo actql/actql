@@ -29,7 +29,8 @@ const mutations = [
     '      | DefaultTypeViolation(_, _, _, _)\n      | SuppliedViolation(_)\n' +
     '      | DeclarationViolation(_)\n' +
     '      | ConstraintViolation(_, _, _)\n' +
-    '      | UndeclaredParameter(_, _))\n    }) {\n' +
+    '      | UndeclaredParameter(_, _)\n' +
+    '      | UnusedParameter(_, _))\n    }) {\n' +
     '    "invalid"',
     'if findings.iter().any(finding => !(finding is Limit(_))) {\n' +
     '    "invalid"'],
@@ -238,6 +239,20 @@ const mutations = [
   ['a default type violation is reported as an analysis limit',
     'Some(DefaultTypeViolation(name, expected, actual, pointer))',
     'Some(Limit("analysis_budget_exhausted"))'],
+  ['an unused Parameter loses its typed explanation',
+    'return Some(UnusedParameter(declaration.name, pointer))',
+    'return Some(Violation("program_invalid"))'],
+  ['an unused Parameter loses its original declaration location',
+    'return Some(UnusedParameter(declaration.name, pointer))',
+    'return Some(UnusedParameter(declaration.name, None))'],
+  ['an unused Parameter exposes an unrelated private value as its name',
+    'return Some(UnusedParameter(declaration.name, pointer))',
+    'return Some(UnusedParameter("private-default", pointer))'],
+
+  ['an unused Parameter is reported as an analysis limit',
+    'return Some(UnusedParameter(declaration.name, pointer))',
+    'return Some(Limit("analysis_budget_exhausted"))'],
+
 ];
 
 const strict = id => ({id, operator: 'strictEqual'});
@@ -317,6 +332,10 @@ const targets = [
   ...Array.from({length: 4}, () =>
     ['default type violations retain declaration input and the owned leaf type',
       [strict('default-verdict'), deep('default-reason')]]),
+  ...Array.from({length: 4}, () =>
+    ['unused Parameter explanations retain original custody without exposing values',
+      [strict('unused-custody-verdict'), deep('unused-custody-reason'), strict('unused-disclosure')]]),
+
 ];
 
 // Reuse the common reporter and nonzero-execution evidence. A process failure

@@ -47,6 +47,7 @@ for (const [source, destination] of [
   ['docs/reviews/fixtures/analytic-frame-parameter.reversed-preceding.program.json', 'analytic-frame-parameter.reversed-preceding.program.json'],
   ['scripts/fixtures/public-query-cases.mjs', 'public-query-cases.mjs'],
   ['scripts/fixtures/public-query-profiles.mjs', 'public-query-profiles.mjs'],
+  ['scripts/fixtures/analytic-countif-source-input.mjs', 'analytic-countif-source-input.mjs'],
   ['scripts/fixtures/group-star-source-input.mjs', 'group-star-source-input.mjs'],
   ['scripts/fixtures/aggregate-property-source-input.mjs', 'aggregate-property-source-input.mjs'],
   ['scripts/fixtures/group-ordinal-source-input.mjs', 'group-ordinal-source-input.mjs'],
@@ -187,6 +188,9 @@ if (process.argv.includes('--order-ordinal-only')) {
 if (process.argv.includes('--quoted-identifiers-only')) {
   runtimeEnvironment.ACTQL_TEST_QUOTED_IDENTIFIERS_ONLY = '1';
 }
+if (process.argv.includes('--analytic-countif-only')) {
+  runtimeEnvironment.ACTQL_TEST_ANALYTIC_COUNTIF_ONLY = '1';
+}
 if (process.argv.includes('--source-free-only')) {
   runtimeEnvironment.ACTQL_TEST_SOURCE_FREE_ONLY = '1';
 }
@@ -311,7 +315,7 @@ if (process.argv.includes('--cancellation-only')) {
 }
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
-const narrowPublicQuery = process.argv.some(flag => ['--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
+const narrowPublicQuery = process.argv.some(flag => ['--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
   '--analytic-offset-only',
   '--join-property-only', '--aggregate-property-only', '--analytic-property-only', '--graph-match-only',
   '--graph-diagnostics-only',
@@ -357,7 +361,7 @@ try {
       await readFile(join(root, 'planner-selection-packed-report.json')));
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
 }
-if (plannerSelectionOnly || twoSourceExampleOnly ||
+if (plannerSelectionOnly || twoSourceExampleOnly || process.argv.includes('--analytic-countif-only') ||
     process.argv.includes('--grouped-in-only')) return;
 // The first Host process has exited: no live Local installation still owns
 // its Store. Restore retained Results in a new process without resubmission.

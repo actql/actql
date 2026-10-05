@@ -9,13 +9,16 @@ import {userInfo} from 'node:os';
 import {join} from 'node:path';
 import {inspect} from 'node:util';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
-import {connect, RequestHeld} from '../../packages/node/index.mjs';
-import {openInstalledRemoteHttpHost} from '../../adapters/host-node/embedded-local.mjs';
-import {canonical, cid, configuration} from './installed-infer-fixture.mjs';
-import {providerBindingOriginals} from './model-provider-binding-fixture.mjs';
-import {observeTwoSourceProvider} from './two-source-public-query.mjs';
-
 const options = JSON.parse(readFileSync(0, 'utf8'));
+// Source and packed acceptance supply ordinary public entry points explicitly.
+// A missing installation is an error, never a fallback to checkout internals.
+const {runtime} = options;
+assert.ok(runtime && typeof runtime.client === 'string' &&
+  typeof runtime.httpHost === 'string' && typeof runtime.environment === 'string');
+const {connect, RequestHeld} = await import(runtime.client);
+const {openInstalledRemoteHttpHost} = await import(runtime.httpHost);
+const {canonical, cid, configuration} = await import(runtime.inferFixture);
+const {providerBindingOriginals} = await import(runtime.providerFixture);
 const {root, phase, transport = 'local', count = 1, acquired = false,
   checkpointTtlMs = 120_000, providerRevision = 'public-model-fixture-1'} = options;
 const owner = userInfo().username;
@@ -36,7 +39,7 @@ if (!existsSync(path('keys.json'))) {
 const keys = read('keys.json');
 const signer = {keyId: 'model-reviewer-key', reviewerId: 'model-reviewer',
   sign: bytes => sign(null, bytes, keys.reviewerPrivate)};
-const base = JSON.parse(readFileSync(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8'));
+const base = JSON.parse(readFileSync(runtime.environment, 'utf8'));
 const configured = configuration(base);
 const environment = JSON.parse(configured.installation.environmentWire);
 const {contract_cid: ignoredTask, ...task} = environment.model_task_contracts[0];
@@ -54,8 +57,11 @@ const modelInstallation = {...configured.installation,
   environmentWire: canonical({...environment, evidence_bundle_cid: cid(environment)}),
   executionContracts: [{modelTaskCid: taskCid, cid: cid(execution),
     bodyWire: canonical({...execution, self_cid: cid(execution)})}]};
-const fixtureInputs = ['alpha', 'bravo', 'charlie'].slice(0, count);
-const fixtureRisk = {alpha: 'high', bravo: 'low', charlie: 'medium'};
+const fixtureInputs = options.inputTexts ?? ['alpha', 'bravo', 'charlie'].slice(0, count);
+assert.equal(fixtureInputs.length, count);
+assert.equal(new Set(fixtureInputs).size, count);
+const fixtureRisk = new Map(fixtureInputs.map((text, index) =>
+  [text, ['high', 'low', 'medium'][index]]));
 const program = {version: 'actql/0.1', id: 'public-model-resume', stages: [{id: 'main',
   inputs: acquired ? {source: {connector: 'crm/main', resource: 'r'}} : {},
   steps: [
@@ -82,7 +88,8 @@ const accountConfiguration = canonical({version: 'actql-execution-account-config
 let sourceProfilePath;
 let sourceObservation;
 if (acquired) {
-  const source = JSON.parse(readFileSync(new URL('../../adapters/host-node/fixtures/query-amount-environment.json', import.meta.url), 'utf8'));
+  const {observeTwoSourceProvider} = await import(runtime.sourceObserver);
+  const source = JSON.parse(readFileSync(runtime.sourceEnvironment, 'utf8'));
   const policy = source.contract_registry.find(value => value.kind === 'data_policy');
   const {cid: oldPolicy, ...policyBody} = policy;
   assert.equal(cid(policyBody), oldPolicy);
@@ -120,7 +127,7 @@ if (acquired) {
   source.evidence_bundle_cid = cid(source);
   const database = path('records.duckdb');
   const initialize = !existsSync(database);
-  const duckdb = createRequire(new URL('../../adapters/connectors/duckdb/node/package.json', import.meta.url))('@duckdb/node-api');
+  const duckdb = createRequire(runtime.duckdbPackage)('@duckdb/node-api');
   const {DuckDBInstance} = duckdb;
   if (initialize || options.changeSource) {
     const instance = await DuckDBInstance.create(database);
@@ -168,6 +175,12 @@ const authorization = {accountConfiguration, checkpointTtlMs, leaseMs: 1000,
     observations.push({name, detail});
   },
   async faultInjection(name, detail) {
+    if (phase === 'cancel-before-stop' && name === 'infer_waiting_checkpoint') {
+      while (run === undefined) await new Promise(resolve => setImmediate(resolve));
+      await run.cancel();
+      await run.cancel();
+      save('cancel-before-stop-observation.json', await run.status());
+    }
     if ((phase === 'approve-crash-saved' || phase === 'immediate-crash-saved') &&
         name === 'infer_model_settlement_committed' && detail.slot === 0) crash(name, detail);
     if (phase === 'approve-crash-response' &&
@@ -199,9 +212,11 @@ const installation = {directory: path('host'), modelInstallation, authorization,
           assert.ok(fixtureInputs.includes(text), `The fixed input changed: ${text}`);
           assert.ok(!calls().some(value => value.text === text), `Duplicate physical send: ${text}`);
           log('provider-calls.jsonl', {text, providerRevision, phase});
-          if (phase === 'approve-crash-unknown' && text === 'bravo') crash('provider_response_lost', {text});
-          return moon.clientProgramModelResponse(request, JSON.stringify({reason: null, risk: fixtureRisk[text]}),
-            'packed-risk-model', `public-request-${text}`, 1n, options.usageOverflow ? 1000n : 2n, new Date().toISOString());
+          if (['approve-crash-unknown', 'immediate-crash-unknown'].includes(phase) &&
+              text === 'bravo') crash('provider_response_lost', {text});
+          return moon.clientProgramModelResponse(request, JSON.stringify({reason: null, risk: fixtureRisk.get(text)}),
+            'packed-risk-model', options.inputTexts === undefined ? `public-request-${text}` :
+              `public-request-${fixtureInputs.indexOf(text)}`, 1n, options.usageOverflow ? 1000n : 2n, new Date().toISOString());
         }))}), () => true),
   }];
   }};
@@ -303,7 +318,7 @@ try {
       assert.equal(resolution.results[0].status, 'committed');
     } else if (phase === 'duplicate') {
       resolution = await client.resolveCheckpoints(read('model_invocation-signed.json'));
-    } else if (phase === 'cancel') await run.cancel();
+    } else if (phase === 'cancel' || phase === 'cancel-unknown') await run.cancel();
     if (phase === 'approve-source') {
       const found = await until(async () => {
         const lookup = await client.lookupRequest('public-model-resume');
@@ -317,6 +332,12 @@ try {
       const state = await run.status();
       assert.equal(state.run_id, summary.subject.runId);
       output({summary, runId: state.run_id, status: state.status, resolution});
+    } else if (phase === 'cancel-unknown') {
+      const state = await until(async () => {
+        const current = await run.status();
+        return current.status === 'needs_reconciliation' ? current : undefined;
+      });
+      output({runId: state.run_id, status: state.status});
     } else if (phase === 'probe' || phase.endsWith('-probe')) {
       await new Promise(resolve => setTimeout(resolve, 250));
       const state = await run.status();

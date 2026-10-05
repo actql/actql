@@ -514,3 +514,27 @@ test('independent default mismatch fixture binds closed facts to the declaration
     assert.equal(validCheckOutcome(changed), false);
   }
 });
+
+
+test('independent unused Parameter fixture requires closed facts and original declaration custody', () => {
+  const original = JSON.parse(readFileSync(new URL(
+    './fixtures/check-unused-parameter.invalid.json', import.meta.url), 'utf8'));
+  assert.equal(validCheckOutcome(original), true);
+  const unlocated = structuredClone(original); delete unlocated.report.reasons[0].location;
+  assert.equal(validCheckOutcome(unlocated), true);
+  for (const update of [
+    answer => { delete answer.report.reasons[0].facts; },
+    answer => { answer.report.reasons[0].facts.value = 'private-default'; },
+    answer => { answer.report.reasons[0].facts.expected_type = 'number'; },
+    answer => { answer.report.reasons[0].facts.constraint = 'numeric'; },
+    answer => { answer.report.reasons[0].location.document_id = 'parameters'; },
+    answer => { answer.report.reasons[0].location = {kind: 'text', document_id: 'source',
+      revision: `rev:${'5'.repeat(64)}`, start_byte: 0, end_byte: 1, precision: 'exact'}; },
+    answer => { answer.report.reasons[0].location.revision = `rev:${'5'.repeat(64)}`; },
+    answer => { answer.report.verdict = 'verified'; },
+    answer => { answer.reason_schema_cid = 'sha256:ceb2a05aa8eee7b8c62fc9e734d5488e1c3b9ddd4fc57bbbd1b419cb2bb88261'; },
+  ]) {
+    const changed = structuredClone(original); update(changed);
+    assert.equal(validCheckOutcome(changed), false);
+  }
+});
