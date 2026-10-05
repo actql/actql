@@ -810,10 +810,21 @@ does not refine the schema. A single selected definition retains its declared
 properties and typed key aliases; no data-driven promotion is needed. Label
 refinement uses the same finite union and presence owner. Direct publication of
 Conditional columns and row-predicate presence refinement remain unsupported.
-The existing Relation checker also refuses ordinary filter operations on an
-input that still carries Conditional fields, even when that filter only names a
-Required field. Select the guaranteed columns first, then apply ordinary
-filter/rename/projection. This does not prove presence of the discarded fields.
+The existing Relation checker permits filter, derive, sort and take while
+retaining unreferenced Conditional fields. Every expression/key reference must
+still be schema-guaranteed present, including references in unevaluated
+branches; `IS NOT NULL` does not establish that guarantee. Filter, sort and take
+preserve the input schema and each surviving row's value/presence association.
+Derive preserves untouched fields and makes only its computed bindings present.
+Keyed DISTINCT projects its guaranteed keys before deduplication. Complete-row
+DISTINCT instead includes every field's presence in row equality, so omission
+and explicit NULL remain distinct. GROUP admits the complete sparse input but
+requires guaranteed group keys and all aggregate argument/filter/order
+references; its output follows the existing aggregate schema rather than
+carrying undeclared input fields. These paths use the existing Relation and
+Store owners described in [Row presence](relation-schema.md#row-presence).
+Other conditional-input consumers remain explicitly unsupported; projecting
+guaranteed columns first does not prove presence of discarded fields.
 The existing row kernel, completion port, retention and cleanup owners carry
 the resulting Relation. This is not a separate Graph Relation or runtime.
 

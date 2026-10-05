@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
-import {unionGraphScenario} from './fixtures/property-graph-union.mjs';
+import {unionGraphScenario,unionEndpointConflictScenario} from './fixtures/property-graph-union.mjs';
 
 const fixture = JSON.parse(readFileSync(new URL('./fixtures/property-graph-presence.program.json',import.meta.url),'utf8'));
 
@@ -51,4 +51,23 @@ test('empty union oracle keeps declaration schemas without inventing a Delta row
     assert.deepEqual(scenario.expected,[]);
     assert(scenario.relationSnapshots.every(([,rows])=>rows.length===0));
   }
+});
+
+test('union endpoint-conflict oracle preserves identity while changing a valid peer endpoint', () => {
+  const {document,before,after,baseSnapshot,peerSnapshot} = unionEndpointConflictScenario(fixture);
+  const base = JSON.parse(baseSnapshot), peer = JSON.parse(peerSnapshot);
+  assert.deepEqual(after.id,before.id);
+  assert.deepEqual(after.key,before.key);
+  assert.deepEqual(after.src,before.dst);
+  assert.deepEqual(after.dst,before.src);
+  assert.notDeepEqual(after.src,before.src);
+  assert.deepEqual(peer.slice(0,4),base.slice(0,4));
+  assert.deepEqual(peer[4],[after]);
+  assert(peer[3].some(node=>JSON.stringify(node.id) === JSON.stringify(after.src)));
+  assert(peer[3].some(node=>JSON.stringify(node.id) === JSON.stringify(after.dst)));
+  const delta = document.stages[0].steps[4].derive.delta.literal;
+  assert.deepEqual(delta.edges.update,[{before,after}]);
+  assert.deepEqual(delta.edges.remove,[base[4][1]]);
+  assert.notEqual(delta.target_graph_cid,delta.base_graph_cid);
+  assert.deepEqual(document.stages[0].steps[6].union_graphs.with,['applied','g']);
 });

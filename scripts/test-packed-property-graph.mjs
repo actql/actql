@@ -102,6 +102,7 @@ const acceptance = {
     'independent Graph snapshot bytes and CID with source invalidation and verified reload',
     'sparse Relation omission NULL values and original typed key components through real Store reload',
     'ordered initial Named Result and reattach through public Local and HTTPS',
+    'shared edge endpoint conflict fails with no initial or reattached partial Named Result',
     'extra-field union rejected before Run admission and physical work',
   ] : deltaDiffOnly ? [
     'two retained Graph inputs produce one exact independently authored Delta row',
