@@ -5570,7 +5570,7 @@ duplicates and NULL non-matching; request reuse performs no additional Compute.
 Public comparison-phase stop latency and Wasm/native execution are not newly
 claimed. See the [interval boundary record](2026-10-06-local-interval-comparison.md).
 
-### Set recursive comparison boundary and pending public connection
+### Set recursive comparison and retained Store capacity boundary
 
 EXCEPT/INTERSECT now retain accounted admitted-value comparison frames rather
 than walking a complete Array/Object/Vector inside one poll. Focused JS evidence
@@ -5579,8 +5579,17 @@ exact/one-short comparison limits, and root/scratch ownership through confirmed
 stop and single cleanup. This partitions operator scanning, not retention
 measurement. Other recursive comparator callers are not yet covered.
 
-The ordinary source-free nested Set -> Unnest -> projection Program still fails
-at the first dispatch with typed `Execution(ForeignCandidate)` before comparison
-progress. Its pending reproduction and independent expected rows are retained;
-the failure is not counted as public execution evidence. No whole-route or
-Local completion claim is added. See the [Set boundary record](2026-10-06-local-set-tree-comparison.md).
+The earlier task-zero failure attribution was incorrect: the full diagnostic
+completed tasks 0 through 4, then refused the final Sort's retention reservation.
+Candidate and input binding checks passed. Pre-start Host capacity had omitted
+the declared import/export allowances from its whole-Run inventory.
+
+The follow-up includes those allowances and counts each checked input port,
+without dropping live parents or changing the 512 MiB admission ceiling. The
+ordinary source-free nested Set -> Unnest -> projection -> Sort Program now
+publishes independent ordered producer/two-consumer Results for all four
+ALL/DISTINCT variants; repeated requests perform no additional Compute. Public
+comparison-phase cancellation, packed/HTTP and Wasm/native execution remain
+unverified for this unit. Other recursive comparator callers remain separate.
+See the [Set boundary record](2026-10-06-local-set-tree-comparison.md) and
+[retained capacity record](2026-10-06-local-retained-store-capacity.md).

@@ -10,7 +10,6 @@ import {canonicalJson} from './local-account-config.mjs';
 
 test('public retained Set compares nested values before scalar publication',
   {timeout: 60_000}, async t => {
-    // Pending public connection counterexample, not passing suite evidence.
     const directory = await mkdtemp(join(tmpdir(), 'actql-public-set-values-'));
     t.after(() => rm(directory, {recursive: true, force: true}));
     const keys = generateKeyPairSync('ed25519');
@@ -45,8 +44,8 @@ test('public retained Set compares nested values before scalar publication',
     const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, retainedRelationOutput: true, authorization}});
     t.after(() => client.close());
-    const a = 'g'.repeat(80) + 'a';
-    const b = 'g'.repeat(80) + 'b';
+    const a = 'g'.repeat(256) + 'a';
+    const b = 'g'.repeat(256) + 'b';
     const schema = {items: {type: 'array', nullable: false, max_items: 2,
       items: {type: 'string', nullable: true}},
       marker: {type: 'number', nullable: false}};
