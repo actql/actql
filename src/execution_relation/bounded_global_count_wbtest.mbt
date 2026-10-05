@@ -642,6 +642,83 @@ test "bounded count stops inside long output key measurement" {
 }
 
 ///|
+test "raw row table count output recheck stops between text chunks" {
+  let (control, execution, source) = bounded_global_count_fixture(
+    long_count_key_rows(256),
+    keyed=true,
+    text_key=true,
+    max_work=1000,
+  )
+  let mut reached_recheck = false
+  for _ in 0..<300 {
+    if !reached_recheck {
+      match advance_bounded_global_count(execution, 1).unwrap() {
+        BoundedGlobalCountContinue(..) =>
+          reached_recheck = bounded_global_count_rechecking_output(execution)
+        _ => fail("raw text completed before stepped output recheck")
+      }
+    }
+  }
+  assert_true(reached_recheck)
+  assert_true(
+    advance_bounded_global_count(execution, 1).unwrap()
+    is BoundedGlobalCountContinue(..),
+  )
+  assert_true(bounded_global_count_rechecking_output(execution))
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_global_count(execution, 1).unwrap()
+    is BoundedGlobalCountStopped(_, ..),
+  )
+  assert_true(cleanup_bounded_global_count(execution).unwrap())
+  assert_true(completed_output_available(source))
+}
+
+///|
+test "raw row table count output completes after bounded recheck" {
+  let output_values : ValueLimits = {
+    ..run_limits().output_values,
+    max_nodes: 4,
+    max_text_bytes: 4106,
+    max_work: 4110,
+  }
+  for (bytes, should_complete) in [(4106, true), (4105, false)] {
+    let (_, execution, source) = bounded_global_count_fixture(
+      long_count_key_rows(256),
+      keyed=true,
+      text_key=true,
+      max_work=1000,
+      output_values={ ..output_values, max_text_bytes: bytes, },
+    )
+    let mut terminal = false
+    for _ in 0..<400 {
+      if !terminal {
+        match advance_bounded_global_count(execution, 1).unwrap() {
+          BoundedGlobalCountContinue(..) => ()
+          BoundedGlobalCountComplete(output, ..) => {
+            assert_true(should_complete)
+            guard completed_cell(output, 0, 0) is Some(Text(value)) else {
+              fail("raw output key missing")
+            }
+            assert_eq(value.length(), 4096)
+            assert_eq(completed_row_count(output), 1)
+            terminal = true
+          }
+          BoundedGlobalCountFailed(Capture(CaptureLimit), ..) => {
+            assert_false(should_complete)
+            terminal = true
+          }
+          _ => fail("raw output key ended unexpectedly")
+        }
+      }
+    }
+    assert_true(terminal)
+    assert_true(cleanup_bounded_global_count(execution).unwrap())
+    assert_true(completed_output_available(source))
+  }
+}
+
+///|
 test "raw row table text still requires well-formed Unicode admission" {
   let (_, execution, source) = bounded_global_count_fixture(
     long_count_key_rows(1),
