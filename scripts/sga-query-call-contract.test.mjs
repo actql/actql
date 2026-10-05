@@ -59,7 +59,7 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.equal(body.query_text_grammar_sha256,
     '7cd11ce7c1e58b585756ef3c8ac0eb078cf2bbb7003086263f665e26251b7f0e');
   assert.equal(body.query_text_rules_sha256,
-    'a303762cd3b49d16c2e40a58487db008a6ed5fb9b262518b76d3056c9abbced7');
+    '6e19ee2d70f3c97104b0faff22b8f5d8e37ab021bff6555555bb018bac0f564a');
   assert.equal(body.source_grammar_cid,
     'sha256:487b95656a825703baa75f2e108ac94d3d8a38fa113bb2ef12a3532cac2654ae');
   const historicalBody = {...body, query_text_rules_sha256: 'e4639cbce44c77135b0f162475ca653b9774ef593a4c02434f6ea30b34ff2eb2'};
@@ -95,7 +95,24 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     '65b078b5222afb74121a0785ffc2f3b3acba8642dbbb67e56477cb924fe20933',
     source_grammar_cid: 'sha256:e9b7efcdee0ef6c06bfb6cbc7805f595e030ecbd79e5afeb0ffa17b755710b7a'}),
     'sha256:37e9fadf9ae65bc194ad17b790ce208450550defcdbfb8354ef3c5c9c0cf4f6d');
-  const expected = 'sha256:8ac5a6bdc47a98eca02efae3ca1ceadc613bc930bb523c0013fc73a9bb81dcdc';
+  // Preserve main's node-emission profile as an independent predecessor.
+  assert.equal(cid({...body, query_text_rules_sha256:
+    'a303762cd3b49d16c2e40a58487db008a6ed5fb9b262518b76d3056c9abbced7'}),
+    'sha256:8ac5a6bdc47a98eca02efae3ca1ceadc613bc930bb523c0013fc73a9bb81dcdc');
+  // Preserve the pre-merge source profile and each adopted parent identity.
+  assert.equal(cid({...body, query_text_rules_sha256:
+    'e8cadac5455ca0f70f70dd7af77ca5636dad1d99bccff4d3f2e5cdd7d5f4ccab'}),
+    'sha256:6eadd94b7226575a88196089cb8a63fe54e0a01630d1dfbf7252806f3474d36e');
+  assert.equal(cid({...body, query_text_rules_sha256:
+    '6528f75c6ecd4e3038077c5aff724f3651c23b8310232c363245774cecda6511'}),
+    'sha256:eb1e2c6f90ed75c3bd443ce1a5f91097c41e13e7a6cc08ccc04bdbdf57476c10');
+  assert.equal(cid({...body, query_text_rules_sha256:
+    '865a688d16fef349a3dce0851dd2ba9db2117a2ab58540df24860f42fe43eda9'}),
+    'sha256:064c917539e8fdbf2e0de59a9cfd553e9d645623a56d39ea710f6e2e348193c2');
+  assert.equal(cid({...body, query_text_rules_sha256:
+    '1591310fc6d0f8e53b01dcb646a5f22e717f53a825a00d8600c6aa3e31cb008b'}),
+    'sha256:2afc5d41a26a51589b3ad3b647c08dae6ebdb8f135834c227ab97bfd6197bf8a');
+  const expected = 'sha256:88b3e10e85fa88630900251773eb7b2fe5eb00e0714f3668843145fd82e68a8c';
   assert.equal(cid(historicalBody),
     'sha256:2a5854a264c13c65bf7c2ecbc6f59f9ec09e0c590aacc1c8aed6ec247da80067');
   assert.equal(cid({...body, query_text_rules_sha256:
