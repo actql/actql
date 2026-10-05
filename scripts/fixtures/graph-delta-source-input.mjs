@@ -29,7 +29,7 @@ export const graphDeltaSourceExecutionFailures = [
     + 'DATA applied = FROM g |> normalize_graph() |> apply_graph_delta(field: "delta", with: `saved changes`); '
     + 'FROM GRAPH applied |> MATCH WALK (a:Person) |> SELECT a.p AS p |> RESULT answer'],
 ].map(([name, tail]) => ({name: 'graph-delta-' + name, format: 'aql-text',
-  text: prefix + tail, resultNames: ['answer']}));
+  text: prefix + tail, resultNames: ['answer'], sourceReadSessionCount: 0}));
 export const graphDeltaSourceRefusals = [
   ['unknown-producer', 'apply_graph_delta(with: missing, field: "delta")'],
   ['graph-as-relation', 'apply_graph_delta(with: g, field: "delta")'],

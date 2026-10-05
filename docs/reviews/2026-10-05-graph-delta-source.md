@@ -57,6 +57,14 @@ node scripts/local-checks.mjs test moon --timeout-seconds 120 -- \
 Packed evidence will record the clean source SHA, normal-pack manifest/digests,
 Local/HTTPS results and logs separately. No CI success is asserted here.
 
+The first packed run (`run-SZmSsj`, source
+`2b88e0c23fc3de86ef29c0f0ce4eca6ca2ca2bb0`) passed both JSON controls and
+both semantic execution refusals in Local, then failed the aggregate Source-I/O
+assertion before HTTPS. The source-free execution-refusal fixtures had omitted
+their zero-read count, so the harness expected one external read per case.
+That fixture accounting is corrected; rows, contracts and refusal expectations
+are unchanged. This run is not full public acceptance evidence.
+
 ## Separate JSON literal dependency
 
 Normal source execution needs an ordinary JSON-producing expression. The common
