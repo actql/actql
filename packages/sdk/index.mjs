@@ -273,7 +273,7 @@ export function explainCheckReason(reason) {
   if (reason?.code === 'graph_operation_invalid' &&
       reason?.facts?.operation === 'subgraph' && issue === 'invalid_node_selector') {
     return Object.freeze({kind: 'known', summary: 'The Subgraph node selector is invalid.',
-      hint: 'Supply a supported node selector under the selected Graph contract.'});
+      hint: 'Provide one selector: nonempty ids, a named Relation with an id field, or a node where predicate.'});
   }
   const constraintHints = {
     numeric: 'Supply a number satisfying the declared integer, minimum and maximum constraints.',

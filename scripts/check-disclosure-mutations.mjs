@@ -151,8 +151,8 @@ const mutations = [
     'return GraphViolation("components", "invalid_kind")',
     'return Violation("program_invalid")'],
   ['a Graph components violation invents an authored SQL range',
-    '@encode.string_value(writer, "components")\n          @encode.end_object(writer)',
-    '@encode.string_value(writer, "components")\n          @encode.end_object(writer)\n' +
+    '@encode.string_value(writer, operation)\n          @encode.end_object(writer)',
+    '@encode.string_value(writer, operation)\n          @encode.end_object(writer)\n' +
     '          write_check_text_location(writer, documents.source_revision, 0, 1)'],
   ['a Graph components violation exposes a private value as a code',
     'return GraphViolation("components", "invalid_kind")',
@@ -201,6 +201,24 @@ const mutations = [
   ['a non-Boolean predicate exposes a private value as its code',
     'return ExpressionViolation("expected_boolean", None)',
     'return Violation("private_predicate_value")'],
+  ['a Subgraph selector violation is reported as an implementation limit',
+    'return GraphViolation("subgraph", "invalid_node_selector")',
+    'return Limit("implementation_limit")'],
+  ['a Subgraph selector violation loses its typed facts',
+    'return GraphViolation("subgraph", "invalid_node_selector")',
+    'return Violation("program_invalid")'],
+  ['a Subgraph selector violation invents an authored SQL range',
+    '@encode.string_value(writer, operation)\n          @encode.end_object(writer)',
+    '@encode.string_value(writer, operation)\n          @encode.end_object(writer)\n' +
+    '          if operation == "subgraph" {\n' +
+    '            write_check_text_location(writer, documents.source_revision, 0, 1)\n' +
+    '          }'],
+  ['a Subgraph selector violation exposes a private value as its code',
+    'return GraphViolation("subgraph", "invalid_node_selector")',
+    'return Violation("private_selector_value")'],
+  ['an unsupported Subgraph selector is reported as invalid input',
+    'UnsupportedImplementation =>\n          findings.push(Limit("implementation_limit"))',
+    'UnsupportedImplementation =>\n          findings.push(Violation("program_invalid"))'],
 ];
 
 const strict = id => ({id, operator: 'strictEqual'});
@@ -273,6 +291,9 @@ const targets = [
   ["non-Boolean predicates retain the common checker's requirement", [deep('predicate-reason')]],
   ["non-Boolean predicates retain the common checker's requirement", [deep('predicate-disclosure')]],
   ["non-Boolean predicates retain the common checker's requirement", [deep('predicate-reason')]],
+  ...Array.from({length: 5}, () =>
+    ['Subgraph selector violations preserve the common Owner reason',
+      [strict('subgraph-verdict'), deep('subgraph-reason'), strict('subgraph-limit-verdict')]]),
 ];
 
 // Reuse the common reporter and nonzero-execution evidence. A process failure

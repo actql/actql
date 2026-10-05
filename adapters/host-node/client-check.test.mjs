@@ -1042,23 +1042,24 @@ for (const entrance of ['local', 'http']) {
       const text = prefix + `FROM g |> subgraph(nodes: ${selector}) |> node_rows() |> SELECT node_key`;
       const outcome = await client.check(text, {format: 'aql-text'});
       assert.equal(outcome.outcome, 'completed');
-      assert.equal(outcome.report.verdict, 'invalid');
+      assert.equal(outcome.report.verdict, 'invalid', '[check-mutation:subgraph-verdict]');
       assert.deepEqual(outcome.report.reasons, [{code: 'graph_operation_invalid',
         facts: {operation: 'subgraph', issue: 'invalid_node_selector'}}],
       '[check-mutation:subgraph-reason]');
       assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
       assert.deepEqual(explainCheckReason(outcome.report.reasons[0]), {kind: 'known',
         summary: 'The Subgraph node selector is invalid.',
-        hint: 'Supply a supported node selector under the selected Graph contract.'});
+        hint: 'Provide one selector: nonempty ids, a named Relation with an id field, or a node where predicate.'});
       assert.equal(getCheckInput(outcome, 'source').text, text);
     }
     const unsupported = await client.check(prefix +
       'FROM g |> subgraph(nodes: {where: "true"}) |> node_rows() |> SELECT node_key',
     {format: 'aql-text'});
     assert.equal(unsupported.outcome, 'completed');
-    assert.equal(unsupported.report.verdict, 'undetermined');
+    assert.equal(unsupported.report.verdict, 'undetermined', '[check-mutation:subgraph-limit-verdict]');
     assert.deepEqual(unsupported.report.reasons, []);
-    assert.deepEqual(unsupported.report.coverage.limits, [{code: 'implementation_limit'}]);
+    assert.deepEqual(unsupported.report.coverage.limits, [{code: 'implementation_limit'}],
+      '[check-mutation:subgraph-limit]');
   });
 
   test(`${entrance}: check outcome explanations preserve reporting boundaries`, async t => {
@@ -2128,6 +2129,9 @@ test('http: SDK rejects contradictory evidence injected into a real verified rep
     await assert.rejects(check(), {code: 'InvalidHostCheckOutcome'});
     mutation = value => ({...value,
       reason_schema_cid: 'sha256:6ef2aefaf03e046fcfa830ce1b0648c6b04701162755ba869a9996cd69ade8ef'});
+    await assert.rejects(check(), {code: 'InvalidHostCheckOutcome'});
+    mutation = value => ({...value,
+      reason_schema_cid: 'sha256:ce47f3f27b2f37b0aa48cab9b32fc60c93d5c92ac8196a0a8f80a09df4ae34fa'});
     await assert.rejects(check(), {code: 'InvalidHostCheckOutcome'});
     for (const coverage of [
       {limits: [{code: 'analysis_budget_exhausted'}], unresolved: []},

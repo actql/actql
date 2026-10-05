@@ -124,6 +124,16 @@ test('typed public facts are closed and locations bind declared input revisions'
   for (const issue of ['invalid_kind', 'invalid_output_rows']) {
     assert.equal(valid(outcome({...graph, facts: {...graph.facts, issue}})), true);
   }
+  const selector = {code: 'graph_operation_invalid',
+    facts: {operation: 'subgraph', issue: 'invalid_node_selector'}};
+  assert.equal(valid(outcome(selector)), true);
+  for (const changed of [
+    {code: selector.code}, {...selector, facts: {operation: 'subgraph'}},
+    {...selector, facts: {operation: 'components', issue: 'invalid_node_selector'}},
+    {...selector, facts: {operation: 'subgraph', issue: 'invalid_output_rows'}},
+    {...selector, facts: {...selector.facts, value: 'private_selector'}},
+    {...selector, code: 'program_invalid'}, {...selector, code: 'future_code'},
+  ]) assert.equal(valid(outcome(changed)), false, '[check-mutation:subgraph-schema]');
   for (const changed of [
     {code: graph.code}, {...graph, facts: {issue: 'invalid_kind'}},
     {...graph, facts: {operation: 'subgraph', issue: 'invalid_kind'}},
