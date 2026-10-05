@@ -84,7 +84,8 @@ const mutations = [
     'cancellation-unknown', 'cancel-unknown-explanation'],
 
   ['frontier comparison discards the bound context',
-    'contextRef: report.context_ref,', 'contextRef: "ignored-context",',
+    'return structuralKey(left) === structuralKey(right);',
+    'return structuralKey({...left, contextRef: "ignored"}) === structuralKey({...right, contextRef: "ignored"});',
     'frontier-context', 'frontier-context'],
   ['frontier comparison treats presentation order as progress',
     'requirements: unordered(report.requirements.map(({code, facts}) =>\n      ({code, facts}))),',
