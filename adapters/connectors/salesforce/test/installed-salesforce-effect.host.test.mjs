@@ -2,6 +2,8 @@
 // public Client: submit, Preview, approval of the whole Set, Host restart,
 // current checks, writes and the Named Result. The org is a local HTTPS mock.
 import assert from 'node:assert/strict';
+// The public update acceptance runs with the installed Effect's Host tests.
+import './update-effect.acceptance.test.mjs';
 import {execFileSync} from 'node:child_process';
 import {generateKeyPairSync, sign} from 'node:crypto';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';

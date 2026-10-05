@@ -173,8 +173,11 @@ export const checkpointAuthorization = (accountConfiguration, extra) => ({
 // stateful org. `org` options go to the shared org fixture.
 // `sourceRead` is the source profile's read decision: 'allow', 'deny', or
 // 'delegate' (a deferred read, which this path refuses).
+// `writes` are the installed Effect writes (default: an update of Name).
 export async function readComputeEffectInstallation(t, {org: orgOptions = {},
-  records = storedRecords, sourceRead = 'allow'} = {}) {
+  records = storedRecords, sourceRead = 'allow',
+  writes = [{resource: 'Test_Record__c', kind: 'update',
+    fields: ['Name']}]} = {}) {
   const org = await openSalesforceEffectSiteFixture(t, {commonMoon,
     salesforceMoon, runInvocationCid: cid('1'), dispatchRequestCid: cid('2'),
     statefulRecords: true, storedRecords: records.map(record => ({...record})),
@@ -234,8 +237,7 @@ export async function readComputeEffectInstallation(t, {org: orgOptions = {},
       siteProfilePath: sitePath,
       publicationPath: join(root, 'effect-publication.json'),
       connectorId: 'crm-main', accountConfigurationWire,
-      writes: [{resource: 'Test_Record__c', kind: 'update',
-        fields: ['Name']}]}));
+      writes}));
   await writeEffectProfile(hostAccountConfiguration(org.orgId));
   const published = await publishInstalledEffect({effectProfilePath,
     directory: hostRoot, resolveEffectSecret: secret});
