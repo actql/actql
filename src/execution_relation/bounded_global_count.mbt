@@ -982,6 +982,7 @@ fn start_bounded_global_count_with_input(
       phase: -1,
       offset: 0,
       charge: { offset: 0, next: 0, remaining: 0, },
+      tree: None,
     },
     engine,
     sort_execution: None,
