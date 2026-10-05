@@ -8262,6 +8262,39 @@
       },
       "boundary_tests": [
         {
+          "role": "interval_join_temporal_output_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_temporal_output_wbtest.mbt",
+          "fixture": "temporal output keeps exact node byte and work limits"
+        },
+        {
+          "role": "interval_join_temporal_output_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_temporal_output_wbtest.mbt",
+          "fixture": "temporal output reserves traversal workspace before measurement"
+        },
+        {
+          "role": "interval_join_temporal_output_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_temporal_output_wbtest.mbt",
+          "fixture": "temporal output stops inside recheck and charge with live inputs"
+        },
+        {
           "role": "interval_join_retained_linear_task_shape",
           "suite": "moon:query_integration",
           "targets": [
@@ -8309,6 +8342,15 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "interval_join_long_text_retained_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "interval-long-text-filter-select-chain"
+        },
         {
           "role": "interval_join_retained_chain_publication",
           "suite": "node:duckdb_standard_host",
@@ -8439,6 +8481,39 @@
       },
       "boundary_tests": [
         {
+          "role": "asof_join_temporal_output_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_temporal_output_wbtest.mbt",
+          "fixture": "temporal output keeps exact node byte and work limits"
+        },
+        {
+          "role": "asof_join_temporal_output_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_temporal_output_wbtest.mbt",
+          "fixture": "temporal output reserves traversal workspace before measurement"
+        },
+        {
+          "role": "asof_join_temporal_output_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_temporal_output_wbtest.mbt",
+          "fixture": "temporal output stops inside recheck and charge with live inputs"
+        },
+        {
           "role": "asof_events_exact_one_short_cancel_cleanup",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -8521,6 +8596,15 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "asof_join_long_text_retained_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "asof-long-text-filter-select-chain"
+        },
         {
           "role": "asof_events_retained_publication",
           "suite": "node:duckdb_standard_host",
@@ -8611,6 +8695,50 @@
       },
       "boundary_tests": [
         {
+          "role": "sequence_temporal_output_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_temporal_output_wbtest.mbt",
+          "fixture": "temporal output keeps exact node byte and work limits"
+        },
+        {
+          "role": "sequence_temporal_output_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_temporal_output_wbtest.mbt",
+          "fixture": "temporal output reserves traversal workspace before measurement"
+        },
+        {
+          "role": "sequence_temporal_output_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_temporal_output_wbtest.mbt",
+          "fixture": "temporal output stops inside recheck and charge with live inputs"
+        },
+        {
+          "role": "sequence_sequence_output_resolution_cancel",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_temporal_output_wbtest.mbt",
+          "fixture": "sequence output resolution yields between key and pattern probes"
+        },
+        {
           "role": "sequence_retained_linear_task_shape",
           "suite": "moon:query_integration",
           "targets": [
@@ -8700,6 +8828,15 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "sequence_long_text_retained_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "sequence-long-text-filter-select-chain"
+        },
         {
           "role": "sequence_retained_chain_publication",
           "suite": "node:duckdb_standard_host",

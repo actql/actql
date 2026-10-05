@@ -9508,6 +9508,31 @@ async function exerciseStrategyGraph(
     }
     return program;
   };
+  const retainedLongTextTemporalJoin = kind => {
+    const program = retainedTemporalJoinProgram(kind);
+    const left = program.stages.find(stage => stage.id === 'cross_left');
+    const right = program.stages.find(stage => stage.id === 'cross_right');
+    const joined = program.stages.find(stage => stage.id === 'crossed');
+    left.steps[0].values.schema.tag = {type: 'string', nullable: false};
+    left.steps[0].values.rows = [{...left.steps[0].values.rows[0],
+      tag: retainedOutputText}];
+    right.steps[0].values.rows = [right.steps[0].values.rows[0]];
+    left.results.r.fields = Object.keys(left.steps[0].values.schema);
+    joined.steps[0][kind === 'interval' ? 'interval_join' : 'asof_join']
+      .select.tag = 'left.tag';
+    const fields = kind === 'interval'
+      ? ['left_value', 'right_value', 'tag'] : ['id', 'value', 'tag'];
+    return retainedFamilyChain(program, 'crossed',
+      [{filter: 'true'}, {select: fields}], fields);
+  };
+  const retainedLongTextSequence = structuredClone(retainedRelationSequenceProgram);
+  const longSequenceInput = retainedLongTextSequence.stages.find(stage =>
+    stage.id === 'values_a');
+  longSequenceInput.steps[0].values.schema.id = {type: 'string', nullable: false};
+  longSequenceInput.steps[0].values.rows = [
+    {id: retainedOutputText, key: 1, clock: 1, value: 1},
+    {id: 'end', key: 1, clock: 2, value: 2},
+  ];
   const relationSessionFields = ['id', 'session_start_ms', 'session_end_ms'];
   const retainedRelationSessionProgram = structuredClone(zeroInputProgram);
   const sessionInput = retainedRelationSessionProgram.stages.find(stage =>
@@ -9580,6 +9605,15 @@ async function exerciseStrategyGraph(
     firstStage: 'consumer_a', secondStage: 'consumer_b',
     expected: [sequenceExpected[1], sequenceExpected[0]],
     fields: relationSequenceFields, fixtureArgs: sequencePolicyArgs(2, 3)},
+    {name: 'sequence-long-text-filter-select-chain', source: retainedFamilyChain(
+      retainedLongTextSequence, 'matched',
+      [{filter: 'key = 1'}, {select: relationSequenceFields}], relationSequenceFields),
+    temporal: true, sequence: true,
+    producerStage: 'matched', producerTask: 2, totalTasks: 4,
+    firstStage: 'consumer_a', secondStage: 'consumer_b',
+    expected: [{end_id: 'end', end_time_ms: 2, key: 1, match_end_ms: 2,
+      match_start_ms: 1, start_id: retainedOutputText, start_time_ms: 1}],
+    fields: relationSequenceFields, fixtureArgs: sequencePolicyArgs(2, 3)},
     {name: 'time-series-filter-select-chain', source: retainedFamilyChain(
       retainedTimeSeriesProgram, 'values_a',
       [{filter: 'true'}, {select: ['time']}], ['time']),
@@ -9601,6 +9635,14 @@ async function exerciseStrategyGraph(
       retainedTemporalJoinProgram('asof'), 'crossed',
       [{filter: 'value > 200'}, {select: ['id', 'value']}], ['id', 'value']),
     temporal: true, expected: [{id: 1, value: 300}], fields: ['id', 'value']},
+    {name: 'interval-long-text-filter-select-chain',
+      source: retainedLongTextTemporalJoin('interval'), temporal: true,
+      expected: [{left_value: 10, right_value: 20, tag: retainedOutputText}],
+      fields: ['left_value', 'right_value', 'tag']},
+    {name: 'asof-long-text-filter-select-chain',
+      source: retainedLongTextTemporalJoin('asof'), temporal: true,
+      expected: [{id: 1, value: 100, tag: retainedOutputText}],
+      fields: ['id', 'value', 'tag']},
     {name: 'asof-arithmetic-control-chain', source: retainedFamilyChain(
       retainedTemporalJoinProgram('asof'), 'crossed',
       [{filter: 'id >= 1'}], ['id', 'value']),
