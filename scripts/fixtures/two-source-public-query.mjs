@@ -107,7 +107,13 @@ export function observeTwoSourceProvider(duckdb, databases) {
     if (/\bFROM\s+(?:"main"\.)?"records"(?=\s|$)/iu.test(preparedSql.get(this) ?? '')) {
       sourceReads++;
       const connection = preparedConnection.get(this), database = connectionDatabase.get(connection);
-      assert.ok(connection && sourceDatabases.has(database), 'source scan retains exact physical identity');
+      if (!connection || !sourceDatabases.has(database)) {
+        process.stderr.write(`FixtureSourceIdentityMismatch ${JSON.stringify({database,
+          expectedDatabases: [...sourceDatabases], sql: preparedSql.get(this)})}\n`);
+      }
+      assert.ok(connection && sourceDatabases.has(database),
+        `source scan retains exact physical identity: ${JSON.stringify({database,
+          expectedDatabases: [...sourceDatabases], sql: preparedSql.get(this)})}`);
       if (!sessions.has(connection)) sessions.set(connection, ++sourceReadSessions);
       sourceReadCommands.push({session: sessions.get(connection), database, sql: preparedSql.get(this)});
     }

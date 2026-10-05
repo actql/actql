@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import {spawnSync, execFileSync} from 'node:child_process';
 import {createDecipheriv, createHash} from 'node:crypto';
 import {existsSync, readFileSync} from 'node:fs';
-import {mkdtemp, rm} from 'node:fs/promises';
+import {mkdtemp, realpath, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
@@ -42,7 +42,10 @@ const expectedRows = (count = 1, acquired = false) => [
 ].slice(0, count);
 
 async function fixture(t, options = {}) {
-  const root = await mkdtemp(join(acceptance.scratch ?? tmpdir(), 'actql-public-model-resume-'));
+  // Bind the fixture to the actual directory before authoring its Source
+  // profile. macOS /var and /private/var aliases must not confuse observation.
+  const scratch = await realpath(acceptance.scratch ?? tmpdir());
+  const root = await mkdtemp(join(scratch, 'actql-public-model-resume-'));
   if (acceptance.preserveArtifacts === true) t.diagnostic(`Model recovery artifacts: ${root}`);
   else t.after(() => rm(root, {recursive: true, force: true}));
   if (options.transport === 'https') execFileSync('openssl', [

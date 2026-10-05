@@ -176,3 +176,14 @@ log. Packed fixture custody remains with the retained acceptance artifacts.
 The focused source HTTPS `outcomes` case passed after the entry-point refactor
 (`run-wkC233`, `focused-test-8s16Vl`, tracked changes present). The new packed
 selection is not yet claimed successful.
+
+The adjacent acquired-Model case at
+`3e1cac836c522ba35ad24645e3c5ec7bc664bcf0` stopped the sequential supervisor
+before packing (`run-62tWXp`, `focused-test-mWpKmA`). Its read-only identity
+observer compared a macOS `/var` fixture path with the installed adapter's
+`/private/var` path for the same file. A diagnostic rerun fixed the exact
+mismatch (`run-GUqxQP`, `focused-test-G6JdNc`). The fixture now resolves its
+scratch directory before authoring profiles; it neither changes the product
+path resolver nor relaxes the exact source identity assertion. Source approval,
+Model approval, and frozen-input reuse then passed (`run-fpoPke`,
+`focused-test-OWHRSQ`, tracked changes present). This is not packed evidence.
