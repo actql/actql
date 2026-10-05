@@ -87,6 +87,7 @@ test('packed selection and normal corpus retain OFFSET plus current main routes'
   const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
   for (const [stem, variable] of [['analytic-offset', 'analyticOffset'],
+    ['analytic-frame-parameter', 'analyticFrameParameter'], ['grouped-in', 'groupedIn'],
     ['analytic-property', 'analyticProperty'], ['aggregate-property', 'aggregateProperty'],
     ['join-property', 'joinProperty']]) {
     assert.ok(driver.includes(`['scripts/fixtures/${stem}-source-input.mjs', '${stem}-source-input.mjs']`));

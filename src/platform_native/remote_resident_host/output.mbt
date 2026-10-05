@@ -93,7 +93,7 @@ fn observed_output(
     @remote.dispatch_request_identity(request) !=
     @remote.dispatch_request_identity(executed.request) ||
     selected.coordinator_authority != coordinator_authority ||
-    selected.result_definition_cid != executed.result_definition_cid {
+    executed.result_definition_cid != Some(selected.result_definition_cid) {
     return Err(OutputForeign)
   }
   let observed = match journal.observation(request) {

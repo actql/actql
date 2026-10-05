@@ -49,7 +49,23 @@ const roles = [
   ['spec/contracts/actql-production-profile-schemas.json','/schemas/regex_replacement_ast'],
 ];
 
-function contractCid(file, pointer, legacy) {
+function expressionCid(beforeMembership) {
+  const expression = body('spec/contracts/actql-expressions.json');
+  if (beforeMembership) delete expression.laws.membership;
+  return hash(expression);
+}
+
+function contractCid(file, pointer, legacy, beforeMembership=legacy) {
+    // Membership alignment changes the containing expression contract.
+    // Historical fixtures retain their original normative body and role pins.
+    if (beforeMembership && file === 'spec/contracts/actql-expressions.json' && !pointer) {
+      return expressionCid(true);
+    }
+    if (beforeMembership && !legacy && file === 'spec/contracts/actql-check-environment.json') {
+      const environment = body(file);
+      environment.pushdown_contract_bodies.semantic_dependencies.expression_contract.cid = expressionCid(true);
+      return hash(environment);
+    }
     // The current Catalog selects the owned Property Graph law even when the
     // fixture itself uses only Relation values. Keep the historical role/body
     // for predecessor vectors; do not silently repin those preimages.
@@ -98,11 +114,11 @@ export function relationFixtureContracts({legacy=false,acquired=false}={}) {
   return relationRoles.map(([file,pointer])=>contractCid(file,pointer,legacy));
 }
 
-export function valuesDependencyOracle({legacy=false,resultName='rows'}={}) {
-  const contracts = roles.map(([file,pointer])=>contractCid(file,pointer,legacy)).sort();
+export function valuesDependencyOracle({legacy=false,beforeMembership=legacy,resultName='rows'}={}) {
+  const contracts = roles.map(([file,pointer])=>contractCid(file,pointer,legacy,beforeMembership)).sort();
   const local = {version:'actql-stage-semantics/0.1',binding_references:[],
     bindings:{},parameter_references:[],parameters:{},
-    expression_contract_cid:hash(body('spec/contracts/actql-expressions.json')),
+    expression_contract_cid:expressionCid(beforeMembership),
     local_body:{effects:{},inputs:{},results:{[resultName]:{fields:['id'],from:'selected'}},
       steps:[{as:'selected',values:{rows:[{id:1},{id:2}],schema:{id:{nullable:false,type:'number'}}}}]}};
   const unit = hash({version:'actql-local-unit-dependencies/0.1',
@@ -152,4 +168,20 @@ export function valuesPublicationOracle(options={}) {
     subject_ref:value.subject_ref,target:{kind:'result_publication',measure:value.unit,
       result_name:resultName,unit_definition_cid:unit},unit:value.unit},'binding_cid'));
   return {...dependencies,limits,bindings};
+}
+
+// Closed Program/Definition envelopes for the same independently authored
+// two-row fixture. Historical identity inputs remain selectable explicitly.
+export function valuesProgramOracle(options={}) {
+  const {local} = valuesDependencyOracle(options);
+  const semantics = {version:'actql-program-semantics/0.1',actql_version:'actql/0.1',
+    expression_contract_cid:local.expression_contract_cid,
+    parameters:{},parameter_references:[],bindings:{},binding_references:[],
+    program_template:{stages:[{id:'source',after:'initial',imports:{},
+      stage_semantics_cid:hash(local)}],
+    exports:{answer:{from:{stage:'source',result:'rows'}}}}};
+  const semanticsCid = hash(semantics);
+  const definition = {version:'actql-program-definition/0.1',id:'client-values',
+    program_semantics_cid:semanticsCid};
+  return {semantics,semanticsCid,definition,programCid:hash(definition)};
 }

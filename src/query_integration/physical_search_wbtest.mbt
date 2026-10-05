@@ -133,7 +133,7 @@ test "bounded placement frontier keeps a late assignment without claiming optimu
   ).unwrap()
   let candidates = @strategy.strategy_policy_candidates(choices).unwrap()
   assert_true(
-    candidates.canonical_json.contains("\"actql-policy-candidates/0.2\""),
+    candidates.canonical_json.contains("\"actql-policy-candidates/0.1\""),
   )
   assert_true(candidates.canonical_json.contains(",false,["))
   assert_eq(request.candidate_set_cid, candidates.cid)
@@ -416,16 +416,13 @@ test "placement policy provenance rejects empty metadata before commit" {
   let candidates = @strategy.strategy_policy_candidates(choices).unwrap()
   assert_eq(candidates.cid, request.candidate_set_cid)
   assert_true(
-    candidates.canonical_json.has_prefix("[\"actql-policy-candidates/0.2\","),
+    candidates.canonical_json.has_prefix("[\"actql-policy-candidates/0.1\","),
   )
   assert_true(
-    candidates.canonical_json.contains("\"actql-policy-candidates/0.2\""),
+    candidates.canonical_json.contains("\"actql-policy-candidates/0.1\""),
   )
-  assert_true(request.candidate_set_cid.has_prefix("sha256:"))
-  assert_eq(
-    request.candidate_set_cid,
-    "sha256:9b9f7f4b38b9ef8afc299672bb3e318be1f670932e420379ccd99648a66e7e4d",
-  )
+  assert_eq(candidates.canonical_json, expected_policy_candidates())
+  assert_eq(request.candidate_set_cid, expected_policy_candidates_cid())
   let response : @strategy.PolicyResponse = {
     request,
     position: 0,
@@ -457,7 +454,11 @@ test "placement policy provenance rejects empty metadata before commit" {
       {
         ..response,
         policy_id: "cloud",
-        request: { ..request, candidate_set_cid: "sha256:other", },
+        // The same projection under the former tag cannot select this body.
+        request: {
+          ..request,
+          candidate_set_cid: "sha256:1e3d5896ac4ec3f6a6a501c44cf8431579ea27fb9d1aa8c010ff095ddb0f91eb",
+        },
       },
       1L,
     )

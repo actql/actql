@@ -1420,7 +1420,7 @@ fn advance_expression_frame_impl(
           reset_bounded_text_charge(state.charge)
         } else {
           let comparison_operator = match state.op {
-            Add | Subtract | Multiply | Divide | Modulo => false
+            Add | Subtract | Multiply | Divide | Modulo | In | NotIn => false
             _ => true
           }
           let result = if comparison_operator &&

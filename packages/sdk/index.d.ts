@@ -30,6 +30,39 @@ export type CheckInput = Readonly<{documentId: string; revision: string}> & (
 /** Available only for the exact response of this SDK check call. */
 export declare function getCheckInput(outcome: CheckOutcome, documentId: string,
   revision?: string): CheckInput | undefined;
+type CompletedCheckReport = Extract<CheckOutcome, {outcome: 'completed'}>['report'];
+type ParameterRequirementFacts = Readonly<Pick<Extract<
+  CompletedCheckReport['requirements'][number]['facts'], {expected_type: string}>,
+  'parameter' | 'expected_type'>>;
+/** The known public parameter Requirements, not a complete future obligation list. */
+export type CheckRequirementFrontier = Readonly<{
+  contextRef: string;
+  reasonSchemaCid: string;
+  scope: CompletedCheckReport['scope'];
+  requirements: readonly Readonly<{
+    code: CompletedCheckReport['requirements'][number]['code'];
+    facts: ParameterRequirementFacts;
+  }>[];
+  coverage: CompletedCheckReport['coverage'];
+}>;
+/** Copied, partial and uninterpretable reports have no comparable frontier. */
+export declare function getCheckRequirementFrontier(outcome: CheckOutcome): CheckRequirementFrontier | undefined;
+/** Structural set equality within the same bound scope/context; never verification. */
+export declare function equalCheckRequirementFrontiers(first: CheckOutcome, second: CheckOutcome): boolean | undefined;
+export type CheckSupplementationDecision = Readonly<{kind: 'more_checks'}> |
+  Readonly<{kind: 'stop'; reason: 'frontier_unavailable' | 'no_known_supplement' |
+    'unchanged_frontier' | 'attempt_budget'}>;
+export interface CheckSupplementationSession {
+  /** Explicit read-only check; no automatic I/O, supplement write or execution. */
+  check(text: string, options: Parameters<Client['check']>[1]): Promise<Readonly<{
+    outcome: CheckOutcome;
+    attempts: number;
+    decision: CheckSupplementationDecision;
+  }>>;
+}
+/** A total attempt cap also applies when the bound context keeps changing. */
+export declare function createCheckSupplementationSession(client: Pick<Client, 'check'>,
+  options: Readonly<{maxAttempts: number}>): CheckSupplementationSession;
 export type SubmissionInput = Readonly<{
   requestId: string;
   kind: 'program' | 'aql';
