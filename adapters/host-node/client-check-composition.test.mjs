@@ -2,7 +2,7 @@
 // checker. Public Local/HTTP verdict expectations live in client-check.test.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {checkReasonSchemaCid} from '../../packages/client-wire/index.mjs';
+import {checkReasonSchemaCid, checkOutcomeSchemaCid} from '../../packages/client-wire/index.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
 
 const environment = Object.freeze({});
@@ -26,11 +26,11 @@ function fixture(states = [], publication = aliases) {
       return '{"host_policy_profile":{},"model_task_contract_cids":[],"profiles":{}}';
     },
     clientProgramCheckUnavailable: correlation_ref => JSON.stringify({
-      version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid, outcome: 'unavailable',
+      version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'unavailable',
       problem: {code: 'check_unavailable'}, correlation_ref}),
     clientProgramCheckSource: (...args) => {
       checked.push(args);
-      return JSON.stringify({version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid,
+      return JSON.stringify({version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid,
         outcome: 'completed', report: {context_ref: args[6], inputs: [{document_id: 'source', revision: args[7], kind: 'text', byte_length: Buffer.byteLength(args[0])}],
           requirements: [], scope: {kind: 'bound_input'}, verdict: 'verified', reasons: [],
           coverage: {limits: [], unresolved: []}}});
@@ -52,9 +52,37 @@ function fixture(states = [], publication = aliases) {
   const check = installNodeClientCheck({moon, environment, sourceAccesses,
     publication: {environmentCid, aliases: publication},
     contextKey: new Uint8Array(32).fill(7)});
-  return {check, calls, checked, visible: () =>
+  return {check, moon, calls, checked, visible: () =>
     JSON.parse(checked.at(-1)[3]).aliases};
 }
+
+test('composition: rejected producer replies retain the original attempt reference', async () => {
+  for (const corrupt of [
+    reply => { delete reply.outcome_schema_cid; },
+    reply => { reply.outcome_schema_cid = `sha256:${'0'.repeat(64)}`; },
+    reply => { reply.report.context_ref = 'private producer context'; reply.private = 'private producer data'; },
+  ]) {
+    const f = fixture();
+    const produce = f.moon.clientProgramCheckSource;
+    f.moon.clientProgramCheckSource = (...args) => {
+      const reply = JSON.parse(produce(...args));
+      corrupt(reply);
+      return JSON.stringify(reply);
+    };
+    const first = await f.check(request());
+    const reference = f.checked[0][10];
+    assert.match(reference, /^corr:[0-9a-f]{32}$/u);
+    assert.deepEqual(first, {version: 'actql-check-outcome/0.1',
+      outcome: 'failed', correlation_ref: reference,
+      problem: {code: 'check_internal'}, reason_schema_cid: checkReasonSchemaCid,
+      outcome_schema_cid: checkOutcomeSchemaCid});
+    assert.equal(Object.isFrozen(first), true);
+    assert.equal(Object.isFrozen(first.problem), true);
+    const second = await f.check(request());
+    assert.equal(second.correlation_ref, f.checked[1][10]);
+    assert.notEqual(second.correlation_ref, reference);
+  }
+});
 
 test('composition: zero, one and two owners check source-free input once', async () => {
   for (const states of [[], [{index: 0, action: 'dispatch'}],

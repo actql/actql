@@ -1,0 +1,27 @@
+{
+  "version": "actql-check-outcome/0.1",
+  "reason_schema_cid": "sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d",
+  "outcome_schema_cid": "sha256:a5dd8a6e4a3c5411d97b4d4a5f333992c655c038534352e701257a4c28baea4d",
+  "outcome": "completed",
+  "report": {
+    "context_ref": "ctx:independent-schema-pin",
+    "scope": {
+      "kind": "bound_input"
+    },
+    "verdict": "verified",
+    "inputs": [
+      {
+        "document_id": "source",
+        "revision": "rev:1111111111111111111111111111111111111111111111111111111111111111",
+        "kind": "text",
+        "byte_length": 13
+      }
+    ],
+    "reasons": [],
+    "requirements": [],
+    "coverage": {
+      "limits": [],
+      "unresolved": []
+    }
+  }
+}

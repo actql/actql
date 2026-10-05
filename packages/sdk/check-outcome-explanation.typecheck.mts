@@ -12,6 +12,18 @@ if (explanation?.outcome === 'completed') {
   explanation.execute();
   // @ts-expect-error The reported scope is immutable.
   explanation.report.scope.kind = 'template';
+  // @ts-expect-error Successful checking has no Problem reference.
+  explanation.correlationRef;
+}
+if (explanation?.outcome === 'failed') {
+  const correlation: string = explanation.correlationRef;
+  void correlation;
+  // @ts-expect-error Reporting failure does not authorize another check or execution.
+  explanation.next.operation;
+  // @ts-expect-error A Problem reference cannot restore submitted source.
+  explanation.input.text;
+  // @ts-expect-error The observed reference is immutable.
+  explanation.correlationRef = 'another attempt';
 }
 if (explanation?.outcome === 'failed' && explanation.report) {
   const verdict: 'invalid' | 'undetermined' = explanation.report.verdict;

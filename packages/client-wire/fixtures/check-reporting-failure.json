@@ -1,0 +1,10 @@
+{
+  "version": "actql-check-outcome/0.1",
+  "reason_schema_cid": "sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d",
+  "outcome_schema_cid": "sha256:a5dd8a6e4a3c5411d97b4d4a5f333992c655c038534352e701257a4c28baea4d",
+  "outcome": "failed",
+  "correlation_ref": "corr:independent-reporting-failure",
+  "problem": {
+    "code": "check_report_unbounded"
+  }
+}

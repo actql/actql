@@ -1805,7 +1805,8 @@ const schemas = {
           "outcome",
           "report",
           "version",
-          "reason_schema_cid"
+          "reason_schema_cid",
+          "outcome_schema_cid"
         ],
         "additionalProperties": false,
         "properties": {
@@ -3398,6 +3399,10 @@ const schemas = {
               }
             ]
           },
+          "outcome_schema_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
           "reason_schema_cid": {
             "const": "sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d"
           },
@@ -3412,7 +3417,9 @@ const schemas = {
           "outcome",
           "problem",
           "version",
-          "reason_schema_cid"
+          "reason_schema_cid",
+          "outcome_schema_cid",
+          "correlation_ref"
         ],
         "additionalProperties": false,
         "properties": {
@@ -5017,6 +5024,16 @@ const schemas = {
               }
             }
           },
+          "correlation_ref": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9:_-]+$",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "outcome_schema_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
           "reason_schema_cid": {
             "const": "sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d"
           },
@@ -5032,7 +5049,8 @@ const schemas = {
           "outcome",
           "problem",
           "version",
-          "reason_schema_cid"
+          "reason_schema_cid",
+          "outcome_schema_cid"
         ],
         "additionalProperties": false,
         "properties": {
@@ -5057,6 +5075,10 @@ const schemas = {
                 "pattern": "^[a-z][a-z0-9_]{0,63}$"
               }
             }
+          },
+          "outcome_schema_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
             "const": "sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d"
@@ -6100,6 +6122,7 @@ const operationKeys = {
 };
 
 export const checkReasonSchemaCid = "sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d";
+export const checkOutcomeSchemaCid = "sha256:a5dd8a6e4a3c5411d97b4d4a5f333992c655c038534352e701257a4c28baea4d";
 function valid(value, schema) {
   if (schema.$ref) return valid(value, schemas[schema.$ref]);
   if (schema.oneOf && schema.oneOf.filter(rule => valid(value, rule)).length !== 1) return false;
@@ -6168,7 +6191,7 @@ export const validResourceInspectionShape = value => valid(value, schemas.resour
 export const validResourcePeekShape = value => valid(value, schemas.resource_peek);
 export const validResultDescriptionShape = value => valid(value, schemas.result_description);
 export const validRunStateShape = value => valid(value, schemas.run_state);
-export const validCheckOutcomeShape = value => valid(value, schemas.check_outcome);
+export const validCheckOutcomeShape = value => valid(value, schemas.check_outcome) && value.outcome_schema_cid === checkOutcomeSchemaCid;
 export const validProfileContract = (value, selected) =>
   validConnectionShape(selected) && validProfileShape(value) &&
   value.mode === selected.mode &&
