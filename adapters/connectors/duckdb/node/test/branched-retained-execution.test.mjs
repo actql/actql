@@ -97,9 +97,12 @@ test('retained Relation forks execute bounded ranking and row transforms',
       ['lag', false, false],
       ['watermark', false, false],
       ['json-pick', false, false],
+      ['row-window', false, false],
+      ['unpivot', false, false],
+      ['unnest', false, false],
     ]) {
       const program = structuredClone(base);
-      if (name === 'watermark' || name === 'json-pick') {
+      if (['watermark', 'json-pick', 'unpivot', 'unnest'].includes(name)) {
         for (const stage of program.stages.slice(1, 3)) {
           if (name === 'watermark') {
             stage.steps[0].values.schema.time = {
@@ -108,7 +111,7 @@ test('retained Relation forks execute bounded ranking and row transforms',
             stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
               ({...row, time: row.id === 2 ? 80 : 100}));
             stage.results.r.fields = ['id', 'origin', 'time'];
-          } else {
+          } else if (name === 'json-pick') {
             stage.steps[0].values.schema.payload = {
               type: 'object', nullable: false, fields: {
                 inner: {type: 'object', nullable: false, fields: {
@@ -119,6 +122,21 @@ test('retained Relation forks execute bounded ranking and row transforms',
             stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
               ({...row, payload: {inner: {leaf: row.id}}}));
             stage.results.r.fields = ['id', 'origin', 'payload'];
+          } else if (name === 'unpivot') {
+            stage.steps[0].values.schema.amount = {
+              type: 'number', nullable: false,
+            };
+            stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
+              ({...row, amount: row.id * 10}));
+            stage.results.r.fields = ['id', 'origin', 'amount'];
+          } else {
+            stage.steps[0].values.schema.items = {
+              type: 'array', nullable: false,
+              items: {type: 'number', nullable: false}, max_items: 2,
+            };
+            stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
+              ({...row, items: [row.id, row.id + 1]}));
+            stage.results.r.fields = ['id', 'origin', 'items'];
           }
         }
       }
@@ -152,6 +170,40 @@ test('retained Relation forks execute bounded ranking and row transforms',
             path: ['inner', 'leaf'], output: 'picked'}, as: 'picked'},
           {from: 'picked', filter: 'picked >= 3', as: 'picked_rows'},
           {from: 'picked_rows', select: ['id'], as: 'selected'},
+          {from: 'appended', select: ['id'], as: 'raw_ids'},
+          {from: 'selected', append: {with: 'raw_ids'}, as: 'out'},
+        ];
+      } else if (name === 'row-window') {
+        program.stages[3].steps = [
+          {from: 'l', append: {with: 'r'}, as: 'appended'},
+          {from: 'appended', row_window: {
+            kind: 'fixed', time: 'id', size: 2,
+          }, as: 'windowed'},
+          {from: 'windowed', filter: 'window_start >= 2', as: 'later'},
+          {from: 'later', select: ['id'], as: 'selected'},
+          {from: 'appended', select: ['id'], as: 'raw_ids'},
+          {from: 'selected', append: {with: 'raw_ids'}, as: 'out'},
+        ];
+      } else if (name === 'unpivot') {
+        program.stages[3].steps = [
+          {from: 'l', append: {with: 'r'}, as: 'appended'},
+          {from: 'appended', unpivot: {
+            columns: ['amount'], keep: ['id'], name_column: 'metric',
+            value_column: 'value',
+          }, as: 'expanded'},
+          {from: 'expanded', filter: 'value >= 30', as: 'greater'},
+          {from: 'greater', select: ['id'], as: 'selected'},
+          {from: 'appended', select: ['id'], as: 'raw_ids'},
+          {from: 'selected', append: {with: 'raw_ids'}, as: 'out'},
+        ];
+      } else if (name === 'unnest') {
+        program.stages[3].steps = [
+          {from: 'l', append: {with: 'r'}, as: 'appended'},
+          {from: 'appended', unnest: {
+            column: 'items', as: 'item', outer: false,
+          }, as: 'expanded'},
+          {from: 'expanded', filter: 'item >= 4', as: 'greater'},
+          {from: 'greater', select: ['id'], as: 'selected'},
           {from: 'appended', select: ['id'], as: 'raw_ids'},
           {from: 'selected', append: {with: 'raw_ids'}, as: 'out'},
         ];
@@ -197,7 +249,8 @@ test('retained Relation forks execute bounded ranking and row transforms',
         }
       }
       if (name === 'combined' || name === 'lag' ||
-          name === 'watermark' || name === 'json-pick') {
+          name === 'watermark' || name === 'json-pick' ||
+          name === 'row-window' || name === 'unpivot' || name === 'unnest') {
         const retained = fixture.strategyFixtureCreate(
           ...args, JSON.stringify(program));
         const retainedCapture = await runNativeHostQuery(grant,

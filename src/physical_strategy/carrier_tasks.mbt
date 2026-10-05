@@ -146,8 +146,8 @@ fn bounded_family_relation_chain(
 ///|
 /// A checked binary Relation task may reuse a private intermediate in two
 /// later steps and join those branches. Keep only this bounded, single-root
-/// shape together, including a bounded group on either branch; other nonlinear
-/// or Carrier paths retain per-edge tasks.
+/// shape together, including checked group, window, or expansion children;
+/// other nonlinear or Carrier paths retain per-edge tasks.
 fn bounded_branched_relation_chain(
   graph : CheckedDAG,
   stage : Int,
@@ -198,6 +198,9 @@ fn bounded_branched_relation_chain(
       | @lower.Lag(_)
       | @lower.JsonPick(_)
       | @lower.Watermark(_)
+      | @lower.RowWindow(_)
+      | @lower.Unpivot(_)
+      | @lower.Unnest(_)
       | @lower.AssertRows(_)
       | @lower.CountGroup(_) => ()
       _ => return false

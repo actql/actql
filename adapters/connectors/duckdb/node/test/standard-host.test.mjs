@@ -8094,10 +8094,12 @@ async function exerciseStrategyGraph(
     from: 'ranked_greater', append: {with: 'deduped_less'}, as: 'joined',
   };
   branchedRankedSteps.push({from: 'joined', select: ['id'], as: 'out'});
-  const branchedRowTransformPrograms = ['lag', 'watermark', 'json-pick']
+  const branchedRowTransformPrograms = [
+    'lag', 'watermark', 'json-pick', 'row-window', 'unpivot', 'unnest',
+  ]
     .map(name => {
       const program = structuredClone(branchedRelationProgram);
-      if (name !== 'lag') {
+      if (['watermark', 'json-pick', 'unpivot', 'unnest'].includes(name)) {
         for (const stageId of ['cross_left', 'cross_right']) {
           const stage = program.stages.find(item => item.id === stageId);
           if (name === 'watermark') {
@@ -8107,7 +8109,7 @@ async function exerciseStrategyGraph(
             stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
               ({...row, time: row.id === 2 ? 80 : 100}));
             stage.results.r.fields = ['id', 'time'];
-          } else {
+          } else if (name === 'json-pick') {
             stage.steps[0].values.schema.payload = {
               type: 'object', nullable: false, fields: {
                 inner: {type: 'object', nullable: false, fields: {
@@ -8118,6 +8120,21 @@ async function exerciseStrategyGraph(
             stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
               ({...row, payload: {inner: {leaf: row.id}}}));
             stage.results.r.fields = ['id', 'payload'];
+          } else if (name === 'unpivot') {
+            stage.steps[0].values.schema.amount = {
+              type: 'number', nullable: false,
+            };
+            stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
+              ({...row, amount: row.id * 10}));
+            stage.results.r.fields = ['id', 'amount'];
+          } else {
+            stage.steps[0].values.schema.items = {
+              type: 'array', nullable: false,
+              items: {type: 'number', nullable: false}, max_items: 2,
+            };
+            stage.steps[0].values.rows = stage.steps[0].values.rows.map(row =>
+              ({...row, items: [row.id, row.id + 1]}));
+            stage.results.r.fields = ['id', 'items'];
           }
         }
       }
@@ -8132,10 +8149,26 @@ async function exerciseStrategyGraph(
         {from: 'appended', watermark_rows: {time: 'time',
           late_policy: 'mark', watermark_ms: 90}, as: 'transformed'},
         {from: 'transformed', filter: 'watermark_late = true', as: 'filtered'},
-      ] : [
+      ] : name === 'json-pick' ? [
         {from: 'appended', json_pick: {column: 'payload',
           path: ['inner', 'leaf'], output: 'picked'}, as: 'transformed'},
         {from: 'transformed', filter: 'picked >= 3', as: 'filtered'},
+      ] : name === 'row-window' ? [
+        {from: 'appended', row_window: {
+          kind: 'fixed', time: 'id', size: 2,
+        }, as: 'transformed'},
+        {from: 'transformed', filter: 'window_start >= 2', as: 'filtered'},
+      ] : name === 'unpivot' ? [
+        {from: 'appended', unpivot: {
+          columns: ['amount'], keep: ['id'], name_column: 'metric',
+          value_column: 'value',
+        }, as: 'transformed'},
+        {from: 'transformed', filter: 'value >= 30', as: 'filtered'},
+      ] : [
+        {from: 'appended', unnest: {
+          column: 'items', as: 'item', outer: false,
+        }, as: 'transformed'},
+        {from: 'transformed', filter: 'item >= 4', as: 'filtered'},
       ];
       program.stages.find(stage => stage.id === 'crossed').steps = [
         ...prefix, ...transform,
@@ -9620,7 +9653,10 @@ async function exerciseStrategyGraph(
       name: `append-fork-${name}-join`, source,
       expected: (name === 'lag' ? [4, 1, 2, 3, 4]
         : name === 'watermark' ? [2, 1, 2, 3, 4]
-        : [3, 4, 1, 2, 3, 4]).map(id => ({id})),
+        : name === 'json-pick' ? [3, 4, 1, 2, 3, 4]
+        : name === 'row-window' ? [2, 3, 4, 1, 2, 3, 4]
+        : name === 'unpivot' ? [3, 4, 1, 2, 3, 4]
+        : [3, 4, 4, 1, 2, 3, 4]).map(id => ({id})),
       fields: ['id'],
     })),
     {name: 'except-all-fork-join', source: retainedExceptFork,

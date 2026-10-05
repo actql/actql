@@ -843,6 +843,17 @@ task output identity, and final reservations under the existing chain owner.
 These routes reuse the bounded unary kernels and their operation-specific
 resource proofs; they do not admit every temporal or JSON variant to a fork.
 
+The same selected fork also accepts a fixed `row_window`, `unpivot`, or
+`unnest` child with its checked Relation input. Each authored Append task
+filters on a field created by that child before joining an independent
+projection of the Append output. The retained producer and both consumers
+read fixed ID orders `[2,3,4,1,2,3,4]`, `[3,4,1,2,3,4]`, and
+`[3,4,4,1,2,3,4]` from the real Store. The repeated `4` in the last route
+is an expansion result, not a deduplicated row. The fast memory/retained
+fixture checks the same selected task output and cleanup. These routes use
+the existing window and expansion bounds and the shared fork owner; they
+do not prove every sliding-window or outer-expansion variant.
+
 The same retained Host also runs `EXCEPT ALL` and Cross Join as the first
 binary child of separate fork/join Programs. The former publishes the
 duplicate-sensitive rows `[{id: 2}, {id: 1}, {id: 1}]`; the latter publishes
