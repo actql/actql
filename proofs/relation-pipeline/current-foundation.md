@@ -152,7 +152,9 @@ input set must cover the entire union, including paths where the parents already
 agree but one base still makes both sides changed.
 
 The original single-base declaration and generated integration formats remain
-unchanged; adding `mergeBases` to a single-base declaration rejects. Multi-base
+unchanged; adding `mergeBases` to a single-base declaration rejects unless an
+explicit single-base normalization supplement verifies the redundant field, as
+described below. Multi-base
 integration metadata uses `mergeBases` and `obligations` rather than the scalar
 `mergeBase`, including an empty-obligation record when no protected path needs
 resolution. No declaration is allowed for that empty case. Source/dependency,
@@ -424,3 +426,21 @@ alias cannot excuse another incomplete alias. Effective paths also participate
 in source-binding equality and later merge dependency discovery. The composed
 artifact retains raw records and exposes their completed view separately.
 Existing resolution-input supplements keep their existing acceptance rules.
+
+## Repairing redundant single-base metadata without rewriting history
+
+An immutable resolution that redundantly records its sole maximal base may be
+repaired with an `actql-foundation-single-base-normalization/0.1` record in the
+existing supplements directory. Its only fields are `version`, `id`, `target`
+(`id` and the original bytes' `digest`) and a nonempty `reason`. The supplement
+must follow an introduction of the original declaration. Duplicate repairs
+for one target reject.
+
+This does not accept arbitrary single-base metadata. The composer independently
+checks that the target is a two-parent resolution with exactly one actual Git
+merge base, and that the original `mergeBases` is exactly that singleton. Missing,
+empty, wrong, duplicate or multi-base metadata cannot be normalized. All original
+source, parent, blob, mode, path and dependency checks still run. The immutable
+original and the supplement remain in the generated evidence; only the verified
+redundant field is omitted when comparing effective source bindings. Without an
+explicit valid supplement the existing refusal remains.

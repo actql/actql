@@ -85,7 +85,7 @@ fn retained_transfer_fixture(
   let chunk = b"{\"id\":3}"
   let physical = @manifest.admit(
     "actql-managed-physical-manifest/0.1",
-    ports[4],
+    @publication_host.client_retained_input_edge_schema_cid(edge),
     standard_transfer_input_cid("7"),
     standard_transfer_input_cid("8"),
     1,
@@ -142,7 +142,7 @@ fn retained_transfer_fixture(
     "producer-material",
     holding,
     standard_transfer_input_cid("6"),
-    ports[4],
+    @publication_host.client_retained_input_edge_schema_cid(edge),
     physical.view_contract_cid,
     physical.codec_contract_cid,
     physical.manifest_cid,

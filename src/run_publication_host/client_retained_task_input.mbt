@@ -314,7 +314,9 @@ pub fn prepare_client_retained_task_dispatch(
     Err(issue) => return Err(Edge(issue))
   }
   if client_retained_input_edge_projection(edge) !=
-    client_retained_input_edge_projection(input.producer.edge) {
+    client_retained_input_edge_projection(input.producer.edge) ||
+    client_retained_input_edge_schema_cid(edge) !=
+    client_retained_input_edge_schema_cid(input.producer.edge) {
     return Err(ForeignConsumer)
   }
   let site = (current.site)()

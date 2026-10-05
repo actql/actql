@@ -1010,6 +1010,28 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/bounded_binding_rows_wbtest.mbt",
           "fixture": "bounded selected derive stops after work without publication"
+        },
+        {
+          "role": "derive_large_output_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_derived_output_wbtest.mbt",
+          "fixture": "derived output keeps literal exact and one-short occurrence budgets"
+        },
+        {
+          "role": "derive_large_output_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/execution_relation/bounded_derived_output_wbtest.mbt",
+          "fixture": "derived output recheck yields before dense and presence row publication"
         }
       ],
       "environment_tests": [
@@ -1026,6 +1048,15 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "split-values-derive-in-flight"
+        },
+        {
+          "role": "derive_large_output_retained_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "append-long-text-derive-select"
         }
       ],
       "path_assurance": {
@@ -2330,6 +2361,20 @@
       },
       "boundary_tests": [
         {
+          "role": "pivot_stepped_output_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/stepped_row_retention_wbtest.mbt",
+          "fixture": "analytic and pivot keep independent exact long output limits"
+        },
+        {
+          "role": "pivot_stepped_output_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/stepped_row_retention_wbtest.mbt",
+          "fixture": "group analytic and pivot yield before accepting long copied output"
+        },
+        {
           "role": "pivot_fixed_sequence_work_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -2405,6 +2450,13 @@
           ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "ordinary-pivot-in-flight"
+        },
+        {
+          "role": "pivot_retained_long_text_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "pivot-long-text-filter-select"
         }
       ],
       "path_assurance": {
@@ -3322,6 +3374,27 @@
           "fixture": "empty bounded join has independent exact work and workspace limits"
         },
         {
+          "role": "bounded_join_raw_output_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_join_output_wbtest.mbt",
+          "fixture": "bounded join raw output keeps independent exact and one-short limits"
+        },
+        {
+          "role": "bounded_join_raw_output_workspace_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_join_output_wbtest.mbt",
+          "fixture": "bounded join raw output reserves exact overlapping workspace"
+        },
+        {
+          "role": "bounded_join_raw_output_recheck_cancel_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_join_output_wbtest.mbt",
+          "fixture": "bounded join yields before completing raw large output validation"
+        },
+        {
           "role": "bounded_join_output_workspace_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -3474,6 +3547,13 @@
           ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "equality-join-chain-in-flight"
+        },
+        {
+          "role": "bounded_join_large_retained_output_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "join-long-text-filter-select"
         },
         {
           "role": "bounded_join_named_result_retrieval",
@@ -3747,6 +3827,20 @@
         "symbol": "global_count_provider"
       },
       "boundary_tests": [
+        {
+          "role": "group_stepped_wide_output_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/stepped_row_retention_wbtest.mbt",
+          "fixture": "wide group output is constructed one cell at a time with exact charges"
+        },
+        {
+          "role": "group_stepped_output_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/stepped_row_retention_wbtest.mbt",
+          "fixture": "group analytic and pivot yield before accepting long copied output"
+        },
         {
           "role": "group_fixed_sequence_work_exact_one_short",
           "suite": "moon:execution_relation",
@@ -4299,6 +4393,13 @@
           ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "same-stage-count-if-in-flight"
+        },
+        {
+          "role": "group_retained_long_text_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "group-long-text-filter-select"
         },
         {
           "role": "direct_group_host_timer",
@@ -6324,6 +6425,20 @@
       },
       "boundary_tests": [
         {
+          "role": "analytic_stepped_output_exact_one_short",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/stepped_row_retention_wbtest.mbt",
+          "fixture": "analytic and pivot keep independent exact long output limits"
+        },
+        {
+          "role": "analytic_stepped_output_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/stepped_row_retention_wbtest.mbt",
+          "fixture": "group analytic and pivot yield before accepting long copied output"
+        },
+        {
           "role": "analytic_empty_work_workspace_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -6369,6 +6484,13 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "analytic_retained_long_text_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "analytic-long-text-filter-select"
+        },
         {
           "role": "analytic_ordinary_host_timer",
           "suite": "node:duckdb_standard_host",

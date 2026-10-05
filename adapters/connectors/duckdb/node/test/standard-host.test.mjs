@@ -9362,6 +9362,21 @@ async function exerciseStrategyGraph(
       ? [{id: 1, tag: retainedOutputText}] : [];
     stage.results.r.fields = ['id', 'tag'];
   }
+  // Derive retains both the original Text and its computed copy in one row.
+  // Keep their combined size below the existing 1,000-byte value envelope.
+  const retainedDerivedText = 'x'.repeat(400);
+  const retainedLongTextDerive = structuredClone(retainedLongTextAppend);
+  retainedLongTextDerive.stages.find(stage => stage.id === 'cross_left')
+    .steps[0].values.rows[0].tag = retainedDerivedText;
+  const retainedLongTextJoin = structuredClone(retainedLongTextAppend);
+  retainedLongTextJoin.stages.find(stage => stage.id === 'cross_right')
+    .steps[0].values.rows = [{id: 1, tag: 'right-side'}];
+  retainedLongTextJoin.stages.find(stage => stage.id === 'crossed').steps[0] = {
+    from: 'l', join: {
+      with: 'r', kind: 'inner', on: [{left: 'id', right: 'id'}],
+      select: {id: 'left.id', tag: 'left.tag'},
+    }, as: 'out',
+  };
   const retainedBinaryFork = (source, fields) => {
     const program = structuredClone(source);
     const producer = program.stages.find(stage => stage.id === 'crossed');
@@ -9828,6 +9843,16 @@ async function exerciseStrategyGraph(
     {name: 'append-long-text-filter', source: retainedBinaryChain(
       retainedLongTextAppend, [{filter: 'id > 0'}], ['id', 'tag']),
     expected: [{id: 1, tag: retainedOutputText}], fields: ['id', 'tag']},
+    {name: 'join-long-text-filter-select', source: retainedBinaryChain(
+      retainedLongTextJoin, [{filter: 'id > 0'}, {select: ['id', 'tag']}],
+      ['id', 'tag']),
+    expected: [{id: 1, tag: retainedOutputText}], fields: ['id', 'tag']},
+    {name: 'append-long-text-derive-select', source: retainedBinaryChain(
+      retainedLongTextDerive,
+      [{derive: {copy: 'tag'}}, {select: ['copy', 'id', 'tag']}],
+      ['copy', 'id', 'tag']),
+    expected: [{copy: retainedDerivedText, id: 1, tag: retainedDerivedText}],
+    fields: ['copy', 'id', 'tag']},
     {name: 'unpivot-long-text-filter-select', source: retainedUnaryChain(
       [{unpivot: {columns: ['jan'], keep: ['id', 'tag'],
         name_column: 'metric', value_column: 'amount'}}],
@@ -10101,6 +10126,17 @@ async function exerciseStrategyGraph(
     ], fields: [
       'id', 'time', 'watermark_decision', 'watermark_late', 'watermark_ms',
     ]},
+    {name: 'group-long-text-filter-select', source: retainedUnaryChain(
+      [{group: {by: ['tag'], aggregates: {
+        maximum: {fn: 'max', field: 'amount'},
+      }}}], [{filter: 'maximum > 0'}, {select: ['maximum', 'tag']}],
+      ['maximum', 'tag'], [{id: 1, amount: 7, tag: 'g'.repeat(512)}], {
+        id: {type: 'number', nullable: false},
+        amount: {type: 'number', nullable: false},
+        tag: {type: 'string', nullable: false},
+      }),
+    expected: [{maximum: 7, tag: 'g'.repeat(512)}],
+    fields: ['maximum', 'tag']},
     {name: 'group-filter-select', source: retainedUnaryChain(
       [{group: {by: ['id'], aggregates: {n: {fn: 'count'}}}}],
       [{filter: 'n > 0'}, {select: ['id', 'n']}],
@@ -10171,6 +10207,17 @@ async function exerciseStrategyGraph(
     expected: [1, 2, 3, 4].map(id =>
       ({id, window_start: 0, window_end: 10})),
     fields: ['id', 'window_start', 'window_end']},
+    {name: 'analytic-long-text-filter-select', source: retainedUnaryChain(
+      [{analytic: {
+        partition_by: ['tag'], order_by: [{id: 'asc'}],
+        functions: {position: {fn: 'row_number'}},
+      }}], [{filter: 'position > 0'}, {select: ['id', 'position', 'tag']}],
+      ['id', 'position', 'tag'], [{id: 1, tag: 'g'.repeat(512)}], {
+        id: {type: 'number', nullable: false},
+        tag: {type: 'string', nullable: false},
+      }),
+    expected: [{id: 1, position: 1, tag: 'g'.repeat(512)}],
+    fields: ['id', 'position', 'tag']},
     {name: 'analytic-filter-select', source: retainedUnaryChain(
       [{analytic: {
         partition_by: [], order_by: [{id: 'asc'}],
@@ -10194,6 +10241,19 @@ async function exerciseStrategyGraph(
     expected: [
       {id: 1, total: 2}, {id: 2, total: 5}, {id: 3, total: 9},
     ], fields: ['id', 'total']},
+    {name: 'pivot-long-text-filter-select', source: retainedUnaryChain(
+      [{pivot: {
+        index: ['tag'], column: 'status', values: ['open'],
+        value: 'amount', aggregate: 'count',
+      }}], [{filter: 'open > 0'}, {select: ['open', 'tag']}],
+      ['open', 'tag'], [{id: 1, amount: 7, status: 'open',
+        tag: 'g'.repeat(512)}], {
+        id: {type: 'number', nullable: false},
+        amount: {type: 'number', nullable: false},
+        status: {type: 'string', nullable: false},
+        tag: {type: 'string', nullable: false},
+      }),
+    expected: [{open: 1, tag: 'g'.repeat(512)}], fields: ['open', 'tag']},
     {name: 'pivot-filter-select', source: retainedUnaryChain(
       [{pivot: {
         index: ['id'], column: 'status', values: ['a', 'b'],

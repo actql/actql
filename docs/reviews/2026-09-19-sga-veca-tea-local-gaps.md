@@ -1115,10 +1115,78 @@ providers still use these same kernels. New long-Text Join/Sequence publication
 cases use the existing real Store and two-consumer Host harness; their source
 SHA execution evidence is recorded separately from the parent expansion run.
 The selected JS temporal kernels and retained-provider caller tests pass 40
-tests. That result is not yet retained Store Host execution, packed acceptance,
+tests. The retained Store Host test also passed at
+`5c703b5f008e9f62e251d7444d3a6bd01b6b621c`, including the three long-Text
+temporal publication chains and two consumers. This is not packed acceptance,
 Wasm/native or Linux CI evidence for the temporal output changes.
 Other temporal initialization and comparison boundaries remain governed by
 their existing evidence, not inferred from these output-only regressions.
+
+The shared binding-row owner now rechecks large computed output cells through
+the existing resumable runtime cursor, for both dense and presence rows.
+Unchanged admitted projection cells retain exact-proof reuse. A cancelled or
+failed recheck remains owned until cleanup, and presence rows preserve absent
+columns rather than replacing them with NULL.
+The shared derived-output fixture uses independent literal row envelopes:
+the dense seven-field row has eight nodes, 825 bytes and 833 work units; the
+presence row has four nodes, 404 bytes and 408 work units, including one absent
+field. Exact limits and each typed one-short node/byte/work rejection pass,
+as does cancellation after a real Text recheck chunk with borrowed inputs still
+available after cleanup. The selected binding-row and presence JS tests pass
+94 tests. A retained Append/derive/select Host case adds a computed 400-byte
+Text copy, producer publication and two consumers; execution on its submitted
+source SHA is recorded separately. These output tests do not certify the
+whole expression evaluator or direct publication of conditional columns.
+
+The bounded equality Join owner now also steps validation when a completed
+RowTable lacks a reusable admitted-cell proof. Its existing admitted-input
+path, pair ordering, nullable outer-side extension, charged measurement and
+exact completion bindings are unchanged. Cleanup cancels the pending recheck
+before discarding unpublished cells or releasing their workspace.
+A generated Values completion supplies the raw RowTable regression without
+manually constructing execution state. Before the fix, a quantum-one poll
+finished a 4,096-byte Text check; the new cancellation assertion failed while
+the independent result/limit control passed. After the fix the focused Join
+and managed-caller selection passes 13 tests. The final three-test output
+fixture additionally checks a literal 24-slot workspace peak and typed
+one-short rejection. Its one-row envelope is four nodes, 8,195 bytes and
+8,199 output work units, with two 4,096-byte copied cells.
+A retained Join/filter/select Host case reads a 512-byte Text through the
+existing publication and two-consumer harness. That Host case is a production
+connection control, not evidence that retained input always uses raw RowTable
+storage; the component regression covers that distinct representation.
+New-source Host execution, other targets and Linux CI remain separately
+recorded obligations, not inferred from these JS checks.
+
+General Group, analytic and pivot output retention now advances the existing
+value-measurement cursor for large cells, long field names and wide schemas.
+The private row cursor reserves its handle and traversal frames before
+allocation and keeps failed or unfinished traversal with the enclosing cleanup
+owner. A finite small-row path preserves the existing scalar charges. General
+Group additionally builds a wide output projection one cell per advance.
+Neither numeric occurrence sealing nor aggregate algorithms change.
+
+The independent nested fixture requires six nodes, 137 bytes, depth four and
+143 work units. A wide Group row requires eleven nodes, 4,119 bytes and 4,130
+work units; analytic and pivot copied-Text rows require respectively six/three
+nodes, 4,127/4,105 bytes and 4,133/4,108 work units. Each exact and typed
+one-short node, byte, depth and work limit is checked without deriving the
+expectation from execution. The shared traversal also checks three versus two
+workspace slots, partially charged cleanup and idempotent close. Direct owner
+tests resume each operation through a real Text chunk, then close before its
+first output callback and preserve the borrowed source. These are component
+cleanup checks, not Host cancellation
+delivery evidence.
+
+The focused JS aggregate and analytic managed-caller selection passes 39 tests.
+New retained Group, analytic and pivot long-Text cases use the existing real
+Store publication and two-consumer harness; their source-SHA execution remains
+separate evidence. This does not certify synchronous wire emission or logical
+expression-event measurement, and does not promote whole-operation assurance.
+The broader selected callers still have three Group fixture failures and a
+Nest 35-slot exact-workspace failure, reproduced independently at the unchanged
+parent `b2da55d77784d8d1317ab35ccc1303c585f33507`. They remain explicit
+regression obligations; the passing selection does not hide those failures.
 
 #### Retained Relation obligation chains
 

@@ -5,7 +5,7 @@ import {installStrategyContributions} from '../connectors-builtin/strategy.gener
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {snapshotConfigurations} from './installation.mjs';
-import {completionObserver} from '../host-common/completion-observer.mjs';
+import {completionObserver, taskStartObserver} from '../host-common/completion-observer.mjs';
 import {preparedManagedIdentityPolicy} from './managed-identity-policy.mjs';
 import {enableNodeCompileCache} from './compile-cache.mjs';
 import {prepareCompletedEffectFreeRunPublication} from
@@ -79,6 +79,7 @@ async function runCapturedStrategyTarget(
         plan: publication.plan,
       }),
     authorization,
+    taskStartObserver(observer),
   );
 }
 

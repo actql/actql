@@ -23,6 +23,7 @@ pub(all) enum ResidentSourceComputeIssue {
   Acquisition(@duckdb_native.NativeReadOnlySourceIssue)
   Execution(@duckdb_native.NativeAcquisitionFailure)
   Capture
+  RetainedInput(@output.NativeRemoteRetainedTaskSourceIssue)
   Run(@host.ClientRunOpenIssue)
   Dispatch(@standard.DispatchIssue)
   Compute(@duckdb_native.NativeStandardStrategyRunIssue)
@@ -50,6 +51,7 @@ pub(all) enum ResidentSourceComputeEvent {
 /// Native computation, reservations and cleanup stay with the existing Owners.
 struct ResidentSourceCompute {
   close_source : () -> Bool
+  capture : @query.CapturedInputSource
   run : @strategy.CapturedDAG
   compute : @duckdb_native.NativeStandardStrategyRun
   mut stopping : Bool
@@ -205,95 +207,13 @@ pub fn open_resident_source_compute(
     Ok(value) => value
     Err(issue) => return reject(Capacity(issue), close_source)
   }
-  let source_closed = Ref(false)
-  let close_unbound = () => {
-    let closed = close_source()
-    if closed {
-      source_closed.val = true
-    }
-    closed &&
-    (
-      !@resources.holding_available(ledger, holding) ||
-      @resources.release_allocation(ledger, holding) is Ok(_)
-    )
-  }
-  let run = match @strategy.open_captured_dag(graph, captured, ledger) {
-    Ok(value) => value
-    Err(issue) =>
-      return reject(Run(@host.ClientRunOpenIssue::Run(issue)), close_unbound)
-  }
-  match
-    @strategy.retain_captured_task_allocation(run, 0, holding, release_confirmed=() => {
-      source_closed.val
-    }) {
-    Ok(_) => ()
-    Err(issue) => return reject(Capacity(issue), close_unbound)
-  }
-  let close_run = () => {
-    @strategy.stop_captured_dag(run)
-    @strategy.close_captured_task_output(run, 0)
-    @strategy.close_captured_task_output(run, 1)
-    if !close_source() {
-      return false
-    }
-    source_closed.val = true
-    @strategy.refresh_captured_retention(run)
-    resident_source_compute_capacity_released(run)
-  }
-  let registry = @connector.prepare_capability_registry(
-    [
-      { name: "local", acquisition: false, fixed_compute: true, effect: false, },
-      {
-        name: "duckdb",
-        acquisition: false,
-        fixed_compute: true,
-        effect: false,
-      },
-    ],
-    2,
-    100,
-  ).unwrap()
-  let dispatch = match
-    @standard.configure_strategy_dispatch(
-      run,
-      registry,
-      @connector.capability_registration_at(registry, 0).unwrap(),
-      @connector.capability_registration_at(registry, 1).unwrap(),
-      [generated[1]],
-      configuration.dispatch,
+  let owner = match
+    open_resident_captured_compute(
+      prepared, configuration, captured, ledger, holding, generated, close_source,
+      observe,
     ) {
     Ok(value) => value
-    Err(issue) => return reject(Dispatch(issue), close_run)
-  }
-  match
-    @standard.configure_dispatch_estimates(
-      dispatch,
-      configuration.estimates,
-      configuration.search,
-    ) {
-    Ok(_) => ()
-    Err(issue) => return reject(Dispatch(issue), close_run)
-  }
-  let compute = match
-    @duckdb_native.open_native_standard_strategy_run(
-      dispatch,
-      configuration.imports,
-      configuration.transfer_bytes,
-      configuration.execution_bytes,
-      library=Some(source.library),
-      retained_profile?=configuration.retained,
-    ) {
-    Ok(value) => value
-    Err(issue) => return reject(Compute(issue), close_run)
-  }
-  let owner : ResidentSourceCompute = {
-    close_source,
-    run,
-    compute,
-    stopping: false,
-    source_closed,
-    released: false,
-    observe,
+    Err(issue) => return Err(issue)
   }
   if observe is Some(record) && !record(ProducerCaptured) {
     return reject(ObservationUnrecorded(ProducerCaptured), () => owner.close())
@@ -441,4 +361,147 @@ pub fn ResidentSourceCompute::close(self : ResidentSourceCompute) -> Bool {
   }
   self.released = true
   self.released
+}
+
+///|
+/// Both acquisition and independent Transfer captures enter the same checked
+/// graph, selection, Native execution and cleanup Owners.
+fn open_resident_captured_compute(
+  prepared : @host.PreparedClientProgram,
+  configuration : ResidentSourceComputeConfiguration,
+  captured : @query.CapturedInputSource,
+  ledger : @resources.Ledger,
+  holding : @resources.Holding,
+  generated : Array[@execution.GeneratedSequence],
+  close_source : () -> Bool,
+  observe : ((ResidentSourceComputeEvent) -> Bool)?,
+) -> Result[
+  ResidentSourceCompute,
+  (ResidentSourceComputeIssue, @output.NativeRemoteStandardInputFailure),
+] {
+  let graph = @host.prepared_client_graph(prepared)
+  let source = configuration.source
+  let reject = fn(issue : ResidentSourceComputeIssue, cleanup : () -> Bool) {
+    Err(
+      (
+        issue,
+        @output.prepare_native_remote_standard_input_failure(
+          "source-compute-preparation", cleanup,
+        ).unwrap(),
+      ),
+    )
+  }
+  let source_closed = Ref(false)
+  let close_unbound = () => {
+    let closed = close_source()
+    if closed {
+      source_closed.val = true
+    }
+    closed &&
+    (
+      !@resources.holding_available(ledger, holding) ||
+      @resources.release_allocation(ledger, holding) is Ok(_)
+    )
+  }
+  let run = match @strategy.open_captured_dag(graph, captured, ledger) {
+    Ok(value) => value
+    Err(issue) =>
+      return reject(Run(@host.ClientRunOpenIssue::Run(issue)), close_unbound)
+  }
+  match
+    @strategy.retain_captured_task_allocation(run, 0, holding, release_confirmed=() => {
+      source_closed.val
+    }) {
+    Ok(_) => ()
+    Err(issue) => return reject(Capacity(issue), close_unbound)
+  }
+  let close_run = () => {
+    @strategy.stop_captured_dag(run)
+    @strategy.close_captured_task_output(run, 0)
+    @strategy.close_captured_task_output(run, 1)
+    if !close_source() {
+      return false
+    }
+    source_closed.val = true
+    @strategy.refresh_captured_retention(run)
+    resident_source_compute_capacity_released(run)
+  }
+  let registry = @connector.prepare_capability_registry(
+    [
+      { name: "local", acquisition: false, fixed_compute: true, effect: false, },
+      {
+        name: "duckdb",
+        acquisition: false,
+        fixed_compute: true,
+        effect: false,
+      },
+    ],
+    2,
+    100,
+  ).unwrap()
+  let dispatch = match
+    @standard.configure_strategy_dispatch(
+      run,
+      registry,
+      @connector.capability_registration_at(registry, 0).unwrap(),
+      @connector.capability_registration_at(registry, 1).unwrap(),
+      [generated[1]],
+      configuration.dispatch,
+    ) {
+    Ok(value) => value
+    Err(issue) => return reject(Dispatch(issue), close_run)
+  }
+  match
+    @standard.configure_dispatch_estimates(
+      dispatch,
+      configuration.estimates,
+      configuration.search,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return reject(Dispatch(issue), close_run)
+  }
+  let compute = match
+    @duckdb_native.open_native_standard_strategy_run(
+      dispatch,
+      configuration.imports,
+      configuration.transfer_bytes,
+      configuration.execution_bytes,
+      library=Some(source.library),
+      retained_profile?=configuration.retained,
+    ) {
+    Ok(value) => value
+    Err(issue) => return reject(Compute(issue), close_run)
+  }
+  let owner : ResidentSourceCompute = {
+    close_source,
+    capture: captured,
+    run,
+    compute,
+    stopping: false,
+    source_closed,
+    released: false,
+    observe,
+  }
+  Ok(owner)
+}
+
+///|
+/// Export the already acquired producer through the existing query capture
+/// Owner. This neither executes a consumer nor opens another Source query.
+pub fn ResidentSourceCompute::prepare_source_export(
+  self : ResidentSourceCompute,
+  limits : @host.PublicationOutputExportLimits,
+) -> Result[@execution.CompletedOutputExport, ResidentSourceComputeIssue] {
+  if self.stopping || self.source_closed.val {
+    return Err(Unavailable)
+  }
+  @query.prepare_captured_source_relation_export(
+    self.capture,
+    limits.max_rows,
+    limits.values,
+    limits.payload_wire,
+    limits.logical_wire,
+    limits.schema,
+    limits.max_batch_bytes,
+  ).map_err(_ => Capture)
 }

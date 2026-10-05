@@ -80,6 +80,8 @@ pub fn native_remote_standard_transfer_destination_use_id(NativeRemoteStandardTr
 
 pub fn native_remote_standard_transfer_request(NativeRemoteStandardTransferInput) -> @remote_transfer.RemoteTransferRequest
 
+pub fn native_remote_standard_transfer_source_capacity(NativeRemoteStandardTransferSourceLimits) -> NativeRemoteStandardTransferSourceCapacity?
+
 pub fn open_native_remote_observed_output_manifest_reader(@remote_runtime.NativeRemoteRuntime, @remote_journal.Journal, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, Int) -> Result[@remote_runtime.NativeRemoteOutputManifestReader, NativeRemoteStandardSiteComponentIssue]
 
 pub fn open_native_remote_observed_output_reader(@remote_runtime.NativeRemoteRuntime, @remote_journal.Journal, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, Int) -> Result[@remote_runtime.NativeRemoteOutputReader, NativeRemoteStandardSiteComponentIssue]
@@ -121,6 +123,8 @@ pub fn register_native_remote_standard_bound_run_factory(@remote_site_protocol.R
 pub fn register_native_remote_standard_direct_run_factory(NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferBindingLimits, NativeRemoteStandardTransferSourceLimits, (@execution_query.CapturedInputSource) -> Result[NativeRemoteStandardComputeOwner, Unit]) -> Result[NativeRemoteStandardDirectRunFactory, NativeRemoteStandardHostIssue]
 
 pub fn register_native_remote_standard_direct_source_factory(NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferBindingLimits, NativeRemoteStandardTransferSourceLimits) -> Result[NativeRemoteStandardDirectSourceFactory, NativeRemoteStandardHostIssue]
+
+pub fn register_native_remote_standard_dispatch_run_factory(@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, () -> Result[NativeRemoteStandardRunOwner, NativeRemoteStandardInputFailure]) -> Result[NativeRemoteStandardBoundRunFactory, NativeRemoteStandardHostIssue]
 
 pub fn register_native_remote_standard_physical_source(NativeRemoteStandardTransferInput, () -> Bool, (Int, (Int, Bytes) -> Result[Unit, String]) -> Result[Unit, String], () -> Bool) -> NativeRemoteStandardPhysicalSource
 
@@ -330,6 +334,11 @@ pub(all) enum NativeRemoteStandardTransferInputIssue {
 }
 
 type NativeRemoteStandardTransferSource
+
+pub(all) struct NativeRemoteStandardTransferSourceCapacity {
+  retained_bytes : Int64
+  execution_bytes : Int64
+}
 
 pub(all) enum NativeRemoteStandardTransferSourceIssue {
   InvalidProfile
