@@ -157,6 +157,7 @@ pub enum CheckedOperation {
   GraphEquality(right~ : Target, checked~ : @graph.CheckedPropertyEquality)
   GraphNormalize(@graph.CheckedNormalize)
   GraphComponents(@graph.CheckedComponents)
+  Subgraph(selector~ : Target?, checked~ : @graph.CheckedSubgraph)
   Traverse(selector~ : Target?, checked~ : @graph.CheckedTraverse)
   PropertyGraphConstruction(
     inputs~ : Array[Target],

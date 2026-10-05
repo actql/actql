@@ -848,8 +848,26 @@ fn order_output_slot(
 }
 
 ///|
+// Match append_with_properties: the longest resolved prefix is the receiver,
+// and the remaining path is property access. Both the slot and prefix length
+// participate in reference identity; a range is not an object property.
+fn order_reference_identity(
+  path : Array[@query.NamePart],
+  resolve : (Array[@query.NamePart]) -> String?,
+) -> (String, Int)? {
+  let mut length = path.length()
+  while length > 0 {
+    match resolve(path[:length].to_owned()) {
+      Some(slot) => return Some((slot, length))
+      None => length -= 1
+    }
+  }
+  None
+}
+
+///|
 // Expression equality only permits reuse when ORDER has the same reference
-// meaning as SELECT. A colliding output alias can change a nested reference.
+// meaning as SELECT, including the receiver of a nested property access.
 fn reusable_order_expression(
   expression : @query.Expression,
   selected : Array[(@query.Expression, String)],
@@ -857,9 +875,15 @@ fn reusable_order_expression(
   input_slot : (Array[@query.NamePart]) -> String?,
 ) -> String? {
   for path in join_reference_paths(expression) {
-    match order_output_slot(path, aliases) {
-      Some(slot) if input_slot(path) != Some(slot) => return None
-      _ => ()
+    let selected_reference = order_reference_identity(path, input_slot)
+    let order_reference = order_reference_identity(path, prefix => {
+      match order_output_slot(prefix, aliases) {
+        Some(slot) => Some(slot)
+        None => input_slot(prefix)
+      }
+    })
+    if selected_reference is None || selected_reference != order_reference {
+      return None
     }
   }
   for (value, slot) in selected {
@@ -898,7 +922,12 @@ fn append_order_expression(
     order_expression_slot(path, query, input, fields, selected)
   }
   let lowered = if input.graph_bindings.is_empty() {
-    @expression.append(expression, resolve, construction.builder, max_work)
+    @expression.append_with_properties(
+      expression,
+      resolve,
+      construction.builder,
+      max_work,
+    )
   } else {
     @expression.append_with_macros(
       expression,
@@ -2923,13 +2952,14 @@ fn compile_steps(
               if pending_select is None {
                 raise Abort(UnsupportedOrdering)
               }
-              match kind {
+              let direct = match kind {
                 Reference(path) =>
-                  match resolve_column(path, query, input, active_fields) {
-                    Some(field) => field
-                    None => raise Abort(UnsupportedOrdering)
-                  }
-                _ => {
+                  resolve_column(path, query, input, active_fields)
+                _ => None
+              }
+              match direct {
+                Some(field) => field
+                None => {
                   let mut reused : String? = None
                   for pair in hidden {
                     if same_expression(term.expression, pair.0) {

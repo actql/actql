@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "sdk-jsonl-row-refusal-registration",
+  "kind": "change",
+  "revision": "1c94ac6a645f714ddec40dd91333032bf729da12",
+  "parents": [
+    "7e32faa5a455dc4beafa02a8cd06313e83772d50"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "7e32faa5a455dc4beafa02a8cd06313e83772d50",
+          "digest": "cc319786f188d46e7357d53dea5269f4ad7375ebc6ba0b3c587079c006068c91",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "fd86afe5451c4b98b98ad2523d27755b9d54bc476c76317ebcc9e5de63139407",
+      "afterMode": "100644",
+      "reason": "Register the bounded SDK JSONL row-refusal mutation command after the existing distribution Client Node acceptance selection. Preserve all inherited commands; the original source commit and package blob are unchanged."
+    }
+  ]
+}

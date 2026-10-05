@@ -86,6 +86,7 @@ fn primary_operation_profile(operation : CheckedOperation) -> OperationProfile? 
       | GraphEquality(..)
       | GraphNormalize(_)
       | GraphComponents(_)
+      | Subgraph(..)
       | Traverse(..) => PropertyGraph
       Vector(_) | Nearest(..) | Pool(_) | Ranking(_) => VecA
       TextRank(..) => TextRankProfile

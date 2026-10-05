@@ -214,6 +214,7 @@ pub fn collect_parameter_slots(
         | Set(..)
         | Projection(_)
         | GraphMatch(_)
+        | Subgraph(..)
         | GraphDegree(_)
         | GraphEquality(..)
         | GraphNormalize(_)

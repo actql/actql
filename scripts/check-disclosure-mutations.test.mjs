@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {mkdtempSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -8,6 +8,16 @@ import {mutationAcceptance} from './check-disclosure-mutations.mjs';
 import {nodeTestArguments} from './test-execution.mjs';
 
 const expected = [{name: 'selected', assertions: [{id: 'expected', operator: 'strictEqual'}]}];
+test('an unmatched disclosure mutation selection refuses before changing source', () => {
+  const path = 'src/connectors_builtin_node/client_check.mbt';
+  const before = readFileSync(path, 'utf8');
+  const result = spawnSync(process.execPath,
+    ['scripts/check-disclosure-mutations.mjs', '--match', 'nonexistent-mutation-fixture'],
+    {encoding: 'utf8', timeout: 10000});
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /No disclosure mutations selected/u);
+  assert.equal(readFileSync(path, 'utf8'), before);
+});
 function fixture(t) {
   const directory = mkdtempSync(join(tmpdir(), 'actql-mutation-evidence-'));
   t.after(() => rmSync(directory, {recursive: true, force: true}));
