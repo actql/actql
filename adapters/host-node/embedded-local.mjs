@@ -40,7 +40,8 @@ import {installedEffectIdentity, loadInstalledEffect,
 import {createInstalledEffectSite} from './installed-effect-site.mjs';
 import {createPrivateEvidenceKey, loadPrivateEvidenceKey} from
   './local-continuation-evidence.mjs';
-import {installedSourceIdentity, installedSourcePaths, loadInstalledSources, installedSourceFor,
+import {installedSourceIdentity, installedSourcePaths, loadInstalledSources,
+  installedSourceFor, installedSourceReadAccesses, installedSourceReadBindings,
   publishInstalledSourceProfile} from
   './installed-source.mjs';
 import {createDiagnosticObserver} from
@@ -299,7 +300,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       ? installLocalRetainedStore : installLocalSnapshotStore;
     localSnapshotConfiguration = installStore((_key, bytes, frame) =>
       createLocalRetainedStore({parentDirectory:snapshotDirectory,
-        capacityBytes:bytes,maxFrameBytes:frame,maxEntries:1}));
+        capacityBytes:bytes,maxFrameBytes:frame,maxEntries:1}),
+    authorization?.faultInjection);
     journal = openClientRequestJournal(journalDirectory);
     if ((effectInstallation !== undefined || modelInstallation !== undefined) &&
         effectInstallation?.privateEvidenceKey === undefined) {
@@ -387,7 +389,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     publication: sourcePublication,
     sourceAccesses: (sourceProfile?.sources ??
       (sourceProfile === undefined ? [] : [sourceProfile]))
-      .map(source => source.sourceAccess)});
+      .flatMap(installedSourceReadAccesses)});
   // Checking dispatches nothing and reads no source rows; the audience is
   // the authenticated caller this connection admits.
   const check = async ({principalId: actual, connection, input, parameters,
@@ -406,10 +408,15 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       effectTarget: effectInstallation?.targetReadAuthorization,
       authorization: authorization == null ? authorization :
         {...authorization, observe: diagnostic},
-      ...(sourceProfile?.sources === undefined
-        ? {source: sourceProfile?.readAuthorization}
-        : {sources: sourceProfile.sources.map(source => ({
-          sourceRef: source.sourceAccess.sourceRef, ...source.readAuthorization}))})});
+      ...(sourceProfile?.sources === undefined &&
+          (sourceProfile === undefined ||
+            installedSourceReadAccesses(sourceProfile).length === 1)
+        ? {source: sourceProfile === undefined ? undefined : {
+          ...sourceProfile.readAuthorization,
+          sourceRef: installedSourceReadAccesses(sourceProfile)[0].sourceRef}}
+        : {sources: (sourceProfile?.sources ?? [sourceProfile]).flatMap(source =>
+          installedSourceReadAccesses(source).map(access => ({
+            sourceRef: access.sourceRef, ...source.readAuthorization})))})});
   const observeRun = async ({ref, principalId: actual}) => {
     if (actual !== principalId || ref.namespaceId !== namespaceId ||
         ref.authorityScopeCid !== authorityScopeCid) {
@@ -724,10 +731,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     }
     const acquisitionCount = moon.clientProgramAcquisitionCount(preparedProgram);
     const acquired = acquisitionCount > 0;
-    const selectedAdapters = new Set();
     if (acquired) {
       if (sourceProfile === undefined) throw clientOperationError('ClientProgramNeedsInputs');
-      if (acquisitionCount > 2 || acquisitionCount === 2 && sourceProfile.sources?.length !== 2) {
+      if (acquisitionCount > 2) {
         throw clientOperationError('ClientProgramUnsupported');
       }
       // Every occurrence is selected by its checked requirement before any I/O.
@@ -735,15 +741,17 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
         try {
           const requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(
             preparedProgram, task, 0, registry, values, fragment, ordered));
-          const adapter = installedSourceFor(sourceProfile,
-            moon.clientProgramQueryRequirementSourceRef(requirement));
-          selectedAdapters.add(adapter);
+          const sourceRef = moon.clientProgramQueryRequirementSourceRef(requirement);
+          const adapter = installedSourceFor(sourceProfile, sourceRef);
+          if (acquisitionCount === 2 &&
+              !installedSourceReadBindings(adapter).includes(sourceRef)) {
+            throw new Error('InstalledMultiSourceUnsupported');
+          }
         } catch (cause) {
           throw clientOperationError('ClientProgramUnsupported', cause);
         }
       }
     }
-    if (selectedAdapters.size !== acquisitionCount) throw clientOperationError('ClientProgramUnsupported');
     // Static ModelTask admission cannot authorize a model call. Until the
     // installed dependency/dispatch route is present, refuse before admitting
     // a Run rather than sending this acquisition into a Values fallback.

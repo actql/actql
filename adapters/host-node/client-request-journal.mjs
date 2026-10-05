@@ -137,12 +137,50 @@ function validateSourceInventory(wire) {
       !Array.isArray(value.acquisitions) || value.acquisitions.length !== 2 ||
       canonicalJson(value) !== wire) fail('InvalidClientSourceInventory');
   const requirements = new Set();
+  const validPhysicalBinding = binding => {
+    if (keys(binding, 'version,database,schema,table,utf8_hex') &&
+        binding.version === 'actql-installed-duckdb-target/0.1') {
+      return keys(binding.utf8_hex, 'database,schema,table') &&
+        !['database','schema','table'].some(key => typeof binding[key] !== 'string' ||
+          !binding[key] || typeof binding.utf8_hex[key] !== 'string' ||
+          !/^(?:[0-9a-f]{2})+$/u.test(binding.utf8_hex[key]) ||
+          Buffer.from(Buffer.from(binding.utf8_hex[key], 'hex').toString('utf8'), 'utf8').toString('hex') !== binding.utf8_hex[key] ||
+          Buffer.from(binding.utf8_hex[key], 'hex').toString('utf8').normalize('NFC') !== binding[key]);
+    }
+    if (keys(binding, 'version,org_id,instance_origin,site_key,site_generation,connection_revision,catalog_cid,resource,fields') &&
+        binding.version === 'actql-installed-salesforce-target/0.1') {
+      let origin;
+      try { origin = new URL(binding.instance_origin); } catch { return false; }
+      return origin.protocol === 'https:' && origin.origin === binding.instance_origin &&
+        [binding.org_id, binding.site_key, binding.connection_revision,
+          binding.resource].every(value => typeof value === 'string' && value !== '') &&
+        Number.isSafeInteger(binding.site_generation) && binding.site_generation >= 0 &&
+        cid(binding.catalog_cid) && Array.isArray(binding.fields) &&
+        binding.fields.length > 0 && binding.fields.length <= 100 &&
+        binding.fields.every(value => typeof value === 'string' && value !== '') &&
+        new Set(binding.fields).size === binding.fields.length;
+    }
+    // This is a Host-private physical target, not a new common Engine
+    // identity. The installed Site checks it again against its publication.
+    let origin;
+    try { origin = new URL(binding?.api_origin); } catch { return false; }
+    return keys(binding, 'version,api_origin,repository_id,repository_node_id,owner,repo,catalog_cid,resource,fields') &&
+      binding.version === 'actql-installed-github-target/0.1' &&
+      origin.protocol === 'https:' && origin.origin === binding.api_origin &&
+      Number.isSafeInteger(binding.repository_id) && binding.repository_id > 0 &&
+      [binding.repository_node_id, binding.owner, binding.repo,
+        binding.resource].every(value => typeof value === 'string' && value !== '') &&
+      cid(binding.catalog_cid) && Array.isArray(binding.fields) &&
+      binding.fields.length > 0 && binding.fields.length <= 100 &&
+      binding.fields.every(value => typeof value === 'string' && value !== '') &&
+      new Set(binding.fields).size === binding.fields.length;
+  };
   for (const [index, occurrence] of value.acquisitions.entries()) {
     if (!keys(occurrence, 'stage,input,task,checkedSource,readTuple,physicalBinding') ||
         occurrence.stage !== index || occurrence.input !== 0 || occurrence.task !== index ||
         !keys(occurrence.checkedSource, 'requirementCid,sourceRef,sourceContractCid,carrierSchemaContractCid,sourceDataPolicyCid,dataClassification,sourceViewContractCid,inputContractCid,outputContractCid') ||
         !keys(occurrence.readTuple, 'connection,resource,operation') ||
-        !keys(occurrence.physicalBinding, 'version,database,schema,table,utf8_hex')) {
+        !validPhysicalBinding(occurrence.physicalBinding)) {
       fail('InvalidClientSourceInventory');
     }
     const source = occurrence.checkedSource, binding = occurrence.physicalBinding;
@@ -154,13 +192,14 @@ function validateSourceInventory(wire) {
       occurrence.readTuple.operation !== 'read' ||
       typeof occurrence.readTuple.connection !== 'string' || !occurrence.readTuple.connection ||
       typeof occurrence.readTuple.resource !== 'string' || !occurrence.readTuple.resource ||
-      binding.version !== 'actql-installed-duckdb-target/0.1' ||
-      !keys(binding.utf8_hex, 'database,schema,table') ||
-      ['database','schema','table'].some(key => typeof binding[key] !== 'string' ||
-        !binding[key] || typeof binding.utf8_hex[key] !== 'string' ||
-        !/^(?:[0-9a-f]{2})+$/u.test(binding.utf8_hex[key]) ||
-        Buffer.from(Buffer.from(binding.utf8_hex[key], 'hex').toString('utf8'), 'utf8').toString('hex') !== binding.utf8_hex[key] ||
-        Buffer.from(binding.utf8_hex[key], 'hex').toString('utf8').normalize('NFC') !== binding[key])) {
+      !validPhysicalBinding(binding) ||
+      (binding.version === 'actql-installed-github-target/0.1' &&
+        (binding.resource !== occurrence.readTuple.resource ||
+         occurrence.readTuple.connection !==
+           `github:${new URL(binding.api_origin).host}/${binding.owner}/${binding.repo}`)) ||
+      (binding.version === 'actql-installed-salesforce-target/0.1' &&
+        (binding.resource !== occurrence.readTuple.resource ||
+         occurrence.readTuple.connection !== `salesforce:${binding.org_id}`))) {
       fail('InvalidClientSourceInventory');
     }
     requirements.add(source.requirementCid);

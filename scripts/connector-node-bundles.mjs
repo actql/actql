@@ -245,6 +245,7 @@ if (existsSync(join(root, 'src', bridgePackage,
   dependencies.set('actql/actql/connectors/local', 'local');
   dependencies.set('actql/actql/lowering_relation', 'lower');
   dependencies.set('actql/actql/check_environment', 'check_environment');
+  dependencies.set('actql/actql/value_admission', 'admitted');
   dependencies.set('actql/actql/program_check', 'program_check');
   dependencies.set('actql/actql/stage_syntax', 'stage_syntax');
   dependencies.set('actql/actql/source_value', 'source');

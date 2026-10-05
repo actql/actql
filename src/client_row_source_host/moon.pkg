@@ -17,6 +17,8 @@ import {
   "actql/actql/encode_core" @encode,
   "actql/actql/check_environment" @environment,
   "actql/actql/run_publication" @publication,
+  "actql/actql/physical_resources" @resources,
+  "actql/actql/physical_strategy" @strategy,
   "actql/actql/canonical_json" @identity,
   "moonbitlang/core/json",
 }

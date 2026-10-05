@@ -13,6 +13,7 @@ import {readFile} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {acquisitionFailure} from '../../../host-common/acquisition-outcome.mjs';
+import {startInstalledRowRun} from '../../../host-node/installed-row-run.mjs';
 import {authorizationRuntimeCode} from
   '../../../host-common/authorization-gate.mjs';
 import {installSalesforceAuthorization, installedSalesforceSiteBinding,
@@ -23,7 +24,7 @@ import {loadSalesforceGeneration, publishSalesforceGeneration,
   salesforceCheckEnvironment} from './salesforce-publication.mjs';
 import {installSalesforceResourceService} from
   './salesforce-resource-service.mjs';
-import {readSalesforceIssuedBroad} from '../site/salesforce-query-read.mjs';
+import {readSalesforceQuery} from '../site/salesforce-query-read.mjs';
 
 export const INSTALLED_SALESFORCE_SOURCE_VERSION =
   'actql-installed-salesforce-source/0.1';
@@ -35,10 +36,6 @@ const contractRoot = new URL('../../../../spec/contracts/', import.meta.url);
 const readLimits = Object.freeze({maxBytes: 4_000_000, maxNodes: 400_000,
   maxDepth: 32, maxRows: 2000, maxLocatorUnits: 2048, maxPages: 10,
   maxTotalRows: 100});
-// One acquisition captures at most 500 KB of text: what the standard Host's
-// Local compute evaluates at once. Larger reads are refused while capturing.
-const captureLimits = Object.freeze({maxNodes: 100_000,
-  maxTextBytes: 500_000, maxDepth: 100, maxWork: 20_000_000});
 const declarationLimits = Object.freeze({maxBytes: 4_000_000,
   maxNodes: 400_000, maxDepth: 64});
 
@@ -130,30 +127,23 @@ function recoveryArguments(evidence) {
     limits.maxNameUnits, evidence.maxObservationBytes];
 }
 
-// The standard runtime's issued broad read entries, under the names the
-// Site driver calls. Every entry is required: a runtime missing one is not
-// this installation's runtime, and is refused before any provider I/O.
-function issuedBroadRuntime(moon) {
+// Provider codecs run in the checked Program's runtime. Only their typed
+// page values are handed to the neutral row owner; no provider execution
+// or capture state crosses runtimes.
+function queryRuntime(moon) {
   const runtime = {
-    salesforceBroadHostAttempt: moon.clientProgramSalesforceBroadAttempt,
-    salesforceIssuedBroadPlan: moon.clientProgramSalesforceBroadPlan,
-    salesforceIssuedBroadBegin: moon.clientProgramSalesforceBroadBegin,
-    salesforceIssuedBroadNextPath: moon.clientProgramSalesforceBroadNextPath,
-    salesforceIssuedBroadAcceptPage:
-      moon.clientProgramSalesforceBroadAcceptPage,
-    salesforceIssuedBroadValueViolation:
-      moon.clientProgramSalesforceBroadValueViolation,
-    salesforceIssuedBroadComplete: moon.clientProgramSalesforceBroadComplete,
-    salesforceIssuedBroadRowCount: moon.clientProgramSalesforceBroadRowCount,
-    salesforceIssuedBroadFinish: moon.clientProgramSalesforceBroadFinish,
-    salesforceBroadHostAbort: moon.clientProgramSalesforceBroadAbort,
-    salesforceQueryPageResponseSha256:
-      moon.clientProgramSalesforceQueryPageResponseSha256,
+    salesforceBeginQueryRead: moon.clientProgramSalesforceBeginQueryRead,
+    salesforceQueryReadNextPath: moon.clientProgramSalesforceQueryReadNextPath,
+    salesforceQueryReadAcceptPage: moon.clientProgramSalesforceQueryReadAcceptPage,
+    salesforceQueryReadAcknowledgePage: moon.clientProgramSalesforceQueryReadAcknowledgePage,
+    salesforceQueryReadInterrupt: moon.clientProgramSalesforceQueryReadInterrupt,
+    salesforceQueryReadComplete: moon.clientProgramSalesforceQueryReadComplete,
+    salesforceQueryReadRowCount: moon.clientProgramSalesforceQueryReadRowCount,
+    salesforceQueryPageResponseSha256: moon.clientProgramSalesforceQueryPageResponseSha256,
     salesforceQueryPageRowCount: moon.clientProgramSalesforceQueryPageRowCount,
-    salesforceRecheckReadProjection:
-      moon.clientProgramSalesforceRecheckReadProjection,
-    salesforceReadProjectionScopeMatches:
-      moon.clientProgramSalesforceReadProjectionScopeMatches,
+    salesforceRecheckReadProjection: moon.clientProgramSalesforceRecheckReadProjection,
+    salesforceReadProjectionScopeMatches: moon.clientProgramSalesforceReadProjectionScopeMatches,
+    salesforceQueryReadValueViolation: moon.clientProgramSalesforceQueryReadValueViolation,
   };
   if (Object.values(runtime).some(entry => typeof entry !== 'function')) {
     fail('InvalidSalesforceSourceRuntime');
@@ -168,7 +158,7 @@ export async function loadInstalledSalesforceSource(profile, {root,
   principalId, moon, providerMoon: salesforceMoon, baseEnvironmentWire,
   runtimeBundleCid, resolveSecret, openCredentialJournal}) {
   const checkedProfile = checkInstalledSalesforceSourceProfile(profile);
-  const broadMoon = issuedBroadRuntime(moon);
+  const queryMoon = queryRuntime(moon);
   const {authorization, site} = await openSite(checkedProfile, {root,
     principalId, moon, providerMoon: salesforceMoon, runtimeBundleCid,
     resolveSecret, openCredentialJournal});
@@ -201,11 +191,12 @@ export async function loadInstalledSalesforceSource(profile, {root,
     const [queryContract, evidenceContract] = await Promise.all([
       'actql-query-acquisition.json', 'actql-query-process-evidence.json',
     ].map(name => readFile(new URL(name, contractRoot), 'utf8')));
-    return installedSalesforceAdapter({moon, broadMoon, site, authorization,
+    return installedSalesforceAdapter({moon, queryMoon, site, authorization,
       declaration, recover, discovery, queryContract, evidenceContract,
       environment, generationCid: loaded.generationCid,
       catalogCid: loaded.declared.catalog_cid,
       connectorId: checkedProfile.connectorId,
+      views: loaded.declared.views,
       sourceRefs: new Set(loaded.declared.views.map(view =>
         view.source_ref))});
   } catch (error) {
@@ -215,13 +206,16 @@ export async function loadInstalledSalesforceSource(profile, {root,
   }
 }
 
-function installedSalesforceAdapter({moon, broadMoon, site, authorization,
+function installedSalesforceAdapter({moon, queryMoon, site, authorization,
   declaration, recover, discovery, queryContract, evidenceContract,
-  environment, generationCid, catalogCid, connectorId, sourceRefs}) {
+  environment, generationCid, catalogCid, connectorId, sourceRefs, views}) {
   // Checked preparations this adapter issued; only these can be opened.
   const preparations = new WeakMap();
   const sourceAccess = Object.freeze({authorization,
     connection: site.connection});
+  const sourceReadAccesses = Object.freeze(views.map(view =>
+    Object.freeze({authorization, connection: site.connection,
+      sourceRef: view.source_ref, resource: view.resource})));
 
   const decideRead = (prepared, access, signal) =>
     access.authorization.authorize('acquisition', prepared.readTuple, {
@@ -246,20 +240,30 @@ function installedSalesforceAdapter({moon, broadMoon, site, authorization,
   // (`preparedEffect`) through the common Effect entries; a read-only Run's
   // from its checked Program. Exactly one is given.
   async function prepare({preparedProgram, preparedEffect, registry, values,
-    fragment, ordered, sourceAccess: access = sourceAccess}) {
+    fragment, ordered, sourceAccess: access = sourceAccess,
+    occurrence = {stage: 0, input: 0, task: 0}}) {
     if ((preparedProgram === undefined) === (preparedEffect === undefined)) {
       fail('InvalidInstalledSourcePreparation');
     }
     const effectful = preparedEffect !== undefined;
     const checkedOwner = preparedEffect ?? preparedProgram;
+    if (![occurrence.stage, occurrence.input, occurrence.task]
+      .every(Number.isSafeInteger) || occurrence.stage < 0 ||
+      occurrence.stage > 1 || occurrence.input !== 0 ||
+      occurrence.task !== occurrence.stage) {
+      fail('InvalidAcquisitionOccurrence');
+    }
+    occurrence = Object.freeze({...occurrence});
     checked(effectful
-      ? moon.clientProgramEffectPrepareQueryAcquisition(checkedOwner, 0, 0)
-      : moon.clientProgramPrepareQueryAcquisition(checkedOwner, 0, 0));
+      ? moon.clientProgramEffectPrepareQueryAcquisition(checkedOwner,
+        occurrence.stage, occurrence.input)
+      : moon.clientProgramPrepareQueryAcquisition(checkedOwner,
+        occurrence.stage, occurrence.input));
     const requirement = checked(effectful
-      ? moon.clientProgramEffectPrepareLocalQueryRequirement(checkedOwner, 0,
-        0, registry, values, fragment, ordered)
-      : moon.clientProgramPrepareLocalQueryRequirement(checkedOwner, 0, 0,
-        registry, values, fragment, ordered));
+      ? moon.clientProgramEffectPrepareLocalQueryRequirement(checkedOwner,
+        occurrence.stage, occurrence.input, registry, values, fragment, ordered)
+      : moon.clientProgramPrepareLocalQueryRequirement(checkedOwner,
+        occurrence.stage, occurrence.input, registry, values, fragment, ordered));
     const facts = checked(
       moon.clientProgramQueryRequirementSourceEvidenceFacts(requirement));
     if (!Array.isArray(facts) || facts.length !== 6 ||
@@ -304,8 +308,11 @@ function installedSalesforceAdapter({moon, broadMoon, site, authorization,
       throw Object.assign(new Error(refused), {code: refused,
         authorization: decision});
     }
+    const acquisition = checked(
+      moon.clientProgramPrepareSalesforceDeclaredRowAcquisition(
+        declaration, requirement, queryContract, evidenceContract));
     preparations.set(prepared, Object.freeze({checkedOwner, effectful,
-      requirement, resource, access}));
+      requirement, acquisition, resource, access, occurrence}));
     return prepared;
   }
 
@@ -318,26 +325,30 @@ function installedSalesforceAdapter({moon, broadMoon, site, authorization,
   // it, every provider request was awaited and the attempt closed, so it
   // has stopped, unless closing the attempt itself failed.
   async function open(options) {
-    const state = {started: false, closeFailed: false};
+    const state = {started: false, closeFailed: false, recovery: undefined};
     try {
       return await acquire(state, options);
     } catch (error) {
-      throw acquisitionFailure(error, !state.started ? 'not_started'
-        : state.closeFailed ? 'unknown' : 'stopped');
+      throw acquisitionFailure(error, state.closeFailed ? 'unknown'
+        : !state.started ? 'not_started' : 'stopped', state.recovery);
     }
   }
 
   async function acquire(state, {preparedProgram, preparedEffect, registry,
     values, fragment, ordered, sourceAccess: access = sourceAccess, signal,
-    preparedSource}) {
+    preparedSource, retainedRelationOutput = false,
+    occurrence = {stage: 0, input: 0, task: 0}, ledger}) {
     const prepared = preparedSource ?? await prepare({preparedProgram,
       preparedEffect, registry, values, fragment, ordered,
-      sourceAccess: access});
+      sourceAccess: access, occurrence});
     const owner = preparations.get(prepared);
     if (owner === undefined ||
         owner.checkedOwner !== (preparedEffect ?? preparedProgram) ||
         owner.effectful !== (preparedEffect !== undefined) ||
-        owner.access !== access) {
+        owner.access !== access ||
+        owner.occurrence.stage !== occurrence.stage ||
+        owner.occurrence.input !== occurrence.input ||
+        owner.occurrence.task !== occurrence.task) {
       fail('InstalledSourcePreparationMismatch');
     }
     const decision = await currentRead(prepared, access, signal);
@@ -368,85 +379,47 @@ function installedSalesforceAdapter({moon, broadMoon, site, authorization,
     };
     state.started = true;
     const current = await describe('plan');
-    const acquisition = checked(moon.clientProgramPrepareSalesforceAcquisition(
-      declaration, owner.requirement, current.observation, queryContract,
-      evidenceContract, 4096));
-    const settled = new Set();
-    const run = checked(moon.clientProgramSalesforceAcquisitionStart(
-      acquisition, nonce, attempt => settled.has(attempt)));
-    let closed = false;
-    const close = () => {
-      if (closed) return;
-      closed = true;
-      moon.clientProgramSalesforceBroadClose(run);
-    };
+    const acquisition = owner.acquisition;
+    const plan = checked(moon.clientProgramRecheckSalesforceRowProjection(
+      declaration, acquisition, current.observation, 4096));
+    const session = startInstalledRowRun({moon, acquisition, nonce, ledger,
+      capacity: {
+        transferBytes: BigInt(readLimits.maxPages) * BigInt(readLimits.maxBytes),
+        executionBytes: BigInt(readLimits.maxBytes)}});
+    const {run} = session;
     try {
       const grant = site.issueGrant({operation: 'salesforce:query:read',
         decision: approval ?? decision, resource: owner.resource,
         runInvocationCid,
         dispatchRequestCid, maxUses: readLimits.maxPages});
-      await readSalesforceIssuedBroad({moon: broadMoon, hostRun: run,
+      checked(moon.clientProgramRowSourceBegin(run, readLimits.maxBytes,
+        readLimits.maxRows, readLimits.maxTotalRows));
+      await readSalesforceQuery({moon: queryMoon, plan,
         apiVersion: site.apiVersion, limits: readLimits,
-        maxCaptureRows: readLimits.maxTotalRows, captureLimits,
+        chargePage: body => checked(
+          moon.clientProgramRowSourceChargePage(run, body)),
+        consumePage: (page, {charge}) => {
+          const {_0: columns, _1: rows} = moon.clientProgramSalesforceQueryPageValues(page);
+          checked(moon.clientProgramRowSourceAcceptChargedValues(
+            run, charge, columns, rows));
+        },
         initialAuthorization: {...grant, useId: `${nonce}-query-0`},
         authorizationForPage: async (_path, index) => ({...grant,
           useId: `${nonce}-query-${index}`}),
         credential: site.credential, refreshCatalog: () => describe('recheck'),
         signal});
-      // The Site transport for this attempt has returned: its physical
-      // read is settled.
-      settled.add(moon.clientProgramSalesforceBroadAttempt(run));
-      const capture = checked(moon.clientProgramSalesforceCapture(run));
-      const source = () => checked(
-        moon.clientProgramSalesforceCaptureSource(capture));
-      const {checkedOwner, effectful} = owner;
-      if ((effectful
-        ? moon.clientProgramEffectCapturedSourceMatches(checkedOwner,
-          source())
-        : moon.clientProgramCapturedSourceMatches(checkedOwner,
-          source())) !== true) {
-        fail('InstalledSourceProgramMismatch');
-      }
-      // An Effect acquisition identifies its Relation through the common
-      // Effect entry, which retains its dependency bodies for this capture.
-      const identity = checked(effectful
-        ? moon.clientProgramIdentifyCapturedEffectSourceRelation(source())
-        : moon.clientProgramIdentifyCapturedSourceRelation(source()));
-      const logicalInput = checked(effectful
-        ? moon.clientProgramEffectIssueCapturedSourceLogical(checkedOwner,
-          source(), identity, owner.requirement)
-        : moon.clientProgramIssueCapturedSourceLogical(checkedOwner,
-          source(), identity, owner.requirement));
-      // An Effect Run's computation is opened by the common Host only after
-      // durable Run admission; the acquisition does not open it.
-      const setup = effectful ? undefined :
-        moon.clientProgramOpenCapturedLocalHost(checkedOwner, source(),
-          registry, values, 1n, 0n, 0n, 0n, fragment, ordered);
-      if (!effectful && setup === undefined) {
-        fail('InstalledSourceHostUnavailable');
-      }
-      return Object.freeze({checkedSource: prepared.checkedSource, identity,
-        logicalInput, requirement: owner.requirement, setup,
-        capture: Object.freeze({source}),
-        // Evidence is issued only while the read is still currently
-        // authorized.
-        issueSourceEvidence: async ({authorityScopeCid,
-          effectiveDataPolicyCid}) => {
-          await currentRead(prepared, access, signal);
-          return checked(moon.clientProgramSalesforceIssueSourceEvidence(
-            acquisition, capture, identity, logicalInput, authorityScopeCid,
-            effectiveDataPolicyCid, new Date().toISOString()));
-        },
-        close});
+      return session.complete({owner, prepared, registry, values, fragment,
+        ordered, retainedRelationOutput,
+        currentRead: () => currentRead(prepared, access, signal)});
     } catch (error) {
-      try { close(); }
-      catch { state.closeFailed = true; }
+      session.closeAfterFailure(state);
       throw error;
     }
   }
 
   return Object.freeze({
     realizationKey: 'salesforce-acquired',
+    supportsRetainedRelationOutput: true,
     // The installed implementation's own identification; the Host refuses
     // the installation when its declared registration differs.
     connectorRegistration: site.connectorRegistration,
@@ -460,7 +433,18 @@ function installedSalesforceAdapter({moon, broadMoon, site, authorization,
       accountConfiguration: authorization.accountConfiguration,
       context: authorization.context}),
     sourceAccess,
+    sourceReadAccesses,
     admitsSource: sourceRef => sourceRefs.has(sourceRef),
+    ledgerCapacity(prepared) {
+      const owner = preparations.get(prepared);
+      if (owner === undefined) fail('InstalledSourcePreparationMismatch');
+      const capacity = moon.clientProgramInstalledRowCaptureCapacity(
+        owner.acquisition);
+      if (capacity === undefined) fail('InstalledSourceCapacityUnavailable');
+      return Object.freeze({capacity,
+        transferBytes: BigInt(readLimits.maxPages) * BigInt(readLimits.maxBytes),
+        executionBytes: BigInt(readLimits.maxBytes)});
+    },
     prepare, open,
     discovery: Object.freeze({resources: discovery.resources,
       inspectResource: discovery.inspectResource,

@@ -155,42 +155,15 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     | Dedupe(_) => true
     Watermark(_) | Lag(_) | Pivot(_) | Unpivot(_) | Unnest(_) | JsonPick(_) =>
       true
-    CountGroup(checked) => checked_bounded_count(checked)
+    // Both exact count and general group descriptors have an existing
+    // selected provider. Its complete kernel/context/numeric checks remain
+    // authoritative when admitting the concrete execution candidate.
+    CountGroup(_) => true
     AssertRows(_) =>
       operation(node) == "REL.assert_all" ||
       operation(node) == "REL.assert_unique"
     _ => false
   }
-}
-
-///|
-/// The selected count provider consumes keyed and global count profiles.
-/// Keep the split decision narrower than general group eligibility so an
-/// unsupported aggregate cannot enter a selected task without a provider.
-fn checked_bounded_count(checked : @relation.CheckedOperation) -> Bool {
-  guard @relation.group(checked) is Some(group) else { return false }
-  for index in 0..<@relation.aggregate_count(group) {
-    guard @relation.aggregate_at(group, index) is Some(aggregate) &&
-      (
-        @relation.aggregate_function(aggregate) == @relation.Count ||
-        @relation.aggregate_function(aggregate) == @relation.CountIf
-      ) &&
-      @relation.aggregate_filter(aggregate) is None &&
-      @relation.aggregate_distinct(aggregate) != Some(true) else {
-      return false
-    }
-    match @relation.aggregate_argument(aggregate) {
-      Rows =>
-        if @relation.aggregate_function(aggregate) is @relation.Count {
-          ()
-        } else {
-          return false
-        }
-      Field(_) => ()
-      Expression(_) => return false
-    }
-  }
-  true
 }
 
 ///|
