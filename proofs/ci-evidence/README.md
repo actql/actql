@@ -297,6 +297,18 @@ healthy narrowed cohort and every immediate member of both integrated packages,
 including white-box tests and generated interfaces; full-source fallback cannot
 silently satisfy that healthy narrowed-cohort fixture.
 
+The subsequent review against main
+`d093bcedf8b64b5d7b3e8fdecc988310c51bff90` also admits the literal `sha256`
+import added to `platform_native/remote_transfer_journal/moon.pkg`. The retained
+Transfer destination reader uses it to hash its reader identity. The manifest's
+target predicates and native options, the other thirteen reviewed manifests,
+the JS target and toolchain pins are unchanged. SHA-256 was already in the
+transitive cohort, so this remains 167 packages. The actual-Git regression now
+requires that direct import, the exact journal review and every immediate
+journal and SHA-256 member. An independently changed journal manifest still
+forces full-source fallback and unresolved reuse; no parser or fallback rule
+is relaxed.
+
 The child's original restoration snapshot and the independent Git snapshot
 cover the staged cohort. The parent checks selected checkout bytes and modes
 before and after isolation; family collection separately retains full tracked

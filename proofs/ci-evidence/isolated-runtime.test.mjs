@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {join, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
-import {hash, gitTree, actionInputs, mutationSourceInputs} from './inputs.mjs';
+import {hash, gitTree, actionInputs, mutationSourceInputs, packageImports} from './inputs.mjs';
 import {readCatalog} from './actions.mjs';
 import {mutationIds} from './receipts.mjs';
 import {mutationContracts} from './mutation-inventory.mjs';
@@ -22,9 +22,15 @@ test('actual Git sources have the same keyed cohort, staged bytes/modes and orig
   t.after(() => rmSync(destination, {recursive: true, force: true}));
   const selected = mutationSourceInputs(tree);
   assert.deepEqual(selected.unresolved, [], 'Healthy current source must use the reviewed narrowed cohort');
+  const journalManifest = 'src/platform_native/remote_transfer_journal/moon.pkg';
+  assert(packageImports(tree.read(journalManifest).toString('utf8')).imports.includes('actql/actql/sha256'),
+    'Transfer destination reader identity requires the literal SHA-256 dependency');
+  assert(selected.packageConfigurations.some(entry => entry.path === journalManifest &&
+    entry.digest === hash(tree.read(journalManifest))), 'Transfer journal must have an exact configuration review');
   const allSources = [...tree.entries.keys()].filter(path => path.startsWith('src/'));
   assert(selected.paths.length < allSources.length, 'Full-source fallback is not narrowed-cohort coverage');
-  for (const directory of ['src/client_row_source_host', 'src/bounded_graph_diff']) {
+  for (const directory of ['src/client_row_source_host', 'src/bounded_graph_diff',
+    'src/platform_native/remote_transfer_journal', 'src/sha256']) {
     const immediateMembers = allSources.filter(path => path.startsWith(`${directory}/`) &&
       !path.slice(directory.length + 1).includes('/')).sort();
     assert(immediateMembers.includes(`${directory}/moon.pkg`));
@@ -57,6 +63,21 @@ test('actual Git sources have the same keyed cohort, staged bytes/modes and orig
   assert(inputs.unresolved.includes('runtime not executed'));
   t.diagnostic(JSON.stringify({revision, stagedFiles: staged.files.length, sourceFiles: keyedSources.length,
     stagedBytes: staged.bytes, scope: 'Git/filesystem correspondence; no compiler, image execution or reuse'}));
+});
+
+test('an unreviewed Transfer journal manifest retains full-source fallback and unresolved reuse', () => {
+  const repository = fileURLToPath(new URL('../../', import.meta.url));
+  const revision = execFileSync('git', ['rev-parse', 'HEAD'], {cwd: repository, encoding: 'utf8'}).trim();
+  const tree = gitTree(repository, revision);
+  const manifest = 'src/platform_native/remote_transfer_journal/moon.pkg';
+  const changedTree = {...tree, read(path) {
+    const original = tree.read(path);
+    return path === manifest ? Buffer.concat([original, Buffer.from('\n// Unreviewed configuration revision.\n')]) : original;
+  }};
+  const selected = mutationSourceInputs(changedTree);
+  assert(selected.unresolved.includes(`Unreviewed package configuration: ${manifest}`));
+  assert(selected.directories.some(entry => entry.path === 'src/**'));
+  for (const path of tree.entries.keys()) if (path.startsWith('src/')) assert(selected.paths.includes(path));
 });
 
 function fixture(t, scoped = false) {
