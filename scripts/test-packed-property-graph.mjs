@@ -13,9 +13,10 @@ const repository = fileURLToPath(new URL('../', import.meta.url));
 const selectorDeriveOnly = process.argv.includes('--selector-derive-only');
 const deltaApplicationOnly = process.argv.includes('--delta-application-only');
 const deltaRelationOnly = process.argv.includes('--delta-relation-only');
+const deltaDiffOnly = process.argv.includes('--delta-diff-only');
 if (process.argv.slice(2).some(argument=>!['--selector-derive-only',
-  '--delta-application-only','--delta-relation-only'].includes(argument)) ||
-  Number(selectorDeriveOnly) + Number(deltaApplicationOnly) + Number(deltaRelationOnly) > 1) {
+  '--delta-application-only','--delta-relation-only','--delta-diff-only'].includes(argument)) ||
+  Number(selectorDeriveOnly) + Number(deltaApplicationOnly) + Number(deltaRelationOnly) + Number(deltaDiffOnly) > 1) {
   throw new Error('Unknown packed Property Graph selection');
 }
 const source = checkoutState(repository);
@@ -58,6 +59,7 @@ const output = await run(process.execPath,nodeTestArguments([
   ...(selectorDeriveOnly ? ['--test-name-pattern','selector property derive'] : []),
   ...(deltaApplicationOnly ? ['--test-name-pattern','complete Delta application'] : []),
   ...(deltaRelationOnly ? ['--test-name-pattern','Delta Relation DISTINCT and GROUP'] : []),
+  ...(deltaDiffOnly ? ['--test-name-pattern','Graph diff Delta survives'] : []),
   'property-graph-public-host.test.mjs']),root,
   {...environment,ACTQL_PROPERTY_GRAPH_PACKED:'1',
     PATH:[dirname(process.execPath),'/usr/bin','/bin'].join(':')},true);
@@ -71,14 +73,23 @@ const acceptance = {
   source,
   packages:digests,paths:['embedded-local','remote-https'],
   selection:selectorDeriveOnly ? 'selector-derive' : deltaApplicationOnly ? 'delta-application'
-    : deltaRelationOnly ? 'delta-relation' : 'all',
+    : deltaRelationOnly ? 'delta-relation' : deltaDiffOnly ? 'delta-diff' : 'all',
   independentFixture:'fixtures/property-graph-parallel.program.json',
   presenceFixture:'fixtures/property-graph-presence.program.json',
   definitionFixture:'fixtures/property-graph-definition-rows.program.json',
   labelFixture:'fixtures/property-graph-label-rows.program.json',
   selectorDeriveFixture:'fixtures/property-graph-selector-derive.program.json',
   traversalFixture:'fixtures/property-graph-traverse-nodes.expected.json',
-  assertions:deltaRelationOnly ? [
+  assertions:deltaDiffOnly ? [
+    'two retained Graph inputs produce one exact independently authored Delta row',
+    'node property update and independent parallel-edge removal with unchanged records omitted',
+    'unchanged Graphs produce one Delta row with empty typed action arrays',
+    'generated Delta Relation Store source revocation verified reload and temporary cleanup',
+    'reapplication of the generated Delta matches independent Graph snapshot bytes and CID',
+    'sparse rows retain omission explicit NULL and original typed key components through Store reload',
+    'ordered Named Result initial read and reattach through public Local and HTTPS',
+    'extra-field diff rejected before Run admission and physical work',
+  ] : deltaRelationOnly ? [
     'authored Delta update and independent parallel-edge removal precede ordinary Relation consumers',
     'keyed DISTINCT and GROUP coalesce the Required constant key while optional cells remain absent NULL or values',
     'whole-row DISTINCT preserves typed identities and complete sparse rows instead of comparing only that key',
@@ -126,6 +137,7 @@ const acceptance = {
     'node traversal Relation Store retention, source denial and verified reload',
     'complete Delta application with independent Graph and Relation Store reload expectations',
     'Delta followed by sparse keyed and whole-row DISTINCT and GROUP with independent retained streams',
+    'Graph diff exact Delta Relation Store reload and reapplication with independent snapshot identities',
     'malformed wrong-base and wrong-target Delta failure with confirmed stop and temporary cleanup'],
 };
 await writeFile(join(root,'acceptance.json'),JSON.stringify(acceptance,null,2)+'\n');

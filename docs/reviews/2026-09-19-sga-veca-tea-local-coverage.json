@@ -77,7 +77,7 @@
       "reach": "blocked",
       "graph_bounds": "partial",
       "degree": "partial",
-      "graph_diff": "blocked",
+      "graph_diff": "partial",
       "graft_graph": "blocked",
       "union_graphs": "blocked",
       "subtract_graphs": "blocked",
@@ -1457,11 +1457,25 @@
       "output": "relation",
       "canonical": ["SGA.diff"],
       "variants": ["empty diff", "node changes", "edge changes", "graph CID deadlines"],
-      "status": "blocked",
+      "status": "partial",
       "owner": "local-sga",
-      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
-      "completed_layers": ["contract"],
-      "layer_evidence": [],
+      "current_gap": "Current Difference reaches formal task planning and an explicitly configured managed provider with two occurrence-scoped borrowed Graph views. The bounded Delta kernel feeds the existing incremental Relation import and completion owner. Focused JS fixtures cover self-diff and independent parallel-edge removal. Public Local/HTTPS executes changed and unchanged node/edge cases: the exact independently authored Delta crosses Relation Store source revocation and verified reload before reapplication, Graph snapshot reload and ordered Named Result read/reattach. Fresh packed acceptance, complete physical-resource assurance and final-revision three-target evidence remain open. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "publication", "resources", "cancellation"],
+      "layer_evidence": [{
+        "scope": "current_formal_diff_plan_and_bounded_managed_delta_relation",
+        "targets": ["js"],
+        "evidence": [
+          "src/lowering_relation/graph_delta_test.mbt",
+          "src/query_integration/property_graph_diff_plan_wbtest.mbt",
+          "src/query_integration/property_graph_diff_provider_wbtest.mbt"
+        ],
+        "limits": "Selected and single-operation providers require installed Delta limits. These core fixtures are not fresh packed, all-variant or total-heap evidence."
+      }, {
+        "scope": "current_diff_delta_relation_store_reapplication_and_named_result",
+        "targets": ["js"],
+        "evidence": ["scripts/fixtures/property-graph-delta-application.mjs", "scripts/property-graph-public-host.test.mjs"],
+        "limits": "Public Local and HTTPS share independently authored changed/unchanged Delta and snapshot expectations. Source-backed success is separate from clean-revision packed and three-target acceptance."
+      }],
       "historical_implementation_evidence": [
         {
           "scope": "canonical_bounded_snapshot_and_delta_construction",

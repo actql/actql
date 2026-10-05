@@ -7288,7 +7288,31 @@
       "inventory": "families",
       "family": "SGA",
       "operation": "graph_diff",
-      "profile": "sga_graph"
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_delta_diff_views("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/delta_diff.mbt",
+        "symbol": "start_delta_diff_views"
+      },
+      "boundary_tests": [
+        {
+          "role": "graph_diff_tail_work_ceiling_and_kernel_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_diff_provider_wbtest.mbt",
+          "fixture": "Graph diff provider cancellation preserves work and borrowed input custody across import"
+        },
+        {
+          "role": "graph_diff_installed_policy_and_ordered_occurrences",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_diff_provider_wbtest.mbt",
+          "fixture": "Graph diff provider requires policy exact ordered views and retains cleanup on work failure"
+        }
+      ]
     },
     {
       "inventory": "families",

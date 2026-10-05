@@ -106,7 +106,7 @@ test('resource audit fixtures are reclaimed on success, rejection, and setup fai
 });
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /69 operations, 5 implementation profiles, 61 production routes mapped, 8 typed pre-execution refusals \(not execution success\), 61 with operation-specific boundary records, 60 with four-role boundary evidence, 60 with full work\/workspace assurance, 112 with path-scoped work\/workspace evidence, 1 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /69 operations, 5 implementation profiles, 62 production routes mapped, 7 typed pre-execution refusals \(not execution success\), 62 with operation-specific boundary records, 60 with four-role boundary evidence, 60 with full work\/workspace assurance, 112 with path-scoped work\/workspace evidence, 1 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('unsupported Graph routes require one shared public refusal boundary and cannot claim execution', () => {
@@ -2210,6 +2210,8 @@ test('resource completion rejects every unassured operation', () => {
 });
 
 const pendingBoundaryErrors = [
+  'SGA graph_diff: entrypoint boundary assurance is missing',
+  'SGA graph_diff: entrypoint work/workspace assurance is missing',
   'SGA subgraph: entrypoint boundary assurance is missing',
   'SGA subgraph: entrypoint work/workspace assurance is missing',
 ];
