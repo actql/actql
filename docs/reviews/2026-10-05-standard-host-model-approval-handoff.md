@@ -101,3 +101,11 @@ does not establish the current first history error or a successful scan.
 The attempted fresh-packed invocation at
 `99a990fdc3cbf875bb93a33dddb6720a800078f0` was refused by the occupied shared
 heavy lock before its producer started (`run-2JfzwS`). No lock was removed.
+At `2dd1955634bcbd1619e22cf5d7f457520aed8801`, all five real prepack producers
+and the external installation completed, but the first Local approval case
+was refused with `UnknownHostRootFormat` (`run-yE9W1n`, packed evidence
+`public-query-evidence-1kgwkb`, command 007). The fixture had written its signer
+key into the unadmitted Host root. Signer/report files now stay in the parent
+fixture directory, outside the approval Host root; the Host format guard is
+unchanged. The failed installation, original receipts and key custody remain
+retained. This is not Model approval success.

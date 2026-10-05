@@ -25,6 +25,8 @@ assert.ok(['success', 'cancel', 'failure', 'capture', 'replay',
 assert.ok(['local', 'http'].includes(transport));
 const root = join(process.cwd(), transport,
   approval ? 'approval' : mode === 'replay' ? 'capture' : mode);
+// Fixture signer/report files must not prepopulate an unadmitted Host root.
+const hostRoot = approval ? join(root, 'host') : root;
 const certificateRoot = join(process.cwd(), transport);
 mkdirSync(root, {recursive: true});
 const {installation, taskCid} = configuration(
@@ -80,7 +82,7 @@ const checked = result => {
   assert.equal(result.$tag, 1, 'physical request must pass common admission');
   return result._0;
 };
-const installationOptions = {directory: root, authorization,
+const installationOptions = {directory: hostRoot, authorization,
     modelInstallation: installation,
     registerModelProviders: moon => [{providerId: 'models/packed',
       bindingOriginals: providerBindingOriginals('models/packed', {selector: 'packed-risk-model'}),
