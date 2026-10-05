@@ -631,8 +631,18 @@ searching the submitted string. Unaliased column failures currently lacking a
 typed expression diagnostic remain generic `query_invalid` and omit a range.
 Unresolved protected Source names cannot acquire an expression reason or span.
 Wrapped expression construction/admission budgets remain incomplete analysis;
-they never become expression violations. `UnsupportedFunction` is not assigned
-one of these three facts, and the extension does not change its classification.
+they never become expression violations. The lowerer's `UnsupportedFunction`
+also remains incomplete analysis: its existing type covers unknown names,
+quoted function names and unsupported qualified forms without distinguishing
+a proven input violation from implementation support. It projects only the
+existing `implementation_limit` coverage, not an expression reason or location.
+That does not certify the construct as valid or allow a Program to be issued.
+The common lowerer must supply a distinct typed violation before the public
+bridge can blame an unknown function name; no diagnostic name catalog or
+message classifier replaces that owner. Independent supplied violations and
+missing-value Requirements remain visible beside this limit. The SDK's advice
+asks the checking-context owner to review support without claiming that the
+submitted construct is allowed.
 
 This further facts extension changes the coordinated check reason and outcome
 schema identities. Facts are validated per code: lexical issues cannot use an
