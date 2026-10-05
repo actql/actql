@@ -372,9 +372,9 @@ test('public acquired Model: Source approval and frozen input remain separate fr
 });
 
 
-for (const refusal of ['denyInfer', 'denyEgress']) {
-  test(`public Model: current ${refusal} fences an approved unsent scope on restart`, async t => {
-    const f = await fixture(t);
+for (const transport of ['local', 'https']) for (const refusal of ['denyInfer', 'denyEgress']) {
+  test(`public Model ${transport}: current ${refusal} fences an approved unsent scope on restart`, async t => {
+    const f = await fixture(t, {transport});
     const waiting = f.phase('wait');
     const before = f.journal().scopes[0];
     const replay = f.phase('approve-refused-probe', {[refusal]: true});

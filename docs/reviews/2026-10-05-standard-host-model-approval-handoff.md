@@ -237,4 +237,22 @@ two phases and `[100, 200]` thereafter; writes are `[0, 0, 0, 0, 1, 1]`;
 Source read sessions are `[2, 0, 0, 0, 0, 0]`. Repeating Model approval cannot
 approve the separate Effect Checkpoint. Checkpoint subjects, restored
 request/ref/Run and retained Named Result types remain explicitly checked.
-This new selection has not yet been executed; it is not acceptance success.
+At clean SHA `fe023685357670c6daa8dac0fd521af08136020e`, this focused selection
+passed Local and HTTPS (`run-VdB8Pa`). Four public packages were freshly packed
+and installed outside the checkout; logged SHA-256 digests match the retained
+tarballs in `actql-packed-salesforce-c0Oogm`. The authored six-phase call,
+write and read counts, separate Checkpoints and same request/Run were checked.
+Its receipt retains the unchanged submitted Program and custody records.
+It also executed the harness's existing publication/read/basic Effect setup;
+it did not execute the other composition fault cases.
+
+## Packed recovery boundary matrix
+
+The same single-INFER runner now selects all 32 existing Source-free public
+Model recovery cases, including current infer/egress denial on both Local and
+HTTPS, rather than only the six mixed-entry cases. The Source-acquisition
+fixture remains a separate acceptance unit. No fault matrix is duplicated;
+the existing process fixture and fresh packed installation are reused.
+Only the total test-process supervisor budget scales to the larger selection;
+individual process and product deadlines are unchanged. This expanded packed
+selection has not yet been executed at its new revision.

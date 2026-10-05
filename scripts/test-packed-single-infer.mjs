@@ -95,17 +95,17 @@ async ({root, directory, run, recordTarball}) => {
         providerFixture: pathToFileURL(join(root, 'model-provider-binding-fixture.mjs')).href,
         environment: join(root, 'base-environment.json')}}));
     const args = nodeTestArguments(['--test-name-pattern',
-      '^public Model (local|https): (saved/unknown/unsent crash preserves uncertainty under|immediate Allow records a sent unknown)',
+      '^public Model(?: (?:local|https))?:',
       'adapters/host-node/model-resume-public.test.mjs']);
     // The external consumer owns its own copied reporter, not a source link.
     args[1] = '--test-reporter=' + pathToFileURL(join(root,
       'scripts/test-execution-reporter.mjs')).href;
     const stdout = run(process.execPath, args, {cwd: root,
-      env: {...runtimeEnv, ACTQL_MODEL_ACCEPTANCE_INPUTS: inputs}, timeout: 120000});
+      env: {...runtimeEnv, ACTQL_MODEL_ACCEPTANCE_INPUTS: inputs}, timeout: 360000});
     const checked = assertTestExecution('node', process.execPath, args,
       {status: 0, stdout});
-    assert.equal(checked.counts.passed, 6,
-      'Both transports, both failure policies, and immediate durable entry must execute');
+    assert.equal(checked.counts.passed, 32,
+      'The existing Source-free Model recovery boundary matrix must execute');
     console.log(stdout.trimEnd());
   }
 });
