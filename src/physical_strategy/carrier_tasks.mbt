@@ -146,7 +146,8 @@ fn bounded_family_relation_chain(
 ///|
 /// A checked binary Relation task may reuse a private intermediate in two
 /// later steps and join those branches. Keep only this bounded, single-root
-/// shape together; other nonlinear or Carrier paths retain per-edge tasks.
+/// shape together, including checked group, window, or expansion children;
+/// other nonlinear or Carrier paths retain per-edge tasks.
 fn bounded_branched_relation_chain(
   graph : CheckedDAG,
   stage : Int,
@@ -158,7 +159,10 @@ fn bounded_branched_relation_chain(
     return false
   }
   match @lower.payload(first) {
-    @lower.AppendRows(_) | @lower.SetRows(_) | @lower.CrossJoinRows(_) => ()
+    @lower.InnerJoin(_)
+    | @lower.AppendRows(_)
+    | @lower.SetRows(_)
+    | @lower.CrossJoinRows(_) => ()
     _ => return false
   }
   for result in graph.results {
@@ -181,16 +185,38 @@ fn bounded_branched_relation_chain(
       @carrier.kind(@lower.node_output_carrier(node)) == @carrier.RelationKind else {
       return false
     }
+    // A checked analytic may stay inside this bounded fork, but its exact
+    // aggregate and frame support is decided by the selected group provider.
+    // Do not advertise every analytic as an independently splittable task.
+    if !(@lower.payload(node) is @lower.Analytic(_)) &&
+      !carrier_node_supports_selected_execution(node, work) {
+      return false
+    }
     match @lower.payload(node) {
-      @lower.AppendRows(_)
+      @lower.InnerJoin(_)
+      | @lower.AppendRows(_)
       | @lower.SetRows(_)
       | @lower.CrossJoinRows(_)
       | @lower.Where(_)
       | @lower.Derive(_)
-      | @lower.Select(_) => ()
+      | @lower.Select(_)
+      | @lower.Sort(_)
+      | @lower.Limit(_)
+      | @lower.TopK(_)
+      | @lower.Distinct(_)
+      | @lower.Dedupe(_)
+      | @lower.Lag(_)
+      | @lower.JsonPick(_)
+      | @lower.Watermark(_)
+      | @lower.RowWindow(_)
+      | @lower.Pivot(_)
+      | @lower.Unpivot(_)
+      | @lower.Unnest(_)
+      | @lower.Analytic(_)
+      | @lower.AssertRows(_)
+      | @lower.CountGroup(_) => ()
       _ => return false
     }
-    let mut internal_inputs = 0
     for port in 0..<@lower.node_input_count(node) {
       carrier_work(work)
       guard @lower.node_accepts_managed_relation_view(node, port) &&
@@ -205,7 +231,6 @@ fn bounded_branched_relation_chain(
             return false
           }
           used_by_later[producer] = true
-          internal_inputs += 1
           if producer != step - 1 || port > 0 {
             branched = true
           }
@@ -216,9 +241,9 @@ fn bounded_branched_relation_chain(
           }
       }
     }
-    if step > 0 && internal_inputs == 0 {
-      return false
-    }
+    // A later child may read a Stage input directly. Its output must still
+    // feed a later child, as checked by used_by_later below; the selected
+    // chain owner binds that input to this exact operation port.
   }
   for step in 0..<(count - 1) {
     carrier_work(work)

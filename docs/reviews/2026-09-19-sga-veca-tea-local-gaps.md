@@ -930,13 +930,114 @@ also completes the identical authored Program through the same physical task
 shape. This does not admit arbitrary nonlinear operations or intermediate
 Result roots.
 
-A disconnected producer that appends `l` and then filters `l` rather than the
-append result remains unsupported by the bounded selected provider. The
-ordinary retained-only Host rejects that Program during whole-graph selection:
-no Compute dispatch, Store lease, or completed task is created. Another
-eligible implementation may provide a valid offer. The `unsupported-chain`
-fixture is a pre-execution rejection control, not an assertion that all
-multi-step Relation tasks are rejected.
+The same bounded owner now retains a checked global `COUNT` on each branch:
+`append` → two filters → two independent groups → `append`. The splitter keeps
+the authored producer as one task when every child is eligible for selected
+managed execution and has exact Relation ports. The ordinary memory-output
+Host and real retained Store Host both run this shape; the latter reads the
+producer and two consumer Named Results against independently fixed ordered
+rows `[{n: 3}, {n: 2}]`. A mixed `MAX`/`COUNT` branch also completes as one
+selected task and publishes `[{n: 4}, {n: 2}]`; the existing whole-task
+provider, rather than the narrower split eligibility for `COUNT`, admits it.
+Independent `SUM` and `AVG` branch slots likewise seal and publish
+`[{n: 9}, {n: 1.5}]` through the retained Store and two consumer Results.
+The same checked shape permits selected bounded `sort` and `distinct`
+children on different branches. With a duplicated input ID, the retained
+producer and both consumers read the fixed ordered rows
+`[{id: 4}, {id: 3}, {id: 2}, {id: 2}, {id: 1}, {id: 2}]`; the memory-output
+Host also runs the authored Program as one physical task. This does not
+admit arbitrary order-sensitive or nonlinear child operations.
+The selected `take` child can follow the sorted branch without splitting
+the task or resetting its cumulative budget. On the same duplicated input,
+the real Store publishes `[{id: 4}, {id: 3}, {id: 1}, {id: 2}]` to the
+producer and two consumers; the memory-output Host runs the same Program.
+The same bounded fork can use `top_k` on one branch and `dedupe_rows` on the
+other when their checked order requirements are met. The fixture asserts
+unique IDs before `top_k`, gives duplicate IDs a distinct origin for the
+dedupe top-tie rule, and projects that private origin away before the task
+Result. The retained producer and two consumers then publish the fixed order
+`[{id: 4}, {id: 3}, {id: 1}, {id: 2}]` without changing the task's cumulative
+work or intermediate ownership model. This is not blanket admission of
+order-sensitive children with unresolved ties.
+
+The same selected fork owner accepts bounded `lag`, `watermark_rows`, and
+`json_pick` children when their checked Relation inputs and obligations match.
+Three separate authored Append forks filter on `previous`, `watermark_late`,
+or `picked` before joining that branch with an independent projection of the
+Append output. The retained producer and two consumers read the fixed ID
+orders `[4,1,2,3,4]`, `[2,1,2,3,4]`, and `[3,4,1,2,3,4]` from the real
+Store. A focused memory/retained test also checks exact operation ports,
+task output identity, and final reservations under the existing chain owner.
+These routes reuse the bounded unary kernels and their operation-specific
+resource proofs; they do not admit every temporal or JSON variant to a fork.
+
+The same selected fork also accepts a fixed `row_window`, `unpivot`, or
+`unnest` child with its checked Relation input. Each authored Append task
+filters on a field created by that child before joining an independent
+projection of the Append output. The retained producer and both consumers
+read fixed ID orders `[2,3,4,1,2,3,4]`, `[3,4,1,2,3,4]`, and
+`[3,4,4,1,2,3,4]` from the real Store. The repeated `4` in the last route
+is an expansion result, not a deduplicated row. The fast memory/retained
+fixture checks the same selected task output and cleanup. These routes use
+the existing window and expansion bounds and the shared fork owner; they
+do not prove every sliding-window or outer-expansion variant.
+
+The bounded group child also accepts a `MAX` pivot and a cumulative `COUNT`
+analytic inside the same Append fork. The pivot branch filters on a generated
+axis field; the analytic branch filters on its generated count. Each rejoins
+an independent projection of the Append output and publishes the fixed ID
+order `[3,4,1,2,3,4]` to the producer and two consumers. The fork keeps
+analytic under one task and leaves its exact aggregate/frame admission to
+the existing bounded group provider; it does not mark every analytic as an
+independently splittable task.
+These routes do not extend the numeric SUM/AVG profile or prove every frame
+and pivot variant.
+
+The same existing bounded owner also executes a checked Nest after Append,
+then reuses its nested output in two branches before rejoining. The Nest
+reads its child port from the original Stage input, not from the preceding
+Append output. The standard Host publishes producer and two consumer Named
+Results with the fixed nested rows: IDs `[3,4,1,2,3,4]`, empty `items` for
+3 and 4, and `[{matched:1}]` or `[{matched:2}]` for 1 and 2. A focused
+memory/retained fixture confirms the one-task path and final cleanup. This
+was an evidence gap in the existing bounded provider, not a new Nest kernel
+or general nested-chain admission.
+
+A checked inner equijoin can now start the same-task fork or follow an
+Append as a bounded child. The first shape joins the left and right Stage
+inputs, filters the joined output along two branches and publishes
+`[{id:2,matched:2},{id:1,matched:1}]`. The second joins the private Append
+output with the original left input, then reuses the joined rows in two
+branches and publishes IDs `[2,1,2]`. In both cases the standard Host reads
+the producer and two consumer Named Results from the real retained Store;
+the focused fixture confirms the exact operation ports, one producer task,
+and final cleanup. The existing selected Join provider and fork owner supply
+the output ceiling, cumulative work, stop, and intermediate ownership.
+This does not claim other join kinds or every join failure variant in a fork.
+
+The same retained Host also runs `EXCEPT ALL` and Cross Join as the first
+binary child of separate fork/join Programs. The former publishes the
+duplicate-sensitive rows `[{id: 2}, {id: 1}, {id: 1}]`; the latter publishes
+all six `id`/`tag` rows in branch order. Both producer and consumer Results
+are read from the real Store. These are route examples for the already
+selected Set and Cross Join kernels, not new set or join semantics.
+The chain owner supplies cumulative work, overlapping child capacity,
+stop-before-release and reverse cleanup for these selected children. The
+earlier fork-join fault cases exercise that owner; they are shared lifecycle
+evidence, not a claim that every group-specific failure or aggregate variant
+was separately tested. Arbitrary nonlinear shapes remain outside this admission.
+
+A later child may read the same Stage input directly instead of a private
+intermediate, provided every earlier private output feeds a later child.
+The ordinary Append task `append(l,r) -> filter(l) -> append(both) -> select`
+now stays under the selected bounded owner. Its exact operation ports retain
+the left input for the second child; the real Store publishes
+`[{id: 1}, {id: 2}, {id: 3}, {id: 4}, {id: 2}]` to the producer and two
+consumers. If the task instead discards the Append output and publishes only
+`filter(l)`, it is still rejected during whole-graph selection: no Compute
+dispatch, Store lease, or completed task is created. Another eligible
+implementation may provide a valid offer. The `unsupported-chain` fixture
+remains a pre-execution rejection control.
 
 | Remaining retained Store route | State | Required next proof |
 | --- | --- | --- |
