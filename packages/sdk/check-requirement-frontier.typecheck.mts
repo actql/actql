@@ -8,6 +8,15 @@ if (frontier) {
   const context: string = frontier.contextRef;
   const scope: 'bound_input' = frontier.scope.kind;
   void context; void scope;
+  for (const requirement of frontier.requirements) {
+    const parameter: string = requirement.facts.parameter;
+    const expectedType: string = requirement.facts.expected_type;
+    void parameter; void expectedType;
+    // @ts-expect-error Missing input has no fabricated actual supplied type.
+    requirement.facts.actual_type;
+    // @ts-expect-error Locations are presentation, not obligation equality keys.
+    requirement.location;
+  }
   // @ts-expect-error A known frontier is an immutable observation.
   frontier.requirements.push({code: 'parameter_value_required'});
   // @ts-expect-error A frontier supplies no execution permission.
