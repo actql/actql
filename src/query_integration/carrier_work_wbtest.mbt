@@ -53,7 +53,9 @@ test "Carrier work bounds no-expansion classification and predecessor scans" {
 test "Carrier work bounds classification before task mapping" {
   let program = carrier_work_program()
   let owners = physical_graph_owners(program)
-  for work in [14, 15, 19] {
+  // Retain the original low budgets; 11..17 stop during classification,
+  // and 18/19 stop during task mapping after the newly charged inventory.
+  for work in [11, 12, 14, 15, 16, 17, 18, 19] {
     assert_true(
       @strategy.prepare_checked_dag(program, owners, 3, work) is Err(WorkLimit),
     )
@@ -64,7 +66,9 @@ test "Carrier work bounds classification before task mapping" {
 test "Carrier work bounds edge control and operation remapping" {
   let program = carrier_work_program()
   let owners = physical_graph_owners(program)
-  for work in [20, 24, 25, 26, 28] {
+  // Original low budgets stay refusal cases. Mapping ends at 23, data
+  // reconstruction at 28, control at 29, and operation remapping at 32.
+  for work in [20, 23, 24, 25, 26, 27, 28, 29, 30, 31] {
     assert_true(
       @strategy.prepare_checked_dag(program, owners, 3, work) is Err(WorkLimit),
     )
@@ -75,18 +79,23 @@ test "Carrier work bounds edge control and operation remapping" {
 test "Carrier work bounds Result remapping and preserves the exact task shape" {
   let program = carrier_work_program()
   let owners = physical_graph_owners(program)
-  // The original checked graph costs 8 entries. Classification costs 7:
+  // Original graph: two Stage validations, one incoming requirement, one
+  // gate, one predecessor comparison, one input-completeness visit, two
+  // owner snapshots, one Values obligation and two root Result bindings.
+  // These are 11 entries; the former 8 omitted the obligation and bindings.
+  // Classification costs 7:
   // two stages, two Results, two Steps and one port. Cache it once.
   // Mapping costs 5 (two stages and three tasks), edge reconstruction 5
   // (two stages, two selected Steps and one port), control remapping 1,
   // operation remapping 3 (two stages and the Values requirement), Results 2.
-  // Total: 31. Each boundary below fails before visiting the next entry.
-  for work in [29, 30] {
+  // Total: 34. Keep the former 31-unit success budget as a refusal; 33
+  // stops before the second Result remap, and 34 preserves the same graph.
+  for work in [29, 30, 31, 32, 33] {
     assert_true(
       @strategy.prepare_checked_dag(program, owners, 3, work) is Err(WorkLimit),
     )
   }
-  let graph = @strategy.prepare_checked_dag(program, owners, 3, 31).unwrap()
+  let graph = @strategy.prepare_checked_dag(program, owners, 3, 34).unwrap()
   assert_true(physical_equal(@strategy.graph_program(graph), program))
   assert_eq(@strategy.graph_task_count(graph), 3)
   assert_eq(@strategy.graph_task_selected_step(graph, 0), None)

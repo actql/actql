@@ -7312,7 +7312,83 @@
       "inventory": "families",
       "family": "SGA",
       "operation": "subgraph",
-      "profile": "sga_graph"
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_subgraph("
+      },
+      "additional_dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_subgraph_view("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/subgraph.mbt",
+        "symbol": "start_subgraph"
+      },
+      "selected_entrypoint": {
+        "path": "src/local_sga/subgraph.mbt",
+        "symbol": "start_subgraph_view"
+      },
+      "boundary_tests": [
+        {
+          "role": "subgraph_false_edge_work_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_subgraph_wbtest.mbt",
+          "fixture": "keyed subgraph false edge admits exact work and workspace"
+        },
+        {
+          "role": "subgraph_stored_limits_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_subgraph_wbtest.mbt",
+          "fixture": "keyed subgraph false edge admits exact work and workspace"
+        },
+        {
+          "role": "subgraph_view_limits_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_subgraph_wbtest.mbt",
+          "fixture": "keyed subgraph false edge admits exact work and workspace"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "subgraph_selected_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "retained-relation-selected-subgraph-in-flight"
+        },
+        {
+          "role": "subgraph_retained_named_results",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "retained-relation-selected-subgraph"
+        }
+      ],
+      "path_assurance": {
+        "selected_entrypoint": {
+          "exact_limit": "subgraph_view_limits_cancel_cleanup",
+          "one_short_limit": "subgraph_view_limits_cancel_cleanup",
+          "in_flight_cancel": "subgraph_selected_host_in_flight_cancel",
+          "cleanup": "subgraph_view_limits_cancel_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "selected_entrypoint": {
+          "work": {
+            "exact_limit": "subgraph_view_limits_cancel_cleanup",
+            "one_short_limit": "subgraph_view_limits_cancel_cleanup"
+          },
+          "workspace": {
+            "exact_limit": "subgraph_view_limits_cancel_cleanup",
+            "one_short_limit": "subgraph_view_limits_cancel_cleanup"
+          }
+        }
+      },
+      "notes": "The selected same-Stage Graph/Relation route reaches retained Store and has delivered cancellation. The cross-Stage selector has focused Plan and source public Local/HTTPS reload evidence, with fresh packed acceptance and integrated-SHA CI pending. The fused production route lacks delivered Host cancellation proof. Neither complete route is assured."
     },
     {
       "inventory": "families",
