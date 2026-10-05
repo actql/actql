@@ -204,18 +204,25 @@ fn prepare_apply_source(
   reference_issuer~ : @value.ReferenceIssuer?,
   output_builder~ : @storage.Builder?,
   defer_actions~ : Bool,
+  admitted_base? : ApplyBasePreparation? = None,
 ) -> Result[ApplyPreparation, Issue] {
   if !valid_limits(limits) {
     return Err(InvalidLimits)
   }
-  guard source_graph(base) is Some(graph) &&
-    @graph_contract.admit_graph(graph, {
-      max_bytes: limits.max_identity_bytes,
-      max_nodes: limits.max_identity_nodes,
-      max_depth: limits.max_identity_depth,
-    })
-    is Ok(contract) else {
-    return Err(InvalidGraph)
+  let (graph, contract) = match admitted_base {
+    Some(admitted) => (admitted.graph, admitted.contract)
+    None => {
+      guard source_graph(base) is Some(graph) &&
+        @graph_contract.admit_graph(graph, {
+          max_bytes: limits.max_identity_bytes,
+          max_nodes: limits.max_identity_nodes,
+          max_depth: limits.max_identity_depth,
+        })
+        is Ok(contract) else {
+        return Err(InvalidGraph)
+      }
+      (graph, contract)
+    }
   }
   // The output owner and kernel share a single provisional builder. Equal
   // schemas or finished payload CIDs cannot substitute a different builder.
@@ -234,19 +241,12 @@ fn prepare_apply_source(
   // remain in the same resolved budget. No second workspace owner is created.
   guard checked_add(usage.nodes, usage.nodes) is Some(twice_delta) &&
     checked_add(twice_delta, twice_delta) is Some(action_slots) &&
-    source_workspace(base) is Some(snapshot_slots) &&
-    body_workspace_slots(limits) is Some(body_slots) &&
-    checked_add(action_slots, snapshot_slots) is Some(with_snapshot) &&
-    checked_add(with_snapshot, body_slots) is Some(with_body) &&
-    checked_add(with_body, storage_limits.max_workspace_slots)
-    is Some(with_storage) &&
-    before_workspace_slots(limits) is Some(before_slots) &&
-    checked_add(with_storage, before_slots) is Some(required) &&
-    @storage.property_snapshot_append_workspace_slots(graph, storage_limits)
-    is Some(append_slots) &&
-    checked_add(required, append_slots) is Some(with_append) &&
-    action_workspace_slots(limits) is Some(action_admission_slots) &&
-    checked_add(with_append, action_admission_slots) is Some(with_actions) &&
+    (match admitted_base {
+      Some(admitted) => Some(admitted.workspace)
+      None => fixed_apply_workspace(base, graph, limits, storage_limits)
+    })
+    is Some(fixed_slots) &&
+    checked_add(action_slots, fixed_slots) is Some(with_actions) &&
     with_actions <= limits.max_workspace_slots else {
     return Err(WorkspaceLimit)
   }
@@ -278,9 +278,19 @@ fn prepare_apply_source(
     cleanup_actions(edge_admission)
     return Err(InvalidDelta)
   }
-  let preparation = match start_snapshot(base, limits) {
-    Ok(preparation) => preparation
-    Err(issue) => return Err(issue)
+  let preparation = match admitted_base {
+    Some(admitted) => {
+      guard admitted.snapshot is Some(preparation) else { return Err(Terminal) }
+      admitted.snapshot = None
+      admitted.source = None
+      admitted.output_builder = None
+      preparation
+    }
+    None =>
+      match start_snapshot(base, limits) {
+        Ok(preparation) => preparation
+        Err(issue) => return Err(issue)
+      }
   }
   Ok({
     base_view: match base {

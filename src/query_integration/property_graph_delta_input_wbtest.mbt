@@ -189,7 +189,7 @@ test "Delta exact Relation input preparation reaches the existing Graph output o
   for removal in [false, true] {
     let mut expected_work = None
     for quantum in [1, 7, 64] {
-      let (owner, view, rows, original, _) = graph_delta_input_fixture(
+      let (owner, view, rows, original, live) = graph_delta_input_fixture(
         text=if removal {
           graph_delta_remove_parallel_edge()
         } else {
@@ -283,8 +283,16 @@ test "Delta exact Relation input preparation reaches the existing Graph output o
       assert_true(@local_sga.cleanup_delta_apply(active).unwrap())
       assert_true(@graphs.completed_available(original))
       assert_true(@execution.producer_read_available(rows))
-      assert_true(@graphs.discard_completed(result))
+      // A successful immutable output is not kept alive by upstream readers.
+      // Closing both original operands must not invalidate its snapshot bytes.
+      live.val = false
       assert_true(@graphs.discard_completed(original))
+      assert_true(@graphs.completed_available(result))
+      assert_eq(
+        snapshot_capture(@graphs.completed_storage(result).unwrap()),
+        expected,
+      )
+      assert_true(@graphs.discard_completed(result))
     }
   }
 }

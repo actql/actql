@@ -17,14 +17,13 @@ priv enum DeltaInputPhase {
 struct DeltaApplyInputPreparation {
   owner : @lower.BoundPrepared
   step : Int
-  graph : @carrier.Graph
   mut base : @lifecycle.ProducerView?
   mut rows : @execution.ProducerRead?
   column : Int
   contract : @contract.Contract
   limits : @delta.Limits
-  storage_limits : @storage.Limits
-  storage_bytes : Int64
+  mut output : @graph.OutputBuilder?
+  mut base_preparation : @delta.ApplyBasePreparation?
   mut available : () -> Bool
   mut phase : DeltaInputPhase
   mut recheck : @value.RecheckCursor?
@@ -227,6 +226,14 @@ fn cleanup_delta_input(input : DeltaApplyInputPreparation) -> Unit {
   if input.decoder is Some(decoder) {
     @decode.cancel_admission(decoder)
   }
+  if input.base_preparation is Some(base) {
+    @delta.cleanup_apply_base(base)
+  }
+  if input.output is Some(output) {
+    @graph.cancel_output(output) |> ignore
+  }
+  input.base_preparation = None
+  input.output = None
   input.recheck = None
   input.emitter = None
   input.writer = None
@@ -251,19 +258,31 @@ fn delta_input_available(input : DeltaApplyInputPreparation) -> Bool {
   guard input.base is Some(base) && input.rows is Some(rows) else {
     return false
   }
-  (input.available)() &&
+  delta_input_reads_available(
+    input.owner,
+    input.step,
+    base,
+    rows,
+    input.available,
+  )
+}
+
+///|
+fn delta_input_reads_available(
+  owner : @lower.BoundPrepared,
+  step : Int,
+  base : @lifecycle.ProducerView,
+  rows : @execution.ProducerRead,
+  available : () -> Bool,
+) -> Bool {
+  available() &&
   @lifecycle.producer_read_reference_matches_operation_input(
     @lifecycle.producer_view_read_reference(base),
-    input.owner,
-    input.step,
+    owner,
+    step,
     0,
   ) &&
-  @execution.producer_read_matches_operation_input(
-    rows,
-    input.owner,
-    input.step,
-    1,
-  )
+  @execution.producer_read_matches_operation_input(rows, owner, step, 1)
 }
 
 ///|
@@ -329,17 +348,46 @@ pub fn prepare_delta_apply_input(
     }) else {
     return Err(DeltaApplyInvalidInput)
   }
+  // Configuration/snapshot setup is cold preparation, not a resumed poll with
+  // a fictitious work report. Reserve simultaneous Relation conversion state
+  // in the same installed workspace before starting the snapshot preparation.
+  let output = match
+    @graph.prepare_output(
+      owner,
+      @pipeline.Step(step),
+      @storage.DeclaredNodes,
+      storage_limits,
+      storage_bytes,
+      available,
+    ) {
+    Ok(output) => output
+    Err(issue) => return Err(DeltaApplyOutput(issue))
+  }
+  let base_preparation = match
+    @delta.prepare_apply_base_view(
+      base,
+      graph,
+      limits,
+      storage_limits,
+      output_builder=@graph.output_storage_builder(output),
+      reserved_workspace_slots=required,
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      @graph.cancel_output(output) |> ignore
+      return Err(DeltaApplyKernel(issue))
+    }
+  }
   Ok({
     owner,
     step,
-    graph,
     base: Some(base),
     rows: Some(rows),
     column,
     contract: field.contract,
     limits,
-    storage_limits,
-    storage_bytes,
+    output: Some(output),
+    base_preparation: Some(base_preparation),
     available,
     phase: ReadDeltaCell,
     recheck: None,
@@ -378,11 +426,10 @@ pub fn advance_delta_apply_input(
 }
 
 ///|
-/// Finalize preparation outside an execution poll: existing Graph/snapshot
-/// configuration admission is synchronous and must not be charged as one
-/// resumed compute step. Normal provider selection/resource resolution is a
-/// separate remaining boundary. Successful start transfers the one output;
-/// failed preparation never publishes or reclaims either borrowed input.
+/// Attach the ready Relation data to the already prepared Graph configuration.
+/// No Graph definition/snapshot preparation is repeated here. Normal provider
+/// selection/resource resolution remains a separate boundary. Successful start
+/// transfers the one output; failure never reclaims either borrowed input.
 pub fn start_delta_apply_from_admitted_input(
   control : @bounded.Control,
   input : DeltaApplyInputPreparation,
@@ -393,51 +440,24 @@ pub fn start_delta_apply_from_admitted_input(
     input.decoded is Some(cursor) &&
     input.base is Some(base) &&
     input.rows is Some(rows) &&
+    input.output is Some(output) &&
+    input.base_preparation is Some(base_preparation) &&
     delta_input_available(input) else {
     return Err(DeltaApplyInvalidInput)
   }
   if control_work_limit is Some(limit) && limit < 0 {
     return Err(DeltaApplyControlWorkLimit)
   }
-  let output = match
-    @graph.prepare_output(
-      input.owner,
-      @pipeline.Step(input.step),
-      @storage.DeclaredNodes,
-      input.storage_limits,
-      input.storage_bytes,
-      input.available,
-    ) {
-    Ok(output) => output
-    Err(issue) => return Err(DeltaApplyOutput(issue))
-  }
   let preparation = match
-    @delta.start_apply_view(
-      base,
-      input.graph,
-      cursor,
-      input.limits,
-      input.storage_limits,
-      output_builder=@graph.output_storage_builder(output),
-    ) {
+    @delta.start_apply_from_prepared_base(base_preparation, cursor) {
     Ok(preparation) => preparation
-    Err(issue) => {
-      @graph.cancel_output(output) |> ignore
-      return Err(DeltaApplyKernel(issue))
-    }
+    Err(issue) => return Err(DeltaApplyKernel(issue))
   }
   let owner = input.owner
   let step = input.step
   let available = input.available
   let current = fn() {
-    available() &&
-    @lifecycle.producer_read_reference_matches_operation_input(
-      @lifecycle.producer_view_read_reference(base),
-      owner,
-      step,
-      0,
-    ) &&
-    @execution.producer_read_matches_operation_input(rows, owner, step, 1)
+    delta_input_reads_available(owner, step, base, rows, available)
   }
   match
     start_prepared_delta_apply(
@@ -449,12 +469,14 @@ pub fn start_delta_apply_from_admitted_input(
     ) {
     Ok(execution) => {
       input.claimed = true
+      input.output = None
       cleanup_delta_input(input)
       Ok(execution)
     }
     Err(issue) => {
       @delta.cleanup_apply(preparation) |> ignore
       @graph.cancel_output(output) |> ignore
+      cleanup_delta_input(input)
       Err(issue)
     }
   }
