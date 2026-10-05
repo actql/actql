@@ -88,6 +88,7 @@ import {
   "moonbitlang/core/bench",
   "actql/actql/bounded_execution" @bounded,
   "actql/actql/bounded_graph_snapshot" @snapshot,
+  "actql/actql/bounded_graph_diff",
   "actql/actql/graph_contract",
   "actql/actql/local_bridge",
   "actql/actql/local_sga_provider",

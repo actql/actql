@@ -218,6 +218,7 @@ pub fn collect_parameter_slots(
         | GraphDegree(_)
         | GraphEquality(..)
         | GraphNormalize(_)
+        | GraphDelta(..)
         | PropertyGraphConstruction(..)
         | Nearest(..)
         | Pool(_)
