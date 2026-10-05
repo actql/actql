@@ -53,6 +53,9 @@ export function explainEffectUncertainty(state) {
 const retainEffectUncertainty = (state, ref) => {
   if (state.status === 'needs_reconciliation' &&
       state.next_action.kind === 'reconcile') {
+    // A Local port may reuse a cached object for another observation/Run.
+    // Each returned SDK response must keep its own original association.
+    state = structuredClone(state);
     effectUncertainties.set(state, freezeInput({
       observation: 'effect_outcome_unknown',
       summary: 'External Effect outcomes are unknown. Computation stop does not establish their outcome or resource release.',

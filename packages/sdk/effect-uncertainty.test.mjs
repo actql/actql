@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import test from 'node:test';
 import {fileURLToPath} from 'node:url';
-import {connect, explainEffectUncertainty} from './index.mjs';
+import {connect, connectInProcess, explainEffectUncertainty} from './index.mjs';
 
 const ref = {namespaceId: 'namespace-a',
   authorityScopeCid: `sha256:${'a'.repeat(64)}`,
@@ -82,6 +82,35 @@ for (const operation of ['status', 'wait', 'reconcile']) {
     assert.equal(explainEffectUncertainty(new Error('needs_reconciliation')), undefined);
   });
 }
+
+test('Local response reuse cannot rebind an earlier Effect explanation to another Run', async t => {
+  const otherRef = {...ref, runDefinitionCid: `sha256:${'c'.repeat(64)}`};
+  const shared = state({revision: 4, cancellation_requested: false,
+    physical_stop: 'unknown'});
+  const client = await connectInProcess({mode: 'local', owner: 'local'}, {
+    perform(operation, body) {
+      if (operation === 'connect') return {...profile, mode: 'local', owner: 'local'};
+      if (operation === 'attach') return {ref: body.ref, durability: 'durable', revision: 1};
+      assert.equal(operation, 'status');
+      if (body.ref.runDefinitionCid === otherRef.runDefinitionCid) {
+        shared.run_id = 'run-b';
+        shared.next_action.effects = ['other-write'];
+        shared.control.revision = 7;
+      }
+      return shared;
+    },
+  });
+  t.after(() => client.close());
+  const first = await (await client.attach(ref)).status();
+  const second = await (await client.attach(otherRef)).status();
+  assert.deepEqual(explainEffectUncertainty(first), expected('unknown', 4),
+    '[check-mutation:effect-custody]');
+  assert.deepEqual(explainEffectUncertainty(second), {
+    ...expected('unknown', 7), effects: ['other-write'],
+    next: {operation: 'status', ref: otherRef}}, '[check-mutation:effect-custody]');
+  assert.equal(first.run_id, 'run-a');
+  assert.equal(second.run_id, 'run-b');
+});
 
 test('typed Effect explanations separate physical stop, owner revision and read-only advice', () => {
   execFileSync(process.execPath, [fileURLToPath(new URL(

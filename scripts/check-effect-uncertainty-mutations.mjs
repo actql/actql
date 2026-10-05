@@ -15,6 +15,10 @@ const controlCases = ['status', 'wait', 'reconcile'].map(operation => ({
   name: `${operation}: Effect uncertainty retains only validated Owner observations`,
   assertions: [{id: 'effect-control', operator: 'deepStrictEqual'}],
 }));
+const custodyCases = [{
+  name: 'Local response reuse cannot rebind an earlier Effect explanation to another Run',
+  assertions: [{id: 'effect-custody', operator: 'deepStrictEqual'}],
+}];
 const mutations = [
   ['an unresolved Effect is presented as successful',
     "observation: 'effect_outcome_unknown',", "observation: 'succeeded',", boundary, publicCases],
@@ -29,6 +33,8 @@ const mutations = [
   ['absent or unknown physical stop is presented as confirmed',
     "physicalStop: state.control?.physical_stop ?? 'unknown',",
     "physicalStop: 'confirmed',", unit, controlCases],
+  ['a reused Local response rebinds an earlier observation to another Run',
+    '    state = structuredClone(state);', '', unit, custodyCases],
 ];
 
 const accepted = (file, expected) => {
@@ -48,6 +54,7 @@ try {
     results.push({name, rejected: !accepted(file, expected)});
   }
 } finally { writeFileSync(path, original); }
-const restoredAccepted = accepted(boundary, publicCases) && accepted(unit, controlCases);
+const restoredAccepted = accepted(boundary, publicCases) &&
+  accepted(unit, controlCases) && accepted(unit, custodyCases);
 console.log(JSON.stringify({mutations: results, restoredAccepted}, null, 2));
 if (!restoredAccepted || results.some(result => !result.rejected)) process.exitCode = 1;
