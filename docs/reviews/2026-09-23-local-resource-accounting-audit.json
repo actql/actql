@@ -209,6 +209,10 @@
         "src/local_sga/match_edges.mbt",
         "src/local_sga/traverse_paths.mbt",
         "src/local_sga/delta_diff.mbt",
+        "src/local_sga/union.mbt",
+        "src/local_sga/union_fold.mbt",
+        "src/local_sga/union_property.mbt",
+        "src/managed_graph_storage/property_snapshot_steps.mbt",
         "src/managed_graph_storage/property_storage.mbt",
         "src/managed_graph_runtime/output.mbt"
       ],
@@ -269,9 +273,29 @@
           "facets": ["cleanup_owner"],
           "path": "src/query_integration/property_graph_diff_provider_wbtest.mbt",
           "fixture": "Graph diff provider refuses Delta row and value capacity without publishing or reclaiming inputs"
+        },
+        {
+          "facets": ["charged_bounded_work"],
+          "path": "src/query_integration/property_graph_union_wbtest.mbt",
+          "fixture": "property Graph union empty occurrences share one independent operation wide work budget"
+        },
+        {
+          "facets": ["finite_stop_observation", "cleanup_owner"],
+          "path": "src/query_integration/property_graph_union_custody_wbtest.mbt",
+          "fixture": "Host union keeps repeated input holdings and cleanup reservation through false error and retry"
+        },
+        {
+          "facets": ["charged_bounded_work", "cleanup_owner"],
+          "path": "src/local_sga/union_fold_wbtest.mbt",
+          "fixture": "union fold rejects endpoint collision after positive work without exposing output or reclaiming inputs"
+        },
+        {
+          "facets": ["charged_bounded_work"],
+          "path": "src/managed_graph_storage/property_snapshot_steps_wbtest.mbt",
+          "fixture": "typed record append has independent construction work and an exact one short boundary"
         }
       ],
-      "profile_scope": "Current keyed constructor, MATCH and TRAIL resource/custody evidence and current diff logical work/workspace/cancellation boundaries. Diff route registration is not a physical-byte or total-Graph-heap theorem. Blocked Graph consumers have no current resource-completeness claim."
+      "profile_scope": "Current keyed constructor, MATCH and TRAIL resource/custody evidence and current diff/union logical work/workspace/cancellation boundaries. Union retains checked fold/alignment arrays, borrowed input occurrences, private record/set cursors and overlapping predecessor/successor Stores in the existing reservation and cleanup scope. Route registration and configured cursor/workspace ceilings are not a physical-byte or total-Graph-heap theorem. Blocked Graph consumers have no current resource-completeness claim."
     },
     "tea_events": {
       "work_unit": "one event field, sort comparison, membership, candidate pair, pattern cell, identity scalar, or output append",

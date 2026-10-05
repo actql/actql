@@ -640,6 +640,17 @@ logical cursor inventory are not a physical heap theorem or a Graph-wide bound.
 Hosts supplying no union policy retain their explicit Graph workspace limit,
 including typed failure when it cannot accommodate the cursor.
 
+The resource census includes the checked input/fold arrays and per-definition
+field-index correspondence; the bounded-session `UnionState` and its ordered
+borrowed input array; the fold cursor and staged key/property arrays; each
+property cursor, set-item record and retained canonical-order string; nested
+value recheck/equality/order cursors and the provisional array/record builders.
+Both the predecessor accumulator and the unpublished successor Store remain
+live during a fold. They are not credited as released before confirmed cleanup.
+The independently derived 2344-byte eleven-candidate Relation-construction
+component excludes these configuration and execution allocations. Its source
+premises still require separate review; it is not a union or Graph heap bound.
+
 ## Graph Delta typing
 
 `check_diff` retains the recursively joined common Graph contract and constructs

@@ -51,6 +51,20 @@ test('scalar callback counts never become measured extents or a complete byte gu
 const recipeIntroduction = '58fd19eade59cf3bcbf6a859c9821471346e3b41';
 const historical = path => execFileSync('git', ['--no-replace-objects', 'show',
   `${recipeIntroduction}:${path}`], {cwd:fileURLToPath(new URL('../../',import.meta.url))});
+test('reviewed union adds only a Graph row-kernel exclusion to the integrated source premise', () => {
+  const path = 'src/execution_relation/generated_sequence.mbt';
+  const integratedMain = 'eb74d7b65d0f338ef5862a7d9cd7397744a08eaa';
+  const before = execFileSync('git', ['--no-replace-objects', 'show',
+    `${integratedMain}:${path}`], {cwd:fileURLToPath(new URL('../../',import.meta.url))});
+  assert.equal(hash(before), '689b1f1eaef074e44132348bf9927349324c94325fb10ebf304191e6cb7b6ac3');
+  const source = read(path).toString();
+  const unionBranch = '      | @lower.GraphUnionStep(_)\n';
+  assert.equal(source.split(unionBranch).length, 2, 'Missing or duplicated union exclusion');
+  assert.equal(source.replace(unionBranch, ''), before.toString(),
+    'Union changed a GeneratedSequence field, constructor, callback or unrelated execution path');
+  // This exact delta check does not refresh the older recipe's source pins or
+  // certify the inherited main changes. Those original checks stay mandatory.
+});
 test('reviewed handoff helper leaves provider fields and constructor bodies unchanged', () => {
   const path = 'src/connectors/local/managed_provider.mbt';
   const before = historical(path), source = read(path).toString();
