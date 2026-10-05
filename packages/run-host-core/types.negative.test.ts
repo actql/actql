@@ -3,12 +3,15 @@ import type {DeliveryContractView, PublicationContract,
   PublicationRecordContract, PublicIndexEntryContract,
   ResultDeliveryControl, PreparedProgram, ValuesCompilation,
   RunAdmission, RunDefinition, CheckEnvironment, RetainedTaskInputEdge,
-  TaskCompilation, RetainedInputProducer} from '@actql/run-host-core';
+  TaskCompilation, RetainedInputProducer, RetainedTaskInput,
+  RetainedInputCurrent, RetainedInputLimits} from '@actql/run-host-core';
 import {issueUnpublishedRunStateWire, issuePublicationAttempt,
   issuePublicationRecord, validatePublicationRecordTransition,
   issueSourceFreeRunMaterials, prepareRetainedTaskInputEdge,
   retainedTaskInputEdgeFacts, prepareRetainedInputProducer,
-  retainedInputProducerAvailable, retainedInputProducerFacts} from
+  retainedInputProducerAvailable, retainedInputProducerFacts,
+  prepareRetainedTaskInput, admitRetainedTaskInput, validateRetainedTaskInput,
+  retainedTaskInputFacts} from
   '@actql/run-host-core';
 
 declare const control: ResultDeliveryControl;
@@ -29,6 +32,19 @@ declare const environment: CheckEnvironment;
 declare const taskCompilation: TaskCompilation;
 declare const edge: RetainedTaskInputEdge;
 declare const producer: RetainedInputProducer;
+declare const retainedInput: RetainedTaskInput;
+declare const currentInput: RetainedInputCurrent;
+declare const inputLimits: RetainedInputLimits;
+prepareRetainedTaskInput(producer, {cid: 'c', wire: 'w'}, 'use', currentInput, inputLimits);
+admitRetainedTaskInput(producer, retainedTaskInputFacts(retainedInput),
+  {cid: 'c', wire: 'w'}, 'use', currentInput, inputLimits);
+validateRetainedTaskInput(retainedInput);
+// @ts-expect-error Producer evidence is not independently committed input custody.
+validateRetainedTaskInput(producer);
+// @ts-expect-error Copied binding facts are not an owned current input.
+validateRetainedTaskInput(retainedTaskInputFacts(retainedInput));
+// @ts-expect-error Current Site access must be an installed Owner port.
+prepareRetainedTaskInput(producer, {cid: 'c', wire: 'w'}, 'use', {}, inputLimits);
 prepareRetainedInputProducer(edge, () => ({authority: 'scope', durableRecordWire: '{}'}));
 retainedInputProducerAvailable(producer);
 retainedInputProducerFacts(producer);
