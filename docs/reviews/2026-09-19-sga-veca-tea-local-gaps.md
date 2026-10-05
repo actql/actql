@@ -5155,3 +5155,34 @@ final-source CI still need evidence. The language contract also permits
 normalization of an external opaque Graph while preserving its evidence level;
 the current checker and managed storage accept only typed Property Graphs, so
 that separate route remains unconnected rather than silently falling back.
+
+### Split Group and stepped Nest fixture alignment
+
+The managed Group connection fixture now follows physical tasks belonging to
+the authored Stage instead of assuming that task 2 is its Result root and
+tasks 3/4 are its consumers. Assertion, post-group filter, and regroup children
+are executed through the installed providers. Numeric observation slots are
+checked across these children with their original step/name identities; the
+authored expected rows and both independent consumers are unchanged.
+
+Private intermediate ports close after the child settles. Required ancestor
+holdings remain with the common retention owner until descendants close. The
+three split fixtures need five Local allocations, each with the existing
+7,760,000-byte profile, plus the 47-byte captured source. Their connection-test
+ledger therefore allows 40,000,000 bytes instead of the former 32,000,000-byte
+four-output allowance. Production policy limits are unchanged, and this is not
+an exact-capacity claim.
+
+The two-parent/two-child Nest workspace boundary includes the stepped output
+measurement added by the Nest output owner. Metadata and child arrays use 19
+slots; matches, retained rows, builders and projected items add 16 across two
+parents. The second nested row overlaps two traversal frames, giving an
+independently derived exact peak of 37 and one-short rejection at 36. The
+failure must remain typed `Rows(RowLimit)`, cleanup releases the workspace,
+and borrowed inputs remain usable.
+
+On the implementation working tree, the changed managed Group and bounded
+resource boundary files passed 39/39 focused JS tests. The three Group failures
+and old Nest-35 failure were reproduced independently on unchanged parent
+`b2da55d77784d8d1317ab35ccc1303c585f33507`. This fixture correction does not add
+production support or claim new-source Wasm/native, packed acceptance, or CI.
