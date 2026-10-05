@@ -50,6 +50,7 @@ struct Builder {
   mut workspace_slots : Int
   mut open : Bool
   mut owns_private : Bool
+  mut pending_append : AppendCursor?
 }
 
 ///|
@@ -162,6 +163,7 @@ pub fn prepare_with_additional_identities(
     workspace_slots: 0,
     open: true,
     owns_private: true,
+    pending_append: None,
   })
 }
 
@@ -354,7 +356,7 @@ pub fn append(
   builder : Builder,
   fields : Array[(@schema.FieldName, @value.CheckedValue)],
 ) -> Result[Unit, Issue] {
-  if !builder.open {
+  if !builder.open || builder.pending_append is Some(_) {
     return Err(Closed)
   }
   if fields.length() > builder.limits.max_fields_per_record {
@@ -408,7 +410,7 @@ pub fn append(
 
 ///|
 pub fn finish(builder : Builder) -> Result[Storage, Issue] {
-  if !builder.open || !builder.owns_private {
+  if !builder.open || !builder.owns_private || builder.pending_append is Some(_) {
     return Err(Closed)
   }
   builder.open = false
@@ -432,6 +434,9 @@ pub fn cancel(builder : Builder) -> Bool {
   }
   builder.open = false
   builder.owns_private = false
+  if builder.pending_append is Some(cursor) {
+    cleanup_append(cursor) |> ignore
+  }
   builder.values.clear()
   builder.keys.clear()
   builder.retained_value_bytes = 0
@@ -442,12 +447,18 @@ pub fn cancel(builder : Builder) -> Bool {
 ///|
 /// Structural slots already retained by records accepted into this builder.
 pub fn builder_workspace_slots(builder : Builder) -> Int {
-  builder.workspace_slots
+  builder.workspace_slots +
+  builder.pending_append.map(cursor => cursor.workspace).unwrap_or(0)
 }
 
 ///|
 pub fn builder_record_count(builder : Builder) -> Int {
   builder.values.length()
+}
+
+///|
+pub fn builder_append_pending(builder : Builder) -> Bool {
+  builder.pending_append is Some(_)
 }
 
 ///|

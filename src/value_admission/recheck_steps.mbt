@@ -8,6 +8,7 @@ priv enum RecheckFrame {
   JsonNode(Value, Int)
   JsonItems(Array[Value], Int, Int)
   JsonFields(Array[(String, Value)], Int, Int)
+  VectorItems(Array[Double], Int)
   TextUnits(String, @contract.TextLimits, Int, Int64, Int64)
 }
 
@@ -134,6 +135,16 @@ pub fn advance_recheck_runtime_value(cursor : RecheckCursor) -> RecheckPoll {
         cursor.stack.push(JsonFields(values, index + 1, depth))
         cursor.stack.push(JsonNode(child, depth + 1))
       }
+    VectorItems(values, index) =>
+      if index < values.length() {
+        let component = values[index]
+        if component.is_nan() ||
+          component.is_inf() ||
+          (component == 0.0 && 1.0 / component < 0.0) {
+          return recheck_step_fail(cursor)
+        }
+        cursor.stack.push(VectorItems(values, index + 1))
+      }
     TextUnits(value, bounds, offset, characters, bytes) =>
       if !recheck_text_units(cursor, value, bounds, offset, characters, bytes) {
         return recheck_step_fail(cursor)
@@ -185,11 +196,24 @@ fn recheck_node_step(
       cursor.stack.push(ObjectFields(values.values, contract, 0, depth))
       true
     }
+    (Vector(values), @contract.Vector(dimensions~)) => {
+      let count = values.values.length()
+      if depth >= budget.max_depth ||
+        count.to_double() != dimensions ||
+        count > budget.nodes {
+        return false
+      }
+      // Preserve the original node accounting, but inspect one component
+      // between caller-controlled stop/yield boundaries.
+      budget.nodes -= count
+      cursor.stack.push(VectorItems(values.values, 0))
+      true
+    }
     (_, @contract.Json) => {
       budget.nodes += 1
       recheck_json_step(cursor, value, depth)
     }
-    // Scalars, vectors and references have no deferred children.
+    // Fixed-size typed scalars and references have no deferred children.
     _ => {
       budget.nodes += 1
       recheck_value(value, contract, budget, depth)
@@ -264,6 +288,20 @@ fn recheck_json_step(
 ) -> Bool {
   let budget = cursor.budget
   match value {
+    Text(text) => {
+      if budget.nodes == 0 || text.length() > budget.text {
+        return false
+      }
+      budget.nodes -= 1
+      // JSON Text is data: preserve original scalars and line endings,
+      // using the same chunked walk without identifier normalization.
+      guard @contract.primitive(@contract.StringType, nullable=false).shape
+        is @contract.Text(bounds) else {
+        return false
+      }
+      cursor.stack.push(TextUnits(text, bounds, 0, 0L, 0L))
+      true
+    }
     Array(values) => {
       if budget.nodes == 0 {
         return false
