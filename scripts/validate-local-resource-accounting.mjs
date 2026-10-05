@@ -905,6 +905,8 @@ export function validateResourceAccounting({
           'adapters/host-node/public-distinct-value-retention.test.mjs',
         'node:embedded_expression_comparison':
           'adapters/host-node/public-expression-comparison-retention.test.mjs',
+        'node:embedded_pool_keys':
+          'adapters/host-node/public-pool-key-retention.test.mjs',
       }[item.suite];
       if (!suitePath || item.path !== suitePath ||
         JSON.stringify(item.targets) !== JSON.stringify(['node']) ||
@@ -924,6 +926,12 @@ export function validateResourceAccounting({
             'adapters/host-node/embedded-installation.test.mjs'), 'utf8')
             .includes("import './public-expression-comparison-retention.test.mjs';")) {
         fail(`${label}: expression comparison public fixture is not suite-connected`);
+      }
+      if (item.suite === 'node:embedded_pool_keys' &&
+          !fs.readFileSync(path.join(root,
+            'adapters/host-node/embedded-installation.test.mjs'), 'utf8')
+            .includes("import './public-pool-key-retention.test.mjs';")) {
+        fail(`${label}: Pool key public fixture is not suite-connected`);
       }
       const namedCase = sourceText.includes(`name: '${item.fixture}'`) ||
         sourceText.includes(`test('${item.fixture}',`);
@@ -1338,6 +1346,15 @@ export function validateResourceAccounting({
       }
       if (!environmentRoles.has('filter_long_expression_public_store')) {
         fail(`${label}: expression comparison public Store fixture is missing`);
+      }
+    }
+    if (route.family === 'VecA' && route.operation === 'pool_vectors') {
+      for (const suffix of ['quantum', 'limits', 'stop_cleanup', 'public_barrier']) {
+        const role = `pool_long_keys_${suffix}`;
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('pool_long_keys_public_store')) {
+        fail(`${label}: Pool key public Store fixture is missing`);
       }
     }
     const sharedRules = route.shared_resource_rule ?? {};

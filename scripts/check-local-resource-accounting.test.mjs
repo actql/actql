@@ -121,6 +121,36 @@ test('filter public expression evidence requires an actual suite connection', ()
     'RelA filter: expression comparison public fixture is not suite-connected'));
 });
 
+test('Pool requires stepped key limits, stop and public Store evidence', () => {
+  for (const suffix of ['quantum', 'limits', 'stop_cleanup', 'public_barrier']) {
+    const role = `pool_long_keys_${suffix}`;
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === 'pool_vectors');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`VecA pool_vectors: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'pool_long_keys_public_store');
+  }), /VecA pool_vectors: Pool key public Store fixture is missing/u);
+});
+
+test('Pool public key evidence requires an actual suite connection', () => {
+  const file = join(root, 'adapters/host-node/embedded-installation.test.mjs');
+  const sources = Object.freeze({...sourceTemplate,
+    [file]: Object.freeze({...sourceTemplate[file],
+      text: sourceTemplate[file].text.replace(
+        "import './public-pool-key-retention.test.mjs';", '')}),
+  });
+  const result = validateResourceAccounting({root, manifest: manifestTemplate,
+    routes: routesTemplate, sources});
+  assert.ok(result.errors.includes(
+    'VecA pool_vectors: Pool key public fixture is not suite-connected'));
+});
+
 test('interval join requires stepped Text comparison boundary evidence', () => {
   for (const role of [
     'interval_long_text_compare_quantum_order',

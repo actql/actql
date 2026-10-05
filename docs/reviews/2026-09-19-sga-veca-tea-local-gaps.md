@@ -5633,3 +5633,21 @@ any role or the actual suite import is rejected. This adds evidence, not a new
 comparison or Run owner. The runtime is unchanged from #517; whole-Run exact
 budgets, packed/HTTP, Wasm/native and other expression scans are not newly
 claimed. See the [public expression record](2026-10-06-local-expression-public-cancellation.md).
+
+### Pool typed-key operator scanning
+
+Pool now uses the existing bounded typed key cursor in validation, identity
+sort, duplicate detection, group sort and group boundaries. Long prefixes no
+longer hide inside one comparison step. Independent exact/one-short control
+work and structural workspace, quantum-invariant ordered results, cursor/root
+custody through confirmed stop and one cleanup are covered on JS. Existing
+registered Vectors/Relation/view Pool callers remain covered by focused tests.
+
+The ordinary retained Host runs `to_vectors -> pool_vectors -> vectors` as one
+fused task, reads explicit producer/two-consumer Named Results and delivers
+public cancellation inside the kernel-certified group-key validation scan.
+Request persistence, physical stop, unavailable results and final snapshot
+reclamation remain separate observations. The gate requires the actual suite
+connection. Whole-Run exact budgets, packed/HTTP, Wasm/native, composite member
+identity encoding and other VecA comparisons are not newly established. See
+the [Pool scanning record](2026-10-06-local-pool-key-scanning.md).

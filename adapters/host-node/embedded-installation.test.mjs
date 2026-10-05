@@ -20,6 +20,7 @@ import './public-interval-retention.test.mjs';
 import './public-set-value-retention.test.mjs';
 import './public-distinct-value-retention.test.mjs';
 import './public-expression-comparison-retention.test.mjs';
+import './public-pool-key-retention.test.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from
   './embedded-local.mjs';
 import {installedEffectIdentity} from './installed-effect.mjs';
