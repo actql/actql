@@ -1,8 +1,9 @@
 // Actual producer Runtime output, not a synthetic completion record. Public
-// Cloud delivery and consumer Transfer decoding remain separate acceptance.
+// Cloud delivery remains separate acceptance. The optional consumer branch
+// uses the exact Runtime manifest and bytes through an independent Transfer.
 
 ///|
-test "original Source task completes through Runtime without a producer Named Result" {
+fn acquisition_runtime_case(through_consumer : Bool) -> Unit raise {
   guard resident_compute_prerequisites() is Some((library_path, root_path)) else {
     return
   }
@@ -23,6 +24,7 @@ test "original Source task completes through Runtime without a producer Named Re
       execution_bytes: 536870912L,
     },
   }
+  let configuration = { ..configuration, source, }
   let (compilation, allowed, definition, caller) = retained_compute_run(
     prepared,
   )
@@ -186,6 +188,27 @@ test "original Source task completes through Runtime without a producer Named Re
     facts.result_schema_cid,
     "sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513",
   )
+  if through_consumer {
+    acquisition_runtime_transfer_consumer(
+      materials,
+      configuration,
+      compilation,
+      caller,
+      selected,
+      runtime,
+      dispatch,
+      producer,
+      fields[1],
+      site,
+      sqlite,
+      root_path,
+      name,
+    )
+    assert_true(@host.client_retained_input_producer_available(producer))
+    assert_eq(acquisitions.val, 1)
+    assert_eq(captures.val, 1)
+    assert_eq(entries.val, 1)
+  }
   let reader = runtime.open_output_reader(dispatch, fields[1], 128).unwrap()
   assert_false(runtime.release(dispatch).unwrap())
   let bytes : Array[Byte] = []
@@ -221,4 +244,14 @@ test "original Source task completes through Runtime without a producer Named Re
   assert_true(runtime.close().unwrap())
   assert_true(journal.close())
   assert_true(bundles.close().unwrap())
+}
+
+///|
+test "original Source task completes through Runtime without a producer Named Result" {
+  acquisition_runtime_case(false)
+}
+
+///|
+test "actual producer Runtime bytes reach the original retained consumer without Source reacquisition" {
+  acquisition_runtime_case(true)
 }

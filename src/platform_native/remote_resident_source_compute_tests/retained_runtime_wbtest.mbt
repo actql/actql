@@ -27,6 +27,7 @@ fn retained_compute_through_runtime(
   destination_journal : @journal.Journal,
   cleanup_owner : @transfer_client.NativeRemoteDestinationMaterialUse,
   destination_bytes : Int64,
+  retained_site_usage? : Array[Int64] = Array::make(9, 0L),
 ) -> Unit raise {
   let (bundles, active, journal) = retained_runtime_owners(
     sqlite, site, root_path, name,
@@ -93,7 +94,11 @@ fn retained_compute_through_runtime(
     destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
     destination_bytes,
   )
-  let completion = runtime.start(dispatch, binding).unwrap()
+  let completion = match runtime.start(dispatch, binding) {
+    Ok(value) => value
+    Err(@runtime.Physical(code)) => abort("Consumer Runtime refused: " + code)
+    Err(_) => abort("Consumer Runtime refused outside physical Owner")
+  }
   assert_eq(entries.val, 1)
   assert_true(runtime.retains_dispatch_resources())
   assert_eq(
@@ -183,7 +188,7 @@ fn retained_compute_through_runtime(
   )
   let usage = @site.site_status(site)
   for index in [2, 4, 6, 7, 8] {
-    assert_eq(usage[index], 0L)
+    assert_eq(usage[index], retained_site_usage[index])
   }
   assert_true(runtime.close().unwrap())
   assert_true(journal.close())
