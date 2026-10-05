@@ -1728,6 +1728,21 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
             report("release-failed", [("reason", client_code(issue))])
         }
       }
+      Ok(Some(@remote.RetainedPlan(input))) => {
+        // This holder has no installed checked-edge planning port yet. Keep
+        // the producer responsibility; never reinterpret this as Output.
+        backoff_ms = 0
+        report("retained-plan-unavailable", [
+          (
+            "request_cid",
+            @remote.dispatch_request_identity(
+              @remote.remote_retained_input_intent_request(
+                @remote.remote_poll_retained_input_intent(input),
+              ),
+            ),
+          ),
+        ])
+      }
       Ok(Some(@remote.Plan(output))) | Ok(Some(@remote.Output(output))) => {
         backoff_ms = 0
         // Only the live holder of the dispatch owns its output; the

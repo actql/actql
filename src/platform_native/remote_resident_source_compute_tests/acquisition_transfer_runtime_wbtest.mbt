@@ -22,32 +22,141 @@ fn acquisition_runtime_transfer_consumer(
   deny_after_admission? : Bool = false,
   consumer_start_expiry? : Bool = false,
 ) -> Unit raise {
-  let reader = producer_runtime
-    .open_output_manifest_reader(producer_dispatch, material_id, 128)
+  let facts = producer_runtime
+    .inspect_output_facts(producer_dispatch, material_id)
     .unwrap()
-  let physical = reader.physical_manifest().unwrap()
+  let physical = facts.physical_manifest
   assert_eq(
     physical.codec_contract_cid,
     @execution.ordered_rows_canonical_contract_cid(),
   )
   assert_eq(physical.row_count, 3)
-  let request = @transfer.prepare_request(
-    retained_compute_cid("c"),
-    "actual-runtime-transfer",
-    @transfer.DirectStream,
-    selected.site_key,
-    selected.site_generation,
-    selected.site_key,
-    selected.site_generation,
-    material_id,
-    physical,
-    physical.referenced_bytes,
-    4102444800000L,
-    selected.evidence_issuer_capability_cid,
-    selected.grant_cid,
-    retained_compute_cid("6"),
+  let intent = @host.prepare_client_retained_input_intent(producer, {
+    transfer_attempt: "actual-runtime-transfer",
+    transfer_max_bytes: physical.referenced_bytes,
+    transfer_expires_unix_ms: 4102444800000L,
+    source_grant_cid: selected.evidence_issuer_capability_cid,
+    destination_grant_cid: selected.grant_cid,
+    route_capability_cid: retained_compute_cid("6"),
+  }).unwrap()
+  let envelope = @remote.remote_poll_retained_input_plan_json(intent).unwrap()
+  let operation = @remote.admit_remote_poll_operation_json(envelope).unwrap()
+  guard operation is @remote.RetainedPlan(poll) else {
+    fail("expected internal plan")
+  }
+  assert_false(@remote.remote_poll_operation_is_output_plan(operation))
+  assert_false(@remote.remote_poll_operation_is_output(operation))
+  let intent = @remote.remote_poll_retained_input_intent(poll)
+  let planner_current = @host.install_client_retained_input_current(
+    () => site,
+    () => retained_compute_cid("c"),
+    () => 1791158400000L,
+    (_, request) => {
+      @transfer.request_projection(request)[10] ==
+      selected.evidence_issuer_capability_cid &&
+      @transfer.request_projection(request)[11] == selected.grant_cid
+    },
+  )
+  let before_plan = @site.site_status(site)
+  let projection = @remote.remote_retained_input_intent_projection(intent)
+  let foreign = @remote.prepare_remote_retained_input_intent(
+    producer_dispatch,
+    {
+      ..projection,
+      consumer_task_key: projection.consumer_task_key + "-foreign",
+    },
   ).unwrap()
-  assert_true(reader.close().unwrap())
+  assert_true(
+    @resident.plan_resident_retained_input_transfer(
+      producer_runtime, producer, foreign, planner_current, site,
+    )
+    is Err(@resident.Input(@host.InvalidBinding)),
+  )
+  let denied = @host.install_client_retained_input_current(
+    () => site,
+    () => retained_compute_cid("c"),
+    () => 1791158400000L,
+    (_, _) => false,
+  )
+  assert_true(
+    @resident.plan_resident_retained_input_transfer(
+      producer_runtime, producer, intent, denied, site,
+    )
+    is Err(@resident.Input(@host.AuthorizationUnavailable)),
+  )
+  let stale = @host.install_client_retained_input_owner_current(
+    (_, _, _) => false,
+    () => retained_compute_cid("c"),
+    () => 1791158400000L,
+    (_, _) => true,
+  )
+  assert_true(
+    @resident.plan_resident_retained_input_transfer(
+      producer_runtime, producer, intent, stale, site,
+    )
+    is Err(@resident.Input(@host.StaleSiteGeneration)),
+  )
+  let expired = @host.install_client_retained_input_current(
+    () => site,
+    () => retained_compute_cid("c"),
+    () => 4102444800000L,
+    (_, _) => true,
+  )
+  assert_true(
+    @resident.plan_resident_retained_input_transfer(
+      producer_runtime, producer, intent, expired, site,
+    )
+    is Err(@resident.Input(@host.TransferExpired)),
+  )
+  let plan = @resident.plan_resident_retained_input_transfer(
+    producer_runtime, producer, intent, planner_current, site,
+  ).unwrap()
+  let restored_plan = @remote.admit_remote_retained_input_plan_json(
+    @remote.remote_retained_input_plan_json(plan),
+    @remote.remote_retained_input_plan_identity(plan),
+    intent,
+    8,
+    4096,
+    536870912L,
+  ).unwrap()
+  let request = @remote.remote_retained_input_plan_transfer(restored_plan)
+  assert_true(
+    @remote.admit_remote_retained_input_plan_json(
+      @remote.remote_retained_input_plan_json(plan).replace(
+        old="actual-runtime-transfer",
+        new="different-transfer",
+      ),
+      @remote.remote_retained_input_plan_identity(plan),
+      intent,
+      8,
+      4096,
+      536870912L,
+    )
+    is Err(@remote.InvalidDispatch),
+  )
+  assert_true(
+    @remote.admit_remote_retained_input_plan_json(
+      @remote.remote_retained_input_plan_json(plan),
+      @remote.remote_retained_input_plan_identity(plan),
+      foreign,
+      8,
+      4096,
+      536870912L,
+    )
+    is Err(@remote.InvalidDispatch),
+  )
+  assert_true(
+    @remote.admit_remote_retained_input_plan_json(
+      @remote.remote_retained_input_plan_json(plan),
+      @remote.remote_retained_input_plan_identity(plan),
+      intent,
+      8,
+      4096,
+      0L,
+    )
+    is Err(@remote.InvalidDispatch),
+  )
+  assert_eq(@site.site_status(site)[6], before_plan[6])
   let root = @filesystem.open_root(root_path).unwrap()
   let path = root_path + "/" + name + ".actual-transfer.sqlite"
   let destination_journal = @journal.open_journal(

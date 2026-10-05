@@ -1,0 +1,201 @@
+{
+  "version": "actql-remote-retained-input-wire/0.1",
+  "canonicalization": "UTF-8 JSON with sorted object keys, no whitespace and unchanged string values; Int64 policy values are canonical decimal strings.",
+  "scope": "One checked incoming edge and one DirectStream receiver on the original producer Site and generation. Protocol admission grants no execution, borrow, Transfer or publication authority.",
+  "bounds": {
+    "intent_bytes": 65536,
+    "poll_plan_bytes": 524288,
+    "plan_bytes": 3145728
+  },
+  "schemas": {
+    "intent": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "consumer_input_port",
+        "consumer_logical_cid",
+        "consumer_task_key",
+        "destination_grant_cid",
+        "dispatch_request_cid",
+        "producer_evidence_cid",
+        "producer_logical_cid",
+        "producer_output_port",
+        "producer_schema_cid",
+        "producer_subject_cid",
+        "route_capability_cid",
+        "source_grant_cid",
+        "transfer_attempt",
+        "transfer_expires_unix_ms",
+        "transfer_max_bytes",
+        "version"
+      ],
+      "properties": {
+        "consumer_input_port": {
+          "type": "string",
+          "minLength": 1
+        },
+        "consumer_logical_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "consumer_task_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "destination_grant_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "dispatch_request_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "producer_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "producer_logical_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "producer_output_port": {
+          "type": "string",
+          "minLength": 1
+        },
+        "producer_schema_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "producer_subject_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "route_capability_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "source_grant_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "transfer_attempt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transfer_expires_unix_ms": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,18}$"
+        },
+        "transfer_max_bytes": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,18})$"
+        },
+        "version": {
+          "const": "actql-remote-retained-input-intent/0.1"
+        }
+      }
+    },
+    "poll_plan": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dispatch_request_cid",
+        "intent_cid",
+        "intent_json",
+        "request_json",
+        "version"
+      ],
+      "properties": {
+        "dispatch_request_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "intent_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "intent_json": {
+          "type": "string",
+          "minLength": 1
+        },
+        "request_json": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "const": "actql-remote-poll-retained-input-plan/0.1"
+        }
+      }
+    },
+    "plan": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dispatch_request_cid",
+        "evidence_cid",
+        "evidence_json",
+        "intent_cid",
+        "physical_manifest_cid",
+        "physical_manifest_json",
+        "subject_cid",
+        "subject_json",
+        "transfer_request_cid",
+        "transfer_request_json",
+        "version"
+      ],
+      "properties": {
+        "dispatch_request_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "evidence_json": {
+          "type": "string",
+          "minLength": 1
+        },
+        "intent_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "physical_manifest_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "physical_manifest_json": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "subject_json": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transfer_request_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "transfer_request_json": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "const": "actql-remote-retained-input-plan/0.1"
+        }
+      }
+    }
+  },
+  "schema_cids": {
+    "intent": "sha256:3017f216f574f944094b5867fd6f17b9ca383f0794355d828efb7e11caef035f",
+    "poll_plan": "sha256:23bdc3f9c47031c30b79f89e4568fbacedc512744feb33759a3435395f238afc",
+    "plan": "sha256:36e122f53342cd7cfe2238b9e51d276ec5c2e455502bdec984ea43ce1bf2c1e6"
+  }
+}
