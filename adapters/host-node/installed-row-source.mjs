@@ -358,7 +358,7 @@ export async function createInstalledRowSource({moon, declaration,
 
   async function acquire(state, {preparedProgram, preparedEffect, registry,
     values, fragment, ordered, sourceAccess: access = sourceAccess, signal,
-    preparedSource}) {
+    preparedSource, retainedRelationOutput = false}) {
     const prepared = preparedSource ?? await prepare({preparedProgram,
       preparedEffect, registry, values, fragment, ordered,
       sourceAccess: access});
@@ -427,9 +427,11 @@ export async function createInstalledRowSource({moon, declaration,
           source(), identity, owner.requirement)
         : moon.clientProgramIssueCapturedSourceLogical(checkedOwner,
           source(), identity, owner.requirement));
-      const setup = effectful ? undefined :
-        moon.clientProgramOpenCapturedLocalHost(checkedOwner, source(),
-          registry, values, 1n, 0n, 0n, 0n, fragment, ordered);
+      const openHost = retainedRelationOutput
+        ? moon.clientProgramOpenCapturedLocalRetainedHost
+        : moon.clientProgramOpenCapturedLocalHost;
+      const setup = effectful ? undefined : openHost(checkedOwner, source(),
+        registry, values, 1n, 0n, 0n, 0n, fragment, ordered);
       if (!effectful && setup === undefined) {
         fail('InstalledSourceHostUnavailable');
       }
@@ -453,6 +455,7 @@ export async function createInstalledRowSource({moon, declaration,
 
   return Object.freeze({
     realizationKey: 'row-source-acquired',
+    supportsRetainedRelationOutput: true,
     connectorRegistration, connectorRevision,
     environmentWire,
     connectorBindings: Object.freeze([Object.freeze({connectorId,

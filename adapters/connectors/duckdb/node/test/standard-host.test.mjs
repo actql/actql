@@ -1806,6 +1806,18 @@ async function exerciseStrategyGraph(
     fields:['id','node_name'], secondFields:['node_name'],
     expected:[{id:1,node_name:'first'},{id:2,node_name:'second'}],
   }, {
+    name: 'retained-relation-selected-subgraph',
+    retainedOutput:true, selectedStructural:true,
+    steps:[
+      {from:'g',match_nodes:{definition:'N',bindings:{identity:'element'},
+        where:'true',fields:['element']},as:'selected'},
+      {from:'g',subgraph:{nodes:{from:'selected',id:'element'}},as:'slice'},
+      {from:'slice',match_nodes:{definition:'N',where:'true',
+        fields:['id','node_name']},as:'out'},
+    ],
+    fields:['id','node_name'],secondFields:['node_name'],
+    expected:[{id:1,node_name:'first'},{id:2,node_name:'second'}],
+  }, {
     name: 'retained-normalized-node-match', retainedOutput:true,
     steps:[
       {from:'g',normalize_graph:true,as:'normalized'},
@@ -1964,6 +1976,16 @@ async function exerciseStrategyGraph(
     ],
     fields:['id','node_name'],secondFields:['node_name'],
     expected:[{id:2,node_name:'second'}],completedTasks:9,
+  }, {
+    name: 'retained-external-relation-subgraph',
+    retainedOutput:true,retainedTraversal:true,
+    steps:[
+      {from:'g',subgraph:{nodes:{from:'seeds',id:'element'}},as:'slice'},
+      {from:'slice',match_nodes:{definition:'N',where:'true',
+        fields:['id','node_name']},as:'out'},
+    ],
+    fields:['id','node_name'],secondFields:['node_name'],
+    expected:[{id:1,node_name:'first'},{id:2,node_name:'second'}],
   }, {
     name:'retained-trail-relation-filter', retainedOutput:true,
     retainedTraversal:true,
@@ -4732,6 +4754,21 @@ async function exerciseStrategyGraph(
     step:{from:'g',match_edges:{definition:'E',where:'weight > 10',
       fields:['src','dst','weight']},as:'out'},
     fields:['src','dst','weight'],
+  }, {
+    name: 'retained-relation-selected-subgraph-in-flight',
+    selectedStructural:true,
+    retainedOutput:true,rows:40,advanceQuantum:1,
+    constructionProgress:80,constructionStarts:[1],
+    cancelOnManagedStart:3,managedStarts:3,cancelTask:4,
+    minimumCompletedRows:1,completedTasks:[1,2,3],
+    steps:[
+      {from:'g',match_nodes:{definition:'N',bindings:{identity:'element'},
+        where:'true',fields:['element']},as:'selected'},
+      {from:'g',subgraph:{nodes:{from:'selected',id:'element'}},as:'slice'},
+      {from:'slice',match_nodes:{definition:'N',where:'true',
+        fields:['id','node_name']},as:'out'},
+    ],
+    fields:['id','node_name'],
   }, {
     name: 'retained-graph-normalize-in-flight',
     retainedOutput: true,
